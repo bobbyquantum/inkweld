@@ -406,6 +406,15 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
   /** Render pipeline state of the live cover, for the frames panel badge. */
   protected readonly coverStatus = this.coverSource.status;
 
+  /** Human-readable reason for a failed live cover render (tooltip param). */
+  protected readonly coverErrorReason = computed(() => {
+    const error = this.coverSource.lastError();
+    if (!error) return '';
+    return error === 'render-failed'
+      ? this.transloco.translate('canvas.frames.coverErrors.render-failed')
+      : error;
+  });
+
   /** Current zoom level (updated by Konva stage events) */
   protected readonly zoomLevel = signal<number>(1);
 

@@ -471,7 +471,7 @@
                         "
                         [matTooltip]="
                           'canvas.frames.coverStatus.' + coverStatus()
-                            | transloco
+                            | transloco: { reason: coverErrorReason() }
                         "
                         >{{
                           coverStatus() === 'error' ? 'error' : 'book'

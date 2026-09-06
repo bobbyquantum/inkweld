@@ -18,6 +18,7 @@ import type {
   CanvasText,
   CanvasToolSettings,
 } from '@models/canvas.model';
+import { canvasSizeFrame } from '@models/canvas.model';
 import { CanvasService } from '@services/canvas/canvas.service';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
@@ -319,15 +320,26 @@ export class CanvasPlacementService {
           resolve(null);
           return;
         }
+        // An image larger than the page (canvas-size frame) is scaled down
+        // to fit it, so a cover photo dropped onto a cover canvas lands
+        // inside the frame instead of spilling past its edges.
+        const page = canvasSizeFrame(this.canvasService.activeConfig()?.frames);
+        const scale = page
+          ? Math.min(
+              1,
+              page.width / img.naturalWidth,
+              page.height / img.naturalHeight
+            )
+          : 1;
         const imageObj: CanvasImage = {
           id: nanoid(),
           layerId,
           type: 'image',
-          x: center.x - img.naturalWidth / 2,
-          y: center.y - img.naturalHeight / 2,
+          x: center.x - (img.naturalWidth * scale) / 2,
+          y: center.y - (img.naturalHeight * scale) / 2,
           rotation: 0,
-          scaleX: 1,
-          scaleY: 1,
+          scaleX: scale,
+          scaleY: scale,
           visible: true,
           locked: false,
           src: createMediaUrl(result.mediaId),

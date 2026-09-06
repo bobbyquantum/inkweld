@@ -106,11 +106,16 @@ export class CanvasRasterizerService {
 
       const stage = renderer.stage;
       if (!stage) return null;
-      const dataUrl = renderStageRegion(stage, rect, options, [
-        renderer.selectionLayer,
-        renderer.previewLayer,
-        renderer.framesLayer,
-      ]);
+      const dataUrl = renderStageRegion(
+        stage,
+        rect,
+        {
+          ...options,
+          onError: error =>
+            this.logger.warn('CanvasRasterizer', 'Stage render threw', error),
+        },
+        [renderer.selectionLayer, renderer.previewLayer, renderer.framesLayer]
+      );
       if (!dataUrl) {
         this.logger.warn(
           'CanvasRasterizer',

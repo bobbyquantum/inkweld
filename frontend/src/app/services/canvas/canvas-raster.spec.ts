@@ -135,14 +135,12 @@ describe('canvas-raster', () => {
   });
 
   describe('dataUrlToBlob', () => {
-    it('decodes a data URL through fetch', async () => {
-      const blob = new Blob(['x'], { type: 'image/png' });
-      vi.spyOn(globalThis, 'fetch').mockResolvedValue({
-        blob: () => Promise.resolve(blob),
-      } as Response);
-      await expect(dataUrlToBlob('data:image/png;base64,eA==')).resolves.toBe(
-        blob
-      );
+    it('decodes a data URL without going through fetch (CSP-safe)', async () => {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch');
+      const blob = await dataUrlToBlob('data:image/jpeg;base64,eA==');
+      expect(fetchSpy).not.toHaveBeenCalled();
+      expect(blob.type).toBe('image/jpeg');
+      expect(blob.size).toBe(1);
     });
   });
 });

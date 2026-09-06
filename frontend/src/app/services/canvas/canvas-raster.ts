@@ -1,5 +1,7 @@
 import Konva from 'konva';
 
+import { base64ToBlob } from '../../utils/base64-utils';
+
 /** A rectangular region in canvas world coordinates. */
 export interface RasterRect {
   x: number;
@@ -19,6 +21,8 @@ export interface RasterOptions {
   quality?: number;
   /** Solid fill painted beneath the content, e.g. `#ffffff` for JPEG. */
   background?: string;
+  /** Receives the exception when the browser refuses to render. */
+  onError?: (error: unknown) => void;
 }
 
 /**
@@ -108,8 +112,9 @@ export function renderStageRegion(
         quality: options.quality,
       })
     );
-  } catch {
+  } catch (error) {
     // Oversized or tainted canvases throw; the caller reports failure.
+    options.onError?.(error);
     return null;
   } finally {
     backgroundLayer?.destroy();
@@ -121,8 +126,19 @@ export function renderStageRegion(
   }
 }
 
-/** Decode a data URL into a Blob. */
-export async function dataUrlToBlob(dataUrl: string): Promise<Blob> {
-  const response = await fetch(dataUrl);
-  return response.blob();
+/**
+ * Decode a data URL into a Blob.
+ *
+ * Decoded locally rather than via `fetch(dataUrl)`: the Cloudflare Pages CSP
+ * (`connect-src 'self' https: wss:`) blocks data: fetches, which silently
+ * broke cover rendering there.
+ */
+export function dataUrlToBlob(dataUrl: string): Promise<Blob> {
+  try {
+    return Promise.resolve(base64ToBlob(dataUrl));
+  } catch (error) {
+    return Promise.reject(
+      error instanceof Error ? error : new Error(String(error))
+    );
+  }
 }

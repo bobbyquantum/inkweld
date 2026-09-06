@@ -25,6 +25,7 @@ describe('CanvasPlacementService', () => {
     addObject: ReturnType<typeof vi.fn>;
     updateObject: ReturnType<typeof vi.fn>;
     createPin: ReturnType<typeof vi.fn>;
+    activeConfig: ReturnType<typeof vi.fn>;
   };
   let dialog: { open: ReturnType<typeof vi.fn> };
   let dialogGateway: { openInsertImageDialog: ReturnType<typeof vi.fn> };
@@ -53,6 +54,7 @@ describe('CanvasPlacementService', () => {
       addObject: vi.fn(),
       updateObject: vi.fn(),
       createPin: vi.fn().mockReturnValue({ id: 'p1', type: 'pin' }),
+      activeConfig: vi.fn(() => null),
     };
     dialog = { open: vi.fn() };
     dialogGateway = { openInsertImageDialog: vi.fn() };
@@ -283,7 +285,54 @@ describe('CanvasPlacementService', () => {
       }
       expect(localStorage.saveMedia).toHaveBeenCalledWith('u/s', 'm1', blob);
       expect(canvasService.addObject).toHaveBeenCalledWith(
-        expect.objectContaining({ type: 'image', name: 'm1' })
+        expect.objectContaining({ type: 'image', name: 'm1', scaleX: 1 })
+      );
+    });
+
+    it('scales an image down to fit the canvas-size frame', async () => {
+      canvasService.activeConfig.mockReturnValue({
+        frames: [
+          {
+            id: 'F1',
+            name: 'Cover',
+            kind: 'canvas',
+            x: 0,
+            y: 0,
+            width: 1000,
+            height: 1600,
+            visible: true,
+          },
+        ],
+      });
+      dialogGateway.openInsertImageDialog.mockResolvedValue({
+        mediaId: 'm2',
+        imageBlob: new Blob(['x'], { type: 'image/png' }),
+      });
+      const origImage = global.Image;
+      class FakeImage {
+        onload: (() => void) | null = null;
+        onerror: (() => void) | null = null;
+        naturalWidth = 2000;
+        naturalHeight = 1000;
+        set src(_v: string) {
+          setTimeout(() => this.onload?.(), 0);
+        }
+      }
+      (global as any).Image = FakeImage;
+      try {
+        await service.addImage(handlers);
+        await new Promise(r => setTimeout(r, 5));
+      } finally {
+        (global as any).Image = origImage;
+      }
+      // Width-bound: 1000 / 2000 = 0.5, keeps natural size in width/height.
+      expect(canvasService.addObject).toHaveBeenCalledWith(
+        expect.objectContaining({
+          width: 2000,
+          height: 1000,
+          scaleX: 0.5,
+          scaleY: 0.5,
+        })
       );
     });
   });

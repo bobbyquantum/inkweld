@@ -134,7 +134,11 @@
       "idle": "Live project cover — up to date",
       "pending": "Live project cover — will update shortly",
       "rendering": "Live project cover — updating…",
-      "error": "Live project cover — the last update failed (images from other sites can't be rendered)"
+      "error": "Live project cover — the last update failed ({{reason}})"
+    },
+    "coverErrors": {
+      "render-failed": "the browser couldn't render the frame; images from other websites can't be exported",
+      "unknown": "see the browser console for details"
     }
   },
   "export": {
