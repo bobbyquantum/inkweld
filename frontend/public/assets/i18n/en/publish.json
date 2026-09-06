@@ -15,7 +15,10 @@
     "createFirstPlan": "Create Your First Plan",
     "deleteDialogTitle": "Delete Publish Plan",
     "deleteDialogMessage": "Are you sure you want to delete \"{{name}}\"?",
-    "deletedSnackbar": "Deleted \"{{name}}\""
+    "deletedSnackbar": "Deleted \"{{name}}\"",
+    "subtitle": "Assemble documents into an EPUB, PDF, website, or Markdown export.",
+    "lastPublished": "Last published {{date}}",
+    "neverPublished": "Not published yet"
   },
   "planEditor": {
     "planName": "Plan name",
@@ -61,7 +64,33 @@
     "errorPrefix": "Error: {{message}}",
     "generatedWithStats": "{{format}} generated: {{words}} word, {{chapters}} chapter",
     "generatedWithStatsPlural": "{{format}} generated: {{words}} words, {{chapters}} chapters",
-    "generatedSuccessfully": "{{format}} generated successfully!"
+    "generatedSuccessfully": "{{format}} generated successfully!",
+    "addDocuments": "Add documents…",
+    "addDocumentsTitle": "Add documents",
+    "addDocumentsSubtitle": "Choose documents and worldbuilding entries to include in this publication",
+    "addToc": "Table of contents",
+    "addFrontmatter": "Frontmatter",
+    "addBackmatter": "Backmatter",
+    "addSeparator": "Separator",
+    "stats": {
+      "items": "Items",
+      "pages": "Pages",
+      "documents": "{{count}} documents",
+      "entries": "{{count}} entries",
+      "pagesEstimate": "~{{count}} pages",
+      "pagesHint": "Estimated at 275 words per printed page",
+      "readingHint": "Estimated reading time at 238 words per minute",
+      "readMinutes": "{{minutes}} min read",
+      "readHours": "{{hours}} h {{minutes}} min read",
+      "unavailable": "{{count}} not synced",
+      "unavailableHint": "Some documents have not been downloaded to this device yet. They will be fetched when you publish.",
+      "notSynced": "Not synced",
+      "counting": "Counting words…",
+      "refresh": "Recount words",
+      "documentsOne": "1 document",
+      "entriesOne": "1 entry",
+      "wordsHint": "Words in the plan's documents. Worldbuilding entries are listed separately and not included in the count."
+    }
   },
   "preview": {
     "emptyState": "Generate a preview of your publication",
@@ -72,7 +101,11 @@
     "phone": "Phone",
     "tablet": "Tablet",
     "desktop": "Desktop",
-    "generationFailed": "Preview generation failed"
+    "generationFailed": "Preview generation failed",
+    "upToDate": "Preview is up to date",
+    "pageCount": "{{count}} pages",
+    "noteEpub": "EPUB readers apply their own fonts and page sizes; this preview shows the content as a single flowing page.",
+    "noteSite": "The website export produces one page per chapter. This preview shows the same content as a single page."
   },
   "styleEditor": {
     "preset": "Preset",

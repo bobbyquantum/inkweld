@@ -8,9 +8,13 @@ import { createDefaultPublishStyles } from '@models/publish-style';
 import { HtmlGeneratorService } from '@services/publish/html-generator.service';
 import { MarkdownGeneratorService } from '@services/publish/markdown-generator.service';
 import { PdfGeneratorService } from '@services/publish/pdf-generator.service';
+import { type Mock } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
-import { PublishPreviewComponent } from './publish-preview.component';
+import {
+  countSvgPages,
+  PublishPreviewComponent,
+} from './publish-preview.component';
 
 describe('PublishPreviewComponent', () => {
   let component: PublishPreviewComponent;
@@ -195,5 +199,134 @@ describe('PublishPreviewComponent', () => {
     component.autoLoad = false;
     component.ngAfterViewInit();
     expect(spy).not.toHaveBeenCalled();
+  });
+
+  describe('toolbar', () => {
+    it('should show word count from the generator result', async () => {
+      (mockHtmlGenerator.generateHtml as Mock).mockResolvedValue({
+        success: true,
+        file: new Blob(['<html></html>'], { type: 'text/html' }),
+        warnings: [],
+        stats: { wordCount: 1234, chapterCount: 2 },
+      });
+      await component.generatePreview();
+      fixture.detectChanges();
+      const stats = (fixture.nativeElement as HTMLElement).querySelector(
+        '[data-testid="preview-stats"]'
+      );
+      expect(stats?.textContent).toContain('1,234');
+    });
+
+    it('should show page count for PDF previews', async () => {
+      component.plan = { ...mockPlan, format: PublishFormat.PDF_SIMPLE };
+      (mockPdfGenerator.renderSvgPreview as Mock).mockResolvedValue(
+        '<svg></svg><svg></svg><svg></svg>'
+      );
+      await component.generatePreview();
+      fixture.detectChanges();
+      const stats = (fixture.nativeElement as HTMLElement).querySelector(
+        '[data-testid="preview-stats"]'
+      );
+      expect(stats?.textContent).toContain('3');
+    });
+
+    it('should show the outdated notice and a refresh button', async () => {
+      await component.generatePreview();
+      component.outdated = true;
+      fixture.detectChanges();
+      const el = fixture.nativeElement as HTMLElement;
+      expect(
+        el.querySelector('[data-testid="preview-outdated-banner"]')
+      ).toBeTruthy();
+      expect(
+        el.querySelector('[data-testid="refresh-preview-button"]')
+      ).toBeTruthy();
+    });
+
+    it('should show a format note for EPUB and website formats only', async () => {
+      component.plan = { ...mockPlan, format: PublishFormat.EPUB };
+      await component.generatePreview();
+      fixture.detectChanges();
+      const el = fixture.nativeElement as HTMLElement;
+      expect(el.querySelector('[data-testid="preview-note"]')).toBeTruthy();
+
+      component.plan = { ...mockPlan, format: PublishFormat.HTML };
+      await component.generatePreview();
+      fixture.detectChanges();
+      expect(el.querySelector('[data-testid="preview-note"]')).toBeFalsy();
+    });
+  });
+
+  describe('autoRefresh', () => {
+    it('should re-render when outdated flips to true and autoRefresh is on', async () => {
+      await component.generatePreview();
+      const spy = vi.spyOn(component, 'generatePreview');
+      component.autoRefresh = true;
+      component.ngOnChanges({
+        outdated: {
+          currentValue: true,
+          previousValue: false,
+          firstChange: false,
+          isFirstChange: () => false,
+        },
+      });
+      expect(spy).toHaveBeenCalled();
+    });
+
+    it('should not re-render without autoRefresh or before a first render', async () => {
+      const spy = vi.spyOn(component, 'generatePreview');
+      const change = {
+        outdated: {
+          currentValue: true,
+          previousValue: false,
+          firstChange: false,
+          isFirstChange: () => false,
+        },
+      };
+      component.autoRefresh = false;
+      component.ngOnChanges(change);
+      expect(spy).not.toHaveBeenCalled();
+
+      component.autoRefresh = true;
+      component.ngOnChanges(change); // no preview yet
+      expect(spy).not.toHaveBeenCalled();
+      await Promise.resolve();
+    });
+  });
+
+  it('should ignore results from a superseded render', async () => {
+    let resolveFirst!: (value: unknown) => void;
+    (mockHtmlGenerator.generateHtml as Mock)
+      .mockReturnValueOnce(new Promise(r => (resolveFirst = r)))
+      .mockResolvedValueOnce({
+        success: true,
+        file: new Blob(['second'], { type: 'text/html' }),
+        warnings: [],
+        stats: { wordCount: 2, chapterCount: 1 },
+      });
+
+    const first = component.generatePreview();
+    const second = component.generatePreview();
+    await second;
+    resolveFirst({
+      success: true,
+      file: new Blob(['first'], { type: 'text/html' }),
+      warnings: [],
+      stats: { wordCount: 1, chapterCount: 1 },
+    });
+    await first;
+
+    expect(component['stats']()?.words).toBe(2);
+    expect(component['loading']()).toBe(false);
+  });
+});
+
+describe('countSvgPages', () => {
+  it('counts root svg elements', () => {
+    expect(countSvgPages('<svg xmlns="x"></svg><svg></svg>')).toBe(2);
+  });
+
+  it('returns 0 for empty output', () => {
+    expect(countSvgPages('')).toBe(0);
   });
 });

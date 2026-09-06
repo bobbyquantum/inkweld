@@ -1,25 +1,33 @@
 <div
   class="publish-plans-list-container"
   data-testid="publish-plans-list-container">
-  <header class="list-header">
-    <div class="header-left">
-      <mat-icon class="header-icon">auto_stories</mat-icon>
-      <h2>{{ 'publish.plansList.title' | transloco }}</h2>
+  <header class="tab-header">
+    <div class="header-text">
+      <h2>
+        <mat-icon>auto_stories</mat-icon>
+        {{ 'publish.plansList.title' | transloco }}
+      </h2>
+      <p class="hint">{{ 'publish.plansList.subtitle' | transloco }}</p>
     </div>
-    <button
-      mat-flat-button
-      color="primary"
-      (click)="createPublishPlan()"
-      data-testid="create-publish-plan-button">
-      <mat-icon>add</mat-icon>
-      {{ 'publish.plansList.newPlan' | transloco }}
-    </button>
+    @if (plans().length > 0) {
+      <button
+        mat-flat-button
+        color="primary"
+        (click)="createPublishPlan()"
+        data-testid="create-publish-plan-button">
+        <mat-icon>add</mat-icon>
+        {{ 'publish.plansList.newPlan' | transloco }}
+      </button>
+    }
   </header>
 
   @if (plans().length > 0) {
     <div class="plans-grid" data-testid="publish-plans-grid">
       @for (plan of plans(); track plan.id) {
-        <div class="plan-card" data-testid="publish-plan-card">
+        <article
+          class="plan-card"
+          [class.expanded]="expandedPlanId() === plan.id"
+          data-testid="publish-plan-card">
           <button
             type="button"
             class="plan-card-content"
@@ -27,26 +35,47 @@
             [attr.aria-label]="
               'publish.plansList.openPlan' | transloco: { name: plan.name }
             ">
-            <div class="plan-card-header">
-              <mat-icon class="plan-icon">menu_book</mat-icon>
-              <div class="plan-details">
-                <span class="plan-name" data-testid="plan-name">{{
-                  plan.name
-                }}</span>
-                <span class="plan-format">{{
+            <div class="plan-icon-wrap">
+              <mat-icon class="plan-icon">{{
+                getFormatIcon(plan.format)
+              }}</mat-icon>
+            </div>
+            <div class="plan-details">
+              <span class="plan-name" data-testid="plan-name">{{
+                plan.name
+              }}</span>
+              <span class="plan-meta">
+                <span class="format-chip">{{
                   formatFormatName(plan.format)
                 }}</span>
-              </div>
+                <span>{{
+                  (plan.items.length === 1
+                    ? 'publish.plansList.itemsCount'
+                    : 'publish.plansList.itemsCountPlural'
+                  ) | transloco: { count: plan.items.length }
+                }}</span>
+                <span class="meta-dot">·</span>
+                @if (lastPublished(plan.id); as last) {
+                  <span
+                    data-testid="plan-last-published"
+                    [matTooltip]="last.filename">
+                    {{
+                      'publish.plansList.lastPublished'
+                        | transloco: { date: formatDate(last.createdAt) }
+                    }}
+                  </span>
+                } @else {
+                  <span data-testid="plan-never-published">{{
+                    'publish.plansList.neverPublished' | transloco
+                  }}</span>
+                }
+              </span>
             </div>
-            <div class="plan-meta">
-              <span class="plan-items">{{
-                (plan.items.length === 1
-                  ? 'publish.plansList.itemsCount'
-                  : 'publish.plansList.itemsCountPlural'
-                ) | transloco: { count: plan.items.length }
-              }}</span>
-            </div>
+            <mat-icon class="open-chevron" aria-hidden="true"
+              >chevron_right</mat-icon
+            >
           </button>
+
           <div class="plan-card-actions">
             <button
               mat-icon-button
@@ -57,6 +86,7 @@
               "
               [attr.aria-expanded]="expandedPlanId() === plan.id"
               [attr.aria-controls]="'history-' + plan.id"
+              [disabled]="getHistoryForPlan(plan.id).length === 0"
               data-testid="toggle-history-button">
               <mat-icon>{{
                 expandedPlanId() === plan.id ? 'expand_less' : 'history'
@@ -64,7 +94,6 @@
             </button>
             <button
               mat-icon-button
-              color="warn"
               (click)="deletePublishPlan($event, plan)"
               [matTooltip]="'publish.plansList.deletePlan' | transloco"
               [attr.aria-label]="
@@ -82,10 +111,12 @@
               [id]="'history-' + plan.id"
               data-testid="plan-history">
               @if (getHistoryForPlan(plan.id).length > 0) {
-                <div class="history-list">
+                <ul class="history-list">
                   @for (file of getHistoryForPlan(plan.id); track file.id) {
-                    <div class="history-item" data-testid="history-item">
-                      <mat-icon class="history-icon">download</mat-icon>
+                    <li class="history-item" data-testid="history-item">
+                      <mat-icon class="history-icon">{{
+                        getFormatIcon(file.format)
+                      }}</mat-icon>
                       <div class="history-details">
                         <span class="history-filename">{{
                           file.filename
@@ -95,9 +126,9 @@
                           {{ file.size | fileSize }}
                         </span>
                       </div>
-                    </div>
+                    </li>
                   }
-                </div>
+                </ul>
               } @else {
                 <p class="no-history">
                   {{ 'publish.plansList.noHistory' | transloco }}
@@ -105,21 +136,19 @@
               }
             </div>
           }
-        </div>
+        </article>
       }
     </div>
   } @else {
     <div class="empty-state" data-testid="empty-plans-state">
       <mat-icon>auto_stories</mat-icon>
       <h3>{{ 'publish.plansList.noPlans' | transloco }}</h3>
-      <p>
-        {{ 'publish.plansList.noPlansHint' | transloco }}
-      </p>
+      <p>{{ 'publish.plansList.noPlansHint' | transloco }}</p>
       <button
         mat-flat-button
         color="primary"
         (click)="createPublishPlan()"
-        data-testid="empty-create-plan-button">
+        data-testid="create-publish-plan-button">
         <mat-icon>add</mat-icon>
         {{ 'publish.plansList.createFirstPlan' | transloco }}
       </button>

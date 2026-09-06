@@ -8,6 +8,7 @@ import {
   SharePermission,
   type UpdatePublishedFileRequest,
 } from '../../models/published-file';
+import { AuthTokenService } from '../auth/auth-token.service';
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
 import { StorageContextService } from '../core/storage-context.service';
@@ -41,6 +42,7 @@ const PUBLISHED_BLOB_PREFIX = 'published-';
 })
 export class PublishedFilesService {
   private readonly localStorage = inject(LocalStorageService);
+  private readonly authTokenService = inject(AuthTokenService);
   private readonly logger = inject(LoggerService);
   private readonly setupService = inject(SetupService);
   private readonly storageContext = inject(StorageContextService);
@@ -70,6 +72,22 @@ export class PublishedFilesService {
    */
   private getServerUrl(): string {
     return this.setupService.getServerUrl() || globalThis.location.origin;
+  }
+
+  /**
+   * Headers for direct `fetch` calls to the API.
+   *
+   * The API lives on a separate origin in hosted deployments, so cookies are
+   * not sent; authentication is a bearer token, exactly as the HTTP
+   * interceptor attaches for HttpClient requests.
+   */
+  private authHeaders(extra: Record<string, string> = {}): HeadersInit {
+    const headers: Record<string, string> = { ...extra };
+    const token = this.authTokenService.getToken();
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    return headers;
   }
 
   /**
@@ -380,6 +398,7 @@ export class PublishedFilesService {
       const response = await fetch(
         `${this.getServerUrl()}/api/v1/projects/${username}/${slug}/published`,
         {
+          headers: this.authHeaders(),
           credentials: 'include',
         }
       );
@@ -409,6 +428,7 @@ export class PublishedFilesService {
         `${this.getServerUrl()}/api/v1/projects/${username}/${slug}/published`,
         {
           method: 'POST',
+          headers: this.authHeaders(),
           body: formData,
           credentials: 'include',
         }
@@ -433,6 +453,7 @@ export class PublishedFilesService {
       const response = await fetch(
         `${this.getServerUrl()}/api/v1/projects/${username}/${slug}/published/${fileId}`,
         {
+          headers: this.authHeaders(),
           credentials: 'include',
         }
       );
@@ -457,7 +478,7 @@ export class PublishedFilesService {
       `${this.getServerUrl()}/api/v1/projects/${username}/${slug}/published/${fileId}`,
       {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: this.authHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify(request),
         credentials: 'include',
       }
@@ -473,6 +494,7 @@ export class PublishedFilesService {
       `${this.getServerUrl()}/api/v1/projects/${username}/${slug}/published/${fileId}`,
       {
         method: 'DELETE',
+        headers: this.authHeaders(),
         credentials: 'include',
       }
     );

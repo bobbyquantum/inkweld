@@ -26,25 +26,34 @@ A publish plan saves your export configuration so you can generate consistent ou
 
 ### Metadata Section
 
-| Field | Purpose |
-|-------|---------|
-| **Plan Name** | Internal name (e.g., "Final EPUB") |
-| **Format** | Output format |
-| **Book Title** | Title in the exported file |
-| **Author** | Author name |
-| **Language** | Content language code (e.g., "en") |
-| **Description** | Back cover blurb or summary |
+| Field           | Purpose                            |
+| --------------- | ---------------------------------- |
+| **Plan Name**   | Internal name (e.g., "Final EPUB") |
+| **Format**      | Output format                      |
+| **Book Title**  | Title in the exported file         |
+| **Author**      | Author name                        |
+| **Language**    | Content language code (e.g., "en") |
+| **Description** | Back cover blurb or summary        |
 
 ### Contents Section
 
 Add documents to your publication:
 
-1. Use the dropdown to select a document
-2. It appears in the content list
-3. Drag items to reorder
+1. Drag documents from the project tree into the list, or use the **Add** menu to pick documents, add everything at once, or insert a table of contents, frontmatter, backmatter, or separators
+2. Items appear in the content list in publication order
+3. Drag items (or use the arrow buttons) to reorder
 4. Click the trash icon to remove
 
-Click **Add TOC** to insert a table of contents entry.
+#### Statistics
+
+The Contents section shows what you are about to publish:
+
+- **Summary chips** above the list give the number of documents and worldbuilding entries, total word count, an estimated page count (275 words per page), and an estimated reading time
+- **Per-item word counts** appear on each document row
+- **Not synced** marks documents that have not been downloaded to this device yet; they are fetched automatically when you publish
+- Use the **Recount words** button if you have edited documents since opening the plan
+
+The same item, word, and page totals appear at the bottom of the plan's sidebar, next to a **Generate** button, so you can publish from any section.
 
 ### Options Section
 
@@ -61,13 +70,22 @@ Click **Add TOC** to insert a table of contents entry.
 
 The generated file is also saved to your Media Library under "Published."
 
+## Preview
+
+The **Preview** section renders the plan in your browser without saving a file:
+
+- The toolbar shows whether the preview is current or the plan has changed since it was rendered, plus the rendered word count (and page count for PDF)
+- For HTML and EPUB formats, switch between phone, tablet, and desktop widths
+- Click **Refresh** to re-render after making changes
+
 ## Managing Plans
 
-Plans appear on your project home page. Click a plan to open and edit it.
+Plans are listed in the **Publishing** tab. Each card shows the plan's format, item count, and when it was last published; click a card to open and edit it, or expand its history to see previous exports.
 
-**Save/Discard**: Changes show Save and Discard buttons. Click Save to persist changes.
+Changes to a plan are saved automatically as you edit.
 
 **Multiple Plans**: Create different plans for different purposes:
+
 - "Manuscript PDF" for editors
 - "Beta EPUB" for early readers
 - "Archive Markdown" for backup

@@ -10,6 +10,7 @@ import {
   type PublishedFileMetadata,
   SharePermission,
 } from '../../models/published-file';
+import { AuthTokenService } from '../auth/auth-token.service';
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
 import { StorageContextService } from '../core/storage-context.service';
@@ -127,6 +128,30 @@ describe('PublishedFilesService', () => {
 
       expect(files).toHaveLength(0);
       expect(logger.warn).toHaveBeenCalled();
+    });
+
+    it('should send the bearer token on server requests', async () => {
+      setupService.getMode.mockReturnValue('server');
+      window.localStorage.setItem(
+        TestBed.inject(AuthTokenService)['getTokenKey'](),
+        'secret-token'
+      );
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue({
+          ok: true,
+          json: () => Promise.resolve([]),
+        })
+      );
+
+      await service.loadFiles(mockProjectKey);
+
+      expect(fetch).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          headers: { Authorization: 'Bearer secret-token' },
+        })
+      );
     });
 
     it('should fetch from server when in online mode', async () => {
