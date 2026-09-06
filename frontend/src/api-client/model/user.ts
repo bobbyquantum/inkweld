@@ -7,6 +7,7 @@
  * https://openapi-generator.tech
  * Do not edit the class manually.
  */
+import { ProfileVisibility } from './profile-visibility';
 
 export interface User {
   id: string;
@@ -21,6 +22,13 @@ export interface User {
    * How the user authenticates
    */
   authProvider?: UserAuthProvider;
+  /**
+   * Short profile blurb
+   */
+  bio?: string | null;
+  profileVisibility?: ProfileVisibility;
+  activityVisibility?: ProfileVisibility;
+  projectsVisibility?: ProfileVisibility;
 }
 export enum UserAuthProvider {
   Local = 'local',

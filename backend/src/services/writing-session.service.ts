@@ -1,4 +1,4 @@
-import { eq, and, isNull, desc, gte, sql } from 'drizzle-orm';
+import { eq, and, isNull, desc, gte, gt, lt, sql } from 'drizzle-orm';
 import type { DatabaseInstance } from '../types/context';
 import type { D1DatabaseInstance } from '../db/d1';
 import {
@@ -227,6 +227,57 @@ class WritingSessionService {
       if (r.ts) map.set(r.projectId, Number(r.ts));
     }
     return map;
+  }
+
+  /**
+   * Finished sessions with a positive delta for one user across every
+   * project, whose `sessionEnd` falls inside [fromMs, toMs). Used by the
+   * profile activity grid, which buckets the rows by day in the viewer's
+   * timezone — so bucketing is left to the caller here.
+   */
+  async positiveSessionsForUserBetween(
+    db: DatabaseInstance,
+    userId: string,
+    fromMs: number,
+    toMs: number
+  ): Promise<Array<{ sessionEnd: number; wordsDelta: number }>> {
+    const rows = await (db as D1DatabaseInstance)
+      .select({
+        sessionEnd: writingSessions.sessionEnd,
+        wordsDelta: writingSessions.wordsDelta,
+      })
+      .from(writingSessions)
+      .where(
+        and(
+          eq(writingSessions.userId, userId),
+          gte(writingSessions.sessionEnd, fromMs),
+          lt(writingSessions.sessionEnd, toMs),
+          gt(writingSessions.wordsDelta, 0)
+        )
+      );
+    return rows.filter(
+      (r): r is { sessionEnd: number; wordsDelta: number } =>
+        r.sessionEnd !== null && r.wordsDelta !== null
+    );
+  }
+
+  /**
+   * Earliest finished-session timestamp with a positive delta for a user, or
+   * null when they have never written anything. Drives the year picker on
+   * the profile.
+   */
+  async firstPositiveSessionForUser(
+    db: DatabaseInstance,
+    userId: string
+  ): Promise<{ firstMs: number } | null> {
+    const [row] = await (db as D1DatabaseInstance)
+      .select({
+        firstMs: sql<number | null>`MIN(${writingSessions.sessionEnd})`,
+      })
+      .from(writingSessions)
+      .where(and(eq(writingSessions.userId, userId), gt(writingSessions.wordsDelta, 0)));
+    if (!row || row.firstMs === null) return null;
+    return { firstMs: Number(row.firstMs) };
   }
 
   /** Most recent N sessions for a project (for an "active editors" indicator). */

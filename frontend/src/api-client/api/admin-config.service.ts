@@ -381,7 +381,7 @@ export class AdminConfigService extends BaseService {
    * @param reportProgress flag to report request and response progress.
    */
   public adminGetConfigByCategory(
-    category: 'auth' | 'ai' | 'github' | 'email' | 'general',
+    category: 'auth' | 'ai' | 'github' | 'email' | 'appearance' | 'general',
     observe?: 'body',
     reportProgress?: boolean,
     options?: {
@@ -391,7 +391,7 @@ export class AdminConfigService extends BaseService {
     }
   ): Observable<{ [key: string]: AdminGetAllConfig200ResponseValue }>;
   public adminGetConfigByCategory(
-    category: 'auth' | 'ai' | 'github' | 'email' | 'general',
+    category: 'auth' | 'ai' | 'github' | 'email' | 'appearance' | 'general',
     observe?: 'response',
     reportProgress?: boolean,
     options?: {
@@ -403,7 +403,7 @@ export class AdminConfigService extends BaseService {
     HttpResponse<{ [key: string]: AdminGetAllConfig200ResponseValue }>
   >;
   public adminGetConfigByCategory(
-    category: 'auth' | 'ai' | 'github' | 'email' | 'general',
+    category: 'auth' | 'ai' | 'github' | 'email' | 'appearance' | 'general',
     observe?: 'events',
     reportProgress?: boolean,
     options?: {
@@ -415,7 +415,7 @@ export class AdminConfigService extends BaseService {
     HttpEvent<{ [key: string]: AdminGetAllConfig200ResponseValue }>
   >;
   public adminGetConfigByCategory(
-    category: 'auth' | 'ai' | 'github' | 'email' | 'general',
+    category: 'auth' | 'ai' | 'github' | 'email' | 'appearance' | 'general',
     observe: any = 'body',
     reportProgress: boolean = false,
     options?: {
@@ -468,7 +468,7 @@ export class AdminConfigService extends BaseService {
       }
     }
 
-    let localVarPath = `/api/v1/admin/config/category/${this.configuration.encodeParam({ name: 'category', value: category, in: 'path', style: 'simple', explode: false, dataType: "'auth' | 'ai' | 'github' | 'email' | 'general'", dataFormat: undefined })}`;
+    let localVarPath = `/api/v1/admin/config/category/${this.configuration.encodeParam({ name: 'category', value: category, in: 'path', style: 'simple', explode: false, dataType: "'auth' | 'ai' | 'github' | 'email' | 'appearance' | 'general'", dataFormat: undefined })}`;
     const { basePath, withCredentials } = this.configuration;
     return this.httpClient.request<{
       [key: string]: AdminGetAllConfig200ResponseValue;

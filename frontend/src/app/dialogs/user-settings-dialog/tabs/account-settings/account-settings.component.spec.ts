@@ -1,6 +1,8 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { provideRouter } from '@angular/router';
+import { ProfileVisibility } from '@inkweld/model/profile-visibility';
 import { SystemConfigService } from '@services/core/system-config.service';
 import { UserService } from '@services/user/user.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -58,6 +60,7 @@ describe('AccountSettingsComponent (dialog tab)', () => {
       imports: [translocoTestProvider(), AccountSettingsComponent],
       providers: [
         provideZonelessChangeDetection(),
+        provideRouter([]),
         { provide: UserService, useValue: mockUserService },
         { provide: SystemConfigService, useValue: mockSystemConfig },
       ],
@@ -294,6 +297,107 @@ describe('AccountSettingsComponent (dialog tab)', () => {
       const el: HTMLElement = fixture.nativeElement;
       const section = el.querySelector('[data-testid="auth-provider-section"]');
       expect(section).toBeFalsy();
+    });
+  });
+
+  describe('public profile section', () => {
+    it('defaults to a private profile when the user has no settings yet', () => {
+      expect(component.bio).toBe('');
+      expect(component.profileVisibility).toBe(ProfileVisibility.Private);
+      expect(component.activityVisibility).toBe(ProfileVisibility.Public);
+      expect(component.projectsVisibility).toBe(ProfileVisibility.Private);
+      const el: HTMLElement = fixture.nativeElement;
+      expect(
+        el.querySelector('[data-testid="public-profile-section"]')
+      ).toBeTruthy();
+      // Section pickers are irrelevant for a private profile.
+      expect(
+        el.querySelector('[data-testid="profile-sections-group"]')
+      ).toBeNull();
+    });
+
+    it('hides the section entirely in local mode', () => {
+      mockSystemConfig.isLocalMode.mockReturnValue(true);
+      fixture = TestBed.createComponent(AccountSettingsComponent);
+      fixture.detectChanges();
+      expect(
+        fixture.nativeElement.querySelector(
+          '[data-testid="public-profile-section"]'
+        )
+      ).toBeNull();
+    });
+
+    it('populates bio and visibility from the current user', () => {
+      mockUserService.currentUser.mockReturnValue({
+        id: '1',
+        username: 'testuser',
+        enabled: true,
+        bio: 'Hello',
+        profileVisibility: ProfileVisibility.Public,
+        activityVisibility: ProfileVisibility.Members,
+        projectsVisibility: ProfileVisibility.Public,
+      });
+      fixture = TestBed.createComponent(AccountSettingsComponent);
+      fixture.detectChanges();
+      const c = fixture.componentInstance;
+      expect(c.bio).toBe('Hello');
+      expect(c.profileVisibility).toBe(ProfileVisibility.Public);
+      expect(c.activityVisibility).toBe(ProfileVisibility.Members);
+      expect(c.projectsVisibility).toBe(ProfileVisibility.Public);
+      expect(
+        fixture.nativeElement.querySelector(
+          '[data-testid="profile-sections-group"]'
+        )
+      ).toBeTruthy();
+    });
+
+    it('only offers section levels at least as strict as the profile', () => {
+      component.onProfileVisibilityChange(ProfileVisibility.Public);
+      expect(component.sectionLevels()).toEqual([
+        ProfileVisibility.Public,
+        ProfileVisibility.Members,
+        ProfileVisibility.Private,
+      ]);
+      component.onProfileVisibilityChange(ProfileVisibility.Members);
+      expect(component.sectionLevels()).toEqual([
+        ProfileVisibility.Members,
+        ProfileVisibility.Private,
+      ]);
+    });
+
+    it('pulls wider section levels down when the profile narrows', () => {
+      component.onProfileVisibilityChange(ProfileVisibility.Public);
+      component.activityVisibility = ProfileVisibility.Public;
+      component.projectsVisibility = ProfileVisibility.Private;
+
+      component.onProfileVisibilityChange(ProfileVisibility.Members);
+      expect(component.activityVisibility).toBe(ProfileVisibility.Members);
+      // Already stricter — left alone.
+      expect(component.projectsVisibility).toBe(ProfileVisibility.Private);
+    });
+
+    it('saves only the changed profile fields', async () => {
+      component.bio = '  Slow-burn fantasy.  ';
+      component.onProfileVisibilityChange(ProfileVisibility.Public);
+      component.activityVisibility = ProfileVisibility.Members;
+      await component.saveProfile();
+
+      expect(mockUserService.updateProfile).toHaveBeenCalledWith({
+        bio: 'Slow-burn fantasy.',
+        profileVisibility: ProfileVisibility.Public,
+        activityVisibility: ProfileVisibility.Members,
+      });
+    });
+
+    it('does not send profile fields in local mode', async () => {
+      mockSystemConfig.isLocalMode.mockReturnValue(true);
+      component.bio = 'x';
+      component.onProfileVisibilityChange(ProfileVisibility.Public);
+      component.displayName = 'New Name';
+      await component.saveProfile();
+      expect(mockUserService.updateProfile).toHaveBeenCalledWith({
+        name: 'New Name',
+      });
     });
   });
 });

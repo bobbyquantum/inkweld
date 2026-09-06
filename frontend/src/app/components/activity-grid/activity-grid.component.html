@@ -1,0 +1,158 @@
+<section class="activity-grid" data-testid="activity-grid">
+  <header class="grid-header">
+    <h3 class="grid-summary" data-testid="activity-summary">
+      @if (data(); as d) {
+        {{
+          'settings.profilePage.wordsInYear'
+            | transloco: { count: (d.totalWords | number), year: d.year }
+        }}
+      } @else {
+        {{ 'settings.profilePage.activityTitle' | transloco }}
+      }
+    </h3>
+    @if (data(); as d) {
+      <ul class="streaks" aria-label="Streaks">
+        <li>
+          <mat-icon>event_available</mat-icon>
+          <strong>{{ d.activeDays }}</strong>
+          {{ 'settings.profilePage.activeDays' | transloco }}
+        </li>
+        <li>
+          <mat-icon>local_fire_department</mat-icon>
+          <strong>{{ d.currentStreak }}</strong>
+          {{ 'settings.profilePage.currentStreak' | transloco }}
+        </li>
+        <li>
+          <mat-icon>emoji_events</mat-icon>
+          <strong>{{ d.longestStreak }}</strong>
+          {{ 'settings.profilePage.longestStreak' | transloco }}
+        </li>
+      </ul>
+    }
+  </header>
+
+  <div class="grid-body">
+    <div class="grid-scroller" (mouseleave)="onGridLeave()">
+      @if (loading()) {
+        <div class="grid-loading" data-testid="activity-loading">
+          <mat-spinner diameter="24" />
+        </div>
+      }
+      @if (cells().length > 0) {
+        <svg
+          class="grid-svg"
+          [class.dimmed]="loading()"
+          [style.max-width.px]="svgWidth()"
+          [attr.viewBox]="'0 0 ' + svgWidth() + ' ' + svgHeight()"
+          role="img"
+          [attr.aria-label]="
+            'settings.profilePage.gridAria' | transloco: { year: data()?.year }
+          "
+          data-testid="activity-svg">
+          @for (m of monthLabels(); track m.col) {
+            <text
+              class="month-label"
+              [attr.x]="LEFT_GUTTER + m.col * STEP"
+              [attr.y]="TOP_GUTTER - 6">
+              {{ m.label }}
+            </text>
+          }
+          @for (w of weekdayLabels(); track w.row) {
+            <text
+              class="weekday-label"
+              [attr.x]="0"
+              [attr.y]="TOP_GUTTER + w.row * STEP + CELL - 1">
+              {{ w.label }}
+            </text>
+          }
+          @for (cell of cells(); track $index) {
+            @if (cell.day) {
+              <rect
+                class="cell"
+                data-testid="activity-cell"
+                [attr.data-level]="cell.level"
+                [attr.data-day]="cell.day"
+                [attr.x]="cellX(cell)"
+                [attr.y]="cellY(cell)"
+                [attr.width]="CELL"
+                [attr.height]="CELL"
+                rx="2"
+                (mouseenter)="onCellEnter(cell, $event)">
+                <title>
+                  {{
+                    cell.words > 0
+                      ? ('settings.profilePage.tooltipWords'
+                        | transloco
+                          : {
+                              count: (cell.words | number),
+                              date: formatDay(cell.day),
+                            })
+                      : ('settings.profilePage.tooltipNone'
+                        | transloco: { date: formatDay(cell.day) })
+                  }}
+                </title>
+              </rect>
+            }
+          }
+        </svg>
+      } @else if (!loading()) {
+        <p class="grid-empty" data-testid="activity-empty">
+          {{ 'settings.profilePage.noActivity' | transloco }}
+        </p>
+      }
+
+      @if (hovered(); as h) {
+        <div
+          class="grid-tooltip"
+          role="tooltip"
+          data-testid="activity-tooltip"
+          [style.left.px]="h.x"
+          [style.top.px]="h.y">
+          @if (h.cell.words > 0) {
+            <strong>{{
+              'settings.profilePage.tooltipWords'
+                | transloco
+                  : {
+                      count: (h.cell.words | number),
+                      date: formatDay(h.cell.day!),
+                    }
+            }}</strong>
+            <span class="tooltip-sub">{{
+              'settings.profilePage.tooltipSessions'
+                | transloco: { count: h.cell.sessions }
+            }}</span>
+          } @else {
+            {{
+              'settings.profilePage.tooltipNone'
+                | transloco: { date: formatDay(h.cell.day!) }
+            }}
+          }
+        </div>
+      }
+    </div>
+
+    @if (years().length > 1) {
+      <nav class="year-picker" aria-label="Year">
+        @for (y of years(); track y) {
+          <button
+            type="button"
+            class="year-button"
+            [class.active]="y === data()?.year"
+            [attr.aria-pressed]="y === data()?.year"
+            [attr.data-testid]="'activity-year-' + y"
+            (click)="selectYear(y)">
+            {{ y }}
+          </button>
+        }
+      </nav>
+    }
+  </div>
+
+  <footer class="grid-legend">
+    <span>{{ 'settings.profilePage.less' | transloco }}</span>
+    @for (level of legendLevels; track level) {
+      <span class="legend-cell" [attr.data-level]="level"></span>
+    }
+    <span>{{ 'settings.profilePage.more' | transloco }}</span>
+  </footer>
+</section>

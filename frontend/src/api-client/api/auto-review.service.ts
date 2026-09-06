@@ -33,6 +33,8 @@ import { AutoReviewResponse } from '../model/auto-review-response';
 // @ts-ignore
 import { AutoReviewResult } from '../model/auto-review-result';
 // @ts-ignore
+import { GetAutoReviewRejections200Response } from '../model/get-auto-review-rejections200-response';
+// @ts-ignore
 import { RejectAutoReviewSuggestionRequest } from '../model/reject-auto-review-suggestion-request';
 
 // @ts-ignore
@@ -312,6 +314,264 @@ export class AutoReviewService extends BaseService {
     const { basePath, withCredentials } = this.configuration;
     return this.httpClient.request<AutoReviewResult>(
       'post',
+      `${basePath}${localVarPath}`,
+      {
+        context: localVarHttpContext,
+        responseType: <any>responseType_,
+        ...(withCredentials ? { withCredentials } : {}),
+        headers: localVarHeaders,
+        observe: observe,
+        ...(localVarTransferCache !== undefined
+          ? { transferCache: localVarTransferCache }
+          : {}),
+        reportProgress: reportProgress,
+      }
+    );
+  }
+
+  /**
+   * @endpoint delete /api/v1/projects/{username}/{slug}/docs/{docId}/auto-review/rejections
+   * @param username Username
+   * @param slug Project slug
+   * @param docId Document element ID
+   * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
+   * @param reportProgress flag to report request and response progress.
+   */
+  public deleteAutoReviewRejections(
+    username: string,
+    slug: string,
+    docId: string,
+    observe?: 'body',
+    reportProgress?: boolean,
+    options?: {
+      httpHeaderAccept?: 'application/json';
+      context?: HttpContext;
+      transferCache?: boolean;
+    }
+  ): Observable<AutoReviewResult>;
+  public deleteAutoReviewRejections(
+    username: string,
+    slug: string,
+    docId: string,
+    observe?: 'response',
+    reportProgress?: boolean,
+    options?: {
+      httpHeaderAccept?: 'application/json';
+      context?: HttpContext;
+      transferCache?: boolean;
+    }
+  ): Observable<HttpResponse<AutoReviewResult>>;
+  public deleteAutoReviewRejections(
+    username: string,
+    slug: string,
+    docId: string,
+    observe?: 'events',
+    reportProgress?: boolean,
+    options?: {
+      httpHeaderAccept?: 'application/json';
+      context?: HttpContext;
+      transferCache?: boolean;
+    }
+  ): Observable<HttpEvent<AutoReviewResult>>;
+  public deleteAutoReviewRejections(
+    username: string,
+    slug: string,
+    docId: string,
+    observe: any = 'body',
+    reportProgress: boolean = false,
+    options?: {
+      httpHeaderAccept?: 'application/json';
+      context?: HttpContext;
+      transferCache?: boolean;
+    }
+  ): Observable<any> {
+    if (username === null || username === undefined) {
+      throw new Error(
+        'Required parameter username was null or undefined when calling deleteAutoReviewRejections.'
+      );
+    }
+    if (slug === null || slug === undefined) {
+      throw new Error(
+        'Required parameter slug was null or undefined when calling deleteAutoReviewRejections.'
+      );
+    }
+    if (docId === null || docId === undefined) {
+      throw new Error(
+        'Required parameter docId was null or undefined when calling deleteAutoReviewRejections.'
+      );
+    }
+
+    let localVarHeaders = this.defaultHeaders;
+
+    // authentication (bearerAuth) required
+    localVarHeaders = this.configuration.addCredentialToHeaders(
+      'bearerAuth',
+      'Authorization',
+      localVarHeaders,
+      'Bearer '
+    );
+
+    const localVarHttpHeaderAcceptSelected: string | undefined =
+      options?.httpHeaderAccept ??
+      this.configuration.selectHeaderAccept(['application/json']);
+    if (localVarHttpHeaderAcceptSelected !== undefined) {
+      localVarHeaders = localVarHeaders.set(
+        'Accept',
+        localVarHttpHeaderAcceptSelected
+      );
+    }
+
+    const localVarHttpContext: HttpContext =
+      options?.context ?? new HttpContext();
+
+    const localVarTransferCache: boolean = options?.transferCache ?? true;
+
+    let responseType_: 'text' | 'json' | 'blob' = 'json';
+    if (localVarHttpHeaderAcceptSelected) {
+      if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
+        responseType_ = 'text';
+      } else if (
+        this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)
+      ) {
+        responseType_ = 'json';
+      } else {
+        responseType_ = 'blob';
+      }
+    }
+
+    let localVarPath = `/api/v1/projects/${this.configuration.encodeParam({ name: 'username', value: username, in: 'path', style: 'simple', explode: false, dataType: 'string', dataFormat: undefined })}/${this.configuration.encodeParam({ name: 'slug', value: slug, in: 'path', style: 'simple', explode: false, dataType: 'string', dataFormat: undefined })}/docs/${this.configuration.encodeParam({ name: 'docId', value: docId, in: 'path', style: 'simple', explode: false, dataType: 'string', dataFormat: undefined })}/auto-review/rejections`;
+    const { basePath, withCredentials } = this.configuration;
+    return this.httpClient.request<AutoReviewResult>(
+      'delete',
+      `${basePath}${localVarPath}`,
+      {
+        context: localVarHttpContext,
+        responseType: <any>responseType_,
+        ...(withCredentials ? { withCredentials } : {}),
+        headers: localVarHeaders,
+        observe: observe,
+        ...(localVarTransferCache !== undefined
+          ? { transferCache: localVarTransferCache }
+          : {}),
+        reportProgress: reportProgress,
+      }
+    );
+  }
+
+  /**
+   * @endpoint get /api/v1/projects/{username}/{slug}/docs/{docId}/auto-review/rejections
+   * @param username Username
+   * @param slug Project slug
+   * @param docId Document element ID
+   * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
+   * @param reportProgress flag to report request and response progress.
+   */
+  public getAutoReviewRejections(
+    username: string,
+    slug: string,
+    docId: string,
+    observe?: 'body',
+    reportProgress?: boolean,
+    options?: {
+      httpHeaderAccept?: 'application/json';
+      context?: HttpContext;
+      transferCache?: boolean;
+    }
+  ): Observable<GetAutoReviewRejections200Response>;
+  public getAutoReviewRejections(
+    username: string,
+    slug: string,
+    docId: string,
+    observe?: 'response',
+    reportProgress?: boolean,
+    options?: {
+      httpHeaderAccept?: 'application/json';
+      context?: HttpContext;
+      transferCache?: boolean;
+    }
+  ): Observable<HttpResponse<GetAutoReviewRejections200Response>>;
+  public getAutoReviewRejections(
+    username: string,
+    slug: string,
+    docId: string,
+    observe?: 'events',
+    reportProgress?: boolean,
+    options?: {
+      httpHeaderAccept?: 'application/json';
+      context?: HttpContext;
+      transferCache?: boolean;
+    }
+  ): Observable<HttpEvent<GetAutoReviewRejections200Response>>;
+  public getAutoReviewRejections(
+    username: string,
+    slug: string,
+    docId: string,
+    observe: any = 'body',
+    reportProgress: boolean = false,
+    options?: {
+      httpHeaderAccept?: 'application/json';
+      context?: HttpContext;
+      transferCache?: boolean;
+    }
+  ): Observable<any> {
+    if (username === null || username === undefined) {
+      throw new Error(
+        'Required parameter username was null or undefined when calling getAutoReviewRejections.'
+      );
+    }
+    if (slug === null || slug === undefined) {
+      throw new Error(
+        'Required parameter slug was null or undefined when calling getAutoReviewRejections.'
+      );
+    }
+    if (docId === null || docId === undefined) {
+      throw new Error(
+        'Required parameter docId was null or undefined when calling getAutoReviewRejections.'
+      );
+    }
+
+    let localVarHeaders = this.defaultHeaders;
+
+    // authentication (bearerAuth) required
+    localVarHeaders = this.configuration.addCredentialToHeaders(
+      'bearerAuth',
+      'Authorization',
+      localVarHeaders,
+      'Bearer '
+    );
+
+    const localVarHttpHeaderAcceptSelected: string | undefined =
+      options?.httpHeaderAccept ??
+      this.configuration.selectHeaderAccept(['application/json']);
+    if (localVarHttpHeaderAcceptSelected !== undefined) {
+      localVarHeaders = localVarHeaders.set(
+        'Accept',
+        localVarHttpHeaderAcceptSelected
+      );
+    }
+
+    const localVarHttpContext: HttpContext =
+      options?.context ?? new HttpContext();
+
+    const localVarTransferCache: boolean = options?.transferCache ?? true;
+
+    let responseType_: 'text' | 'json' | 'blob' = 'json';
+    if (localVarHttpHeaderAcceptSelected) {
+      if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
+        responseType_ = 'text';
+      } else if (
+        this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)
+      ) {
+        responseType_ = 'json';
+      } else {
+        responseType_ = 'blob';
+      }
+    }
+
+    let localVarPath = `/api/v1/projects/${this.configuration.encodeParam({ name: 'username', value: username, in: 'path', style: 'simple', explode: false, dataType: 'string', dataFormat: undefined })}/${this.configuration.encodeParam({ name: 'slug', value: slug, in: 'path', style: 'simple', explode: false, dataType: 'string', dataFormat: undefined })}/docs/${this.configuration.encodeParam({ name: 'docId', value: docId, in: 'path', style: 'simple', explode: false, dataType: 'string', dataFormat: undefined })}/auto-review/rejections`;
+    const { basePath, withCredentials } = this.configuration;
+    return this.httpClient.request<GetAutoReviewRejections200Response>(
+      'get',
       `${basePath}${localVarPath}`,
       {
         context: localVarHttpContext,

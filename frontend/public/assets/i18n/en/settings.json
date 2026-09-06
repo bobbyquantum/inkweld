@@ -31,7 +31,32 @@
     "save": "Save",
     "noChanges": "No changes to save",
     "profileUpdated": "Profile updated",
-    "updateFailed": "Failed to update profile"
+    "updateFailed": "Failed to update profile",
+    "publicProfile": {
+      "title": "Public profile",
+      "description": "Control who can find your profile page and what they see on it.",
+      "bioLabel": "Bio",
+      "bioPlaceholder": "A line or two about what you write",
+      "bioHint": "Shown at the top of your profile. Up to 500 characters.",
+      "visibilityLabel": "Who can see your profile",
+      "levels": {
+        "public": "Public",
+        "members": "Members only",
+        "private": "Private"
+      },
+      "levelHelp": {
+        "public": "Anyone with the link, including people who are not signed in.",
+        "members": "Only people signed in to this Inkweld server.",
+        "private": "Only you, plus server administrators for moderation. Everyone else sees a private-profile notice."
+      },
+      "sectionsLabel": "What is shown on your profile",
+      "sectionsHint": "A section can be more private than your profile, but never more public.",
+      "activityLabel": "Writing activity",
+      "activityHint": "The day-by-day grid of words written, streaks and yearly totals.",
+      "projectsLabel": "Projects",
+      "projectsHint": "Titles and descriptions of the projects you own.",
+      "viewProfile": "View my profile"
+    }
   },
   "authorizedAppsTab": {
     "title": "Authorized Applications",
@@ -200,5 +225,35 @@
     "saveFailed": "Failed to save background choice",
     "invalidType": "Choose a PNG, JPEG, WebP, GIF or AVIF image",
     "tooLarge": "Image is too large (max 12MB)"
+  },
+  "profilePage": {
+    "editProfile": "Edit profile",
+    "privateTitle": "This profile is private",
+    "privateDescription": "The owner has chosen not to share their profile.",
+    "membersOnlyHint": "Sign in to check whether you can see it.",
+    "notFoundTitle": "User not found",
+    "notFoundDescription": "There is no one here with that username.",
+    "visibilityBadge": {
+      "public": "Public profile",
+      "members": "Visible to members",
+      "private": "Private profile"
+    },
+    "visibilityBadgeHint": "Only you can see this badge. Change it under Edit profile.",
+    "activityTitle": "Writing activity",
+    "projectsTitle": "Projects",
+    "projectCount": "{{count}} projects",
+    "noProjects": "No projects yet",
+    "wordsInYear": "{{count}} words written in {{year}}",
+    "activeDays": "active days",
+    "currentStreak": "day streak",
+    "longestStreak": "longest streak",
+    "less": "Less",
+    "more": "More",
+    "gridAria": "Writing activity for {{year}}, one square per day",
+    "tooltipWords": "{{count}} words on {{date}}",
+    "tooltipSessions": "{{count}} writing sessions",
+    "tooltipNone": "No writing on {{date}}",
+    "noActivity": "No writing recorded yet.",
+    "activityLoadFailed": "Could not load writing activity."
   }
 }

@@ -36,6 +36,7 @@ import { MessageResponse } from '../model/message-response';
 import { Project } from '../model/project';
 // @ts-ignore
 import { ProjectRenameRedirect } from '../model/project-rename-redirect';
+// @ts-ignore
 import { ProjectStorageSize } from '../model/project-storage-size';
 // @ts-ignore
 import { UpdateProjectRequest } from '../model/update-project-request';
@@ -527,7 +528,8 @@ export class ProjectsService extends BaseService {
   }
 
   /**
-   * Get the approximate server-side storage size of a project.
+   * Get approximate project storage size
+   * Returns the approximate server-side storage used by a project, split into document/data bytes and media bytes.
    * @endpoint get /api/v1/projects/{username}/{slug}/storage-size
    * @param username Username
    * @param slug Project slug

@@ -103,10 +103,27 @@
   color: #f44336;
 }
 
+// Non-error informational states (private / not found) reuse the layout
+// without the alarm colour.
+.info-state {
+  .state-icon {
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  h2 {
+    color: rgba(255, 255, 255, 0.9);
+  }
+
+  .hint {
+    font-size: 14px;
+    margin-top: -12px;
+  }
+}
+
 // User profile styles
 .user-profile-container {
   width: 100%;
-  max-width: 760px;
+  max-width: 840px;
   margin: 20px auto 0;
   padding: 0 16px;
   position: relative;
@@ -227,12 +244,52 @@
 .user-username {
   font-size: 18px;
   font-weight: 400;
-  margin: 0 0 16px;
+  margin: 0 0 8px;
   color: rgba(255, 255, 255, 0.7);
 
   @media (max-width: 768px) {
     font-size: 16px;
   }
+}
+
+.user-bio {
+  margin: 8px 0 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.85);
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.header-actions {
+  align-self: flex-start;
+  margin-left: 16px;
+  flex-shrink: 0;
+
+  @media (max-width: 768px) {
+    align-self: center;
+    margin: 16px 0 0;
+  }
+}
+
+.visibility-badge {
+  cursor: help;
+}
+
+.section-error {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+// The content panels are dark in both themes, so give the grid a
+// light-on-dark palette instead of the theme's surface tokens.
+app-activity-grid {
+  --grid-text: rgba(255, 255, 255, 0.92);
+  --grid-muted: rgba(255, 255, 255, 0.65);
+  --grid-accent: #4db6ac;
+  --grid-on-accent: #00332e;
+  --grid-hover: rgba(255, 255, 255, 0.1);
+  --grid-level-0: rgba(255, 255, 255, 0.1);
 }
 
 .user-stats {
@@ -361,6 +418,8 @@
   border-radius: 8px;
   padding: 20px;
   cursor: pointer;
+  text-decoration: none;
+  color: inherit;
   transition:
     transform 0.2s,
     background-color 0.2s;

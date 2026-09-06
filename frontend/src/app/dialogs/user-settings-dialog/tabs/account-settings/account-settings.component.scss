@@ -41,3 +41,68 @@
 .button-spinner {
   display: inline-block;
 }
+
+.public-profile-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 8px;
+  border-top: 1px solid var(--sys-outline-variant);
+}
+
+.subsection-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 500;
+
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.subsection-description,
+.field-hint {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--sys-on-surface-variant);
+}
+
+.field-label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.visibility-radios {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  .radio-title {
+    display: block;
+    font-weight: 500;
+  }
+
+  .radio-help {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--sys-on-surface-variant);
+  }
+}
+
+.sections-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.view-profile-link {
+  align-self: flex-start;
+}

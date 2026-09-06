@@ -1,15 +1,15 @@
 /**
  * Writing-Stats & Activity Screenshot Tests
  *
- * Captures promotional screenshots for the user-profile writing-stats widget
- * and the per-project activity tab.
+ * Captures promotional screenshots for the profile-page writing-stats widget
+ * and writing activity grid.
  *
  * NOTE: The stats + activity feature is **online-only** — the widget and
  * the Activity sidebar entry are hidden when Inkweld runs in local-only
  * mode. These screenshots therefore use the `authenticatedPage`
  * (server-mode) fixture, with the `/api/v1/stats/*` and
  * `/api/v1/activity/*` endpoints fulfilled by the screenshot mock-api
- * (`mock-api/stats.ts`).
+ * (`mock-api/stats.ts`) and the profile endpoints by `mock-api/users.ts`.
  */
 
 import type { Page } from '@playwright/test';
@@ -37,6 +37,14 @@ async function waitForWidget(page: Page): Promise<void> {
   // Widget renders once both /stats/me and /activity/me settle.
   await page.waitForSelector('app-writing-stats-widget .stats-widget', {
     state: 'visible',
+    timeout: 15_000,
+  });
+  await page.evaluate(() => document.fonts.ready);
+}
+
+async function waitForGrid(page: Page): Promise<void> {
+  await page.waitForSelector('[data-testid="activity-cell"]', {
+    state: 'attached',
     timeout: 15_000,
   });
   await page.evaluate(() => document.fonts.ready);
@@ -74,6 +82,39 @@ test.describe('Writing Stats & Activity Screenshots', () => {
       await expect(widget).toBeVisible();
       await widget.screenshot({
         path: join(SCREENSHOTS_DIR, 'writing-stats-widget-dark.png'),
+      });
+    });
+  });
+
+  test('profile activity grid — light + dark', async ({
+    authenticatedPage: page,
+  }) => {
+    await page.setViewportSize(DESKTOP_VIEWPORT);
+    await page.emulateMedia({ colorScheme: 'light' });
+    await page.goto(`/${PROFILE_USERNAME}`, {
+      waitUntil: 'domcontentloaded',
+    });
+
+    await test.step('light', async () => {
+      await waitForGrid(page);
+      const section = page.getByTestId('profile-activity');
+      await expect(section).toBeVisible();
+      await section.screenshot({
+        path: join(SCREENSHOTS_DIR, 'profile-activity-grid-light.png'),
+      });
+      await page.screenshot({
+        path: join(SCREENSHOTS_DIR, 'profile-page-light.png'),
+      });
+    });
+
+    await test.step('dark', async () => {
+      await page.emulateMedia({ colorScheme: 'dark' });
+      await page.reload({ waitUntil: 'domcontentloaded' });
+      await waitForGrid(page);
+      const section = page.getByTestId('profile-activity');
+      await expect(section).toBeVisible();
+      await section.screenshot({
+        path: join(SCREENSHOTS_DIR, 'profile-activity-grid-dark.png'),
       });
     });
   });

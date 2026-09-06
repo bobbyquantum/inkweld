@@ -70,6 +70,127 @@
     </div>
   }
 
+  @if (!isLocalMode()) {
+    <section
+      class="public-profile-section"
+      data-testid="public-profile-section">
+      <h4 class="subsection-title">
+        <mat-icon>badge</mat-icon>
+        {{ 'settings.accountTab.publicProfile.title' | transloco }}
+      </h4>
+      <p class="subsection-description">
+        {{ 'settings.accountTab.publicProfile.description' | transloco }}
+      </p>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>{{
+          'settings.accountTab.publicProfile.bioLabel' | transloco
+        }}</mat-label>
+        <textarea
+          matInput
+          rows="3"
+          maxlength="500"
+          id="account-settings-bio-input"
+          [(ngModel)]="bio"
+          [placeholder]="
+            'settings.accountTab.publicProfile.bioPlaceholder' | transloco
+          "
+          [attr.aria-label]="
+            'settings.accountTab.publicProfile.bioLabel' | transloco
+          "
+          data-testid="account-bio-input"></textarea>
+        <mat-hint align="start">{{
+          'settings.accountTab.publicProfile.bioHint' | transloco
+        }}</mat-hint>
+        <mat-hint align="end">{{ bio.length }}/500</mat-hint>
+      </mat-form-field>
+
+      <div class="visibility-group">
+        <span class="field-label" id="profile-visibility-label">{{
+          'settings.accountTab.publicProfile.visibilityLabel' | transloco
+        }}</span>
+        <mat-radio-group
+          class="visibility-radios"
+          aria-labelledby="profile-visibility-label"
+          [ngModel]="profileVisibility"
+          (ngModelChange)="onProfileVisibilityChange($event)"
+          data-testid="profile-visibility-group">
+          @for (level of visibilityLevels; track level) {
+            <mat-radio-button
+              [value]="level"
+              [attr.data-testid]="'profile-visibility-' + level">
+              <span class="radio-title">{{
+                'settings.accountTab.publicProfile.levels.' + level | transloco
+              }}</span>
+              <span class="radio-help">{{
+                'settings.accountTab.publicProfile.levelHelp.' + level
+                  | transloco
+              }}</span>
+            </mat-radio-button>
+          }
+        </mat-radio-group>
+      </div>
+
+      @if (profileVisibility !== 'private') {
+        <div class="sections-group" data-testid="profile-sections-group">
+          <span class="field-label">{{
+            'settings.accountTab.publicProfile.sectionsLabel' | transloco
+          }}</span>
+          <p class="field-hint">
+            {{ 'settings.accountTab.publicProfile.sectionsHint' | transloco }}
+          </p>
+          <div class="sections-row">
+            <mat-form-field appearance="outline">
+              <mat-label>{{
+                'settings.accountTab.publicProfile.activityLabel' | transloco
+              }}</mat-label>
+              <mat-select
+                [(ngModel)]="activityVisibility"
+                data-testid="activity-visibility-select">
+                @for (level of sectionLevels(); track level) {
+                  <mat-option [value]="level">{{
+                    'settings.accountTab.publicProfile.levels.' + level
+                      | transloco
+                  }}</mat-option>
+                }
+              </mat-select>
+              <mat-hint>{{
+                'settings.accountTab.publicProfile.activityHint' | transloco
+              }}</mat-hint>
+            </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>{{
+                'settings.accountTab.publicProfile.projectsLabel' | transloco
+              }}</mat-label>
+              <mat-select
+                [(ngModel)]="projectsVisibility"
+                data-testid="projects-visibility-select">
+                @for (level of sectionLevels(); track level) {
+                  <mat-option [value]="level">{{
+                    'settings.accountTab.publicProfile.levels.' + level
+                      | transloco
+                  }}</mat-option>
+                }
+              </mat-select>
+              <mat-hint>{{
+                'settings.accountTab.publicProfile.projectsHint' | transloco
+              }}</mat-hint>
+            </mat-form-field>
+          </div>
+        </div>
+      }
+
+      <a
+        mat-button
+        class="view-profile-link"
+        [routerLink]="['/', userService.currentUser().username]"
+        data-testid="account-view-profile-link">
+        <mat-icon>open_in_new</mat-icon>
+        {{ 'settings.accountTab.publicProfile.viewProfile' | transloco }}
+      </a>
+    </section>
+  }
+
   <div class="actions-row">
     <button
       mat-raised-button

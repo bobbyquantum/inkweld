@@ -21,6 +21,7 @@ export enum AdminListConfigKeys200ResponseInnerCategory {
   Ai = 'ai',
   Github = 'github',
   Email = 'email',
+  Appearance = 'appearance',
   General = 'general',
 }
 export enum AdminListConfigKeys200ResponseInnerType {

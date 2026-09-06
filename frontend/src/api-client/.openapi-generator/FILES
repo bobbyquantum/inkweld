@@ -3,6 +3,7 @@
 README.md
 api.base.service.ts
 api.module.ts
+api/admin-appearance.service.ts
 api/admin-config.service.ts
 api/admin-image-audits.service.ts
 api/admin-image-profiles.service.ts
@@ -12,6 +13,7 @@ api/ai-providers.service.ts
 api/ai-text-generation.service.ts
 api/announcements.service.ts
 api/api.ts
+api/appearance.service.ts
 api/authentication.service.ts
 api/auto-review.service.ts
 api/collaboration.service.ts
@@ -46,9 +48,12 @@ model/admin-image-model-profile.ts
 model/admin-list-config-keys200-response-inner.ts
 model/admin-list-image-providers200-response-inner.ts
 model/admin-list-pending-users200-response-inner.ts
+model/admin-project-storage.ts
 model/admin-set-config-request.ts
 model/admin-set-user-admin-request.ts
 model/admin-update-announcement-request.ts
+model/admin-user-projects.ts
+model/appearance-config.ts
 model/authorization-info-projects-inner.ts
 model/authorization-info.ts
 model/auto-review-error.ts
@@ -56,6 +61,8 @@ model/auto-review-request.ts
 model/auto-review-response.ts
 model/auto-review-result.ts
 model/auto-review-suggestion.ts
+model/background-preference-response.ts
+model/background-preference.ts
 model/check-tombstones-request.ts
 model/check-tombstones-response.ts
 model/client-registration-request.ts
@@ -103,6 +110,7 @@ model/error-response.ts
 model/falai-model-metadata.ts
 model/forgot-password-request.ts
 model/generated-image.ts
+model/get-auto-review-rejections200-response.ts
 model/get-element-images-request.ts
 model/get-element-images200-response.ts
 model/get-mcp-permissions200-response-permissions-inner.ts
@@ -181,8 +189,14 @@ model/passkey-register-finish-response.ts
 model/passkey-rename-request.ts
 model/passkey.ts
 model/pending-invitation.ts
+model/profile-activity-day.ts
+model/profile-activity-year.ts
+model/profile-project.ts
+model/profile-visibility-settings.ts
+model/profile-visibility.ts
 model/project-access.ts
 model/project-rename-redirect.ts
+model/project-storage-size.ts
 model/project-tombstone.ts
 model/project.ts
 model/provider-error.ts
@@ -209,6 +223,7 @@ model/set-provider-key-request.ts
 model/share-link-response.ts
 model/snapshot-with-content.ts
 model/style-recommendation.ts
+model/surface-background.ts
 model/system-features-password-policy.ts
 model/system-features.ts
 model/system-stats.ts
@@ -225,10 +240,13 @@ model/update-collaborator-request.ts
 model/update-custom-image-sizes-request.ts
 model/update-image-model-profile-request.ts
 model/update-o-auth-grant-request.ts
+model/update-o-auth-session-settings-request.ts
 model/update-profile-request.ts
 model/update-project-request.ts
 model/update-published-file-request.ts
 model/upload-project-media200-response.ts
+model/user-profile-sections.ts
+model/user-profile.ts
 model/user.ts
 model/username-availability.ts
 model/workers-ai-models-response-models-inner.ts

@@ -7,6 +7,7 @@
 // Import COMMON routes that work across all runtimes
 import authRoutes from '../routes/auth.routes';
 import userRoutes from '../routes/user.routes';
+import profileRoutes from '../routes/profile.routes';
 import projectRoutes from '../routes/project.routes';
 import healthRoutes from '../routes/health.routes';
 import configRoutes from '../routes/config.routes';
@@ -99,6 +100,7 @@ export function registerCommonRoutes(app: any): void {
 
   // User management
   app.route('/api/v1/users', userRoutes);
+  app.route('/api/v1/users', profileRoutes);
 
   // Admin routes (requires admin role)
   app.route('/api/v1/admin', adminRoutes);
