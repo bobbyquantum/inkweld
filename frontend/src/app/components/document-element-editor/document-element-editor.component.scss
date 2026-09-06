@@ -311,20 +311,35 @@
 
   .status-actions {
     margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
 
-    .snapshots-btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 24px;
-      height: 24px;
-      line-height: 1;
+  .status-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 22px;
+    padding: 0 8px;
+    border-radius: 11px;
+    border: 1px solid var(--sys-outline-variant);
+    background: none;
+    color: var(--sys-on-surface-variant);
+    font: inherit;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: background-color 120ms ease;
 
-      mat-icon {
-        font-size: 18px;
-        width: 18px;
-        height: 18px;
-      }
+    &:hover {
+      background-color: var(--sys-surface-container-high);
+    }
+
+    .chip-icon {
+      font-size: 14px;
+      width: 14px;
+      height: 14px;
+      line-height: 14px;
     }
   }
 

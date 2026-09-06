@@ -63,8 +63,9 @@ export class WorldbuildingTabComponent implements OnInit, OnDestroy {
   protected readonly breadcrumbVisible = computed(() => {
     const id = this.elementId();
     if (!id || !this.settingsService.showBreadcrumbs()) return false;
-    const el = this.projectState.elements().find(e => e.id === id);
-    return !!el?.parentId;
+    // The breadcrumb always prepends a virtual project-name segment, so it
+    // renders for any resolvable element, including top-level ones.
+    return this.projectState.elements().some(e => e.id === id);
   });
 
   constructor() {

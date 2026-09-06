@@ -268,6 +268,45 @@ describe('DocumentTabComponent', () => {
     });
   });
 
+  describe('breadcrumbVisible computed signal', () => {
+    const openElement = (id: string) => {
+      (projectStateService.openTabs as any).set([{ element: { id } }]);
+      (projectStateService.selectedTabIndex as any).set(0);
+    };
+
+    it('is true for a root-level document (breadcrumb shows project root)', () => {
+      (projectStateService.elements as any).set([
+        { id: 'root-doc', parentId: null },
+      ]);
+      openElement('root-doc');
+      expect((component as any).breadcrumbVisible()).toBe(true);
+    });
+
+    it('is true for a nested document', () => {
+      (projectStateService.elements as any).set([
+        { id: 'folder', parentId: null },
+        { id: 'nested-doc', parentId: 'folder' },
+      ]);
+      openElement('nested-doc');
+      expect((component as any).breadcrumbVisible()).toBe(true);
+    });
+
+    it('is false when the element cannot be resolved', () => {
+      (projectStateService.elements as any).set([]);
+      openElement('missing');
+      expect((component as any).breadcrumbVisible()).toBe(false);
+    });
+
+    it('is false when breadcrumbs are disabled in settings', () => {
+      (settingsService.showBreadcrumbs as any).set(false);
+      (projectStateService.elements as any).set([
+        { id: 'root-doc', parentId: null },
+      ]);
+      openElement('root-doc');
+      expect((component as any).breadcrumbVisible()).toBe(false);
+    });
+  });
+
   describe('documentUnavailable', () => {
     it('should default to false', () => {
       expect((component as any).documentUnavailable()).toBe(false);

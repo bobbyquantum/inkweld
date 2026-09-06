@@ -75,6 +75,7 @@
     "manageTags": "Manage tags",
     "openSnapshots": "Open document snapshots",
     "snapshots": "Document snapshots",
+    "snapshotsLabel": "Snapshots",
     "syncSynced": "Document synced",
     "syncSyncing": "Syncing…",
     "syncLocal": "Offline - changes saved locally",
