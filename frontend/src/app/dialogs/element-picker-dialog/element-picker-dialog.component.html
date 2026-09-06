@@ -87,6 +87,19 @@
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
+  @if (canCreate) {
+    <button
+      mat-button
+      type="button"
+      class="create-new-button"
+      (click)="createNew()"
+      [matTooltip]="'dialogs.elementPicker.createNewTooltip' | transloco"
+      data-testid="element-picker-create-new">
+      <mat-icon>add</mat-icon>
+      {{ 'dialogs.elementPicker.createNew' | transloco }}
+    </button>
+    <span class="actions-spacer"></span>
+  }
   <button mat-button (click)="cancel()" data-testid="element-picker-cancel">
     {{ 'cancel' | transloco }}
   </button>

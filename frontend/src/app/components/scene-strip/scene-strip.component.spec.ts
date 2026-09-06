@@ -230,6 +230,7 @@ describe('SceneStripComponent', () => {
       expect.objectContaining({
         filterType: ElementType.Worldbuilding,
         maxSelections: 1,
+        allowCreate: true,
       })
     );
     expect(relationshipService.addRawType).toHaveBeenCalledTimes(2);

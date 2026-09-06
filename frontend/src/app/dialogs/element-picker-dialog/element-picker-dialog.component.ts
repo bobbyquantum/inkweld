@@ -11,6 +11,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import {
   MAT_DIALOG_DATA,
+  MatDialog,
   MatDialogModule,
   MatDialogRef,
 } from '@angular/material/dialog';
@@ -19,10 +20,17 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { type Element } from '@inkweld/model/element';
-import { type ElementType } from '@inkweld/model/element-type';
+import { ElementType } from '@inkweld/model/element-type';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
+import { firstValueFrom } from 'rxjs';
+
+import {
+  NewElementDialogComponent,
+  type NewElementDialogData,
+  type NewElementDialogResult,
+} from '../new-element-dialog/new-element-dialog.component';
 
 /**
  * Dialog data for element picker
@@ -42,6 +50,13 @@ export interface ElementPickerDialogData {
   excludeTypes?: ElementType[];
   /** Filter to worldbuilding elements of a specific schema (template) id */
   filterSchemaId?: string;
+  /**
+   * Offer a "Create new…" shortcut that creates a worldbuilding element on
+   * the spot and returns it as the selection. Only honoured when the picker
+   * is limited to worldbuilding elements (`filterType` unset or
+   * `ElementType.Worldbuilding`).
+   */
+  allowCreate?: boolean;
 }
 
 /**
@@ -78,6 +93,14 @@ export class ElementPickerDialogComponent {
   private readonly projectState = inject(ProjectStateService);
   private readonly transloco = inject(TranslocoService);
   private readonly worldbuildingService = inject(WorldbuildingService);
+  private readonly dialog = inject(MatDialog);
+
+  /** Whether the "Create new…" shortcut is shown. */
+  readonly canCreate =
+    !!this.data.allowCreate &&
+    (!this.data.filterType ||
+      this.data.filterType === ElementType.Worldbuilding) &&
+    this.projectState.canWrite();
 
   /** Search text */
   readonly searchText = signal('');
@@ -225,5 +248,68 @@ export class ElementPickerDialogComponent {
    */
   cancel(): void {
     this.dialogRef.close(null);
+  }
+
+  /**
+   * Create a new worldbuilding element and return it as the selection.
+   *
+   * The element is placed in the folder that already holds elements of the
+   * same template (most recently created first), so a new character lands
+   * next to the other characters. Falls back to the project root.
+   */
+  async createNew(): Promise<void> {
+    if (!this.canCreate) return;
+
+    const data: NewElementDialogData = {
+      worldbuildingOnly: true,
+      ...(this.data.filterSchemaId
+        ? {
+            skipTypeSelection: true,
+            preselectedType: ElementType.Worldbuilding,
+            preselectedSchemaId: this.data.filterSchemaId,
+          }
+        : {}),
+    };
+    const ref = this.dialog.open<
+      NewElementDialogComponent,
+      NewElementDialogData,
+      NewElementDialogResult
+    >(NewElementDialogComponent, {
+      data,
+      disableClose: true,
+      width: '800px',
+      maxWidth: '90vw',
+      maxHeight: '90vh',
+    });
+    const result = await firstValueFrom(ref.afterClosed());
+    if (!result || result.type !== ElementType.Worldbuilding) return;
+
+    const parentId = this.defaultParentFor(result.schemaId);
+    const newId = this.projectState.addElement(
+      result.type,
+      result.name,
+      parentId ?? undefined,
+      result.schemaId
+    );
+    if (!newId) return;
+
+    const created = this.projectState.elements().find(e => e.id === newId);
+    if (!created) return;
+    this.dialogRef.close({ elements: [created] });
+  }
+
+  /** Folder of the most recently created element sharing `schemaId`, if any. */
+  private defaultParentFor(schemaId: string | undefined): string | null {
+    if (!schemaId) return null;
+    const siblings = this.projectState
+      .elements()
+      .filter(
+        e => e.type === ElementType.Worldbuilding && e.schemaId === schemaId
+      );
+    if (siblings.length === 0) return null;
+    const latest = [...siblings].sort((a, b) =>
+      (b.createdAt ?? '').localeCompare(a.createdAt ?? '')
+    )[0];
+    return latest.parentId ?? null;
   }
 }

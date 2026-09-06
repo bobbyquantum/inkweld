@@ -158,6 +158,7 @@ export class SceneStripComponent {
       title: kind === 'pov' ? 'POV character' : 'Location',
       filterType: ElementType.Worldbuilding,
       maxSelections: 1,
+      allowCreate: true,
     });
     const chosen = result?.elements[0];
     if (!chosen) return;

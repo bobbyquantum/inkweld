@@ -2,7 +2,11 @@ import { provideHttpClient, withXhr } from '@angular/common/http';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatButtonModule } from '@angular/material/button';
-import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import {
+  MAT_DIALOG_DATA,
+  MatDialogModule,
+  MatDialogRef,
+} from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
@@ -328,6 +332,42 @@ describe('NewElementDialogComponent', () => {
 
       component.selectType(canvasOption!);
       expect(component.getSelectedOption()).toBe(canvasOption);
+    });
+  });
+
+  describe('worldbuildingOnly', () => {
+    it('hides document and visualization options', async () => {
+      TestBed.resetTestingModule();
+      await TestBed.configureTestingModule({
+        imports: [translocoTestProvider(), NewElementDialogComponent],
+        providers: [
+          provideZonelessChangeDetection(),
+          provideHttpClient(withXhr()),
+          { provide: MatDialogRef, useValue: dialogRef },
+          { provide: MAT_DIALOG_DATA, useValue: { worldbuildingOnly: true } },
+          { provide: ProjectStateService, useValue: mockProjectState },
+          { provide: WorldbuildingService, useValue: mockWorldbuildingService },
+        ],
+      }).compileComponents();
+      const f = TestBed.createComponent(NewElementDialogComponent);
+      const c = f.componentInstance;
+      f.detectChanges();
+
+      expect(c.documentOptions()).toHaveLength(0);
+      expect(c.visualizationOptions()).toHaveLength(0);
+
+      mockWorldbuildingService.hasNoSchemas.mockReturnValue(false);
+      mockWorldbuildingService.getAllSchemas.mockReturnValue(
+        createMockSchemas([
+          { id: 'character-v1', name: 'Character', icon: 'person' },
+        ])
+      );
+      mockProjectState.project.set(mockProject);
+      f.detectChanges();
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      expect(c.worldbuildingOptions()).toHaveLength(1);
+      expect(c.documentOptions()).toHaveLength(0);
     });
   });
 

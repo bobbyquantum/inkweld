@@ -44,10 +44,16 @@ export interface NewElementDialogResult {
   preset?: ElementPreset;
 }
 
-interface NewElementDialogData {
+export interface NewElementDialogData {
   skipTypeSelection?: boolean;
   preselectedType?: ElementType;
   preselectedSchemaId?: string;
+  /**
+   * Only offer worldbuilding templates. Used when the dialog is opened from a
+   * context that can only accept a worldbuilding element, such as the
+   * "Create new" shortcut in the element picker.
+   */
+  worldbuildingOnly?: boolean;
 }
 
 interface ElementTypeOption {
@@ -172,8 +178,13 @@ export class NewElementDialogComponent {
     },
   ];
 
+  /** Non-worldbuilding options, or none when restricted to worldbuilding. */
+  private get baseTypes(): ElementTypeOption[] {
+    return this.data?.worldbuildingOnly ? [] : this.documentTypes;
+  }
+
   // Element type options (document types + dynamically loaded worldbuilding types)
-  elementTypeOptions = signal<ElementTypeOption[]>([...this.documentTypes]);
+  elementTypeOptions = signal<ElementTypeOption[]>([...this.baseTypes]);
 
   // Filtered options based on search
   filteredOptions = computed(() => {
@@ -286,10 +297,7 @@ export class NewElementDialogComponent {
     // Update options with both document types and loaded worldbuilding types
     // Use the constant documentTypes instead of reading the signal to avoid
     // creating a dependency in the calling effect
-    this.elementTypeOptions.set([
-      ...this.documentTypes,
-      ...worldbuildingOptions,
-    ]);
+    this.elementTypeOptions.set([...this.baseTypes, ...worldbuildingOptions]);
   }
 
   onCancel = (): void => {

@@ -80,7 +80,9 @@
     "addSelected": "Add Selected",
     "noneSelected": "No elements selected",
     "oneSelected": "1 element selected",
-    "manySelected": "{{count}} elements selected"
+    "manySelected": "{{count}} elements selected",
+    "createNew": "Create new…",
+    "createNewTooltip": "Create a new worldbuilding element and select it"
   },
   "insertLink": {
     "editTitle": "Edit Link",
