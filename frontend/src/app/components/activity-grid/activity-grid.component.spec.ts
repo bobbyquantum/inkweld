@@ -2,7 +2,7 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import type { ProfileActivityDay } from '@inkweld/model/profile-activity-day';
 import type { ProfileActivityYear } from '@inkweld/model/profile-activity-year';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import {
@@ -11,6 +11,7 @@ import {
   buildMonthLabels,
   levelFor,
   quartileThresholds,
+  todayIn,
   weekdayIndex,
 } from './activity-grid.component';
 
@@ -89,6 +90,33 @@ describe('activity grid helpers', () => {
     expect(buildGrid([])).toEqual({ cells: [], columns: 0 });
   });
 
+  it('buildGrid turns days after today into padding but keeps the full width', () => {
+    const days = yearDays(2026, () => 5);
+    const { cells, columns } = buildGrid(days, '2026-09-06');
+    expect(columns).toBe(53);
+    expect(cells.length % 7).toBe(0);
+    const drawn = cells.filter(c => c.day);
+    expect(drawn).toHaveLength(249);
+    expect(drawn.at(-1)).toMatchObject({ day: '2026-09-06', level: 1 });
+    const future = cells.filter(c => c.col === 52);
+    expect(future.every(c => c.day === null && c.words === 0)).toBe(true);
+    // Month labels stop at the current month.
+    expect(
+      buildMonthLabels(cells, 'en-US')
+        .map(l => l.label)
+        .at(-1)
+    ).toBe('Sep');
+  });
+
+  it('todayIn resolves the calendar date in the given zone', () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-09-06T23:30:00Z'));
+    expect(todayIn('UTC')).toBe('2026-09-06');
+    expect(todayIn('Pacific/Auckland')).toBe('2026-09-07');
+    expect(todayIn('Not/AZone')).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    vi.useRealTimers();
+  });
+
   it('buildMonthLabels emits one label per month with no near-collisions', () => {
     const { cells } = buildGrid(yearDays(2026));
     const labels = buildMonthLabels(cells, 'en-US');
@@ -127,7 +155,28 @@ describe('ActivityGridComponent', () => {
     fixture.detectChanges();
   };
 
-  beforeEach(() => TestBed.resetTestingModule());
+  beforeEach(() => {
+    TestBed.resetTestingModule();
+    // Pin "today" past the end of the fixture year so every day renders.
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2027-03-01T12:00:00Z'));
+  });
+
+  afterEach(() => vi.useRealTimers());
+
+  it('skips squares for days after today in the current year', async () => {
+    vi.setSystemTime(new Date('2026-09-06T12:00:00Z'));
+    await setup(makeYear());
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.querySelectorAll('rect.cell')).toHaveLength(249);
+    expect(el.querySelector('rect.cell[data-day="2026-09-06"]')).not.toBeNull();
+    expect(el.querySelector('rect.cell[data-day="2026-09-07"]')).toBeNull();
+    // Grid keeps its full-year width so the layout doesn't jump.
+    const svg = el.querySelector('[data-testid="activity-svg"]');
+    expect(svg?.getAttribute('viewBox')).toBe(
+      `0 0 ${28 + 53 * 13} ${16 + 7 * 13}`
+    );
+  });
 
   it('renders one rect per day with level attributes', async () => {
     await setup(makeYear());
@@ -206,5 +255,57 @@ describe('ActivityGridComponent', () => {
     );
     fixture.detectChanges();
     expect(el.querySelector('[data-testid="activity-tooltip"]')).toBeNull();
+  });
+
+  it("gives the tooltip the scroller's visible span so it can stay in view", async () => {
+    await setup(makeYear());
+    const el: HTMLElement = fixture.nativeElement;
+    const scroller = el.querySelector<HTMLElement>('.grid-scroller')!;
+    vi.spyOn(scroller, 'getBoundingClientRect').mockReturnValue({
+      left: 20,
+      top: 10,
+      width: 600,
+      height: 120,
+    } as DOMRect);
+    Object.defineProperty(scroller, 'clientWidth', { value: 600 });
+    Object.defineProperty(scroller, 'scrollLeft', { value: 50 });
+    // Last day of the year sits in the bottom-right corner.
+    const rect = el.querySelector<SVGRectElement>(
+      'rect.cell[data-day="2026-12-31"]'
+    )!;
+    vi.spyOn(rect, 'getBoundingClientRect').mockReturnValue({
+      left: 610,
+      top: 90,
+      width: 10,
+      height: 10,
+    } as DOMRect);
+    rect.dispatchEvent(new MouseEvent('mouseenter', { bubbles: false }));
+    fixture.detectChanges();
+    const tooltip = el.querySelector<HTMLElement>(
+      '[data-testid="activity-tooltip"]'
+    )!;
+    expect(tooltip.style.getPropertyValue('--tip-x')).toBe('645px');
+    expect(tooltip.style.getPropertyValue('--tip-min')).toBe('50px');
+    expect(tooltip.style.getPropertyValue('--tip-max')).toBe('650px');
+    expect(tooltip.classList.contains('below')).toBe(false);
+    expect(tooltip.style.top).toBe('80px');
+
+    // Top rows flip the tooltip underneath the cell.
+    const top = el.querySelector<SVGRectElement>(
+      'rect.cell[data-day="2026-01-05"]'
+    )!; // a Monday → row 0
+    vi.spyOn(top, 'getBoundingClientRect').mockReturnValue({
+      left: 60,
+      top: 26,
+      width: 10,
+      height: 10,
+    } as DOMRect);
+    top.dispatchEvent(new MouseEvent('mouseenter', { bubbles: false }));
+    fixture.detectChanges();
+    const flipped = el.querySelector<HTMLElement>(
+      '[data-testid="activity-tooltip"]'
+    )!;
+    expect(flipped.classList.contains('below')).toBe(true);
+    expect(flipped.style.top).toBe('26px');
   });
 });

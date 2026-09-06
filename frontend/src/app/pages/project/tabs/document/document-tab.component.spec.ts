@@ -288,10 +288,49 @@ describe('DocumentTabComponent', () => {
 
     it('reserves its height in the editor offset', () => {
       openScene({ role: 'scene' });
-      // Top-level element: no breadcrumb, just the strip.
-      expect((component as any).headerOffset()).toBe(36);
+      // Breadcrumb (29px, shown for every resolvable element) plus strip.
+      expect((component as any).headerOffset()).toBe(29 + 36);
       openScene({ role: 'note' });
-      expect((component as any).headerOffset()).toBe(0);
+      expect((component as any).headerOffset()).toBe(29);
+    });
+  });
+
+  describe('breadcrumbVisible computed signal', () => {
+    const openElement = (id: string) => {
+      (projectStateService.openTabs as any).set([{ element: { id } }]);
+      (projectStateService.selectedTabIndex as any).set(0);
+    };
+
+    it('is true for a root-level document (breadcrumb shows project root)', () => {
+      (projectStateService.elements as any).set([
+        { id: 'root-doc', parentId: null },
+      ]);
+      openElement('root-doc');
+      expect((component as any).breadcrumbVisible()).toBe(true);
+    });
+
+    it('is true for a nested document', () => {
+      (projectStateService.elements as any).set([
+        { id: 'folder', parentId: null },
+        { id: 'nested-doc', parentId: 'folder' },
+      ]);
+      openElement('nested-doc');
+      expect((component as any).breadcrumbVisible()).toBe(true);
+    });
+
+    it('is false when the element cannot be resolved', () => {
+      (projectStateService.elements as any).set([]);
+      openElement('missing');
+      expect((component as any).breadcrumbVisible()).toBe(false);
+    });
+
+    it('is false when breadcrumbs are disabled in settings', () => {
+      (settingsService.showBreadcrumbs as any).set(false);
+      (projectStateService.elements as any).set([
+        { id: 'root-doc', parentId: null },
+      ]);
+      openElement('root-doc');
+      expect((component as any).breadcrumbVisible()).toBe(false);
     });
   });
 

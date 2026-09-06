@@ -83,13 +83,14 @@
           </span>
           <span class="status-actions">
             <button
-              mat-icon-button
-              class="snapshots-btn"
+              type="button"
+              class="status-chip snapshots-btn"
               (click)="openSnapshotsDialog()"
-              [attr.aria-label]="'editor.document.openSnapshots' | transloco"
               [matTooltip]="'editor.document.snapshots' | transloco"
+              matTooltipShowDelay="600"
               data-testid="toolbar-snapshots">
-              <mat-icon>history</mat-icon>
+              <mat-icon aria-hidden="true" class="chip-icon">history</mat-icon>
+              <span>{{ 'editor.document.snapshotsLabel' | transloco }}</span>
             </button>
           </span>
         </div>
