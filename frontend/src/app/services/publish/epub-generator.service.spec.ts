@@ -947,6 +947,68 @@ describe('EpubGeneratorService', () => {
 
       expect(result.success).toBe(true);
     });
+
+    it('skips notes when expanding folder children', async () => {
+      const folderElement: Element = {
+        id: 'folder-1',
+        name: 'Part One',
+        type: ElementType.Folder,
+        parentId: null,
+        order: 0,
+        level: 0,
+        expandable: true,
+        version: 1,
+        metadata: {},
+      };
+      const sceneChild: Element = {
+        id: 'scene-1',
+        name: 'Scene',
+        type: ElementType.Item,
+        parentId: 'folder-1',
+        order: 0,
+        level: 1,
+        expandable: false,
+        version: 1,
+        metadata: { role: 'scene' },
+      };
+      const noteChild: Element = {
+        id: 'note-1',
+        name: 'Research',
+        type: ElementType.Item,
+        parentId: 'folder-1',
+        order: 1,
+        level: 1,
+        expandable: false,
+        version: 1,
+        metadata: { role: 'note' },
+      };
+      projectStateMock.elements = signal([
+        folderElement,
+        sceneChild,
+        noteChild,
+      ]);
+      documentServiceMock.getDocumentContent.mockClear();
+
+      const result = await service.generateEpub({
+        ...mockPlan,
+        items: [
+          {
+            id: 'item-1',
+            type: PublishPlanItemType.Element,
+            elementId: 'folder-1',
+            includeChildren: true,
+            isChapter: false,
+          },
+        ],
+      });
+
+      expect(result.success).toBe(true);
+      const fetched = documentServiceMock.getDocumentContent.mock.calls.map(
+        c => c[0]
+      );
+      expect(fetched.some(id => id.endsWith('scene-1'))).toBe(true);
+      expect(fetched.some(id => id.endsWith('note-1'))).toBe(false);
+    });
   });
 
   describe('additional frontmatter types', () => {

@@ -111,6 +111,7 @@ describe('ProjectTreeComponent', () => {
       openDocument: vi.fn(),
       updateProject: vi.fn(),
       renameNode: vi.fn(),
+      setDocumentRole: vi.fn(),
       showNewElementDialog: vi.fn(),
       toggleExpanded: vi.fn(),
       moveElement: vi.fn().mockResolvedValue(undefined),
@@ -804,6 +805,100 @@ describe('ProjectTreeComponent', () => {
         currentName: folderNode.name,
         title: 'Rename Folder',
       });
+    });
+
+    it('reads the live role for a stale context-menu node', async () => {
+      elementsSignal.set([
+        { ...mockDto, type: ElementType.Item, metadata: { role: 'note' } },
+      ]);
+      const staleNode = {
+        ...mockDto,
+        type: ElementType.Item,
+        metadata: { role: 'scene' },
+      };
+      await component.onRename(staleNode);
+      expect(dialogGatewayService.openRenameDialog).toHaveBeenLastCalledWith({
+        currentName: staleNode.name,
+        title: 'Rename Note',
+      });
+    });
+
+    it('uses role-aware titles for scenes and notes', async () => {
+      const sceneNode = {
+        ...mockDto,
+        type: ElementType.Item,
+        metadata: { role: 'scene' },
+      };
+      elementsSignal.set([sceneNode]);
+      await component.onRename(sceneNode);
+      expect(dialogGatewayService.openRenameDialog).toHaveBeenLastCalledWith({
+        currentName: sceneNode.name,
+        title: 'Rename Scene',
+      });
+
+      const noteNode = {
+        ...mockDto,
+        type: ElementType.Item,
+        metadata: { role: 'note' },
+      };
+      elementsSignal.set([noteNode]);
+      await component.onRename(noteNode);
+      expect(dialogGatewayService.openRenameDialog).toHaveBeenLastCalledWith({
+        currentName: noteNode.name,
+        title: 'Rename Note',
+      });
+    });
+  });
+
+  describe('Scene / note conversion', () => {
+    const doc: ProjectElement = {
+      ...mockDto,
+      id: 'doc-1',
+      type: ElementType.Item,
+      metadata: {},
+    };
+
+    it('only offers conversion for prose documents', () => {
+      expect(component.isProseDocument(doc)).toBe(true);
+      expect(
+        component.isProseDocument({ ...doc, type: ElementType.Canvas })
+      ).toBe(false);
+      expect(component.isProseDocument(mockDto)).toBe(false);
+    });
+
+    it('detects scenes from metadata', () => {
+      expect(component.isSceneNode(doc)).toBe(false);
+      expect(
+        component.isSceneNode({ ...doc, metadata: { role: 'scene' } })
+      ).toBe(true);
+    });
+
+    it('prefers the live element over a stale context-menu node', () => {
+      elementsSignal.set([{ ...doc, metadata: { role: 'scene' } }]);
+      // The CDK menu hands us the node captured on first open.
+      expect(component.isSceneNode({ ...doc, metadata: {} })).toBe(true);
+      elementsSignal.set([{ ...doc, metadata: { role: 'note' } }]);
+      expect(
+        component.isSceneNode({ ...doc, metadata: { role: 'scene' } })
+      ).toBe(false);
+    });
+
+    it('converts via project state', () => {
+      component.onConvertRole(doc, 'scene');
+      expect(projectStateService.setDocumentRole).toHaveBeenCalledWith(
+        'doc-1',
+        'scene'
+      );
+      component.onConvertRole({ ...doc, metadata: { role: 'scene' } }, 'note');
+      expect(projectStateService.setDocumentRole).toHaveBeenLastCalledWith(
+        'doc-1',
+        'note'
+      );
+    });
+
+    it('ignores non-prose elements', () => {
+      component.onConvertRole({ ...doc, type: ElementType.Canvas }, 'scene');
+      expect(projectStateService.setDocumentRole).not.toHaveBeenCalled();
     });
   });
 

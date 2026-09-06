@@ -1,5 +1,10 @@
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import {
+  MAT_DIALOG_DATA,
+  MatDialog,
+  MatDialogRef,
+} from '@angular/material/dialog';
+import { of } from 'rxjs';
 import { vi } from 'vitest';
 
 import { type Element } from '../../../api-client/model/element';
@@ -16,7 +21,12 @@ describe('ElementPickerDialogComponent', () => {
   let component: ElementPickerDialogComponent;
   let fixture: ComponentFixture<ElementPickerDialogComponent>;
   let mockDialogRef: { close: ReturnType<typeof vi.fn> };
-  let mockProjectState: { elements: ReturnType<typeof vi.fn> };
+  let mockProjectState: {
+    elements: ReturnType<typeof vi.fn>;
+    canWrite: ReturnType<typeof vi.fn>;
+    addElement: ReturnType<typeof vi.fn>;
+  };
+  let mockMatDialog: { open: ReturnType<typeof vi.fn> };
   let mockWorldbuildingService: {
     getSchemaById: ReturnType<typeof vi.fn>;
     getSchemaIcon: ReturnType<typeof vi.fn>;
@@ -85,7 +95,11 @@ describe('ElementPickerDialogComponent', () => {
 
     mockProjectState = {
       elements: vi.fn().mockReturnValue(mockElements),
+      canWrite: vi.fn().mockReturnValue(true),
+      addElement: vi.fn(),
     };
+
+    mockMatDialog = { open: vi.fn() };
 
     mockWorldbuildingService = {
       getSchemaById: vi.fn().mockImplementation((schemaId: string) => {
@@ -124,11 +138,157 @@ describe('ElementPickerDialogComponent', () => {
         { provide: ProjectStateService, useValue: mockProjectState },
         { provide: WorldbuildingService, useValue: mockWorldbuildingService },
       ],
-    }).compileComponents();
+    })
+      // MatDialogModule (imported by the component) provides its own MatDialog
+      // at the component injector; overrideProvider reaches that level too.
+      .overrideProvider(MatDialog, { useValue: mockMatDialog })
+      .compileComponents();
 
     fixture = TestBed.createComponent(ElementPickerDialogComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
+  });
+
+  /** Rebuild the component with different dialog data. */
+  async function recreate(data: ElementPickerDialogData): Promise<void> {
+    TestBed.resetTestingModule();
+    await TestBed.configureTestingModule({
+      imports: [translocoTestProvider(), ElementPickerDialogComponent],
+      providers: [
+        { provide: MatDialogRef, useValue: mockDialogRef },
+        { provide: MAT_DIALOG_DATA, useValue: data },
+        { provide: ProjectStateService, useValue: mockProjectState },
+        { provide: WorldbuildingService, useValue: mockWorldbuildingService },
+      ],
+    })
+      .overrideProvider(MatDialog, { useValue: mockMatDialog })
+      .compileComponents();
+    fixture = TestBed.createComponent(ElementPickerDialogComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  }
+
+  describe('create new shortcut', () => {
+    it('is hidden unless allowCreate is set', () => {
+      expect(component.canCreate).toBe(false);
+      expect(
+        fixture.nativeElement.querySelector(
+          '[data-testid="element-picker-create-new"]'
+        )
+      ).toBeNull();
+    });
+
+    it('is hidden for non-worldbuilding pickers and read-only users', async () => {
+      await recreate({ allowCreate: true, filterType: ElementType.Item });
+      expect(component.canCreate).toBe(false);
+
+      mockProjectState.canWrite.mockReturnValue(false);
+      await recreate({ allowCreate: true });
+      expect(component.canCreate).toBe(false);
+    });
+
+    it('creates the element next to its template siblings and selects it', async () => {
+      await recreate({
+        allowCreate: true,
+        filterType: ElementType.Worldbuilding,
+      });
+      expect(component.canCreate).toBe(true);
+
+      const elements = [
+        ...mockElements,
+        {
+          ...mockElements[0],
+          id: 'char-2',
+          name: 'Older',
+          parentId: 'folder-1',
+          createdAt: '2024-01-01T00:00:00Z',
+        },
+        {
+          ...mockElements[0],
+          id: 'char-3',
+          name: 'Newer',
+          parentId: 'folder-2',
+          createdAt: '2024-06-01T00:00:00Z',
+        },
+      ];
+      const created = {
+        ...mockElements[0],
+        id: 'char-new',
+        name: 'Mira',
+        parentId: 'folder-2',
+      } as unknown as Element;
+      mockProjectState.elements.mockReturnValue(elements);
+      mockMatDialog.open.mockReturnValue({
+        afterClosed: () =>
+          of({
+            name: 'Mira',
+            type: ElementType.Worldbuilding,
+            schemaId: 'character-v1',
+          }),
+      });
+      mockProjectState.addElement.mockImplementation(() => {
+        mockProjectState.elements.mockReturnValue([...elements, created]);
+        return 'char-new';
+      });
+
+      await component.createNew();
+
+      expect(mockMatDialog.open).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ data: { worldbuildingOnly: true } })
+      );
+      expect(mockProjectState.addElement).toHaveBeenCalledWith(
+        ElementType.Worldbuilding,
+        'Mira',
+        'folder-2',
+        'character-v1'
+      );
+      expect(mockDialogRef.close).toHaveBeenCalledWith({ elements: [created] });
+    });
+
+    it('preselects the template when the picker is schema-filtered', async () => {
+      await recreate({ allowCreate: true, filterSchemaId: 'location-v1' });
+      mockMatDialog.open.mockReturnValue({ afterClosed: () => of(undefined) });
+
+      await component.createNew();
+
+      expect(mockMatDialog.open).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: {
+            worldbuildingOnly: true,
+            skipTypeSelection: true,
+            preselectedType: ElementType.Worldbuilding,
+            preselectedSchemaId: 'location-v1',
+          },
+        })
+      );
+      expect(mockProjectState.addElement).not.toHaveBeenCalled();
+      expect(mockDialogRef.close).not.toHaveBeenCalled();
+    });
+
+    it('falls back to the project root when no sibling exists', async () => {
+      await recreate({ allowCreate: true });
+      mockMatDialog.open.mockReturnValue({
+        afterClosed: () =>
+          of({
+            name: 'Ash',
+            type: ElementType.Worldbuilding,
+            schemaId: 'species-v1',
+          }),
+      });
+      mockProjectState.addElement.mockReturnValue(undefined);
+
+      await component.createNew();
+
+      expect(mockProjectState.addElement).toHaveBeenCalledWith(
+        ElementType.Worldbuilding,
+        'Ash',
+        undefined,
+        'species-v1'
+      );
+      expect(mockDialogRef.close).not.toHaveBeenCalled();
+    });
   });
 
   it('should create', () => {

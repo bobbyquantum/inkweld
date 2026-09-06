@@ -1,6 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { type Element, ElementType } from '@inkweld/index';
 import { type PublishStyles } from '@models/publish-style';
+import { isPublishableByDefault } from '@models/scene-metadata';
 import { $typst, TypstSnippet } from '@myriaddreamin/typst.ts/contrib/snippet';
 import { trimHyphens } from '@utils/string-utils';
 import { isWorldbuildingType } from '@utils/worldbuilding.utils';
@@ -582,7 +583,10 @@ export class PdfGeneratorService {
       const children = this.getChildElements(element, elements);
 
       for (const child of children) {
-        if (child.type === ElementType.Item) {
+        if (
+          child.type === ElementType.Item &&
+          isPublishableByDefault(child.metadata)
+        ) {
           await this.addDocumentContent(child.id, ctx);
         } else if (isWorldbuildingType(child.type)) {
           const synthetic = this.singleEntryWbItem(child.id);

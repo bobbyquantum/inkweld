@@ -10,7 +10,13 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { DocumentBreadcrumbsComponent } from '@components/document-breadcrumbs/document-breadcrumbs.component';
 import { DocumentElementEditorComponent } from '@components/document-element-editor/document-element-editor.component';
+import {
+  SCENE_STRIP_HEIGHT,
+  SceneStripComponent,
+} from '@components/scene-strip/scene-strip.component';
+import { ElementType } from '@inkweld/index';
 import { TranslocoModule } from '@jsverse/transloco';
+import { isScene } from '@models/scene-metadata';
 import { SettingsService } from '@services/core/settings.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { DocumentSyncService } from '@services/sync/document-sync.service';
@@ -22,6 +28,7 @@ import { DocumentSyncService } from '@services/sync/document-sync.service';
   imports: [
     DocumentElementEditorComponent,
     DocumentBreadcrumbsComponent,
+    SceneStripComponent,
     MatIconModule,
     MatButtonModule,
     MatProgressSpinnerModule,
@@ -84,6 +91,25 @@ export class DocumentTabComponent {
     // at the root and push the status bar off-screen.
     return elements.some(e => e.id === elementId);
   });
+
+  /** Whether the active document is a scene, and so shows the scene strip. */
+  protected readonly sceneStripVisible = computed(() => {
+    const elementId = this.bareElementId();
+    if (!elementId) return false;
+    const el = this.projectState.elements().find(e => e.id === elementId);
+    return !!el && el.type === ElementType.Item && isScene(el.metadata);
+  });
+
+  /**
+   * Total height (px) of the bars rendered above the editor, so the editor's
+   * fixed height can be reduced to match. Breadcrumb is 29px; scene strip is
+   * {@link SCENE_STRIP_HEIGHT}.
+   */
+  protected readonly headerOffset = computed(
+    () =>
+      (this.breadcrumbVisible() ? 29 : 0) +
+      (this.sceneStripVisible() ? SCENE_STRIP_HEIGHT : 0)
+  );
 
   constructor() {
     // Check document availability when the active tab changes

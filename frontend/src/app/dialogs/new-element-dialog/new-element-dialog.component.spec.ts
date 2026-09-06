@@ -2,7 +2,11 @@ import { provideHttpClient, withXhr } from '@angular/common/http';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatButtonModule } from '@angular/material/button';
-import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import {
+  MAT_DIALOG_DATA,
+  MatDialogModule,
+  MatDialogRef,
+} from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
@@ -234,10 +238,11 @@ describe('NewElementDialogComponent', () => {
     });
 
     it('should filter options by description', () => {
-      component.searchQuery.set('narrative');
+      component.searchQuery.set('research');
       const filtered = component.filteredOptions();
       expect(filtered).toHaveLength(1);
       expect(filtered[0].type).toBe(ElementType.Item);
+      expect(filtered[0].preset).toBe('note');
     });
 
     it('should be case insensitive', () => {
@@ -256,8 +261,35 @@ describe('NewElementDialogComponent', () => {
   describe('category grouping', () => {
     it('should separate document options', () => {
       const docOptions = component.documentOptions();
-      expect(docOptions).toHaveLength(2); // Folder and Document
+      expect(docOptions).toHaveLength(3); // Folder, Scene and Note
       expect(docOptions.every(o => o.category === 'document')).toBe(true);
+    });
+
+    it('offers Scene and Note as presets of the Item type', () => {
+      const docOptions = component.documentOptions();
+      const scene = docOptions.find(o => o.preset === 'scene');
+      const note = docOptions.find(o => o.preset === 'note');
+      expect(scene?.type).toBe(ElementType.Item);
+      expect(note?.type).toBe(ElementType.Item);
+      expect(component.optionTestId(scene!)).toBe('element-type-item');
+      expect(component.optionTestId(note!)).toBe('element-type-item-note');
+      expect(component.optionKey(scene!)).not.toBe(component.optionKey(note!));
+    });
+
+    it('closes with the scene preset when a scene is created', () => {
+      const scene = component
+        .documentOptions()
+        .find(o => o.preset === 'scene')!;
+      component.selectType(scene);
+      expect(component.isOptionSelected(scene)).toBe(true);
+      component.model.update(m => ({ ...m, name: 'Chapter 1' }));
+      component.onCreate();
+      expect(dialogRef.close).toHaveBeenCalledWith({
+        name: 'Chapter 1',
+        type: ElementType.Item,
+        schemaId: undefined,
+        preset: 'scene',
+      });
     });
 
     it('should start with no worldbuilding options', () => {
@@ -300,6 +332,42 @@ describe('NewElementDialogComponent', () => {
 
       component.selectType(canvasOption!);
       expect(component.getSelectedOption()).toBe(canvasOption);
+    });
+  });
+
+  describe('worldbuildingOnly', () => {
+    it('hides document and visualization options', async () => {
+      TestBed.resetTestingModule();
+      await TestBed.configureTestingModule({
+        imports: [translocoTestProvider(), NewElementDialogComponent],
+        providers: [
+          provideZonelessChangeDetection(),
+          provideHttpClient(withXhr()),
+          { provide: MatDialogRef, useValue: dialogRef },
+          { provide: MAT_DIALOG_DATA, useValue: { worldbuildingOnly: true } },
+          { provide: ProjectStateService, useValue: mockProjectState },
+          { provide: WorldbuildingService, useValue: mockWorldbuildingService },
+        ],
+      }).compileComponents();
+      const f = TestBed.createComponent(NewElementDialogComponent);
+      const c = f.componentInstance;
+      f.detectChanges();
+
+      expect(c.documentOptions()).toHaveLength(0);
+      expect(c.visualizationOptions()).toHaveLength(0);
+
+      mockWorldbuildingService.hasNoSchemas.mockReturnValue(false);
+      mockWorldbuildingService.getAllSchemas.mockReturnValue(
+        createMockSchemas([
+          { id: 'character-v1', name: 'Character', icon: 'person' },
+        ])
+      );
+      mockProjectState.project.set(mockProject);
+      f.detectChanges();
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      expect(c.worldbuildingOptions()).toHaveLength(1);
+      expect(c.documentOptions()).toHaveLength(0);
     });
   });
 
@@ -351,8 +419,8 @@ describe('NewElementDialogComponent', () => {
       await new Promise(resolve => setTimeout(resolve, 50));
 
       expect(consoleErrorSpy).toHaveBeenCalled();
-      // Should still have default document types
-      expect(component.documentOptions()).toHaveLength(2);
+      // Should still have default document types (Folder, Scene, Note)
+      expect(component.documentOptions()).toHaveLength(3);
 
       consoleErrorSpy.mockRestore();
     });

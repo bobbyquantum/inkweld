@@ -4,6 +4,7 @@ import {
   createDefaultPublishStyles,
   type PublishStyles,
 } from '@models/publish-style';
+import { isPublishableByDefault } from '@models/scene-metadata';
 import JSZip from '@progress/jszip-esm';
 import { isWorldbuildingType } from '@utils/worldbuilding.utils';
 import { BehaviorSubject, type Observable, Subject } from 'rxjs';
@@ -551,7 +552,10 @@ export class EpubGeneratorService {
     const children = this.getChildElements(element, elements);
     for (const child of children) {
       const level = child.level - element.level;
-      if (child.type === ElementType.Item) {
+      if (
+        child.type === ElementType.Item &&
+        isPublishableByDefault(child.metadata)
+      ) {
         const content = await this.getDocumentContent(child.id);
         chapters.push({
           id: child.id,

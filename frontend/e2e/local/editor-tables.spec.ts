@@ -24,9 +24,9 @@ async function createDocumentAndFocus(
   await expect(newDocButton).toBeVisible();
   await newDocButton.click();
 
-  await page.getByRole('heading', { name: 'Document', level: 4 }).click();
+  await page.getByTestId('element-type-item').click();
 
-  const dialogInput = page.getByLabel('Document Name');
+  const dialogInput = page.getByTestId('element-name-input');
   await dialogInput.waitFor({ state: 'visible' });
   await dialogInput.fill(docName);
   await page.getByTestId('create-element-button').click();
