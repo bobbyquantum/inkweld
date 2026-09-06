@@ -192,10 +192,9 @@ describe('SceneStripComponent', () => {
 
   it('writes status changes as metadata', () => {
     component.setStatus('final');
-    expect(projectState.updateElementMetadata).toHaveBeenCalledWith(
-      'scene-1',
-      { status: 'final' }
-    );
+    expect(projectState.updateElementMetadata).toHaveBeenCalledWith('scene-1', {
+      status: 'final',
+    });
     component.setStatus(null);
     expect(projectState.updateElementMetadata).toHaveBeenLastCalledWith(
       'scene-1',
@@ -300,10 +299,10 @@ describe('SceneStripComponent', () => {
       metadata: scene.metadata,
       timeSystems: [GREGORIAN_SYSTEM],
     });
-    expect(projectState.updateElementMetadata).toHaveBeenCalledWith(
-      'scene-1',
-      { synopsis: 'Mira arrives.', wordTarget: '1500' }
-    );
+    expect(projectState.updateElementMetadata).toHaveBeenCalledWith('scene-1', {
+      synopsis: 'Mira arrives.',
+      wordTarget: '1500',
+    });
   });
 
   it('is inert for read-only collaborators', async () => {

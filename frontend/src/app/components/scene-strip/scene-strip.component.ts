@@ -15,8 +15,8 @@ import {
   isScene,
   readSceneMetadata,
   SCENE_STATUSES,
-  type SceneStatus,
   sceneMetadataPatch,
+  type SceneStatus,
 } from '@models/scene-metadata';
 import { formatTimePoint } from '@models/time-system';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
@@ -56,7 +56,13 @@ const LINK_TYPE_IDS: Record<SceneLinkKind, string> = {
   templateUrl: './scene-strip.component.html',
   styleUrl: './scene-strip.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [MatButtonModule, MatIconModule, MatMenuModule, MatTooltipModule, TranslocoModule],
+  imports: [
+    MatButtonModule,
+    MatIconModule,
+    MatMenuModule,
+    MatTooltipModule,
+    TranslocoModule,
+  ],
 })
 export class SceneStripComponent {
   private readonly projectState = inject(ProjectStateService);
