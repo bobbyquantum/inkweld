@@ -22,7 +22,7 @@ import {
   sceneMetadataPatch,
   type SceneStatus,
 } from '@models/scene-metadata';
-import { type TimeSystem } from '@models/time-system';
+import { type TimePoint, type TimeSystem } from '@models/time-system';
 
 import { INT_RE, unitsToTimePoint } from '../timeline-units';
 
@@ -163,11 +163,13 @@ export class SceneDetailsDialogComponent {
     const hasDate = system !== null && units.some(u => u.trim() !== '');
     const preserveExisting =
       this.hasUnavailableStoryDate && !this.storyDateTouched;
-    const storyDate = preserveExisting
-      ? undefined
-      : hasDate
-        ? unitsToTimePoint(units, system)
-        : null;
+    // undefined: leave the stored date alone; null: clear it.
+    let storyDate: TimePoint | null | undefined = null;
+    if (preserveExisting) {
+      storyDate = undefined;
+    } else if (hasDate) {
+      storyDate = unitsToTimePoint(units, system);
+    }
 
     const rawTarget = this.wordTarget().trim();
     const status = this.status();
