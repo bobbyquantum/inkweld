@@ -741,21 +741,9 @@ mat-accordion {
 
   .status-actions {
     margin-left: auto;
-
-    .snapshots-btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 24px;
-      height: 24px;
-      line-height: 1;
-
-      mat-icon {
-        font-size: 18px;
-        width: 18px;
-        height: 18px;
-      }
-    }
+    display: flex;
+    align-items: center;
+    gap: 6px;
   }
 
   .sync-status {
@@ -950,7 +938,7 @@ mat-accordion {
   }
 }
 
-.editor-status-bar .schema-source-chip {
+.editor-status-bar .status-chip {
   display: inline-flex;
   align-items: center;
   gap: 4px;
