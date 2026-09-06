@@ -8,6 +8,7 @@ import { type ProjectsService } from '@inkweld/api/projects.service';
 import { type Project, type User } from '@inkweld/index';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { CoverSourceService } from '@services/project/cover-source.service';
+import { ElementNavigationService } from '@services/project/element-navigation.service';
 import { type LoadedImage } from 'ngx-image-cropper';
 import { of } from 'rxjs';
 import {
@@ -51,6 +52,7 @@ describe('EditProjectDialogComponent', () => {
   let projectStateService: MockedObject<ProjectStateService>;
   let dialogGateway: MockedObject<DialogGatewayService>;
   let coverSource: CoverSourceMock;
+  let elementNavigation: { openElement: ReturnType<typeof vi.fn> };
 
   const mockUser: User = {
     username: 'testuser',
@@ -131,6 +133,7 @@ describe('EditProjectDialogComponent', () => {
     } as any;
 
     coverSource = createCoverSourceMock();
+    elementNavigation = { openElement: vi.fn() };
 
     // Mock DialogGatewayService (media selector + AI generation dialogs)
     dialogGateway = {
@@ -152,6 +155,7 @@ describe('EditProjectDialogComponent', () => {
         { provide: LocalStorageService, useValue: localStorageService },
         { provide: ProjectStateService, useValue: projectStateService },
         { provide: CoverSourceService, useValue: coverSource },
+        { provide: ElementNavigationService, useValue: elementNavigation },
         { provide: DialogGatewayService, useValue: dialogGateway },
         { provide: MatSnackBar, useValue: snackBar },
       ],
@@ -483,6 +487,20 @@ describe('EditProjectDialogComponent', () => {
       button.click();
 
       expect(projectStateService.createCoverCanvas).toHaveBeenCalled();
+      expect(elementNavigation.openElement).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'new' })
+      );
+      expect(dialogRef.close).toHaveBeenCalled();
+    });
+
+    it('opens the linked canvas by navigating to it', () => {
+      const canvas = { id: 'canvas-1', name: 'Cover Art', type: 'CANVAS' };
+      projectStateService.elements.set([canvas as never]);
+      projectStateService.coverSource.set(source);
+
+      component.openLinkedCanvas();
+
+      expect(elementNavigation.openElement).toHaveBeenCalledWith(canvas);
       expect(dialogRef.close).toHaveBeenCalled();
     });
 

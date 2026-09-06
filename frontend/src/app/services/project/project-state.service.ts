@@ -1665,17 +1665,15 @@ export class ProjectStateService implements OnDestroy {
   }
 
   /**
-   * Create a "Cover" canvas at the project root, linked as the live cover,
-   * and open it. Returns the new element, or undefined when nothing could be
-   * created (no project loaded).
+   * Create a "Cover" canvas at the project root, linked as the live cover.
+   * Returns the new element (callers open/navigate to it), or undefined when
+   * nothing could be created (no project loaded).
    */
   createCoverCanvas(): Element | undefined {
     const elementId = this.addElement(ElementType.Canvas, 'Cover');
     if (!elementId) return undefined;
     this.applyCoverPreset(elementId);
-    const element = this.elements().find(e => e.id === elementId);
-    if (element) this.openDocument(element);
-    return element;
+    return this.elements().find(e => e.id === elementId);
   }
 
   showNewFolderDialog(parentElement?: Element): void {

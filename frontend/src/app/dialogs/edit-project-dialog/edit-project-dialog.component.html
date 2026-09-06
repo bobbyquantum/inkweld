@@ -35,6 +35,44 @@
     <div class="dialog-layout" data-testid="edit-project-dialog-layout">
       <!-- Left column: Cover image -->
       <div class="cover-column">
+        @if (coverImageUrl && !isLoadingCover()) {
+          <div class="cover-image-wrapper">
+            <img
+              [src]="coverImageUrl"
+              [alt]="'dialogs.editProject.coverAlt' | transloco"
+              class="cover-preview"
+              data-testid="cover-preview" />
+            <button
+              mat-mini-fab
+              color="warn"
+              class="remove-image-btn"
+              (click)="removeCoverImage()"
+              [disabled]="isLoadingCover()"
+              [attr.aria-label]="'dialogs.editProject.removeCover' | transloco">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </div>
+        } @else if (isLoadingCover()) {
+          <div class="placeholder-wrapper">
+            <mat-progress-bar
+              mode="indeterminate"
+              class="loading-bar"></mat-progress-bar>
+          </div>
+        } @else {
+          <div class="placeholder-wrapper">
+            <mat-icon class="placeholder-icon">image</mat-icon>
+            <p class="placeholder-text">
+              {{ 'dialogs.editProject.noCover' | transloco }}
+            </p>
+            <p class="placeholder-text">
+              {{ 'dialogs.editProject.ratioPlaceholder' | transloco }}
+            </p>
+          </div>
+        }
+      </div>
+
+      <!-- Right column: Form -->
+      <div class="form-column">
         @if (liveCoverSource()) {
           <div class="live-cover-card" data-testid="live-cover-card">
             <div class="live-cover-heading">
@@ -90,44 +128,6 @@
             </div>
           </div>
         }
-        @if (coverImageUrl && !isLoadingCover()) {
-          <div class="cover-image-wrapper">
-            <img
-              [src]="coverImageUrl"
-              [alt]="'dialogs.editProject.coverAlt' | transloco"
-              class="cover-preview"
-              data-testid="cover-preview" />
-            <button
-              mat-mini-fab
-              color="warn"
-              class="remove-image-btn"
-              (click)="removeCoverImage()"
-              [disabled]="isLoadingCover()"
-              [attr.aria-label]="'dialogs.editProject.removeCover' | transloco">
-              <mat-icon>delete</mat-icon>
-            </button>
-          </div>
-        } @else if (isLoadingCover()) {
-          <div class="placeholder-wrapper">
-            <mat-progress-bar
-              mode="indeterminate"
-              class="loading-bar"></mat-progress-bar>
-          </div>
-        } @else {
-          <div class="placeholder-wrapper">
-            <mat-icon class="placeholder-icon">image</mat-icon>
-            <p class="placeholder-text">
-              {{ 'dialogs.editProject.noCover' | transloco }}
-            </p>
-            <p class="placeholder-text">
-              {{ 'dialogs.editProject.ratioPlaceholder' | transloco }}
-            </p>
-          </div>
-        }
-      </div>
-
-      <!-- Right column: Form -->
-      <div class="form-column">
         <form (submit)="$event.preventDefault(); onSave()">
           <mat-form-field appearance="outline">
             <mat-label>{{

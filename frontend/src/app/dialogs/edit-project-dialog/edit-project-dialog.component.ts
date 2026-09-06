@@ -31,6 +31,7 @@ import { SystemConfigService } from '@services/core/system-config.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
 import { UnifiedProjectService } from '@services/local/unified-project.service';
 import { CoverSourceService } from '@services/project/cover-source.service';
+import { ElementNavigationService } from '@services/project/element-navigation.service';
 import { ProjectService } from '@services/project/project.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import {
@@ -78,6 +79,7 @@ export class EditProjectDialogComponent implements OnInit {
   private readonly logger = inject(LoggerService);
   private readonly transloco = inject(TranslocoService);
   private readonly coverSource = inject(CoverSourceService);
+  private readonly elementNavigation = inject(ElementNavigationService);
 
   /** Canvas frame the cover is generated from, when it is a live cover. */
   readonly liveCoverSource = this.projectState.coverSource;
@@ -405,7 +407,9 @@ export class EditProjectDialogComponent implements OnInit {
   openLinkedCanvas(): void {
     const element = this.liveCoverCanvas();
     if (!element) return;
-    this.projectState.openDocument(element);
+    // Opens the tab and routes to it — on phones the tab strip alone
+    // doesn't switch the view.
+    this.elementNavigation.openElement(element);
     this.dialogRef.close();
   }
 
@@ -444,7 +448,9 @@ export class EditProjectDialogComponent implements OnInit {
   /** Create a cover canvas linked as the live cover and open it. */
   designCoverOnCanvas(): void {
     const element = this.projectState.createCoverCanvas();
-    if (element) this.dialogRef.close();
+    if (!element) return;
+    this.elementNavigation.openElement(element);
+    this.dialogRef.close();
   }
 
   async removeCoverImage(): Promise<void> {
