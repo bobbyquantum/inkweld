@@ -90,6 +90,25 @@ describe('SceneDetailsDialogComponent', () => {
     expect(component.units()).toEqual([]);
   });
 
+  it('preserves an unavailable story date when saving other fields', async () => {
+    const stored = JSON.stringify({ systemId: 'missing', units: ['1'] });
+    await setup({ metadata: { storyDate: stored, synopsis: 'x' } });
+    component.synopsis.set('Edited');
+    component.onSave();
+    const patch = dialogRef.close.mock.calls[0][0].patch;
+    expect(patch.synopsis).toBe('Edited');
+    expect(patch).not.toHaveProperty('storyDate');
+  });
+
+  it('clears an unavailable story date only when the user picks no date', async () => {
+    const stored = JSON.stringify({ systemId: 'missing', units: ['1'] });
+    await setup({ metadata: { storyDate: stored } });
+    component.onSystemChange('');
+    component.onSave();
+    const patch = dialogRef.close.mock.calls[0][0].patch;
+    expect(patch.storyDate).toBe('');
+  });
+
   it('closes with a full patch on save', async () => {
     await setup();
     component.status.set('draft');

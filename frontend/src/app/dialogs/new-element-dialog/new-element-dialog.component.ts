@@ -20,9 +20,9 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
+import { DOCUMENT_ROLE_ICONS } from '@models/scene-metadata';
 
 import { ElementType } from '../../../api-client';
-import { DOCUMENT_ROLE_ICONS } from '../../models/scene-metadata';
 import { ProjectStateService } from '../../services/project/project-state.service';
 import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding.service';
 

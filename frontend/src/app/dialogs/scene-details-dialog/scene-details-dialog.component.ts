@@ -88,6 +88,15 @@ export class SceneDetailsDialogComponent {
   );
   readonly units = signal<string[]>(this.initialUnits());
 
+  /**
+   * A stored date whose calendar is no longer installed cannot be shown or
+   * edited here. Leave it untouched unless the user explicitly picks a
+   * calendar (or "no story date"), so saving other fields never wipes it.
+   */
+  private readonly hasUnavailableStoryDate =
+    this.initial.storyDate !== undefined && this.systemId() === NO_SYSTEM;
+  private storyDateTouched = false;
+
   /** The selected time system, or null for "no story date". */
   readonly system = computed<TimeSystem | null>(() => {
     const id = this.systemId();
@@ -128,6 +137,7 @@ export class SceneDetailsDialogComponent {
   }
 
   onSystemChange(id: string): void {
+    this.storyDateTouched = true;
     this.systemId.set(id);
     const system = this.system();
     this.units.set(system ? system.unitLabels.map(() => '') : []);
@@ -151,7 +161,13 @@ export class SceneDetailsDialogComponent {
     const system = this.system();
     const units = this.units();
     const hasDate = system !== null && units.some(u => u.trim() !== '');
-    const storyDate = hasDate ? unitsToTimePoint(units, system) : null;
+    const preserveExisting =
+      this.hasUnavailableStoryDate && !this.storyDateTouched;
+    const storyDate = preserveExisting
+      ? undefined
+      : hasDate
+        ? unitsToTimePoint(units, system)
+        : null;
 
     const rawTarget = this.wordTarget().trim();
     const status = this.status();

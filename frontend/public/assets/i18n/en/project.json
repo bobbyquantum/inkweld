@@ -61,6 +61,8 @@
     "noStatus": "No status",
     "statusTooltip": "Draft status",
     "setPov": "Set POV",
+    "pickPovTitle": "POV character",
+    "pickLocationTitle": "Location",
     "povTooltip": "Point-of-view character — click to open",
     "clearPov": "Clear POV character",
     "setLocation": "Set location",

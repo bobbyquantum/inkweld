@@ -10,7 +10,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { type Element, ElementType } from '@inkweld/index';
-import { TranslocoModule } from '@jsverse/transloco';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import {
   isScene,
   readSceneMetadata,
@@ -71,6 +71,7 @@ export class SceneStripComponent {
   private readonly dialogGateway = inject(DialogGatewayService);
   private readonly timeSystemLibrary = inject(TimeSystemLibraryService);
   private readonly worldbuildingService = inject(WorldbuildingService);
+  private readonly transloco = inject(TranslocoService);
 
   /** Bare element id of the open document. */
   readonly elementId = input.required<string>();
@@ -155,7 +156,11 @@ export class SceneStripComponent {
   async pick(kind: SceneLinkKind): Promise<void> {
     if (!this.canWrite()) return;
     const result = await this.dialogGateway.openElementPickerDialog({
-      title: kind === 'pov' ? 'POV character' : 'Location',
+      title: this.transloco.translate(
+        kind === 'pov'
+          ? 'project.sceneStrip.pickPovTitle'
+          : 'project.sceneStrip.pickLocationTitle'
+      ),
       filterType: ElementType.Worldbuilding,
       maxSelections: 1,
       allowCreate: true,

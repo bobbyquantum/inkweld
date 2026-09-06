@@ -568,7 +568,7 @@ export class ProjectTreeComponent implements OnDestroy {
   private renameTitleKey(node: ProjectElement): string {
     if (node.expandable) return 'project.tree.renameFolder';
     if (!this.isProseDocument(node)) return 'project.tree.renameItem';
-    switch (getDocumentRole(node.metadata)) {
+    switch (getDocumentRole(this.liveElement(node).metadata)) {
       case 'scene':
         return 'project.tree.renameScene';
       case 'note':
@@ -591,10 +591,14 @@ export class ProjectTreeComponent implements OnDestroy {
    * the `node` handed to the menu can be stale after a conversion.
    */
   public isSceneNode(node: ProjectElement): boolean {
-    const live = this.projectStateService
-      .elements()
-      .find(e => e.id === node.id);
-    return isScene((live ?? node).metadata);
+    return isScene(this.liveElement(node).metadata);
+  }
+
+  /** The current element for a (possibly stale) context-menu node. */
+  private liveElement(node: ProjectElement): Element {
+    return (
+      this.projectStateService.elements().find(e => e.id === node.id) ?? node
+    );
   }
 
   /**

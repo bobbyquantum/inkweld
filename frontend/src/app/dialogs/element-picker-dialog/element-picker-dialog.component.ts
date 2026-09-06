@@ -19,18 +19,17 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import {
+  NewElementDialogComponent,
+  type NewElementDialogData,
+  type NewElementDialogResult,
+} from '@dialogs/new-element-dialog/new-element-dialog.component';
 import { type Element } from '@inkweld/model/element';
 import { ElementType } from '@inkweld/model/element-type';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
 import { firstValueFrom } from 'rxjs';
-
-import {
-  NewElementDialogComponent,
-  type NewElementDialogData,
-  type NewElementDialogResult,
-} from '../new-element-dialog/new-element-dialog.component';
 
 /**
  * Dialog data for element picker

@@ -807,12 +807,29 @@ describe('ProjectTreeComponent', () => {
       });
     });
 
+    it('reads the live role for a stale context-menu node', async () => {
+      elementsSignal.set([
+        { ...mockDto, type: ElementType.Item, metadata: { role: 'note' } },
+      ]);
+      const staleNode = {
+        ...mockDto,
+        type: ElementType.Item,
+        metadata: { role: 'scene' },
+      };
+      await component.onRename(staleNode);
+      expect(dialogGatewayService.openRenameDialog).toHaveBeenLastCalledWith({
+        currentName: staleNode.name,
+        title: 'Rename Note',
+      });
+    });
+
     it('uses role-aware titles for scenes and notes', async () => {
       const sceneNode = {
         ...mockDto,
         type: ElementType.Item,
         metadata: { role: 'scene' },
       };
+      elementsSignal.set([sceneNode]);
       await component.onRename(sceneNode);
       expect(dialogGatewayService.openRenameDialog).toHaveBeenLastCalledWith({
         currentName: sceneNode.name,
@@ -824,6 +841,7 @@ describe('ProjectTreeComponent', () => {
         type: ElementType.Item,
         metadata: { role: 'note' },
       };
+      elementsSignal.set([noteNode]);
       await component.onRename(noteNode);
       expect(dialogGatewayService.openRenameDialog).toHaveBeenLastCalledWith({
         currentName: noteNode.name,

@@ -51,9 +51,9 @@ async function setupProjectWithDocuments(
     const newDocButton = page.getByTestId('create-new-element');
     await newDocButton.click();
 
-    await page.getByRole('heading', { name: 'Scene', level: 4 }).click();
+    await page.getByTestId('element-type-item').click();
 
-    const dialogInput = page.getByLabel('Scene Name');
+    const dialogInput = page.getByTestId('element-name-input');
     await dialogInput.waitFor({ state: 'visible' });
     await dialogInput.fill(name);
     await page.getByTestId('create-element-button').click();
