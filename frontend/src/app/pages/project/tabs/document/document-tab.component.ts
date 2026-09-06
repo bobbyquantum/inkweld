@@ -78,10 +78,11 @@ export class DocumentTabComponent {
     const elementId = this.bareElementId();
     if (!elementId || !this.settingsService.showBreadcrumbs()) return false;
     const elements = this.projectState.elements();
-    const el = elements.find(e => e.id === elementId);
-    if (!el) return false;
-    // Breadcrumb only shows when the element has a parent (not top-level)
-    return !!el.parentId;
+    // The breadcrumb always prepends a virtual project-name segment, so it
+    // renders for every element that can be resolved — including top-level
+    // documents. Checking parentId here would leave the editor 29px too tall
+    // at the root and push the status bar off-screen.
+    return elements.some(e => e.id === elementId);
   });
 
   constructor() {

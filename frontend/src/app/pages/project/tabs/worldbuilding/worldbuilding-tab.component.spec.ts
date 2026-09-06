@@ -306,6 +306,26 @@ describe('WorldbuildingTabComponent', () => {
     });
   });
 
+  describe('breadcrumbVisible', () => {
+    it('is true for a root-level element (breadcrumb shows project root)', () => {
+      mockProjectState.elements.set([{ ...mockElement, parentId: null }]);
+      fixture.detectChanges();
+      expect(component['breadcrumbVisible']()).toBe(true);
+    });
+
+    it('is true for a nested element', () => {
+      mockProjectState.elements.set([{ ...mockElement, parentId: 'folder' }]);
+      fixture.detectChanges();
+      expect(component['breadcrumbVisible']()).toBe(true);
+    });
+
+    it('is false when the element cannot be resolved', () => {
+      mockProjectState.elements.set([]);
+      fixture.detectChanges();
+      expect(component['breadcrumbVisible']()).toBe(false);
+    });
+  });
+
   describe('findElement', () => {
     it('should find element by ID', () => {
       mockProjectState.elements.set([mockElement]);
