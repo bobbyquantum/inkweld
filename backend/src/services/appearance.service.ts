@@ -64,9 +64,42 @@ export interface BackgroundPreference {
   presetId?: BackgroundPresetId;
 }
 
+/**
+ * What a user has chosen as the backdrop of their own public profile page.
+ *
+ * Separate from {@link BackgroundPreference} because the audience differs: the
+ * app background is seen only by the user, the profile background by everyone
+ * who can see the profile. Uploads are therefore not an option here — the
+ * banner is the personal image slot for the profile — and `plain` (the theme's
+ * own surface colour) is the default so a fresh profile stays uncluttered.
+ */
+export interface ProfileBackgroundPreference {
+  kind: 'plain' | 'preset';
+  presetId?: BackgroundPresetId;
+}
+
 /** Device-independent per-user UI preferences (the `users.preferences` JSON). */
 export interface UserPreferences {
   background?: BackgroundPreference;
+  profileBackground?: ProfileBackgroundPreference;
+}
+
+export function isBackgroundPresetId(value: unknown): value is BackgroundPresetId {
+  return typeof value === 'string' && (BACKGROUND_PRESET_IDS as readonly string[]).includes(value);
+}
+
+/**
+ * Normalise a stored profile background so callers never see an invalid one.
+ * A preset that has since been removed, or a `preset` kind with no id, both
+ * degrade to `plain` rather than surfacing as an error on a public page.
+ */
+export function resolveProfileBackground(
+  stored: ProfileBackgroundPreference | undefined
+): ProfileBackgroundPreference {
+  if (stored?.kind === 'preset' && isBackgroundPresetId(stored.presetId)) {
+    return { kind: 'preset', presetId: stored.presetId };
+  }
+  return { kind: 'plain' };
 }
 
 export interface AppearanceConfig {
@@ -229,6 +262,31 @@ class AppearanceService {
       logger.warn('Appearance', 'Discarding unparseable user preferences blob');
     }
     return {};
+  }
+
+  /** The user's profile background, normalised (see {@link resolveProfileBackground}). */
+  async getProfileBackground(
+    db: DatabaseInstance,
+    userId: string
+  ): Promise<ProfileBackgroundPreference> {
+    const preferences = await this.getPreferences(db, userId);
+    return resolveProfileBackground(preferences.profileBackground);
+  }
+
+  /** Merge a profile background choice into a user's preferences. */
+  async setProfileBackground(
+    db: DatabaseInstance,
+    userId: string,
+    profileBackground: ProfileBackgroundPreference
+  ): Promise<ProfileBackgroundPreference> {
+    const current = await this.getPreferences(db, userId);
+    const normalised = resolveProfileBackground(profileBackground);
+    const next: UserPreferences = { ...current, profileBackground: normalised };
+    await db
+      .update(users)
+      .set({ preferences: JSON.stringify(next) })
+      .where(eq(users.id, userId));
+    return normalised;
   }
 
   /** Merge a background choice into a user's preferences. */

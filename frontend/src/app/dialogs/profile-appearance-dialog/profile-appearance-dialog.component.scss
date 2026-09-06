@@ -1,0 +1,149 @@
+.dialog-content {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  padding-top: 8px;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.section-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.section-label {
+  font-weight: 500;
+}
+
+.section-description {
+  font-size: 0.85rem;
+  color: var(--sys-on-surface-variant);
+}
+
+// The banner is shown at the ratio the page renders it, so what the user
+// sees here is what visitors get.
+.banner-preview,
+.banner-placeholder {
+  width: 100%;
+  aspect-ratio: 3 / 1;
+  border-radius: 8px;
+  border: 1px solid var(--sys-outline-variant);
+  object-fit: cover;
+  display: block;
+}
+
+.banner-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--sys-surface-container-high);
+  color: var(--sys-on-surface-variant);
+
+  mat-icon {
+    font-size: 40px;
+    width: 40px;
+    height: 40px;
+  }
+}
+
+.cropper-container {
+  ::ng-deep image-cropper {
+    max-height: 320px;
+    width: 100%;
+    margin: 0 auto;
+  }
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+// The visible control is the button next to it; this only exists to open the
+// file picker.
+.file-input {
+  display: none;
+}
+
+// Tiles mirror the app background picker so the two feel like one feature.
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  gap: 10px;
+}
+
+.tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  position: relative;
+
+  &:hover {
+    border-color: var(--sys-outline-variant);
+  }
+
+  &.selected {
+    border-color: var(--sys-primary);
+  }
+
+  &:has(.tile-radio:disabled) {
+    cursor: default;
+    opacity: 0.6;
+  }
+
+  &:has(.tile-radio:focus-visible) {
+    outline: 2px solid var(--sys-primary);
+    outline-offset: 2px;
+  }
+}
+
+// The real control: focusable and in the accessibility tree, visually hidden.
+.tile-radio {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.swatch {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  border-radius: 6px;
+  border: 1px solid var(--sys-outline-variant);
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.plain-swatch {
+  background-color: var(--mat-app-background-color);
+  color: var(--sys-on-surface-variant);
+}
+
+.tile-label {
+  font-size: 0.75rem;
+  text-align: center;
+  color: var(--sys-on-surface-variant);
+  line-height: 1.2;
+}

@@ -61,6 +61,16 @@ export class AppComponent implements OnInit {
         this.hadRealUser = true;
       }
     });
+
+    // The background surface follows authentication, not the route: every
+    // signed-in page (home, profile, settings, ...) shares the personalisable
+    // app surface, and a hard refresh on any of them must resolve the same way
+    // a navigation from home would.
+    effect(() => {
+      this.backgroundService.setSurface(
+        this.unifiedUserService.isAuthenticated() ? 'app' : 'login'
+      );
+    });
   }
 
   ngOnInit(): void {

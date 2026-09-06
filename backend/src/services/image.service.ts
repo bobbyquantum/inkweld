@@ -206,6 +206,36 @@ export class ImageService {
   }
 
   /**
+   * Process a profile banner.
+   *
+   * Banners are wide strips across the top of the profile card, cropped to
+   * 3:1 by the client. Capped at 1800x600 (a 2x 900px-wide card) and encoded
+   * as webp for the same reasons as {@link processBackground}: anyone who can
+   * see the profile downloads it.
+   */
+  async processBanner(buffer: Buffer): Promise<{ data: Buffer; contentType: string }> {
+    const sharp = await getSharp();
+
+    if (!sharp) {
+      return {
+        data: buffer,
+        contentType: sniffImageType(buffer) ?? 'application/octet-stream',
+      };
+    }
+
+    const data = await this.processImage(buffer, {
+      width: 1800,
+      height: 600,
+      fit: 'inside',
+      format: 'webp',
+      quality: 82,
+      withoutEnlargement: true,
+    });
+
+    return { data, contentType: 'image/webp' };
+  }
+
+  /**
    * Validate an uploaded background image.
    *
    * Stricter than {@link validateImage}: SVG is rejected outright (it can

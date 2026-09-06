@@ -393,6 +393,9 @@
           "isOwner": {
             "type": "boolean"
           },
+          "appearance": {
+            "$ref": "#/components/schemas/ProfileAppearance"
+          },
           "sections": {
             "type": "object",
             "properties": {
@@ -424,7 +427,53 @@
           "bio",
           "hasAvatar",
           "isOwner",
+          "appearance",
           "sections"
+        ]
+      },
+      "ProfileAppearance": {
+        "type": "object",
+        "properties": {
+          "background": {
+            "$ref": "#/components/schemas/ProfileBackground"
+          },
+          "hasBanner": {
+            "type": "boolean",
+            "description": "Whether `GET /users/{username}/banner` will return an image."
+          }
+        },
+        "required": [
+          "background",
+          "hasBanner"
+        ]
+      },
+      "ProfileBackground": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "plain",
+              "preset"
+            ],
+            "description": "plain shows the theme's own surface colour; preset uses a built-in backdrop."
+          },
+          "presetId": {
+            "type": "string",
+            "enum": [
+              "bundled",
+              "midnight",
+              "dusk",
+              "forest",
+              "parchment",
+              "slate",
+              "none"
+            ],
+            "description": "Required when kind is `preset`."
+          }
+        },
+        "required": [
+          "kind"
         ]
       },
       "ProfileVisibilitySettings": {
@@ -5704,6 +5753,218 @@
           },
           "403": {
             "description": "Activity is not visible to the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/users/{username}/banner": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "operationId": "getUserBanner",
+        "summary": "Get a user's profile banner",
+        "security": [],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "description": "Username",
+              "example": "johndoe"
+            },
+            "required": true,
+            "description": "Username",
+            "name": "username",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Banner image",
+            "content": {
+              "image/*": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Profile is not visible to the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Banner not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/users/me/profile-background": {
+      "put": {
+        "tags": [
+          "Users"
+        ],
+        "operationId": "setProfileBackground",
+        "summary": "Set the caller's profile page background",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProfileBackground"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Stored profile background",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileBackground"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid profile background",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/users/me/banner": {
+      "post": {
+        "tags": [
+          "Users"
+        ],
+        "operationId": "uploadProfileBanner",
+        "summary": "Upload the caller's profile banner",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "banner": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Banner image file"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Banner uploaded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No file or invalid image",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Users"
+        ],
+        "operationId": "deleteProfileBanner",
+        "summary": "Delete the caller's profile banner",
+        "responses": {
+          "200": {
+            "description": "Banner deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
             "content": {
               "application/json": {
                 "schema": {

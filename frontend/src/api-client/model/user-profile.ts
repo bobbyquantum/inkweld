@@ -7,6 +7,7 @@
  * https://openapi-generator.tech
  * Do not edit the class manually.
  */
+import { ProfileAppearance } from './profile-appearance';
 import { UserProfileSections } from './user-profile-sections';
 import { ProfileProject } from './profile-project';
 import { ProfileVisibilitySettings } from './profile-visibility-settings';
@@ -17,6 +18,7 @@ export interface UserProfile {
   bio: string | null;
   hasAvatar: boolean;
   isOwner: boolean;
+  appearance: ProfileAppearance;
   sections: UserProfileSections;
   visibility?: ProfileVisibilitySettings;
   projects?: Array<ProfileProject>;

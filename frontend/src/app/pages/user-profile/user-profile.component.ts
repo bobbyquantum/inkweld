@@ -18,9 +18,11 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { ActivityGridComponent } from '@components/activity-grid/activity-grid.component';
+import { ProfileBannerComponent } from '@components/profile-banner/profile-banner.component';
 import { UserAvatarComponent } from '@components/user-avatar/user-avatar.component';
 import { WritingStatsWidgetComponent } from '@components/writing-stats-widget/writing-stats-widget.component';
 import type { ProfileActivityYear } from '@inkweld/model/profile-activity-year';
+import { ProfileBackgroundKind } from '@inkweld/model/profile-background';
 import type { UserProfile } from '@inkweld/model/user-profile';
 import { TranslocoModule } from '@jsverse/transloco';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
@@ -31,6 +33,8 @@ import { UnifiedUserService } from '@services/user/unified-user.service';
 import { UserProfileService } from '@services/user/user-profile.service';
 import { firstValueFrom, Subject, takeUntil } from 'rxjs';
 import { debounceTime } from 'rxjs/operators';
+
+import { findBackgroundPreset } from '../../config/background-presets';
 
 /** What the page is showing, beyond a successfully loaded profile. */
 export type ProfileLoadState =
@@ -45,6 +49,11 @@ export type ProfileLoadState =
  *
  * In local (offline) mode there is no server to ask, so the page falls back
  * to showing the local user's own card and projects.
+ *
+ * The page paints its own backdrop rather than the app-wide one: what the
+ * owner chose (plain by default, or a preset) is part of the profile and is
+ * the same for every visitor, whereas the app background is the *viewer's*
+ * personal choice.
  */
 @Component({
   selector: 'app-user-profile',
@@ -59,6 +68,7 @@ export type ProfileLoadState =
     TranslocoModule,
     UserAvatarComponent,
     ActivityGridComponent,
+    ProfileBannerComponent,
     WritingStatsWidgetComponent,
   ],
   templateUrl: './user-profile.component.html',
@@ -95,6 +105,29 @@ export class UserProfileComponent implements OnInit, OnDestroy {
   );
   readonly isAnonymous = computed(() => !this.userService.isAuthenticated());
   readonly projects = computed(() => this.profile()?.projects ?? []);
+
+  /**
+   * The owner's chosen backdrop as CSS, or null for plain. Resolved on the
+   * client from the shared preset table so the server never ships CSS.
+   */
+  readonly backdrop = computed(() => {
+    const background = this.profile()?.appearance?.background;
+    if (
+      background?.kind !== ProfileBackgroundKind.Preset ||
+      !background.presetId
+    ) {
+      return null;
+    }
+    const preset = findBackgroundPreset(background.presetId);
+    return preset ? { image: preset.image, color: preset.color } : null;
+  });
+
+  readonly hasBanner = computed(
+    () => this.profile()?.appearance?.hasBanner ?? false
+  );
+
+  /** Bumped when the owner changes the banner so it is re-fetched. */
+  readonly bannerVersion = signal(0);
 
   /** Kept for the existing template contract; mirrors `loadState`. */
   readonly isLoading = computed(() => this.loadState() === 'loading');
@@ -192,6 +225,11 @@ export class UserProfileComponent implements OnInit, OnDestroy {
           bio: current.bio ?? null,
           hasAvatar: current.hasAvatar ?? false,
           isOwner: true,
+          // Personalisation needs a server; offline profiles stay plain.
+          appearance: {
+            background: { kind: ProfileBackgroundKind.Plain },
+            hasBanner: false,
+          },
           sections: { activity: false, projects: true },
           projects: this.projectService.projects().map(p => ({
             slug: p.slug,
@@ -248,6 +286,22 @@ export class UserProfileComponent implements OnInit, OnDestroy {
       const username = this.username();
       if (username) void this.loadProfile(username);
     });
+  }
+
+  /** Open the banner/backdrop dialog, then reload if anything changed. */
+  openCustomiseDialog(): void {
+    const profile = this.profile();
+    if (!profile) return;
+    void this.dialogGateway
+      .openProfileAppearanceDialog({
+        username: profile.username,
+        appearance: profile.appearance,
+      })
+      .then(changed => {
+        if (!changed) return;
+        this.bannerVersion.update(v => v + 1);
+        void this.loadProfile(profile.username);
+      });
   }
 
   /** Router link for a project card; only meaningful in server mode. */

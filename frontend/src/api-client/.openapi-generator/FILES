@@ -191,6 +191,8 @@ model/passkey.ts
 model/pending-invitation.ts
 model/profile-activity-day.ts
 model/profile-activity-year.ts
+model/profile-appearance.ts
+model/profile-background.ts
 model/profile-project.ts
 model/profile-visibility-settings.ts
 model/profile-visibility.ts

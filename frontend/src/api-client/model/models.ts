@@ -149,6 +149,8 @@ export * from './passkey-rename-request';
 export * from './pending-invitation';
 export * from './profile-activity-day';
 export * from './profile-activity-year';
+export * from './profile-appearance';
+export * from './profile-background';
 export * from './profile-project';
 export * from './profile-visibility';
 export * from './profile-visibility-settings';

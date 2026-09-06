@@ -6,6 +6,11 @@ import {
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import type { ProfileActivityYear } from '@inkweld/model/profile-activity-year';
+import {
+  type ProfileBackground,
+  ProfileBackgroundKind,
+  ProfileBackgroundPresetId,
+} from '@inkweld/model/profile-background';
 import type { UserProfile } from '@inkweld/model/user-profile';
 import { SetupService } from '@services/core/setup.service';
 import { firstValueFrom } from 'rxjs';
@@ -43,6 +48,10 @@ describe('UserProfileService', () => {
       bio: null,
       hasAvatar: false,
       isOwner: false,
+      appearance: {
+        background: { kind: ProfileBackgroundKind.Plain },
+        hasBanner: false,
+      },
       sections: { activity: true, projects: false },
     };
     const promise = firstValueFrom(service.getProfile('a b'));
@@ -89,6 +98,65 @@ describe('UserProfileService', () => {
     );
     req.flush({});
     return promise;
+  });
+
+  it('builds banner URLs with an optional cache-buster', () => {
+    expect(service.bannerUrl('a b')).toBe(
+      'https://srv/api/v1/users/a%20b/banner'
+    );
+    expect(service.bannerUrl('alice', 3)).toBe(
+      'https://srv/api/v1/users/alice/banner?v=3'
+    );
+  });
+
+  it('GETs the banner as a blob with credentials', async () => {
+    const promise = firstValueFrom(service.getBanner('alice', 2));
+    const req = httpController.expectOne(
+      'https://srv/api/v1/users/alice/banner?v=2'
+    );
+    expect(req.request.method).toBe('GET');
+    expect(req.request.responseType).toBe('blob');
+    expect(req.request.withCredentials).toBe(true);
+    req.flush(new Blob(['img']));
+    expect(await promise).toBeInstanceOf(Blob);
+  });
+
+  it('PUTs the profile background with credentials', async () => {
+    const background: ProfileBackground = {
+      kind: ProfileBackgroundKind.Preset,
+      presetId: ProfileBackgroundPresetId.Dusk,
+    };
+    const promise = firstValueFrom(service.setProfileBackground(background));
+    const req = httpController.expectOne(
+      'https://srv/api/v1/users/me/profile-background'
+    );
+    expect(req.request.method).toBe('PUT');
+    expect(req.request.withCredentials).toBe(true);
+    expect(req.request.body).toEqual(background);
+    req.flush(background);
+    expect(await promise).toEqual(background);
+  });
+
+  it('POSTs the banner as multipart form data', async () => {
+    const blob = new Blob(['x'], { type: 'image/jpeg' });
+    const promise = firstValueFrom(service.uploadBanner(blob, 'hero.jpg'));
+    const req = httpController.expectOne('https://srv/api/v1/users/me/banner');
+    expect(req.request.method).toBe('POST');
+    expect(req.request.withCredentials).toBe(true);
+    const body = req.request.body as FormData;
+    expect(body).toBeInstanceOf(FormData);
+    expect((body.get('banner') as File).name).toBe('hero.jpg');
+    req.flush({ message: 'ok' });
+    await promise;
+  });
+
+  it('DELETEs the banner', async () => {
+    const promise = firstValueFrom(service.deleteBanner());
+    const req = httpController.expectOne('https://srv/api/v1/users/me/banner');
+    expect(req.request.method).toBe('DELETE');
+    expect(req.request.withCredentials).toBe(true);
+    req.flush({ message: 'ok' });
+    await promise;
   });
 
   it('reports a browser timezone', () => {

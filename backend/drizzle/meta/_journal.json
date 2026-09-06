@@ -218,6 +218,13 @@
       "when": 1788134400000,
       "tag": "0031_add-profile-visibility",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "6",
+      "when": 1788739200000,
+      "tag": "0032_add-profile-banner",
+      "breakpoints": true
     }
   ]
 }

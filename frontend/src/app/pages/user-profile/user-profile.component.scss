@@ -28,6 +28,28 @@
   &.is-mobile {
     padding-top: 0;
   }
+
+  // The profile paints its own backdrop (see the component doc): the owner's
+  // preset, or nothing at all. Neither wants the admin's blur, and a plain
+  // page needs no scrim — the theme colour is already readable.
+  --app-bg-filter: none;
+
+  &.plain-backdrop {
+    --app-bg-color: var(--mat-app-background-color);
+
+    &::before {
+      display: none;
+    }
+
+    // The panels are translucent so an image can show through them. Over a
+    // flat theme colour there is nothing to show, and in the light theme the
+    // blend turns a muddy grey — so make them (nearly) solid instead.
+    .user-profile-card,
+    .content-section {
+      background-color: rgba(30, 30, 30, 0.94);
+      backdrop-filter: none;
+    }
+  }
 }
 
 // Toolbar styles
@@ -137,14 +159,41 @@
   }
 }
 
-.user-profile-header {
-  display: flex;
-  align-items: center;
+// Card wrapping the optional banner and the header row, so the banner can sit
+// flush with the card's top edge and the avatar can overlap its bottom edge.
+.user-profile-card {
   margin-bottom: 24px;
-  padding: 24px;
   background-color: rgba(30, 30, 30, 0.7);
   border-radius: 8px;
   backdrop-filter: blur(10px);
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.profile-banner {
+  // Guard against a very wide card producing a towering banner.
+  max-height: 260px;
+}
+
+// With a banner, the avatar rides up over its bottom edge, GitHub-style.
+.has-banner .user-avatar-container {
+  margin-top: -60px;
+  border: 3px solid rgba(30, 30, 30, 0.9);
+  background-color: rgba(30, 30, 30, 0.9);
+
+  @media (max-width: 768px) {
+    margin-top: -55px;
+  }
+}
+
+.has-banner .user-profile-header {
+  padding-top: 16px;
+}
+
+.user-profile-header {
+  display: flex;
+  align-items: center;
+  padding: 24px;
   box-sizing: border-box;
 
   @media (max-width: 768px) {
@@ -265,9 +314,15 @@
   align-self: flex-start;
   margin-left: 16px;
   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 
   @media (max-width: 768px) {
     align-self: center;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
     margin: 16px 0 0;
   }
 }

@@ -4,6 +4,7 @@ import { extension, lookup } from 'mime-types';
 import { config } from '../config/env';
 import { BadRequestError } from '../errors';
 import { logger } from './logger.service';
+import type { SlotNamespace } from './storage.service';
 
 export class FileStorageService {
   private readonly basePath: string;
@@ -326,11 +327,11 @@ export class FileStorageService {
     throw new BadRequestError(`Unsupported image content type: ${contentType}`);
   }
 
-  private slotDir(namespace: 'branding' | 'backgrounds'): string {
+  private slotDir(namespace: SlotNamespace): string {
     return path.join(this.basePath, namespace);
   }
 
-  private slotPath(namespace: 'branding' | 'backgrounds', key: string, ext: string): string {
+  private slotPath(namespace: SlotNamespace, key: string, ext: string): string {
     this.validatePathComponent(key, 'slot key');
     const slotPath = path.join(this.slotDir(namespace), `${key}.${ext}`);
     this.ensureWithinBase(slotPath, this.slotDir(namespace));
@@ -342,7 +343,7 @@ export class FileStorageService {
    * format change (png → webp) does not leave two files fighting to be found.
    */
   async saveSlotImage(
-    namespace: 'branding' | 'backgrounds',
+    namespace: SlotNamespace,
     key: string,
     data: Buffer,
     contentType: string
@@ -358,7 +359,7 @@ export class FileStorageService {
    * nothing is stored for the key.
    */
   async getSlotImage(
-    namespace: 'branding' | 'backgrounds',
+    namespace: SlotNamespace,
     key: string
   ): Promise<{ data: Buffer; contentType: string } | null> {
     for (const ext of FileStorageService.SLOT_EXTENSIONS) {
@@ -379,7 +380,7 @@ export class FileStorageService {
     return null;
   }
 
-  async hasSlotImage(namespace: 'branding' | 'backgrounds', key: string): Promise<boolean> {
+  async hasSlotImage(namespace: SlotNamespace, key: string): Promise<boolean> {
     for (const ext of FileStorageService.SLOT_EXTENSIONS) {
       try {
         await fs.access(this.slotPath(namespace, key, ext));
@@ -392,7 +393,7 @@ export class FileStorageService {
   }
 
   /** Delete every stored variant for a slot. Missing files are not an error. */
-  async deleteSlotImage(namespace: 'branding' | 'backgrounds', key: string): Promise<void> {
+  async deleteSlotImage(namespace: SlotNamespace, key: string): Promise<void> {
     for (const ext of FileStorageService.SLOT_EXTENSIONS) {
       try {
         await fs.unlink(this.slotPath(namespace, key, ext));

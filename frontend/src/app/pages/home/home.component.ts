@@ -42,7 +42,6 @@ import {
   type PendingInvitation,
 } from '@inkweld/model/models';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
-import { BackgroundService } from '@services/core/background.service';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SetupService } from '@services/core/setup.service';
 import { StorageContextService } from '@services/core/storage-context.service';
@@ -127,7 +126,6 @@ export class HomeComponent implements OnInit, OnDestroy {
   private readonly localSnapshotService = inject(LocalSnapshotService);
   private readonly localElementsService = inject(LocalProjectElementsService);
   private readonly tutorialService = inject(TutorialService);
-  private readonly backgroundService = inject(BackgroundService);
 
   /** True when the app is running in local-only mode (no backend). */
   protected readonly isLocalMode = this.storageContext.isLocalMode;
@@ -353,15 +351,6 @@ export class HomeComponent implements OnInit, OnDestroy {
       }
       this.tutorialOffered = true;
       this.tutorialService.maybeAutoStart('home', { isMobile: false });
-    });
-
-    // This one element hosts both the welcome/login view and the project grid,
-    // so it is also where the background switches between the admin-only login
-    // surface and the personalisable app surface.
-    effect(() => {
-      this.backgroundService.setSurface(
-        this.isAuthenticated() ? 'app' : 'login'
-      );
     });
   }
 
