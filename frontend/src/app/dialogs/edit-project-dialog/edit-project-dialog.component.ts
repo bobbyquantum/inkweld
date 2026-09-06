@@ -116,7 +116,7 @@ export class EditProjectDialogComponent implements OnInit {
   readonly isLoadingCover = signal(false);
   project!: Project;
   coverImage?: Blob;
-  coverImageUrl?: SafeUrl;
+  coverImageUrl?: SafeUrl | string;
   private hasCoverImage = false;
 
   // Image cropper state. The template-bound properties MUST be signals: the
@@ -422,9 +422,8 @@ export class EditProjectDialogComponent implements OnInit {
       }
       this.currentCoverMediaId = this.projectState.coverMediaId();
       this.coverImage = blob;
-      this.coverImageUrl = this.sanitizer.bypassSecurityTrustUrl(
-        URL.createObjectURL(blob)
-      );
+      // A blob: URL is in Angular's safe-URL allow-list, so no bypass needed.
+      this.coverImageUrl = URL.createObjectURL(blob);
       this.hasCoverImage = true;
       this.showSuccess(
         this.transloco.translate('dialogs.editProject.coverRerendered')
