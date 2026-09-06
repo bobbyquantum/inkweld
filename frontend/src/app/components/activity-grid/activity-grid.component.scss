@@ -86,6 +86,12 @@
 
 .grid-svg {
   display: block;
+  // Scale down to fit beside the year picker rather than overflowing (which
+  // clipped the last weeks of December). Below the minimum width the
+  // scroller takes over so cells never become unreadably small.
+  width: 100%;
+  height: auto;
+  min-width: 560px;
   transition: opacity 0.15s;
 
   &.dimmed {

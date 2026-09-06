@@ -42,8 +42,7 @@
         <svg
           class="grid-svg"
           [class.dimmed]="loading()"
-          [attr.width]="svgWidth()"
-          [attr.height]="svgHeight()"
+          [style.max-width.px]="svgWidth()"
           [attr.viewBox]="'0 0 ' + svgWidth() + ' ' + svgHeight()"
           role="img"
           [attr.aria-label]="
