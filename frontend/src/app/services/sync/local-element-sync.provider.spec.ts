@@ -633,6 +633,39 @@ describe('LocalElementSyncProvider', () => {
       expect(mockOfflineElementsService.saveCustomTags).toHaveBeenCalled();
     });
 
+    it('passes the cover source through to the store, including clears', async () => {
+      mockOfflineElementsService._projectMetaSubject.next(mockProjectMeta);
+      mockOfflineElementsService.projectMeta.mockReturnValue(mockProjectMeta);
+      await provider.connect(config);
+      const source = {
+        type: 'canvas' as const,
+        elementId: 'el-1',
+        frameId: 'F1',
+      };
+
+      provider.updateProjectMeta({ coverSource: source });
+      await Promise.resolve();
+      expect(provider.getProjectMeta()?.coverSource).toEqual(source);
+      expect(
+        mockOfflineElementsService.saveProjectMeta
+      ).toHaveBeenLastCalledWith(
+        'testuser',
+        'test-project',
+        expect.objectContaining({ coverSource: source })
+      );
+
+      provider.updateProjectMeta({ description: 'Still linked' });
+      await Promise.resolve();
+      expect(provider.getProjectMeta()?.coverSource).toEqual(source);
+
+      provider.updateProjectMeta({ coverSource: undefined });
+      await Promise.resolve();
+      expect(provider.getProjectMeta()?.coverSource).toBeUndefined();
+      const saved =
+        mockOfflineElementsService.saveProjectMeta.mock.lastCall?.[2];
+      expect(saved && 'coverSource' in saved).toBe(true);
+    });
+
     it('should merge and save project metadata updates', async () => {
       mockOfflineElementsService._projectMetaSubject.next(mockProjectMeta);
       mockOfflineElementsService.projectMeta.mockReturnValue(mockProjectMeta);

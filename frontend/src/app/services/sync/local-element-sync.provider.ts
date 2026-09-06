@@ -730,6 +730,9 @@ export class LocalElementSyncProvider implements IElementSyncProvider {
       description: meta.description ?? current?.description ?? '',
       coverMediaId: meta.coverMediaId ?? current?.coverMediaId,
       pinnedElementIds: meta.pinnedElementIds ?? current?.pinnedElementIds,
+      // Key presence distinguishes "leave alone" from "clear".
+      coverSource:
+        'coverSource' in meta ? meta.coverSource : current?.coverSource,
       updatedAt: new Date().toISOString(),
     };
 

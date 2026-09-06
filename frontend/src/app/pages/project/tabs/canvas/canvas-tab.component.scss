@@ -273,6 +273,32 @@
   flex-shrink: 0;
 }
 
+.frame-cover-badge {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: var(--sys-primary);
+
+  &.is-busy {
+    animation: frame-cover-pulse 1.2s ease-in-out infinite;
+  }
+
+  &.is-error {
+    color: var(--sys-error);
+  }
+}
+
+@keyframes frame-cover-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
 .layer-action {
   width: 28px !important;
   height: 28px !important;

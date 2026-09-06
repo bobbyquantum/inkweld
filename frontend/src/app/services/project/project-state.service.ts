@@ -9,8 +9,14 @@ import {
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
 import { type Element, ElementType, type Project } from '@inkweld/index';
-import { createDefaultLayer, isLinkableObject } from '@models/canvas.model';
+import {
+  createDefaultLayer,
+  createFrame,
+  FRAME_PRESETS,
+  isLinkableObject,
+} from '@models/canvas.model';
 import { type CanvasContents, type CanvasEdit } from '@models/canvas-edit';
+import type { CoverSource } from '@models/cover-source';
 import { type ProjectElement } from '@models/project-element';
 import { TimeSystemLibraryService } from '@services/timeline/time-system-library.service';
 import { nanoid } from 'nanoid';
@@ -38,6 +44,7 @@ import { UnifiedProjectService } from '../local/unified-project.service';
 import {
   ElementSyncProviderFactory,
   type IElementSyncProvider,
+  type ProjectMeta,
 } from '../sync/index';
 import { UnifiedUserService } from '../user/unified-user.service';
 import { WorldbuildingService } from '../worldbuilding/worldbuilding.service';
@@ -225,6 +232,13 @@ export class ProjectStateService implements OnDestroy {
    * offline-first editing via Yjs sync.
    */
   readonly coverMediaId = signal<string | undefined>(undefined);
+
+  /**
+   * Canvas frame the cover is rendered from, when the cover is a live canvas
+   * design. Mirrors `projectMeta.coverSource`; see {@link CoverSourceService}
+   * for the render pipeline that keeps `coverMediaId` in step with it.
+   */
+  readonly coverSource = signal<CoverSource | undefined>(undefined);
 
   /**
    * Ordered list of pinned element IDs for this project.
@@ -665,6 +679,7 @@ export class ProjectStateService implements OnDestroy {
               // API Project model — update them regardless of whether the project
               // has loaded yet (they live only in Yjs / IndexedDB).
               this.coverMediaId.set(meta.coverMediaId);
+              this.coverSource.set(meta.coverSource);
               this.pinnedElementIds.set(meta.pinnedElementIds ?? []);
 
               // Merge Yjs metadata (name/description) into the project model only
@@ -776,6 +791,7 @@ export class ProjectStateService implements OnDestroy {
     this.publishPlans.set([]);
     this.expandedNodeIds.set(new Set());
     this.pinnedElementIds.set([]);
+    this.coverSource.set(undefined);
 
     // Clear locally-created element tracking
     this.locallyCreatedElementIds.clear();
@@ -968,6 +984,13 @@ export class ProjectStateService implements OnDestroy {
     );
     if (kept.length !== relationships.length) {
       provider.updateRelationships(kept);
+    }
+
+    // A deleted canvas can no longer be the cover's source; the last raster
+    // stays as a plain cover.
+    const source = this.coverSource();
+    if (source && deletedIds.has(source.elementId)) {
+      this.setCoverSource(undefined);
     }
 
     for (const canvasId of provider.listCanvasElementIds()) {
@@ -1340,9 +1363,20 @@ export class ProjectStateService implements OnDestroy {
     const previousCoverMediaId = this.coverMediaId();
     this.project.set(project);
 
+    const coverChanged =
+      coverMediaId !== undefined && previousCoverMediaId !== coverMediaId;
+
     // Update cover media ID if provided
     if (coverMediaId !== undefined) {
       this.coverMediaId.set(coverMediaId);
+    }
+
+    // A cover set through this path is a manual image (upload, library pick,
+    // AI generation, removal). It replaces any live canvas cover, so the link
+    // is dropped — otherwise the next canvas edit would overwrite it.
+    const unlinkSource = coverChanged && this.coverSource() !== undefined;
+    if (unlinkSource) {
+      this.coverSource.set(undefined);
     }
 
     // Sync metadata changes to Yjs if provider is connected
@@ -1351,33 +1385,58 @@ export class ProjectStateService implements OnDestroy {
       const metaChanged =
         previousProject?.title !== project.title ||
         previousProject?.description !== project.description ||
-        (coverMediaId !== undefined && previousCoverMediaId !== coverMediaId);
+        coverChanged;
 
       if (metaChanged) {
-        const meta: {
-          name: string;
-          description: string;
-          coverMediaId?: string;
-        } = {
+        const meta: Partial<ProjectMeta> = {
           name: project.title,
           description: project.description || '',
         };
         if (coverMediaId !== undefined) {
           meta.coverMediaId = coverMediaId;
         }
-        // Set flag to prevent feedback loop from subscription
-        this.isUpdatingMeta = true;
-        this.syncProvider.updateProjectMeta(meta);
-        this.logger.debug(
-          'ProjectState',
-          'Updated project metadata via Yjs sync'
-        );
-        // Clear flag after microtask to ensure subscription callback is fully skipped
-        queueMicrotask(() => {
-          this.isUpdatingMeta = false;
-        });
+        if (unlinkSource) {
+          meta.coverSource = undefined;
+        }
+        this.writeProjectMeta(meta);
       }
     }
+  }
+
+  /**
+   * Link or unlink the canvas frame the cover renders from. Linking does not
+   * render anything by itself; {@link CoverSourceService} notices the change
+   * and produces the raster.
+   */
+  setCoverSource(source: CoverSource | undefined): void {
+    this.coverSource.set(source);
+    if (!this.syncProvider?.isConnected()) return;
+    this.writeProjectMeta({ coverSource: source });
+  }
+
+  /**
+   * Record a freshly rendered cover raster together with the source state it
+   * was rendered from, in one metadata write so collaborators never observe a
+   * new image without its hash (or vice versa).
+   */
+  setRenderedCover(coverMediaId: string, source: CoverSource): void {
+    this.coverMediaId.set(coverMediaId);
+    this.coverSource.set(source);
+    if (!this.syncProvider?.isConnected()) return;
+    this.writeProjectMeta({ coverMediaId, coverSource: source });
+  }
+
+  /** Write metadata without the subscription echoing it back into signals. */
+  private writeProjectMeta(meta: Partial<ProjectMeta>): void {
+    if (!this.syncProvider) return;
+    // Set flag to prevent feedback loop from subscription
+    this.isUpdatingMeta = true;
+    this.syncProvider.updateProjectMeta(meta);
+    this.logger.debug('ProjectState', 'Updated project metadata via sync');
+    // Clear flag after microtask to ensure subscription callback is fully skipped
+    queueMicrotask(() => {
+      this.isUpdatingMeta = false;
+    });
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -1522,6 +1581,7 @@ export class ProjectStateService implements OnDestroy {
 
         if (newElementId) {
           if (result.preset === 'map') this.applyMapPreset(newElementId);
+          if (result.preset === 'cover') this.applyCoverPreset(newElementId);
           const elements = this.elements();
           const newElement = elements.find(e => e.id === newElementId);
           if (newElement) {
@@ -1542,6 +1602,45 @@ export class ProjectStateService implements OnDestroy {
       layers: [createDefaultLayer('Base map', 0)],
       objects: [],
     });
+  }
+
+  /**
+   * Pre-configure a freshly created canvas as the project cover: a book icon,
+   * a canvas-size frame at the cover preset (1:1.6 portrait), and the frame
+   * linked as the live cover source so edits regenerate the cover image.
+   */
+  private applyCoverPreset(elementId: string): void {
+    const preset = FRAME_PRESETS.find(p => p.key === 'cover');
+    if (!preset) return;
+    const frame = createFrame(
+      'canvas',
+      'Cover',
+      0,
+      0,
+      preset.width,
+      preset.height
+    );
+    this.updateElementMetadata(elementId, { icon: 'book' });
+    this.syncProvider?.seedCanvasContents(elementId, {
+      layers: [createDefaultLayer('Artwork', 0)],
+      objects: [],
+      frames: [frame],
+    });
+    this.setCoverSource({ type: 'canvas', elementId, frameId: frame.id });
+  }
+
+  /**
+   * Create a "Cover" canvas at the project root, linked as the live cover,
+   * and open it. Returns the new element, or undefined when nothing could be
+   * created (no project loaded).
+   */
+  createCoverCanvas(): Element | undefined {
+    const elementId = this.addElement(ElementType.Canvas, 'Cover');
+    if (!elementId) return undefined;
+    this.applyCoverPreset(elementId);
+    const element = this.elements().find(e => e.id === elementId);
+    if (element) this.openDocument(element);
+    return element;
   }
 
   showNewFolderDialog(parentElement?: Element): void {

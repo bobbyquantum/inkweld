@@ -271,6 +271,31 @@ describe('YjsElementSyncProvider', () => {
     expect(doc.getMap('projectMeta').get('name')).toBe('Project Title');
   });
 
+  it('stores the cover source as JSON and deletes it when cleared', () => {
+    const doc = attachDoc();
+    const source = {
+      type: 'canvas' as const,
+      elementId: 'el-1',
+      frameId: 'F1',
+      renderedHash: 'abc',
+    };
+
+    provider.updateProjectMeta({ name: 'P', coverSource: source });
+    expect(doc.getMap('projectMeta').get('coverSource')).toBe(
+      JSON.stringify(source)
+    );
+    expect(provider.getProjectMeta()?.coverSource).toEqual(source);
+
+    // An update that does not mention the key leaves it alone.
+    provider.updateProjectMeta({ description: 'd' });
+    expect(provider.getProjectMeta()?.coverSource).toEqual(source);
+
+    // The key present with undefined clears it.
+    provider.updateProjectMeta({ coverSource: undefined });
+    expect(doc.getMap('projectMeta').has('coverSource')).toBe(false);
+    expect(provider.getProjectMeta()?.coverSource).toBeUndefined();
+  });
+
   it('warns and keeps state unchanged when updates are attempted without a document', () => {
     provider.updateElements(sampleElements);
     provider.updatePublishPlans(samplePlans);

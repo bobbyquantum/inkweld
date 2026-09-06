@@ -121,7 +121,20 @@
     "projectUpdated": "Project updated successfully",
     "savedLocallyOnly": "Changes saved locally, but updating the project record failed: {{error}}",
     "updateFailed": "Failed to update project: {{error}}",
-    "unknownError": "Unknown error"
+    "unknownError": "Unknown error",
+    "liveCoverTitle": "Live cover",
+    "liveCoverDescription": "This cover is generated from the canvas “{{name}}” and updates whenever it changes.",
+    "liveCoverMissing": "This cover was linked to a canvas that no longer exists.",
+    "openCanvas": "Open canvas",
+    "rerenderCover": "Update now",
+    "unlinkCover": "Unlink",
+    "coverRerendered": "Cover updated from canvas",
+    "coverRerenderFailed": "Couldn't update the cover from the canvas",
+    "coverUnlinked": "Live cover unlinked — the current image is kept",
+    "designOnCanvas": "Design on Canvas",
+    "replaceLiveCoverTitle": "Replace live cover?",
+    "replaceLiveCoverMessage": "This cover is generated from a canvas. Choosing an image will unlink it; the canvas itself is kept.",
+    "replaceLiveCoverConfirm": "Unlink and continue"
   },
   "importProject": {
     "importTitle": "Import Project",

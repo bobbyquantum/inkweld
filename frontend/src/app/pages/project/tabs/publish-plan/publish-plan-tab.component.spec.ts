@@ -5,9 +5,11 @@ import { MatDialog, type MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ActivatedRoute } from '@angular/router';
 import { ElementType } from '@inkweld/index';
+import { CoverSourceService } from '@services/project/cover-source.service';
 import { BehaviorSubject, of, Subject } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { createCoverSourceMock } from '../../../../../testing/cover-source.mock';
 import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
 import {
   type BackmatterItem,
@@ -97,6 +99,7 @@ describe('PublishPlanTabComponent', () => {
       providers: [
         provideZonelessChangeDetection(),
         { provide: ProjectStateService, useValue: mockProjectState },
+        { provide: CoverSourceService, useValue: createCoverSourceMock() },
         { provide: PublishService, useValue: mockPublishService },
         { provide: MatSnackBar, useValue: mockSnackBar },
         {
@@ -1160,6 +1163,7 @@ describe('PublishPlanTabComponent - no plan', () => {
       providers: [
         provideZonelessChangeDetection(),
         { provide: ProjectStateService, useValue: mockProjectState },
+        { provide: CoverSourceService, useValue: createCoverSourceMock() },
         {
           provide: PublishService,
           useValue: { publish: vi.fn() },

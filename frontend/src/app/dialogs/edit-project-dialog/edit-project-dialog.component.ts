@@ -30,6 +30,7 @@ import { LoggerService } from '@services/core/logger.service';
 import { SystemConfigService } from '@services/core/system-config.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
 import { UnifiedProjectService } from '@services/local/unified-project.service';
+import { CoverSourceService } from '@services/project/cover-source.service';
 import { ProjectService } from '@services/project/project.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import {
@@ -76,6 +77,19 @@ export class EditProjectDialogComponent implements OnInit {
   private readonly localStorage = inject(LocalStorageService);
   private readonly logger = inject(LoggerService);
   private readonly transloco = inject(TranslocoService);
+  private readonly coverSource = inject(CoverSourceService);
+
+  /** Canvas frame the cover is generated from, when it is a live cover. */
+  readonly liveCoverSource = this.projectState.coverSource;
+  /** The canvas element behind the live cover (undefined once deleted). */
+  readonly liveCoverCanvas = computed(() => {
+    const source = this.liveCoverSource();
+    if (!source) return undefined;
+    return this.projectState
+      .elements()
+      .find(element => element.id === source.elementId);
+  });
+  readonly liveCoverStatus = this.coverSource.status;
 
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
   @ViewChild('coverImageInput') coverImageInput!: ElementRef<HTMLInputElement>;
@@ -181,10 +195,15 @@ export class EditProjectDialogComponent implements OnInit {
         return;
       }
 
-      // Fall back to server API if local storage has nothing
+      // Fall back to server API if local storage has nothing. Cache it under
+      // the real cover id so a later cover change is never shadowed.
+      const serverMediaId = this.project.coverImage
+        ? this.project.coverImage.replace(/\.[^.]+$/, '')
+        : undefined;
       const coverBlob = await this.projectService.getProjectCover(
         this.project.username,
-        this.project.slug
+        this.project.slug,
+        serverMediaId
       );
       this.coverImage = coverBlob;
       this.coverImageUrl = this.sanitizer.bypassSecurityTrustUrl(
@@ -294,12 +313,14 @@ export class EditProjectDialogComponent implements OnInit {
     }
   }
 
-  openCoverImageSelector(): void {
+  async openCoverImageSelector(): Promise<void> {
+    if (!(await this.confirmReplaceLiveCover())) return;
     this.coverImageInput.nativeElement.click();
   }
 
   async openMediaLibrarySelector(): Promise<void> {
     if (!this.project.username || !this.project.slug) return;
+    if (!(await this.confirmReplaceLiveCover())) return;
 
     const result = await this.dialogGateway.openMediaSelectorDialog({
       username: this.project.username,
@@ -333,6 +354,7 @@ export class EditProjectDialogComponent implements OnInit {
   }
 
   async openGenerateCoverDialog(): Promise<void> {
+    if (!(await this.confirmReplaceLiveCover())) return;
     const result = await this.dialogGateway.openImageGenerationDialog({
       forCover: true,
     });
@@ -358,6 +380,72 @@ export class EditProjectDialogComponent implements OnInit {
       this.imageBase64.set(result.imageData);
       this.showCropper.set(true);
     }
+  }
+
+  /**
+   * Picking an image while the cover is canvas-linked replaces the live
+   * cover; make sure that is what the user wants before opening a picker.
+   */
+  private async confirmReplaceLiveCover(): Promise<boolean> {
+    if (!this.liveCoverSource()) return true;
+    return this.dialogGateway.openConfirmationDialog({
+      title: this.transloco.translate(
+        'dialogs.editProject.replaceLiveCoverTitle'
+      ),
+      message: this.transloco.translate(
+        'dialogs.editProject.replaceLiveCoverMessage'
+      ),
+      confirmText: this.transloco.translate(
+        'dialogs.editProject.replaceLiveCoverConfirm'
+      ),
+    });
+  }
+
+  /** Open the canvas the live cover renders from, closing this dialog. */
+  openLinkedCanvas(): void {
+    const element = this.liveCoverCanvas();
+    if (!element) return;
+    this.projectState.openDocument(element);
+    this.dialogRef.close();
+  }
+
+  /** Re-render the live cover from its canvas now and refresh the preview. */
+  async rerenderLiveCover(): Promise<void> {
+    this.isLoadingCover.set(true);
+    try {
+      const blob = await this.coverSource.freshCoverBlob();
+      if (!blob) {
+        this.showError(
+          this.transloco.translate('dialogs.editProject.coverRerenderFailed')
+        );
+        return;
+      }
+      this.currentCoverMediaId = this.projectState.coverMediaId();
+      this.coverImage = blob;
+      this.coverImageUrl = this.sanitizer.bypassSecurityTrustUrl(
+        URL.createObjectURL(blob)
+      );
+      this.hasCoverImage = true;
+      this.showSuccess(
+        this.transloco.translate('dialogs.editProject.coverRerendered')
+      );
+    } finally {
+      this.isLoadingCover.set(false);
+    }
+  }
+
+  /** Keep the current image but stop regenerating it from the canvas. */
+  unlinkLiveCover(): void {
+    this.coverSource.unlink();
+    this.showSuccess(
+      this.transloco.translate('dialogs.editProject.coverUnlinked')
+    );
+  }
+
+  /** Create a cover canvas linked as the live cover and open it. */
+  designCoverOnCanvas(): void {
+    const element = this.projectState.createCoverCanvas();
+    if (element) this.dialogRef.close();
   }
 
   async removeCoverImage(): Promise<void> {
@@ -495,7 +583,18 @@ export class EditProjectDialogComponent implements OnInit {
 
       // Update project state with coverMediaId for Yjs sync — this is what
       // actually makes the cover show up, and it works offline-first.
-      this.projectState.updateProject(response, newCoverMediaId);
+      //
+      // A live (canvas-linked) cover is owned by the render pipeline: unless
+      // the user picked a new image, leave its id alone. Passing the id the
+      // dialog happened to load (possibly a legacy key) would read as a
+      // manual change and unlink the canvas.
+      const keepLiveCover =
+        this.liveCoverSource() !== undefined &&
+        !(this.coverImage instanceof File);
+      this.projectState.updateProject(
+        response,
+        keepLiveCover ? undefined : newCoverMediaId
+      );
 
       if (recordUpdateError) {
         this.showError(

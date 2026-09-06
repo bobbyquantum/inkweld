@@ -31,7 +31,7 @@ export interface NewElementDialogResult {
   /** Schema ID for WORLDBUILDING elements */
   schemaId?: string;
   /** Preset applied after creation (e.g. 'map' pre-configures a canvas). */
-  preset?: 'map';
+  preset?: 'map' | 'cover';
 }
 
 interface NewElementDialogData {
@@ -49,7 +49,7 @@ interface ElementTypeOption {
   description: string;
   category: 'document' | 'worldbuilding' | 'visualization';
   /** Preset applied after creation (e.g. 'map' pre-configures a canvas). */
-  preset?: 'map';
+  preset?: 'map' | 'cover';
 }
 
 interface NewElementFormValue {
@@ -133,6 +133,15 @@ export class NewElementDialogComponent {
       preset: 'map',
     },
     {
+      type: ElementType.Canvas,
+      label: 'Cover',
+      icon: 'book',
+      description:
+        'Design your project cover on a canvas — it stays in sync with the cover shown on the dashboard and in exports',
+      category: 'visualization',
+      preset: 'cover',
+    },
+    {
       type: ElementType.Timeline,
       label: 'Timeline',
       icon: 'timeline',
@@ -180,7 +189,7 @@ export class NewElementDialogComponent {
   selectedSchemaId = signal<string | undefined>(undefined);
 
   // Preset carried by the selected option (e.g. the 'Map' canvas preset)
-  selectedPreset = signal<'map' | undefined>(undefined);
+  selectedPreset = signal<'map' | 'cover' | undefined>(undefined);
 
   readonly model = signal<NewElementFormValue>({
     name: '',

@@ -706,6 +706,46 @@ describe('LocalProjectElementsService', () => {
     });
   });
 
+  describe('coverSource in saveProjectMeta / extractProjectMeta', () => {
+    const source = {
+      type: 'canvas' as const,
+      elementId: 'canvas-1',
+      frameId: 'F1',
+      renderedHash: 'abc',
+    };
+
+    it('stores and retrieves the cover source', async () => {
+      await service.loadElements(TEST_USERNAME, TEST_SLUG);
+      await service.saveProjectMeta(TEST_USERNAME, TEST_SLUG, {
+        name: 'My Project',
+        coverSource: source,
+      });
+      expect(service.projectMeta()?.coverSource).toEqual(source);
+    });
+
+    it('leaves the cover source alone when the key is absent', async () => {
+      await service.loadElements(TEST_USERNAME, TEST_SLUG);
+      await service.saveProjectMeta(TEST_USERNAME, TEST_SLUG, {
+        coverSource: source,
+      });
+      await service.saveProjectMeta(TEST_USERNAME, TEST_SLUG, {
+        description: 'changed',
+      });
+      expect(service.projectMeta()?.coverSource).toEqual(source);
+    });
+
+    it('deletes the cover source when the key is present but undefined', async () => {
+      await service.loadElements(TEST_USERNAME, TEST_SLUG);
+      await service.saveProjectMeta(TEST_USERNAME, TEST_SLUG, {
+        coverSource: source,
+      });
+      await service.saveProjectMeta(TEST_USERNAME, TEST_SLUG, {
+        coverSource: undefined,
+      });
+      expect(service.projectMeta()?.coverSource).toBeUndefined();
+    });
+  });
+
   describe('pinnedElementIds in saveProjectMeta / extractProjectMeta', () => {
     it('should store and retrieve pinnedElementIds', async () => {
       await service.loadElements(TEST_USERNAME, TEST_SLUG);

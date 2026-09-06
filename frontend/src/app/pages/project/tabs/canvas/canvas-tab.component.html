@@ -460,6 +460,24 @@
                     <span class="layer-name" data-testid="frame-name">{{
                       frame.name
                     }}</span>
+                    @if (frame.id === coverFrameId()) {
+                      <mat-icon
+                        class="frame-cover-badge"
+                        data-testid="frame-cover-badge"
+                        [class.is-error]="coverStatus() === 'error'"
+                        [class.is-busy]="
+                          coverStatus() === 'rendering' ||
+                          coverStatus() === 'pending'
+                        "
+                        [matTooltip]="
+                          'canvas.frames.coverStatus.' + coverStatus()
+                            | transloco
+                        "
+                        >{{
+                          coverStatus() === 'error' ? 'error' : 'book'
+                        }}</mat-icon
+                      >
+                    }
                     <span class="frame-dims"
                       >{{ frame.width }}×{{ frame.height }}</span
                     >
@@ -1179,13 +1197,30 @@
       <mat-icon>polyline</mat-icon>
       <span>{{ 'canvas.frames.exportSvg' | transloco }}</span>
     </button>
-    <button
-      mat-menu-item
-      data-testid="frame-set-cover"
-      (click)="onSetFrameAsCover(frame)">
-      <mat-icon>book</mat-icon>
-      <span>{{ 'canvas.frames.setAsCover' | transloco }}</span>
-    </button>
+    @if (frame.id === coverFrameId()) {
+      <button
+        mat-menu-item
+        data-testid="frame-unlink-cover"
+        (click)="onUnlinkCover()">
+        <mat-icon>link_off</mat-icon>
+        <span>{{ 'canvas.frames.unlinkCover' | transloco }}</span>
+      </button>
+    } @else {
+      <button
+        mat-menu-item
+        data-testid="frame-link-cover"
+        (click)="onLinkFrameAsCover(frame)">
+        <mat-icon>auto_stories</mat-icon>
+        <span>{{ 'canvas.frames.useAsLiveCover' | transloco }}</span>
+      </button>
+      <button
+        mat-menu-item
+        data-testid="frame-set-cover"
+        (click)="onSetFrameAsCover(frame)">
+        <mat-icon>book</mat-icon>
+        <span>{{ 'canvas.frames.setAsCover' | transloco }}</span>
+      </button>
+    }
     <mat-divider></mat-divider>
     <button
       mat-menu-item

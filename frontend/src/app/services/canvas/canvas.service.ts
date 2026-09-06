@@ -47,6 +47,7 @@ import {
 import { UndoHistory } from '@services/canvas/canvas-history';
 import { LoggerService } from '@services/core/logger.service';
 import { StorageContextService } from '@services/core/storage-context.service';
+import { CoverSourceService } from '@services/project/cover-source.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { RelationshipService } from '@services/relationship/relationship.service';
 import { nanoid } from 'nanoid';
@@ -93,6 +94,7 @@ export class CanvasService {
   private readonly logger = inject(LoggerService);
   private readonly injector = inject(Injector);
   private readonly projectState = inject(ProjectStateService);
+  private readonly coverSource = inject(CoverSourceService);
   private readonly storageContext = inject(StorageContextService);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -175,6 +177,9 @@ export class CanvasService {
 
   /** Stop tracking the current canvas. */
   private unbind(): void {
+    // Closing the tab must not lose a cover edit still waiting on the idle
+    // timer.
+    if (this.boundElementId) void this.coverSource.flush();
     this.remoteSubscription?.unsubscribe();
     this.remoteSubscription = null;
     this.loadEffect?.destroy();
@@ -332,6 +337,8 @@ export class CanvasService {
 
     if (!isEmptyCanvasEdit(edit)) {
       this.projectState.applyCanvasEdit(config.elementId, edit);
+      // Local edits are the trigger for re-rendering a live cover.
+      this.coverSource.notifyCanvasChanged(config.elementId, contents);
     }
   }
 

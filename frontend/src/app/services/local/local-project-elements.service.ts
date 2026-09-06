@@ -1,5 +1,6 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { type Element, ElementType } from '@inkweld/index';
+import { parseCoverSource, serializeCoverSource } from '@models/cover-source';
 import {
   type ElementRelationship,
   type RelationshipTypeDefinition,
@@ -546,6 +547,16 @@ export class LocalProjectElementsService {
             );
           }
         }
+        if ('coverSource' in meta) {
+          if (meta.coverSource === undefined) {
+            connection.projectMetaMap.delete('coverSource');
+          } else {
+            connection.projectMetaMap.set(
+              'coverSource',
+              serializeCoverSource(meta.coverSource)
+            );
+          }
+        }
         connection.projectMetaMap.set('updatedAt', new Date().toISOString());
       });
 
@@ -577,6 +588,7 @@ export class LocalProjectElementsService {
       name: map.get('name') ?? '',
       description: map.get('description') || '',
       coverMediaId: map.get('coverMediaId'),
+      coverSource: parseCoverSource(map.get('coverSource')),
       pinnedElementIds: (() => {
         const raw = map.get('pinnedElementIds');
         if (!raw) return undefined;

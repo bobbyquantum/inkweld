@@ -5,6 +5,7 @@ import { catchError, firstValueFrom, retry, throwError } from 'rxjs';
 
 import { SetupService } from '../core/setup.service';
 import { StorageContextService } from '../core/storage-context.service';
+import { LocalProjectService } from '../local/local-project.service';
 import { LocalStorageService } from '../local/local-storage.service';
 import { ProjectSyncService } from '../local/project-sync.service';
 import { StorageService } from '../local/storage.service';
@@ -106,6 +107,7 @@ export class ProjectService {
   private readonly setupService = inject(SetupService);
   private readonly localStorage = inject(LocalStorageService);
   private readonly projectSync = inject(ProjectSyncService);
+  private readonly localProjectService = inject(LocalProjectService);
   private readonly storageContext = inject(StorageContextService);
 
   private get projectCacheConfig() {
@@ -565,11 +567,27 @@ export class ProjectService {
     }
   }
 
-  async getProjectCover(username: string, slug: string): Promise<Blob> {
+  /**
+   * Fetch the project cover, offline-first.
+   *
+   * `coverMediaId` is the cache key (the `coverImage` filename stem). Covers
+   * are versioned by filename, so caching under the real id means a fresh
+   * cover is never shadowed by a stale blob under the legacy fixed `'cover'`
+   * key — which is still consulted for projects saved before ids existed.
+   */
+  async getProjectCover(
+    username: string,
+    slug: string,
+    coverMediaId?: string
+  ): Promise<Blob> {
     this.error.set(undefined);
+    const projectKey = `${username}/${slug}`;
+    const cacheId = coverMediaId ?? 'cover';
 
     // Offline-first: if we have a cached cover, return it immediately
-    const cachedCover = await this.localStorage.getProjectCover(username, slug);
+    const cachedCover =
+      (await this.localStorage.getMedia(projectKey, cacheId)) ??
+      (await this.localStorage.getProjectCover(username, slug));
     if (cachedCover) {
       // If in server mode, try a background refresh to update cache
       if (this.setupService.getMode() !== 'local') {
@@ -580,7 +598,7 @@ export class ProjectService {
                 .getProjectCover(username, slug)
                 .pipe(retry(MAX_RETRIES))
             );
-            await this.localStorage.saveProjectCover(username, slug, freshBlob);
+            await this.localStorage.saveMedia(projectKey, cacheId, freshBlob);
           } catch {
             // Ignore refresh errors silently
           }
@@ -614,7 +632,7 @@ export class ProjectService {
 
       // Cache the cover for offline access
       try {
-        await this.localStorage.saveProjectCover(username, slug, blob);
+        await this.localStorage.saveMedia(projectKey, cacheId, blob);
       } catch (cacheError) {
         console.warn('Failed to cache project cover:', cacheError);
       }
@@ -730,11 +748,7 @@ export class ProjectService {
 
       // In offline mode, generate a local filename and save to IndexedDB
       if (this.setupService.getMode() === 'local') {
-        const localFilename = `cover-${Date.now()}.jpg`;
-        const mediaId = localFilename.replace(/\.[^.]+$/, '');
-        await this.localStorage.saveMedia(projectKey, mediaId, coverImage);
-        await this.projectSync.markPendingUpload(projectKey, 'cover');
-        return localFilename;
+        return this.saveCoverLocally(username, slug, coverImage);
       }
 
       const formData = new FormData();
@@ -764,16 +778,14 @@ export class ProjectService {
         console.warn(
           `Cover upload to server failed (${formatted.message}); saving locally and queueing sync`
         );
-        const localFilename = `cover-${Date.now()}.jpg`;
-        const mediaId = localFilename.replace(/\.[^.]+$/, '');
-        await this.localStorage.saveMedia(projectKey, mediaId, coverImage);
-        await this.projectSync.markPendingUpload(projectKey, 'cover');
-        return localFilename;
+        return this.saveCoverLocally(username, slug, coverImage);
       }
 
       // Cache the cover image to IndexedDB using the server filename as mediaId
       const mediaId = coverFilename.replace(/\.[^.]+$/, '');
       await this.localStorage.saveMedia(projectKey, mediaId, coverImage);
+      // A successful upload supersedes any cover still waiting to be sent.
+      await this.clearPendingCoverUploads(projectKey);
 
       // Refresh projects to get updated data
       await this.loadAllProjects();
@@ -792,6 +804,87 @@ export class ProjectService {
       throw error;
     } finally {
       this.isLoading.set(false);
+    }
+  }
+
+  /**
+   * Store a cover that could not (or need not) reach the server.
+   *
+   * The blob is saved under a timestamped id and that id — not a fixed
+   * `'cover'` key — is queued for upload, so the sync can find the blob
+   * again. The local project record's `coverImage` is updated too: home
+   * cards resolve covers from that filename, and in local mode nothing else
+   * would ever set it.
+   */
+  private async saveCoverLocally(
+    username: string,
+    slug: string,
+    coverImage: Blob
+  ): Promise<string> {
+    const projectKey = `${username}/${slug}`;
+    const localFilename = `cover-${Date.now()}.jpg`;
+    const mediaId = localFilename.replace(/\.[^.]+$/, '');
+    await this.localStorage.saveMedia(projectKey, mediaId, coverImage);
+    await this.projectSync.markPendingUpload(projectKey, mediaId);
+    try {
+      this.localProjectService.updateProject(username, slug, {
+        coverImage: localFilename,
+      });
+    } catch {
+      // Server-mode projects have no local record; the pending upload
+      // carries the cover to the server instead.
+    }
+    return localFilename;
+  }
+
+  /**
+   * Upload a cover saved while offline (see {@link saveCoverLocally}).
+   * Sends the newest pending cover and clears the queue. Returns the server
+   * filename, or null when there was nothing to send.
+   */
+  async syncPendingCoverUpload(projectKey: string): Promise<string | null> {
+    const state = this.projectSync.getSyncState(projectKey)();
+    const pendingCovers = state.pendingUploads
+      .filter(id => id.startsWith('cover'))
+      .sort((a, b) => coverTimestamp(b) - coverTimestamp(a));
+    if (pendingCovers.length === 0) return null;
+
+    const newest = pendingCovers[0];
+    const blob = await this.localStorage.getMedia(projectKey, newest);
+    if (!blob) {
+      // Blob vanished (storage cleared); nothing left to send.
+      await this.clearPendingCoverUploads(projectKey);
+      return null;
+    }
+
+    const [username, slug] = projectKey.split('/');
+    if (!username || !slug) return null;
+
+    const formData = new FormData();
+    formData.append('cover', blob, `${newest}.jpg`);
+    const url = `${this.imagesApi.configuration.basePath}/api/v1/projects/${username}/${slug}/cover`;
+    const response = await firstValueFrom(
+      this.http
+        .post<{ message: string; coverImage: string }>(url, formData, {
+          withCredentials: true,
+        })
+        .pipe(catchError(err => throwError(() => this.formatError(err))))
+    );
+
+    const serverMediaId = response.coverImage.replace(/\.[^.]+$/, '');
+    if (serverMediaId !== newest) {
+      await this.localStorage.saveMedia(projectKey, serverMediaId, blob);
+    }
+    await this.clearPendingCoverUploads(projectKey);
+    return response.coverImage;
+  }
+
+  private async clearPendingCoverUploads(projectKey: string): Promise<void> {
+    const state = this.projectSync.getSyncState(projectKey)();
+    for (const id of state.pendingUploads) {
+      if (id.startsWith('cover')) {
+        await this.projectSync.clearPendingUpload(projectKey, id);
+      }
     }
   }
 
@@ -938,4 +1031,10 @@ export class ProjectService {
       false
     );
   }
+}
+
+/** Timestamp embedded in a `cover-<ms>` media id (0 for legacy ids). */
+function coverTimestamp(mediaId: string): number {
+  const match = /^cover-(\d+)/.exec(mediaId);
+  return match ? Number(match[1]) : 0;
 }

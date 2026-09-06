@@ -26,6 +26,7 @@ import {
   emptyCanvasContents,
   isEmptyCanvasEdit,
 } from '@models/canvas-edit';
+import { parseCoverSource, serializeCoverSource } from '@models/cover-source';
 import {
   type ElementRelationship,
   type RelationshipTypeDefinition,
@@ -1026,6 +1027,9 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
       description: meta.description ?? current?.description ?? '',
       coverMediaId: meta.coverMediaId ?? current?.coverMediaId,
       pinnedElementIds: meta.pinnedElementIds ?? current?.pinnedElementIds,
+      // Key presence distinguishes "leave alone" from "clear".
+      coverSource:
+        'coverSource' in meta ? meta.coverSource : current?.coverSource,
       updatedAt: new Date().toISOString(),
     };
 
@@ -1051,6 +1055,11 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
             'pinnedElementIds',
             JSON.stringify(updated.pinnedElementIds)
           );
+        }
+        if (updated.coverSource === undefined) {
+          metaMap.delete('coverSource');
+        } else {
+          metaMap.set('coverSource', serializeCoverSource(updated.coverSource));
         }
         metaMap.set('updatedAt', updated.updatedAt);
       });
@@ -1897,6 +1906,7 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
           return undefined;
         }
       })(),
+      coverSource: parseCoverSource(metaMap.get('coverSource')),
       updatedAt: metaMap.get('updatedAt') ?? new Date().toISOString(),
     };
   }

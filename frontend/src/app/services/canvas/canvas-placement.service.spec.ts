@@ -9,12 +9,14 @@ import { CanvasService } from '@services/canvas/canvas.service';
 import { CanvasPlacementService } from '@services/canvas/canvas-placement.service';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
+import { CoverSourceService } from '@services/project/cover-source.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { RelationshipService } from '@services/relationship/relationship.service';
 import type Konva from 'konva';
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { createCoverSourceMock } from '../../../testing/cover-source.mock';
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 
 describe('CanvasPlacementService', () => {
@@ -76,6 +78,7 @@ describe('CanvasPlacementService', () => {
         { provide: DialogGatewayService, useValue: dialogGateway },
         { provide: LocalStorageService, useValue: localStorage },
         { provide: ProjectStateService, useValue: projectState },
+        { provide: CoverSourceService, useValue: createCoverSourceMock() },
         { provide: RelationshipService, useValue: relationship },
       ],
     });

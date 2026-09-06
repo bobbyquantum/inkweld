@@ -1,12 +1,13 @@
 import { provideHttpClient, withXhr } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
-import { provideZonelessChangeDetection } from '@angular/core';
+import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { type ProjectsService } from '@inkweld/api/projects.service';
 import { type Project, type User } from '@inkweld/index';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
+import { CoverSourceService } from '@services/project/cover-source.service';
 import { type LoadedImage } from 'ngx-image-cropper';
 import { of } from 'rxjs';
 import {
@@ -21,6 +22,10 @@ import {
   vi,
 } from 'vitest';
 
+import {
+  type CoverSourceMock,
+  createCoverSourceMock,
+} from '../../../testing/cover-source.mock';
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { LocalStorageService } from '../../services/local/local-storage.service';
 import { UnifiedProjectService } from '../../services/local/unified-project.service';
@@ -45,6 +50,7 @@ describe('EditProjectDialogComponent', () => {
   let localStorageService: MockedObject<LocalStorageService>;
   let projectStateService: MockedObject<ProjectStateService>;
   let dialogGateway: MockedObject<DialogGatewayService>;
+  let coverSource: CoverSourceMock;
 
   const mockUser: User = {
     username: 'testuser',
@@ -115,10 +121,16 @@ describe('EditProjectDialogComponent', () => {
     // Mock ProjectStateService
     projectStateService = {
       coverMediaId: vi.fn().mockReturnValue(undefined),
+      coverSource: signal(undefined),
+      elements: signal([]),
       project: vi.fn().mockReturnValue(mockProject),
       updateProject: vi.fn(),
+      openDocument: vi.fn(),
+      createCoverCanvas: vi.fn(),
       getSyncState: vi.fn().mockReturnValue('synced'),
     } as any;
+
+    coverSource = createCoverSourceMock();
 
     // Mock DialogGatewayService (media selector + AI generation dialogs)
     dialogGateway = {
@@ -139,6 +151,7 @@ describe('EditProjectDialogComponent', () => {
         { provide: UnifiedProjectService, useValue: unifiedProjectService },
         { provide: LocalStorageService, useValue: localStorageService },
         { provide: ProjectStateService, useValue: projectStateService },
+        { provide: CoverSourceService, useValue: coverSource },
         { provide: DialogGatewayService, useValue: dialogGateway },
         { provide: MatSnackBar, useValue: snackBar },
       ],
@@ -190,9 +203,11 @@ describe('EditProjectDialogComponent', () => {
 
   describe('loadCoverImage on init', () => {
     it('should call getProjectCover on init', () => {
+      // No coverImage on the mock project → no cache id to pass along.
       expect(projectService.getProjectCover).toHaveBeenCalledWith(
         mockProject.username,
-        mockProject.slug
+        mockProject.slug,
+        undefined
       );
     });
 
@@ -411,7 +426,7 @@ describe('EditProjectDialogComponent', () => {
   });
 
   describe('openCoverImageSelector', () => {
-    it('should trigger click on the cover image file input', () => {
+    it('should trigger click on the cover image file input', async () => {
       // Ensure the ViewChild element exists and is assigned
       const coverInput = document.createElement('input');
       coverInput.type = 'file';
@@ -419,9 +434,109 @@ describe('EditProjectDialogComponent', () => {
       component.coverImageInput = { nativeElement: coverInput };
       const clickSpy = vi.spyOn(coverInput, 'click');
 
-      component.openCoverImageSelector();
+      await component.openCoverImageSelector();
 
       expect(clickSpy).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('live cover', () => {
+    const source = {
+      type: 'canvas' as const,
+      elementId: 'canvas-1',
+      frameId: 'F1',
+    };
+
+    it('shows the live cover card with the canvas name when linked', async () => {
+      projectStateService.elements.set([
+        { id: 'canvas-1', name: 'Cover Art', type: 'CANVAS' } as never,
+      ]);
+      projectStateService.coverSource.set(source);
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      const card = fixture.nativeElement.querySelector(
+        '[data-testid="live-cover-card"]'
+      ) as HTMLElement;
+      expect(card).not.toBeNull();
+      expect(card.textContent).toContain('Cover Art');
+      expect(
+        fixture.nativeElement.querySelector(
+          '[data-testid="design-cover-on-canvas"]'
+        )
+      ).toBeNull();
+    });
+
+    it('offers to design the cover on a canvas when not linked', async () => {
+      await fixture.whenStable();
+      fixture.detectChanges();
+      const button = fixture.nativeElement.querySelector(
+        '[data-testid="design-cover-on-canvas"]'
+      ) as HTMLButtonElement;
+      expect(button).not.toBeNull();
+
+      projectStateService.createCoverCanvas.mockReturnValue({
+        id: 'new',
+        name: 'Cover',
+        type: 'CANVAS',
+      } as never);
+      button.click();
+
+      expect(projectStateService.createCoverCanvas).toHaveBeenCalled();
+      expect(dialogRef.close).toHaveBeenCalled();
+    });
+
+    it('asks before a manual image replaces a live cover, and honours a decline', async () => {
+      projectStateService.coverSource.set(source);
+      dialogGateway.openConfirmationDialog = vi.fn().mockResolvedValue(false);
+      const coverInput = document.createElement('input');
+      coverInput.type = 'file';
+      component.coverImageInput = { nativeElement: coverInput };
+      const clickSpy = vi.spyOn(coverInput, 'click');
+
+      await component.openCoverImageSelector();
+      expect(dialogGateway.openConfirmationDialog).toHaveBeenCalled();
+      expect(clickSpy).not.toHaveBeenCalled();
+
+      await component.openMediaLibrarySelector();
+      expect(dialogGateway.openMediaSelectorDialog).not.toHaveBeenCalled();
+    });
+
+    it('re-renders the live cover and shows the fresh image', async () => {
+      projectStateService.coverSource.set(source);
+      const blob = new Blob(['fresh'], { type: 'image/jpeg' });
+      coverSource.freshCoverBlob.mockResolvedValue(blob);
+      projectStateService.coverMediaId.mockReturnValue('cover-77');
+
+      await component.rerenderLiveCover();
+
+      expect(coverSource.freshCoverBlob).toHaveBeenCalled();
+      expect(component.coverImage).toBe(blob);
+      expect(component.coverImageUrl).toBeDefined();
+      expect(snackBar.open).toHaveBeenCalledWith(
+        expect.stringContaining('updated'),
+        expect.anything(),
+        expect.anything()
+      );
+    });
+
+    it('reports when the live cover cannot be re-rendered', async () => {
+      projectStateService.coverSource.set(source);
+      coverSource.freshCoverBlob.mockResolvedValue(null);
+
+      await component.rerenderLiveCover();
+
+      expect(snackBar.open).toHaveBeenCalledWith(
+        expect.stringContaining("Couldn't update"),
+        expect.anything(),
+        expect.anything()
+      );
+    });
+
+    it('unlinks the live cover', () => {
+      projectStateService.coverSource.set(source);
+      component.unlinkLiveCover();
+      expect(coverSource.unlink).toHaveBeenCalled();
     });
   });
 

@@ -4,6 +4,7 @@ import {
   HttpTestingController,
   provideHttpClientTesting,
 } from '@angular/common/http/testing';
+import { signal } from '@angular/core';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { ImagesService } from '@inkweld/api/images.service';
@@ -67,6 +68,14 @@ describe('ProjectService', () => {
     setup = mockDeep<SetupService>();
     localStorage = mockDeep<LocalStorageService>();
     projectSync = mockDeep<ProjectSyncService>();
+    // Cover uploads consult the pending-upload queue; default to "nothing queued".
+    projectSync.getSyncState.mockReturnValue(
+      signal({
+        projectKey: 'alice/project-1',
+        pendingUploads: [],
+        status: 'synced',
+      }) as never
+    );
 
     // Storage baseline
     store.initializeDatabase.mockResolvedValue(DB);
@@ -895,6 +904,86 @@ describe('ProjectService', () => {
   /* -------------------------------------------------------------- */
   /* uploadProjectCover - offline mode                              */
   /* -------------------------------------------------------------- */
+  describe('syncPendingCoverUpload', () => {
+    it('sends the newest pending cover and clears the queue', async () => {
+      setup.getMode.mockReturnValue('server');
+      projectSync.getSyncState.mockReturnValue(
+        signal({
+          projectKey: 'alice/project-1',
+          pendingUploads: ['cover-100', 'img-1', 'cover-200'],
+          status: 'pending',
+        }) as never
+      );
+      const blob = new Blob(['cover'], { type: 'image/jpeg' });
+      localStorage.getMedia.mockResolvedValue(blob);
+      localStorage.saveMedia.mockResolvedValue(undefined);
+      projectSync.clearPendingUpload.mockResolvedValue(undefined);
+
+      const pending = service.syncPendingCoverUpload('alice/project-1');
+      // The blob is read from IndexedDB before the request goes out.
+      for (let i = 0; i < 5; i++) await Promise.resolve();
+      const req = httpMock.expectOne(
+        r =>
+          r.url.includes('/api/v1/projects/alice/project-1/cover') &&
+          r.method === 'POST'
+      );
+      req.flush({ message: 'ok', coverImage: 'cover-300.jpg' });
+
+      await expect(pending).resolves.toBe('cover-300.jpg');
+      // The newest local cover was the one sent.
+      expect(localStorage.getMedia).toHaveBeenCalledWith(
+        'alice/project-1',
+        'cover-200'
+      );
+      // Cached under the server's id so home cards resolve it.
+      expect(localStorage.saveMedia).toHaveBeenCalledWith(
+        'alice/project-1',
+        'cover-300',
+        blob
+      );
+      expect(projectSync.clearPendingUpload).toHaveBeenCalledWith(
+        'alice/project-1',
+        'cover-100'
+      );
+      expect(projectSync.clearPendingUpload).toHaveBeenCalledWith(
+        'alice/project-1',
+        'cover-200'
+      );
+      expect(projectSync.clearPendingUpload).not.toHaveBeenCalledWith(
+        'alice/project-1',
+        'img-1'
+      );
+    });
+
+    it('returns null when nothing is pending', async () => {
+      await expect(
+        service.syncPendingCoverUpload('alice/project-1')
+      ).resolves.toBeNull();
+      httpMock.expectNone(() => true);
+    });
+
+    it('drops the queue entry when the local blob is gone', async () => {
+      projectSync.getSyncState.mockReturnValue(
+        signal({
+          projectKey: 'alice/project-1',
+          pendingUploads: ['cover-100'],
+          status: 'pending',
+        }) as never
+      );
+      localStorage.getMedia.mockResolvedValue(null);
+      projectSync.clearPendingUpload.mockResolvedValue(undefined);
+
+      await expect(
+        service.syncPendingCoverUpload('alice/project-1')
+      ).resolves.toBeNull();
+      expect(projectSync.clearPendingUpload).toHaveBeenCalledWith(
+        'alice/project-1',
+        'cover-100'
+      );
+      httpMock.expectNone(() => true);
+    });
+  });
+
   describe('uploadProjectCover (offline mode)', () => {
     beforeEach(() => {
       // Reset mocks
@@ -930,7 +1019,7 @@ describe('ProjectService', () => {
       // Should mark for sync
       expect(projectSync.markPendingUpload).toHaveBeenCalledWith(
         'alice/project-1',
-        'cover'
+        expect.stringMatching(/^cover-\d+$/)
       );
 
       // Should not set error
@@ -1039,7 +1128,7 @@ describe('ProjectService', () => {
       );
       expect(projectSync.markPendingUpload).toHaveBeenCalledWith(
         'alice/project-1',
-        'cover'
+        expect.stringMatching(/^cover-\d+$/)
       );
 
       consoleWarnSpy.mockRestore();
