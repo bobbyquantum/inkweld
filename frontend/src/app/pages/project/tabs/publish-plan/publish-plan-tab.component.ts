@@ -56,6 +56,7 @@ import {
   type PublishStyles,
 } from '@models/publish-style';
 import { type PublishedFile } from '@models/published-file';
+import { isPublishableByDefault } from '@models/scene-metadata';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import {
@@ -602,9 +603,15 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
     const plan = this.plan();
     if (!plan) return;
 
+    // Notes are research / front matter, not manuscript: leave them out of
+    // the bulk add. They can still be added individually.
     const alreadyAdded = new Set(this.planElementIds(plan));
     const newItems: PublishPlanItem[] = this.documentElements()
-      .filter(element => !alreadyAdded.has(element.id))
+      .filter(
+        element =>
+          !alreadyAdded.has(element.id) &&
+          isPublishableByDefault(element.metadata)
+      )
       .map(element => ({
         id: crypto.randomUUID(),
         type: PublishPlanItemType.Element,

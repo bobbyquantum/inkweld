@@ -30,7 +30,8 @@ import {
   RouterModule,
 } from '@angular/router';
 import { type Element, ElementType, type Project } from '@inkweld/index';
-import { TranslocoModule } from '@jsverse/transloco';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
+import { getDocumentRole } from '@models/scene-metadata';
 import { LoggerService } from '@services/core/logger.service';
 import { DocumentService } from '@services/project/document.service';
 import {
@@ -116,6 +117,7 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
   protected readonly route = inject(ActivatedRoute);
   protected readonly dialog = inject(MatDialog);
   protected readonly dialogGateway = inject(DialogGatewayService);
+  private readonly transloco = inject(TranslocoService);
   private readonly worldbuildingService = inject(WorldbuildingService);
   private readonly logger = inject(LoggerService);
 
@@ -917,12 +919,26 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
 
     const newName = await this.dialogGateway.openRenameDialog({
       currentName: tab.element.name,
-      title: `Rename ${tab.element.type === ElementType.Folder ? 'Folder' : 'Document'}`,
+      title: this.transloco.translate(this.renameTitleKey(tab.element)),
     });
 
     if (newName) {
       // Use the project state service to rename the element
       void this.projectState.renameNode(tab.element, newName);
+    }
+  }
+
+  /** Role-aware rename dialog title: Folder, Scene, Note or generic Document. */
+  private renameTitleKey(element: Element): string {
+    if (element.type === ElementType.Folder) return 'project.tabs.renameFolder';
+    if (element.type !== ElementType.Item) return 'project.tabs.renameDocument';
+    switch (getDocumentRole(element.metadata)) {
+      case 'scene':
+        return 'project.tabs.renameScene';
+      case 'note':
+        return 'project.tabs.renameNote';
+      default:
+        return 'project.tabs.renameDocument';
     }
   }
 }

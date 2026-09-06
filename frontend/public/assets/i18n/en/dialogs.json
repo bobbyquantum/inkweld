@@ -11,6 +11,21 @@
     "nameRequired": "Name is required",
     "rename": "Rename"
   },
+  "sceneDetails": {
+    "title": "Scene details — {{name}}",
+    "status": "Status",
+    "noStatus": "No status",
+    "synopsis": "Synopsis",
+    "synopsisPlaceholder": "What happens in this scene?",
+    "wordTarget": "Word target",
+    "wordTargetHint": "Leave empty for no target",
+    "wordTargetInvalid": "Enter a whole number greater than zero",
+    "storyDate": "Story date",
+    "noTimeSystems": "Add a calendar in the project's Time Systems settings to give scenes a story date.",
+    "timeSystem": "Calendar",
+    "noDate": "No story date",
+    "unitsInvalid": "Each part of the date must be a whole number"
+  },
   "newElement": {
     "title": "Choose Element Type",
     "searchLabel": "Search element types...",
@@ -65,7 +80,9 @@
     "addSelected": "Add Selected",
     "noneSelected": "No elements selected",
     "oneSelected": "1 element selected",
-    "manySelected": "{{count}} elements selected"
+    "manySelected": "{{count}} elements selected",
+    "createNew": "Create new…",
+    "createNewTooltip": "Create a new worldbuilding element and select it"
   },
   "insertLink": {
     "editTitle": "Edit Link",

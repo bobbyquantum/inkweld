@@ -73,6 +73,11 @@ import {
   type RenameDialogData,
 } from '../../dialogs/rename-dialog/rename-dialog.component';
 import {
+  SceneDetailsDialogComponent,
+  type SceneDetailsDialogData,
+  type SceneDetailsDialogResult,
+} from '../../dialogs/scene-details-dialog/scene-details-dialog.component';
+import {
   SnapshotsDialogComponent,
   type SnapshotsDialogData,
 } from '../../dialogs/snapshots-dialog/snapshots-dialog.component';
@@ -131,6 +136,22 @@ export class DialogGatewayService {
       disableClose: true,
       width: '500px',
       data: { skipTypeSelection: true, preselectedType: ElementType.Folder },
+    });
+    return firstValueFrom(dialogRef.afterClosed());
+  }
+
+  openSceneDetailsDialog(
+    data: SceneDetailsDialogData
+  ): Promise<SceneDetailsDialogResult | undefined> {
+    const dialogRef = this.dialog.open<
+      SceneDetailsDialogComponent,
+      SceneDetailsDialogData,
+      SceneDetailsDialogResult
+    >(SceneDetailsDialogComponent, {
+      data,
+      disableClose: true,
+      width: '520px',
+      maxWidth: '95vw',
     });
     return firstValueFrom(dialogRef.afterClosed());
   }

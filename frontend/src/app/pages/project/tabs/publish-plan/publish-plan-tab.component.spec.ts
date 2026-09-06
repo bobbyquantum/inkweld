@@ -458,6 +458,35 @@ describe('PublishPlanTabComponent', () => {
       expect((addedItems[1] as ElementItem).elementId).toBe('elem-2');
     });
 
+    it('should skip notes but include scenes and legacy documents', () => {
+      mockProjectState.elements.set([
+        {
+          id: 'scene-1',
+          name: 'Scene',
+          type: ElementType.Item,
+          metadata: { role: 'scene' },
+        },
+        {
+          id: 'note-1',
+          name: 'Research',
+          type: ElementType.Item,
+          metadata: { role: 'note' },
+        },
+        {
+          id: 'legacy-1',
+          name: 'Legacy',
+          type: ElementType.Item,
+          metadata: {},
+        },
+      ]);
+
+      const initialLength = currentPlan()?.items.length ?? 0;
+      component.addEverything();
+
+      const added = currentPlan()!.items.slice(initialLength) as ElementItem[];
+      expect(added.map(i => i.elementId)).toEqual(['scene-1', 'legacy-1']);
+    });
+
     it('should not add items when no document elements exist', () => {
       mockProjectState.elements.set([
         { id: 'folder-1', name: 'Folder', type: ElementType.Folder },

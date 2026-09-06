@@ -1,0 +1,163 @@
+@if (visible()) {
+  <div class="scene-strip" data-testid="scene-strip" role="toolbar">
+    <!-- Status -->
+    <button
+      type="button"
+      class="chip chip-status"
+      [class]="'chip chip-status status-' + (scene().status ?? 'none')"
+      [matMenuTriggerFor]="statusMenu"
+      [disabled]="!canWrite()"
+      [matTooltip]="'project.sceneStrip.statusTooltip' | transloco"
+      data-testid="scene-strip-status">
+      <mat-icon aria-hidden="true">flag</mat-icon>
+      <span>{{
+        scene().status
+          ? ('project.sceneStatus.' + scene().status | transloco)
+          : ('project.sceneStrip.noStatus' | transloco)
+      }}</span>
+    </button>
+    <mat-menu #statusMenu="matMenu">
+      @for (s of statuses; track s) {
+        <button
+          mat-menu-item
+          type="button"
+          (click)="setStatus(s)"
+          [attr.data-testid]="'scene-strip-status-' + s">
+          <span [class]="'status-dot status-' + s"></span>
+          {{ 'project.sceneStatus.' + s | transloco }}
+        </button>
+      }
+      <button
+        mat-menu-item
+        type="button"
+        (click)="setStatus(null)"
+        data-testid="scene-strip-status-clear">
+        {{ 'project.sceneStrip.noStatus' | transloco }}
+      </button>
+    </mat-menu>
+
+    <!-- POV -->
+    <span class="chip-group" data-testid="scene-strip-pov">
+      @if (povElements().length > 0) {
+        @for (el of povElements(); track el.id) {
+          <button
+            type="button"
+            class="chip chip-link"
+            (click)="open(el)"
+            [matTooltip]="'project.sceneStrip.povTooltip' | transloco"
+            [attr.data-testid]="'scene-strip-pov-' + el.id">
+            <mat-icon aria-hidden="true">visibility</mat-icon>
+            <span>{{ el.name }}</span>
+          </button>
+        }
+        @if (canWrite()) {
+          <button
+            type="button"
+            class="chip-clear"
+            (click)="clear('pov')"
+            [attr.aria-label]="'project.sceneStrip.clearPov' | transloco"
+            data-testid="scene-strip-pov-clear">
+            <mat-icon aria-hidden="true">close</mat-icon>
+          </button>
+        }
+      } @else {
+        <button
+          type="button"
+          class="chip chip-empty"
+          (click)="pick('pov')"
+          [disabled]="!canWrite()"
+          data-testid="scene-strip-pov-add">
+          <mat-icon aria-hidden="true">visibility</mat-icon>
+          <span>{{ 'project.sceneStrip.setPov' | transloco }}</span>
+        </button>
+      }
+    </span>
+
+    <!-- Location -->
+    <span class="chip-group" data-testid="scene-strip-location">
+      @if (locationElements().length > 0) {
+        @for (el of locationElements(); track el.id) {
+          <button
+            type="button"
+            class="chip chip-link"
+            (click)="open(el)"
+            [matTooltip]="'project.sceneStrip.locationTooltip' | transloco"
+            [attr.data-testid]="'scene-strip-location-' + el.id">
+            <mat-icon aria-hidden="true">location_on</mat-icon>
+            <span>{{ el.name }}</span>
+          </button>
+        }
+        @if (canWrite()) {
+          <button
+            type="button"
+            class="chip-clear"
+            (click)="clear('location')"
+            [attr.aria-label]="'project.sceneStrip.clearLocation' | transloco"
+            data-testid="scene-strip-location-clear">
+            <mat-icon aria-hidden="true">close</mat-icon>
+          </button>
+        }
+      } @else {
+        <button
+          type="button"
+          class="chip chip-empty"
+          (click)="pick('location')"
+          [disabled]="!canWrite()"
+          data-testid="scene-strip-location-add">
+          <mat-icon aria-hidden="true">location_on</mat-icon>
+          <span>{{ 'project.sceneStrip.setLocation' | transloco }}</span>
+        </button>
+      }
+    </span>
+
+    <!-- Story date -->
+    @if (storyDateLabel(); as date) {
+      <button
+        type="button"
+        class="chip"
+        (click)="openDetails()"
+        [disabled]="!canWrite()"
+        [matTooltip]="'project.sceneStrip.storyDateTooltip' | transloco"
+        data-testid="scene-strip-date">
+        <mat-icon aria-hidden="true">event</mat-icon>
+        <span>{{ date }}</span>
+      </button>
+    }
+
+    <span class="spacer"></span>
+
+    <!-- Words / target -->
+    <button
+      type="button"
+      class="chip chip-words"
+      (click)="openDetails()"
+      [disabled]="!canWrite()"
+      [matTooltip]="'project.sceneStrip.wordsTooltip' | transloco"
+      data-testid="scene-strip-words">
+      @if (progress() !== null) {
+        <span class="progress" aria-hidden="true">
+          <span class="progress-fill" [style.width.%]="progress()"></span>
+        </span>
+      }
+      <span>
+        {{ wordCount().toLocaleString() }}
+        @if (scene().wordTarget; as target) {
+          / {{ target.toLocaleString() }}
+        }
+      </span>
+    </button>
+
+    <!-- Details -->
+    <button
+      mat-icon-button
+      type="button"
+      class="details-button"
+      (click)="openDetails()"
+      [disabled]="!canWrite()"
+      [matTooltip]="'project.sceneStrip.details' | transloco"
+      [attr.aria-label]="'project.sceneStrip.details' | transloco"
+      data-testid="scene-strip-details">
+      <mat-icon>tune</mat-icon>
+    </button>
+  </div>
+}

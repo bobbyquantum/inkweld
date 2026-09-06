@@ -281,6 +281,10 @@
   background: transparent;
   border: none;
   font: inherit;
+  // A bare <button> defaults to the UA's `buttontext` colour (black), which
+  // is unreadable on the dark drawer. Inherit the themed text colour instead.
+  color: var(--sys-on-surface);
+  text-align: left;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -288,11 +292,19 @@
   border-radius: 4px;
   cursor: pointer;
   position: relative;
+  outline: none;
   transition: background-color 0.2s ease;
 
   &:hover,
   &:focus {
     background-color: var(--sys-surface-container-highest);
+  }
+
+  // Themed keyboard focus ring rather than the platform default, which
+  // follows the OS accent colour and clashes with the drawer palette.
+  &:focus-visible {
+    outline: 2px solid var(--sys-primary);
+    outline-offset: -2px;
   }
 
   &.active {

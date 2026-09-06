@@ -268,6 +268,33 @@ describe('DocumentTabComponent', () => {
     });
   });
 
+  describe('scene strip', () => {
+    const openScene = (metadata: Record<string, string>) => {
+      (projectStateService.elements as any).set([
+        { id: 'doc', type: 'ITEM', parentId: null, metadata },
+      ]);
+      (projectStateService.openTabs as any).set([{ element: { id: 'doc' } }]);
+      (projectStateService.selectedTabIndex as any).set(0);
+    };
+
+    it('is visible only for scenes', () => {
+      openScene({ role: 'scene' });
+      expect((component as any).sceneStripVisible()).toBe(true);
+      openScene({ role: 'note' });
+      expect((component as any).sceneStripVisible()).toBe(false);
+      openScene({});
+      expect((component as any).sceneStripVisible()).toBe(false);
+    });
+
+    it('reserves its height in the editor offset', () => {
+      openScene({ role: 'scene' });
+      // Breadcrumb (29px, shown for every resolvable element) plus strip.
+      expect((component as any).headerOffset()).toBe(29 + 36);
+      openScene({ role: 'note' });
+      expect((component as any).headerOffset()).toBe(29);
+    });
+  });
+
   describe('breadcrumbVisible computed signal', () => {
     const openElement = (id: string) => {
       (projectStateService.openTabs as any).set([{ element: { id } }]);
