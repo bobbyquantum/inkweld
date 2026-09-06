@@ -10,7 +10,7 @@ export type BinaryData = Buffer | ArrayBuffer | Uint8Array;
 /**
  * Namespaces for single-slot images (see {@link StorageService.saveSlotImage}).
  */
-export type SlotNamespace = 'branding' | 'backgrounds';
+export type SlotNamespace = 'branding' | 'backgrounds' | 'banners';
 
 /**
  * Unified storage interface

@@ -1,4 +1,5 @@
 import type { R2Bucket } from '@cloudflare/workers-types';
+import type { SlotNamespace } from './storage.service';
 
 /** Binary payloads accepted for R2 uploads. */
 type BinaryData = Buffer | ArrayBuffer | Uint8Array;
@@ -162,13 +163,13 @@ export class R2StorageService {
    * per-user backgrounds). No extension: R2 carries the content type as
    * object metadata, so the key stays stable across format changes.
    */
-  private getSlotKey(namespace: 'branding' | 'backgrounds', key: string): string {
+  private getSlotKey(namespace: SlotNamespace, key: string): string {
     this.validateKeyComponent(key, 'slot key');
     return `${namespace}/${key}`;
   }
 
   async saveSlotImage(
-    namespace: 'branding' | 'backgrounds',
+    namespace: SlotNamespace,
     key: string,
     data: BinaryData,
     contentType: string
@@ -179,7 +180,7 @@ export class R2StorageService {
   }
 
   async getSlotImage(
-    namespace: 'branding' | 'backgrounds',
+    namespace: SlotNamespace,
     key: string
   ): Promise<{ data: ArrayBuffer; contentType: string } | null> {
     const object = await this.bucket.get(this.getSlotKey(namespace, key));
@@ -192,12 +193,12 @@ export class R2StorageService {
     };
   }
 
-  async hasSlotImage(namespace: 'branding' | 'backgrounds', key: string): Promise<boolean> {
+  async hasSlotImage(namespace: SlotNamespace, key: string): Promise<boolean> {
     const object = await this.bucket.head(this.getSlotKey(namespace, key));
     return object !== null;
   }
 
-  async deleteSlotImage(namespace: 'branding' | 'backgrounds', key: string): Promise<void> {
+  async deleteSlotImage(namespace: SlotNamespace, key: string): Promise<void> {
     await this.bucket.delete(this.getSlotKey(namespace, key));
   }
 

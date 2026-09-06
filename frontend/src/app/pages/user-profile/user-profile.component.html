@@ -1,4 +1,10 @@
-<div class="content-container" [class.is-mobile]="isMobile()">
+<div
+  class="content-container"
+  [class.is-mobile]="isMobile()"
+  [class.plain-backdrop]="!backdrop()"
+  [style.--app-bg-image]="backdrop()?.image ?? 'none'"
+  [style.--app-bg-color]="backdrop()?.color ?? null"
+  data-testid="profile-page">
   <!-- Toolbar -->
   <mat-toolbar
     color="primary"
@@ -62,83 +68,104 @@
     @case ('ready') {
       @if (profile(); as user) {
         <div class="user-profile-container" data-testid="profile-content">
-          <div class="user-profile-header">
-            @if (isOwner()) {
-              <button
-                type="button"
-                class="user-avatar-container editable"
-                [attr.aria-label]="
-                  'settings.editAvatarFor'
-                    | transloco: { username: user.username }
-                "
-                (click)="openEditAvatarDialog()">
-                <app-user-avatar
-                  [username]="user.username"
-                  [hasAvatar]="user.hasAvatar"
-                  size="large">
-                </app-user-avatar>
-                <mat-icon class="edit-avatar-icon">edit</mat-icon>
-              </button>
-            } @else {
-              <div class="user-avatar-container">
-                <app-user-avatar
-                  [username]="user.username"
-                  [hasAvatar]="user.hasAvatar"
-                  size="large">
-                </app-user-avatar>
-              </div>
+          <div class="user-profile-card" [class.has-banner]="hasBanner()">
+            @if (hasBanner()) {
+              <app-profile-banner
+                class="profile-banner"
+                [username]="user.username"
+                [version]="bannerVersion()"
+                [alt]="'settings.profilePage.appearance.bannerAlt' | transloco"
+                data-testid="profile-banner" />
             }
-            <div class="user-info-container">
-              <h1 class="user-display-name" data-testid="profile-name">
-                {{ user.name || user.username }}
-              </h1>
-              <h2 class="user-username">{{ '@' + user.username }}</h2>
-              @if (user.bio) {
-                <p class="user-bio" data-testid="profile-bio">{{ user.bio }}</p>
-              }
-              <div class="user-stats">
-                @if (user.sections.projects) {
-                  <div class="stat-item">
-                    <mat-icon>book</mat-icon>
-                    <span>{{
-                      'settings.profilePage.projectCount'
-                        | transloco: { count: projects().length }
-                    }}</span>
-                  </div>
-                }
-                @if (isOwner() && user.visibility; as visibility) {
-                  <div
-                    class="stat-item visibility-badge"
-                    data-testid="profile-visibility-badge"
-                    [matTooltip]="
-                      'settings.profilePage.visibilityBadgeHint' | transloco
-                    ">
-                    <mat-icon>{{
-                      visibility.profile === 'public'
-                        ? 'public'
-                        : visibility.profile === 'members'
-                          ? 'group'
-                          : 'lock'
-                    }}</mat-icon>
-                    <span>{{
-                      'settings.profilePage.visibilityBadge.' +
-                        visibility.profile | transloco
-                    }}</span>
-                  </div>
-                }
-              </div>
-            </div>
-            @if (isOwner()) {
-              <div class="header-actions">
+            <div class="user-profile-header">
+              @if (isOwner()) {
                 <button
-                  mat-stroked-button
-                  data-testid="profile-edit-button"
-                  (click)="openEditProfile()">
-                  <mat-icon>edit</mat-icon>
-                  {{ 'settings.profilePage.editProfile' | transloco }}
+                  type="button"
+                  class="user-avatar-container editable"
+                  [attr.aria-label]="
+                    'settings.editAvatarFor'
+                      | transloco: { username: user.username }
+                  "
+                  (click)="openEditAvatarDialog()">
+                  <app-user-avatar
+                    [username]="user.username"
+                    [hasAvatar]="user.hasAvatar"
+                    size="large">
+                  </app-user-avatar>
+                  <mat-icon class="edit-avatar-icon">edit</mat-icon>
                 </button>
+              } @else {
+                <div class="user-avatar-container">
+                  <app-user-avatar
+                    [username]="user.username"
+                    [hasAvatar]="user.hasAvatar"
+                    size="large">
+                  </app-user-avatar>
+                </div>
+              }
+              <div class="user-info-container">
+                <h1 class="user-display-name" data-testid="profile-name">
+                  {{ user.name || user.username }}
+                </h1>
+                <h2 class="user-username">{{ '@' + user.username }}</h2>
+                @if (user.bio) {
+                  <p class="user-bio" data-testid="profile-bio">
+                    {{ user.bio }}
+                  </p>
+                }
+                <div class="user-stats">
+                  @if (user.sections.projects) {
+                    <div class="stat-item">
+                      <mat-icon>book</mat-icon>
+                      <span>{{
+                        'settings.profilePage.projectCount'
+                          | transloco: { count: projects().length }
+                      }}</span>
+                    </div>
+                  }
+                  @if (isOwner() && user.visibility; as visibility) {
+                    <div
+                      class="stat-item visibility-badge"
+                      data-testid="profile-visibility-badge"
+                      [matTooltip]="
+                        'settings.profilePage.visibilityBadgeHint' | transloco
+                      ">
+                      <mat-icon>{{
+                        visibility.profile === 'public'
+                          ? 'public'
+                          : visibility.profile === 'members'
+                            ? 'group'
+                            : 'lock'
+                      }}</mat-icon>
+                      <span>{{
+                        'settings.profilePage.visibilityBadge.' +
+                          visibility.profile | transloco
+                      }}</span>
+                    </div>
+                  }
+                </div>
               </div>
-            }
+              @if (isOwner()) {
+                <div class="header-actions">
+                  <button
+                    mat-stroked-button
+                    data-testid="profile-edit-button"
+                    (click)="openEditProfile()">
+                    <mat-icon>edit</mat-icon>
+                    {{ 'settings.profilePage.editProfile' | transloco }}
+                  </button>
+                  @if (!isLocalMode()) {
+                    <button
+                      mat-stroked-button
+                      data-testid="profile-customise-button"
+                      (click)="openCustomiseDialog()">
+                      <mat-icon>palette</mat-icon>
+                      {{ 'settings.profilePage.customise' | transloco }}
+                    </button>
+                  }
+                </div>
+              }
+            </div>
           </div>
 
           <div class="user-content">

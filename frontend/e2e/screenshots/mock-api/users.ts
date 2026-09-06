@@ -211,6 +211,7 @@ export function setupUserHandlers(): void {
         bio: 'Writes slow-burn fantasy and the occasional ghost story.',
         hasAvatar: user.hasAvatar ?? false,
         isOwner: true,
+        appearance: { background: { kind: 'plain' }, hasBanner: false },
         sections: { activity: true, projects: true },
         visibility: {
           profile: 'public',

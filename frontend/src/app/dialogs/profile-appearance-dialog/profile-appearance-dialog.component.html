@@ -1,0 +1,162 @@
+<h1 mat-dialog-title>
+  {{ 'settings.profilePage.appearance.title' | transloco }}
+</h1>
+
+<div mat-dialog-content class="dialog-content">
+  <!-- Banner -->
+  <section class="section" data-testid="profile-banner-section">
+    <div class="section-header">
+      <span class="section-label">{{
+        'settings.profilePage.appearance.bannerTitle' | transloco
+      }}</span>
+      <span class="section-description">{{
+        'settings.profilePage.appearance.bannerDescription' | transloco
+      }}</span>
+    </div>
+
+    @if (imageChangedEvent()) {
+      <div class="cropper-container">
+        <image-cropper
+          [imageChangedEvent]="imageChangedEvent()"
+          [maintainAspectRatio]="true"
+          [aspectRatio]="bannerAspectRatio"
+          format="jpeg"
+          output="blob"
+          [resizeToWidth]="1800"
+          [onlyScaleDown]="true"
+          (imageCropped)="onImageCropped($event)"
+          (loadImageFailed)="onLoadImageFailed()">
+        </image-cropper>
+      </div>
+    } @else if (bannerPreviewUrl(); as url) {
+      <img
+        class="banner-preview"
+        [src]="url"
+        [alt]="'settings.profilePage.appearance.bannerAlt' | transloco"
+        data-testid="profile-banner-preview" />
+    } @else {
+      <div class="banner-placeholder" data-testid="profile-banner-empty">
+        <mat-icon>panorama</mat-icon>
+      </div>
+    }
+
+    <div class="actions">
+      <input
+        type="file"
+        accept="image/png,image/jpeg,image/webp,image/gif,image/avif"
+        class="file-input"
+        id="profile-banner-input"
+        #fileInput
+        [attr.aria-label]="
+          'settings.profilePage.appearance.chooseImage' | transloco
+        "
+        data-testid="profile-banner-input"
+        (change)="onFileSelected($event)" />
+      @if (croppedBlob()) {
+        <button
+          mat-flat-button
+          [disabled]="isBusy()"
+          data-testid="profile-banner-upload"
+          (click)="uploadBanner()">
+          <mat-icon>upload</mat-icon>
+          {{ 'settings.profilePage.appearance.uploadBanner' | transloco }}
+        </button>
+      }
+      <button
+        mat-stroked-button
+        [disabled]="isBusy()"
+        data-testid="profile-banner-choose"
+        (click)="fileInput.click()">
+        <mat-icon>add_photo_alternate</mat-icon>
+        {{
+          (hasBanner() && !croppedBlob()
+            ? 'settings.profilePage.appearance.replaceBanner'
+            : 'settings.profilePage.appearance.chooseImage'
+          ) | transloco
+        }}
+      </button>
+      @if (hasBanner()) {
+        <button
+          mat-button
+          color="warn"
+          [disabled]="isBusy()"
+          data-testid="profile-banner-remove"
+          (click)="removeBanner()">
+          <mat-icon>delete</mat-icon>
+          {{ 'settings.profilePage.appearance.removeBanner' | transloco }}
+        </button>
+      }
+      @if (isBusy()) {
+        <mat-spinner diameter="20"></mat-spinner>
+      }
+    </div>
+  </section>
+
+  <!-- Page background -->
+  <section class="section" data-testid="profile-background-section">
+    <div class="section-header">
+      <span class="section-label">{{
+        'settings.profilePage.appearance.backgroundTitle' | transloco
+      }}</span>
+      <span class="section-description">{{
+        'settings.profilePage.appearance.backgroundDescription' | transloco
+      }}</span>
+    </div>
+
+    <div
+      class="tiles"
+      role="radiogroup"
+      [attr.aria-label]="
+        'settings.profilePage.appearance.backgroundTitle' | transloco
+      ">
+      <label
+        class="tile"
+        [class.selected]="selection() === 'plain'"
+        data-testid="profile-background-tile-plain">
+        <input
+          type="radio"
+          name="profile-background-choice"
+          class="tile-radio"
+          [checked]="selection() === 'plain'"
+          [disabled]="isBusy()"
+          (change)="selectPlain()" />
+        <span class="swatch plain-swatch">
+          <mat-icon>format_color_reset</mat-icon>
+        </span>
+        <span class="tile-label">{{
+          'settings.profilePage.appearance.plain' | transloco
+        }}</span>
+      </label>
+
+      @for (preset of presets; track preset.id) {
+        <label
+          class="tile"
+          [class.selected]="selection() === preset.id"
+          [attr.data-testid]="'profile-background-tile-' + preset.id">
+          <input
+            type="radio"
+            name="profile-background-choice"
+            class="tile-radio"
+            [checked]="selection() === preset.id"
+            [disabled]="isBusy()"
+            (change)="selectPreset(preset.id)" />
+          <span
+            class="swatch"
+            [style.background-image]="preset.image"
+            [style.background-color]="preset.color"></span>
+          <span class="tile-label">{{ preset.labelKey | transloco }}</span>
+        </label>
+      }
+    </div>
+  </section>
+</div>
+
+<div mat-dialog-actions class="dialog-actions-end">
+  <button
+    mat-button
+    data-testid="profile-appearance-done"
+    [disabled]="isBusy()"
+    (click)="close()">
+    {{ 'done' | transloco }}
+  </button>
+</div>

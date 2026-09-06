@@ -4,6 +4,10 @@ import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
 import type { ProfileActivityYear } from '@inkweld/model/profile-activity-year';
+import {
+  ProfileBackgroundKind,
+  ProfileBackgroundPresetId,
+} from '@inkweld/model/profile-background';
 import { ProfileVisibility } from '@inkweld/model/profile-visibility';
 import type { UserProfile } from '@inkweld/model/user-profile';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
@@ -25,6 +29,10 @@ const makeProfile = (overrides: Partial<UserProfile> = {}): UserProfile => ({
   bio: 'Writes things.',
   hasAvatar: false,
   isOwner: false,
+  appearance: {
+    background: { kind: ProfileBackgroundKind.Plain },
+    hasBanner: false,
+  },
   sections: { activity: true, projects: true },
   projects: [
     { slug: 'novel', title: 'Novel', description: 'A book', updatedDate: 1 },
@@ -307,6 +315,127 @@ describe('UserProfileComponent', () => {
     expect(component.isMobile()).toBe(true);
     component.navigateHome();
     expect(router.navigate).toHaveBeenCalledWith(['/']);
+  });
+
+  it('paints a plain backdrop by default, with no banner', async () => {
+    await setup();
+    const page: HTMLElement = fixture.nativeElement.querySelector(
+      '[data-testid="profile-page"]'
+    );
+    expect(page.classList.contains('plain-backdrop')).toBe(true);
+    expect(page.style.getPropertyValue('--app-bg-image')).toBe('none');
+    expect(component.backdrop()).toBeNull();
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="profile-banner"]')
+    ).toBeNull();
+  });
+
+  it("paints the owner's preset backdrop and banner for every visitor", async () => {
+    profileService.getBanner.mockReturnValue(of(new Blob(['img'])));
+    profileService.getProfile.mockReturnValue(
+      of(
+        makeProfile({
+          appearance: {
+            background: {
+              kind: ProfileBackgroundKind.Preset,
+              presetId: ProfileBackgroundPresetId.Dusk,
+            },
+            hasBanner: true,
+          },
+        })
+      )
+    );
+    await setup();
+    const page: HTMLElement = fixture.nativeElement.querySelector(
+      '[data-testid="profile-page"]'
+    );
+    expect(page.classList.contains('plain-backdrop')).toBe(false);
+    expect(page.style.getPropertyValue('--app-bg-image')).toContain(
+      'linear-gradient'
+    );
+    expect(page.style.getPropertyValue('--app-bg-color')).toBe('#2b1b3d');
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="profile-banner"]')
+    ).not.toBeNull();
+    expect(profileService.getBanner).toHaveBeenCalledWith('alice', 0);
+  });
+
+  it('falls back to plain for a preset the client does not know', async () => {
+    profileService.getProfile.mockReturnValue(
+      of(
+        makeProfile({
+          appearance: {
+            background: {
+              kind: ProfileBackgroundKind.Preset,
+              presetId: 'retired' as ProfileBackgroundPresetId,
+            },
+            hasBanner: false,
+          },
+        })
+      )
+    );
+    await setup();
+    expect(component.backdrop()).toBeNull();
+  });
+
+  it('lets the owner customise the page and reloads when something changed', async () => {
+    profileService.getProfile.mockReturnValue(
+      of(makeProfile({ isOwner: true }))
+    );
+    dialogGateway.openProfileAppearanceDialog.mockResolvedValue(true);
+    await setup();
+    profileService.getProfile.mockClear();
+
+    const button: HTMLButtonElement = fixture.nativeElement.querySelector(
+      '[data-testid="profile-customise-button"]'
+    );
+    expect(button).not.toBeNull();
+    button.click();
+    await fixture.whenStable();
+
+    expect(dialogGateway.openProfileAppearanceDialog).toHaveBeenCalledWith({
+      username: 'alice',
+      appearance: {
+        background: { kind: ProfileBackgroundKind.Plain },
+        hasBanner: false,
+      },
+    });
+    expect(component.bannerVersion()).toBe(1);
+    expect(profileService.getProfile).toHaveBeenCalledWith('alice');
+  });
+
+  it('does not reload when the customise dialog changed nothing', async () => {
+    profileService.getProfile.mockReturnValue(
+      of(makeProfile({ isOwner: true }))
+    );
+    dialogGateway.openProfileAppearanceDialog.mockResolvedValue(false);
+    await setup();
+    profileService.getProfile.mockClear();
+
+    component.openCustomiseDialog();
+    await fixture.whenStable();
+    expect(component.bannerVersion()).toBe(0);
+    expect(profileService.getProfile).not.toHaveBeenCalled();
+  });
+
+  it('hides the customise button in local mode and for visitors', async () => {
+    await setup();
+    expect(
+      fixture.nativeElement.querySelector(
+        '[data-testid="profile-customise-button"]'
+      )
+    ).toBeNull();
+
+    mode = 'local';
+    TestBed.resetTestingModule();
+    await setup();
+    expect(component.isOwner()).toBe(true);
+    expect(component.backdrop()).toBeNull();
+    expect(
+      fixture.nativeElement.querySelector(
+        '[data-testid="profile-customise-button"]'
+      )
+    ).toBeNull();
   });
 
   it('opens the avatar dialog', async () => {

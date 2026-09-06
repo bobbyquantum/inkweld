@@ -11,11 +11,12 @@ import { By } from '@angular/platform-browser';
 import { type Event, Router } from '@angular/router';
 import { SwUpdate } from '@angular/service-worker';
 import { Configuration, UsersService } from '@inkweld/index';
+import { BackgroundService } from '@services/core/background.service';
 import { SetupService } from '@services/core/setup.service';
 import { UpdateService } from '@services/core/update.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
 import { Subject } from 'rxjs';
-import { type MockedObject, vi } from 'vitest';
+import { type Mock, type MockedObject, vi } from 'vitest';
 
 import { translocoTestProvider } from '../testing/transloco-test-provider';
 import { userServiceMock } from '../testing/user-api.mock';
@@ -42,6 +43,8 @@ describe('AppComponent', () => {
   let errorSignal: any;
   let initializedSignal: any;
   let currentUserSignal: any;
+  let isAuthenticatedSignal: any;
+  let backgroundService: { initialize: Mock; setSurface: Mock };
 
   beforeEach(async () => {
     routerEvents = new Subject<Event>();
@@ -49,11 +52,14 @@ describe('AppComponent', () => {
     errorSignal = signal(null);
     initializedSignal = signal(true);
     currentUserSignal = signal({ name: 'anonymous', username: 'anonymous' });
+    isAuthenticatedSignal = signal(false);
+    backgroundService = { initialize: vi.fn(), setSurface: vi.fn() };
 
     unifiedUserService = {
       error: errorSignal,
       initialized: initializedSignal,
       currentUser: currentUserSignal,
+      isAuthenticated: isAuthenticatedSignal,
       logout: vi.fn().mockResolvedValue(undefined),
       initialize: vi.fn().mockResolvedValue(undefined),
     } as unknown as MockedObject<UnifiedUserService>;
@@ -77,6 +83,7 @@ describe('AppComponent', () => {
         { provide: UsersService, useValue: userServiceMock },
         { provide: UnifiedUserService, useValue: unifiedUserService },
         { provide: SetupService, useValue: setupService },
+        { provide: BackgroundService, useValue: backgroundService },
         {
           provide: Configuration,
           useValue: {},
@@ -121,6 +128,19 @@ describe('AppComponent', () => {
 
   it('should create the app', () => {
     expect(component).toBeTruthy();
+  });
+
+  it('switches the background surface with authentication state', async () => {
+    expect(backgroundService.initialize).toHaveBeenCalled();
+    expect(backgroundService.setSurface).toHaveBeenLastCalledWith('login');
+
+    isAuthenticatedSignal.set(true);
+    await fixture.whenStable();
+    expect(backgroundService.setSurface).toHaveBeenLastCalledWith('app');
+
+    isAuthenticatedSignal.set(false);
+    await fixture.whenStable();
+    expect(backgroundService.setSurface).toHaveBeenLastCalledWith('login');
   });
 
   it('should initialize theme on init', () => {

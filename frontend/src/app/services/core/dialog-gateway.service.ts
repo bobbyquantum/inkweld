@@ -63,6 +63,10 @@ import {
   NewElementDialogComponent,
   type NewElementDialogResult,
 } from '../../dialogs/new-element-dialog/new-element-dialog.component';
+import {
+  ProfileAppearanceDialogComponent,
+  type ProfileAppearanceDialogData,
+} from '../../dialogs/profile-appearance-dialog/profile-appearance-dialog.component';
 import { ProfileManagerDialogComponent } from '../../dialogs/profile-manager-dialog/profile-manager-dialog.component';
 import {
   RenameDialogComponent,
@@ -197,6 +201,21 @@ export class DialogGatewayService {
       width: '400px',
     });
     return firstValueFrom(dialogRef.afterClosed());
+  }
+
+  /**
+   * Let the owner dress their profile page (banner + backdrop). Resolves to
+   * true when anything was changed, so the page knows to reload.
+   */
+  openProfileAppearanceDialog(
+    data: ProfileAppearanceDialogData
+  ): Promise<boolean> {
+    const dialogRef = this.dialog.open(ProfileAppearanceDialogComponent, {
+      width: '560px',
+      maxWidth: '95vw',
+      data,
+    });
+    return firstValueFrom(dialogRef.afterClosed()).then(result => !!result);
   }
 
   openGenerateCoverDialog(

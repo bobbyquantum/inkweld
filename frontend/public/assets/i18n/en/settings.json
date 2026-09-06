@@ -254,6 +254,27 @@
     "tooltipSessions": "{{count}} writing sessions",
     "tooltipNone": "No writing on {{date}}",
     "noActivity": "No writing recorded yet.",
-    "activityLoadFailed": "Could not load writing activity."
+    "activityLoadFailed": "Could not load writing activity.",
+    "customise": "Customise page",
+    "appearance": {
+      "title": "Customise your profile page",
+      "bannerTitle": "Banner",
+      "bannerDescription": "A wide image across the top of your profile card, cropped to 3:1.",
+      "bannerAlt": "Profile banner",
+      "chooseImage": "Choose image",
+      "uploadBanner": "Upload banner",
+      "replaceBanner": "Replace banner",
+      "removeBanner": "Remove banner",
+      "backgroundTitle": "Page background",
+      "backgroundDescription": "Shown to everyone who can see your profile. Plain uses the theme colour.",
+      "plain": "Plain",
+      "saveFailed": "Could not save your profile background",
+      "bannerUploaded": "Banner updated",
+      "bannerUploadFailed": "Could not upload banner",
+      "bannerRemoved": "Banner removed",
+      "bannerRemoveFailed": "Could not remove banner",
+      "invalidType": "Choose a PNG, JPEG, WebP, GIF or AVIF image",
+      "tooLarge": "Image is too large (max 12MB)"
+    }
   }
 }

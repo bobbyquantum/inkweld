@@ -20,6 +20,7 @@ interface ProfileDto {
   bio: string | null;
   hasAvatar: boolean;
   isOwner: boolean;
+  appearance: { background: { kind: string; presetId?: string }; hasBanner: boolean };
   sections: { activity: boolean; projects: boolean };
   visibility?: { profile: string; activity: string; projects: string };
   projects?: Array<{ slug: string; title: string }>;
@@ -35,6 +36,12 @@ interface ActivityDto {
   currentStreak: number;
   availableYears: number[];
 }
+
+/** A valid 1x1 transparent PNG, small enough to inline and real enough for sharp. */
+const ONE_PIXEL_PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+  'base64'
+);
 
 const OWNER = 'profowner';
 const VIEWER = 'profviewer';
@@ -348,6 +355,142 @@ describe('Profile Routes', () => {
       ).json()) as ActivityDto;
       expect(body.availableYears).toEqual([year, year - 1, year - 2]);
       expect(body.totalWords).toBe(10);
+    });
+  });
+
+  // ──────────────── Profile appearance ────────────────
+
+  describe('profile appearance', () => {
+    function bannerForm(bytes: Buffer | string, filename = 'banner.png'): FormData {
+      const form = new FormData();
+      form.append('banner', new Blob([bytes], { type: 'image/png' }), filename);
+      return form;
+    }
+
+    async function ownerProfile(): Promise<ProfileDto> {
+      const { json } = await ownerClient.request(`/api/v1/users/${OWNER}/profile`);
+      return (await json()) as ProfileDto;
+    }
+
+    afterAll(async () => {
+      await ownerClient.request('/api/v1/users/me/banner', { method: 'DELETE' });
+      await ownerClient.request('/api/v1/users/me/profile-background', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kind: 'plain' }),
+      });
+    });
+
+    it('defaults to a plain background with no banner', async () => {
+      const body = await ownerProfile();
+      expect(body.appearance).toEqual({ background: { kind: 'plain' }, hasBanner: false });
+    });
+
+    it('stores a preset background and shows it to viewers', async () => {
+      const { response, json } = await ownerClient.request('/api/v1/users/me/profile-background', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kind: 'preset', presetId: 'dusk' }),
+      });
+      expect(response.status).toBe(200);
+      expect(await json()).toEqual({ kind: 'preset', presetId: 'dusk' });
+
+      await setVisibility({ profile: 'public' });
+      const seen = (await (
+        await anonClient.request(`/api/v1/users/${OWNER}/profile`)
+      ).json()) as ProfileDto;
+      expect(seen.appearance.background).toEqual({ kind: 'preset', presetId: 'dusk' });
+
+      // Back to plain drops the preset id entirely.
+      const reset = await ownerClient.request('/api/v1/users/me/profile-background', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kind: 'plain', presetId: 'dusk' }),
+      });
+      expect(await reset.json()).toEqual({ kind: 'plain' });
+      expect((await ownerProfile()).appearance.background).toEqual({ kind: 'plain' });
+    });
+
+    it('rejects unknown presets, a preset without an id, and anonymous callers', async () => {
+      const unknown = await ownerClient.request('/api/v1/users/me/profile-background', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kind: 'preset', presetId: 'lava-lamp' }),
+      });
+      expect(unknown.response.status).toBe(400);
+
+      const missing = await ownerClient.request('/api/v1/users/me/profile-background', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kind: 'preset' }),
+      });
+      expect(missing.response.status).toBe(400);
+
+      const anon = await anonClient.request('/api/v1/users/me/profile-background', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kind: 'plain' }),
+      });
+      expect(anon.response.status).toBe(401);
+    });
+
+    it('uploads, serves, gates and deletes a banner', async () => {
+      const upload = await ownerClient.request('/api/v1/users/me/banner', {
+        method: 'POST',
+        body: bannerForm(ONE_PIXEL_PNG),
+      });
+      expect(upload.response.status).toBe(200);
+      expect((await ownerProfile()).appearance.hasBanner).toBe(true);
+
+      // Owner can always fetch it.
+      const own = await ownerClient.request(`/api/v1/users/${OWNER}/banner`);
+      expect(own.response.status).toBe(200);
+      expect(own.response.headers.get('content-type')).toMatch(/^image\//);
+      expect((await own.response.arrayBuffer()).byteLength).toBeGreaterThan(0);
+
+      // Private profile: the banner URL must not leak to others.
+      const anonPrivate = await anonClient.request(`/api/v1/users/${OWNER}/banner`);
+      expect(anonPrivate.response.status).toBe(403);
+      const memberPrivate = await viewerClient.request(`/api/v1/users/${OWNER}/banner`);
+      expect(memberPrivate.response.status).toBe(403);
+
+      await setVisibility({ profile: 'public' });
+      const anonPublic = await anonClient.request(`/api/v1/users/${OWNER}/banner`);
+      expect(anonPublic.response.status).toBe(200);
+
+      const del = await ownerClient.request('/api/v1/users/me/banner', { method: 'DELETE' });
+      expect(del.response.status).toBe(200);
+      expect((await ownerProfile()).appearance.hasBanner).toBe(false);
+      const gone = await ownerClient.request(`/api/v1/users/${OWNER}/banner`);
+      expect(gone.response.status).toBe(404);
+    });
+
+    it('404s for a banner nobody uploaded and for unknown users', async () => {
+      const none = await ownerClient.request(`/api/v1/users/${OWNER}/banner`);
+      expect(none.response.status).toBe(404);
+      const nobody = await ownerClient.request('/api/v1/users/nobody-here/banner');
+      expect(nobody.response.status).toBe(404);
+    });
+
+    it('refuses non-image banners, empty uploads and anonymous uploads', async () => {
+      const bogus = await ownerClient.request('/api/v1/users/me/banner', {
+        method: 'POST',
+        body: bannerForm('<svg xmlns="http://www.w3.org/2000/svg"></svg>', 'banner.svg'),
+      });
+      expect(bogus.response.status).toBe(400);
+      expect((await ownerProfile()).appearance.hasBanner).toBe(false);
+
+      const empty = await ownerClient.request('/api/v1/users/me/banner', {
+        method: 'POST',
+        body: new FormData(),
+      });
+      expect(empty.response.status).toBe(400);
+
+      const anon = await anonClient.request('/api/v1/users/me/banner', {
+        method: 'POST',
+        body: bannerForm(ONE_PIXEL_PNG),
+      });
+      expect(anon.response.status).toBe(401);
     });
   });
 

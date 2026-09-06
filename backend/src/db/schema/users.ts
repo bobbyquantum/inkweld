@@ -32,6 +32,11 @@ export const users = sqliteTable('users', {
   // added without a migration each time. See UserPreferences in
   // services/user-preferences.service.ts for the shape.
   preferences: text('preferences'),
+  /**
+   * Whether the user has uploaded a profile banner (mirrors hasAvatar: the
+   * bytes live in the `banners` storage slot, this flag saves a round-trip).
+   */
+  hasBanner: integer('hasBanner', { mode: 'boolean' }).notNull().default(false),
   /** Short free-form profile blurb shown on the public profile page. */
   bio: text('bio'),
   /** Gates the whole profile page. */

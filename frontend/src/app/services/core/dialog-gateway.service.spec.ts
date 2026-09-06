@@ -1,7 +1,11 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { MatDialog, type MatDialogRef } from '@angular/material/dialog';
-import { ElementType, type Project } from '@inkweld/index';
+import {
+  ElementType,
+  ProfileBackgroundKind,
+  type Project,
+} from '@inkweld/index';
 import { of } from 'rxjs';
 import { type Mock, type MockedObject, vi } from 'vitest';
 
@@ -32,6 +36,7 @@ import {
   NewElementDialogComponent,
   type NewElementDialogResult,
 } from '../../dialogs/new-element-dialog/new-element-dialog.component';
+import { ProfileAppearanceDialogComponent } from '../../dialogs/profile-appearance-dialog/profile-appearance-dialog.component';
 import { ProfileManagerDialogComponent } from '../../dialogs/profile-manager-dialog/profile-manager-dialog.component';
 import {
   RenameDialogComponent,
@@ -254,6 +259,25 @@ describe('DialogGatewayService', () => {
       width: '400px',
     });
     expect(result).toBe(true);
+  });
+
+  it('should open the profile appearance dialog and coerce the result', async () => {
+    const data = {
+      username: 'alice',
+      appearance: {
+        background: { kind: ProfileBackgroundKind.Plain },
+        hasBanner: false,
+      },
+    };
+    (dialogRefMock.afterClosed as Mock).mockReturnValue(of(undefined));
+
+    const result = await service.openProfileAppearanceDialog(data);
+
+    expect(dialogMock.open).toHaveBeenCalledWith(
+      ProfileAppearanceDialogComponent,
+      { width: '560px', maxWidth: '95vw', data }
+    );
+    expect(result).toBe(false);
   });
 
   it('should open generate cover dialog using image generation dialog', async () => {

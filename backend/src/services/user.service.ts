@@ -305,6 +305,13 @@ class UserService {
   }
 
   /**
+   * Set user hasBanner flag (mirrors setHasAvatar)
+   */
+  async setHasBanner(db: DatabaseInstance, userId: string, hasBanner: boolean): Promise<void> {
+    await db.update(users).set({ hasBanner }).where(eq(users.id, userId));
+  }
+
+  /**
    * Delete user (admin only)
    */
   async deleteUser(db: DatabaseInstance, userId: string): Promise<void> {
