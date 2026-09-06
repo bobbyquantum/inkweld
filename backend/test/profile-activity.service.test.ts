@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'bun:test';
 import {
+  computeCurrentStreak,
+  computeLongestStreak,
   computeStreaks,
   dayKeyInZone,
   daysOfYear,
@@ -72,6 +74,21 @@ describe('profile activity service helpers', () => {
       const days = [day('2026-01-01', 1), day('2026-01-06', 0), day('2026-01-07', 0)];
       expect(computeStreaks(days, '2026-01-07').current).toBe(0);
       expect(computeStreaks([], '2026-01-07')).toEqual({ longest: 0, current: 0 });
+    });
+  });
+
+  describe('computeCurrentStreak / computeLongestStreak', () => {
+    it('counts a streak that crosses a year boundary', () => {
+      const active = ['2025-12-30', '2025-12-31', '2026-01-01'];
+      expect(computeCurrentStreak(active, '2026-01-01')).toBe(3);
+      // Today (Jan 2) still empty → anchored on yesterday.
+      expect(computeCurrentStreak(active, '2026-01-02')).toBe(3);
+    });
+
+    it('is independent of the longest-streak series', () => {
+      const lastYear = [day('2025-06-01', 5), day('2025-06-02', 5), day('2025-06-03', 0)];
+      expect(computeLongestStreak(lastYear)).toBe(2);
+      expect(computeCurrentStreak(['2026-03-01'], '2026-03-01')).toBe(1);
     });
   });
 });

@@ -12,7 +12,7 @@ import { SetupService } from '@services/core/setup.service';
 import { UnifiedProjectService } from '@services/local/unified-project.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
 import { UserProfileService } from '@services/user/user-profile.service';
-import { of, throwError } from 'rxjs';
+import { of, Subject, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { mockDeep } from 'vitest-mock-extended';
 
@@ -244,6 +244,44 @@ describe('UserProfileComponent', () => {
     await fixture.whenStable();
     expect(profileService.getActivity).toHaveBeenLastCalledWith('alice', 2025);
     expect(component.activity()?.year).toBe(2025);
+  });
+
+  it('ignores a stale activity response after the year changes', async () => {
+    await setup();
+    const slow = new Subject<ProfileActivityYear>();
+    profileService.getActivity.mockReturnValueOnce(slow.asObservable());
+    component.onYearChange(2024);
+    profileService.getActivity.mockReturnValueOnce(
+      of(makeActivity({ year: 2025 }))
+    );
+    component.onYearChange(2025);
+    await fixture.whenStable();
+    expect(component.activity()?.year).toBe(2025);
+
+    // The 2024 request completes late and must not win.
+    slow.next(makeActivity({ year: 2024 }));
+    slow.complete();
+    await fixture.whenStable();
+    expect(component.activity()?.year).toBe(2025);
+    expect(component.activityLoading()).toBe(false);
+  });
+
+  it('ignores a stale profile response after the username changes', async () => {
+    const slow = new Subject<UserProfile>();
+    profileService.getProfile.mockReturnValueOnce(slow.asObservable());
+    await setup('alice');
+    expect(component.loadState()).toBe('loading');
+
+    profileService.getProfile.mockReturnValueOnce(
+      of(makeProfile({ username: 'bob', name: 'Bob' }))
+    );
+    await component.loadProfile('bob');
+    expect(component.profile()?.username).toBe('bob');
+
+    slow.next(makeProfile({ username: 'alice' }));
+    slow.complete();
+    await fixture.whenStable();
+    expect(component.profile()?.username).toBe('bob');
   });
 
   it('falls back to the local user in local mode', async () => {

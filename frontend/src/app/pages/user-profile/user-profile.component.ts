@@ -102,6 +102,13 @@ export class UserProfileComponent implements OnInit, OnDestroy {
 
   private readonly destroy$ = new Subject<void>();
 
+  /**
+   * Monotonic request ids so a slow response for a previous username or
+   * year can never overwrite state belonging to the current one.
+   */
+  private profileRequestId = 0;
+  private activityRequestId = 0;
+
   ngOnInit(): void {
     this.setupBreakpointObserver();
     this.route.paramMap
@@ -126,10 +133,14 @@ export class UserProfileComponent implements OnInit, OnDestroy {
 
   /** Load the profile card, then (if visible) the current year's activity. */
   async loadProfile(username: string): Promise<void> {
+    const requestId = ++this.profileRequestId;
+    // Invalidate any in-flight activity load for the previous profile too.
+    this.activityRequestId++;
     this.loadState.set('loading');
     this.profile.set(null);
     this.activity.set(null);
     this.activityError.set(false);
+    this.activityLoading.set(false);
 
     if (this.setupService.getMode() === 'local') {
       this.loadLocalProfile(username);
@@ -140,12 +151,14 @@ export class UserProfileComponent implements OnInit, OnDestroy {
       const profile = await firstValueFrom(
         this.profileService.getProfile(username)
       );
+      if (requestId !== this.profileRequestId) return;
       this.profile.set(profile);
       this.loadState.set('ready');
       if (profile.sections.activity) {
         void this.loadActivity(username);
       }
     } catch (err) {
+      if (requestId !== this.profileRequestId) return;
       if (err instanceof HttpErrorResponse && err.status === 403) {
         this.loadState.set('private');
       } else if (err instanceof HttpErrorResponse && err.status === 404) {
@@ -192,18 +205,23 @@ export class UserProfileComponent implements OnInit, OnDestroy {
   }
 
   async loadActivity(username: string, year?: number): Promise<void> {
+    const requestId = ++this.activityRequestId;
     this.activityLoading.set(true);
     this.activityError.set(false);
     try {
       const data = await firstValueFrom(
         this.profileService.getActivity(username, year)
       );
+      if (requestId !== this.activityRequestId) return;
       this.activity.set(data);
     } catch (err) {
+      if (requestId !== this.activityRequestId) return;
       this.logger.warn('UserProfile', 'Failed to load activity', err);
       this.activityError.set(true);
     } finally {
-      this.activityLoading.set(false);
+      if (requestId === this.activityRequestId) {
+        this.activityLoading.set(false);
+      }
     }
   }
 

@@ -325,6 +325,21 @@ describe('Profile Routes', () => {
       expect(body.timeZone).toBe('UTC');
     });
 
+    it('anchors the current streak to today even when viewing a past year', async () => {
+      const year = new Date().getUTCFullYear();
+      const today = Date.UTC(year, new Date().getUTCMonth(), new Date().getUTCDate(), 12);
+      await seedSession(10, today);
+      await seedSession(10, today - 24 * 60 * 60 * 1000);
+      await seedSession(10, Date.UTC(year - 1, 6, 1));
+
+      const past = (await (
+        await ownerClient.request(`/api/v1/users/${OWNER}/activity?year=${year - 1}&tz=UTC`)
+      ).json()) as ActivityDto;
+      expect(past.year).toBe(year - 1);
+      expect(past.totalWords).toBe(10);
+      expect(past.currentStreak).toBe(2);
+    });
+
     it('lists every year the user has written in', async () => {
       const year = new Date().getUTCFullYear();
       await seedSession(10, Date.UTC(year - 2, 6, 1));

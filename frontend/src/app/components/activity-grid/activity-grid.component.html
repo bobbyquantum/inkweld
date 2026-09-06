@@ -69,6 +69,7 @@
             @if (cell.day) {
               <rect
                 class="cell"
+                data-testid="activity-cell"
                 [attr.data-level]="cell.level"
                 [attr.data-day]="cell.day"
                 [attr.x]="cellX(cell)"

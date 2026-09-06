@@ -24,7 +24,7 @@ export interface ActivityYear {
   totalWords: number;
   activeDays: number;
   longestStreak: number;
-  /** Streak ending today (or yesterday, if today has no words yet). */
+  /** Streak ending today (or yesterday, if today has no words yet), regardless of `year`. */
   currentStreak: number;
   /** Years from the first one with writing through today, newest first. Always includes `year`. */
   availableYears: number[];
@@ -71,32 +71,49 @@ export function daysOfYear(year: number): string[] {
   return out;
 }
 
-export function computeStreaks(
-  days: ActivityDay[],
-  today: string
-): { longest: number; current: number } {
+/** Longest run of consecutive active days within `days` (assumed sorted). */
+export function computeLongestStreak(days: ActivityDay[]): number {
   let longest = 0;
   let run = 0;
-  const active = new Set<string>();
   for (const d of days) {
     if (d.words > 0) {
-      active.add(d.day);
       run += 1;
       if (run > longest) longest = run;
     } else {
       run = 0;
     }
   }
+  return longest;
+}
 
-  // Current streak counts back from today, or from yesterday when today is
-  // still empty so an unfinished day doesn't read as a broken streak.
+/**
+ * Streak ending on `today`, or on yesterday when today is still empty so an
+ * unfinished day doesn't read as a broken streak. `activeDays` may span any
+ * range — it is deliberately not limited to the requested calendar year.
+ */
+export function computeCurrentStreak(activeDays: Iterable<string>, today: string): number {
+  const active = new Set(activeDays);
   let cursor = active.has(today) ? today : addDays(today, -1);
   let current = 0;
   while (active.has(cursor)) {
     current += 1;
     cursor = addDays(cursor, -1);
   }
-  return { longest, current };
+  return current;
+}
+
+/** @deprecated kept for callers that want both numbers from one series. */
+export function computeStreaks(
+  days: ActivityDay[],
+  today: string
+): { longest: number; current: number } {
+  return {
+    longest: computeLongestStreak(days),
+    current: computeCurrentStreak(
+      days.filter((d) => d.words > 0).map((d) => d.day),
+      today
+    ),
+  };
 }
 
 class ProfileActivityService {
@@ -112,8 +129,14 @@ class ProfileActivityService {
     const fromMs = Date.UTC(year, 0, 1) - DAY_MS;
     const toMs = Date.UTC(year + 1, 0, 1) + DAY_MS;
 
-    const [rows, range] = await Promise.all([
+    // The current streak is anchored to today regardless of which year is
+    // being viewed, so it needs its own window: a year back from now is more
+    // than any streak the grid could show, plus a day of zone slack.
+    const streakFromMs = now - 366 * DAY_MS - DAY_MS;
+
+    const [rows, streakRows, range] = await Promise.all([
       writingSessionService.positiveSessionsForUserBetween(db, userId, fromMs, toMs),
+      writingSessionService.positiveSessionsForUserBetween(db, userId, streakFromMs, now + DAY_MS),
       writingSessionService.firstPositiveSessionForUser(db, userId),
     ]);
 
@@ -135,7 +158,11 @@ class ProfileActivityService {
     const totalWords = days.reduce((acc, d) => acc + d.words, 0);
     const activeDays = days.filter((d) => d.words > 0).length;
     const today = dayKeyInZone(now, timeZone);
-    const streaks = computeStreaks(days, today);
+    const longestStreak = computeLongestStreak(days);
+    const currentStreak = computeCurrentStreak(
+      streakRows.map((r) => dayKeyInZone(r.sessionEnd, timeZone)),
+      today
+    );
 
     // Contiguous run from the first year with any writing up to today, so
     // the picker has no gaps; the requested year is always present.
@@ -152,8 +179,8 @@ class ProfileActivityService {
       days,
       totalWords,
       activeDays,
-      longestStreak: streaks.longest,
-      currentStreak: streaks.current,
+      longestStreak,
+      currentStreak,
       availableYears: Array.from(years).sort((a, b) => b - a),
     };
   }

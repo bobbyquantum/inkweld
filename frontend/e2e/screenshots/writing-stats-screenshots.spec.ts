@@ -43,7 +43,7 @@ async function waitForWidget(page: Page): Promise<void> {
 }
 
 async function waitForGrid(page: Page): Promise<void> {
-  await page.waitForSelector('[data-testid="activity-svg"] rect.cell', {
+  await page.waitForSelector('[data-testid="activity-cell"]', {
     state: 'attached',
     timeout: 15_000,
   });

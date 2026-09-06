@@ -5599,6 +5599,7 @@
           "Users"
         ],
         "operationId": "getUserProfile",
+        "security": [],
         "parameters": [
           {
             "schema": {
@@ -5652,6 +5653,7 @@
           "Users"
         ],
         "operationId": "getUserActivity",
+        "security": [],
         "parameters": [
           {
             "schema": {

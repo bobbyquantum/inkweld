@@ -47,7 +47,7 @@
       "levelHelp": {
         "public": "Anyone with the link, including people who are not signed in.",
         "members": "Only people signed in to this Inkweld server.",
-        "private": "Only you. Your profile page is hidden from everyone else."
+        "private": "Only you, plus server administrators for moderation. Everyone else sees a private-profile notice."
       },
       "sectionsLabel": "What is shown on your profile",
       "sectionsHint": "A section can be more private than your profile, but never more public.",

@@ -96,6 +96,8 @@ const getProfileRoute = createRoute({
   path: '/{username}/profile',
   tags: ['Users'],
   operationId: 'getUserProfile',
+  // Anonymous callers are allowed; visibility is enforced per response.
+  security: [],
   request: { params: UsernameParams },
   responses: {
     200: {
@@ -170,6 +172,8 @@ const getActivityRoute = createRoute({
   path: '/{username}/activity',
   tags: ['Users'],
   operationId: 'getUserActivity',
+  // Anonymous callers are allowed; visibility is enforced per response.
+  security: [],
   request: { params: UsernameParams, query: ActivityQuery },
   responses: {
     200: {
