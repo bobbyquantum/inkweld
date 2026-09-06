@@ -120,47 +120,59 @@ export class AccountSettingsComponent implements OnInit {
     }
   }
 
+  /**
+   * Diff the form against the current user and return only the fields that
+   * changed, so a save never clobbers values edited elsewhere.
+   */
+  private collectChanges(): UpdateProfileRequest {
+    const data: UpdateProfileRequest = {};
+    const currentUser = this.userService.currentUser();
+
+    const newName = this.displayName.trim();
+    if (newName !== (currentUser.name ?? '')) {
+      data.name = newName;
+    }
+    if (this.isLocalMode()) {
+      return data;
+    }
+
+    const newEmail = this.email.trim();
+    if (newEmail !== (currentUser.email ?? '')) {
+      data.email = newEmail;
+    }
+    const newBio = this.bio.trim();
+    if (newBio !== (currentUser.bio ?? '')) {
+      data.bio = newBio;
+    }
+
+    const levels: Array<
+      [
+        key: 'profileVisibility' | 'activityVisibility' | 'projectsVisibility',
+        value: ProfileVisibility,
+        fallback: ProfileVisibility,
+      ]
+    > = [
+      ['profileVisibility', this.profileVisibility, ProfileVisibility.Private],
+      ['activityVisibility', this.activityVisibility, ProfileVisibility.Public],
+      [
+        'projectsVisibility',
+        this.projectsVisibility,
+        ProfileVisibility.Private,
+      ],
+    ];
+    for (const [key, value, fallback] of levels) {
+      if (value !== (currentUser[key] ?? fallback)) {
+        data[key] = value;
+      }
+    }
+    return data;
+  }
+
   async saveProfile(): Promise<void> {
     this.isSaving.set(true);
 
     try {
-      const data: UpdateProfileRequest = {};
-
-      const currentUser = this.userService.currentUser();
-      const newName = this.displayName.trim();
-      const newEmail = this.email.trim();
-
-      // Only send changed fields
-      if (newName !== (currentUser.name ?? '')) {
-        data.name = newName;
-      }
-      if (!this.isLocalMode() && newEmail !== (currentUser.email ?? '')) {
-        data.email = newEmail;
-      }
-      if (!this.isLocalMode()) {
-        const newBio = this.bio.trim();
-        if (newBio !== (currentUser.bio ?? '')) {
-          data.bio = newBio;
-        }
-        if (
-          this.profileVisibility !==
-          (currentUser.profileVisibility ?? ProfileVisibility.Private)
-        ) {
-          data.profileVisibility = this.profileVisibility;
-        }
-        if (
-          this.activityVisibility !==
-          (currentUser.activityVisibility ?? ProfileVisibility.Public)
-        ) {
-          data.activityVisibility = this.activityVisibility;
-        }
-        if (
-          this.projectsVisibility !==
-          (currentUser.projectsVisibility ?? ProfileVisibility.Private)
-        ) {
-          data.projectsVisibility = this.projectsVisibility;
-        }
-      }
+      const data = this.collectChanges();
 
       if (Object.keys(data).length === 0) {
         this.snackBar.open(

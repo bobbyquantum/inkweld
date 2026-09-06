@@ -133,7 +133,7 @@ describe('ActivityGridComponent', () => {
     await setup(makeYear());
     const el: HTMLElement = fixture.nativeElement;
     const rects = el.querySelectorAll('rect.cell');
-    expect(rects.length).toBe(365);
+    expect(rects).toHaveLength(365);
     const levels = new Set(
       Array.from(rects).map(r => r.getAttribute('data-level'))
     );

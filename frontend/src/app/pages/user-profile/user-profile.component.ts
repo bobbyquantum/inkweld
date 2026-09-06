@@ -159,7 +159,7 @@ export class UserProfileComponent implements OnInit, OnDestroy {
    */
   private loadLocalProfile(username: string): void {
     const current = this.userService.currentUser();
-    if (!current || current.username !== username) {
+    if (current?.username !== username) {
       this.loadState.set('not-found');
       return;
     }
