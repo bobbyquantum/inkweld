@@ -22,16 +22,26 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 
 import { ElementType } from '../../../api-client';
+import { DOCUMENT_ROLE_ICONS } from '../../models/scene-metadata';
 import { ProjectStateService } from '../../services/project/project-state.service';
 import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding.service';
+
+/**
+ * Presets refine an element type at creation time without introducing a new
+ * `ElementType`:
+ *  - `map`: a Canvas pre-configured as an interactive map
+ *  - `scene`: an Item flagged as manuscript prose (role metadata)
+ *  - `note`: an Item flagged as non-manuscript prose (role metadata)
+ */
+export type ElementPreset = 'map' | 'scene' | 'note';
 
 export interface NewElementDialogResult {
   name: string;
   type: ElementType;
   /** Schema ID for WORLDBUILDING elements */
   schemaId?: string;
-  /** Preset applied after creation (e.g. 'map' pre-configures a canvas). */
-  preset?: 'map';
+  /** Preset applied after creation (see {@link ElementPreset}). */
+  preset?: ElementPreset;
 }
 
 interface NewElementDialogData {
@@ -48,8 +58,13 @@ interface ElementTypeOption {
   icon: string;
   description: string;
   category: 'document' | 'worldbuilding' | 'visualization';
-  /** Preset applied after creation (e.g. 'map' pre-configures a canvas). */
-  preset?: 'map';
+  /** Preset applied after creation (see {@link ElementPreset}). */
+  preset?: ElementPreset;
+  /**
+   * Explicit test id. Options sharing a type (Scene/Note, Canvas/Map) need
+   * distinct ids; the default is `element-type-<type>`.
+   */
+  testId?: string;
 }
 
 interface NewElementFormValue {
@@ -102,10 +117,25 @@ export class NewElementDialogComponent {
     },
     {
       type: ElementType.Item,
-      label: 'Document',
-      icon: 'description',
-      description: 'Create a narrative document or chapter',
+      label: 'Scene',
+      icon: DOCUMENT_ROLE_ICONS.scene,
+      description:
+        'Manuscript prose: a scene or chapter with synopsis, status, word target and story date',
       category: 'document',
+      preset: 'scene',
+      // Keeps the historical id so existing e2e flows that create a
+      // document keep working.
+      testId: 'element-type-item',
+    },
+    {
+      type: ElementType.Item,
+      label: 'Note',
+      icon: DOCUMENT_ROLE_ICONS.note,
+      description:
+        'Research, brainstorming, front matter or anything else in prose that is not part of the manuscript',
+      category: 'document',
+      preset: 'note',
+      testId: 'element-type-item-note',
     },
     {
       type: ElementType.RelationshipChart,
@@ -131,6 +161,7 @@ export class NewElementDialogComponent {
         'Interactive map: background images with clickable pins linked to your worldbuilding elements',
       category: 'visualization',
       preset: 'map',
+      testId: 'element-type-map',
     },
     {
       type: ElementType.Timeline,
@@ -179,8 +210,8 @@ export class NewElementDialogComponent {
   // Track selected schema ID for worldbuilding types
   selectedSchemaId = signal<string | undefined>(undefined);
 
-  // Preset carried by the selected option (e.g. the 'Map' canvas preset)
-  selectedPreset = signal<'map' | undefined>(undefined);
+  // Preset carried by the selected option (e.g. 'map', 'scene', 'note')
+  selectedPreset = signal<ElementPreset | undefined>(undefined);
 
   readonly model = signal<NewElementFormValue>({
     name: '',
@@ -286,6 +317,28 @@ export class NewElementDialogComponent {
     this.selectedPreset.set(option.preset);
     this.model.update(m => ({ ...m, type: option.type }));
     this.nextStep();
+  }
+
+  /** Stable key for `@for` tracking — type alone collides for preset options. */
+  optionKey(option: ElementTypeOption): string {
+    return `${option.type}:${option.schemaId ?? ''}:${option.preset ?? ''}`;
+  }
+
+  /** Test id for an option card. */
+  optionTestId(option: ElementTypeOption): string {
+    return (
+      option.testId ??
+      `element-type-${option.schemaId ?? option.type.toLowerCase()}`
+    );
+  }
+
+  /** Whether an option card is the currently selected one. */
+  isOptionSelected(option: ElementTypeOption): boolean {
+    return (
+      this.selectedType() === option.type &&
+      this.selectedSchemaId() === option.schemaId &&
+      this.selectedPreset() === option.preset
+    );
   }
 
   onTypeCardKeydown(event: KeyboardEvent, option: ElementTypeOption): void {

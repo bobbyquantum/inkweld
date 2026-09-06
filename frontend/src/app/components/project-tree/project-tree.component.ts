@@ -30,7 +30,12 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router } from '@angular/router';
 import { type Element, ElementType } from '@inkweld/index';
-import { TranslocoModule } from '@jsverse/transloco';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
+import {
+  type DocumentRole,
+  getDocumentRole,
+  isScene,
+} from '@models/scene-metadata';
 import { ProjectSearchService } from '@services/core/project-search.service';
 import { SettingsService } from '@services/core/settings.service';
 import { ProjectStateService } from '@services/project/project-state.service';
@@ -68,6 +73,7 @@ import { TreeNodeIconComponent } from './components/tree-node-icon/tree-node-ico
 })
 export class ProjectTreeComponent implements OnDestroy {
   private readonly dialogGateway = inject(DialogGatewayService);
+  private readonly transloco = inject(TranslocoService);
   private readonly logger = inject(LoggerService);
   private readonly projectSearchService = inject(ProjectSearchService);
   private readonly elementNavigation = inject(ElementNavigationService);
@@ -550,12 +556,54 @@ export class ProjectTreeComponent implements OnDestroy {
   public async onRename(node: ProjectElement) {
     const newName = await this.dialogGateway.openRenameDialog({
       currentName: node.name,
-      title: `Rename ${node.expandable ? 'Folder' : 'Item'}`,
+      title: this.transloco.translate(this.renameTitleKey(node)),
     });
 
     if (newName) {
       this.projectStateService.renameNode(node, newName);
     }
+  }
+
+  /** Role-aware rename dialog title: Folder, Scene, Note or generic Item. */
+  private renameTitleKey(node: ProjectElement): string {
+    if (node.expandable) return 'project.tree.renameFolder';
+    if (!this.isProseDocument(node)) return 'project.tree.renameItem';
+    switch (getDocumentRole(node.metadata)) {
+      case 'scene':
+        return 'project.tree.renameScene';
+      case 'note':
+        return 'project.tree.renameNote';
+      default:
+        return 'project.tree.renameItem';
+    }
+  }
+
+  /** True for prose documents (the only elements that carry a role). */
+  public isProseDocument(node: ProjectElement): boolean {
+    return node.type === ElementType.Item;
+  }
+
+  /**
+   * True when the document is explicitly marked as a scene.
+   *
+   * Reads the live element rather than `node.metadata`: the CDK context menu
+   * captures its template context the first time it opens and reuses it, so
+   * the `node` handed to the menu can be stale after a conversion.
+   */
+  public isSceneNode(node: ProjectElement): boolean {
+    const live = this.projectStateService
+      .elements()
+      .find(e => e.id === node.id);
+    return isScene((live ?? node).metadata);
+  }
+
+  /**
+   * Convert a prose document between the scene and note roles. Only the role
+   * and tree icon change; content, comments and snapshots are untouched.
+   */
+  public onConvertRole(node: ProjectElement, role: DocumentRole): void {
+    if (!this.isProseDocument(node)) return;
+    this.projectStateService.setDocumentRole(node.id, role);
   }
 
   /**

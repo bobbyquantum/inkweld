@@ -268,6 +268,33 @@ describe('DocumentTabComponent', () => {
     });
   });
 
+  describe('scene strip', () => {
+    const openScene = (metadata: Record<string, string>) => {
+      (projectStateService.elements as any).set([
+        { id: 'doc', type: 'ITEM', parentId: null, metadata },
+      ]);
+      (projectStateService.openTabs as any).set([{ element: { id: 'doc' } }]);
+      (projectStateService.selectedTabIndex as any).set(0);
+    };
+
+    it('is visible only for scenes', () => {
+      openScene({ role: 'scene' });
+      expect((component as any).sceneStripVisible()).toBe(true);
+      openScene({ role: 'note' });
+      expect((component as any).sceneStripVisible()).toBe(false);
+      openScene({});
+      expect((component as any).sceneStripVisible()).toBe(false);
+    });
+
+    it('reserves its height in the editor offset', () => {
+      openScene({ role: 'scene' });
+      // Top-level element: no breadcrumb, just the strip.
+      expect((component as any).headerOffset()).toBe(36);
+      openScene({ role: 'note' });
+      expect((component as any).headerOffset()).toBe(0);
+    });
+  });
+
   describe('documentUnavailable', () => {
     it('should default to false', () => {
       expect((component as any).documentUnavailable()).toBe(false);

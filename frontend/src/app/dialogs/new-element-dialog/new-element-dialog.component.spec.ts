@@ -234,10 +234,11 @@ describe('NewElementDialogComponent', () => {
     });
 
     it('should filter options by description', () => {
-      component.searchQuery.set('narrative');
+      component.searchQuery.set('research');
       const filtered = component.filteredOptions();
       expect(filtered).toHaveLength(1);
       expect(filtered[0].type).toBe(ElementType.Item);
+      expect(filtered[0].preset).toBe('note');
     });
 
     it('should be case insensitive', () => {
@@ -256,8 +257,35 @@ describe('NewElementDialogComponent', () => {
   describe('category grouping', () => {
     it('should separate document options', () => {
       const docOptions = component.documentOptions();
-      expect(docOptions).toHaveLength(2); // Folder and Document
+      expect(docOptions).toHaveLength(3); // Folder, Scene and Note
       expect(docOptions.every(o => o.category === 'document')).toBe(true);
+    });
+
+    it('offers Scene and Note as presets of the Item type', () => {
+      const docOptions = component.documentOptions();
+      const scene = docOptions.find(o => o.preset === 'scene');
+      const note = docOptions.find(o => o.preset === 'note');
+      expect(scene?.type).toBe(ElementType.Item);
+      expect(note?.type).toBe(ElementType.Item);
+      expect(component.optionTestId(scene!)).toBe('element-type-item');
+      expect(component.optionTestId(note!)).toBe('element-type-item-note');
+      expect(component.optionKey(scene!)).not.toBe(component.optionKey(note!));
+    });
+
+    it('closes with the scene preset when a scene is created', () => {
+      const scene = component
+        .documentOptions()
+        .find(o => o.preset === 'scene')!;
+      component.selectType(scene);
+      expect(component.isOptionSelected(scene)).toBe(true);
+      component.model.update(m => ({ ...m, name: 'Chapter 1' }));
+      component.onCreate();
+      expect(dialogRef.close).toHaveBeenCalledWith({
+        name: 'Chapter 1',
+        type: ElementType.Item,
+        schemaId: undefined,
+        preset: 'scene',
+      });
     });
 
     it('should start with no worldbuilding options', () => {
@@ -351,8 +379,8 @@ describe('NewElementDialogComponent', () => {
       await new Promise(resolve => setTimeout(resolve, 50));
 
       expect(consoleErrorSpy).toHaveBeenCalled();
-      // Should still have default document types
-      expect(component.documentOptions()).toHaveLength(2);
+      // Should still have default document types (Folder, Scene, Note)
+      expect(component.documentOptions()).toHaveLength(3);
 
       consoleErrorSpy.mockRestore();
     });
