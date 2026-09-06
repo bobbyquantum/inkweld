@@ -2,13 +2,14 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { ProfileBackgroundPlainKind } from '@inkweld/model/profile-background-plain';
 import {
-  ProfileBackgroundKind,
-  ProfileBackgroundPresetId,
-} from '@inkweld/model/profile-background';
+  ProfileBackgroundPresetKind,
+  ProfileBackgroundPresetPresetId,
+} from '@inkweld/model/profile-background-preset';
 import { UserProfileService } from '@services/user/user-profile.service';
 import type { ImageCroppedEvent } from 'ngx-image-cropper';
-import { of, throwError } from 'rxjs';
+import { of, Subject, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { mockDeep } from 'vitest-mock-extended';
 
@@ -22,7 +23,14 @@ describe('ProfileAppearanceDialogComponent', () => {
   let fixture: ComponentFixture<ProfileAppearanceDialogComponent>;
   let component: ProfileAppearanceDialogComponent;
   let profileService: ReturnType<typeof mockDeep<UserProfileService>>;
-  let dialogRef: { close: ReturnType<typeof vi.fn> };
+  let dialogRef: {
+    close: ReturnType<typeof vi.fn>;
+    disableClose: boolean;
+    backdropClick: () => Subject<MouseEvent>;
+    keydownEvents: () => Subject<KeyboardEvent>;
+  };
+  let backdropClicks: Subject<MouseEvent>;
+  let keydowns: Subject<KeyboardEvent>;
   let snackBar: { open: ReturnType<typeof vi.fn> };
 
   const setup = async (
@@ -31,7 +39,7 @@ describe('ProfileAppearanceDialogComponent', () => {
     const data: ProfileAppearanceDialogData = {
       username: 'alice',
       appearance: {
-        background: { kind: ProfileBackgroundKind.Plain },
+        background: { kind: ProfileBackgroundPlainKind.Plain },
         hasBanner: false,
         ...overrides,
       },
@@ -58,11 +66,15 @@ describe('ProfileAppearanceDialogComponent', () => {
   beforeEach(() => {
     TestBed.resetTestingModule();
     profileService = mockDeep<UserProfileService>();
-    profileService.bannerUrl.mockImplementation(
-      (username: string, version = 0) =>
-        `/api/v1/users/${username}/banner${version ? `?v=${version}` : ''}`
-    );
-    dialogRef = { close: vi.fn() };
+    backdropClicks = new Subject<MouseEvent>();
+    keydowns = new Subject<KeyboardEvent>();
+    profileService.getBanner.mockReturnValue(of(new Blob(['img'])));
+    dialogRef = {
+      close: vi.fn(),
+      disableClose: false,
+      backdropClick: () => backdropClicks,
+      keydownEvents: () => keydowns,
+    };
     snackBar = { open: vi.fn() };
   });
 
@@ -80,23 +92,22 @@ describe('ProfileAppearanceDialogComponent', () => {
   it('reflects an existing preset and banner', async () => {
     await setup({
       background: {
-        kind: ProfileBackgroundKind.Preset,
-        presetId: ProfileBackgroundPresetId.Forest,
+        kind: ProfileBackgroundPresetKind.Preset,
+        presetId: ProfileBackgroundPresetPresetId.Forest,
       },
       hasBanner: true,
     });
     expect(component.selection()).toBe('forest');
-    expect(
-      query<HTMLImageElement>('profile-banner-preview')?.getAttribute('src')
-    ).toBe('/api/v1/users/alice/banner');
+    expect(query('profile-banner-preview')).not.toBeNull();
+    expect(profileService.getBanner).toHaveBeenCalledWith('alice', 0);
     expect(query('profile-banner-remove')).not.toBeNull();
   });
 
   it('saves a preset as soon as it is picked and reports the change on close', async () => {
     profileService.setProfileBackground.mockReturnValue(
       of({
-        kind: ProfileBackgroundKind.Preset,
-        presetId: ProfileBackgroundPresetId.Dusk,
+        kind: ProfileBackgroundPresetKind.Preset,
+        presetId: ProfileBackgroundPresetPresetId.Dusk,
       })
     );
     await setup();
@@ -109,6 +120,28 @@ describe('ProfileAppearanceDialogComponent', () => {
     expect(component.selection()).toBe('dusk');
 
     component.close();
+    expect(dialogRef.close).toHaveBeenCalledWith(true);
+  });
+
+  it('reports saved changes when dismissed with Escape or the backdrop', async () => {
+    profileService.setProfileBackground.mockReturnValue(
+      of({
+        kind: ProfileBackgroundPresetKind.Preset,
+        presetId: ProfileBackgroundPresetPresetId.Dusk,
+      })
+    );
+    await setup();
+    expect(dialogRef.disableClose).toBe(true);
+
+    await component.selectPreset('dusk');
+    keydowns.next(new KeyboardEvent('keydown', { key: 'Escape' }));
+    expect(dialogRef.close).toHaveBeenCalledWith(true);
+
+    dialogRef.close.mockClear();
+    keydowns.next(new KeyboardEvent('keydown', { key: 'Enter' }));
+    expect(dialogRef.close).not.toHaveBeenCalled();
+
+    backdropClicks.next(new MouseEvent('click'));
     expect(dialogRef.close).toHaveBeenCalledWith(true);
   });
 
@@ -134,12 +167,12 @@ describe('ProfileAppearanceDialogComponent', () => {
 
   it('saves plain explicitly', async () => {
     profileService.setProfileBackground.mockReturnValue(
-      of({ kind: ProfileBackgroundKind.Plain })
+      of({ kind: ProfileBackgroundPlainKind.Plain })
     );
     await setup({
       background: {
-        kind: ProfileBackgroundKind.Preset,
-        presetId: ProfileBackgroundPresetId.Dusk,
+        kind: ProfileBackgroundPresetKind.Preset,
+        presetId: ProfileBackgroundPresetPresetId.Dusk,
       },
     });
     await component.selectPlain();
@@ -181,11 +214,20 @@ describe('ProfileAppearanceDialogComponent', () => {
     component.onImageCropped({ blob } as unknown as ImageCroppedEvent);
     expect(component.croppedBlob()).toBe(blob);
 
+    const input = query<HTMLInputElement>('profile-banner-input')!;
+    const clearedValues: string[] = [];
+    Object.defineProperty(input, 'value', {
+      set: (v: string) => clearedValues.push(v),
+      get: () => 'C:\\fakepath\\hero.jpg',
+    });
+
     await component.uploadBanner();
     expect(profileService.uploadBanner).toHaveBeenCalledWith(blob, 'hero.jpg');
     expect(component.hasBanner()).toBe(true);
     expect(component.bannerVersion()).toBe(1);
     expect(component.croppedBlob()).toBeNull();
+    // The input is cleared so the same file can be picked again.
+    expect(clearedValues).toEqual(['']);
 
     component.close();
     expect(dialogRef.close).toHaveBeenCalledWith(true);

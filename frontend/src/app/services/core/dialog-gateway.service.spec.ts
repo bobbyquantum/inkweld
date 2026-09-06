@@ -3,7 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { MatDialog, type MatDialogRef } from '@angular/material/dialog';
 import {
   ElementType,
-  ProfileBackgroundKind,
+  ProfileBackgroundPlainKind,
   type Project,
 } from '@inkweld/index';
 import { of } from 'rxjs';
@@ -265,7 +265,7 @@ describe('DialogGatewayService', () => {
     const data = {
       username: 'alice',
       appearance: {
-        background: { kind: ProfileBackgroundKind.Plain },
+        background: { kind: ProfileBackgroundPlainKind.Plain },
         hasBanner: false,
       },
     };

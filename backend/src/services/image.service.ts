@@ -34,6 +34,14 @@ async function getSharp() {
 export const MAX_BACKGROUND_UPLOAD_BYTES = 12 * 1024 * 1024;
 
 /**
+ * Decoded-pixel ceiling for full-bleed uploads (backgrounds, banners). The byte
+ * cap alone does not bound decode cost: a highly compressed image can be tiny on
+ * the wire and enormous in memory. 40 megapixels is well above any real photo
+ * (an 8K frame is 33 MP) and far below sharp's permissive default.
+ */
+export const MAX_BACKGROUND_INPUT_PIXELS = 40_000_000;
+
+/**
  * Identify an image from its magic bytes.
  *
  * Used instead of trusting the multipart content type, and it is the only
@@ -99,6 +107,8 @@ export class ImageService {
       quality?: number;
       /** Never scale an image up to reach the target box. */
       withoutEnlargement?: boolean;
+      /** Refuse to decode images with more pixels than this. */
+      limitInputPixels?: number;
     } = {}
   ): Promise<Buffer> {
     const sharp = await getSharp();
@@ -116,9 +126,10 @@ export class ImageService {
       format = 'jpeg',
       quality = 80,
       withoutEnlargement = false,
+      limitInputPixels,
     } = options;
 
-    let image = sharp(buffer);
+    let image = limitInputPixels ? sharp(buffer, { limitInputPixels }) : sharp(buffer);
 
     // Resize
     if (width || height) {
@@ -200,6 +211,7 @@ export class ImageService {
       // A cap, not a target: upscaling a small source would cost bytes and
       // add nothing but blur.
       withoutEnlargement: true,
+      limitInputPixels: MAX_BACKGROUND_INPUT_PIXELS,
     });
 
     return { data, contentType: 'image/webp' };
@@ -230,6 +242,7 @@ export class ImageService {
       format: 'webp',
       quality: 82,
       withoutEnlargement: true,
+      limitInputPixels: MAX_BACKGROUND_INPUT_PIXELS,
     });
 
     return { data, contentType: 'image/webp' };

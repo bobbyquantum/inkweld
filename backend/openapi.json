@@ -448,15 +448,46 @@
         ]
       },
       "ProfileBackground": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/ProfileBackgroundPlain"
+          },
+          {
+            "$ref": "#/components/schemas/ProfileBackgroundPreset"
+          }
+        ],
+        "discriminator": {
+          "propertyName": "kind",
+          "mapping": {
+            "plain": "#/components/schemas/ProfileBackgroundPlain",
+            "preset": "#/components/schemas/ProfileBackgroundPreset"
+          }
+        }
+      },
+      "ProfileBackgroundPlain": {
         "type": "object",
         "properties": {
           "kind": {
             "type": "string",
             "enum": [
-              "plain",
+              "plain"
+            ],
+            "description": "The theme's own surface colour, with no image or scrim."
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "ProfileBackgroundPreset": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
               "preset"
             ],
-            "description": "plain shows the theme's own surface colour; preset uses a built-in backdrop."
+            "description": "One of the built-in backdrops."
           },
           "presetId": {
             "type": "string",
@@ -468,12 +499,12 @@
               "parchment",
               "slate",
               "none"
-            ],
-            "description": "Required when kind is `preset`."
+            ]
           }
         },
         "required": [
-          "kind"
+          "kind",
+          "presetId"
         ]
       },
       "ProfileVisibilitySettings": {
@@ -5648,7 +5679,12 @@
           "Users"
         ],
         "operationId": "getUserProfile",
-        "security": [],
+        "security": [
+          {},
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "schema": {
@@ -5702,7 +5738,12 @@
           "Users"
         ],
         "operationId": "getUserActivity",
-        "security": [],
+        "security": [
+          {},
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "schema": {
@@ -5781,7 +5822,12 @@
         ],
         "operationId": "getUserBanner",
         "summary": "Get a user's profile banner",
-        "security": [],
+        "security": [
+          {},
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "schema": {

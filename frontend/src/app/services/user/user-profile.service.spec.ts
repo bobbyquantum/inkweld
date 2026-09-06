@@ -6,11 +6,12 @@ import {
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import type { ProfileActivityYear } from '@inkweld/model/profile-activity-year';
+import type { ProfileBackground } from '@inkweld/model/profile-background';
+import { ProfileBackgroundPlainKind } from '@inkweld/model/profile-background-plain';
 import {
-  type ProfileBackground,
-  ProfileBackgroundKind,
-  ProfileBackgroundPresetId,
-} from '@inkweld/model/profile-background';
+  ProfileBackgroundPresetKind,
+  ProfileBackgroundPresetPresetId,
+} from '@inkweld/model/profile-background-preset';
 import type { UserProfile } from '@inkweld/model/user-profile';
 import { SetupService } from '@services/core/setup.service';
 import { firstValueFrom } from 'rxjs';
@@ -49,7 +50,7 @@ describe('UserProfileService', () => {
       hasAvatar: false,
       isOwner: false,
       appearance: {
-        background: { kind: ProfileBackgroundKind.Plain },
+        background: { kind: ProfileBackgroundPlainKind.Plain },
         hasBanner: false,
       },
       sections: { activity: true, projects: false },
@@ -123,8 +124,8 @@ describe('UserProfileService', () => {
 
   it('PUTs the profile background with credentials', async () => {
     const background: ProfileBackground = {
-      kind: ProfileBackgroundKind.Preset,
-      presetId: ProfileBackgroundPresetId.Dusk,
+      kind: ProfileBackgroundPresetKind.Preset,
+      presetId: ProfileBackgroundPresetPresetId.Dusk,
     };
     const promise = firstValueFrom(service.setProfileBackground(background));
     const req = httpController.expectOne(

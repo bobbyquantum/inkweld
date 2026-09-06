@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { users } from '../db/schema/users';
 import type { DatabaseInstance } from '../types/context';
 import { configService } from './config.service';
@@ -273,35 +273,52 @@ class AppearanceService {
     return resolveProfileBackground(preferences.profileBackground);
   }
 
-  /** Merge a profile background choice into a user's preferences. */
+  /**
+   * Write one key of the preferences blob in a single statement.
+   *
+   * `json_set` runs inside SQLite, so two requests updating different keys at
+   * once (say, the app background and the profile background) cannot clobber
+   * each other the way a read-modify-write of the whole blob could. A blob that
+   * is null or corrupt is treated as empty rather than failing the write.
+   */
+  private async setPreferenceKey(
+    db: DatabaseInstance,
+    userId: string,
+    key: keyof UserPreferences,
+    value: unknown
+  ): Promise<void> {
+    const path = `$.${key}`;
+    await db
+      .update(users)
+      .set({
+        preferences: sql`json_set(
+          CASE WHEN json_valid(${users.preferences}) THEN ${users.preferences} ELSE '{}' END,
+          ${path},
+          json(${JSON.stringify(value)})
+        )`,
+      })
+      .where(eq(users.id, userId));
+  }
+
+  /** Store a profile background choice, normalised. */
   async setProfileBackground(
     db: DatabaseInstance,
     userId: string,
     profileBackground: ProfileBackgroundPreference
   ): Promise<ProfileBackgroundPreference> {
-    const current = await this.getPreferences(db, userId);
     const normalised = resolveProfileBackground(profileBackground);
-    const next: UserPreferences = { ...current, profileBackground: normalised };
-    await db
-      .update(users)
-      .set({ preferences: JSON.stringify(next) })
-      .where(eq(users.id, userId));
+    await this.setPreferenceKey(db, userId, 'profileBackground', normalised);
     return normalised;
   }
 
-  /** Merge a background choice into a user's preferences. */
+  /** Store a background choice and return the resulting preferences. */
   async setBackgroundPreference(
     db: DatabaseInstance,
     userId: string,
     background: BackgroundPreference
   ): Promise<UserPreferences> {
-    const current = await this.getPreferences(db, userId);
-    const next: UserPreferences = { ...current, background };
-    await db
-      .update(users)
-      .set({ preferences: JSON.stringify(next) })
-      .where(eq(users.id, userId));
-    return next;
+    await this.setPreferenceKey(db, userId, 'background', background);
+    return this.getPreferences(db, userId);
   }
 }
 

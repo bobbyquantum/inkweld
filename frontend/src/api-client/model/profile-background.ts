@@ -7,27 +7,12 @@
  * https://openapi-generator.tech
  * Do not edit the class manually.
  */
+import { ProfileBackgroundPlain } from './profile-background-plain';
+import { ProfileBackgroundPreset } from './profile-background-preset';
 
-export interface ProfileBackground {
-  /**
-   * plain shows the theme\'s own surface colour; preset uses a built-in backdrop.
-   */
-  kind: ProfileBackgroundKind;
-  /**
-   * Required when kind is `preset`.
-   */
-  presetId?: ProfileBackgroundPresetId;
-}
-export enum ProfileBackgroundKind {
-  Plain = 'plain',
-  Preset = 'preset',
-}
-export enum ProfileBackgroundPresetId {
-  Bundled = 'bundled',
-  Midnight = 'midnight',
-  Dusk = 'dusk',
-  Forest = 'forest',
-  Parchment = 'parchment',
-  Slate = 'slate',
-  None = 'none',
-}
+/**
+ * @type ProfileBackground
+ * @export
+ */
+export type ProfileBackground =
+  ProfileBackgroundPlain | ProfileBackgroundPreset;

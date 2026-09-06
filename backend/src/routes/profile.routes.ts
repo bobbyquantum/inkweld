@@ -82,16 +82,28 @@ const ProfileVisibilitySettingsSchema = z
   })
   .openapi('ProfileVisibilitySettings');
 
-export const ProfileBackgroundSchema = z
+const ProfileBackgroundPlainSchema = z
   .object({
-    kind: z.enum(['plain', 'preset']).openapi({
-      description: "plain shows the theme's own surface colour; preset uses a built-in backdrop.",
+    kind: z.literal('plain').openapi({
+      description: "The theme's own surface colour, with no image or scrim.",
     }),
-    presetId: z
-      .enum(BACKGROUND_PRESET_IDS)
-      .optional()
-      .openapi({ description: 'Required when kind is `preset`.' }),
   })
+  .openapi('ProfileBackgroundPlain');
+
+const ProfileBackgroundPresetSchema = z
+  .object({
+    kind: z.literal('preset').openapi({ description: 'One of the built-in backdrops.' }),
+    presetId: z.enum(BACKGROUND_PRESET_IDS),
+  })
+  .openapi('ProfileBackgroundPreset');
+
+/**
+ * A discriminated union rather than one object with an optional `presetId`, so
+ * the schema itself (and every client generated from it) encodes that a preset
+ * background must name its preset.
+ */
+export const ProfileBackgroundSchema = z
+  .discriminatedUnion('kind', [ProfileBackgroundPlainSchema, ProfileBackgroundPresetSchema])
   .openapi('ProfileBackground');
 
 const ProfileAppearanceSchema = z
@@ -150,8 +162,10 @@ const getProfileRoute = createRoute({
   path: '/{username}/profile',
   tags: ['Users'],
   operationId: 'getUserProfile',
-  // Anonymous callers are allowed; visibility is enforced per response.
-  security: [],
+  // Anonymous callers are allowed; visibility is enforced per response. Listing
+  // bearerAuth as an alternative keeps generated clients sending a session, so
+  // members-only content is not hidden from signed-in callers.
+  security: [{}, { bearerAuth: [] }],
   request: { params: UsernameParams },
   responses: {
     200: {
@@ -228,8 +242,10 @@ const getActivityRoute = createRoute({
   path: '/{username}/activity',
   tags: ['Users'],
   operationId: 'getUserActivity',
-  // Anonymous callers are allowed; visibility is enforced per response.
-  security: [],
+  // Anonymous callers are allowed; visibility is enforced per response. Listing
+  // bearerAuth as an alternative keeps generated clients sending a session, so
+  // members-only content is not hidden from signed-in callers.
+  security: [{}, { bearerAuth: [] }],
   request: { params: UsernameParams, query: ActivityQuery },
   responses: {
     200: {
@@ -277,8 +293,10 @@ const getBannerRoute = createRoute({
   tags: ['Users'],
   operationId: 'getUserBanner',
   summary: "Get a user's profile banner",
-  // Anonymous callers are allowed; visibility is enforced per response.
-  security: [],
+  // Anonymous callers are allowed; visibility is enforced per response. Listing
+  // bearerAuth as an alternative keeps generated clients sending a session, so
+  // members-only content is not hidden from signed-in callers.
+  security: [{}, { bearerAuth: [] }],
   request: { params: UsernameParams },
   responses: {
     200: {
@@ -357,11 +375,8 @@ profileRoutes.openapi(setProfileBackgroundRoute, async (c) => {
     return c.json({ error: 'Not authenticated' }, 401);
   }
 
+  // The discriminated union has already required presetId for a preset.
   const body = c.req.valid('json');
-  if (body.kind === 'preset' && !body.presetId) {
-    return c.json({ error: 'presetId is required for a preset background' }, 400);
-  }
-
   const stored = await appearanceService.setProfileBackground(c.get('db'), user.id, body);
   return c.json(stored, 200);
 });
@@ -426,8 +441,23 @@ profileRoutes.openapi(uploadBannerRoute, async (c): Promise<any> => {
 
   const processed = await imageService.processBanner(buffer);
   const storage = getStorageService(c.get('storage'));
+
+  // The stored image and the `hasBanner` flag live in different systems, so
+  // keep the previous image around until the flag is confirmed: if the flag
+  // write fails, put things back the way they were rather than leaving a
+  // banner in storage that the profile says does not exist.
+  const previous = record.hasBanner ? await storage.getSlotImage('banners', record.username) : null;
   await storage.saveSlotImage('banners', record.username, processed.data, processed.contentType);
-  await userService.setHasBanner(db, user.id, true);
+  try {
+    await userService.setHasBanner(db, user.id, true);
+  } catch (error) {
+    if (previous) {
+      await storage.saveSlotImage('banners', record.username, previous.data, previous.contentType);
+    } else {
+      await storage.deleteSlotImage('banners', record.username);
+    }
+    throw error;
+  }
 
   return c.json({ message: 'Banner uploaded successfully' }, 200);
 });
@@ -461,9 +491,13 @@ profileRoutes.openapi(deleteBannerRoute, async (c): Promise<any> => {
     return c.json({ error: 'User not found' }, 404);
   }
 
+  // Flag first, image second. If the storage delete then fails the profile
+  // already reports no banner and `GET /:username/banner` 404s on the flag, so
+  // the only residue is an orphaned object that the next upload overwrites —
+  // never a banner the profile advertises but cannot serve.
+  await userService.setHasBanner(db, user.id, false);
   const storage = getStorageService(c.get('storage'));
   await storage.deleteSlotImage('banners', record.username);
-  await userService.setHasBanner(db, user.id, false);
 
   return c.json({ message: 'Banner deleted successfully' }, 200);
 });
