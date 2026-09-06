@@ -1,6 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { type Element, ElementType } from '@inkweld/index';
 import { xmlToMarkdown } from '@inkweld/prosemirror/markdown';
+import { isPublishableByDefault } from '@models/scene-metadata';
 import { trimHyphens } from '@utils/string-utils';
 import { isWorldbuildingType } from '@utils/worldbuilding.utils';
 import { BehaviorSubject, type Observable, Subject } from 'rxjs';
@@ -274,7 +275,10 @@ export class MarkdownGeneratorService {
     const parts: string[] = [];
     const children = this.getChildElements(element, elements);
     for (const child of children) {
-      if (child.type === ElementType.Item) {
+      if (
+        child.type === ElementType.Item &&
+        isPublishableByDefault(child.metadata)
+      ) {
         parts.push(await this.getDocumentContent(child.id));
       } else if (isWorldbuildingType(child.type)) {
         const md = await this.renderInlineWb(child);
@@ -833,7 +837,10 @@ export class MarkdownGeneratorService {
       lines.push(`- **${formattedTitle}**`);
       const children = this.getChildElements(element, elements);
       for (const child of children) {
-        if (child.type === ElementType.Item) {
+        if (
+          child.type === ElementType.Item &&
+          isPublishableByDefault(child.metadata)
+        ) {
           const childAnchor = this.headingToAnchor(child.name);
           lines.push(`  - [${child.name}](#${childAnchor})`);
         }

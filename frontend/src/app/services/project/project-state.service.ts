@@ -18,6 +18,7 @@ import {
 import { type CanvasContents, type CanvasEdit } from '@models/canvas-edit';
 import type { CoverSource } from '@models/cover-source';
 import { type ProjectElement } from '@models/project-element';
+import { type DocumentRole, roleMetadata } from '@models/scene-metadata';
 import { TimeSystemLibraryService } from '@services/timeline/time-system-library.service';
 import { nanoid } from 'nanoid';
 import {
@@ -28,6 +29,7 @@ import {
   switchMap,
 } from 'rxjs';
 
+import { type ElementPreset } from '../../dialogs/new-element-dialog/new-element-dialog.component';
 import { DocumentSyncState } from '../../models/document-sync-state';
 import { type PublishPlan } from '../../models/publish-plan';
 import { type ElementTypeSchema } from '../../models/schema-types';
@@ -41,6 +43,7 @@ import { ProjectRenameMigrationService } from '../local/project-rename-migration
 import { ProjectSyncService } from '../local/project-sync.service';
 import { StorageService } from '../local/storage.service';
 import { UnifiedProjectService } from '../local/unified-project.service';
+import { ensureSceneRelationshipTypes } from '../relationship/scene-relationship-types';
 import {
   ElementSyncProviderFactory,
   type IElementSyncProvider,
@@ -1580,8 +1583,7 @@ export class ProjectStateService implements OnDestroy {
         );
 
         if (newElementId) {
-          if (result.preset === 'map') this.applyMapPreset(newElementId);
-          if (result.preset === 'cover') this.applyCoverPreset(newElementId);
+          this.applyPreset(newElementId, result.preset);
           const elements = this.elements();
           const newElement = elements.find(e => e.id === newElementId);
           if (newElement) {
@@ -1590,6 +1592,39 @@ export class ProjectStateService implements OnDestroy {
         }
       }
     });
+  }
+
+  /** Apply the creation preset chosen in the new-element dialog, if any. */
+  private applyPreset(
+    elementId: string,
+    preset: ElementPreset | undefined
+  ): void {
+    switch (preset) {
+      case 'map':
+        this.applyMapPreset(elementId);
+        break;
+      case 'cover':
+        this.applyCoverPreset(elementId);
+        break;
+      case 'scene':
+      case 'note':
+        this.setDocumentRole(elementId, preset);
+        break;
+      default:
+        break;
+    }
+  }
+
+  /**
+   * Mark a prose document as a scene or a note. Scenes also make sure the
+   * POV / location relationship types exist so the scene strip can offer
+   * them immediately, including in projects created before this feature.
+   */
+  setDocumentRole(elementId: string, role: DocumentRole): void {
+    this.updateElementMetadata(elementId, roleMetadata(role));
+    if (role === 'scene' && this.syncProvider) {
+      ensureSceneRelationshipTypes(this.syncProvider);
+    }
   }
 
   /**

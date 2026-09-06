@@ -12,6 +12,7 @@ import {
   type WorldbuildingItem,
 } from '@models/publish-plan';
 import { createDefaultPublishStyles } from '@models/publish-style';
+import { isPublishableByDefault } from '@models/scene-metadata';
 import JSZip from '@progress/jszip-esm';
 import { LoggerService } from '@services/core/logger.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
@@ -446,7 +447,10 @@ export class HtmlSiteGeneratorService {
     if (element.type === ElementType.Folder && item.includeChildren) {
       const children = this.html.getChildElements(element, elements);
       for (const child of children) {
-        if (child.type === ElementType.Item) {
+        if (
+          child.type === ElementType.Item &&
+          isPublishableByDefault(child.metadata)
+        ) {
           add({
             title: child.name,
             kind: 'document',

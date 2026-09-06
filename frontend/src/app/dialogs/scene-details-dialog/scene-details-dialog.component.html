@@ -1,0 +1,123 @@
+<h2 mat-dialog-title data-testid="scene-details-title">
+  {{ 'dialogs.sceneDetails.title' | transloco: { name: data.elementName } }}
+</h2>
+
+<mat-dialog-content class="scene-details-content">
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>{{ 'dialogs.sceneDetails.status' | transloco }}</mat-label>
+    <mat-select
+      [value]="status()"
+      (valueChange)="status.set($event)"
+      data-testid="scene-details-status">
+      <mat-option value="">
+        {{ 'dialogs.sceneDetails.noStatus' | transloco }}
+      </mat-option>
+      @for (s of statuses; track s) {
+        <mat-option [value]="s">
+          {{ 'project.sceneStatus.' + s | transloco }}
+        </mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>{{ 'dialogs.sceneDetails.synopsis' | transloco }}</mat-label>
+    <textarea
+      matInput
+      id="scene-details-synopsis"
+      rows="4"
+      [attr.aria-label]="'dialogs.sceneDetails.synopsis' | transloco"
+      [value]="synopsis()"
+      (input)="synopsis.set($any($event.target).value)"
+      [placeholder]="'dialogs.sceneDetails.synopsisPlaceholder' | transloco"
+      data-testid="scene-details-synopsis"></textarea>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>{{ 'dialogs.sceneDetails.wordTarget' | transloco }}</mat-label>
+    <input
+      matInput
+      id="scene-details-word-target"
+      type="number"
+      [attr.aria-label]="'dialogs.sceneDetails.wordTarget' | transloco"
+      min="1"
+      step="1"
+      [value]="wordTarget()"
+      (input)="wordTarget.set($any($event.target).value)"
+      data-testid="scene-details-word-target" />
+    @if (!wordTargetValid()) {
+      <mat-error>{{
+        'dialogs.sceneDetails.wordTargetInvalid' | transloco
+      }}</mat-error>
+    }
+    <mat-hint>{{ 'dialogs.sceneDetails.wordTargetHint' | transloco }}</mat-hint>
+  </mat-form-field>
+
+  <div class="section-label">
+    {{ 'dialogs.sceneDetails.storyDate' | transloco }}
+  </div>
+
+  @if (data.timeSystems.length === 0) {
+    <p class="hint" data-testid="scene-details-no-time-systems">
+      {{ 'dialogs.sceneDetails.noTimeSystems' | transloco }}
+    </p>
+  } @else {
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>{{ 'dialogs.sceneDetails.timeSystem' | transloco }}</mat-label>
+      <mat-select
+        [value]="systemId()"
+        (valueChange)="onSystemChange($event)"
+        data-testid="scene-details-time-system">
+        <mat-option [value]="noSystem">
+          {{ 'dialogs.sceneDetails.noDate' | transloco }}
+        </mat-option>
+        @for (s of data.timeSystems; track s.id) {
+          <mat-option [value]="s.id">{{ s.name }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    @if (system(); as sys) {
+      <div class="units-row">
+        @for (label of sys.unitLabels; track $index; let i = $index) {
+          <mat-form-field appearance="outline" class="unit-field">
+            <mat-label>{{ label }}</mat-label>
+            <input
+              matInput
+              [attr.id]="'scene-details-unit-' + i"
+              [attr.aria-label]="label"
+              type="number"
+              step="1"
+              [value]="units()[i]"
+              (input)="onUnitChange(i, $any($event.target).value)"
+              [attr.data-testid]="'scene-details-unit-' + i" />
+          </mat-form-field>
+        }
+      </div>
+      @if (!unitsValid()) {
+        <p class="error-text" data-testid="scene-details-units-invalid">
+          {{ 'dialogs.sceneDetails.unitsInvalid' | transloco }}
+        </p>
+      }
+    }
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button
+    mat-button
+    type="button"
+    (click)="onCancel()"
+    data-testid="scene-details-cancel">
+    {{ 'cancel' | transloco }}
+  </button>
+  <button
+    mat-flat-button
+    type="button"
+    color="primary"
+    [disabled]="!canSave()"
+    (click)="onSave()"
+    data-testid="scene-details-save">
+    {{ 'save' | transloco }}
+  </button>
+</mat-dialog-actions>

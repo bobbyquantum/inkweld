@@ -1,0 +1,180 @@
+// Height is fixed so the editor can subtract it (see SCENE_STRIP_HEIGHT).
+.scene-strip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  box-sizing: border-box;
+  padding: 0 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  background-color: var(--sys-surface-container-low);
+  border-bottom: 1px solid var(--sys-outline-variant);
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.chip-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  max-width: 220px;
+  padding: 0 8px;
+  border: 1px solid var(--sys-outline-variant);
+  border-radius: 12px;
+  background: var(--sys-surface);
+  color: var(--sys-on-surface);
+  font: inherit;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+
+  span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    color: var(--sys-on-surface-variant);
+  }
+
+  &:hover:not(:disabled),
+  &:focus-visible {
+    background: var(--sys-surface-container-high);
+    outline: none;
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.8;
+  }
+
+  &.chip-empty {
+    border-style: dashed;
+    color: var(--sys-on-surface-variant);
+  }
+
+  &.chip-link mat-icon {
+    color: var(--sys-primary);
+  }
+}
+
+.chip-clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--sys-on-surface-variant);
+  cursor: pointer;
+
+  mat-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+  }
+
+  &:hover {
+    background: var(--sys-surface-container-high);
+  }
+}
+
+// Status colouring — dot in the menu, tinted border on the chip.
+.status-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 8px;
+  border-radius: 50%;
+  background: var(--sys-outline);
+  vertical-align: middle;
+}
+
+.status-idea {
+  --scene-status-color: var(--sys-outline);
+}
+.status-draft {
+  --scene-status-color: var(--sys-tertiary);
+}
+.status-revised {
+  --scene-status-color: var(--sys-primary);
+}
+.status-final {
+  --scene-status-color: #2e7d32;
+}
+
+.status-dot.status-idea,
+.status-dot.status-draft,
+.status-dot.status-revised,
+.status-dot.status-final {
+  background: var(--scene-status-color);
+}
+
+.chip-status.status-idea,
+.chip-status.status-draft,
+.chip-status.status-revised,
+.chip-status.status-final {
+  border-color: var(--scene-status-color);
+
+  mat-icon {
+    color: var(--scene-status-color);
+  }
+}
+
+.spacer {
+  flex: 1 1 auto;
+}
+
+.chip-words {
+  gap: 8px;
+  font-variant-numeric: tabular-nums;
+  color: var(--sys-on-surface-variant);
+}
+
+.progress {
+  display: inline-block;
+  width: 48px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--sys-surface-container-highest);
+  overflow: hidden;
+}
+
+.progress-fill {
+  display: block;
+  height: 100%;
+  background: var(--sys-primary);
+}
+
+.details-button {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}

@@ -29,6 +29,10 @@
     "move": "Move",
     "renameFolder": "Rename Folder",
     "renameItem": "Rename Item",
+    "renameScene": "Rename Scene",
+    "renameNote": "Rename Note",
+    "convertToScene": "Convert to Scene",
+    "convertToNote": "Convert to Note",
     "confirmDelete": "Confirm Delete",
     "confirmDeleteMessage": "Are you sure you want to delete \"{{name}}\"? This action cannot be undone."
   },
@@ -43,7 +47,30 @@
     "closeOthers": "Close Others",
     "closeAll": "Close All",
     "renameFolder": "Rename Folder",
-    "renameDocument": "Rename Document"
+    "renameDocument": "Rename Document",
+    "renameScene": "Rename Scene",
+    "renameNote": "Rename Note"
+  },
+  "sceneStatus": {
+    "idea": "Idea",
+    "draft": "Draft",
+    "revised": "Revised",
+    "final": "Final"
+  },
+  "sceneStrip": {
+    "noStatus": "No status",
+    "statusTooltip": "Draft status",
+    "setPov": "Set POV",
+    "pickPovTitle": "POV character",
+    "pickLocationTitle": "Location",
+    "povTooltip": "Point-of-view character — click to open",
+    "clearPov": "Clear POV character",
+    "setLocation": "Set location",
+    "locationTooltip": "Location — click to open",
+    "clearLocation": "Clear location",
+    "storyDateTooltip": "Story date — click to edit",
+    "wordsTooltip": "Words written / target — click to edit target",
+    "details": "Scene details"
   },
   "homeTab": {
     "editCover": "Edit project cover",

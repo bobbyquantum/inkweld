@@ -42,6 +42,10 @@ import {
   RenameDialogComponent,
   type RenameDialogData,
 } from '../../dialogs/rename-dialog/rename-dialog.component';
+import {
+  SceneDetailsDialogComponent,
+  type SceneDetailsDialogData,
+} from '../../dialogs/scene-details-dialog/scene-details-dialog.component';
 import { TemplateSnapshotsDialogComponent } from '../../dialogs/template-snapshots-dialog/template-snapshots-dialog.component';
 import { UserSettingsDialogComponent } from '../../dialogs/user-settings-dialog/user-settings-dialog.component';
 import { WorldbuildingImageDialogComponent } from '../../dialogs/worldbuilding-image-dialog/worldbuilding-image-dialog.component';
@@ -156,6 +160,26 @@ describe('DialogGatewayService', () => {
       width: '400px',
     });
     expect(result).toBe('New Name');
+  });
+
+  it('should open the scene details dialog', async () => {
+    const data: SceneDetailsDialogData = {
+      elementName: 'The Gate',
+      metadata: { role: 'scene' },
+      timeSystems: [],
+    };
+    const dialogResult = { patch: { status: 'draft' } };
+    (dialogRefMock.afterClosed as Mock).mockReturnValue(of(dialogResult));
+
+    const result = await service.openSceneDetailsDialog(data);
+
+    expect(dialogMock.open).toHaveBeenCalledWith(SceneDetailsDialogComponent, {
+      data,
+      disableClose: true,
+      width: '520px',
+      maxWidth: '95vw',
+    });
+    expect(result).toEqual(dialogResult);
   });
 
   it('should open the field config dialog', async () => {

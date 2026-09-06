@@ -244,6 +244,35 @@
         }}</span>
       </button>
     }
+    @if (isProseDocument(node) && projectStateService.canWrite()) {
+      @if (isSceneNode(node)) {
+        <button
+          type="button"
+          class="context-menu-item"
+          cdkMenuItem
+          data-testid="context-menu-convert-to-note"
+          [disabled]="isLoading()"
+          (click)="onConvertRole(node, 'note')">
+          <mat-icon>sticky_note_2</mat-icon>
+          <span class="context-menu-item-title">{{
+            'project.tree.convertToNote' | transloco
+          }}</span>
+        </button>
+      } @else {
+        <button
+          type="button"
+          class="context-menu-item"
+          cdkMenuItem
+          data-testid="context-menu-convert-to-scene"
+          [disabled]="isLoading()"
+          (click)="onConvertRole(node, 'scene')">
+          <mat-icon>auto_stories</mat-icon>
+          <span class="context-menu-item-title">{{
+            'project.tree.convertToScene' | transloco
+          }}</span>
+        </button>
+      }
+    }
     @if (projectStateService.canWrite()) {
       <button
         type="button"

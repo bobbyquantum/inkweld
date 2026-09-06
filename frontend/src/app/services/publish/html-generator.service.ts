@@ -12,6 +12,7 @@ import {
   createDefaultPublishStyles,
   type PublishStyles,
 } from '@models/publish-style';
+import { isPublishableByDefault } from '@models/scene-metadata';
 import { mediaIdFromReference } from '@utils/media-reference';
 import { trimHyphens } from '@utils/string-utils';
 import { isWorldbuildingType } from '@utils/worldbuilding.utils';
@@ -820,7 +821,10 @@ export class HtmlGeneratorService {
     const parts: string[] = [];
     const children = this.getChildElements(element, elements);
     for (const child of children) {
-      if (child.type === ElementType.Item) {
+      if (
+        child.type === ElementType.Item &&
+        isPublishableByDefault(child.metadata)
+      ) {
         const content = await this.getDocumentContent(child.id);
         const childAnchor = this.cssSafe(child.name);
         parts.push(
@@ -1490,7 +1494,10 @@ ${content}
     if (!children.length) return;
     lines.push(`<ul class="ink-toc-list">`);
     for (const child of children) {
-      if (child.type === ElementType.Item) {
+      if (
+        child.type === ElementType.Item &&
+        isPublishableByDefault(child.metadata)
+      ) {
         const childSafe = this.escapeHtml(child.name);
         const childAnchor = this.cssSafe(child.name);
         lines.push(

@@ -514,6 +514,73 @@ describe('ProjectStateService', () => {
       expect(calledElements[0].level).toBe(0);
     });
 
+    describe('setDocumentRole', () => {
+      const doc: Element = {
+        id: 'doc-1',
+        name: 'Chapter 1',
+        type: ElementType.Item,
+        parentId: null,
+        level: 0,
+        order: 0,
+        expandable: false,
+        version: 0,
+        metadata: {},
+      };
+
+      beforeEach(() => {
+        mockSyncProvider._elementsSubject.next([doc]);
+        mockSyncProvider.updateElements.mockClear();
+        mockSyncProvider.updateCustomRelationshipTypes.mockClear();
+      });
+
+      it('marks a document as a scene and seeds POV/location types', () => {
+        service.setDocumentRole('doc-1', 'scene');
+
+        const written = mockSyncProvider.updateElements.mock.calls.at(-1)![0];
+        expect(written[0].metadata).toMatchObject({
+          role: 'scene',
+          icon: 'auto_stories',
+        });
+
+        expect(
+          mockSyncProvider.updateCustomRelationshipTypes
+        ).toHaveBeenCalledTimes(1);
+        const types =
+          mockSyncProvider.updateCustomRelationshipTypes.mock.calls[0][0];
+        expect(types.map(t => t.id)).toEqual(['scene-pov', 'scene-location']);
+      });
+
+      it('does not seed relationship types again once present', () => {
+        service.setDocumentRole('doc-1', 'scene');
+        service.setDocumentRole('doc-1', 'scene');
+        expect(
+          mockSyncProvider.updateCustomRelationshipTypes
+        ).toHaveBeenCalledTimes(1);
+      });
+
+      it('marks a document as a note without touching relationship types', () => {
+        service.setDocumentRole('doc-1', 'note');
+
+        const written = mockSyncProvider.updateElements.mock.calls.at(-1)![0];
+        expect(written[0].metadata).toMatchObject({
+          role: 'note',
+          icon: 'sticky_note_2',
+        });
+        expect(
+          mockSyncProvider.updateCustomRelationshipTypes
+        ).not.toHaveBeenCalled();
+      });
+
+      it('preserves unrelated metadata when converting', () => {
+        mockSyncProvider._elementsSubject.next([
+          { ...doc, metadata: { synopsis: 'Mira arrives.' } },
+        ]);
+        service.setDocumentRole('doc-1', 'note');
+        const written = mockSyncProvider.updateElements.mock.calls.at(-1)![0];
+        expect(written[0].metadata['synopsis']).toBe('Mira arrives.');
+      });
+    });
+
     it('should add child element and auto-expand parent', () => {
       // Add parent first
       service.addElement(ElementType.Folder, 'Parent');
