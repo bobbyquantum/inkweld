@@ -106,7 +106,10 @@
           class="grid-tooltip"
           role="tooltip"
           data-testid="activity-tooltip"
-          [style.left.px]="h.x"
+          [class.below]="h.below"
+          [style.--tip-x]="h.x + 'px'"
+          [style.--tip-min]="h.minX + 'px'"
+          [style.--tip-max]="h.maxX + 'px'"
           [style.top.px]="h.y">
           @if (h.cell.words > 0) {
             <strong>{{
