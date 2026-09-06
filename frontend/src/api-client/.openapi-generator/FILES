@@ -192,6 +192,8 @@ model/pending-invitation.ts
 model/profile-activity-day.ts
 model/profile-activity-year.ts
 model/profile-appearance.ts
+model/profile-background-plain.ts
+model/profile-background-preset.ts
 model/profile-background.ts
 model/profile-project.ts
 model/profile-visibility-settings.ts

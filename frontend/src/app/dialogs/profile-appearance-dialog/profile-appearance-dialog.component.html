@@ -28,10 +28,11 @@
           (loadImageFailed)="onLoadImageFailed()">
         </image-cropper>
       </div>
-    } @else if (bannerPreviewUrl(); as url) {
-      <img
+    } @else if (hasBanner()) {
+      <app-profile-banner
         class="banner-preview"
-        [src]="url"
+        [username]="data.username"
+        [version]="bannerVersion()"
         [alt]="'settings.profilePage.appearance.bannerAlt' | transloco"
         data-testid="profile-banner-preview" />
     } @else {

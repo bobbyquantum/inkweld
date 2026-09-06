@@ -22,7 +22,8 @@ import { ProfileBannerComponent } from '@components/profile-banner/profile-banne
 import { UserAvatarComponent } from '@components/user-avatar/user-avatar.component';
 import { WritingStatsWidgetComponent } from '@components/writing-stats-widget/writing-stats-widget.component';
 import type { ProfileActivityYear } from '@inkweld/model/profile-activity-year';
-import { ProfileBackgroundKind } from '@inkweld/model/profile-background';
+import { ProfileBackgroundPlainKind } from '@inkweld/model/profile-background-plain';
+import { ProfileBackgroundPresetKind } from '@inkweld/model/profile-background-preset';
 import type { UserProfile } from '@inkweld/model/user-profile';
 import { TranslocoModule } from '@jsverse/transloco';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
@@ -112,10 +113,7 @@ export class UserProfileComponent implements OnInit, OnDestroy {
    */
   readonly backdrop = computed(() => {
     const background = this.profile()?.appearance?.background;
-    if (
-      background?.kind !== ProfileBackgroundKind.Preset ||
-      !background.presetId
-    ) {
+    if (background?.kind !== ProfileBackgroundPresetKind.Preset) {
       return null;
     }
     const preset = findBackgroundPreset(background.presetId);
@@ -227,7 +225,7 @@ export class UserProfileComponent implements OnInit, OnDestroy {
           isOwner: true,
           // Personalisation needs a server; offline profiles stay plain.
           appearance: {
-            background: { kind: ProfileBackgroundKind.Plain },
+            background: { kind: ProfileBackgroundPlainKind.Plain },
             hasBanner: false,
           },
           sections: { activity: false, projects: true },

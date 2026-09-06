@@ -2,8 +2,10 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  type ElementRef,
   inject,
   signal,
+  viewChild,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import {
@@ -14,12 +16,14 @@ import {
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { ProfileBannerComponent } from '@components/profile-banner/profile-banner.component';
 import type { ProfileAppearance } from '@inkweld/model/profile-appearance';
+import type { ProfileBackground } from '@inkweld/model/profile-background';
+import { ProfileBackgroundPlainKind } from '@inkweld/model/profile-background-plain';
 import {
-  type ProfileBackground,
-  ProfileBackgroundKind,
-  type ProfileBackgroundPresetId,
-} from '@inkweld/model/profile-background';
+  ProfileBackgroundPresetKind,
+  type ProfileBackgroundPresetPresetId,
+} from '@inkweld/model/profile-background-preset';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { UserProfileService } from '@services/user/user-profile.service';
 import {
@@ -59,6 +63,7 @@ export const BANNER_ASPECT_RATIO = 3;
     MatProgressSpinnerModule,
     TranslocoModule,
     ImageCropperComponent,
+    ProfileBannerComponent,
   ],
   templateUrl: './profile-appearance-dialog.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -86,7 +91,7 @@ export class ProfileAppearanceDialogComponent {
     this.data.appearance.background
   );
   readonly hasBanner = signal(this.data.appearance.hasBanner);
-  /** Bumped after each upload so the preview `<img>` re-fetches. */
+  /** Bumped after each upload so the preview re-fetches. */
   readonly bannerVersion = signal(0);
   readonly isBusy = signal(false);
 
@@ -94,32 +99,40 @@ export class ProfileAppearanceDialogComponent {
   readonly croppedBlob = signal<Blob | null>(null);
   readonly fileName = signal('');
 
+  private readonly fileInput =
+    viewChild<ElementRef<HTMLInputElement>>('fileInput');
+
   /** Whether anything was saved, for the close result. */
   private changed = false;
 
+  constructor() {
+    // Changes are saved as they are made, so dismissing with Escape or a
+    // backdrop click must still report them — otherwise the page behind would
+    // not reload. Route both through close() instead of letting Material
+    // close with an undefined result.
+    this.dialogRef.disableClose = true;
+    this.dialogRef.backdropClick().subscribe(() => this.close());
+    this.dialogRef.keydownEvents().subscribe(event => {
+      if (event.key === 'Escape') this.close();
+    });
+  }
+
   /** Which tile is selected: `plain` or a preset id. */
-  readonly selection = computed(() => {
+  readonly selection = computed((): string => {
     const background = this.background();
-    return background.kind === ProfileBackgroundKind.Preset &&
-      background.presetId
+    return background.kind === ProfileBackgroundPresetKind.Preset
       ? background.presetId
-      : ProfileBackgroundKind.Plain;
+      : ProfileBackgroundPlainKind.Plain;
   });
 
-  readonly bannerPreviewUrl = computed(() =>
-    this.hasBanner()
-      ? this.profileService.bannerUrl(this.data.username, this.bannerVersion())
-      : null
-  );
-
   async selectPlain(): Promise<void> {
-    await this.saveBackground({ kind: ProfileBackgroundKind.Plain });
+    await this.saveBackground({ kind: ProfileBackgroundPlainKind.Plain });
   }
 
   async selectPreset(presetId: string): Promise<void> {
     await this.saveBackground({
-      kind: ProfileBackgroundKind.Preset,
-      presetId: presetId as ProfileBackgroundPresetId,
+      kind: ProfileBackgroundPresetKind.Preset,
+      presetId: presetId as ProfileBackgroundPresetPresetId,
     });
   }
 
@@ -203,6 +216,10 @@ export class ProfileAppearanceDialogComponent {
     this.imageChangedEvent.set(null);
     this.croppedBlob.set(null);
     this.fileName.set('');
+    // Clear the input too, or picking the same file again fires no change
+    // event and appears to do nothing.
+    const input = this.fileInput()?.nativeElement;
+    if (input) input.value = '';
   }
 
   private async saveBackground(background: ProfileBackground): Promise<void> {

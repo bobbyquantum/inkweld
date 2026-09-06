@@ -4,10 +4,11 @@ import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
 import type { ProfileActivityYear } from '@inkweld/model/profile-activity-year';
+import { ProfileBackgroundPlainKind } from '@inkweld/model/profile-background-plain';
 import {
-  ProfileBackgroundKind,
-  ProfileBackgroundPresetId,
-} from '@inkweld/model/profile-background';
+  ProfileBackgroundPresetKind,
+  ProfileBackgroundPresetPresetId,
+} from '@inkweld/model/profile-background-preset';
 import { ProfileVisibility } from '@inkweld/model/profile-visibility';
 import type { UserProfile } from '@inkweld/model/user-profile';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
@@ -30,7 +31,7 @@ const makeProfile = (overrides: Partial<UserProfile> = {}): UserProfile => ({
   hasAvatar: false,
   isOwner: false,
   appearance: {
-    background: { kind: ProfileBackgroundKind.Plain },
+    background: { kind: ProfileBackgroundPlainKind.Plain },
     hasBanner: false,
   },
   sections: { activity: true, projects: true },
@@ -337,8 +338,8 @@ describe('UserProfileComponent', () => {
         makeProfile({
           appearance: {
             background: {
-              kind: ProfileBackgroundKind.Preset,
-              presetId: ProfileBackgroundPresetId.Dusk,
+              kind: ProfileBackgroundPresetKind.Preset,
+              presetId: ProfileBackgroundPresetPresetId.Dusk,
             },
             hasBanner: true,
           },
@@ -366,8 +367,8 @@ describe('UserProfileComponent', () => {
         makeProfile({
           appearance: {
             background: {
-              kind: ProfileBackgroundKind.Preset,
-              presetId: 'retired' as ProfileBackgroundPresetId,
+              kind: ProfileBackgroundPresetKind.Preset,
+              presetId: 'retired' as ProfileBackgroundPresetPresetId,
             },
             hasBanner: false,
           },
@@ -396,7 +397,7 @@ describe('UserProfileComponent', () => {
     expect(dialogGateway.openProfileAppearanceDialog).toHaveBeenCalledWith({
       username: 'alice',
       appearance: {
-        background: { kind: ProfileBackgroundKind.Plain },
+        background: { kind: ProfileBackgroundPlainKind.Plain },
         hasBanner: false,
       },
     });

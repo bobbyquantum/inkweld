@@ -60,6 +60,8 @@ export class ProfileBannerComponent {
   private objectUrl: string | null = null;
   /** Guards against a slow response for an earlier input overwriting a newer one. */
   private requestId = 0;
+  /** A response landing after destroy must not create an object URL nobody will revoke. */
+  private destroyed = false;
 
   constructor() {
     effect(() => {
@@ -67,7 +69,10 @@ export class ProfileBannerComponent {
       const version = this.version();
       void this.load(username, version);
     });
-    this.destroyRef.onDestroy(() => this.release());
+    this.destroyRef.onDestroy(() => {
+      this.destroyed = true;
+      this.release();
+    });
   }
 
   private async load(username: string, version: number): Promise<void> {
@@ -76,12 +81,12 @@ export class ProfileBannerComponent {
       const blob = await firstValueFrom(
         this.profileService.getBanner(username, version)
       );
-      if (requestId !== this.requestId) return;
+      if (this.destroyed || requestId !== this.requestId) return;
       this.release();
       this.objectUrl = URL.createObjectURL(blob);
       this.src.set(this.sanitizer.bypassSecurityTrustUrl(this.objectUrl)); // NOSONAR — object URL created from our own API response
     } catch (err) {
-      if (requestId !== this.requestId) return;
+      if (this.destroyed || requestId !== this.requestId) return;
       this.logger.warn('ProfileBanner', 'Failed to load banner', err);
       this.release();
     }
