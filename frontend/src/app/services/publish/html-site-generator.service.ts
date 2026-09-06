@@ -274,6 +274,9 @@ export class HtmlSiteGeneratorService {
         mimeType: 'application/zip',
         compression: 'DEFLATE',
       });
+      // Packaging is the longest await; honour a cancel that landed during it
+      // rather than handing back a finished archive.
+      this.throwIfCancelled();
 
       result.success = true;
       result.file = blob;
