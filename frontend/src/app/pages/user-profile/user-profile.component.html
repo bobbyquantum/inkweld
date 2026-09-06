@@ -159,7 +159,7 @@
 
             <!-- Owner-only: 30-day totals and recent events across projects.
                  The widget hides itself in local mode and on error. -->
-            @if (isOwner()) {
+            @if (isOwner() && !isLocalMode()) {
               <app-writing-stats-widget />
             }
 

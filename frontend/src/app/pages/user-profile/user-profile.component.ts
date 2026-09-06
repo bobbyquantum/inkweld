@@ -89,6 +89,10 @@ export class UserProfileComponent implements OnInit, OnDestroy {
   readonly activityError = signal(false);
 
   readonly isOwner = computed(() => this.profile()?.isOwner ?? false);
+  /** Offline mode has no server-side stats, so the widget has nothing to show. */
+  readonly isLocalMode = computed(
+    () => this.setupService.getMode() === 'local'
+  );
   readonly isAnonymous = computed(() => !this.userService.isAuthenticated());
   readonly projects = computed(() => this.profile()?.projects ?? []);
 
