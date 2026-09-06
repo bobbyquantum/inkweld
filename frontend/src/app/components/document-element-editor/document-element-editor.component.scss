@@ -33,24 +33,6 @@
   }
 }
 
-.editor-toolbar {
-  flex-shrink: 0;
-  z-index: 100;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  background-color: var(--sys-surface-container-lowest);
-  transition: opacity 0.3s ease;
-
-  .zen-mode & {
-    opacity: 0;
-    visibility: hidden;
-    height: 0;
-    overflow: hidden;
-  }
-}
-
 // Floating menu z-index fix - must be above toolbar
 // Also reduce the extra margin when menu appears below the selection
 ::ng-deep ngx-editor-floating-menu {
@@ -392,12 +374,8 @@
 // visible area above the keyboard, keeping the status bar visible.
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Hide editor toolbar on mobile and use dynamic viewport height
+// Use dynamic viewport height on mobile
 @media (max-width: 759px) {
-  .editor-toolbar {
-    display: none !important;
-  }
-
   // Use visual viewport height so editor fits above keyboard
   // The -48px accounts for the tab bar when present
   .editor-section {
