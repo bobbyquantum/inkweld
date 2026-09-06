@@ -349,7 +349,8 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   gap: 24px;
-  padding: 8px;
+  // Extra headroom so the hover lift and shadow never touch the container edge
+  padding: 20px 12px 28px;
   max-width: 1600px;
   margin: 0 auto;
 
@@ -369,32 +370,38 @@
 .cover-item {
   appearance: none;
   background: transparent;
-  border: 2px solid transparent;
+  border: none;
   padding: 0;
   font: inherit;
   text-align: left;
   aspect-ratio: 1 / 1.6;
   cursor: pointer;
-  border-radius: 8px;
-  overflow: hidden;
+  // Match the mat-card radius so the hover shadow and focus ring hug the card
+  border-radius: 12px;
   transition:
     transform 0.2s ease,
     box-shadow 0.2s ease;
 
+  // The lift lives here (the interactive element) only — the inner mat-card
+  // must not add its own transform, otherwise the two stack.
   &:hover {
-    transform: translateY(-4px) scale(1.02);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    transform: translateY(-6px) scale(1.02);
+    box-shadow: 0 14px 28px rgba(0, 0, 0, 0.35);
   }
 
   &:focus {
     outline: none;
-    border-color: #3f51b5;
-    box-shadow: 0 0 0 3px rgba(63, 81, 181, 0.3);
   }
 
+  &:focus-visible,
   &.selected {
-    border-color: #3f51b5;
-    box-shadow: 0 0 0 3px rgba(63, 81, 181, 0.3);
+    box-shadow: 0 0 0 3px var(--sys-primary, #3f51b5);
+
+    &:hover {
+      box-shadow:
+        0 0 0 3px var(--sys-primary, #3f51b5),
+        0 14px 28px rgba(0, 0, 0, 0.35);
+    }
   }
 
   app-project-card {
@@ -501,7 +508,7 @@
 @media (max-width: 768px) {
   .covers-grid {
     gap: 16px;
-    padding: 4px;
+    padding: 16px 8px 24px;
   }
 
   .main-content {

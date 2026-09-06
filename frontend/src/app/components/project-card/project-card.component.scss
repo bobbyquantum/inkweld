@@ -11,17 +11,13 @@ mat-card {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  border-radius: 12px;
   transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease,
     filter 0.3s ease,
     opacity 0.3s ease;
   position: relative;
-
-  &:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
-  }
+  // Hover lift/shadow is owned by the parent .cover-item button in the home
+  // grid; adding one here too would stack two transforms.
 
   &.deactivated {
     filter: grayscale(100%);
