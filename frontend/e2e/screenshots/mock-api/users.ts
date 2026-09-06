@@ -185,6 +185,96 @@ export function setupUserHandlers(): void {
     }
   });
 
+  // GET /api/v1/users/:username/profile — public profile card.
+  // Registered before the bare `**/api/v1/users` list handler, which would
+  // otherwise swallow this URL (patterns are unanchored prefix matches).
+  mockApi.addHandler('**/api/v1/users/*/profile', async (route: Route) => {
+    const match = /\/api\/v1\/users\/([^/]+)\/profile/.exec(
+      route.request().url()
+    );
+    const username = match ? decodeURIComponent(match[1]) : '';
+    const user = mockUsers.findByUsername(username);
+    if (!user) {
+      await route.fulfill({
+        status: 404,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'User not found' }),
+      });
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        username: user.username,
+        name: user.name,
+        bio: 'Writes slow-burn fantasy and the occasional ghost story.',
+        hasAvatar: user.hasAvatar ?? false,
+        isOwner: true,
+        sections: { activity: true, projects: true },
+        visibility: {
+          profile: 'public',
+          activity: 'public',
+          projects: 'members',
+        },
+        projects: [
+          {
+            slug: 'wandering-stars',
+            title: 'Wandering Stars',
+            description: 'A slow-burn space opera in three acts.',
+            updatedDate: Date.now(),
+          },
+          {
+            slug: 'the-hollow',
+            title: 'The Hollow',
+            description: 'Ghost story set in a drowned valley.',
+            updatedDate: Date.now() - 86_400_000,
+          },
+        ],
+      }),
+    });
+  });
+
+  // GET /api/v1/users/:username/activity — one year of per-day word counts
+  // for the profile contribution grid.
+  mockApi.addHandler('**/api/v1/users/*/activity*', async (route: Route) => {
+    const url = new URL(route.request().url());
+    const year =
+      Number(url.searchParams.get('year')) || new Date().getUTCFullYear();
+    const days: { day: string; words: number; sessions: number }[] = [];
+    const cursor = new Date(Date.UTC(year, 0, 1));
+    let i = 0;
+    while (cursor.getUTCFullYear() === year) {
+      // Deterministic pseudo-random pattern with weekly rhythm and gaps.
+      const seed = (i * 7919 + year) % 97;
+      const weekday = cursor.getUTCDay();
+      const active = seed % 4 !== 0 && !(weekday === 0 && seed % 3 === 0);
+      const words = active ? 80 + ((seed * 37) % 900) : 0;
+      days.push({
+        day: cursor.toISOString().slice(0, 10),
+        words,
+        sessions: words > 0 ? 1 + (seed % 3) : 0,
+      });
+      cursor.setUTCDate(cursor.getUTCDate() + 1);
+      i++;
+    }
+    const totalWords = days.reduce((sum, d) => sum + d.words, 0);
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        year,
+        timeZone: url.searchParams.get('tz') ?? 'UTC',
+        days,
+        totalWords,
+        activeDays: days.filter(d => d.words > 0).length,
+        longestStreak: 11,
+        currentStreak: 4,
+        availableYears: [year, year - 1, year - 2],
+      }),
+    });
+  });
+
   // GET /api/v1/users - List all users (admin endpoint)
   mockApi.addHandler('**/api/v1/users', async (route: Route) => {
     const users = mockUsers.getUsers();

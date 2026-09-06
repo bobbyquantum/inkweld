@@ -7,6 +7,7 @@
  * https://openapi-generator.tech
  * Do not edit the class manually.
  */
+import { ProfileVisibility } from './profile-visibility';
 
 export interface UpdateProfileRequest {
   /**
@@ -17,4 +18,20 @@ export interface UpdateProfileRequest {
    * Email address
    */
   email?: string;
+  /**
+   * Short profile blurb (max 500 chars)
+   */
+  bio?: string;
+  /**
+   * Who can see the profile page at all
+   */
+  profileVisibility?: ProfileVisibility;
+  /**
+   * Who can see the writing activity grid (never wider than profileVisibility)
+   */
+  activityVisibility?: ProfileVisibility;
+  /**
+   * Who can see the project list (never wider than profileVisibility)
+   */
+  projectsVisibility?: ProfileVisibility;
 }

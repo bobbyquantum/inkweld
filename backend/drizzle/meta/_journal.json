@@ -211,6 +211,13 @@
       "when": 1786877759348,
       "tag": "0030_add-user-appearance-preferences",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "6",
+      "when": 1788134400000,
+      "tag": "0031_add-profile-visibility",
+      "breakpoints": true
     }
   ]
 }

@@ -95,6 +95,21 @@
             ],
             "description": "How the user authenticates",
             "example": "local"
+          },
+          "bio": {
+            "type": "string",
+            "nullable": true,
+            "description": "Short profile blurb",
+            "example": "Writes slow-burn fantasy."
+          },
+          "profileVisibility": {
+            "$ref": "#/components/schemas/ProfileVisibility"
+          },
+          "activityVisibility": {
+            "$ref": "#/components/schemas/ProfileVisibility"
+          },
+          "projectsVisibility": {
+            "$ref": "#/components/schemas/ProfileVisibility"
           }
         },
         "required": [
@@ -113,6 +128,16 @@
           "hasAvatar": false,
           "authProvider": "local"
         }
+      },
+      "ProfileVisibility": {
+        "type": "string",
+        "enum": [
+          "public",
+          "members",
+          "private"
+        ],
+        "description": "public: anyone including anonymous visitors; members: any signed-in user; private: only the owner",
+        "example": "members"
       },
       "ErrorResponse": {
         "type": "object",
@@ -249,6 +274,42 @@
             "format": "email",
             "description": "Email address",
             "example": "john@example.com"
+          },
+          "bio": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Short profile blurb (max 500 chars)",
+            "example": "Writes slow-burn fantasy."
+          },
+          "profileVisibility": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ProfileVisibility"
+              },
+              {
+                "description": "Who can see the profile page at all"
+              }
+            ]
+          },
+          "activityVisibility": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ProfileVisibility"
+              },
+              {
+                "description": "Who can see the writing activity grid (never wider than profileVisibility)"
+              }
+            ]
+          },
+          "projectsVisibility": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ProfileVisibility"
+              },
+              {
+                "description": "Who can see the project list (never wider than profileVisibility)"
+              }
+            ]
           }
         }
       },
@@ -310,6 +371,170 @@
         },
         "required": [
           "message"
+        ]
+      },
+      "UserProfile": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "bio": {
+            "type": "string",
+            "nullable": true
+          },
+          "hasAvatar": {
+            "type": "boolean"
+          },
+          "isOwner": {
+            "type": "boolean"
+          },
+          "sections": {
+            "type": "object",
+            "properties": {
+              "activity": {
+                "type": "boolean"
+              },
+              "projects": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "activity",
+              "projects"
+            ]
+          },
+          "visibility": {
+            "$ref": "#/components/schemas/ProfileVisibilitySettings"
+          },
+          "projects": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProfileProject"
+            }
+          }
+        },
+        "required": [
+          "username",
+          "name",
+          "bio",
+          "hasAvatar",
+          "isOwner",
+          "sections"
+        ]
+      },
+      "ProfileVisibilitySettings": {
+        "type": "object",
+        "properties": {
+          "profile": {
+            "$ref": "#/components/schemas/ProfileVisibility"
+          },
+          "activity": {
+            "$ref": "#/components/schemas/ProfileVisibility"
+          },
+          "projects": {
+            "$ref": "#/components/schemas/ProfileVisibility"
+          }
+        },
+        "required": [
+          "profile",
+          "activity",
+          "projects"
+        ]
+      },
+      "ProfileProject": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "updatedDate": {
+            "type": "number",
+            "description": "Unix ms"
+          }
+        },
+        "required": [
+          "slug",
+          "title",
+          "description",
+          "updatedDate"
+        ]
+      },
+      "ProfileActivityYear": {
+        "type": "object",
+        "properties": {
+          "year": {
+            "type": "integer"
+          },
+          "timeZone": {
+            "type": "string"
+          },
+          "days": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProfileActivityDay"
+            }
+          },
+          "totalWords": {
+            "type": "integer"
+          },
+          "activeDays": {
+            "type": "integer"
+          },
+          "longestStreak": {
+            "type": "integer"
+          },
+          "currentStreak": {
+            "type": "integer"
+          },
+          "availableYears": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          }
+        },
+        "required": [
+          "year",
+          "timeZone",
+          "days",
+          "totalWords",
+          "activeDays",
+          "longestStreak",
+          "currentStreak",
+          "availableYears"
+        ]
+      },
+      "ProfileActivityDay": {
+        "type": "object",
+        "properties": {
+          "day": {
+            "type": "string",
+            "description": "YYYY-MM-DD",
+            "example": "2026-03-14"
+          },
+          "words": {
+            "type": "integer"
+          },
+          "sessions": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "day",
+          "words",
+          "sessions"
         ]
       },
       "AdminUserProjects": {
@@ -5357,6 +5582,136 @@
           },
           "404": {
             "description": "User or avatar not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/users/{username}/profile": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "operationId": "getUserProfile",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "description": "Username",
+              "example": "johndoe"
+            },
+            "required": true,
+            "description": "Username",
+            "name": "username",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Profile as visible to the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfile"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Profile is not visible to the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/users/{username}/activity": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "operationId": "getUserActivity",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "description": "Username",
+              "example": "johndoe"
+            },
+            "required": true,
+            "description": "Username",
+            "name": "username",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{4}$",
+              "description": "Calendar year; defaults to the current year",
+              "example": "2026"
+            },
+            "required": false,
+            "description": "Calendar year; defaults to the current year",
+            "name": "year",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 64,
+              "description": "IANA timezone used to bucket days; defaults to UTC",
+              "example": "Europe/London"
+            },
+            "required": false,
+            "description": "IANA timezone used to bucket days; defaults to UTC",
+            "name": "tz",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Per-day writing activity for one year",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileActivityYear"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Activity is not visible to the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found",
             "content": {
               "application/json": {
                 "schema": {

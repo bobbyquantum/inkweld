@@ -6,6 +6,8 @@ export * from './ai-text-generation.service';
 import { AITextGenerationService } from './ai-text-generation.service';
 export * from './admin.service';
 import { AdminService } from './admin.service';
+export * from './admin-appearance.service';
+import { AdminAppearanceService } from './admin-appearance.service';
 export * from './admin-config.service';
 import { AdminConfigService } from './admin-config.service';
 export * from './admin-image-audits.service';
@@ -14,6 +16,8 @@ export * from './admin-image-profiles.service';
 import { AdminImageProfilesService } from './admin-image-profiles.service';
 export * from './announcements.service';
 import { AnnouncementsService } from './announcements.service';
+export * from './appearance.service';
+import { AppearanceService } from './appearance.service';
 export * from './authentication.service';
 import { AuthenticationService } from './authentication.service';
 export * from './auto-review.service';
@@ -61,10 +65,12 @@ export const APIS = [
   AIProvidersService,
   AITextGenerationService,
   AdminService,
+  AdminAppearanceService,
   AdminConfigService,
   AdminImageAuditsService,
   AdminImageProfilesService,
   AnnouncementsService,
+  AppearanceService,
   AuthenticationService,
   AutoReviewService,
   CollaborationService,

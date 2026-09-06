@@ -14,103 +14,184 @@
     <!-- For symmetry -->
   </mat-toolbar>
 
-  <!-- Loading State -->
-  @if (isLoading()) {
-    <div class="loading-state">
-      <mat-spinner diameter="40"></mat-spinner>
-      <p>{{ 'loading' | transloco }}</p>
-    </div>
-  }
-
-  <!-- Error State -->
-  @if (!isLoading() && loadError()) {
-    <div class="error-state">
-      <mat-icon class="error-icon">error_outline</mat-icon>
-      <h2>{{ 'errors.loadFailed' | transloco }}</h2>
-      <p>{{ 'errors.networkError' | transloco }}</p>
-      <button mat-raised-button color="primary" (click)="navigateHome()">
-        <mat-icon>home</mat-icon>
-        {{ 'back' | transloco }}
-      </button>
-    </div>
-  }
-
-  <!-- User Profile Content -->
-  @if (!isLoading() && !loadError() && profileUser(); as user) {
-    <div class="user-profile-container">
-      <div class="user-profile-header">
-        @if (isOwner()) {
-          <button
-            type="button"
-            class="user-avatar-container editable"
-            [attr.aria-label]="
-              'settings.editAvatarFor' | transloco: { username: user.username }
-            "
-            (click)="openEditAvatarDialog()">
-            <app-user-avatar
-              [username]="user.username"
-              [hasAvatar]="user.hasAvatar"
-              size="large">
-            </app-user-avatar>
-            <mat-icon class="edit-avatar-icon">edit</mat-icon>
-          </button>
-        } @else {
-          <div class="user-avatar-container">
-            <app-user-avatar
-              [username]="user.username"
-              [hasAvatar]="user.hasAvatar"
-              size="large">
-            </app-user-avatar>
-          </div>
+  @switch (loadState()) {
+    @case ('loading') {
+      <div class="loading-state" data-testid="profile-loading">
+        <mat-spinner diameter="40"></mat-spinner>
+        <p>{{ 'loading' | transloco }}</p>
+      </div>
+    }
+    @case ('private') {
+      <div class="error-state info-state" data-testid="profile-private">
+        <mat-icon class="state-icon">lock</mat-icon>
+        <h2>{{ 'settings.profilePage.privateTitle' | transloco }}</h2>
+        <p>{{ 'settings.profilePage.privateDescription' | transloco }}</p>
+        @if (isAnonymous()) {
+          <p class="hint">
+            {{ 'settings.profilePage.membersOnlyHint' | transloco }}
+          </p>
         }
-        <div class="user-info-container">
-          <h1 class="user-display-name">{{ user.name }}</h1>
-          <h2 class="user-username">{{ '@' + user.username }}</h2>
-          <div class="user-stats">
-            <div class="stat-item">
-              <mat-icon>book</mat-icon>
-              <span
-                >{{ projectService.projects().length }}
-                {{ 'elements' | transloco }}</span
-              >
+        <button mat-raised-button color="primary" (click)="navigateHome()">
+          <mat-icon>home</mat-icon>
+          {{ 'back' | transloco }}
+        </button>
+      </div>
+    }
+    @case ('not-found') {
+      <div class="error-state info-state" data-testid="profile-not-found">
+        <mat-icon class="state-icon">person_off</mat-icon>
+        <h2>{{ 'settings.profilePage.notFoundTitle' | transloco }}</h2>
+        <p>{{ 'settings.profilePage.notFoundDescription' | transloco }}</p>
+        <button mat-raised-button color="primary" (click)="navigateHome()">
+          <mat-icon>home</mat-icon>
+          {{ 'back' | transloco }}
+        </button>
+      </div>
+    }
+    @case ('error') {
+      <div class="error-state" data-testid="profile-error">
+        <mat-icon class="error-icon">error_outline</mat-icon>
+        <h2>{{ 'errors.loadFailed' | transloco }}</h2>
+        <p>{{ 'errors.networkError' | transloco }}</p>
+        <button mat-raised-button color="primary" (click)="navigateHome()">
+          <mat-icon>home</mat-icon>
+          {{ 'back' | transloco }}
+        </button>
+      </div>
+    }
+    @case ('ready') {
+      @if (profile(); as user) {
+        <div class="user-profile-container" data-testid="profile-content">
+          <div class="user-profile-header">
+            @if (isOwner()) {
+              <button
+                type="button"
+                class="user-avatar-container editable"
+                [attr.aria-label]="
+                  'settings.editAvatarFor'
+                    | transloco: { username: user.username }
+                "
+                (click)="openEditAvatarDialog()">
+                <app-user-avatar
+                  [username]="user.username"
+                  [hasAvatar]="user.hasAvatar"
+                  size="large">
+                </app-user-avatar>
+                <mat-icon class="edit-avatar-icon">edit</mat-icon>
+              </button>
+            } @else {
+              <div class="user-avatar-container">
+                <app-user-avatar
+                  [username]="user.username"
+                  [hasAvatar]="user.hasAvatar"
+                  size="large">
+                </app-user-avatar>
+              </div>
+            }
+            <div class="user-info-container">
+              <h1 class="user-display-name" data-testid="profile-name">
+                {{ user.name || user.username }}
+              </h1>
+              <h2 class="user-username">{{ '@' + user.username }}</h2>
+              @if (user.bio) {
+                <p class="user-bio" data-testid="profile-bio">{{ user.bio }}</p>
+              }
+              <div class="user-stats">
+                @if (user.sections.projects) {
+                  <div class="stat-item">
+                    <mat-icon>book</mat-icon>
+                    <span>{{
+                      'settings.profilePage.projectCount'
+                        | transloco: { count: projects().length }
+                    }}</span>
+                  </div>
+                }
+                @if (isOwner() && user.visibility; as visibility) {
+                  <div
+                    class="stat-item visibility-badge"
+                    data-testid="profile-visibility-badge"
+                    [matTooltip]="
+                      'settings.profilePage.visibilityBadgeHint' | transloco
+                    ">
+                    <mat-icon>{{
+                      visibility.profile === 'public'
+                        ? 'public'
+                        : visibility.profile === 'members'
+                          ? 'group'
+                          : 'lock'
+                    }}</mat-icon>
+                    <span>{{
+                      'settings.profilePage.visibilityBadge.' +
+                        visibility.profile | transloco
+                    }}</span>
+                  </div>
+                }
+              </div>
             </div>
+            @if (isOwner()) {
+              <div class="header-actions">
+                <button
+                  mat-stroked-button
+                  data-testid="profile-edit-button"
+                  (click)="openEditProfile()">
+                  <mat-icon>edit</mat-icon>
+                  {{ 'settings.profilePage.editProfile' | transloco }}
+                </button>
+              </div>
+            }
+          </div>
+
+          <div class="user-content">
+            @if (user.sections.activity) {
+              <section class="content-section" data-testid="profile-activity">
+                @if (activityError()) {
+                  <p class="section-error">
+                    {{ 'settings.profilePage.activityLoadFailed' | transloco }}
+                  </p>
+                } @else {
+                  <app-activity-grid
+                    [data]="activity()"
+                    [loading]="activityLoading()"
+                    (yearChange)="onYearChange($event)" />
+                }
+              </section>
+            }
+
+            <!-- Owner-only: 30-day totals and recent events across projects.
+                 The widget hides itself in local mode and on error. -->
+            @if (isOwner()) {
+              <app-writing-stats-widget />
+            }
+
+            @if (user.sections.projects) {
+              <section class="content-section" data-testid="profile-projects">
+                <h3 class="section-title">
+                  {{ 'settings.profilePage.projectsTitle' | transloco }}
+                </h3>
+                @if (projects().length === 0) {
+                  <div class="empty-projects">
+                    <mat-icon>auto_stories</mat-icon>
+                    <h4>{{ 'settings.profilePage.noProjects' | transloco }}</h4>
+                  </div>
+                } @else {
+                  <div class="projects-grid">
+                    @for (project of projects(); track project.slug) {
+                      <a
+                        class="project-card"
+                        [routerLink]="projectLink(project.slug)">
+                        <h4 class="project-title">{{ project.title }}</h4>
+                        <p class="project-description">
+                          {{ project.description || ('none' | transloco) }}
+                        </p>
+                      </a>
+                    }
+                  </div>
+                }
+              </section>
+            }
           </div>
         </div>
-      </div>
-      <mat-divider></mat-divider>
-      @if (isOwner()) {
-        <app-writing-stats-widget />
       }
-      <div class="user-content">
-        <div class="content-section">
-          <h3 class="section-title">
-            {{ 'project.homeTab.publishProject' | transloco }}
-          </h3>
-          <!-- No Projects State -->
-          @if (projectService.projects().length === 0) {
-            <div class="empty-projects">
-              <mat-icon>add_circle_outline</mat-icon>
-              <h4>{{ 'project.homeTab.noPinned' | transloco }}</h4>
-              <p>{{ 'project.activity.noActivityHint' | transloco }}</p>
-            </div>
-          }
-          <!-- Projects Grid -->
-          @if (projectService.projects().length > 0) {
-            <div class="projects-grid">
-              @for (project of projectService.projects(); track project.id) {
-                <div
-                  class="project-card"
-                  [routerLink]="['/', project.username, project.slug]">
-                  <h4 class="project-title">{{ project.title }}</h4>
-                  <p class="project-description">
-                    {{ project.description || ('none' | transloco) }}
-                  </p>
-                </div>
-              }
-            </div>
-          }
-        </div>
-      </div>
-    </div>
+    }
   }
 </div>

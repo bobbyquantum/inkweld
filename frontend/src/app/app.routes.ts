@@ -415,7 +415,8 @@ export const routes: Routes = [
     ],
   },
   // Old routes for files and documents have been replaced by tab components
-  // User profile route
+  // User profile route. Deliberately unguarded: public profiles must be
+  // reachable by anonymous visitors, and the server enforces visibility.
   {
     path: ':username',
     loadComponent: () =>
@@ -423,7 +424,6 @@ export const routes: Routes = [
         m => m.UserProfileComponent
       ),
     title: 'User Profile',
-    canActivate: [authGuard],
   },
   {
     matcher: url => {

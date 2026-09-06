@@ -3,6 +3,7 @@
  * These schemas are registered as reusable components in the OpenAPI spec
  */
 import { z } from '@hono/zod-openapi';
+import { PROFILE_VISIBILITY_LEVELS } from '../db/schema/users';
 
 /**
  * Path parameters for project routes
@@ -82,6 +83,18 @@ export const MessageResponseSchema = z
   .openapi('MessageResponse', { example: { message: 'Operation successful' } });
 
 /**
+ * Who may see a profile or one of its sections.
+ * @component ProfileVisibility
+ */
+export const ProfileVisibilitySchema = z
+  .enum(PROFILE_VISIBILITY_LEVELS)
+  .openapi('ProfileVisibility', {
+    description:
+      'public: anyone including anonymous visitors; members: any signed-in user; private: only the owner',
+    example: 'members',
+  });
+
+/**
  * User information (without sensitive data)
  * @component User
  */
@@ -99,6 +112,14 @@ export const UserSchema = z
       .enum(['local', 'github', 'local+github'])
       .optional()
       .openapi({ description: 'How the user authenticates', example: 'local' }),
+    bio: z
+      .string()
+      .nullable()
+      .optional()
+      .openapi({ description: 'Short profile blurb', example: 'Writes slow-burn fantasy.' }),
+    profileVisibility: ProfileVisibilitySchema.optional(),
+    activityVisibility: ProfileVisibilitySchema.optional(),
+    projectsVisibility: ProfileVisibilitySchema.optional(),
   })
   .openapi('User', {
     example: {

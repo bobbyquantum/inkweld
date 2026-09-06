@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import { eq, like, or, asc, and } from 'drizzle-orm';
 import type { DatabaseInstance } from '../types/context';
-import { users, type User, type InsertUser } from '../db/schema';
+import { users, type User, type InsertUser, type ProfileVisibility } from '../db/schema';
 import { configService } from './config.service';
 
 const SALT_ROUNDS = 10;
@@ -239,14 +239,40 @@ class UserService {
   async updateProfile(
     db: DatabaseInstance,
     userId: string,
-    data: { name?: string; email?: string }
+    data: {
+      name?: string;
+      email?: string;
+      bio?: string;
+      profileVisibility?: ProfileVisibility;
+      activityVisibility?: ProfileVisibility;
+      projectsVisibility?: ProfileVisibility;
+    }
   ): Promise<User> {
-    const updates: Partial<{ name: string | null; email: string }> = {};
+    const updates: Partial<{
+      name: string | null;
+      email: string;
+      bio: string | null;
+      profileVisibility: ProfileVisibility;
+      activityVisibility: ProfileVisibility;
+      projectsVisibility: ProfileVisibility;
+    }> = {};
     if (data.name !== undefined) {
       updates.name = data.name || null;
     }
     if (data.email !== undefined) {
       updates.email = data.email;
+    }
+    if (data.bio !== undefined) {
+      updates.bio = data.bio.trim() || null;
+    }
+    if (data.profileVisibility !== undefined) {
+      updates.profileVisibility = data.profileVisibility;
+    }
+    if (data.activityVisibility !== undefined) {
+      updates.activityVisibility = data.activityVisibility;
+    }
+    if (data.projectsVisibility !== undefined) {
+      updates.projectsVisibility = data.projectsVisibility;
     }
 
     if (Object.keys(updates).length > 0) {

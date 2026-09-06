@@ -46,6 +46,7 @@ import { PublicOAuthSession } from '../model/public-o-auth-session';
 import { TokenResponse } from '../model/token-response';
 // @ts-ignore
 import { UpdateOAuthGrantRequest } from '../model/update-o-auth-grant-request';
+// @ts-ignore
 import { UpdateOAuthSessionSettingsRequest } from '../model/update-o-auth-session-settings-request';
 
 // @ts-ignore

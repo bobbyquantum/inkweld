@@ -1,0 +1,226 @@
+// Every colour goes through a custom property so a host that paints its own
+// surface (the profile page uses a dark translucent panel in both themes) can
+// override them from its own stylesheet by targeting the host element.
+// Defaults live on :host and follow the Material system tokens; a parent's
+// `app-activity-grid { --grid-text: … }` rule outranks them.
+:host {
+  display: block;
+  --grid-text: var(--sys-on-surface);
+  --grid-muted: var(--sys-on-surface-variant);
+  --grid-accent: var(--sys-primary);
+  --grid-on-accent: var(--sys-on-primary);
+  --grid-hover: color-mix(in srgb, var(--grid-text) 8%, transparent);
+  --grid-level-0: color-mix(in srgb, var(--grid-text) 10%, transparent);
+  --grid-level-1: color-mix(in srgb, var(--grid-accent) 30%, transparent);
+  --grid-level-2: color-mix(in srgb, var(--grid-accent) 55%, transparent);
+  --grid-level-3: color-mix(in srgb, var(--grid-accent) 80%, transparent);
+  --grid-level-4: var(--grid-accent);
+}
+
+.activity-grid {
+  color: var(--grid-text);
+}
+
+.grid-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-bottom: 12px;
+}
+
+.grid-summary {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.streaks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.8rem;
+  color: var(--grid-muted);
+
+  li {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+  }
+
+  strong {
+    color: var(--grid-text);
+    font-weight: 600;
+  }
+}
+
+.grid-body {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+
+  @media (max-width: 700px) {
+    flex-direction: column;
+  }
+}
+
+.grid-scroller {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 4px;
+  min-height: 40px;
+}
+
+.grid-svg {
+  display: block;
+  transition: opacity 0.15s;
+
+  &.dimmed {
+    opacity: 0.4;
+  }
+}
+
+.grid-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+}
+
+.grid-empty {
+  margin: 8px 0;
+  font-size: 0.85rem;
+  color: var(--grid-muted);
+}
+
+.month-label,
+.weekday-label {
+  font-size: 9px;
+  fill: var(--grid-muted);
+  user-select: none;
+}
+
+.cell,
+.legend-cell {
+  fill: var(--grid-level-0);
+  background: var(--grid-level-0);
+
+  &[data-level='1'] {
+    fill: var(--grid-level-1);
+    background: var(--grid-level-1);
+  }
+  &[data-level='2'] {
+    fill: var(--grid-level-2);
+    background: var(--grid-level-2);
+  }
+  &[data-level='3'] {
+    fill: var(--grid-level-3);
+    background: var(--grid-level-3);
+  }
+  &[data-level='4'] {
+    fill: var(--grid-level-4);
+    background: var(--grid-level-4);
+  }
+}
+
+.cell {
+  stroke: color-mix(in srgb, var(--grid-text) 6%, transparent);
+  stroke-width: 1;
+
+  &:hover {
+    stroke: var(--grid-text);
+  }
+}
+
+.grid-tooltip {
+  position: absolute;
+  transform: translate(-50%, calc(-100% - 8px));
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: var(--sys-inverse-surface);
+  color: var(--sys-inverse-on-surface);
+  font-size: 0.75rem;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 2;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+
+  .tooltip-sub {
+    opacity: 0.8;
+  }
+}
+
+.year-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
+
+  @media (max-width: 700px) {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+}
+
+.year-button {
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font: inherit;
+  font-size: 0.85rem;
+  text-align: left;
+  cursor: pointer;
+  background: transparent;
+  color: var(--grid-muted);
+
+  &:hover {
+    background: var(--grid-hover);
+  }
+
+  &.active {
+    background: var(--grid-accent);
+    color: var(--grid-on-accent);
+  }
+}
+
+.grid-legend {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  margin-top: 8px;
+  font-size: 0.75rem;
+  color: var(--grid-muted);
+
+  .legend-cell {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+  }
+
+  span:first-child {
+    margin-right: 4px;
+  }
+  span:last-child {
+    margin-left: 4px;
+  }
+}

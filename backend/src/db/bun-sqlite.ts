@@ -85,6 +85,21 @@ function applySchemaPatches(database: BunDatabase): void {
     dbLogger.info('Applying schema patch: adding preferences column to users');
     database.exec('ALTER TABLE users ADD COLUMN preferences TEXT');
   }
+
+  // Profile visibility columns (added in migration 0031). Same reasoning as
+  // above: the user row is selected on every authenticated request.
+  const profileColumns: Array<[name: string, ddl: string]> = [
+    ['bio', 'TEXT'],
+    ['profileVisibility', "TEXT DEFAULT 'private' NOT NULL"],
+    ['activityVisibility', "TEXT DEFAULT 'public' NOT NULL"],
+    ['projectsVisibility', "TEXT DEFAULT 'private' NOT NULL"],
+  ];
+  for (const [name, ddl] of profileColumns) {
+    if (!userCols.some((c) => c.name === name)) {
+      dbLogger.info(`Applying schema patch: adding ${name} column to users`);
+      database.exec(`ALTER TABLE users ADD COLUMN ${name} ${ddl}`);
+    }
+  }
 }
 
 async function runMigrations(database: BunDatabaseInstance): Promise<void> {

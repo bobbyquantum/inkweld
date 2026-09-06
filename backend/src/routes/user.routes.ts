@@ -5,7 +5,7 @@ import { userService } from '../services/user.service';
 import { fileStorageService } from '../services/file-storage.service';
 import { imageService } from '../services/image.service';
 import { UserSchema, PaginatedUsersResponseSchema } from '../schemas/user.schemas';
-import { errorResponse, errorResponses } from '../schemas/common.schemas';
+import { errorResponse, errorResponses, ProfileVisibilitySchema } from '../schemas/common.schemas';
 import { authService } from '../services/auth.service';
 
 const userRoutes = new OpenAPIHono<AppContext>();
@@ -110,6 +110,10 @@ userRoutes.openapi(getCurrentUserRoute, async (c) => {
       isAdmin: user.isAdmin,
       hasAvatar: user.hasAvatar,
       authProvider,
+      bio: user.bio ?? null,
+      profileVisibility: user.profileVisibility,
+      activityVisibility: user.activityVisibility,
+      projectsVisibility: user.projectsVisibility,
     },
     200
   );
@@ -129,6 +133,19 @@ const UpdateProfileRequestSchema = z
       .email()
       .optional()
       .openapi({ description: 'Email address', example: 'john@example.com' }),
+    bio: z.string().max(500).optional().openapi({
+      description: 'Short profile blurb (max 500 chars)',
+      example: 'Writes slow-burn fantasy.',
+    }),
+    profileVisibility: ProfileVisibilitySchema.optional().openapi({
+      description: 'Who can see the profile page at all',
+    }),
+    activityVisibility: ProfileVisibilitySchema.optional().openapi({
+      description: 'Who can see the writing activity grid (never wider than profileVisibility)',
+    }),
+    projectsVisibility: ProfileVisibilitySchema.optional().openapi({
+      description: 'Who can see the project list (never wider than profileVisibility)',
+    }),
   })
   .openapi('UpdateProfileRequest');
 
@@ -199,6 +216,10 @@ userRoutes.openapi(updateProfileRoute, async (c) => {
       approved: updated.approved,
       isAdmin: updated.isAdmin,
       hasAvatar: updated.hasAvatar,
+      bio: updated.bio ?? null,
+      profileVisibility: updated.profileVisibility,
+      activityVisibility: updated.activityVisibility,
+      projectsVisibility: updated.projectsVisibility,
     },
     200
   );

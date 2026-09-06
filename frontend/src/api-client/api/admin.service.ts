@@ -30,6 +30,7 @@ import { AdminListPendingUsers200ResponseInner } from '../model/admin-list-pendi
 import { AdminSetUserAdminRequest } from '../model/admin-set-user-admin-request';
 // @ts-ignore
 import { AdminUpdateAnnouncementRequest } from '../model/admin-update-announcement-request';
+// @ts-ignore
 import { AdminUserProjects } from '../model/admin-user-projects';
 // @ts-ignore
 import { ErrorResponse } from '../model/error-response';
@@ -1139,7 +1140,7 @@ export class AdminService extends BaseService {
   }
 
   /**
-   * List a user's projects with storage sizes
+   * List a user\&#39;s projects with storage sizes
    * List every project owned by a user with approximate storage sizes (admin only)
    * @endpoint get /api/v1/admin/users/{userId}/projects
    * @param userId User ID

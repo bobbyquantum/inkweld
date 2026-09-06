@@ -305,6 +305,10 @@ authRoutes.openapi(loginRoute, async (c) => {
         enabled: user.enabled,
         isAdmin: user.isAdmin,
         hasAvatar: user.hasAvatar,
+        bio: user.bio ?? null,
+        profileVisibility: user.profileVisibility,
+        activityVisibility: user.activityVisibility,
+        projectsVisibility: user.projectsVisibility,
       },
       token, // Return JWT token for client to store
     },

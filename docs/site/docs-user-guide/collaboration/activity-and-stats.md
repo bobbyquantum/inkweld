@@ -10,23 +10,36 @@ sidebar_position: 3
 Inkweld keeps a running log of meaningful actions inside each project, and aggregates your daily word counts so you can see how your writing has progressed over time.
 
 :::info Online-only feature
-Activity and writing statistics are recorded server-side and are only available when you are signed in to a hosted Inkweld instance. They are **not available in local-only mode** — the profile-page widget and the project Activity tab are hidden when no server is configured.
+Activity and writing statistics are recorded server-side and are only available when you are signed in to a hosted Inkweld instance. They are **not available in local-only mode** — the profile-page widget and activity grid and the project Activity tab are hidden when no server is configured.
 :::
 
 ## Writing Statistics Widget
 
-A summary card appears on your own user profile page (visit `/<your-username>`, e.g. by clicking your avatar). It shows, for the last 30 days:
+A summary card appears on your own profile page (visit `/<your-username>`, e.g. by clicking your avatar). It shows, for the last 30 days:
 
 - **Words** — net positive words written across every project you contribute to
 - **Active days** — the number of distinct days that recorded any writing
 - **Projects** — how many projects you actively contributed to in the window
-- **Recent activity** — the three most recent events from any of your projects, each linking to the relevant project
-
-A small sparkline previews your daily output across the window.
+- **Recent activity** — the most recent events from any of your projects, each linking to the relevant project
 
 ![Writing-stats widget](/img/generated/writing-stats-widget-light.png)
 
-If the statistics endpoint is unreachable the widget hides itself rather than showing a broken state, so the rest of the profile page remains usable. The widget is only shown on your own profile — visiting another user's profile does not display their personal statistics.
+If the statistics endpoint is unreachable the widget hides itself rather than showing a broken state, so the rest of the profile page remains usable. The widget is only shown on your own profile — other visitors see the [activity grid](#profile-activity-grid) instead, if you have made it visible.
+
+## Profile Activity Grid
+
+Your profile page also shows a year-at-a-glance grid of your writing, one square per day, shaded by how many words you wrote. It works like the contribution graph on code-hosting sites:
+
+- **Darker squares** mean more words. Shading is relative to your own year, so a light square on a prolific year may still be a good day.
+- **Hover a square** to see the exact word count and how many writing sessions it came from.
+- **Pick a year** from the list beside the grid to look back at earlier years. The list runs from the first year you wrote in Inkweld to the current one.
+- **Active days**, **day streak** (consecutive days ending today or yesterday) and **longest streak** are summarised above the grid.
+
+![Profile activity grid](/img/generated/profile-activity-grid-light.png)
+
+Days are counted in your browser's timezone, so a late-night session lands on the day you actually wrote it. Only words you personally wrote are counted, across every project you own or collaborate on — collaborators' words in your projects appear on *their* grid, not yours.
+
+Who can see the grid is up to you: see [Public profile](../settings/user-settings.md#public-profile).
 
 ## Project Activity Tab
 

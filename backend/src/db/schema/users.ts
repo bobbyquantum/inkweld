@@ -1,5 +1,15 @@
 import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
 
+/**
+ * Who may see a profile (or one section of it).
+ *
+ * - `public`  — anyone, including anonymous visitors
+ * - `members` — any signed-in user
+ * - `private` — only the owner (and admins)
+ */
+export const PROFILE_VISIBILITY_LEVELS = ['public', 'members', 'private'] as const;
+export type ProfileVisibility = (typeof PROFILE_VISIBILITY_LEVELS)[number];
+
 export const users = sqliteTable('users', {
   id: text('id')
     .primaryKey()
@@ -22,6 +32,25 @@ export const users = sqliteTable('users', {
   // added without a migration each time. See UserPreferences in
   // services/user-preferences.service.ts for the shape.
   preferences: text('preferences'),
+  /** Short free-form profile blurb shown on the public profile page. */
+  bio: text('bio'),
+  /** Gates the whole profile page. */
+  profileVisibility: text('profileVisibility')
+    .notNull()
+    .default('private')
+    .$type<ProfileVisibility>(),
+  /**
+   * Per-section levels. The effective level of a section is the stricter of
+   * the profile level and the section level, so these can only narrow access.
+   */
+  activityVisibility: text('activityVisibility')
+    .notNull()
+    .default('public')
+    .$type<ProfileVisibility>(),
+  projectsVisibility: text('projectsVisibility')
+    .notNull()
+    .default('private')
+    .$type<ProfileVisibility>(),
 });
 
 export type User = typeof users.$inferSelect;
