@@ -777,7 +777,7 @@
 
   &__message {
     font-size: 13px;
-    color: var(--mat-sys-on-surface);
+    color: var(--sys-on-surface);
   }
 
   &__diff {
@@ -790,7 +790,7 @@
 
   &__original {
     text-decoration: line-through;
-    color: var(--mat-sys-on-surface-variant);
+    color: var(--sys-on-surface-variant);
   }
 
   &__arrow {
@@ -801,7 +801,7 @@
   }
 
   &__corrected {
-    color: var(--mat-sys-primary);
+    color: var(--sys-primary);
     font-weight: 500;
   }
 

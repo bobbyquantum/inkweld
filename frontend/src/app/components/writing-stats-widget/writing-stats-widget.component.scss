@@ -27,7 +27,7 @@
 
   .window-label {
     font-size: 0.8rem;
-    color: var(--mat-sys-on-surface-variant);
+    color: var(--sys-on-surface-variant);
   }
 }
 
@@ -41,7 +41,7 @@
 .stat {
   text-align: center;
   padding: 8px 4px;
-  background: var(--mat-sys-surface-container-low);
+  background: var(--sys-surface-container-low);
   border-radius: 8px;
 }
 
@@ -53,19 +53,19 @@
 
 .stat-label {
   font-size: 0.75rem;
-  color: var(--mat-sys-on-surface-variant);
+  color: var(--sys-on-surface-variant);
   margin-top: 2px;
 }
 
 .recent-section {
-  border-top: 1px solid var(--mat-sys-outline-variant);
+  border-top: 1px solid var(--sys-outline-variant);
   padding-top: 12px;
 
   h4 {
     margin: 0 0 8px;
     font-size: 0.85rem;
     font-weight: 500;
-    color: var(--mat-sys-on-surface-variant);
+    color: var(--sys-on-surface-variant);
     text-transform: uppercase;
     letter-spacing: 0.04em;
   }
@@ -87,11 +87,11 @@
 
 .recent-meta {
   font-size: 0.75rem;
-  color: var(--mat-sys-on-surface-variant);
+  color: var(--sys-on-surface-variant);
   margin-top: 2px;
 
   .project-link {
-    color: var(--mat-sys-primary);
+    color: var(--sys-primary);
     text-decoration: none;
 
     &:hover {

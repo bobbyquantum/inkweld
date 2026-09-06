@@ -11,8 +11,8 @@
   margin: 0 0 12px;
   padding: 8px 12px;
   border-radius: 6px;
-  background: var(--mat-sys-surface-variant, rgba(0, 0, 0, 0.05));
-  color: var(--mat-sys-on-surface-variant);
+  background: var(--sys-surface-variant, rgba(0, 0, 0, 0.05));
+  color: var(--sys-on-surface-variant);
   font-size: 0.875rem;
 
   .label-icon {

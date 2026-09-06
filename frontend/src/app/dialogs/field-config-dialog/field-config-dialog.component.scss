@@ -110,7 +110,7 @@
     );
     border: 1px solid var(--sys-outline-variant);
     border-radius: 3px;
-    box-shadow: var(--mat-sys-level1-shadow, none);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 
     mat-icon {
       font-size: 12px;

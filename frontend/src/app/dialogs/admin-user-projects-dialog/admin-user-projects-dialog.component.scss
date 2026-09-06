@@ -6,7 +6,7 @@
   align-items: center;
   gap: 12px;
   padding: 24px 0;
-  color: var(--mat-sys-on-surface-variant);
+  color: var(--sys-on-surface-variant);
   text-align: center;
 }
 
@@ -23,7 +23,7 @@
 
     .label {
       font-size: 12px;
-      color: var(--mat-sys-on-surface-variant);
+      color: var(--sys-on-surface-variant);
     }
 
     .value {
@@ -62,7 +62,7 @@
 
         .slug {
           font-size: 12px;
-          color: var(--mat-sys-on-surface-variant);
+          color: var(--sys-on-surface-variant);
         }
       }
 
@@ -76,7 +76,7 @@
           font-size: 12px;
           padding: 2px 8px;
           border-radius: 12px;
-          background: var(--mat-sys-surface-container-high);
+          background: var(--sys-surface-container-high);
 
           &.total {
             font-weight: 600;

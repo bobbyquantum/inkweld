@@ -2,7 +2,7 @@
   padding: 16px;
   margin-bottom: 20px;
   border-radius: 12px;
-  background: var(--mat-sys-surface-container-low);
+  background: var(--sys-surface-container-low);
 
   &.loading {
     display: flex;
@@ -29,7 +29,7 @@
 
   .window-label {
     font-size: 0.8rem;
-    color: var(--mat-sys-on-surface-variant);
+    color: var(--sys-on-surface-variant);
   }
 }
 
@@ -39,7 +39,7 @@
   gap: 8px;
   margin: 0;
   font-size: 0.9rem;
-  color: var(--mat-sys-on-surface-variant);
+  color: var(--sys-on-surface-variant);
 }
 
 .stats-row {
@@ -52,7 +52,7 @@
 .stat {
   text-align: center;
   padding: 8px 4px;
-  background: var(--mat-sys-surface);
+  background: var(--sys-surface);
   border-radius: 8px;
 }
 
@@ -64,13 +64,13 @@
 
 .stat-label {
   font-size: 0.75rem;
-  color: var(--mat-sys-on-surface-variant);
+  color: var(--sys-on-surface-variant);
   margin-top: 2px;
 }
 
 .stat-detail {
   font-size: 0.7rem;
-  color: var(--mat-sys-on-surface-variant);
+  color: var(--sys-on-surface-variant);
   font-variant-numeric: tabular-nums;
   margin-top: 2px;
 }
@@ -100,16 +100,16 @@
   flex: 1;
   min-width: 2px;
   border-radius: 2px 2px 0 0;
-  background: var(--mat-sys-primary);
+  background: var(--sys-primary);
   transition: height 0.2s ease;
 
   &.is-empty {
-    background: var(--mat-sys-outline-variant);
+    background: var(--sys-outline-variant);
   }
 }
 
 .contributors {
-  border-top: 1px solid var(--mat-sys-outline-variant);
+  border-top: 1px solid var(--sys-outline-variant);
   margin-top: 12px;
   padding-top: 12px;
 
@@ -117,7 +117,7 @@
     margin: 0 0 8px;
     font-size: 0.8rem;
     font-weight: 500;
-    color: var(--mat-sys-on-surface-variant);
+    color: var(--sys-on-surface-variant);
     text-transform: uppercase;
     letter-spacing: 0.04em;
   }
@@ -150,7 +150,7 @@
   display: block;
   height: 6px;
   border-radius: 3px;
-  background: var(--mat-sys-surface);
+  background: var(--sys-surface);
   overflow: hidden;
 }
 
@@ -158,16 +158,16 @@
   display: block;
   height: 100%;
   border-radius: 3px;
-  background: var(--mat-sys-primary);
+  background: var(--sys-primary);
 }
 
 .contributor-words {
   font-variant-numeric: tabular-nums;
-  color: var(--mat-sys-on-surface-variant);
+  color: var(--sys-on-surface-variant);
 }
 
 .contributor-more {
   margin: 6px 0 0;
   font-size: 0.75rem;
-  color: var(--mat-sys-on-surface-variant);
+  color: var(--sys-on-surface-variant);
 }
