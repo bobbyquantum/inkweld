@@ -640,10 +640,25 @@
         data-testid="worldbuilding-sync-dot"></span>
     </span>
     <span class="status-actions">
+      <button
+        type="button"
+        class="status-chip snapshots-btn"
+        (click)="openSnapshotsDialog()"
+        [matTooltip]="
+          (templateEditingEnabled()
+            ? 'worldbuilding.schemaEdit.snapshots'
+            : 'worldbuilding.editor.snapshots'
+          ) | transloco
+        "
+        matTooltipShowDelay="600"
+        data-testid="toolbar-snapshots">
+        <mat-icon aria-hidden="true" class="chip-icon">history</mat-icon>
+        <span>{{ 'worldbuilding.editor.snapshotsLabel' | transloco }}</span>
+      </button>
       @if (!previewMode() && schemaState()) {
         <button
           type="button"
-          class="schema-source-chip"
+          class="status-chip schema-source-chip"
           [class.custom]="isCustomSchema()"
           [class.update-available]="sharedSchemaUpdated()"
           [matMenuTriggerFor]="schemaSourceMenu"
@@ -713,26 +728,6 @@
             </button>
           }
         </mat-menu>
-      }
-      @if (templateEditingEnabled()) {
-        <button
-          mat-icon-button
-          class="snapshots-btn"
-          (click)="openSnapshotsDialog()"
-          [matTooltip]="'worldbuilding.schemaEdit.snapshots' | transloco"
-          data-testid="toolbar-snapshots">
-          <mat-icon>history</mat-icon>
-        </button>
-      } @else {
-        <button
-          mat-icon-button
-          class="snapshots-btn"
-          (click)="openSnapshotsDialog()"
-          [attr.aria-label]="'worldbuilding.editor.openSnapshots' | transloco"
-          [matTooltip]="'worldbuilding.editor.snapshots' | transloco"
-          data-testid="toolbar-snapshots">
-          <mat-icon>history</mat-icon>
-        </button>
       }
     </span>
   </div>
