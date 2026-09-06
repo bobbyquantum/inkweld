@@ -26,6 +26,7 @@
       matInput
       id="scene-details-synopsis"
       rows="4"
+      [attr.aria-label]="'dialogs.sceneDetails.synopsis' | transloco"
       [value]="synopsis()"
       (input)="synopsis.set($any($event.target).value)"
       [placeholder]="'dialogs.sceneDetails.synopsisPlaceholder' | transloco"
@@ -38,6 +39,7 @@
       matInput
       id="scene-details-word-target"
       type="number"
+      [attr.aria-label]="'dialogs.sceneDetails.wordTarget' | transloco"
       min="1"
       step="1"
       [value]="wordTarget()"
@@ -83,6 +85,7 @@
             <input
               matInput
               [attr.id]="'scene-details-unit-' + i"
+              [attr.aria-label]="label"
               type="number"
               step="1"
               [value]="units()[i]"

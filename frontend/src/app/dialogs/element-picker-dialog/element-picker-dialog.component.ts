@@ -282,7 +282,7 @@ export class ElementPickerDialogComponent {
       maxHeight: '90vh',
     });
     const result = await firstValueFrom(ref.afterClosed());
-    if (!result || result.type !== ElementType.Worldbuilding) return;
+    if (result?.type !== ElementType.Worldbuilding) return;
 
     const parentId = this.defaultParentFor(result.schemaId);
     const newId = this.projectState.addElement(
