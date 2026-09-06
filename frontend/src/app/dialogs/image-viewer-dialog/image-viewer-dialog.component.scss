@@ -112,7 +112,7 @@
   gap: 4px 8px;
   padding: 4px 16px;
   border-top: 1px solid
-    var(--mat-sys-outline-variant, rgba(255, 255, 255, 0.12));
+    var(--sys-outline-variant, rgba(255, 255, 255, 0.12));
   min-height: 48px;
 }
 
@@ -123,7 +123,7 @@
 }
 
 .delete-button {
-  color: var(--mat-sys-error, #f44336);
+  color: var(--sys-error, #f44336);
 }
 
 .tag-chips {
