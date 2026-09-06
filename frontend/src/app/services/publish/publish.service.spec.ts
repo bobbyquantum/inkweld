@@ -80,6 +80,7 @@ describe('PublishService', () => {
   let htmlSiteGeneratorMock: {
     progress$: BehaviorSubject<HtmlSiteProgress>;
     generateSite: ReturnType<typeof vi.fn>;
+    cancel: ReturnType<typeof vi.fn>;
   };
   let markdownGeneratorMock: {
     progress$: BehaviorSubject<MarkdownProgress>;
@@ -259,6 +260,7 @@ describe('PublishService', () => {
     });
     htmlSiteGeneratorMock = {
       progress$: siteProgressSubject,
+      cancel: vi.fn(),
       generateSite: vi.fn().mockImplementation(() => {
         setTimeout(() => {
           siteProgressSubject.next({
@@ -554,6 +556,32 @@ describe('PublishService', () => {
       expect(result.success).toBe(true);
       expect(result.result?.mimeType).toBe('application/zip');
       expect(result.result?.filename).toBe('test-book-site.zip');
+    });
+
+    it('should cancel website generation cooperatively and resolve once it settles', async () => {
+      let finish!: (value: HtmlSiteResult) => void;
+      htmlSiteGeneratorMock.generateSite.mockReturnValue(
+        new Promise<HtmlSiteResult>(r => (finish = r))
+      );
+      publishPlanServiceMock.getPlan.mockReturnValue({
+        ...mockPlan,
+        format: PublishFormat.HTML_SITE,
+      });
+
+      const pending = service.publish('plan-1', { skipSync: true });
+      await new Promise(r => setTimeout(r, 20));
+      let settled = false;
+      void pending.then(() => (settled = true));
+
+      service.cancel();
+      await new Promise(r => setTimeout(r, 0));
+      expect(htmlSiteGeneratorMock.cancel).toHaveBeenCalled();
+      expect(settled).toBe(false);
+
+      finish({ success: false, cancelled: true, warnings: [] });
+      const result = await pending;
+      expect(result.success).toBe(false);
+      expect(result.cancelled).toBe(true);
     });
 
     it('should report failure when website generation fails', async () => {

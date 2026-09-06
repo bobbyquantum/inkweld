@@ -172,10 +172,10 @@ test.describe('Local Publishing Workflow', () => {
       const formatSelect = page.getByTestId('format-select');
       await formatSelect.click();
 
-      const options = page.getByRole('option');
+      const options = page.getByTestId(/^format-option-/);
       await expect(options).toHaveCount(5);
 
-      await page.getByRole('option', { name: 'EPUB (E-Book)' }).click();
+      await page.getByTestId('format-option-EPUB').click();
 
       await selectSection(page, 'publish');
       await expect(page.getByTestId('generate-button')).toContainText('EPUB');

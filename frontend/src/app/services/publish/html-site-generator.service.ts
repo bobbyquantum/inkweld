@@ -1,11 +1,5 @@
 import { inject, Injectable } from '@angular/core';
 import { type Element, ElementType } from '@inkweld/index';
-import { createDefaultPublishStyles } from '@models/publish-style';
-import JSZip from '@progress/jszip-esm';
-import { trimHyphens } from '@utils/string-utils';
-import { isWorldbuildingType } from '@utils/worldbuilding.utils';
-import { BehaviorSubject, type Observable } from 'rxjs';
-
 import {
   type BackmatterItem,
   type ElementItem,
@@ -16,10 +10,16 @@ import {
   PublishPlanItemType,
   type PublishStats,
   type WorldbuildingItem,
-} from '../../models/publish-plan';
-import { LoggerService } from '../core/logger.service';
-import { LocalStorageService } from '../local/local-storage.service';
-import { ProjectStateService } from '../project/project-state.service';
+} from '@models/publish-plan';
+import { createDefaultPublishStyles } from '@models/publish-style';
+import JSZip from '@progress/jszip-esm';
+import { LoggerService } from '@services/core/logger.service';
+import { LocalStorageService } from '@services/local/local-storage.service';
+import { ProjectStateService } from '@services/project/project-state.service';
+import { trimHyphens } from '@utils/string-utils';
+import { isWorldbuildingType } from '@utils/worldbuilding.utils';
+import { BehaviorSubject, type Observable } from 'rxjs';
+
 import {
   HtmlGeneratorService,
   type RenderedHeading,
@@ -52,6 +52,16 @@ export interface HtmlSiteResult {
   error?: string;
   /** Number of HTML pages written (including index.html). */
   pageCount?: number;
+  /** True when the run stopped because {@link HtmlSiteGeneratorService.cancel} was called. */
+  cancelled?: boolean;
+}
+
+/** Thrown internally to unwind a cancelled run. */
+class SiteGenerationCancelled extends Error {
+  constructor() {
+    super('Generation cancelled');
+    this.name = 'SiteGenerationCancelled';
+  }
 }
 
 type SitePageKind =
@@ -155,9 +165,27 @@ export class HtmlSiteGeneratorService {
   readonly progress$: Observable<HtmlSiteProgress> =
     this.progressSubject.asObservable();
 
+  /** Set by {@link cancel}; checked between pages and before packaging. */
+  private cancelRequested = false;
+
+  /**
+   * Request cancellation of the in-flight {@link generateSite}. The run
+   * stops at the next page boundary and resolves with `cancelled: true`;
+   * callers should await that settlement before starting another export,
+   * since the shared renderer state is only released when it returns.
+   */
+  cancel(): void {
+    this.cancelRequested = true;
+    this.updateProgress({
+      phase: HtmlSitePhase.Idle,
+      message: 'Generation cancelled',
+    });
+  }
+
   async generateSite(plan: PublishPlan): Promise<HtmlSiteResult> {
     const startTime = Date.now();
     const result: HtmlSiteResult = { success: false, warnings: [] };
+    this.cancelRequested = false;
 
     try {
       this.updateProgress({
@@ -193,6 +221,7 @@ export class HtmlSiteGeneratorService {
       this.html.setImageHrefResolver(id => this.resolveMedia(id, mediaAssets));
       try {
         for (const [index, page] of pages.entries()) {
+          this.throwIfCancelled();
           this.updateProgress({
             phase: HtmlSitePhase.Rendering,
             overallProgress: 10 + Math.round((index / pages.length) * 70),
@@ -209,6 +238,7 @@ export class HtmlSiteGeneratorService {
         this.html.setImageHrefResolver(null);
       }
       result.warnings.push(...this.html.takeWarnings());
+      this.throwIfCancelled();
 
       this.updateProgress({
         phase: HtmlSitePhase.Packaging,
@@ -266,6 +296,11 @@ export class HtmlSiteGeneratorService {
       });
       return result;
     } catch (error) {
+      if (error instanceof SiteGenerationCancelled) {
+        result.cancelled = true;
+        result.error = error.message;
+        return result;
+      }
       this.logger.error('HtmlSiteGenerator', 'Generation failed', error);
       result.error = error instanceof Error ? error.message : 'Unknown error';
       this.updateProgress({
@@ -274,6 +309,10 @@ export class HtmlSiteGeneratorService {
       });
       return result;
     }
+  }
+
+  private throwIfCancelled(): void {
+    if (this.cancelRequested) throw new SiteGenerationCancelled();
   }
 
   private updateProgress(updates: Partial<HtmlSiteProgress>): void {
@@ -754,7 +793,7 @@ export class HtmlSiteGeneratorService {
   <script src="${SITE_SCRIPT_PATH}" defer></script>
 </head>
 <body class="ink-site">
-<input type="checkbox" id="ink-nav-toggle" class="ink-nav-toggle" aria-hidden="true">
+<input type="checkbox" id="ink-nav-toggle" class="ink-nav-toggle" aria-label="Toggle navigation">
 <header class="ink-site-header">
   <label for="ink-nav-toggle" class="ink-nav-button" aria-label="Toggle navigation">&#9776;</label>
   <a class="ink-site-title" href="${INDEX_SLUG}.html">${esc(siteTitle)}</a>
@@ -891,6 +930,10 @@ body.ink-site {
   hyphens: manual;
 }
 .ink-nav-toggle { position: absolute; left: -9999px; }
+.ink-nav-toggle:focus-visible + .ink-site-header .ink-nav-button {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
 .ink-site-header {
   position: sticky;
   top: 0;

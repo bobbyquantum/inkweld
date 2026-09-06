@@ -190,7 +190,7 @@ test.describe('Online Publish Style Editor', () => {
       // Switch format to HTML and generate.
       await selectSection(page, 'metadata');
       await page.getByTestId('format-select').click();
-      await page.getByRole('option', { name: 'HTML (Single Page)' }).click();
+      await page.getByTestId('format-option-HTML').click();
 
       await selectSection(page, 'publish');
       await page.getByTestId('generate-button').click();
@@ -279,7 +279,7 @@ test.describe('Online Publish Style Editor', () => {
 
       await selectSection(page, 'metadata');
       await page.getByTestId('format-select').click();
-      await page.getByRole('option', { name: 'PDF' }).click();
+      await page.getByTestId('format-option-PDF_SIMPLE').click();
 
       await selectSection(page, 'publish');
       await page.getByTestId('generate-button').click();
@@ -299,7 +299,7 @@ test.describe('Online Publish Style Editor', () => {
 
       await selectSection(page, 'metadata');
       await page.getByTestId('format-select').click();
-      await page.getByRole('option', { name: 'HTML (Single Page)' }).click();
+      await page.getByTestId('format-option-HTML').click();
 
       await selectSection(page, 'publish');
       await page.getByTestId('generate-button').click();
@@ -324,7 +324,7 @@ test.describe('Online Publish Style Editor', () => {
     await test.step('bugs #1 + #4: markdown has no doubled H1 and renders WB entries', async () => {
       await selectSection(page, 'metadata');
       await page.getByTestId('format-select').click();
-      await page.getByRole('option', { name: 'Markdown' }).click();
+      await page.getByTestId('format-option-MARKDOWN').click();
 
       await selectSection(page, 'publish');
       await page.getByTestId('generate-button').click();

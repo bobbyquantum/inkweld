@@ -84,17 +84,18 @@ test.describe('Online Publishing Workflow', () => {
   }
 
   /**
-   * Helper to select a format from the format dropdown. The format select
+   * Helper to select a format from the format dropdown by its PublishFormat
+   * value (EPUB, PDF_SIMPLE, MARKDOWN, HTML, HTML_SITE). The format select
    * lives in the Metadata section, so navigate there first.
    */
   async function selectFormat(
     page: import('@playwright/test').Page,
-    optionName: RegExp | string
+    format: string
   ): Promise<void> {
     await selectSection(page, 'metadata');
     await expect(page.getByTestId('format-select')).toBeVisible();
     await page.getByTestId('format-select').click();
-    await page.getByRole('option', { name: optionName }).click();
+    await page.getByTestId(`format-option-${format}`).click();
     await expect(page.getByRole('listbox')).not.toBeVisible();
   }
 
@@ -162,8 +163,8 @@ test.describe('Online Publishing Workflow', () => {
 
     await test.step('switches between all formats', async () => {
       await page.getByTestId('format-select').click();
-      await expect(page.getByRole('option')).toHaveCount(5);
-      await page.getByRole('option', { name: 'EPUB (E-Book)' }).click();
+      await expect(page.getByTestId(/^format-option-/)).toHaveCount(5);
+      await page.getByTestId('format-option-EPUB').click();
       await selectSection(page, 'publish');
       await expect(page.getByTestId('generate-button')).toContainText('EPUB');
     });
@@ -210,7 +211,7 @@ test.describe('Online Publishing Workflow', () => {
     });
 
     await test.step('persists format selection (PDF) across reload', async () => {
-      await selectFormat(page, 'PDF');
+      await selectFormat(page, 'PDF_SIMPLE');
       // Wait for the debounced auto-save to flush the format change into
       // the persisted project elements document before reloading.
       await waitForElementsDocPersisted(page, username, slug, ['PDF_SIMPLE']);
@@ -310,7 +311,7 @@ test.describe('Online Publishing Workflow', () => {
     await expect(page.getByTestId('item-name')).toContainText('README');
 
     await test.step('PDF: generates and download is non-trivial size', async () => {
-      await selectFormat(page, 'PDF');
+      await selectFormat(page, 'PDF_SIMPLE');
       await generateAndOpenDialog(page);
       await expect(page.getByTestId('format-name')).toContainText('PDF');
 
@@ -330,7 +331,7 @@ test.describe('Online Publishing Workflow', () => {
     });
 
     await test.step('EPUB: generates and chapter XHTML contains the typed content', async () => {
-      await selectFormat(page, 'EPUB (E-Book)');
+      await selectFormat(page, 'EPUB');
       await generateAndOpenDialog(page);
       await expect(page.getByTestId('format-name')).toContainText('EPUB');
 
@@ -361,7 +362,7 @@ test.describe('Online Publishing Workflow', () => {
     });
 
     await test.step('Markdown: generates and file contains plain-text content', async () => {
-      await selectFormat(page, 'Markdown');
+      await selectFormat(page, 'MARKDOWN');
       await generateAndOpenDialog(page);
       await expect(page.getByTestId('format-name')).toContainText('Markdown');
 
@@ -383,7 +384,7 @@ test.describe('Online Publishing Workflow', () => {
     });
 
     await test.step('HTML: generates and file contains content', async () => {
-      await selectFormat(page, 'HTML (Single Page)');
+      await selectFormat(page, 'HTML');
       await generateAndOpenDialog(page);
       await expect(page.getByTestId('format-name')).toContainText('HTML');
 

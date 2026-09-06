@@ -8,7 +8,7 @@
  * Source of truth is `worldbuilding-icons.json` so the build script that
  * stages the SVG files (`scripts/copy-icon-svgs.mjs`) reads the same data.
  */
-import iconManifest from './worldbuilding-icons.json';
+import iconManifest from '@models/worldbuilding-icons.json';
 
 /** Icons offered by the worldbuilding icon picker, in display order. */
 export const WORLDBUILDING_ICONS: readonly string[] = iconManifest.icons;

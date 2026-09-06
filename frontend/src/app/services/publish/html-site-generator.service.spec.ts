@@ -33,7 +33,11 @@ import { WorldbuildingPublishRendererService } from './worldbuilding-publish-ren
 describe('HtmlSiteGeneratorService', () => {
   let service: HtmlSiteGeneratorService;
   let htmlGenerator: HtmlGeneratorService;
-  let documentServiceMock: { getDocumentContent: ReturnType<typeof vi.fn> };
+  let documentServiceMock: {
+    getDocumentContent: ReturnType<
+      typeof vi.fn<(fullId: string) => Promise<unknown>>
+    >;
+  };
   let localStorageMock: {
     getMedia: ReturnType<
       typeof vi.fn<(key: string, id: string) => Promise<Blob | null>>
@@ -198,7 +202,7 @@ describe('HtmlSiteGeneratorService', () => {
   beforeEach(() => {
     documentServiceMock = {
       getDocumentContent: vi
-        .fn()
+        .fn<(fullId: string) => Promise<unknown>>()
         .mockImplementation((fullId: string): Promise<unknown> => {
           const id = fullId.split(':').pop() ?? fullId;
           return Promise.resolve(docContent[id] ?? null);
@@ -563,6 +567,45 @@ describe('HtmlSiteGeneratorService', () => {
       expect(index).toContain('<title>Tom &amp; &lt;Jerry&gt;</title>');
       expect(index).toContain('content="&quot;Quotes&quot;"');
       expect(result.filename).toBe('tom-jerry-site.zip');
+    });
+
+    it('should stop at the next page boundary when cancelled and release the renderer', async () => {
+      // Cancel from inside the first page render.
+      documentServiceMock.getDocumentContent.mockImplementation(
+        (fullId: string): Promise<unknown> => {
+          service.cancel();
+          const id = fullId.split(':').pop() ?? fullId;
+          return Promise.resolve(docContent[id] ?? null);
+        }
+      );
+      const spy = vi.spyOn(htmlGenerator, 'setElementRefResolver');
+
+      const result = await service.generateSite(
+        buildPlan([elementItem('doc-1'), elementItem('doc-4')])
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.cancelled).toBe(true);
+      expect(result.file).toBeUndefined();
+      // Only the first page was rendered.
+      expect(documentServiceMock.getDocumentContent).toHaveBeenCalledTimes(1);
+      // Resolvers were cleared on the way out.
+      expect(spy.mock.calls.at(-1)?.[0]).toBeNull();
+      let progress: HtmlSiteProgress | undefined;
+      service.progress$.subscribe(p => (progress = p));
+      expect(progress?.phase).toBe(HtmlSitePhase.Idle);
+
+      // A fresh run afterwards is unaffected.
+      documentServiceMock.getDocumentContent.mockImplementation(
+        (fullId: string): Promise<unknown> => {
+          const id = fullId.split(':').pop() ?? fullId;
+          return Promise.resolve(docContent[id] ?? null);
+        }
+      );
+      const again = await service.generateSite(
+        buildPlan([elementItem('doc-1')])
+      );
+      expect(again.success).toBe(true);
     });
 
     it('should report errors and set the error phase', async () => {

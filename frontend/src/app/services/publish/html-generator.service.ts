@@ -1,21 +1,22 @@
 import { inject, Injectable } from '@angular/core';
+import {
+  extractMediaId,
+  isMediaUrl,
+} from '@components/image-paste/image-paste-plugin';
 import { type Element, ElementType } from '@inkweld/index';
+import {
+  type BackgroundSetting,
+  isBackgroundEmpty,
+} from '@models/element-appearance';
 import {
   createDefaultPublishStyles,
   type PublishStyles,
 } from '@models/publish-style';
+import { mediaIdFromReference } from '@utils/media-reference';
 import { trimHyphens } from '@utils/string-utils';
 import { isWorldbuildingType } from '@utils/worldbuilding.utils';
 import { BehaviorSubject, type Observable, Subject } from 'rxjs';
 
-import {
-  extractMediaId,
-  isMediaUrl,
-} from '../../components/image-paste/image-paste-plugin';
-import {
-  type BackgroundSetting,
-  isBackgroundEmpty,
-} from '../../models/element-appearance';
 import {
   type BackmatterItem,
   BackmatterType,
@@ -33,7 +34,6 @@ import {
   SeparatorStyle,
   type WorldbuildingItem,
 } from '../../models/publish-plan';
-import { mediaIdFromReference } from '../../utils/media-reference';
 import { LoggerService } from '../core/logger.service';
 import { LocalStorageService } from '../local/local-storage.service';
 import { DocumentService } from '../project/document.service';

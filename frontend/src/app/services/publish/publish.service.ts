@@ -830,12 +830,18 @@ export class PublishService {
         }
       });
 
+    // Cancellation is cooperative: the generator stops at the next page
+    // boundary and the cancelled result is only resolved once it has
+    // settled, so the shared renderer state is never reused mid-run.
+    let cancelled = false;
     this.htmlSiteGenerator
       .generateSite(plan)
       .then(siteResult => {
         progressSub.unsubscribe();
 
-        if (siteResult.success && siteResult.file) {
+        if (cancelled || siteResult.cancelled) {
+          resolve({ success: false, cancelled: true });
+        } else if (siteResult.success && siteResult.file) {
           resolve({
             success: true,
             result: {
@@ -867,8 +873,9 @@ export class PublishService {
       });
 
     cancelled$.subscribe(() => {
+      cancelled = true;
       progressSub.unsubscribe();
-      resolve({ success: false, cancelled: true });
+      this.htmlSiteGenerator.cancel();
     });
   }
 
