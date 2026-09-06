@@ -155,7 +155,30 @@
 
 .grid-tooltip {
   position: absolute;
-  transform: translate(-50%, calc(-100% - 8px));
+  left: 0;
+  // Centre on the cell, but clamp to the scroller's visible span (with a
+  // small inset) so hovering the last columns doesn't push the tooltip past
+  // the edge and grow the horizontal scroll range.
+  --tip-inset: 4px;
+  transform: translate(
+    clamp(
+      calc(var(--tip-min) + var(--tip-inset)),
+      calc(var(--tip-x) - 50%),
+      calc(var(--tip-max) - var(--tip-inset) - 100%)
+    ),
+    calc(-100% - 8px)
+  );
+
+  &.below {
+    transform: translate(
+      clamp(
+        calc(var(--tip-min) + var(--tip-inset)),
+        calc(var(--tip-x) - 50%),
+        calc(var(--tip-max) - var(--tip-inset) - 100%)
+      ),
+      8px
+    );
+  }
   display: flex;
   flex-direction: column;
   gap: 2px;

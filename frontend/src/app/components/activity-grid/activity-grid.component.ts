@@ -76,12 +76,34 @@ export function levelFor(
   return 4;
 }
 
+/** Today as YYYY-MM-DD in `timeZone` (falls back to the browser zone). */
+export function todayIn(timeZone?: string): string {
+  const opts: Intl.DateTimeFormatOptions = {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  };
+  let fmt: Intl.DateTimeFormat;
+  try {
+    fmt = new Intl.DateTimeFormat('en-CA', { ...opts, timeZone });
+  } catch {
+    fmt = new Intl.DateTimeFormat('en-CA', opts);
+  }
+  // en-CA formats as YYYY-MM-DD.
+  return fmt.format(new Date());
+}
+
 /**
  * Lay a year of days out GitHub-style: one column per week, Monday at the
  * top. Cells before Jan 1 in the first week and after Dec 31 in the last
- * are padding so every column has seven rows.
+ * are padding so every column has seven rows. Days after `today` (string
+ * compare on YYYY-MM-DD) also become padding so the current year keeps its
+ * full width but draws no squares for dates that haven't happened yet.
  */
-export function buildGrid(days: readonly ProfileActivityDay[]): {
+export function buildGrid(
+  days: readonly ProfileActivityDay[],
+  today?: string
+): {
   cells: GridCell[];
   columns: number;
 } {
@@ -95,11 +117,12 @@ export function buildGrid(days: readonly ProfileActivityDay[]): {
   }
   days.forEach((d, i) => {
     const idx = firstRow + i;
+    const future = today !== undefined && d.day > today;
     cells.push({
-      day: d.day,
-      words: d.words,
-      sessions: d.sessions,
-      level: levelFor(d.words, thresholds),
+      day: future ? null : d.day,
+      words: future ? 0 : d.words,
+      sessions: future ? 0 : d.sessions,
+      level: future ? 0 : levelFor(d.words, thresholds),
       col: Math.floor(idx / 7),
       row: idx % 7,
     });
@@ -179,7 +202,10 @@ export class ActivityGridComponent {
   protected readonly LEFT_GUTTER = LEFT_GUTTER;
   protected readonly TOP_GUTTER = TOP_GUTTER;
 
-  protected readonly grid = computed(() => buildGrid(this.data()?.days ?? []));
+  protected readonly grid = computed(() => {
+    const d = this.data();
+    return buildGrid(d?.days ?? [], todayIn(d?.timeZone));
+  });
   protected readonly cells = computed(() => this.grid().cells);
   protected readonly monthLabels = computed(() =>
     buildMonthLabels(this.cells())
@@ -204,10 +230,19 @@ export class ActivityGridComponent {
 
   protected readonly years = computed(() => this.data()?.availableYears ?? []);
 
+  /**
+   * Hovered cell plus tooltip anchor. `x`/`y` are the cell's centre-top in
+   * scroller content coordinates; `minX`/`maxX` are the visible span of the
+   * scroller so the tooltip can be kept on screen instead of widening the
+   * scrollable area when the cursor is near either edge.
+   */
   protected readonly hovered = signal<{
     cell: GridCell;
     x: number;
     y: number;
+    minX: number;
+    maxX: number;
+    below: boolean;
   } | null>(null);
 
   protected readonly legendLevels: GridCell['level'][] = [0, 1, 2, 3, 4];
@@ -218,14 +253,18 @@ export class ActivityGridComponent {
     const host = target.closest('.grid-scroller');
     const rect = target.getBoundingClientRect();
     const hostRect = host?.getBoundingClientRect();
+    const scrollLeft = host?.scrollLeft ?? 0;
+    const visibleWidth = host?.clientWidth ?? hostRect?.width ?? Infinity;
+    const y = rect.top - (hostRect?.top ?? 0);
     this.hovered.set({
       cell,
-      x:
-        rect.left +
-        rect.width / 2 -
-        (hostRect?.left ?? 0) +
-        (host?.scrollLeft ?? 0),
-      y: rect.top - (hostRect?.top ?? 0),
+      x: rect.left + rect.width / 2 - (hostRect?.left ?? 0) + scrollLeft,
+      // Not enough headroom for the tooltip in the month-label gutter on the
+      // top rows (the scroller clips vertically), so flip it underneath.
+      y: cell.row < 3 ? y + rect.height : y,
+      below: cell.row < 3,
+      minX: scrollLeft,
+      maxX: scrollLeft + visibleWidth,
     });
   }
 
