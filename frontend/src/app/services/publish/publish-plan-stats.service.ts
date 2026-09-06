@@ -275,12 +275,16 @@ export class PublishPlanStatsService {
 /** Count whitespace-separated words in ProseMirror JSON content. */
 export function countWords(content: unknown): number {
   if (!content) return 0;
-  const nodes = Array.isArray(content)
-    ? content
-    : typeof content === 'object' &&
-        Array.isArray((content as { content?: unknown[] }).content)
-      ? (content as { content: unknown[] }).content
-      : [content];
-  const text = flattenToPlainText(nodes);
+  const text = flattenToPlainText(contentNodes(content));
   return text.split(/\s+/).filter(Boolean).length;
+}
+
+/** Normalise a content array, a `doc` wrapper node, or a single node to nodes. */
+function contentNodes(content: unknown): unknown[] {
+  if (Array.isArray(content)) return content;
+  const wrapper = content as { content?: unknown };
+  if (typeof content === 'object' && Array.isArray(wrapper.content)) {
+    return wrapper.content;
+  }
+  return [content];
 }
