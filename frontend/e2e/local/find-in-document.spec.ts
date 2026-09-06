@@ -35,9 +35,9 @@ async function openProjectAndCreateDocument(
   await expect(page.getByTestId('project-tree')).toBeVisible();
 
   await page.getByTestId('create-new-element').click();
-  await page.getByRole('heading', { name: 'Document', level: 4 }).click();
+  await page.getByRole('heading', { name: 'Scene', level: 4 }).click();
 
-  const dialogInput = page.getByLabel('Document Name');
+  const dialogInput = page.getByLabel('Scene Name');
   await dialogInput.waitFor({ state: 'visible' });
   await dialogInput.fill(documentName);
   await page.getByTestId('create-element-button').click();

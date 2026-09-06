@@ -24,6 +24,7 @@
     <mat-label>{{ 'dialogs.sceneDetails.synopsis' | transloco }}</mat-label>
     <textarea
       matInput
+      id="scene-details-synopsis"
       rows="4"
       [value]="synopsis()"
       (input)="synopsis.set($any($event.target).value)"
@@ -35,6 +36,7 @@
     <mat-label>{{ 'dialogs.sceneDetails.wordTarget' | transloco }}</mat-label>
     <input
       matInput
+      id="scene-details-word-target"
       type="number"
       min="1"
       step="1"
@@ -80,6 +82,7 @@
             <mat-label>{{ label }}</mat-label>
             <input
               matInput
+              [attr.id]="'scene-details-unit-' + i"
               type="number"
               step="1"
               [value]="units()[i]"
