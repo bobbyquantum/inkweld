@@ -1,4 +1,7 @@
-<div class="preview-container" data-testid="publish-preview-container">
+<div
+  class="preview-container"
+  [class.has-content]="hasPreview() && !loading()"
+  data-testid="publish-preview-container">
   <!-- Empty state -->
   @if (!hasPreview() && !loading() && !error()) {
     <div class="preview-empty">
@@ -36,11 +39,53 @@
 
   <!-- Preview content -->
   @if (hasPreview() && !loading()) {
-    <!-- Outdated banner -->
-    @if (outdated) {
-      <div class="preview-outdated" data-testid="preview-outdated-banner">
-        <mat-icon>info</mat-icon>
-        <span>{{ 'publish.preview.outdated' | transloco }}</span>
+    <!-- Toolbar: status, stats, device presets, refresh -->
+    <div
+      class="preview-toolbar"
+      [class.is-outdated]="outdated"
+      data-testid="preview-toolbar">
+      <div class="toolbar-status">
+        @if (outdated) {
+          <mat-icon class="status-icon">info</mat-icon>
+          <span data-testid="preview-outdated-banner">{{
+            'publish.preview.outdated' | transloco
+          }}</span>
+        } @else {
+          <mat-icon class="status-icon">check_circle</mat-icon>
+          <span>{{ 'publish.preview.upToDate' | transloco }}</span>
+        }
+        @if (stats(); as s) {
+          <span class="toolbar-stats" data-testid="preview-stats">
+            @if (s.words !== null) {
+              <span
+                >{{ s.words.toLocaleString() }} {{ 'words' | transloco }}</span
+              >
+            }
+            @if (s.pages !== null) {
+              <span>{{
+                'publish.preview.pageCount' | transloco: { count: s.pages }
+              }}</span>
+            }
+          </span>
+        }
+      </div>
+
+      <div class="toolbar-actions">
+        @if (isHtmlLike) {
+          <div class="device-presets" data-testid="device-presets">
+            @for (preset of devicePresets; track preset.value) {
+              <button
+                mat-icon-button
+                [class.active]="devicePreset() === preset.value"
+                (click)="setDevicePreset(preset.value)"
+                [matTooltip]="preset.labelKey | transloco"
+                [attr.aria-label]="preset.labelKey | transloco"
+                [attr.aria-pressed]="devicePreset() === preset.value">
+                <mat-icon>{{ preset.icon }}</mat-icon>
+              </button>
+            }
+          </div>
+        }
         <button
           mat-stroked-button
           (click)="generatePreview()"
@@ -49,52 +94,47 @@
           {{ 'refresh' | transloco }}
         </button>
       </div>
-    }
+    </div>
 
-    <!-- Device presets (HTML/EPUB only) -->
-    @if (
-      plan.format === PublishFormat.HTML ||
-      plan.format === PublishFormat.HTML_SITE ||
-      plan.format === PublishFormat.EPUB
-    ) {
-      <div class="device-presets" data-testid="device-presets">
-        @for (preset of devicePresets; track preset.value) {
-          <button
-            mat-icon-button
-            [class.active]="devicePreset() === preset.value"
-            (click)="setDevicePreset(preset.value)"
-            [matTooltip]="preset.label">
-            <mat-icon>{{ preset.icon }}</mat-icon>
-          </button>
-        }
-      </div>
+    @if (formatNoteKey; as noteKey) {
+      <p class="preview-note" data-testid="preview-note">
+        {{ noteKey | transloco }}
+      </p>
     }
 
     <!-- SVG preview (PDF) -->
     @if (svgContent(); as svg) {
-      <div class="preview-frame pdf-preview" data-testid="pdf-preview-content">
-        <div [innerHTML]="svg"></div>
+      <div class="preview-scroll">
+        <div
+          class="preview-frame pdf-preview"
+          data-testid="pdf-preview-content">
+          <div [innerHTML]="svg"></div>
+        </div>
       </div>
     }
 
     <!-- HTML preview (HTML/EPUB) -->
     @if (htmlBlobUrl(); as url) {
-      <div
-        class="preview-frame html-preview"
-        [style.max-width.px]="getPreviewWidth()">
-        <iframe
-          [src]="url"
-          sandbox="allow-same-origin"
-          [title]="'publish.preview.publicationPreview' | transloco"
-          data-testid="html-preview-content">
-        </iframe>
+      <div class="preview-stage">
+        <div
+          class="preview-frame html-preview"
+          [style.max-width.px]="getPreviewWidth()">
+          <iframe
+            [src]="url"
+            sandbox="allow-same-origin"
+            [title]="'publish.preview.publicationPreview' | transloco"
+            data-testid="html-preview-content">
+          </iframe>
+        </div>
       </div>
     }
 
     <!-- Markdown preview -->
     @if (markdownText(); as text) {
-      <div class="preview-frame markdown-preview">
-        <pre data-testid="markdown-preview-content">{{ text }}</pre>
+      <div class="preview-scroll">
+        <div class="preview-frame markdown-preview">
+          <pre data-testid="markdown-preview-content">{{ text }}</pre>
+        </div>
       </div>
     }
   }

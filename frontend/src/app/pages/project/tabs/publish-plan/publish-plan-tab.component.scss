@@ -58,7 +58,7 @@
   width: 280px;
   min-width: 280px;
   border-right: 1px solid var(--sys-outline-variant);
-  overflow-y: auto;
+  overflow: hidden;
   padding: 1.5em;
   display: flex;
   flex-direction: column;
@@ -102,6 +102,8 @@
   mat-nav-list {
     padding: 8px;
     flex: 1;
+    min-height: 0;
+    overflow-y: auto;
 
     .mat-mdc-list-item {
       border-radius: 8px;
@@ -120,6 +122,56 @@
       &:focus-visible {
         outline: 2px solid var(--sys-primary);
         outline-offset: -2px;
+      }
+    }
+  }
+}
+
+// Plan at a glance + primary action (bottom of sidenav)
+.sidenav-summary {
+  margin-top: auto;
+  padding: 12px 8px 0;
+  border-top: 1px solid var(--sys-outline-variant);
+
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin: 0 0 12px;
+
+    div {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 8px 4px;
+      border-radius: 8px;
+      background: var(--sys-surface-container-low);
+    }
+
+    dt {
+      order: 2;
+      font-size: 0.7rem;
+      color: var(--sys-on-surface-variant);
+    }
+
+    dd {
+      order: 1;
+      margin: 0;
+      font-size: 1.1rem;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      line-height: 1.2;
+    }
+  }
+
+  .sidenav-generate {
+    width: 100%;
+
+    mat-icon {
+      margin-right: 4px;
+
+      &.spinning {
+        animation: spin 1s linear infinite;
       }
     }
   }
@@ -248,6 +300,69 @@ mat-expansion-panel {
 // Content Items
 // ==========================================
 
+.contents-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+
+  > button {
+    flex-shrink: 0;
+    margin-left: auto;
+  }
+}
+
+.plan-stats {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+
+  .stat-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 16px;
+    background: var(--sys-surface-container-low);
+    color: var(--sys-on-surface-variant);
+    font-size: 0.8rem;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+
+    mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+    }
+
+    &.stat-warning {
+      background: var(--sys-error-container);
+      color: var(--sys-on-error-container);
+    }
+
+    .stat-pending {
+      opacity: 0.6;
+    }
+  }
+
+  .stats-refresh {
+    width: 32px;
+    height: 32px;
+    padding: 4px;
+    color: var(--sys-on-surface-variant);
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+  }
+}
+
 .empty-state {
   display: flex;
   flex-direction: column;
@@ -355,6 +470,35 @@ mat-expansion-panel {
   .item-name {
     flex: 1;
     font-weight: 500;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .item-stats {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.8rem;
+    color: var(--sys-on-surface-variant);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    flex-shrink: 0;
+
+    mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+    }
+
+    &.pending {
+      opacity: 0.6;
+    }
+
+    &.unavailable {
+      color: var(--sys-error);
+    }
   }
 
   .item-actions {

@@ -147,6 +147,88 @@ describe('PublishPlansListTabComponent', () => {
     expect(pipe.transform(1048576)).toBe('1 MB');
   });
 
+  it('should load publish history with a slash-form project key', () => {
+    expect(mockPublishedFilesService.loadFiles).toHaveBeenCalledWith(
+      'user/proj'
+    );
+  });
+
+  it('should group history by plan id and fall back to plan name', async () => {
+    const files = [
+      {
+        id: 'f-old',
+        planName: testPlan.name,
+        createdAt: '2024-01-01T00:00:00.000Z',
+        filename: 'old.epub',
+        size: 1,
+      },
+      {
+        id: 'f-new',
+        planId: testPlan.id,
+        planName: testPlan.name,
+        createdAt: '2024-06-01T00:00:00.000Z',
+        filename: 'new.epub',
+        size: 2,
+      },
+    ];
+    mockPublishedFilesService.loadFiles.mockResolvedValueOnce(files);
+    await component['loadPublishHistory']();
+
+    const history = component.getHistoryForPlan(testPlan.id);
+    expect(history.map(f => f.id)).toEqual(['f-new', 'f-old']);
+    expect(component.lastPublished(testPlan.id)?.id).toBe('f-new');
+  });
+
+  it('should not map legacy files by name when two plans share it', async () => {
+    const twin = { ...createDefaultPublishPlan('T', 'A'), name: testPlan.name };
+    mockProjectState.publishPlans.set([testPlan, twin]);
+    mockPublishedFilesService.loadFiles.mockResolvedValueOnce([
+      {
+        id: 'f-old',
+        planName: testPlan.name,
+        createdAt: '2024-01-01T00:00:00.000Z',
+        filename: 'old.epub',
+        size: 1,
+      },
+    ]);
+    await component['loadPublishHistory']();
+
+    expect(component.getHistoryForPlan(testPlan.id)).toEqual([]);
+    expect(component.getHistoryForPlan(twin.id)).toEqual([]);
+    expect(component.getHistoryForPlan(testPlan.name)).toHaveLength(1);
+  });
+
+  it('should report null when a plan was never published', () => {
+    expect(component.lastPublished(testPlan.id)).toBeNull();
+    const badge = fixture.nativeElement.querySelector(
+      '[data-testid="plan-never-published"]'
+    );
+    expect(badge).toBeTruthy();
+  });
+
+  it('should map formats to icons', () => {
+    expect(component.getFormatIcon(PublishFormat.EPUB)).toBe('book');
+    expect(component.getFormatIcon(PublishFormat.PDF_SIMPLE)).toBe(
+      'picture_as_pdf'
+    );
+    expect(component.getFormatIcon(PublishFormat.HTML_SITE)).toBe('web');
+    expect(component.getFormatIcon('unknown')).toBe('insert_drive_file');
+  });
+
+  it('should render a single create button in each state', () => {
+    let buttons = fixture.nativeElement.querySelectorAll(
+      '[data-testid="create-publish-plan-button"]'
+    );
+    expect(buttons).toHaveLength(1);
+
+    mockProjectState.publishPlans.set([]);
+    fixture.detectChanges();
+    buttons = fixture.nativeElement.querySelectorAll(
+      '[data-testid="create-publish-plan-button"]'
+    );
+    expect(buttons).toHaveLength(1);
+  });
+
   it('should format format names', () => {
     expect(component.formatFormatName(PublishFormat.EPUB)).toBe('EPUB');
     expect(component.formatFormatName(PublishFormat.PDF_SIMPLE)).toBe('PDF');

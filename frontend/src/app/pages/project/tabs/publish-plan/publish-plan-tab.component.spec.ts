@@ -27,8 +27,14 @@ import {
   type TableOfContentsItem,
   type WorldbuildingItem,
 } from '../../../../models/publish-plan';
+import { DialogGatewayService } from '../../../../services/core/dialog-gateway.service';
 import { ProjectStateService } from '../../../../services/project/project-state.service';
 import { PublishService } from '../../../../services/publish/publish.service';
+import {
+  type PlanItemStats,
+  PublishPlanStatsService,
+  type WordCountEntry,
+} from '../../../../services/publish/publish-plan-stats.service';
 import { PublishedFilesService } from '../../../../services/publish/published-files.service';
 import { WorldbuildingService } from '../../../../services/worldbuilding/worldbuilding.service';
 import { PublishPlanTabComponent } from './publish-plan-tab.component';
@@ -57,10 +63,54 @@ describe('PublishPlanTabComponent', () => {
     deleteFile: ReturnType<typeof vi.fn>;
   };
   let testPlan: PublishPlan;
+  let wordCounts: ReturnType<
+    typeof signal<ReadonlyMap<string, WordCountEntry>>
+  >;
+  let mockStatsService: {
+    wordCounts: ReturnType<typeof signal<ReadonlyMap<string, WordCountEntry>>>;
+    ensureCounted: ReturnType<typeof vi.fn>;
+    invalidate: ReturnType<typeof vi.fn>;
+    itemStats: ReturnType<typeof vi.fn>;
+    summary: ReturnType<typeof vi.fn>;
+  };
+  let mockDialogGateway: {
+    openElementPickerDialog: ReturnType<typeof vi.fn>;
+  };
+
+  const emptyItemStats: PlanItemStats = {
+    words: null,
+    documents: 0,
+    entries: 0,
+    loading: false,
+    unavailable: false,
+    loadingDocuments: 0,
+    unavailableDocuments: 0,
+  };
 
   beforeEach(async () => {
     testPlan = createDefaultPublishPlan('Test Project', 'Test Author');
     currentPlan = signal<PublishPlan | null>(testPlan);
+    wordCounts = signal<ReadonlyMap<string, WordCountEntry>>(new Map());
+    mockStatsService = {
+      wordCounts,
+      ensureCounted: vi.fn(),
+      invalidate: vi.fn(),
+      itemStats: vi.fn().mockReturnValue(emptyItemStats),
+      summary: vi.fn().mockReturnValue({
+        items: 0,
+        chapters: 0,
+        documents: 0,
+        entries: 0,
+        words: 0,
+        loading: 0,
+        unavailable: 0,
+        estimatedPages: 0,
+        readingMinutes: 0,
+      }),
+    };
+    mockDialogGateway = {
+      openElementPickerDialog: vi.fn().mockResolvedValue(undefined),
+    };
 
     mockProjectState = {
       elements: signal([
@@ -112,6 +162,8 @@ describe('PublishPlanTabComponent', () => {
             getIconForType: vi.fn().mockReturnValue('auto_awesome'),
           },
         },
+        { provide: PublishPlanStatsService, useValue: mockStatsService },
+        { provide: DialogGatewayService, useValue: mockDialogGateway },
         {
           provide: ActivatedRoute,
           useValue: {
@@ -1174,6 +1226,304 @@ describe('PublishPlanTabComponent', () => {
       afterClosed$.complete();
 
       expect(mockDialog.open).toHaveBeenCalled();
+    });
+  });
+
+  describe('statistics', () => {
+    it('should ask the stats service to count every element in the plan', () => {
+      component.addElement('elem-1');
+      component.addElement('elem-2');
+      fixture.detectChanges();
+      const calls = mockStatsService.ensureCounted.mock.calls as string[][][];
+      const last = calls.at(-1)?.[0] ?? [];
+      expect(last).toEqual(['elem-1', 'elem-2']);
+    });
+
+    it('should expose a plan summary from the stats service', () => {
+      mockStatsService.summary.mockReturnValue({
+        items: 3,
+        chapters: 2,
+        documents: 2,
+        entries: 1,
+        words: 5500,
+        loading: 0,
+        unavailable: 0,
+        estimatedPages: 20,
+        readingMinutes: 24,
+      });
+      component.addElement('elem-1');
+      fixture.detectChanges();
+
+      expect(component['planSummary']()?.words).toBe(5500);
+      const el = fixture.nativeElement as HTMLElement;
+      expect(
+        el.querySelector('[data-testid="plan-stat-words"]')?.textContent
+      ).toContain('5,500');
+      expect(
+        el.querySelector('[data-testid="sidenav-summary-words"]')?.textContent
+      ).toContain('5,500');
+      expect(el.querySelector('[data-testid="plan-stat-pages"]')).toBeTruthy();
+      expect(
+        el.querySelector('[data-testid="plan-stat-reading"]')
+      ).toBeTruthy();
+    });
+
+    it('should show an unsynced warning chip when documents are unavailable', () => {
+      mockStatsService.summary.mockReturnValue({
+        items: 1,
+        chapters: 1,
+        documents: 1,
+        entries: 0,
+        words: 0,
+        loading: 0,
+        unavailable: 1,
+        estimatedPages: 0,
+        readingMinutes: 0,
+      });
+      component.addElement('elem-1');
+      fixture.detectChanges();
+      const el = fixture.nativeElement as HTMLElement;
+      expect(
+        el.querySelector('[data-testid="plan-stat-unavailable"]')
+      ).toBeTruthy();
+      expect(el.querySelector('[data-testid="plan-stat-pages"]')).toBeFalsy();
+    });
+
+    it('should render per-item word counts', () => {
+      mockStatsService.itemStats.mockReturnValue({
+        ...emptyItemStats,
+        words: 1200,
+        documents: 1,
+      });
+      component.addElement('elem-1');
+      fixture.detectChanges();
+      const stats = (fixture.nativeElement as HTMLElement).querySelector(
+        '[data-testid="item-stats"]'
+      );
+      expect(stats?.textContent).toContain('1,200');
+    });
+
+    it('should mark items still being counted', () => {
+      mockStatsService.itemStats.mockReturnValue({
+        ...emptyItemStats,
+        documents: 1,
+        loading: true,
+      });
+      component.addElement('elem-1');
+      fixture.detectChanges();
+      const stats = (fixture.nativeElement as HTMLElement).querySelector(
+        '[data-testid="item-stats"]'
+      );
+      expect(stats?.classList.contains('pending')).toBe(true);
+    });
+
+    it('should recount by invalidating then re-requesting counts', () => {
+      component.addElement('elem-1');
+      mockStatsService.ensureCounted.mockClear();
+
+      component.refreshStats();
+
+      expect(mockStatsService.invalidate).toHaveBeenCalledWith(['elem-1']);
+      expect(mockStatsService.ensureCounted).toHaveBeenCalledWith(['elem-1']);
+    });
+
+    it('should pick reading-time keys and params', () => {
+      expect(component.readingTimeKey(12)).toBe(
+        'publish.planEditor.stats.readMinutes'
+      );
+      expect(component.readingTimeParams(12)).toEqual({
+        hours: 0,
+        minutes: 12,
+      });
+      expect(component.readingTimeKey(125)).toBe(
+        'publish.planEditor.stats.readHours'
+      );
+      expect(component.readingTimeParams(125)).toEqual({
+        hours: 2,
+        minutes: 5,
+      });
+    });
+
+    it('should give short format names', () => {
+      expect(component.getFormatShortName(PublishFormat.EPUB)).toBe('EPUB');
+      expect(component.getFormatShortName(PublishFormat.HTML_SITE)).toBe(
+        'Website'
+      );
+    });
+  });
+
+  describe('adding items', () => {
+    it('should render an add menu trigger even when the plan has items', () => {
+      component.addElement('elem-1');
+      fixture.detectChanges();
+      const el = fixture.nativeElement as HTMLElement;
+      expect(el.querySelector('[data-testid="add-items-button"]')).toBeTruthy();
+      expect(
+        el.querySelector('[data-testid="empty-content-state"]')
+      ).toBeFalsy();
+    });
+
+    it('should append documents picked from the element picker', async () => {
+      component.addElement('elem-1');
+      mockDialogGateway.openElementPickerDialog.mockResolvedValue({
+        elements: [{ id: 'elem-2', name: 'Chapter 2', type: ElementType.Item }],
+      });
+
+      await component.addDocuments();
+
+      const items = currentPlan()!.items as ElementItem[];
+      expect(items.map(i => i.elementId)).toEqual(['elem-1', 'elem-2']);
+      expect(items[1].isChapter).toBe(true);
+      expect(mockDialogGateway.openElementPickerDialog).toHaveBeenCalledWith(
+        expect.objectContaining({
+          excludeIds: ['elem-1'],
+          excludeTypes: expect.arrayContaining([
+            ElementType.Folder,
+            ElementType.Canvas,
+            ElementType.Timeline,
+          ]),
+        })
+      );
+    });
+
+    it('should ignore picked elements that cannot be published', async () => {
+      mockDialogGateway.openElementPickerDialog.mockResolvedValue({
+        elements: [
+          { id: 'canvas-1', name: 'Board', type: ElementType.Canvas },
+          { id: 'wb-1', name: 'Hero', type: ElementType.Worldbuilding },
+        ],
+      });
+      await component.addDocuments();
+      const ids = (currentPlan()!.items as ElementItem[]).map(i => i.elementId);
+      expect(ids).toEqual(['wb-1']);
+    });
+
+    it('should append to the current plan when it changed while picking', async () => {
+      component.addElement('elem-1');
+      let resolvePicker!: (value: unknown) => void;
+      mockDialogGateway.openElementPickerDialog.mockReturnValue(
+        new Promise(r => (resolvePicker = r))
+      );
+      const pending = component.addDocuments();
+      // Another change lands while the picker is open
+      component.addElement('elem-2');
+      resolvePicker({
+        elements: [{ id: 'elem-3', name: 'Chapter 3', type: ElementType.Item }],
+      });
+      await pending;
+      const ids = (currentPlan()!.items as ElementItem[]).map(i => i.elementId);
+      expect(ids).toEqual(['elem-1', 'elem-2', 'elem-3']);
+    });
+
+    it('should do nothing when the plan was swapped while picking', async () => {
+      let resolvePicker!: (value: unknown) => void;
+      mockDialogGateway.openElementPickerDialog.mockReturnValue(
+        new Promise(r => (resolvePicker = r))
+      );
+      const pending = component.addDocuments();
+      const other = createDefaultPublishPlan('Other', 'A');
+      currentPlan.set(other);
+      resolvePicker({
+        elements: [{ id: 'elem-3', name: 'Chapter 3', type: ElementType.Item }],
+      });
+      await pending;
+      expect(currentPlan()!.items).toHaveLength(0);
+    });
+
+    it('should leave the plan alone when the picker is cancelled', async () => {
+      component.addElement('elem-1');
+      mockDialogGateway.openElementPickerDialog.mockResolvedValue(undefined);
+      await component.addDocuments();
+      expect(currentPlan()!.items).toHaveLength(1);
+    });
+
+    it('should skip canvases and timelines when adding everything', () => {
+      mockProjectState.elements.set([
+        { id: 'elem-1', name: 'Chapter 1', type: ElementType.Item },
+        { id: 'canvas-1', name: 'Board', type: ElementType.Canvas },
+        { id: 'tl-1', name: 'Timeline', type: ElementType.Timeline },
+        { id: 'wb-1', name: 'Hero', type: ElementType.Worldbuilding },
+      ]);
+      component.addEverything();
+      const ids = (currentPlan()!.items as ElementItem[]).map(i => i.elementId);
+      expect(ids).toEqual(['elem-1', 'wb-1']);
+    });
+
+    it('should pick singular and plural count keys', () => {
+      expect(component.countKey('documents', 1)).toBe(
+        'publish.planEditor.stats.documentsOne'
+      );
+      expect(component.countKey('documents', 3)).toBe(
+        'publish.planEditor.stats.documents'
+      );
+      expect(component.countKey('entries', 1)).toBe(
+        'publish.planEditor.stats.entriesOne'
+      );
+      expect(component.countKey('entries', 2)).toBe(
+        'publish.planEditor.stats.entries'
+      );
+    });
+
+    it('should render singular labels through the translation pipe', () => {
+      mockStatsService.summary.mockReturnValue({
+        items: 1,
+        chapters: 1,
+        documents: 1,
+        entries: 1,
+        words: 10,
+        loading: 0,
+        unavailable: 0,
+        estimatedPages: 1,
+        readingMinutes: 1,
+      });
+      component.addElement('elem-1');
+      fixture.detectChanges();
+      const el = fixture.nativeElement as HTMLElement;
+      expect(
+        el.querySelector('[data-testid="plan-stat-documents"]')?.textContent
+      ).toContain('1 document');
+      expect(
+        el.querySelector('[data-testid="plan-stat-entries"]')?.textContent
+      ).toContain('1 entry');
+      expect(
+        el.querySelector('[data-testid="plan-stat-reading"]')?.textContent
+      ).toContain('1 min read');
+    });
+
+    it('should skip documents already in the plan when adding everything', () => {
+      component.addElement('elem-2');
+      component.addEverything();
+      const ids = (currentPlan()!.items as ElementItem[]).map(i => i.elementId);
+      expect(ids).toEqual(['elem-2', 'elem-1']);
+    });
+  });
+
+  describe('sidenav generate button', () => {
+    it('should be disabled with no items and enabled once items exist', () => {
+      const el = fixture.nativeElement as HTMLElement;
+      const button = el.querySelector<HTMLButtonElement>(
+        '[data-testid="sidenav-generate-button"]'
+      );
+      expect(button).toBeTruthy();
+      expect(button!.disabled).toBe(true);
+
+      component.addElement('elem-1');
+      fixture.detectChanges();
+      expect(button!.disabled).toBe(false);
+    });
+
+    it('should publish through the same path as the publish section', async () => {
+      component.addElement('elem-1');
+      fixture.detectChanges();
+      const button = (fixture.nativeElement as HTMLElement).querySelector(
+        '[data-testid="sidenav-generate-button"]'
+      ) as HTMLButtonElement;
+      button.click();
+      await fixture.whenStable();
+      expect(mockPublishService.publish).toHaveBeenCalledWith(
+        testPlan.id,
+        expect.objectContaining({ skipDownload: true })
+      );
     });
   });
 });

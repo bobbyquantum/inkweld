@@ -4,7 +4,7 @@ import {
   DragDropModule,
   moveItemInArray,
 } from '@angular/cdk/drag-drop';
-import { CommonModule, DatePipe } from '@angular/common';
+import { CommonModule, DatePipe, DecimalPipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -19,11 +19,13 @@ import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDialog } from '@angular/material/dialog';
+import { MatDividerModule } from '@angular/material/divider';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatListModule } from '@angular/material/list';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -55,16 +57,31 @@ import {
 } from '@models/publish-style';
 import { type PublishedFile } from '@models/published-file';
 import { isPublishableByDefault } from '@models/scene-metadata';
+import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import {
   type PublishingResult,
   PublishService,
 } from '@services/publish/publish.service';
+import {
+  type PlanItemStats,
+  type PlanSummaryStats,
+  PublishPlanStatsService,
+} from '@services/publish/publish-plan-stats.service';
 import { PublishedFilesService } from '@services/publish/published-files.service';
 import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
+import { isWorldbuildingType } from '@utils/worldbuilding.utils';
 import { firstValueFrom, type Subscription } from 'rxjs';
 
 import { FileSizePipe } from '../../../../pipes/file-size.pipe';
+
+/** Element types that never produce publishable text output. */
+const NON_PUBLISHABLE_TYPES: ElementType[] = [
+  ElementType.Folder,
+  ElementType.Canvas,
+  ElementType.Timeline,
+  ElementType.RelationshipChart,
+];
 
 type PlanSection =
   'metadata' | 'contents' | 'formatting' | 'publish' | 'preview';
@@ -84,13 +101,16 @@ type PlanSection =
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
+    MatDividerModule,
     MatListModule,
+    MatMenuModule,
     MatSelectModule,
     MatTooltipModule,
     ProjectCoverComponent,
     PublishPreviewComponent,
     PublishStyleEditorComponent,
     DatePipe,
+    DecimalPipe,
     FileSizePipe,
     TranslocoModule,
   ],
@@ -104,6 +124,8 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
   private readonly snackBar = inject(MatSnackBar);
   private readonly worldbuildingService = inject(WorldbuildingService);
   private readonly transloco = inject(TranslocoService);
+  private readonly statsService = inject(PublishPlanStatsService);
+  private readonly dialogGateway = inject(DialogGatewayService);
   private paramSubscription: Subscription | null = null;
   private readonly resizeCleanup: (() => void) | null = null;
 
@@ -162,6 +184,18 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
   protected metadataExpanded = signal(true);
   protected optionsExpanded = signal(false);
   protected itemsExpanded = signal(true);
+  /** Preview panel has been opened at least once (accordion mode) */
+  protected previewExpanded = signal(false);
+
+  /** Per-document word counts, resolved lazily by the stats service */
+  protected readonly wordCounts = this.statsService.wordCounts;
+
+  /** Roll-up statistics for the current plan */
+  protected readonly planSummary = computed((): PlanSummaryStats | null => {
+    const plan = this.plan();
+    if (!plan) return null;
+    return this.statsService.summary(plan, this.elements(), this.wordCounts());
+  });
 
   /** Show add item menu */
   protected showAddItemMenu = signal(false);
@@ -179,9 +213,15 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
   /** Project elements for adding to plan */
   protected elements = computed(() => this.projectState.elements());
 
-  /** Filter to only document elements (not folders) */
+  /**
+   * Elements that produce output when published: documents and worldbuilding
+   * entries. Folders are containers; canvases, timelines and relationship
+   * charts have no text representation and are skipped.
+   */
   protected documentElements = computed(() =>
-    this.elements().filter(e => e.type !== ElementType.Folder)
+    this.elements().filter(
+      e => e.type === ElementType.Item || isWorldbuildingType(e.type)
+    )
   );
 
   /** Get project cover image URL */
@@ -206,6 +246,14 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
       this.resizeCleanup = () =>
         browserWindow.removeEventListener('resize', updateLayout);
     }
+
+    // Count words for every document referenced by the plan. Re-runs when
+    // items are added or removed; already-counted documents are cached.
+    effect(() => {
+      const plan = this.plan();
+      if (!plan) return;
+      this.statsService.ensureCounted(this.planElementIds(plan));
+    });
 
     // Reactively load published files when project becomes available (handles refresh)
     effect(() => {
@@ -251,6 +299,33 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
     if (this.resizeCleanup) {
       this.resizeCleanup();
     }
+  }
+
+  /** Element ids referenced by the plan's element items */
+  private planElementIds(plan: PublishPlan): string[] {
+    return plan.items
+      .filter(
+        (item): item is ElementItem => item.type === PublishPlanItemType.Element
+      )
+      .map(item => item.elementId);
+  }
+
+  /** Statistics for one contents row */
+  itemStats(item: PublishPlanItem): PlanItemStats {
+    return this.statsService.itemStats(
+      item,
+      this.elements(),
+      this.wordCounts()
+    );
+  }
+
+  /** Re-read every document's word count from current content */
+  refreshStats(): void {
+    const plan = this.plan();
+    if (!plan) return;
+    const ids = this.planElementIds(plan);
+    this.statsService.invalidate(ids);
+    this.statsService.ensureCounted(ids);
   }
 
   /** Helper: update plan in state */
@@ -505,6 +580,46 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
     this.showAddItemMenu.set(false);
   }
 
+  /** Pick one or more documents from the project and append them */
+  async addDocuments(): Promise<void> {
+    const plan = this.plan();
+    if (!plan) return;
+
+    const alreadyAdded = this.planElementIds(plan);
+    const result = await this.dialogGateway.openElementPickerDialog({
+      title: this.transloco.translate('publish.planEditor.addDocumentsTitle'),
+      subtitle: this.transloco.translate(
+        'publish.planEditor.addDocumentsSubtitle'
+      ),
+      excludeIds: alreadyAdded,
+      excludeTypes: NON_PUBLISHABLE_TYPES,
+    });
+    if (!result || result.elements.length === 0) return;
+
+    // The plan may have changed (or the route moved on) while the picker was
+    // open; append to the current plan rather than the captured snapshot.
+    const current = this.plan();
+    if (!current || current.id !== plan.id) return;
+    const currentIds = new Set(this.planElementIds(current));
+
+    const newItems: PublishPlanItem[] = result.elements
+      .filter(
+        element =>
+          !currentIds.has(element.id) &&
+          (element.type === ElementType.Item ||
+            isWorldbuildingType(element.type))
+      )
+      .map(element => ({
+        id: crypto.randomUUID(),
+        type: PublishPlanItemType.Element,
+        elementId: element.id,
+        includeChildren: false,
+        isChapter: true,
+      }));
+    if (newItems.length === 0) return;
+    this.updatePlan({ items: [...current.items, ...newItems] });
+  }
+
   /** Walk the element tree in order, adding all non-folder elements */
   addEverything(): void {
     const plan = this.plan();
@@ -512,8 +627,13 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
 
     // Notes are research / front matter, not manuscript: leave them out of
     // the bulk add. They can still be added individually.
+    const alreadyAdded = new Set(this.planElementIds(plan));
     const newItems: PublishPlanItem[] = this.documentElements()
-      .filter(element => isPublishableByDefault(element.metadata))
+      .filter(
+        element =>
+          !alreadyAdded.has(element.id) &&
+          isPublishableByDefault(element.metadata)
+      )
       .map(element => ({
         id: crypto.randomUUID(),
         type: PublishPlanItemType.Element,
@@ -562,8 +682,10 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
 
   getItemIcon(item: PublishPlanItem): string {
     switch (item.type) {
-      case PublishPlanItemType.Element:
-        return 'description';
+      case PublishPlanItemType.Element: {
+        const element = this.elements().find(e => e.id === item.elementId);
+        return element ? this.getElementIcon(element) : 'description';
+      }
       case PublishPlanItemType.Frontmatter:
         return 'first_page';
       case PublishPlanItemType.Backmatter:
@@ -586,6 +708,44 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
       .split(' ')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
       .join(' ');
+  }
+
+  /** Short format name for compact buttons (e.g. "EPUB", "PDF") */
+  getFormatShortName(format: PublishFormat): string {
+    const names: Record<PublishFormat, string> = {
+      [PublishFormat.EPUB]: 'EPUB',
+      [PublishFormat.PDF_SIMPLE]: 'PDF',
+      [PublishFormat.HTML]: 'HTML',
+      [PublishFormat.HTML_SITE]: 'Website',
+      [PublishFormat.MARKDOWN]: 'Markdown',
+    };
+    return names[format] || format;
+  }
+
+  /**
+   * Translation key for a document/entry count, picking the singular form
+   * for exactly one. Resolved with the transloco pipe so it renders once the
+   * publish scope has loaded (the synchronous translate API would return the
+   * raw key on a direct page load).
+   */
+  countKey(kind: 'documents' | 'entries', count: number): string {
+    return count === 1
+      ? `publish.planEditor.stats.${kind}One`
+      : `publish.planEditor.stats.${kind}`;
+  }
+
+  /** Translation key for reading time: minutes only, or hours and minutes */
+  readingTimeKey(minutes: number): string {
+    return minutes < 60
+      ? 'publish.planEditor.stats.readMinutes'
+      : 'publish.planEditor.stats.readHours';
+  }
+
+  /** Interpolation params matching {@link readingTimeKey} */
+  readingTimeParams(minutes: number): { hours: number; minutes: number } {
+    return minutes < 60
+      ? { hours: 0, minutes }
+      : { hours: Math.floor(minutes / 60), minutes: minutes % 60 };
   }
 
   /** Get friendly display name for format */

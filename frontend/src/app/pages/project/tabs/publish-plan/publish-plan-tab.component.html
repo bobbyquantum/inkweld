@@ -48,6 +48,49 @@
               </a>
             }
           </mat-nav-list>
+
+          <!-- Plan at a glance + primary action -->
+          @if (planSummary(); as summary) {
+            <div class="sidenav-summary" data-testid="sidenav-summary">
+              <dl class="summary-grid">
+                <div>
+                  <dt>{{ 'publish.planEditor.stats.items' | transloco }}</dt>
+                  <dd data-testid="sidenav-summary-items">
+                    {{ summary.items }}
+                  </dd>
+                </div>
+                <div>
+                  <dt>{{ 'words' | transloco }}</dt>
+                  <dd data-testid="sidenav-summary-words">
+                    {{ summary.words | number }}
+                  </dd>
+                </div>
+                <div>
+                  <dt>{{ 'publish.planEditor.stats.pages' | transloco }}</dt>
+                  <dd>~{{ summary.estimatedPages | number }}</dd>
+                </div>
+              </dl>
+              <button
+                mat-flat-button
+                color="primary"
+                class="sidenav-generate"
+                (click)="generatePublication()"
+                [disabled]="plan.items.length === 0 || isGenerating()"
+                data-testid="sidenav-generate-button">
+                <mat-icon [class.spinning]="isGenerating()">{{
+                  isGenerating() ? 'sync' : 'download'
+                }}</mat-icon>
+                @if (isGenerating()) {
+                  {{ 'publish.planEditor.generating' | transloco }}
+                } @else {
+                  {{
+                    'publish.planEditor.generate'
+                      | transloco: { format: getFormatShortName(plan.format) }
+                  }}
+                }
+              </button>
+            </div>
+          }
         </nav>
       }
 
@@ -170,18 +213,23 @@
             </mat-expansion-panel>
 
             <!-- Preview -->
-            <mat-expansion-panel data-testid="accordion-preview">
+            <mat-expansion-panel
+              (opened)="previewExpanded.set(true)"
+              data-testid="accordion-preview">
               <mat-expansion-panel-header>
                 <mat-panel-title>
                   <mat-icon class="panel-title-icon">visibility</mat-icon>
                   {{ 'publish.planEditor.preview' | transloco }}
                 </mat-panel-title>
               </mat-expansion-panel-header>
-              <app-publish-preview
-                [plan]="plan"
-                [outdated]="previewOutdated()"
-                (refreshRequested)="previewOutdated.set(false)"
-                data-testid="publish-preview" />
+              @if (previewExpanded()) {
+                <app-publish-preview
+                  [plan]="plan"
+                  [outdated]="previewOutdated()"
+                  [autoLoad]="true"
+                  (refreshRequested)="previewOutdated.set(false)"
+                  data-testid="publish-preview" />
+              }
             </mat-expansion-panel>
 
             <!-- Publish -->
@@ -290,6 +338,159 @@
 <!-- Contents template -->
 <ng-template #contentsTemplate>
   @if (plan(); as plan) {
+    <!-- Toolbar: plan statistics + add actions -->
+    <div class="contents-toolbar" data-testid="contents-toolbar">
+      @if (planSummary(); as summary) {
+        <div class="plan-stats" data-testid="plan-stats">
+          <span class="stat-chip" data-testid="plan-stat-documents">
+            <mat-icon>description</mat-icon>
+            {{
+              countKey('documents', summary.documents)
+                | transloco: { count: summary.documents }
+            }}
+          </span>
+          @if (summary.entries > 0) {
+            <span class="stat-chip" data-testid="plan-stat-entries">
+              <mat-icon>public</mat-icon>
+              {{
+                countKey('entries', summary.entries)
+                  | transloco: { count: summary.entries }
+              }}
+            </span>
+          }
+          <span
+            class="stat-chip"
+            data-testid="plan-stat-words"
+            [matTooltip]="'publish.planEditor.stats.wordsHint' | transloco">
+            <mat-icon>text_fields</mat-icon>
+            {{ summary.words | number }} {{ 'words' | transloco }}
+            @if (summary.loading > 0) {
+              <span class="stat-pending">…</span>
+            }
+          </span>
+          @if (summary.words > 0) {
+            <span
+              class="stat-chip"
+              data-testid="plan-stat-pages"
+              [matTooltip]="'publish.planEditor.stats.pagesHint' | transloco">
+              <mat-icon>auto_stories</mat-icon>
+              {{
+                'publish.planEditor.stats.pagesEstimate'
+                  | transloco: { count: summary.estimatedPages | number }
+              }}
+            </span>
+            <span
+              class="stat-chip"
+              data-testid="plan-stat-reading"
+              [matTooltip]="'publish.planEditor.stats.readingHint' | transloco">
+              <mat-icon>schedule</mat-icon>
+              {{
+                readingTimeKey(summary.readingMinutes)
+                  | transloco: readingTimeParams(summary.readingMinutes)
+              }}
+            </span>
+          }
+          @if (summary.unavailable > 0) {
+            <span
+              class="stat-chip stat-warning"
+              data-testid="plan-stat-unavailable"
+              [matTooltip]="
+                'publish.planEditor.stats.unavailableHint' | transloco
+              ">
+              <mat-icon>cloud_off</mat-icon>
+              {{
+                'publish.planEditor.stats.unavailable'
+                  | transloco: { count: summary.unavailable }
+              }}
+            </span>
+          }
+          <button
+            mat-icon-button
+            class="stats-refresh"
+            (click)="refreshStats()"
+            [matTooltip]="'publish.planEditor.stats.refresh' | transloco"
+            [attr.aria-label]="'publish.planEditor.stats.refresh' | transloco"
+            data-testid="refresh-stats-button">
+            <mat-icon>refresh</mat-icon>
+          </button>
+        </div>
+      }
+      <button
+        mat-stroked-button
+        [matMenuTriggerFor]="addItemMenu"
+        data-testid="add-items-button">
+        <mat-icon>add</mat-icon>
+        {{ 'add' | transloco }}
+      </button>
+      <mat-menu #addItemMenu="matMenu">
+        <button
+          mat-menu-item
+          (click)="addDocuments()"
+          data-testid="menu-add-documents">
+          <mat-icon>description</mat-icon>
+          <span>{{ 'publish.planEditor.addDocuments' | transloco }}</span>
+        </button>
+        <button
+          mat-menu-item
+          (click)="addEverything()"
+          [disabled]="documentElements().length === 0"
+          data-testid="menu-add-everything">
+          <mat-icon>playlist_add</mat-icon>
+          <span>{{ 'publish.planEditor.addEverything' | transloco }}</span>
+        </button>
+        <mat-divider></mat-divider>
+        <button
+          mat-menu-item
+          (click)="addTableOfContents()"
+          data-testid="menu-add-toc">
+          <mat-icon>list</mat-icon>
+          <span>{{ 'publish.planEditor.addToc' | transloco }}</span>
+        </button>
+        <button mat-menu-item [matMenuTriggerFor]="frontmatterMenu">
+          <mat-icon>first_page</mat-icon>
+          <span>{{ 'publish.planEditor.addFrontmatter' | transloco }}</span>
+        </button>
+        <button mat-menu-item [matMenuTriggerFor]="backmatterMenu">
+          <mat-icon>last_page</mat-icon>
+          <span>{{ 'publish.planEditor.addBackmatter' | transloco }}</span>
+        </button>
+        <button mat-menu-item [matMenuTriggerFor]="separatorMenu">
+          <mat-icon>horizontal_rule</mat-icon>
+          <span>{{ 'publish.planEditor.addSeparator' | transloco }}</span>
+        </button>
+      </mat-menu>
+      <mat-menu #frontmatterMenu="matMenu">
+        @for (type of frontmatterTypes; track type) {
+          <button
+            mat-menu-item
+            (click)="addFrontmatter(type)"
+            [attr.data-testid]="'menu-add-frontmatter-' + type">
+            {{ formatEnumLabel(type) }}
+          </button>
+        }
+      </mat-menu>
+      <mat-menu #backmatterMenu="matMenu">
+        @for (type of backmatterTypes; track type) {
+          <button
+            mat-menu-item
+            (click)="addBackmatter(type)"
+            [attr.data-testid]="'menu-add-backmatter-' + type">
+            {{ formatEnumLabel(type) }}
+          </button>
+        }
+      </mat-menu>
+      <mat-menu #separatorMenu="matMenu">
+        @for (style of separatorStyles; track style) {
+          <button
+            mat-menu-item
+            (click)="addSeparator(style)"
+            [attr.data-testid]="'menu-add-separator-' + style">
+            {{ formatEnumLabel(style) }}
+          </button>
+        }
+      </mat-menu>
+    </div>
+
     <!-- Content Items List -->
     <div
       class="items-list"
@@ -331,6 +532,44 @@
           <span class="item-name" data-testid="item-name">{{
             getItemLabel(item)
           }}</span>
+          @if (itemStats(item); as stats) {
+            @if (stats.loading) {
+              <span
+                class="item-stats pending"
+                data-testid="item-stats"
+                [matTooltip]="'publish.planEditor.stats.counting' | transloco"
+                >…</span
+              >
+            } @else if (stats.unavailable) {
+              <span
+                class="item-stats unavailable"
+                data-testid="item-stats"
+                [matTooltip]="
+                  'publish.planEditor.stats.unavailableHint' | transloco
+                ">
+                <mat-icon>cloud_off</mat-icon>
+                {{ 'publish.planEditor.stats.notSynced' | transloco }}
+              </span>
+            } @else if (stats.words !== null) {
+              <span class="item-stats" data-testid="item-stats">
+                {{ stats.words | number }} {{ 'words' | transloco }}
+                @if (stats.documents > 1) {
+                  ·
+                  {{
+                    countKey('documents', stats.documents)
+                      | transloco: { count: stats.documents }
+                  }}
+                }
+              </span>
+            } @else if (stats.entries > 0) {
+              <span class="item-stats" data-testid="item-stats">
+                {{
+                  countKey('entries', stats.entries)
+                    | transloco: { count: stats.entries }
+                }}
+              </span>
+            }
+          }
           <div class="item-actions">
             <button
               mat-icon-button

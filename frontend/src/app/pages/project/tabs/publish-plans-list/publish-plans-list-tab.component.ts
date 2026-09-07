@@ -69,11 +69,26 @@ export class PublishPlansListTabComponent implements OnInit {
 
     this.historyLoading.set(true);
     try {
-      const projectKey = `${project.username}:${project.slug}`;
+      const projectKey = `${project.username}/${project.slug}`;
       const files = await this.publishedFilesService.loadFiles(projectKey);
       const grouped = new Map<string, PublishedFile[]>();
+      // Older files predate planId; they fall back to matching by plan
+      // name, but only when exactly one plan carries that name.
+      const nameCounts = new Map<string, number>();
+      for (const plan of this.plans()) {
+        nameCounts.set(plan.name, (nameCounts.get(plan.name) ?? 0) + 1);
+      }
+      const plansByName = new Map(
+        this.plans()
+          .filter(p => nameCounts.get(p.name) === 1)
+          .map(p => [p.name, p.id])
+      );
       for (const file of files) {
-        const key = file.planId || file.planName || 'Unknown';
+        const key =
+          file.planId ||
+          (file.planName && plansByName.get(file.planName)) ||
+          file.planName ||
+          'Unknown';
         const existing = grouped.get(key) ?? [];
         existing.push(file);
         grouped.set(key, existing);
@@ -145,6 +160,29 @@ export class PublishPlansListTabComponent implements OnInit {
 
   getHistoryForPlan(planId: string): PublishedFile[] {
     return this.publishHistory().get(planId) ?? [];
+  }
+
+  /** Most recent published file for a plan, if any (history is date-desc). */
+  lastPublished(planId: string): PublishedFile | null {
+    return this.getHistoryForPlan(planId)[0] ?? null;
+  }
+
+  /** Material icon representing an output format */
+  getFormatIcon(format: string): string {
+    switch (format as PublishFormat) {
+      case PublishFormat.EPUB:
+        return 'book';
+      case PublishFormat.PDF_SIMPLE:
+        return 'picture_as_pdf';
+      case PublishFormat.HTML:
+        return 'code';
+      case PublishFormat.HTML_SITE:
+        return 'web';
+      case PublishFormat.MARKDOWN:
+        return 'description';
+      default:
+        return 'insert_drive_file';
+    }
   }
 
   formatDate(dateString: string): string {

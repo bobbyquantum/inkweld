@@ -292,6 +292,19 @@ export class DocumentService {
    * @param documentId - The document ID to check
    * @returns True if the document exists and has persisted Yjs update records
    */
+  /**
+   * Whether a document has persisted content available locally, either via an
+   * active collaboration connection or Yjs updates in IndexedDB. Never creates
+   * an empty database shell, so it is safe to call for documents that have not
+   * been synced to this device.
+   */
+  hasLocalContent(documentId: string): Promise<boolean> {
+    if (this.connections.has(documentId)) {
+      return Promise.resolve(true);
+    }
+    return this.checkDocumentHasContent(documentId);
+  }
+
   private checkDocumentHasContent(documentId: string): Promise<boolean> {
     return new Promise(resolve => {
       try {
