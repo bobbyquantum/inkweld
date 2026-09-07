@@ -257,16 +257,10 @@ export class CloudSyncConnectService {
 
   /** Authenticated store for a cloud config. Tokens refresh on demand. */
   createStore(provider: CloudProvider, configId: string): RemoteStore {
-    switch (provider) {
-      case 'dropbox':
-        return new DropboxRemoteStore(() =>
-          this.getValidAccessToken(provider, configId)
-        );
-      default:
-        throw new Error(
-          `${getCloudProviderDisplayName(provider)} is not supported yet`
-        );
-    }
+    assertSupported(provider);
+    return new DropboxRemoteStore(() =>
+      this.getValidAccessToken(provider, configId)
+    );
   }
 
   /** Read the manifest, treating "missing" and "unreadable" as null */
@@ -301,14 +295,8 @@ export class CloudSyncConnectService {
       state: string;
     }
   ): string {
-    switch (provider) {
-      case 'dropbox':
-        return buildDropboxAuthorizeUrl(params);
-      default:
-        throw new Error(
-          `${getCloudProviderDisplayName(provider)} is not supported yet`
-        );
-    }
+    assertSupported(provider);
+    return buildDropboxAuthorizeUrl(params);
   }
 
   private async exchangeCode(
@@ -320,41 +308,27 @@ export class CloudSyncConnectService {
       redirectUri: string;
     }
   ): Promise<Omit<CloudTokenSet, 'accountId'>> {
-    switch (provider) {
-      case 'dropbox': {
-        const response = await exchangeDropboxCode(params);
-        return {
-          provider,
-          accessToken: response.access_token,
-          refreshToken: response.refresh_token,
-          expiresAt: Date.now() + response.expires_in * 1000,
-        };
-      }
-      default:
-        throw new Error(
-          `${getCloudProviderDisplayName(provider)} is not supported yet`
-        );
-    }
+    assertSupported(provider);
+    const response = await exchangeDropboxCode(params);
+    return {
+      provider,
+      accessToken: response.access_token,
+      refreshToken: response.refresh_token,
+      expiresAt: Date.now() + response.expires_in * 1000,
+    };
   }
 
   private async describeAccount(
     provider: CloudProvider,
     accessToken: string
   ): Promise<{ id: string; label: string; displayName: string }> {
-    switch (provider) {
-      case 'dropbox': {
-        const account = await getDropboxCurrentAccount(accessToken);
-        return {
-          id: account.account_id,
-          label: account.email,
-          displayName: account.name.display_name,
-        };
-      }
-      default:
-        throw new Error(
-          `${getCloudProviderDisplayName(provider)} is not supported yet`
-        );
-    }
+    assertSupported(provider);
+    const account = await getDropboxCurrentAccount(accessToken);
+    return {
+      id: account.account_id,
+      label: account.email,
+      displayName: account.name.display_name,
+    };
   }
 
   private async getValidAccessToken(
@@ -368,24 +342,18 @@ export class CloudSyncConnectService {
       throw new RemoteAuthError();
     }
 
-    switch (provider) {
-      case 'dropbox': {
-        const appKey = this.config.getAppKey(provider);
-        const response = await refreshDropboxToken({
-          appKey,
-          refreshToken: tokens.refreshToken,
-        });
-        const refreshed: CloudTokenSet = {
-          ...tokens,
-          accessToken: response.access_token,
-          expiresAt: Date.now() + response.expires_in * 1000,
-        };
-        this.tokens.set(configId, refreshed);
-        return refreshed.accessToken;
-      }
-      default:
-        throw new RemoteAuthError();
-    }
+    if (provider !== 'dropbox') throw new RemoteAuthError();
+    const response = await refreshDropboxToken({
+      appKey: this.config.getAppKey(provider),
+      refreshToken: tokens.refreshToken,
+    });
+    const refreshed: CloudTokenSet = {
+      ...tokens,
+      accessToken: response.access_token,
+      expiresAt: Date.now() + response.expires_in * 1000,
+    };
+    this.tokens.set(configId, refreshed);
+    return refreshed.accessToken;
   }
 
   private takePendingAuth(): PendingAuth | null {
@@ -400,6 +368,21 @@ export class CloudSyncConnectService {
     } catch {
       return null;
     }
+  }
+}
+
+/**
+ * Only Dropbox has an adapter today. Each provider-specific step calls this
+ * first so an unsupported provider fails with one clear message; when the
+ * next adapter lands these become dispatch points.
+ */
+function assertSupported(
+  provider: CloudProvider
+): asserts provider is 'dropbox' {
+  if (provider !== 'dropbox') {
+    throw new Error(
+      `${getCloudProviderDisplayName(provider)} is not supported yet`
+    );
   }
 }
 

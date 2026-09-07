@@ -137,44 +137,48 @@ export function parseRemotePath(path: string): ParsedRemotePath | null {
   const [username, slug, ...rest] = parts;
   if (!username || !slug) return null;
 
-  if (rest.length === 1) {
-    switch (rest[0]) {
-      case 'project.json':
-        return { username, slug, kind: 'project' };
-      case `elements${YJS_EXTENSION}`:
-        return { username, slug, kind: 'elements' };
-      case 'media.json':
-        return { username, slug, kind: 'media-index' };
-      default:
-        return null;
-    }
-  }
+  let parsed: Omit<ParsedRemotePath, 'username' | 'slug'> | null = null;
+  if (rest.length === 1) parsed = parseProjectLevelFile(rest[0]);
+  else if (rest.length === 2) parsed = parseFolderFile(rest[0], rest[1]);
+  else if (rest.length === 3) parsed = parseSnapshotFile(rest);
+  return parsed ? { username, slug, ...parsed } : null;
+}
 
-  if (rest.length === 2) {
-    const [folder, file] = rest;
-    if (!file) return null;
-    if (folder === 'media') {
-      return { username, slug, kind: 'media', id: file };
-    }
-    if (!file.endsWith(YJS_EXTENSION)) return null;
-    const id = file.slice(0, -YJS_EXTENSION.length);
-    if (!id) return null;
-    if (folder === 'documents') {
-      return { username, slug, kind: 'document', id };
-    }
-    if (folder === 'worldbuilding') {
-      return { username, slug, kind: 'worldbuilding', id };
-    }
-  }
+type ParsedKindPart = Omit<ParsedRemotePath, 'username' | 'slug'>;
 
-  if (rest.length === 3 && rest[0] === 'snapshots') {
-    const [, documentId, file] = rest;
-    if (!documentId || !file.endsWith('.json')) return null;
-    const snapshotId = file.slice(0, -'.json'.length);
-    if (!snapshotId) return null;
-    return { username, slug, kind: 'snapshot', id: documentId, snapshotId };
-  }
+const PROJECT_LEVEL_FILES: Record<string, RemotePathKind> = {
+  'project.json': 'project',
+  [`elements${YJS_EXTENSION}`]: 'elements',
+  'media.json': 'media-index',
+};
+
+function parseProjectLevelFile(file: string): ParsedKindPart | null {
+  const kind = PROJECT_LEVEL_FILES[file];
+  return kind ? { kind } : null;
+}
+
+function parseFolderFile(folder: string, file: string): ParsedKindPart | null {
+  if (!file) return null;
+  if (folder === 'media') return { kind: 'media', id: file };
+  const id = stripSuffix(file, YJS_EXTENSION);
+  if (!id) return null;
+  if (folder === 'documents') return { kind: 'document', id };
+  if (folder === 'worldbuilding') return { kind: 'worldbuilding', id };
   return null;
+}
+
+function parseSnapshotFile(rest: string[]): ParsedKindPart | null {
+  const [folder, documentId, file] = rest;
+  if (folder !== 'snapshots' || !documentId) return null;
+  const snapshotId = stripSuffix(file, '.json');
+  return snapshotId ? { kind: 'snapshot', id: documentId, snapshotId } : null;
+}
+
+/** The name without `suffix`, or null when it lacks the suffix or is empty */
+function stripSuffix(file: string, suffix: string): string | null {
+  if (!file.endsWith(suffix)) return null;
+  const stem = file.slice(0, -suffix.length);
+  return stem || null;
 }
 
 /** Derive "username/slug" from a local document or worldbuilding doc id */

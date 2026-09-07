@@ -49,6 +49,7 @@ import { CloudSyncStateService } from './cloud-sync-state.service';
 import {
   RemoteAuthError,
   RemoteConflictError,
+  type RemoteFileInfo,
   RemoteFileNotFoundError,
   RemoteRateLimitError,
   type RemoteStore,
@@ -338,15 +339,31 @@ export class CloudSyncEngineService {
     const files = this.mirror.indexFiles(listing);
 
     let manifest = await this.readRemoteManifest(store);
-    const localProjects = this.localProjects.projects();
+    manifest = await this.applyLocalTombstones(store, manifest);
+    await this.adoptRemoteEntries(store, manifest);
+    const summaries = await this.mirrorActivatedProjects(store, files);
 
-    // Local deletions -> remote tombstones + folder removal
-    const tombstones = await this.projectSync.getAllTombstones();
-    for (const tombstone of tombstones) {
+    await this.writeManifest(store, this.applySummaries(manifest, summaries));
+    this.pendingProjects.set(new Set());
+    const pushed = summaries.reduce((n, s) => n + s.pushed, 0);
+    const pulled = summaries.reduce((n, s) => n + s.pulled, 0);
+    this.logger.info(
+      'CloudSync',
+      `Full pass complete: ${summaries.length} project(s), ${pushed} pushed, ${pulled} pulled`
+    );
+  }
+
+  /** Local deletions become remote tombstones and the remote folder goes */
+  private async applyLocalTombstones(
+    store: RemoteStore,
+    manifest: CloudManifest
+  ): Promise<CloudManifest> {
+    let next = manifest;
+    for (const tombstone of await this.projectSync.getAllTombstones()) {
       const parts = splitProjectKey(tombstone.projectKey);
       if (!parts) continue;
       await this.mirror.deleteRemoteProject(store, parts.username, parts.slug);
-      manifest = upsertManifestProject(manifest, {
+      next = upsertManifestProject(next, {
         key: tombstone.projectKey,
         slug: parts.slug,
         title: '',
@@ -356,8 +373,15 @@ export class CloudSyncEngineService {
       });
       await this.projectSync.removeTombstone(tombstone.projectKey);
     }
+    return next;
+  }
 
-    // Remote entries -> adopt new projects, apply remote deletions
+  /** Adopt projects created elsewhere as cards; apply remote deletions */
+  private async adoptRemoteEntries(
+    store: RemoteStore,
+    manifest: CloudManifest
+  ): Promise<void> {
+    const localProjects = this.localProjects.projects();
     for (const entry of manifest.projects) {
       const parts = splitProjectKey(entry.key);
       if (!parts) continue;
@@ -370,24 +394,7 @@ export class CloudSyncEngineService {
         }
         continue;
       }
-      if (!local) {
-        this.localProjects.importProjects([
-          {
-            id: `cloud-${crypto.randomUUID()}`,
-            slug: parts.slug,
-            username: parts.username,
-            title: entry.title,
-            description: entry.description ?? null,
-            coverImage: entry.coverMediaId ?? null,
-            createdDate: entry.createdAt,
-            updatedDate: entry.updatedAt,
-          },
-        ]);
-        this.logger.info(
-          'CloudSync',
-          `Adopted project ${entry.key} from cloud`
-        );
-      }
+      if (!local) this.adoptRemoteProject(entry, parts);
       if (entry.coverMediaId && !this.activation.isActivated(entry.key)) {
         await this.mirror.pullCover(
           store,
@@ -397,29 +404,46 @@ export class CloudSyncEngineService {
         );
       }
     }
+  }
 
-    // Mirror every activated project (new ones are activated where created)
+  private adoptRemoteProject(
+    entry: CloudManifestProject,
+    parts: { username: string; slug: string }
+  ): void {
+    this.localProjects.importProjects([
+      {
+        id: `cloud-${crypto.randomUUID()}`,
+        slug: parts.slug,
+        username: parts.username,
+        title: entry.title,
+        description: entry.description ?? null,
+        coverImage: entry.coverMediaId ?? null,
+        createdDate: entry.createdAt,
+        updatedDate: entry.updatedAt,
+      },
+    ]);
+    this.logger.info('CloudSync', `Adopted project ${entry.key} from cloud`);
+  }
+
+  /** Mirror every activated project (new ones are activated where created) */
+  private async mirrorActivatedProjects(
+    store: RemoteStore,
+    files: Map<string, RemoteFileInfo>
+  ): Promise<ProjectSyncSummary[]> {
     const summaries: ProjectSyncSummary[] = [];
     for (const project of this.localProjects.projects()) {
       const key = projectKeyOf(project.username, project.slug);
       if (!this.activation.isActivated(key)) continue;
-      const summary = await this.mirror.syncProject(
-        store,
-        project.username,
-        project.slug,
-        files
+      summaries.push(
+        await this.mirror.syncProject(
+          store,
+          project.username,
+          project.slug,
+          files
+        )
       );
-      summaries.push(summary);
     }
-
-    await this.writeManifest(store, this.applySummaries(manifest, summaries));
-    this.pendingProjects.set(new Set());
-    const pushed = summaries.reduce((n, s) => n + s.pushed, 0);
-    const pulled = summaries.reduce((n, s) => n + s.pulled, 0);
-    this.logger.info(
-      'CloudSync',
-      `Full pass complete: ${summaries.length} project(s), ${pushed} pushed, ${pulled} pulled`
-    );
+    return summaries;
   }
 
   private async removeLocalProject(
@@ -525,37 +549,47 @@ export class CloudSyncEngineService {
     manifest: CloudManifest
   ): Promise<void> {
     for (let attempt = 0; attempt < 3; attempt++) {
-      let remote: CloudManifest | null = null;
-      try {
-        const file = await store.get(CLOUD_MANIFEST_PATH);
-        this.manifestVersion = file.version;
-        remote = parseCloudManifest(new TextDecoder().decode(file.content));
-      } catch (error) {
-        if (!(error instanceof RemoteFileNotFoundError)) throw error;
-        this.manifestVersion = '';
-      }
-
-      if (remote && manifestsEquivalent(remote, manifest)) return;
+      const remote = await this.fetchManifestForWrite(store);
       const next = remote ? mergeCloudManifests(manifest, remote) : manifest;
       if (remote && manifestsEquivalent(remote, next)) return;
-
-      try {
-        const info = await store.put(
-          CLOUD_MANIFEST_PATH,
-          JSON.stringify(next, null, 2),
-          this.manifestVersion ? { ifVersion: this.manifestVersion } : undefined
-        );
-        this.manifestVersion = info.version;
-        return;
-      } catch (error) {
-        if (!(error instanceof RemoteConflictError)) throw error;
-        this.logger.debug(
-          'CloudSync',
-          'Manifest changed concurrently; retrying'
-        );
-      }
+      if (await this.tryPutManifest(store, next)) return;
+      this.logger.debug('CloudSync', 'Manifest changed concurrently; retrying');
     }
     throw new Error('Could not update the cloud manifest after retries');
+  }
+
+  /** Current remote manifest (null if absent), remembering its version tag */
+  private async fetchManifestForWrite(
+    store: RemoteStore
+  ): Promise<CloudManifest | null> {
+    try {
+      const file = await store.get(CLOUD_MANIFEST_PATH);
+      this.manifestVersion = file.version;
+      return parseCloudManifest(new TextDecoder().decode(file.content));
+    } catch (error) {
+      if (!(error instanceof RemoteFileNotFoundError)) throw error;
+      this.manifestVersion = '';
+      return null;
+    }
+  }
+
+  /** Write with optimistic concurrency; false on a version conflict */
+  private async tryPutManifest(
+    store: RemoteStore,
+    manifest: CloudManifest
+  ): Promise<boolean> {
+    try {
+      const info = await store.put(
+        CLOUD_MANIFEST_PATH,
+        JSON.stringify(manifest, null, 2),
+        this.manifestVersion ? { ifVersion: this.manifestVersion } : undefined
+      );
+      this.manifestVersion = info.version;
+      return true;
+    } catch (error) {
+      if (error instanceof RemoteConflictError) return false;
+      throw error;
+    }
   }
 
   // ───────────────────────────────────────────────────────────────────────────

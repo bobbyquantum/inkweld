@@ -6,7 +6,10 @@ import {
   LocalSnapshotService,
   type StoredSnapshot,
 } from '@services/local/local-snapshot.service';
-import { LocalStorageService } from '@services/local/local-storage.service';
+import {
+  LocalStorageService,
+  type MediaInfo,
+} from '@services/local/local-storage.service';
 import { MediaSyncService } from '@services/local/media-sync.service';
 import * as Y from 'yjs';
 
@@ -16,16 +19,19 @@ import {
   elementsPath,
   mediaIndexPath,
   mediaPath,
+  type ParsedRemotePath,
   parseRemotePath,
   projectFolder,
   projectJsonPath,
   projectKeyOf,
+  type RemotePathKind,
   snapshotPath,
   worldbuildingDocId,
   worldbuildingPath,
 } from './cloud-sync-layout';
 import { CloudSyncStateService } from './cloud-sync-state.service';
 import {
+  type RemoteFile,
   type RemoteFileInfo,
   RemoteFileNotFoundError,
   type RemoteStore,
@@ -61,6 +67,46 @@ interface RemoteSnapshotJson {
 /** Last segment of a local composite snapshot key "projectKey:documentId:snapshotId" */
 function snapshotIdOf(compositeId: string): string {
   return compositeId.slice(compositeId.lastIndexOf(':') + 1);
+}
+
+function toRemoteSnapshot(
+  snapshotId: string,
+  snap: StoredSnapshot
+): RemoteSnapshotJson {
+  return {
+    version: 1,
+    snapshotId,
+    documentId: snap.documentId,
+    name: snap.name,
+    description: snap.description,
+    xmlContent: snap.xmlContent,
+    worldbuildingData: snap.worldbuildingData,
+    wordCount: snap.wordCount,
+    metadata: snap.metadata,
+    createdAt: snap.createdAt,
+  };
+}
+
+/** Parsed remote paths of one kind that belong to the given project */
+function remoteEntriesOfKind(
+  files: Map<string, RemoteFileInfo>,
+  username: string,
+  slug: string,
+  kind: RemotePathKind
+): (ParsedRemotePath & { path: string })[] {
+  const out: (ParsedRemotePath & { path: string })[] = [];
+  for (const path of files.keys()) {
+    const parsed = parseRemotePath(path);
+    if (
+      parsed?.kind === kind &&
+      parsed.username === username &&
+      parsed.slug === slug &&
+      parsed.id
+    ) {
+      out.push({ ...parsed, path });
+    }
+  }
+  return out;
 }
 
 /** Remote project.json */
@@ -353,59 +399,94 @@ export class CloudProjectMirrorService {
   ): Promise<void> {
     const projectKey = projectKeyOf(username, slug);
     const local = await this.media.listMedia(projectKey);
-    const localIds = new Set(local.map(m => m.mediaId));
     const index = await this.readMediaIndex(store, username, slug);
-    const remoteIds = new Set<string>();
-    for (const [path] of files) {
-      const parsed = parseRemotePath(path);
-      if (
-        parsed?.kind === 'media' &&
-        parsed.username === username &&
-        parsed.slug === slug &&
-        parsed.id
-      ) {
-        remoteIds.add(parsed.id);
-      }
+    const remoteIds = new Set(
+      remoteEntriesOfKind(files, username, slug, 'media').map(p => p.id!)
+    );
+
+    const indexChanged = await this.uploadLocalOnlyMedia(
+      store,
+      username,
+      slug,
+      local,
+      remoteIds,
+      index,
+      files,
+      summary
+    );
+
+    const localIds = new Set(local.map(m => m.mediaId));
+    const downloaded = await this.downloadRemoteOnlyMedia(
+      store,
+      username,
+      slug,
+      [...remoteIds].filter(id => !localIds.has(id)),
+      index,
+      summary
+    );
+    if (downloaded > 0) {
+      this.mediaSync.mediaSyncVersion.update(v => v + 1);
     }
 
-    let indexChanged = false;
-
-    // Upload local-only media
-    for (const item of local) {
-      if (remoteIds.has(item.mediaId)) {
-        if (!index.items[item.mediaId]) {
-          index.items[item.mediaId] = {
-            mimeType: item.mimeType,
-            size: item.size,
-            filename: item.filename,
-            createdAt: item.createdAt,
-          };
-          indexChanged = true;
-        }
-        continue;
-      }
-      const blob = await this.media.getMedia(projectKey, item.mediaId);
-      if (!blob) continue;
-      const bytes = new Uint8Array(await blob.arrayBuffer());
+    if (indexChanged) {
       const info = await store.put(
-        mediaPath(username, slug, item.mediaId),
-        bytes
+        mediaIndexPath(username, slug),
+        JSON.stringify(index)
       );
       files.set(info.path, info);
-      index.items[item.mediaId] = {
-        mimeType: item.mimeType,
-        size: item.size,
-        filename: item.filename,
-        createdAt: item.createdAt,
-      };
-      indexChanged = true;
-      summary.pushed++;
     }
+  }
 
-    // Download remote-only media
+  /** Upload media the remote lacks; also backfill index entries. Returns whether the index changed. */
+  private async uploadLocalOnlyMedia(
+    store: RemoteStore,
+    username: string,
+    slug: string,
+    local: MediaInfo[],
+    remoteIds: Set<string>,
+    index: RemoteMediaIndex,
+    files: Map<string, RemoteFileInfo>,
+    summary: ProjectSyncSummary
+  ): Promise<boolean> {
+    const projectKey = projectKeyOf(username, slug);
+    let indexChanged = false;
+    for (const item of local) {
+      const alreadyRemote = remoteIds.has(item.mediaId);
+      if (!alreadyRemote) {
+        const blob = await this.media.getMedia(projectKey, item.mediaId);
+        if (!blob) continue;
+        const info = await store.put(
+          mediaPath(username, slug, item.mediaId),
+          new Uint8Array(await blob.arrayBuffer())
+        );
+        files.set(info.path, info);
+        summary.pushed++;
+      }
+      if (!alreadyRemote || !index.items[item.mediaId]) {
+        index.items[item.mediaId] = {
+          mimeType: item.mimeType,
+          size: item.size,
+          filename: item.filename,
+          createdAt: item.createdAt,
+        };
+        indexChanged = true;
+      }
+    }
+    return indexChanged;
+  }
+
+  /** Download media only the remote has. Returns how many were stored. */
+  private async downloadRemoteOnlyMedia(
+    store: RemoteStore,
+    username: string,
+    slug: string,
+    mediaIds: string[],
+    index: RemoteMediaIndex,
+    summary: ProjectSyncSummary
+  ): Promise<number> {
+    const projectKey = projectKeyOf(username, slug);
     let downloaded = 0;
-    for (const mediaId of remoteIds) {
-      if (localIds.has(mediaId)) continue;
+    for (const mediaId of mediaIds) {
       try {
         const file = await store.get(mediaPath(username, slug, mediaId));
         const meta = index.items[mediaId];
@@ -423,17 +504,7 @@ export class CloudProjectMirrorService {
         if (!(error instanceof RemoteFileNotFoundError)) throw error;
       }
     }
-    if (downloaded > 0) {
-      this.mediaSync.mediaSyncVersion.update(v => v + 1);
-    }
-
-    if (indexChanged) {
-      const info = await store.put(
-        mediaIndexPath(username, slug),
-        JSON.stringify(index)
-      );
-      files.set(info.path, info);
-    }
+    return downloaded;
   }
 
   /**
@@ -450,85 +521,72 @@ export class CloudProjectMirrorService {
   ): Promise<void> {
     const projectKey = projectKeyOf(username, slug);
     const local = await this.snapshots.getSnapshotsForExport(projectKey);
-    const localBySnapshotId = new Map<string, StoredSnapshot>();
-    for (const snap of local) {
-      localBySnapshotId.set(snapshotIdOf(snap.id), snap);
-    }
-
-    const remote = new Map<string, { documentId: string; path: string }>();
-    for (const [path] of files) {
-      const parsed = parseRemotePath(path);
-      if (
-        parsed?.kind === 'snapshot' &&
-        parsed.username === username &&
-        parsed.slug === slug &&
-        parsed.id &&
-        parsed.snapshotId
-      ) {
-        remote.set(parsed.snapshotId, { documentId: parsed.id, path });
-      }
-    }
+    const localBySnapshotId = new Map(
+      local.map(snap => [snapshotIdOf(snap.id), snap] as const)
+    );
+    const remotePaths = new Map(
+      remoteEntriesOfKind(files, username, slug, 'snapshot').map(
+        p => [p.snapshotId!, p.path] as const
+      )
+    );
 
     for (const [snapshotId, snap] of localBySnapshotId) {
-      if (remote.has(snapshotId)) continue;
-      const payload: RemoteSnapshotJson = {
-        version: 1,
-        snapshotId,
-        documentId: snap.documentId,
-        name: snap.name,
-        description: snap.description,
-        xmlContent: snap.xmlContent,
-        worldbuildingData: snap.worldbuildingData,
-        wordCount: snap.wordCount,
-        metadata: snap.metadata,
-        createdAt: snap.createdAt,
-      };
+      if (remotePaths.has(snapshotId)) continue;
       const info = await store.put(
         snapshotPath(username, slug, snap.documentId, snapshotId),
-        JSON.stringify(payload)
+        JSON.stringify(toRemoteSnapshot(snapshotId, snap))
       );
       files.set(info.path, info);
       summary.pushed++;
     }
 
-    for (const [snapshotId, entry] of remote) {
+    for (const [snapshotId, path] of remotePaths) {
       if (localBySnapshotId.has(snapshotId)) continue;
-      try {
-        const file = await store.get(entry.path);
-        const parsed = JSON.parse(
-          new TextDecoder().decode(file.content)
-        ) as Partial<RemoteSnapshotJson>;
-        if (
-          parsed.version !== 1 ||
-          typeof parsed.documentId !== 'string' ||
-          typeof parsed.name !== 'string' ||
-          typeof parsed.createdAt !== 'string'
-        ) {
-          this.logger.warn(
-            'CloudSync',
-            `Skipping unreadable snapshot ${entry.path}`
-          );
-          continue;
-        }
-        await this.snapshots.importSnapshot(
-          projectKey,
-          {
-            documentId: parsed.documentId,
-            name: parsed.name,
-            description: parsed.description,
-            xmlContent: parsed.xmlContent ?? '',
-            worldbuildingData: parsed.worldbuildingData,
-            wordCount: parsed.wordCount,
-            metadata: parsed.metadata,
-            createdAt: parsed.createdAt,
-          },
-          { snapshotId }
-        );
-        summary.pulled++;
-      } catch (error) {
-        if (!(error instanceof RemoteFileNotFoundError)) throw error;
-      }
+      const parsed = await this.readRemoteSnapshot(store, path);
+      if (!parsed) continue;
+      await this.snapshots.importSnapshot(
+        projectKey,
+        {
+          documentId: parsed.documentId,
+          name: parsed.name,
+          description: parsed.description,
+          xmlContent: parsed.xmlContent ?? '',
+          worldbuildingData: parsed.worldbuildingData,
+          wordCount: parsed.wordCount,
+          metadata: parsed.metadata,
+          createdAt: parsed.createdAt,
+        },
+        { snapshotId }
+      );
+      summary.pulled++;
     }
+  }
+
+  /** Download and validate one snapshot file; null when missing or unreadable */
+  private async readRemoteSnapshot(
+    store: RemoteStore,
+    path: string
+  ): Promise<RemoteSnapshotJson | null> {
+    let file: RemoteFile;
+    try {
+      file = await store.get(path);
+    } catch (error) {
+      if (error instanceof RemoteFileNotFoundError) return null;
+      throw error;
+    }
+    const parsed = JSON.parse(
+      new TextDecoder().decode(file.content)
+    ) as Partial<RemoteSnapshotJson>;
+    if (
+      parsed.version !== 1 ||
+      typeof parsed.documentId !== 'string' ||
+      typeof parsed.name !== 'string' ||
+      typeof parsed.createdAt !== 'string'
+    ) {
+      this.logger.warn('CloudSync', `Skipping unreadable snapshot ${path}`);
+      return null;
+    }
+    return parsed as RemoteSnapshotJson;
   }
 
   private async readMediaIndex(
@@ -585,7 +643,7 @@ export class CloudProjectMirrorService {
     }
 
     // Remote is newer (or we have no local entry): adopt it
-    if (remote && (!local || remote.updatedDate > local.updatedDate)) {
+    if (remote && remote.updatedDate > (local?.updatedDate ?? '')) {
       const changed =
         !local ||
         local.title !== remote.title ||
