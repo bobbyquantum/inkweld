@@ -179,6 +179,25 @@ describe('PublishPlansListTabComponent', () => {
     expect(component.lastPublished(testPlan.id)?.id).toBe('f-new');
   });
 
+  it('should not map legacy files by name when two plans share it', async () => {
+    const twin = { ...createDefaultPublishPlan('T', 'A'), name: testPlan.name };
+    mockProjectState.publishPlans.set([testPlan, twin]);
+    mockPublishedFilesService.loadFiles.mockResolvedValueOnce([
+      {
+        id: 'f-old',
+        planName: testPlan.name,
+        createdAt: '2024-01-01T00:00:00.000Z',
+        filename: 'old.epub',
+        size: 1,
+      },
+    ]);
+    await component['loadPublishHistory']();
+
+    expect(component.getHistoryForPlan(testPlan.id)).toEqual([]);
+    expect(component.getHistoryForPlan(twin.id)).toEqual([]);
+    expect(component.getHistoryForPlan(testPlan.name)).toHaveLength(1);
+  });
+
   it('should report null when a plan was never published', () => {
     expect(component.lastPublished(testPlan.id)).toBeNull();
     const badge = fixture.nativeElement.querySelector(

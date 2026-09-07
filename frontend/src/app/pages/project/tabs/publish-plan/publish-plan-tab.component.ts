@@ -75,6 +75,14 @@ import { firstValueFrom, type Subscription } from 'rxjs';
 
 import { FileSizePipe } from '../../../../pipes/file-size.pipe';
 
+/** Element types that never produce publishable text output. */
+const NON_PUBLISHABLE_TYPES: ElementType[] = [
+  ElementType.Folder,
+  ElementType.Canvas,
+  ElementType.Timeline,
+  ElementType.RelationshipChart,
+];
+
 type PlanSection =
   'metadata' | 'contents' | 'formatting' | 'publish' | 'preview';
 
@@ -584,18 +592,32 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
         'publish.planEditor.addDocumentsSubtitle'
       ),
       excludeIds: alreadyAdded,
-      excludeTypes: [ElementType.Folder],
+      excludeTypes: NON_PUBLISHABLE_TYPES,
     });
     if (!result || result.elements.length === 0) return;
 
-    const newItems: PublishPlanItem[] = result.elements.map(element => ({
-      id: crypto.randomUUID(),
-      type: PublishPlanItemType.Element,
-      elementId: element.id,
-      includeChildren: false,
-      isChapter: true,
-    }));
-    this.updatePlan({ items: [...plan.items, ...newItems] });
+    // The plan may have changed (or the route moved on) while the picker was
+    // open; append to the current plan rather than the captured snapshot.
+    const current = this.plan();
+    if (!current || current.id !== plan.id) return;
+    const currentIds = new Set(this.planElementIds(current));
+
+    const newItems: PublishPlanItem[] = result.elements
+      .filter(
+        element =>
+          !currentIds.has(element.id) &&
+          (element.type === ElementType.Item ||
+            isWorldbuildingType(element.type))
+      )
+      .map(element => ({
+        id: crypto.randomUUID(),
+        type: PublishPlanItemType.Element,
+        elementId: element.id,
+        includeChildren: false,
+        isChapter: true,
+      }));
+    if (newItems.length === 0) return;
+    this.updatePlan({ items: [...current.items, ...newItems] });
   }
 
   /** Walk the element tree in order, adding all non-folder elements */

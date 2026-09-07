@@ -58,7 +58,7 @@
   width: 280px;
   min-width: 280px;
   border-right: 1px solid var(--sys-outline-variant);
-  overflow-y: auto;
+  overflow: hidden;
   padding: 1.5em;
   display: flex;
   flex-direction: column;
@@ -103,6 +103,7 @@
     padding: 8px;
     flex: 1;
     min-height: 0;
+    overflow-y: auto;
 
     .mat-mdc-list-item {
       border-radius: 8px;

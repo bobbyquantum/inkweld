@@ -188,6 +188,15 @@ describe('PublishPlanStatsService', () => {
       expect(getDocumentContent).toHaveBeenCalledTimes(2);
     });
 
+    it('expands folder ids to their descendant documents', async () => {
+      service.ensureCounted(['folder', 'doc-c']);
+      await flush();
+      service.invalidate(['folder']);
+      expect(service.wordCounts().has('doc-a')).toBe(false);
+      expect(service.wordCounts().has('doc-b')).toBe(false);
+      expect(service.wordCounts().has('doc-c')).toBe(true);
+    });
+
     it('drops only the given ids', async () => {
       service.ensureCounted(['doc-a', 'doc-c']);
       await flush();
@@ -214,6 +223,8 @@ describe('PublishPlanStatsService', () => {
         entries: 0,
         loading: false,
         unavailable: false,
+        loadingDocuments: 0,
+        unavailableDocuments: 0,
       });
     });
 
@@ -237,6 +248,8 @@ describe('PublishPlanStatsService', () => {
         entries: 1,
         loading: false,
         unavailable: false,
+        loadingDocuments: 0,
+        unavailableDocuments: 0,
       });
     });
 
@@ -261,7 +274,24 @@ describe('PublishPlanStatsService', () => {
         entries: 0,
         loading: false,
         unavailable: false,
+        loadingDocuments: 0,
+        unavailableDocuments: 0,
       });
+    });
+
+    it('counts pending and unavailable documents under a folder', async () => {
+      hasLocalContent.mockImplementation(id =>
+        Promise.resolve(!id.endsWith('doc-a'))
+      );
+      service.ensureCounted(['folder']);
+      const item = elementItem('folder', { includeChildren: true });
+      expect(service.itemStats(item, elements).loadingDocuments).toBe(2);
+
+      await flush();
+      const stats = service.itemStats(item, elements);
+      expect(stats.loadingDocuments).toBe(0);
+      expect(stats.unavailableDocuments).toBe(1);
+      expect(stats.unavailable).toBe(true);
     });
 
     it('reports nothing for non-element items', () => {
@@ -322,13 +352,23 @@ describe('PublishPlanStatsService', () => {
       );
       service.ensureCounted(['doc-c', 'folder']);
       const before = service.summary(plan, elements);
-      expect(before.loading).toBe(2);
+      // doc-c plus doc-a and doc-b under the folder
+      expect(before.loading).toBe(3);
 
       await flush();
       const after = service.summary(plan, elements);
       expect(after.loading).toBe(0);
       expect(after.unavailable).toBe(1);
       expect(after.words).toBe(6);
+    });
+
+    it('counts documents, not rows, for loading and unavailable totals', async () => {
+      hasLocalContent.mockImplementation(() => Promise.resolve(false));
+      service.ensureCounted(['doc-c', 'folder']);
+      // doc-c + doc-a + doc-b are all pending: three documents across two rows
+      expect(service.summary(plan, elements).loading).toBe(3);
+      await flush();
+      expect(service.summary(plan, elements).unavailable).toBe(3);
     });
   });
 });

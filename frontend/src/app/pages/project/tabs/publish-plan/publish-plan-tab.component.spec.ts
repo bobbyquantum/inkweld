@@ -81,6 +81,8 @@ describe('PublishPlanTabComponent', () => {
     entries: 0,
     loading: false,
     unavailable: false,
+    loadingDocuments: 0,
+    unavailableDocuments: 0,
   };
 
   beforeEach(async () => {
@@ -1372,9 +1374,57 @@ describe('PublishPlanTabComponent', () => {
       expect(mockDialogGateway.openElementPickerDialog).toHaveBeenCalledWith(
         expect.objectContaining({
           excludeIds: ['elem-1'],
-          excludeTypes: [ElementType.Folder],
+          excludeTypes: expect.arrayContaining([
+            ElementType.Folder,
+            ElementType.Canvas,
+            ElementType.Timeline,
+          ]),
         })
       );
+    });
+
+    it('should ignore picked elements that cannot be published', async () => {
+      mockDialogGateway.openElementPickerDialog.mockResolvedValue({
+        elements: [
+          { id: 'canvas-1', name: 'Board', type: ElementType.Canvas },
+          { id: 'wb-1', name: 'Hero', type: ElementType.Worldbuilding },
+        ],
+      });
+      await component.addDocuments();
+      const ids = (currentPlan()!.items as ElementItem[]).map(i => i.elementId);
+      expect(ids).toEqual(['wb-1']);
+    });
+
+    it('should append to the current plan when it changed while picking', async () => {
+      component.addElement('elem-1');
+      let resolvePicker!: (value: unknown) => void;
+      mockDialogGateway.openElementPickerDialog.mockReturnValue(
+        new Promise(r => (resolvePicker = r))
+      );
+      const pending = component.addDocuments();
+      // Another change lands while the picker is open
+      component.addElement('elem-2');
+      resolvePicker({
+        elements: [{ id: 'elem-3', name: 'Chapter 3', type: ElementType.Item }],
+      });
+      await pending;
+      const ids = (currentPlan()!.items as ElementItem[]).map(i => i.elementId);
+      expect(ids).toEqual(['elem-1', 'elem-2', 'elem-3']);
+    });
+
+    it('should do nothing when the plan was swapped while picking', async () => {
+      let resolvePicker!: (value: unknown) => void;
+      mockDialogGateway.openElementPickerDialog.mockReturnValue(
+        new Promise(r => (resolvePicker = r))
+      );
+      const pending = component.addDocuments();
+      const other = createDefaultPublishPlan('Other', 'A');
+      currentPlan.set(other);
+      resolvePicker({
+        elements: [{ id: 'elem-3', name: 'Chapter 3', type: ElementType.Item }],
+      });
+      await pending;
+      expect(currentPlan()!.items).toHaveLength(0);
     });
 
     it('should leave the plan alone when the picker is cancelled', async () => {

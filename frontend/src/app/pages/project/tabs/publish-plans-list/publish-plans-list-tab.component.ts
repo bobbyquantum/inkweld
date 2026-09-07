@@ -72,9 +72,18 @@ export class PublishPlansListTabComponent implements OnInit {
       const projectKey = `${project.username}/${project.slug}`;
       const files = await this.publishedFilesService.loadFiles(projectKey);
       const grouped = new Map<string, PublishedFile[]>();
-      const plansByName = new Map(this.plans().map(p => [p.name, p.id]));
+      // Older files predate planId; they fall back to matching by plan
+      // name, but only when exactly one plan carries that name.
+      const nameCounts = new Map<string, number>();
+      for (const plan of this.plans()) {
+        nameCounts.set(plan.name, (nameCounts.get(plan.name) ?? 0) + 1);
+      }
+      const plansByName = new Map(
+        this.plans()
+          .filter(p => nameCounts.get(p.name) === 1)
+          .map(p => [p.name, p.id])
+      );
       for (const file of files) {
-        // Older files predate planId; fall back to matching by plan name
         const key =
           file.planId ||
           (file.planName && plansByName.get(file.planName)) ||

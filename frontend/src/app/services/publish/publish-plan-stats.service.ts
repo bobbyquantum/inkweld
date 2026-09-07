@@ -42,6 +42,10 @@ export interface PlanItemStats {
   loading: boolean;
   /** True when any contributing document is not available locally. */
   unavailable: boolean;
+  /** Number of contributing documents still being counted. */
+  loadingDocuments: number;
+  /** Number of contributing documents not available locally. */
+  unavailableDocuments: number;
 }
 
 /** Aggregate statistics for the whole plan. */
@@ -107,15 +111,24 @@ export class PublishPlanStatsService {
     }
   }
 
-  /** Drop cached counts (all, or for the given element ids). */
+  /**
+   * Drop cached counts (all, or for the given element ids). Folder ids are
+   * expanded to their descendant documents, mirroring {@link ensureCounted}.
+   */
   invalidate(elementIds?: Iterable<string>): void {
     if (!elementIds) {
       this.counts.set(new Map());
       return;
     }
+    const elements = this.projectState.elements();
     this.counts.update(map => {
       const next = new Map(map);
-      for (const id of elementIds) next.delete(id);
+      for (const id of elementIds) {
+        next.delete(id);
+        for (const doc of this.documentsUnder(id, elements)) {
+          next.delete(doc.id);
+        }
+      }
       return next;
     });
   }
@@ -132,6 +145,8 @@ export class PublishPlanStatsService {
       entries: 0,
       loading: false,
       unavailable: false,
+      loadingDocuments: 0,
+      unavailableDocuments: 0,
     };
     if (item.type !== PublishPlanItemType.Element) return stats;
 
@@ -159,8 +174,10 @@ export class PublishPlanStatsService {
       const entry = counts.get(doc.id);
       if (!entry || entry.status === 'loading') {
         stats.loading = true;
+        stats.loadingDocuments++;
       } else if (entry.status === 'unavailable') {
         stats.unavailable = true;
+        stats.unavailableDocuments++;
       } else {
         total += entry.words;
         counted = true;
@@ -196,8 +213,8 @@ export class PublishPlanStatsService {
       summary.documents += stats.documents;
       summary.entries += stats.entries;
       summary.words += stats.words ?? 0;
-      if (stats.loading) summary.loading++;
-      if (stats.unavailable) summary.unavailable++;
+      summary.loading += stats.loadingDocuments;
+      summary.unavailable += stats.unavailableDocuments;
     }
 
     summary.estimatedPages = Math.ceil(summary.words / WORDS_PER_PAGE);
