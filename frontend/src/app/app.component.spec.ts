@@ -313,6 +313,29 @@ describe('AppComponent', () => {
       expect((component as any).offlineMode()).toBe(false);
     });
 
+    it('lets the cloud sync callback through when the app is not yet configured', async () => {
+      setupService.checkConfiguration.mockReturnValue(false);
+      const router = TestBed.inject(Router);
+      const originalPathname = window.location.pathname;
+      Object.defineProperty(window, 'location', {
+        value: { ...window.location, pathname: '/cloud-sync/callback/dropbox' },
+        writable: true,
+      });
+
+      vi.clearAllMocks();
+      component.ngOnInit();
+      await fixture.whenStable();
+
+      // No redirect: the callback page is what creates the configuration
+      expect(router.navigate).not.toHaveBeenCalledWith(['/setup']);
+      expect(unifiedUserService.initialize).not.toHaveBeenCalled();
+
+      Object.defineProperty(window, 'location', {
+        value: { ...window.location, pathname: originalPathname },
+        writable: true,
+      });
+    });
+
     it.each<[string]>([['/register'], ['/welcome'], ['/approval-pending']])(
       'should skip user loading on %s page',
       async pathname => {

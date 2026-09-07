@@ -113,10 +113,20 @@ export class AppComponent implements OnInit {
 
   private async initializeApp(): Promise<void> {
     try {
+      // Use window.location.pathname because this.router.url is still '/'
+      // during bootstrap before the router resolves the actual URL.
+      const currentPath = globalThis.location.pathname;
+
+      // The cloud sync OAuth callback is what *creates* the configuration on
+      // a fresh browser, so it must be allowed through unconfigured.
+      const isCloudSyncCallback = currentPath.startsWith(
+        '/cloud-sync/callback'
+      );
+
       // Check if app is configured
       const isConfigured = this.setupService.checkConfiguration();
 
-      if (!isConfigured) {
+      if (!isConfigured && !isCloudSyncCallback) {
         // Redirect to setup if not configured
         await this.router.navigate(['/setup']);
         return;
@@ -125,15 +135,12 @@ export class AppComponent implements OnInit {
       // Skip user initialization if we're on registration-related pages
       // This prevents session expired errors for users who just registered
       // but need approval or are being redirected.
-      // Use window.location.pathname because this.router.url is still '/'
-      // during bootstrap before the router resolves the actual URL.
-      const currentPath = globalThis.location.pathname;
       const skipUserLoading =
         currentPath.startsWith('/register') ||
         currentPath.startsWith('/welcome') ||
         currentPath.startsWith('/approval-pending') ||
         currentPath.startsWith('/oauth') ||
-        currentPath.startsWith('/cloud-sync/callback');
+        isCloudSyncCallback;
 
       if (!skipUserLoading) {
         // Initialize user service based on mode
