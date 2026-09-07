@@ -131,8 +131,13 @@ describe('CloudSyncEngineService', () => {
     return text ? parseCloudManifest(text) : null;
   }
 
+  let onLineSpy: ReturnType<typeof vi.spyOn>;
+
   beforeEach(() => {
     vi.useFakeTimers();
+    // Other spec files (shared environment) may leave navigator.onLine
+    // stubbed false; the engine treats that as offline and skips syncing.
+    onLineSpy = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);
     store = new InMemoryRemoteStore();
     mode = 'cloud';
     hasCredentials = true;
@@ -218,6 +223,7 @@ describe('CloudSyncEngineService', () => {
   });
 
   afterEach(() => {
+    onLineSpy.mockRestore();
     vi.useRealTimers();
   });
 
@@ -544,12 +550,11 @@ describe('CloudSyncEngineService', () => {
   });
 
   it('reports offline instead of syncing when the browser is offline', async () => {
-    const onLine = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+    onLineSpy.mockReturnValue(false);
     engine.initialize();
     await engine.syncNow();
 
     expect(engine.status()).toBe('offline');
     expect(mirror.syncProject).not.toHaveBeenCalled();
-    onLine.mockRestore();
   });
 });
