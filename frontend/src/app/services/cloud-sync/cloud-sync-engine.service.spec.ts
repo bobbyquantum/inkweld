@@ -37,7 +37,11 @@ import {
 import { CloudSyncConnectService } from './cloud-sync-connect.service';
 import { CloudSyncEngineService } from './cloud-sync-engine.service';
 import { CloudSyncStateService } from './cloud-sync-state.service';
-import { RemoteAuthError, type RemoteFileInfo } from './remote-store.interface';
+import {
+  RemoteAuthError,
+  type RemoteFileInfo,
+  RemoteRateLimitError,
+} from './remote-store.interface';
 import { InMemoryRemoteStore } from './testing/in-memory-remote-store';
 
 describe('CloudSyncEngineService', () => {
@@ -458,6 +462,26 @@ describe('CloudSyncEngineService', () => {
     expect(engine.status()).toBe('disconnected');
     expect(connect.disconnect).toHaveBeenCalledWith('cloud-dropbox-abc');
     expect(engine.lastError()).toMatch(/authorization/i);
+  });
+
+  it('backs off and retries when the provider rate limits', async () => {
+    mirror.syncProject
+      .mockRejectedValueOnce(new RemoteRateLimitError(5_000))
+      .mockImplementation((_s, username: string, slug: string) =>
+        Promise.resolve(summaryFor(`${username}/${slug}`))
+      );
+    engine.initialize({ runStartupPass: false });
+    await engine.syncNow();
+
+    expect(engine.status()).toBe('idle');
+    expect(engine.lastError()).toBeNull();
+    expect(connect.disconnect).not.toHaveBeenCalled();
+    const callsBefore = mirror.syncProject.mock.calls.length;
+
+    await vi.advanceTimersByTimeAsync(5_100);
+
+    expect(mirror.syncProject.mock.calls.length).toBeGreaterThan(callsBefore);
+    expect(engine.status()).toBe('synced');
   });
 
   it('reports other failures without giving up credentials', async () => {

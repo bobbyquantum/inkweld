@@ -50,6 +50,7 @@ import {
   RemoteAuthError,
   RemoteConflictError,
   RemoteFileNotFoundError,
+  RemoteRateLimitError,
   type RemoteStore,
 } from './remote-store.interface';
 
@@ -120,6 +121,7 @@ export class CloudSyncEngineService {
   private debounceTimer: ReturnType<typeof setTimeout> | null = null;
   private periodicTimer: ReturnType<typeof setInterval> | null = null;
   private lastFullPassAt = 0;
+  private retryTimer: ReturnType<typeof setTimeout> | null = null;
   private elementsListener: { doc: Y.Doc; handler: () => void } | null = null;
   private manifestVersion = '';
 
@@ -259,6 +261,7 @@ export class CloudSyncEngineService {
       window.removeEventListener('offline', onOffline);
       document.removeEventListener('visibilitychange', onVisibility);
       if (this.periodicTimer) clearInterval(this.periodicTimer);
+      if (this.retryTimer) clearTimeout(this.retryTimer);
       editSub.unsubscribe();
       wbSub.unsubscribe();
       this.detachElementsListener();
@@ -572,6 +575,22 @@ export class CloudSyncEngineService {
   }
 
   private handleError(error: unknown): void {
+    if (error instanceof RemoteRateLimitError) {
+      // Not a failure: the provider wants a pause. Keep the status calm and
+      // try again after the interval it asked for.
+      this.status.set(this.lastSyncAt() ? 'synced' : 'idle');
+      this.lastError.set(null);
+      this.logger.debug(
+        'CloudSync',
+        `Rate limited; retrying in ${Math.round(error.retryAfterMs / 1000)}s`
+      );
+      if (this.retryTimer) clearTimeout(this.retryTimer);
+      this.retryTimer = setTimeout(() => {
+        this.retryTimer = null;
+        void this.syncAll('rate-limit retry', { force: true });
+      }, error.retryAfterMs);
+      return;
+    }
     if (error instanceof RemoteAuthError) {
       this.status.set('disconnected');
       this.lastError.set(error.message);

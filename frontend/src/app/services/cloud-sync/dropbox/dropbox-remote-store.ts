@@ -6,6 +6,7 @@ import {
   type RemoteFile,
   type RemoteFileInfo,
   RemoteFileNotFoundError,
+  RemoteRateLimitError,
   type RemoteStore,
 } from '../remote-store.interface';
 import {
@@ -157,6 +158,9 @@ export class DropboxRemoteStore implements RemoteStore {
   ): never | undefined {
     if (error instanceof DropboxApiError) {
       if (error.isAuthError) throw new RemoteAuthError();
+      if (error.isRateLimited) {
+        throw new RemoteRateLimitError((error.retryAfterSeconds ?? 10) * 1000);
+      }
       if (error.isConflict) throw new RemoteConflictError(path);
       if (error.isNotFound) {
         if (options.notFoundAsEmpty) return undefined;

@@ -164,6 +164,39 @@ describe('dropbox-api', () => {
       expect(make(409, 'path/conflict/file/..').isConflict).toBe(true);
     });
 
+    it('flags throttling and reads Retry-After', async () => {
+      const fetchFn = vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            error_summary: 'too_many_requests/..',
+            error: { reason: { '.tag': 'too_many_requests' }, retry_after: 7 },
+          }),
+          { status: 429, headers: { 'Retry-After': '12' } }
+        )
+      );
+      const error = await dropboxRpc('t', '/x', {}, fetchFn).catch(e => e);
+      expect(error).toBeInstanceOf(DropboxApiError);
+      expect((error as DropboxApiError).isRateLimited).toBe(true);
+      expect((error as DropboxApiError).retryAfterSeconds).toBe(12);
+    });
+
+    it('falls back to retry_after in the body', async () => {
+      const fetchFn = vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            error_summary: 'too_many_write_operations/..',
+            error: { '.tag': 'too_many_write_operations', retry_after: 3 },
+          }),
+          { status: 429 }
+        )
+      );
+      const error = (await dropboxRpc('t', '/x', {}, fetchFn).catch(
+        e => e
+      )) as DropboxApiError;
+      expect(error.isRateLimited).toBe(true);
+      expect(error.retryAfterSeconds).toBe(3);
+    });
+
     it('parses error_summary from a failed response', async () => {
       const fetchFn = vi
         .fn()

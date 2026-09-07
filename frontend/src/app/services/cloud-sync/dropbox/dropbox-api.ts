@@ -47,7 +47,9 @@ export class DropboxApiError extends Error {
     public readonly status: number,
     public readonly summary: string,
     public readonly body: unknown,
-    public readonly endpoint = ''
+    public readonly endpoint = '',
+    /** Seconds the server asked us to wait, from Retry-After or the error body */
+    public readonly retryAfterSeconds?: number
   ) {
     super(
       endpoint
@@ -70,6 +72,15 @@ export class DropboxApiError extends Error {
   /** True for a rev mismatch on an "update" write mode */
   get isConflict(): boolean {
     return this.summary.includes('conflict');
+  }
+
+  /** True when Dropbox is throttling us (429, or a too_many_* error) */
+  get isRateLimited(): boolean {
+    return (
+      this.status === 429 ||
+      this.summary.includes('too_many_requests') ||
+      this.summary.includes('too_many_write_operations')
+    );
   }
 }
 
@@ -112,7 +123,26 @@ async function throwForResponse(
   } catch {
     summary = text || summary;
   }
-  throw new DropboxApiError(response.status, summary, body ?? text, endpoint);
+  const retryAfter = readRetryAfterSeconds(response, body);
+  throw new DropboxApiError(
+    response.status,
+    summary,
+    body ?? text,
+    endpoint,
+    retryAfter
+  );
+}
+
+/** Retry-After header wins; Dropbox also puts `retry_after` in some bodies */
+function readRetryAfterSeconds(
+  response: Response,
+  body: unknown
+): number | undefined {
+  const header = response.headers.get('Retry-After');
+  if (header && /^\d+$/.test(header.trim())) return Number(header);
+  const fromBody = (body as { error?: { retry_after?: unknown } } | null)?.error
+    ?.retry_after;
+  return typeof fromBody === 'number' ? fromBody : undefined;
 }
 
 /** Exchange an authorization code for tokens (PKCE, no client secret) */

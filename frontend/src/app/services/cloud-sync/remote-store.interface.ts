@@ -26,6 +26,16 @@ export class RemoteFileNotFoundError extends Error {
   }
 }
 
+/** The provider asked us to slow down; retry after `retryAfterMs` */
+export class RemoteRateLimitError extends Error {
+  constructor(public readonly retryAfterMs: number) {
+    super(
+      `Cloud storage rate limited; retry in ${Math.round(retryAfterMs / 1000)}s`
+    );
+    this.name = 'RemoteRateLimitError';
+  }
+}
+
 export class RemoteAuthError extends Error {
   constructor(message = 'Cloud storage authorization expired') {
     super(message);

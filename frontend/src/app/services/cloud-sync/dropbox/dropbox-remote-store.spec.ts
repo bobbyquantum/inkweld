@@ -4,6 +4,7 @@ import {
   RemoteAuthError,
   RemoteConflictError,
   RemoteFileNotFoundError,
+  RemoteRateLimitError,
 } from '../remote-store.interface';
 import { DropboxRemoteStore } from './dropbox-remote-store';
 
@@ -145,6 +146,22 @@ describe('DropboxRemoteStore', () => {
       );
     });
 
+    it('maps throttling to RemoteRateLimitError with the requested delay', async () => {
+      const fetchFn = vi
+        .fn()
+        .mockResolvedValue(
+          new Response(
+            JSON.stringify({ error_summary: 'too_many_requests/', error: {} }),
+            { status: 429, headers: { 'Retry-After': '5' } }
+          )
+        );
+      const error = (await createStore(fetchFn)
+        .get('/x')
+        .catch(e => e)) as RemoteRateLimitError;
+      expect(error).toBeInstanceOf(RemoteRateLimitError);
+      expect(error.retryAfterMs).toBe(5000);
+    });
+
     it('throws RemoteAuthError when the token is rejected', async () => {
       const fetchFn = vi
         .fn()
@@ -193,17 +210,16 @@ describe('DropboxRemoteStore', () => {
   });
 
   describe('delete', () => {
-    it('ignores already-deleted files and rethrows other errors', async () => {
+    it('ignores already-deleted files and maps throttling', async () => {
       const fetchFn = vi
         .fn()
         .mockResolvedValueOnce(dropboxError('path_lookup/not_found/...'))
         .mockResolvedValueOnce(dropboxError('too_many_write_operations', 429));
       const store = createStore(fetchFn);
       await expect(store.delete('/gone')).resolves.toBeUndefined();
-      await expect(store.delete('/busy')).rejects.toMatchObject({
-        name: 'DropboxApiError',
-        status: 429,
-      });
+      await expect(store.delete('/busy')).rejects.toBeInstanceOf(
+        RemoteRateLimitError
+      );
     });
   });
 });

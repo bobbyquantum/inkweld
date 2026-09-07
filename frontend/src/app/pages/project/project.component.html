@@ -64,9 +64,9 @@
         <!-- Connection Status -->
         @defer (on idle) {
           <app-connection-status
-            [syncState]="projectSyncState()"
-            [lastError]="lastConnectionError()"
-            [isLocalMode]="isLocalMode()"
+            [syncState]="stripSyncState()"
+            [lastError]="stripLastError()"
+            [isLocalMode]="stripIsLocalMode()"
             [elementsDocId]="elementsDocId()"
             [strap]="true"
             (syncRequested)="onRetrySyncConnection()"
@@ -240,9 +240,9 @@
               <div class="collapsed-sidebar-bottom">
                 @defer (on idle) {
                   <app-connection-status
-                    [syncState]="projectSyncState()"
-                    [lastError]="lastConnectionError()"
-                    [isLocalMode]="isLocalMode()"
+                    [syncState]="stripSyncState()"
+                    [lastError]="stripLastError()"
+                    [isLocalMode]="stripIsLocalMode()"
                     [elementsDocId]="elementsDocId()"
                     [collapsed]="true"
                     (syncRequested)="onRetrySyncConnection()"
@@ -317,9 +317,9 @@
               <!-- Connection Status -->
               @defer (on idle) {
                 <app-connection-status
-                  [syncState]="projectSyncState()"
-                  [lastError]="lastConnectionError()"
-                  [isLocalMode]="isLocalMode()"
+                  [syncState]="stripSyncState()"
+                  [lastError]="stripLastError()"
+                  [isLocalMode]="stripIsLocalMode()"
                   [elementsDocId]="elementsDocId()"
                   [strap]="true"
                   (syncRequested)="onRetrySyncConnection()"
