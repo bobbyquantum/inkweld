@@ -2,6 +2,7 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CloudSyncConnectService } from '@services/cloud-sync/cloud-sync-connect.service';
+import { CloudSyncEngineService } from '@services/cloud-sync/cloud-sync-engine.service';
 import { LoggerService } from '@services/core/logger.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -16,6 +17,10 @@ describe('CloudSyncCallbackComponent', () => {
   let connect: { completeAuthorization: ReturnType<typeof vi.fn> };
   let router: { navigate: ReturnType<typeof vi.fn> };
   let userService: { initialize: ReturnType<typeof vi.fn> };
+  let engine: {
+    initialize: ReturnType<typeof vi.fn>;
+    syncNow: ReturnType<typeof vi.fn>;
+  };
 
   async function setup(): Promise<void> {
     await TestBed.configureTestingModule({
@@ -34,6 +39,7 @@ describe('CloudSyncCallbackComponent', () => {
         { provide: Router, useValue: router },
         { provide: CloudSyncConnectService, useValue: connect },
         { provide: UnifiedUserService, useValue: userService },
+        { provide: CloudSyncEngineService, useValue: engine },
         {
           provide: LoggerService,
           useValue: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
@@ -50,6 +56,10 @@ describe('CloudSyncCallbackComponent', () => {
     connect = { completeAuthorization: vi.fn() };
     router = { navigate: vi.fn().mockResolvedValue(true) };
     userService = { initialize: vi.fn().mockResolvedValue(undefined) };
+    engine = {
+      initialize: vi.fn(),
+      syncNow: vi.fn().mockResolvedValue(undefined),
+    };
   });
 
   it('navigates home when the account already has a manifest', async () => {
@@ -66,6 +76,23 @@ describe('CloudSyncCallbackComponent', () => {
       'state-1'
     );
     expect(userService.initialize).toHaveBeenCalled();
+    // Projects are fetched before the bookshelf opens
+    expect(engine.initialize).toHaveBeenCalledWith({ runStartupPass: false });
+    expect(engine.syncNow).toHaveBeenCalled();
+    expect(component.statusMessage()).toBe('Fetching your projects from');
+    expect(router.navigate).toHaveBeenCalledWith(['/'], { replaceUrl: true });
+    expect(component.errorMessage()).toBe('');
+  });
+
+  it('still opens the bookshelf when the initial sync fails', async () => {
+    connect.completeAuthorization.mockResolvedValue({ kind: 'configured' });
+    engine.syncNow.mockRejectedValue(new Error('rate limited'));
+    await setup();
+
+    fixture.detectChanges();
+    await fixture.whenStable();
+    await vi.waitFor(() => expect(router.navigate).toHaveBeenCalled());
+
     expect(router.navigate).toHaveBeenCalledWith(['/'], { replaceUrl: true });
     expect(component.errorMessage()).toBe('');
   });
@@ -85,6 +112,7 @@ describe('CloudSyncCallbackComponent', () => {
       queryParams: { cloud: 'dropbox' },
     });
     expect(userService.initialize).not.toHaveBeenCalled();
+    expect(engine.initialize).not.toHaveBeenCalled();
   });
 
   it('shows a friendly message when the user cancelled at the provider', async () => {

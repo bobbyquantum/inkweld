@@ -14,12 +14,11 @@ export function base64UrlEncode(bytes: ArrayBuffer | Uint8Array): string {
   const view = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
   let binary = '';
   for (const byte of view) {
-    binary += String.fromCharCode(byte);
+    binary += String.fromCodePoint(byte);
   }
-  return btoa(binary)
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/, '');
+  let encoded = btoa(binary).replaceAll('+', '-').replaceAll('/', '_');
+  while (encoded.endsWith('=')) encoded = encoded.slice(0, -1);
+  return encoded;
 }
 
 /**

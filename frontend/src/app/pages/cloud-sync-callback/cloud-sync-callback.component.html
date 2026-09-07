@@ -12,6 +12,8 @@
     </div>
   } @else {
     <mat-spinner diameter="40"></mat-spinner>
-    <p>Connecting to {{ providerName() }}…</p>
+    <p data-testid="cloud-sync-callback-status">
+      {{ statusMessage() }} {{ providerName() }}…
+    </p>
   }
 </div>

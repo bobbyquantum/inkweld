@@ -370,7 +370,18 @@
             <!-- Collaborated Projects Section -->
 
             <!-- All Projects Section (owned + shared) -->
-            @if (allProjects().length === 0 && !searchForm.search().value()) {
+            @if (
+              allProjects().length === 0 &&
+              !searchForm.search().value() &&
+              cloudSyncing()
+            ) {
+              <div class="loading-state" data-testid="cloud-syncing-state">
+                <mat-spinner diameter="40" />
+                <p>{{ 'home.cloudSyncing' | transloco }}</p>
+              </div>
+            } @else if (
+              allProjects().length === 0 && !searchForm.search().value()
+            ) {
               <div class="empty-state" data-testid="empty-state">
                 <h2>{{ 'home.createFirstProject' | transloco }}</h2>
                 <p>{{ 'home.getStarted' | transloco }}</p>

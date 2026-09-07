@@ -127,7 +127,7 @@ export class CloudSyncEngineService {
    * Start the engine. Safe to call more than once; does nothing outside
    * cloud mode. Called from app bootstrap after the user profile is loaded.
    */
-  initialize(): void {
+  initialize(options: { runStartupPass?: boolean } = {}): void {
     if (this.initialized) return;
     this.initialized = true;
 
@@ -149,7 +149,9 @@ export class CloudSyncEngineService {
     this.status.set(navigator.onLine ? 'idle' : 'offline');
 
     this.wireTriggers();
-    void this.syncAll('startup');
+    if (options.runStartupPass !== false) {
+      void this.syncAll('startup');
+    }
   }
 
   /** Full pass now, ignoring the minimum gap. Used by the UI. */

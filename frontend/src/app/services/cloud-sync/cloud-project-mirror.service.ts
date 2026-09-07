@@ -87,7 +87,7 @@ export interface ProjectSyncSummary {
 
 function base64(bytes: Uint8Array): string {
   let binary = '';
-  for (const b of bytes) binary += String.fromCharCode(b);
+  for (const b of bytes) binary += String.fromCodePoint(b);
   return btoa(binary);
 }
 

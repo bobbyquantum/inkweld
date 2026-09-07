@@ -180,7 +180,7 @@ export class VersionCompatibilityService {
    */
   async initialize(): Promise<void> {
     const activeConfig = this.storageContext.activeConfig();
-    if (!activeConfig || activeConfig.type !== 'server') {
+    if (activeConfig?.type !== 'server') {
       // Local mode is always compatible
       this.lastResult.set({
         compatible: true,

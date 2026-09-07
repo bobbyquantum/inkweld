@@ -1,3 +1,5 @@
+import { stripTrailingSlashes } from '@utils/string-utils';
+
 import {
   RemoteConflictError,
   type RemoteFile,
@@ -33,7 +35,7 @@ export class InMemoryRemoteStore implements RemoteStore {
   ): Promise<RemoteFileInfo[]> {
     this.log.push(`list ${folderPath}${options.recursive ? ' -r' : ''}`);
     const prefix =
-      folderPath === '/' ? '/' : `${folderPath.replace(/\/+$/, '')}/`;
+      folderPath === '/' ? '/' : `${stripTrailingSlashes(folderPath)}/`;
     const out: RemoteFileInfo[] = [];
     for (const [path, file] of this.files) {
       if (!path.startsWith(prefix)) continue;
@@ -76,7 +78,7 @@ export class InMemoryRemoteStore implements RemoteStore {
 
   delete(path: string): Promise<void> {
     this.log.push(`delete ${path}`);
-    for (const key of [...this.files.keys()]) {
+    for (const key of Array.from(this.files.keys())) {
       if (key === path || key.startsWith(`${path}/`)) this.files.delete(key);
     }
     return Promise.resolve();

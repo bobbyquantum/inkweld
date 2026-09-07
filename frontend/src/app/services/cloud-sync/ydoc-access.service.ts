@@ -59,7 +59,7 @@ export class YDocAccessService {
    */
   async acquireElements(username: string, slug: string): Promise<AcquiredDoc> {
     const current = this.projectState.project();
-    if (current && current.username === username && current.slug === slug) {
+    if (current?.username === username && current.slug === slug) {
       const doc = await this.localElements.getYjsDocument(username, slug);
       return this.liveDoc(doc);
     }

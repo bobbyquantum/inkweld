@@ -144,10 +144,12 @@ export function mergeManifestProjects(
     }
     const existingClock = entryClock(existing);
     const incomingClock = entryClock(entry);
-    if (incomingClock > existingClock) {
-      byKey.set(entry.key, entry);
-    } else if (incomingClock === existingClock && entry.deletedAt) {
-      // Same instant: prefer the tombstone so a delete is never resurrected
+    // Later clock wins; on an exact tie prefer the tombstone so a delete is
+    // never resurrected.
+    const incomingWins =
+      incomingClock > existingClock ||
+      (incomingClock === existingClock && !!entry.deletedAt);
+    if (incomingWins) {
       byKey.set(entry.key, entry);
     }
   }

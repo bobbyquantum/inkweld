@@ -21,6 +21,7 @@
   "getStarted": "Get started by creating a new project or importing one",
   "createProject": "Create Project",
   "noProjectsFound": "No projects found",
+  "cloudSyncing": "Fetching your projects from your cloud storage…",
   "tryDifferentSearch": "Try a different search term",
   "openProject": "Open project {{title}}",
   "clickToSync": "Click to download",

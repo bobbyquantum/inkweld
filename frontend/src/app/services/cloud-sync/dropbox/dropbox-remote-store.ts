@@ -1,3 +1,5 @@
+import { stripTrailingSlashes } from '@utils/string-utils';
+
 import {
   RemoteAuthError,
   RemoteConflictError,
@@ -50,7 +52,7 @@ export class DropboxRemoteStore implements RemoteStore {
   ): Promise<RemoteFileInfo[]> {
     const token = await this.getAccessToken();
     // Dropbox wants "" for the app-folder root, not "/"
-    const path = folderPath === '/' ? '' : folderPath.replace(/\/+$/, '');
+    const path = folderPath === '/' ? '' : stripTrailingSlashes(folderPath);
     const files: RemoteFileInfo[] = [];
     try {
       let result = await dropboxRpc<ListFolderResult>(

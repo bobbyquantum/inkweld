@@ -368,11 +368,58 @@ mat-divider[vertical] {
 @media (max-width: 768px) {
   .setup-options {
     flex-direction: column;
-    gap: 16px;
+    gap: 12px;
+    padding: 16px 0 8px;
   }
 
+  // Icon on the left, text on the right, so all three modes fit on one
+  // phone screen instead of three tall centred tiles.
   .option-card {
     min-height: auto;
+    flex: 1 1 auto;
+    display: grid;
+    grid-template-columns: 40px 1fr;
+    grid-template-areas:
+      'icon title'
+      'icon body'
+      'icon action';
+    column-gap: 16px;
+    row-gap: 4px;
+    align-items: start;
+    text-align: left;
+    padding: 16px;
+  }
+
+  .option-icon {
+    grid-area: icon;
+    font-size: 36px;
+    width: 36px;
+    height: 36px;
+    margin: 0;
+  }
+
+  .option-card h3 {
+    grid-area: title;
+    margin: 0;
+    font-size: 18px;
+  }
+
+  .option-card p {
+    grid-area: body;
+    margin: 0;
+    font-size: 14px;
+  }
+
+  .option-button {
+    grid-area: action;
+    justify-self: start;
+    margin-top: 6px;
+    padding: 8px 16px;
+    font-size: 14px;
+  }
+
+  .setup-footnote {
+    font-size: 13px;
   }
 
   mat-divider[vertical] {

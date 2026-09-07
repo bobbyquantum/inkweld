@@ -147,7 +147,7 @@ export class CloudSyncConnectService {
     state: string
   ): Promise<CloudCallbackResult> {
     const pending = this.takePendingAuth();
-    if (!pending || pending.provider !== provider) {
+    if (pending?.provider !== provider) {
       throw new Error('No authorization in progress. Please start again.');
     }
     if (pending.state !== state) {
@@ -421,6 +421,8 @@ function slugifyUsername(value: string): string {
     .normalize('NFKD')
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
+    .split('-')
+    .filter(Boolean)
+    .join('-')
     .slice(0, 32);
 }
