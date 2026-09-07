@@ -17,6 +17,9 @@ jobs:
     name: Deploy PR #${{ github.event.pull_request.number }} Preview
     if: contains(github.event.pull_request.labels.*.name, 'deploy:preview:frontend')
     runs-on: ubuntu-latest
+    # Same environment as the main preview deploy so environment-level vars
+    # (e.g. DROPBOX_APP_KEY) apply to per-PR previews too.
+    environment: preview
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
