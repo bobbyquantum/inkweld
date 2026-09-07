@@ -7,9 +7,11 @@ import {
   type CanvasEdit,
   emptyCanvasContents,
 } from '@models/canvas-edit';
+import { CoverSourceService } from '@services/project/cover-source.service';
 import { Subject } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { createCoverSourceMock } from '../../../testing/cover-source.mock';
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import {
   type CanvasFrame,
@@ -146,6 +148,8 @@ describe('CanvasService', () => {
     error: vi.fn(),
   };
 
+  const coverSourceMock = createCoverSourceMock();
+
   const mockRelationships = {
     removeRelationship: vi.fn(),
     removeRelationships: vi.fn(),
@@ -157,6 +161,7 @@ describe('CanvasService', () => {
       providers: [
         CanvasService,
         { provide: ProjectStateService, useValue: mockProjectState },
+        { provide: CoverSourceService, useValue: coverSourceMock },
         { provide: LoggerService, useValue: mockLogger },
         { provide: RelationshipService, useValue: mockRelationships },
       ],
@@ -1366,6 +1371,44 @@ describe('CanvasService', () => {
       const restored = service.loadConfig('canvas-1');
       expect(restored.layers).toHaveLength(2);
       expect(restored.objects).toHaveLength(1);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Live cover integration
+  // ─────────────────────────────────────────────────────────────────────────
+
+  describe('live cover', () => {
+    it('tells the cover source about every local edit', () => {
+      mockElements.set([makeElement({ id: 'canvas-1' })]);
+      service.loadConfig('canvas-1');
+      coverSourceMock.notifyCanvasChanged.mockClear();
+
+      service.addLayer('Extra');
+
+      expect(coverSourceMock.notifyCanvasChanged).toHaveBeenCalledWith(
+        'canvas-1',
+        expect.objectContaining({
+          layers: expect.arrayContaining([
+            expect.objectContaining({ name: 'Extra' }),
+          ]),
+        })
+      );
+    });
+
+    it('flushes a pending cover render when the canvas is unbound', () => {
+      mockElements.set([makeElement({ id: 'canvas-1' })]);
+      service.loadConfig('canvas-1');
+      coverSourceMock.flush.mockClear();
+
+      // Binding another canvas unbinds the first.
+      mockElements.set([
+        makeElement({ id: 'canvas-1' }),
+        makeElement({ id: 'canvas-2' }),
+      ]);
+      service.loadConfig('canvas-2');
+
+      expect(coverSourceMock.flush).toHaveBeenCalled();
     });
   });
 });

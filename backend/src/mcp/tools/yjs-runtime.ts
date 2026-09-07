@@ -476,6 +476,10 @@ export async function addRelationship(
  * The frontend stores `coverMediaId` in the `projectMeta` Y.Map inside the elements doc
  * (`${username}:${slug}:elements/`). When MCP changes the cover, we must update this so
  * all connected clients immediately see the new cover.
+ *
+ * A cover set this way is a manual image, so any live canvas cover source is
+ * unlinked at the same time — otherwise the next canvas edit would silently
+ * overwrite the image MCP just installed.
  */
 export async function updateProjectMetaCoverMediaId(
   ctx: McpContext,
@@ -494,6 +498,8 @@ export async function updateProjectMetaCoverMediaId(
     const workerService = new YjsWorkerService(workerCtx);
     await workerService.applyUpdates(docId, [
       { path: 'projectMeta.coverMediaId', value: coverMediaId },
+      // The DO API can only set values; the frontend treats '' as "no source".
+      { path: 'projectMeta.coverSource', value: '' },
       { path: 'projectMeta.updatedAt', value: new Date().toISOString() },
     ]);
   } else {
@@ -503,6 +509,7 @@ export async function updateProjectMetaCoverMediaId(
     const metaMap = sharedDoc.doc.getMap<string>('projectMeta');
     sharedDoc.doc.transact(() => {
       metaMap.set('coverMediaId', coverMediaId);
+      metaMap.delete('coverSource');
       metaMap.set('updatedAt', new Date().toISOString());
     });
   }

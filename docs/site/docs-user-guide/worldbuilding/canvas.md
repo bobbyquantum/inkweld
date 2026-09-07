@@ -49,15 +49,15 @@ Layers let you organize objects independently, similar to illustration software.
 
 ### Managing Layers
 
-| Action                     | How                                                                 |
-| -------------------------- | ------------------------------------------------------------------- |
-| **Add a layer**            | Click the **+** button in the Layers header                         |
-| **Select a layer**         | Click its row in the layers list                                    |
-| **Rename a layer**         | Click **⋮** → **Rename**                                            |
-| **Duplicate a layer**      | Click **⋮** → **Duplicate**                                         |
-| **Reorder a layer**        | Click **⋮** → **Move up** / **Move down**                           |
+| Action                     | How                                                                                                    |
+| -------------------------- | ------------------------------------------------------------------------------------------------------ |
+| **Add a layer**            | Click the **+** button in the Layers header                                                            |
+| **Select a layer**         | Click its row in the layers list                                                                       |
+| **Rename a layer**         | Click **⋮** → **Rename**                                                                               |
+| **Duplicate a layer**      | Click **⋮** → **Duplicate**                                                                            |
+| **Reorder a layer**        | Click **⋮** → **Move up** / **Move down**                                                              |
 | **Add a background image** | Click **⋮** → **Add background image…** (see [Interactive Maps](./interactive-maps#background-images)) |
-| **Delete a layer**         | Click **⋮** → **Delete** (requires at least 2 layers)               |
+| **Delete a layer**         | Click **⋮** → **Delete** (requires at least 2 layers)                                                  |
 
 ### Layer Visibility, Lock & Opacity
 
@@ -88,16 +88,16 @@ Objects on hidden layers are not exported. Pins are the exception: they live on 
 
 Creation tools are enabled when a layer is active. Objects are added to whichever layer is currently selected.
 
-| Tool              | Shortcut | Description                                                                          |
-| ----------------- | -------- | ------------------------------------------------------------------------------------ |
-| **Pin**           | `P`      | Drop a location marker, optionally linked to an element                              |
-| **Image**         | —        | Open the media library to place an image                                             |
-| **Text**          | `T`      | Click on the canvas to add a text label                                              |
-| **Freehand Draw** | `D`      | Draw freely with the pointer                                                         |
-| **Eraser**        | `E`      | Drag across strokes and objects to remove them (pins are never erased)               |
-| **Line**          | `L`      | Click and drag to draw a straight line                                               |
-| **Shape**         | `S`      | Draw a shape — click the arrow to pick Rectangle, Ellipse, Arrow, or Line            |
-| **Region pen**    | `G`      | Click to place vertices one at a time; close the loop to make a polygon              |
+| Tool              | Shortcut | Description                                                               |
+| ----------------- | -------- | ------------------------------------------------------------------------- |
+| **Pin**           | `P`      | Drop a location marker, optionally linked to an element                   |
+| **Image**         | —        | Open the media library to place an image                                  |
+| **Text**          | `T`      | Click on the canvas to add a text label                                   |
+| **Freehand Draw** | `D`      | Draw freely with the pointer                                              |
+| **Eraser**        | `E`      | Drag across strokes and objects to remove them (pins are never erased)    |
+| **Line**          | `L`      | Click and drag to draw a straight line                                    |
+| **Shape**         | `S`      | Draw a shape — click the arrow to pick Rectangle, Ellipse, Arrow, or Line |
+| **Region pen**    | `G`      | Click to place vertices one at a time; close the loop to make a polygon   |
 
 Drawing tools work on top of whatever is already on the canvas, so you can
 annotate directly over a placed map without selecting it by mistake.
@@ -115,25 +115,25 @@ The result is an ordinary polygon shape: it takes the current stroke and fill se
 
 ### Modifier Keys
 
-| Modifier             | Effect                                                       |
-| -------------------- | ------------------------------------------------------------ |
-| **Shift** + line     | Snap the line to 15° increments                              |
-| **Shift** + shape    | Constrain to a perfect square or circle                      |
-| **Alt** + shape      | Draw the shape outward from the point you started at         |
-| **Space** (held)     | Pan the canvas without leaving the current tool              |
-| **Esc**              | Cancel the stroke in progress and return to the Select tool  |
+| Modifier          | Effect                                                      |
+| ----------------- | ----------------------------------------------------------- |
+| **Shift** + line  | Snap the line to 15° increments                             |
+| **Shift** + shape | Constrain to a perfect square or circle                     |
+| **Alt** + shape   | Draw the shape outward from the point you started at        |
+| **Space** (held)  | Pan the canvas without leaving the current tool             |
+| **Esc**           | Cancel the stroke in progress and return to the Select tool |
 
 ### Brush Settings
 
 Four toolbar controls set what the next stroke or shape will look like. Your
 choices are remembered between sessions.
 
-| Control          | Description                                                                     |
-| ---------------- | ------------------------------------------------------------------------------- |
-| **Stroke color** | Colour of lines, outlines, and freehand ink                                     |
-| **Fill color**   | Interior colour for shapes, with a **No fill** toggle for outline-only shapes   |
-| **Stroke width** | Six presets plus a slider — `[` and `]` step through the presets while you draw |
-| **Brush options**| Pressure, smoothing, opacity, and eraser size                                   |
+| Control           | Description                                                                     |
+| ----------------- | ------------------------------------------------------------------------------- |
+| **Stroke color**  | Colour of lines, outlines, and freehand ink                                     |
+| **Fill color**    | Interior colour for shapes, with a **No fill** toggle for outline-only shapes   |
+| **Stroke width**  | Six presets plus a slider — `[` and `]` step through the presets while you draw |
+| **Brush options** | Pressure, smoothing, opacity, and eraser size                                   |
 
 The colour choosers are the same ones used for worldbuilding appearance: pick from the swatches, or expand **Custom** for a full picker. The fill chooser also has a **Gradient** mode — choose linear or radial, set the angle, and add colour stops to fill shapes with a gradient. Gradients survive export to SVG.
 
@@ -148,24 +148,24 @@ annotation over a map.
 
 ### Other Controls
 
-| Control           | Description                                                  |
-| ----------------- | ------------------------------------------------------------ |
-| **Palette**       | Edit the fill and stroke colors of the selected object       |
-| **Undo / Redo**   | Step backwards and forwards through your edits               |
-| **Zoom In / Out** | Step the zoom level up or down                               |
-| **Fit All**       | Zoom to show all objects and frames on the canvas            |
-| **Zoom label**    | Shows the current zoom percentage                            |
+| Control           | Description                                            |
+| ----------------- | ------------------------------------------------------ |
+| **Palette**       | Edit the fill and stroke colors of the selected object |
+| **Undo / Redo**   | Step backwards and forwards through your edits         |
+| **Zoom In / Out** | Step the zoom level up or down                         |
+| **Fit All**       | Zoom to show all objects and frames on the canvas      |
+| **Zoom label**    | Shows the current zoom percentage                      |
 
 On narrow windows the toolbar moves its least-used groups into a **More tools** menu rather than wrapping.
 
 ### Navigating the Stage
 
-| Gesture                          | Result                        |
-| -------------------------------- | ----------------------------- |
-| Scroll / two-finger swipe        | Pan the canvas                |
-| **Shift** + scroll               | Pan horizontally              |
-| **Ctrl**/**⌘** + scroll, or pinch| Zoom around the pointer       |
-| Hold **Space** and drag          | Pan from any tool             |
+| Gesture                           | Result                  |
+| --------------------------------- | ----------------------- |
+| Scroll / two-finger swipe         | Pan the canvas          |
+| **Shift** + scroll                | Pan horizontally        |
+| **Ctrl**/**⌘** + scroll, or pinch | Zoom around the pointer |
+| Hold **Space** and drag           | Pan from any tool       |
 
 On a tablet, pinch to zoom and drag with two fingers to pan. While a stylus is
 in use, resting your hand on the screen won't start a second stroke. On a phone
@@ -211,35 +211,46 @@ Frames draw as a labelled outline on the stage. They don't dim or hide anything,
 
 ### Adding and Editing Frames
 
-| Action                     | How                                                                         |
-| -------------------------- | --------------------------------------------------------------------------- |
-| **Set canvas size**        | Click **+** in the Frames header → **Set canvas size**, then pick a preset   |
-| **Add a crop frame**       | Click **+** → **Add frame**, then pick a preset                              |
-| **Presets**                | **Cover** (book cover, 1000×1600), **HD** (1920×1080), **Square**, **A4**, or **Custom…** for exact dimensions |
-| **Move or resize**         | Select the frame in the list, then drag it or its handles on the stage      |
-| **Edit exact values**      | Click **⋮** → **Edit frame…** to set name, width, height, and position      |
-| **Change kind**            | Click **⋮** → **Make canvas size** / **Make crop frame**                    |
-| **Show or hide**           | Click the eye on a frame row, or the eye in the Frames header to hide all   |
+| Action                | How                                                                                                            |
+| --------------------- | -------------------------------------------------------------------------------------------------------------- |
+| **Set canvas size**   | Click **+** in the Frames header → **Set canvas size**, then pick a preset                                     |
+| **Add a crop frame**  | Click **+** → **Add frame**, then pick a preset                                                                |
+| **Presets**           | **Cover** (book cover, 1000×1600), **HD** (1920×1080), **Square**, **A4**, or **Custom…** for exact dimensions |
+| **Move or resize**    | Select the frame in the list, then drag it or its handles on the stage                                         |
+| **Edit exact values** | Click **⋮** → **Edit frame…** to set name, width, height, and position                                         |
+| **Change kind**       | Click **⋮** → **Make canvas size** / **Make crop frame**                                                       |
+| **Show or hide**      | Click the eye on a frame row, or the eye in the Frames header to hide all                                      |
 
 ### Frame as Project Cover
 
-Click **⋮** → **Set as project cover…** on any frame to render its contents straight to the [project cover](../media/covers). Frames using the **Cover** preset are already the right aspect ratio. If the project already has a cover you'll be asked to confirm the replacement.
+A frame can drive the [project cover](../media/covers) in two ways:
+
+- **Use as live cover…** — links the frame to the project cover. From then on the cover image shown on the dashboard, in the sidebar and in EPUB/website exports is rendered from this frame, and it updates automatically a few seconds after you stop editing (and when the canvas is closed). The linked frame shows a book icon in the Frames list; hover it to see whether the cover is up to date, updating, or failed. Choose **Unlink live cover** to stop — the last rendered image stays as a normal cover.
+- **Set as project cover…** — a one-off render. The frame's contents replace the cover once and nothing stays linked.
+
+Frames using the **Cover** preset are already the right aspect ratio. If the project already has a cover you'll be asked to confirm the replacement.
+
+:::tip Start from the Cover element
+**New element → Cover** creates a canvas with a cover-size frame already linked as the live cover. The same shortcut is available as **Design on Canvas** in the project's edit dialog.
+:::
+
+Live covers render in the browser, so images placed from other websites (rather than your media library) can't be included — the browser refuses to export a canvas that contains them. Keep cover artwork in the media library.
 
 ## Context Menu
 
 Right-click anywhere on the canvas (or on a selected object) to open the context menu:
 
-| Action                            | Description                                                          |
-| --------------------------------- | -------------------------------------------------------------------- |
-| **Cut** / **Copy** / **Paste**    | Standard clipboard operations                                        |
-| **Duplicate**                     | Duplicate the selected object in place                               |
-| **Delete**                        | Remove the selected object                                           |
-| **Bring / Send** (front, back…)   | Change the object's order within its layer                           |
-| **Send to Layer**                 | Move the selected object to a different layer                        |
-| **Set as background** / **Detach from background** | Toggle whether an image is a map backdrop (images only) |
-| **Link to element…** / **Unlink element** | Turn a shape into a clickable region, or remove the link     |
-| **Edit pin…**                     | Change a pin's label, colour, or linked element                      |
-| **Open linked element**           | Open the element a pin or region points at                           |
+| Action                                             | Description                                              |
+| -------------------------------------------------- | -------------------------------------------------------- |
+| **Cut** / **Copy** / **Paste**                     | Standard clipboard operations                            |
+| **Duplicate**                                      | Duplicate the selected object in place                   |
+| **Delete**                                         | Remove the selected object                               |
+| **Bring / Send** (front, back…)                    | Change the object's order within its layer               |
+| **Send to Layer**                                  | Move the selected object to a different layer            |
+| **Set as background** / **Detach from background** | Toggle whether an image is a map backdrop (images only)  |
+| **Link to element…** / **Unlink element**          | Turn a shape into a clickable region, or remove the link |
+| **Edit pin…**                                      | Change a pin's label, colour, or linked element          |
+| **Open linked element**                            | Open the element a pin or region points at               |
 
 Standard keyboard shortcuts also work: `Ctrl+C` / `Cmd+C` to copy, `Ctrl+X` / `Cmd+X` to cut, `Ctrl+V` / `Cmd+V` to paste, `Ctrl+D` / `Cmd+D` to duplicate, and `Delete` to remove.
 

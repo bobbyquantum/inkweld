@@ -73,6 +73,61 @@
 
       <!-- Right column: Form -->
       <div class="form-column">
+        @if (liveCoverSource()) {
+          <div class="live-cover-card" data-testid="live-cover-card">
+            <div class="live-cover-heading">
+              <mat-icon
+                [class.is-error]="liveCoverStatus() === 'error'"
+                aria-hidden="true"
+                >{{
+                  liveCoverStatus() === 'error' ? 'error' : 'auto_stories'
+                }}</mat-icon
+              >
+              <span>{{
+                'dialogs.editProject.liveCoverTitle' | transloco
+              }}</span>
+            </div>
+            <p class="live-cover-text">
+              @if (liveCoverCanvas(); as canvas) {
+                {{
+                  'dialogs.editProject.liveCoverDescription'
+                    | transloco: { name: canvas.name }
+                }}
+              } @else {
+                {{ 'dialogs.editProject.liveCoverMissing' | transloco }}
+              }
+            </p>
+            <div class="live-cover-actions">
+              @if (liveCoverCanvas()) {
+                <button
+                  type="button"
+                  mat-button
+                  data-testid="live-cover-open"
+                  (click)="openLinkedCanvas()">
+                  <mat-icon>open_in_new</mat-icon>
+                  {{ 'dialogs.editProject.openCanvas' | transloco }}
+                </button>
+                <button
+                  type="button"
+                  mat-button
+                  data-testid="live-cover-rerender"
+                  [disabled]="isLoadingCover()"
+                  (click)="rerenderLiveCover()">
+                  <mat-icon>refresh</mat-icon>
+                  {{ 'dialogs.editProject.rerenderCover' | transloco }}
+                </button>
+              }
+              <button
+                type="button"
+                mat-button
+                data-testid="live-cover-unlink"
+                (click)="unlinkLiveCover()">
+                <mat-icon>link_off</mat-icon>
+                {{ 'dialogs.editProject.unlinkCover' | transloco }}
+              </button>
+            </div>
+          </div>
+        }
         <form (submit)="$event.preventDefault(); onSave()">
           <mat-form-field appearance="outline">
             <mat-label>{{
@@ -125,6 +180,18 @@
                 <mat-icon>photo_library</mat-icon>
                 {{ 'dialogs.editProject.selectFromLibrary' | transloco }}
               </button>
+              @if (!liveCoverSource()) {
+                <button
+                  type="button"
+                  mat-stroked-button
+                  color="primary"
+                  data-testid="design-cover-on-canvas"
+                  (click)="designCoverOnCanvas()"
+                  [disabled]="isLoadingCover()">
+                  <mat-icon>brush</mat-icon>
+                  {{ 'dialogs.editProject.designOnCanvas' | transloco }}
+                </button>
+              }
               @if (aiGenerationStatus().status !== 'hidden') {
                 <button
                   type="button"

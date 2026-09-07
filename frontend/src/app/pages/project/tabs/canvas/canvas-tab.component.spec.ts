@@ -35,6 +35,7 @@ import { LoggerService } from '@services/core/logger.service';
 import { TutorialService } from '@services/core/tutorial.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
 import { PresenceService } from '@services/presence/presence.service';
+import { CoverSourceService } from '@services/project/cover-source.service';
 import { ProjectService } from '@services/project/project.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { RelationshipService } from '@services/relationship/relationship.service';
@@ -51,6 +52,7 @@ import {
 } from 'vitest';
 
 import { type Element, ElementType } from '../../../../../api-client';
+import { createCoverSourceMock } from '../../../../../testing/cover-source.mock';
 import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
 import { CanvasTabComponent } from './canvas-tab.component';
 
@@ -181,6 +183,8 @@ describe('CanvasTabComponent', () => {
   const mockProjectService = {
     uploadProjectCover: vi.fn(() => Promise.resolve('cover-123.jpg')),
   };
+
+  const mockCoverSource = createCoverSourceMock();
 
   const mockRoute = {
     paramMap: of(new Map([['tabId', 'test-canvas']])),
@@ -313,6 +317,7 @@ describe('CanvasTabComponent', () => {
       imports: [translocoTestProvider(), CanvasTabComponent],
       providers: [
         { provide: ProjectStateService, useValue: mockProjectState },
+        { provide: CoverSourceService, useValue: mockCoverSource },
         { provide: ActivatedRoute, useValue: mockRoute },
         { provide: MatDialog, useValue: mockDialog },
         { provide: DialogGatewayService, useValue: mockDialogGateway },
@@ -2913,6 +2918,56 @@ describe('CanvasTabComponent', () => {
       expect(render).not.toHaveBeenCalled();
       expect(mockProjectService.uploadProjectCover).not.toHaveBeenCalled();
       mockProjectState.coverMediaId.set(undefined);
+    });
+
+    it('links a frame as the live cover, confirming when a cover exists', async () => {
+      mockProjectState.coverMediaId.set('existing');
+      mockDialogGateway.openConfirmationDialog.mockResolvedValueOnce(true);
+
+      await component['onLinkFrameAsCover'](frame);
+
+      expect(mockDialogGateway.openConfirmationDialog).toHaveBeenCalled();
+      expect(mockCoverSource.link).toHaveBeenCalledWith(
+        component['elementId'](),
+        frame.id
+      );
+      mockProjectState.coverMediaId.set(undefined);
+    });
+
+    it('does not link when the replace confirmation is declined', async () => {
+      mockProjectState.coverMediaId.set('existing');
+      mockDialogGateway.openConfirmationDialog.mockResolvedValueOnce(false);
+
+      await component['onLinkFrameAsCover'](frame);
+
+      expect(mockCoverSource.link).not.toHaveBeenCalled();
+      mockProjectState.coverMediaId.set(undefined);
+    });
+
+    it('links without confirming when the project has no cover', async () => {
+      await component['onLinkFrameAsCover'](frame);
+      expect(mockDialogGateway.openConfirmationDialog).not.toHaveBeenCalled();
+      expect(mockCoverSource.link).toHaveBeenCalled();
+    });
+
+    it('exposes the linked frame and unlinks it', () => {
+      mockCoverSource.source.set({
+        type: 'canvas',
+        elementId: component['elementId'](),
+        frameId: frame.id,
+      });
+      expect(component['coverFrameId']()).toBe(frame.id);
+
+      mockCoverSource.source.set({
+        type: 'canvas',
+        elementId: 'some-other-canvas',
+        frameId: frame.id,
+      });
+      expect(component['coverFrameId']()).toBeNull();
+
+      component['onUnlinkCover']();
+      expect(mockCoverSource.unlink).toHaveBeenCalled();
+      mockCoverSource.source.set(undefined);
     });
 
     it('reports a failure to set the cover', async () => {

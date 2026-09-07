@@ -26,8 +26,10 @@ import { createDefaultPublishStyles } from '@models/publish-style';
 // to produce PDF data" error in PdfGeneratorService.
 import { $typst } from '@myriaddreamin/typst.ts';
 import { $typst as $typstSnippet } from '@myriaddreamin/typst.ts/contrib/snippet';
+import { CoverSourceService } from '@services/project/cover-source.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { createCoverSourceMock } from '../../../testing/cover-source.mock';
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import {
   ChapterNumbering,
@@ -209,6 +211,7 @@ function configure(extra: unknown[] = []) {
       { provide: LoggerService, useValue: mocks.logger },
       { provide: DocumentService, useValue: mocks.documentService },
       { provide: ProjectStateService, useValue: mocks.projectState },
+      { provide: CoverSourceService, useValue: createCoverSourceMock() },
       { provide: LocalStorageService, useValue: mocks.localStorage },
       {
         provide: WorldbuildingPublishRendererService,

@@ -15,7 +15,6 @@ import {
   type CanvasViewport,
   isBackgroundImage,
 } from '@models/canvas.model';
-import { CanvasService } from '@services/canvas/canvas.service';
 import { LoggerService } from '@services/core/logger.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
 import { ProjectStateService } from '@services/project/project-state.service';
@@ -52,6 +51,14 @@ export interface CanvasNodeHandlers {
   getElementName?: (elementId: string) => string | null;
 }
 
+/** Optional behaviour tweaks for {@link CanvasRendererService.initStage}. */
+export interface StageInitOptions {
+  /** Explicit stage size, for containers with no layout (offscreen render). */
+  size?: { width: number; height: number };
+  /** Follow the container's size with a ResizeObserver (default true). */
+  observeResize?: boolean;
+}
+
 /** Milliseconds a tapped link's name label stays up on touch devices. */
 const LINK_TAP_LABEL_MS = 1500;
 
@@ -73,7 +80,6 @@ const FRAME_GRAB_PX = 12;
 @Injectable()
 export class CanvasRendererService {
   private readonly projectState = inject(ProjectStateService);
-  private readonly canvasService = inject(CanvasService);
   private readonly localStorageService = inject(LocalStorageService);
   private readonly logger = inject(LoggerService);
 
@@ -85,6 +91,8 @@ export class CanvasRendererService {
   private _previewLayer: Konva.Layer | null = null;
   private _framesLayer: Konva.Layer | null = null;
   private _annotationsLayer: Konva.Layer | null = null;
+  /** Image loads still in flight, see {@link whenImagesSettled}. */
+  private readonly _pendingImageLoads = new Set<Promise<void>>();
   private readonly _frameNodes = new Map<string, Konva.Group>();
   private _frameTransformer: Konva.Transformer | null = null;
   private _editingFrameId: string | null = null;
@@ -150,10 +158,13 @@ export class CanvasRendererService {
     configLayers: CanvasLayer[],
     configObjects: CanvasObject[],
     savedViewport: CanvasViewport | null,
-    handlers: CanvasNodeHandlers
+    handlers: CanvasNodeHandlers,
+    options?: StageInitOptions
   ): { zoomLevel: number } {
-    const width = container.clientWidth;
-    const height = container.clientHeight;
+    // A headless (offscreen) container has no layout size, so callers can
+    // pass the stage size explicitly.
+    const width = options?.size?.width ?? container.clientWidth;
+    const height = options?.size?.height ?? container.clientHeight;
 
     this._stage = new Konva.Stage({
       container,
@@ -203,14 +214,39 @@ export class CanvasRendererService {
       zoomLevel = savedViewport.zoom;
     }
 
-    this._resizeObserver = new ResizeObserver(() => {
-      if (!this._stage) return;
-      this._stage.width(container.clientWidth);
-      this._stage.height(container.clientHeight);
-    });
-    this._resizeObserver.observe(container);
+    if (options?.observeResize !== false) {
+      this._resizeObserver = new ResizeObserver(() => {
+        if (!this._stage) return;
+        this._stage.width(container.clientWidth);
+        this._stage.height(container.clientHeight);
+      });
+      this._resizeObserver.observe(container);
+    }
 
     return { zoomLevel };
+  }
+
+  /**
+   * Resolves once every image node created so far has either decoded or
+   * failed. Exports that run without a user watching (the live cover render)
+   * must wait for this, or they capture grey placeholders.
+   */
+  whenImagesSettled(): Promise<void> {
+    if (this._pendingImageLoads.size === 0) return Promise.resolve();
+    return Promise.all(this._pendingImageLoads).then(() => undefined);
+  }
+
+  /** Track one image node's load until it settles. */
+  private trackImageLoad(): () => void {
+    let settle: () => void = () => {};
+    const pending = new Promise<void>(resolve => {
+      settle = resolve;
+    });
+    this._pendingImageLoads.add(pending);
+    return () => {
+      this._pendingImageLoads.delete(pending);
+      settle();
+    };
   }
 
   buildKonvaLayers(layers: CanvasLayer[]): void {
@@ -912,8 +948,12 @@ export class CanvasRendererService {
 
     switch (obj.type) {
       case 'image':
-        node = CanvasRendererService.createImageNode(obj, commonAttrs, src =>
-          this.resolveImageSrc(src)
+        node = CanvasRendererService.createImageNode(
+          obj,
+          commonAttrs,
+          src => this.resolveImageSrc(src),
+          undefined,
+          this.trackImageLoad()
         );
         break;
       case 'text':
@@ -1049,9 +1089,11 @@ export class CanvasRendererService {
     obj: CanvasImage,
     attrs: Konva.NodeConfig,
     resolveSrc: (src: string) => Promise<string>,
-    warnLogger?: (msg: string) => void
+    warnLogger?: (msg: string) => void,
+    onSettled?: () => void
   ): Konva.Group {
     const log = warnLogger ?? (() => {});
+    const settle = onSettled ?? (() => {});
     const group = new Konva.Group({ ...attrs });
 
     const placeholder = new Konva.Rect({
@@ -1069,6 +1111,14 @@ export class CanvasRendererService {
         if (resolvedSrc.startsWith('http')) {
           imageObj.crossOrigin = 'anonymous';
         }
+        const fail = (): void => {
+          log(
+            `Failed to load image: ${obj.id} src=${obj.src} resolved=${resolvedSrc}`
+          );
+          placeholder.fill('#ffcdd2');
+          group.getLayer()?.batchDraw();
+          settle();
+        };
         imageObj.onload = () => {
           const kImage = new Konva.Image({
             image: imageObj,
@@ -1078,20 +1128,21 @@ export class CanvasRendererService {
           placeholder.destroy();
           group.add(kImage);
           group.getLayer()?.batchDraw();
+          settle();
         };
-        imageObj.onerror = () => {
-          log(
-            `Failed to load image: ${obj.id} src=${obj.src} resolved=${resolvedSrc}`
-          );
-          placeholder.fill('#ffcdd2');
-          group.getLayer()?.batchDraw();
-        };
+        imageObj.onerror = fail;
+        if (!resolvedSrc) {
+          // Nothing to load (media missing locally) — don't wait on it.
+          fail();
+          return;
+        }
         imageObj.src = resolvedSrc;
       },
       err => {
         log(`Failed to resolve image src: ${obj.src} ${err}`);
         placeholder.fill('#ffcdd2');
         group.getLayer()?.batchDraw();
+        settle();
       }
     );
 
@@ -1347,6 +1398,7 @@ export class CanvasRendererService {
     this._framesLayer = null;
     this._annotationsLayer = null;
     this._contentInteractive = true;
+    this._pendingImageLoads.clear();
   }
 
   async resolveImageSrc(src: string): Promise<string> {

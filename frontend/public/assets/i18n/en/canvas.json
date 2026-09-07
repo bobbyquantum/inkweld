@@ -121,7 +121,25 @@
     "coverConfirmMessage": "This will replace the current project cover with this frame's contents.",
     "coverConfirm": "Replace",
     "coverSaved": "Project cover updated",
-    "coverSaveFailed": "Failed to update project cover"
+    "coverSaveFailed": "Failed to update project cover",
+    "useAsLiveCover": "Use as live cover…",
+    "unlinkCover": "Unlink live cover",
+    "coverLinkConfirmTitle": "Replace project cover?",
+    "coverLinkConfirmMessage": "The project cover will be generated from this frame and updated whenever the canvas changes. The current cover image will be replaced.",
+    "coverLinkConfirm": "Link",
+    "coverLinked": "Live cover linked — the project cover now follows this frame",
+    "coverLinkedEmpty": "Live cover linked — the cover will render once the frame has content",
+    "coverUnlinked": "Live cover unlinked — the current cover image is kept",
+    "coverStatus": {
+      "idle": "Live project cover — up to date",
+      "pending": "Live project cover — will update shortly",
+      "rendering": "Live project cover — updating…",
+      "error": "Live project cover — the last update failed ({{reason}})"
+    },
+    "coverErrors": {
+      "render-failed": "the browser couldn't render the frame; images from other websites can't be exported",
+      "unknown": "see the browser console for details"
+    }
   },
   "export": {
     "exportPng": "Export as PNG",

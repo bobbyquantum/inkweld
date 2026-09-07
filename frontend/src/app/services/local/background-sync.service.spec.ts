@@ -42,6 +42,7 @@ describe('BackgroundSyncService', () => {
     updateLocalProjectWithServerData: vi.fn(),
     getProjectByUsernameAndSlug: vi.fn(),
     updateProject: vi.fn(),
+    syncPendingCoverUpload: vi.fn(),
   };
 
   const mockLocalProjectService = {
@@ -302,6 +303,45 @@ describe('BackgroundSyncService', () => {
       // Should still succeed since we just skip missing projects
       expect(result).toBe(true);
       expect(mockProjectService.updateProject).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('syncPendingCoverUploads', () => {
+    it('uploads covers that were saved while offline', async () => {
+      await projectSyncService.markPendingUpload(
+        'bob/novel',
+        'cover-1700000000000'
+      );
+      // A non-cover pending upload must not trigger the cover path.
+      await projectSyncService.markPendingUpload('bob/other', 'img-abc');
+      mockProjectService.syncPendingCoverUpload.mockResolvedValue(
+        'cover-1700000000001.jpg'
+      );
+
+      const result = await service.syncPendingItems();
+
+      expect(result).toBe(true);
+      expect(mockProjectService.syncPendingCoverUpload).toHaveBeenCalledTimes(
+        1
+      );
+      expect(mockProjectService.syncPendingCoverUpload).toHaveBeenCalledWith(
+        'bob/novel'
+      );
+    });
+
+    it('reports failure but keeps going when a cover upload fails', async () => {
+      await projectSyncService.markPendingUpload('bob/a', 'cover-1');
+      await projectSyncService.markPendingUpload('bob/b', 'cover-2');
+      mockProjectService.syncPendingCoverUpload
+        .mockRejectedValueOnce(new Error('offline'))
+        .mockResolvedValueOnce('cover-3.jpg');
+
+      const result = await service.syncPendingItems();
+
+      expect(result).toBe(false);
+      expect(mockProjectService.syncPendingCoverUpload).toHaveBeenCalledTimes(
+        2
+      );
     });
   });
 

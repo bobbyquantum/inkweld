@@ -2,9 +2,11 @@ import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { type Element, ElementType, type Project } from '@inkweld/index';
 import { createDefaultPublishStyles } from '@models/publish-style';
+import { CoverSourceService } from '@services/project/cover-source.service';
 import JSZip from 'jszip';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { createCoverSourceMock } from '../../../testing/cover-source.mock';
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import {
   ChapterNumbering,
@@ -178,6 +180,7 @@ describe('EpubGeneratorService', () => {
         { provide: LoggerService, useValue: loggerMock },
         { provide: DocumentService, useValue: documentServiceMock },
         { provide: ProjectStateService, useValue: projectStateMock },
+        { provide: CoverSourceService, useValue: createCoverSourceMock() },
         { provide: LocalStorageService, useValue: localStorageMock },
       ],
     });

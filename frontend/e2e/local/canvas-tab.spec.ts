@@ -802,6 +802,26 @@ test.describe('Canvas Tab', () => {
         timeout: 10_000,
       });
     });
+
+    await test.step('link a frame as the live cover and unlink it again', async () => {
+      const row = frameItems.filter({ hasText: 'Book Cover' });
+      await row.getByTestId('frame-menu').click();
+      await page.getByTestId('frame-link-cover').click();
+
+      // A cover already exists (set above), so linking asks first.
+      await page.getByTestId('confirm-delete-button').click();
+      await expect(page.getByText(/Live cover linked/)).toBeVisible({
+        timeout: 10_000,
+      });
+      await expect(row.getByTestId('frame-cover-badge')).toBeVisible();
+
+      // The linked frame's menu swaps the link entry for an unlink entry.
+      await row.getByTestId('frame-menu').click();
+      await expect(page.getByTestId('frame-link-cover')).toHaveCount(0);
+      await page.getByTestId('frame-unlink-cover').click();
+      await expect(page.getByText(/Live cover unlinked/)).toBeVisible();
+      await expect(row.getByTestId('frame-cover-badge')).toHaveCount(0);
+    });
   });
 
   test('guided tour and phone layout', async ({

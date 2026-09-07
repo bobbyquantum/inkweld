@@ -81,6 +81,7 @@ import { CanvasZoomService } from '@services/canvas/canvas-zoom.service';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { TutorialService } from '@services/core/tutorial.service';
 import { PresenceService } from '@services/presence/presence.service';
+import { CoverSourceService } from '@services/project/cover-source.service';
 import { ElementNavigationService } from '@services/project/element-navigation.service';
 import { ProjectService } from '@services/project/project.service';
 import { ProjectStateService } from '@services/project/project-state.service';
@@ -218,6 +219,7 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
   private readonly dialog = inject(MatDialog);
   private readonly dialogGateway = inject(DialogGatewayService);
   private readonly projectService = inject(ProjectService);
+  private readonly coverSource = inject(CoverSourceService);
   private readonly relationshipService = inject(RelationshipService);
   private readonly breakpointObserver = inject(BreakpointObserver);
   private readonly tutorialService = inject(TutorialService);
@@ -394,6 +396,24 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
 
   /** Frame currently selected for on-canvas drag/resize editing. */
   protected readonly selectedFrameId = signal<string | null>(null);
+
+  /** Id of the frame linked as the live project cover on this canvas. */
+  protected readonly coverFrameId = computed<string | null>(() => {
+    const source = this.coverSource.source();
+    return source?.elementId === this.elementId() ? source.frameId : null;
+  });
+
+  /** Render pipeline state of the live cover, for the frames panel badge. */
+  protected readonly coverStatus = this.coverSource.status;
+
+  /** Human-readable reason for a failed live cover render (tooltip param). */
+  protected readonly coverErrorReason = computed(() => {
+    const error = this.coverSource.lastError();
+    if (!error) return '';
+    return error === 'render-failed'
+      ? this.transloco.translate('canvas.frames.coverErrors.render-failed')
+      : error;
+  });
 
   /** Current zoom level (updated by Konva stage events) */
   protected readonly zoomLevel = signal<number>(1);
@@ -1516,6 +1536,47 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
 
   protected onExportFrameSvg(frame: CanvasFrame): void {
     this.canvasExport.exportFrameAsSvg(frame);
+  }
+
+  /**
+   * Link a frame as the live project cover: the cover image is regenerated
+   * from it whenever the canvas changes.
+   */
+  protected async onLinkFrameAsCover(frame: CanvasFrame): Promise<void> {
+    const project = this.projectState.project();
+    if (!project) return;
+
+    if (this.projectState.coverMediaId() && !this.coverFrameId()) {
+      const confirmed = await this.dialogGateway.openConfirmationDialog({
+        title: this.transloco.translate('canvas.frames.coverLinkConfirmTitle'),
+        message: this.transloco.translate(
+          'canvas.frames.coverLinkConfirmMessage'
+        ),
+        confirmText: this.transloco.translate('canvas.frames.coverLinkConfirm'),
+      });
+      if (!confirmed) return;
+    }
+
+    const rendered = await this.coverSource.link(this.elementId(), frame.id);
+    this.snackBar.open(
+      this.transloco.translate(
+        rendered
+          ? 'canvas.frames.coverLinked'
+          : 'canvas.frames.coverLinkedEmpty'
+      ),
+      undefined,
+      { duration: 4000 }
+    );
+  }
+
+  /** Stop generating the cover from this canvas; the last image stays. */
+  protected onUnlinkCover(): void {
+    this.coverSource.unlink();
+    this.snackBar.open(
+      this.transloco.translate('canvas.frames.coverUnlinked'),
+      undefined,
+      { duration: 3000 }
+    );
   }
 
   /** Render a frame's region and set it as the project cover. */

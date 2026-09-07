@@ -33,7 +33,7 @@ import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding
  *  - `scene`: an Item flagged as manuscript prose (role metadata)
  *  - `note`: an Item flagged as non-manuscript prose (role metadata)
  */
-export type ElementPreset = 'map' | 'scene' | 'note';
+export type ElementPreset = 'map' | 'cover' | 'scene' | 'note';
 
 export interface NewElementDialogResult {
   name: string;
@@ -170,6 +170,16 @@ export class NewElementDialogComponent {
       testId: 'element-type-map',
     },
     {
+      type: ElementType.Canvas,
+      label: 'Cover',
+      icon: 'book',
+      description:
+        'Design your project cover on a canvas — it stays in sync with the cover shown on the dashboard and in exports',
+      category: 'visualization',
+      preset: 'cover',
+      testId: 'element-type-cover',
+    },
+    {
       type: ElementType.Timeline,
       label: 'Timeline',
       icon: 'timeline',
@@ -221,7 +231,7 @@ export class NewElementDialogComponent {
   // Track selected schema ID for worldbuilding types
   selectedSchemaId = signal<string | undefined>(undefined);
 
-  // Preset carried by the selected option (e.g. 'map', 'scene', 'note')
+  // Preset carried by the selected option (e.g. 'map', 'cover', 'scene')
   selectedPreset = signal<ElementPreset | undefined>(undefined);
 
   readonly model = signal<NewElementFormValue>({

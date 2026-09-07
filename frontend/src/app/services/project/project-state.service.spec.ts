@@ -1259,6 +1259,136 @@ describe('ProjectStateService', () => {
     });
   });
 
+  describe('cover source (live canvas cover)', () => {
+    const source = {
+      type: 'canvas' as const,
+      elementId: 'canvas-1',
+      frameId: 'F1',
+    };
+
+    it('mirrors coverSource from projectMeta$', async () => {
+      await service.loadProject('testuser', 'test-project');
+      mockSyncProvider._projectMetaSubject.next({
+        name: 'Test Project',
+        description: '',
+        coverSource: source,
+        updatedAt: new Date().toISOString(),
+      });
+      await new Promise<void>(resolve => queueMicrotask(() => resolve()));
+      expect(service.coverSource()).toEqual(source);
+    });
+
+    it('setCoverSource writes the link and can clear it', async () => {
+      await service.loadProject('testuser', 'test-project');
+
+      service.setCoverSource(source);
+      expect(service.coverSource()).toEqual(source);
+      expect(mockSyncProvider.updateProjectMeta).toHaveBeenLastCalledWith({
+        coverSource: source,
+      });
+
+      service.setCoverSource(undefined);
+      expect(service.coverSource()).toBeUndefined();
+      // The key must be present so providers know to delete it.
+      const last = vi.mocked(mockSyncProvider.updateProjectMeta).mock
+        .lastCall?.[0];
+      expect(last).toBeDefined();
+      expect('coverSource' in last!).toBe(true);
+      expect(last!.coverSource).toBeUndefined();
+    });
+
+    it('setRenderedCover writes the raster id and hash together', async () => {
+      await service.loadProject('testuser', 'test-project');
+      const rendered = { ...source, renderedHash: 'abc' };
+
+      service.setRenderedCover('cover-9', rendered);
+
+      expect(service.coverMediaId()).toBe('cover-9');
+      expect(service.coverSource()).toEqual(rendered);
+      expect(mockSyncProvider.updateProjectMeta).toHaveBeenLastCalledWith({
+        coverMediaId: 'cover-9',
+        coverSource: rendered,
+      });
+    });
+
+    it('a manual cover change unlinks the live cover', async () => {
+      await service.loadProject('testuser', 'test-project');
+      service.setCoverSource(source);
+      const project: Project = {
+        id: 'project-1',
+        username: 'testuser',
+        slug: 'test-project',
+        title: 'Test Project',
+        description: 'Test description',
+        createdDate: new Date().toISOString(),
+        updatedDate: new Date().toISOString(),
+      };
+
+      service.updateProject(project, 'cover-manual');
+
+      expect(service.coverSource()).toBeUndefined();
+      expect(mockSyncProvider.updateProjectMeta).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          coverMediaId: 'cover-manual',
+          coverSource: undefined,
+        })
+      );
+    });
+
+    it('a title-only update leaves the live cover linked', async () => {
+      await service.loadProject('testuser', 'test-project');
+      service.setCoverSource(source);
+      vi.mocked(mockSyncProvider.updateProjectMeta).mockClear();
+      const project: Project = {
+        id: 'project-1',
+        username: 'testuser',
+        slug: 'test-project',
+        title: 'Renamed',
+        description: '',
+        createdDate: new Date().toISOString(),
+        updatedDate: new Date().toISOString(),
+      };
+
+      service.updateProject(project);
+
+      expect(service.coverSource()).toEqual(source);
+      const meta = vi.mocked(mockSyncProvider.updateProjectMeta).mock
+        .lastCall?.[0];
+      expect(meta && 'coverSource' in meta).toBe(false);
+    });
+
+    it('createCoverCanvas seeds a cover-size frame and links it', async () => {
+      await service.loadProject('testuser', 'test-project');
+      service.project.set({
+        id: 'project-1',
+        username: 'testuser',
+        slug: 'test-project',
+        title: 'Test Project',
+        description: '',
+        createdDate: new Date().toISOString(),
+        updatedDate: new Date().toISOString(),
+      });
+
+      const element = service.createCoverCanvas();
+
+      expect(element?.type).toBe(ElementType.Canvas);
+      expect(element?.name).toBe('Cover');
+      const seeded = vi.mocked(mockSyncProvider.seedCanvasContents).mock
+        .lastCall;
+      expect(seeded?.[0]).toBe(element?.id);
+      expect(seeded?.[1].frames?.[0]).toMatchObject({
+        kind: 'canvas',
+        width: 1000,
+        height: 1600,
+      });
+      expect(service.coverSource()).toEqual({
+        type: 'canvas',
+        elementId: element?.id,
+        frameId: seeded?.[1].frames?.[0].id,
+      });
+    });
+  });
+
   describe('coverMediaId from projectMeta$', () => {
     it('should update coverMediaId when projectMeta$ emits', async () => {
       await service.loadProject('testuser', 'test-project');

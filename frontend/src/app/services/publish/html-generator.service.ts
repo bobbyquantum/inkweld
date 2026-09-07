@@ -37,6 +37,7 @@ import {
 } from '../../models/publish-plan';
 import { LoggerService } from '../core/logger.service';
 import { LocalStorageService } from '../local/local-storage.service';
+import { CoverSourceService } from '../project/cover-source.service';
 import { DocumentService } from '../project/document.service';
 import { ProjectStateService } from '../project/project-state.service';
 import { IconSvgService } from './icon-svg.service';
@@ -181,6 +182,7 @@ export class HtmlGeneratorService {
   private readonly logger = inject(LoggerService);
   private readonly documentService = inject(DocumentService);
   private readonly projectStateService = inject(ProjectStateService);
+  private readonly coverSourceService = inject(CoverSourceService);
   private readonly localStorage = inject(LocalStorageService);
   private readonly cssEmitter = inject(PublishCssEmitterService);
   private readonly iconSvg = inject(IconSvgService);
@@ -378,6 +380,11 @@ export class HtmlGeneratorService {
     slug: string;
     coverImage?: string | null;
   }): Promise<Blob | null> {
+    // A live canvas cover renders fresh so the export never ships a stale
+    // raster; falls through to the stored image when not canvas-linked.
+    const live = await this.coverSourceService.freshCoverBlob();
+    if (live) return live;
+
     const projectKey = `${project.username}/${project.slug}`;
     const idsToTry: string[] = [];
 

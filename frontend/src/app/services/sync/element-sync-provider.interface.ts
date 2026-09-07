@@ -7,6 +7,7 @@ import {
   type PresenceUserIdentity,
 } from '@inkweld/presence';
 import { type CanvasContents, type CanvasEdit } from '@models/canvas-edit';
+import type { CoverSource } from '@models/cover-source';
 import {
   type ElementRelationship,
   type RelationshipTypeDefinition,
@@ -59,6 +60,12 @@ export interface ProjectMeta {
   coverMediaId?: string;
   /** Ordered list of pinned element IDs (project-wide, owner-controlled) */
   pinnedElementIds?: string[];
+  /**
+   * Canvas frame the cover raster is generated from, when the cover is a
+   * live canvas design rather than an uploaded image. Pass `undefined` with
+   * the key present to clear it (see {@link IElementSyncProvider.updateProjectMeta}).
+   */
+  coverSource?: CoverSource;
   /** Last update timestamp (ISO string) for debugging */
   updatedAt: string;
 }

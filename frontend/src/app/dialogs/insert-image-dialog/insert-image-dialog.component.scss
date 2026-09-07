@@ -18,10 +18,19 @@
   }
 
   .cropper-container {
-    max-height: 400px;
-    overflow: hidden;
+    display: flex;
+    flex-direction: column;
     border-radius: 8px;
     background: var(--sys-surface-container);
+
+    // Constrain the cropper itself rather than clipping the container: a
+    // clipped container hid the bottom of tall images, so the crop handles
+    // there could never be reached and the result looked pre-cropped.
+    ::ng-deep image-cropper {
+      max-height: 60vh;
+      width: 100%;
+      margin: 0 auto;
+    }
   }
 }
 

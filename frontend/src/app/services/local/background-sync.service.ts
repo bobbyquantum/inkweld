@@ -101,8 +101,8 @@ export class BackgroundSyncService implements OnDestroy {
       // Sync pending metadata updates
       allSuccess = (await this.syncPendingMetadata()) && allSuccess;
 
-      // Future work: sync pending media uploads
-      // allSuccess = (await this.syncPendingUploads()) && allSuccess;
+      // Sync covers saved while the server was unreachable
+      allSuccess = (await this.syncPendingCoverUploads()) && allSuccess;
 
       return allSuccess;
     } finally {
@@ -407,6 +407,58 @@ export class BackgroundSyncService implements OnDestroy {
       this.logger.error(
         'BackgroundSync',
         'Failed to sync pending metadata',
+        error
+      );
+      return false;
+    }
+  }
+
+  /**
+   * Upload covers that were saved locally because the server was unreachable
+   * (or the user was offline). Without this, a cover set offline only ever
+   * existed on the device that made it.
+   */
+  private async syncPendingCoverUploads(): Promise<boolean> {
+    try {
+      const projectsWithChanges =
+        await this.projectSync.getProjectsWithPendingChanges();
+      const withCovers = projectsWithChanges.filter(key =>
+        this.projectSync
+          .getSyncState(key)()
+          .pendingUploads.some(id => id.startsWith('cover'))
+      );
+      if (withCovers.length === 0) return true;
+
+      this.logger.info(
+        'BackgroundSync',
+        `Syncing ${withCovers.length} pending cover upload(s)`
+      );
+
+      let allSuccess = true;
+      for (const projectKey of withCovers) {
+        try {
+          const filename =
+            await this.projectService.syncPendingCoverUpload(projectKey);
+          if (filename) {
+            this.logger.info(
+              'BackgroundSync',
+              `Uploaded pending cover for ${projectKey}: ${filename}`
+            );
+          }
+        } catch (error) {
+          this.logger.error(
+            'BackgroundSync',
+            `Failed to upload pending cover: ${projectKey}`,
+            error
+          );
+          allSuccess = false;
+        }
+      }
+      return allSuccess;
+    } catch (error) {
+      this.logger.error(
+        'BackgroundSync',
+        'Failed to sync pending cover uploads',
         error
       );
       return false;
