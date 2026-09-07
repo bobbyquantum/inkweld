@@ -1,5 +1,10 @@
 import { inject, Injectable, signal } from '@angular/core';
-import { type Element, ElementType, ImagesService } from '@inkweld/index';
+import {
+  type Element,
+  ElementType,
+  ImagesService,
+  SnapshotsService,
+} from '@inkweld/index';
 import { type ElementAppearance } from '@models/element-appearance';
 import { type ElementRelationship } from '@models/element-ref.model';
 import JSZip from '@progress/jszip-esm';
@@ -75,6 +80,7 @@ export class ProjectExportService {
   private readonly localSnapshots = inject(LocalSnapshotService);
   private readonly syncFactory = inject(ElementSyncProviderFactory);
   private readonly imagesService = inject(ImagesService);
+  private readonly snapshotsApi = inject(SnapshotsService);
 
   /** Current export progress */
   readonly progress = signal<ArchiveProgress>({
@@ -169,7 +175,7 @@ export class ProjectExportService {
         55,
         'Packaging snapshots...'
       );
-      const snapshots = await this.getSnapshots(projectKey);
+      const snapshots = await this.getSnapshots(projectKey, username, slug);
 
       // Phase 4: Get media files
       this.updateProgress(
@@ -663,13 +669,22 @@ export class ProjectExportService {
 
   /**
    * Get document snapshots for export.
-   * Exports both new format (xmlContent) and legacy format (yDocState) for backward compatibility.
+   *
+   * Local snapshots are the source of truth in Browser and Cloud Sync modes.
+   * In Realtime mode the server may hold snapshots this device never saw
+   * (taken elsewhere, or lost with cleared browser data), so those are
+   * fetched and merged in too; otherwise an archive silently drops history
+   * the snapshot list shows.
    */
-  private async getSnapshots(projectKey: string): Promise<ArchiveSnapshot[]> {
+  private async getSnapshots(
+    projectKey: string,
+    username: string,
+    slug: string
+  ): Promise<ArchiveSnapshot[]> {
     const storedSnapshots =
       await this.localSnapshots.getSnapshotsForExport(projectKey);
 
-    return storedSnapshots.map(s => ({
+    const archiveSnapshots: ArchiveSnapshot[] = storedSnapshots.map(s => ({
       documentId: s.documentId,
       name: s.name,
       description: s.description,
@@ -680,6 +695,45 @@ export class ProjectExportService {
       metadata: s.metadata,
       createdAt: s.createdAt,
     }));
+
+    if (this.syncFactory.isLocalMode()) {
+      return archiveSnapshots;
+    }
+
+    const knownServerIds = new Set(
+      storedSnapshots.map(s => s.serverId).filter((id): id is string => !!id)
+    );
+    try {
+      const serverList = await firstValueFrom(
+        this.snapshotsApi.listProjectSnapshots(username, slug)
+      );
+      for (const summary of serverList) {
+        if (knownServerIds.has(summary.id)) continue;
+        const full = await firstValueFrom(
+          this.snapshotsApi.getProjectSnapshot(username, slug, summary.id)
+        );
+        archiveSnapshots.push({
+          documentId: full.documentId,
+          name: full.name,
+          description: full.description ?? undefined,
+          xmlContent: full.xmlContent ?? '',
+          worldbuildingData: full.worldbuildingData as
+            Record<string, unknown> | undefined,
+          wordCount: full.wordCount ?? undefined,
+          metadata: full.metadata as Record<string, unknown> | undefined,
+          createdAt: full.createdAt,
+        });
+      }
+    } catch (error) {
+      this.logger.warn(
+        'ProjectExport',
+        'Could not fetch server snapshots; archive contains local snapshots only',
+        error
+      );
+    }
+
+    archiveSnapshots.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    return archiveSnapshots;
   }
 
   /**

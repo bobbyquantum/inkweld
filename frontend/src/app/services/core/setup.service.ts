@@ -5,8 +5,11 @@ import { stripTrailingSlashes } from '@utils/string-utils';
 import { environment } from '../../../environments/environment';
 import { LoggerService } from './logger.service';
 import {
+  type CloudProvider,
+  isLocalOrCloudMode,
   LOCAL_CONFIG_ID,
   type ServerConfig,
+  type StorageConfigType,
   StorageContextService,
 } from './storage-context.service';
 
@@ -14,8 +17,9 @@ import {
  * App config interface for convenience access.
  */
 export interface AppConfig {
-  mode: 'server' | 'local';
+  mode: StorageConfigType;
   serverUrl?: string;
+  cloudProvider?: CloudProvider;
   userProfile?: {
     name: string;
     username: string;
@@ -49,6 +53,7 @@ export class SetupService {
     return {
       mode: config.type,
       serverUrl: config.serverUrl,
+      cloudProvider: config.cloudProvider,
       userProfile: config.userProfile
         ? {
             name: config.userProfile.name,
@@ -86,13 +91,20 @@ export class SetupService {
 
     const activeConfig = this.storageContext.getActiveConfig();
 
+    // A user who deliberately chose Browser or Cloud Sync mode on a hosted
+    // deployment keeps that choice; the hosted server stays available as a
+    // profile they can switch to. Only server configs are auto-managed.
+    if (activeConfig && activeConfig.type !== 'server') {
+      if (!this.storageContext.hasServerConfig(preConfiguredUrl)) {
+        this.storageContext.addServerConfig(preConfiguredUrl, 'Hosted Server');
+      }
+      return;
+    }
+
     // If we have a pre-configured URL, and it's different from the stored one,
     // we should update it. This ensures that if a user moves between preview/prod
     // or if the worker URL changes, the app stays in sync with its build.
-    if (
-      activeConfig?.type !== 'server' ||
-      activeConfig?.serverUrl !== preConfiguredUrl
-    ) {
+    if (activeConfig?.serverUrl !== preConfiguredUrl) {
       this.logger.debug(
         'SetupService',
         'Auto-configuring for hosted deployment:',
@@ -156,6 +168,27 @@ export class SetupService {
   }
 
   /**
+   * Configure the app for cloud sync mode with the given provider account.
+   * The caller has already completed the provider OAuth flow; this only
+   * records the configuration and switches the storage context to it.
+   */
+  configureCloudMode(options: {
+    provider: CloudProvider;
+    accountId: string;
+    accountLabel?: string;
+    userProfile: { name: string; username: string; avatarUrl?: string };
+  }): ServerConfig {
+    this.isLoading.set(true);
+    try {
+      const config = this.storageContext.addCloudConfig(options);
+      this.storageContext.switchToConfig(config.id);
+      return config;
+    } finally {
+      this.isLoading.set(false);
+    }
+  }
+
+  /**
    * Reset the app configuration (removes all server configs)
    */
   resetConfiguration(): void {
@@ -163,11 +196,39 @@ export class SetupService {
   }
 
   /**
-   * Get the current configuration mode
+   * Get the current configuration mode.
+   *
+   * Prefer {@link isServerMode} / {@link isLocalMode} / {@link isCloudMode}
+   * for branching: most code only cares whether an Inkweld server is
+   * involved, and cloud sync mode must take the local path there.
    */
-  getMode(): 'server' | 'local' | null {
+  getMode(): StorageConfigType | null {
     const config = this.storageContext.getActiveConfig();
     return config?.type ?? null;
+  }
+
+  /** True when connected to an Inkweld server (Realtime Sync mode) */
+  isServerMode(): boolean {
+    return this.getMode() === 'server';
+  }
+
+  /**
+   * True when there is no Inkweld server: Browser mode or Cloud Sync mode.
+   * Both store everything in the browser; cloud sync additionally mirrors to
+   * the user's cloud storage, which is transparent to callers of this method.
+   */
+  isLocalMode(): boolean {
+    return isLocalOrCloudMode(this.getMode());
+  }
+
+  /** True when in Cloud Sync mode */
+  isCloudMode(): boolean {
+    return this.getMode() === 'cloud';
+  }
+
+  /** The active cloud provider, or null outside cloud sync mode */
+  getCloudProvider(): CloudProvider | null {
+    return this.storageContext.getActiveConfig()?.cloudProvider ?? null;
   }
 
   /**
@@ -178,11 +239,11 @@ export class SetupService {
   }
 
   /**
-   * Get the local user profile if in local mode
+   * Get the locally stored user profile (local and cloud sync modes)
    */
   getLocalUserProfile(): User | null {
     const config = this.storageContext.getActiveConfig();
-    if (config?.type === 'local' && config.userProfile) {
+    if (config?.type !== 'server' && config?.userProfile) {
       return {
         id: '',
         name: config.userProfile.name,

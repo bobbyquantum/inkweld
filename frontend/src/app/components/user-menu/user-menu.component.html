@@ -105,6 +105,16 @@
             <span>{{ 'messages.title' | transloco }}</span>
           </button>
         }
+        @if (setupService.getMode() === 'cloud') {
+          <button
+            mat-menu-item
+            (click)="onSyncNow()"
+            [disabled]="cloudSync.status() === 'syncing'"
+            data-testid="cloud-sync-now-button">
+            <mat-icon>sync</mat-icon>
+            <span>Sync now</span>
+          </button>
+        }
         <button mat-menu-item (click)="onSettings()">
           <mat-icon>settings</mat-icon>
           <span>{{ 'settings.dialogTitle' | transloco }}</span>

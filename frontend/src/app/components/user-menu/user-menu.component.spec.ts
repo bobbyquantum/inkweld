@@ -5,6 +5,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { type User } from '@inkweld/index';
 import { AnnouncementService } from '@services/announcement/announcement.service';
 import { AuthTokenService } from '@services/auth/auth-token.service';
+import { CloudSyncEngineService } from '@services/cloud-sync/cloud-sync-engine.service';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SetupService } from '@services/core/setup.service';
 import {
@@ -126,6 +127,14 @@ describe('UserMenuComponent', () => {
     await TestBed.configureTestingModule({
       imports: [translocoTestProvider(), UserMenuComponent],
       providers: [
+        {
+          provide: CloudSyncEngineService,
+          useValue: {
+            status: () => 'disabled',
+            initialize: () => undefined,
+            syncNow: () => Promise.resolve(),
+          },
+        },
         provideZonelessChangeDetection(),
         { provide: HttpClient, useValue: httpClientMock },
         { provide: Router, useValue: routerMock },

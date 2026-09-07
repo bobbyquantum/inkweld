@@ -57,6 +57,7 @@ import {
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { LoggerService } from '@services/core/logger.service';
 import { SetupService } from '@services/core/setup.service';
+import { isLocalOrCloudMode } from '@services/core/storage-context.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
 import { MediaSyncService } from '@services/local/media-sync.service';
 import { PresenceService } from '@services/presence/presence.service';
@@ -804,7 +805,7 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
     if (
       missed &&
       !this.eraImageSyncAttempted &&
-      this.setup.getMode() !== 'local'
+      !isLocalOrCloudMode(this.setup.getMode())
     ) {
       this.eraImageSyncAttempted = true;
       await this.resolveEraImagesWithSync(projectKey, needed, resolved);

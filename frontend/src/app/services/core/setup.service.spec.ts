@@ -7,6 +7,7 @@ import { translocoTestProvider } from '../../../testing/transloco-test-provider'
 import { SetupService } from './setup.service';
 import {
   APP_CONFIG_STORAGE_KEY,
+  type AppConfigV2,
   LOCAL_CONFIG_ID,
   StorageContextService,
 } from './storage-context.service';
@@ -503,6 +504,130 @@ describe('SetupService', () => {
       (service as any)['autoConfigureIfNeeded']();
 
       expect(addSpy).not.toHaveBeenCalled();
+    });
+  });
+  describe('cloud sync mode', () => {
+    const cloudOptions = {
+      provider: 'dropbox' as const,
+      accountId: 'dbid:abc',
+      accountLabel: 'bobby@example.com',
+      userProfile: { name: 'Bobby Quantum', username: 'bobby' },
+    };
+
+    it('configureCloudMode records and activates a cloud config', () => {
+      const config = service.configureCloudMode(cloudOptions);
+
+      expect(config.type).toBe('cloud');
+      expect(service.getMode()).toBe('cloud');
+      expect(service.getActiveConfig()?.id).toBe(config.id);
+      expect(service.getCloudProvider()).toBe('dropbox');
+      expect(service.isLoading()).toBe(false);
+    });
+
+    it('mode helpers treat cloud as local-like', () => {
+      service.configureCloudMode(cloudOptions);
+      expect(service.isLocalMode()).toBe(true);
+      expect(service.isCloudMode()).toBe(true);
+      expect(service.isServerMode()).toBe(false);
+      expect(service.getServerUrl()).toBeNull();
+      expect(service.getWebSocketUrl()).toBeNull();
+    });
+
+    it('mode helpers for local and server modes', async () => {
+      service.configureLocalMode({ name: 'L', username: 'l' });
+      expect(service.isLocalMode()).toBe(true);
+      expect(service.isCloudMode()).toBe(false);
+      expect(service.getCloudProvider()).toBeNull();
+
+      (globalThis.fetch as Mock).mockResolvedValue({ ok: true });
+      await service.configureServerMode('https://api.example.com');
+      expect(service.isServerMode()).toBe(true);
+      expect(service.isLocalMode()).toBe(false);
+    });
+
+    it('exposes the stored profile in cloud mode', () => {
+      service.configureCloudMode(cloudOptions);
+      expect(service.getLocalUserProfile()).toEqual({
+        id: '',
+        name: 'Bobby Quantum',
+        username: 'bobby',
+        enabled: true,
+      });
+      expect(service.appConfig()?.mode).toBe('cloud');
+      expect(service.appConfig()?.cloudProvider).toBe('dropbox');
+    });
+  });
+
+  describe('hosted auto-configuration', () => {
+    const originalApiUrl = environment.apiUrl;
+
+    function createServiceWithConfig(config: AppConfigV2 | null): SetupService {
+      if (config) {
+        mockLocalStorage[APP_CONFIG_STORAGE_KEY] = JSON.stringify(config);
+      }
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        imports: [translocoTestProvider()],
+        providers: [
+          provideZonelessChangeDetection(),
+          StorageContextService,
+          SetupService,
+        ],
+      });
+      return TestBed.inject(SetupService);
+    }
+
+    afterEach(() => {
+      (environment as { apiUrl: string }).apiUrl = originalApiUrl;
+    });
+
+    it('switches to the hosted server when nothing else is active', () => {
+      (environment as { apiUrl: string }).apiUrl = 'https://api.inkweld.test';
+      const svc = createServiceWithConfig(null);
+      expect(svc.getMode()).toBe('server');
+      expect(svc.getServerUrl()).toBe('https://api.inkweld.test');
+    });
+
+    it('keeps an active cloud config and adds the hosted server alongside it', () => {
+      (environment as { apiUrl: string }).apiUrl = 'https://api.inkweld.test';
+      const cloudId = 'cloud-dropbox-abc123';
+      const svc = createServiceWithConfig({
+        version: 2,
+        activeConfigId: cloudId,
+        configurations: [
+          {
+            id: cloudId,
+            type: 'cloud',
+            cloudProvider: 'dropbox',
+            cloudAccountId: 'dbid:abc',
+            addedAt: '2026-01-01T00:00:00.000Z',
+            lastUsedAt: '2026-01-01T00:00:00.000Z',
+          },
+        ],
+      });
+
+      expect(svc.getMode()).toBe('cloud');
+      expect(svc.getActiveConfig()?.id).toBe(cloudId);
+      expect(svc.hasServerConfig('https://api.inkweld.test')).toBe(true);
+      expect(svc.getConfigurations()).toHaveLength(2);
+    });
+
+    it('keeps an active local config on a hosted deployment', () => {
+      (environment as { apiUrl: string }).apiUrl = 'https://api.inkweld.test';
+      const svc = createServiceWithConfig({
+        version: 2,
+        activeConfigId: LOCAL_CONFIG_ID,
+        configurations: [
+          {
+            id: LOCAL_CONFIG_ID,
+            type: 'local',
+            addedAt: '2026-01-01T00:00:00.000Z',
+            lastUsedAt: '2026-01-01T00:00:00.000Z',
+          },
+        ],
+      });
+      expect(svc.getMode()).toBe('local');
+      expect(svc.hasServerConfig('https://api.inkweld.test')).toBe(true);
     });
   });
 });

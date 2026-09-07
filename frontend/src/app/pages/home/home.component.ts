@@ -44,7 +44,10 @@ import {
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SetupService } from '@services/core/setup.service';
-import { StorageContextService } from '@services/core/storage-context.service';
+import {
+  isLocalOrCloudMode,
+  StorageContextService,
+} from '@services/core/storage-context.service';
 import { TutorialService } from '@services/core/tutorial.service';
 import { LocalProjectElementsService } from '@services/local/local-project-elements.service';
 import { LocalSnapshotService } from '@services/local/local-snapshot.service';
@@ -940,7 +943,7 @@ export class HomeComponent implements OnInit, OnDestroy {
    */
   async loadCollaborationData(): Promise<void> {
     // Skip collaboration API calls in offline mode
-    if (this.setupService.getMode() === 'local') {
+    if (isLocalOrCloudMode(this.setupService.getMode())) {
       return;
     }
 

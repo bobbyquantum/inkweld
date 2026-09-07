@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   inject,
   type OnInit,
   signal,
@@ -14,10 +15,19 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { ThemeToggleComponent } from '@components/theme-toggle/theme-toggle.component';
 import { ConfigurationService } from '@inkweld/index';
 import { TranslocoModule } from '@jsverse/transloco';
+import { CloudSyncConfigService } from '@services/cloud-sync/cloud-sync-config.service';
+import {
+  CloudSyncConnectService,
+  type PendingCloudConnection,
+} from '@services/cloud-sync/cloud-sync-connect.service';
+import {
+  type CloudProvider,
+  getCloudProviderDisplayName,
+} from '@services/core/storage-context.service';
 import { firstValueFrom } from 'rxjs';
 
 import { SetupService } from '../../services/core/setup.service';
@@ -36,6 +46,38 @@ interface SystemFeaturesResponse {
     siteKey?: string;
   };
 }
+
+/** Display metadata for a cloud provider option */
+interface CloudProviderOption {
+  id: CloudProvider;
+  name: string;
+  icon: string;
+  description: string;
+}
+
+const PROVIDER_OPTIONS: Record<
+  CloudProvider,
+  Omit<CloudProviderOption, 'id'>
+> = {
+  dropbox: {
+    name: 'Dropbox',
+    icon: 'cloud',
+    description:
+      'Inkweld gets its own folder under Apps in your Dropbox and cannot see anything else.',
+  },
+  'google-drive': {
+    name: 'Google Drive',
+    icon: 'cloud',
+    description:
+      'Inkweld can only see files it created in your Drive, nothing else.',
+  },
+  onedrive: {
+    name: 'OneDrive',
+    icon: 'cloud',
+    description:
+      'Inkweld gets its own folder under Apps in your OneDrive and cannot see anything else.',
+  },
+};
 
 @Component({
   selector: 'app-setup',
@@ -59,20 +101,50 @@ export class SetupComponent implements OnInit {
   private readonly setupService = inject(SetupService);
   private readonly unifiedUserService = inject(UnifiedUserService);
   private readonly ConfigurationService = inject(ConfigurationService);
+  private readonly cloudSyncConfig = inject(CloudSyncConfigService);
+  private readonly cloudSyncConnect = inject(CloudSyncConnectService);
+  private readonly route = inject(ActivatedRoute);
   private readonly snackBar = inject(MatSnackBar);
   private readonly router = inject(Router);
 
   protected readonly isLoading = this.setupService.isLoading;
   protected readonly showServerSetup = signal(false);
   protected readonly showLocalSetup = signal(false);
+  /** Provider picker step of Cloud Sync */
+  protected readonly showCloudSetup = signal(false);
+  /** Profile step of Cloud Sync, after the provider redirect */
+  protected readonly showCloudProfileSetup = signal(false);
+  protected readonly pendingCloudConnection =
+    signal<PendingCloudConnection | null>(null);
+  protected readonly isConnectingCloud = signal(false);
   protected readonly appMode = signal<AppMode>('BOTH');
   protected readonly configLoading = signal(true);
+
+  /** Cloud providers this build can offer */
+  protected readonly cloudProviders = computed<CloudProviderOption[]>(() =>
+    this.cloudSyncConfig
+      .availableProviders()
+      .map(id => ({ id, ...PROVIDER_OPTIONS[id] }))
+  );
 
   protected serverUrl = 'http://localhost:8333';
   protected userName = '';
   protected displayName = '';
 
   ngOnInit(): void {
+    // Returning from a cloud provider with a fresh account: go straight to
+    // the profile step instead of the mode picker.
+    const cloudParam = this.route.snapshot.queryParamMap.get('cloud');
+    const pending = this.cloudSyncConnect.getPendingConnection();
+    if (cloudParam && pending && pending.provider === cloudParam) {
+      this.pendingCloudConnection.set(pending);
+      this.displayName = pending.suggestedName;
+      this.userName = pending.suggestedUsername;
+      this.showCloudProfileSetup.set(true);
+      this.configLoading.set(false);
+      return;
+    }
+
     // Check if there's already a configured server
     const existingServerUrl = this.setupService.getServerUrl();
     if (existingServerUrl) {
@@ -108,7 +180,7 @@ export class SetupComponent implements OnInit {
           // Auto-select mode if only one option is available
           if (appModeValue === 'ONLINE') {
             this.chooseServerMode();
-          } else if (appModeValue === 'LOCAL') {
+          } else if (appModeValue === 'LOCAL' && !this.canUseCloudMode()) {
             this.chooseLocalMode();
           }
         }
@@ -132,9 +204,33 @@ export class SetupComponent implements OnInit {
 
   protected shouldShowModeSelection(): boolean {
     return (
-      this.appMode() === 'BOTH' &&
+      this.hasModeChoice() &&
       !this.showServerSetup() &&
-      !this.showLocalSetup()
+      !this.showLocalSetup() &&
+      !this.showCloudSetup() &&
+      !this.showCloudProfileSetup()
+    );
+  }
+
+  /**
+   * Whether there is more than one way to use this deployment. A LOCAL-only
+   * server still offers a choice when cloud sync is available, because cloud
+   * sync never touches the server.
+   */
+  protected hasModeChoice(): boolean {
+    const mode = this.appMode();
+    if (mode === 'BOTH') return true;
+    return mode === 'LOCAL' && this.canUseCloudMode();
+  }
+
+  /** True when any sub-step is showing and a back button makes sense */
+  protected canGoBack(): boolean {
+    return (
+      this.hasModeChoice() &&
+      (this.showServerSetup() ||
+        this.showLocalSetup() ||
+        this.showCloudSetup() ||
+        this.showCloudProfileSetup())
     );
   }
 
@@ -148,14 +244,57 @@ export class SetupComponent implements OnInit {
     return mode === 'BOTH' || mode === 'LOCAL';
   }
 
+  /**
+   * Cloud sync is offered when this build has at least one provider key and
+   * the server (if any) allows working without it.
+   */
+  protected canUseCloudMode(): boolean {
+    return (
+      this.canUseLocalMode() && this.cloudSyncConfig.isCloudSyncAvailable()
+    );
+  }
+
   protected chooseServerMode(): void {
     this.showServerSetup.set(true);
     this.showLocalSetup.set(false);
+    this.showCloudSetup.set(false);
   }
 
   protected chooseLocalMode(): void {
     this.showLocalSetup.set(true);
     this.showServerSetup.set(false);
+    this.showCloudSetup.set(false);
+  }
+
+  /**
+   * Show the provider picker. Always shown, even with a single provider, so
+   * the user sees which service they are about to hand a folder to and the
+   * step stays stable as more providers are added.
+   */
+  protected chooseCloudMode(): void {
+    this.showCloudSetup.set(true);
+    this.showServerSetup.set(false);
+    this.showLocalSetup.set(false);
+  }
+
+  /** Kick off the provider OAuth redirect */
+  protected async connectCloudProvider(provider: CloudProvider): Promise<void> {
+    if (this.isConnectingCloud()) return;
+    this.isConnectingCloud.set(true);
+    try {
+      await this.cloudSyncConnect.beginAuthorization(provider);
+      // The browser is navigating away; leave the spinner running.
+    } catch (error) {
+      this.isConnectingCloud.set(false);
+      const name = getCloudProviderDisplayName(provider);
+      this.snackBar.open(
+        error instanceof Error
+          ? error.message
+          : `Could not start ${name} sign-in`,
+        'Close',
+        { duration: 5000 }
+      );
+    }
   }
 
   protected async setupServerMode(): Promise<void> {
@@ -208,8 +347,65 @@ export class SetupComponent implements OnInit {
     }
   }
 
+  /** Finish a fresh cloud connection: write the manifest, configure the app */
+  protected async setupCloudProfile(): Promise<void> {
+    const pending = this.pendingCloudConnection();
+    if (!pending) {
+      this.snackBar.open(
+        'Your cloud connection expired. Please connect again.',
+        'Close',
+        { duration: 5000 }
+      );
+      this.goBack();
+      return;
+    }
+
+    const username = this.userName.trim() || pending.suggestedUsername;
+    const displayName = this.displayName.trim() || pending.suggestedName;
+    const providerName = getCloudProviderDisplayName(pending.provider);
+
+    this.isConnectingCloud.set(true);
+    try {
+      await this.cloudSyncConnect.finishNewConnection(pending, {
+        username,
+        name: displayName,
+      });
+      await this.unifiedUserService.initialize();
+      this.snackBar.open(`Connected to ${providerName}!`, 'Close', {
+        duration: 3000,
+      });
+      await this.router.navigate(['/'], { replaceUrl: true });
+    } catch (error) {
+      console.error('Failed to finish cloud sync setup:', error);
+      this.snackBar.open(
+        `Failed to set up ${providerName} sync. Please try again.`,
+        'Close',
+        { duration: 5000 }
+      );
+    } finally {
+      this.isConnectingCloud.set(false);
+    }
+  }
+
+  /** Label for the connected account shown on the profile step */
+  protected pendingProviderName(): string {
+    const pending = this.pendingCloudConnection();
+    return pending ? getCloudProviderDisplayName(pending.provider) : '';
+  }
+
   protected goBack(): void {
+    if (this.showCloudProfileSetup()) {
+      this.cloudSyncConnect.clearPendingConnection();
+      this.pendingCloudConnection.set(null);
+      // Drop the ?cloud= param so a refresh doesn't reopen this step
+      void this.router.navigate([], {
+        replaceUrl: true,
+        queryParams: {},
+      });
+    }
     this.showServerSetup.set(false);
     this.showLocalSetup.set(false);
+    this.showCloudSetup.set(false);
+    this.showCloudProfileSetup.set(false);
   }
 }

@@ -1,6 +1,11 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { type Element, ElementType, ImagesService } from '@inkweld/index';
+import {
+  type Element,
+  ElementType,
+  ImagesService,
+  SnapshotsService,
+} from '@inkweld/index';
 import {
   type ElementRelationship,
   RelationshipCategory,
@@ -8,6 +13,7 @@ import {
 } from '@models/element-ref.model';
 import { createDefaultPublishStyles } from '@models/publish-style';
 import JSZip from '@progress/jszip-esm';
+import { of, throwError } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { type DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 
@@ -53,6 +59,7 @@ describe('ProjectExportService', () => {
   let localStorage: DeepMockProxy<LocalStorageService>;
   let localSnapshots: DeepMockProxy<LocalSnapshotService>;
   let syncFactory: DeepMockProxy<ElementSyncProviderFactory>;
+  let snapshotsApi: DeepMockProxy<SnapshotsService>;
   let imagesService: DeepMockProxy<ImagesService>;
 
   // Capture the generated ZIP blob for verification
@@ -161,6 +168,8 @@ describe('ProjectExportService', () => {
     localStorage = mockDeep<LocalStorageService>();
     localSnapshots = mockDeep<LocalSnapshotService>();
     syncFactory = mockDeep<ElementSyncProviderFactory>();
+    snapshotsApi = mockDeep<SnapshotsService>();
+    snapshotsApi.listProjectSnapshots.mockReturnValue(of([]) as never);
     imagesService = mockDeep<ImagesService>();
 
     // Setup default mocks
@@ -218,6 +227,7 @@ describe('ProjectExportService', () => {
         { provide: LocalStorageService, useValue: localStorage },
         { provide: LocalSnapshotService, useValue: localSnapshots },
         { provide: ElementSyncProviderFactory, useValue: syncFactory },
+        { provide: SnapshotsService, useValue: snapshotsApi },
         { provide: ImagesService, useValue: imagesService },
       ],
     });
@@ -563,6 +573,98 @@ describe('ProjectExportService', () => {
       await service.exportProject();
 
       expect(await fileExistsInZip('snapshots.json')).toBe(false);
+    });
+
+    it('does not ask the server for snapshots in local mode', async () => {
+      syncFactory.isLocalMode.mockReturnValue(true);
+      localSnapshots.getSnapshotsForExport.mockResolvedValue([]);
+
+      await service.exportProject();
+
+      expect(snapshotsApi.listProjectSnapshots).not.toHaveBeenCalled();
+    });
+
+    it('merges server-only snapshots in server mode and skips ones already local', async () => {
+      syncFactory.isLocalMode.mockReturnValue(false);
+      localSnapshots.getSnapshotsForExport.mockResolvedValue([
+        {
+          id: 'testuser/test-project:elem-2:local-uuid',
+          projectKey: 'testuser/test-project',
+          documentId: 'elem-2',
+          name: 'Local and synced',
+          xmlContent: '<doc/>',
+          createdAt: '2026-01-02T00:00:00.000Z',
+          synced: true,
+          serverId: 'srv-1',
+        },
+      ]);
+      snapshotsApi.listProjectSnapshots.mockReturnValue(
+        of([
+          {
+            id: 'srv-1',
+            documentId: 'elem-2',
+            name: 'Local and synced',
+            createdAt: '2026-01-02T00:00:00.000Z',
+          },
+          {
+            id: 'srv-2',
+            documentId: 'elem-3',
+            name: 'Taken on another device',
+            createdAt: '2026-01-01T00:00:00.000Z',
+          },
+        ]) as never
+      );
+      snapshotsApi.getProjectSnapshot.mockReturnValue(
+        of({
+          id: 'srv-2',
+          documentId: 'elem-3',
+          name: 'Taken on another device',
+          description: 'from server',
+          xmlContent: '<doc><p>Server</p></doc>',
+          wordCount: 1,
+          createdAt: '2026-01-01T00:00:00.000Z',
+        }) as never
+      );
+
+      await service.exportProject();
+
+      expect(snapshotsApi.getProjectSnapshot).toHaveBeenCalledTimes(1);
+      expect(snapshotsApi.getProjectSnapshot).toHaveBeenCalledWith(
+        'testuser',
+        'test-project',
+        'srv-2'
+      );
+      const snapshots =
+        await readJsonFromZip<
+          Array<{ documentId: string; name: string; xmlContent: string }>
+        >('snapshots.json');
+      expect(snapshots.map(s => s.documentId)).toEqual(['elem-3', 'elem-2']);
+      expect(snapshots[0].xmlContent).toBe('<doc><p>Server</p></doc>');
+    });
+
+    it('falls back to local snapshots when the server is unreachable', async () => {
+      syncFactory.isLocalMode.mockReturnValue(false);
+      localSnapshots.getSnapshotsForExport.mockResolvedValue([
+        {
+          id: 'testuser/test-project:elem-2:local-uuid',
+          projectKey: 'testuser/test-project',
+          documentId: 'elem-2',
+          name: 'Local only',
+          xmlContent: '<doc/>',
+          createdAt: '2026-01-02T00:00:00.000Z',
+          synced: false,
+        },
+      ]);
+      snapshotsApi.listProjectSnapshots.mockReturnValue(
+        throwError(() => new Error('offline'))
+      );
+
+      await service.exportProject();
+
+      const snapshots =
+        await readJsonFromZip<Array<{ name: string }>>('snapshots.json');
+      expect(snapshots).toHaveLength(1);
+      expect(snapshots[0].name).toBe('Local only');
     });
   });
 

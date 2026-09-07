@@ -21,7 +21,7 @@ export interface StoredActivation {
 /**
  * Service for managing per-device project activation state.
  *
- * In server mode, projects start deactivated on new devices. Users must
+ * In server and cloud sync modes, projects start deactivated on new devices. Users must
  * explicitly activate a project to sync its full data (elements, documents,
  * media, worldbuilding). Covers are always synced regardless of activation.
  *
@@ -94,7 +94,7 @@ export class ProjectActivationService {
    * Safe to call multiple times — only reads from IndexedDB once.
    */
   initialize(): Promise<void> {
-    if (this.setupService.getMode() === 'local') {
+    if (!this.isActivationRequired()) {
       return Promise.resolve();
     }
 
@@ -147,10 +147,13 @@ export class ProjectActivationService {
   }
 
   /**
-   * Whether activation is required (false in local mode, true in server mode).
+   * Whether activation is required: false in local (Browser) mode, true in
+   * server mode and cloud sync mode, where projects from other devices show
+   * up as covers first and are only pulled in full once activated.
    */
   isActivationRequired(): boolean {
-    return this.setupService.getMode() === 'server';
+    const mode = this.setupService.getMode();
+    return mode === 'server' || mode === 'cloud';
   }
 
   /**

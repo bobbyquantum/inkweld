@@ -1,4 +1,5 @@
 import { inject, Injectable, type OnDestroy, signal } from '@angular/core';
+import { isLocalOrCloudMode } from '@services/core/storage-context.service';
 
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
@@ -62,7 +63,7 @@ export class MediaAutoSyncService implements OnDestroy {
    */
   async startAutoSync(projectKey: string): Promise<void> {
     // No server sync in local mode
-    if (this.setupService.getMode() === 'local') {
+    if (isLocalOrCloudMode(this.setupService.getMode())) {
       this.logger.debug('MediaAutoSync', 'Skipping auto-sync — local mode');
       return;
     }
@@ -112,7 +113,7 @@ export class MediaAutoSyncService implements OnDestroy {
    */
   async triggerSyncAfterUpload(): Promise<void> {
     if (!this.activeProjectKey) return;
-    if (this.setupService.getMode() === 'local') return;
+    if (isLocalOrCloudMode(this.setupService.getMode())) return;
 
     this.logger.debug(
       'MediaAutoSync',

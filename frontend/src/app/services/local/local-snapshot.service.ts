@@ -438,10 +438,17 @@ export class LocalSnapshotService {
       wordCount?: number;
       metadata?: Record<string, unknown>;
       createdAt: string;
-    }
+    },
+    options: {
+      /**
+       * Keep a known snapshot id instead of minting one. Cloud Sync uses this
+       * so the same snapshot lands under the same key on every device.
+       */
+      snapshotId?: string;
+    } = {}
   ): Promise<StoredSnapshot> {
     const db = await this.ensureDb();
-    const snapshotId = crypto.randomUUID();
+    const snapshotId = options.snapshotId ?? crypto.randomUUID();
     const id = this.makeKey(projectKey, snapshot.documentId, snapshotId);
 
     const stored: StoredSnapshot = {

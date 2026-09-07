@@ -14,6 +14,7 @@ import {
 } from '@angular/core';
 import { type Project } from '@inkweld/index';
 import { TranslocoModule } from '@jsverse/transloco';
+import { isLocalOrCloudMode } from '@services/core/storage-context.service';
 import { firstValueFrom } from 'rxjs';
 
 import { SetupService } from '../../services/core/setup.service';
@@ -51,8 +52,8 @@ export class ProjectCoverComponent implements OnChanges, OnDestroy {
   private readonly coverBlobUrl = signal<string | null>(null);
 
   /** Whether we're in offline mode */
-  private readonly isOffline = computed(
-    () => this.setupService.getMode() === 'local'
+  private readonly isOffline = computed(() =>
+    isLocalOrCloudMode(this.setupService.getMode())
   );
 
   /** Track current project key for cleanup */

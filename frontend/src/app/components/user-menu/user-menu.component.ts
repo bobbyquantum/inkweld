@@ -18,6 +18,7 @@ import { TranslocoModule } from '@jsverse/transloco';
 import { type TutorialTourId } from '@models/tutorial';
 import { AnnouncementService } from '@services/announcement/announcement.service';
 import { AuthTokenService } from '@services/auth/auth-token.service';
+import { CloudSyncEngineService } from '@services/cloud-sync/cloud-sync-engine.service';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SetupService } from '@services/core/setup.service';
 import {
@@ -53,6 +54,7 @@ export class UserMenuComponent implements OnInit {
   protected announcementService = inject(AnnouncementService);
   protected storageContext = inject(StorageContextService);
   protected authTokenService = inject(AuthTokenService);
+  protected cloudSync = inject(CloudSyncEngineService);
   private readonly dialogGateway = inject(DialogGatewayService);
   private readonly themeService = inject(ThemeService);
   private readonly tutorialService = inject(TutorialService);
@@ -134,11 +136,52 @@ export class UserMenuComponent implements OnInit {
         cssClass: 'online',
       };
     }
+    if (mode === 'cloud') {
+      return this.cloudStatus();
+    }
     return {
       icon: 'computer',
       text: 'Local Mode',
       cssClass: 'local',
     };
+  }
+
+  /** Cloud Sync status line for the profile switcher */
+  private cloudStatus(): { icon: string; text: string; cssClass: string } {
+    switch (this.cloudSync.status()) {
+      case 'syncing':
+        return { icon: 'cloud_sync', text: 'Syncing…', cssClass: 'online' };
+      case 'synced':
+        return {
+          icon: 'cloud_done',
+          text: 'Cloud Sync · up to date',
+          cssClass: 'online',
+        };
+      case 'offline':
+        return {
+          icon: 'cloud_off',
+          text: 'Cloud Sync · offline',
+          cssClass: 'local',
+        };
+      case 'error':
+        return {
+          icon: 'cloud_alert',
+          text: 'Cloud Sync · error',
+          cssClass: 'local',
+        };
+      case 'disconnected':
+        return {
+          icon: 'cloud_off',
+          text: 'Cloud Sync · reconnect needed',
+          cssClass: 'local',
+        };
+      default:
+        return { icon: 'cloud_sync', text: 'Cloud Sync', cssClass: 'local' };
+    }
+  }
+
+  onSyncNow(): void {
+    void this.cloudSync.syncNow();
   }
 
   /**
@@ -150,6 +193,10 @@ export class UserMenuComponent implements OnInit {
 
     if (profile.type === 'local') {
       return 'Local Mode';
+    }
+
+    if (profile.type === 'cloud') {
+      return profile.displayName ?? 'Cloud Sync';
     }
 
     // Use display name if set, otherwise extract hostname from URL
@@ -185,6 +232,17 @@ export class UserMenuComponent implements OnInit {
         icon: 'computer',
         isActive,
         hasAuth: true, // Local mode doesn't need auth
+      };
+    }
+
+    if (profile.type === 'cloud') {
+      return {
+        name: profile.displayName ?? 'Cloud Sync',
+        subtitle:
+          profile.cloudAccountLabel ?? profile.userProfile?.username ?? '',
+        icon: 'cloud_sync',
+        isActive,
+        hasAuth: true, // Provider auth is handled by the cloud sync service
       };
     }
 

@@ -325,7 +325,7 @@ export class WorldbuildingService {
   ): Promise<WebsocketProvider | undefined> {
     const mode = this.setupService.getMode();
     const wsUrl = this.setupService.getWebSocketUrl();
-    if (mode === 'local' || !wsUrl || !username || !slug) {
+    if (mode !== 'server' || !wsUrl || !username || !slug) {
       return undefined;
     }
 

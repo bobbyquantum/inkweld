@@ -11,6 +11,7 @@ import { By } from '@angular/platform-browser';
 import { type Event, Router } from '@angular/router';
 import { SwUpdate } from '@angular/service-worker';
 import { Configuration, UsersService } from '@inkweld/index';
+import { CloudSyncEngineService } from '@services/cloud-sync/cloud-sync-engine.service';
 import { BackgroundService } from '@services/core/background.service';
 import { SetupService } from '@services/core/setup.service';
 import { UpdateService } from '@services/core/update.service';
@@ -78,6 +79,14 @@ describe('AppComponent', () => {
         translocoTestProvider(),
       ],
       providers: [
+        {
+          provide: CloudSyncEngineService,
+          useValue: {
+            status: () => 'disabled',
+            initialize: () => undefined,
+            syncNow: () => Promise.resolve(),
+          },
+        },
         provideZonelessChangeDetection(),
         provideHttpClientTesting(),
         { provide: UsersService, useValue: userServiceMock },

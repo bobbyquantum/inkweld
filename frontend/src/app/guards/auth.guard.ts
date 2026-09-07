@@ -5,6 +5,7 @@ import {
   Router,
   type RouterStateSnapshot,
 } from '@angular/router';
+import { isLocalOrCloudMode } from '@services/core/storage-context.service';
 
 import { SetupService } from '../services/core/setup.service';
 import { UnifiedUserService } from '../services/user/unified-user.service';
@@ -34,8 +35,8 @@ export const authGuard: CanActivateFn = async (
 
   const mode = setupService.getMode();
 
-  // For offline mode, check if user is authenticated
-  if (mode === 'local') {
+  // For offline modes (browser / cloud sync), check if user is authenticated
+  if (isLocalOrCloudMode(mode)) {
     if (unifiedUserService.isAuthenticated()) {
       return true;
     }

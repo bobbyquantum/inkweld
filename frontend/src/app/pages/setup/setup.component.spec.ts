@@ -8,8 +8,10 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { ConfigurationService } from '@inkweld/index';
+import { CloudSyncConfigService } from '@services/cloud-sync/cloud-sync-config.service';
+import { CloudSyncConnectService } from '@services/cloud-sync/cloud-sync-connect.service';
 import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -26,6 +28,9 @@ describe('SetupComponent', () => {
   let mockConfigurationService: any;
   let mockSnackBar: any;
   let mockRouter: any;
+  let mockCloudSyncConfig: any;
+  let mockCloudSyncConnect: any;
+  let mockActivatedRoute: any;
 
   beforeEach(async () => {
     mockSetupService = {
@@ -51,6 +56,24 @@ describe('SetupComponent', () => {
       navigate: vi.fn().mockResolvedValue(true),
     };
 
+    mockCloudSyncConfig = {
+      isCloudSyncAvailable: vi.fn().mockReturnValue(false),
+      availableProviders: vi.fn().mockReturnValue([]),
+    };
+
+    mockCloudSyncConnect = {
+      beginAuthorization: vi.fn().mockResolvedValue(undefined),
+      getPendingConnection: vi.fn().mockReturnValue(null),
+      clearPendingConnection: vi.fn(),
+      finishNewConnection: vi.fn().mockResolvedValue({ id: 'cloud-dropbox-x' }),
+    };
+
+    mockActivatedRoute = {
+      snapshot: {
+        queryParamMap: { get: vi.fn().mockReturnValue(null) },
+      },
+    };
+
     await TestBed.configureTestingModule({
       imports: [
         translocoTestProvider(),
@@ -70,6 +93,9 @@ describe('SetupComponent', () => {
         { provide: ConfigurationService, useValue: mockConfigurationService },
         { provide: MatSnackBar, useValue: mockSnackBar },
         { provide: Router, useValue: mockRouter },
+        { provide: CloudSyncConfigService, useValue: mockCloudSyncConfig },
+        { provide: CloudSyncConnectService, useValue: mockCloudSyncConnect },
+        { provide: ActivatedRoute, useValue: mockActivatedRoute },
       ],
     }).compileComponents();
 
@@ -492,6 +518,216 @@ describe('SetupComponent', () => {
         { duration: 3000 }
       );
       expect(mockRouter.navigate).not.toHaveBeenCalled();
+    });
+  });
+  describe('cloud sync', () => {
+    const pending = {
+      provider: 'dropbox' as const,
+      accountId: 'dbid:1',
+      accountLabel: 'bobby@example.com',
+      suggestedName: 'Bobby Quantum',
+      suggestedUsername: 'bobby-quantum',
+    };
+
+    function enableDropbox(): void {
+      mockCloudSyncConfig.isCloudSyncAvailable.mockReturnValue(true);
+      mockCloudSyncConfig.availableProviders.mockReturnValue(['dropbox']);
+    }
+
+    it('hides the cloud option when no provider is configured', async () => {
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      expect(component['canUseCloudMode']()).toBe(false);
+      expect(
+        fixture.nativeElement.querySelector('[data-testid="cloud-mode-button"]')
+      ).toBeNull();
+    });
+
+    it('renders Browser, Cloud Sync, Realtime in that order when available', async () => {
+      enableDropbox();
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      const ids = Array.from(
+        fixture.nativeElement.querySelectorAll(
+          '.setup-options button.option-card'
+        ) as NodeListOf<HTMLElement>
+      ).map(b => b.getAttribute('data-testid'));
+      expect(ids).toEqual([
+        'local-mode-button',
+        'cloud-mode-button',
+        'server-mode-button',
+      ]);
+    });
+
+    it('still offers a choice on a LOCAL-only server when cloud sync exists', async () => {
+      enableDropbox();
+      mockSetupService.getServerUrl.mockReturnValue('http://server.com');
+      mockConfigurationService.getAppConfiguration.mockReturnValue(
+        of({ appMode: 'LOCAL' })
+      );
+
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      expect(component['showLocalSetup']()).toBe(false);
+      expect(component['shouldShowModeSelection']()).toBe(true);
+      expect(component['canUseServerMode']()).toBe(false);
+    });
+
+    it('shows the provider picker even when only one provider is available', async () => {
+      enableDropbox();
+
+      component['chooseCloudMode']();
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      expect(component['showCloudSetup']()).toBe(true);
+      expect(mockCloudSyncConnect.beginAuthorization).not.toHaveBeenCalled();
+      expect(
+        fixture.nativeElement.querySelector(
+          '[data-testid="cloud-provider-dropbox"]'
+        )
+      ).not.toBeNull();
+    });
+
+    it('shows the provider picker when several providers are available', () => {
+      mockCloudSyncConfig.isCloudSyncAvailable.mockReturnValue(true);
+      mockCloudSyncConfig.availableProviders.mockReturnValue([
+        'dropbox',
+        'google-drive',
+      ]);
+
+      component['chooseCloudMode']();
+
+      expect(component['showCloudSetup']()).toBe(true);
+      expect(mockCloudSyncConnect.beginAuthorization).not.toHaveBeenCalled();
+      expect(component['cloudProviders']().map(p => p.id)).toEqual([
+        'dropbox',
+        'google-drive',
+      ]);
+    });
+
+    it('reports an error and re-enables the UI when authorization cannot start', async () => {
+      enableDropbox();
+      mockCloudSyncConnect.beginAuthorization.mockRejectedValue(
+        new Error('Dropbox is not configured for this build')
+      );
+
+      await component['connectCloudProvider']('dropbox');
+
+      expect(component['isConnectingCloud']()).toBe(false);
+      expect(mockSnackBar.open).toHaveBeenCalledWith(
+        'Dropbox is not configured for this build',
+        'Close',
+        expect.anything()
+      );
+    });
+
+    it('opens the profile step when returning from the provider', () => {
+      mockActivatedRoute.snapshot.queryParamMap.get.mockImplementation(
+        (key: string) => (key === 'cloud' ? 'dropbox' : null)
+      );
+      mockCloudSyncConnect.getPendingConnection.mockReturnValue(pending);
+
+      fixture.detectChanges();
+
+      expect(component['showCloudProfileSetup']()).toBe(true);
+      expect(component['shouldShowModeSelection']()).toBe(false);
+      expect(component['displayName']).toBe('Bobby Quantum');
+      expect(component['userName']).toBe('bobby-quantum');
+      expect(component['pendingProviderName']()).toBe('Dropbox');
+      expect(
+        mockConfigurationService.getAppConfiguration
+      ).not.toHaveBeenCalled();
+    });
+
+    it('ignores a stale ?cloud param when no connection is pending', () => {
+      mockActivatedRoute.snapshot.queryParamMap.get.mockImplementation(
+        (key: string) => (key === 'cloud' ? 'dropbox' : null)
+      );
+
+      fixture.detectChanges();
+
+      expect(component['showCloudProfileSetup']()).toBe(false);
+      expect(component['configLoading']()).toBe(false);
+    });
+
+    it('finishes the connection with the entered profile', async () => {
+      component['pendingCloudConnection'].set(pending);
+      component['showCloudProfileSetup'].set(true);
+      component['displayName'] = '  Bobby  ';
+      component['userName'] = ' bobby ';
+
+      await component['setupCloudProfile']();
+
+      expect(mockCloudSyncConnect.finishNewConnection).toHaveBeenCalledWith(
+        pending,
+        { username: 'bobby', name: 'Bobby' }
+      );
+      expect(mockUnifiedUserService.initialize).toHaveBeenCalled();
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/'], {
+        replaceUrl: true,
+      });
+      expect(component['isConnectingCloud']()).toBe(false);
+    });
+
+    it('falls back to the suggested profile when fields are blank', async () => {
+      component['pendingCloudConnection'].set(pending);
+      component['displayName'] = '';
+      component['userName'] = '';
+
+      await component['setupCloudProfile']();
+
+      expect(mockCloudSyncConnect.finishNewConnection).toHaveBeenCalledWith(
+        pending,
+        { username: 'bobby-quantum', name: 'Bobby Quantum' }
+      );
+    });
+
+    it('shows an error and stays on the step when finishing fails', async () => {
+      component['pendingCloudConnection'].set(pending);
+      component['showCloudProfileSetup'].set(true);
+      mockCloudSyncConnect.finishNewConnection.mockRejectedValue(
+        new Error('boom')
+      );
+
+      await component['setupCloudProfile']();
+
+      expect(mockSnackBar.open).toHaveBeenCalledWith(
+        'Failed to set up Dropbox sync. Please try again.',
+        'Close',
+        expect.anything()
+      );
+      expect(mockRouter.navigate).not.toHaveBeenCalled();
+      expect(component['showCloudProfileSetup']()).toBe(true);
+    });
+
+    it('returns to the mode picker when the pending connection has expired', async () => {
+      component['pendingCloudConnection'].set(null);
+      component['showCloudProfileSetup'].set(true);
+
+      await component['setupCloudProfile']();
+
+      expect(mockCloudSyncConnect.finishNewConnection).not.toHaveBeenCalled();
+      expect(component['showCloudProfileSetup']()).toBe(false);
+      expect(mockSnackBar.open).toHaveBeenCalled();
+    });
+
+    it('goBack from the profile step abandons the pending connection', () => {
+      component['pendingCloudConnection'].set(pending);
+      component['showCloudProfileSetup'].set(true);
+
+      component['goBack']();
+
+      expect(mockCloudSyncConnect.clearPendingConnection).toHaveBeenCalled();
+      expect(component['pendingCloudConnection']()).toBeNull();
+      expect(component['showCloudProfileSetup']()).toBe(false);
+      expect(mockRouter.navigate).toHaveBeenCalledWith([], {
+        replaceUrl: true,
+        queryParams: {},
+      });
     });
   });
 });

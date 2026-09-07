@@ -5,6 +5,10 @@ import { trimHyphens } from '@utils/string-utils';
 import { type ProjectArchive } from '../../models/project-archive';
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
+import {
+  isLocalOrCloudMode,
+  type StorageConfigType,
+} from '../core/storage-context.service';
 import { DocumentService } from '../project/document.service';
 import { DocumentImportService } from '../project/document-import.service';
 import {
@@ -46,7 +50,7 @@ export class UnifiedProjectService {
 
   readonly projects = computed(() => {
     const mode = this.setupService.getMode();
-    if (mode === 'local') {
+    if (isLocalOrCloudMode(mode)) {
       return this.localProjectService.projects();
     }
     return this.projectService.projects();
@@ -54,7 +58,7 @@ export class UnifiedProjectService {
 
   readonly isLoading = computed(() => {
     const mode = this.setupService.getMode();
-    if (mode === 'local') {
+    if (isLocalOrCloudMode(mode)) {
       return this.localProjectService.isLoading();
     }
     return this.projectService.isLoading();
@@ -64,7 +68,7 @@ export class UnifiedProjectService {
 
   readonly initialized = computed(() => {
     const mode = this.setupService.getMode();
-    if (mode === 'local') {
+    if (isLocalOrCloudMode(mode)) {
       return this.localProjectService.initialized();
     }
     return this.projectService.initialized();
@@ -72,7 +76,7 @@ export class UnifiedProjectService {
 
   readonly error = computed(() => {
     const mode = this.setupService.getMode();
-    if (mode === 'local') {
+    if (isLocalOrCloudMode(mode)) {
       return undefined; // Local mode doesn't have network errors
     }
     return this.projectService.error();
@@ -80,7 +84,7 @@ export class UnifiedProjectService {
 
   async loadProjects(): Promise<void> {
     const mode = this.setupService.getMode();
-    if (mode === 'local') {
+    if (isLocalOrCloudMode(mode)) {
       this.localProjectService.loadProjects();
     } else if (mode === 'server') {
       return this.projectService.loadAllProjects();
@@ -89,7 +93,7 @@ export class UnifiedProjectService {
 
   async getProject(username: string, slug: string): Promise<Project | null> {
     const mode = this.setupService.getMode();
-    if (mode === 'local') {
+    if (isLocalOrCloudMode(mode)) {
       return this.localProjectService.getProject(username, slug);
     } else if (mode === 'server') {
       return this.projectService.getProjectByUsernameAndSlug(username, slug);
@@ -115,7 +119,7 @@ export class UnifiedProjectService {
     const mode = this.setupService.getMode();
     let project: Project;
 
-    if (mode === 'local') {
+    if (isLocalOrCloudMode(mode)) {
       project = await this.localProjectService.createProject(projectData);
     } else if (mode === 'server') {
       project = await this.createServerProjectWithFallback(
@@ -415,7 +419,7 @@ export class UnifiedProjectService {
     updates: Partial<Project>
   ): Promise<Project> {
     const mode = this.setupService.getMode();
-    if (mode === 'local') {
+    if (isLocalOrCloudMode(mode)) {
       return this.localProjectService.updateProject(username, slug, updates);
     } else if (mode === 'server') {
       // For server mode, get the existing project and merge updates
@@ -435,7 +439,7 @@ export class UnifiedProjectService {
 
   async deleteProject(username: string, slug: string): Promise<void> {
     const mode = this.setupService.getMode();
-    if (mode === 'local') {
+    if (isLocalOrCloudMode(mode)) {
       return this.localProjectService.deleteProject(username, slug);
     } else if (mode === 'server') {
       return this.projectService.deleteProject(username, slug);
@@ -444,7 +448,7 @@ export class UnifiedProjectService {
 
   getProjectsByUsername(username: string): Project[] {
     const mode = this.setupService.getMode();
-    if (mode === 'local') {
+    if (isLocalOrCloudMode(mode)) {
       return this.localProjectService.getProjectsByUsername(username);
     } else if (mode === 'server') {
       return this.projects().filter(p => p.username === username);
@@ -454,7 +458,7 @@ export class UnifiedProjectService {
 
   importProjects(importedProjects: Project[]): void {
     const mode = this.setupService.getMode();
-    if (mode === 'local') {
+    if (isLocalOrCloudMode(mode)) {
       this.localProjectService.importProjects(importedProjects);
     } else {
       // Server mode import would need to be implemented differently
@@ -462,7 +466,7 @@ export class UnifiedProjectService {
     }
   }
 
-  getMode(): 'server' | 'local' | null {
+  getMode(): StorageConfigType | null {
     return this.setupService.getMode();
   }
 }

@@ -11,6 +11,7 @@ import {
 } from '@angular/core';
 import { DomSanitizer, type SafeUrl } from '@angular/platform-browser';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
+import { isLocalOrCloudMode } from '@services/core/storage-context.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
 import { UserService } from '@services/user/user.service';
@@ -110,7 +111,7 @@ export class UserAvatarComponent implements OnInit, OnChanges, OnDestroy {
     const mode = this.unifiedUserService.getMode();
 
     // In offline mode, try to load from IndexedDB cache
-    if (mode === 'local') {
+    if (isLocalOrCloudMode(mode)) {
       await this.loadFromOfflineCache();
       return;
     }

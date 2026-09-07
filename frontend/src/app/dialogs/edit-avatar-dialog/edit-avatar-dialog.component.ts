@@ -11,6 +11,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { DomSanitizer, type SafeUrl } from '@angular/platform-browser';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { SetupService } from '@services/core/setup.service';
+import { isLocalOrCloudMode } from '@services/core/storage-context.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
 import { UserService } from '@services/user/user.service';
@@ -107,7 +108,7 @@ export class EditAvatarDialogComponent {
 
       const blob = this.croppedBlob()!;
 
-      if (mode === 'local') {
+      if (isLocalOrCloudMode(mode)) {
         await this.localStorage.saveUserAvatar(username, blob);
       } else {
         const file = new File([blob], this.fileName(), {

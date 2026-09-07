@@ -51,6 +51,16 @@ export const routes: Routes = [
     title: 'Signing In...',
   },
   {
+    // Cloud Sync provider OAuth redirect target. Registered verbatim with each
+    // provider, so the path must not change without updating those apps.
+    path: 'cloud-sync/callback/:provider',
+    loadComponent: () =>
+      import('./pages/cloud-sync-callback/cloud-sync-callback.component').then(
+        m => m.CloudSyncCallbackComponent
+      ),
+    title: 'Connecting Cloud Storage...',
+  },
+  {
     path: '',
     loadComponent: () =>
       import('./pages/home/home.component').then(m => m.HomeComponent),
