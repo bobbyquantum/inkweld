@@ -22,17 +22,48 @@ export interface ServerVersionInfo {
 }
 
 /**
+ * Cloud storage providers supported by Cloud Sync mode.
+ * Each provider has its own OAuth flow and file API adapter.
+ */
+export type CloudProvider = 'dropbox' | 'google-drive' | 'onedrive';
+
+/**
+ * How the app stores and syncs data for a configuration:
+ * - `local`: browser storage only (Browser mode)
+ * - `cloud`: browser storage mirrored to the user's own cloud storage
+ *   (Cloud Sync mode). No Inkweld server, no Inkweld account.
+ * - `server`: connected to an Inkweld server (Realtime Sync mode)
+ */
+export type StorageConfigType = 'local' | 'cloud' | 'server';
+
+/**
  * Server/mode configuration for storage isolation
  */
 export interface ServerConfig {
-  /** Unique ID: "local" or first 8 chars of SHA-256(serverUrl) */
+  /**
+   * Unique ID: "local", first 8 chars of hash(serverUrl) for servers, or
+   * "cloud-{provider}-{accountHash}" for cloud sync configs
+   */
   id: string;
 
   /** Configuration type */
-  type: 'local' | 'server';
+  type: StorageConfigType;
 
-  /** Server URL (undefined for local mode) */
+  /** Server URL (undefined for local and cloud modes) */
   serverUrl?: string;
+
+  /** Cloud storage provider (cloud mode only) */
+  cloudProvider?: CloudProvider;
+
+  /**
+   * Provider account identifier (cloud mode only). Opaque provider account id,
+   * used to keep two accounts on the same provider in separate storage
+   * contexts. Not the user's email.
+   */
+  cloudAccountId?: string;
+
+  /** Human-readable account label shown in the UI, e.g. the account email */
+  cloudAccountLabel?: string;
 
   /** User-friendly display name, e.g., "My Writing Server" or "Work Instance" */
   displayName?: string;
@@ -68,11 +99,49 @@ export interface AppConfigV2 {
   configurations: ServerConfig[];
 }
 
+/**
+ * True for modes with no Inkweld server behind them: local (Browser) mode and
+ * cloud sync mode. Most call sites only care about this distinction, because
+ * both store everything in the browser and never talk to an Inkweld API.
+ */
+export function isLocalOrCloudMode(
+  mode: StorageConfigType | null | undefined
+): boolean {
+  return mode === 'local' || mode === 'cloud';
+}
+
+/** Human-readable provider names for display */
+export function getCloudProviderDisplayName(provider: CloudProvider): string {
+  switch (provider) {
+    case 'dropbox':
+      return 'Dropbox';
+    case 'google-drive':
+      return 'Google Drive';
+    case 'onedrive':
+      return 'OneDrive';
+  }
+}
+
 /** Storage key for app configuration */
 export const APP_CONFIG_STORAGE_KEY = 'inkweld-app-config';
 
 /** The local mode config ID is always "local" */
 export const LOCAL_CONFIG_ID = 'local';
+
+/** Prefix shared by all cloud sync config IDs */
+export const CLOUD_CONFIG_ID_PREFIX = 'cloud-';
+
+/**
+ * Build the config ID for a cloud sync configuration.
+ * Stable for a given provider + account so reconnecting the same account
+ * lands back in the same storage context.
+ */
+export function buildCloudConfigId(
+  provider: CloudProvider,
+  accountId: string
+): string {
+  return `${CLOUD_CONFIG_ID_PREFIX}${provider}-${djb2Hex(accountId)}`;
+}
 
 /**
  * Service for managing storage context prefixes across different servers/modes.
@@ -84,6 +153,7 @@ export const LOCAL_CONFIG_ID = 'local';
  * Storage prefixes:
  * - "local:" for local mode
  * - "srv:{hash}:" for server mode (hash = first 8 chars of SHA-256 of server URL)
+ * - "cloud-{provider}-{hash}:" for cloud sync mode (hash of provider account id)
  *
  * @example
  * ```typescript
@@ -125,9 +195,24 @@ export class StorageContextService {
     return this.getPrefixForConfig(config.id);
   });
 
-  /** Computed: is in local mode */
+  /**
+   * Computed: true when there is no Inkweld server behind the active config,
+   * i.e. local (Browser) mode or cloud sync mode. Most callers use this to
+   * decide between HTTP/WebSocket and browser storage, and cloud sync behaves
+   * like local storage for that purpose.
+   */
   readonly isLocalMode = computed<boolean>(() => {
-    return this.activeConfig()?.type === 'local';
+    return isLocalOrCloudMode(this.activeConfig()?.type);
+  });
+
+  /** Computed: is in cloud sync mode */
+  readonly isCloudMode = computed<boolean>(() => {
+    return this.activeConfig()?.type === 'cloud';
+  });
+
+  /** Computed: is connected to an Inkweld server */
+  readonly isServerMode = computed<boolean>(() => {
+    return this.activeConfig()?.type === 'server';
   });
 
   /** Computed: is configured (has at least one config) */
@@ -239,6 +324,7 @@ export class StorageContextService {
    */
   getPrefixForConfig(configId: string): string {
     if (configId === LOCAL_CONFIG_ID) return 'local:';
+    if (configId.startsWith(CLOUD_CONFIG_ID_PREFIX)) return `${configId}:`;
     return `srv:${configId}:`;
   }
 
@@ -424,6 +510,71 @@ export class StorageContextService {
   }
 
   /**
+   * Add a cloud sync configuration (or update it if the same provider account
+   * is already configured). Does not switch to it.
+   */
+  addCloudConfig(options: {
+    provider: CloudProvider;
+    accountId: string;
+    accountLabel?: string;
+    displayName?: string;
+    userProfile?: { name: string; username: string; avatarUrl?: string };
+  }): ServerConfig {
+    const now = new Date().toISOString();
+    const id = buildCloudConfigId(options.provider, options.accountId);
+    const config: ServerConfig = {
+      id,
+      type: 'cloud',
+      cloudProvider: options.provider,
+      cloudAccountId: options.accountId,
+      cloudAccountLabel: options.accountLabel,
+      displayName:
+        options.displayName ?? getCloudProviderDisplayName(options.provider),
+      userProfile: options.userProfile,
+      addedAt: now,
+      lastUsedAt: now,
+    };
+
+    const currentConfig = this.configSignal();
+    if (!currentConfig) {
+      const newConfig: AppConfigV2 = {
+        version: 2,
+        activeConfigId: id,
+        configurations: [config],
+      };
+      this.saveConfig(newConfig);
+      this.configSignal.set(newConfig);
+      return config;
+    }
+
+    const existingIndex = currentConfig.configurations.findIndex(
+      c => c.id === id
+    );
+    const updated: AppConfigV2 = {
+      ...currentConfig,
+      configurations: [...currentConfig.configurations],
+    };
+    if (existingIndex >= 0) {
+      const existing = updated.configurations[existingIndex];
+      updated.configurations[existingIndex] = {
+        ...existing,
+        cloudAccountLabel: options.accountLabel ?? existing.cloudAccountLabel,
+        displayName: options.displayName ?? existing.displayName,
+        userProfile: options.userProfile ?? existing.userProfile,
+        lastUsedAt: now,
+      };
+      this.saveConfig(updated);
+      this.configSignal.set(updated);
+      return updated.configurations[existingIndex];
+    }
+
+    updated.configurations.push(config);
+    this.saveConfig(updated);
+    this.configSignal.set(updated);
+    return config;
+  }
+
+  /**
    * Remove a configuration
    */
   removeConfig(configId: string): void {
@@ -572,9 +723,9 @@ export class StorageContextService {
   // ═══════════════════════════════════════════════════════════════════════════
 
   /**
-   * Get the current mode (server or local)
+   * Get the current mode (server, cloud or local)
    */
-  getMode(): 'server' | 'local' {
+  getMode(): StorageConfigType {
     return this.activeConfig()?.type ?? 'local';
   }
 

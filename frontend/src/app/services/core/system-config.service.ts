@@ -11,6 +11,7 @@ import { catchError, tap } from 'rxjs/operators';
 import { DocumentSyncState } from '../../models/document-sync-state';
 import { LoggerService } from './logger.service';
 import { SetupService } from './setup.service';
+import { isLocalOrCloudMode } from './storage-context.service';
 
 /**
  * Status for AI image generation availability.
@@ -232,7 +233,7 @@ export class SystemConfigService {
   private loadSystemFeatures(): void {
     // Check if we're in local mode - don't call API in local mode
     const mode = this.setupService.getMode();
-    if (mode === 'local') {
+    if (isLocalOrCloudMode(mode)) {
       this.logger.debug(
         'SystemConfig',
         'Local mode - using default features without API call'
@@ -297,7 +298,7 @@ export class SystemConfigService {
   ): AiImageGenerationStatus {
     // Check 1: Are we in true local mode? (user explicitly chose local-only)
     const mode = this.setupService.getMode();
-    if (mode === 'local') {
+    if (isLocalOrCloudMode(mode)) {
       return { status: 'hidden' };
     }
 
@@ -341,7 +342,7 @@ export class SystemConfigService {
   /**
    * Check if we're in pure local mode (explicitly chosen local, not just disconnected)
    */
-  public readonly isLocalMode = computed(
-    () => this.setupService.getMode() === 'local'
+  public readonly isLocalMode = computed(() =>
+    isLocalOrCloudMode(this.setupService.getMode())
   );
 }

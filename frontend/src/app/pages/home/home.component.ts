@@ -42,9 +42,13 @@ import {
   type PendingInvitation,
 } from '@inkweld/model/models';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
+import { CloudSyncEngineService } from '@services/cloud-sync/cloud-sync-engine.service';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SetupService } from '@services/core/setup.service';
-import { StorageContextService } from '@services/core/storage-context.service';
+import {
+  isLocalOrCloudMode,
+  StorageContextService,
+} from '@services/core/storage-context.service';
 import { TutorialService } from '@services/core/tutorial.service';
 import { LocalProjectElementsService } from '@services/local/local-project-elements.service';
 import { LocalSnapshotService } from '@services/local/local-snapshot.service';
@@ -116,6 +120,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   private readonly transloco = inject(TranslocoService);
   private readonly dialogGateway = inject(DialogGatewayService);
   private readonly setupService = inject(SetupService);
+  private readonly cloudSync = inject(CloudSyncEngineService);
   readonly syncQueueService = inject(SyncQueueService);
   private readonly coverSyncService = inject(CoverSyncService);
   private readonly storageContext = inject(StorageContextService);
@@ -162,6 +167,16 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   protected user = this.userService.currentUser;
   protected isLoading = this.projectService.isLoading;
+
+  /**
+   * Cloud Sync is pulling the project list right now. Shown in place of the
+   * empty state so a freshly connected device is not told it has nothing.
+   */
+  protected readonly cloudSyncing = computed(
+    () =>
+      this.setupService.getMode() === 'cloud' &&
+      this.cloudSync.status() === 'syncing'
+  );
   protected isAuthenticated = this.userService.isAuthenticated;
   protected destroy$ = new Subject<void>();
 
@@ -940,7 +955,7 @@ export class HomeComponent implements OnInit, OnDestroy {
    */
   async loadCollaborationData(): Promise<void> {
     // Skip collaboration API calls in offline mode
-    if (this.setupService.getMode() === 'local') {
+    if (isLocalOrCloudMode(this.setupService.getMode())) {
       return;
     }
 

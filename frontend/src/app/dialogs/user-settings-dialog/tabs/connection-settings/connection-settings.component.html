@@ -8,14 +8,22 @@
         <mat-icon
           class="status-icon"
           [class.online]="currentMode === 'server'"
-          [class.local]="currentMode === 'local'">
-          {{ currentMode === 'server' ? 'cloud_done' : 'cloud_off' }}
+          [class.local]="currentMode !== 'server'">
+          {{
+            currentMode === 'server'
+              ? 'cloud_done'
+              : currentMode === 'cloud'
+                ? 'cloud_sync'
+                : 'cloud_off'
+          }}
         </mat-icon>
         {{ 'settings.connectionTab.currentMode' | transloco }}
         {{
           currentMode === 'server'
             ? ('settings.connectionTab.onlineMode' | transloco)
-            : ('settings.connectionTab.localMode' | transloco)
+            : currentMode === 'cloud'
+              ? ('settings.connectionTab.cloudMode' | transloco)
+              : ('settings.connectionTab.localMode' | transloco)
         }}
       </mat-card-title>
     </mat-card-header>
@@ -29,6 +37,11 @@
       @if (currentMode === 'local') {
         <p class="local-info">
           {{ 'settings.connectionTab.offlineInfo' | transloco }}
+        </p>
+      }
+      @if (currentMode === 'cloud') {
+        <p class="local-info">
+          {{ 'settings.connectionTab.cloudInfo' | transloco }}
         </p>
       }
     </mat-card-content>
@@ -59,14 +72,14 @@
     <mat-card-header>
       <mat-card-title>
         {{
-          currentMode === 'local'
+          currentMode !== 'server'
             ? ('settings.connectionTab.connectToServer' | transloco)
             : ('settings.connectionTab.changeServer' | transloco)
         }}
       </mat-card-title>
     </mat-card-header>
     <mat-card-content>
-      @if (currentMode === 'local') {
+      @if (currentMode !== 'server') {
         <p>
           {{ 'settings.connectionTab.serverDescription' | transloco }}
         </p>

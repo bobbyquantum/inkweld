@@ -3,9 +3,7 @@
     <mat-card class="setup-card" data-testid="setup-card">
       <mat-card-header>
         <mat-card-title>
-          @if (
-            (showServerSetup() || showLocalSetup()) && appMode() === 'BOTH'
-          ) {
+          @if (canGoBack()) {
             <button
               mat-icon-button
               (click)="goBack()"
@@ -22,16 +20,20 @@
           @if (configLoading()) {
             {{ 'loading' | transloco }}
           } @else if (shouldShowModeSelection()) {
-            Choose how you'd like to use Inkweld
+            Choose where your writing lives
           } @else if (showServerSetup()) {
             Connect to your Inkweld server
           } @else if (showLocalSetup()) {
             Set up your local profile
+          } @else if (showCloudSetup()) {
+            Choose your cloud storage
+          } @else if (showCloudProfileSetup()) {
+            Set up your profile
           }
         </mat-card-subtitle>
       </mat-card-header>
 
-      @if (isLoading() || configLoading()) {
+      @if (isLoading() || configLoading() || isConnectingCloud()) {
         <mat-progress-bar mode="indeterminate"></mat-progress-bar>
       }
 
@@ -52,25 +54,38 @@
             <p>{{ 'loading' | transloco }}</p>
           </div>
         } @else if (shouldShowModeSelection()) {
-          <!-- Initial choice screen - only shown when appMode is 'BOTH' -->
-          <div class="setup-options">
+          <!-- Initial choice screen -->
+          <div class="setup-options" data-testid="setup-options">
             @if (canUseLocalMode()) {
               <button
                 class="option-card"
                 (click)="chooseLocalMode()"
                 data-testid="local-mode-button">
                 <mat-icon class="option-icon">computer</mat-icon>
-                <h3>Work Locally</h3>
+                <h3>Browser</h3>
                 <p>
-                  Work completely locally with browser storage. All your
-                  projects will be stored on your device.
+                  Your projects live only in this browser. Nothing leaves your
+                  device and there is nothing to sign up for. Ideal for trying
+                  Inkweld or writing on a single machine.
                 </p>
-                <span class="option-button">Choose Local Mode</span>
+                <span class="option-button">Start in Browser</span>
               </button>
             }
 
-            @if (canUseServerMode() && canUseLocalMode()) {
-              <mat-divider [vertical]="true"></mat-divider>
+            @if (canUseCloudMode()) {
+              <button
+                class="option-card"
+                (click)="chooseCloudMode()"
+                data-testid="cloud-mode-button">
+                <mat-icon class="option-icon">cloud_sync</mat-icon>
+                <h3>Cloud Sync</h3>
+                <p>
+                  Keep writing across your devices using your own cloud storage.
+                  Inkweld saves into a folder in your account. There is no
+                  Inkweld server and no Inkweld account involved.
+                </p>
+                <span class="option-button">Connect Cloud Storage</span>
+              </button>
             }
 
             @if (canUseServerMode()) {
@@ -78,16 +93,21 @@
                 class="option-card"
                 (click)="chooseServerMode()"
                 data-testid="server-mode-button">
-                <mat-icon class="option-icon">cloud</mat-icon>
-                <h3>Connect to Server</h3>
+                <mat-icon class="option-icon">hub</mat-icon>
+                <h3>Realtime Sync</h3>
                 <p>
-                  Connect to an Inkweld server for collaboration and cloud sync.
-                  Perfect for teams and shared projects.
+                  Connect to an Inkweld server for live collaboration, shared
+                  projects, and sync that runs even when your browser is closed.
+                  Self-host one or join a server you've been invited to.
                 </p>
-                <span class="option-button">Choose Server Mode</span>
+                <span class="option-button">Connect to Server</span>
               </button>
             }
           </div>
+          <p class="setup-footnote">
+            You can switch between these later, and move your projects with you,
+            from the connection settings.
+          </p>
         }
 
         @if (showServerSetup()) {
@@ -169,6 +189,95 @@
             </div>
           </div>
         }
+
+        @if (showCloudSetup()) {
+          <!-- Cloud provider picker -->
+          <div class="provider-list" data-testid="cloud-provider-list">
+            @for (provider of cloudProviders(); track provider.id) {
+              <button
+                class="provider-card"
+                (click)="connectCloudProvider(provider.id)"
+                [disabled]="isConnectingCloud()"
+                [attr.data-testid]="'cloud-provider-' + provider.id">
+                <mat-icon class="provider-icon">{{ provider.icon }}</mat-icon>
+                <div class="provider-text">
+                  <h3>{{ provider.name }}</h3>
+                  <p>{{ provider.description }}</p>
+                </div>
+                <mat-icon class="provider-chevron">chevron_right</mat-icon>
+              </button>
+            }
+          </div>
+          <p class="setup-footnote">
+            You'll be sent to your provider to sign in and grant Inkweld access
+            to its own folder. Inkweld never sees your password.
+          </p>
+        }
+
+        @if (showCloudProfileSetup()) {
+          <!-- Cloud profile form (fresh account, no manifest yet) -->
+          <div class="setup-form">
+            <div
+              class="connected-account"
+              data-testid="cloud-connected-account">
+              <mat-icon>check_circle</mat-icon>
+              <span>
+                Connected to {{ pendingProviderName() }}
+                @if (pendingCloudConnection()?.accountLabel) {
+                  as
+                  <strong>{{ pendingCloudConnection()?.accountLabel }}</strong>
+                }
+              </span>
+            </div>
+            <p class="field-hint profile-intro">
+              This looks like a new Inkweld folder. Pick how you'd like to
+              appear. Your other devices will pick this up automatically when
+              they connect to the same account.
+            </p>
+
+            <div class="field-row">
+              <mat-form-field appearance="outline">
+                <mat-label>{{
+                  'settings.accountTab.displayNameLabel' | transloco
+                }}</mat-label>
+                <input
+                  matInput
+                  id="setup-cloud-display-name-input"
+                  [(ngModel)]="displayName"
+                  data-testid="cloud-displayname-input"
+                  [attr.aria-label]="
+                    'settings.accountTab.displayNameAria' | transloco
+                  " />
+                <mat-icon matSuffix>badge</mat-icon>
+              </mat-form-field>
+              <p class="field-hint">
+                How your name appears in the app. Can be changed later in
+                settings.
+              </p>
+            </div>
+
+            <div class="field-row">
+              <mat-form-field appearance="outline">
+                <mat-label>{{
+                  'settings.connectionTab.usernameLabel' | transloco
+                }}</mat-label>
+                <input
+                  matInput
+                  id="setup-cloud-username-input"
+                  [(ngModel)]="userName"
+                  data-testid="cloud-username-input"
+                  [attr.aria-label]="
+                    'settings.connectionTab.usernameAria' | transloco
+                  " />
+                <mat-icon matSuffix>person</mat-icon>
+              </mat-form-field>
+              <p class="field-hint">
+                Used in project addresses, and as your username if you later
+                move to an Inkweld server.
+              </p>
+            </div>
+          </div>
+        }
       </mat-card-content>
 
       @if (showServerSetup()) {
@@ -193,6 +302,19 @@
             [disabled]="isLoading()"
             data-testid="start-local-button">
             Start Local Mode
+          </button>
+        </mat-card-actions>
+      }
+
+      @if (showCloudProfileSetup()) {
+        <mat-card-actions align="end">
+          <button
+            mat-raised-button
+            color="primary"
+            (click)="setupCloudProfile()"
+            [disabled]="isLoading() || isConnectingCloud()"
+            data-testid="finish-cloud-setup-button">
+            Start Syncing
           </button>
         </mat-card-actions>
       }

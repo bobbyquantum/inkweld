@@ -3,6 +3,10 @@ import { Router } from '@angular/router';
 import { type User } from '@inkweld/index';
 
 import { SetupService } from '../core/setup.service';
+import {
+  isLocalOrCloudMode,
+  type StorageConfigType,
+} from '../core/storage-context.service';
 import { LocalUserService } from '../local/local-user.service';
 import { UserService } from './user.service';
 
@@ -17,7 +21,7 @@ export class UnifiedUserService {
 
   readonly currentUser = computed(() => {
     const mode = this.setupService.getMode();
-    if (mode === 'local') {
+    if (isLocalOrCloudMode(mode)) {
       return this.localUserService.currentUser();
     }
     return this.userService.currentUser();
@@ -25,7 +29,7 @@ export class UnifiedUserService {
 
   readonly isLoading = computed(() => {
     const mode = this.setupService.getMode();
-    if (mode === 'local') {
+    if (isLocalOrCloudMode(mode)) {
       return this.localUserService.isLoading();
     }
     return this.userService.isLoading();
@@ -33,7 +37,7 @@ export class UnifiedUserService {
 
   readonly isAuthenticated = computed(() => {
     const mode = this.setupService.getMode();
-    if (mode === 'local') {
+    if (isLocalOrCloudMode(mode)) {
       return this.localUserService.isAuthenticated();
     }
     return this.userService.isAuthenticated();
@@ -41,7 +45,7 @@ export class UnifiedUserService {
 
   readonly initialized = computed(() => {
     const mode = this.setupService.getMode();
-    if (mode === 'local') {
+    if (isLocalOrCloudMode(mode)) {
       return this.localUserService.initialized();
     }
     return this.userService.initialized();
@@ -49,7 +53,7 @@ export class UnifiedUserService {
 
   readonly error = computed(() => {
     const mode = this.setupService.getMode();
-    if (mode === 'local') {
+    if (isLocalOrCloudMode(mode)) {
       return undefined; // Offline mode doesn't have network errors
     }
     return this.userService.error();
@@ -57,7 +61,7 @@ export class UnifiedUserService {
 
   async initialize(): Promise<void> {
     const mode = this.setupService.getMode();
-    if (mode === 'local') {
+    if (isLocalOrCloudMode(mode)) {
       this.localUserService.initializeFromSetup();
     } else if (mode === 'server') {
       try {
@@ -79,7 +83,7 @@ export class UnifiedUserService {
 
   async logout(): Promise<void> {
     const mode = this.setupService.getMode();
-    if (mode === 'local') {
+    if (isLocalOrCloudMode(mode)) {
       this.localUserService.clearLocalUser();
       await this.router.navigate(['/setup']);
     } else if (mode === 'server') {
@@ -89,7 +93,7 @@ export class UnifiedUserService {
 
   async updateUser(updates: Partial<User>): Promise<void> {
     const mode = this.setupService.getMode();
-    if (mode === 'local') {
+    if (isLocalOrCloudMode(mode)) {
       this.localUserService.updateLocalUser(updates);
     } else if (mode === 'server') {
       const current = this.userService.currentUser();
@@ -100,7 +104,7 @@ export class UnifiedUserService {
 
   async hasCachedUser(): Promise<boolean> {
     const mode = this.setupService.getMode();
-    if (mode === 'local') {
+    if (isLocalOrCloudMode(mode)) {
       return this.localUserService.hasCachedUser();
     } else if (mode === 'server') {
       return this.userService.hasCachedUser();
@@ -108,7 +112,7 @@ export class UnifiedUserService {
     return false;
   }
 
-  getMode(): 'server' | 'local' | null {
+  getMode(): StorageConfigType | null {
     return this.setupService.getMode();
   }
 }

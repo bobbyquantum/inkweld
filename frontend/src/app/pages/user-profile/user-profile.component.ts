@@ -29,6 +29,7 @@ import { TranslocoModule } from '@jsverse/transloco';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { LoggerService } from '@services/core/logger.service';
 import { SetupService } from '@services/core/setup.service';
+import { isLocalOrCloudMode } from '@services/core/storage-context.service';
 import { UnifiedProjectService } from '@services/local/unified-project.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
 import { UserProfileService } from '@services/user/user-profile.service';
@@ -101,8 +102,8 @@ export class UserProfileComponent implements OnInit, OnDestroy {
 
   readonly isOwner = computed(() => this.profile()?.isOwner ?? false);
   /** Offline mode has no server-side stats, so the widget has nothing to show. */
-  readonly isLocalMode = computed(
-    () => this.setupService.getMode() === 'local'
+  readonly isLocalMode = computed(() =>
+    isLocalOrCloudMode(this.setupService.getMode())
   );
   readonly isAnonymous = computed(() => !this.userService.isAuthenticated());
   readonly projects = computed(() => this.profile()?.projects ?? []);
@@ -173,7 +174,7 @@ export class UserProfileComponent implements OnInit, OnDestroy {
     this.activityError.set(false);
     this.activityLoading.set(false);
 
-    if (this.setupService.getMode() === 'local') {
+    if (isLocalOrCloudMode(this.setupService.getMode())) {
       this.loadLocalProfile(username);
       return;
     }

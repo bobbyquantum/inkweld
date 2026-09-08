@@ -303,15 +303,21 @@
 
 <!-- Sync template -->
 <ng-template #syncTemplate>
-  @if (currentMode === 'local') {
+  @if (currentMode !== 'server') {
     <mat-card class="info-card local">
       <mat-card-content>
         <div class="info-content">
           <mat-icon>info</mat-icon>
           <div>
-            <strong>Local Mode:</strong> Some settings are not available in
-            local mode. Connect to a server to access MCP API keys and sync
-            features.
+            @if (currentMode === 'cloud') {
+              <strong>Cloud Sync:</strong> Some settings are only available with
+              an Inkweld server. Connect to a server to access MCP API keys and
+              realtime collaboration.
+            } @else {
+              <strong>Local Mode:</strong> Some settings are not available in
+              local mode. Connect to a server to access MCP API keys and sync
+              features.
+            }
           </div>
         </div>
       </mat-card-content>

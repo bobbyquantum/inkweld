@@ -398,8 +398,10 @@ export class MediaTabComponent implements OnInit, OnDestroy {
       const projectKey = `${project.username}/${project.slug}`;
 
       // In online/server mode, sync from server on first load for this project
-      const mode = this.setupService.getMode();
-      if (mode !== 'local' && this.hasSyncedProject !== projectKey) {
+      if (
+        this.setupService.getMode() === 'server' &&
+        this.hasSyncedProject !== projectKey
+      ) {
         try {
           this.hasSyncedProject = projectKey;
           await this.mediaSyncService.downloadAllFromServer(projectKey);

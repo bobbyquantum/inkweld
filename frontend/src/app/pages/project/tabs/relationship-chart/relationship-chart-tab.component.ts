@@ -22,6 +22,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ActivatedRoute } from '@angular/router';
 import { TranslocoModule } from '@jsverse/transloco';
+import { isLocalOrCloudMode } from '@services/core/storage-context.service';
 import cytoscape from 'cytoscape';
 import dagre from 'cytoscape-dagre';
 import fcose from 'cytoscape-fcose';
@@ -1220,7 +1221,7 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
     });
 
     // Not found locally — trigger a sync and retry once
-    if (this.setupService.getMode() !== 'local') {
+    if (!isLocalOrCloudMode(this.setupService.getMode())) {
       return this.resolveMediaUrlWithSync(projectKey, mediaId, filename);
     }
 

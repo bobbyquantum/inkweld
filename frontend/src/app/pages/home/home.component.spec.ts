@@ -22,6 +22,7 @@ import {
   CollaboratorRole,
   type PendingInvitation,
 } from '@inkweld/model/models';
+import { CloudSyncEngineService } from '@services/cloud-sync/cloud-sync-engine.service';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SetupService } from '@services/core/setup.service';
 import { StorageContextService } from '@services/core/storage-context.service';
@@ -280,6 +281,14 @@ describe('HomeComponent', () => {
     await TestBed.configureTestingModule({
       imports: [HomeComponent, translocoTestProvider()],
       providers: [
+        {
+          provide: CloudSyncEngineService,
+          useValue: {
+            status: () => 'disabled',
+            initialize: () => undefined,
+            syncNow: () => Promise.resolve(),
+          },
+        },
         provideZonelessChangeDetection(),
         provideRouter([
           { path: '', component: HomeComponent },

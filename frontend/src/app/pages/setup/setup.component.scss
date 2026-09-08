@@ -51,7 +51,7 @@
 
 .setup-content {
   width: 100%;
-  max-width: 800px;
+  max-width: 960px;
   position: relative;
   z-index: 1; // Ensure content is above the overlay
 }
@@ -101,13 +101,14 @@
 
 .setup-options {
   display: flex;
+  flex-wrap: wrap;
   gap: 24px;
-  padding: 32px 0;
+  padding: 32px 0 16px;
   align-items: stretch;
 }
 
 .option-card {
-  flex: 1;
+  flex: 1 1 240px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -206,6 +207,111 @@
   padding: 24px;
 }
 
+.setup-footnote {
+  margin: 0 0 16px;
+  text-align: center;
+  font-size: 14px;
+  line-height: 1.5;
+  opacity: 0.7;
+  color: inherit;
+}
+
+// Cloud provider picker
+.provider-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 24px 0 16px;
+}
+
+.provider-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  padding: 16px 20px;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.02);
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  transition: all 0.2s ease;
+
+  .dark-theme & {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--sys-on-surface);
+  }
+
+  &:hover:not(:disabled) {
+    border-color: var(--sys-primary);
+    background: rgba(0, 0, 0, 0.05);
+
+    .dark-theme & {
+      background: rgba(255, 255, 255, 0.1);
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--sys-primary);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.6;
+  }
+
+  h3 {
+    margin: 0 0 4px;
+    font-size: 18px;
+    font-weight: 600;
+  }
+
+  p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.4;
+    opacity: 0.75;
+  }
+}
+
+.provider-icon {
+  font-size: 36px;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  color: var(--sys-primary);
+}
+
+.provider-text {
+  flex: 1;
+}
+
+.provider-chevron {
+  flex-shrink: 0;
+  opacity: 0.5;
+}
+
+// Cloud profile step
+.connected-account {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 15px;
+
+  mat-icon {
+    color: var(--sys-primary);
+  }
+}
+
+.profile-intro {
+  padding-top: 0;
+  margin-bottom: 24px;
+}
+
 .field-row {
   display: flex;
   align-items: flex-start;
@@ -262,11 +368,58 @@ mat-divider[vertical] {
 @media (max-width: 768px) {
   .setup-options {
     flex-direction: column;
-    gap: 16px;
+    gap: 12px;
+    padding: 16px 0 8px;
   }
 
+  // Icon on the left, text on the right, so all three modes fit on one
+  // phone screen instead of three tall centred tiles.
   .option-card {
     min-height: auto;
+    flex: 1 1 auto;
+    display: grid;
+    grid-template-columns: 40px 1fr;
+    grid-template-areas:
+      'icon title'
+      'icon body'
+      'icon action';
+    column-gap: 16px;
+    row-gap: 4px;
+    align-items: start;
+    text-align: left;
+    padding: 16px;
+  }
+
+  .option-icon {
+    grid-area: icon;
+    font-size: 36px;
+    width: 36px;
+    height: 36px;
+    margin: 0;
+  }
+
+  .option-card h3 {
+    grid-area: title;
+    margin: 0;
+    font-size: 18px;
+  }
+
+  .option-card p {
+    grid-area: body;
+    margin: 0;
+    font-size: 14px;
+  }
+
+  .option-button {
+    grid-area: action;
+    justify-self: start;
+    margin-top: 6px;
+    padding: 8px 16px;
+    font-size: 14px;
+  }
+
+  .setup-footnote {
+    font-size: 13px;
   }
 
   mat-divider[vertical] {

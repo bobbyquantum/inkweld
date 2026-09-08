@@ -36,7 +36,10 @@ import { type ElementTypeSchema } from '../../models/schema-types';
 import { DialogGatewayService } from '../core/dialog-gateway.service';
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
-import { StorageContextService } from '../core/storage-context.service';
+import {
+  isLocalOrCloudMode,
+  StorageContextService,
+} from '../core/storage-context.service';
 import { BackgroundSyncService } from '../local/background-sync.service';
 import { LocalProjectElementsService } from '../local/local-project-elements.service';
 import { ProjectRenameMigrationService } from '../local/project-rename-migration.service';
@@ -173,7 +176,7 @@ export class ProjectStateService implements OnDestroy {
     const proj = this.project();
     if (!proj) return false;
     // In offline mode, user owns all their projects - grant full access
-    if (this.setupService.getMode() === 'local') return true;
+    if (isLocalOrCloudMode(this.setupService.getMode())) return true;
     // Owner always has write access
     if (this.isCurrentUserProjectOwner()) return true;
     // If access info is loaded, use it
@@ -188,7 +191,7 @@ export class ProjectStateService implements OnDestroy {
     const proj = this.project();
     if (!proj) return false;
     // In offline mode, user owns all their projects
-    if (this.setupService.getMode() === 'local') return true;
+    if (isLocalOrCloudMode(this.setupService.getMode())) return true;
     // If access info is loaded, use it
     if (proj.access) return proj.access.isOwner;
     // Fallback: Check if current user is owner by username comparison
@@ -202,7 +205,7 @@ export class ProjectStateService implements OnDestroy {
     const proj = this.project();
     if (!proj) return false;
     // In offline mode, user owns all their projects - grant full admin
-    if (this.setupService.getMode() === 'local') return true;
+    if (isLocalOrCloudMode(this.setupService.getMode())) return true;
     // If access info is available, use it
     if (proj.access) return proj.access.canAdmin;
     // Local-first fallback: if we're the owner, we're the admin
@@ -221,7 +224,7 @@ export class ProjectStateService implements OnDestroy {
     const proj = this.project();
     if (!proj) return false;
     // In offline mode, access is always known (full access)
-    if (this.setupService.getMode() === 'local') return true;
+    if (isLocalOrCloudMode(this.setupService.getMode())) return true;
     // In server mode, access is loaded when the access property is present
     if (proj.access !== undefined) return true;
     // Local-first fallback: if we can verify local ownership, consider access known
@@ -355,7 +358,7 @@ export class ProjectStateService implements OnDestroy {
       // Load project metadata and elements
       const mode = this.setupService.getMode();
 
-      if (mode === 'local') {
+      if (isLocalOrCloudMode(mode)) {
         await this.loadOfflineProject(username, slug, loadId);
       } else {
         await this.loadServerProject(username, slug, loadId);

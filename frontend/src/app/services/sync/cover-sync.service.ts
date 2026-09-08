@@ -1,7 +1,10 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, signal } from '@angular/core';
 import { type Project } from '@inkweld/index';
-import { StorageContextService } from '@services/core/storage-context.service';
+import {
+  isLocalOrCloudMode,
+  StorageContextService,
+} from '@services/core/storage-context.service';
 import { firstValueFrom } from 'rxjs';
 
 import { LoggerService } from '../core/logger.service';
@@ -58,7 +61,7 @@ export class CoverSyncService {
       return;
     }
 
-    if (this.setupService.getMode() === 'local') {
+    if (isLocalOrCloudMode(this.setupService.getMode())) {
       this.logger.debug('CoverSync', 'Skipping — local mode');
       return;
     }

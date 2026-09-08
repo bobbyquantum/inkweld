@@ -52,6 +52,7 @@ import {
   createDefaultPublishPlan,
   type PublishPlan,
 } from '../../models/publish-plan';
+import { CloudSyncEngineService } from '../../services/cloud-sync/cloud-sync-engine.service';
 import { DialogGatewayService } from '../../services/core/dialog-gateway.service';
 import { ProjectSearchService } from '../../services/core/project-search.service';
 import { QuickOpenService } from '../../services/core/quick-open.service';
@@ -102,6 +103,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   private readonly quickOpenService = inject(QuickOpenService);
   private readonly projectSearchService = inject(ProjectSearchService);
   private readonly storageContext = inject(StorageContextService);
+  private readonly cloudSync = inject(CloudSyncEngineService);
   private readonly autoSnapshotService = inject(AutoSnapshotService);
   private readonly mediaAutoSync = inject(MediaAutoSyncService);
   private readonly activationService = inject(ProjectActivationService);
@@ -124,6 +126,34 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     this.projectState.getLastConnectionError;
   /** Whether we're in local-only mode (no server configured) */
   protected readonly isLocalMode = this.storageContext.isLocalMode;
+
+  /**
+   * What the sync strap shows. In cloud sync mode it follows the cloud
+   * engine: a problem (offline, error, credentials lost) renders as the
+   * offline strip with a retry; otherwise the strap stays hidden.
+   */
+  protected readonly stripSyncState = computed<DocumentSyncState>(() => {
+    if (!this.storageContext.isCloudMode()) return this.projectSyncState();
+    switch (this.cloudSync.status()) {
+      case 'offline':
+      case 'error':
+      case 'disconnected':
+        return DocumentSyncState.Local;
+      default:
+        return DocumentSyncState.Synced;
+    }
+  });
+
+  /** The strap hides itself in local mode; cloud mode wants it visible */
+  protected readonly stripIsLocalMode = computed(
+    () => !this.storageContext.isCloudMode() && this.isLocalMode()
+  );
+
+  protected readonly stripLastError = computed(() =>
+    this.storageContext.isCloudMode()
+      ? this.cloudSync.lastError()
+      : this.lastConnectionError()
+  );
 
   /** Elements document ID for storage stats hover */
   protected readonly elementsDocId = computed(() => {
@@ -761,6 +791,11 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   async onRetrySyncConnection(): Promise<void> {
     const project = this.projectState.project();
     if (!project) return;
+
+    if (this.storageContext.isCloudMode()) {
+      await this.cloudSync.syncNow();
+      return;
+    }
 
     this.snackBar.open(
       this.transloco.translate('project.snackbar.reconnecting'),

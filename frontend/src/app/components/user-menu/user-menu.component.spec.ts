@@ -5,6 +5,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { type User } from '@inkweld/index';
 import { AnnouncementService } from '@services/announcement/announcement.service';
 import { AuthTokenService } from '@services/auth/auth-token.service';
+import { CloudSyncEngineService } from '@services/cloud-sync/cloud-sync-engine.service';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SetupService } from '@services/core/setup.service';
 import {
@@ -29,6 +30,11 @@ describe('UserMenuComponent', () => {
   let tutorialServiceMock: { start: ReturnType<typeof vi.fn> };
   let userServiceMock: MockedObject<UnifiedUserService>;
   let dialogGatewayMock: MockedObject<DialogGatewayService>;
+  let cloudSyncMock: {
+    status: ReturnType<typeof vi.fn>;
+    initialize: ReturnType<typeof vi.fn>;
+    syncNow: ReturnType<typeof vi.fn>;
+  };
   let setupServiceMock: MockedObject<SetupService>;
   let themeServiceMock: MockedObject<ThemeService>;
   let storageContextMock: MockedObject<StorageContextService>;
@@ -95,6 +101,12 @@ describe('UserMenuComponent', () => {
       openProfileManagerDialog: vi.fn().mockResolvedValue(undefined),
     } as unknown as MockedObject<DialogGatewayService>;
 
+    cloudSyncMock = {
+      status: vi.fn().mockReturnValue('disabled'),
+      initialize: vi.fn(),
+      syncNow: vi.fn().mockResolvedValue(undefined),
+    };
+
     setupServiceMock = {
       getMode: vi.fn().mockReturnValue('server'),
       getServerUrl: vi.fn().mockReturnValue('http://localhost:8333'),
@@ -126,6 +138,7 @@ describe('UserMenuComponent', () => {
     await TestBed.configureTestingModule({
       imports: [translocoTestProvider(), UserMenuComponent],
       providers: [
+        { provide: CloudSyncEngineService, useValue: cloudSyncMock },
         provideZonelessChangeDetection(),
         { provide: HttpClient, useValue: httpClientMock },
         { provide: Router, useValue: routerMock },
@@ -260,6 +273,47 @@ describe('UserMenuComponent', () => {
       expect(status.text).toBe('Local Mode');
       expect(status.cssClass).toBe('local');
       expect(status.icon).toBe('computer');
+    });
+  });
+
+  describe('cloud sync status', () => {
+    it.each([
+      ['syncing', 'Syncing…', 'cloud_sync'],
+      ['synced', 'Cloud Sync · up to date', 'cloud_done'],
+      ['offline', 'Cloud Sync · offline', 'cloud_off'],
+      ['error', 'Cloud Sync · error', 'cloud_alert'],
+      ['disconnected', 'Cloud Sync · reconnect needed', 'cloud_off'],
+      ['idle', 'Cloud Sync', 'cloud_sync'],
+    ])('maps engine status %s to the menu line', (status, text, icon) => {
+      setupServiceMock.getMode.mockReturnValue('cloud');
+      cloudSyncMock.status.mockReturnValue(status);
+
+      const result = component.getConnectionStatus();
+
+      expect(result.text).toBe(text);
+      expect(result.icon).toBe(icon);
+    });
+
+    it('onSyncNow triggers a full pass', () => {
+      component.onSyncNow();
+      expect(cloudSyncMock.syncNow).toHaveBeenCalled();
+    });
+
+    it('names a cloud profile by its display name', () => {
+      const profile = {
+        id: 'cloud-dropbox-x',
+        type: 'cloud',
+        cloudProvider: 'dropbox',
+        cloudAccountLabel: 'bobby@example.com',
+        displayName: 'Dropbox',
+        addedAt: '',
+        lastUsedAt: '',
+      } as never;
+      const info = component.getProfileDisplay(profile);
+      expect(info.name).toBe('Dropbox');
+      expect(info.subtitle).toBe('bobby@example.com');
+      expect(info.icon).toBe('cloud_sync');
+      expect(info.hasAuth).toBe(true);
     });
   });
 

@@ -11,6 +11,7 @@ import { By } from '@angular/platform-browser';
 import { type Event, Router } from '@angular/router';
 import { SwUpdate } from '@angular/service-worker';
 import { Configuration, UsersService } from '@inkweld/index';
+import { CloudSyncEngineService } from '@services/cloud-sync/cloud-sync-engine.service';
 import { BackgroundService } from '@services/core/background.service';
 import { SetupService } from '@services/core/setup.service';
 import { UpdateService } from '@services/core/update.service';
@@ -78,6 +79,14 @@ describe('AppComponent', () => {
         translocoTestProvider(),
       ],
       providers: [
+        {
+          provide: CloudSyncEngineService,
+          useValue: {
+            status: () => 'disabled',
+            initialize: () => undefined,
+            syncNow: () => Promise.resolve(),
+          },
+        },
         provideZonelessChangeDetection(),
         provideHttpClientTesting(),
         { provide: UsersService, useValue: userServiceMock },
@@ -302,6 +311,29 @@ describe('AppComponent', () => {
       // The component already initializes during beforeEach with server mode
       // Since initialization completes without error, verify the component state
       expect((component as any).offlineMode()).toBe(false);
+    });
+
+    it('lets the cloud sync callback through when the app is not yet configured', async () => {
+      setupService.checkConfiguration.mockReturnValue(false);
+      const router = TestBed.inject(Router);
+      const originalPathname = window.location.pathname;
+      Object.defineProperty(window, 'location', {
+        value: { ...window.location, pathname: '/cloud-sync/callback/dropbox' },
+        writable: true,
+      });
+
+      vi.clearAllMocks();
+      component.ngOnInit();
+      await fixture.whenStable();
+
+      // No redirect: the callback page is what creates the configuration
+      expect(router.navigate).not.toHaveBeenCalledWith(['/setup']);
+      expect(unifiedUserService.initialize).not.toHaveBeenCalled();
+
+      Object.defineProperty(window, 'location', {
+        value: { ...window.location, pathname: originalPathname },
+        writable: true,
+      });
     });
 
     it.each<[string]>([['/register'], ['/welcome'], ['/approval-pending']])(

@@ -255,7 +255,6 @@ Optionally override the Pages project name with a `PAGES_PROJECT` variable (defa
 
 > **Note:** Per-PR previews are frontend-only. They start in local/offline mode; to exercise backend features, point the preview at an existing server at runtime through the setup flow. No data is persisted by the preview itself.
 
-
 ## Manual Setup
 
 If you prefer manual configuration, see the detailed steps below.
@@ -323,27 +322,28 @@ npm run cloudflare:prod:deploy
 
 The `.github/workflows/deploy-cloudflare.yml` workflow deploys the preview environment automatically on every push to `main`. To enable it, configure the following in your fork's **Settings → Secrets and variables → Actions**.
 
-### Required GitHub *variables* (visible, editable)
+### Required GitHub _variables_ (visible, editable)
 
 These hold non-secret configuration. Using a variable (not a secret) means you can read and tweak the value in the GitHub UI without a round-trip through a secret manager.
 
-| Variable | Purpose |
-| --- | --- |
-| `BACKEND_WRANGLER_TOML` | The full contents of `backend/wrangler.toml` for your deployment — D1 IDs, R2 bucket names, custom domains, `ALLOWED_ORIGINS`, etc. Use `SESSION_SECRET = "placeholder-set-via-wrangler-secret"` in the `[vars]` block; the real value is injected from the `SESSION_SECRET` GitHub secret at deploy time (see below). Include a `[env.preview.observability] enabled = true` block so Workers Logs stay on across redeploys — without it, every `wrangler deploy` resets observability to off. |
-| `BASE_URL` | Public backend URL, e.g. `https://api.preview.inkweld.app` |
-| `FRONTEND_URL` | Public frontend URL, e.g. `https://preview.inkweld.app` |
-| `APP_NAME` | Display name shown in the UI, e.g. `Inkweld` |
-| `TWA_SHA256_FINGERPRINT` | (Optional) Android TWA signing fingerprint for `assetlinks.json` |
+| Variable                 | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `BACKEND_WRANGLER_TOML`  | The full contents of `backend/wrangler.toml` for your deployment — D1 IDs, R2 bucket names, custom domains, `ALLOWED_ORIGINS`, etc. Use `SESSION_SECRET = "placeholder-set-via-wrangler-secret"` in the `[vars]` block; the real value is injected from the `SESSION_SECRET` GitHub secret at deploy time (see below). Include a `[env.preview.observability] enabled = true` block so Workers Logs stay on across redeploys — without it, every `wrangler deploy` resets observability to off. |
+| `BASE_URL`               | Public backend URL, e.g. `https://api.preview.inkweld.app`                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `FRONTEND_URL`           | Public frontend URL, e.g. `https://preview.inkweld.app`                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `APP_NAME`               | Display name shown in the UI, e.g. `Inkweld`                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `TWA_SHA256_FINGERPRINT` | (Optional) Android TWA signing fingerprint for `assetlinks.json`                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `DROPBOX_APP_KEY`        | (Optional) Public OAuth app key of your Dropbox app, enabling the **Cloud Sync** setup option. Register a "Scoped access" app with **App folder** access at the Dropbox App Console and add `https://<your-frontend-host>/cloud-sync/callback/dropbox` as a redirect URI. Leave unset to hide Cloud Sync.                                                                                                                                                                                       |
 
-### Required GitHub *secrets* (hidden)
+### Required GitHub _secrets_ (hidden)
 
-| Secret | Purpose |
-| --- | --- |
-| `CLOUDFLARE_API_TOKEN` | Wrangler API token with Workers/Pages/D1/R2 permissions |
-| `CLOUDFLARE_ACCOUNT_ID` | Your Cloudflare account ID |
-| `SESSION_SECRET` | The real session-signing key (32+ characters). **Optional** when `SESSION_SECRET` is already set as a Cloudflare Worker secret (via `wrangler secret put`) — in that case it persists across deploys and no GitHub secret is needed. When provided, CI injects it via `wrangler deploy --secrets-file`, which atomically overrides the placeholder `[vars]` value. |
-| `PREVIEW_API_URL` | Frontend environment file: API base URL |
-| `PREVIEW_WSS_URL` | Frontend environment file: WebSocket URL for Yjs sync |
+| Secret                  | Purpose                                                                                                                                                                                                                                                                                                                                                            |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `CLOUDFLARE_API_TOKEN`  | Wrangler API token with Workers/Pages/D1/R2 permissions                                                                                                                                                                                                                                                                                                            |
+| `CLOUDFLARE_ACCOUNT_ID` | Your Cloudflare account ID                                                                                                                                                                                                                                                                                                                                         |
+| `SESSION_SECRET`        | The real session-signing key (32+ characters). **Optional** when `SESSION_SECRET` is already set as a Cloudflare Worker secret (via `wrangler secret put`) — in that case it persists across deploys and no GitHub secret is needed. When provided, CI injects it via `wrangler deploy --secrets-file`, which atomically overrides the placeholder `[vars]` value. |
+| `PREVIEW_API_URL`       | Frontend environment file: API base URL                                                                                                                                                                                                                                                                                                                            |
+| `PREVIEW_WSS_URL`       | Frontend environment file: WebSocket URL for Yjs sync                                                                                                                                                                                                                                                                                                              |
 
 ### How the deploy works
 

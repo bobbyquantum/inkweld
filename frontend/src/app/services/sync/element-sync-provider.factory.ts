@@ -1,6 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 
 import { SetupService } from '../core/setup.service';
+import { type StorageConfigType } from '../core/storage-context.service';
 import { type IElementSyncProvider } from './element-sync-provider.interface';
 import { LocalElementSyncProvider } from './local-element-sync.provider';
 import { YjsElementSyncProvider } from './yjs-element-sync.provider';
@@ -10,7 +11,8 @@ import { YjsElementSyncProvider } from './yjs-element-sync.provider';
  *
  * Selects between:
  * - YjsElementSyncProvider: For server mode (real-time sync via WebSocket)
- * - LocalElementSyncProvider: For local mode (local IndexedDB only)
+ * - LocalElementSyncProvider: For local mode (local IndexedDB only) and
+ *   cloud sync mode (local IndexedDB, mirrored to cloud storage separately)
  *
  * This allows ProjectStateService to work with a consistent interface
  * regardless of the sync backend.
@@ -30,26 +32,31 @@ export class ElementSyncProviderFactory {
    * providers are singletons managed by Angular DI.
    */
   getProvider(): IElementSyncProvider {
-    const mode = this.setupService.getMode();
-
-    if (mode === 'local') {
-      return this.localProvider;
+    if (this.setupService.getMode() === 'server') {
+      return this.yjsProvider;
     }
 
-    return this.yjsProvider;
+    return this.localProvider;
   }
 
   /**
    * Get the current mode for informational purposes.
    */
-  getCurrentMode(): 'local' | 'server' {
-    return this.setupService.getMode() === 'local' ? 'local' : 'server';
+  getCurrentMode(): StorageConfigType {
+    return this.setupService.getMode() ?? 'local';
   }
 
   /**
-   * Check if we're in local mode.
+   * True when there is no Inkweld server (Browser mode or Cloud Sync mode).
+   * Callers use this to choose browser storage over HTTP; cloud sync takes
+   * the browser-storage path too.
    */
   isLocalMode(): boolean {
-    return this.setupService.getMode() === 'local';
+    return this.setupService.getMode() !== 'server';
+  }
+
+  /** True when in Cloud Sync mode */
+  isCloudMode(): boolean {
+    return this.setupService.getMode() === 'cloud';
   }
 }

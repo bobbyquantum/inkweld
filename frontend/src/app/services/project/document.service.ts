@@ -213,6 +213,16 @@ export class DocumentService {
    * which documents were modified during a session.
    */
   readonly localEdit$ = new Subject<string>();
+
+  /**
+   * The live Y.Doc for a document that currently has an open connection
+   * (an editor is showing it), or null. Cloud sync applies remote updates to
+   * the live doc so open editors reflect them immediately, and falls back to
+   * a headless IndexedDB load otherwise.
+   */
+  getConnectedYDoc(documentId: string): Y.Doc | null {
+    return this.connections.get(documentId)?.ydoc ?? null;
+  }
   /** Reactive sync status signals per document */
   private readonly syncStatusSignals = new Map<
     string,

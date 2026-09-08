@@ -8,7 +8,10 @@ import {
 } from '../../config/background-presets';
 import { LoggerService } from './logger.service';
 import { SetupService } from './setup.service';
-import { StorageContextService } from './storage-context.service';
+import {
+  isLocalOrCloudMode,
+  StorageContextService,
+} from './storage-context.service';
 
 /** Which family of surfaces is currently on screen. */
 export type BackgroundSurface = 'login' | 'app';
@@ -131,7 +134,7 @@ export class BackgroundService {
 
   /** LOCAL mode has no server, so there is no admin to allow or forbid things. */
   private get isLocalMode(): boolean {
-    return this.setupService.getMode() === 'local';
+    return isLocalOrCloudMode(this.setupService.getMode());
   }
 
   private get serverBase(): string {

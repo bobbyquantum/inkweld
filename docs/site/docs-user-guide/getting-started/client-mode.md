@@ -2,7 +2,7 @@
 id: client-mode
 title: Choosing Your Mode
 sidebar_label: Choosing Your Mode
-description: Choose between offline mode and server mode when starting Inkweld.
+description: Choose between Browser, Cloud Sync and Realtime Sync when starting Inkweld.
 sidebar_position: 1
 ---
 
@@ -21,63 +21,93 @@ Some Inkweld instances are pre-configured to automatically start in server mode.
   alt="Mode selection screen showing offline and server options"
 />
 
-## Two Ways to Use Inkweld
+## Three Ways to Use Inkweld
 
-### Offline Mode
+|                                         |      Browser      |                Cloud Sync                |          Realtime Sync          |
+| --------------------------------------- | :---------------: | :--------------------------------------: | :-----------------------------: |
+| Where your writing lives                | This browser only | Your own Dropbox (more providers coming) |        An Inkweld server        |
+| Account needed                          |       None        |       Your cloud provider account        | Inkweld account on that server  |
+| Works offline                           |        ✅         |       ✅ (syncs when back online)        |   ✅ (syncs when back online)   |
+| Use on several devices                  |        ⬜         |                    ✅                    |               ✅                |
+| Real-time co-editing, presence, cursors |        ⬜         |                    ⬜                    |               ✅                |
+| Share projects with collaborators       |        ⬜         |                    ⬜                    |               ✅                |
+| Version history & snapshots             |     ✅ local      |                ✅ synced                 |            ✅ synced            |
+| Media library & covers                  |        ✅         |                    ✅                    |               ✅                |
+| Publishing (PDF, EPUB, HTML…)           |        ✅         |                    ✅                    |               ✅                |
+| AI features, MCP API keys               |        ⬜         |                    ⬜                    | ✅ (if the server enables them) |
+| Backup                                  |  Export archive   |    Continuous mirror + export archive    |     Server + export archive     |
+| Move to another mode later              |        ✅         |                    ✅                    |               ✅                |
+| Cost to run                             |       Free        |        Free (your storage quota)         |  Self-host, or a hosted server  |
 
-**Work completely offline with local storage.**
+### Browser
 
-In offline mode:
+**Your projects live only in this browser.**
 
 - All your data is stored **in your browser** using IndexedDB
-- No server connection required — works without internet
+- No account, no server, nothing to sign up for
 - Projects can be **exported** as archive files for backup or sharing
-- You can later **connect to a server** to sync your data
+- You can later move to Cloud Sync or connect to a server
 
-This is ideal for:
-- Writers who want complete privacy
-- Working without internet access
-- Testing Inkweld before setting up a server
+Ideal for trying Inkweld, complete privacy, or writing on a single machine.
 
-### Server Mode
+### Cloud Sync
 
-**Connect to an Inkweld server for collaboration and sync.**
+**Keep writing across your devices using your own cloud storage.**
 
-In server mode:
+- Inkweld saves into its own folder in your cloud account (Dropbox today; it can only see that folder)
+- Your projects still live in the browser and work offline; changes sync a few seconds after you stop typing and whenever you open the app
+- Open Inkweld on another device, connect the same account, and your projects appear. Edits made on two devices before they sync are merged automatically
+- There is no Inkweld server and no Inkweld account involved
+
+Ideal for a single writer with a laptop and a phone, or anyone who wants an off-device copy without running a server.
+
+### Realtime Sync
+
+**Connect to an Inkweld server for collaboration.**
 
 - Your data syncs to a server for backup and access from multiple devices
-- **Real-time collaboration** with other users
+- **Real-time collaboration** with other users, with presence and shared cursors
 - User accounts with authentication
 - Admin features for managing users and settings
 
-This is ideal for:
-- Writing teams and collaborators
-- Accessing projects from multiple devices
-- Organizations wanting centralized data management
+Ideal for writing teams, and for anyone who wants sync that keeps running while their browser is closed.
 
-## Setting Up Offline Mode
+## Setting Up Cloud Sync
 
-If you choose **Work Offline**, you'll create a local profile:
+Choose **Cloud Sync**, pick your provider, and sign in on the provider's own page. Inkweld never sees your password; the provider hands back permission to use a single app folder.
+
+- **First device:** Inkweld finds an empty folder and asks for a display name and username, prefilled from your account.
+- **Another device:** Inkweld finds your existing folder and picks up the profile and project list automatically. Projects show as cards; open one to pull it onto that device.
+
+The user menu shows the sync status and has a **Sync now** action.
+
+:::info Permissions
+Inkweld asks only for access to its own folder (for Dropbox, `Apps/Inkweld`). It cannot see or change anything else in your account. You can revoke access at any time from your provider's connected-apps settings.
+:::
+
+## Setting Up Browser Mode
+
+If you choose **Browser**, you'll create a local profile:
 
 <ThemedImage
   src="/img/generated/setup-offline"
   alt="Offline mode profile setup form"
 />
 
-| Field | Description |
-|-------|-------------|
-| **Username** | A short identifier (used in project URLs) |
-| **Display Name** | Your name as shown in the app |
+| Field            | Description                               |
+| ---------------- | ----------------------------------------- |
+| **Username**     | A short identifier (used in project URLs) |
+| **Display Name** | Your name as shown in the app             |
 
-Click **Start Offline Mode** to begin. Your profile is saved locally and you'll be taken to your bookshelf.
+Click **Start in Browser** to begin. Your profile is saved locally and you'll be taken to your bookshelf.
 
 :::info Data Storage
-In offline mode, your projects are stored in your browser's IndexedDB. Clearing browser data will remove your projects, so use the **Export** feature to create backups.
+In Browser mode, your projects are stored in your browser's IndexedDB. Clearing browser data will remove your projects, so use the **Export** feature to create backups.
 :::
 
 ## Connecting to a Server
 
-If you choose **Connect to Server**, you'll enter your server's URL:
+If you choose **Realtime Sync**, you'll enter your server's URL:
 
 <ThemedImage
   src="/img/generated/setup-server"
@@ -94,9 +124,9 @@ If you're accessing a hosted Inkweld deployment (like one on Cloudflare Workers)
 
 ## Switching Modes Later
 
-### From Offline to Server
+### From Browser or Cloud Sync to a Server
 
-If you start in offline mode and later want to sync to a server:
+If you start without a server and later want to sync to one:
 
 1. Go to **Settings** (user menu → Settings)
 2. Look for the **Connection** section
@@ -114,4 +144,4 @@ To start fresh and see the mode selection again:
 
 ---
 
-**Next:** [Account Setup](./account-setup) — Create your account on a server, or skip to [The Bookshelf](./dashboard) if using offline mode.
+**Next:** [Account Setup](./account-setup) — Create your account on a server, or skip to [The Bookshelf](./dashboard) if using Browser or Cloud Sync mode.

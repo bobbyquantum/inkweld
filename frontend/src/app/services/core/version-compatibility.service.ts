@@ -180,7 +180,7 @@ export class VersionCompatibilityService {
    */
   async initialize(): Promise<void> {
     const activeConfig = this.storageContext.activeConfig();
-    if (!activeConfig || activeConfig.type === 'local') {
+    if (activeConfig?.type !== 'server') {
       // Local mode is always compatible
       this.lastResult.set({
         compatible: true,
@@ -337,8 +337,8 @@ export class VersionCompatibilityService {
   async checkAndUpdateProfileCompatibility(
     profile: ServerConfig
   ): Promise<CompatibilityResult> {
-    if (profile.type === 'local') {
-      // Local mode is always compatible
+    if (profile.type !== 'server') {
+      // Local and cloud sync modes are always compatible
       return {
         compatible: true,
         protocolCompatible: true,

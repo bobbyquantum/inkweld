@@ -61,6 +61,9 @@ export class ServerInfoBubbleComponent {
     if (profile.type === 'local') {
       return 'Local Mode';
     }
+    if (profile.type === 'cloud') {
+      return profile.displayName || 'Cloud Sync';
+    }
     return profile.displayName || profile.serverUrl || 'Server';
   }
 
@@ -71,6 +74,7 @@ export class ServerInfoBubbleComponent {
     const profile = this.activeProfile();
     if (!profile) return 'Not configured';
     if (profile.type === 'local') return 'Local';
+    if (profile.type === 'cloud') return profile.displayName || 'Cloud Sync';
     // Extract hostname from URL
     try {
       const url = new URL(profile.serverUrl ?? '');
@@ -104,6 +108,7 @@ export class ServerInfoBubbleComponent {
    */
   getProfileIcon(profile: ServerConfig): string {
     if (profile.type === 'local') return 'folder';
+    if (profile.type === 'cloud') return 'cloud_sync';
     return 'cloud';
   }
 
@@ -114,6 +119,7 @@ export class ServerInfoBubbleComponent {
     const profile = this.activeProfile();
     if (!profile) return 'cloud_off';
     if (profile.type === 'local') return 'folder';
+    if (profile.type === 'cloud') return 'cloud_sync';
     return 'cloud_done';
   }
 }

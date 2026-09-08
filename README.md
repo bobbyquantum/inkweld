@@ -49,13 +49,31 @@ Then open `http://localhost:8333` in your browser.
 
 ## Features
 
-**Write together, or alone.** Jump in on any device with the real time sync server, or collaborate in real-time with other writers, or work entirely locally with no server. 
+**Write together, or alone.** Work entirely in your browser with no server, keep writing across your devices through your own cloud storage, or connect to an Inkweld server for real-time collaboration.
 
 **Build your world as you write.** Create characters, locations, factions — whatever your story needs. Link them together with relationships, and reference them directly in your prose with @mentions.
 
 **Own your data.** Many hosting options are supported.  Native sync server binaries (thanks to Bun), self contained Docker images, and support for Cloudflare free tier deployment.
 
 **Export when you're ready.** PDF, EPUB, Markdown, HTML. Configurable publish plans let you publish multiple asset variants from a single project.
+
+### Three ways to use it
+
+| | Browser | Cloud Sync | Realtime Sync |
+|---|:---:|:---:|:---:|
+| Where your writing lives | This browser only | Your own Dropbox (more providers coming) | An Inkweld server |
+| Account needed | None | Your cloud provider account | Inkweld account on that server |
+| Works offline | ✅ | ✅ (syncs when back online) | ✅ (syncs when back online) |
+| Use on several devices | ⬜ | ✅ | ✅ |
+| Real-time co-editing, presence, cursors | ⬜ | ⬜ | ✅ |
+| Share projects with collaborators | ⬜ | ⬜ | ✅ |
+| Version history & snapshots | ✅ local | ✅ synced | ✅ synced |
+| Media library & covers | ✅ | ✅ | ✅ |
+| Publishing (PDF, EPUB, HTML…) | ✅ | ✅ | ✅ |
+| AI features, MCP API keys | ⬜ | ⬜ | ✅ (if the server enables them) |
+| Backup | Export archive | Continuous mirror + export archive | Server + export archive |
+| Move to another mode later | ✅ | ✅ | ✅ |
+| Cost to run | Free | Free (your storage quota) | Self-host, or a hosted server |
 
 📋 **[Full feature roadmap →](#feature-roadmap)**
 

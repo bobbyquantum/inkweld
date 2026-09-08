@@ -68,9 +68,12 @@ jobs:
         env:
           PREVIEW_API_URL: ${{ secrets.PREVIEW_API_URL }}
           PREVIEW_WSS_URL: ${{ secrets.PREVIEW_WSS_URL }}
+          # Public OAuth app key for the "Inkweld Preview" Dropbox app. Empty
+          # hides the Dropbox option in Cloud Sync setup.
+          DROPBOX_APP_KEY: ${{ vars.DROPBOX_APP_KEY }}
         run: |
-          printf 'export const environment = {\n  production: true,\n  version: "0.1.0",\n  apiUrl: "%s",\n  wssUrl: "%s",\n};\n' \
-            "${PREVIEW_API_URL}" "${PREVIEW_WSS_URL}" > src/environments/environment.preview.ts
+          printf 'export const environment = {\n  production: true,\n  version: "0.1.0",\n  apiUrl: "%s",\n  wssUrl: "%s",\n  cloudSync: {\n    dropbox: { appKey: "%s" },\n  },\n};\n' \
+            "${PREVIEW_API_URL}" "${PREVIEW_WSS_URL}" "${DROPBOX_APP_KEY}" > src/environments/environment.preview.ts
 
       - name: Inject TWA signing fingerprint
         working-directory: frontend

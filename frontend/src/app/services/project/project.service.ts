@@ -4,7 +4,10 @@ import { ImagesService, type Project, ProjectsService } from '@inkweld/index';
 import { catchError, firstValueFrom, retry, throwError } from 'rxjs';
 
 import { SetupService } from '../core/setup.service';
-import { StorageContextService } from '../core/storage-context.service';
+import {
+  isLocalOrCloudMode,
+  StorageContextService,
+} from '../core/storage-context.service';
 import { LocalProjectService } from '../local/local-project.service';
 import { LocalStorageService } from '../local/local-storage.service';
 import { ProjectSyncService } from '../local/project-sync.service';
@@ -590,7 +593,7 @@ export class ProjectService {
       (await this.localStorage.getProjectCover(username, slug));
     if (cachedCover) {
       // If in server mode, try a background refresh to update cache
-      if (this.setupService.getMode() !== 'local') {
+      if (!isLocalOrCloudMode(this.setupService.getMode())) {
         void (async () => {
           try {
             const freshBlob = await firstValueFrom(
@@ -608,7 +611,7 @@ export class ProjectService {
     }
 
     // If fully offline mode, and no cached cover, surface not found
-    if (this.setupService.getMode() === 'local') {
+    if (isLocalOrCloudMode(this.setupService.getMode())) {
       throw new ProjectServiceError(
         'PROJECT_NOT_FOUND',
         'Cover image not found'
@@ -685,7 +688,7 @@ export class ProjectService {
 
     try {
       // In offline mode, just delete from IndexedDB cache
-      if (this.setupService.getMode() === 'local') {
+      if (isLocalOrCloudMode(this.setupService.getMode())) {
         await this.localStorage.deleteProjectCover(username, slug);
         return;
       }
@@ -747,7 +750,7 @@ export class ProjectService {
       const projectKey = `${username}/${slug}`;
 
       // In offline mode, generate a local filename and save to IndexedDB
-      if (this.setupService.getMode() === 'local') {
+      if (isLocalOrCloudMode(this.setupService.getMode())) {
         return this.saveCoverLocally(username, slug, coverImage);
       }
 

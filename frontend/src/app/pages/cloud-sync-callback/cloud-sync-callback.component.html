@@ -1,0 +1,19 @@
+<div class="callback-container" data-testid="cloud-sync-callback">
+  @if (errorMessage()) {
+    <div class="error">
+      <h2>Couldn't connect to {{ providerName() }}</h2>
+      <p data-testid="cloud-sync-callback-error">{{ errorMessage() }}</p>
+      <a
+        mat-stroked-button
+        routerLink="/setup"
+        data-testid="cloud-sync-callback-retry">
+        Back to setup
+      </a>
+    </div>
+  } @else {
+    <mat-spinner diameter="40"></mat-spinner>
+    <p data-testid="cloud-sync-callback-status">
+      {{ statusMessage() }} {{ providerName() }}…
+    </p>
+  }
+</div>

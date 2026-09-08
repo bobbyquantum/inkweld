@@ -7,6 +7,9 @@ import { translocoTestProvider } from '../../../testing/transloco-test-provider'
 import {
   APP_CONFIG_STORAGE_KEY,
   type AppConfigV2,
+  buildCloudConfigId,
+  getCloudProviderDisplayName,
+  isLocalOrCloudMode,
   LOCAL_CONFIG_ID,
   StorageContextService,
 } from './storage-context.service';
@@ -523,6 +526,109 @@ describe('StorageContextService', () => {
     it('should handle localhost URLs', () => {
       const config = service.addServerConfig('http://localhost:8333');
       expect(config.displayName).toBe('localhost');
+    });
+  });
+  describe('cloud sync configurations', () => {
+    it('builds a stable, provider-scoped config id from the account id', () => {
+      const id = buildCloudConfigId('dropbox', 'dbid:abc');
+      expect(id).toMatch(/^cloud-dropbox-[0-9a-f]+$/);
+      expect(buildCloudConfigId('dropbox', 'dbid:abc')).toBe(id);
+      expect(buildCloudConfigId('dropbox', 'dbid:other')).not.toBe(id);
+      expect(buildCloudConfigId('google-drive', 'dbid:abc')).not.toBe(id);
+    });
+
+    it('addCloudConfig adds and activates the first config', () => {
+      const config = service.addCloudConfig({
+        provider: 'dropbox',
+        accountId: 'dbid:abc',
+        accountLabel: 'bobby@example.com',
+        userProfile: { name: 'Bobby', username: 'bobby' },
+      });
+
+      expect(config.type).toBe('cloud');
+      expect(config.cloudProvider).toBe('dropbox');
+      expect(config.cloudAccountId).toBe('dbid:abc');
+      expect(config.cloudAccountLabel).toBe('bobby@example.com');
+      expect(config.displayName).toBe('Dropbox');
+      expect(service.getActiveConfig()?.id).toBe(config.id);
+      expect(service.getMode()).toBe('cloud');
+    });
+
+    it('uses a cloud-specific storage prefix', () => {
+      const config = service.addCloudConfig({
+        provider: 'dropbox',
+        accountId: 'dbid:abc',
+      });
+      expect(service.getPrefix()).toBe(`${config.id}:`);
+      expect(service.prefixDbName('inkweld-media')).toBe(
+        `${config.id}:inkweld-media`
+      );
+      expect(service.getPrefixForConfig(config.id)).toBe(`${config.id}:`);
+    });
+
+    it('keeps two accounts on the same provider in separate contexts', () => {
+      const a = service.addCloudConfig({
+        provider: 'dropbox',
+        accountId: 'dbid:a',
+      });
+      const b = service.addCloudConfig({
+        provider: 'dropbox',
+        accountId: 'dbid:b',
+      });
+      expect(a.id).not.toBe(b.id);
+      expect(service.getConfigurations()).toHaveLength(2);
+    });
+
+    it('updates an existing config for the same account without duplicating', () => {
+      service.addLocalConfig();
+      const first = service.addCloudConfig({
+        provider: 'dropbox',
+        accountId: 'dbid:abc',
+        accountLabel: 'old@example.com',
+      });
+      const second = service.addCloudConfig({
+        provider: 'dropbox',
+        accountId: 'dbid:abc',
+        accountLabel: 'new@example.com',
+        userProfile: { name: 'Bobby', username: 'bobby' },
+      });
+
+      expect(second.id).toBe(first.id);
+      expect(service.getConfigurations()).toHaveLength(2);
+      expect(second.cloudAccountLabel).toBe('new@example.com');
+      expect(second.userProfile?.username).toBe('bobby');
+      // Adding does not switch away from the active (local) config
+      expect(service.getActiveConfig()?.id).toBe(LOCAL_CONFIG_ID);
+    });
+
+    it('reports cloud mode as local-like and not server', () => {
+      service.addCloudConfig({ provider: 'dropbox', accountId: 'x' });
+      expect(service.isLocalMode()).toBe(true);
+      expect(service.isCloudMode()).toBe(true);
+      expect(service.isServerMode()).toBe(false);
+      expect(service.getServerUrl()).toBeUndefined();
+      expect(service.getWebSocketUrl()).toBeUndefined();
+    });
+
+    it('isLocalMode is false for server mode and when unconfigured', () => {
+      expect(service.isLocalMode()).toBe(false);
+      service.addServerConfig('https://api.example.com');
+      expect(service.isLocalMode()).toBe(false);
+      expect(service.isServerMode()).toBe(true);
+    });
+
+    it('isLocalOrCloudMode helper', () => {
+      expect(isLocalOrCloudMode('local')).toBe(true);
+      expect(isLocalOrCloudMode('cloud')).toBe(true);
+      expect(isLocalOrCloudMode('server')).toBe(false);
+      expect(isLocalOrCloudMode(null)).toBe(false);
+      expect(isLocalOrCloudMode(undefined)).toBe(false);
+    });
+
+    it('getCloudProviderDisplayName', () => {
+      expect(getCloudProviderDisplayName('dropbox')).toBe('Dropbox');
+      expect(getCloudProviderDisplayName('google-drive')).toBe('Google Drive');
+      expect(getCloudProviderDisplayName('onedrive')).toBe('OneDrive');
     });
   });
 });

@@ -17,6 +17,8 @@ jobs:
     name: Deploy PR #${{ github.event.pull_request.number }} Preview
     if: contains(github.event.pull_request.labels.*.name, 'deploy:preview:frontend')
     runs-on: ubuntu-latest
+    # No GitHub environment here: the preview environment only allows main to
+    # deploy. DROPBOX_APP_KEY is therefore read as a repository variable.
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -45,11 +47,14 @@ jobs:
 
       - name: Write frontend-only preview environment
         working-directory: frontend
+        env:
+          DROPBOX_APP_KEY: ${{ vars.DROPBOX_APP_KEY }}
         run: |
           # Frontend-only preview: no backend is provisioned. An empty apiUrl
           # keeps the app in local/offline mode; users can point at an existing
           # server at runtime through the setup flow.
-          printf 'export const environment = {\n  production: true,\n  version: "0.1.0",\n  apiUrl: "",\n  wssUrl: "",\n};\n' > src/environments/environment.preview.ts
+          printf 'export const environment = {\n  production: true,\n  version: "0.1.0",\n  apiUrl: "",\n  wssUrl: "",\n  cloudSync: {\n    dropbox: { appKey: "%s" },\n  },\n};\n' \
+            "${DROPBOX_APP_KEY}" > src/environments/environment.preview.ts
 
       - name: Inject TWA signing fingerprint
         working-directory: frontend

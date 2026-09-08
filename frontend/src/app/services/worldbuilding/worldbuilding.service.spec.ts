@@ -1343,7 +1343,7 @@ describe('WorldbuildingService', () => {
       };
 
       const onlineSetupService = {
-        getMode: vi.fn().mockReturnValue('online'),
+        getMode: vi.fn().mockReturnValue('server'),
         getWebSocketUrl: vi.fn().mockReturnValue('ws://localhost:8333'),
       };
 

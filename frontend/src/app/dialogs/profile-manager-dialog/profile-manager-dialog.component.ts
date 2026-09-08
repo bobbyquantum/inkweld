@@ -272,6 +272,16 @@ export class ProfileManagerDialogComponent {
       };
     }
 
+    if (profile.type === 'cloud') {
+      return {
+        name: profile.displayName ?? 'Cloud Sync',
+        subtitle:
+          profile.cloudAccountLabel ?? profile.userProfile?.username ?? '',
+        icon: 'cloud_sync',
+        isActive,
+      };
+    }
+
     // Extract hostname for subtitle
     let hostname: string;
     try {

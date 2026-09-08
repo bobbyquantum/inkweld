@@ -15,6 +15,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ActivatedRoute, Router } from '@angular/router';
 import { type Element, ElementType, type Project } from '@inkweld/index';
+import { CloudSyncEngineService } from '@services/cloud-sync/cloud-sync-engine.service';
 import { ProjectSearchService } from '@services/core/project-search.service';
 import { QuickOpenService } from '@services/core/quick-open.service';
 import { SettingsService } from '@services/core/settings.service';
@@ -267,6 +268,15 @@ describe('ProjectComponent', () => {
     await TestBed.configureTestingModule({
       imports: [translocoTestProvider(), ProjectComponent],
       providers: [
+        {
+          provide: CloudSyncEngineService,
+          useValue: {
+            status: () => 'disabled',
+            lastError: () => null,
+            initialize: () => undefined,
+            syncNow: () => Promise.resolve(),
+          },
+        },
         provideZonelessChangeDetection(),
         provideHttpClient(withXhr()),
         { provide: ProjectStateService, useValue: projectStateService },
@@ -301,6 +311,7 @@ describe('ProjectComponent', () => {
           provide: StorageContextService,
           useValue: {
             isLocalMode: signal(false),
+            isCloudMode: signal(false),
             prefixDbName: vi.fn((name: string) => name),
             getActiveConfig: vi.fn(() => ({ id: 'test-config' })),
           },
