@@ -109,6 +109,15 @@ function remoteEntriesOfKind(
   return out;
 }
 
+/** Everything a per-project sync step needs, bundled to keep signatures short */
+interface ProjectSyncContext {
+  store: RemoteStore;
+  username: string;
+  slug: string;
+  files: Map<string, RemoteFileInfo>;
+  summary: ProjectSyncSummary;
+}
+
 /** Remote project.json */
 interface RemoteProjectJson {
   version: 1;
@@ -405,14 +414,10 @@ export class CloudProjectMirrorService {
     );
 
     const indexChanged = await this.uploadLocalOnlyMedia(
-      store,
-      username,
-      slug,
+      { store, username, slug, files, summary },
       local,
       remoteIds,
-      index,
-      files,
-      summary
+      index
     );
 
     const localIds = new Set(local.map(m => m.mediaId));
@@ -439,15 +444,12 @@ export class CloudProjectMirrorService {
 
   /** Upload media the remote lacks; also backfill index entries. Returns whether the index changed. */
   private async uploadLocalOnlyMedia(
-    store: RemoteStore,
-    username: string,
-    slug: string,
+    ctx: ProjectSyncContext,
     local: MediaInfo[],
     remoteIds: Set<string>,
-    index: RemoteMediaIndex,
-    files: Map<string, RemoteFileInfo>,
-    summary: ProjectSyncSummary
+    index: RemoteMediaIndex
   ): Promise<boolean> {
+    const { store, username, slug, files, summary } = ctx;
     const projectKey = projectKeyOf(username, slug);
     let indexChanged = false;
     for (const item of local) {
@@ -645,8 +647,7 @@ export class CloudProjectMirrorService {
     // Remote is newer (or we have no local entry): adopt it
     if (remote && remote.updatedDate > (local?.updatedDate ?? '')) {
       const changed =
-        !local ||
-        local.title !== remote.title ||
+        local?.title !== remote.title ||
         (local.description ?? null) !== (remote.description ?? null);
       if (changed) {
         this.localProjects.importProjects([
