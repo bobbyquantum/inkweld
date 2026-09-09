@@ -238,8 +238,9 @@ function sameProfiles(
   if (a.length !== b.length) return false;
   const key = (p: CloudManifestProfile) =>
     `${p.username.trim().toLowerCase()}\u0000${p.name}`;
-  const sortedA = a.map(key).sort();
-  const sortedB = b.map(key).sort();
+  const byText = (x: string, y: string) => x.localeCompare(y);
+  const sortedA = a.map(key).sort(byText);
+  const sortedB = b.map(key).sort(byText);
   return sortedA.every((k, i) => k === sortedB[i]);
 }
 
