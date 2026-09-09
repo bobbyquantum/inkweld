@@ -580,6 +580,32 @@ describe('RegistrationFormComponent', () => {
       expect(component.usernameSuggestions()).toEqual([]);
       expect(component['usernameTaken']()).toBe(false);
     });
+
+    it('ignores a stale check that fails after a newer check succeeded', async () => {
+      component.serverUrl = 'https://test-server.example.com';
+      const httpClient = TestBed.inject(HttpClient);
+      const first = new Subject<{
+        available: boolean;
+        suggestions?: string[];
+      }>();
+      vi.spyOn(httpClient, 'get')
+        .mockReturnValueOnce(first.asObservable())
+        .mockReturnValueOnce(of({ available: true }));
+
+      component.form.username().value.set('taken');
+      const firstCheck = component.checkUsernameAvailability();
+      component.selectSuggestion('taken1');
+      await Promise.resolve();
+      expect(component.usernameAvailability()).toBe('available');
+
+      // The stale request errors out afterwards: no reset, no snackbar.
+      first.error(new Error('Network error'));
+      await firstCheck;
+
+      expect(component.usernameAvailability()).toBe('available');
+      expect(component.usernameSuggestions()).toEqual([]);
+      expect(snackBar.open).not.toHaveBeenCalled();
+    });
   });
 
   describe('helper methods', () => {
