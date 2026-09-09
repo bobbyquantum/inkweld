@@ -191,14 +191,19 @@ export class PasskeyService {
       }
 
       this.authTokenService.setToken(result.token);
-      // Mirror UserService.login: persist user profile to active config so
-      // the "Switch Server" panel shows the username.
+      // Mirror UserService.login: bind the login to a server profile. A
+      // different author than the profile's owner is moved to their own
+      // profile, and the app reloads into that storage context.
       const activeConfig = this.storageContext.getActiveConfig();
-      if (activeConfig) {
-        this.storageContext.updateConfigUserProfile(activeConfig.id, {
+      if (activeConfig?.type === 'server') {
+        const bound = this.storageContext.adoptServerLogin({
           name: result.user.name ?? result.user.username,
           username: result.user.username,
         });
+        if (bound.forkedFrom) {
+          this.authTokenService.moveToken(bound.forkedFrom, bound.config.id);
+          globalThis.location.assign('/');
+        }
       }
 
       return result.user;

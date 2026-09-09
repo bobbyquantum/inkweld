@@ -2,8 +2,12 @@ import { inject, Injectable } from '@angular/core';
 import {
   CLOUD_MANIFEST_PATH,
   type CloudManifest,
+  type CloudManifestProfile,
   createCloudManifest,
+  findManifestProfile,
+  manifestProjectsFor,
   parseCloudManifest,
+  withManifestProfile,
 } from '@models/cloud-manifest';
 import { LoggerService } from '@services/core/logger.service';
 import { SetupService } from '@services/core/setup.service';
@@ -18,6 +22,7 @@ import { CloudSyncConfigService } from './cloud-sync-config.service';
 import {
   type CloudTokenSet,
   CloudTokenStoreService,
+  NEVER_EXPIRES,
 } from './cloud-token-store.service';
 import {
   buildDropboxAuthorizeUrl,
@@ -27,12 +32,21 @@ import {
 } from './dropbox/dropbox-api';
 import { DropboxRemoteStore } from './dropbox/dropbox-remote-store';
 import {
+  NextcloudRemoteStore,
+  NextcloudUnreachableError,
+} from './nextcloud/nextcloud-remote-store';
+import {
+  type NextcloudCredentials,
+  normalizeNextcloudServerUrl,
+} from './nextcloud/webdav-api';
+import {
   computeCodeChallenge,
   generateCodeVerifier,
   generateState,
 } from './pkce';
 import {
   RemoteAuthError,
+  RemoteConflictError,
   RemoteFileNotFoundError,
   type RemoteStore,
 } from './remote-store.interface';
@@ -63,16 +77,27 @@ export interface PendingCloudConnection {
   /** Suggested profile values from the provider account */
   suggestedName: string;
   suggestedUsername: string;
+  /**
+   * Author profiles already syncing through this account, with their live
+   * project slugs, when the account holds an Inkweld folder. Empty for a
+   * fresh account.
+   */
+  existingProfiles?: {
+    name: string;
+    username: string;
+    slugs: string[];
+  }[];
 }
 
-/** Result of completing the OAuth redirect */
+/** Result of completing a connect flow */
 export type CloudCallbackResult =
   | {
-      kind: 'configured';
-      config: ServerConfig;
-      manifest: CloudManifest;
+      /** The account already has authors; the user picks one or adds one */
+      kind: 'choose-profile';
+      pending: PendingCloudConnection;
     }
   | {
+      /** Fresh account: the user names the first profile */
       kind: 'needs-profile';
       pending: PendingCloudConnection;
     };
@@ -91,6 +116,9 @@ export function buildCloudCallbackRedirectUri(provider: CloudProvider): string {
  * 3. Either the manifest's profile is adopted and the app is configured, or
  *    the caller collects a profile and calls `finishNewConnection`
  *
+ * Nextcloud has no OAuth step: `connectNextcloud` takes a server address and
+ * an app password and joins the flow at step 2.
+ *
  * Also hands out an authenticated {@link RemoteStore} for a configured cloud
  * profile, refreshing tokens as needed.
  */
@@ -105,6 +133,7 @@ export class CloudSyncConnectService {
 
   /** Start the OAuth flow. Navigates away; nothing runs after this resolves. */
   async beginAuthorization(provider: CloudProvider): Promise<void> {
+    assertOAuthProvider(provider);
     const appKey = this.config.getAppKey(provider);
     if (!appKey) {
       throw new Error(
@@ -167,23 +196,77 @@ export class CloudSyncConnectService {
     const configId = buildCloudConfigId(provider, account.id);
     this.tokens.set(configId, accountTokens);
 
+    return this.adoptOrRequestProfile(provider, configId, account);
+  }
+
+  /**
+   * Connect a self-hosted Nextcloud with a server address, login name and a
+   * dedicated app password. Verifies access first so a wrong password or a
+   * server without CORS headers fails here with a specific message instead
+   * of as a vague sync error later.
+   */
+  async connectNextcloud(input: {
+    serverUrl: string;
+    loginName: string;
+    appPassword: string;
+  }): Promise<CloudCallbackResult> {
+    const loginName = input.loginName.trim();
+    const appPassword = input.appPassword.trim();
+    if (!loginName) throw new Error('Enter your Nextcloud username');
+    if (!appPassword) throw new Error('Enter a Nextcloud app password');
+    const serverUrl = normalizeNextcloudServerUrl(input.serverUrl);
+    const creds: NextcloudCredentials = { serverUrl, loginName, appPassword };
+
+    const probe = new NextcloudRemoteStore(() => Promise.resolve(creds));
+    try {
+      await probe.checkAccess();
+    } catch (error) {
+      if (error instanceof NextcloudUnreachableError) {
+        throw new Error(
+          `Could not reach ${new URL(serverUrl).host}. Check the address, and make sure the server allows Inkweld to connect (see the Nextcloud setup guide).`,
+          { cause: error }
+        );
+      }
+      if (error instanceof RemoteAuthError) {
+        throw new Error(
+          'Nextcloud rejected the username or app password. Create a new app password under Settings, Security and try again.',
+          { cause: error }
+        );
+      }
+      throw error;
+    }
+
+    const accountId = `${serverUrl}#${loginName}`;
+    const host = new URL(serverUrl).host;
+    const configId = buildCloudConfigId('nextcloud', accountId);
+    this.tokens.set(configId, {
+      provider: 'nextcloud',
+      accountId,
+      accessToken: appPassword,
+      expiresAt: NEVER_EXPIRES,
+      serverUrl,
+      loginName,
+    });
+
+    return this.adoptOrRequestProfile('nextcloud', configId, {
+      id: accountId,
+      label: `${loginName} on ${host}`,
+      displayName: loginName,
+    });
+  }
+
+  /**
+   * Shared tail of every connect flow. Nothing is configured yet: the caller
+   * either offers the authors already in the folder (or a new one), or
+   * collects the first profile for a fresh account.
+   */
+  private async adoptOrRequestProfile(
+    provider: CloudProvider,
+    configId: string,
+    account: { id: string; label: string; displayName: string }
+  ): Promise<CloudCallbackResult> {
     const store = this.createStore(provider, configId);
     const manifest = await this.readManifest(store);
-
-    if (manifest) {
-      // Second device: the folder is the account. Adopt its profile.
-      const config = this.setupService.configureCloudMode({
-        provider,
-        accountId: account.id,
-        accountLabel: account.label,
-        userProfile: { ...manifest.profile },
-      });
-      this.logger.info(
-        'CloudSync',
-        `Connected ${provider} account with existing manifest (${manifest.projects.length} projects)`
-      );
-      return { kind: 'configured', config, manifest };
-    }
 
     const pendingConnection: PendingCloudConnection = {
       provider,
@@ -191,12 +274,65 @@ export class CloudSyncConnectService {
       accountLabel: account.label,
       suggestedName: account.displayName,
       suggestedUsername: suggestUsername(account.displayName, account.label),
+      existingProfiles: manifest
+        ? manifest.profiles.map(p => ({
+            name: p.name,
+            username: p.username,
+            slugs: manifestProjectsFor(manifest, p.username).map(e => e.slug),
+          }))
+        : undefined,
     };
     sessionStorage.setItem(
       PENDING_CONNECTION_KEY,
       JSON.stringify(pendingConnection)
     );
+    if (manifest) {
+      this.logger.info(
+        'CloudSync',
+        `Connected ${provider} account with ${manifest.profiles.length} existing profile(s)`
+      );
+      return { kind: 'choose-profile', pending: pendingConnection };
+    }
     return { kind: 'needs-profile', pending: pendingConnection };
+  }
+
+  /**
+   * Continue as an author who already syncs through this account. Creates
+   * (or finds) the local profile for that username, shares the account's
+   * credentials with it, and switches to it.
+   */
+  adoptExistingProfile(
+    pending: PendingCloudConnection,
+    profile: CloudManifestProfile
+  ): ServerConfig {
+    const config = this.setupService.configureCloudMode({
+      provider: pending.provider,
+      accountId: pending.accountId,
+      accountLabel: pending.accountLabel,
+      userProfile: { name: profile.name, username: profile.username },
+    });
+    this.shareAccountTokens(pending, config.id);
+    this.clearPendingConnection();
+    this.logger.info(
+      'CloudSync',
+      `Continuing as @${profile.username} on ${pending.provider}`
+    );
+    return config;
+  }
+
+  /**
+   * Provider credentials are stored per profile id. They are obtained once
+   * per account (under the account's base id), so every further author on
+   * that account gets a copy.
+   */
+  private shareAccountTokens(
+    pending: PendingCloudConnection,
+    configId: string
+  ): void {
+    const baseId = buildCloudConfigId(pending.provider, pending.accountId);
+    if (baseId === configId) return;
+    const tokens = this.tokens.get(baseId);
+    if (tokens && !this.tokens.has(configId)) this.tokens.set(configId, tokens);
   }
 
   /** The account awaiting profile setup, if the user is mid-flow */
@@ -210,26 +346,45 @@ export class CloudSyncConnectService {
     }
   }
 
-  /** Abandon a pending connection (user went back) */
+  /** Forget the pending connection once it has become a profile */
   clearPendingConnection(): void {
     sessionStorage.removeItem(PENDING_CONNECTION_KEY);
   }
 
   /**
-   * First device: write the manifest with the chosen profile and configure
-   * the app for cloud sync mode.
+   * The user went back without creating a profile. Provider credentials were
+   * already stored under the account's base id during authorization; drop
+   * them unless a profile on that account exists and still needs them.
+   */
+  abandonPendingConnection(): void {
+    const pending = this.getPendingConnection();
+    if (pending) {
+      const baseId = buildCloudConfigId(pending.provider, pending.accountId);
+      const stillUsed = this.setupService
+        .getConfigurations()
+        .some(
+          c =>
+            c.type === 'cloud' &&
+            c.cloudProvider === pending.provider &&
+            c.cloudAccountId === pending.accountId
+        );
+      if (!stillUsed) this.tokens.clear(baseId);
+    }
+    this.clearPendingConnection();
+  }
+
+  /**
+   * Add an author to the account: write the manifest (created fresh, or with
+   * the new profile appended to the existing list) and configure the app for
+   * that profile.
    */
   async finishNewConnection(
     pending: PendingCloudConnection,
     profile: { name: string; username: string }
   ): Promise<ServerConfig> {
-    const configId = buildCloudConfigId(pending.provider, pending.accountId);
-    const store = this.createStore(pending.provider, configId);
-    const manifest = createCloudManifest(
-      { provider: pending.provider, accountId: pending.accountId },
-      profile
-    );
-    await store.put(CLOUD_MANIFEST_PATH, JSON.stringify(manifest, null, 2));
+    const baseId = buildCloudConfigId(pending.provider, pending.accountId);
+    const store = this.createStore(pending.provider, baseId);
+    await this.registerProfileInManifest(store, pending, profile);
 
     const config = this.setupService.configureCloudMode({
       provider: pending.provider,
@@ -237,12 +392,71 @@ export class CloudSyncConnectService {
       accountLabel: pending.accountLabel,
       userProfile: profile,
     });
+    this.shareAccountTokens(pending, config.id);
     this.clearPendingConnection();
     this.logger.info(
       'CloudSync',
-      `Created manifest and configured ${pending.provider} cloud sync`
+      `Registered @${profile.username} and configured ${pending.provider} cloud sync`
     );
     return config;
+  }
+
+  /** Create the manifest or append the profile, retrying on a write race */
+  private async registerProfileInManifest(
+    store: RemoteStore,
+    pending: PendingCloudConnection,
+    profile: CloudManifestProfile
+  ): Promise<void> {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const { manifest, version } = await this.manifestWithProfile(
+        store,
+        pending,
+        profile
+      );
+      try {
+        await store.put(
+          CLOUD_MANIFEST_PATH,
+          JSON.stringify(manifest, null, 2),
+          version ? { ifVersion: version } : undefined
+        );
+        return;
+      } catch (error) {
+        if (!(error instanceof RemoteConflictError)) throw error;
+      }
+    }
+    throw new Error('Could not update the cloud manifest; please try again');
+  }
+
+  /**
+   * The current remote manifest with `profile` listed (a fresh one when the
+   * folder has none), plus the version tag to write against.
+   */
+  private async manifestWithProfile(
+    store: RemoteStore,
+    pending: PendingCloudConnection,
+    profile: CloudManifestProfile
+  ): Promise<{ manifest: CloudManifest; version?: string }> {
+    const fresh = (): CloudManifest =>
+      createCloudManifest(
+        { provider: pending.provider, accountId: pending.accountId },
+        profile
+      );
+    let base: CloudManifest | null = null;
+    let version: string | undefined;
+    try {
+      const file = await store.get(CLOUD_MANIFEST_PATH);
+      version = file.version;
+      base = parseCloudManifest(new TextDecoder().decode(file.content));
+    } catch (error) {
+      if (!(error instanceof RemoteFileNotFoundError)) throw error;
+    }
+    const manifest = base ? withManifestProfile(base, profile) : fresh();
+    return {
+      manifest: findManifestProfile(manifest, profile.username)
+        ? manifest
+        : withManifestProfile(manifest, profile),
+      version,
+    };
   }
 
   /** Whether a cloud config still has usable credentials */
@@ -257,10 +471,20 @@ export class CloudSyncConnectService {
 
   /** Authenticated store for a cloud config. Tokens refresh on demand. */
   createStore(provider: CloudProvider, configId: string): RemoteStore {
-    assertSupported(provider);
-    return new DropboxRemoteStore(() =>
-      this.getValidAccessToken(provider, configId)
-    );
+    switch (provider) {
+      case 'dropbox':
+        return new DropboxRemoteStore(() =>
+          this.getValidAccessToken(provider, configId)
+        );
+      case 'nextcloud':
+        return new NextcloudRemoteStore(() =>
+          this.getNextcloudCredentials(configId)
+        );
+      default:
+        throw new Error(
+          `${getCloudProviderDisplayName(provider)} is not supported yet`
+        );
+    }
   }
 
   /** Read the manifest, treating "missing" and "unreadable" as null */
@@ -286,6 +510,20 @@ export class CloudSyncConnectService {
   // Provider-specific pieces. Add a case per provider as adapters land.
   // ───────────────────────────────────────────────────────────────────────────
 
+  private getNextcloudCredentials(
+    configId: string
+  ): Promise<NextcloudCredentials> {
+    const tokens = this.tokens.get(configId);
+    if (!tokens?.serverUrl || !tokens.loginName) {
+      return Promise.reject(new RemoteAuthError('Nextcloud is not connected'));
+    }
+    return Promise.resolve({
+      serverUrl: tokens.serverUrl,
+      loginName: tokens.loginName,
+      appPassword: tokens.accessToken,
+    });
+  }
+
   private buildAuthorizeUrl(
     provider: CloudProvider,
     params: {
@@ -295,7 +533,7 @@ export class CloudSyncConnectService {
       state: string;
     }
   ): string {
-    assertSupported(provider);
+    assertOAuthProvider(provider);
     return buildDropboxAuthorizeUrl(params);
   }
 
@@ -308,7 +546,7 @@ export class CloudSyncConnectService {
       redirectUri: string;
     }
   ): Promise<Omit<CloudTokenSet, 'accountId'>> {
-    assertSupported(provider);
+    assertOAuthProvider(provider);
     const response = await exchangeDropboxCode(params);
     return {
       provider,
@@ -322,7 +560,7 @@ export class CloudSyncConnectService {
     provider: CloudProvider,
     accessToken: string
   ): Promise<{ id: string; label: string; displayName: string }> {
-    assertSupported(provider);
+    assertOAuthProvider(provider);
     const account = await getDropboxCurrentAccount(accessToken);
     return {
       id: account.account_id,
@@ -372,13 +610,19 @@ export class CloudSyncConnectService {
 }
 
 /**
- * Only Dropbox has an adapter today. Each provider-specific step calls this
- * first so an unsupported provider fails with one clear message; when the
- * next adapter lands these become dispatch points.
+ * Dropbox is the only OAuth provider today. Each OAuth-specific step calls
+ * this first so a provider that connects differently (Nextcloud) or has no
+ * adapter yet fails with one clear message; when the next OAuth adapter lands
+ * these become dispatch points.
  */
-function assertSupported(
+function assertOAuthProvider(
   provider: CloudProvider
 ): asserts provider is 'dropbox' {
+  if (provider === 'nextcloud') {
+    throw new Error(
+      'Nextcloud connects with a server address and app password, not a sign-in redirect'
+    );
+  }
   if (provider !== 'dropbox') {
     throw new Error(
       `${getCloudProviderDisplayName(provider)} is not supported yet`

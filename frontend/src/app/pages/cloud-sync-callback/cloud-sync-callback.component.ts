@@ -91,22 +91,9 @@ export class CloudSyncCallbackComponent implements OnInit {
         code,
         state
       );
-      if (result.kind === 'configured') {
-        await this.unifiedUserService.initialize();
-        // Pull the manifest and covers before showing the bookshelf, so a
-        // second device does not land on an empty screen with no feedback.
-        this.statusMessage.set('Fetching your projects from');
-        this.engine.initialize({ runStartupPass: false });
-        try {
-          await this.engine.syncNow();
-        } catch (syncError) {
-          // The engine records the failure in its status; the bookshelf
-          // still opens so the user can retry from the menu.
-          this.logger.warn('CloudSync', 'Initial sync failed', syncError);
-        }
-        await this.router.navigate(['/'], { replaceUrl: true });
-        return;
-      }
+      // Both outcomes continue on the welcome screen: pick an existing author
+      // in this account, or name a new one.
+      this.logger.info('CloudSync', `Connect result: ${result.kind}`);
       await this.router.navigate(['/setup'], {
         replaceUrl: true,
         queryParams: { cloud: provider },

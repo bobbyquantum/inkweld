@@ -8,9 +8,19 @@ export interface CloudTokenSet {
   accessToken: string;
   /** Present for providers that issue refresh tokens to PKCE clients */
   refreshToken?: string;
-  /** Epoch milliseconds when the access token expires */
+  /**
+   * Epoch milliseconds when the access token expires. App passwords never
+   * expire on their own and use `NEVER_EXPIRES`.
+   */
   expiresAt: number;
+  /** Server origin for self-hosted providers (Nextcloud) */
+  serverUrl?: string;
+  /** Login name on that server; the WebDAV path is derived from it */
+  loginName?: string;
 }
+
+/** `expiresAt` value for credentials that only stop working when revoked */
+export const NEVER_EXPIRES = Number.MAX_SAFE_INTEGER;
 
 const STORAGE_PREFIX = 'inkweld-cloud-token:';
 
@@ -20,7 +30,10 @@ const STORAGE_PREFIX = 'inkweld-cloud-token:';
  *
  * Tokens are scoped to the app folder only (Dropbox "App folder" access,
  * Google `drive.file`), so a leaked token exposes Inkweld's own files and
- * nothing else in the user's account.
+ * nothing else in the user's account. Nextcloud app passwords are the
+ * exception: they grant the same file access as the user, which is why the
+ * setup page tells the user to create one dedicated to Inkweld so it can be
+ * revoked on its own.
  */
 @Injectable({
   providedIn: 'root',

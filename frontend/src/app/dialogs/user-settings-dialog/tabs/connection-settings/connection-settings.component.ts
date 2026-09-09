@@ -5,26 +5,23 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatDialog } from '@angular/material/dialog';
-import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
-import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router } from '@angular/router';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
-import { AuthTokenService } from '@services/auth/auth-token.service';
-import { LoggerService } from '@services/core/logger.service';
-import { SetupService } from '@services/core/setup.service';
+import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import {
-  MigrationService,
-  MigrationStatus,
-} from '@services/local/migration.service';
-import { UserService } from '@services/user/user.service';
+  type ProfileDestination,
+  type ProfileInfo,
+  ProfileManagerService,
+  profileRemovalMessageKey,
+} from '@services/core/profile-manager.service';
+import { StorageContextService } from '@services/core/storage-context.service';
 import { firstValueFrom } from 'rxjs';
 
 import {
@@ -32,17 +29,22 @@ import {
   type ConfirmationDialogData,
 } from '../../../confirmation-dialog/confirmation-dialog.component';
 
+/**
+ * Profile tab of the user settings dialog.
+ *
+ * Shows the active profile, offers a one-click switch to any other profile
+ * on this device, and hands off to the profiles manager for adding, migrating
+ * and cleaning up. Removing the current profile lives here too because that
+ * is where users look for it.
+ */
 @Component({
   selector: 'app-connection-settings',
   imports: [
-    MatFormFieldModule,
-    MatInputModule,
     MatButtonModule,
     MatIconModule,
     MatCardModule,
-    MatProgressSpinnerModule,
     MatProgressBarModule,
-    FormsModule,
+    MatTooltipModule,
     TranslocoModule,
   ],
   templateUrl: './connection-settings.component.html',
@@ -50,366 +52,109 @@ import {
   styleUrl: './connection-settings.component.scss',
 })
 export class ConnectionSettingsComponent {
-  private readonly setupService = inject(SetupService);
-  private readonly migrationService = inject(MigrationService);
-  private readonly userService = inject(UserService);
-  private readonly authTokenService = inject(AuthTokenService);
+  private readonly profileManager = inject(ProfileManagerService);
+  private readonly storageContext = inject(StorageContextService);
+  private readonly dialogGateway = inject(DialogGatewayService);
+  private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
   private readonly router = inject(Router);
-  private readonly dialog = inject(MatDialog);
-  private readonly logger = inject(LoggerService);
   private readonly transloco = inject(TranslocoService);
 
-  protected currentMode = this.setupService.getMode();
-  protected currentServerUrl = this.setupService.getServerUrl() || '';
-  protected newServerUrl = '';
-  protected isConnecting = signal(false);
-  protected connectionError = signal<string | null>(null);
-
-  // Migration state
-  protected migrationState = this.migrationService.migrationState;
-  protected localProjectsCount = computed(() =>
-    this.migrationService.getLocalProjectsCount()
+  protected readonly current = this.profileManager.activeConnection;
+  protected readonly others = computed(() =>
+    this.profileManager.connections().filter(c => !c.isActive)
   );
-  protected migrationProgress = computed(() => {
-    const state = this.migrationState();
-    if (state.totalProjects === 0) return 0;
-    return (state.completedProjects / state.totalProjects) * 100;
-  });
+  protected readonly isBusy = signal(false);
 
-  // Auth for migration
-  protected showAuthForm = signal(false);
-  protected authMode = signal<'login' | 'register'>('register');
-  protected username = signal('');
-  protected password = signal('');
-  protected confirmPassword = signal('');
-  protected authError = signal<string | null>(null);
-  protected isAuthenticating = signal(false);
+  /** Icon for the status line of the current connection */
+  protected statusIcon(info: ProfileInfo): string {
+    if (info.kind === 'server')
+      return info.hasCredentials ? 'cloud_done' : 'lock';
+    if (info.kind === 'cloud')
+      return info.hasCredentials ? 'cloud_sync' : 'cloud_off';
+    return 'computer';
+  }
 
-  // Expose MigrationStatus enum for template
-  protected readonly MigrationStatus = MigrationStatus;
-
-  async switchToLocalMode() {
-    // Check if user has server projects - warn about potential data loss
-    if (this.currentMode === 'server') {
-      const confirmed = await this.confirmModeSwitch(
-        'Switch to Local Mode?',
-        'Switching to local mode will disconnect from the server. You will need to reconnect and log in again to access your server projects. Continue?',
-        'Switch to Local'
-      );
-
-      if (!confirmed) {
-        return;
-      }
+  protected kindLabel(info: ProfileInfo): string {
+    switch (info.kind) {
+      case 'server':
+        return this.transloco.translate('settings.connectionTab.onlineMode');
+      case 'cloud':
+        return this.transloco.translate('settings.connectionTab.cloudMode');
+      default:
+        return this.transloco.translate('settings.connectionTab.localMode');
     }
+  }
 
+  /** Switch to another connection. Full reload so every service re-binds. */
+  switchTo(info: ProfileInfo): void {
+    if (info.isActive) return;
+    this.profileManager.switchTo(info.config.id);
+    this.leaveTo('home');
+  }
+
+  /** Open the full connections manager on top of the settings dialog */
+  async manageConnections(): Promise<void> {
+    await this.dialogGateway.openProfileManagerDialog();
+  }
+
+  /** Back to the first-run screen without changing anything */
+  goToWelcome(): void {
+    this.dialog.closeAll();
+    void this.router.navigate(['/setup']);
+  }
+
+  /** Disconnect the current connection after a confirmation */
+  async disconnectCurrent(): Promise<void> {
+    const info = this.current();
+    if (!info || info.isBuiltIn) return;
+    const data = await this.storageContext.describeContextData(info.config.id);
+    const messageKey = profileRemovalMessageKey(info.kind);
+    const confirmed = await this.confirm({
+      title: this.transloco.translate(
+        'dialogs.profileManager.disconnectTitle',
+        { name: info.name }
+      ),
+      message: this.transloco.translate(messageKey),
+      confirmText: this.transloco.translate(
+        'dialogs.profileManager.disconnect'
+      ),
+      cancelText: this.transloco.translate('cancel'),
+      details: [
+        this.transloco.translate('dialogs.profileManager.disconnectDataLine', {
+          databases: data.databases.length,
+          keys: data.localStorageKeys.length,
+        }),
+      ],
+      requireConfirmationText: info.kind === 'local' ? 'DELETE' : undefined,
+    });
+    if (!confirmed) return;
+
+    this.isBusy.set(true);
     try {
-      // Navigate to setup page which will handle the transition
-      this.setupService.resetConfiguration();
-      await this.router.navigate(['/setup']);
+      const destination = await this.profileManager.disconnect(info.config.id);
+      this.leaveTo(destination);
+    } catch (error) {
+      console.error('Profile removal failed:', error);
       this.snackBar.open(
-        this.transloco.translate('settings.connectionTab.switchedToLocal'),
+        this.transloco.translate('settings.connectionTab.removeFailed'),
         this.transloco.translate('close'),
-        {
-          duration: 3000,
-        }
+        { duration: 4000 }
       );
-    } catch (error) {
-      console.error('Failed to switch to local mode:', error);
-      this.snackBar.open(
-        this.transloco.translate('settings.connectionTab.switchFailed'),
-        this.transloco.translate('close'),
-        {
-          duration: 3000,
-        }
-      );
+      this.isBusy.set(false);
     }
   }
 
-  async switchToServerMode() {
-    if (!this.newServerUrl.trim()) {
-      this.connectionError.set(
-        this.transloco.translate('settings.connectionTab.enterServerUrl')
-      );
-      return;
-    }
-
-    this.isConnecting.set(true);
-    this.connectionError.set(null);
-
-    try {
-      await this.setupService.configureServerMode(this.newServerUrl.trim());
-      this.currentServerUrl = this.newServerUrl.trim();
-      this.newServerUrl = '';
-      this.currentMode = 'server';
-
-      // Reload the page to reinitialize with new server
-      globalThis.location.reload();
-    } catch (error) {
-      console.error('Failed to connect to server:', error);
-      this.connectionError.set(
-        this.transloco.translate('settings.connectionTab.connectionFailed')
-      );
-    } finally {
-      this.isConnecting.set(false);
-    }
-  }
-
-  async changeServer() {
-    await this.switchToServerMode();
-  }
-
-  async testConnection() {
-    if (!this.newServerUrl.trim()) {
-      this.connectionError.set(
-        this.transloco.translate('settings.connectionTab.enterServerUrl')
-      );
-      return;
-    }
-
-    this.isConnecting.set(true);
-    this.connectionError.set(null);
-
-    try {
-      const response = await fetch(`${this.newServerUrl.trim()}/api/v1/health`);
-      if (response.ok) {
-        this.snackBar.open(
-          this.transloco.translate('settings.connectionTab.connectionSuccess'),
-          this.transloco.translate('close'),
-          {
-            duration: 3000,
-          }
-        );
-      } else {
-        this.connectionError.set(
-          this.transloco.translate('settings.connectionTab.serverNotResponding')
-        );
-      }
-    } catch (error) {
-      console.error('Connection test failed:', error);
-      this.connectionError.set(
-        this.transloco.translate('settings.connectionTab.connectionFailed')
-      );
-    } finally {
-      this.isConnecting.set(false);
-    }
-  }
-
-  /**
-   * Start migration process - shows auth form if local projects exist
-   */
-  async startMigration() {
-    if (!this.newServerUrl.trim()) {
-      this.connectionError.set(
-        this.transloco.translate('settings.connectionTab.enterServerUrl')
-      );
-      return;
-    }
-
-    const hasLocalProjects = this.migrationService.hasLocalProjects();
-
-    if (!hasLocalProjects) {
-      // No local projects, but still warn if changing servers in server mode
-      if (this.currentMode === 'server') {
-        const confirmed = await this.confirmModeSwitch(
-          'Change Server?',
-          'Changing servers will disconnect you from the current server. You will need to log in again. Continue?',
-          'Change Server'
-        );
-
-        if (!confirmed) {
-          return;
-        }
-      }
-
-      // Just switch to server mode
-      await this.switchToServerMode();
-      return;
-    }
-
-    // Has local projects - warn about migration
-    const projectCount = this.migrationService.getLocalProjectsCount();
-    const confirmed = await this.confirmModeSwitch(
-      'Migrate Local Projects?',
-      `You have ${projectCount} local project${projectCount === 1 ? '' : 's'}. ${projectCount === 1 ? 'It' : 'They'} will be uploaded to the server after you authenticate. Your local data will be removed after successful migration. Continue?`,
-      'Continue'
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
-    // Show auth form for migration
-    this.showAuthForm.set(true);
-  }
-
-  /**
-   * Handle authentication for migration
-   */
-  async authenticate() {
-    this.logger.debug('Migration', 'authenticate() called');
-    const usernameValue = this.username();
-    const passwordValue = this.password();
-    const confirmPasswordValue = this.confirmPassword();
-
-    // Validation
-    if (!usernameValue || !passwordValue) {
-      this.authError.set(
-        this.transloco.translate('settings.connectionTab.enterCredentials')
-      );
-      return;
-    }
-
-    if (
-      this.authMode() === 'register' &&
-      passwordValue !== confirmPasswordValue
-    ) {
-      this.authError.set(
-        this.transloco.translate('settings.connectionTab.passwordsMismatch')
-      );
-      return;
-    }
-
-    this.logger.debug(
-      'Migration',
-      'Starting authentication, mode:',
-      this.authMode()
-    );
-    this.isAuthenticating.set(true);
-    this.authError.set(null);
-
-    try {
-      // Set server URL first
-      this.logger.debug(
-        'Migration',
-        'Before configureServerMode, current mode:',
-        this.setupService.getMode()
-      );
-      await this.setupService.configureServerMode(this.newServerUrl.trim());
-      this.logger.debug(
-        'Migration',
-        'After configureServerMode, new mode:',
-        this.setupService.getMode()
-      );
-
-      // Register or login
-      if (this.authMode() === 'register') {
-        await this.migrationService.registerOnServer(
-          usernameValue,
-          passwordValue
-        );
-      } else {
-        await this.migrationService.loginToServer(usernameValue, passwordValue);
-      }
-      this.logger.debug(
-        'Migration',
-        'After auth, token:',
-        this.authTokenService.hasToken() ? 'EXISTS' : 'MISSING'
-      );
-
-      // Start migration
-      await this.migrationService.migrateToServer(this.newServerUrl.trim());
-
-      // Hide auth form
-      this.showAuthForm.set(false);
-
-      // Show success message
-      const state = this.migrationState();
-      this.logger.debug('Migration', 'Final state:', JSON.stringify(state));
-
-      if (state.status === MigrationStatus.Completed) {
-        this.snackBar.open(
-          this.transloco.translate('settings.connectionTab.migrationSuccess', {
-            count: state.completedProjects,
-          }),
-          this.transloco.translate('close'),
-          { duration: 5000 }
-        );
-
-        // Configure server mode BEFORE cleanup
-        // Note: We skip the health check since we just successfully authenticated and migrated
-        this.logger.debug('Migration', 'Configuring server mode...');
-        const serverUrl = this.newServerUrl.trim();
-        const config = {
-          mode: 'server' as const,
-          serverUrl: serverUrl,
-        };
-        localStorage.setItem('inkweld-app-config', JSON.stringify(config));
-
-        // Clean up local data
-
-        this.migrationService.cleanupLocalData();
-
-        // Reload the page to reinitialize the app in server mode
-        // This ensures Angular picks up the new mode from localStorage
-        setTimeout(() => {
-          this.logger.debug('Migration', 'About to reload...');
-          globalThis.location?.reload?.();
-        }, 1000);
-      } else if (state.status === MigrationStatus.Failed) {
-        this.snackBar.open(
-          this.transloco.translate(
-            'settings.connectionTab.migrationErrorsSnackbar',
-            { success: state.completedProjects, failed: state.failedProjects }
-          ),
-          this.transloco.translate('close'),
-          { duration: 7000 }
-        );
-      }
-    } catch (error) {
-      console.error('Authentication/Migration failed:', error);
-      this.authError.set(
-        error instanceof Error
-          ? error.message
-          : this.transloco.translate('settings.connectionTab.authFailed')
-      );
-    } finally {
-      this.isAuthenticating.set(false);
-    }
-  }
-
-  /**
-   * Cancel migration and hide auth form
-   */
-  cancelMigration() {
-    this.showAuthForm.set(false);
-    this.username.set('');
-    this.password.set('');
-    this.confirmPassword.set('');
-    this.authError.set(null);
-  }
-
-  /**
-   * Toggle between login and register modes
-   */
-  toggleAuthMode() {
-    this.authMode.set(this.authMode() === 'login' ? 'register' : 'login');
-    this.authError.set(null);
-  }
-
-  /**
-   * Show confirmation dialog for mode/server switches
-   */
-  private async confirmModeSwitch(
-    title: string,
-    message: string,
-    confirmText: string
-  ): Promise<boolean> {
-    const dialogRef = this.dialog.open<
+  private async confirm(data: ConfirmationDialogData): Promise<boolean> {
+    const ref = this.dialog.open<
       ConfirmationDialogComponent,
       ConfirmationDialogData,
       boolean
-    >(ConfirmationDialogComponent, {
-      width: '450px',
-      data: {
-        title,
-        message,
-        confirmText,
-        cancelText: 'Cancel',
-      },
-    });
+    >(ConfirmationDialogComponent, { width: '450px', data });
+    return (await firstValueFrom(ref.afterClosed())) === true;
+  }
 
-    const result = await firstValueFrom(dialogRef.afterClosed());
-    return result === true;
+  private leaveTo(destination: ProfileDestination): void {
+    globalThis.location.href = destination === 'welcome' ? '/setup' : '/';
   }
 }

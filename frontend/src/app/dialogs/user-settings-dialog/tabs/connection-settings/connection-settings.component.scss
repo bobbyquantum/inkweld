@@ -10,6 +10,29 @@
     font-weight: 500;
   }
 
+  .kind-chip {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 1px 8px;
+    border-radius: 10px;
+    font-size: 0.65rem;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    vertical-align: middle;
+    background: color-mix(in srgb, var(--sys-primary) 12%, transparent);
+    color: var(--sys-primary);
+
+    &.built-in {
+      background: var(--sys-surface-variant);
+      color: var(--sys-on-surface-variant);
+    }
+  }
+
+  .needs-attention {
+    color: var(--sys-error);
+  }
+
   .status-card {
     .status-icon {
       vertical-align: middle;
@@ -19,7 +42,7 @@
         color: var(--sys-success);
       }
 
-      &.offline {
+      &.local {
         color: var(--sys-tertiary);
       }
     }
@@ -28,6 +51,7 @@
       display: flex;
       align-items: center;
       font-size: 1.1rem;
+      flex-wrap: wrap;
     }
 
     .server-url {
@@ -35,20 +59,86 @@
       word-break: break-all;
     }
 
-    .offline-info {
+    .local-info {
       margin: 8px 0 0 0;
+    }
+
+    mat-card-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      padding: 8px 16px 16px;
+
+      button {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+
+        mat-icon {
+          margin: 0;
+        }
+      }
     }
   }
 
   .mode-card {
     mat-card-content {
-      p {
-        margin: 0 0 16px 0;
+      .local-info {
+        margin: 0 0 12px 0;
+        color: var(--sys-on-surface-variant);
       }
 
-      .full-width {
-        width: 100%;
-        margin-bottom: 16px;
+      .connection-list {
+        list-style: none;
+        margin: 0 0 12px;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+
+        li {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 10px 12px;
+          border-radius: 8px;
+          background-color: var(--sys-surface-variant);
+
+          > mat-icon {
+            flex-shrink: 0;
+            color: var(--sys-primary);
+          }
+
+          .connection-text {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+
+            .connection-name {
+              font-weight: 500;
+            }
+
+            .connection-subtitle {
+              font-size: 0.8rem;
+              color: var(--sys-on-surface-variant);
+              overflow: hidden;
+              text-overflow: ellipsis;
+              white-space: nowrap;
+            }
+          }
+
+          button {
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+
+            mat-icon {
+              margin: 0;
+            }
+          }
+        }
       }
 
       .button-group {
@@ -64,250 +154,24 @@
           mat-icon {
             margin: 0;
           }
-
-          mat-spinner {
-            margin: 0;
-          }
-        }
-      }
-
-      .offline-projects-info {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 12px;
-        margin-bottom: 16px;
-        background-color: var(--sys-primary-container);
-        color: var(--sys-on-primary-container);
-        border-radius: 8px;
-
-        mat-icon {
-          flex-shrink: 0;
-        }
-      }
-
-      .auth-form {
-        margin-top: 24px;
-        padding: 20px;
-        background-color: var(--sys-surface-variant);
-        border-radius: 8px;
-
-        h4 {
-          margin: 0 0 8px 0;
-          font-size: 1.1rem;
-          font-weight: 500;
-        }
-
-        .auth-description {
-          margin: 0 0 20px 0;
-          color: var(--sys-on-surface-variant);
-          font-size: 0.9rem;
-        }
-
-        .auth-error {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 12px;
-          margin-bottom: 16px;
-          background-color: var(--sys-error-container);
-          color: var(--sys-on-error-container);
-          border-radius: 4px;
-
-          mat-icon {
-            flex-shrink: 0;
-            color: var(--sys-error);
-          }
-        }
-
-        .auth-actions {
-          display: flex;
-          gap: 12px;
-          flex-wrap: wrap;
-          justify-content: flex-end;
-          margin-top: 16px;
-
-          button {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-
-            mat-spinner {
-              margin: 0;
-            }
-          }
-        }
-      }
-
-      .migration-progress {
-        margin-top: 24px;
-        padding: 20px;
-        background-color: var(--sys-primary-container);
-        border-radius: 8px;
-
-        h4 {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          margin: 0 0 16px 0;
-          color: var(--sys-on-primary-container);
-
-          mat-icon.spinning {
-            animation: spin 2s linear infinite;
-          }
-        }
-
-        mat-progress-bar {
-          margin-bottom: 12px;
-        }
-
-        .progress-text {
-          margin: 8px 0;
-          font-size: 0.9rem;
-          color: var(--sys-on-primary-container);
-        }
-
-        .current-project {
-          margin: 8px 0;
-          font-size: 0.9rem;
-          color: var(--sys-on-primary-container);
-
-          strong {
-            font-weight: 600;
-          }
-        }
-
-        .project-statuses {
-          margin-top: 16px;
-
-          .project-status {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px;
-            margin-bottom: 8px;
-            background-color: var(--sys-surface);
-            border-radius: 4px;
-
-            .status-icon {
-              flex-shrink: 0;
-              font-size: 20px;
-              width: 20px;
-              height: 20px;
-            }
-
-            .project-title {
-              flex: 1;
-              font-weight: 500;
-            }
-
-            .error-message {
-              font-size: 0.85rem;
-              color: var(--sys-error);
-            }
-
-            &.completed .status-icon {
-              color: var(--sys-success);
-            }
-
-            &.inprogress .status-icon {
-              color: var(--sys-primary);
-            }
-
-            &.failed .status-icon {
-              color: var(--sys-error);
-            }
-
-            &.notstarted .status-icon {
-              color: var(--sys-outline);
-            }
-          }
-        }
-      }
-
-      .migration-complete {
-        margin-top: 24px;
-        padding: 20px;
-        background-color: var(--sys-success-container);
-        color: var(--sys-on-success-container);
-        border-radius: 8px;
-        text-align: center;
-
-        .success-icon {
-          font-size: 48px;
-          width: 48px;
-          height: 48px;
-          color: var(--sys-success);
-        }
-
-        h4 {
-          margin: 12px 0 8px 0;
-          font-size: 1.2rem;
-        }
-
-        p {
-          margin: 0;
-        }
-      }
-
-      .migration-failed {
-        margin-top: 24px;
-        padding: 20px;
-        background-color: var(--sys-error-container);
-        color: var(--sys-on-error-container);
-        border-radius: 8px;
-        text-align: center;
-
-        .error-icon {
-          font-size: 48px;
-          width: 48px;
-          height: 48px;
-          color: var(--sys-error);
-        }
-
-        h4 {
-          margin: 12px 0 8px 0;
-          font-size: 1.2rem;
-        }
-
-        p {
-          margin: 0;
         }
       }
     }
   }
 
   .warning-card {
-    background-color: var(--sys-warning-container);
-    color: var(--sys-on-warning-container);
+    background-color: var(--sys-surface-variant);
 
     .warning-content {
       display: flex;
-      gap: 12px;
       align-items: flex-start;
+      gap: 12px;
+      font-size: 0.9rem;
 
       mat-icon {
-        color: var(--sys-warning);
         flex-shrink: 0;
-      }
-
-      div {
-        flex: 1;
-
-        strong {
-          display: block;
-          margin-bottom: 4px;
-        }
+        color: var(--sys-primary);
       }
     }
-  }
-}
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
   }
 }

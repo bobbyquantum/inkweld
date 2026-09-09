@@ -54,19 +54,24 @@ describe('CloudSyncConfigService', () => {
     };
     const service = createService();
     expect(service.isCloudSyncAvailable()).toBe(true);
-    expect(service.availableProviders()).toEqual(['dropbox']);
+    expect(service.availableProviders()).toEqual(['dropbox', 'nextcloud']);
     expect(service.getAppKey('dropbox')).toBe('buildkey');
     expect(service.isProviderAvailable('dropbox')).toBe(true);
   });
 
-  it('hides cloud sync when no provider has a key', () => {
+  it('hides dropbox but keeps nextcloud when no provider has a key', () => {
     (environment as { cloudSync: unknown }).cloudSync = {
       dropbox: { appKey: '' },
     };
     const service = createService();
-    expect(service.isCloudSyncAvailable()).toBe(false);
-    expect(service.availableProviders()).toEqual([]);
+    // Nextcloud needs no app key (the user supplies their own server), so
+    // cloud sync stays available even in a build with no OAuth keys.
+    expect(service.isCloudSyncAvailable()).toBe(true);
+    expect(service.availableProviders()).toEqual(['nextcloud']);
+    expect(service.isProviderAvailable('dropbox')).toBe(false);
     expect(service.getAppKey('dropbox')).toBe('');
+    expect(service.requiresAppKey('nextcloud')).toBe(false);
+    expect(service.requiresAppKey('dropbox')).toBe(true);
   });
 
   it('never offers providers without an adapter, even with a key', () => {
@@ -75,7 +80,7 @@ describe('CloudSyncConfigService', () => {
       'google-drive': { appKey: 'gkey' },
     };
     const service = createService();
-    expect(service.availableProviders()).toEqual([]);
+    expect(service.availableProviders()).toEqual(['nextcloud']);
   });
 
   it('prefers a runtime override over the build key and persists it', () => {

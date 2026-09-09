@@ -4,11 +4,14 @@ import {
   CLOUD_MANIFEST_VERSION,
   type CloudManifestProject,
   createCloudManifest,
+  findManifestProfile,
+  manifestProjectsFor,
   manifestsEquivalent,
   mergeCloudManifests,
   mergeManifestProjects,
   parseCloudManifest,
   upsertManifestProject,
+  withManifestProfile,
 } from './cloud-manifest';
 
 describe('cloud-manifest', () => {
@@ -123,6 +126,109 @@ describe('cloud-manifest', () => {
       const edit = entry('b/a', t);
       expect(mergeManifestProjects([edit], [dead])[0].deletedAt).toBe(t);
       expect(mergeManifestProjects([dead], [edit])[0].deletedAt).toBe(t);
+    });
+  });
+
+  describe('multiple authors', () => {
+    it('lists the legacy profile and any extra profiles, deduplicated', () => {
+      const manifest = createCloudManifest(owner, profile);
+      expect(manifest.profiles).toEqual([profile]);
+
+      const parsed = parseCloudManifest(
+        JSON.stringify({
+          ...manifest,
+          profiles: [
+            { name: 'Bobby Quantum', username: 'BOBBY' },
+            { name: 'Bee', username: 'bee' },
+            { name: 'broken' },
+          ],
+        })
+      );
+      expect(parsed?.profiles).toEqual([
+        profile,
+        { name: 'Bee', username: 'bee' },
+      ]);
+    });
+
+    it('withManifestProfile appends or renames without touching the first author', () => {
+      const base = createCloudManifest(owner, profile);
+      const withBee = withManifestProfile(base, {
+        name: 'Bee',
+        username: 'bee',
+      });
+      expect(withBee.profiles.map(p => p.username)).toEqual(['bobby', 'bee']);
+      expect(withBee.profile).toEqual(profile);
+      expect(withBee.revision).toBe(2);
+
+      const renamed = withManifestProfile(withBee, {
+        name: 'Bee Two',
+        username: 'BEE',
+      });
+      expect(findManifestProfile(renamed, 'bee')?.name).toBe('Bee Two');
+      expect(renamed.profiles).toHaveLength(2);
+      // Same data again is a no-op
+      expect(
+        withManifestProfile(renamed, { name: 'Bee Two', username: 'bee' })
+      ).toBe(renamed);
+    });
+
+    it("manifestProjectsFor returns one author's live projects", () => {
+      const base = createCloudManifest(owner, profile);
+      const at = '2026-01-01T00:00:00Z';
+      const project = (key: string) => ({
+        key,
+        slug: key.split('/')[1],
+        title: key,
+        createdAt: at,
+        updatedAt: at,
+      });
+      const manifest = {
+        ...base,
+        projects: [
+          project('bobby/a'),
+          project('bee/b'),
+          { ...project('bobby/c'), deletedAt: '2026-01-02T00:00:00Z' },
+        ],
+      };
+      expect(manifestProjectsFor(manifest, 'BOBBY').map(p => p.slug)).toEqual([
+        'a',
+      ]);
+    });
+
+    it('equivalence notices a changed author list', () => {
+      const base = createCloudManifest(owner, profile);
+      const withBee = withManifestProfile(base, {
+        name: 'Bee',
+        username: 'bee',
+      });
+      expect(manifestsEquivalent(base, withBee)).toBe(false);
+      // Order does not matter
+      const reordered = {
+        ...withBee,
+        profiles: [...withBee.profiles].reverse(),
+      };
+      expect(manifestsEquivalent(withBee, reordered)).toBe(true);
+    });
+
+    it('merging unions the authors from both sides', () => {
+      const local = withManifestProfile(createCloudManifest(owner, profile), {
+        name: 'Bee',
+        username: 'bee',
+      });
+      const remote = {
+        ...withManifestProfile(createCloudManifest(owner, profile), {
+          name: 'Cee',
+          username: 'cee',
+        }),
+        revision: 9,
+      };
+      const merged = mergeCloudManifests(local, remote);
+      expect(merged.profiles.map(p => p.username)).toEqual([
+        'bobby',
+        'cee',
+        'bee',
+      ]);
+      expect(merged.profile).toEqual(profile);
     });
   });
 

@@ -267,4 +267,20 @@ describe('AuthTokenService', () => {
       expect(service.hasToken()).toBe(false);
     });
   });
+
+  describe('moveToken', () => {
+    it('carries a token from one profile prefix to another', () => {
+      const serverUrl = 'https://ink.example.com';
+      setupMockStorage('server', serverUrl);
+      createServices();
+      const fromId = hashUrl(serverUrl);
+      service.setToken('tok');
+
+      service.moveToken(fromId, `${fromId}-deadbeef`);
+
+      expect(service.getTokenForConfig(fromId)).toBeNull();
+      expect(service.getTokenForConfig(`${fromId}-deadbeef`)).toBe('tok');
+      expect(mockStorage[`srv:${fromId}-deadbeef:auth_token`]).toBe('tok');
+    });
+  });
 });

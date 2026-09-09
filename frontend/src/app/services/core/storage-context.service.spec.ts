@@ -8,7 +8,11 @@ import {
   APP_CONFIG_STORAGE_KEY,
   type AppConfigV2,
   buildCloudConfigId,
+  buildLocalConfigId,
+  buildServerConfigId,
+  extractContextPrefix,
   getCloudProviderDisplayName,
+  getLocalConfigDisplayName,
   isLocalOrCloudMode,
   LOCAL_CONFIG_ID,
   StorageContextService,
@@ -224,17 +228,30 @@ describe('StorageContextService', () => {
 
         expect(config.id).toBe(LOCAL_CONFIG_ID);
         expect(config.type).toBe('local');
-        expect(config.displayName).toBe('Local Mode');
+        expect(config.displayName).toBe('Browser');
         expect(config.userProfile?.username).toBe('localuser');
         expect(service.getConfigurations()).toHaveLength(1);
       });
 
-      it('should update existing local config', () => {
+      it('should update the existing profile for the same username', () => {
         service.addLocalConfig({ name: 'User 1', username: 'user1' });
-        service.addLocalConfig({ name: 'User 2', username: 'user2' });
+        service.addLocalConfig({ name: 'User One', username: 'user1' });
 
         expect(service.getConfigurations()).toHaveLength(1);
-        expect(service.getActiveConfig()?.userProfile?.username).toBe('user2');
+        expect(service.getActiveConfig()?.userProfile?.name).toBe('User One');
+      });
+
+      it('should keep a second Browser username as a separate profile', () => {
+        service.addLocalConfig({ name: 'User 1', username: 'user1' });
+        const second = service.addLocalConfig({
+          name: 'User 2',
+          username: 'user2',
+        });
+
+        expect(service.getConfigurations()).toHaveLength(2);
+        expect(second.id).toBe(buildLocalConfigId('user2'));
+        // Adding does not switch; the first profile stays active
+        expect(service.getActiveConfig()?.userProfile?.username).toBe('user1');
       });
     });
 
@@ -507,6 +524,515 @@ describe('StorageContextService', () => {
       expect(localKeys).toHaveLength(2);
       expect(localKeys).toContain('local:inkweld-projects');
       expect(localKeys).toContain('local:inkweld-user');
+    });
+  });
+
+  describe('multiple profiles per kind', () => {
+    it('gives a second Browser username its own id and prefix', () => {
+      const first = service.addLocalConfig({
+        name: 'A',
+        username: 'testuserA',
+      });
+      const second = service.addLocalConfig({
+        name: 'B',
+        username: 'testuserB',
+      });
+      const firstAgain = service.addLocalConfig({
+        name: 'A renamed',
+        username: 'TestUserA',
+      });
+
+      expect(first.id).toBe(LOCAL_CONFIG_ID);
+      expect(second.id).toBe(buildLocalConfigId('testuserB'));
+      expect(second.id.startsWith('local-')).toBe(true);
+      expect(firstAgain.id).toBe(LOCAL_CONFIG_ID);
+      expect(firstAgain.userProfile?.name).toBe('A renamed');
+      expect(
+        service.getConfigurations().filter(c => c.type === 'local')
+      ).toHaveLength(2);
+      expect(service.getPrefixForConfig(second.id)).toBe(`${second.id}:`);
+      expect(extractContextPrefix(`${second.id}:inkweld-media`)).toBe(
+        `${second.id}:`
+      );
+    });
+
+    it('keeps one server profile per author on the same server', () => {
+      const url = 'https://ink.example.com';
+      const shared = service.addServerConfig(url, 'Ink');
+      // First login claims the unbound profile
+      const alice = service.addServerConfig(url, undefined, undefined, {
+        username: 'alice',
+      });
+      service.updateConfigUserProfile(alice.id, {
+        name: 'Alice',
+        username: 'alice',
+      });
+      // Second author gets a separate profile
+      const bob = service.addServerConfig(url, undefined, undefined, {
+        username: 'bob',
+      });
+      const aliceAgain = service.addServerConfig(url, undefined, undefined, {
+        username: 'Alice',
+      });
+
+      expect(alice.id).toBe(shared.id);
+      expect(bob.id).toBe(buildServerConfigId(shared.id, 'bob'));
+      expect(bob.id).not.toBe(shared.id);
+      expect(aliceAgain.id).toBe(shared.id);
+      expect(service.getPrefixForConfig(bob.id)).toBe(`srv:${bob.id}:`);
+      expect(extractContextPrefix(`srv:${bob.id}:auth_token`)).toBe(
+        `srv:${bob.id}:`
+      );
+    });
+
+    it('adoptServerLogin binds in place for the same or no user, forks for another', () => {
+      const url = 'https://ink.example.com';
+      const shared = service.addServerConfig(url, 'Ink');
+      service.switchToConfig(shared.id);
+
+      const first = service.adoptServerLogin({
+        name: 'Alice',
+        username: 'alice',
+      });
+      expect(first.forkedFrom).toBeNull();
+      expect(first.config.id).toBe(shared.id);
+
+      const same = service.adoptServerLogin({
+        name: 'Alice B',
+        username: 'ALICE',
+      });
+      expect(same.forkedFrom).toBeNull();
+      expect(service.getConfigById(shared.id)?.userProfile?.name).toBe(
+        'Alice B'
+      );
+
+      const forked = service.adoptServerLogin({ name: 'Bob', username: 'bob' });
+      expect(forked.forkedFrom).toBe(shared.id);
+      expect(forked.config.id).toBe(buildServerConfigId(shared.id, 'bob'));
+      expect(forked.config.displayName).toBe('Ink');
+      expect(service.getActiveConfig()?.id).toBe(forked.config.id);
+      // Alice's profile is untouched by Bob's fork (her last login wrote the
+      // username as typed, matched case-insensitively)
+      expect(service.getConfigById(shared.id)?.userProfile?.username).toBe(
+        'ALICE'
+      );
+    });
+
+    it('gives a second author on one cloud account a separate profile', () => {
+      const first = service.addCloudConfig({
+        provider: 'dropbox',
+        accountId: 'dbid:1',
+        userProfile: { name: 'A', username: 'alice' },
+      });
+      const second = service.addCloudConfig({
+        provider: 'dropbox',
+        accountId: 'dbid:1',
+        userProfile: { name: 'B', username: 'bob' },
+      });
+      const firstAgain = service.addCloudConfig({
+        provider: 'dropbox',
+        accountId: 'dbid:1',
+        userProfile: { name: 'Alice!', username: 'ALICE' },
+      });
+      const otherAccount = service.addCloudConfig({
+        provider: 'dropbox',
+        accountId: 'dbid:2',
+        userProfile: { name: 'A', username: 'alice' },
+      });
+
+      expect(first.id).toBe(buildCloudConfigId('dropbox', 'dbid:1'));
+      expect(second.id).toBe(buildCloudConfigId('dropbox', 'dbid:1', 'bob'));
+      expect(firstAgain.id).toBe(first.id);
+      expect(firstAgain.userProfile?.name).toBe('Alice!');
+      expect(otherAccount.id).toBe(buildCloudConfigId('dropbox', 'dbid:2'));
+      expect(extractContextPrefix(`${second.id}:inkweld-media`)).toBe(
+        `${second.id}:`
+      );
+      expect(service.getPrefixForConfig(second.id)).toBe(`${second.id}:`);
+    });
+
+    it('adoptServerLogin refuses outside a server profile', () => {
+      service.addLocalConfig({ name: 'A', username: 'a' });
+      expect(() =>
+        service.adoptServerLogin({ name: 'A', username: 'a' })
+      ).toThrow();
+    });
+  });
+
+  describe('cloneContextData', () => {
+    function openWithStores(name: string): Promise<IDBDatabase> {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open(name, 2);
+        req.onupgradeneeded = () => {
+          const db = req.result;
+          db.createObjectStore('updates', { autoIncrement: true });
+          const custom = db.createObjectStore('custom', { keyPath: 'id' });
+          custom.createIndex('byName', 'name', { unique: false });
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error ?? new Error('open failed'));
+      });
+    }
+
+    function deleteDb(name: string): Promise<void> {
+      return new Promise(resolve => {
+        const req = indexedDB.deleteDatabase(name);
+        req.onsuccess = () => resolve();
+        req.onerror = () => resolve();
+        req.onblocked = () => resolve();
+      });
+    }
+
+    function readStore(
+      name: string,
+      store: string
+    ): Promise<{ key: IDBValidKey; value: unknown }[]> {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open(name);
+        req.onsuccess = () => {
+          const db = req.result;
+          const out: { key: IDBValidKey; value: unknown }[] = [];
+          const cursorReq = db
+            .transaction(store, 'readonly')
+            .objectStore(store)
+            .openCursor();
+          cursorReq.onsuccess = () => {
+            const cursor = cursorReq.result;
+            if (!cursor) {
+              db.close();
+              resolve(out);
+              return;
+            }
+            out.push({ key: cursor.primaryKey, value: cursor.value });
+            cursor.continue();
+          };
+          cursorReq.onerror = () =>
+            reject(cursorReq.error ?? new Error('cursor failed'));
+        };
+        req.onerror = () => reject(req.error ?? new Error('open failed'));
+      });
+    }
+
+    it('copies keys and databases into the target prefix, leaving the source intact', async () => {
+      const source = service.addServerConfig('https://clone-spec.example.com');
+      const src = service.getPrefixForConfig(source.id);
+      const target = service.addCloudConfig({
+        provider: 'dropbox',
+        accountId: 'dbid:clone-spec',
+      });
+      mockStorage[`${src}inkweld-local-projects`] = JSON.stringify([
+        { slug: 'one' },
+        { slug: 'two' },
+      ]);
+      mockStorage[`${src}userSettings`] = '{"theme":"dark"}';
+      mockStorage[`${target.id}:userSettings`] = '{"theme":"light"}';
+      mockStorage['srv:abc12345:auth_token'] = 't';
+
+      const db = await openWithStores(`${src}a:one:elements`);
+      await new Promise<void>((resolve, reject) => {
+        const tx = db.transaction(['updates', 'custom'], 'readwrite');
+        tx.objectStore('updates').put(new Uint8Array([1, 2, 3]));
+        tx.objectStore('updates').put(new Uint8Array([4]));
+        tx.objectStore('custom').put({ id: 'k', name: 'n' });
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error ?? new Error('write failed'));
+      });
+      db.close();
+
+      const result = await service.cloneContextData(source.id, target.id);
+
+      expect(result).toEqual({
+        databases: 1,
+        localStorageKeys: 1, // userSettings already existed on the target
+        projectCount: 2,
+      });
+      expect(mockStorage[`${target.id}:inkweld-local-projects`]).toBe(
+        mockStorage[`${src}inkweld-local-projects`]
+      );
+      // Existing target values are never overwritten
+      expect(mockStorage[`${target.id}:userSettings`]).toBe(
+        '{"theme":"light"}'
+      );
+      // Other prefixes untouched
+      expect(mockStorage['srv:abc12345:auth_token']).toBe('t');
+
+      const updates = await readStore(`${target.id}:a:one:elements`, 'updates');
+      expect(updates.map(u => u.key)).toEqual([1, 2]);
+      expect(Array.from(updates[0].value as Uint8Array)).toEqual([1, 2, 3]);
+      const custom = await readStore(`${target.id}:a:one:elements`, 'custom');
+      expect(custom).toEqual([{ key: 'k', value: { id: 'k', name: 'n' } }]);
+      // Source still there
+      expect(await readStore(`${src}a:one:elements`, 'updates')).toHaveLength(
+        2
+      );
+
+      // fake-indexeddb is shared across specs: leave no databases behind
+      await deleteDb(`${src}a:one:elements`);
+      await deleteDb(`${target.id}:a:one:elements`);
+    });
+  });
+
+  describe('renameProjectInContext', () => {
+    function open(
+      name: string,
+      setup: (db: IDBDatabase) => void
+    ): Promise<IDBDatabase> {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open(name, 1);
+        req.onupgradeneeded = () => setup(req.result);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error ?? new Error('open failed'));
+      });
+    }
+    function write(
+      db: IDBDatabase,
+      store: string,
+      value: unknown,
+      key?: IDBValidKey
+    ): Promise<void> {
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(store, 'readwrite');
+        if (key === undefined) tx.objectStore(store).put(value);
+        else tx.objectStore(store).put(value, key);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error ?? new Error('write failed'));
+      });
+    }
+    function keysOf(name: string, store: string): Promise<IDBValidKey[]> {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open(name);
+        req.onsuccess = () => {
+          const db = req.result;
+          const all = db
+            .transaction(store, 'readonly')
+            .objectStore(store)
+            .getAllKeys();
+          all.onsuccess = () => {
+            db.close();
+            resolve(all.result);
+          };
+          all.onerror = () => reject(all.error ?? new Error('keys failed'));
+        };
+        req.onerror = () => reject(req.error ?? new Error('open failed'));
+      });
+    }
+    function dbExists(name: string): Promise<boolean> {
+      return indexedDB.databases().then(all => all.some(d => d.name === name));
+    }
+    function drop(name: string): Promise<void> {
+      return new Promise(resolve => {
+        const req = indexedDB.deleteDatabase(name);
+        req.onsuccess = () => resolve();
+        req.onerror = () => resolve();
+        req.onblocked = () => resolve();
+      });
+    }
+
+    it('moves databases, composite records and the list entry to the new slug', async () => {
+      service.addLocalConfig({ name: 'A', username: 'a' });
+      mockStorage['local:inkweld-local-projects'] = JSON.stringify([
+        { username: 'a', slug: 'novel', title: 'Novel' },
+        { username: 'a', slug: 'other' },
+      ]);
+      const doc = await open('local:a:novel:elements', db => {
+        db.createObjectStore('updates', { autoIncrement: true });
+      });
+      await write(doc, 'updates', new Uint8Array([9]));
+      doc.close();
+      const media = await open('local:inkweld-media', db => {
+        db.createObjectStore('media', { keyPath: 'id' });
+      });
+      await write(media, 'media', { id: 'a/novel:m1', projectKey: 'a/novel' });
+      await write(media, 'media', { id: 'a/other:m2', projectKey: 'a/other' });
+      media.close();
+      const acts = await open('local:inkweld-activations', db => {
+        db.createObjectStore('activations', { keyPath: 'projectKey' });
+      });
+      await write(acts, 'activations', { projectKey: 'a/novel' });
+      acts.close();
+
+      await service.renameProjectInContext(
+        LOCAL_CONFIG_ID,
+        'a',
+        'novel',
+        'my-novel'
+      );
+
+      expect(await dbExists('local:a:my-novel:elements')).toBe(true);
+      expect(await dbExists('local:a:novel:elements')).toBe(false);
+      expect((await keysOf('local:inkweld-media', 'media')).sort()).toEqual([
+        'a/my-novel:m1',
+        'a/other:m2',
+      ]);
+      expect(await keysOf('local:inkweld-activations', 'activations')).toEqual([
+        'a/my-novel',
+      ]);
+      const list = JSON.parse(mockStorage['local:inkweld-local-projects']) as {
+        slug: string;
+      }[];
+      expect(list.map(p => p.slug)).toEqual(['my-novel', 'other']);
+
+      for (const name of [
+        'local:a:my-novel:elements',
+        'local:inkweld-media',
+        'local:inkweld-activations',
+      ]) {
+        await drop(name);
+      }
+    });
+  });
+
+  describe('activateProjectsInContext', () => {
+    it('writes an activation record for every listed project', async () => {
+      service.addLocalConfig({ name: 'A', username: 'a' });
+      mockStorage['local:inkweld-local-projects'] = JSON.stringify([
+        { username: 'a', slug: 'one' },
+        { username: 'a', slug: 'two' },
+      ]);
+
+      const count = await service.activateProjectsInContext(LOCAL_CONFIG_ID);
+
+      expect(count).toBe(2);
+      const keys = await new Promise<IDBValidKey[]>((resolve, reject) => {
+        const req = indexedDB.open('local:inkweld-activations');
+        req.onsuccess = () => {
+          const db = req.result;
+          const all = db
+            .transaction('activations', 'readonly')
+            .objectStore('activations')
+            .getAllKeys();
+          all.onsuccess = () => {
+            db.close();
+            resolve(all.result);
+          };
+          all.onerror = () => reject(all.error ?? new Error('keys failed'));
+        };
+        req.onerror = () => reject(req.error ?? new Error('open failed'));
+      });
+      expect(keys.sort()).toEqual(['a/one', 'a/two']);
+      await new Promise<void>(resolve => {
+        const del = indexedDB.deleteDatabase('local:inkweld-activations');
+        del.onsuccess = () => resolve();
+        del.onerror = () => resolve();
+        del.onblocked = () => resolve();
+      });
+    });
+  });
+
+  describe('recordMigration', () => {
+    it('notes the move on both connections', () => {
+      service.addLocalConfig({ name: 'B', username: 'b' });
+      const target = service.addServerConfig('https://ink.example.com', 'Ink');
+
+      service.recordMigration(LOCAL_CONFIG_ID, target.id, {
+        username: 'bobby',
+        projectCount: 2,
+      });
+
+      const local = service.getConfigById(LOCAL_CONFIG_ID);
+      const server = service.getConfigById(target.id);
+      expect(local?.migratedTo).toMatchObject({
+        configId: target.id,
+        displayName: 'Ink',
+        username: 'bobby',
+        projectCount: 2,
+      });
+      expect(server?.migratedFrom).toMatchObject({
+        configId: LOCAL_CONFIG_ID,
+        displayName: 'Browser',
+        projectCount: 2,
+      });
+      expect(
+        getLocalConfigDisplayName({ ...local!, displayName: 'Local Mode' })
+      ).toBe('Browser');
+    });
+
+    it('ignores unknown connections', () => {
+      service.addLocalConfig({ name: 'B', username: 'b' });
+      service.recordMigration(LOCAL_CONFIG_ID, 'missing', { projectCount: 1 });
+      expect(
+        service.getConfigById(LOCAL_CONFIG_ID)?.migratedTo
+      ).toBeUndefined();
+    });
+  });
+
+  describe('device storage scanning', () => {
+    it('extractContextPrefix recognises every prefix shape', () => {
+      expect(extractContextPrefix('local:inkweld-media')).toBe('local:');
+      expect(extractContextPrefix('srv:abc12345:auth_token')).toBe(
+        'srv:abc12345:'
+      );
+      expect(extractContextPrefix('cloud-dropbox-1a2b3c:inkweld-sync')).toBe(
+        'cloud-dropbox-1a2b3c:'
+      );
+      expect(extractContextPrefix('cloud-google-drive-ff00:x')).toBe(
+        'cloud-google-drive-ff00:'
+      );
+      expect(extractContextPrefix('inkweld-app-config')).toBeNull();
+    });
+
+    it('describeContextData lists databases and keys under the prefix', async () => {
+      // A dedicated server profile: fake-indexeddb is shared across spec
+      // files, so the common "local:" prefix may hold other suites' databases
+      const config = service.addServerConfig(
+        'https://describe-spec.example.com'
+      );
+      const prefix = service.getPrefixForConfig(config.id);
+      mockStorage[`${prefix}userSettings`] = '{}';
+      mockStorage['srv:abc12345:auth_token'] = 't';
+      await new Promise<void>((resolve, reject) => {
+        const req = indexedDB.open(`${prefix}inkweld-media`, 1);
+        req.onsuccess = () => {
+          req.result.close();
+          resolve();
+        };
+        req.onerror = () => reject(req.error ?? new Error('open failed'));
+      });
+
+      const summary = await service.describeContextData(config.id);
+
+      expect(summary.prefix).toBe(prefix);
+      expect(summary.databases).toEqual([`${prefix}inkweld-media`]);
+      expect(summary.localStorageKeys).toEqual([`${prefix}userSettings`]);
+
+      await service.clearContextData(config.id);
+      expect(await service.describeContextData(config.id)).toEqual({
+        prefix,
+        databases: [],
+        localStorageKeys: [],
+      });
+    });
+
+    it('findOrphanedData reports prefixes with no configuration', async () => {
+      service.addLocalConfig({ name: 'B', username: 'b' });
+      mockStorage['local:userSettings'] = '{}';
+      mockStorage['srv:dead0000:auth_token'] = 't';
+      mockStorage['srv:dead0000:userSettings'] = '{}';
+      mockStorage['cloud-dropbox-beef:inkweld-local-projects'] = '[]';
+
+      const orphans = await service.findOrphanedData();
+
+      const prefixes = orphans.map(o => o.prefix);
+      expect(prefixes).toEqual(
+        expect.arrayContaining(['cloud-dropbox-beef:', 'srv:dead0000:'])
+      );
+      expect(prefixes).not.toContain('local:');
+      expect(
+        orphans.find(o => o.prefix === 'srv:dead0000:')?.localStorageKeys
+      ).toHaveLength(2);
+    });
+
+    it('clearContextData removes only that prefix', async () => {
+      const config = service.addServerConfig('https://clear-spec.example.com');
+      const prefix = service.getPrefixForConfig(config.id);
+      mockStorage[`${prefix}userSettings`] = '{}';
+      mockStorage['srv:abc12345:auth_token'] = 't';
+
+      await service.clearContextData(config.id);
+
+      expect(mockStorage[`${prefix}userSettings`]).toBeUndefined();
+      expect(mockStorage['srv:abc12345:auth_token']).toBe('t');
+      expect(mockStorage[APP_CONFIG_STORAGE_KEY]).toBeDefined();
     });
   });
 

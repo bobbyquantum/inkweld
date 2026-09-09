@@ -67,7 +67,10 @@ import {
   ProfileAppearanceDialogComponent,
   type ProfileAppearanceDialogData,
 } from '../../dialogs/profile-appearance-dialog/profile-appearance-dialog.component';
-import { ProfileManagerDialogComponent } from '../../dialogs/profile-manager-dialog/profile-manager-dialog.component';
+import {
+  ProfileManagerDialogComponent,
+  type ProfileManagerDialogData,
+} from '../../dialogs/profile-manager-dialog/profile-manager-dialog.component';
 import {
   RenameDialogComponent,
   type RenameDialogData,
@@ -336,12 +339,13 @@ export class DialogGatewayService {
     return firstValueFrom(dialogRef.afterClosed());
   }
 
-  openProfileManagerDialog(): Promise<void> {
+  openProfileManagerDialog(data?: ProfileManagerDialogData): Promise<void> {
     const dialogRef = this.dialog.open(ProfileManagerDialogComponent, {
       width: '500px',
       maxWidth: '95vw',
       maxHeight: '90vh',
       disableClose: false,
+      ...(data ? { data } : {}),
     });
     return firstValueFrom(dialogRef.afterClosed());
   }

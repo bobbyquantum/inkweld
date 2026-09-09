@@ -1,9 +1,9 @@
 <div class="profile-manager-dialog">
   <div class="dialog-header">
-    <h2>
+    <h2 data-testid="profile-manager-title">
       @switch (currentView()) {
         @case ('list') {
-          <mat-icon>dns</mat-icon>
+          <mat-icon>hub</mat-icon>
           {{ 'dialogs.profileManager.serverProfiles' | transloco }}
         }
         @case ('add') {
@@ -13,6 +13,10 @@
         @case ('add-local') {
           <mat-icon>computer</mat-icon>
           {{ 'dialogs.profileManager.addLocalMode' | transloco }}
+        }
+        @case ('upgrade') {
+          <mat-icon>cloud</mat-icon>
+          {{ 'dialogs.profileManager.upgradeTitle' | transloco }}
         }
         @case ('migrate') {
           <mat-icon>cloud_upload</mat-icon>
@@ -36,29 +40,62 @@
   <mat-divider></mat-divider>
 
   <div class="dialog-content">
-    <!-- Profile List View -->
+    <!-- Connection List View -->
     @if (currentView() === 'list') {
+      <p class="form-description list-intro">
+        {{ 'dialogs.profileManager.listIntro' | transloco }}
+      </p>
       <div class="profile-list">
         @for (profile of profiles(); track profile.id) {
           @let info = getProfileInfo(profile);
-          <button
-            type="button"
+          <div
             class="profile-item"
             [class.active]="info.isActive"
-            (click)="switchToProfile(profile)"
+            [attr.data-kind]="info.kind"
             [attr.data-testid]="'profile-item-' + profile.id">
-            <div class="profile-icon">
-              <mat-icon>{{ info.icon }}</mat-icon>
-              @if (info.isActive) {
-                <mat-icon class="active-badge">check_circle</mat-icon>
-              }
-            </div>
-            <div class="profile-details">
-              <span class="profile-name">{{ info.name }}</span>
-              <span class="profile-subtitle">{{ info.subtitle }}</span>
-            </div>
+            <button
+              type="button"
+              class="profile-main"
+              (click)="switchToProfile(profile)"
+              [disabled]="isBusy()"
+              [attr.aria-label]="
+                info.isActive
+                  ? info.name
+                  : ('dialogs.profileManager.switchTo'
+                    | transloco: { name: info.name })
+              ">
+              <div class="profile-icon">
+                <mat-icon>{{ info.icon }}</mat-icon>
+                @if (info.isActive) {
+                  <mat-icon class="active-badge">check_circle</mat-icon>
+                }
+              </div>
+              <div class="profile-details">
+                <span class="profile-name">
+                  {{ info.name }}
+                  <span class="kind-chip">{{ kindLabel(info) }}</span>
+                  @if (info.isBuiltIn) {
+                    <span class="kind-chip built-in">{{
+                      'dialogs.profileManager.builtIn' | transloco
+                    }}</span>
+                  }
+                </span>
+                <span class="profile-subtitle">
+                  @if (info.isActive) {
+                    <span class="active-text">{{
+                      'dialogs.profileManager.active' | transloco
+                    }}</span>
+                    ·
+                  }
+                  {{ info.subtitle }}
+                </span>
+                @if (info.history) {
+                  <span class="profile-history">{{ info.history }}</span>
+                }
+              </div>
+            </button>
             <div class="profile-actions">
-              @if (profile.type === 'server' && !hasAuthForProfile(profile)) {
+              @if (info.kind === 'server' && !info.hasCredentials) {
                 <mat-icon
                   class="auth-warning"
                   [matTooltip]="
@@ -67,19 +104,26 @@
                   lock
                 </mat-icon>
               }
-              @if (!info.isActive) {
+              @if (info.kind === 'cloud' && !info.hasCredentials) {
                 <button
-                  mat-icon-button
-                  (click)="removeProfile(profile); $event.stopPropagation()"
-                  [matTooltip]="
-                    'dialogs.profileManager.removeProfile' | transloco
-                  "
-                  [attr.data-testid]="'remove-profile-' + profile.id">
-                  <mat-icon>delete</mat-icon>
+                  mat-stroked-button
+                  class="reconnect-button"
+                  (click)="reconnectCloud(profile)"
+                  [attr.data-testid]="'reconnect-' + profile.id">
+                  {{ 'dialogs.profileManager.reconnect' | transloco }}
                 </button>
               }
+              <button
+                mat-icon-button
+                [matMenuTriggerFor]="itemMenu"
+                [matMenuTriggerData]="{ profile: profile, info: info }"
+                [disabled]="isBusy()"
+                [matTooltip]="'dialogs.profileManager.moreActions' | transloco"
+                [attr.data-testid]="'profile-menu-' + profile.id">
+                <mat-icon>more_vert</mat-icon>
+              </button>
             </div>
-          </button>
+          </div>
         } @empty {
           <div class="empty-state">
             <mat-icon>cloud_off</mat-icon>
@@ -88,25 +132,225 @@
         }
       </div>
 
+      <mat-menu #itemMenu="matMenu">
+        <ng-template matMenuContent let-profile="profile" let-info="info">
+          @if (!info.isActive) {
+            <button mat-menu-item (click)="switchToProfile(profile)">
+              <mat-icon>swap_horiz</mat-icon>
+              <span>{{ 'dialogs.profileManager.switch' | transloco }}</span>
+            </button>
+          }
+          @if (info.kind === 'cloud' && !info.hasCredentials) {
+            <button mat-menu-item (click)="reconnectCloud(profile)">
+              <mat-icon>key</mat-icon>
+              <span>{{ 'dialogs.profileManager.reconnect' | transloco }}</span>
+            </button>
+          }
+          <button
+            mat-menu-item
+            class="danger-item"
+            (click)="removeProfile(profile)"
+            [disabled]="info.isBuiltIn"
+            [attr.data-testid]="'remove-profile-' + profile.id">
+            <mat-icon>link_off</mat-icon>
+            <span>{{ 'dialogs.profileManager.disconnect' | transloco }}</span>
+          </button>
+        </ng-template>
+      </mat-menu>
+
       <mat-divider></mat-divider>
 
       <div class="list-actions">
         <button
-          mat-stroked-button
-          (click)="showAddServer()"
-          data-testid="add-server-button">
-          <mat-icon>add</mat-icon>
-          {{ 'dialogs.profileManager.addServer' | transloco }}
+          mat-raised-button
+          color="primary"
+          (click)="goToWelcome()"
+          [disabled]="isBusy()"
+          data-testid="welcome-screen-button">
+          <mat-icon>person_add</mat-icon>
+          {{ 'dialogs.profileManager.addProfile' | transloco }}
         </button>
-        @if (!hasLocalProfile()) {
+        @if (upgradeOptions().length > 0) {
           <button
             mat-stroked-button
-            (click)="switchToLocalMode()"
-            data-testid="add-local-button">
-            <mat-icon>computer</mat-icon>
-            {{ 'dialogs.profileManager.addLocalMode' | transloco }}
+            (click)="showUpgrade()"
+            [disabled]="isBusy()"
+            data-testid="upgrade-profile-button">
+            <mat-icon>cloud</mat-icon>
+            {{ 'dialogs.profileManager.upgradeAction' | transloco }}
           </button>
         }
+        <button
+          mat-stroked-button
+          class="add-server-link"
+          (click)="showAddServer()"
+          [disabled]="isBusy()"
+          data-testid="add-server-button">
+          <mat-icon>drive_file_move</mat-icon>
+          {{ 'dialogs.profileManager.addServer' | transloco }}
+        </button>
+      </div>
+      <p class="setup-hint">
+        {{ 'dialogs.profileManager.addProfileHint' | transloco }}
+      </p>
+
+      <div class="secondary-actions">
+        <button
+          mat-button
+          (click)="toggleStorage()"
+          [disabled]="isBusy()"
+          data-testid="toggle-storage-button">
+          <mat-icon>{{ showStorage() ? 'expand_less' : 'storage' }}</mat-icon>
+          {{ 'dialogs.profileManager.storageOnDevice' | transloco }}
+        </button>
+      </div>
+
+      @if (showStorage()) {
+        <div class="storage-panel" data-testid="storage-panel">
+          @if (isScanning()) {
+            <div class="checking-conflicts">
+              <mat-spinner diameter="18"></mat-spinner>
+              <span>{{ 'dialogs.profileManager.scanning' | transloco }}</span>
+            </div>
+          } @else if (storageScan(); as scan) {
+            @if (scan.estimate) {
+              <p class="storage-estimate">
+                {{
+                  'dialogs.profileManager.storageEstimate'
+                    | transloco
+                      : {
+                          used: formatBytes(scan.estimate.usageBytes),
+                          quota: formatBytes(scan.estimate.quotaBytes),
+                        }
+                }}
+              </p>
+            }
+            <ul class="storage-list">
+              @for (entry of scan.connections; track entry.info.config.id) {
+                <li>
+                  <mat-icon>{{ entry.info.icon }}</mat-icon>
+                  <span class="storage-name">{{ entry.info.name }}</span>
+                  <span class="storage-counts">
+                    {{
+                      'dialogs.profileManager.disconnectDataLine'
+                        | transloco
+                          : {
+                              databases: entry.data.databases.length,
+                              keys: entry.data.localStorageKeys.length,
+                            }
+                    }}
+                  </span>
+                </li>
+              }
+              @for (orphan of scan.orphans; track orphan.prefix) {
+                <li
+                  class="orphan"
+                  [attr.data-testid]="'orphan-' + orphan.prefix">
+                  <mat-icon>delete_sweep</mat-icon>
+                  <span class="storage-name wrap">
+                    {{ 'dialogs.profileManager.orphanLabel' | transloco }}
+                    <code>{{ orphan.prefix }}</code>
+                  </span>
+                  <span class="storage-counts">
+                    {{
+                      'dialogs.profileManager.disconnectDataLine'
+                        | transloco
+                          : {
+                              databases: orphan.databases.length,
+                              keys: orphan.localStorageKeys.length,
+                            }
+                    }}
+                  </span>
+                  <button
+                    mat-icon-button
+                    (click)="deleteOrphan(orphan.prefix)"
+                    [matTooltip]="'delete' | transloco">
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                </li>
+              }
+            </ul>
+            @if (scan.orphans.length === 0) {
+              <p class="storage-clean">
+                {{ 'dialogs.profileManager.noOrphans' | transloco }}
+              </p>
+            }
+          }
+          <div class="danger-zone">
+            <button
+              mat-stroked-button
+              color="warn"
+              (click)="resetDevice()"
+              [disabled]="isBusy()"
+              data-testid="reset-device-button">
+              <mat-icon>restart_alt</mat-icon>
+              {{ 'dialogs.profileManager.resetDevice' | transloco }}
+            </button>
+          </div>
+        </div>
+      }
+    }
+
+    <!-- Upgrade View: where should this profile's writing live next? -->
+    @if (currentView() === 'upgrade') {
+      <div class="upgrade-view" data-testid="upgrade-view">
+        @if (activeInfo(); as info) {
+          <p class="form-description">
+            {{
+              'dialogs.profileManager.upgradeIntro'
+                | transloco: { name: info.name }
+            }}
+          </p>
+        }
+        <div class="upgrade-options">
+          @if (upgradeOptions().includes('cloud')) {
+            <button
+              type="button"
+              class="upgrade-card"
+              (click)="upgradeToCloud()"
+              data-testid="upgrade-cloud-button">
+              <mat-icon>cloud_sync</mat-icon>
+              <div class="upgrade-text">
+                <h3>{{ 'dialogs.profileManager.upgradeCloud' | transloco }}</h3>
+                <p>
+                  {{ 'dialogs.profileManager.upgradeCloudDesc' | transloco }}
+                </p>
+              </div>
+              <mat-icon class="profile-chevron">chevron_right</mat-icon>
+            </button>
+          }
+          @if (upgradeOptions().includes('server')) {
+            <button
+              type="button"
+              class="upgrade-card"
+              (click)="upgradeToServer()"
+              data-testid="upgrade-server-button">
+              <mat-icon>dns</mat-icon>
+              <div class="upgrade-text">
+                <h3>
+                  {{ 'dialogs.profileManager.upgradeServer' | transloco }}
+                </h3>
+                <p>
+                  {{ 'dialogs.profileManager.upgradeServerDesc' | transloco }}
+                </p>
+              </div>
+              <mat-icon class="profile-chevron">chevron_right</mat-icon>
+            </button>
+          }
+          @if (upgradeOptions().length === 0) {
+            <p class="form-description">
+              {{ 'dialogs.profileManager.upgradeNothing' | transloco }}
+            </p>
+          }
+        </div>
+        <p class="setup-hint">
+          {{ 'dialogs.profileManager.upgradeKeeps' | transloco }}
+        </p>
+        <div class="form-actions">
+          <button mat-button (click)="currentView.set('list')">
+            {{ 'dialogs.profileManager.allProfiles' | transloco }}
+          </button>
+        </div>
       </div>
     }
 

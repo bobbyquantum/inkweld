@@ -15,186 +15,241 @@
     #menu="matMenu"
     yPosition="below"
     class="menu-popover"
-    backdropClass="menu-backdrop">
+    backdropClass="menu-backdrop"
+    (closed)="switcherOpen.set(false)">
     @if (userService.currentUser()) {
-      <div class="user-menu-header">
-        <button
-          class="user-info"
-          mat-menu-item
-          [routerLink]="['/', userService.currentUser().username]">
-          <div class="user-info-content">
-            <app-user-avatar
-              [username]="userService.currentUser().username"
-              [hasAvatar]="userService.currentUser().hasAvatar"
-              size="small" />
-            <div class="user-details">
-              <span class="user-name">{{
-                userService.currentUser().name
-              }}</span>
-              <span class="user-username"
-                >&#64;{{ userService.currentUser().username }}</span
-              >
-            </div>
-          </div>
-        </button>
-      </div>
-      <mat-divider></mat-divider>
-      <!-- Server/Profile Switcher - Always visible -->
-      <button
-        mat-menu-item
-        [matMenuTriggerFor]="profileMenu"
-        class="switch-server-trigger"
-        data-testid="switch-server-button">
-        <mat-icon>{{ getConnectionStatus().icon }}</mat-icon>
-        <div class="server-info-content">
-          <span class="server-label">{{ getCurrentServerName() }}</span>
-          <span class="server-sublabel">{{ getConnectionStatus().text }}</span>
-        </div>
-        <mat-icon class="menu-arrow">arrow_right</mat-icon>
-      </button>
-      <mat-divider></mat-divider>
-      <div class="menu-actions">
-        <!-- Theme Selection -->
-        <div class="theme-selector">
-          <span class="theme-label">{{ 'settings.theme' | transloco }}:</span>
+      @if (switcherOpen()) {
+        <!-- Profile switcher: GitHub-style account list -->
+        <div class="switcher-header">
           <button
             mat-icon-button
-            (click)="onThemeChange('light-theme')"
-            [matTooltip]="'settings.light' | transloco"
-            data-testid="theme-light-button">
-            <mat-icon>light_mode</mat-icon>
+            (click)="toggleSwitcher($event)"
+            [attr.aria-label]="'settings.connectionTab.backToMenu' | transloco"
+            data-testid="switcher-back-button">
+            <mat-icon>arrow_back</mat-icon>
           </button>
-          <button
-            mat-icon-button
-            (click)="onThemeChange('dark-theme')"
-            [matTooltip]="'settings.dark' | transloco"
-            data-testid="theme-dark-button">
-            <mat-icon>dark_mode</mat-icon>
-          </button>
-          <button
-            mat-icon-button
-            (click)="onThemeChange('system')"
-            [matTooltip]="'settings.followSystem' | transloco"
-            data-testid="theme-system-button">
-            <mat-icon>brightness_auto</mat-icon>
-          </button>
+          <span>{{
+            'settings.connectionTab.switchConnection' | transloco
+          }}</span>
         </div>
         <mat-divider></mat-divider>
-        @if (isAdmin()) {
-          <button
-            mat-menu-item
-            routerLink="/admin"
-            data-testid="admin-menu-link">
-            <mat-icon>admin_panel_settings</mat-icon>
-            <span>{{ 'admin.nav.admin' | transloco }}</span>
-          </button>
-        }
-        @if (setupService.getMode() === 'server') {
-          <button
-            mat-menu-item
-            routerLink="/messages"
-            data-testid="messages-menu-link">
-            <mat-icon
-              [matBadge]="unreadCount()"
-              [matBadgeHidden]="unreadCount() === 0"
-              matBadgeColor="warn"
-              matBadgeSize="small"
-              aria-hidden="false">
-              mail
-            </mat-icon>
-            <span>{{ 'messages.title' | transloco }}</span>
-          </button>
-        }
-        @if (setupService.getMode() === 'cloud') {
-          <button
-            mat-menu-item
-            (click)="onSyncNow()"
-            [disabled]="cloudSync.status() === 'syncing'"
-            data-testid="cloud-sync-now-button">
-            <mat-icon>sync</mat-icon>
-            <span>Sync now</span>
-          </button>
-        }
-        <button mat-menu-item (click)="onSettings()">
-          <mat-icon>settings</mat-icon>
-          <span>{{ 'settings.dialogTitle' | transloco }}</span>
-        </button>
-        <button mat-menu-item routerLink="/about" data-testid="about-menu-link">
-          <mat-icon>info</mat-icon>
-          <span>{{ 'about.aboutTitle' | transloco }}</span>
-        </button>
-        @if (tutorialTour) {
-          <button
-            mat-menu-item
-            (click)="onStartTutorial()"
-            data-testid="tutorial-menu-item">
-            <mat-icon>tour</mat-icon>
-            <span>{{ 'tutorial.menuItem' | transloco }}</span>
-          </button>
-        }
-        @if (setupService.getMode() === 'server') {
-          <button
-            mat-menu-item
-            (click)="onManageProfiles()"
-            data-testid="switch-to-local-button">
-            <mat-icon>cloud_off</mat-icon>
-            <span>{{
-              'settings.connectionTab.switchToLocal' | transloco
-            }}</span>
-          </button>
-          <button mat-menu-item (click)="onLogout()">
-            <mat-icon>exit_to_app</mat-icon>
-            <span>{{ 'login.login' | transloco }}</span>
-          </button>
-        } @else {
-          <button
-            mat-menu-item
-            (click)="onManageProfiles()"
-            data-testid="connect-to-server-button">
-            <mat-icon>cloud</mat-icon>
-            <span>{{
-              'settings.connectionTab.connectToServer' | transloco
-            }}</span>
-          </button>
-        }
-      </div>
-    }
-  </mat-menu>
-
-  <!-- Server/Profile Switcher Submenu -->
-  <mat-menu #profileMenu="matMenu" class="profile-submenu">
-    <div class="profile-menu-header">
-      <span>{{ 'settings.connectionTab.changeServer' | transloco }}</span>
-    </div>
-    @for (profile of profiles(); track profile.id) {
-      @let display = getProfileDisplay(profile);
-      <button
-        mat-menu-item
-        (click)="onSwitchProfile(profile)"
-        [class.active-profile]="display.isActive"
-        [attr.data-testid]="'profile-' + profile.id">
-        <mat-icon>{{ display.icon }}</mat-icon>
-        <div class="profile-item-content">
-          <span class="profile-name">{{ display.name }}</span>
-          <span class="profile-subtitle">
-            @if (display.isActive) {
-              <mat-icon class="active-indicator">check</mat-icon>
-            }
-            {{ display.subtitle }}
-            @if (!display.hasAuth && profile.type === 'server') {
-              <span class="needs-login">(login required)</span>
-            }
-          </span>
+        <div class="profile-list" data-testid="profile-switcher">
+          @for (profile of profiles(); track profile.id) {
+            @let display = getProfileDisplay(profile);
+            <button
+              mat-menu-item
+              class="profile-row"
+              (click)="onSwitchProfile(profile)"
+              [class.active-profile]="display.isActive"
+              [attr.data-testid]="'profile-' + profile.id">
+              <span class="profile-leading">
+                @if (profile.userProfile?.username) {
+                  <app-user-avatar
+                    class="profile-avatar"
+                    [username]="profile.userProfile?.username ?? ''"
+                    [hasAvatar]="false"
+                    size="small" />
+                } @else {
+                  <mat-icon>{{ display.icon }}</mat-icon>
+                }
+              </span>
+              <div class="profile-item-content">
+                <span class="profile-name">
+                  {{ display.name }}
+                  <span class="profile-kind">{{ display.kind }}</span>
+                </span>
+                <span class="profile-subtitle">
+                  {{ display.subtitle }}
+                  @if (!display.hasAuth && profile.type === 'server') {
+                    <span class="needs-login">(login required)</span>
+                  }
+                  @if (!display.hasAuth && profile.type === 'cloud') {
+                    <span class="needs-login">(reconnect needed)</span>
+                  }
+                </span>
+              </div>
+              <!-- Wrapped in a span: MatMenuItem hoists bare mat-icons to the
+                   front, and the slot is always reserved so rows line up -->
+              <span
+                class="profile-trailing"
+                [class.hidden-check]="!display.isActive"
+                aria-hidden="true">
+                <mat-icon class="active-check">check</mat-icon>
+              </span>
+            </button>
+          }
         </div>
-      </button>
+        <mat-divider></mat-divider>
+        <button
+          mat-menu-item
+          (click)="onAddConnection()"
+          data-testid="add-profile-button">
+          <mat-icon>person_add</mat-icon>
+          <span>{{ 'settings.connectionTab.addConnection' | transloco }}</span>
+        </button>
+        <button
+          mat-menu-item
+          (click)="onManageProfiles()"
+          data-testid="manage-profiles-button">
+          <mat-icon>manage_accounts</mat-icon>
+          <span>{{
+            'settings.connectionTab.manageConnections' | transloco
+          }}</span>
+        </button>
+      } @else {
+        <!-- Header: who you are, where it lives, and the account switcher -->
+        <div class="user-menu-header">
+          <div class="header-row">
+            <button
+              class="user-info"
+              mat-menu-item
+              [routerLink]="['/', userService.currentUser().username]">
+              <div class="user-info-content">
+                <app-user-avatar
+                  [username]="userService.currentUser().username"
+                  [hasAvatar]="userService.currentUser().hasAvatar"
+                  size="small" />
+                <div class="user-details">
+                  <span class="user-name">{{
+                    userService.currentUser().name
+                  }}</span>
+                  <span class="user-username"
+                    >&#64;{{ userService.currentUser().username }}</span
+                  >
+                </div>
+              </div>
+            </button>
+            <button
+              mat-icon-button
+              class="switcher-toggle"
+              (click)="toggleSwitcher($event)"
+              [matTooltip]="
+                'settings.connectionTab.switchConnection' | transloco
+              "
+              [attr.aria-label]="
+                'settings.connectionTab.switchConnection' | transloco
+              "
+              data-testid="switch-server-button">
+              <mat-icon>sync_alt</mat-icon>
+              @if (profiles().length > 1) {
+                <span class="switcher-count">{{ profiles().length }}</span>
+              }
+            </button>
+          </div>
+          <div
+            class="connection-status"
+            [class]="'connection-status ' + getConnectionStatus().cssClass"
+            data-testid="connection-status-line">
+            <mat-icon>{{ getConnectionStatus().icon }}</mat-icon>
+            <span class="status-text">{{ getConnectionStatus().text }}</span>
+            @if (setupService.getMode() === 'cloud') {
+              <button
+                mat-icon-button
+                class="status-icon-action"
+                (click)="onSyncNow($event)"
+                [disabled]="cloudSync.status() === 'syncing'"
+                [matTooltip]="'Sync now'"
+                aria-label="Sync now"
+                data-testid="cloud-sync-now-button">
+                <mat-icon>sync</mat-icon>
+              </button>
+            }
+            @if (canUpgrade()) {
+              <button
+                mat-stroked-button
+                class="status-action"
+                (click)="onUpgradeProfile()"
+                data-testid="upgrade-profile-menu-item">
+                <mat-icon>{{ upgradeAction().icon }}</mat-icon>
+                {{ upgradeAction().label | transloco }}
+              </button>
+            }
+          </div>
+        </div>
+        <mat-divider></mat-divider>
+        <div class="menu-actions">
+          @if (setupService.getMode() === 'server') {
+            <button
+              mat-menu-item
+              routerLink="/messages"
+              data-testid="messages-menu-link">
+              <mat-icon
+                [matBadge]="unreadCount()"
+                [matBadgeHidden]="unreadCount() === 0"
+                matBadgeColor="warn"
+                matBadgeSize="small"
+                aria-hidden="false">
+                mail
+              </mat-icon>
+              <span>{{ 'messages.title' | transloco }}</span>
+            </button>
+          }
+          @if (isAdmin()) {
+            <button
+              mat-menu-item
+              routerLink="/admin"
+              data-testid="admin-menu-link">
+              <mat-icon>admin_panel_settings</mat-icon>
+              <span>{{ 'admin.nav.admin' | transloco }}</span>
+            </button>
+          }
+          @if (setupService.getMode() === 'server' || isAdmin()) {
+            <mat-divider></mat-divider>
+          }
+          <!-- Theme Selection -->
+          <div class="theme-selector">
+            <span class="theme-label">{{ 'settings.theme' | transloco }}:</span>
+            <button
+              mat-icon-button
+              (click)="onThemeChange('light-theme')"
+              [matTooltip]="'settings.light' | transloco"
+              data-testid="theme-light-button">
+              <mat-icon>light_mode</mat-icon>
+            </button>
+            <button
+              mat-icon-button
+              (click)="onThemeChange('dark-theme')"
+              [matTooltip]="'settings.dark' | transloco"
+              data-testid="theme-dark-button">
+              <mat-icon>dark_mode</mat-icon>
+            </button>
+            <button
+              mat-icon-button
+              (click)="onThemeChange('system')"
+              [matTooltip]="'settings.followSystem' | transloco"
+              data-testid="theme-system-button">
+              <mat-icon>brightness_auto</mat-icon>
+            </button>
+          </div>
+          <mat-divider></mat-divider>
+          <button mat-menu-item (click)="onSettings()">
+            <mat-icon>settings</mat-icon>
+            <span>{{ 'settings.dialogTitle' | transloco }}</span>
+          </button>
+          <button
+            mat-menu-item
+            routerLink="/about"
+            data-testid="about-menu-link">
+            <mat-icon>info</mat-icon>
+            <span>{{ 'about.aboutTitle' | transloco }}</span>
+          </button>
+          @if (tutorialTour) {
+            <button
+              mat-menu-item
+              (click)="onStartTutorial()"
+              data-testid="tutorial-menu-item">
+              <mat-icon>tour</mat-icon>
+              <span>{{ 'tutorial.menuItem' | transloco }}</span>
+            </button>
+          }
+          @if (setupService.getMode() === 'server') {
+            <button mat-menu-item (click)="onLogout()">
+              <mat-icon>exit_to_app</mat-icon>
+              <span>{{ 'login.login' | transloco }}</span>
+            </button>
+          }
+        </div>
+      }
     }
-    <mat-divider></mat-divider>
-    <button
-      mat-menu-item
-      (click)="onManageProfiles()"
-      data-testid="manage-profiles-button">
-      <mat-icon>settings</mat-icon>
-      <span>{{ 'settings.connectionTab.title' | transloco }}</span>
-    </button>
   </mat-menu>
 </div>

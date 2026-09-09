@@ -22,6 +22,7 @@ import { type Mock, vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { userServiceMock } from '../../../testing/user-api.mock';
+import { AuthTokenService } from '../auth/auth-token.service';
 import { StorageContextService } from '../core/storage-context.service';
 import { StorageService } from '../local/storage.service';
 import { UserService, UserServiceError } from './user.service';
@@ -53,6 +54,7 @@ describe('UserService', () => {
   let storageContextMock: {
     getActiveConfig: Mock;
     updateConfigUserProfile: Mock;
+    adoptServerLogin: Mock;
     clearConfigUserProfile: Mock;
     prefixKey: Mock;
     prefixDbName: Mock;
@@ -73,8 +75,14 @@ describe('UserService', () => {
     dialogMock = { open: vi.fn() };
     routerMock = { navigate: vi.fn() };
     storageContextMock = {
-      getActiveConfig: vi.fn().mockReturnValue({ id: 'test-config-id' }),
+      getActiveConfig: vi
+        .fn()
+        .mockReturnValue({ id: 'test-config-id', type: 'server' }),
       updateConfigUserProfile: vi.fn(),
+      adoptServerLogin: vi.fn().mockReturnValue({
+        config: { id: 'test-config-id' },
+        forkedFrom: null,
+      }),
       clearConfigUserProfile: vi.fn(),
       prefixKey: vi.fn((key: string) => `local:${key}`),
       prefixDbName: vi.fn((name: string) => `local:${name}`),
@@ -321,16 +329,48 @@ describe('UserService', () => {
 
       await service.login('testuser', 'password123');
 
-      expect(storageContextMock.updateConfigUserProfile).toHaveBeenCalledWith(
-        'test-config-id',
-        {
-          name: TEST_USER.name ?? TEST_USER.username,
-          username: TEST_USER.username,
-        }
-      );
+      expect(storageContextMock.adoptServerLogin).toHaveBeenCalledWith({
+        name: TEST_USER.name ?? TEST_USER.username,
+        username: TEST_USER.username,
+      });
+      expect(routerMock.navigate).toHaveBeenCalledWith(['/']);
     });
 
-    it('should not call updateConfigUserProfile when no active config', async () => {
+    it('moves the token and reloads when the login forks into a new profile', async () => {
+      storageContextMock.adoptServerLogin.mockReturnValue({
+        config: { id: 'abc12345-deadbeef' },
+        forkedFrom: 'abc12345',
+      });
+      const originalLocation = globalThis.location;
+      const assign = vi.fn();
+      Object.defineProperty(globalThis, 'location', {
+        value: { assign },
+        writable: true,
+        configurable: true,
+      });
+      authServiceMock.login.mockReturnValue(
+        of({ user: TEST_USER, token: 'test-token' })
+      );
+      const moveToken = vi
+        .spyOn(TestBed.inject(AuthTokenService), 'moveToken')
+        .mockImplementation(() => undefined);
+
+      try {
+        await service.login('testuser', 'password123');
+      } finally {
+        Object.defineProperty(globalThis, 'location', {
+          value: originalLocation,
+          writable: true,
+          configurable: true,
+        });
+      }
+
+      expect(moveToken).toHaveBeenCalledWith('abc12345', 'abc12345-deadbeef');
+      expect(assign).toHaveBeenCalledWith('/');
+      expect(routerMock.navigate).not.toHaveBeenCalled();
+    });
+
+    it('should not bind a profile when no active config', async () => {
       storageContextMock.getActiveConfig.mockReturnValue(null);
       authServiceMock.login.mockReturnValue(
         of({ user: TEST_USER, token: 'test-token' })
@@ -339,7 +379,7 @@ describe('UserService', () => {
 
       await service.login('testuser', 'password123');
 
-      expect(storageContextMock.updateConfigUserProfile).not.toHaveBeenCalled();
+      expect(storageContextMock.adoptServerLogin).not.toHaveBeenCalled();
     });
 
     it('should use username as name fallback when User.name is null', async () => {
@@ -351,13 +391,10 @@ describe('UserService', () => {
 
       await service.login('testuser', 'password123');
 
-      expect(storageContextMock.updateConfigUserProfile).toHaveBeenCalledWith(
-        'test-config-id',
-        {
-          name: userWithNullName.username,
-          username: userWithNullName.username,
-        }
-      );
+      expect(storageContextMock.adoptServerLogin).toHaveBeenCalledWith({
+        name: userWithNullName.username,
+        username: userWithNullName.username,
+      });
     });
 
     it('should handle login failure with invalid credentials', async () => {

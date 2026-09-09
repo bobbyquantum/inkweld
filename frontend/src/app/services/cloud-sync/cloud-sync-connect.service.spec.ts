@@ -283,7 +283,7 @@ describe('CloudSyncConnectService', () => {
       ).rejects.toThrow(/No authorization in progress/);
     });
 
-    it('adopts an existing manifest and configures cloud mode', async () => {
+    it('offers the existing authors when the folder has a manifest', async () => {
       seedPendingAuth();
       routeTokenExchange();
       const manifest = createCloudManifest(
@@ -298,13 +298,14 @@ describe('CloudSyncConnectService', () => {
         'state-1'
       );
 
-      expect(result.kind).toBe('configured');
-      expect(setupService.configureCloudMode).toHaveBeenCalledWith({
-        provider: 'dropbox',
-        accountId: 'dbid:abc',
-        accountLabel: 'bobby@example.com',
-        userProfile: { name: 'Bobby Quantum', username: 'bobby' },
-      });
+      // An account with authors is never adopted silently: the user picks
+      expect(result.kind).toBe('choose-profile');
+      if (result.kind !== 'choose-profile') return;
+      expect(result.pending.existingProfiles).toEqual([
+        { name: 'Bobby Quantum', username: 'bobby', slugs: [] },
+      ]);
+      expect(setupService.configureCloudMode).not.toHaveBeenCalled();
+      expect(service.getPendingConnection()).toEqual(result.pending);
 
       // The code exchange used the stored verifier and no secret
       const [, tokenInit] = callsTo('/oauth2/token')[0];
@@ -321,7 +322,6 @@ describe('CloudSyncConnectService', () => {
         accessToken: 'at',
         refreshToken: 'rt',
       });
-      expect(session['inkweld-cloud-sync-pending-connection']).toBeUndefined();
     });
 
     it('asks for a profile when the folder has no manifest', async () => {
@@ -379,8 +379,347 @@ describe('CloudSyncConnectService', () => {
     });
   });
 
+  describe('connectNextcloud', () => {
+    const NC = 'https://cloud.example.com';
+    const DAV_ROOT = `${NC}/remote.php/dav/files/bob/`;
+
+    function multistatus(hrefs: string[]): Response {
+      return new Response(
+        `<?xml version="1.0"?><d:multistatus xmlns:d="DAV:">${hrefs
+          .map(
+            h =>
+              `<d:response><d:href>${h}</d:href><d:propstat><d:prop><d:resourcetype/><d:getetag>"e"</d:getetag></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>`
+          )
+          .join('')}</d:multistatus>`,
+        { status: 207 }
+      );
+    }
+
+    /** Files root PROPFIND succeeds; manifest GET returns `body` or 404 */
+    function routeNextcloud(body: string | null): void {
+      routes.push((url, init) =>
+        init.method === 'PROPFIND' && url === DAV_ROOT
+          ? multistatus(['/remote.php/dav/files/bob/'])
+          : undefined
+      );
+      routes.push((url, init) => {
+        if (init.method !== 'GET' || !url.endsWith('/Inkweld/manifest.json')) {
+          return undefined;
+        }
+        return body === null
+          ? new Response('', { status: 404 })
+          : new Response(new TextEncoder().encode(body), {
+              status: 200,
+              headers: { ETag: '"m1"' },
+            });
+      });
+    }
+
+    it('verifies access, stores the app password and offers its authors', async () => {
+      const manifest = createCloudManifest(
+        { provider: 'nextcloud', accountId: `${NC}#bob` },
+        { name: 'Bobby Quantum', username: 'bobby' }
+      );
+      routeNextcloud(JSON.stringify(manifest));
+
+      const result = await service.connectNextcloud({
+        serverUrl: 'cloud.example.com/',
+        loginName: ' bob ',
+        appPassword: 'app-pw',
+      });
+
+      expect(result.kind).toBe('choose-profile');
+      if (result.kind !== 'choose-profile') return;
+      expect(result.pending.existingProfiles?.[0]).toMatchObject({
+        username: 'bobby',
+      });
+      expect(setupService.configureCloudMode).not.toHaveBeenCalled();
+      const configId = buildCloudConfigId('nextcloud', `${NC}#bob`);
+      expect(tokenStore.get(configId)).toMatchObject({
+        provider: 'nextcloud',
+        accessToken: 'app-pw',
+        serverUrl: NC,
+        loginName: 'bob',
+      });
+      expect(tokenStore.isExpired(tokenStore.get(configId)!)).toBe(false);
+      // Basic auth carried the app password, never a bearer token
+      const [, probeInit] = callsTo(DAV_ROOT)[0];
+      expect(
+        (probeInit.headers as Record<string, string>)['Authorization']
+      ).toBe(`Basic ${btoa('bob:app-pw')}`);
+    });
+
+    it('asks for a profile when the Inkweld folder is empty', async () => {
+      routeNextcloud(null);
+
+      const result = await service.connectNextcloud({
+        serverUrl: NC,
+        loginName: 'bob',
+        appPassword: 'app-pw',
+      });
+
+      expect(result.kind).toBe('needs-profile');
+      if (result.kind !== 'needs-profile') return;
+      expect(result.pending).toEqual({
+        provider: 'nextcloud',
+        accountId: `${NC}#bob`,
+        accountLabel: 'bob on cloud.example.com',
+        suggestedName: 'bob',
+        suggestedUsername: 'bob',
+      });
+      expect(service.getPendingConnection()).toEqual(result.pending);
+      expect(setupService.configureCloudMode).not.toHaveBeenCalled();
+    });
+
+    it('explains a rejected app password without storing it', async () => {
+      routes.push(() => new Response('', { status: 401 }));
+
+      await expect(
+        service.connectNextcloud({
+          serverUrl: NC,
+          loginName: 'bob',
+          appPassword: 'wrong',
+        })
+      ).rejects.toThrow(/rejected the username or app password/);
+      expect(local).toEqual({});
+    });
+
+    it('points at the setup guide when the server cannot be reached', async () => {
+      fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
+
+      await expect(
+        service.connectNextcloud({
+          serverUrl: NC,
+          loginName: 'bob',
+          appPassword: 'pw',
+        })
+      ).rejects.toThrow(/Could not reach cloud.example.com.*setup guide/);
+    });
+
+    it('rejects blank fields before touching the network', async () => {
+      await expect(
+        service.connectNextcloud({
+          serverUrl: NC,
+          loginName: '',
+          appPassword: 'pw',
+        })
+      ).rejects.toThrow('Enter your Nextcloud username');
+      await expect(
+        service.connectNextcloud({
+          serverUrl: NC,
+          loginName: 'bob',
+          appPassword: '  ',
+        })
+      ).rejects.toThrow('Enter a Nextcloud app password');
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('hands out a WebDAV store for a nextcloud config', async () => {
+      routeNextcloud(null);
+      await service.connectNextcloud({
+        serverUrl: NC,
+        loginName: 'bob',
+        appPassword: 'app-pw',
+      });
+      const configId = buildCloudConfigId('nextcloud', `${NC}#bob`);
+      routes.unshift((url, init) =>
+        init.method === 'DELETE'
+          ? new Response(null, { status: 204 })
+          : undefined
+      );
+
+      const store = service.createStore('nextcloud', configId);
+      await store.delete('/projects/bob/old');
+
+      const [url, init] = callsTo('/projects/bob/old')[0];
+      expect(url).toBe(`${DAV_ROOT}Inkweld/projects/bob/old`);
+      expect((init.headers as Record<string, string>)['Authorization']).toBe(
+        `Basic ${btoa('bob:app-pw')}`
+      );
+    });
+
+    it('refuses the OAuth redirect for nextcloud', async () => {
+      await expect(service.beginAuthorization('nextcloud')).rejects.toThrow(
+        /server address and app password/
+      );
+    });
+  });
+
+  describe('abandonPendingConnection', () => {
+    it('drops the account tokens when no profile uses the account', () => {
+      const baseId = buildCloudConfigId('dropbox', 'dbid:abc');
+      tokenStore.set(baseId, {
+        provider: 'dropbox',
+        accountId: 'dbid:abc',
+        accessToken: 'at',
+        expiresAt: Date.now() + 3_600_000,
+      });
+      sessionStorage.setItem(
+        'inkweld-cloud-sync-pending-connection',
+        JSON.stringify({
+          provider: 'dropbox',
+          accountId: 'dbid:abc',
+          accountLabel: 'x',
+          suggestedName: 'x',
+          suggestedUsername: 'x',
+        })
+      );
+      (setupService as { getConfigurations?: unknown }).getConfigurations = vi
+        .fn()
+        .mockReturnValue([]);
+
+      service.abandonPendingConnection();
+
+      expect(tokenStore.has(baseId)).toBe(false);
+      expect(service.getPendingConnection()).toBeNull();
+    });
+
+    it('keeps the tokens when a profile on that account already exists', () => {
+      const baseId = buildCloudConfigId('dropbox', 'dbid:abc');
+      tokenStore.set(baseId, {
+        provider: 'dropbox',
+        accountId: 'dbid:abc',
+        accessToken: 'at',
+        expiresAt: Date.now() + 3_600_000,
+      });
+      sessionStorage.setItem(
+        'inkweld-cloud-sync-pending-connection',
+        JSON.stringify({
+          provider: 'dropbox',
+          accountId: 'dbid:abc',
+          accountLabel: 'x',
+          suggestedName: 'x',
+          suggestedUsername: 'x',
+        })
+      );
+      (setupService as { getConfigurations?: unknown }).getConfigurations = vi
+        .fn()
+        .mockReturnValue([
+          {
+            type: 'cloud',
+            cloudProvider: 'dropbox',
+            cloudAccountId: 'dbid:abc',
+          },
+        ]);
+
+      service.abandonPendingConnection();
+
+      expect(tokenStore.has(baseId)).toBe(true);
+    });
+  });
+
+  describe('adoptExistingProfile', () => {
+    it('configures the chosen author and shares the account tokens', () => {
+      const baseId = buildCloudConfigId('dropbox', 'dbid:abc');
+      tokenStore.set(baseId, {
+        provider: 'dropbox',
+        accountId: 'dbid:abc',
+        accessToken: 'at',
+        expiresAt: Date.now() + 3_600_000,
+      });
+      // A second author on the same account gets a username-specific id
+      setupService.configureCloudMode.mockImplementation(
+        (opts: {
+          provider: CloudProvider;
+          accountId: string;
+          userProfile: { username: string };
+        }) => ({
+          id: buildCloudConfigId(
+            opts.provider,
+            opts.accountId,
+            opts.userProfile.username
+          ),
+          type: 'cloud',
+          ...opts,
+        })
+      );
+      const pending = {
+        provider: 'dropbox' as const,
+        accountId: 'dbid:abc',
+        accountLabel: 'bobby@example.com',
+        suggestedName: 'x',
+        suggestedUsername: 'x',
+        existingProfiles: [{ name: 'Bee', username: 'bee', slugs: ['novel'] }],
+      };
+      sessionStorage.setItem(
+        'inkweld-cloud-sync-pending-connection',
+        JSON.stringify(pending)
+      );
+
+      const config = service.adoptExistingProfile(pending, {
+        name: 'Bee',
+        username: 'bee',
+      });
+
+      expect(setupService.configureCloudMode).toHaveBeenCalledWith({
+        provider: 'dropbox',
+        accountId: 'dbid:abc',
+        accountLabel: 'bobby@example.com',
+        userProfile: { name: 'Bee', username: 'bee' },
+      });
+      expect(config.id).toBe(buildCloudConfigId('dropbox', 'dbid:abc', 'bee'));
+      expect(tokenStore.get(config.id)?.accessToken).toBe('at');
+      expect(service.getPendingConnection()).toBeNull();
+    });
+  });
+
   describe('finishNewConnection', () => {
+    it('appends a new author to an existing manifest instead of replacing it', async () => {
+      const baseId = buildCloudConfigId('dropbox', 'dbid:abc');
+      tokenStore.set(baseId, {
+        provider: 'dropbox',
+        accountId: 'dbid:abc',
+        accessToken: 'at',
+        expiresAt: Date.now() + 3_600_000,
+      });
+      const existing = createCloudManifest(
+        { provider: 'dropbox', accountId: 'dbid:abc' },
+        { name: 'Alice', username: 'alice' }
+      );
+      routeManifestDownload(JSON.stringify(existing));
+      let uploaded = '';
+      routes.unshift((url, init) => {
+        if (!url.includes('/files/upload')) return undefined;
+        uploaded = new TextDecoder().decode(init.body as Uint8Array);
+        return jsonResponse({
+          '.tag': 'file',
+          name: 'manifest.json',
+          path_display: CLOUD_MANIFEST_PATH,
+          rev: 'r2',
+        });
+      });
+
+      await service.finishNewConnection(
+        {
+          provider: 'dropbox',
+          accountId: 'dbid:abc',
+          accountLabel: 'bobby@example.com',
+          suggestedName: 'x',
+          suggestedUsername: 'x',
+          existingProfiles: [{ name: 'Alice', username: 'alice', slugs: [] }],
+        },
+        { name: 'Bob', username: 'bob' }
+      );
+
+      const written = JSON.parse(uploaded) as {
+        profile: { username: string };
+        profiles: { username: string }[];
+        revision: number;
+      };
+      expect(written.profile.username).toBe('alice');
+      expect(written.profiles.map(p => p.username)).toEqual(['alice', 'bob']);
+      expect(written.revision).toBe(2);
+      // The upload was conditional on the manifest version it read
+      const [, uploadInit] = callsTo('/files/upload')[0];
+      const arg = JSON.parse(
+        (uploadInit.headers as Record<string, string>)['Dropbox-API-Arg']
+      ) as { mode: unknown };
+      expect(arg.mode).toEqual({ '.tag': 'update', update: 'r1' });
+    });
+
     it('writes the manifest, configures the app and clears the pending state', async () => {
+      // A fresh account: the manifest read comes back 404 before the write
+      routeManifestDownload(null);
       const pending = {
         provider: 'dropbox' as const,
         accountId: 'dbid:abc',

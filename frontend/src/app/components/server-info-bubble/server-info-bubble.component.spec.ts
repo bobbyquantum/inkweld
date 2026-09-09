@@ -141,9 +141,7 @@ describe('ServerInfoBubbleComponent', () => {
       expect(component.getProfileDisplayName(mockServerConfig)).toBe(
         'My Server'
       );
-      expect(component.getProfileDisplayName(mockLocalConfig)).toBe(
-        'Local Mode'
-      );
+      expect(component.getProfileDisplayName(mockLocalConfig)).toBe('Browser');
     });
 
     it('should return correct icon for each profile type', () => {

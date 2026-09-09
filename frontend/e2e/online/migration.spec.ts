@@ -20,9 +20,7 @@ async function openProfileManager(page: import('@playwright/test').Page) {
   // Click manage profiles
   await page.locator('[data-testid="manage-profiles-button"]').click();
   // Wait for the dialog to open
-  await expect(
-    page.getByRole('heading', { name: /Server Profiles/i })
-  ).toBeVisible();
+  await expect(page.getByTestId('profile-manager-title')).toBeVisible();
 }
 
 /**
@@ -555,8 +553,7 @@ test.describe('Offline to Server Migration', () => {
 
     // Click on the local profile item to switch to local mode
     const localProfileButton = offlinePage
-      .locator('[data-testid^="profile-item-"]')
-      .filter({ hasText: /Local Mode/i })
+      .locator('[data-testid^="profile-item-"][data-kind="local"]')
       .first();
     await localProfileButton.click();
 
@@ -750,8 +747,7 @@ test.describe('Offline to Server Migration', () => {
 
     // Switch to local mode
     const localProfileSwitch = offlinePage
-      .locator('[data-testid^="profile-item-"]')
-      .filter({ hasText: /Local Mode/i })
+      .locator('[data-testid^="profile-item-"][data-kind="local"]')
       .first();
     await localProfileSwitch.click();
     await offlinePage.waitForTimeout(1500);
@@ -769,7 +765,7 @@ test.describe('Offline to Server Migration', () => {
     // Now switch back to server mode
     await openProfileManager(offlinePage);
     const serverProfileSwitch = offlinePage
-      .locator('[data-testid^="profile-item-"]')
+      .locator('[data-testid^="profile-item-"][data-kind="server"]')
       .filter({ hasText: /localhost/i })
       .first();
     await serverProfileSwitch.click();

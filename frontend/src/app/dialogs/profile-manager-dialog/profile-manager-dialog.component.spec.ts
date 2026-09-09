@@ -2,11 +2,19 @@ import { provideHttpClient, withXhr } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
-import { MatDialogModule } from '@angular/material/dialog';
+import {
+  MatDialog,
+  MatDialogModule,
+  MatDialogRef,
+} from '@angular/material/dialog';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
 import { type Project, ProjectsService } from '@inkweld/index';
 import { AuthTokenService } from '@services/auth/auth-token.service';
+import { CloudSyncConfigService } from '@services/cloud-sync/cloud-sync-config.service';
+import { CloudTokenStoreService } from '@services/cloud-sync/cloud-token-store.service';
+import { LoggerService } from '@services/core/logger.service';
+import { ProfileManagerService } from '@services/core/profile-manager.service';
 import { SetupService } from '@services/core/setup.service';
 import {
   type ServerConfig,
@@ -56,17 +64,35 @@ describe('ProfileManagerDialogComponent', () => {
   };
 
   function createStorageContextMock() {
+    const configurations = signal<ServerConfig[]>([
+      mockLocalConfig,
+      mockServerConfig,
+    ]);
     return {
-      getConfigurations: vi
-        .fn()
-        .mockReturnValue([mockLocalConfig, mockServerConfig]),
+      getConfigurations: vi.fn(() => configurations()),
       getActiveConfig: vi.fn().mockReturnValue(mockLocalConfig),
-      configurations: signal([mockLocalConfig, mockServerConfig]),
-      activeConfig: signal(mockLocalConfig),
+      configurations,
+      activeConfig: signal<ServerConfig | null>(mockLocalConfig),
       switchToConfig: vi.fn(),
       addServerConfig: vi.fn().mockResolvedValue(undefined),
-      removeConfig: vi.fn(),
+      updateConfigDisplayName: vi.fn(),
+      removeConfig: vi.fn((id: string) => {
+        configurations.set(configurations().filter(c => c.id !== id));
+      }),
+      getConfigById: vi.fn((id: string) =>
+        configurations().find(c => c.id === id)
+      ),
+      isConfigured: vi.fn(() => configurations().length > 0),
       getPrefix: vi.fn().mockReturnValue('local:'),
+      describeContextData: vi.fn().mockResolvedValue({
+        prefix: 'local:',
+        databases: ['local:inkweld-media'],
+        localStorageKeys: ['local:userSettings'],
+      }),
+      clearContextData: vi.fn().mockResolvedValue(undefined),
+      findOrphanedData: vi.fn().mockResolvedValue([]),
+      clearPrefixedData: vi.fn().mockResolvedValue(undefined),
+      clearConfig: vi.fn(),
     };
   }
 
@@ -84,8 +110,16 @@ describe('ProfileManagerDialogComponent', () => {
       resetConfiguration: vi.fn(),
       configureLocalMode: vi.fn(),
       configureServerMode: vi.fn().mockResolvedValue(undefined),
+      isHostedServerConfig: vi.fn().mockReturnValue(false),
     };
   }
+
+  const dialogRefMock = { close: vi.fn() };
+  const matDialogMock = { open: vi.fn(), closeAll: vi.fn() };
+  const cloudTokensMock = {
+    has: vi.fn().mockReturnValue(true),
+    clear: vi.fn(),
+  };
 
   function createMigrationServiceMock() {
     const defaultMigrationState: MigrationState = {
@@ -129,6 +163,8 @@ describe('ProfileManagerDialogComponent', () => {
   let projectsServiceMock: ReturnType<typeof createProjectsServiceMock>;
 
   beforeEach(async () => {
+    matDialogMock.open.mockReset();
+    dialogRefMock.close.mockReset();
     storageContextMock = createStorageContextMock();
     authTokenServiceMock = createAuthTokenServiceMock();
     setupServiceMock = createSetupServiceMock();
@@ -155,8 +191,20 @@ describe('ProfileManagerDialogComponent', () => {
         { provide: BackgroundSyncService, useValue: backgroundSyncServiceMock },
         { provide: ProjectsService, useValue: projectsServiceMock },
         { provide: Router, useValue: routerMock },
+        { provide: MatDialogRef, useValue: dialogRefMock },
+        { provide: CloudTokenStoreService, useValue: cloudTokensMock },
+        {
+          provide: CloudSyncConfigService,
+          useValue: { isCloudSyncAvailable: () => true },
+        },
+        { provide: LoggerService, useValue: { info: vi.fn(), warn: vi.fn() } },
+        ProfileManagerService,
       ],
-    }).compileComponents();
+    })
+      // The component imports MatDialogModule itself, which would shadow a
+      // plain TestBed provider; overrideProvider reaches every injector.
+      .overrideProvider(MatDialog, { useValue: matDialogMock })
+      .compileComponents();
 
     fixture = TestBed.createComponent(ProfileManagerDialogComponent);
     component = fixture.componentInstance;
@@ -170,15 +218,18 @@ describe('ProfileManagerDialogComponent', () => {
   describe('getProfileInfo()', () => {
     it('should return correct info for local profile', () => {
       const info = component.getProfileInfo(mockLocalConfig);
-      expect(info.name).toBe('Local Mode');
+      expect(info.name).toBe('Test User');
       expect(info.icon).toBe('computer');
       expect(info.isActive).toBe(true);
     });
 
     it('should return correct info for server profile', () => {
       const info = component.getProfileInfo(mockServerConfig);
-      expect(info.name).toBe('My Server');
-      expect(info.icon).toBe('cloud');
+      // The author headlines; the server is the detail line
+      expect(info.name).toBe('Server User');
+      expect(info.subtitle).toBe('@serveruser · My Server');
+      expect(info.icon).toBe('dns');
+      expect(info.kind).toBe('server');
       expect(info.isActive).toBe(false);
     });
 
@@ -186,9 +237,11 @@ describe('ProfileManagerDialogComponent', () => {
       const serverNoName: ServerConfig = {
         ...mockServerConfig,
         displayName: undefined,
+        userProfile: undefined,
       };
       const info = component.getProfileInfo(serverNoName);
       expect(info.name).toBe('inkweld.example.com');
+      expect(info.subtitle).toBe('inkweld.example.com · not logged in');
     });
   });
 
@@ -241,9 +294,247 @@ describe('ProfileManagerDialogComponent', () => {
   });
 
   describe('removeProfile()', () => {
-    it('should not remove active profile', async () => {
+    function stubLocation(): void {
+      Object.defineProperty(window, 'location', {
+        value: { href: '' },
+        writable: true,
+        configurable: true,
+      });
+    }
+
+    function answerConfirm(result: boolean): ReturnType<typeof vi.fn> {
+      return matDialogMock.open.mockReturnValue({
+        afterClosed: () => of(result),
+      });
+    }
+
+    it('disconnects a non-active profile and stays in the dialog', async () => {
+      const open = answerConfirm(true);
+
+      await component.removeProfile(mockServerConfig);
+
+      const data = (open.mock.calls[0] as [unknown, { data: never }])[1].data;
+      expect((data as { title: string }).title).toContain('Server User');
+      expect(
+        (data as { requireConfirmationText?: string }).requireConfirmationText
+      ).toBeUndefined();
+      expect(authTokenServiceMock.clearTokenForConfig).toHaveBeenCalledWith(
+        'server-123'
+      );
+      expect(storageContextMock.clearContextData).toHaveBeenCalledWith(
+        'server-123'
+      );
+      expect(storageContextMock.removeConfig).toHaveBeenCalledWith(
+        'server-123'
+      );
+      expect(dialogRefMock.close).not.toHaveBeenCalled();
+    });
+
+    it('requires typed confirmation for the browser profile and reloads when it was active', async () => {
+      stubLocation();
+      const open = answerConfirm(true);
+      storageContextMock.configurations.set([
+        mockLocalConfig,
+        mockServerConfig,
+      ]);
+
       await component.removeProfile(mockLocalConfig);
+
+      const data = (open.mock.calls[0] as [unknown, { data: never }])[1].data;
+      expect(
+        (data as { requireConfirmationText?: string }).requireConfirmationText
+      ).toBe('DELETE');
+      expect(storageContextMock.removeConfig).toHaveBeenCalledWith('local');
+      // Active profile removed, another remains: switch and go home
+      expect(storageContextMock.switchToConfig).toHaveBeenCalledWith(
+        'server-123'
+      );
+      expect(window.location.href).toBe('/');
+    });
+
+    it('lands on the welcome screen when the last profile is removed', async () => {
+      stubLocation();
+      answerConfirm(true);
+      storageContextMock.configurations.set([mockLocalConfig]);
+      storageContextMock.removeConfig.mockImplementation(() => {
+        storageContextMock.configurations.set([]);
+      });
+
+      await component.removeProfile(mockLocalConfig);
+
+      expect(window.location.href).toBe('/setup');
+    });
+
+    it('does nothing when the confirmation is cancelled', async () => {
+      answerConfirm(false);
+      await component.removeProfile(mockServerConfig);
       expect(storageContextMock.removeConfig).not.toHaveBeenCalled();
+    });
+
+    it('refuses to remove the built-in hosted server', async () => {
+      setupServiceMock.isHostedServerConfig.mockReturnValue(true);
+      const open = answerConfirm(true);
+
+      await component.removeProfile(mockServerConfig);
+
+      expect(open).not.toHaveBeenCalled();
+      expect(storageContextMock.removeConfig).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('upgrade view', () => {
+    it('offers cloud and server for a Browser profile', () => {
+      expect(component['upgradeOptions']()).toEqual(['cloud', 'server']);
+      component.showUpgrade();
+      fixture.detectChanges();
+      expect(component['currentView']()).toBe('upgrade');
+      expect(
+        fixture.nativeElement.querySelector(
+          '[data-testid="upgrade-cloud-button"]'
+        )
+      ).not.toBeNull();
+      expect(
+        fixture.nativeElement.querySelector(
+          '[data-testid="upgrade-server-button"]'
+        )
+      ).not.toBeNull();
+    });
+
+    it('offers only a server for a cloud profile, nothing for a server one', () => {
+      const cloud: ServerConfig = {
+        id: 'cloud-dropbox-1',
+        type: 'cloud',
+        cloudProvider: 'dropbox',
+        addedAt: '',
+        lastUsedAt: '',
+      };
+      storageContextMock.configurations.set([cloud, mockServerConfig]);
+      storageContextMock.activeConfig.set(cloud);
+      expect(component['upgradeOptions']()).toEqual(['server']);
+
+      storageContextMock.activeConfig.set(mockServerConfig);
+      expect(component['upgradeOptions']()).toEqual([]);
+    });
+
+    it('upgradeToCloud remembers the source and deep-links to the cloud step', () => {
+      const session: Record<string, string> = {};
+      const original = window.sessionStorage;
+      Object.defineProperty(window, 'sessionStorage', {
+        value: {
+          getItem: (k: string) => session[k] ?? null,
+          setItem: (k: string, v: string) => {
+            session[k] = v;
+          },
+          removeItem: (k: string) => {
+            delete session[k];
+          },
+        },
+        writable: true,
+        configurable: true,
+      });
+      try {
+        component.upgradeToCloud();
+      } finally {
+        Object.defineProperty(window, 'sessionStorage', {
+          value: original,
+          writable: true,
+          configurable: true,
+        });
+      }
+
+      expect(session['inkweld-profile-upgrade-source']).toBe('local');
+      expect(matDialogMock.closeAll).toHaveBeenCalled();
+      expect(routerMock.navigate).toHaveBeenCalledWith(['/setup'], {
+        queryParams: { mode: 'cloud', upgradeFrom: 'local' },
+      });
+    });
+
+    it('upgradeToServer opens the guided server flow', () => {
+      component.upgradeToServer();
+      expect(component['currentView']()).toBe('add');
+    });
+  });
+
+  describe('navigation shortcuts', () => {
+    it('goToWelcome closes dialogs and opens the setup page', () => {
+      component.goToWelcome();
+      expect(routerMock.navigate).toHaveBeenCalledWith(['/setup']);
+    });
+
+    it('addCloudStorage deep-links to the cloud step', () => {
+      component.addCloudStorage();
+      expect(routerMock.navigate).toHaveBeenCalledWith(['/setup'], {
+        queryParams: { mode: 'cloud' },
+      });
+    });
+
+    it('reconnectCloud deep-links to the provider', () => {
+      component.reconnectCloud({
+        ...mockServerConfig,
+        type: 'cloud',
+        cloudProvider: 'nextcloud',
+      });
+      expect(routerMock.navigate).toHaveBeenCalledWith(['/setup'], {
+        queryParams: { mode: 'cloud', provider: 'nextcloud' },
+      });
+    });
+  });
+
+  describe('storage panel', () => {
+    it('scans on first open and lists orphans', async () => {
+      storageContextMock.findOrphanedData.mockResolvedValue([
+        {
+          prefix: 'srv:dead0000:',
+          databases: ['srv:dead0000:x'],
+          localStorageKeys: [],
+        },
+      ]);
+
+      await component.toggleStorage();
+
+      expect(component['showStorage']()).toBe(true);
+      const scan = component['storageScan']();
+      expect(scan?.connections).toHaveLength(2);
+      expect(scan?.orphans[0].prefix).toBe('srv:dead0000:');
+    });
+
+    it('deleteOrphan confirms, clears and rescans', async () => {
+      matDialogMock.open.mockReturnValue({ afterClosed: () => of(true) });
+
+      await component.deleteOrphan('srv:dead0000:');
+
+      expect(storageContextMock.clearPrefixedData).toHaveBeenCalledWith(
+        'srv:dead0000:'
+      );
+      expect(storageContextMock.findOrphanedData).toHaveBeenCalled();
+    });
+
+    it('formats byte counts', () => {
+      expect(component.formatBytes(512)).toBe('512 B');
+      expect(component.formatBytes(1536)).toBe('1.5 KB');
+      expect(component.formatBytes(20 * 1024 * 1024)).toBe('20 MB');
+    });
+  });
+
+  describe('resetDevice()', () => {
+    it('requires RESET and wipes everything', async () => {
+      Object.defineProperty(window, 'location', {
+        value: { href: '' },
+        writable: true,
+        configurable: true,
+      });
+      const open = matDialogMock.open.mockReturnValue({
+        afterClosed: () => of(true),
+      });
+
+      await component.resetDevice();
+
+      const data = (open.mock.calls[0] as [unknown, { data: never }])[1].data;
+      expect(
+        (data as { requireConfirmationText?: string }).requireConfirmationText
+      ).toBe('RESET');
+      expect(storageContextMock.clearConfig).toHaveBeenCalled();
+      expect(window.location.href).toBe('/setup');
     });
   });
 
@@ -864,22 +1155,24 @@ describe('ProfileManagerDialogComponent', () => {
         displayName: undefined,
       };
       const info = component.getProfileInfo(invalidUrlConfig);
-      expect(info.name).toBe('not-a-valid-url');
-      expect(info.subtitle).toBe('not-a-valid-url');
+      expect(info.name).toBe('Server User');
+      expect(info.subtitle).toBe('@serveruser · not-a-valid-url');
     });
 
     it('should return username for local profile subtitle', () => {
       const info = component.getProfileInfo(mockLocalConfig);
-      expect(info.subtitle).toBe('testuser');
+      expect(info.name).toBe('Test User');
+      expect(info.subtitle).toBe('@testuser · this browser only');
     });
 
-    it('should return Offline when no userProfile username', () => {
+    it('should describe a browser profile without a user', () => {
       const localNoUser: ServerConfig = {
         ...mockLocalConfig,
         userProfile: undefined,
       };
       const info = component.getProfileInfo(localNoUser);
-      expect(info.subtitle).toBe('Offline');
+      expect(info.name).toBe('Browser');
+      expect(info.subtitle).toBe('This browser only');
     });
   });
 
@@ -1105,10 +1398,9 @@ describe('ProfileManagerDialogComponent', () => {
 
       component.completeServerSwitch();
 
-      expect(storageContextMock.addServerConfig).toHaveBeenCalledWith(
-        'https://new-server.example.com',
-        undefined
-      );
+      // Authentication already created the profile; nothing new is added
+      expect(storageContextMock.addServerConfig).not.toHaveBeenCalled();
+      expect(storageContextMock.updateConfigDisplayName).not.toHaveBeenCalled();
       expect(storageContextMock.switchToConfig).toHaveBeenCalledWith(
         'new-server-id'
       );
@@ -1138,9 +1430,12 @@ describe('ProfileManagerDialogComponent', () => {
 
       component.completeServerSwitch();
 
-      expect(storageContextMock.addServerConfig).toHaveBeenCalledWith(
-        'https://server.example.com',
+      expect(storageContextMock.updateConfigDisplayName).toHaveBeenCalledWith(
+        'server-id',
         'My Custom Server'
+      );
+      expect(storageContextMock.switchToConfig).toHaveBeenCalledWith(
+        'server-id'
       );
     });
   });

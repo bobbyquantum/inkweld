@@ -17,7 +17,9 @@ import {
   mergeCloudManifests,
   mergeManifestProjects,
   parseCloudManifest,
+  sameUsername,
   upsertManifestProject,
+  withManifestProfile,
 } from '@models/cloud-manifest';
 import { LoggerService } from '@services/core/logger.service';
 import { SetupService } from '@services/core/setup.service';
@@ -382,27 +384,42 @@ export class CloudSyncEngineService {
     manifest: CloudManifest
   ): Promise<void> {
     const localProjects = this.localProjects.projects();
+    const me = this.storageContext.getActiveConfig()?.userProfile?.username;
     for (const entry of manifest.projects) {
       const parts = splitProjectKey(entry.key);
       if (!parts) continue;
       const local = localProjects.find(
         p => p.username === parts.username && p.slug === parts.slug
       );
-      if (entry.deletedAt) {
-        if (local && local.updatedDate <= entry.deletedAt) {
-          await this.removeLocalProject(parts.username, parts.slug);
-        }
-        continue;
+      // Several authors can share one account. New remote projects are only
+      // adopted for this profile's own author; projects already on this
+      // device keep following remote changes whoever wrote them.
+      if (!local && me && !sameUsername(parts.username, me)) continue;
+      await this.adoptRemoteEntry(store, entry, parts, local);
+    }
+  }
+
+  /** One manifest entry: delete, adopt, and/or fetch its cover */
+  private async adoptRemoteEntry(
+    store: RemoteStore,
+    entry: CloudManifestProject,
+    parts: { username: string; slug: string },
+    local: { updatedDate: string } | undefined
+  ): Promise<void> {
+    if (entry.deletedAt) {
+      if (local && local.updatedDate <= entry.deletedAt) {
+        await this.removeLocalProject(parts.username, parts.slug);
       }
-      if (!local) this.adoptRemoteProject(entry, parts);
-      if (entry.coverMediaId && !this.activation.isActivated(entry.key)) {
-        await this.mirror.pullCover(
-          store,
-          parts.username,
-          parts.slug,
-          entry.coverMediaId
-        );
-      }
+      return;
+    }
+    if (!local) this.adoptRemoteProject(entry, parts);
+    if (entry.coverMediaId && !this.activation.isActivated(entry.key)) {
+      await this.mirror.pullCover(
+        store,
+        parts.username,
+        parts.slug,
+        entry.coverMediaId
+      );
     }
   }
 
@@ -528,7 +545,15 @@ export class CloudSyncEngineService {
       const fresh = byKey.get(p.key);
       return fresh && !p.deletedAt ? { ...p, ...fresh } : p;
     });
-    return { ...manifest, projects };
+    // Make sure this author is listed so other devices can offer the profile
+    const profile = this.storageContext.getActiveConfig()?.userProfile;
+    const withProfile = profile
+      ? withManifestProfile(manifest, {
+          name: profile.name,
+          username: profile.username,
+        })
+      : manifest;
+    return { ...withProfile, projects };
   }
 
   private async updateManifestFromSummaries(

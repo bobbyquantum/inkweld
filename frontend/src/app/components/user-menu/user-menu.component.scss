@@ -76,7 +76,14 @@ mat-divider {
 }
 
 .user-menu-header {
+  .header-row {
+    display: flex;
+    align-items: center;
+    padding-right: 8px;
+  }
+
   .user-info {
+    flex: 1;
     padding: 12px 16px;
     height: auto;
     line-height: 1.2;
@@ -86,18 +93,94 @@ mat-divider {
     }
   }
 
-  .connection-status {
-    display: flex;
+  .switcher-toggle {
+    position: relative;
+    flex-shrink: 0;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    display: inline-flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 16px;
-    font-size: 0.875rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    justify-content: center;
 
     mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+
+    .switcher-count {
+      position: absolute;
+      top: -6px;
+      right: -6px;
+      min-width: 16px;
+      height: 16px;
+      padding: 0 4px;
+      border-radius: 8px;
+      font-size: 0.65rem;
+      line-height: 16px;
+      text-align: center;
+      background: var(--sys-primary);
+      color: var(--sys-on-primary);
+    }
+  }
+
+  .connection-status {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin: 0 12px 10px;
+    padding: 8px 10px 8px 12px;
+    font-size: 0.8rem;
+    border-radius: 8px;
+    background-color: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+
+    > mat-icon {
       font-size: 18px;
       width: 18px;
       height: 18px;
+      flex-shrink: 0;
+    }
+
+    .status-text {
+      flex: 1;
+      min-width: 0;
+    }
+
+    // The action drops to its own line, right-aligned, so the status text
+    // never has to truncate in the narrow menu
+    .status-action {
+      flex: 0 0 100%;
+      justify-content: center;
+      height: 30px;
+      padding: 0 10px;
+      font-size: 0.75rem;
+      line-height: 30px;
+      border-radius: 15px;
+
+      mat-icon {
+        font-size: 16px;
+        width: 16px;
+        height: 16px;
+        margin-right: 4px;
+      }
+    }
+
+    .status-icon-action {
+      width: 28px;
+      height: 28px;
+      padding: 0;
+      flex-shrink: 0;
+
+      mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+      }
     }
 
     &.online {
@@ -179,76 +262,71 @@ mat-divider {
   }
 }
 
-// Profile switcher button in menu header
-.switch-profile-trigger {
-  margin: 4px 8px;
-  border-radius: 4px;
-  background-color: rgba(255, 255, 255, 0.03);
-  height: 40px !important;
+// Account switcher view inside the menu
+.switcher-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px 4px 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--sys-tertiary);
 }
 
-// Server/profile switcher item with two-line display
-.switch-server-trigger {
-  height: auto !important;
-  min-height: 56px;
-  padding: 8px 16px !important;
-
-  .server-info-content {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    margin-left: 4px;
-    line-height: 1.3;
-
-    .server-label {
-      font-weight: 500;
-    }
-
-    .server-sublabel {
-      font-size: 0.75rem;
-      color: var(--sys-tertiary);
-    }
-  }
-
-  .menu-arrow {
-    margin-left: auto;
-    color: var(--sys-tertiary);
-  }
-
-  &:hover {
-    background-color: rgba(255, 255, 255, 0.05);
-  }
-}
-
-// Profile submenu styles
-::ng-deep .profile-submenu {
-  min-width: 220px;
-
-  .mat-mdc-menu-content {
-    padding: 0;
-  }
-
-  .profile-menu-header {
-    padding: 12px 16px 8px;
-    font-size: 0.75rem;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--sys-tertiary);
-  }
-
-  .mat-mdc-menu-item {
+.profile-list {
+  .profile-row {
     height: auto;
     min-height: 56px;
     padding: 8px 16px;
 
+    // MatMenuItem wraps our content in its own span; lay it out as one row
+    ::ng-deep .mat-mdc-menu-item-text {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      min-width: 0;
+    }
+
+    // Fixed leading slot: avatar or icon, always the same footprint
+    .profile-leading {
+      flex: 0 0 32px;
+      width: 32px;
+      height: 32px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+
+      mat-icon {
+        margin: 0;
+      }
+    }
+
+    .profile-avatar {
+      flex-shrink: 0;
+    }
+
     .profile-item-content {
       display: flex;
+      flex: 1;
       flex-direction: column;
-      margin-left: 8px;
+      margin-left: 0;
+      min-width: 0;
 
       .profile-name {
         font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        min-width: 0;
+        white-space: nowrap;
+
+        .profile-kind {
+          margin-left: 0;
+          white-space: nowrap;
+        }
       }
 
       .profile-subtitle {
@@ -257,23 +335,48 @@ mat-divider {
         display: flex;
         align-items: center;
         gap: 4px;
-
-        .active-indicator {
-          font-size: 14px;
-          width: 14px;
-          height: 14px;
-          color: var(--sys-success);
-        }
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
 
         .needs-login {
-          color: var(--sys-warning);
+          color: var(--sys-error);
           font-style: italic;
         }
       }
     }
 
+    .profile-kind {
+      margin-left: 6px;
+      padding: 0 6px;
+      border-radius: 8px;
+      font-size: 0.6rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      background: color-mix(in srgb, var(--sys-primary) 12%, transparent);
+      color: var(--sys-primary);
+      vertical-align: middle;
+    }
+
+    .profile-trailing {
+      flex: 0 0 24px;
+      margin-left: auto;
+      display: inline-flex;
+      justify-content: flex-end;
+
+      .active-check {
+        margin: 0;
+        color: var(--sys-success);
+      }
+
+      &.hidden-check {
+        visibility: hidden;
+      }
+    }
+
     &.active-profile {
-      background-color: rgba(var(--sys-primary-rgb), 0.1);
+      background-color: color-mix(in srgb, var(--sys-primary) 10%, transparent);
     }
   }
 }

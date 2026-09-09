@@ -14,21 +14,39 @@
           } @else {
             <mat-icon class="title-icon">settings</mat-icon>
           }
-          Welcome to Inkweld
+          @if (upgradeSourceName()) {
+            Connect to sync
+          } @else if (canReturnToApp()) {
+            Add a profile
+          } @else {
+            Welcome to Inkweld
+          }
         </mat-card-title>
         <mat-card-subtitle>
           @if (configLoading()) {
             {{ 'loading' | transloco }}
           } @else if (shouldShowModeSelection()) {
-            Choose where your writing lives
+            @if (upgradeSourceName(); as source) {
+              Choose where {{ source }}'s writing should sync from now on
+            } @else if (canReturnToApp()) {
+              Choose where this profile's writing lives
+            } @else {
+              Choose where your writing lives
+            }
           } @else if (showServerSetup()) {
             Connect to your Inkweld server
           } @else if (showLocalSetup()) {
-            Set up your local profile
+            Set up your Browser profile
           } @else if (showCloudSetup()) {
             Choose your cloud storage
+          } @else if (showNextcloudSetup()) {
+            Connect to your Nextcloud
           } @else if (showCloudProfileSetup()) {
             Set up your profile
+          } @else if (showCloudChooseProfile()) {
+            Who are you on {{ pendingProviderName() }}?
+          } @else if (showCloudClash()) {
+            Some project addresses are taken
           }
         </mat-card-subtitle>
       </mat-card-header>
@@ -105,8 +123,8 @@
             }
           </div>
           <p class="setup-footnote">
-            You can switch between these later, and move your projects with you,
-            from the connection settings.
+            Each choice becomes a profile. You can add more later and switch
+            between them from your user menu, and move your projects with you.
           </p>
         }
 
@@ -214,6 +232,191 @@
           </p>
         }
 
+        @if (showNextcloudSetup()) {
+          <!-- Nextcloud address + app password form -->
+          <div class="setup-form" data-testid="nextcloud-form">
+            <p class="field-hint profile-intro">
+              Inkweld talks to your Nextcloud directly from this browser, so the
+              server has to allow it first. Follow the
+              <a
+                [href]="nextcloudGuideUrl"
+                target="_blank"
+                rel="noopener"
+                data-testid="nextcloud-guide-link"
+                >Nextcloud setup guide</a
+              >
+              once per server, then create an app password for Inkweld under
+              Settings, Security.
+            </p>
+
+            <div class="field-row">
+              <mat-form-field appearance="outline">
+                <mat-label>Nextcloud address</mat-label>
+                <input
+                  matInput
+                  id="setup-nextcloud-url-input"
+                  [(ngModel)]="nextcloudUrl"
+                  placeholder="https://cloud.example.com"
+                  type="url"
+                  required
+                  autocomplete="url"
+                  data-testid="nextcloud-url-input"
+                  aria-label="Nextcloud address" />
+                <mat-icon matSuffix>link</mat-icon>
+              </mat-form-field>
+              <p class="field-hint">
+                The address you use to open Nextcloud in your browser.
+              </p>
+            </div>
+
+            <div class="field-row">
+              <mat-form-field appearance="outline">
+                <mat-label>Nextcloud username</mat-label>
+                <input
+                  matInput
+                  id="setup-nextcloud-user-input"
+                  [(ngModel)]="nextcloudUser"
+                  required
+                  autocomplete="username"
+                  data-testid="nextcloud-user-input"
+                  aria-label="Nextcloud username" />
+                <mat-icon matSuffix>person</mat-icon>
+              </mat-form-field>
+              <p class="field-hint">
+                Your login name on that server, not your email unless you sign
+                in with it.
+              </p>
+            </div>
+
+            <div class="field-row">
+              <mat-form-field appearance="outline">
+                <mat-label>App password</mat-label>
+                <input
+                  matInput
+                  id="setup-nextcloud-password-input"
+                  [(ngModel)]="nextcloudAppPassword"
+                  type="password"
+                  required
+                  autocomplete="off"
+                  data-testid="nextcloud-password-input"
+                  aria-label="Nextcloud app password" />
+                <mat-icon matSuffix>key</mat-icon>
+              </mat-form-field>
+              <p class="field-hint">
+                A password made just for Inkweld, so you can revoke it without
+                touching your account password. Stored only in this browser.
+              </p>
+            </div>
+          </div>
+        }
+
+        @if (showCloudChooseProfile()) {
+          <!-- The account already syncs one or more authors -->
+          <div class="setup-form" data-testid="cloud-choose-profile">
+            <div class="connected-account">
+              <mat-icon>check_circle</mat-icon>
+              <span>
+                Connected to {{ pendingProviderName() }}
+                @if (pendingCloudConnection()?.accountLabel) {
+                  as
+                  <strong>{{ pendingCloudConnection()?.accountLabel }}</strong>
+                }
+              </span>
+            </div>
+            <p class="field-hint profile-intro">
+              This account already holds Inkweld profiles. Continue as one of
+              them to pick up its projects here, or add a new profile that keeps
+              its own projects in the same account.
+            </p>
+            <div class="provider-list">
+              @for (
+                profile of pendingCloudConnection()?.existingProfiles ?? [];
+                track profile.username
+              ) {
+                @let linked = isAuthorLinkedHere(profile.username);
+                <button
+                  class="provider-card"
+                  [class.linked]="linked"
+                  (click)="continueAsExisting(profile)"
+                  [disabled]="isConnectingCloud() || linked"
+                  [attr.data-testid]="'cloud-continue-' + profile.username">
+                  <mat-icon class="provider-icon">account_circle</mat-icon>
+                  <div class="provider-text">
+                    <h3>{{ profile.name }}</h3>
+                    <p>
+                      &#64;{{ profile.username }} ·
+                      {{ profile.slugs.length }}
+                      {{ profile.slugs.length === 1 ? 'project' : 'projects' }}
+                      @if (linked) {
+                        · already on this device
+                      }
+                    </p>
+                  </div>
+                  @if (linked) {
+                    <mat-icon class="provider-chevron">check</mat-icon>
+                  } @else {
+                    <mat-icon class="provider-chevron">chevron_right</mat-icon>
+                  }
+                </button>
+              }
+              <button
+                class="provider-card"
+                (click)="addNewCloudProfile()"
+                [disabled]="isConnectingCloud()"
+                data-testid="cloud-add-new-profile">
+                <mat-icon class="provider-icon">person_add</mat-icon>
+                <div class="provider-text">
+                  <h3>Add a new profile</h3>
+                  <p>
+                    Write as another author. Projects stay separate from the
+                    profiles above, inside the same account.
+                  </p>
+                </div>
+                <mat-icon class="provider-chevron">chevron_right</mat-icon>
+              </button>
+            </div>
+          </div>
+        }
+
+        @if (showCloudClash()) {
+          <!-- Upgrading into an existing author: rename colliding projects -->
+          <div class="setup-form" data-testid="cloud-clash">
+            <p class="field-hint profile-intro">
+              {{ upgradeSourceName() }} is already syncing to
+              {{ pendingProviderName() }}, and these projects share an address
+              with ones already there. Give the copies a new address so nothing
+              is overwritten. The originals on this device are not changed.
+            </p>
+            @for (clash of clashes(); track clash.slug) {
+              <div class="field-row clash-row">
+                <mat-form-field appearance="outline">
+                  <mat-label>{{ clash.title }}</mat-label>
+                  <input
+                    matInput
+                    [value]="clash.newSlug"
+                    (input)="
+                      setClashSlug(clash.slug, $any($event.target).value)
+                    "
+                    [attr.data-testid]="'clash-slug-' + clash.slug"
+                    [attr.aria-label]="'New address for ' + clash.title" />
+                  @if (isValidClashSlug(clash.newSlug)) {
+                    <mat-icon matSuffix class="valid-icon"
+                      >check_circle</mat-icon
+                    >
+                  } @else {
+                    <mat-icon matSuffix class="conflict-icon">error</mat-icon>
+                  }
+                </mat-form-field>
+                <p class="field-hint">
+                  Currently <code>{{ clash.slug }}</code
+                  >. Lowercase letters, digits and hyphens; must not already
+                  exist in the account.
+                </p>
+              </div>
+            }
+          </div>
+        }
+
         @if (showCloudProfileSetup()) {
           <!-- Cloud profile form (fresh account, no manifest yet) -->
           <div class="setup-form">
@@ -230,9 +433,18 @@
               </span>
             </div>
             <p class="field-hint profile-intro">
-              This looks like a new Inkweld folder. Pick how you'd like to
-              appear. Your other devices will pick this up automatically when
-              they connect to the same account.
+              @if (upgradeSourceName(); as source) {
+                Your projects from {{ source }} will be copied into
+                {{ pendingProviderName() }} under the profile below, then kept
+                in sync. Keep the username so project addresses stay the same.
+              } @else if (pendingCloudConnection()?.existingProfiles?.length) {
+                This profile will keep its own projects, separate from the other
+                authors in this account.
+              } @else {
+                This looks like a new Inkweld folder. Pick how you'd like to
+                appear. Your other devices will pick this up automatically when
+                they connect to the same account.
+              }
             </p>
 
             <div class="field-row">
@@ -293,6 +505,19 @@
         </mat-card-actions>
       }
 
+      @if (showNextcloudSetup()) {
+        <mat-card-actions align="end">
+          <button
+            mat-raised-button
+            color="primary"
+            (click)="connectNextcloud()"
+            [disabled]="isConnectingCloud() || !canConnectNextcloud()"
+            data-testid="connect-nextcloud-button">
+            Connect to Nextcloud
+          </button>
+        </mat-card-actions>
+      }
+
       @if (showLocalSetup()) {
         <mat-card-actions align="end">
           <button
@@ -301,7 +526,20 @@
             (click)="setupLocalMode()"
             [disabled]="isLoading()"
             data-testid="start-local-button">
-            Start Local Mode
+            Create Browser profile
+          </button>
+        </mat-card-actions>
+      }
+
+      @if (showCloudClash()) {
+        <mat-card-actions align="end">
+          <button
+            mat-raised-button
+            color="primary"
+            (click)="confirmClashes()"
+            [disabled]="isConnectingCloud() || !clashesResolved()"
+            data-testid="confirm-clashes-button">
+            Copy with new addresses
           </button>
         </mat-card-actions>
       }

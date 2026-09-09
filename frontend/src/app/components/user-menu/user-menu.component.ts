@@ -5,6 +5,7 @@ import {
   inject,
   Input,
   type OnInit,
+  signal,
 } from '@angular/core';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatButtonModule } from '@angular/material/button';
@@ -12,16 +13,18 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { type User } from '@inkweld/index';
 import { TranslocoModule } from '@jsverse/transloco';
 import { type TutorialTourId } from '@models/tutorial';
 import { AnnouncementService } from '@services/announcement/announcement.service';
 import { AuthTokenService } from '@services/auth/auth-token.service';
 import { CloudSyncEngineService } from '@services/cloud-sync/cloud-sync-engine.service';
+import { CloudTokenStoreService } from '@services/cloud-sync/cloud-token-store.service';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SetupService } from '@services/core/setup.service';
 import {
+  getLocalConfigDisplayName,
   type ServerConfig,
   StorageContextService,
 } from '@services/core/storage-context.service';
@@ -55,7 +58,9 @@ export class UserMenuComponent implements OnInit {
   protected storageContext = inject(StorageContextService);
   protected authTokenService = inject(AuthTokenService);
   protected cloudSync = inject(CloudSyncEngineService);
+  private readonly cloudTokens = inject(CloudTokenStoreService);
   private readonly dialogGateway = inject(DialogGatewayService);
+  private readonly router = inject(Router);
   private readonly themeService = inject(ThemeService);
   private readonly tutorialService = inject(TutorialService);
 
@@ -94,6 +99,22 @@ export class UserMenuComponent implements OnInit {
     return this.storageContext.activeConfig();
   });
 
+  /** Whether the menu is showing the account list instead of the actions */
+  protected readonly switcherOpen = signal(false);
+
+  /** Browser and cloud profiles can move up to cloud storage or a server */
+  protected canUpgrade = computed(() => {
+    const type = this.activeProfile()?.type;
+    return type === 'local' || type === 'cloud';
+  });
+
+  /** The next step up, worded for where the profile lives now */
+  protected upgradeAction = computed(() =>
+    this.activeProfile()?.type === 'cloud'
+      ? { icon: 'dns', label: 'settings.connectionTab.moveToServer' }
+      : { icon: 'cloud', label: 'settings.connectionTab.upgradeProfile' }
+  );
+
   ngOnInit(): void {
     // Load unread count when in server mode
     if (this.setupService.getMode() === 'server') {
@@ -115,6 +136,23 @@ export class UserMenuComponent implements OnInit {
 
   async onManageProfiles() {
     await this.dialogGateway.openProfileManagerDialog();
+  }
+
+  /** Add another profile via the welcome screen; existing ones are untouched */
+  onAddConnection(): void {
+    void this.router.navigate(['/setup']);
+  }
+
+  /** Flip between the action list and the account switcher, menu stays open */
+  toggleSwitcher(event?: Event): void {
+    event?.stopPropagation();
+    event?.preventDefault();
+    this.switcherOpen.update(open => !open);
+  }
+
+  /** Offer the upgrade paths for the active profile */
+  async onUpgradeProfile(): Promise<void> {
+    await this.dialogGateway.openProfileManagerDialog({ view: 'upgrade' });
   }
 
   onStartTutorial(): void {
@@ -141,7 +179,7 @@ export class UserMenuComponent implements OnInit {
     }
     return {
       icon: 'computer',
-      text: 'Local Mode',
+      text: 'Browser · this device only',
       cssClass: 'local',
     };
   }
@@ -180,7 +218,9 @@ export class UserMenuComponent implements OnInit {
     }
   }
 
-  onSyncNow(): void {
+  onSyncNow(event?: Event): void {
+    // Lives in the header card, so keep the menu open while it runs
+    event?.stopPropagation();
     void this.cloudSync.syncNow();
   }
 
@@ -192,7 +232,7 @@ export class UserMenuComponent implements OnInit {
     if (!profile) return 'Not configured';
 
     if (profile.type === 'local') {
-      return 'Local Mode';
+      return getLocalConfigDisplayName(profile);
     }
 
     if (profile.type === 'cloud') {
@@ -218,6 +258,8 @@ export class UserMenuComponent implements OnInit {
   getProfileDisplay(profile: ServerConfig): {
     name: string;
     subtitle: string;
+    /** Short kind label shown next to the name */
+    kind: string;
     icon: string;
     isActive: boolean;
     hasAuth: boolean;
@@ -225,10 +267,15 @@ export class UserMenuComponent implements OnInit {
     const isActive = profile.id === this.activeProfile()?.id;
     const hasAuth = this.authTokenService.hasTokenForConfig(profile.id);
 
+    // GitHub-style rows: the author is the headline, the place is the detail
+    const user = profile.userProfile;
+    const handle = user?.username ? `@${user.username}` : null;
+
     if (profile.type === 'local') {
       return {
-        name: profile.displayName ?? 'Local Mode',
-        subtitle: profile.userProfile?.username ?? 'Offline',
+        name: user?.name ?? getLocalConfigDisplayName(profile),
+        subtitle: handle ? `${handle} · this browser` : 'This browser only',
+        kind: 'Browser',
         icon: 'computer',
         isActive,
         hasAuth: true, // Local mode doesn't need auth
@@ -236,20 +283,27 @@ export class UserMenuComponent implements OnInit {
     }
 
     if (profile.type === 'cloud') {
+      const provider = profile.displayName ?? 'Cloud Sync';
       return {
-        name: profile.displayName ?? 'Cloud Sync',
-        subtitle:
-          profile.cloudAccountLabel ?? profile.userProfile?.username ?? '',
+        name: user?.name ?? provider,
+        subtitle: [handle, provider, profile.cloudAccountLabel ?? null]
+          .filter(Boolean)
+          .join(' · '),
+        kind: 'Cloud Sync',
         icon: 'cloud_sync',
         isActive,
-        hasAuth: true, // Provider auth is handled by the cloud sync service
+        hasAuth: this.cloudTokens.has(profile.id),
       };
     }
 
+    const serverName = profile.displayName ?? profile.serverUrl ?? 'Server';
     return {
-      name: profile.displayName ?? profile.serverUrl ?? 'Server',
-      subtitle: profile.userProfile?.username ?? 'Not logged in',
-      icon: 'cloud',
+      name: user?.name ?? serverName,
+      subtitle: handle
+        ? `${handle} · ${serverName}`
+        : `${serverName} · not logged in`,
+      kind: 'Server',
+      icon: 'dns',
       isActive,
       hasAuth,
     };

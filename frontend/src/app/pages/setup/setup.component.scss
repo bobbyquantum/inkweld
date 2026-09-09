@@ -263,6 +263,11 @@
     opacity: 0.6;
   }
 
+  &.linked {
+    opacity: 0.55;
+    border-style: dashed;
+  }
+
   h3 {
     margin: 0 0 4px;
     font-size: 18px;
@@ -308,8 +313,15 @@
 }
 
 .profile-intro {
+  display: block;
   padding-top: 0;
-  margin-bottom: 24px;
+  margin-bottom: 28px;
+  line-height: 1.5;
+
+  a {
+    color: var(--sys-primary);
+    font-weight: 500;
+  }
 }
 
 .field-row {
@@ -463,4 +475,20 @@ mat-divider[vertical] {
   bottom: 20px;
   right: 20px;
   z-index: 100;
+}
+
+// Clash resolution on the cloud upgrade path
+.clash-row {
+  code {
+    font-size: 0.8em;
+    opacity: 0.85;
+  }
+
+  .valid-icon {
+    color: var(--sys-success);
+  }
+
+  .conflict-icon {
+    color: var(--sys-error);
+  }
 }

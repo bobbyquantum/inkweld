@@ -11,6 +11,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslocoModule } from '@jsverse/transloco';
 import { AuthTokenService } from '@services/auth/auth-token.service';
 import {
+  getLocalConfigDisplayName,
   type ServerConfig,
   StorageContextService,
 } from '@services/core/storage-context.service';
@@ -59,7 +60,7 @@ export class ServerInfoBubbleComponent {
    */
   getProfileDisplayName(profile: ServerConfig): string {
     if (profile.type === 'local') {
-      return 'Local Mode';
+      return getLocalConfigDisplayName(profile);
     }
     if (profile.type === 'cloud') {
       return profile.displayName || 'Cloud Sync';

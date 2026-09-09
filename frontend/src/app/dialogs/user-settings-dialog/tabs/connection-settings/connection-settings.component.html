@@ -1,382 +1,178 @@
 <div class="connection-settings">
   <h3>{{ 'settings.connectionTab.title' | transloco }}</h3>
 
-  <!-- Current Connection Status -->
-  <mat-card class="status-card">
-    <mat-card-header>
-      <mat-card-title>
-        <mat-icon
-          class="status-icon"
-          [class.online]="currentMode === 'server'"
-          [class.local]="currentMode !== 'server'">
-          {{
-            currentMode === 'server'
-              ? 'cloud_done'
-              : currentMode === 'cloud'
-                ? 'cloud_sync'
-                : 'cloud_off'
-          }}
-        </mat-icon>
-        {{ 'settings.connectionTab.currentMode' | transloco }}
-        {{
-          currentMode === 'server'
-            ? ('settings.connectionTab.onlineMode' | transloco)
-            : currentMode === 'cloud'
-              ? ('settings.connectionTab.cloudMode' | transloco)
-              : ('settings.connectionTab.localMode' | transloco)
-        }}
-      </mat-card-title>
-    </mat-card-header>
-    <mat-card-content>
-      @if (currentMode === 'server') {
-        <p class="server-url">
-          <strong>{{ 'settings.connectionTab.serverUrl' | transloco }}</strong>
-          {{ currentServerUrl }}
-        </p>
-      }
-      @if (currentMode === 'local') {
-        <p class="local-info">
-          {{ 'settings.connectionTab.offlineInfo' | transloco }}
-        </p>
-      }
-      @if (currentMode === 'cloud') {
-        <p class="local-info">
-          {{ 'settings.connectionTab.cloudInfo' | transloco }}
-        </p>
-      }
-    </mat-card-content>
-  </mat-card>
+  @if (isBusy()) {
+    <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+  }
 
-  <!-- Switch to Local Mode (when in server mode) -->
-  @if (currentMode === 'server') {
-    <mat-card class="mode-card">
+  <!-- Current profile -->
+  @if (current(); as info) {
+    <mat-card class="status-card" data-testid="current-connection">
       <mat-card-header>
-        <mat-card-title>{{
-          'settings.connectionTab.switchToLocal' | transloco
-        }}</mat-card-title>
+        <mat-card-title>
+          <mat-icon
+            class="status-icon"
+            [class.online]="info.hasCredentials && info.kind !== 'local'"
+            [class.local]="info.kind === 'local'">
+            {{ statusIcon(info) }}
+          </mat-icon>
+          {{ info.name }}
+          <span class="kind-chip">{{ kindLabel(info) }}</span>
+          @if (info.isBuiltIn) {
+            <span class="kind-chip built-in">{{
+              'dialogs.profileManager.builtIn' | transloco
+            }}</span>
+          }
+        </mat-card-title>
+        <mat-card-subtitle>{{ info.subtitle }}</mat-card-subtitle>
       </mat-card-header>
       <mat-card-content>
-        <p>
-          {{ 'settings.connectionTab.localDescription' | transloco }}
-        </p>
-        <button mat-raised-button color="primary" (click)="switchToLocalMode()">
-          <mat-icon>cloud_off</mat-icon>
-          {{ 'settings.connectionTab.switchToLocal' | transloco }}
-        </button>
+        @switch (info.kind) {
+          @case ('server') {
+            <p class="server-url">
+              <strong>{{
+                'settings.connectionTab.serverUrl' | transloco
+              }}</strong>
+              {{ info.config.serverUrl }}
+              @if (!info.hasCredentials) {
+                <span class="needs-attention">
+                  ({{ 'settings.connectionTab.loginRequired' | transloco }})
+                </span>
+              }
+            </p>
+          }
+          @case ('cloud') {
+            <p class="local-info">
+              {{ 'settings.connectionTab.cloudInfo' | transloco }}
+              @if (!info.hasCredentials) {
+                <span class="needs-attention">
+                  ({{ 'settings.connectionTab.reconnectNeeded' | transloco }})
+                </span>
+              }
+            </p>
+            @if (info.config.cloudAccountLabel) {
+              <p class="server-url">
+                <strong>{{
+                  'settings.connectionTab.accountLabel' | transloco
+                }}</strong>
+                {{ info.config.cloudAccountLabel }}
+              </p>
+            }
+          }
+          @default {
+            <p class="local-info">
+              {{ 'settings.connectionTab.offlineInfo' | transloco }}
+            </p>
+          }
+        }
+        @if (info.config.userProfile; as profile) {
+          <p class="server-url">
+            <strong>{{
+              'settings.connectionTab.profileLabel' | transloco
+            }}</strong>
+            {{ profile.name }} (&#64;{{ profile.username }})
+          </p>
+        }
+        @if (info.history) {
+          <p class="server-url history">
+            <strong>{{
+              'settings.connectionTab.historyLabel' | transloco
+            }}</strong>
+            {{ info.history }}
+          </p>
+        }
       </mat-card-content>
+      <mat-card-actions>
+        <button
+          mat-stroked-button
+          (click)="manageConnections()"
+          [disabled]="isBusy()"
+          data-testid="manage-connections-button">
+          <mat-icon>manage_accounts</mat-icon>
+          {{ 'settings.connectionTab.manageConnections' | transloco }}
+        </button>
+        @if (!info.isBuiltIn) {
+          <button
+            mat-button
+            color="warn"
+            (click)="disconnectCurrent()"
+            [disabled]="isBusy()"
+            [matTooltip]="
+              'settings.connectionTab.disconnectCurrentHint' | transloco
+            "
+            data-testid="disconnect-current-button">
+            <mat-icon>link_off</mat-icon>
+            {{ 'settings.connectionTab.disconnectCurrent' | transloco }}
+          </button>
+        }
+      </mat-card-actions>
     </mat-card>
   }
 
-  <!-- Switch to Server Mode or Change Server -->
+  <!-- Other profiles -->
   <mat-card class="mode-card">
     <mat-card-header>
-      <mat-card-title>
-        {{
-          currentMode !== 'server'
-            ? ('settings.connectionTab.connectToServer' | transloco)
-            : ('settings.connectionTab.changeServer' | transloco)
-        }}
-      </mat-card-title>
+      <mat-card-title>{{
+        'settings.connectionTab.otherConnections' | transloco
+      }}</mat-card-title>
     </mat-card-header>
     <mat-card-content>
-      @if (currentMode !== 'server') {
-        <p>
-          {{ 'settings.connectionTab.serverDescription' | transloco }}
+      @if (others().length === 0) {
+        <p class="local-info">
+          {{ 'settings.connectionTab.noOtherConnections' | transloco }}
         </p>
-
-        <!-- Offline Projects Info -->
-        @if (localProjectsCount() > 0) {
-          <div class="local-projects-info" data-testid="local-projects-info">
-            <mat-icon color="primary">folder</mat-icon>
-            <strong>{{
-              'settings.connectionTab.localProjectsInfo'
-                | transloco: { count: localProjectsCount() }
-            }}</strong>
-          </div>
-        }
+      } @else {
+        <ul class="connection-list" data-testid="other-connections">
+          @for (info of others(); track info.config.id) {
+            <li>
+              <mat-icon>{{ info.icon }}</mat-icon>
+              <div class="connection-text">
+                <span class="connection-name">
+                  {{ info.name }}
+                  <span class="kind-chip">{{ kindLabel(info) }}</span>
+                </span>
+                <span class="connection-subtitle">
+                  {{ info.subtitle }}
+                  @if (info.kind === 'server' && !info.hasCredentials) {
+                    · {{ 'settings.connectionTab.loginRequired' | transloco }}
+                  }
+                  @if (info.kind === 'cloud' && !info.hasCredentials) {
+                    ·
+                    {{ 'settings.connectionTab.reconnectNeeded' | transloco }}
+                  }
+                </span>
+              </div>
+              <button
+                mat-stroked-button
+                (click)="switchTo(info)"
+                [disabled]="isBusy()"
+                [attr.data-testid]="'switch-to-' + info.config.id">
+                <mat-icon>swap_horiz</mat-icon>
+                {{ 'settings.connectionTab.switchTo' | transloco }}
+              </button>
+            </li>
+          }
+        </ul>
       }
-      @if (currentMode === 'server') {
-        <p>
-          {{ 'settings.connectionTab.changeServerDescription' | transloco }}
-        </p>
-      }
-
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>{{
-          'settings.connectionTab.serverUrlLabel' | transloco
-        }}</mat-label>
-        <input
-          matInput
-          id="connection-server-url-input"
-          [(ngModel)]="newServerUrl"
-          [placeholder]="
-            'settings.connectionTab.serverUrlPlaceholder' | transloco
-          "
-          [disabled]="isConnecting() || showAuthForm()"
-          type="url"
-          data-testid="server-url-input"
-          [attr.aria-label]="
-            'settings.connectionTab.serverUrlAria' | transloco
-          " />
-        @if (connectionError()) {
-          <mat-error>{{ connectionError() }}</mat-error>
-        }
-      </mat-form-field>
-
       <div class="button-group">
         <button
-          mat-stroked-button
-          (click)="testConnection()"
-          [disabled]="isConnecting() || !newServerUrl.trim() || showAuthForm()">
-          @if (isConnecting()) {
-            <mat-spinner diameter="20"></mat-spinner>
-          }
-          @if (!isConnecting()) {
-            <mat-icon>check_circle</mat-icon>
-          }
-          {{ 'settings.connectionTab.testConnection' | transloco }}
-        </button>
-
-        <button
-          mat-raised-button
-          color="primary"
-          (click)="startMigration()"
-          [disabled]="isConnecting() || !newServerUrl.trim() || showAuthForm()"
-          data-testid="connect-to-server-button">
-          @if (isConnecting()) {
-            <mat-spinner diameter="20"></mat-spinner>
-          }
-          @if (!isConnecting()) {
-            <mat-icon>cloud_upload</mat-icon>
-          }
-          {{
-            currentMode === 'local'
-              ? ('settings.connectionTab.connectToServer' | transloco)
-              : ('settings.connectionTab.changeServer' | transloco)
-          }}
+          mat-button
+          (click)="goToWelcome()"
+          [disabled]="isBusy()"
+          [matTooltip]="'settings.connectionTab.welcomeScreenHint' | transloco"
+          data-testid="welcome-screen-button">
+          <mat-icon>person_add</mat-icon>
+          {{ 'settings.connectionTab.welcomeScreen' | transloco }}
         </button>
       </div>
-
-      <!-- Authentication Form for Migration -->
-      @if (showAuthForm()) {
-        <div class="auth-form" data-testid="auth-form">
-          <h4>
-            {{
-              authMode() === 'login'
-                ? ('settings.connectionTab.loginTitle' | transloco)
-                : ('settings.connectionTab.registerTitle' | transloco)
-            }}
-          </h4>
-          <p class="auth-description">
-            {{
-              authMode() === 'login'
-                ? ('settings.connectionTab.loginMigrateDesc' | transloco)
-                : ('settings.connectionTab.registerMigrateDesc' | transloco)
-            }}
-          </p>
-
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>{{
-              'settings.connectionTab.usernameLabel' | transloco
-            }}</mat-label>
-            <input
-              matInput
-              id="connection-auth-username-input"
-              [value]="username()"
-              (input)="username.set($any($event.target).value)"
-              [disabled]="isAuthenticating()"
-              type="text"
-              [attr.aria-label]="
-                'settings.connectionTab.usernameAria' | transloco
-              "
-              data-testid="auth-username-input" />
-          </mat-form-field>
-
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>{{
-              'settings.connectionTab.passwordLabel' | transloco
-            }}</mat-label>
-            <input
-              matInput
-              id="connection-auth-password-input"
-              [value]="password()"
-              (input)="password.set($any($event.target).value)"
-              [disabled]="isAuthenticating()"
-              type="password"
-              [attr.aria-label]="
-                'settings.connectionTab.passwordAria' | transloco
-              "
-              data-testid="auth-password-input" />
-          </mat-form-field>
-
-          @if (authMode() === 'register') {
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>{{
-                'settings.connectionTab.confirmPasswordLabel' | transloco
-              }}</mat-label>
-              <input
-                matInput
-                id="connection-auth-confirm-password-input"
-                [value]="confirmPassword()"
-                (input)="confirmPassword.set($any($event.target).value)"
-                [disabled]="isAuthenticating()"
-                type="password"
-                [attr.aria-label]="
-                  'settings.connectionTab.confirmPasswordAria' | transloco
-                "
-                data-testid="auth-confirm-password-input" />
-            </mat-form-field>
-          }
-
-          @if (authError()) {
-            <div class="auth-error">
-              <mat-icon>error</mat-icon>
-              {{ authError() }}
-            </div>
-          }
-
-          <div class="auth-actions">
-            <button
-              mat-button
-              (click)="cancelMigration()"
-              [disabled]="isAuthenticating()">
-              {{ 'cancel' | transloco }}
-            </button>
-
-            <button
-              mat-button
-              (click)="toggleAuthMode()"
-              [disabled]="isAuthenticating()"
-              data-testid="toggle-auth-mode-button">
-              {{
-                authMode() === 'login'
-                  ? ('settings.connectionTab.needAccount' | transloco)
-                  : ('settings.connectionTab.haveAccount' | transloco)
-              }}
-            </button>
-
-            <button
-              mat-raised-button
-              color="primary"
-              (click)="authenticate()"
-              [disabled]="isAuthenticating() || !username() || !password()"
-              data-testid="authenticate-button">
-              @if (isAuthenticating()) {
-                <mat-spinner diameter="20"></mat-spinner>
-                {{ 'settings.connectionTab.migrating' | transloco }}
-              }
-              @if (!isAuthenticating()) {
-                {{
-                  authMode() === 'login'
-                    ? ('settings.connectionTab.loginAndMigrate' | transloco)
-                    : ('settings.connectionTab.registerAndMigrate' | transloco)
-                }}
-              }
-            </button>
-          </div>
-        </div>
-      }
-
-      <!-- Migration Progress -->
-      @if (migrationState().status === MigrationStatus.InProgress) {
-        <div class="migration-progress">
-          <h4>
-            <mat-icon class="spinning">sync</mat-icon>
-            {{ 'settings.connectionTab.migratingProjects' | transloco }}
-          </h4>
-
-          <mat-progress-bar mode="determinate" [value]="migrationProgress()">
-          </mat-progress-bar>
-
-          <p class="progress-text">
-            {{
-              'settings.connectionTab.projectsMigrated'
-                | transloco: { count: migrationState().completedProjects }
-            }}
-            of {{ migrationState().totalProjects }}
-          </p>
-
-          @if (migrationState().currentProject) {
-            <p class="current-project">
-              {{ 'settings.connectionTab.currentlyMigrating' | transloco }}
-              <strong>{{ migrationState().currentProject }}</strong>
-            </p>
-          }
-
-          <!-- Project Status List -->
-          <div class="project-statuses">
-            @for (
-              projectStatus of migrationState().projectStatuses;
-              track projectStatus.projectSlug
-            ) {
-              <div
-                class="project-status"
-                [class]="projectStatus.status.toLowerCase()">
-                @if (projectStatus.status === MigrationStatus.Completed) {
-                  <mat-icon class="status-icon">check_circle</mat-icon>
-                }
-                @if (projectStatus.status === MigrationStatus.InProgress) {
-                  <mat-spinner diameter="16" class="status-icon"></mat-spinner>
-                }
-                @if (projectStatus.status === MigrationStatus.Failed) {
-                  <mat-icon class="status-icon">error</mat-icon>
-                }
-                @if (projectStatus.status === MigrationStatus.NotStarted) {
-                  <mat-icon class="status-icon">pending</mat-icon>
-                }
-                <span class="project-title">{{
-                  projectStatus.projectTitle
-                }}</span>
-                @if (projectStatus.error) {
-                  <span class="error-message">{{ projectStatus.error }}</span>
-                }
-              </div>
-            }
-          </div>
-        </div>
-      }
-
-      <!-- Migration Complete -->
-      @if (migrationState().status === MigrationStatus.Completed) {
-        <div class="migration-complete">
-          <mat-icon class="success-icon">check_circle</mat-icon>
-          <h4>{{ 'settings.connectionTab.migrationComplete' | transloco }}</h4>
-          <p>
-            {{
-              'settings.connectionTab.migrationSuccess'
-                | transloco: { count: migrationState().completedProjects }
-            }}
-          </p>
-        </div>
-      }
-
-      <!-- Migration Failed -->
-      @if (migrationState().status === MigrationStatus.Failed) {
-        <div class="migration-failed">
-          <mat-icon class="error-icon">error</mat-icon>
-          <h4>{{ 'settings.connectionTab.migrationErrors' | transloco }}</h4>
-          <p>
-            {{
-              'settings.connectionTab.migrationErrorMessage'
-                | transloco
-                  : {
-                      success: migrationState().completedProjects,
-                      failed: migrationState().failedProjects,
-                    }
-            }}
-          </p>
-        </div>
-      }
     </mat-card-content>
   </mat-card>
 
-  <!-- Warning about data -->
   <mat-card class="warning-card">
     <mat-card-content>
       <div class="warning-content">
-        <mat-icon>warning</mat-icon>
+        <mat-icon>info</mat-icon>
         <div>
-          <strong>{{ 'settings.connectionTab.important' | transloco }}</strong>
           {{ 'settings.connectionTab.switchWarning' | transloco }}
         </div>
       </div>
