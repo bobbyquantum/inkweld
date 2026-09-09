@@ -112,6 +112,33 @@ async function waitForWorldbuildingPersisted(
 // Tests
 // ---------------------------------------------------------------------------
 
+/**
+ * Asserts that the dialog containing the given test id fits the phone
+ * viewport: the overlay pane stays inside the screen bounds and the
+ * dialog surface needs no horizontal scrolling (content is never wider
+ * than the dialog itself).
+ */
+async function expectDialogFitsViewport(
+  page: Page,
+  testId: string
+): Promise<void> {
+  const fit = await page.evaluate(tid => {
+    const origin = document.querySelector(`[data-testid="${tid}"]`);
+    const pane = origin?.closest<HTMLElement>('.cdk-overlay-pane');
+    const surface = pane?.querySelector<HTMLElement>('.mat-mdc-dialog-surface');
+    if (!pane || !surface) return null;
+    const rect = pane.getBoundingClientRect();
+    return {
+      paneWithinViewport: rect.left >= 0 && rect.right <= window.innerWidth,
+      surfaceWidth: surface.clientWidth,
+      surfaceScrollWidth: surface.scrollWidth,
+    };
+  }, testId);
+  expect(fit).not.toBeNull();
+  expect(fit!.paneWithinViewport).toBe(true);
+  expect(fit!.surfaceScrollWidth).toBeLessThanOrEqual(fit!.surfaceWidth + 1);
+}
+
 test.describe('Document Snapshots', () => {
   test('create, restore, and delete a snapshot for a document element', async ({
     localPageWithProject: page,
@@ -297,6 +324,74 @@ test.describe('Auto-Snapshots', () => {
     await expect(snapshotItem.getByTestId('snapshot-name')).toContainText(
       'Auto-save'
     );
+
+    await closeSnapshotsDialog(page);
+  });
+});
+
+test.describe('Mobile Layout', () => {
+  /**
+   * Regression test: the snapshot dialogs used to hardcode a 450px
+   * min-width on their content, overflowing phone viewports where
+   * Material caps the dialog pane at calc(100vw - 32px).
+   *
+   * Setup runs at the default desktop viewport so project/element
+   * creation is unaffected; the viewport is then shrunk to a phone
+   * size (390px, iPhone 14 class) before opening the dialogs.
+   */
+  test('snapshot list, create and restore dialogs fit a phone viewport', async ({
+    localPageWithProject: page,
+  }) => {
+    await openProject(page);
+    await createElement(page, 'item', 'Mobile Fit Test');
+
+    const editor = page.locator('.ProseMirror[contenteditable="true"]');
+    await expect(editor).toBeVisible();
+    await editor.click();
+    await editor.fill('Content to snapshot for the mobile layout test.');
+
+    await openSnapshotsDialog(page);
+    await createSnapshot(page, 'Mobile Fit Snapshot');
+    await closeSnapshotsDialog(page);
+
+    await page.setViewportSize({ width: 390, height: 844 });
+
+    await test.step('snapshot list fits the viewport', async () => {
+      await openSnapshotsDialog(page);
+
+      const snapshotItem = page.locator('[data-testid^="snapshot-"]').first();
+      await expect(snapshotItem).toBeVisible();
+      await expectDialogFitsViewport(page, 'create-snapshot-btn');
+    });
+
+    await test.step('restore snapshot dialog fits the viewport', async () => {
+      const snapshotItem = page.locator('[data-testid^="snapshot-"]').first();
+      await snapshotItem.locator('[data-testid^="snapshot-menu-"]').click();
+      await page.locator('[data-testid^="restore-snapshot-"]').click();
+
+      await expect(page.getByTestId('confirm-restore-btn')).toBeVisible();
+      await expectDialogFitsViewport(page, 'confirm-restore-btn');
+
+      await page.getByTestId('cancel-restore-btn').click();
+      await expect(page.getByTestId('confirm-restore-btn')).not.toBeVisible();
+    });
+
+    await test.step('create snapshot dialog fits the viewport', async () => {
+      await page.getByTestId('create-snapshot-btn').click();
+
+      await expect(page.getByTestId('snapshot-name-input')).toBeVisible();
+      await expectDialogFitsViewport(page, 'snapshot-name-input');
+
+      await page.getByTestId('cancel-snapshot-btn').click();
+      await expect(page.getByTestId('snapshot-name-input')).not.toBeVisible();
+    });
+
+    await test.step('open list still fits an iPhone SE-class viewport', async () => {
+      // The list dialog is open while the viewport shrinks, so this also
+      // covers a live resize/orientation flip.
+      await page.setViewportSize({ width: 320, height: 568 });
+      await expectDialogFitsViewport(page, 'create-snapshot-btn');
+    });
 
     await closeSnapshotsDialog(page);
   });
