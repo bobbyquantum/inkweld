@@ -116,7 +116,7 @@
     "yjs": "13.6.32"
   },
   "devDependencies": {
-    "@material-symbols/svg-400": "0.47.1",
+    "@material-symbols/svg-400": "0.47.2",
     "@angular/build": "^22.0.1",
     "@angular/cli": "^22.0.1",
     "@angular/compiler-cli": "^22.0.1",
