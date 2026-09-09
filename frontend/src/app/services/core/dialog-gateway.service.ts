@@ -9,6 +9,11 @@ import {
   type AddRelationshipDialogResult,
 } from '../../dialogs/add-relationship-dialog/add-relationship-dialog.component';
 import {
+  CanvasSetupDialogComponent,
+  type CanvasSetupDialogData,
+  type CanvasSetupDialogResult,
+} from '../../dialogs/canvas-setup-dialog/canvas-setup-dialog.component';
+import {
   ConfirmationDialogComponent,
   type ConfirmationDialogData,
 } from '../../dialogs/confirmation-dialog/confirmation-dialog.component';
@@ -130,6 +135,26 @@ export class DialogGatewayService {
       width: '800px',
       maxWidth: '90vw',
       maxHeight: '90vh',
+    });
+    return firstValueFrom(dialogRef.afterClosed());
+  }
+
+  /**
+   * Ask for a canvas's page colours (and, when creating, its size). Resolves
+   * with the chosen settings, or undefined when cancelled.
+   */
+  openCanvasSetupDialog(
+    data: CanvasSetupDialogData
+  ): Promise<CanvasSetupDialogResult | undefined> {
+    const dialogRef = this.dialog.open<
+      CanvasSetupDialogComponent,
+      CanvasSetupDialogData,
+      CanvasSetupDialogResult
+    >(CanvasSetupDialogComponent, {
+      data,
+      disableClose: true,
+      width: '480px',
+      maxWidth: '95vw',
     });
     return firstValueFrom(dialogRef.afterClosed());
   }

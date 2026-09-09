@@ -114,7 +114,12 @@ export class CanvasRasterizerService {
           onError: error =>
             this.logger.warn('CanvasRasterizer', 'Stage render threw', error),
         },
-        [renderer.selectionLayer, renderer.previewLayer, renderer.framesLayer]
+        [
+          renderer.selectionLayer,
+          renderer.previewLayer,
+          renderer.framesLayer,
+          renderer.pageLayer,
+        ]
       );
       if (!dataUrl) {
         this.logger.warn(

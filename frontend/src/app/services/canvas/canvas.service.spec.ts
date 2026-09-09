@@ -18,6 +18,7 @@ import {
   type CanvasPin,
   type CanvasText,
   createDefaultCanvasConfig,
+  LIGHT_PAGE,
 } from '../../models/canvas.model';
 import { LoggerService } from '../core/logger.service';
 import { ProjectStateService } from '../project/project-state.service';
@@ -196,6 +197,53 @@ describe('CanvasService', () => {
 
       expect(config.elementId).toBe('missing-id');
       expect(config.layers).toHaveLength(1);
+    });
+
+    it('defaults to a light page when the synced canvas has no page colours', () => {
+      mockElements.set([makeElement({ id: 'canvas-1' })]);
+      canvasStore.set('canvas-1', {
+        layers: [
+          {
+            id: 'L1',
+            name: 'L',
+            visible: true,
+            locked: false,
+            opacity: 1,
+            order: 0,
+          },
+        ],
+        objects: [],
+      });
+
+      service.loadConfig('canvas-1');
+
+      expect(service.activeConfig()).toMatchObject(LIGHT_PAGE);
+    });
+
+    it('keeps the synced page colours', () => {
+      mockElements.set([makeElement({ id: 'canvas-1' })]);
+      canvasStore.set('canvas-1', {
+        layers: [
+          {
+            id: 'L1',
+            name: 'L',
+            visible: true,
+            locked: false,
+            opacity: 1,
+            order: 0,
+          },
+        ],
+        objects: [],
+        background: '#1e1e1e',
+        inkColor: '#f2f2f2',
+      });
+
+      service.loadConfig('canvas-1');
+
+      expect(service.activeConfig()).toMatchObject({
+        background: '#1e1e1e',
+        inkColor: '#f2f2f2',
+      });
     });
 
     it('should restore config from element metadata', () => {
@@ -554,6 +602,30 @@ describe('CanvasService', () => {
   // ─────────────────────────────────────────────────────────────────────────
   // Annotations & relationship cleanup
   // ─────────────────────────────────────────────────────────────────────────
+
+  describe('updatePageSettings', () => {
+    beforeEach(() => {
+      mockElements.set([makeElement({ id: 'canvas-1' })]);
+      service.loadConfig('canvas-1');
+    });
+
+    it('changes the page colours and syncs them', () => {
+      service.updatePageSettings({ background: '#000000' });
+
+      expect(service.activeConfig()!.background).toBe('#000000');
+      expect(service.activeConfig()!.inkColor).toBe(LIGHT_PAGE.inkColor);
+      expect(canvasStore.get('canvas-1')?.background).toBe('#000000');
+      expect(service.canUndo()).toBe(true);
+    });
+
+    it('is a no-op when nothing changes', () => {
+      mockProjectState.applyCanvasEdit.mockClear();
+      service.updatePageSettings({ ...LIGHT_PAGE });
+
+      expect(mockProjectState.applyCanvasEdit).not.toHaveBeenCalled();
+      expect(service.canUndo()).toBe(false);
+    });
+  });
 
   describe('pins and linked objects', () => {
     beforeEach(() => {

@@ -90,6 +90,9 @@ export class CanvasRendererService {
   private _selectionLayer: Konva.Layer | null = null;
   private _previewLayer: Konva.Layer | null = null;
   private _framesLayer: Konva.Layer | null = null;
+  /** Bottom-most layer painting the page background, see {@link syncPage}. */
+  private _pageLayer: Konva.Layer | null = null;
+  private _pageRect: Konva.Rect | null = null;
   private _annotationsLayer: Konva.Layer | null = null;
   /** Image loads still in flight, see {@link whenImagesSettled}. */
   private readonly _pendingImageLoads = new Set<Promise<void>>();
@@ -126,6 +129,13 @@ export class CanvasRendererService {
   /** Overlay layer drawing frame borders (canvas size + crop frames). */
   get framesLayer(): Konva.Layer | null {
     return this._framesLayer;
+  }
+  /**
+   * Layer painting the page background beneath the artwork. Exports hide it
+   * and paint the background themselves, so it counts as chrome.
+   */
+  get pageLayer(): Konva.Layer | null {
+    return this._pageLayer;
   }
   /**
    * Overlay for annotations (pins): always above the artwork layers and
@@ -195,6 +205,14 @@ export class CanvasRendererService {
     this._annotationsLayer = new Konva.Layer({
       listening: this._contentInteractive,
     });
+    this._pageLayer = new Konva.Layer({ listening: false });
+    this._pageRect = new Konva.Rect({
+      name: 'pageRect',
+      listening: false,
+      visible: false,
+    });
+    this._pageLayer.add(this._pageRect);
+    this._stage.add(this._pageLayer);
 
     this.buildKonvaLayers(configLayers);
     this.buildKonvaObjects(configObjects, handlers);
@@ -321,6 +339,7 @@ export class CanvasRendererService {
     this.syncObjects(objects, handlers);
     this.applyObjectZOrder(objects);
 
+    this._pageLayer?.moveToBottom();
     this._annotationsLayer?.moveToTop();
     this._framesLayer?.moveToTop();
     this._previewLayer?.moveToTop();
@@ -485,6 +504,34 @@ export class CanvasRendererService {
       else backgrounds.set(layer, nodes);
     }
     return backgrounds;
+  }
+
+  // ─── Page background ───────────────────────────────────────────────────
+
+  /**
+   * Paint the page background inside the canvas-size frame.
+   *
+   * With no canvas-size frame the page is the whole infinite canvas, which
+   * the tab paints with CSS behind the stage instead — a stage-sized rect
+   * would have to chase every pan and zoom for the same result.
+   */
+  syncPage(background: string, frame: CanvasFrame | undefined): void {
+    const rect = this._pageRect;
+    if (!rect || !this._pageLayer) return;
+
+    if (frame) {
+      rect.setAttrs({
+        x: frame.x,
+        y: frame.y,
+        width: frame.width,
+        height: frame.height,
+        fill: background,
+        visible: true,
+      });
+    } else {
+      rect.visible(false);
+    }
+    this._pageLayer.batchDraw();
   }
 
   // ─── Frames overlay ────────────────────────────────────────────────────

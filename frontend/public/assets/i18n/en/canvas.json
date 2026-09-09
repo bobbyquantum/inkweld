@@ -187,5 +187,20 @@
   "colorDialog": {
     "fillColor": "Fill Color",
     "strokeColor": "Stroke Color"
+  },
+  "page": {
+    "settings": "Page settings",
+    "setupTitle": "Set up canvas",
+    "sizeLabel": "Canvas size",
+    "sizeNone": "Infinite",
+    "sizeCustom": "Custom",
+    "sizeHint": "A canvas size adds a page frame that sets the default export bounds. You can add or change frames later.",
+    "presetLight": "Light page",
+    "presetDark": "Dark page",
+    "backgroundLabel": "Page colour",
+    "inkLabel": "Default ink",
+    "previewText": "The quick brown fox",
+    "lowContrast": "This ink will be hard to see on this page.",
+    "create": "Create canvas"
   }
 }

@@ -54,6 +54,8 @@ async function createCanvasAndOpen(page: Page) {
 
   // Submit
   await page.getByTestId('create-element-button').click();
+  // A canvas is set up (size + page colours) before it is created.
+  await page.getByTestId('canvas-setup-confirm').click();
 
   // Wait for the element to appear in the tree and the tab to open
   await expect(page.getByTestId('element-My Canvas')).toBeVisible();
@@ -547,6 +549,8 @@ test.describe('Canvas Tab', () => {
       await nameInput.waitFor({ state: 'visible' });
       await nameInput.fill('World Map');
       await page.getByTestId('create-element-button').click();
+      // A canvas is set up (size + page colours) before it is created.
+      await page.getByTestId('canvas-setup-confirm').click();
       await expect(page.getByTestId('element-World Map')).toBeVisible();
       await expect(page.getByTestId('canvas-container')).toBeVisible();
     });

@@ -71,6 +71,8 @@ test.describe('Canvas Tab Screenshots', () => {
     await nameInput.fill('World Map');
 
     await page.getByTestId('create-element-button').click();
+    // A canvas is set up (size + page colours) before it is created.
+    await page.getByTestId('canvas-setup-confirm').click();
 
     // Wait for the canvas tab to open
     await expect(page.getByTestId('canvas-container')).toBeVisible();

@@ -35,6 +35,7 @@ import {
   type CanvasImage,
   type CanvasLayer,
   type CanvasObject,
+  type CanvasPageSettings,
   type CanvasPin,
   type CanvasShape,
   type CanvasShapeType,
@@ -378,6 +379,29 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
     () => canvasSizeFrame(this.frames()) !== undefined
   );
 
+  /** Page colours of the active canvas (document state, not theme). */
+  protected readonly pageSettings = computed<CanvasPageSettings | null>(
+    () => {
+      const config = this.canvasService.activeConfig();
+      return config
+        ? { background: config.background, inkColor: config.inkColor }
+        : null;
+    },
+    {
+      equal: (a, b) =>
+        a?.background === b?.background && a?.inkColor === b?.inkColor,
+    }
+  );
+
+  /**
+   * CSS background for the stage container. With a canvas-size frame the
+   * container is the pasteboard and follows the theme (null = stylesheet);
+   * without one the page is the whole canvas and takes the page colour.
+   */
+  protected readonly stageBackground = computed<string | null>(() =>
+    this.hasCanvasSize() ? null : (this.pageSettings()?.background ?? null)
+  );
+
   /**
    * Gradients only render on closed shapes; with anything else selected the
    * fill swatch recolours that object, so offer solid colours only.
@@ -656,6 +680,26 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
     // Keep frame labels readable at every zoom level.
     effect(() => this.canvasRenderer.updateFrameOverlayScale(this.zoomLevel()));
 
+    // Paint the page inside the canvas-size frame.
+    effect(() => {
+      const page = this.pageSettings();
+      const frame = canvasSizeFrame(this.frames());
+      if (!page || !this.stage) return;
+      this.canvasRenderer.syncPage(page.background, frame);
+    });
+
+    // Each canvas has its own default ink, chosen against its page: start
+    // the pen there whenever the canvas (or its ink setting) changes.
+    effect(() => {
+      const ink = this.pageSettings()?.inkColor;
+      if (!ink) return;
+      untracked(() => {
+        if (this.toolSettings().stroke !== ink) {
+          this.updateToolSettings({ stroke: ink });
+        }
+      });
+    });
+
     this.breakpointObserver
       .observe(MOBILE_BREAKPOINT)
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -768,10 +812,14 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
 
     this.applyToolToStage(this.activeTool());
 
-    // Initial frame borders (the frames effect only re-runs on changes).
+    // Initial frame borders and page (the effects only re-run on changes).
     this.canvasRenderer.syncFrames(config.frames, {
       framesVisible: this.framesVisible(),
     });
+    this.canvasRenderer.syncPage(
+      config.background,
+      canvasSizeFrame(config.frames)
+    );
 
     // Keyboard shortcuts (register only once per component lifetime)
     if (!this.keyboardShortcutsInitialized) {
@@ -1488,6 +1536,18 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
       x: result.x ?? frame.x,
       y: result.y ?? frame.y,
     });
+  }
+
+  /** Edit the page background and default ink colour. */
+  protected async onOpenPageSettings(): Promise<void> {
+    const page = this.pageSettings();
+    if (!page) return;
+    const result = await this.dialogGateway.openCanvasSetupDialog({
+      mode: 'edit',
+      page,
+    });
+    if (!result) return;
+    this.canvasService.updatePageSettings(result.page);
   }
 
   private async openFrameDialog(

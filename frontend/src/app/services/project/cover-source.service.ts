@@ -7,7 +7,7 @@ import {
   signal,
   untracked,
 } from '@angular/core';
-import type { CanvasFrame } from '@models/canvas.model';
+import { type CanvasFrame, LIGHT_PAGE } from '@models/canvas.model';
 import {
   CANVAS_CONFIG_META_KEY,
   type CanvasContents,
@@ -41,11 +41,14 @@ const STALE_CHECK_DELAY_MS = 2_000;
 /** Target long edge of the cover raster; the server fits into 1600×2560. */
 const COVER_TARGET_WIDTH_PX = 1600;
 
-/** Cover renders are JPEG: no alpha, and far smaller than a painted PNG. */
+/**
+ * Cover renders are JPEG: no alpha, and far smaller than a painted PNG. The
+ * page colour comes from the canvas; white is only the fallback for a canvas
+ * seeded without one, since JPEG needs something under the artwork.
+ */
 const COVER_RASTER = {
   mimeType: 'image/jpeg',
   quality: 0.92,
-  background: '#ffffff',
 } as const;
 
 export type CoverSourceStatus = 'idle' | 'pending' | 'rendering' | 'error';
@@ -262,7 +265,11 @@ export class CoverSourceService {
       const blob = await this.rasterizer.renderRegion(
         input.contents,
         input.frame,
-        { ...COVER_RASTER, pixelRatio }
+        {
+          ...COVER_RASTER,
+          background: input.contents.background ?? LIGHT_PAGE.background,
+          pixelRatio,
+        }
       );
       if (!blob) {
         this.fail('render-failed');

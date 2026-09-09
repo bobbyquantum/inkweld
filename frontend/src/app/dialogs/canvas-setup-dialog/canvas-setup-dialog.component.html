@@ -1,0 +1,132 @@
+<h2 mat-dialog-title>
+  {{
+    (isCreate ? 'canvas.page.setupTitle' : 'canvas.page.settings') | transloco
+  }}
+</h2>
+<mat-dialog-content>
+  @if (isCreate && !data.sizeLocked) {
+    <section class="setup-section">
+      <span class="section-label">
+        <mat-icon class="label-icon">crop_din</mat-icon>
+        {{ 'canvas.page.sizeLabel' | transloco }}
+      </span>
+      <mat-button-toggle-group
+        class="size-group"
+        [value]="size()"
+        (change)="size.set($event.value)"
+        [attr.aria-label]="'canvas.page.sizeLabel' | transloco"
+        data-testid="canvas-size-group">
+        <mat-button-toggle value="none" data-testid="canvas-size-none">
+          {{ 'canvas.page.sizeNone' | transloco }}
+        </mat-button-toggle>
+        @for (preset of presets; track preset.key) {
+          <mat-button-toggle
+            [value]="preset.key"
+            [attr.data-testid]="'canvas-size-' + preset.key">
+            {{ 'canvas.frames.preset.' + preset.key | transloco }}
+            <span class="size-dims"
+              >{{ preset.width }}×{{ preset.height }}</span
+            >
+          </mat-button-toggle>
+        }
+        <mat-button-toggle value="custom" data-testid="canvas-size-custom">
+          {{ 'canvas.page.sizeCustom' | transloco }}
+        </mat-button-toggle>
+      </mat-button-toggle-group>
+      @if (size() === 'custom') {
+        <div class="field-row">
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'canvas.frames.widthLabel' | transloco }}</mat-label>
+            <input
+              matInput
+              type="number"
+              id="canvas-setup-width-input"
+              [attr.aria-label]="'canvas.frames.widthLabel' | transloco"
+              [ngModel]="customWidth()"
+              (ngModelChange)="customWidth.set($event)"
+              data-testid="canvas-size-width" />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'canvas.frames.heightLabel' | transloco }}</mat-label>
+            <input
+              matInput
+              type="number"
+              id="canvas-setup-height-input"
+              [attr.aria-label]="'canvas.frames.heightLabel' | transloco"
+              [ngModel]="customHeight()"
+              (ngModelChange)="customHeight.set($event)"
+              data-testid="canvas-size-height" />
+          </mat-form-field>
+        </div>
+      }
+      <p class="hint">{{ 'canvas.page.sizeHint' | transloco }}</p>
+    </section>
+  }
+
+  <section class="setup-section">
+    <div class="quick-picks">
+      <button
+        mat-stroked-button
+        type="button"
+        data-testid="page-preset-light"
+        (click)="usePreset(false)">
+        <mat-icon>light_mode</mat-icon>
+        {{ 'canvas.page.presetLight' | transloco }}
+      </button>
+      <button
+        mat-stroked-button
+        type="button"
+        data-testid="page-preset-dark"
+        (click)="usePreset(true)">
+        <mat-icon>dark_mode</mat-icon>
+        {{ 'canvas.page.presetDark' | transloco }}
+      </button>
+    </div>
+  </section>
+
+  <section class="setup-section">
+    <span class="section-label">
+      <mat-icon class="label-icon">wallpaper</mat-icon>
+      {{ 'canvas.page.backgroundLabel' | transloco }}
+    </span>
+    <app-color-swatches
+      [selectedColor]="background()"
+      (colorChange)="onBackgroundChange($event)" />
+  </section>
+
+  <section class="setup-section">
+    <span class="section-label">
+      <mat-icon class="label-icon">brush</mat-icon>
+      {{ 'canvas.page.inkLabel' | transloco }}
+    </span>
+    <app-color-swatches
+      [selectedColor]="inkColor()"
+      (colorChange)="onInkChange($event)" />
+  </section>
+
+  <div
+    class="preview"
+    [style.background-color]="background()"
+    data-testid="page-preview">
+    <span class="preview-ink" [style.color]="inkColor()">
+      {{ 'canvas.page.previewText' | transloco }}
+    </span>
+  </div>
+  @if (lowContrast()) {
+    <p class="hint warning" data-testid="page-low-contrast">
+      <mat-icon class="label-icon">warning</mat-icon>
+      {{ 'canvas.page.lowContrast' | transloco }}
+    </p>
+  }
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onCancel()">{{ 'cancel' | transloco }}</button>
+  <button
+    mat-button
+    color="primary"
+    [disabled]="customInvalid()"
+    data-testid="canvas-setup-confirm"
+    (click)="onConfirm()">
+    {{ (isCreate ? 'canvas.page.create' : 'apply') | transloco }}
+  </button>
+</mat-dialog-actions>

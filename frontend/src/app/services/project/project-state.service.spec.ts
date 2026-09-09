@@ -262,6 +262,7 @@ describe('ProjectStateService', () => {
       openDialog: vi.fn(),
       openEditProjectDialog: vi.fn().mockResolvedValue(null),
       openNewElementDialog: vi.fn().mockResolvedValue(null),
+      openCanvasSetupDialog: vi.fn().mockResolvedValue(undefined),
     } as unknown as MockedObject<DialogGatewayService>;
 
     mockRecentFilesService = {
@@ -1386,6 +1387,123 @@ describe('ProjectStateService', () => {
         elementId: element?.id,
         frameId: seeded?.[1].frames?.[0].id,
       });
+    });
+
+    it('createCoverCanvas seeds a light page by default', async () => {
+      await service.loadProject('testuser', 'test-project');
+      service.createCoverCanvas();
+
+      const seeded = vi.mocked(mockSyncProvider.seedCanvasContents).mock
+        .lastCall;
+      expect(seeded?.[1]).toMatchObject({
+        background: '#FFFFFF',
+        inkColor: '#333333',
+      });
+    });
+  });
+
+  describe('new canvas setup', () => {
+    const flush = () => new Promise<void>(resolve => setTimeout(resolve, 0));
+
+    beforeEach(async () => {
+      await service.loadProject('testuser', 'test-project');
+    });
+
+    it('asks for page colours and size, then seeds them', async () => {
+      vi.mocked(
+        mockDialogGatewayService.openNewElementDialog
+      ).mockResolvedValue({ name: 'Sketch', type: ElementType.Canvas });
+      vi.mocked(
+        mockDialogGatewayService.openCanvasSetupDialog
+      ).mockResolvedValue({
+        page: { background: '#1e1e1e', inkColor: '#f2f2f2' },
+        frame: { width: 640, height: 480 },
+      });
+
+      service.showNewElementDialog();
+      await flush();
+
+      expect(
+        mockDialogGatewayService.openCanvasSetupDialog
+      ).toHaveBeenCalledWith({
+        mode: 'create',
+        size: 'none',
+        sizeLocked: false,
+      });
+      const seeded = vi.mocked(mockSyncProvider.seedCanvasContents).mock
+        .lastCall?.[1];
+      expect(seeded).toMatchObject({
+        background: '#1e1e1e',
+        inkColor: '#f2f2f2',
+      });
+      expect(seeded?.frames?.[0]).toMatchObject({
+        kind: 'canvas',
+        width: 640,
+        height: 480,
+      });
+      expect(service.elements().some(e => e.name === 'Sketch')).toBe(true);
+    });
+
+    it('locks a cover to the cover size whatever was chosen', async () => {
+      vi.mocked(
+        mockDialogGatewayService.openNewElementDialog
+      ).mockResolvedValue({
+        name: 'Cover',
+        type: ElementType.Canvas,
+        preset: 'cover',
+      });
+      vi.mocked(
+        mockDialogGatewayService.openCanvasSetupDialog
+      ).mockResolvedValue({
+        page: { background: '#000000', inkColor: '#ffffff' },
+        frame: { width: 10, height: 10 },
+      });
+
+      service.showNewElementDialog();
+      await flush();
+
+      expect(
+        mockDialogGatewayService.openCanvasSetupDialog
+      ).toHaveBeenCalledWith({
+        mode: 'create',
+        size: 'cover',
+        sizeLocked: true,
+      });
+      const seeded = vi.mocked(mockSyncProvider.seedCanvasContents).mock
+        .lastCall?.[1];
+      expect(seeded?.frames?.[0]).toMatchObject({ width: 1000, height: 1600 });
+      expect(seeded?.background).toBe('#000000');
+      expect(service.coverSource()?.frameId).toBe(seeded?.frames?.[0].id);
+    });
+
+    it('creates nothing when the setup dialog is cancelled', async () => {
+      vi.mocked(
+        mockDialogGatewayService.openNewElementDialog
+      ).mockResolvedValue({ name: 'Sketch', type: ElementType.Canvas });
+      vi.mocked(
+        mockDialogGatewayService.openCanvasSetupDialog
+      ).mockResolvedValue(undefined);
+      const before = service.elements().length;
+
+      service.showNewElementDialog();
+      await flush();
+
+      expect(service.elements()).toHaveLength(before);
+      expect(mockSyncProvider.seedCanvasContents).not.toHaveBeenCalled();
+    });
+
+    it('does not ask for setup for non-canvas elements', async () => {
+      vi.mocked(
+        mockDialogGatewayService.openNewElementDialog
+      ).mockResolvedValue({ name: 'Notes', type: ElementType.Item });
+
+      service.showNewElementDialog();
+      await flush();
+
+      expect(
+        mockDialogGatewayService.openCanvasSetupDialog
+      ).not.toHaveBeenCalled();
+      expect(service.elements().some(e => e.name === 'Notes')).toBe(true);
     });
   });
 

@@ -18,6 +18,7 @@ import {
   type CanvasFrame,
   type CanvasLayer,
   type CanvasObject,
+  type CanvasPageSettings,
 } from '@models/canvas.model';
 import {
   CANVAS_CONFIG_META_KEY,
@@ -105,9 +106,20 @@ const CANVAS_ORIGIN = 'canvas-local';
  */
 const CANVAS_SNAPSHOT_DELAY_MS = 3000;
 
+/** Page colours stored on a canvas map; absent when never set. */
+function readPageSettings(canvas: Y.Map<unknown>): Partial<CanvasPageSettings> {
+  const background = canvas.get('background');
+  const inkColor = canvas.get('inkColor');
+  const page: Partial<CanvasPageSettings> = {};
+  if (typeof background === 'string') page.background = background;
+  if (typeof inkColor === 'string') page.inkColor = inkColor;
+  return page;
+}
+
 /** Read a canvas's shared map into plain objects, in z-order. */
 function readCanvasMap(canvas: Y.Map<unknown>): CanvasContents {
   const layers = parseJson<CanvasLayer[]>(canvas.get('layers'), []);
+  const page = readPageSettings(canvas);
   // Docs predating frames have no 'frames' key — absent, not empty.
   const frames = canvas.has('frames')
     ? parseJson<CanvasFrame[]>(canvas.get('frames'), [])
@@ -116,7 +128,7 @@ function readCanvasMap(canvas: Y.Map<unknown>): CanvasContents {
   const order = (canvas.get('order') as Y.Array<string> | undefined)?.toArray();
 
   if (!objectsMap) {
-    const empty: CanvasContents = { layers, objects: [] };
+    const empty: CanvasContents = { layers, objects: [], ...page };
     if (frames !== undefined) empty.frames = frames;
     return empty;
   }
@@ -140,7 +152,7 @@ function readCanvasMap(canvas: Y.Map<unknown>): CanvasContents {
     if (object) objects.push(object);
   }
 
-  const contents: CanvasContents = { layers, objects };
+  const contents: CanvasContents = { layers, objects, ...page };
   if (frames !== undefined) contents.frames = frames;
   return contents;
 }
@@ -1112,6 +1124,10 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
 
       if (edit.layers) canvas.set('layers', JSON.stringify(edit.layers));
       if (edit.frames) canvas.set('frames', JSON.stringify(edit.frames));
+      if (edit.background !== undefined) {
+        canvas.set('background', edit.background);
+      }
+      if (edit.inkColor !== undefined) canvas.set('inkColor', edit.inkColor);
 
       for (const id of edit.deletes ?? []) {
         objects.delete(id);
@@ -1141,6 +1157,8 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
     this.applyCanvasEdit(elementId, {
       layers: contents.layers,
       frames: contents.frames,
+      background: contents.background,
+      inkColor: contents.inkColor,
       upserts: contents.objects,
       order: contents.objects.map(o => o.id),
     });

@@ -305,6 +305,82 @@ export const FRAME_PRESETS = [
 export type FramePresetKey = (typeof FRAME_PRESETS)[number]['key'];
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Page settings (background + default ink)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Colours that belong to the canvas document rather than to the UI theme.
+ *
+ * Every colour a user puts on a canvas is absolute, so the surface under it
+ * has to be absolute too — a drawing made with dark ink on a white page must
+ * not turn into dark ink on a near-black page because a collaborator prefers
+ * dark mode. The page background is therefore stored with the canvas, synced
+ * to everyone, and painted beneath exports; only the pasteboard around the
+ * page follows the app theme.
+ */
+export interface CanvasPageSettings {
+  /**
+   * Page background colour (CSS colour string). Painted inside the canvas-size
+   * frame when there is one, otherwise across the whole infinite canvas.
+   */
+  background: string;
+  /**
+   * Default ink colour for this canvas: the stroke colour the pen starts with
+   * when the canvas is opened. Chosen against the page, not the theme.
+   */
+  inkColor: string;
+}
+
+/** Page colours for a light page. */
+export const LIGHT_PAGE: CanvasPageSettings = {
+  background: '#FFFFFF',
+  inkColor: '#333333',
+};
+
+/** Page colours for a dark page. */
+export const DARK_PAGE: CanvasPageSettings = {
+  background: '#1E1E1E',
+  inkColor: '#F2F2F2',
+};
+
+/**
+ * Page colours to offer a user creating a canvas: a page that matches the
+ * theme they are looking at, so a dark-mode user isn't handed a glaring white
+ * sheet. The choice is then fixed in the document for everyone.
+ */
+export function defaultPageSettings(darkTheme: boolean): CanvasPageSettings {
+  return darkTheme ? { ...DARK_PAGE } : { ...LIGHT_PAGE };
+}
+
+/**
+ * Relative luminance (0 = black, 1 = white) of a `#rgb` / `#rrggbb` colour,
+ * or null when the colour isn't a hex string. Used to pick a legible ink for
+ * a page colour.
+ */
+export function hexLuminance(color: string): number | null {
+  const match = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(color.trim());
+  if (!match) return null;
+  let hex = match[1];
+  if (hex.length === 3) {
+    hex = hex
+      .split('')
+      .map(c => c + c)
+      .join('');
+  }
+  const channel = (i: number) => {
+    const c = Number.parseInt(hex.slice(i, i + 2), 16) / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * channel(0) + 0.7152 * channel(2) + 0.0722 * channel(4);
+}
+
+/** True when `background` is dark enough that dark ink would vanish on it. */
+export function isDarkBackground(background: string): boolean {
+  const luminance = hexLuminance(background);
+  return luminance !== null && luminance < 0.35;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Canvas Configuration (persisted to Yjs metadata)
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -312,7 +388,7 @@ export type FramePresetKey = (typeof FRAME_PRESETS)[number]['key'];
  * Configuration for a single canvas element.
  * Stored in element metadata and synced to all collaborators via Yjs.
  */
-export interface CanvasConfig {
+export interface CanvasConfig extends CanvasPageSettings {
   /** Links this config to its CANVAS element */
   elementId: string;
   /** Ordered list of layers */
@@ -428,12 +504,20 @@ export const MAX_ERASER_SIZE = 200;
 // Defaults & Factories
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Creates a default CanvasConfig for a new canvas element */
-export function createDefaultCanvasConfig(elementId: string): CanvasConfig {
+/**
+ * Creates a default CanvasConfig for a new canvas element. Page colours
+ * default to a light page unless given.
+ */
+export function createDefaultCanvasConfig(
+  elementId: string,
+  page: CanvasPageSettings = LIGHT_PAGE
+): CanvasConfig {
   return {
     elementId,
     layers: [createDefaultLayer('Layer 1', 0)],
     objects: [],
+    background: page.background,
+    inkColor: page.inkColor,
   };
 }
 

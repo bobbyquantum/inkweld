@@ -160,6 +160,16 @@
   }
 }
 
+// Page colour preview inside the page-settings button.
+.page-swatch {
+  display: block;
+  width: 14px;
+  height: 14px;
+  margin: auto;
+  border-radius: 3px;
+  border: 1px solid var(--sys-outline);
+}
+
 .object-count {
   font-size: 11px;
   color: var(--sys-on-surface-variant);
@@ -521,14 +531,20 @@
   // A long-press opens our own context menu, not the browser callout.
   -webkit-touch-callout: none;
   user-select: none;
+  // Without a canvas-size frame the page is the whole canvas and the
+  // component paints it with the page colour (inline style). With one, this
+  // element is the pasteboard around the page: theme surface + dot grid.
   background-color: var(--sys-surface-container-lowest);
-  background-image: radial-gradient(
-    circle,
-    var(--sys-outline-variant) 0.5px,
-    transparent 0.5px
-  );
-  background-size: 20px 20px;
   cursor: default;
+
+  &.has-page-frame {
+    background-image: radial-gradient(
+      circle,
+      var(--sys-outline-variant) 0.5px,
+      transparent 0.5px
+    );
+    background-size: 20px 20px;
+  }
 
   // Konva creates a <div> with canvas elements inside
   :host-context(.tool-pan) & {

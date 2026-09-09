@@ -52,6 +52,7 @@ import {
 } from 'vitest';
 
 import { type Element, ElementType } from '../../../../../api-client';
+import { installCanvas2dStub } from '../../../../../testing/canvas-2d-stub';
 import { createCoverSourceMock } from '../../../../../testing/cover-source.mock';
 import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
 import { CanvasTabComponent } from './canvas-tab.component';
@@ -141,6 +142,7 @@ describe('CanvasTabComponent', () => {
     loadViewport: vi.fn(() => null),
     loadToolSettings: vi.fn(() => createDefaultToolSettings()),
     saveToolSettings: vi.fn(),
+    updatePageSettings: vi.fn(),
     removeObjects: vi.fn(),
     updateObjects: vi.fn(),
     addFrame: vi.fn(),
@@ -209,6 +211,11 @@ describe('CanvasTabComponent', () => {
     openElementPickerDialog: vi.fn(
       (): Promise<{ elements: { id: string }[] } | undefined> =>
         Promise.resolve(undefined)
+    ),
+    openCanvasSetupDialog: vi.fn(
+      (): Promise<
+        { page: { background: string; inkColor: string } } | undefined
+      > => Promise.resolve(undefined)
     ),
   };
 
@@ -298,6 +305,7 @@ describe('CanvasTabComponent', () => {
     r.buildKonvaObjects = vi.fn();
     r.setContentInteractive = vi.fn();
     r.syncFrames = vi.fn();
+    r.syncPage = vi.fn();
     r.setFrameEditing = vi.fn();
     r.updateFrameOverlayScale = vi.fn();
     r.resolveImageSrc = CanvasRendererService.prototype.resolveImageSrc.bind(r);
@@ -1955,6 +1963,8 @@ describe('CanvasTabComponent', () => {
     let createElementSpy: ReturnType<typeof vi.spyOn>;
 
     beforeEach(() => {
+      // Exports paint the page colour on a real Konva layer.
+      installCanvas2dStub();
       clickSpy = vi.fn();
       const originalCreateElement = document.createElement.bind(document);
       createElementSpy = vi
@@ -1984,30 +1994,34 @@ describe('CanvasTabComponent', () => {
     });
 
     it('should export PNG with pixelRatio 2', () => {
-      mockCanvasRenderer.stage = {
+      mockCanvasRenderer.stage = createStageStub({
         toDataURL: vi.fn(() => 'data:image/png;base64,abc'),
-        batchDraw: vi.fn(),
-      };
+        scaleY: vi.fn(() => 1),
+        size: vi.fn(),
+        add: vi.fn(),
+      });
 
       component['exportAsPng']();
 
-      expect(component['stage']!.toDataURL).toHaveBeenCalledWith({
-        pixelRatio: 2,
-      });
+      expect(component['stage']!.toDataURL).toHaveBeenCalledWith(
+        expect.objectContaining({ pixelRatio: 2 })
+      );
       expect(clickSpy).toHaveBeenCalled();
     });
 
     it('should export high-res PNG with pixelRatio 3', () => {
-      mockCanvasRenderer.stage = {
+      mockCanvasRenderer.stage = createStageStub({
         toDataURL: vi.fn(() => 'data:image/png;base64,xyz'),
-        batchDraw: vi.fn(),
-      };
+        scaleY: vi.fn(() => 1),
+        size: vi.fn(),
+        add: vi.fn(),
+      });
 
       component['exportAsHighResPng']();
 
-      expect(component['stage']!.toDataURL).toHaveBeenCalledWith({
-        pixelRatio: 3,
-      });
+      expect(component['stage']!.toDataURL).toHaveBeenCalledWith(
+        expect.objectContaining({ pixelRatio: 3 })
+      );
       expect(clickSpy).toHaveBeenCalled();
     });
   });
@@ -2776,6 +2790,48 @@ describe('CanvasTabComponent', () => {
 
       withFrames([{ ...frame, kind: 'canvas' }]);
       expect(component['hasCanvasSize']()).toBe(true);
+    });
+
+    it('paints the page over the whole stage until a canvas size exists', () => {
+      mockCanvasService.activeConfig.set({
+        ...defaultConfig,
+        background: '#1e1e1e',
+      });
+      fixture.detectChanges();
+      expect(component['stageBackground']()).toBe('#1e1e1e');
+
+      withFrames([{ ...frame, kind: 'canvas' }]);
+      // With a page frame the stage is the pasteboard and follows the theme.
+      expect(component['stageBackground']()).toBeNull();
+    });
+
+    it('starts the pen with the canvas default ink', () => {
+      mockCanvasService.activeConfig.set({
+        ...defaultConfig,
+        inkColor: '#f2f2f2',
+      });
+      fixture.detectChanges();
+      expect(component['toolSettings']().stroke).toBe('#f2f2f2');
+    });
+
+    it('edits page settings through the setup dialog', async () => {
+      mockDialogGateway.openCanvasSetupDialog.mockResolvedValueOnce({
+        page: { background: '#000000', inkColor: '#ffffff' },
+      });
+
+      await component['onOpenPageSettings']();
+
+      expect(mockDialogGateway.openCanvasSetupDialog).toHaveBeenCalledWith({
+        mode: 'edit',
+        page: {
+          background: defaultConfig.background,
+          inkColor: defaultConfig.inkColor,
+        },
+      });
+      expect(mockCanvasService.updatePageSettings).toHaveBeenCalledWith({
+        background: '#000000',
+        inkColor: '#ffffff',
+      });
     });
 
     it('adds a canvas size centred on the viewport, once', () => {

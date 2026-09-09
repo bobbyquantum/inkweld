@@ -329,6 +329,14 @@ export function buildSvgDocument(
     `  width="${vW}" height="${vH}" viewBox="${vX} ${vY} ${vW} ${vH}">`,
   ];
 
+  // The page colour is part of the drawing: without it, light ink on a dark
+  // page becomes light ink on whatever the viewer's background happens to be.
+  if (config.background) {
+    lines.push(
+      `  <rect id="page" x="${vX}" y="${vY}" width="${vW}" height="${vH}" fill="${svgEsc(config.background)}"/>`
+    );
+  }
+
   for (const layer of visibleLayers) {
     const layerObjs = config.objects.filter(
       o => o.layerId === layer.id && o.visible && o.type !== 'pin'

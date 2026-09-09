@@ -22,9 +22,6 @@ export type ExportRect = SvgExportRegion;
 /** Padding around fitted whole-area exports, in canvas units. */
 const EXPORT_PAD = 20;
 
-/** What `toDataURL` returns for a canvas the browser refused to render. */
-const EMPTY_DATA_URL = 'data:,';
-
 /**
  * Component-scoped service that exports the active canvas as PNG (1x/2x/3x)
  * or SVG. Operates on the renderer's current Konva stage.
@@ -67,10 +64,9 @@ export class CanvasExportService {
    * the current viewport when the canvas is empty.
    */
   exportAsPng(filename: string, pixelRatio = 2): boolean {
-    const rect = this.wholeAreaRect();
-    const dataUrl = rect
-      ? this.regionDataUrl(rect, { pixelRatio })
-      : this.viewportDataUrl(pixelRatio);
+    const rect = this.wholeAreaRect() ?? this.viewportRect();
+    if (!rect) return false;
+    const dataUrl = this.regionDataUrl(rect, { pixelRatio });
     if (!dataUrl) return false;
     CanvasExportService.download(dataUrl, `${filename}.png`);
     return true;
@@ -115,28 +111,38 @@ export class CanvasExportService {
     return dataUrlToBlob(dataUrl);
   }
 
-  /** The visible viewport as a data URL, without selection chrome. */
-  private viewportDataUrl(pixelRatio: number): string | null {
+  /** The visible viewport in world coordinates (an empty canvas export). */
+  private viewportRect(): ExportRect | null {
     const stage = this.renderer.stage;
     if (!stage) return null;
-    return CanvasExportService.rendered(
-      this.withCleanStage(stage, () => stage.toDataURL({ pixelRatio }))
-    );
+    const scale = stage.scaleX() || 1;
+    return {
+      x: -stage.x() / scale,
+      y: -stage.y() / scale,
+      width: stage.width() / scale,
+      height: stage.height() / scale,
+    };
   }
 
-  /** Treat the browser's "refused to render" result as no image at all. */
-  private static rendered(dataUrl: string): string | null {
-    return dataUrl && dataUrl !== EMPTY_DATA_URL ? dataUrl : null;
-  }
-
-  /** A world-space region as a data URL, without selection chrome. */
+  /**
+   * A world-space region as a data URL, without selection chrome and on the
+   * canvas's page colour. The page is content, not theme: the export must
+   * match what the author saw, whichever theme a viewer's image tool uses.
+   */
   private regionDataUrl(
     rect: ExportRect,
     options: RasterOptions
   ): string | null {
     const stage = this.renderer.stage;
     if (!stage) return null;
-    return renderStageRegion(stage, rect, options, this.chromeLayers());
+    const background =
+      options.background ?? this.canvasService.activeConfig()?.background;
+    return renderStageRegion(
+      stage,
+      rect,
+      { ...options, background },
+      this.chromeLayers()
+    );
   }
 
   /** Layers that must never leak into an export. */
@@ -145,26 +151,10 @@ export class CanvasExportService {
       this.renderer.selectionLayer,
       this.renderer.previewLayer,
       this.renderer.framesLayer,
+      // The on-screen page is repainted by renderStageRegion so the whole
+      // export region is covered, not just the frame.
+      this.renderer.pageLayer,
     ];
-  }
-
-  /**
-   * Run `fn` with the selection, preview and frame-border layers hidden so
-   * transformer handles and frame chrome never leak into an export.
-   */
-  private withCleanStage<T>(stage: Konva.Stage, fn: () => T): T {
-    const chrome = this.chromeLayers().filter(
-      (layer): layer is Konva.Layer => !!layer && layer.visible()
-    );
-
-    for (const layer of chrome) layer.visible(false);
-    try {
-      stage.batchDraw();
-      return fn();
-    } finally {
-      for (const layer of chrome) layer.visible(true);
-      stage.batchDraw();
-    }
   }
 
   private static download(dataUrl: string, filename: string): void {

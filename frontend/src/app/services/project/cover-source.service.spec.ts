@@ -1,6 +1,10 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import type { CanvasFrame, CanvasShape } from '@models/canvas.model';
+import {
+  type CanvasFrame,
+  type CanvasShape,
+  LIGHT_PAGE,
+} from '@models/canvas.model';
 import type { CanvasContents } from '@models/canvas-edit';
 import { type CoverSource, coverSourceHash } from '@models/cover-source';
 import { CanvasRasterizerService } from '@services/canvas/canvas-rasterizer.service';
@@ -138,6 +142,19 @@ describe('CoverSourceService', () => {
   };
 
   describe('link', () => {
+    it('renders the cover on the canvas page colour when it has one', async () => {
+      const c = { ...contents(), background: '#101010' };
+      projectState.getCanvasContents.mockReturnValue(c);
+
+      await service.link('canvas-1', 'F1');
+
+      expect(rasterizer.renderRegion).toHaveBeenCalledWith(
+        c,
+        frame,
+        expect.objectContaining({ background: '#101010' })
+      );
+    });
+
     it('links the frame, renders it and uploads the result with its hash', async () => {
       const c = contents();
       projectState.getCanvasContents.mockReturnValue(c);
@@ -151,7 +168,7 @@ describe('CoverSourceService', () => {
         frame,
         expect.objectContaining({
           mimeType: 'image/jpeg',
-          background: '#ffffff',
+          background: LIGHT_PAGE.background,
           pixelRatio: 1.6,
         })
       );
