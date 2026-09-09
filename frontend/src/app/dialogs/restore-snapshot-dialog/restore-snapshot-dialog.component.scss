@@ -8,6 +8,14 @@ h2[mat-dialog-title] {
 mat-dialog-content {
   min-width: 450px;
   max-width: 600px;
+
+  /* Mobile: fit the Material-capped dialog pane (calc(100vw - 32px)).
+     599px matches Material's own small-dialog breakpoint. */
+  @media (max-width: 599px) {
+    min-width: unset;
+    max-width: none;
+    width: 100%;
+  }
 }
 
 .warning-message {
@@ -51,6 +59,10 @@ mat-dialog-content {
   dd {
     margin: 0;
     color: var(--sys-on-surface);
+    /* Let the 1fr grid column shrink below its content's min-content width
+       so long names/descriptions wrap instead of overflowing the dialog. */
+    min-width: 0;
+    overflow-wrap: break-word;
   }
 }
 
