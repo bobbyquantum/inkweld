@@ -72,7 +72,11 @@ jobs:
           # hides the Dropbox option in Cloud Sync setup.
           DROPBOX_APP_KEY: ${{ vars.DROPBOX_APP_KEY }}
         run: |
-          printf 'export const environment = {\n  production: true,\n  version: "0.1.0",\n  apiUrl: "%s",\n  wssUrl: "%s",\n  cloudSync: {\n    dropbox: { appKey: "%s" },\n  },\n};\n' \
+          # autoConfigure: false — the preview keeps its hosted apiUrl (used to
+          # pre-fill the server step) but shows the setup screen so users can
+          # choose Browser / Cloud Sync / Server mode instead of being
+          # auto-connected.
+          printf 'export const environment = {\n  production: true,\n  version: "0.1.0",\n  apiUrl: "%s",\n  wssUrl: "%s",\n  autoConfigure: false,\n  cloudSync: {\n    dropbox: { appKey: "%s" },\n  },\n};\n' \
             "${PREVIEW_API_URL}" "${PREVIEW_WSS_URL}" "${DROPBOX_APP_KEY}" > src/environments/environment.preview.ts
 
       - name: Inject TWA signing fingerprint

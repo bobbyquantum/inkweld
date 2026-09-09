@@ -13,7 +13,7 @@ import ThemedImage from '@site/src/components/ThemedImage';
 When you first open Inkweld, you'll see the mode selection screen. This lets you choose how you want to use the application.
 
 :::tip Pre-Configured Instances
-Some Inkweld instances are pre-configured to automatically start in server mode. If your instance has a fixed server URL configured in its build, you'll skip this screen and go directly to the login page.
+Some Inkweld instances are pre-configured to automatically start in server mode. If your instance has a fixed server URL configured in its build and auto-connect enabled, you'll skip this screen and go directly to the login page. Hosted instances can also enable mode selection (the preview deployment does this) — in that case you'll see this screen even though a server URL is pre-filled.
 :::
 
 <ThemedImage

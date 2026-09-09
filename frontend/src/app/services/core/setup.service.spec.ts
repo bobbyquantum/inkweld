@@ -486,9 +486,13 @@ describe('SetupService', () => {
 
   describe('autoConfigureIfNeeded', () => {
     const originalApiUrl = environment.apiUrl;
+    const originalAutoConfigure = (environment as { autoConfigure?: boolean })
+      .autoConfigure;
 
     afterEach(() => {
-      environment.apiUrl = originalApiUrl;
+      (environment as { apiUrl: string }).apiUrl = originalApiUrl;
+      (environment as { autoConfigure?: boolean }).autoConfigure =
+        originalAutoConfigure;
     });
 
     it('should auto-configure when no active config exists (null config)', () => {
@@ -519,6 +523,31 @@ describe('SetupService', () => {
       (service as any)['autoConfigureIfNeeded']();
 
       expect(addSpy).not.toHaveBeenCalled();
+    });
+
+    it('should never auto-configure when the build opts out', () => {
+      // A hosted build with autoConfigure: false shows the setup screen
+      // instead of connecting to its baked-in server URL.
+      (environment as { apiUrl: string }).apiUrl =
+        'https://production.example.com';
+      (environment as { autoConfigure?: boolean }).autoConfigure = false;
+      (service as any)['autoConfigureIfNeeded']();
+
+      expect(service.getMode()).toBeNull();
+      expect(service.isConfigured()).toBe(false);
+      expect(service.hasServerConfig('https://production.example.com')).toBe(
+        false
+      );
+    });
+
+    it('should treat an explicit true like the default', () => {
+      (environment as { apiUrl: string }).apiUrl =
+        'https://production.example.com';
+      (environment as { autoConfigure?: boolean }).autoConfigure = true;
+      (service as any)['autoConfigureIfNeeded']();
+
+      expect(service.getMode()).toBe('server');
+      expect(service.getServerUrl()).toBe('https://production.example.com');
     });
   });
   describe('cloud sync mode', () => {
@@ -575,6 +604,8 @@ describe('SetupService', () => {
 
   describe('hosted auto-configuration', () => {
     const originalApiUrl = environment.apiUrl;
+    const originalAutoConfigure = (environment as { autoConfigure?: boolean })
+      .autoConfigure;
 
     function createServiceWithConfig(config: AppConfigV2 | null): SetupService {
       if (config) {
@@ -594,6 +625,8 @@ describe('SetupService', () => {
 
     afterEach(() => {
       (environment as { apiUrl: string }).apiUrl = originalApiUrl;
+      (environment as { autoConfigure?: boolean }).autoConfigure =
+        originalAutoConfigure;
     });
 
     it('switches to the hosted server when nothing else is active', () => {
@@ -643,6 +676,18 @@ describe('SetupService', () => {
       });
       expect(svc.getMode()).toBe('local');
       expect(svc.hasServerConfig('https://api.inkweld.test')).toBe(true);
+    });
+
+    it('leaves the app unconfigured when the build opts out of auto-configure', () => {
+      // First run on a hosted build with autoConfigure: false — the app must
+      // stay unconfigured so the setup screen can offer a mode choice.
+      (environment as { apiUrl: string }).apiUrl = 'https://api.inkweld.test';
+      (environment as { autoConfigure?: boolean }).autoConfigure = false;
+      const svc = createServiceWithConfig(null);
+
+      expect(svc.getMode()).toBeNull();
+      expect(svc.isConfigured()).toBe(false);
+      expect(svc.hasServerConfig('https://api.inkweld.test')).toBe(false);
     });
   });
 });

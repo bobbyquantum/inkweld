@@ -106,6 +106,14 @@ export class SetupService {
    * This allows Cloudflare/hosted deployments to skip manual setup
    */
   private autoConfigureIfNeeded(): void {
+    // Builds can opt out (environment.autoConfigure === false) so the setup
+    // screen offers a choice of modes even with a hosted apiUrl baked in.
+    // Read with a cast like cloudSync: the base environment does not declare
+    // every field that replaced environment files may carry.
+    const autoConfigure = (environment as { autoConfigure?: boolean })
+      .autoConfigure;
+    if (autoConfigure === false) return;
+
     const preConfiguredUrl = environment.apiUrl;
     if (!this.hasPreConfiguredApiUrl()) return;
 
