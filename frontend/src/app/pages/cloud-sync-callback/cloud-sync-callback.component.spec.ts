@@ -62,8 +62,11 @@ describe('CloudSyncCallbackComponent', () => {
     };
   });
 
-  it('navigates home when the account already has a manifest', async () => {
-    connect.completeAuthorization.mockResolvedValue({ kind: 'configured' });
+  it('sends an account with existing authors to the setup chooser', async () => {
+    connect.completeAuthorization.mockResolvedValue({
+      kind: 'choose-profile',
+      pending: { existingProfiles: [{ name: 'A', username: 'a', slugs: [] }] },
+    });
     await setup();
 
     fixture.detectChanges();
@@ -75,25 +78,13 @@ describe('CloudSyncCallbackComponent', () => {
       'code-1',
       'state-1'
     );
-    expect(userService.initialize).toHaveBeenCalled();
-    // Projects are fetched before the bookshelf opens
-    expect(engine.initialize).toHaveBeenCalledWith({ runStartupPass: false });
-    expect(engine.syncNow).toHaveBeenCalled();
-    expect(component.statusMessage()).toBe('Fetching your projects from');
-    expect(router.navigate).toHaveBeenCalledWith(['/'], { replaceUrl: true });
-    expect(component.errorMessage()).toBe('');
-  });
-
-  it('still opens the bookshelf when the initial sync fails', async () => {
-    connect.completeAuthorization.mockResolvedValue({ kind: 'configured' });
-    engine.syncNow.mockRejectedValue(new Error('rate limited'));
-    await setup();
-
-    fixture.detectChanges();
-    await fixture.whenStable();
-    await vi.waitFor(() => expect(router.navigate).toHaveBeenCalled());
-
-    expect(router.navigate).toHaveBeenCalledWith(['/'], { replaceUrl: true });
+    // Nothing is configured until the user picks or adds an author
+    expect(userService.initialize).not.toHaveBeenCalled();
+    expect(engine.initialize).not.toHaveBeenCalled();
+    expect(router.navigate).toHaveBeenCalledWith(['/setup'], {
+      replaceUrl: true,
+      queryParams: { cloud: 'dropbox' },
+    });
     expect(component.errorMessage()).toBe('');
   });
 

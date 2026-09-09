@@ -12,6 +12,8 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { ConfigurationService } from '@inkweld/index';
 import { CloudSyncConfigService } from '@services/cloud-sync/cloud-sync-config.service';
 import { CloudSyncConnectService } from '@services/cloud-sync/cloud-sync-connect.service';
+import { ProfileManagerService } from '@services/core/profile-manager.service';
+import { StorageContextService } from '@services/core/storage-context.service';
 import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -31,10 +33,13 @@ describe('SetupComponent', () => {
   let mockCloudSyncConfig: any;
   let mockCloudSyncConnect: any;
   let mockActivatedRoute: any;
+  let mockProfileManager: any;
+  let mockStorageContext: any;
 
   beforeEach(async () => {
     mockSetupService = {
       isLoading: vi.fn().mockReturnValue(false),
+      isConfigured: vi.fn().mockReturnValue(false),
       getServerUrl: vi.fn().mockReturnValue(null),
       configureServerMode: vi.fn().mockResolvedValue(undefined),
       configureLocalMode: vi.fn(),
@@ -63,9 +68,11 @@ describe('SetupComponent', () => {
 
     mockCloudSyncConnect = {
       beginAuthorization: vi.fn().mockResolvedValue(undefined),
+      connectNextcloud: vi.fn(),
       getPendingConnection: vi.fn().mockReturnValue(null),
       clearPendingConnection: vi.fn(),
       finishNewConnection: vi.fn().mockResolvedValue({ id: 'cloud-dropbox-x' }),
+      adoptExistingProfile: vi.fn().mockReturnValue({ id: 'cloud-dropbox-y' }),
     };
 
     mockActivatedRoute = {
@@ -73,6 +80,28 @@ describe('SetupComponent', () => {
         queryParamMap: { get: vi.fn().mockReturnValue(null) },
       },
     };
+
+    mockProfileManager = {
+      describe: vi.fn((config: { userProfile?: { name: string } }) => ({
+        name: config.userProfile?.name ?? 'Browser',
+      })),
+      upgradeInto: vi.fn().mockResolvedValue({ projectCount: 2 }),
+      disconnect: vi.fn().mockResolvedValue('home'),
+    };
+    mockStorageContext = {
+      listProjectsForContext: vi.fn().mockReturnValue([]),
+      getConfigurations: vi.fn().mockReturnValue([]),
+      getConfigById: vi.fn((id: string) =>
+        id === 'local'
+          ? {
+              id: 'local',
+              type: 'local',
+              userProfile: { name: 'Author A', username: 'authora' },
+            }
+          : undefined
+      ),
+    };
+    sessionStorage.removeItem('inkweld-profile-upgrade-source');
 
     await TestBed.configureTestingModule({
       imports: [
@@ -96,6 +125,8 @@ describe('SetupComponent', () => {
         { provide: CloudSyncConfigService, useValue: mockCloudSyncConfig },
         { provide: CloudSyncConnectService, useValue: mockCloudSyncConnect },
         { provide: ActivatedRoute, useValue: mockActivatedRoute },
+        { provide: ProfileManagerService, useValue: mockProfileManager },
+        { provide: StorageContextService, useValue: mockStorageContext },
       ],
     }).compileComponents();
 
@@ -342,6 +373,43 @@ describe('SetupComponent', () => {
       expect(component['showServerSetup']()).toBe(false);
       expect(component['showLocalSetup']()).toBe(false);
     });
+
+    it('offers a way back into the app once configured', () => {
+      mockSetupService.isConfigured.mockReturnValue(true);
+
+      expect(component['canGoBack']()).toBe(true);
+      component['goBack']();
+
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/']);
+    });
+
+    it('shows no back button on a fresh install', () => {
+      expect(component['canGoBack']()).toBe(false);
+    });
+
+    it('opens the step named by ?mode', () => {
+      mockCloudSyncConfig.isCloudSyncAvailable.mockReturnValue(true);
+      mockCloudSyncConfig.availableProviders.mockReturnValue(['nextcloud']);
+      mockActivatedRoute.snapshot.queryParamMap.get.mockImplementation(
+        (key: string) =>
+          key === 'mode' ? 'cloud' : key === 'provider' ? 'nextcloud' : null
+      );
+
+      fixture.detectChanges();
+
+      expect(component['showCloudSetup']()).toBe(false);
+      expect(component['showNextcloudSetup']()).toBe(true);
+    });
+
+    it('opens the server step for ?mode=server', () => {
+      mockActivatedRoute.snapshot.queryParamMap.get.mockImplementation(
+        (key: string) => (key === 'mode' ? 'server' : null)
+      );
+
+      fixture.detectChanges();
+
+      expect(component['showServerSetup']()).toBe(true);
+    });
   });
 
   describe('setupServerMode', () => {
@@ -425,7 +493,7 @@ describe('SetupComponent', () => {
         name: 'Test User',
       });
       expect(mockSnackBar.open).toHaveBeenCalledWith(
-        'Local mode configured!',
+        'Browser profile ready!',
         'Close',
         { duration: 3000 }
       );
@@ -467,7 +535,7 @@ describe('SetupComponent', () => {
       });
       expect(mockUnifiedUserService.initialize).toHaveBeenCalled();
       expect(mockSnackBar.open).toHaveBeenCalledWith(
-        'Local mode configured!',
+        'Browser profile ready!',
         'Close',
         { duration: 3000 }
       );
@@ -520,6 +588,222 @@ describe('SetupComponent', () => {
       expect(mockRouter.navigate).not.toHaveBeenCalled();
     });
   });
+  describe('profile upgrade', () => {
+    const pending = {
+      provider: 'dropbox' as const,
+      accountId: 'dbid:1',
+      accountLabel: 'bobby@example.com',
+      suggestedName: 'Bobby Quantum',
+      suggestedUsername: 'bobby-quantum',
+    };
+
+    it('remembers the source from ?upgradeFrom and retitles the screen', () => {
+      mockActivatedRoute.snapshot.queryParamMap.get.mockImplementation(
+        (key: string) =>
+          key === 'upgradeFrom' ? 'local' : key === 'mode' ? 'cloud' : null
+      );
+
+      fixture.detectChanges();
+
+      expect(sessionStorage.getItem('inkweld-profile-upgrade-source')).toBe(
+        'local'
+      );
+      expect(component['upgradeSourceName']()).toBe('Author A');
+      expect(component['showCloudSetup']()).toBe(true);
+      expect(fixture.nativeElement.textContent).toContain('Connect to sync');
+    });
+
+    it('keeps the author name and username when prefilling the profile step', () => {
+      sessionStorage.setItem('inkweld-profile-upgrade-source', 'local');
+      mockActivatedRoute.snapshot.queryParamMap.get.mockImplementation(
+        (key: string) => (key === 'cloud' ? 'dropbox' : null)
+      );
+      mockCloudSyncConnect.getPendingConnection.mockReturnValue(pending);
+
+      fixture.detectChanges();
+
+      expect(component['displayName']).toBe('Author A');
+      expect(component['userName']).toBe('authora');
+    });
+
+    it('copies the source profile into the new cloud profile and reloads', async () => {
+      sessionStorage.setItem('inkweld-profile-upgrade-source', 'local');
+      const originalLocation = globalThis.location;
+      const assign = vi.fn();
+      Object.defineProperty(globalThis, 'location', {
+        value: { assign },
+        writable: true,
+        configurable: true,
+      });
+      component['pendingCloudConnection'].set(pending);
+      component['displayName'] = 'Author A';
+      component['userName'] = 'authora';
+
+      try {
+        await component['setupCloudProfile']();
+      } finally {
+        Object.defineProperty(globalThis, 'location', {
+          value: originalLocation,
+          writable: true,
+          configurable: true,
+        });
+      }
+
+      expect(mockProfileManager.upgradeInto).toHaveBeenCalledWith(
+        'local',
+        'cloud-dropbox-x',
+        'authora',
+        []
+      );
+      expect(
+        sessionStorage.getItem('inkweld-profile-upgrade-source')
+      ).toBeNull();
+      expect(assign).toHaveBeenCalledWith('/');
+      expect(mockRouter.navigate).not.toHaveBeenCalled();
+    });
+
+    it('continues as an existing author and reloads', async () => {
+      const originalLocation = globalThis.location;
+      const assign = vi.fn();
+      Object.defineProperty(globalThis, 'location', {
+        value: { assign },
+        writable: true,
+        configurable: true,
+      });
+      component['pendingCloudConnection'].set({
+        ...pending,
+        existingProfiles: [{ name: 'Bee', username: 'bee', slugs: [] }],
+      });
+
+      try {
+        await component['continueAsExisting']({ name: 'Bee', username: 'bee' });
+      } finally {
+        Object.defineProperty(globalThis, 'location', {
+          value: originalLocation,
+          writable: true,
+          configurable: true,
+        });
+      }
+
+      expect(mockCloudSyncConnect.adoptExistingProfile).toHaveBeenCalledWith(
+        expect.objectContaining({ accountId: 'dbid:1' }),
+        { name: 'Bee', username: 'bee' }
+      );
+      expect(mockProfileManager.upgradeInto).not.toHaveBeenCalled();
+      expect(assign).toHaveBeenCalledWith('/');
+    });
+
+    it('upgrading into an author that already exists asks to rename clashing projects', async () => {
+      sessionStorage.setItem('inkweld-profile-upgrade-source', 'local');
+      mockStorageContext.listProjectsForContext.mockReturnValue([
+        { username: 'authora', slug: 'novel', title: 'Novel' },
+        { username: 'authora', slug: 'fresh', title: 'Fresh' },
+      ]);
+      mockActivatedRoute.snapshot.queryParamMap.get.mockImplementation(
+        (key: string) => (key === 'cloud' ? 'dropbox' : null)
+      );
+      mockCloudSyncConnect.getPendingConnection.mockReturnValue({
+        ...pending,
+        existingProfiles: [
+          {
+            name: 'Author A',
+            username: 'AuthorA',
+            slugs: ['novel', 'novel-2'],
+          },
+        ],
+      });
+
+      fixture.detectChanges();
+
+      expect(component['showCloudClash']()).toBe(true);
+      expect(component['clashes']()).toEqual([
+        { slug: 'novel', title: 'Novel', newSlug: 'novel-3' },
+      ]);
+      expect(component['clashesResolved']()).toBe(true);
+
+      component['setClashSlug']('novel', 'novel-2');
+      expect(component['clashesResolved']()).toBe(false);
+      component['setClashSlug']('novel', 'my-novel');
+      expect(component['clashesResolved']()).toBe(true);
+
+      const originalLocation = globalThis.location;
+      const assign = vi.fn();
+      Object.defineProperty(globalThis, 'location', {
+        value: { assign },
+        writable: true,
+        configurable: true,
+      });
+      try {
+        await component['confirmClashes']();
+      } finally {
+        Object.defineProperty(globalThis, 'location', {
+          value: originalLocation,
+          writable: true,
+          configurable: true,
+        });
+      }
+
+      expect(mockCloudSyncConnect.adoptExistingProfile).toHaveBeenCalledWith(
+        expect.anything(),
+        { name: 'Author A', username: 'AuthorA' }
+      );
+      expect(mockProfileManager.upgradeInto).toHaveBeenCalledWith(
+        'local',
+        'cloud-dropbox-y',
+        'AuthorA',
+        [{ oldSlug: 'novel', newSlug: 'my-novel' }]
+      );
+      expect(assign).toHaveBeenCalledWith('/');
+    });
+
+    it('upgrading into an account without this author goes to the profile form', () => {
+      sessionStorage.setItem('inkweld-profile-upgrade-source', 'local');
+      mockActivatedRoute.snapshot.queryParamMap.get.mockImplementation(
+        (key: string) => (key === 'cloud' ? 'dropbox' : null)
+      );
+      mockCloudSyncConnect.getPendingConnection.mockReturnValue({
+        ...pending,
+        existingProfiles: [{ name: 'Bee', username: 'bee', slugs: [] }],
+      });
+
+      fixture.detectChanges();
+
+      expect(component['showCloudProfileSetup']()).toBe(true);
+      expect(component['showCloudChooseProfile']()).toBe(false);
+      expect(component['userName']).toBe('authora');
+    });
+
+    it('a plain add into an account with authors shows the chooser', () => {
+      mockActivatedRoute.snapshot.queryParamMap.get.mockImplementation(
+        (key: string) => (key === 'cloud' ? 'dropbox' : null)
+      );
+      mockCloudSyncConnect.getPendingConnection.mockReturnValue({
+        ...pending,
+        existingProfiles: [{ name: 'Bee', username: 'bee', slugs: [] }],
+      });
+
+      fixture.detectChanges();
+
+      expect(component['showCloudChooseProfile']()).toBe(true);
+      component['addNewCloudProfile']();
+      expect(component['showCloudChooseProfile']()).toBe(false);
+      expect(component['showCloudProfileSetup']()).toBe(true);
+      expect(component['userName']).toBe('bobby-quantum');
+    });
+
+    it('abandoning the welcome screen forgets the pending upgrade', () => {
+      sessionStorage.setItem('inkweld-profile-upgrade-source', 'local');
+      mockSetupService.isConfigured.mockReturnValue(true);
+
+      component['goBack']();
+
+      expect(
+        sessionStorage.getItem('inkweld-profile-upgrade-source')
+      ).toBeNull();
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/']);
+    });
+  });
+
   describe('cloud sync', () => {
     const pending = {
       provider: 'dropbox' as const,
@@ -623,6 +907,134 @@ describe('SetupComponent', () => {
         'Close',
         expect.anything()
       );
+    });
+
+    describe('nextcloud', () => {
+      const ncPending = {
+        provider: 'nextcloud' as const,
+        accountId: 'https://cloud.example.com#bob',
+        accountLabel: 'bob on cloud.example.com',
+        suggestedName: 'bob',
+        suggestedUsername: 'bob',
+      };
+
+      function enableNextcloud(): void {
+        mockCloudSyncConfig.isCloudSyncAvailable.mockReturnValue(true);
+        mockCloudSyncConfig.availableProviders.mockReturnValue([
+          'dropbox',
+          'nextcloud',
+        ]);
+      }
+
+      it('opens the address form instead of redirecting', async () => {
+        enableNextcloud();
+        component['chooseCloudMode']();
+
+        await component['connectCloudProvider']('nextcloud');
+        fixture.detectChanges();
+        await fixture.whenStable();
+
+        expect(mockCloudSyncConnect.beginAuthorization).not.toHaveBeenCalled();
+        expect(component['showNextcloudSetup']()).toBe(true);
+        expect(component['showCloudSetup']()).toBe(false);
+        expect(component['canGoBack']()).toBe(true);
+        const form = fixture.nativeElement.querySelector(
+          '[data-testid="nextcloud-form"]'
+        );
+        expect(form).not.toBeNull();
+        expect(
+          fixture.nativeElement
+            .querySelector('[data-testid="nextcloud-guide-link"]')
+            .getAttribute('href')
+        ).toContain('/user-guide/getting-started/nextcloud-sync');
+        expect(
+          fixture.nativeElement.querySelector(
+            '[data-testid="connect-nextcloud-button"]'
+          ).disabled
+        ).toBe(true);
+      });
+
+      it('goes back to the provider list from the address form', () => {
+        enableNextcloud();
+        component['showNextcloudSetup'].set(true);
+
+        component['goBack']();
+
+        expect(component['showNextcloudSetup']()).toBe(false);
+        expect(component['showCloudSetup']()).toBe(true);
+      });
+
+      it('offers the existing authors when the folder already has a manifest', async () => {
+        mockCloudSyncConnect.connectNextcloud.mockResolvedValue({
+          kind: 'choose-profile',
+          pending: {
+            ...ncPending,
+            existingProfiles: [{ name: 'Bob', username: 'bob', slugs: ['a'] }],
+          },
+        });
+        component['nextcloudUrl'] = 'cloud.example.com';
+        component['nextcloudUser'] = 'bob';
+        component['nextcloudAppPassword'] = 'pw';
+
+        await component['connectNextcloud']();
+        fixture.detectChanges();
+
+        expect(component['showCloudChooseProfile']()).toBe(true);
+        expect(component['showCloudProfileSetup']()).toBe(false);
+        expect(mockRouter.navigate).not.toHaveBeenCalled();
+        expect(component['nextcloudAppPassword']).toBe('');
+        expect(
+          fixture.nativeElement.querySelector(
+            '[data-testid="cloud-continue-bob"]'
+          )
+        ).not.toBeNull();
+        expect(
+          fixture.nativeElement.querySelector(
+            '[data-testid="cloud-add-new-profile"]'
+          )
+        ).not.toBeNull();
+      });
+
+      it('moves to the profile step for an empty folder', async () => {
+        mockCloudSyncConnect.connectNextcloud.mockResolvedValue({
+          kind: 'needs-profile',
+          pending: ncPending,
+        });
+        component['showNextcloudSetup'].set(true);
+        component['nextcloudUrl'] = 'https://cloud.example.com';
+        component['nextcloudUser'] = 'bob';
+        component['nextcloudAppPassword'] = 'pw';
+
+        await component['connectNextcloud']();
+
+        expect(component['showNextcloudSetup']()).toBe(false);
+        expect(component['showCloudProfileSetup']()).toBe(true);
+        expect(component['pendingCloudConnection']()).toEqual(ncPending);
+        expect(component['displayName']).toBe('bob');
+        expect(component['userName']).toBe('bob');
+        expect(component['pendingProviderName']()).toBe('Nextcloud');
+        expect(mockRouter.navigate).not.toHaveBeenCalled();
+      });
+
+      it('shows the connect error and stays on the form', async () => {
+        mockCloudSyncConnect.connectNextcloud.mockRejectedValue(
+          new Error('Could not reach cloud.example.com.')
+        );
+        component['showNextcloudSetup'].set(true);
+        component['nextcloudUrl'] = 'https://cloud.example.com';
+        component['nextcloudUser'] = 'bob';
+        component['nextcloudAppPassword'] = 'pw';
+
+        await component['connectNextcloud']();
+
+        expect(mockSnackBar.open).toHaveBeenCalledWith(
+          'Could not reach cloud.example.com.',
+          'Close',
+          expect.anything()
+        );
+        expect(component['showNextcloudSetup']()).toBe(true);
+        expect(component['isConnectingCloud']()).toBe(false);
+      });
     });
 
     it('opens the profile step when returning from the provider', () => {

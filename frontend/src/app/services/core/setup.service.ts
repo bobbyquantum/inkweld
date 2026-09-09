@@ -7,7 +7,6 @@ import { LoggerService } from './logger.service';
 import {
   type CloudProvider,
   isLocalOrCloudMode,
-  LOCAL_CONFIG_ID,
   type ServerConfig,
   type StorageConfigType,
   StorageContextService,
@@ -82,6 +81,27 @@ export class SetupService {
   }
 
   /**
+   * The Inkweld server this build was deployed alongside, or null for a
+   * local/dev build. Its connection is re-created on every load, so the UI
+   * treats it as built in rather than removable.
+   */
+  getHostedServerUrl(): string | null {
+    return this.hasPreConfiguredApiUrl()
+      ? stripTrailingSlashes(environment.apiUrl)
+      : null;
+  }
+
+  /** True for the connection that points at the hosted server of this build */
+  isHostedServerConfig(config: ServerConfig): boolean {
+    const hosted = this.getHostedServerUrl();
+    return (
+      !!hosted &&
+      config.type === 'server' &&
+      stripTrailingSlashes(config.serverUrl ?? '') === hosted
+    );
+  }
+
+  /**
    * Auto-configure for hosted deployments with pre-set API URLs
    * This allows Cloudflare/hosted deployments to skip manual setup
    */
@@ -130,7 +150,10 @@ export class SetupService {
   /**
    * Configure the app for server mode
    */
-  async configureServerMode(serverUrl: string): Promise<void> {
+  async configureServerMode(
+    serverUrl: string,
+    options: { username?: string } = {}
+  ): Promise<void> {
     this.isLoading.set(true);
     try {
       // Strip trailing slashes to prevent double-slash URLs
@@ -142,8 +165,15 @@ export class SetupService {
         throw new Error('Server is not reachable');
       }
 
-      // Add server config and switch to it
-      const serverConfig = this.storageContext.addServerConfig(normalizedUrl);
+      // Add (or find) the server profile and switch to it. Passing the
+      // username the user is about to log in with keeps a second author on
+      // the same server in a separate profile.
+      const serverConfig = this.storageContext.addServerConfig(
+        normalizedUrl,
+        undefined,
+        undefined,
+        options
+      );
       this.storageContext.switchToConfig(serverConfig.id);
     } catch (error) {
       console.error('Failed to configure server mode:', error);
@@ -159,9 +189,9 @@ export class SetupService {
   configureLocalMode(userProfile: { name: string; username: string }): void {
     this.isLoading.set(true);
     try {
-      // Add local config and switch to it
-      this.storageContext.addLocalConfig(userProfile);
-      this.storageContext.switchToConfig(LOCAL_CONFIG_ID);
+      // Add (or find) the Browser profile for this username and switch to it
+      const config = this.storageContext.addLocalConfig(userProfile);
+      this.storageContext.switchToConfig(config.id);
     } finally {
       this.isLoading.set(false);
     }

@@ -86,6 +86,7 @@ describe('UserMenuComponent', () => {
 
     routerMock = {
       navigateByUrl: vi.fn().mockResolvedValue(true),
+      navigate: vi.fn().mockResolvedValue(true),
     } as unknown as MockedObject<Router>;
 
     tutorialServiceMock = { start: vi.fn().mockReturnValue(true) };
@@ -225,6 +226,14 @@ describe('UserMenuComponent', () => {
     });
   });
 
+  describe('onAddConnection()', () => {
+    it('opens the welcome screen without disconnecting anything', () => {
+      component.onAddConnection();
+      expect(routerMock.navigate).toHaveBeenCalledWith(['/setup']);
+      expect(storageContextMock.switchToConfig).not.toHaveBeenCalled();
+    });
+  });
+
   describe('onThemeChange()', () => {
     it('should update theme to light-theme', () => {
       component.onThemeChange('light-theme');
@@ -270,7 +279,7 @@ describe('UserMenuComponent', () => {
     it('should return local mode status when in local mode', () => {
       setupServiceMock.getMode.mockReturnValue('local');
       const status = component.getConnectionStatus();
-      expect(status.text).toBe('Local Mode');
+      expect(status.text).toBe('Browser · this device only');
       expect(status.cssClass).toBe('local');
       expect(status.icon).toBe('computer');
     });
@@ -311,9 +320,11 @@ describe('UserMenuComponent', () => {
       } as never;
       const info = component.getProfileDisplay(profile);
       expect(info.name).toBe('Dropbox');
-      expect(info.subtitle).toBe('bobby@example.com');
+      expect(info.subtitle).toBe('Dropbox · bobby@example.com');
       expect(info.icon).toBe('cloud_sync');
-      expect(info.hasAuth).toBe(true);
+      // No stored provider credentials in this spec: needs a reconnect
+      expect(info.hasAuth).toBe(false);
+      expect(info.kind).toBe('Cloud Sync');
     });
   });
 
@@ -324,10 +335,10 @@ describe('UserMenuComponent', () => {
       expect(name).toBe('Not configured');
     });
 
-    it('should return "Local Mode" for local profile', () => {
+    it('should return "Browser" for a local profile, even one saved as Local Mode', () => {
       activeConfigSignal.set(mockLocalConfig);
       const name = component.getCurrentServerName();
-      expect(name).toBe('Local Mode');
+      expect(name).toBe('Browser');
     });
 
     it('should return display name for server profile', () => {
@@ -393,10 +404,7 @@ describe('UserMenuComponent', () => {
       expect(switchButton).toBeTruthy();
     });
 
-    it('should show "switch to local mode" action in server mode', async () => {
-      setupServiceMock.getMode.mockReturnValue('server');
-      fixture.detectChanges();
-
+    it('flips into the account switcher without closing the menu', async () => {
       const menuButton = fixture.nativeElement.querySelector(
         '[data-testid="user-menu-button"]'
       );
@@ -404,63 +412,94 @@ describe('UserMenuComponent', () => {
       await fixture.whenStable();
       fixture.detectChanges();
 
-      const switchToLocal = document.querySelector(
-        '[data-testid="switch-to-local-button"]'
-      );
-      expect(switchToLocal).toBeTruthy();
-      expect(switchToLocal?.textContent).toContain('Switch to Local Mode');
+      expect(
+        document.querySelector('[data-testid="profile-switcher"]')
+      ).toBeNull();
 
-      const connectToServer = document.querySelector(
-        '[data-testid="connect-to-server-button"]'
-      );
-      expect(connectToServer).toBeFalsy();
-    });
-
-    it('should show "connect to a server" action in local mode', async () => {
-      createFixtureWithMode('local');
-
-      const menuButton = fixture.nativeElement.querySelector(
-        '[data-testid="user-menu-button"]'
-      );
-      menuButton?.click();
-      await fixture.whenStable();
-      fixture.detectChanges();
-
-      const connectToServer = document.querySelector(
-        '[data-testid="connect-to-server-button"]'
-      );
-      expect(connectToServer).toBeTruthy();
-      expect(connectToServer?.textContent).toContain('Connect to Server');
-
-      const switchToLocal = document.querySelector(
-        '[data-testid="switch-to-local-button"]'
-      );
-      expect(switchToLocal).toBeFalsy();
-    });
-
-    it('should open profile manager when switch-to-local clicked', async () => {
-      setupServiceMock.getMode.mockReturnValue('server');
-      fixture.detectChanges();
-
-      const menuButton = fixture.nativeElement.querySelector(
-        '[data-testid="user-menu-button"]'
-      );
-      menuButton?.click();
-      await fixture.whenStable();
-      fixture.detectChanges();
-
-      const switchToLocal = document.querySelector(
-        '[data-testid="switch-to-local-button"]'
+      const toggle = document.querySelector(
+        '[data-testid="switch-server-button"]'
       ) as HTMLElement;
-      switchToLocal?.click();
+      toggle.click();
       await fixture.whenStable();
+      fixture.detectChanges();
 
-      expect(dialogGatewayMock.openProfileManagerDialog).toHaveBeenCalled();
+      expect(component['switcherOpen']()).toBe(true);
+      expect(
+        document.querySelector('[data-testid="profile-switcher"]')
+      ).toBeTruthy();
+      expect(
+        document.querySelector('[data-testid="profile-local"]')
+      ).toBeTruthy();
+      expect(
+        document.querySelector('[data-testid="add-profile-button"]')
+      ).toBeTruthy();
+      expect(
+        document.querySelector('[data-testid="manage-profiles-button"]')
+      ).toBeTruthy();
+      // Regular actions are hidden while switching
+      expect(
+        document.querySelector('[data-testid="about-menu-link"]')
+      ).toBeNull();
     });
 
-    it('should open profile manager when connect-to-server clicked', async () => {
-      createFixtureWithMode('local');
+    it('goes back from the switcher to the actions', async () => {
+      const menuButton = fixture.nativeElement.querySelector(
+        '[data-testid="user-menu-button"]'
+      );
+      menuButton?.click();
+      await fixture.whenStable();
+      fixture.detectChanges();
+      component['switcherOpen'].set(true);
+      fixture.detectChanges();
 
+      (
+        document.querySelector(
+          '[data-testid="switcher-back-button"]'
+        ) as HTMLElement
+      ).click();
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      expect(component['switcherOpen']()).toBe(false);
+      expect(
+        document.querySelector('[data-testid="about-menu-link"]')
+      ).toBeTruthy();
+    });
+
+    it('opens the profiles manager from the switcher', async () => {
+      const menuButton = fixture.nativeElement.querySelector(
+        '[data-testid="user-menu-button"]'
+      );
+      menuButton?.click();
+      await fixture.whenStable();
+      fixture.detectChanges();
+      component['switcherOpen'].set(true);
+      fixture.detectChanges();
+
+      (
+        document.querySelector(
+          '[data-testid="manage-profiles-button"]'
+        ) as HTMLElement
+      ).click();
+      await fixture.whenStable();
+
+      expect(dialogGatewayMock.openProfileManagerDialog).toHaveBeenCalledWith();
+    });
+
+    it('offers an upgrade for Browser and cloud profiles only', async () => {
+      expect(component['canUpgrade']()).toBe(true);
+
+      await component.onUpgradeProfile();
+      expect(dialogGatewayMock.openProfileManagerDialog).toHaveBeenCalledWith({
+        view: 'upgrade',
+      });
+
+      activeConfigSignal.set(mockServerConfig);
+      expect(component['canUpgrade']()).toBe(false);
+    });
+
+    it('shows the status line and the upgrade item for a Browser profile', async () => {
+      createFixtureWithMode('local');
       const menuButton = fixture.nativeElement.querySelector(
         '[data-testid="user-menu-button"]'
       );
@@ -468,18 +507,19 @@ describe('UserMenuComponent', () => {
       await fixture.whenStable();
       fixture.detectChanges();
 
-      const connectToServer = document.querySelector(
-        '[data-testid="connect-to-server-button"]'
-      ) as HTMLElement;
-      connectToServer?.click();
-      await fixture.whenStable();
-
-      expect(dialogGatewayMock.openProfileManagerDialog).toHaveBeenCalled();
+      expect(
+        document.querySelector('[data-testid="connection-status-line"]')
+          ?.textContent
+      ).toContain('Browser · this device only');
+      expect(
+        document.querySelector('[data-testid="upgrade-profile-menu-item"]')
+      ).toBeTruthy();
     });
 
     it('should get correct profile display for local mode', () => {
       const display = component.getProfileDisplay(mockLocalConfig);
-      expect(display.name).toBe('Local Mode');
+      expect(display.name).toBe('Test User');
+      expect(display.subtitle).toBe('@testuser · this browser');
       expect(display.icon).toBe('computer');
       expect(display.isActive).toBe(true);
       expect(display.hasAuth).toBe(true);
@@ -487,8 +527,9 @@ describe('UserMenuComponent', () => {
 
     it('should get correct profile display for server mode', () => {
       const display = component.getProfileDisplay(mockServerConfig);
-      expect(display.name).toBe('My Server');
-      expect(display.icon).toBe('cloud');
+      expect(display.name).toBe('Server User');
+      expect(display.subtitle).toBe('@serveruser · My Server');
+      expect(display.icon).toBe('dns');
       expect(display.isActive).toBe(false);
     });
 

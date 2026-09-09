@@ -117,11 +117,18 @@ describe('PasskeyService', () => {
 
     authTokenService = {
       setToken: vi.fn(),
+      moveToken: vi.fn(),
     } as unknown as MockedObject<AuthTokenService>;
 
     storageContext = {
-      getActiveConfig: vi.fn().mockReturnValue({ id: 'server-1' }),
+      getActiveConfig: vi
+        .fn()
+        .mockReturnValue({ id: 'server-1', type: 'server' }),
       updateConfigUserProfile: vi.fn(),
+      adoptServerLogin: vi.fn().mockReturnValue({
+        config: { id: 'server-1' },
+        forkedFrom: null,
+      }),
     } as unknown as MockedObject<StorageContextService>;
 
     fakeBrowserSupportsWebAuthn = vi.fn().mockReturnValue(true);
@@ -262,10 +269,11 @@ describe('PasskeyService', () => {
 
       expect(result).toEqual(fakeUser);
       expect(authTokenService.setToken).toHaveBeenCalledWith(fakeToken);
-      expect(storageContext.updateConfigUserProfile).toHaveBeenCalledWith(
-        'server-1',
-        { name: 'Test User', username: 'testuser' }
-      );
+      expect(storageContext.adoptServerLogin).toHaveBeenCalledWith({
+        name: 'Test User',
+        username: 'testuser',
+      });
+      expect(authTokenService.moveToken).not.toHaveBeenCalled();
     });
 
     it('throws UNSUPPORTED when browser does not support passkeys', async () => {
@@ -416,13 +424,13 @@ describe('PasskeyService', () => {
 
       await service.login();
 
-      expect(storageContext.updateConfigUserProfile).toHaveBeenCalledWith(
-        'server-1',
-        { name: 'testuser', username: 'testuser' }
-      );
+      expect(storageContext.adoptServerLogin).toHaveBeenCalledWith({
+        name: 'testuser',
+        username: 'testuser',
+      });
     });
 
-    it('skips updateConfigUserProfile when no active config', async () => {
+    it('skips binding a profile when no active config', async () => {
       storageContext.getActiveConfig.mockReturnValue(null);
       passkeyApi.startPasskeyLogin.mockReturnValue(obs(fakeLoginOptions));
       fakeStartAuthentication.mockResolvedValue(fakeAssertion);
@@ -432,7 +440,7 @@ describe('PasskeyService', () => {
 
       await service.login();
 
-      expect(storageContext.updateConfigUserProfile).not.toHaveBeenCalled();
+      expect(storageContext.adoptServerLogin).not.toHaveBeenCalled();
     });
   });
 

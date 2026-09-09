@@ -10,12 +10,18 @@ import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import {
+  MAT_DIALOG_DATA,
+  MatDialog,
+  MatDialogModule,
+  MatDialogRef,
+} from '@angular/material/dialog';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatListModule } from '@angular/material/list';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -25,6 +31,14 @@ import { RegistrationFormComponent } from '@components/registration-form/registr
 import { type Project, ProjectsService } from '@inkweld/index';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { AuthTokenService } from '@services/auth/auth-token.service';
+import { CloudSyncConfigService } from '@services/cloud-sync/cloud-sync-config.service';
+import {
+  type ProfileDestination,
+  type ProfileInfo,
+  ProfileManagerService,
+  setProfileUpgradeSource,
+  type StorageScan,
+} from '@services/core/profile-manager.service';
 import { SetupService } from '@services/core/setup.service';
 import {
   type ServerConfig,
@@ -44,14 +58,25 @@ import {
 } from '../confirmation-dialog/confirmation-dialog.component';
 
 /**
- * Dialog for managing server profiles/connections.
- * Allows users to:
- * - View and switch between configured servers
- * - Add new server connections
- * - Remove existing profiles
- * - Switch to local mode
- * - Migrate local projects to a server
+ * Dialog for managing profiles: every author identity this browser knows,
+ * whether it lives in the browser, in a cloud account, or on an Inkweld
+ * server.
+ *
+ * Users can:
+ * - See which profile is active and switch between them
+ * - Add a profile (via the welcome screen), or move Browser projects to a
+ *   server profile with the guided migration flow
+ * - Remove any profile, including the active one, deleting its data from
+ *   this device
+ * - Inspect what each profile stores on this device and clean up leftovers
+ *   from removed profiles
+ * - Reset this device completely
  */
+/** Optional data: which view to open with */
+export interface ProfileManagerDialogData {
+  view?: 'list' | 'upgrade';
+}
+
 @Component({
   selector: 'app-profile-manager-dialog',
   imports: [
@@ -67,6 +92,7 @@ import {
     MatProgressSpinnerModule,
     MatProgressBarModule,
     MatTooltipModule,
+    MatMenuModule,
     FormsModule,
     TranslocoModule,
     RegistrationFormComponent,
@@ -79,6 +105,11 @@ export class ProfileManagerDialogComponent {
   private readonly storageContext = inject(StorageContextService);
   private readonly authTokenService = inject(AuthTokenService);
   private readonly setupService = inject(SetupService);
+  private readonly profileManager = inject(ProfileManagerService);
+  private readonly cloudSyncConfig = inject(CloudSyncConfigService);
+  private readonly dialogRef = inject(
+    MatDialogRef<ProfileManagerDialogComponent>
+  );
   private readonly migrationService = inject(MigrationService);
   private readonly projectsService = inject(ProjectsService);
   private readonly backgroundSyncService = inject(BackgroundSyncService);
@@ -87,21 +118,58 @@ export class ProfileManagerDialogComponent {
   private readonly dialog = inject(MatDialog);
   private readonly transloco = inject(TranslocoService);
 
-  // View state
-  protected currentView = signal<'list' | 'add' | 'add-local' | 'migrate'>(
-    'list'
+  private readonly dialogData = inject<ProfileManagerDialogData | null>(
+    MAT_DIALOG_DATA,
+    { optional: true }
   );
+
+  // View state
+  protected currentView = signal<
+    'list' | 'add' | 'add-local' | 'migrate' | 'upgrade'
+  >(this.dialogData?.view ?? 'list');
 
   // Add local form
   protected localUsername = signal('');
   protected localDisplayName = signal('');
   protected localError = signal<string | null>(null);
 
-  // Profile list
-  protected profiles = computed(() => this.storageContext.getConfigurations());
+  // Connection list (active first)
+  protected profiles = computed(() =>
+    this.profileManager.connections().map(c => c.config)
+  );
   protected activeProfile = computed(() =>
     this.storageContext.getActiveConfig()
   );
+  /** Cloud storage can be added when this build offers at least one provider */
+  protected canAddCloud = computed(() =>
+    this.cloudSyncConfig.isCloudSyncAvailable()
+  );
+
+  /** The active profile as the manager describes it */
+  protected activeInfo = computed(
+    () => this.profileManager.activeConnection() ?? null
+  );
+
+  /**
+   * Upgrade paths for the active profile. Browser can go to cloud storage or
+   * a server; cloud can go to a server; a server profile is the top of the
+   * ladder.
+   */
+  protected upgradeOptions = computed<('cloud' | 'server')[]>(() => {
+    const info = this.activeInfo();
+    if (!info) return [];
+    if (info.kind === 'local') {
+      return this.canAddCloud() ? ['cloud', 'server'] : ['server'];
+    }
+    if (info.kind === 'cloud') return ['server'];
+    return [];
+  });
+
+  // Storage on this device (loaded on demand)
+  protected showStorage = signal(false);
+  protected storageScan = signal<StorageScan | null>(null);
+  protected isScanning = signal(false);
+  protected isBusy = signal(false);
 
   // Check if we have a local profile
   protected hasLocalProfile = computed(() =>
@@ -193,6 +261,12 @@ export class ProfileManagerDialogComponent {
 
   // Pending server URL for migration (exposed to template for registration form)
   protected pendingServerUrl = '';
+  /** Profile that was active when the migration started (the source) */
+  private migrationSourceId: string | null = null;
+  /** Server profile the login landed in (the destination) */
+  private migrationTargetId: string | null = null;
+  /** Username the user logged in or registered with on the target server */
+  private migrationUsername = '';
 
   /**
    * Normalize a server URL by ensuring it has a protocol prefix.
@@ -255,47 +329,20 @@ export class ProfileManagerDialogComponent {
   /**
    * Get display info for a profile
    */
-  getProfileInfo(profile: ServerConfig): {
-    name: string;
-    subtitle: string;
-    icon: string;
-    isActive: boolean;
-  } {
-    const isActive = profile.id === this.activeProfile()?.id;
+  getProfileInfo(profile: ServerConfig): ProfileInfo {
+    return this.profileManager.describe(profile, this.activeProfile()?.id);
+  }
 
-    if (profile.type === 'local') {
-      return {
-        name: profile.displayName ?? 'Local Mode',
-        subtitle: profile.userProfile?.username ?? 'Offline',
-        icon: 'computer',
-        isActive,
-      };
+  /** Human label for a connection kind badge */
+  kindLabel(info: ProfileInfo): string {
+    switch (info.kind) {
+      case 'local':
+        return this.transloco.translate('dialogs.profileManager.kindBrowser');
+      case 'cloud':
+        return this.transloco.translate('dialogs.profileManager.kindCloud');
+      default:
+        return this.transloco.translate('dialogs.profileManager.kindServer');
     }
-
-    if (profile.type === 'cloud') {
-      return {
-        name: profile.displayName ?? 'Cloud Sync',
-        subtitle:
-          profile.cloudAccountLabel ?? profile.userProfile?.username ?? '',
-        icon: 'cloud_sync',
-        isActive,
-      };
-    }
-
-    // Extract hostname for subtitle
-    let hostname: string;
-    try {
-      hostname = new URL(profile.serverUrl!).hostname;
-    } catch {
-      hostname = profile.serverUrl ?? '';
-    }
-
-    return {
-      name: profile.displayName ?? hostname,
-      subtitle: hostname,
-      icon: 'cloud',
-      isActive,
-    };
   }
 
   /**
@@ -426,40 +473,185 @@ export class ProfileManagerDialogComponent {
     // Always show the auth form - user needs to authenticate on the new server
     // The migration view handles both auth and optional project migration
     this.pendingServerUrl = url;
+    this.migrationSourceId = this.activeProfile()?.id ?? null;
     this.currentView.set('migrate');
     this.showAuthForm.set(true);
   }
 
   /**
-   * Remove a profile
+   * Disconnect a connection. Works for the active one too: the app then
+   * lands on the next most recent connection, or the welcome screen when
+   * none is left. Browser-mode data has no remote copy, so that one asks
+   * for a typed confirmation.
    */
   async removeProfile(profile: ServerConfig): Promise<void> {
-    if (profile.id === this.activeProfile()?.id) {
+    const info = this.getProfileInfo(profile);
+    if (info.isBuiltIn) {
       this.snackBar.open(
-        this.transloco.translate('dialogs.profileManager.cannotRemoveActive'),
+        this.transloco.translate('dialogs.profileManager.cannotRemoveBuiltIn'),
         this.transloco.translate('close'),
         { duration: 4000 }
       );
       return;
     }
-
+    const data = await this.storageContext.describeContextData(profile.id);
+    const details = [
+      this.transloco.translate('dialogs.profileManager.disconnectDataLine', {
+        databases: data.databases.length,
+        keys: data.localStorageKeys.length,
+      }),
+    ];
+    const messageKey =
+      info.kind === 'local'
+        ? 'dialogs.profileManager.disconnectLocalMessage'
+        : info.kind === 'cloud'
+          ? 'dialogs.profileManager.disconnectCloudMessage'
+          : 'dialogs.profileManager.disconnectServerMessage';
     const confirmed = await this.confirmAction(
-      'Remove Profile?',
-      `Remove "${profile.displayName ?? profile.serverUrl ?? 'Local Mode'}" from your profiles? This won't delete any data on the server.`,
-      'Remove'
+      this.transloco.translate('dialogs.profileManager.disconnectTitle', {
+        name: info.name,
+      }),
+      this.transloco.translate(messageKey),
+      this.transloco.translate('dialogs.profileManager.disconnect'),
+      {
+        details,
+        requireConfirmationText: info.kind === 'local' ? 'DELETE' : undefined,
+      }
     );
-
     if (!confirmed) return;
 
-    this.storageContext.removeConfig(profile.id);
-    // Also clear any stored auth token
-    this.authTokenService.clearTokenForConfig(profile.id);
+    this.isBusy.set(true);
+    try {
+      const destination = await this.profileManager.disconnect(profile.id);
+      if (info.isActive) {
+        this.leaveTo(destination);
+        return;
+      }
+      this.snackBar.open(
+        this.transloco.translate('dialogs.profileManager.profileRemoved'),
+        this.transloco.translate('close'),
+        { duration: 3000 }
+      );
+      if (this.showStorage()) void this.refreshStorage();
+    } finally {
+      this.isBusy.set(false);
+    }
+  }
 
-    this.snackBar.open(
-      this.transloco.translate('dialogs.profileManager.profileRemoved'),
-      this.transloco.translate('close'),
-      { duration: 3000 }
+  /** Show the upgrade choices for the active profile */
+  showUpgrade(): void {
+    this.currentView.set('upgrade');
+  }
+
+  /**
+   * Upgrade the active profile to cloud storage: remember which profile is
+   * being upgraded, then walk through the normal cloud connect flow. When
+   * the new profile is created the data is copied across.
+   */
+  upgradeToCloud(): void {
+    const active = this.activeProfile();
+    if (!active) return;
+    setProfileUpgradeSource(active.id);
+    this.dialog.closeAll();
+    void this.router.navigate(['/setup'], {
+      queryParams: { mode: 'cloud', upgradeFrom: active.id },
+    });
+  }
+
+  /** Upgrade to a server: the guided migration flow already does this */
+  upgradeToServer(): void {
+    this.showAddServer();
+  }
+
+  /** Add another profile via the welcome screen; nothing existing changes */
+  goToWelcome(): void {
+    this.dialog.closeAll();
+    void this.router.navigate(['/setup']);
+  }
+
+  /** Add a cloud storage account via the welcome screen's provider picker */
+  addCloudStorage(): void {
+    this.dialog.closeAll();
+    void this.router.navigate(['/setup'], { queryParams: { mode: 'cloud' } });
+  }
+
+  /** Reconnect a cloud account whose credentials are gone */
+  reconnectCloud(profile: ServerConfig): void {
+    this.dialog.closeAll();
+    void this.router.navigate(['/setup'], {
+      queryParams: { mode: 'cloud', provider: profile.cloudProvider },
+    });
+  }
+
+  /** Wipe every connection and all Inkweld data from this browser */
+  async resetDevice(): Promise<void> {
+    const confirmed = await this.confirmAction(
+      this.transloco.translate('dialogs.profileManager.resetTitle'),
+      this.transloco.translate('dialogs.profileManager.resetMessage'),
+      this.transloco.translate('dialogs.profileManager.resetConfirm'),
+      { requireConfirmationText: 'RESET' }
     );
+    if (!confirmed) return;
+    this.isBusy.set(true);
+    try {
+      const destination = await this.profileManager.resetDevice();
+      this.leaveTo(destination);
+    } finally {
+      this.isBusy.set(false);
+    }
+  }
+
+  /** Toggle the storage panel, scanning on first open */
+  async toggleStorage(): Promise<void> {
+    const next = !this.showStorage();
+    this.showStorage.set(next);
+    if (next && !this.storageScan()) await this.refreshStorage();
+  }
+
+  async refreshStorage(): Promise<void> {
+    this.isScanning.set(true);
+    try {
+      this.storageScan.set(await this.profileManager.scanStorage());
+    } catch (error) {
+      console.error('Storage scan failed:', error);
+    } finally {
+      this.isScanning.set(false);
+    }
+  }
+
+  async deleteOrphan(prefix: string): Promise<void> {
+    const confirmed = await this.confirmAction(
+      this.transloco.translate('dialogs.profileManager.orphanDeleteTitle'),
+      this.transloco.translate('dialogs.profileManager.orphanDeleteMessage', {
+        prefix,
+      }),
+      this.transloco.translate('delete')
+    );
+    if (!confirmed) return;
+    await this.profileManager.deleteOrphan(prefix);
+    await this.refreshStorage();
+  }
+
+  /** Human-readable byte count for the storage estimate */
+  formatBytes(bytes: number): string {
+    if (bytes < 1024) return `${bytes} B`;
+    const units = ['KB', 'MB', 'GB'];
+    let value = bytes / 1024;
+    let unit = 0;
+    while (value >= 1024 && unit < units.length - 1) {
+      value /= 1024;
+      unit++;
+    }
+    return `${value.toFixed(value >= 10 ? 0 : 1)} ${units[unit]}`;
+  }
+
+  /**
+   * Full page load into the new context. Every service holds handles into
+   * the old context's storage, so a router navigation is not enough.
+   */
+  private leaveTo(destination: ProfileDestination): void {
+    this.dialogRef.close();
+    globalThis.location.href = destination === 'welcome' ? '/setup' : '/';
   }
 
   /**
@@ -554,22 +746,21 @@ export class ProfileManagerDialogComponent {
    * Called when user is authenticated but has no local projects to migrate.
    */
   completeServerSwitch(): void {
-    // Add the server configuration with the pending URL
-    const displayName = this.newServerName().trim() || undefined;
-    this.storageContext.addServerConfig(this.pendingServerUrl, displayName);
-
-    // Switch to the new server
-    const configs = this.storageContext.getConfigurations();
+    // Authentication already created and activated the server profile; only
+    // a custom display name is left to apply.
+    const displayName = this.newServerName().trim();
     const normalizedUrl = stripTrailingSlashes(this.pendingServerUrl);
-    const newConfig = configs.find(
-      c => c.type === 'server' && c.serverUrl === normalizedUrl
-    );
-
-    if (newConfig) {
-      this.storageContext.switchToConfig(newConfig.id);
-      // Navigate to home
-      globalThis.location.href = '/';
+    const targetId =
+      this.migrationTargetId ??
+      this.storageContext
+        .getConfigurations()
+        .find(c => c.type === 'server' && c.serverUrl === normalizedUrl)?.id;
+    if (!targetId) return;
+    if (displayName) {
+      this.storageContext.updateConfigDisplayName(targetId, displayName);
     }
+    this.storageContext.switchToConfig(targetId);
+    globalThis.location.href = '/';
   }
 
   /**
@@ -585,6 +776,9 @@ export class ProfileManagerDialogComponent {
     this.isMigrating.set(false);
     this.isCheckingConflicts.set(false);
     this.pendingServerUrl = '';
+    this.migrationSourceId = null;
+    this.migrationTargetId = null;
+    this.migrationUsername = '';
     this.selectedProjectSlugs.set(new Set());
     this.conflictingSlugs.set(new Set());
     this.serverSlugs.set(new Set());
@@ -661,14 +855,20 @@ export class ProfileManagerDialogComponent {
     this.authError.set(null);
 
     try {
-      // Configure server mode first
-      await this.setupService.configureServerMode(this.pendingServerUrl);
+      // Create or find the server profile for this author, then register.
+      // The username picks the profile so a second author on the same server
+      // never lands in someone else's storage.
+      await this.setupService.configureServerMode(this.pendingServerUrl, {
+        username: credentials.username,
+      });
+      this.migrationTargetId = this.activeProfile()?.id ?? null;
 
       // Register on server
       await this.migrationService.registerOnServer(
         credentials.username,
         credentials.password
       );
+      this.migrationUsername = credentials.username;
 
       // Select all projects by default and resolve slug conflicts BEFORE
       // revealing the selection step. Flipping the view first left a window
@@ -725,11 +925,15 @@ export class ProfileManagerDialogComponent {
     this.authError.set(null);
 
     try {
-      // Configure server mode first
-      await this.setupService.configureServerMode(this.pendingServerUrl);
+      // Create or find the server profile for this author, then log in
+      await this.setupService.configureServerMode(this.pendingServerUrl, {
+        username: usernameValue,
+      });
+      this.migrationTargetId = this.activeProfile()?.id ?? null;
 
       // Login to server
       await this.migrationService.loginToServer(usernameValue, passwordValue);
+      this.migrationUsername = usernameValue;
 
       // Select all projects by default and resolve slug conflicts BEFORE
       // revealing the selection step. Flipping the view first left a window
@@ -832,6 +1036,7 @@ export class ProfileManagerDialogComponent {
         if (syncSuccess) {
           this.syncSuccess.set(true);
           this.migrationService.cleanupLocalData(selectedSlugs);
+          this.recordMigrationHistory(selectedSlugs.length);
         } else {
           this.syncError.set(
             'Some projects failed to sync. They will be synced automatically later.'
@@ -854,6 +1059,20 @@ export class ProfileManagerDialogComponent {
     }
   }
 
+  /**
+   * Note on both connections that projects moved, and under which username,
+   * so the connections list can explain where a user's work went.
+   */
+  private recordMigrationHistory(projectCount: number): void {
+    if (!this.migrationSourceId || !this.migrationTargetId) return;
+    if (projectCount === 0) return;
+    const targetId = this.migrationTargetId;
+    this.storageContext.recordMigration(this.migrationSourceId, targetId, {
+      username: this.migrationUsername || undefined,
+      projectCount,
+    });
+  }
+
   // ============ Helper Methods ============
 
   /**
@@ -862,7 +1081,11 @@ export class ProfileManagerDialogComponent {
   private async confirmAction(
     title: string,
     message: string,
-    confirmText: string
+    confirmText: string,
+    extra: Pick<
+      ConfirmationDialogData,
+      'details' | 'requireConfirmationText'
+    > = {}
   ): Promise<boolean> {
     const dialogRef = this.dialog.open<
       ConfirmationDialogComponent,
@@ -874,7 +1097,8 @@ export class ProfileManagerDialogComponent {
         title,
         message,
         confirmText,
-        cancelText: 'Cancel',
+        cancelText: this.transloco.translate('cancel'),
+        ...extra,
       },
     });
 

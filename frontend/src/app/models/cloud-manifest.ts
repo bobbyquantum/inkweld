@@ -37,11 +37,16 @@ export interface CloudManifest {
     provider: CloudProvider;
     accountId: string;
   };
-  /** Profile shared across every device using this folder */
-  profile: {
-    name: string;
-    username: string;
-  };
+  /**
+   * First author profile in this folder. Kept for older clients; the full
+   * list, including this one, is `profiles`.
+   */
+  profile: CloudManifestProfile;
+  /**
+   * Every author profile that syncs through this account. One cloud account
+   * can hold several authors; each owns the projects under its username.
+   */
+  profiles: CloudManifestProfile[];
   projects: CloudManifestProject[];
   createdAt: string;
   updatedAt: string;
@@ -49,16 +54,23 @@ export interface CloudManifest {
   revision: number;
 }
 
+/** One author identity stored in the manifest */
+export interface CloudManifestProfile {
+  name: string;
+  username: string;
+}
+
 /** Build a fresh manifest for a newly connected account */
 export function createCloudManifest(
   owner: CloudManifest['owner'],
-  profile: CloudManifest['profile']
+  profile: CloudManifestProfile
 ): CloudManifest {
   const now = new Date().toISOString();
   return {
     version: CLOUD_MANIFEST_VERSION,
     owner,
     profile,
+    profiles: [profile],
     projects: [],
     createdAt: now,
     updatedAt: now,
@@ -93,16 +105,24 @@ export function parseCloudManifest(text: string): CloudManifest | null {
   ) {
     return null;
   }
+  const profile: CloudManifestProfile = {
+    name: candidate.profile.name,
+    username: candidate.profile.username,
+  };
+  const extra = Array.isArray(candidate.profiles)
+    ? candidate.profiles.filter(
+        (p): p is CloudManifestProfile =>
+          typeof p?.name === 'string' && typeof p.username === 'string'
+      )
+    : [];
   return {
     version: CLOUD_MANIFEST_VERSION,
     owner: {
       provider: candidate.owner.provider,
       accountId: candidate.owner.accountId,
     },
-    profile: {
-      name: candidate.profile.name,
-      username: candidate.profile.username,
-    },
+    profile,
+    profiles: dedupeProfiles([profile, ...extra]),
     projects: Array.isArray(candidate.projects) ? candidate.projects : [],
     createdAt:
       typeof candidate.createdAt === 'string'
@@ -157,8 +177,8 @@ export function mergeManifestProjects(
 }
 
 /**
- * Merge a locally modified manifest with the current remote one. Profile
- * follows the higher revision; project lists merge entry by entry; the
+ * Merge a locally modified manifest with the current remote one. Authors
+ * are unioned; project lists merge entry by entry; the
  * result gets a revision above both so the next writer sees it as newer.
  */
 export function mergeCloudManifests(
@@ -166,10 +186,16 @@ export function mergeCloudManifests(
   remote: CloudManifest
 ): CloudManifest {
   const newer = remote.revision > local.revision ? remote : local;
+  // Authors are a union: two devices may each have added one concurrently
+  const profiles = dedupeProfiles([
+    ...newer.profiles,
+    ...(newer === remote ? local : remote).profiles,
+  ]);
   return {
     version: CLOUD_MANIFEST_VERSION,
     owner: newer.owner,
-    profile: { ...newer.profile },
+    profile: { ...(profiles[0] ?? newer.profile) },
+    profiles,
     projects: mergeManifestProjects(remote.projects, local.projects),
     createdAt:
       local.createdAt < remote.createdAt ? local.createdAt : remote.createdAt,
@@ -202,4 +228,63 @@ export function manifestsEquivalent(
   const sortedA = mergeManifestProjects(a.projects, []);
   const sortedB = mergeManifestProjects(b.projects, []);
   return JSON.stringify(sortedA) === JSON.stringify(sortedB);
+}
+
+/** Usernames compare case-insensitively */
+export function sameUsername(a: string, b: string): boolean {
+  return a.trim().toLowerCase() === b.trim().toLowerCase();
+}
+
+function dedupeProfiles(
+  profiles: CloudManifestProfile[]
+): CloudManifestProfile[] {
+  const out: CloudManifestProfile[] = [];
+  for (const p of profiles) {
+    if (!out.some(o => sameUsername(o.username, p.username))) out.push(p);
+  }
+  return out;
+}
+
+/** The profile in a manifest with this username, if any */
+export function findManifestProfile(
+  manifest: CloudManifest,
+  username: string
+): CloudManifestProfile | undefined {
+  return manifest.profiles.find(p => sameUsername(p.username, username));
+}
+
+/**
+ * Return a manifest that lists `profile`. An existing entry with the same
+ * username is updated (display name may change); otherwise it is appended.
+ * `profile` (the legacy single field) is left pointing at the first author.
+ */
+export function withManifestProfile(
+  manifest: CloudManifest,
+  profile: CloudManifestProfile
+): CloudManifest {
+  const existing = findManifestProfile(manifest, profile.username);
+  if (existing && existing.name === profile.name) return manifest;
+  const profiles = existing
+    ? manifest.profiles.map(p =>
+        sameUsername(p.username, profile.username) ? { ...p, ...profile } : p
+      )
+    : [...manifest.profiles, profile];
+  const first = profiles[0];
+  return {
+    ...manifest,
+    profile: first,
+    profiles,
+    updatedAt: new Date().toISOString(),
+    revision: manifest.revision + 1,
+  };
+}
+
+/** Project keys in a manifest that belong to one author and are not deleted */
+export function manifestProjectsFor(
+  manifest: CloudManifest,
+  username: string
+): CloudManifestProject[] {
+  return manifest.projects.filter(
+    p => !p.deletedAt && sameUsername(p.key.split('/')[0] ?? '', username)
+  );
 }

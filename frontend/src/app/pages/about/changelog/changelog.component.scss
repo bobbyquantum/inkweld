@@ -15,10 +15,11 @@
     }
   }
 
-  .loading-state, .error-state {
+  .loading-state,
+  .error-state {
     text-align: center;
     padding: 3rem;
-    
+
     mat-icon {
       font-size: 3rem;
       width: 3rem;

@@ -17,7 +17,9 @@ import {
   mergeCloudManifests,
   mergeManifestProjects,
   parseCloudManifest,
+  sameUsername,
   upsertManifestProject,
+  withManifestProfile,
 } from '@models/cloud-manifest';
 import { LoggerService } from '@services/core/logger.service';
 import { SetupService } from '@services/core/setup.service';
@@ -382,9 +384,13 @@ export class CloudSyncEngineService {
     manifest: CloudManifest
   ): Promise<void> {
     const localProjects = this.localProjects.projects();
+    const me = this.storageContext.getActiveConfig()?.userProfile?.username;
     for (const entry of manifest.projects) {
       const parts = splitProjectKey(entry.key);
       if (!parts) continue;
+      // Several authors can share one account; each profile only follows
+      // its own projects
+      if (me && !sameUsername(parts.username, me)) continue;
       const local = localProjects.find(
         p => p.username === parts.username && p.slug === parts.slug
       );
@@ -528,7 +534,15 @@ export class CloudSyncEngineService {
       const fresh = byKey.get(p.key);
       return fresh && !p.deletedAt ? { ...p, ...fresh } : p;
     });
-    return { ...manifest, projects };
+    // Make sure this author is listed so other devices can offer the profile
+    const profile = this.storageContext.getActiveConfig()?.userProfile;
+    const withProfile = profile
+      ? withManifestProfile(manifest, {
+          name: profile.name,
+          username: profile.username,
+        })
+      : manifest;
+    return { ...withProfile, projects };
   }
 
   private async updateManifestFromSummaries(

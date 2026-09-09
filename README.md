@@ -61,7 +61,7 @@ Then open `http://localhost:8333` in your browser.
 
 | | Browser | Cloud Sync | Realtime Sync |
 |---|:---:|:---:|:---:|
-| Where your writing lives | This browser only | Your own Dropbox (more providers coming) | An Inkweld server |
+| Where your writing lives | This browser only | Your own Dropbox or Nextcloud | An Inkweld server |
 | Account needed | None | Your cloud provider account | Inkweld account on that server |
 | Works offline | ✅ | ✅ (syncs when back online) | ✅ (syncs when back online) |
 | Use on several devices | ⬜ | ✅ | ✅ |

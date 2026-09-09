@@ -260,14 +260,12 @@ export class UserService {
 
       if ('user' in response && response.user) {
         await this.setCurrentUser(response.user);
-        // Persist the user profile into the active server config so the
-        // "Switch Server" panel shows the username instead of "Not logged in".
-        const activeConfig = this.storageContext.getActiveConfig();
-        if (activeConfig) {
-          this.storageContext.updateConfigUserProfile(activeConfig.id, {
-            name: response.user.name ?? response.user.username,
-            username: response.user.username,
-          });
+        // Bind the login to a server profile. A different author than the one
+        // this profile belongs to gets their own profile, so the app reloads
+        // into that storage context instead of a soft navigation.
+        if (this.bindLoginToProfile(response.user)) {
+          globalThis.location.assign('/');
+          return;
         }
       }
       await this.router.navigate(['/']);
@@ -278,6 +276,26 @@ export class UserService {
     } finally {
       this.isLoading.set(false);
     }
+  }
+
+  /**
+   * Record the logged-in user on the active server profile, forking into a
+   * separate profile when a different author was bound to it. Returns true
+   * when the active profile changed and the app must reload.
+   */
+  private bindLoginToProfile(user: {
+    name?: string | null;
+    username: string;
+  }): boolean {
+    const activeConfig = this.storageContext.getActiveConfig();
+    if (!activeConfig || activeConfig.type !== 'server') return false;
+    const result = this.storageContext.adoptServerLogin({
+      name: user.name ?? user.username,
+      username: user.username,
+    });
+    if (!result.forkedFrom) return false;
+    this.authTokenService.moveToken(result.forkedFrom, result.config.id);
+    return true;
   }
 
   async clearCurrentUser(): Promise<void> {

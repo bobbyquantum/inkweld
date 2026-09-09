@@ -223,6 +223,21 @@ describe('SetupService', () => {
     });
   });
 
+  describe('hosted server helpers', () => {
+    it('reports no hosted server for a localhost build', () => {
+      expect(service.getHostedServerUrl()).toBeNull();
+      expect(
+        service.isHostedServerConfig({
+          id: 'x',
+          type: 'server',
+          serverUrl: 'http://localhost:8333',
+          addedAt: '',
+          lastUsedAt: '',
+        })
+      ).toBe(false);
+    });
+  });
+
   describe('getMode', () => {
     it('should return null when no config is set', () => {
       expect(service.getMode()).toBeNull();

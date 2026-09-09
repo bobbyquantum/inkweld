@@ -77,4 +77,16 @@ export class AuthTokenService {
     const prefix = this.storageContext.getPrefixForConfig(configId);
     localStorage.removeItem(`${prefix}${this.TOKEN_KEY}`);
   }
+
+  /**
+   * Carry a token from one configuration to another, e.g. when a login on a
+   * shared server profile is split off into its own profile.
+   */
+  moveToken(fromConfigId: string, toConfigId: string): void {
+    const token = this.getTokenForConfig(fromConfigId);
+    this.clearTokenForConfig(fromConfigId);
+    if (token === null) return;
+    const prefix = this.storageContext.getPrefixForConfig(toConfigId);
+    localStorage.setItem(`${prefix}${this.TOKEN_KEY}`, token);
+  }
 }

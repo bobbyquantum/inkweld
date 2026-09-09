@@ -9,7 +9,14 @@ export const CLOUD_SYNC_APP_KEYS_STORAGE_KEY = 'inkweld-cloud-sync-app-keys';
 /** Providers that have an adapter today. Extend as adapters land. */
 export const IMPLEMENTED_CLOUD_PROVIDERS: readonly CloudProvider[] = [
   'dropbox',
+  'nextcloud',
 ];
+
+/**
+ * Providers that need no OAuth app key: the user points Inkweld at their own
+ * server and authenticates with an app password, so they are always offered.
+ */
+export const KEYLESS_CLOUD_PROVIDERS: readonly CloudProvider[] = ['nextcloud'];
 
 type AppKeyOverrides = Partial<Record<CloudProvider, string>>;
 
@@ -31,15 +38,22 @@ type AppKeyOverrides = Partial<Record<CloudProvider, string>>;
 export class CloudSyncConfigService {
   private readonly overrides = signal<AppKeyOverrides>(this.loadOverrides());
 
-  /** Providers with both an adapter and a non-empty app key */
+  /** Providers with an adapter and either no key requirement or a key */
   readonly availableProviders = computed<CloudProvider[]>(() =>
-    IMPLEMENTED_CLOUD_PROVIDERS.filter(p => !!this.resolveAppKey(p))
+    IMPLEMENTED_CLOUD_PROVIDERS.filter(
+      p => !this.requiresAppKey(p) || !!this.resolveAppKey(p)
+    )
   );
 
   /** True when at least one provider can be offered in setup */
   readonly isCloudSyncAvailable = computed(
     () => this.availableProviders().length > 0
   );
+
+  /** Whether a provider needs an OAuth app key before it can be offered */
+  requiresAppKey(provider: CloudProvider): boolean {
+    return !KEYLESS_CLOUD_PROVIDERS.includes(provider);
+  }
 
   /** The app key for a provider, or empty string when not configured */
   getAppKey(provider: CloudProvider): string {
