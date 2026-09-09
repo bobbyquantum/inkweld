@@ -106,14 +106,20 @@ const CANVAS_ORIGIN = 'canvas-local';
  */
 const CANVAS_SNAPSHOT_DELAY_MS = 3000;
 
-/** Read a canvas's shared map into plain objects, in z-order. */
-function readCanvasMap(canvas: Y.Map<unknown>): CanvasContents {
-  const layers = parseJson<CanvasLayer[]>(canvas.get('layers'), []);
+/** Page colours stored on a canvas map; absent when never set. */
+function readPageSettings(canvas: Y.Map<unknown>): Partial<CanvasPageSettings> {
   const background = canvas.get('background');
   const inkColor = canvas.get('inkColor');
   const page: Partial<CanvasPageSettings> = {};
   if (typeof background === 'string') page.background = background;
   if (typeof inkColor === 'string') page.inkColor = inkColor;
+  return page;
+}
+
+/** Read a canvas's shared map into plain objects, in z-order. */
+function readCanvasMap(canvas: Y.Map<unknown>): CanvasContents {
+  const layers = parseJson<CanvasLayer[]>(canvas.get('layers'), []);
+  const page = readPageSettings(canvas);
   // Docs predating frames have no 'frames' key — absent, not empty.
   const frames = canvas.has('frames')
     ? parseJson<CanvasFrame[]>(canvas.get('frames'), [])

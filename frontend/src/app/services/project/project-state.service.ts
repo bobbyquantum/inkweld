@@ -1696,7 +1696,9 @@ export class ProjectStateService implements OnDestroy {
       );
     }
 
-    const layerName = isMap ? 'Base map' : isCover ? 'Artwork' : 'Layer 1';
+    let layerName = 'Layer 1';
+    if (isMap) layerName = 'Base map';
+    if (isCover) layerName = 'Artwork';
     const contents: CanvasContents = {
       layers: [createDefaultLayer(layerName, 0)],
       objects: [],

@@ -40,6 +40,8 @@
             <input
               matInput
               type="number"
+              id="canvas-setup-width-input"
+              [attr.aria-label]="'canvas.frames.widthLabel' | transloco"
               [ngModel]="customWidth()"
               (ngModelChange)="customWidth.set($event)"
               data-testid="canvas-size-width" />
@@ -49,6 +51,8 @@
             <input
               matInput
               type="number"
+              id="canvas-setup-height-input"
+              [attr.aria-label]="'canvas.frames.heightLabel' | transloco"
               [ngModel]="customHeight()"
               (ngModelChange)="customHeight.set($event)"
               data-testid="canvas-size-height" />
