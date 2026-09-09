@@ -100,6 +100,13 @@
           <mat-icon>description</mat-icon>
           {{ 'about.viewAllLicenses' | transloco }}
         </button>
+        <button
+          mat-stroked-button
+          (click)="openFontLicenses()"
+          data-testid="view-font-licenses-button">
+          <mat-icon>font_download</mat-icon>
+          {{ 'about.viewFontLicenses' | transloco }}
+        </button>
       </mat-card-actions>
     </mat-card>
 

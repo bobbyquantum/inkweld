@@ -111,6 +111,21 @@ describe('AboutComponent', () => {
     openSpy.mockRestore();
   });
 
+  it('opens the bundled font licenses alongside the font files', () => {
+    const fixture = TestBed.createComponent(AboutComponent);
+    const component = fixture.componentInstance;
+    flushVersionRequest();
+    const openSpy = vi.spyOn(globalThis, 'open').mockReturnValue(null);
+
+    component.openFontLicenses();
+
+    // Must sit next to the served font faces, not in 3rdpartylicenses.txt:
+    // asset-only packages never become bundle inputs, so Angular's license
+    // extraction cannot see them.
+    expect(openSpy).toHaveBeenCalledWith('/assets/fonts/LICENSE.txt', '_blank');
+    openSpy.mockRestore();
+  });
+
   it('opens external links in a secure new tab', () => {
     const fixture = TestBed.createComponent(AboutComponent);
     const component = fixture.componentInstance;
