@@ -394,21 +394,31 @@ export class CloudSyncEngineService {
       const local = localProjects.find(
         p => p.username === parts.username && p.slug === parts.slug
       );
-      if (entry.deletedAt) {
-        if (local && local.updatedDate <= entry.deletedAt) {
-          await this.removeLocalProject(parts.username, parts.slug);
-        }
-        continue;
+      await this.adoptRemoteEntry(store, entry, parts, local);
+    }
+  }
+
+  /** One manifest entry: delete, adopt, and/or fetch its cover */
+  private async adoptRemoteEntry(
+    store: RemoteStore,
+    entry: CloudManifestProject,
+    parts: { username: string; slug: string },
+    local: { updatedDate: string } | undefined
+  ): Promise<void> {
+    if (entry.deletedAt) {
+      if (local && local.updatedDate <= entry.deletedAt) {
+        await this.removeLocalProject(parts.username, parts.slug);
       }
-      if (!local) this.adoptRemoteProject(entry, parts);
-      if (entry.coverMediaId && !this.activation.isActivated(entry.key)) {
-        await this.mirror.pullCover(
-          store,
-          parts.username,
-          parts.slug,
-          entry.coverMediaId
-        );
-      }
+      return;
+    }
+    if (!local) this.adoptRemoteProject(entry, parts);
+    if (entry.coverMediaId && !this.activation.isActivated(entry.key)) {
+      await this.mirror.pullCover(
+        store,
+        parts.username,
+        parts.slug,
+        entry.coverMediaId
+      );
     }
   }
 

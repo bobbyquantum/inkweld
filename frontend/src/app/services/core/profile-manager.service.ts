@@ -69,6 +69,16 @@ export interface ProfileInfo {
   history?: string;
 }
 
+/** Translation key explaining what removing a profile of this kind deletes */
+export function profileRemovalMessageKey(kind: ProfileInfo['kind']): string {
+  const keys: Record<ProfileInfo['kind'], string> = {
+    local: 'dialogs.profileManager.disconnectLocalMessage',
+    cloud: 'dialogs.profileManager.disconnectCloudMessage',
+    server: 'dialogs.profileManager.disconnectServerMessage',
+  };
+  return keys[kind];
+}
+
 /** Result of a storage scan: what each profile holds, plus leftovers */
 export interface StorageScan {
   connections: { info: ProfileInfo; data: ContextDataSummary }[];

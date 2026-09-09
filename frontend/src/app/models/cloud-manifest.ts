@@ -263,7 +263,7 @@ export function withManifestProfile(
   profile: CloudManifestProfile
 ): CloudManifest {
   const existing = findManifestProfile(manifest, profile.username);
-  if (existing && existing.name === profile.name) return manifest;
+  if (existing?.name === profile.name) return manifest;
   const profiles = existing
     ? manifest.profiles.map(p =>
         sameUsername(p.username, profile.username) ? { ...p, ...profile } : p

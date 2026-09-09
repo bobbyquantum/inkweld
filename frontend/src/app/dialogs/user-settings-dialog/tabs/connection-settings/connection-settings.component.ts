@@ -19,6 +19,7 @@ import {
   type ProfileDestination,
   type ProfileInfo,
   ProfileManagerService,
+  profileRemovalMessageKey,
 } from '@services/core/profile-manager.service';
 import { StorageContextService } from '@services/core/storage-context.service';
 import { firstValueFrom } from 'rxjs';
@@ -108,12 +109,7 @@ export class ConnectionSettingsComponent {
     const info = this.current();
     if (!info || info.isBuiltIn) return;
     const data = await this.storageContext.describeContextData(info.config.id);
-    const messageKey =
-      info.kind === 'local'
-        ? 'dialogs.profileManager.disconnectLocalMessage'
-        : info.kind === 'cloud'
-          ? 'dialogs.profileManager.disconnectCloudMessage'
-          : 'dialogs.profileManager.disconnectServerMessage';
+    const messageKey = profileRemovalMessageKey(info.kind);
     const confirmed = await this.confirm({
       title: this.transloco.translate(
         'dialogs.profileManager.disconnectTitle',

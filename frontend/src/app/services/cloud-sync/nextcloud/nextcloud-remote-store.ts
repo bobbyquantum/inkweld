@@ -1,3 +1,5 @@
+import { stripTrailingSlashes } from '@utils/string-utils';
+
 import {
   RemoteAuthError,
   RemoteConflictError,
@@ -17,7 +19,6 @@ import {
   davMkcol,
   davPropfind,
   davPut,
-  NEXTCLOUD_APP_FOLDER,
   type NextcloudCredentials,
   WebDavError,
 } from './webdav-api';
@@ -78,35 +79,40 @@ export class NextcloudRemoteStore implements RemoteStore {
     const pending = [folderPath];
     while (pending.length > 0) {
       const current = pending.shift()!;
-      let entries: DavEntry[];
-      try {
-        entries = await davPropfind(
-          creds,
-          buildDavUrl(creds, current),
-          1,
-          this.fetchFn
-        );
-      } catch (error) {
-        if (error instanceof WebDavError && error.isNotFound) {
-          // A missing folder lists as empty; only the requested root can be
-          // missing since every deeper folder came from a listing.
-          continue;
-        }
-        this.rethrow(error, current);
-      }
+      const entries = await this.listFolder(creds, current);
       const selfPath = normalizeFolder(current);
       for (const entry of entries) {
         const appPath = toAppPath(entry.pathname, root);
-        if (appPath === null) continue;
-        if (entry.isCollection) {
-          if (normalizeFolder(appPath) === selfPath) continue;
-          if (options.recursive) pending.push(appPath);
-          continue;
+        if (appPath === null || normalizeFolder(appPath) === selfPath) continue;
+        if (!entry.isCollection) {
+          files.push(toFileInfo(appPath, entry));
+        } else if (options.recursive) {
+          pending.push(appPath);
         }
-        files.push(toFileInfo(appPath, entry));
       }
     }
     return files;
+  }
+
+  /**
+   * One level of a folder. A missing folder lists as empty: only the
+   * requested root can be missing, since deeper folders came from a listing.
+   */
+  private async listFolder(
+    creds: NextcloudCredentials,
+    folderPath: string
+  ): Promise<DavEntry[]> {
+    try {
+      return await davPropfind(
+        creds,
+        buildDavUrl(creds, folderPath),
+        1,
+        this.fetchFn
+      );
+    } catch (error) {
+      if (error instanceof WebDavError && error.isNotFound) return [];
+      this.rethrow(error, folderPath);
+    }
   }
 
   async stat(path: string): Promise<RemoteFileInfo | null> {
@@ -240,7 +246,7 @@ function toFileInfo(appPath: string, entry: DavEntry): RemoteFileInfo {
 
 /** "/a/b/" and "/a/b" are the same folder; "/" is the app folder root */
 function normalizeFolder(path: string): string {
-  const trimmed = path.replace(/\/+$/, '');
+  const trimmed = stripTrailingSlashes(path);
   return trimmed === '' ? '/' : trimmed;
 }
 
@@ -249,11 +255,11 @@ function normalizeFolder(path: string): string {
  * null when it lies outside the Inkweld folder.
  */
 function toAppPath(pathname: string, appRoot: string): string | null {
-  const rootNoSlash = appRoot.replace(/\/$/, '');
+  const rootNoSlash = stripTrailingSlashes(appRoot);
   if (pathname === rootNoSlash || pathname === appRoot) return '/';
   if (!pathname.startsWith(appRoot)) return null;
-  const rest = pathname.slice(appRoot.length).replace(/\/+$/, '');
+  const rest = stripTrailingSlashes(pathname.slice(appRoot.length));
   return `/${rest}`;
 }
 
-export { NEXTCLOUD_APP_FOLDER };
+export { NEXTCLOUD_APP_FOLDER } from './webdav-api';

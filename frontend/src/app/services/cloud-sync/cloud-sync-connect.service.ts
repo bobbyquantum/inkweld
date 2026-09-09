@@ -379,37 +379,18 @@ export class CloudSyncConnectService {
     return config;
   }
 
-  /** Create the manifest or append the profile, with one retry on a race */
+  /** Create the manifest or append the profile, retrying on a write race */
   private async registerProfileInManifest(
     store: RemoteStore,
     pending: PendingCloudConnection,
     profile: CloudManifestProfile
   ): Promise<void> {
     for (let attempt = 0; attempt < 3; attempt++) {
-      let version: string | undefined;
-      let manifest: CloudManifest;
-      try {
-        const file = await store.get(CLOUD_MANIFEST_PATH);
-        version = file.version;
-        const parsed = parseCloudManifest(
-          new TextDecoder().decode(file.content)
-        );
-        manifest = parsed
-          ? withManifestProfile(parsed, profile)
-          : createCloudManifest(
-              { provider: pending.provider, accountId: pending.accountId },
-              profile
-            );
-      } catch (error) {
-        if (!(error instanceof RemoteFileNotFoundError)) throw error;
-        manifest = createCloudManifest(
-          { provider: pending.provider, accountId: pending.accountId },
-          profile
-        );
-      }
-      if (findManifestProfile(manifest, profile.username) === undefined) {
-        manifest = withManifestProfile(manifest, profile);
-      }
+      const { manifest, version } = await this.manifestWithProfile(
+        store,
+        pending,
+        profile
+      );
       try {
         await store.put(
           CLOUD_MANIFEST_PATH,
@@ -422,6 +403,38 @@ export class CloudSyncConnectService {
       }
     }
     throw new Error('Could not update the cloud manifest; please try again');
+  }
+
+  /**
+   * The current remote manifest with `profile` listed (a fresh one when the
+   * folder has none), plus the version tag to write against.
+   */
+  private async manifestWithProfile(
+    store: RemoteStore,
+    pending: PendingCloudConnection,
+    profile: CloudManifestProfile
+  ): Promise<{ manifest: CloudManifest; version?: string }> {
+    const fresh = (): CloudManifest =>
+      createCloudManifest(
+        { provider: pending.provider, accountId: pending.accountId },
+        profile
+      );
+    let base: CloudManifest | null = null;
+    let version: string | undefined;
+    try {
+      const file = await store.get(CLOUD_MANIFEST_PATH);
+      version = file.version;
+      base = parseCloudManifest(new TextDecoder().decode(file.content));
+    } catch (error) {
+      if (!(error instanceof RemoteFileNotFoundError)) throw error;
+    }
+    const manifest = base ? withManifestProfile(base, profile) : fresh();
+    return {
+      manifest: findManifestProfile(manifest, profile.username)
+        ? manifest
+        : withManifestProfile(manifest, profile),
+      version,
+    };
   }
 
   /** Whether a cloud config still has usable credentials */

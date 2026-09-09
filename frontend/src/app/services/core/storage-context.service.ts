@@ -898,7 +898,7 @@ export class StorageContextService {
     forkedFrom: string | null;
   } {
     const active = this.activeConfig();
-    if (!active || active.type !== 'server' || !active.serverUrl) {
+    if (active?.type !== 'server' || !active.serverUrl) {
       throw new Error('No active server profile to adopt the login');
     }
     const current = active.userProfile?.username.trim().toLowerCase();
@@ -1392,7 +1392,8 @@ export class StorageContextService {
     for (const name of await this.listAllDatabaseNames()) {
       const marker = docMarkers.find(m => name.startsWith(m));
       if (!marker) continue;
-      const target = `${marker.replace(`:${oldSlug}:`, `:${newSlug}:`)}${name.slice(marker.length)}`;
+      const renamedMarker = marker.replace(`:${oldSlug}:`, `:${newSlug}:`);
+      const target = renamedMarker + name.slice(marker.length);
       await cloneDatabase(name, target);
       await deleteDatabase(name);
     }

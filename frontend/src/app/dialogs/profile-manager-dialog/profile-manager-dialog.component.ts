@@ -36,6 +36,7 @@ import {
   type ProfileDestination,
   type ProfileInfo,
   ProfileManagerService,
+  profileRemovalMessageKey,
   setProfileUpgradeSource,
   type StorageScan,
 } from '@services/core/profile-manager.service';
@@ -501,12 +502,7 @@ export class ProfileManagerDialogComponent {
         keys: data.localStorageKeys.length,
       }),
     ];
-    const messageKey =
-      info.kind === 'local'
-        ? 'dialogs.profileManager.disconnectLocalMessage'
-        : info.kind === 'cloud'
-          ? 'dialogs.profileManager.disconnectCloudMessage'
-          : 'dialogs.profileManager.disconnectServerMessage';
+    const messageKey = profileRemovalMessageKey(info.kind);
     const confirmed = await this.confirmAction(
       this.transloco.translate('dialogs.profileManager.disconnectTitle', {
         name: info.name,

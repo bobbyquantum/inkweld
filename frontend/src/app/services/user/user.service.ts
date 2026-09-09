@@ -288,7 +288,7 @@ export class UserService {
     username: string;
   }): boolean {
     const activeConfig = this.storageContext.getActiveConfig();
-    if (!activeConfig || activeConfig.type !== 'server') return false;
+    if (activeConfig?.type !== 'server') return false;
     const result = this.storageContext.adoptServerLogin({
       name: user.name ?? user.username,
       username: user.username,

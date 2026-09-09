@@ -7,6 +7,8 @@
  * one folder under that root (see `NEXTCLOUD_APP_FOLDER`).
  */
 
+import { stripTrailingSlashes } from '@utils/string-utils';
+
 /** Folder inside the user's Nextcloud files that holds the Inkweld mirror */
 export const NEXTCLOUD_APP_FOLDER = 'Inkweld';
 
@@ -82,10 +84,11 @@ export function normalizeNextcloudServerUrl(input: string): string {
   } catch {
     throw new Error('That does not look like a valid Nextcloud address');
   }
-  let path = url.pathname
-    .replace(/\/(index|remote)\.php(\/.*)?$/i, '')
-    .replace(/\/apps\/.*$/i, '')
-    .replace(/\/+$/, '');
+  let path = stripTrailingSlashes(
+    url.pathname
+      .replace(/\/(index|remote)\.php(\/.*)?$/i, '')
+      .replace(/\/apps\/.*$/i, '')
+  );
   if (path === '/') path = '';
   return `${url.origin}${path}`;
 }
@@ -122,7 +125,7 @@ export function basicAuthHeader(creds: NextcloudCredentials): string {
     `${creds.loginName}:${creds.appPassword}`
   );
   let binary = '';
-  for (const b of bytes) binary += String.fromCharCode(b);
+  for (const b of bytes) binary += String.fromCodePoint(b);
   return `Basic ${btoa(binary)}`;
 }
 
