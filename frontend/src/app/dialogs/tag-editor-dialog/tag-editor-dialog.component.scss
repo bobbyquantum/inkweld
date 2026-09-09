@@ -12,4 +12,11 @@ mat-dialog-content {
   min-width: 300px;
   max-width: 500px;
   padding-top: 16px;
+
+  /* Mobile: fit the Material-capped dialog pane (calc(100vw - 32px)). */
+  @media (max-width: 599px) {
+    min-width: unset;
+    max-width: none;
+    width: 100%;
+  }
 }

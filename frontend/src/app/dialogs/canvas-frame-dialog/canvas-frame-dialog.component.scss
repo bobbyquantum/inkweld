@@ -1,6 +1,11 @@
 .full-width {
   width: 100%;
   min-width: 300px;
+
+  /* Mobile: fit the Material-capped dialog pane (calc(100vw - 32px)). */
+  @media (max-width: 599px) {
+    min-width: unset;
+  }
 }
 .field-row {
   display: flex;

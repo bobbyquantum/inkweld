@@ -4,6 +4,15 @@
   gap: 6px;
   min-width: 320px;
   max-width: 420px;
+
+  /* Mobile: fit the Material-capped dialog pane (calc(100vw - 32px)) and
+     flow the 8-column grid into as many 32px cells as fit. */
+  @media (max-width: 599px) {
+    min-width: unset;
+    max-width: none;
+    width: 100%;
+    grid-template-columns: repeat(auto-fill, minmax(32px, 1fr));
+  }
 }
 
 .icon-picker-option {

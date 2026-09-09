@@ -1,6 +1,13 @@
 ::ng-deep .create-mcp-key-dialog {
   min-width: 480px;
   max-width: 560px;
+
+  /* Mobile: a pane min-width beats Material's calc(100vw - 32px) max-width
+     cap (min-width wins when they conflict), so unset it to let the pane
+     shrink on phones. */
+  @media (max-width: 599px) {
+    min-width: unset;
+  }
 }
 
 .full-width {

@@ -35,6 +35,12 @@
 .progress-container {
   min-width: 350px;
   padding: 16px 0;
+
+  /* Mobile: fit the Material-capped dialog pane (calc(100vw - 32px)). */
+  @media (max-width: 599px) {
+    min-width: unset;
+    width: 100%;
+  }
 }
 
 .progress-info {
