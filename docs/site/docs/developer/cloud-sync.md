@@ -31,6 +31,15 @@ so Google Drive, OneDrive and S3-compatible stores can be added as adapters.
   are sent as HTTP basic auth over WebDAV and never expire on their own, so
   `normalizeNextcloudServerUrl` rejects anything but HTTPS except loopback
   hosts used for local development.
+- **Nextcloud quirks handled by the adapter.** A `PUT` into a folder that does
+  not exist answers `404` (RFC 4918 says `409`); both trigger folder creation
+  and one retry. The store remembers every folder it has created or listed so
+  later files in the same folder cost a single request; without that a first
+  sync pays one failed `PUT` plus one `MKCOL` per ancestor for every file.
+  `ETag`/`OC-ETag` on a `PUT` response is only readable when the CORS layer
+  exposes it; when it is missing the store falls back to a `PROPFIND` for the
+  version. Expect a first sync of a few hundred files to take minutes on a
+  server with slow round trips.
 
 ## Profiles on the device
 

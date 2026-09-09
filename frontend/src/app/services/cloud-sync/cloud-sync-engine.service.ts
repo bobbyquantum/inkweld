@@ -388,12 +388,13 @@ export class CloudSyncEngineService {
     for (const entry of manifest.projects) {
       const parts = splitProjectKey(entry.key);
       if (!parts) continue;
-      // Several authors can share one account; each profile only follows
-      // its own projects
-      if (me && !sameUsername(parts.username, me)) continue;
       const local = localProjects.find(
         p => p.username === parts.username && p.slug === parts.slug
       );
+      // Several authors can share one account. New remote projects are only
+      // adopted for this profile's own author; projects already on this
+      // device keep following remote changes whoever wrote them.
+      if (!local && me && !sameUsername(parts.username, me)) continue;
       await this.adoptRemoteEntry(store, entry, parts, local);
     }
   }

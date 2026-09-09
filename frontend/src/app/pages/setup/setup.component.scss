@@ -313,8 +313,10 @@
 }
 
 .profile-intro {
+  display: block;
   padding-top: 0;
-  margin-bottom: 24px;
+  margin-bottom: 28px;
+  line-height: 1.5;
 
   a {
     color: var(--sys-primary);

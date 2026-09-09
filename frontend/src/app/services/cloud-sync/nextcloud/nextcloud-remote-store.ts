@@ -46,6 +46,14 @@ export class NextcloudUnreachableError extends Error {
  * first PUT that fails with 409.
  */
 export class NextcloudRemoteStore implements RemoteStore {
+  /**
+   * App-relative folders known to exist on the server. Nextcloud answers a
+   * PUT into a missing folder with an error and offers no "create parents"
+   * flag, so without this every new file would cost one failed PUT plus one
+   * MKCOL per ancestor; with it, later files in a known folder cost one call.
+   */
+  private readonly knownFolders = new Set<string>();
+
   constructor(
     private readonly getCredentials: CredentialsProvider,
     private readonly fetchFn: typeof fetch = fetch
@@ -83,7 +91,9 @@ export class NextcloudRemoteStore implements RemoteStore {
       const selfPath = normalizeFolder(current);
       for (const entry of entries) {
         const appPath = toAppPath(entry.pathname, root);
-        if (appPath === null || normalizeFolder(appPath) === selfPath) continue;
+        if (appPath === null) continue;
+        if (entry.isCollection) this.knownFolders.add(normalizeFolder(appPath));
+        if (normalizeFolder(appPath) === selfPath) continue;
         if (!entry.isCollection) {
           files.push(toFileInfo(appPath, entry));
         } else if (options.recursive) {
@@ -103,12 +113,17 @@ export class NextcloudRemoteStore implements RemoteStore {
     folderPath: string
   ): Promise<DavEntry[]> {
     try {
-      return await davPropfind(
+      const entries = await davPropfind(
         creds,
         buildDavUrl(creds, folderPath),
         1,
         this.fetchFn
       );
+      // A folder that lists exists, and so does every folder above it
+      for (const folder of ancestorsOf(folderPath)) {
+        this.knownFolders.add(folder);
+      }
+      return entries;
     } catch (error) {
       if (error instanceof WebDavError && error.isNotFound) return [];
       this.rethrow(error, folderPath);
@@ -168,12 +183,25 @@ export class NextcloudRemoteStore implements RemoteStore {
       davPut(creds, url, bytes, { ifMatch: options.ifVersion }, this.fetchFn);
     try {
       let result: { etag: string };
+      // A folder we have not seen yet: create it up front rather than paying
+      // for a PUT that is bound to fail first
+      if (!this.knownFolders.has(parentFolder(path))) {
+        await this.ensureParentFolders(creds, path);
+      }
       try {
         result = await upload();
       } catch (error) {
-        if (!(error instanceof WebDavError && error.isMissingParent)) {
+        // RFC 4918 says 409 for a missing parent collection; Nextcloud answers
+        // 404 instead. Either way: create the folders and try once more.
+        if (!(
+          error instanceof WebDavError &&
+          (error.isMissingParent || error.isNotFound)
+        )) {
           throw error;
         }
+        // The folder we believed in is gone (deleted on the server); forget
+        // the whole ancestry and rebuild it
+        this.forgetFolders(path);
         await this.ensureParentFolders(creds, path);
         result = await upload();
       }
@@ -205,6 +233,13 @@ export class NextcloudRemoteStore implements RemoteStore {
     }
   }
 
+  /** Drop a file's parent folder and all its ancestors from the cache */
+  private forgetFolders(filePath: string): void {
+    for (const folder of ancestorsOf(parentFolder(filePath))) {
+      this.knownFolders.delete(folder);
+    }
+  }
+
   /** MKCOL every folder from the app root down to the file's parent */
   private async ensureParentFolders(
     creds: NextcloudCredentials,
@@ -212,12 +247,18 @@ export class NextcloudRemoteStore implements RemoteStore {
   ): Promise<void> {
     const segments = filePath.split('/').filter(Boolean);
     segments.pop();
+    // The app folder itself first ("/" resolves to it), then each ancestor;
+    // folders already known to exist are skipped
+    const folders = ['/'];
     let current = '';
-    // The app folder itself first ("/" resolves to it)
-    await davMkcol(creds, buildDavUrl(creds, '/'), this.fetchFn);
     for (const segment of segments) {
       current += `/${segment}`;
-      await davMkcol(creds, buildDavUrl(creds, current), this.fetchFn);
+      folders.push(current);
+    }
+    for (const folder of folders) {
+      if (this.knownFolders.has(folder)) continue;
+      await davMkcol(creds, buildDavUrl(creds, folder), this.fetchFn);
+      this.knownFolders.add(folder);
     }
   }
 
@@ -242,6 +283,24 @@ function toFileInfo(appPath: string, entry: DavEntry): RemoteFileInfo {
     size: entry.size,
     modifiedAt: entry.modifiedAt,
   };
+}
+
+/** A folder and every folder above it, root first: "/", "/a", "/a/b" */
+function ancestorsOf(folderPath: string): string[] {
+  const out = ['/'];
+  let current = '';
+  for (const segment of folderPath.split('/').filter(Boolean)) {
+    current += `/${segment}`;
+    out.push(current);
+  }
+  return out;
+}
+
+/** The app-relative folder that holds a file path ("/" for top-level files) */
+function parentFolder(path: string): string {
+  const segments = path.split('/').filter(Boolean);
+  segments.pop();
+  return segments.length ? `/${segments.join('/')}` : '/';
 }
 
 /** "/a/b/" and "/a/b" are the same folder; "/" is the app folder root */

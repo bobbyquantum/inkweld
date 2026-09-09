@@ -63,6 +63,10 @@ function createStore(routes: Route[]): {
       const response = route(url, init);
       if (response) return Promise.resolve(response);
     }
+    // Folders that a test did not model are taken to exist already
+    if (init.method === 'MKCOL') {
+      return Promise.resolve(new Response(null, { status: 405 }));
+    }
     return Promise.resolve(new Response(`unrouted ${url}`, { status: 500 }));
   });
   const store = new NextcloudRemoteStore(
@@ -261,39 +265,42 @@ describe('NextcloudRemoteStore', () => {
 
       expect(info.version).toBe('n1');
       expect(info.size).toBe(2);
-      const [, init] = fetchFn.mock.calls[0] as [string, RequestInit];
-      expect((init.headers as Record<string, string>)['If-Match']).toBe('"m1"');
+      const putCall = (fetchFn.mock.calls as [string, RequestInit][]).find(
+        ([, init]) => init.method === 'PUT'
+      )!;
+      expect((putCall[1].headers as Record<string, string>)['If-Match']).toBe(
+        '"m1"'
+      );
     });
 
-    it('creates parent folders after a 409 and retries once', async () => {
+    it('creates unknown parent folders up front, then remembers them', async () => {
       let putCount = 0;
       const mkcols: string[] = [];
       const { store } = createStore([
         (url, init) => {
           if (init.method === 'MKCOL') {
             mkcols.push(decodePath(url));
-            return new Response(null, { status: 201 });
+            // Existing folders answer 405; new ones 201
+            return new Response(null, {
+              status: decodePath(url) === ROOT ? 405 : 201,
+            });
           }
           if (init.method === 'PUT') {
             putCount++;
-            return putCount === 1
-              ? new Response('', { status: 409 })
-              : new Response(null, {
-                  status: 201,
-                  headers: { 'OC-ETag': '"n2"' },
-                });
+            return new Response(null, {
+              status: 201,
+              headers: { 'OC-ETag': `"n${putCount}"` },
+            });
           }
           return undefined;
         },
       ]);
 
-      const info = await store.put(
+      const first = await store.put(
         '/projects/bob/story/documents/d1.yjs',
         new Uint8Array([1])
       );
-
-      expect(info.version).toBe('n2');
-      expect(putCount).toBe(2);
+      expect(first.version).toBe('n1');
       expect(mkcols).toEqual([
         ROOT,
         `${ROOT}/projects`,
@@ -301,6 +308,91 @@ describe('NextcloudRemoteStore', () => {
         `${ROOT}/projects/bob/story`,
         `${ROOT}/projects/bob/story/documents`,
       ]);
+
+      // Same folder again: one request, no MKCOL chatter
+      mkcols.length = 0;
+      const second = await store.put(
+        '/projects/bob/story/documents/d2.yjs',
+        new Uint8Array([2])
+      );
+      expect(second.version).toBe('n2');
+      expect(mkcols).toEqual([]);
+
+      // A sibling folder only creates the missing tail
+      const third = await store.put(
+        '/projects/bob/story/worldbuilding/w1.yjs',
+        new Uint8Array([3])
+      );
+      expect(third.version).toBe('n3');
+      expect(mkcols).toEqual([`${ROOT}/projects/bob/story/worldbuilding`]);
+      expect(putCount).toBe(3);
+    });
+
+    it('folders seen in a listing are treated as known', async () => {
+      const mkcols: string[] = [];
+      const { store } = createStore([
+        (url, init) => {
+          if (init.method === 'PROPFIND') {
+            return multistatus([
+              { href: `${ROOT}/projects/`, collection: true },
+              { href: `${ROOT}/projects/bob/`, collection: true },
+            ]);
+          }
+          if (init.method === 'MKCOL') {
+            mkcols.push(decodePath(url));
+            return new Response(null, { status: 201 });
+          }
+          if (init.method === 'PUT') {
+            return new Response(null, {
+              status: 201,
+              headers: { 'OC-ETag': '"x"' },
+            });
+          }
+          return undefined;
+        },
+      ]);
+
+      await store.list('/projects');
+      await store.put('/projects/bob/story/elements.yjs', '{}');
+
+      // "/", "/projects" and "/projects/bob" were listed; only "story" is new
+      expect(mkcols).toEqual([`${ROOT}/projects/bob/story`]);
+    });
+
+    it('recreates folders when a PUT into a known folder still fails (409 or 404)', async () => {
+      // Someone deleted the folder on the server after we listed it
+      for (const status of [409, 404]) {
+        let putCount = 0;
+        const mkcols: string[] = [];
+        const { store } = createStore([
+          (url, init) => {
+            if (init.method === 'PROPFIND') {
+              return multistatus([{ href: `${ROOT}/`, collection: true }]);
+            }
+            if (init.method === 'MKCOL') {
+              mkcols.push(decodePath(url));
+              return new Response(null, { status: 201 });
+            }
+            if (init.method === 'PUT') {
+              putCount++;
+              return putCount === 1
+                ? new Response('', { status })
+                : new Response(null, {
+                    status: 201,
+                    headers: { 'OC-ETag': '"m1"' },
+                  });
+            }
+            return undefined;
+          },
+        ]);
+        await store.list('/'); // marks "/" as known, so PUT goes first
+
+        const info = await store.put('/manifest.json', '{}');
+
+        expect(info.version).toBe('m1');
+        expect(putCount).toBe(2);
+        expect(mkcols).toEqual([ROOT]);
+      }
     });
 
     it('maps 412 to RemoteConflictError', async () => {
