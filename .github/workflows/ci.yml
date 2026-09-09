@@ -353,6 +353,19 @@ jobs:
           path: frontend/playwright-report/
           retention-days: 7
 
+      - name: Upload Playwright test results (traces, screenshots, videos)
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        # `always()` rather than `failure()`: a test that failed once and passed
+        # on retry leaves the job green, but its first-attempt trace/screenshot
+        # (trace: 'retain-on-first-failure') is what we need to debug the flake.
+        # On a clean run the directory is empty and nothing is uploaded.
+        if: always()
+        with:
+          name: playwright-test-results-local
+          path: frontend/test-results/
+          retention-days: 7
+          if-no-files-found: ignore
+
   # Online E2E Tests (22 spec files - 2 shards)
   e2e-online:
     name: E2E Tests (Online) - Shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
@@ -412,6 +425,19 @@ jobs:
           name: playwright-report-online-shard-${{ matrix.shardIndex }}
           path: frontend/playwright-report/
           retention-days: 7
+
+      - name: Upload Playwright test results (traces, screenshots, videos)
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        # `always()` rather than `failure()`: a test that failed once and passed
+        # on retry leaves the job green, but its first-attempt trace/screenshot
+        # (trace: 'retain-on-first-failure') is what we need to debug the flake.
+        # On a clean run the directory is empty and nothing is uploaded.
+        if: always()
+        with:
+          name: playwright-test-results-online-shard-${{ matrix.shardIndex }}
+          path: frontend/test-results/
+          retention-days: 7
+          if-no-files-found: ignore
 
   # Wrangler E2E Tests (22 spec files - 3 shards; the slowest e2e job at 2)
   e2e-wrangler:
@@ -478,9 +504,10 @@ jobs:
         run: cd frontend && npm run build
 
       - name: Run wrangler e2e tests (shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }})
-        # No retries: a failing test is a bug to investigate, not something to
-        # paper over. If the shared `wrangler dev` backend crashes mid-run, the
-        # failure surfaces immediately so we can fix the underlying cause.
+        # Retries once in CI like the other e2e jobs (see the `retries` note in
+        # playwright.wrangler.config.ts). A backend crash still fails the shard:
+        # every test after it fails on the retry too. A one-off flake passes on
+        # retry and leaves its first-attempt trace in the test-results artifact.
         run: cd frontend && npm run e2e:wrangler:ci -- --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
         env:
           E2E_MODE: prod
@@ -506,6 +533,19 @@ jobs:
           name: playwright-report-wrangler-shard-${{ matrix.shardIndex }}
           path: frontend/playwright-report/
           retention-days: 7
+
+      - name: Upload Playwright test results (traces, screenshots, videos)
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        # `always()` rather than `failure()`: a test that failed once and passed
+        # on retry leaves the job green, but its first-attempt trace/screenshot
+        # (trace: 'retain-on-first-failure') is what we need to debug the flake.
+        # On a clean run the directory is empty and nothing is uploaded.
+        if: always()
+        with:
+          name: playwright-test-results-wrangler-shard-${{ matrix.shardIndex }}
+          path: frontend/test-results/
+          retention-days: 7
+          if-no-files-found: ignore
 
       - name: Upload wrangler backend log
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
@@ -595,6 +635,19 @@ jobs:
           name: playwright-report-docker-shard-${{ matrix.shardIndex }}
           path: frontend/playwright-report/
           retention-days: 7
+
+      - name: Upload Playwright test results (traces, screenshots, videos)
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        # `always()` rather than `failure()`: a test that failed once and passed
+        # on retry leaves the job green, but its first-attempt trace/screenshot
+        # (trace: 'retain-on-first-failure') is what we need to debug the flake.
+        # On a clean run the directory is empty and nothing is uploaded.
+        if: always()
+        with:
+          name: playwright-test-results-docker-shard-${{ matrix.shardIndex }}
+          path: frontend/test-results/
+          retention-days: 7
+          if-no-files-found: ignore
 
   # ===========================================
   # E2E Tests - Screenshots (via docs build)

@@ -58,9 +58,20 @@ export default defineConfig({
   /* Fail the build on CI if you accidentally left test.only in the source code */
   forbidOnly: !!process.env['CI'],
 
-  /* No retries. A failing test is a bug to investigate, not something to
-     paper over — retries hide the underlying crash/flake and inflate CI time. */
-  retries: 0,
+  /* Retry once in CI, matching the online/local/docker configs.
+     History: this was `retries: 0` so a mid-run `wrangler dev` crash would
+     surface immediately. That crash is fixed (DO rejection guards + the
+     wrangler 4.116.0 pin/patch — see AGENTS.md). What remained was a
+     different class of failure: one test per shard timing out on a page
+     that never rendered, or a UI race (see registration-form
+     checkUsernameAvailability). The same specs flake at the same rate in the
+     Bun-backed online and docker jobs and pass there on retry; with no
+     retries here the wrangler shards were the only job turning main red
+     (4 of ~30 pushes in the two weeks before 2026-09-09). A single retry
+     keeps a one-off flake from failing the build, and the first attempt's
+     trace is retained (see `trace` below) so the flake stays visible and
+     debuggable instead of being hidden. */
+  retries: process.env['CI'] ? 1 : 0,
 
   /* Reporter to use */
   reporter: [['list'], ['html', { open: 'never' }]],
@@ -94,8 +105,12 @@ export default defineConfig({
     actionTimeout: 30000,
     navigationTimeout: 30000,
 
-    /* Collect trace when retrying the failed test */
-    trace: 'on-first-retry',
+    /* Trace the first attempt of every test and keep it only if that
+       attempt fails. Unlike 'on-first-retry' (which records the retry, i.e.
+       the passing run) this captures the failing run — network, console and
+       DOM snapshots — which is exactly what a flake investigation needs.
+       Traces land in test-results/ and are uploaded by CI. */
+    trace: 'retain-on-first-failure',
 
     /* Screenshot on failure */
     screenshot: 'only-on-failure',

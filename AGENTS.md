@@ -644,6 +644,16 @@ Renovate is disabled for it via `renovate.json`. **Do not "fix" this to a range.
   `WRANGLER_LOG_PATH` and uploads wrangler's diagnostic log as an artifact
   (`wrangler-diag-log-shard-*`); the real crash cause only appears there, not
   in the console's empty `[ERROR]`.
+- **Retries (since 2026-09-09)**: `playwright.wrangler.config.ts` retries once
+  in CI like the online/local/docker configs. It used to be `retries: 0` so a
+  backend crash would surface immediately, but with the crash fixed the only
+  thing that setting caught was one-off frontend flakes (a page that never
+  rendered after `goto`, a UI race) that hit the other jobs at the same rate
+  and pass there on retry. Don't set it back to 0 to "find bugs": the flakes
+  are still visible — every e2e job traces the first attempt of each test
+  (`trace: 'retain-on-first-failure'`) and uploads `frontend/test-results/`
+  as `playwright-test-results-*` even when the job is green. Open a flaky
+  test's trace with `npx playwright show-trace <trace.zip>`.
 
 ---
 

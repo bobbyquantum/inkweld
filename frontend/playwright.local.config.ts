@@ -64,8 +64,11 @@ export default (async () => {
       actionTimeout: 30000,
       navigationTimeout: 30000,
 
-      /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
-      trace: 'on-first-retry',
+      /* Trace the first attempt and keep it only when that attempt fails, so
+         a flaky test's failing run (not its passing retry) is preserved.
+         Traces land in test-results/ and are uploaded by CI.
+         See https://playwright.dev/docs/trace-viewer */
+      trace: 'retain-on-first-failure',
 
       /* Screenshot on failure */
       screenshot: 'only-on-failure',

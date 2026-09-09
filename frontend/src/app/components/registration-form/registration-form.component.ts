@@ -499,6 +499,15 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
     }
   }
 
+  /**
+   * Monotonic id of the latest availability check. Responses for older
+   * checks are dropped: clicking a suggestion blurs the input (a check for the
+   * *taken* name) and then sets the new value (a check for the suggestion),
+   * and the two requests race. If the stale "taken" response lands last it
+   * would re-populate the suggestions and flag the just-picked name as taken.
+   */
+  private usernameCheckSeq = 0;
+
   // Check if username is available
   async checkUsernameAvailability(): Promise<void> {
     // Skip if external submit mode with username check disabled
@@ -506,6 +515,7 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
       return;
     }
 
+    const seq = ++this.usernameCheckSeq;
     const username = this.model().username;
 
     if (!username || username.length < 3) {
@@ -531,6 +541,11 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
         this.httpClient.get<UsernameAvailability>(checkUrl)
       );
 
+      // A newer check started while this one was in flight; its result wins.
+      if (seq !== this.usernameCheckSeq) {
+        return;
+      }
+
       if (response.available) {
         this.usernameAvailability.set('available');
         this.usernameSuggestions.set([]);
@@ -542,6 +557,9 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
         this.usernameTaken.set(true);
       }
     } catch (error: unknown) {
+      if (seq !== this.usernameCheckSeq) {
+        return;
+      }
       this.usernameAvailability.set('unknown');
       this.usernameSuggestions.set([]);
       if (error instanceof HttpErrorResponse) {
