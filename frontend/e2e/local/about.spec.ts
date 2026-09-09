@@ -47,9 +47,23 @@ test.describe('About Page', () => {
       await expect(libraries).toContainText('ProseMirror');
     });
 
-    await test.step('licenses card has a view-licenses button', async () => {
+    await test.step('licenses card has view-licenses buttons', async () => {
       await expect(page.getByTestId('licenses-card')).toBeVisible();
       await expect(page.getByTestId('view-licenses-button')).toBeVisible();
+      await expect(page.getByTestId('view-font-licenses-button')).toBeVisible();
+    });
+
+    await test.step('bundled font licenses are actually served', async () => {
+      // The OFL requires the notice to accompany the fonts wherever they
+      // are distributed, and the button is worthless if the file 404s.
+      // Unlike /3rdpartylicenses.txt this is a `public/` asset, so it is
+      // present under `ng serve` as well as in a production build.
+      const response = await page.request.get('/assets/fonts/LICENSE.txt');
+      expect(response.status()).toBe(200);
+      const body = await response.text();
+      expect(body).toContain('SIL OPEN FONT LICENSE Version 1.1');
+      expect(body).toContain('EB Garamond');
+      expect(body).toContain('Courier Prime');
     });
 
     await test.step('links card has Source Code and Report Issues links', async () => {

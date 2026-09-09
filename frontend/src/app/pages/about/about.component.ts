@@ -117,6 +117,17 @@ export class AboutComponent {
     globalThis.open('/3rdpartylicenses.txt', '_blank');
   }
 
+  /**
+   * The bundled fonts are OFL-1.1 and are not covered by
+   * `3rdpartylicenses.txt` — license extraction only sees packages that are
+   * inputs to a JS or CSS bundle, and the publish font faces are copied as
+   * plain assets. `scripts/generate-font-licenses.mjs` writes their notice
+   * alongside the font files instead.
+   */
+  openFontLicenses(): void {
+    globalThis.open('/assets/fonts/LICENSE.txt', '_blank');
+  }
+
   openExternalLink(url: string): void {
     globalThis.open(url, '_blank', 'noopener,noreferrer');
   }
