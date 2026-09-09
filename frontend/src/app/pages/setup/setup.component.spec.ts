@@ -17,6 +17,7 @@ import { StorageContextService } from '@services/core/storage-context.service';
 import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { environment } from '../../../environments/environment';
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { SetupService } from '../../services/core/setup.service';
 import { UnifiedUserService } from '../../services/user/unified-user.service';
@@ -260,6 +261,35 @@ describe('SetupComponent', () => {
       await fixture.whenStable();
 
       expect(component['serverUrl']).toBe('http://original.com');
+    });
+  });
+
+  describe('server URL default', () => {
+    const originalApiUrl = environment.apiUrl;
+
+    afterEach(() => {
+      (environment as { apiUrl: string }).apiUrl = originalApiUrl;
+    });
+
+    it('pre-fills the server URL from the build apiUrl when set', () => {
+      // Hosted builds without autoConfigure still point at their server, so
+      // connecting from the setup screen is a single confirm.
+      (environment as { apiUrl: string }).apiUrl = 'https://api.inkweld.test';
+      const fresh = TestBed.createComponent(SetupComponent);
+
+      expect(fresh.componentInstance['serverUrl']).toBe(
+        'https://api.inkweld.test'
+      );
+    });
+
+    it('falls back to localhost when the build has no apiUrl', () => {
+      (environment as { apiUrl: string }).apiUrl = '';
+
+      const fresh = TestBed.createComponent(SetupComponent);
+
+      expect(fresh.componentInstance['serverUrl']).toBe(
+        'http://localhost:8333'
+      );
     });
   });
 

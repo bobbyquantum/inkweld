@@ -12,6 +12,10 @@ export const environment = {
   production: true,
   apiUrl: 'https://inkweld-backend-preview.YOUR_SUBDOMAIN.workers.dev',
   wssUrl: 'wss://inkweld-backend-preview.YOUR_SUBDOMAIN.workers.dev',
+  // false = first run shows the setup screen (Browser / Cloud Sync / Server
+  // choice) instead of auto-connecting to the hosted apiUrl. Remove (or set
+  // to true) for a hosted-only deployment that skips the setup screen.
+  autoConfigure: false,
   /**
    * Cloud Sync provider app keys. These are public OAuth client identifiers
    * (they ship in the browser bundle). An empty key hides that provider from

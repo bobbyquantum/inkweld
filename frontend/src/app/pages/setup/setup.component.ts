@@ -38,6 +38,7 @@ import {
 } from '@services/core/storage-context.service';
 import { firstValueFrom } from 'rxjs';
 
+import { environment } from '../../../environments/environment';
 import { SetupService } from '../../services/core/setup.service';
 import { UnifiedUserService } from '../../services/user/unified-user.service';
 
@@ -168,7 +169,12 @@ export class SetupComponent implements OnInit {
       .map(id => ({ id, ...PROVIDER_OPTIONS[id] }))
   );
 
-  protected serverUrl = 'http://localhost:8333';
+  /**
+   * Server URL input default. A build with a hosted apiUrl (e.g. a preview
+   * deployment with autoConfigure disabled) pre-fills its own server so the
+   * user only has to confirm; other builds fall back to localhost.
+   */
+  protected serverUrl = environment.apiUrl || 'http://localhost:8333';
   protected userName = '';
   protected displayName = '';
   protected nextcloudUrl = '';
