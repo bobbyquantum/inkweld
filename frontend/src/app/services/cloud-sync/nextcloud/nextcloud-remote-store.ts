@@ -90,18 +90,30 @@ export class NextcloudRemoteStore implements RemoteStore {
       const entries = await this.listFolder(creds, current);
       const selfPath = normalizeFolder(current);
       for (const entry of entries) {
-        const appPath = toAppPath(entry.pathname, root);
-        if (appPath === null) continue;
-        if (entry.isCollection) this.knownFolders.add(normalizeFolder(appPath));
-        if (normalizeFolder(appPath) === selfPath) continue;
-        if (!entry.isCollection) {
-          files.push(toFileInfo(appPath, entry));
-        } else if (options.recursive) {
-          pending.push(appPath);
-        }
+        this.collectEntry(entry, root, selfPath, files, pending, options);
       }
     }
     return files;
+  }
+
+  /** Sort one listing entry into files to return, or folders to descend into */
+  private collectEntry(
+    entry: DavEntry,
+    root: string,
+    selfPath: string,
+    files: RemoteFileInfo[],
+    pending: string[],
+    options: { recursive?: boolean }
+  ): void {
+    const appPath = toAppPath(entry.pathname, root);
+    if (appPath === null) return;
+    if (entry.isCollection) this.knownFolders.add(normalizeFolder(appPath));
+    if (normalizeFolder(appPath) === selfPath) return;
+    if (!entry.isCollection) {
+      files.push(toFileInfo(appPath, entry));
+    } else if (options.recursive) {
+      pending.push(appPath);
+    }
   }
 
   /**
