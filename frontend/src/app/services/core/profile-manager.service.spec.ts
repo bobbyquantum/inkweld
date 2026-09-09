@@ -8,6 +8,7 @@ import { LoggerService } from './logger.service';
 import { ProfileManagerService } from './profile-manager.service';
 import { SetupService } from './setup.service';
 import {
+  buildCloudConfigId,
   type ServerConfig,
   StorageContextService,
 } from './storage-context.service';
@@ -230,6 +231,29 @@ describe('ProfileManagerService', () => {
 
       expect(destination).toBe('welcome');
       expect(storage.switchToConfig).not.toHaveBeenCalled();
+    });
+
+    it('clears the account-level cloud token once the last author on the account is gone', async () => {
+      const second: ServerConfig = {
+        ...cloud,
+        id: `${cloud.id}-b0b`,
+        userProfile: { name: 'Bob', username: 'bob' },
+      };
+      configs.set([local, cloud, second]);
+      active.set(local);
+
+      await service.disconnect(second.id);
+      // One author still uses the account: only that profile's copy goes
+      expect(cloudTokens.clear).toHaveBeenCalledWith(second.id);
+      expect(cloudTokens.clear).not.toHaveBeenCalledWith(cloud.id);
+
+      cloudTokens.clear.mockClear();
+      await service.disconnect(cloud.id);
+      // Last author: the base account token is cleared as well
+      expect(cloudTokens.clear).toHaveBeenCalledWith(cloud.id);
+      expect(cloudTokens.clear).toHaveBeenCalledWith(
+        buildCloudConfigId('dropbox', 'dbid:1')
+      );
     });
 
     it('is a no-op for an unknown id', async () => {

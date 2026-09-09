@@ -5,6 +5,7 @@ import { CloudTokenStoreService } from '@services/cloud-sync/cloud-token-store.s
 import { LoggerService } from './logger.service';
 import { SetupService } from './setup.service';
 import {
+  buildCloudConfigId,
   type ContextDataSummary,
   getCloudProviderDisplayName,
   getLocalConfigDisplayName,
@@ -222,6 +223,7 @@ export class ProfileManagerService {
     this.cloudTokens.clear(configId);
     await this.storageContext.clearContextData(configId);
     this.storageContext.removeConfig(configId);
+    this.clearOrphanedAccountTokens(config);
     this.logger.info('Profiles', `Removed ${config.type} profile ${configId}`);
 
     if (!wasActive) return 'home';
@@ -232,6 +234,34 @@ export class ProfileManagerService {
     )[0];
     this.storageContext.switchToConfig(next.id);
     return 'home';
+  }
+
+  /**
+   * Provider credentials are obtained once per cloud account and stored under
+   * the account's base id, then copied to each author's profile. When the
+   * last profile on that account goes, the base copy must go too.
+   */
+  private clearOrphanedAccountTokens(removed: ServerConfig): void {
+    if (
+      removed.type !== 'cloud' ||
+      !removed.cloudProvider ||
+      !removed.cloudAccountId
+    ) {
+      return;
+    }
+    const stillUsed = this.storageContext
+      .getConfigurations()
+      .some(
+        c =>
+          c.type === 'cloud' &&
+          c.cloudProvider === removed.cloudProvider &&
+          c.cloudAccountId === removed.cloudAccountId
+      );
+    if (!stillUsed) {
+      this.cloudTokens.clear(
+        buildCloudConfigId(removed.cloudProvider, removed.cloudAccountId)
+      );
+    }
   }
 
   /**
