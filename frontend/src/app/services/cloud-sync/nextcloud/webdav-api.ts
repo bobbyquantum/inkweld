@@ -84,6 +84,13 @@ export function normalizeNextcloudServerUrl(input: string): string {
   } catch {
     throw new Error('That does not look like a valid Nextcloud address');
   }
+  // The app password travels as basic auth on every request, so plain HTTP
+  // is only acceptable for a server on this machine (local development).
+  if (url.protocol !== 'https:' && !isLoopbackHost(url.hostname)) {
+    throw new Error(
+      'Nextcloud must be reached over HTTPS so your app password is never sent in the clear'
+    );
+  }
   let path = stripTrailingSlashes(
     url.pathname
       .replace(/\/(index|remote)\.php(\/.*)?$/i, '')
@@ -91,6 +98,17 @@ export function normalizeNextcloudServerUrl(input: string): string {
   );
   if (path === '/') path = '';
   return `${url.origin}${path}`;
+}
+
+function isLoopbackHost(hostname: string): boolean {
+  const host = hostname.toLowerCase();
+  return (
+    host === 'localhost' ||
+    host === '127.0.0.1' ||
+    host === '[::1]' ||
+    host === '::1' ||
+    host.endsWith('.localhost')
+  );
 }
 
 /** Base URL of the user's WebDAV files root, with a trailing slash */

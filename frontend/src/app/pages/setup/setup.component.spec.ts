@@ -71,6 +71,7 @@ describe('SetupComponent', () => {
       connectNextcloud: vi.fn(),
       getPendingConnection: vi.fn().mockReturnValue(null),
       clearPendingConnection: vi.fn(),
+      abandonPendingConnection: vi.fn(),
       finishNewConnection: vi.fn().mockResolvedValue({ id: 'cloud-dropbox-x' }),
       adoptExistingProfile: vi.fn().mockReturnValue({ id: 'cloud-dropbox-y' }),
     };
@@ -756,6 +757,49 @@ describe('SetupComponent', () => {
       expect(assign).toHaveBeenCalledWith('/');
     });
 
+    it('a rename may not take the address of another source project', () => {
+      sessionStorage.setItem('inkweld-profile-upgrade-source', 'local');
+      mockStorageContext.listProjectsForContext.mockReturnValue([
+        { username: 'authora', slug: 'novel', title: 'Novel' },
+        { username: 'authora', slug: 'fresh', title: 'Fresh' },
+      ]);
+      mockActivatedRoute.snapshot.queryParamMap.get.mockImplementation(
+        (key: string) => (key === 'cloud' ? 'dropbox' : null)
+      );
+      mockCloudSyncConnect.getPendingConnection.mockReturnValue({
+        ...pending,
+        existingProfiles: [
+          { name: 'Author A', username: 'authora', slugs: ['novel'] },
+        ],
+      });
+
+      fixture.detectChanges();
+
+      component['setClashSlug']('novel', 'fresh');
+      expect(component['clashesResolved']()).toBe(false);
+      component['setClashSlug']('novel', 'novel-old');
+      expect(component['clashesResolved']()).toBe(true);
+    });
+
+    it('keeps the upgrade marker when copying fails so a retry can finish it', async () => {
+      sessionStorage.setItem('inkweld-profile-upgrade-source', 'local');
+      mockProfileManager.upgradeInto.mockRejectedValue(new Error('idb'));
+      component['pendingCloudConnection'].set(pending);
+      component['displayName'] = 'Author A';
+      component['userName'] = 'authora';
+
+      await component['setupCloudProfile']();
+
+      expect(sessionStorage.getItem('inkweld-profile-upgrade-source')).toBe(
+        'local'
+      );
+      expect(mockSnackBar.open).toHaveBeenCalledWith(
+        'Failed to set up Dropbox sync. Please try again.',
+        'Close',
+        expect.anything()
+      );
+    });
+
     it('upgrading into an account without this author goes to the profile form', () => {
       sessionStorage.setItem('inkweld-profile-upgrade-source', 'local');
       mockActivatedRoute.snapshot.queryParamMap.get.mockImplementation(
@@ -1133,7 +1177,7 @@ describe('SetupComponent', () => {
 
       component['goBack']();
 
-      expect(mockCloudSyncConnect.clearPendingConnection).toHaveBeenCalled();
+      expect(mockCloudSyncConnect.abandonPendingConnection).toHaveBeenCalled();
       expect(component['pendingCloudConnection']()).toBeNull();
       expect(component['showCloudProfileSetup']()).toBe(false);
       expect(mockRouter.navigate).toHaveBeenCalledWith([], {

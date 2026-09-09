@@ -71,6 +71,18 @@ describe('webdav-api', () => {
       );
     });
 
+    it('requires HTTPS except for a server on this machine', () => {
+      expect(() =>
+        normalizeNextcloudServerUrl('http://cloud.example.com')
+      ).toThrow(/HTTPS/);
+      expect(normalizeNextcloudServerUrl('http://127.0.0.1:8080')).toBe(
+        'http://127.0.0.1:8080'
+      );
+      expect(normalizeNextcloudServerUrl('http://nc.localhost')).toBe(
+        'http://nc.localhost'
+      );
+    });
+
     it('rejects empty and malformed input', () => {
       expect(() => normalizeNextcloudServerUrl('  ')).toThrow(
         'Enter your Nextcloud address'

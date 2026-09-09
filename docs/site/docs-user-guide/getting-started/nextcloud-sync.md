@@ -77,6 +77,9 @@ without affecting anything else.
 1. On the welcome screen choose **Cloud Sync**, then **Nextcloud**.
 2. Enter the address you use to open Nextcloud (for example
    `https://cloud.example.com`), your Nextcloud username, and the app password.
+   The address must use HTTPS: the app password is sent with every request,
+   so Inkweld refuses plain HTTP except for a server running on the same
+   machine.
 3. Press **Connect to Nextcloud**.
 
 Inkweld checks the details, then:

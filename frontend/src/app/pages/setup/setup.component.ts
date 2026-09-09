@@ -147,7 +147,10 @@ export class SetupComponent implements OnInit {
   protected readonly clashes = signal<
     { slug: string; title: string; newSlug: string }[]
   >([]);
-  /** Slugs the destination author already uses, for validating renames */
+  /**
+   * Addresses a rename may not take: what the destination author already has
+   * plus the source's own non-clashing projects, which are copied as they are
+   */
   private takenSlugs = new Set<string>();
   protected readonly nextcloudGuideUrl = NEXTCLOUD_SETUP_GUIDE_URL;
   /** Name of the profile being upgraded, when this visit is an upgrade */
@@ -568,14 +571,19 @@ export class SetupComponent implements OnInit {
     sourceId: string,
     destination: { name: string; username: string; slugs: string[] }
   ): void {
-    this.takenSlugs = new Set(destination.slugs.map(s => s.toLowerCase()));
-    const clashes = this.storageContext
+    const destinationSlugs = new Set(
+      destination.slugs.map(s => s.toLowerCase())
+    );
+    const sourceProjects = this.storageContext
       .listProjectsForContext(sourceId)
-      .filter(
-        p =>
-          sameUsername(p.username, destination.username) &&
-          this.takenSlugs.has(p.slug.toLowerCase())
-      )
+      .filter(p => sameUsername(p.username, destination.username));
+    // Every source project is copied, so its address is taken too
+    this.takenSlugs = new Set([
+      ...destinationSlugs,
+      ...sourceProjects.map(p => p.slug.toLowerCase()),
+    ]);
+    const clashes = sourceProjects
+      .filter(p => destinationSlugs.has(p.slug.toLowerCase()))
       .map(p => ({
         slug: p.slug,
         title: p.title ?? p.slug,
@@ -699,12 +707,20 @@ export class SetupComponent implements OnInit {
     const upgradeSource = takeProfileUpgradeSource();
     if (!upgradeSource || upgradeSource === targetId) return false;
     const source = this.storageContext.getConfigById(upgradeSource);
-    const { projectCount } = await this.profileManager.upgradeInto(
-      upgradeSource,
-      targetId,
-      username,
-      renames
-    );
+    let projectCount: number;
+    try {
+      ({ projectCount } = await this.profileManager.upgradeInto(
+        upgradeSource,
+        targetId,
+        username,
+        renames
+      ));
+    } catch (error) {
+      // The new profile exists but nothing was copied yet: keep the marker
+      // so a retry still knows which profile to copy from
+      setProfileUpgradeSource(upgradeSource);
+      throw error;
+    }
     // The same author under the same name now lives in the cloud profile, so
     // the Browser copy is redundant and only invites confusion. A different
     // username means the user deliberately kept two identities: keep both.
@@ -796,7 +812,9 @@ export class SetupComponent implements OnInit {
       this.showCloudChooseProfile() ||
       this.showCloudClash()
     ) {
-      this.cloudSyncConnect.clearPendingConnection();
+      // Abandoning also drops provider credentials obtained for an account
+      // that never became a profile
+      this.cloudSyncConnect.abandonPendingConnection();
       takeProfileUpgradeSource();
       this.pendingCloudConnection.set(null);
       // Drop the ?cloud= param so a refresh doesn't reopen this step

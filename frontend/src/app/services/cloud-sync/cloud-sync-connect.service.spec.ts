@@ -545,6 +545,69 @@ describe('CloudSyncConnectService', () => {
     });
   });
 
+  describe('abandonPendingConnection', () => {
+    it('drops the account tokens when no profile uses the account', () => {
+      const baseId = buildCloudConfigId('dropbox', 'dbid:abc');
+      tokenStore.set(baseId, {
+        provider: 'dropbox',
+        accountId: 'dbid:abc',
+        accessToken: 'at',
+        expiresAt: Date.now() + 3_600_000,
+      });
+      sessionStorage.setItem(
+        'inkweld-cloud-sync-pending-connection',
+        JSON.stringify({
+          provider: 'dropbox',
+          accountId: 'dbid:abc',
+          accountLabel: 'x',
+          suggestedName: 'x',
+          suggestedUsername: 'x',
+        })
+      );
+      (setupService as { getConfigurations?: unknown }).getConfigurations = vi
+        .fn()
+        .mockReturnValue([]);
+
+      service.abandonPendingConnection();
+
+      expect(tokenStore.has(baseId)).toBe(false);
+      expect(service.getPendingConnection()).toBeNull();
+    });
+
+    it('keeps the tokens when a profile on that account already exists', () => {
+      const baseId = buildCloudConfigId('dropbox', 'dbid:abc');
+      tokenStore.set(baseId, {
+        provider: 'dropbox',
+        accountId: 'dbid:abc',
+        accessToken: 'at',
+        expiresAt: Date.now() + 3_600_000,
+      });
+      sessionStorage.setItem(
+        'inkweld-cloud-sync-pending-connection',
+        JSON.stringify({
+          provider: 'dropbox',
+          accountId: 'dbid:abc',
+          accountLabel: 'x',
+          suggestedName: 'x',
+          suggestedUsername: 'x',
+        })
+      );
+      (setupService as { getConfigurations?: unknown }).getConfigurations = vi
+        .fn()
+        .mockReturnValue([
+          {
+            type: 'cloud',
+            cloudProvider: 'dropbox',
+            cloudAccountId: 'dbid:abc',
+          },
+        ]);
+
+      service.abandonPendingConnection();
+
+      expect(tokenStore.has(baseId)).toBe(true);
+    });
+  });
+
   describe('adoptExistingProfile', () => {
     it('configures the chosen author and shares the account tokens', () => {
       const baseId = buildCloudConfigId('dropbox', 'dbid:abc');

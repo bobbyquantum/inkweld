@@ -343,7 +343,7 @@
     "loginRequired": "Login required",
     "removeProfile": "Remove profile",
     "noProfiles": "No profiles yet",
-    "connectDescription": "Log in to an Inkweld server as the author who should own these projects. Your Browser projects are then copied there and removed from this device.",
+    "connectDescription": "Log in to an Inkweld server as the author who should own these projects. Your Browser projects are copied there. This Browser profile stays on this device until you remove it.",
     "localProjectsNotice": "You have {{count}} local project(s) that can be migrated to the server.",
     "serverUrlLabel": "Server URL",
     "serverUrlPlaceholder": "https://inkweld.example.com",
@@ -470,7 +470,8 @@
     "upgradeServerDesc": "Log in or register on a server. Adds live collaboration, sharing and sync that keeps running while your browser is closed.",
     "upgradeNothing": "This profile already syncs with an Inkweld server.",
     "upgradeKeeps": "Nothing is deleted. Once you are happy, remove the old profile from the list to free up space on this device.",
-    "allProfiles": "All profiles"
+    "allProfiles": "All profiles",
+    "resetFailed": "Could not reset this device. Some data may remain; try again or clear site data in your browser."
   },
   "baseImage": {
     "invalidImage": "Invalid image file. Please select a JPEG or PNG file.",

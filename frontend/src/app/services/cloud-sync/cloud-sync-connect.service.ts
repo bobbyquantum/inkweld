@@ -346,9 +346,31 @@ export class CloudSyncConnectService {
     }
   }
 
-  /** Abandon a pending connection (user went back) */
+  /** Forget the pending connection once it has become a profile */
   clearPendingConnection(): void {
     sessionStorage.removeItem(PENDING_CONNECTION_KEY);
+  }
+
+  /**
+   * The user went back without creating a profile. Provider credentials were
+   * already stored under the account's base id during authorization; drop
+   * them unless a profile on that account exists and still needs them.
+   */
+  abandonPendingConnection(): void {
+    const pending = this.getPendingConnection();
+    if (pending) {
+      const baseId = buildCloudConfigId(pending.provider, pending.accountId);
+      const stillUsed = this.setupService
+        .getConfigurations()
+        .some(
+          c =>
+            c.type === 'cloud' &&
+            c.cloudProvider === pending.provider &&
+            c.cloudAccountId === pending.accountId
+        );
+      if (!stillUsed) this.tokens.clear(baseId);
+    }
+    this.clearPendingConnection();
   }
 
   /**

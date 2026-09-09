@@ -135,9 +135,9 @@ export class ConnectionSettingsComponent {
       const destination = await this.profileManager.disconnect(info.config.id);
       this.leaveTo(destination);
     } catch (error) {
-      console.error('Disconnect failed:', error);
+      console.error('Profile removal failed:', error);
       this.snackBar.open(
-        this.transloco.translate('settings.connectionTab.switchFailed'),
+        this.transloco.translate('settings.connectionTab.removeFailed'),
         this.transloco.translate('close'),
         { duration: 4000 }
       );

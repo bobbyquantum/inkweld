@@ -224,10 +224,23 @@ export function manifestsEquivalent(
 ): boolean {
   if (a.profile.name !== b.profile.name) return false;
   if (a.profile.username !== b.profile.username) return false;
+  if (!sameProfiles(a.profiles, b.profiles)) return false;
   if (a.projects.length !== b.projects.length) return false;
   const sortedA = mergeManifestProjects(a.projects, []);
   const sortedB = mergeManifestProjects(b.projects, []);
   return JSON.stringify(sortedA) === JSON.stringify(sortedB);
+}
+
+function sameProfiles(
+  a: CloudManifestProfile[],
+  b: CloudManifestProfile[]
+): boolean {
+  if (a.length !== b.length) return false;
+  const key = (p: CloudManifestProfile) =>
+    `${p.username.trim().toLowerCase()}\u0000${p.name}`;
+  const sortedA = a.map(key).sort();
+  const sortedB = b.map(key).sort();
+  return sortedA.every((k, i) => k === sortedB[i]);
 }
 
 /** Usernames compare case-insensitively */

@@ -28,7 +28,9 @@ so Google Drive, OneDrive and S3-compatible stores can be added as adapters.
 - Nextcloud has no usable OAuth for public clients (its OAuth2 server needs a
   client secret, and neither it nor Login Flow v2 sends CORS headers), so the
   user supplies a server address and a per-app password instead. Credentials
-  are sent as HTTP basic auth over WebDAV and never expire on their own.
+  are sent as HTTP basic auth over WebDAV and never expire on their own, so
+  `normalizeNextcloudServerUrl` rejects anything but HTTPS except loopback
+  hosts used for local development.
 
 ## Profiles on the device
 

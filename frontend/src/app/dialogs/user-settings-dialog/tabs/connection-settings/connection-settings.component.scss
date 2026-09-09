@@ -20,7 +20,7 @@
     letter-spacing: 0.02em;
     text-transform: uppercase;
     vertical-align: middle;
-    background: rgba(var(--sys-primary-rgb), 0.12);
+    background: color-mix(in srgb, var(--sys-primary) 12%, transparent);
     color: var(--sys-primary);
 
     &.built-in {
@@ -30,7 +30,7 @@
   }
 
   .needs-attention {
-    color: var(--sys-warning);
+    color: var(--sys-error);
   }
 
   .status-card {

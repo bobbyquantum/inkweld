@@ -20,7 +20,7 @@ async function openProfileManager(page: import('@playwright/test').Page) {
   // Click manage profiles
   await page.locator('[data-testid="manage-profiles-button"]').click();
   // Wait for the dialog to open
-  await expect(page.getByRole('heading', { name: /Profiles/i })).toBeVisible();
+  await expect(page.getByTestId('profile-manager-title')).toBeVisible();
 }
 
 /**

@@ -340,7 +340,7 @@ mat-divider {
         text-overflow: ellipsis;
 
         .needs-login {
-          color: var(--sys-warning);
+          color: var(--sys-error);
           font-style: italic;
         }
       }
@@ -354,7 +354,7 @@ mat-divider {
       font-weight: 500;
       text-transform: uppercase;
       letter-spacing: 0.03em;
-      background: rgba(var(--sys-primary-rgb), 0.12);
+      background: color-mix(in srgb, var(--sys-primary) 12%, transparent);
       color: var(--sys-primary);
       vertical-align: middle;
     }
@@ -376,7 +376,7 @@ mat-divider {
     }
 
     &.active-profile {
-      background-color: rgba(var(--sys-primary-rgb), 0.1);
+      background-color: color-mix(in srgb, var(--sys-primary) 10%, transparent);
     }
   }
 }

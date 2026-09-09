@@ -529,6 +529,13 @@ export class ProfileManagerDialogComponent {
         { duration: 3000 }
       );
       if (this.showStorage()) void this.refreshStorage();
+    } catch (error) {
+      console.error('Failed to remove profile:', error);
+      this.snackBar.open(
+        this.transloco.translate('settings.connectionTab.removeFailed'),
+        this.transloco.translate('close'),
+        { duration: 5000 }
+      );
     } finally {
       this.isBusy.set(false);
     }
@@ -592,6 +599,13 @@ export class ProfileManagerDialogComponent {
     try {
       const destination = await this.profileManager.resetDevice();
       this.leaveTo(destination);
+    } catch (error) {
+      console.error('Failed to reset this device:', error);
+      this.snackBar.open(
+        this.transloco.translate('dialogs.profileManager.resetFailed'),
+        this.transloco.translate('close'),
+        { duration: 5000 }
+      );
     } finally {
       this.isBusy.set(false);
     }

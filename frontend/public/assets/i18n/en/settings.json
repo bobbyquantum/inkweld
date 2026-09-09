@@ -177,7 +177,8 @@
     "historyLabel": "History:",
     "upgradeProfile": "Connect to sync",
     "backToMenu": "Back to menu",
-    "moveToServer": "Move to a server"
+    "moveToServer": "Move to a server",
+    "removeFailed": "Failed to remove profile"
   },
   "projectSettingsTab": {
     "fullscreenZen": "Enable fullscreen in Zen mode",

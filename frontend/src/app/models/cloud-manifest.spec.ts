@@ -195,6 +195,21 @@ describe('cloud-manifest', () => {
       ]);
     });
 
+    it('equivalence notices a changed author list', () => {
+      const base = createCloudManifest(owner, profile);
+      const withBee = withManifestProfile(base, {
+        name: 'Bee',
+        username: 'bee',
+      });
+      expect(manifestsEquivalent(base, withBee)).toBe(false);
+      // Order does not matter
+      const reordered = {
+        ...withBee,
+        profiles: [...withBee.profiles].reverse(),
+      };
+      expect(manifestsEquivalent(withBee, reordered)).toBe(true);
+    });
+
     it('merging unions the authors from both sides', () => {
       const local = withManifestProfile(createCloudManifest(owner, profile), {
         name: 'Bee',
