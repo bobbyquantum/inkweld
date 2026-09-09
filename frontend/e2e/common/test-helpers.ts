@@ -4,6 +4,38 @@ import { join } from 'node:path';
 import { expect, type Page } from '@playwright/test';
 
 /**
+ * Asserts that the dialog containing the given test id fits the viewport:
+ * the overlay pane stays inside the screen bounds and the dialog surface
+ * needs no horizontal scrolling (content is never wider than the dialog
+ * itself). Intended for mobile-width regression tests — Material caps the
+ * pane at calc(100vw - 32px) on phones, which hardcoded content
+ * min-widths used to overflow.
+ *
+ * @param page - Playwright page
+ * @param testId - data-testid of any element inside the dialog to check
+ */
+export async function expectDialogFitsViewport(
+  page: Page,
+  testId: string
+): Promise<void> {
+  const fit = await page.evaluate(tid => {
+    const origin = document.querySelector(`[data-testid="${tid}"]`);
+    const pane = origin?.closest<HTMLElement>('.cdk-overlay-pane');
+    const surface = pane?.querySelector<HTMLElement>('.mat-mdc-dialog-surface');
+    if (!pane || !surface) return null;
+    const rect = pane.getBoundingClientRect();
+    return {
+      paneWithinViewport: rect.left >= 0 && rect.right <= window.innerWidth,
+      surfaceWidth: surface.clientWidth,
+      surfaceScrollWidth: surface.scrollWidth,
+    };
+  }, testId);
+  expect(fit).not.toBeNull();
+  expect(fit!.paneWithinViewport).toBe(true);
+  expect(fit!.surfaceScrollWidth).toBeLessThanOrEqual(fit!.surfaceWidth + 1);
+}
+
+/**
  * Poll the y-indexeddb `updates` object store for a database until the
  * concatenated Yjs update bytes contain all of the given UTF-8 strings.
  *

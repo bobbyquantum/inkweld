@@ -4,6 +4,13 @@
   gap: 16px;
   min-width: 400px;
   max-width: 500px;
+
+  /* Mobile: fit the Material-capped dialog pane (calc(100vw - 32px)). */
+  @media (max-width: 599px) {
+    min-width: unset;
+    max-width: none;
+    width: 100%;
+  }
 }
 
 .full-width {
