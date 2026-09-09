@@ -386,6 +386,17 @@
             }}</span>
             <button
               mat-icon-button
+              data-testid="page-settings-button"
+              class="section-action"
+              [matTooltip]="'canvas.page.settings' | transloco"
+              [attr.aria-label]="'canvas.page.settings' | transloco"
+              (click)="onOpenPageSettings()">
+              <span
+                class="page-swatch"
+                [style.background-color]="pageSettings()?.background"></span>
+            </button>
+            <button
+              mat-icon-button
               data-testid="frames-toggle-all"
               class="section-action"
               [matTooltip]="
@@ -809,6 +820,8 @@
           class="canvas-area"
           #canvasContainer
           data-testid="canvas-stage"
+          [class.has-page-frame]="hasCanvasSize()"
+          [style.background-color]="stageBackground()"
           (contextmenu)="onContextMenu($event)"
           (pointerdown)="onStagePointerDown($event)"
           (pointermove)="onStagePointerMove($event)"

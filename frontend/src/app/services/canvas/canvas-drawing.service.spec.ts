@@ -1,10 +1,11 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import type {
-  CanvasConfig,
-  CanvasPath,
-  CanvasTool,
-  CanvasToolSettings,
+import {
+  type CanvasConfig,
+  type CanvasPath,
+  type CanvasTool,
+  type CanvasToolSettings,
+  LIGHT_PAGE,
 } from '@models/canvas.model';
 import Konva from 'konva';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -920,6 +921,7 @@ describe('CanvasDrawingService', () => {
     /** Register a real Konva node so hit-testing has geometry to work with. */
     function seedCanvas(objects: CanvasPath[]): void {
       const config: CanvasConfig = {
+        ...LIGHT_PAGE,
         elementId: 'e1',
         layers: [
           {

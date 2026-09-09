@@ -1,12 +1,13 @@
-import type {
-  CanvasConfig,
-  CanvasImage,
-  CanvasLayer,
-  CanvasObject,
-  CanvasPath,
-  CanvasPin,
-  CanvasShape,
-  CanvasText,
+import {
+  type CanvasConfig,
+  type CanvasImage,
+  type CanvasLayer,
+  type CanvasObject,
+  type CanvasPath,
+  type CanvasPin,
+  type CanvasShape,
+  type CanvasText,
+  LIGHT_PAGE,
 } from '@models/canvas.model';
 import { describe, expect, it } from 'vitest';
 
@@ -50,8 +51,32 @@ function makeConfig(
   objects: CanvasObject[],
   layers: CanvasLayer[] = [defaultLayer]
 ): CanvasConfig {
-  return { elementId: 'test', layers, objects };
+  return { elementId: 'test', layers, objects, ...LIGHT_PAGE };
 }
+
+// ─────────────────────────────────────────────────────────────────────────
+// page background
+// ─────────────────────────────────────────────────────────────────────────
+
+describe('buildSvgDocument page background', () => {
+  it('paints the page colour across the viewBox when set', () => {
+    const svg = buildSvgDocument(
+      { ...makeConfig([]), background: '#1e1e1e' },
+      { x: 5, y: 10, width: 200, height: 100 }
+    );
+    expect(svg).toContain(
+      '<rect id="page" x="5" y="10" width="200" height="100" fill="#1e1e1e"/>'
+    );
+    // The page sits under everything else.
+    expect(svg.indexOf('id="page"')).toBeLessThan(svg.indexOf('</svg>'));
+  });
+
+  it('omits the page rect for a canvas without a background', () => {
+    const { background: _omitted, ...bare } = makeConfig([]);
+    const svg = buildSvgDocument(bare as CanvasConfig);
+    expect(svg).not.toContain('id="page"');
+  });
+});
 
 // ─────────────────────────────────────────────────────────────────────────
 // computeSvgViewBox
@@ -535,6 +560,7 @@ describe('computeSvgViewBox path bounds', () => {
 
   it('includes the stroke half-width so wide strokes are not clipped', () => {
     const config: CanvasConfig = {
+      ...LIGHT_PAGE,
       elementId: 'e',
       layers: [layer],
       objects: [pathAt({ layerId: 'l', strokeWidth: 80 })],
@@ -548,11 +574,13 @@ describe('computeSvgViewBox path bounds', () => {
 
   it('allows for the swell of a pressure stroke', () => {
     const plain: CanvasConfig = {
+      ...LIGHT_PAGE,
       elementId: 'e',
       layers: [layer],
       objects: [pathAt({ layerId: 'l', strokeWidth: 40 })],
     };
     const ink: CanvasConfig = {
+      ...LIGHT_PAGE,
       elementId: 'e',
       layers: [layer],
       objects: [pathAt({ layerId: 'l', strokeWidth: 40, pressures: [1, 1] })],

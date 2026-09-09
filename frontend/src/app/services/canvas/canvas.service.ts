@@ -30,6 +30,7 @@ import {
   type CanvasFrameKind,
   type CanvasLayer,
   type CanvasObject,
+  type CanvasPageSettings,
   type CanvasToolSettings,
   type CanvasViewport,
   createDefaultCanvasConfig,
@@ -269,6 +270,8 @@ export class CanvasService {
     const contents: CanvasContents = {
       layers: legacy?.layers.length ? legacy.layers : defaults.layers,
       objects: legacy?.objects ?? [],
+      background: legacy?.background ?? defaults.background,
+      inkColor: legacy?.inkColor ?? defaults.inkColor,
     };
     if (legacy?.frames) contents.frames = legacy.frames;
 
@@ -294,7 +297,10 @@ export class CanvasService {
     this.historyVersion.update(v => v + 1);
   }
 
-  /** Build a config, falling back to a default layer for an empty canvas. */
+  /**
+   * Build a config, falling back to a default layer for an empty canvas and
+   * to a light page for a canvas seeded without page colours.
+   */
   private toConfig(elementId: string, contents: CanvasContents): CanvasConfig {
     const defaults = createDefaultCanvasConfig(elementId);
     return {
@@ -302,6 +308,8 @@ export class CanvasService {
       layers: contents.layers.length > 0 ? contents.layers : defaults.layers,
       objects: contents.objects,
       frames: contents.frames,
+      background: contents.background ?? defaults.background,
+      inkColor: contents.inkColor ?? defaults.inkColor,
     };
   }
 
@@ -331,6 +339,8 @@ export class CanvasService {
       layers: config.layers,
       objects: config.objects,
       frames: config.frames,
+      background: config.background,
+      inkColor: config.inkColor,
     };
     const edit = diffCanvasContents(this.lastSyncedContents, contents);
     this.lastSyncedContents = contents;
@@ -340,6 +350,27 @@ export class CanvasService {
       // Local edits are the trigger for re-rendering a live cover.
       this.coverSource.notifyCanvasChanged(config.elementId, contents);
     }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Page Settings
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /** Change the page background and/or default ink colour. */
+  updatePageSettings(settings: Partial<CanvasPageSettings>): void {
+    const config = this.activeConfigSignal();
+    if (!config) return;
+
+    const next = { ...config };
+    if (settings.background) next.background = settings.background;
+    if (settings.inkColor) next.inkColor = settings.inkColor;
+    if (
+      next.background === config.background &&
+      next.inkColor === config.inkColor
+    ) {
+      return;
+    }
+    this.saveConfig(next);
   }
 
   // ─────────────────────────────────────────────────────────────────────────

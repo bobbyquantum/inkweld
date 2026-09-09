@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import type { CanvasFrame } from '@models/canvas.model';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { installCanvas2dStub } from '../../../testing/canvas-2d-stub';
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { CanvasService } from './canvas.service';
 import { CanvasExportService } from './canvas-export.service';
@@ -19,10 +20,12 @@ interface MockStage {
   size: ReturnType<typeof vi.fn>;
   scale: ReturnType<typeof vi.fn>;
   position: ReturnType<typeof vi.fn>;
+  add: ReturnType<typeof vi.fn>;
 }
 
 function makeStage(): MockStage {
   return {
+    add: vi.fn(),
     toDataURL: vi.fn(() => 'data:image/png;base64,abc'),
     batchDraw: vi.fn(),
     width: vi.fn(() => 800),
@@ -75,6 +78,8 @@ describe('CanvasExportService', () => {
   let canvasService: { activeConfig: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
+    // renderStageRegion builds a real Konva layer for the page background.
+    installCanvas2dStub();
     renderer = {
       stage: makeStage(),
       selectionLayer: null,
@@ -104,9 +109,46 @@ describe('CanvasExportService', () => {
 
     service.exportAsPng('mycanvas');
 
-    expect(renderer.stage!.toDataURL).toHaveBeenCalledWith({ pixelRatio: 2 });
-    expect(renderer.stage!.size).not.toHaveBeenCalled();
+    const stage = renderer.stage!;
+    expect(stage.toDataURL).toHaveBeenCalledWith(
+      expect.objectContaining({ pixelRatio: 2 })
+    );
+    // The viewport (800×600 at zoom 1.5, panned by 10,20) in world units.
+    expect(stage.size).toHaveBeenCalledWith({
+      width: expect.closeTo(533.33, 1),
+      height: 400,
+    });
+    expect(stage.position).toHaveBeenCalledWith({
+      x: expect.closeTo(6.67, 1),
+      y: expect.closeTo(13.33, 1),
+    });
     expect(clickSpy).toHaveBeenCalled();
+  });
+
+  it('paints the page colour beneath exports', () => {
+    canvasService.activeConfig.mockReturnValue({
+      elementId: 'e1',
+      layers: [],
+      objects: [],
+      background: '#1e1e1e',
+      inkColor: '#f2f2f2',
+    });
+    // Konva creates its own <canvas> for the background layer, so stub the
+    // download step rather than document.createElement.
+    const download = vi
+      .spyOn(
+        CanvasExportService as unknown as { download: () => void },
+        'download'
+      )
+      .mockImplementation(() => {});
+
+    try {
+      service.exportFrameAsPng(frame);
+      // renderStageRegion adds a background layer only when given a colour.
+      expect(renderer.stage!.add).toHaveBeenCalledTimes(1);
+    } finally {
+      download.mockRestore();
+    }
   });
 
   it('exports high-res PNG with pixelRatio 3', () => {
@@ -117,7 +159,9 @@ describe('CanvasExportService', () => {
 
     service.exportAsHighResPng('mycanvas');
 
-    expect(renderer.stage!.toDataURL).toHaveBeenCalledWith({ pixelRatio: 3 });
+    expect(renderer.stage!.toDataURL).toHaveBeenCalledWith(
+      expect.objectContaining({ pixelRatio: 3 })
+    );
   });
 
   it('exports the whole area fitted around visible content', () => {
@@ -235,8 +279,13 @@ describe('CanvasExportService', () => {
 
     // The hidden-layer shape and hidden pin must not produce a blank
     // default region — the export uses the current viewport instead.
-    expect(renderer.stage!.size).not.toHaveBeenCalled();
-    expect(renderer.stage!.toDataURL).toHaveBeenCalledWith({ pixelRatio: 2 });
+    expect(renderer.stage!.size).toHaveBeenCalledWith({
+      width: expect.closeTo(533.33, 1),
+      height: 400,
+    });
+    expect(renderer.stage!.toDataURL).toHaveBeenCalledWith(
+      expect.objectContaining({ pixelRatio: 2 })
+    );
     expect(clickSpy).toHaveBeenCalled();
   });
 

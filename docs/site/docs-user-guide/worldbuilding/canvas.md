@@ -23,8 +23,15 @@ For canvases that are primarily maps — a background image with clickable pins 
 1. Right-click in the **Project Tree** sidebar (or click the **+** button)
 2. Under **Visualization**, select **Canvas** — or **Map** for a canvas pre-configured for interactive maps
 3. Give it a name (e.g., "World Map", "Battle Plan", "City Layout")
+4. Set up the page: choose a **canvas size** (or keep it infinite), a **page colour** and a **default ink** colour. The colours start out matching your current theme — a dark page with light ink if you're in dark mode — and the **Light page** / **Dark page** buttons swap between the two.
 
 The canvas opens immediately in its own project tab. A Map is an ordinary canvas underneath: it starts with a "Base map" layer and a map icon, and you can use every canvas feature on it.
+
+### Page Colour
+
+A drawing's colours are fixed, so the page they sit on has to be fixed too. The page colour belongs to the canvas, not to your theme: every collaborator sees the same page whatever theme they use, exports (PNG, SVG and the live project cover) are painted on it, and switching between light and dark mode never changes how the drawing looks. Only the pasteboard around the page follows the theme.
+
+Click the colour swatch in the **Frames** header to change the page colour or the default ink later. The default ink is the colour the pen starts with each time you open the canvas.
 
 ## The Interface
 
@@ -207,7 +214,7 @@ Frames give an infinite canvas a page. The **Frames** section of the sidebar hol
 - **Canvas size** — at most one per canvas; the page bounds. Whole-canvas exports use it when it exists.
 - **Crop frames** — as many as you like; named rectangles for exporting the same canvas at different crops.
 
-Frames draw as a labelled outline on the stage. They don't dim or hide anything, and they're not exported themselves.
+Frames draw as a labelled outline on the stage. They don't dim or hide anything, and they're not exported themselves. The canvas size is also where the page colour is painted: inside it is the page, outside is the theme-coloured pasteboard. Without a canvas size, the whole infinite canvas is the page.
 
 ### Adding and Editing Frames
 

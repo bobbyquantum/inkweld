@@ -204,6 +204,8 @@ export class LocalElementSyncProvider implements IElementSyncProvider {
     this.applyCanvasEdit(elementId, {
       layers: contents.layers,
       frames: contents.frames,
+      background: contents.background,
+      inkColor: contents.inkColor,
       upserts: contents.objects,
       order: contents.objects.map(o => o.id),
     });

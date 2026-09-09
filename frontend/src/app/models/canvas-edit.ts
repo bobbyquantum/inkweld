@@ -16,10 +16,19 @@ import type {
   CanvasFrame,
   CanvasLayer,
   CanvasObject,
+  CanvasPageSettings,
 } from './canvas.model';
 
-/** The synced contents of a canvas — everything except which element owns it. */
-export type CanvasContents = Omit<CanvasConfig, 'elementId'>;
+/**
+ * The synced contents of a canvas — everything except which element owns it.
+ * Page colours are optional here: a provider may hold a canvas that was
+ * seeded without them, and the config layer fills in defaults.
+ */
+export type CanvasContents = Omit<
+  CanvasConfig,
+  'elementId' | keyof CanvasPageSettings
+> &
+  Partial<CanvasPageSettings>;
 
 /** A minimal description of what changed on a canvas. */
 export interface CanvasEdit {
@@ -27,6 +36,10 @@ export interface CanvasEdit {
   layers?: CanvasLayer[];
   /** Full frame list, present only when a frame changed. */
   frames?: CanvasFrame[];
+  /** New page background colour, present only when it changed. */
+  background?: string;
+  /** New default ink colour, present only when it changed. */
+  inkColor?: string;
   /** Objects that were added or modified. */
   upserts?: CanvasObject[];
   /** Ids of objects that were removed. */
@@ -70,6 +83,12 @@ export function parseCanvasContents(
     // Absent stays absent — a snapshot without frames must not be
     // mistaken for one that deleted them.
     if (Array.isArray(parsed.frames)) contents.frames = parsed.frames;
+    if (typeof parsed.background === 'string') {
+      contents.background = parsed.background;
+    }
+    if (typeof parsed.inkColor === 'string') {
+      contents.inkColor = parsed.inkColor;
+    }
     return contents;
   } catch {
     return null;
@@ -81,6 +100,8 @@ export function isEmptyCanvasEdit(edit: CanvasEdit): boolean {
   return (
     edit.layers === undefined &&
     edit.frames === undefined &&
+    edit.background === undefined &&
+    edit.inkColor === undefined &&
     edit.order === undefined &&
     !edit.upserts?.length &&
     !edit.deletes?.length
@@ -109,6 +130,18 @@ export function diffCanvasContents(
     // `[]` (not undefined) when the last frame is deleted — undefined in an
     // edit means "no change".
     edit.frames = next.frames ?? [];
+  }
+
+  // Page colours are scalars, so compare by value; an unset colour is not a
+  // change (the config layer substitutes a default rather than syncing one).
+  if (
+    next.background !== undefined &&
+    previous?.background !== next.background
+  ) {
+    edit.background = next.background;
+  }
+  if (next.inkColor !== undefined && previous?.inkColor !== next.inkColor) {
+    edit.inkColor = next.inkColor;
   }
 
   const previousObjects = previous?.objects ?? [];
@@ -195,5 +228,9 @@ export function applyCanvasEdit(
 
   const result: CanvasContents = { layers, objects };
   if (frames !== undefined) result.frames = frames;
+  const background = edit.background ?? contents.background;
+  if (background !== undefined) result.background = background;
+  const inkColor = edit.inkColor ?? contents.inkColor;
+  if (inkColor !== undefined) result.inkColor = inkColor;
   return result;
 }

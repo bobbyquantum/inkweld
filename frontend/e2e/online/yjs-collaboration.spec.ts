@@ -29,6 +29,8 @@ async function createCanvasAndOpen(
   await nameInput.waitFor({ state: 'visible' });
   await nameInput.fill(name);
   await page.getByTestId('create-element-button').click();
+  // A canvas is set up (size + page colours) before it is created.
+  await page.getByTestId('canvas-setup-confirm').click();
 
   await expect(page.getByTestId('canvas-container')).toBeVisible();
   return page.url();

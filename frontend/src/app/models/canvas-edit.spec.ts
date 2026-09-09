@@ -310,3 +310,75 @@ describe('frames', () => {
     expect(result.frames).toEqual([frame]);
   });
 });
+
+describe('page settings', () => {
+  const layers = [makeLayer()];
+
+  it('isEmptyCanvasEdit is false when a page colour is set', () => {
+    expect(isEmptyCanvasEdit({ background: '#fff' })).toBe(false);
+    expect(isEmptyCanvasEdit({ inkColor: '#000' })).toBe(false);
+  });
+
+  it('diff reports changed page colours and ignores unset ones', () => {
+    const before: CanvasContents = {
+      layers,
+      objects: [],
+      background: '#ffffff',
+      inkColor: '#333333',
+    };
+    const same = diffCanvasContents(before, { ...before, objects: [] });
+    expect(same.background).toBeUndefined();
+    expect(same.inkColor).toBeUndefined();
+
+    const changed = diffCanvasContents(before, {
+      ...before,
+      background: '#1e1e1e',
+      inkColor: '#f2f2f2',
+    });
+    expect(changed.background).toBe('#1e1e1e');
+    expect(changed.inkColor).toBe('#f2f2f2');
+
+    // Dropping the colours is not a change: the config layer fills defaults.
+    const dropped = diffCanvasContents(before, { layers, objects: [] });
+    expect(dropped.background).toBeUndefined();
+    expect(dropped.inkColor).toBeUndefined();
+  });
+
+  it('apply replaces page colours and keeps them when the edit has none', () => {
+    const state: CanvasContents = {
+      layers,
+      objects: [],
+      background: '#ffffff',
+      inkColor: '#333333',
+    };
+    const next = applyCanvasEdit(state, { background: '#000000' });
+    expect(next.background).toBe('#000000');
+    expect(next.inkColor).toBe('#333333');
+
+    const untouched = applyCanvasEdit(state, { upserts: [] });
+    expect(untouched.background).toBe('#ffffff');
+    expect(untouched.inkColor).toBe('#333333');
+
+    const absent = applyCanvasEdit({ layers, objects: [] }, { upserts: [] });
+    expect('background' in absent).toBe(false);
+    expect('inkColor' in absent).toBe(false);
+  });
+
+  it('parse round-trips page colours and ignores non-string values', () => {
+    const parsed = parseCanvasContents(
+      JSON.stringify({
+        layers,
+        objects: [],
+        background: '#123456',
+        inkColor: '#abcdef',
+      })
+    );
+    expect(parsed?.background).toBe('#123456');
+    expect(parsed?.inkColor).toBe('#abcdef');
+
+    const bad = parseCanvasContents(
+      JSON.stringify({ layers, objects: [], background: 42 })
+    );
+    expect(bad?.background).toBeUndefined();
+  });
+});

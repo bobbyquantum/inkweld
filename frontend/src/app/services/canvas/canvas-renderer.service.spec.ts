@@ -1046,6 +1046,31 @@ describe('CanvasRendererService', () => {
       expect(service.framesLayer!.getChildren()).toHaveLength(0);
     });
 
+    it('syncPage paints the page inside the canvas-size frame only', () => {
+      service.initStage(container, [makeLayer()], [], null, makeHandlers());
+      const rect = service.pageLayer!.findOne<Konva.Rect>('.pageRect')!;
+      expect(rect.visible()).toBe(false);
+
+      service.syncPage(
+        '#1e1e1e',
+        makeFrame({ x: 10, y: 20, width: 300, height: 200 })
+      );
+      expect(rect.visible()).toBe(true);
+      expect(rect.fill()).toBe('#1e1e1e');
+      expect(rect.position()).toEqual({ x: 10, y: 20 });
+      expect(rect.size()).toEqual({ width: 300, height: 200 });
+
+      // Without a canvas size the page is the whole canvas, painted by CSS.
+      service.syncPage('#1e1e1e', undefined);
+      expect(rect.visible()).toBe(false);
+    });
+
+    it('keeps the page layer beneath the artwork after a sync', () => {
+      service.initStage(container, [makeLayer()], [], null, makeHandlers());
+      service.syncKonvaFromConfig([makeLayer()], [], null, makeHandlers());
+      expect(service.stage!.getLayers()[0]).toBe(service.pageLayer);
+    });
+
     it('styles the canvas-size frame solid and crop frames dashed', () => {
       service.initStage(container, [makeLayer()], [], null, makeHandlers());
       service.syncFrames(

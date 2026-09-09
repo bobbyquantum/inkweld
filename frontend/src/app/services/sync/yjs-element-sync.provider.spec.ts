@@ -780,6 +780,36 @@ describe('YjsElementSyncProvider', () => {
       expect(provider.getCanvasContents('canvas-1')).toBeNull();
     });
 
+    it('stores and reads page colours, leaving them absent until set', () => {
+      attachDoc();
+      provider.applyCanvasEdit('canvas-1', { layers });
+      const before = provider.getCanvasContents('canvas-1');
+      expect(before?.background).toBeUndefined();
+      expect(before?.inkColor).toBeUndefined();
+
+      provider.applyCanvasEdit('canvas-1', {
+        background: '#1e1e1e',
+        inkColor: '#f2f2f2',
+      });
+      const after = provider.getCanvasContents('canvas-1');
+      expect(after?.background).toBe('#1e1e1e');
+      expect(after?.inkColor).toBe('#f2f2f2');
+    });
+
+    it('seeds page colours with the rest of the canvas', () => {
+      attachDoc();
+      provider.seedCanvasContents('canvas-1', {
+        layers,
+        objects: [],
+        background: '#000000',
+        inkColor: '#ffffff',
+      });
+      expect(provider.getCanvasContents('canvas-1')).toMatchObject({
+        background: '#000000',
+        inkColor: '#ffffff',
+      });
+    });
+
     it('ignores edits when there is no document', () => {
       expect(() =>
         provider.applyCanvasEdit('canvas-1', { upserts: [makePath('a')] })

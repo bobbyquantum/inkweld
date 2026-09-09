@@ -14,6 +14,7 @@ import {
   AddRelationshipDialogComponent,
   type AddRelationshipDialogData,
 } from '../../dialogs/add-relationship-dialog/add-relationship-dialog.component';
+import { CanvasSetupDialogComponent } from '../../dialogs/canvas-setup-dialog/canvas-setup-dialog.component';
 import {
   ConfirmationDialogComponent,
   type ConfirmationDialogData,
@@ -144,6 +145,21 @@ describe('DialogGatewayService', () => {
       maxHeight: '90vh',
     });
     expect(result).toEqual(dialogResult);
+  });
+
+  it('should open the canvas setup dialog', async () => {
+    const setup = { page: { background: '#fff', inkColor: '#000' } };
+    (dialogRefMock.afterClosed as Mock).mockReturnValue(of(setup));
+
+    const result = await service.openCanvasSetupDialog({ mode: 'create' });
+
+    expect(dialogMock.open).toHaveBeenCalledWith(CanvasSetupDialogComponent, {
+      data: { mode: 'create' },
+      disableClose: true,
+      width: '480px',
+      maxWidth: '95vw',
+    });
+    expect(result).toEqual(setup);
   });
 
   it('should open rename dialog', async () => {

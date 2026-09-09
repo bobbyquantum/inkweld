@@ -10,10 +10,12 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
 import { type Element, ElementType, type Project } from '@inkweld/index';
 import {
+  type CanvasFrame,
   createDefaultLayer,
   createFrame,
   FRAME_PRESETS,
   isLinkableObject,
+  LIGHT_PAGE,
 } from '@models/canvas.model';
 import { type CanvasContents, type CanvasEdit } from '@models/canvas-edit';
 import type { CoverSource } from '@models/cover-source';
@@ -29,6 +31,10 @@ import {
   switchMap,
 } from 'rxjs';
 
+import {
+  type CanvasSetupDialogData,
+  type CanvasSetupDialogResult,
+} from '../../dialogs/canvas-setup-dialog/canvas-setup-dialog.component';
 import { type ElementPreset } from '../../dialogs/new-element-dialog/new-element-dialog.component';
 import { DocumentSyncState } from '../../models/document-sync-state';
 import { type PublishPlan } from '../../models/publish-plan';
@@ -1576,23 +1582,36 @@ export class ProjectStateService implements OnDestroy {
   // ─────────────────────────────────────────────────────────────────────────────
 
   showNewElementDialog(parentElement?: Element): void {
-    void this.dialogGateway.openNewElementDialog().then(result => {
-      if (result) {
-        const newElementId = this.addElement(
-          result.type,
-          result.name,
-          parentElement?.id,
-          result.schemaId
-        );
+    void this.dialogGateway.openNewElementDialog().then(async result => {
+      if (!result) return;
 
-        if (newElementId) {
-          this.applyPreset(newElementId, result.preset);
-          const elements = this.elements();
-          const newElement = elements.find(e => e.id === newElementId);
-          if (newElement) {
-            this.openDocument(newElement);
-          }
-        }
+      // A canvas is set up before it exists: its page colours are document
+      // state shared by every collaborator, and its size fixes the export
+      // bounds, so ask now instead of handing out a white sheet by default.
+      let canvasSetup: CanvasSetupDialogResult | undefined;
+      if (result.type === ElementType.Canvas) {
+        canvasSetup = await this.dialogGateway.openCanvasSetupDialog(
+          canvasSetupDataFor(result.preset)
+        );
+        if (!canvasSetup) return;
+      }
+
+      const newElementId = this.addElement(
+        result.type,
+        result.name,
+        parentElement?.id,
+        result.schemaId
+      );
+      if (!newElementId) return;
+
+      if (canvasSetup) {
+        this.applyCanvasSetup(newElementId, result.preset, canvasSetup);
+      } else {
+        this.applyPreset(newElementId, result.preset);
+      }
+      const newElement = this.elements().find(e => e.id === newElementId);
+      if (newElement) {
+        this.openDocument(newElement);
       }
     });
   }
@@ -1635,11 +1654,7 @@ export class ProjectStateService implements OnDestroy {
    * the tree, and a "Base map" starting layer for the background image.
    */
   private applyMapPreset(elementId: string): void {
-    this.updateElementMetadata(elementId, { icon: 'map' });
-    this.syncProvider?.seedCanvasContents(elementId, {
-      layers: [createDefaultLayer('Base map', 0)],
-      objects: [],
-    });
+    this.applyCanvasSetup(elementId, 'map', { page: LIGHT_PAGE });
   }
 
   /**
@@ -1648,23 +1663,54 @@ export class ProjectStateService implements OnDestroy {
    * linked as the live cover source so edits regenerate the cover image.
    */
   private applyCoverPreset(elementId: string): void {
-    const preset = FRAME_PRESETS.find(p => p.key === 'cover');
-    if (!preset) return;
-    const frame = createFrame(
-      'canvas',
-      'Cover',
-      0,
-      0,
-      preset.width,
-      preset.height
-    );
-    this.updateElementMetadata(elementId, { icon: 'book' });
-    this.syncProvider?.seedCanvasContents(elementId, {
-      layers: [createDefaultLayer('Artwork', 0)],
+    this.applyCanvasSetup(elementId, 'cover', { page: LIGHT_PAGE });
+  }
+
+  /**
+   * Seed a freshly created canvas from the setup dialog's answers plus the
+   * chosen preset. A cover is always cover-sized whatever size was picked;
+   * any other canvas gets the chosen canvas-size frame, or none.
+   */
+  private applyCanvasSetup(
+    elementId: string,
+    preset: ElementPreset | undefined,
+    setup: CanvasSetupDialogResult
+  ): void {
+    const isCover = preset === 'cover';
+    const isMap = preset === 'map';
+
+    let frame: CanvasFrame | undefined;
+    if (isCover) {
+      const cover = FRAME_PRESETS.find(p => p.key === 'cover');
+      if (cover) {
+        frame = createFrame('canvas', 'Cover', 0, 0, cover.width, cover.height);
+      }
+    } else if (setup.frame) {
+      frame = createFrame(
+        'canvas',
+        'Canvas',
+        0,
+        0,
+        setup.frame.width,
+        setup.frame.height
+      );
+    }
+
+    const layerName = isMap ? 'Base map' : isCover ? 'Artwork' : 'Layer 1';
+    const contents: CanvasContents = {
+      layers: [createDefaultLayer(layerName, 0)],
       objects: [],
-      frames: [frame],
-    });
-    this.setCoverSource({ type: 'canvas', elementId, frameId: frame.id });
+      background: setup.page.background,
+      inkColor: setup.page.inkColor,
+    };
+    if (frame) contents.frames = [frame];
+
+    if (isMap) this.updateElementMetadata(elementId, { icon: 'map' });
+    if (isCover) this.updateElementMetadata(elementId, { icon: 'book' });
+    this.syncProvider?.seedCanvasContents(elementId, contents);
+    if (isCover && frame) {
+      this.setCoverSource({ type: 'canvas', elementId, frameId: frame.id });
+    }
   }
 
   /**
@@ -1968,4 +2014,16 @@ export class ProjectStateService implements OnDestroy {
       );
     }
   }
+}
+
+/** Setup dialog options for a canvas created with `preset`. */
+function canvasSetupDataFor(
+  preset: ElementPreset | undefined
+): CanvasSetupDialogData {
+  const isCover = preset === 'cover';
+  return {
+    mode: 'create',
+    size: isCover ? 'cover' : 'none',
+    sizeLocked: isCover,
+  };
 }
