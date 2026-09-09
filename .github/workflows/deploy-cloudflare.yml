@@ -84,7 +84,7 @@ jobs:
 
       - name: Build frontend
         working-directory: frontend
-        run: bun run clean && bun run ng build --configuration=preview && git rev-parse --short HEAD > dist/browser/assets/version.txt && bun run compress-wasm
+        run: bun run clean && bun run ng build --configuration=preview && node scripts/copy-licenses.mjs && git rev-parse --short HEAD > dist/browser/assets/version.txt && bun run compress-wasm
 
       - name: Generate frontend imports & build backend
         working-directory: backend
