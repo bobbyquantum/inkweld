@@ -8,7 +8,7 @@ import { AuthenticationService, type User } from '@inkweld/index';
 import { SetupService } from '@services/core/setup.service';
 import { SystemConfigService } from '@services/core/system-config.service';
 import { UserService } from '@services/user/user.service';
-import { of, throwError } from 'rxjs';
+import { of, Subject, throwError } from 'rxjs';
 import {
   beforeEach,
   describe,
@@ -539,6 +539,46 @@ describe('RegistrationFormComponent', () => {
       expect(httpClient.get).toHaveBeenCalledWith(
         'https://configured-server.example.com/api/v1/users/check-username?username=testuser'
       );
+    });
+
+    it('ignores a stale response when a newer check has started', async () => {
+      // Picking a suggestion blurs the input (check #1 for the taken name)
+      // and then sets the new value (check #2 for the suggestion). If #1's
+      // response lands after #2's, it must not re-populate the suggestions or
+      // flag the freshly picked name as taken.
+      component.serverUrl = 'https://test-server.example.com';
+      const httpClient = TestBed.inject(HttpClient);
+      const first = new Subject<{
+        available: boolean;
+        suggestions?: string[];
+      }>();
+      const second = new Subject<{
+        available: boolean;
+        suggestions?: string[];
+      }>();
+      vi.spyOn(httpClient, 'get')
+        .mockReturnValueOnce(first.asObservable())
+        .mockReturnValueOnce(second.asObservable());
+
+      component.form.username().value.set('taken');
+      const firstCheck = component.checkUsernameAvailability();
+      component.selectSuggestion('taken1');
+      expect(httpClient.get).toHaveBeenCalledTimes(2);
+
+      // Newer check resolves first: available.
+      second.next({ available: true });
+      second.complete();
+      await Promise.resolve();
+      expect(component.usernameAvailability()).toBe('available');
+
+      // Stale check resolves afterwards: must be dropped.
+      first.next({ available: false, suggestions: ['taken1', 'taken2'] });
+      first.complete();
+      await firstCheck;
+
+      expect(component.usernameAvailability()).toBe('available');
+      expect(component.usernameSuggestions()).toEqual([]);
+      expect(component['usernameTaken']()).toBe(false);
     });
   });
 
