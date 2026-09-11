@@ -183,6 +183,7 @@ describe('ProjectComponent', () => {
       getSyncState: syncStateSignal,
       getLastConnectionError: signal<string | null>(null),
       loadProject: vi.fn().mockResolvedValue(undefined),
+      retrySyncConnection: vi.fn().mockResolvedValue(undefined),
       selectTab: vi.fn().mockImplementation((index: number) => {
         selectedTabIndexSignal.set(index);
       }),
@@ -951,13 +952,15 @@ describe('ProjectComponent', () => {
   });
 
   describe('sync recovery', () => {
-    it('should retry sync by reloading the current project', async () => {
+    it('should retry sync by forcing a fresh provider connection', async () => {
+      (projectStateService.loadProject as ReturnType<typeof vi.fn>).mockClear();
+
       await component.onRetrySyncConnection();
 
-      expect(projectStateService.loadProject).toHaveBeenCalledWith(
-        'testuser',
-        'test-project'
-      );
+      // A plain loadProject() short-circuits while a (possibly dead) provider
+      // object exists, so the retry must force a teardown + reconnect.
+      expect(projectStateService.retrySyncConnection).toHaveBeenCalled();
+      expect(projectStateService.loadProject).not.toHaveBeenCalled();
       expect(snackBar.open).toHaveBeenCalledWith('Reconnecting...', undefined, {
         duration: 2000,
       });
@@ -1000,7 +1003,7 @@ describe('ProjectComponent', () => {
         .spyOn(console, 'error')
         .mockImplementation(() => {});
       (
-        projectStateService.loadProject as ReturnType<typeof vi.fn>
+        projectStateService.retrySyncConnection as ReturnType<typeof vi.fn>
       ).mockRejectedValue(new Error('reconnect failed'));
 
       await component.onRetrySyncConnection();

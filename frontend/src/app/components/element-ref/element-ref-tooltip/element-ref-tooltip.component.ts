@@ -91,18 +91,28 @@ export class ElementRefTooltipComponent {
   /** The tooltip data */
   @Input() set tooltipData(value: ElementRefTooltipData | null) {
     this._data.set(value);
+    // Bump the generation so any in-flight preview/image resolution for the
+    // previous element can no longer write its (now stale) result onto this
+    // one. Also clear the resolved image so B doesn't briefly show A's picture.
+    const generation = ++this.previewGeneration;
+    this.resolvedImageUrl.set(null);
     if (value) {
-      void this.loadPreviewContent(value.elementId);
+      void this.loadPreviewContent(value.elementId, generation);
     } else {
       this.previewContent.set(null);
       this.isLoadingPreview.set(false);
-      this.resolvedImageUrl.set(null);
     }
   }
 
   // Internal state
   private readonly _data = signal<ElementRefTooltipData | null>(null);
   readonly data = this._data.asReadonly();
+
+  /**
+   * Monotonic token identifying the current tooltip target. Async loads capture
+   * it on entry and discard their result if it has since changed.
+   */
+  private previewGeneration = 0;
 
   /** Whether tooltip is visible */
   readonly isVisible = computed(() => this._data() !== null);
@@ -184,10 +194,18 @@ export class ElementRefTooltipComponent {
   private async resolveImageUrl(
     imageUrl: string,
     username: string,
-    slug: string
+    slug: string,
+    generation: number
   ): Promise<void> {
     if (!imageUrl.startsWith('media://')) {
-      this.resolvedImageUrl.set(imageUrl);
+      // Only pass through schemes the browser can actually load. A raw
+      // `media:img-...` (single-colon legacy form) or any other scheme must
+      // not reach an `<img src>` — the deployed CSP blocks it and it logs a
+      // console error for every render.
+      this.setResolvedImage(
+        /^(https?:|blob:|data:image\/)/i.test(imageUrl) ? imageUrl : null,
+        generation
+      );
       return;
     }
 
@@ -203,7 +221,7 @@ export class ElementRefTooltipComponent {
         mediaId
       );
       if (cachedUrl) {
-        this.resolvedImageUrl.set(cachedUrl);
+        this.setResolvedImage(cachedUrl, generation);
         return;
       }
 
@@ -214,14 +232,23 @@ export class ElementRefTooltipComponent {
 
       await this.localStorage.saveMedia(projectKey, mediaId, blob, filename);
       const blobUrl = await this.localStorage.getMediaUrl(projectKey, mediaId);
-      this.resolvedImageUrl.set(blobUrl);
+      this.setResolvedImage(blobUrl, generation);
     } catch {
-      this.resolvedImageUrl.set(null);
+      this.setResolvedImage(null, generation);
     }
   }
 
+  /** Apply a resolved image only if it still belongs to the current tooltip. */
+  private setResolvedImage(url: string | null, generation: number): void {
+    if (generation !== this.previewGeneration) return;
+    this.resolvedImageUrl.set(url);
+  }
+
   /** Load preview content for an element */
-  private async loadPreviewContent(elementId: string): Promise<void> {
+  private async loadPreviewContent(
+    elementId: string,
+    generation: number
+  ): Promise<void> {
     this.isLoadingPreview.set(true);
 
     try {
@@ -232,31 +259,39 @@ export class ElementRefTooltipComponent {
 
       const project = this.projectState.project();
       if (project && isWorldbuildingType(element.type)) {
-        await this.loadWorldbuildingPreview(elementId, project);
+        await this.loadWorldbuildingPreview(elementId, project, generation);
         return;
       }
 
       if (project && element.type === ElementType.Item) {
-        const loaded = await this.loadItemDocumentPreview(elementId, project);
+        const loaded = await this.loadItemDocumentPreview(
+          elementId,
+          project,
+          generation
+        );
         if (loaded) {
           return;
         }
       }
 
+      if (generation !== this.previewGeneration) return;
       this.previewContent.set({
         path: undefined,
         excerpt: undefined,
         wordCount: undefined,
       });
     } finally {
-      this.isLoadingPreview.set(false);
+      if (generation === this.previewGeneration) {
+        this.isLoadingPreview.set(false);
+      }
     }
   }
 
   /** Load preview for worldbuilding elements (identity data + optional image). */
   private async loadWorldbuildingPreview(
     elementId: string,
-    project: { username: string; slug: string }
+    project: { username: string; slug: string },
+    generation: number
   ): Promise<void> {
     let identityData: Awaited<
       ReturnType<typeof this.worldbuildingService.getIdentityData>
@@ -269,9 +304,13 @@ export class ElementRefTooltipComponent {
       );
     } catch (error) {
       console.error('Failed to load worldbuilding preview', error);
-      this.previewContent.set({});
+      if (generation === this.previewGeneration) {
+        this.previewContent.set({});
+      }
       return;
     }
+
+    if (generation !== this.previewGeneration) return;
 
     this.previewContent.set({
       path: undefined,
@@ -283,7 +322,8 @@ export class ElementRefTooltipComponent {
       void this.resolveImageUrl(
         identityData.image,
         project.username,
-        project.slug
+        project.slug,
+        generation
       );
     }
   }
@@ -294,7 +334,8 @@ export class ElementRefTooltipComponent {
    */
   private async loadItemDocumentPreview(
     elementId: string,
-    project: { username: string; slug: string }
+    project: { username: string; slug: string },
+    generation: number
   ): Promise<boolean> {
     try {
       const docId = `${project.username}:${project.slug}:${elementId}`;
@@ -302,6 +343,8 @@ export class ElementRefTooltipComponent {
       if (!content || !Array.isArray(content) || content.length === 0) {
         return false;
       }
+
+      if (generation !== this.previewGeneration) return false;
 
       const plainText = flattenToPlainText(content).trim();
       const wordCount = plainText ? plainText.split(/\s+/).length : 0;

@@ -109,7 +109,6 @@ describe('DocumentService', () => {
     // isLocallyCreatedElement returns true to bypass the empty-document guard
     // in tests (the guard is tested separately in project-state.service.spec.ts)
     mockProjectStateService = {
-      updateSyncState: vi.fn(),
       isLocallyCreatedElement: vi.fn().mockReturnValue(true),
       project: vi.fn().mockReturnValue({
         username: 'testuser',
@@ -273,10 +272,6 @@ describe('DocumentService', () => {
       });
 
       expect(currentStatus).toBe(DocumentSyncState.Synced);
-      expect(mockProjectStateService.updateSyncState).toHaveBeenCalledWith(
-        testDocumentId,
-        DocumentSyncState.Synced
-      );
     });
 
     it.skip('should handle WebSocket connection errors', async () => {
@@ -311,10 +306,6 @@ describe('DocumentService', () => {
       });
 
       expect(currentStatus).toBe(DocumentSyncState.Local);
-      expect(mockProjectStateService.updateSyncState).toHaveBeenCalledWith(
-        testDocumentId,
-        DocumentSyncState.Local
-      );
     });
 
     it('should initialize with Offline status', () => {
@@ -836,10 +827,6 @@ describe('DocumentService', () => {
 
       callbacks['connection-error']?.('401 Unauthorized');
       expect(service.getSyncStatusSignal(testDocumentId)()).toBe(
-        DocumentSyncState.Unavailable
-      );
-      expect(mockProjectStateService.updateSyncState).toHaveBeenCalledWith(
-        testDocumentId,
         DocumentSyncState.Unavailable
       );
 

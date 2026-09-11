@@ -498,6 +498,24 @@ describe('ProjectStateService', () => {
 
       expect(service.getSyncState()).toBe(DocumentSyncState.Synced);
     });
+
+    it('retrySyncConnection tears down the existing provider before reloading', async () => {
+      await service.loadProject('testuser', 'test-project');
+      mockSyncProvider.disconnect.mockClear();
+
+      await service.retrySyncConnection();
+
+      // The teardown is the whole point: loadProject() would otherwise
+      // short-circuit because a (possibly dead) provider still exists.
+      expect(mockSyncProvider.disconnect).toHaveBeenCalled();
+      expect(service.getSyncState()).toBe(DocumentSyncState.Unavailable);
+    });
+
+    it('retrySyncConnection does nothing without a loaded project', async () => {
+      await service.retrySyncConnection();
+
+      expect(mockSyncProvider.disconnect).not.toHaveBeenCalled();
+    });
   });
 
   describe('Element Management', () => {

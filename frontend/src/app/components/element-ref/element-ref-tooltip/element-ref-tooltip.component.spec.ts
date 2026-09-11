@@ -2,13 +2,17 @@
  * Element Reference Tooltip Component Tests
  */
 
+import { HttpClient } from '@angular/common/http';
 import { signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
+import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { type Element, ElementType } from '../../../../api-client';
 import { translocoTestProvider } from '../../../../testing/transloco-test-provider';
 import { LoggerService } from '../../../services/core/logger.service';
+import { StorageContextService } from '../../../services/core/storage-context.service';
+import { LocalStorageService } from '../../../services/local/local-storage.service';
 import { DocumentService } from '../../../services/project/document.service';
 import { ProjectStateService } from '../../../services/project/project-state.service';
 import { WorldbuildingService } from '../../../services/worldbuilding/worldbuilding.service';
@@ -22,8 +26,19 @@ describe('ElementRefTooltipComponent', () => {
   let component: ElementRefTooltipComponent;
   let fixture: ComponentFixture<ElementRefTooltipComponent>;
   let mockElements: Element[];
+  let mockLocalStorage: {
+    getMediaUrl: ReturnType<typeof vi.fn>;
+    saveMedia: ReturnType<typeof vi.fn>;
+  };
+  let mockHttp: { get: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
+    mockLocalStorage = {
+      getMediaUrl: vi.fn().mockResolvedValue(null),
+      saveMedia: vi.fn().mockResolvedValue(undefined),
+    };
+    mockHttp = { get: vi.fn().mockReturnValue(of(new Blob(['x']))) };
+
     mockElements = [
       {
         id: 'test-id',
@@ -42,6 +57,18 @@ describe('ElementRefTooltipComponent', () => {
       imports: [translocoTestProvider(), ElementRefTooltipComponent],
       providers: [
         ElementRefService,
+        {
+          provide: LocalStorageService,
+          useValue: mockLocalStorage,
+        },
+        {
+          provide: StorageContextService,
+          useValue: { getApiBaseUrl: () => 'https://api' },
+        },
+        {
+          provide: HttpClient,
+          useValue: mockHttp,
+        },
         {
           provide: DocumentService,
           useValue: {
@@ -677,6 +704,184 @@ describe('ElementRefTooltipComponent', () => {
       expect(component.previewContent()?.excerpt).toBe(
         'A brave warrior from the north.'
       );
+    });
+
+    it('should resolve the worldbuilding identity image', async () => {
+      const characterElement: Element = {
+        id: 'character-2',
+        name: 'Test Character',
+        type: ElementType.Worldbuilding,
+        schemaId: 'character-v1',
+        parentId: null,
+        order: 0,
+        level: 0,
+        expandable: false,
+        version: 1,
+        metadata: {},
+      };
+
+      const projectStateService = TestBed.inject(ProjectStateService);
+      const worldbuildingService = TestBed.inject(WorldbuildingService);
+
+      (projectStateService.elements as any).set([characterElement]);
+      (projectStateService.project as any).set({
+        username: 'testuser',
+        slug: 'test-project',
+      });
+      vi.mocked(worldbuildingService.getIdentityData).mockResolvedValue({
+        description: 'Has a portrait.',
+        image: 'https://example.com/portrait.png',
+      });
+
+      component.tooltipData = {
+        elementId: 'character-2',
+        elementType: ElementType.Worldbuilding,
+        displayText: 'Test Character',
+        originalName: 'Test Character',
+        position: { x: 100, y: 200 },
+      };
+      await fixture.whenStable();
+
+      expect(component.resolvedImageUrl()).toBe(
+        'https://example.com/portrait.png'
+      );
+    });
+
+    it('should show an empty preview when identity loading fails', async () => {
+      const consoleSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+      const characterElement: Element = {
+        id: 'character-3',
+        name: 'Test Character',
+        type: ElementType.Worldbuilding,
+        schemaId: 'character-v1',
+        parentId: null,
+        order: 0,
+        level: 0,
+        expandable: false,
+        version: 1,
+        metadata: {},
+      };
+
+      const projectStateService = TestBed.inject(ProjectStateService);
+      const worldbuildingService = TestBed.inject(WorldbuildingService);
+
+      (projectStateService.elements as any).set([characterElement]);
+      (projectStateService.project as any).set({
+        username: 'testuser',
+        slug: 'test-project',
+      });
+      vi.mocked(worldbuildingService.getIdentityData).mockRejectedValue(
+        new Error('boom')
+      );
+
+      component.tooltipData = {
+        elementId: 'character-3',
+        elementType: ElementType.Worldbuilding,
+        displayText: 'Test Character',
+        originalName: 'Test Character',
+        position: { x: 100, y: 200 },
+      };
+      await fixture.whenStable();
+
+      expect(component.previewContent()).toEqual({});
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe('image reference scheme validation', () => {
+    it('should pass through safe http/blob/data image schemes', async () => {
+      const generation = ++component['previewGeneration'];
+      await component['resolveImageUrl'](
+        'https://example.com/a.png',
+        'u',
+        'p',
+        generation
+      );
+      expect(component.resolvedImageUrl()).toBe('https://example.com/a.png');
+    });
+
+    it('should drop a single-colon media: reference rather than leak it into an img src', async () => {
+      // Legacy `media:img-...` (single colon) is neither a media:// reference
+      // nor a browser-loadable scheme; binding it raw triggers a CSP img-src
+      // violation on every tooltip render.
+      const generation = ++component['previewGeneration'];
+      await component['resolveImageUrl'](
+        'media:img-legacy-id',
+        'u',
+        'p',
+        generation
+      );
+      expect(component.resolvedImageUrl()).toBeNull();
+    });
+
+    it('should discard an image resolved for a previous tooltip target', async () => {
+      const staleGeneration = component['previewGeneration'];
+
+      // The tooltip moves to a different element while the first resolution is
+      // still in flight.
+      component.tooltipData = {
+        elementId: 'other-id',
+        elementType: ElementType.Item,
+        displayText: 'Other',
+        originalName: 'Other',
+        position: { x: 0, y: 0 },
+      };
+
+      await component['resolveImageUrl'](
+        'https://example.com/stale.png',
+        'u',
+        'p',
+        staleGeneration
+      );
+
+      expect(component.resolvedImageUrl()).toBeNull();
+    });
+
+    it('should use a cached blob URL for a media:// reference', async () => {
+      mockLocalStorage.getMediaUrl.mockResolvedValue('blob:cached');
+      const generation = ++component['previewGeneration'];
+
+      await component['resolveImageUrl'](
+        'media://img-1.png',
+        'u',
+        'p',
+        generation
+      );
+
+      expect(component.resolvedImageUrl()).toBe('blob:cached');
+    });
+
+    it('should download and cache a missing media:// reference', async () => {
+      mockLocalStorage.getMediaUrl
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce('blob:fresh');
+      const generation = ++component['previewGeneration'];
+
+      await component['resolveImageUrl'](
+        'media://img-2.png',
+        'u',
+        'p',
+        generation
+      );
+
+      expect(component.resolvedImageUrl()).toBe('blob:fresh');
+      expect(mockLocalStorage.saveMedia).toHaveBeenCalled();
+    });
+
+    it('should clear the image when a media:// download fails', async () => {
+      mockLocalStorage.getMediaUrl.mockRejectedValue(new Error('offline'));
+      const generation = ++component['previewGeneration'];
+
+      await component['resolveImageUrl'](
+        'media://img-3.png',
+        'u',
+        'p',
+        generation
+      );
+
+      expect(component.resolvedImageUrl()).toBeNull();
     });
   });
 

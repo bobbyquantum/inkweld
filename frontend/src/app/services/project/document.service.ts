@@ -1350,7 +1350,6 @@ export class DocumentService {
         ? DocumentSyncState.Local
         : DocumentSyncState.Unavailable;
       this.updateSyncStatus(documentId, deniedState);
-      this.projectStateService.updateSyncState(documentId, deniedState);
       if (LONG_BACKOFF_DENIAL_REASONS.has(reason)) {
         // A throttle (`rate-limited`) or server-side failure (`error`) is
         // transient — the per-doc window / backend incident clears on its
@@ -1735,10 +1734,6 @@ export class DocumentService {
             'Authentication error on WebSocket, session may have expired'
           );
           this.updateSyncStatus(documentId, DocumentSyncState.Unavailable);
-          this.projectStateService.updateSyncState(
-            documentId,
-            DocumentSyncState.Unavailable
-          );
           if (reconnectTimeout) {
             clearTimeout(reconnectTimeout);
             reconnectTimeout = null;
@@ -2269,11 +2264,15 @@ export class DocumentService {
    * @param state - The new sync state
    */
   private updateSyncStatus(documentId: string, state: DocumentSyncState): void {
+    // Per-document sync state only. The project-wide `docSyncState` is owned by
+    // the elements sync provider (see ProjectStateService.setupProviderSubscriptions)
+    // and must never be written from a single document's connection lifecycle —
+    // closing a document tab emits `disconnected` synchronously and would flip
+    // the whole project to "Offline" while the elements provider is still Synced.
     this.ngZone.run(() => {
       if (this.syncStatusSignals.has(documentId)) {
         this.syncStatusSignals.get(documentId)!.set(state);
       }
-      this.projectStateService.updateSyncState(documentId, state);
     });
   }
 
