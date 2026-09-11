@@ -116,17 +116,17 @@ describe('NewElementDialogComponent', () => {
     expect(dialogRef.close).toHaveBeenCalled();
   });
 
-  it('should close dialog with form value on create when valid', () => {
-    const formValue = {
-      name: 'Test Element',
-      type: ElementType.Item,
-    };
-
-    component.form.name().value.set(formValue.name);
-    component.form.type().value.set(formValue.type);
+  it('should close dialog with the trimmed name and type on create when valid', () => {
+    component.form.name().value.set('  Test Element  ');
+    component.form.type().value.set(ElementType.Item);
     component.onCreate();
 
-    expect(dialogRef.close).toHaveBeenCalledWith(formValue);
+    expect(dialogRef.close).toHaveBeenCalledWith({
+      name: 'Test Element',
+      type: ElementType.Item,
+      schemaId: undefined,
+      preset: undefined,
+    });
   });
 
   it('should not close dialog on create when invalid', () => {
@@ -134,17 +134,13 @@ describe('NewElementDialogComponent', () => {
     expect(dialogRef.close).not.toHaveBeenCalled();
   });
 
-  describe('step navigation', () => {
-    it('should start at step 1', () => {
-      expect(component.currentStep()).toBe(1);
+  describe('type selection', () => {
+    it('starts with no type selected', () => {
+      expect(component.selectedType()).toBeNull();
+      expect(component.getSelectedOption()).toBeUndefined();
     });
 
-    it('should not advance to step 2 without selecting a type', () => {
-      component.nextStep();
-      expect(component.currentStep()).toBe(1);
-    });
-
-    it('should advance to step 2 after selecting a type', () => {
+    it('records the type, schema and preset when a type is selected', () => {
       component.selectType({
         type: ElementType.Item,
         label: 'Document',
@@ -152,38 +148,72 @@ describe('NewElementDialogComponent', () => {
         description: 'A document',
         category: 'document',
       });
-      expect(component.currentStep()).toBe(2);
+      expect(component.selectedType()).toBe(ElementType.Item);
+      expect(component.form.type().value()).toBe(ElementType.Item);
+      expect(
+        component.isOptionSelected({
+          type: ElementType.Item,
+          label: 'Document',
+          icon: 'description',
+          description: 'A document',
+          category: 'document',
+        })
+      ).toBe(true);
     });
 
-    it('should go back to step 1 from step 2', () => {
+    it('records a worldbuilding schema id on selection', () => {
       component.selectType({
-        type: ElementType.Item,
-        label: 'Document',
-        icon: 'description',
-        description: 'A document',
-        category: 'document',
+        type: ElementType.Worldbuilding,
+        schemaId: 'character-v1',
+        label: 'Character',
+        icon: 'person',
+        description: 'A character',
+        category: 'worldbuilding',
       });
-      expect(component.currentStep()).toBe(2);
-
-      component.previousStep();
-      expect(component.currentStep()).toBe(1);
+      expect(component.selectedType()).toBe(ElementType.Worldbuilding);
+      expect(component.selectedSchemaId()).toBe('character-v1');
     });
 
-    it('should not go back from step 1', () => {
-      component.previousStep();
-      expect(component.currentStep()).toBe(1);
+    it('records the preset on selection', () => {
+      const scene = component
+        .documentOptions()
+        .find(o => o.preset === 'scene')!;
+      component.selectType(scene);
+      expect(component.selectedPreset()).toBe('scene');
+    });
+  });
+
+  describe('showTypePicker', () => {
+    it('shows the picker by default', () => {
+      expect(component.showTypePicker()).toBe(true);
     });
 
-    it('should set form type when selecting a type', () => {
-      component.selectType({
-        type: ElementType.Folder,
-        label: 'Folder',
-        icon: 'folder',
-        description: 'A folder',
-        category: 'document',
-      });
-      expect(component.form.type().value()).toBe(ElementType.Folder);
-      expect(component.selectedType()).toBe(ElementType.Folder);
+    it('hides the picker when the type is preselected', async () => {
+      TestBed.resetTestingModule();
+      await TestBed.configureTestingModule({
+        imports: [translocoTestProvider(), NewElementDialogComponent],
+        providers: [
+          provideZonelessChangeDetection(),
+          provideHttpClient(withXhr()),
+          { provide: MatDialogRef, useValue: dialogRef },
+          {
+            provide: MAT_DIALOG_DATA,
+            useValue: {
+              skipTypeSelection: true,
+              preselectedType: ElementType.Folder,
+            },
+          },
+          { provide: ProjectStateService, useValue: mockProjectState },
+          { provide: WorldbuildingService, useValue: mockWorldbuildingService },
+        ],
+      }).compileComponents();
+      const f = TestBed.createComponent(NewElementDialogComponent);
+      const c = f.componentInstance;
+      f.detectChanges();
+
+      expect(c.showTypePicker()).toBe(false);
+      expect(c.selectedType()).toBe(ElementType.Folder);
+      expect(c.form.type().value()).toBe(ElementType.Folder);
     });
   });
 
@@ -217,7 +247,7 @@ describe('NewElementDialogComponent', () => {
       vi.spyOn(event, 'preventDefault');
       component.onTypeCardKeydown(event, option);
       expect(event.preventDefault).not.toHaveBeenCalled();
-      expect(component.currentStep()).toBe(1);
+      expect(component.selectedType()).toBeNull();
     });
   });
 
@@ -295,6 +325,68 @@ describe('NewElementDialogComponent', () => {
     it('should start with no worldbuilding options', () => {
       const wbOptions = component.worldbuildingOptions();
       expect(wbOptions).toHaveLength(0);
+    });
+  });
+
+  describe('sections', () => {
+    it('orders non-empty sections document, worldbuilding, visualization', () => {
+      const sections = component.sections();
+      expect(sections.map(s => s.key)).toEqual(['document', 'visualization']);
+      expect(sections[0].className).toBe('category-document');
+      expect(sections[0].options.length).toBe(3);
+      expect(sections[1].className).toBe('category-visualization');
+    });
+
+    it('omits sections that have no matching options after filtering', () => {
+      component.searchQuery.set('folder');
+      const sections = component.sections();
+      expect(sections).toHaveLength(1);
+      expect(sections[0].key).toBe('document');
+      expect(sections[0].options).toHaveLength(1);
+    });
+
+    it('returns no sections when nothing matches', () => {
+      component.searchQuery.set('nonexistent');
+      expect(component.sections()).toHaveLength(0);
+    });
+  });
+
+  describe('namePlaceholder', () => {
+    it('uses the schema-specific placeholder for known schema ids', () => {
+      const character = {
+        type: ElementType.Worldbuilding,
+        schemaId: 'character-v1',
+        label: 'Character',
+        icon: 'person',
+        description: 'A character',
+        category: 'worldbuilding' as const,
+      };
+      component.elementTypeOptions.update(options => [...options, character]);
+      component.selectType(character);
+      expect(component.namePlaceholder()).toContain('Aragorn');
+    });
+
+    it('falls back to the document placeholder', () => {
+      component.selectType({
+        type: ElementType.Item,
+        label: 'Scene',
+        icon: 'description',
+        description: 'A scene',
+        category: 'document',
+        preset: 'scene',
+      });
+      expect(component.namePlaceholder()).toContain('Chapter 1');
+    });
+
+    it('uses the folder placeholder for folders', () => {
+      component.selectType({
+        type: ElementType.Folder,
+        label: 'Folder',
+        icon: 'folder',
+        description: 'A folder',
+        category: 'document',
+      });
+      expect(component.namePlaceholder()).toContain('Act 1');
     });
   });
 

@@ -27,7 +27,9 @@
     "unitsInvalid": "Each part of the date must be a whole number"
   },
   "newElement": {
-    "title": "Choose Element Type",
+    "title": "Create New",
+    "subtitle": "Pick what you'd like to add",
+    "nameStepSubtitle": "Give it a name to get started",
     "searchLabel": "Search element types...",
     "searchPlaceholder": "e.g., character, location, map...",
     "searchAria": "Search element types",
