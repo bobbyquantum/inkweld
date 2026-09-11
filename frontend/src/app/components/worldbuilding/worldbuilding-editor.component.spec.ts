@@ -1300,6 +1300,17 @@ describe('WorldbuildingEditorComponent', () => {
       // it; returning null avoids the console error until resolve completes.
       expect(component['backgroundCss'](bg)).toBeNull();
     });
+
+    it('should pass through a non-media image background unchanged', () => {
+      fixture.detectChanges();
+      const bg = {
+        type: 'image' as const,
+        background: "url('https://example.com/bg.png')",
+      };
+      expect(component['backgroundCss'](bg)).toBe(
+        "url('https://example.com/bg.png')"
+      );
+    });
   });
 
   describe('initializeIfNeeded', () => {
