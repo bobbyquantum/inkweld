@@ -680,6 +680,21 @@ describe('ElementRefTooltipComponent', () => {
     });
   });
 
+  describe('image reference scheme validation', () => {
+    it('should pass through safe http/blob/data image schemes', async () => {
+      await component['resolveImageUrl']('https://example.com/a.png', 'u', 'p');
+      expect(component.resolvedImageUrl()).toBe('https://example.com/a.png');
+    });
+
+    it('should drop a single-colon media: reference rather than leak it into an img src', async () => {
+      // Legacy `media:img-...` (single colon) is neither a media:// reference
+      // nor a browser-loadable scheme; binding it raw triggers a CSP img-src
+      // violation on every tooltip render.
+      await component['resolveImageUrl']('media:img-legacy-id', 'u', 'p');
+      expect(component.resolvedImageUrl()).toBeNull();
+    });
+  });
+
   describe('document excerpt loading for Item type', () => {
     it('should load document excerpt for Item elements', async () => {
       const projectStateService = TestBed.inject(ProjectStateService);

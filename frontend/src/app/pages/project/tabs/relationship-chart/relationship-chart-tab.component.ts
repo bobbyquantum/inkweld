@@ -124,9 +124,6 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
   /** Whether a Cytoscape layout animation is running (exposed for tests) */
   protected readonly layoutRunning = signal(false);
 
-  /** Blob URLs that need revoking on destroy */
-  private readonly blobUrls: string[] = [];
-
   /** Incremented on each loadNodeImages call; stale async results are discarded */
   private imageLoadGeneration = 0;
 
@@ -351,13 +348,10 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
       }
     });
 
-    // Cleanup blob URLs on destroy
-    this.destroyRef.onDestroy(() => {
-      for (const url of this.blobUrls) {
-        URL.revokeObjectURL(url);
-      }
-      this.blobUrls.length = 0;
-    });
+    // Blob URLs returned by LocalStorageService.getMediaUrl are owned by that
+    // service's shared cache (revoked on project close via revokeProjectUrls).
+    // Revoking them here would leave dead URLs in the cache for every other
+    // consumer, so the chart deliberately does not revoke on destroy.
   }
 
   ngOnInit(): void {
@@ -1177,16 +1171,14 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
     username: string,
     slug: string
   ): Promise<string | null> {
-    if (imageUrl.startsWith('data:')) {
-      return imageUrl;
-    }
-
     if (imageUrl.startsWith('media://')) {
       return this.resolveMediaUrl(imageUrl, username, slug);
     }
 
-    // Regular HTTP URL
-    return imageUrl;
+    // Pass through only schemes the browser can load. A raw `media:img-...`
+    // (single-colon legacy form) or any other scheme would otherwise be handed
+    // to Cytoscape as a node background and blocked by the deployed CSP.
+    return /^(https?:|blob:|data:)/i.test(imageUrl) ? imageUrl : null;
   }
 
   /**
@@ -1209,7 +1201,6 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
       mediaId
     );
     if (localUrl) {
-      this.blobUrls.push(localUrl);
       return localUrl;
     }
 
@@ -1243,7 +1234,6 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
         mediaId
       );
       if (retryUrl) {
-        this.blobUrls.push(retryUrl);
         return retryUrl;
       }
 

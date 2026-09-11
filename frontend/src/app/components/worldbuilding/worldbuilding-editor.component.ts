@@ -369,7 +369,13 @@ export class WorldbuildingEditorComponent implements OnDestroy {
     if (bg.type !== 'image') return bg.background;
     const ref = this.extractImageRef(bg.background);
     const resolved = ref ? this.resolvedImageUrls()[ref] : undefined;
-    return resolved ? `url('${resolved}')` : bg.background;
+    if (resolved) return `url('${resolved}')`;
+    // An unresolved `media:` reference (either `media://` or the legacy
+    // single-colon form) must not reach CSS: the browser would try to load it
+    // and the deployed CSP blocks it, logging a console error. Return nothing
+    // until the async resolve lands and re-renders.
+    if (ref?.startsWith('media:')) return null;
+    return bg.background;
   }
 
   /** Reference to the meta panel for controlling expanded state on mobile */
@@ -513,11 +519,10 @@ export class WorldbuildingEditorComponent implements OnDestroy {
     if (this.resizeCleanup) {
       this.resizeCleanup();
     }
-    for (const url of Object.values(this.resolvedImageUrls())) {
-      if (url.startsWith('blob:')) {
-        URL.revokeObjectURL(url);
-      }
-    }
+    // Blob URLs come from LocalStorageService.getMediaUrl and are owned by its
+    // cache (revoked on project close via revokeProjectUrls). Revoking them
+    // here would leave a revoked URL in that cache, so the next consumer gets a
+    // dead blob URL. Deliberately do not revoke.
   }
 
   private async loadElementData(elementId: string): Promise<void> {

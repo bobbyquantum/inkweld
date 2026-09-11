@@ -1237,7 +1237,10 @@ describe('WorldbuildingEditorComponent', () => {
       });
     });
 
-    it('should revoke cached blob URLs on destroy', () => {
+    it('should not revoke cached blob URLs on destroy', () => {
+      // Blob URLs are owned by LocalStorageService's cache and must survive
+      // this component: revoking them here poisons the shared cache and the
+      // next consumer receives a dead URL.
       const revokeSpy = vi
         .spyOn(URL, 'revokeObjectURL')
         .mockImplementation(() => {});
@@ -1248,8 +1251,7 @@ describe('WorldbuildingEditorComponent', () => {
 
       component.ngOnDestroy();
 
-      expect(revokeSpy).toHaveBeenCalledWith('blob:abc');
-      expect(revokeSpy).not.toHaveBeenCalledWith('https://x/y.png');
+      expect(revokeSpy).not.toHaveBeenCalled();
       revokeSpy.mockRestore();
     });
   });
@@ -1276,6 +1278,27 @@ describe('WorldbuildingEditorComponent', () => {
       });
       expect(component.menuBackground()?.background).toBe('#123456');
       expect(component.contentBackground()).toBeNull();
+    });
+
+    it('should substitute a resolved blob URL for a media:// background', () => {
+      fixture.detectChanges();
+      component['resolvedImageUrls'].set({ 'media://bg.png': 'blob:abc' });
+      const bg = {
+        type: 'image' as const,
+        background: "url('media://bg.png')",
+      };
+      expect(component['backgroundCss'](bg)).toBe("url('blob:abc')");
+    });
+
+    it('should drop an unresolved media:// background instead of leaking it into CSS', () => {
+      fixture.detectChanges();
+      const bg = {
+        type: 'image' as const,
+        background: "url('media://bg.png')",
+      };
+      // The browser would try to load `media://` and the deployed CSP blocks
+      // it; returning null avoids the console error until resolve completes.
+      expect(component['backgroundCss'](bg)).toBeNull();
     });
   });
 

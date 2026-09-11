@@ -743,6 +743,16 @@ describe('RelationshipChartTabComponent', () => {
     expect(result).toBe(httpUrl);
   });
 
+  it('should reject a single-colon media: reference instead of passing it to Cytoscape', async () => {
+    fixture.detectChanges();
+    const result = await component['resolveImageUrl'](
+      'media:img-legacy-id',
+      'user',
+      'proj'
+    );
+    expect(result).toBeNull();
+  });
+
   it('should resolve media:// URL from local IndexedDB', async () => {
     fixture.detectChanges();
     mockLocalStorageService.getMediaUrl.mockResolvedValue(

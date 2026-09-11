@@ -804,8 +804,10 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     );
 
     try {
-      // Reload the project to re-establish sync provider
-      await this.projectState.loadProject(project.username, project.slug);
+      // Force a fresh provider: a plain loadProject() short-circuits when the
+      // existing provider merely exists (isConnected() does not check socket
+      // liveness), which made this button a no-op against a dead connection.
+      await this.projectState.retrySyncConnection();
       // loadProject resolves successfully even when the provider fell back to
       // local-only mode (no token, version-blocked, WS auth failed) — check
       // the resulting sync state so the snackbar reports what actually

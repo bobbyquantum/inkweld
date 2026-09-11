@@ -784,6 +784,24 @@ export class ProjectStateService implements OnDestroy {
   }
 
   /**
+   * Force a fresh connection to the current project's sync provider.
+   *
+   * Unlike a plain {@link loadProject}, this tears the existing provider down
+   * first. That matters because `loadProject` short-circuits when the current
+   * provider reports `isConnected()` — and `isConnected()` only checks that a
+   * provider object exists, not that its socket is alive. A dead-but-present
+   * provider therefore made the retry button a no-op: no reconnect was
+   * attempted and the stale sync state was re-read. Disconnecting first makes
+   * the reload actually re-establish the WebSocket.
+   */
+  async retrySyncConnection(): Promise<void> {
+    const project = this.project();
+    if (!project?.username || !project?.slug) return;
+    this.disconnectSync();
+    await this.loadProject(project.username, project.slug);
+  }
+
+  /**
    * Clear all project-specific state when switching projects.
    */
   private clearProjectState(): void {
@@ -1483,14 +1501,6 @@ export class ProjectStateService implements OnDestroy {
     } else {
       this.pinElement(elementId);
     }
-  }
-
-  updateSyncState(
-    documentId: string,
-    state: DocumentSyncState | undefined
-  ): void {
-    if (!documentId || !state) return;
-    this.docSyncState.set(state);
   }
 
   /**

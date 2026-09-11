@@ -187,7 +187,13 @@ export class ElementRefTooltipComponent {
     slug: string
   ): Promise<void> {
     if (!imageUrl.startsWith('media://')) {
-      this.resolvedImageUrl.set(imageUrl);
+      // Only pass through schemes the browser can actually load. A raw
+      // `media:img-...` (single-colon legacy form) or any other scheme must
+      // not reach an `<img src>` — the deployed CSP blocks it and it logs a
+      // console error for every render.
+      this.resolvedImageUrl.set(
+        /^(https?:|blob:|data:image\/)/i.test(imageUrl) ? imageUrl : null
+      );
       return;
     }
 
