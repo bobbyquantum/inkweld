@@ -682,7 +682,13 @@ describe('ElementRefTooltipComponent', () => {
 
   describe('image reference scheme validation', () => {
     it('should pass through safe http/blob/data image schemes', async () => {
-      await component['resolveImageUrl']('https://example.com/a.png', 'u', 'p');
+      const generation = ++component['previewGeneration'];
+      await component['resolveImageUrl'](
+        'https://example.com/a.png',
+        'u',
+        'p',
+        generation
+      );
       expect(component.resolvedImageUrl()).toBe('https://example.com/a.png');
     });
 
@@ -690,7 +696,36 @@ describe('ElementRefTooltipComponent', () => {
       // Legacy `media:img-...` (single colon) is neither a media:// reference
       // nor a browser-loadable scheme; binding it raw triggers a CSP img-src
       // violation on every tooltip render.
-      await component['resolveImageUrl']('media:img-legacy-id', 'u', 'p');
+      const generation = ++component['previewGeneration'];
+      await component['resolveImageUrl'](
+        'media:img-legacy-id',
+        'u',
+        'p',
+        generation
+      );
+      expect(component.resolvedImageUrl()).toBeNull();
+    });
+
+    it('should discard an image resolved for a previous tooltip target', async () => {
+      const staleGeneration = component['previewGeneration'];
+
+      // The tooltip moves to a different element while the first resolution is
+      // still in flight.
+      component.tooltipData = {
+        elementId: 'other-id',
+        elementType: ElementType.Item,
+        displayText: 'Other',
+        originalName: 'Other',
+        position: { x: 0, y: 0 },
+      };
+
+      await component['resolveImageUrl'](
+        'https://example.com/stale.png',
+        'u',
+        'p',
+        staleGeneration
+      );
+
       expect(component.resolvedImageUrl()).toBeNull();
     });
   });
