@@ -2,6 +2,7 @@ import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi';
 import { requireAuth, optionalAuth } from '../middleware/auth';
 import { type AppContext } from '../types/context';
 import { userService } from '../services/user.service';
+import { isSessionRevoked } from '../utils/session-validity';
 import { fileStorageService } from '../services/file-storage.service';
 import { imageService } from '../services/image.service';
 import { UserSchema, PaginatedUsersResponseSchema } from '../schemas/user.schemas';
@@ -82,6 +83,12 @@ userRoutes.openapi(getCurrentUserRoute, async (c) => {
   if (!user?.username) {
     // User no longer exists - treat as invalid token
     return c.json({ error: 'User not found' }, 401);
+  }
+
+  if (isSessionRevoked(user, sessionResult.session)) {
+    // Issued before a password reset / recovery / admin disable: the client
+    // should drop the token exactly as for an expired one.
+    return c.json({ error: 'Invalid or expired token' }, 401);
   }
 
   // Check if user can log in (approved and enabled)

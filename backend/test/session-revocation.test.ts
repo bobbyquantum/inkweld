@@ -29,9 +29,13 @@ describe('session revocation watermark', () => {
     return client;
   }
 
-  /** Who the server thinks we are: /users/me answers 200 with an anonymous body when the token is not honoured. */
+  /**
+   * Who the server thinks we are. /users/me answers 200 with the user for a
+   * live token and 401 for a revoked one (so the client clears credentials).
+   */
   async function whoAmI(client: TestClient): Promise<string> {
     const { response, json } = await client.request('/api/v1/users/me');
+    if (response.status === 401) return 'revoked';
     expect(response.status).toBe(200);
     return (await json()).username as string;
   }
@@ -78,7 +82,7 @@ describe('session revocation watermark', () => {
     await new Promise((r) => setTimeout(r, 1100));
     await userService.updatePassword(getDatabase(), userId, TEST_PASSWORDS.DEFAULT);
 
-    expect(await whoAmI(before)).toBe('anonymous');
+    expect(await whoAmI(before)).toBe('revoked');
 
     const after = await login();
     expect(await whoAmI(after)).toBe(NAME);
@@ -90,11 +94,10 @@ describe('session revocation watermark', () => {
     await new Promise((r) => setTimeout(r, 1100));
 
     await userService.setUserEnabled(getDatabase(), userId, false);
-    // A revoked session looks exactly like no session at all.
-    expect(await whoAmI(client)).toBe('anonymous');
+    expect(await whoAmI(client)).toBe('revoked');
 
     await userService.setUserEnabled(getDatabase(), userId, true);
-    expect(await whoAmI(client)).toBe('anonymous');
+    expect(await whoAmI(client)).toBe('revoked');
     expect(await whoAmI(await login())).toBe(NAME);
   });
 
@@ -102,6 +105,6 @@ describe('session revocation watermark', () => {
     const client = await login();
     await new Promise((r) => setTimeout(r, 1100));
     await userService.invalidateSessions(getDatabase(), userId);
-    expect(await whoAmI(client)).toBe('anonymous');
+    expect(await whoAmI(client)).toBe('revoked');
   });
 });
