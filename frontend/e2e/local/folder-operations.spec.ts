@@ -25,31 +25,20 @@ test.describe('Folder Operations', () => {
     await page.click('[data-testid="create-new-element"]');
     await page.waitForSelector('mat-dialog-container', { state: 'visible' });
 
-    const folderTypeItem = page.locator(
-      '[data-testid="element-type-folder"], mat-dialog-container :text("Folder")'
-    );
+    // The name field and action bar are always present in the redesigned
+    // single-pane dialog, but Create stays disabled until a type is picked.
+    await page.getByTestId('element-type-folder').click();
 
-    if (
-      await folderTypeItem
-        .first()
-        .isVisible()
-        .catch(() => false)
-    ) {
-      await folderTypeItem.first().click();
+    const nameInput = page.getByTestId('element-name-input');
+    await expect(nameInput).toBeVisible();
+    await nameInput.fill('My Test Folder');
 
-      const nameInput = page.getByTestId('element-name-input');
-      if (await nameInput.isVisible().catch(() => false)) {
-        await nameInput.fill('My Test Folder');
+    const createButton = page.getByTestId('create-element-button');
+    await expect(createButton).toBeEnabled();
+    await createButton.click();
 
-        const createButton = page.getByRole('button', { name: /create/i });
-        if (await createButton.isVisible().catch(() => false)) {
-          await createButton.click();
-        }
-      }
-    }
-
-    // Verify we're still on the project page (dialog closed without crashing).
-    await expect(page).toHaveURL(/\/.+\/.+/);
+    // The new folder appears in the tree.
+    await expect(page.getByTestId('element-My Test Folder')).toBeVisible();
   });
 
   test('demo-template folders: context menu, expand to show children, click navigation', async ({
