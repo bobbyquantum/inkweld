@@ -13,14 +13,17 @@ const EXPECTED: Record<string, { table: string; columns: string[] }> = {
   projects_user_id_slug_idx: { table: 'projects', columns: ['user_id', 'slug'] },
   project_collaborators_user_status_idx: {
     table: 'project_collaborators',
-    columns: ['user_id', 'status'],
+    columns: ['user_id', 'status', 'invited_at'],
   },
   document_snapshots_project_document_idx: {
     table: 'document_snapshots',
-    columns: ['project_id', 'document_id'],
+    columns: ['project_id', 'document_id', 'created_at'],
   },
   project_tombstones_user_id_idx: { table: 'project_tombstones', columns: ['user_id'] },
-  published_files_project_id_idx: { table: 'published_files', columns: ['project_id'] },
+  published_files_project_id_idx: {
+    table: 'published_files',
+    columns: ['project_id', 'created_at'],
+  },
   published_files_share_token_idx: { table: 'published_files', columns: ['share_token'] },
 };
 
@@ -62,13 +65,35 @@ describe('hot-path indexes (migration 0033)', () => {
     expect(details).not.toMatch(/SCAN (TABLE )?(p|projects)\b/);
   });
 
-  it('are used by the collaborator-side listing instead of a scan', async () => {
+  it('serve the pending-invitations listing including its sort', async () => {
     const plan = (await db.all(
       sql`EXPLAIN QUERY PLAN
           SELECT id FROM project_collaborators
-          WHERE user_id = 'user-1' AND status = 'accepted'`
+          WHERE user_id = 'user-1' AND status = 'pending'
+          ORDER BY invited_at DESC`
     )) as Array<{ detail: string }>;
     const details = plan.map((r) => r.detail).join('\n');
     expect(details).toContain('project_collaborators_user_status_idx');
+    expect(details).not.toContain('TEMP B-TREE');
+  });
+
+  it('serve the snapshot and published-file listings including their sort', async () => {
+    for (const query of [
+      sql`EXPLAIN QUERY PLAN
+          SELECT id FROM document_snapshots
+          WHERE project_id = 'p1' AND document_id = 'd1'
+          ORDER BY created_at DESC`,
+      sql`EXPLAIN QUERY PLAN
+          SELECT id FROM published_files
+          WHERE project_id = 'p1'
+          ORDER BY created_at DESC`,
+    ]) {
+      const plan = (await db.all(query)) as Array<{ detail: string }>;
+      const details = plan.map((r) => r.detail).join('\n');
+      expect(details).toMatch(
+        /USING INDEX (document_snapshots_project_document_idx|published_files_project_id_idx)/
+      );
+      expect(details).not.toContain('TEMP B-TREE');
+    }
   });
 });

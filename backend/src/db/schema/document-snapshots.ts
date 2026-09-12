@@ -26,9 +26,15 @@ export const documentSnapshots = sqliteTable(
     createdAt: integer('created_at', { mode: 'number' }).notNull(),
   },
   (table) => [
-    // Snapshots are listed per project and per (project, document); rows
-    // carry the full XML payload, so a scan here is expensive per row.
-    index('document_snapshots_project_document_idx').on(table.projectId, table.documentId),
+    // Snapshots are listed per project and per (project, document), newest
+    // first; rows carry the full XML payload, so a scan here is expensive per
+    // row. createdAt is included so the ORDER BY is served by the index
+    // instead of a temporary B-tree.
+    index('document_snapshots_project_document_idx').on(
+      table.projectId,
+      table.documentId,
+      table.createdAt
+    ),
   ]
 );
 

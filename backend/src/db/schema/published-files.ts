@@ -72,8 +72,9 @@ export const publishedFiles = sqliteTable(
     updatedAt: integer('updated_at', { mode: 'number' }).notNull(),
   },
   (table) => [
-    // Listed and fetched per project on every publish-plan view.
-    index('published_files_project_id_idx').on(table.projectId),
+    // Listed (newest first) and fetched per project on every publish-plan
+    // view; createdAt lets the index serve the ORDER BY too.
+    index('published_files_project_id_idx').on(table.projectId, table.createdAt),
     // Public share links resolve by token on every anonymous hit.
     index('published_files_share_token_idx').on(table.shareToken),
   ]
