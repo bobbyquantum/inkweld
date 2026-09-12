@@ -450,7 +450,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
         headers: { 'Content-Type': 'application/json' },
       });
     }
-    const { canWrite } = accessResult.access;
+    const { canWrite, role } = accessResult.access;
     if (method === 'POST' && !canWrite) {
       projDOLog.warn(
         `User ${session.username} denied write access to ${parsed.projectOwner}/${parsed.slug}`
@@ -462,7 +462,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     }
 
     try {
-      return await this.dispatchHttpRoute(path, method, request, documentId);
+      return await this.dispatchHttpRoute(path, method, request, documentId, role);
     } catch (error) {
       projDOLog.error('HTTP API error:', error);
       return new Response(JSON.stringify({ error: 'Internal server error' }), {
@@ -476,8 +476,20 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     path: string,
     method: string,
     request: Request,
-    documentId: string
+    documentId: string,
+    role: string | null
   ): Promise<Response> {
+    if (path === '/api/destroy' && method === 'POST') {
+      // resolveProjectAccess reports role null for the owner; collaborators
+      // (even editors) must not be able to wipe the project.
+      if (role !== null) {
+        return new Response(JSON.stringify({ error: 'Owner access required' }), {
+          status: 403,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      return this.handleDestroyProject();
+    }
     if (path === '/api/elements' && method === 'GET') {
       return this.handleGetElements(documentId);
     }
@@ -501,6 +513,32 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     }
     return new Response(JSON.stringify({ error: 'Not found' }), {
       status: 404,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  /**
+   * POST /api/destroy - The project is being deleted. Close every socket,
+   * drop the in-memory documents and wipe this DO's storage so a project
+   * re-created under the same username:slug (which maps to this same DO)
+   * starts empty instead of resurrecting the deleted content.
+   */
+  private async handleDestroyProject(): Promise<Response> {
+    for (const ws of this.state.getWebSockets()) {
+      this.cleanupConnection(ws);
+      safeSend(ws, 'access-denied:project-not-found');
+      safeClose(ws, WS_CLOSE_PROJECT_NOT_FOUND, 'Project deleted');
+    }
+    this.connections.clear();
+    this.documents.clear();
+    this.elementSnapshots.clear();
+    for (const timer of this.dedupeTimers.values()) clearTimeout(timer);
+    this.dedupeTimers.clear();
+
+    await this.state.storage.deleteAll();
+    projDOLog.info(`Project ${this.projectId} destroyed: storage wiped`);
+    return new Response(JSON.stringify({ ok: true }), {
+      status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
   }

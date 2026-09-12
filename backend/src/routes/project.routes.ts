@@ -1,9 +1,12 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi';
+import type { Context } from 'hono';
 import { requireAuth } from '../middleware/auth';
 import { projectService } from '../services/project.service';
 import { userService } from '../services/user.service';
 import { collaborationService } from '../services/collaboration.service';
 import { fileStorageService } from '../services/file-storage.service';
+import { getStorageService } from '../services/storage.service';
+import type { DurableObjectNamespace } from '../types/cloudflare';
 import { yjsService } from '../services/yjs.service';
 import { getProjectStorageSize } from '../services/storage-size.service';
 import {
@@ -416,10 +419,50 @@ projectRoutes.openapi(deleteProjectRoute, async (c) => {
     throw new ForbiddenError('Access denied');
   }
 
+  // Remove the project's content before its DB row. Previously only the row
+  // went: Yjs documents, media, covers and published files stayed on disk /
+  // in R2 / in the Durable Object, and creating a project with the same slug
+  // adopted them all. Order matters on Bun/Node: the LevelDB handle must be
+  // closed before the directory that contains it is removed.
+  await yjsService.destroyProject(username, slug);
+  await getStorageService(c.get('storage')).deleteProjectDirectory(username, slug);
+  await destroyProjectDurableObject(c, username, slug);
+
   await projectService.delete(db, project.id, project.userId, project.slug);
 
   return c.json({ message: 'Project deleted successfully' }, 200);
 });
+
+/**
+ * Cloudflare Workers only: ask the project's Durable Object to close its
+ * sockets and wipe its storage. No-op when there is no YJS_PROJECTS binding
+ * (Bun/Node, where yjsService.destroyProject + the directory removal above
+ * already covered the documents). The DO re-checks that the bearer token
+ * belongs to the owner.
+ */
+async function destroyProjectDurableObject(
+  c: Context<AppContext>,
+  username: string,
+  slug: string
+): Promise<void> {
+  const namespace = (c.env as { YJS_PROJECTS?: DurableObjectNamespace } | undefined)?.YJS_PROJECTS;
+  if (!namespace) return;
+  const authorization = c.req.header('Authorization');
+  if (!authorization) {
+    throw new InternalError('Cannot remove project documents without a session token');
+  }
+  const stub = namespace.get(namespace.idFromName(`${username}:${slug}`));
+  const docId = encodeURIComponent(`${username}:${slug}:elements`);
+  const response = await stub.fetch(
+    new Request(`https://yjs-do/api/destroy?documentId=${docId}`, {
+      method: 'POST',
+      headers: { Authorization: authorization },
+    })
+  );
+  if (!response.ok) {
+    throw new InternalError(`Failed to remove project documents (${response.status})`);
+  }
+}
 
 // Project storage size route
 const getStorageSizeRoute = createRoute({
