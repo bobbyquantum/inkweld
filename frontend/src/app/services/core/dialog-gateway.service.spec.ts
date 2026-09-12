@@ -538,8 +538,8 @@ describe('DialogGatewayService', () => {
     );
   });
 
-  it('should open the template snapshots dialog', () => {
-    service.openTemplateSnapshotsDialog('char');
+  it('should open the template snapshots dialog', async () => {
+    await service.openTemplateSnapshotsDialog('char');
 
     expect(dialogMock.open).toHaveBeenCalledWith(
       TemplateSnapshotsDialogComponent,

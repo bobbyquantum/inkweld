@@ -9,7 +9,7 @@ import {
   isLocalOrCloudMode,
   type StorageConfigType,
 } from '../core/storage-context.service';
-import { DocumentService } from '../project/document.service';
+import type { DocumentService } from '../project/document.service';
 import { DocumentImportService } from '../project/document-import.service';
 import {
   ProjectService,
@@ -40,11 +40,17 @@ export class UnifiedProjectService {
 
   // Lazily injected to break circular dependency:
   // ProjectStateService -> UnifiedProjectService -> DocumentService -> ProjectStateService
+  // The module is also loaded on demand (dynamic import) because
+  // DocumentService drags the whole ProseMirror editor stack with it and this
+  // service is reachable from the app shell at bootstrap.
   private _documentService: DocumentService | null = null;
 
-  private getDocumentService(): DocumentService {
-    // Lazy inject at runtime to break constructor-time circular dependency
-    this._documentService ??= this.injector.get(DocumentService);
+  private async getDocumentService(): Promise<DocumentService> {
+    if (!this._documentService) {
+      const { DocumentService } = await import('../project/document.service');
+      // Lazy inject at runtime to break constructor-time circular dependency
+      this._documentService = this.injector.get(DocumentService);
+    }
     return this._documentService;
   }
 
@@ -141,7 +147,7 @@ export class UnifiedProjectService {
 
         // Sync template data to server (only in server mode)
         if (mode === 'server') {
-          const documentService = this.getDocumentService();
+          const documentService = await this.getDocumentService();
 
           // Sync documents in background - don't block project creation
           if (documentIds.length > 0) {
