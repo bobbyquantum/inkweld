@@ -173,63 +173,61 @@ export class YjsService {
    * and publish it to `docs`. Only ever called via `getDocument`.
    */
   private async createDocument(documentId: string): Promise<WSSharedDoc> {
-    {
-      const ydoc = new Y.Doc();
-      const awareness = new awarenessProtocol.Awareness(ydoc);
-      // The server itself is not an awareness participant — Yjs creates a
-      // default local state, so remove it to avoid broadcasting a phantom
-      // client to every peer.
-      awareness.setLocalState(null);
+    const ydoc = new Y.Doc();
+    const awareness = new awarenessProtocol.Awareness(ydoc);
+    // The server itself is not an awareness participant — Yjs creates a
+    // default local state, so remove it to avoid broadcasting a phantom
+    // client to every peer.
+    awareness.setLocalState(null);
 
-      const sharedDoc: WSSharedDoc = {
-        name: documentId,
-        doc: ydoc,
-        awareness,
-        conns: new Map(),
-        wsUserIds: new Map(),
-      };
+    const sharedDoc: WSSharedDoc = {
+      name: documentId,
+      doc: ydoc,
+      awareness,
+      conns: new Map(),
+      wsUserIds: new Map(),
+    };
 
-      // Track which client IDs each socket is responsible for so we can
-      // evict their awareness state on disconnect.
-      const onAwarenessChange = (
-        { added, updated, removed }: { added: number[]; updated: number[]; removed: number[] },
-        origin: unknown
-      ) => {
-        const controlledIds = sharedDoc.conns.get(origin as WebSocket);
-        if (controlledIds) {
-          for (const clientId of [...added, ...updated]) {
-            // Transfer ownership to the current socket so an older connection
-            // can't remove this live client's presence during disconnect cleanup.
-            for (const [conn, ids] of sharedDoc.conns) {
-              if (conn !== origin) {
-                ids.delete(clientId);
-              }
+    // Track which client IDs each socket is responsible for so we can
+    // evict their awareness state on disconnect.
+    const onAwarenessChange = (
+      { added, updated, removed }: { added: number[]; updated: number[]; removed: number[] },
+      origin: unknown
+    ) => {
+      const controlledIds = sharedDoc.conns.get(origin as WebSocket);
+      if (controlledIds) {
+        for (const clientId of [...added, ...updated]) {
+          // Transfer ownership to the current socket so an older connection
+          // can't remove this live client's presence during disconnect cleanup.
+          for (const [conn, ids] of sharedDoc.conns) {
+            if (conn !== origin) {
+              ids.delete(clientId);
             }
-            controlledIds.add(clientId);
           }
-          for (const clientId of removed) controlledIds.delete(clientId);
+          controlledIds.add(clientId);
         }
-        // Broadcast the awareness change (including removals) to every other
-        // peer so they unmount the ghost user immediately.
-        const encoder = encoding.createEncoder();
-        encoding.writeVarUint(encoder, messageAwareness);
-        const changedClients = [...added, ...updated, ...removed];
-        encoding.writeVarUint8Array(
-          encoder,
-          awarenessProtocol.encodeAwarenessUpdate(awareness, changedClients)
-        );
-        const message = encoding.toUint8Array(encoder);
-        this.broadcastMessage(sharedDoc, message, origin);
-      };
-      awareness.on('update', onAwarenessChange);
-      sharedDoc.awarenessChangeListener = onAwarenessChange;
+        for (const clientId of removed) controlledIds.delete(clientId);
+      }
+      // Broadcast the awareness change (including removals) to every other
+      // peer so they unmount the ghost user immediately.
+      const encoder = encoding.createEncoder();
+      encoding.writeVarUint(encoder, messageAwareness);
+      const changedClients = [...added, ...updated, ...removed];
+      encoding.writeVarUint8Array(
+        encoder,
+        awarenessProtocol.encodeAwarenessUpdate(awareness, changedClients)
+      );
+      const message = encoding.toUint8Array(encoder);
+      this.broadcastMessage(sharedDoc, message, origin);
+    };
+    awareness.on('update', onAwarenessChange);
+    sharedDoc.awarenessChangeListener = onAwarenessChange;
 
-      // Set up persistence
-      await this.setupPersistence(documentId, ydoc);
+    // Set up persistence
+    await this.setupPersistence(documentId, ydoc);
 
-      this.docs.set(documentId, sharedDoc);
-      return sharedDoc;
-    }
+    this.docs.set(documentId, sharedDoc);
+    return sharedDoc;
   }
 
   /**
