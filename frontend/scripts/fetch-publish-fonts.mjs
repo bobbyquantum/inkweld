@@ -62,25 +62,36 @@ const TARGET_DIR = resolve(__dirname, '..', 'public', 'assets', 'fonts');
 const REFETCH = process.env.INKWELD_REFETCH_FONTS === '1';
 
 /**
- * Optional integrity manifest. If `frontend/scripts/font-digests.json`
- * exists, every downloaded TTF must match the pinned SHA-256 digest
- * recorded there or the install is aborted (supply-chain protection).
+ * Integrity manifest. Every downloaded TTF must match the SHA-256 digest
+ * pinned in `frontend/scripts/font-digests.json`; the fonts come from a
+ * third-party mirror and end up embedded in every PDF users publish, so a
+ * mismatch or a missing entry aborts the install (supply-chain protection).
  *
  * Shape: `{ "<slug>-latin-<weight>-<style>.ttf": "<hex sha256>" }`.
  *
- * When the file is absent we still compute and log digests so an operator
- * can pin them after a clean fetch (`INKWELD_LOG_FONT_DIGESTS=1`).
+ * The manifest is mandatory. To rotate it after an intentional upstream
+ * update, run with `INKWELD_ALLOW_UNPINNED_FONTS=1 INKWELD_REFETCH_FONTS=1
+ * INKWELD_LOG_FONT_DIGESTS=1`, review the logged digests, and commit them.
  */
 const DIGESTS_PATH = resolve(__dirname, 'font-digests.json');
 const LOG_DIGESTS = process.env.INKWELD_LOG_FONT_DIGESTS === '1';
+const ALLOW_UNPINNED = process.env.INKWELD_ALLOW_UNPINNED_FONTS === '1';
+
+/** A digest mismatch or missing pin: never degrade gracefully on these. */
+class IntegrityError extends Error {}
 
 async function loadDigests() {
-  if (!existsSync(DIGESTS_PATH)) return null;
+  if (!existsSync(DIGESTS_PATH)) {
+    if (ALLOW_UNPINNED) return null;
+    throw new IntegrityError(
+      `${DIGESTS_PATH} is missing; refusing to install unverified fonts (set INKWELD_ALLOW_UNPINNED_FONTS=1 to regenerate it)`
+    );
+  }
   try {
     const raw = await readFile(DIGESTS_PATH, 'utf-8');
     return JSON.parse(raw);
   } catch (err) {
-    throw new Error(`failed to read ${DIGESTS_PATH}: ${err.message}`);
+    throw new IntegrityError(`failed to read ${DIGESTS_PATH}: ${err.message}`);
   }
 }
 
@@ -109,11 +120,7 @@ async function alreadyHave(slug) {
  * Returns an array of { name, data: Uint8Array }.
  */
 function parseZip(buf) {
-  const view = new DataView(
-    buf.buffer,
-    buf.byteOffset,
-    buf.byteLength
-  );
+  const view = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
   // Locate End of Central Directory Record (signature 0x06054b50).
   let eocdOff = -1;
   for (let i = buf.length - 22; i >= Math.max(0, buf.length - 65557); i--) {
@@ -213,12 +220,12 @@ async function fetchFamily({ slug }, digests) {
     if (digests) {
       const expected = digests[outName];
       if (!expected) {
-        throw new Error(
+        throw new IntegrityError(
           `font-digests.json is missing an entry for ${outName} (got ${digest}); refusing to install an unverified font from ${url}`
         );
       }
       if (expected.toLowerCase() !== digest) {
-        throw new Error(
+        throw new IntegrityError(
           `font integrity check failed for ${outName}: expected ${expected}, got ${digest} (source: ${url})`
         );
       }
@@ -255,6 +262,7 @@ async function main() {
   let cached = 0;
   let downloaded = 0;
   let failed = 0;
+  let integrityFailed = false;
   for (let i = 0; i < results.length; i++) {
     const r = results[i];
     const fam = FAMILIES[i].slug;
@@ -266,6 +274,10 @@ async function main() {
           `[fetch-publish-fonts] ${fam}: downloaded ${r.value.count} files`
         );
       }
+    } else if (r.reason instanceof IntegrityError) {
+      // A tampered or unexpected font is not something to degrade past.
+      console.error(`[fetch-publish-fonts] ${fam}: ${r.reason.message}`);
+      integrityFailed = true;
     } else {
       failed++;
       console.warn(
@@ -276,9 +288,16 @@ async function main() {
   console.log(
     `[fetch-publish-fonts] done: ${cached} cached, ${downloaded} downloaded, ${failed} failed`
   );
-  // Never fail install on font fetch errors — degrade gracefully.
+  if (integrityFailed) {
+    process.exit(1);
+  }
+  // Network failures never fail the install — degrade gracefully.
 }
 
 main().catch(err => {
+  if (err instanceof IntegrityError) {
+    console.error(`[fetch-publish-fonts] ${err.message}`);
+    process.exit(1);
+  }
   console.warn(`[fetch-publish-fonts] unexpected error:`, err);
 });

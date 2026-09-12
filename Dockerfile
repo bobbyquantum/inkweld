@@ -37,6 +37,8 @@ RUN if [ "$FRONTEND_PREBUILT" = "false" ]; then \
 COPY package.json bun.lock* ./
 COPY packages ./packages
 COPY frontend/bun.lock frontend/package.json ./frontend/
+# copy-changelog.mjs ships the repo-root changelog as an in-app asset
+COPY CHANGELOG.md ./
 
 # Skip Electron binary download - not needed for web frontend build in Docker
 ENV ELECTRON_SKIP_BINARY_DOWNLOAD=1
@@ -58,10 +60,21 @@ RUN if [ "$FRONTEND_PREBUILT" = "false" ]; then \
   fi
 
 COPY frontend ./
-# Build frontend and verify output exists - fail early with clear error if build doesn't produce expected output
-# Then compress WASM files with Brotli (they're served with Content-Encoding: br)
+# `--ignore-scripts` above skipped the frontend postinstall. Run its steps
+# explicitly (the same ones a developer's `bun install` runs), because the
+# build relies on their output:
+#   fetch-publish-fonts   -> public/assets/fonts/*.ttf, embedded into PDFs by
+#                            Typst; verified against scripts/font-digests.json
+#   generate-font-licenses-> public/assets/fonts/LICENSE.txt, the OFL notice
+#                            the redistributed woff2/ttf faces require
+#   copy-changelog        -> public/assets/CHANGELOG.md for the in-app changelog
+# Then build, verify output exists, and compress WASM files with Brotli
+# (they're served with Content-Encoding: br).
 RUN if [ "$FRONTEND_PREBUILT" = "false" ]; then \
-  bun run build \
+  node scripts/fetch-publish-fonts.mjs \
+  && node scripts/generate-font-licenses.mjs \
+  && node scripts/copy-changelog.mjs \
+  && bun run build \
   && if [ ! -d /app/frontend/dist ]; then \
   echo "ERROR: frontend build did not produce /app/frontend/dist"; \
   ls -la /app/frontend || true; \
