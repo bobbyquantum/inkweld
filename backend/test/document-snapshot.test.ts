@@ -117,6 +117,17 @@ describe('Document Snapshot Service', () => {
 
     it('lists summaries without the payload columns', async () => {
       const db = getDatabase();
+      await db.insert(documentSnapshots).values({
+        id: crypto.randomUUID(),
+        documentId: 'doc-summary',
+        projectId: testProjectId,
+        userId: testUserId,
+        name: 'Heavy snapshot',
+        xmlContent: '<p>' + 'x'.repeat(10_000) + '</p>',
+        worldbuildingData: { big: true },
+        createdAt: Date.now(),
+      });
+
       const snapshots = await documentSnapshotService.findByProjectId(db, testProjectId);
       expect(snapshots.length).toBeGreaterThan(0);
       for (const s of snapshots) {
@@ -125,6 +136,9 @@ describe('Document Snapshot Service', () => {
         expect(s).toHaveProperty('name');
         expect(s).toHaveProperty('createdAt');
       }
+      // The payload is still reachable one snapshot at a time.
+      const full = await documentSnapshotService.findById(db, snapshots[0].id);
+      expect(full?.xmlContent).toContain('<p>');
     });
 
     it('should return empty array for project with no snapshots', async () => {
