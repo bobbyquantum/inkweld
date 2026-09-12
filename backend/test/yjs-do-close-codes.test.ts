@@ -186,7 +186,7 @@ describe('YjsProject DO denial close codes', () => {
     const doInstance = makeDO();
     const ws = makeWs();
     const token = await signJwt({
-      sub: 'user-1',
+      userId: 'user-1',
       username: 'alice',
       exp: Math.floor(Date.now() / 1000) + 3600,
     });
@@ -205,7 +205,7 @@ describe('YjsProject DO denial close codes', () => {
     const doInstance = makeDO();
     const ws = makeWs();
     const token = await signJwt({
-      sub: 'user-1',
+      userId: 'user-1',
       username: 'alice',
       exp: Math.floor(Date.now() / 1000) + 3600,
     });
@@ -220,7 +220,7 @@ describe('YjsProject DO denial close codes', () => {
     const doInstance = makeDO({ DB: {} });
     const ws = makeWs();
     const token = await signJwt({
-      sub: 'user-1',
+      userId: 'user-1',
       username: 'alice',
       exp: Math.floor(Date.now() / 1000) + 3600,
     });
@@ -238,7 +238,7 @@ describe('YjsProject DO denial close codes', () => {
     const doInstance = makeDO({ DB: {} });
     const ws = makeWs();
     const token = await signJwt({
-      sub: 'user-1',
+      userId: 'user-1',
       username: 'alice',
       exp: Math.floor(Date.now() / 1000) + 3600,
     });
@@ -263,7 +263,7 @@ describe('YjsProject DO denial close codes', () => {
     const doInstance = makeDO({ DB: {} });
     const ws = makeWs();
     const token = await signJwt({
-      sub: 'user-1',
+      userId: 'user-1',
       username: 'alice',
       exp: Math.floor(Date.now() / 1000) + 3600,
     });
@@ -283,7 +283,7 @@ describe('YjsProject DO denial close codes', () => {
     const doInstance = makeDO();
     const ws = makeWs();
     const token = await signJwt({
-      sub: 'user-1',
+      userId: 'user-1',
       username: 'alice',
       exp: Math.floor(Date.now() / 1000) + 3600,
     });
