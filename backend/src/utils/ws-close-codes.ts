@@ -31,3 +31,7 @@ export const WS_CLOSE_FORBIDDEN = 4403;
 export const WS_CLOSE_SERVER_ERROR = 4500;
 /** Transient: reconnect rate limit hit. The client must honour the cooldown. */
 export const WS_CLOSE_RATE_LIMITED = 4529;
+/** Transient: no auth token arrived within the pre-auth window. Reconnect and authenticate promptly. */
+export const WS_CLOSE_AUTH_TIMEOUT = 4508;
+/** Transient: too many / too large frames queued before authentication. Reconnect and authenticate first. */
+export const WS_CLOSE_PREAUTH_OVERFLOW = 4513;
