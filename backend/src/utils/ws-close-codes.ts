@@ -31,3 +31,8 @@ export const WS_CLOSE_FORBIDDEN = 4403;
 export const WS_CLOSE_SERVER_ERROR = 4500;
 /** Transient: reconnect rate limit hit. The client must honour the cooldown. */
 export const WS_CLOSE_RATE_LIMITED = 4529;
+/**
+ * Transient: the user's role on this project changed while connected. The
+ * client reconnects and re-authenticates, picking up the new access level.
+ */
+export const WS_CLOSE_ACCESS_CHANGED = 4530;

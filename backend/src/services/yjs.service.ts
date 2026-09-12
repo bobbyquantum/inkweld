@@ -1,4 +1,5 @@
 import * as Y from 'yjs';
+import { WS_CLOSE_ACCESS_CHANGED, WS_CLOSE_FORBIDDEN } from '../utils/ws-close-codes';
 import * as syncProtocol from 'y-protocols/sync';
 import * as awarenessProtocol from 'y-protocols/awareness';
 import * as encoding from 'lib0/encoding';
@@ -438,6 +439,49 @@ export class YjsService {
   registerUserConnection(ws: any, documentId: string, userId: string): void {
     const doc = this.docs.get(documentId);
     if (doc) doc.wsUserIds.set(ws, userId);
+  }
+
+  /**
+   * Close every live socket `userId` holds on any document of the project.
+   *
+   * Access is resolved once when a socket authenticates and then cached for
+   * the life of the connection, so removing a collaborator or changing their
+   * role had no effect on sessions already open. Closing the sockets forces
+   * a reconnect, which re-runs the access check: a removed user is refused
+   * (permanent code, y-websocket stops retrying); a re-roled user reconnects
+   * with the new canWrite (transient code).
+   *
+   * Returns the number of sockets closed.
+   */
+  revokeUserAccess(
+    username: string,
+    slug: string,
+    userId: string,
+    reason: 'removed' | 'changed'
+  ): number {
+    const projectKey = `${username}:${slug}`;
+    let closed = 0;
+    for (const [docId, doc] of this.docs) {
+      if (this.getProjectKey(docId) !== projectKey) continue;
+      for (const [ws, wsUserId] of doc.wsUserIds) {
+        if (wsUserId !== userId) continue;
+        try {
+          if (reason === 'removed') {
+            ws.send('access-denied:forbidden');
+            ws.close(WS_CLOSE_FORBIDDEN, 'Access revoked');
+          } else {
+            ws.close(WS_CLOSE_ACCESS_CHANGED, 'Access changed');
+          }
+          closed++;
+        } catch (error) {
+          yjsLog.error(`Error closing socket for ${userId} on ${docId}`, error);
+        }
+      }
+    }
+    if (closed > 0) {
+      yjsLog.info(`Closed ${closed} socket(s) for user ${userId} on ${projectKey} (${reason})`);
+    }
+    return closed;
   }
 
   /**

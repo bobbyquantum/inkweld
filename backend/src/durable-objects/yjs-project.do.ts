@@ -57,6 +57,7 @@ import {
   WS_CLOSE_PROJECT_NOT_FOUND,
   WS_CLOSE_RATE_LIMITED,
   WS_CLOSE_SERVER_ERROR,
+  WS_CLOSE_ACCESS_CHANGED,
 } from '../utils/ws-close-codes';
 import {
   decodeSnapshotMetrics,
@@ -450,7 +451,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
         headers: { 'Content-Type': 'application/json' },
       });
     }
-    const { canWrite } = accessResult.access;
+    const { canWrite, role } = accessResult.access;
     if (method === 'POST' && !canWrite) {
       projDOLog.warn(
         `User ${session.username} denied write access to ${parsed.projectOwner}/${parsed.slug}`
@@ -462,7 +463,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     }
 
     try {
-      return await this.dispatchHttpRoute(path, method, request, documentId);
+      return await this.dispatchHttpRoute(path, method, request, documentId, role);
     } catch (error) {
       projDOLog.error('HTTP API error:', error);
       return new Response(JSON.stringify({ error: 'Internal server error' }), {
@@ -476,8 +477,19 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     path: string,
     method: string,
     request: Request,
-    documentId: string
+    documentId: string,
+    role: string | null
   ): Promise<Response> {
+    if (path === '/api/revoke' && method === 'POST') {
+      // Only the owner (role null) or an admin collaborator may revoke.
+      if (role !== null && role !== 'admin') {
+        return new Response(JSON.stringify({ error: 'Admin access required' }), {
+          status: 403,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      return this.handleRevokeUser(request);
+    }
     if (path === '/api/elements' && method === 'GET') {
       return this.handleGetElements(documentId);
     }
@@ -501,6 +513,59 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     }
     return new Response(JSON.stringify({ error: 'Not found' }), {
       status: 404,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  /** Deserialise a socket's attachment, treating a corrupt one as absent. */
+  private readAttachment(ws: WebSocket): WSAttachment | null {
+    try {
+      return ws.deserializeAttachment() as WSAttachment | null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * POST /api/revoke {userId, reason} - Close every socket the user holds on
+   * this project. Access is cached per connection (and persisted in the
+   * hibernation attachment), so a collaborator removal or role change had no
+   * effect on open sessions; forcing a reconnect re-runs the access check.
+   */
+  private async handleRevokeUser(request: Request): Promise<Response> {
+    let body: { userId?: unknown; reason?: unknown };
+    try {
+      body = (await request.json()) as { userId?: unknown; reason?: unknown };
+    } catch {
+      body = {};
+    }
+    const userId = typeof body.userId === 'string' ? body.userId : null;
+    const reason = body.reason === 'changed' ? 'changed' : 'removed';
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'userId is required' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    let closed = 0;
+    for (const ws of this.state.getWebSockets()) {
+      const wsUserId = this.connections.get(ws)?.userId ?? this.readAttachment(ws)?.userId;
+      if (wsUserId !== userId) continue;
+      this.cleanupConnection(ws);
+      if (reason === 'removed') {
+        safeSend(ws, 'access-denied:forbidden');
+        safeClose(ws, WS_CLOSE_FORBIDDEN, 'Access revoked');
+      } else {
+        safeClose(ws, WS_CLOSE_ACCESS_CHANGED, 'Access changed');
+      }
+      closed++;
+    }
+    projDOLog.info(
+      `Revoked ${closed} socket(s) for user ${userId} on ${this.projectId} (${reason})`
+    );
+    return new Response(JSON.stringify({ closed }), {
+      status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
   }
