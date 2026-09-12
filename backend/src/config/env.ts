@@ -91,6 +91,24 @@ if (!isCloudflareWorkers) {
   }
 }
 
+/**
+ * NODE_ENV values allowed to run without an explicit signing secret. Anything
+ * else (production, staging, preview, unset-and-overridden, typos…) must set
+ * DATABASE_KEY or SESSION_SECRET. An unset NODE_ENV is treated as development,
+ * matching `config.nodeEnv` below.
+ */
+export function isDevOnlyNodeEnv(nodeEnv: string | undefined): boolean {
+  const env = nodeEnv || 'development';
+  return env === 'development' || env === 'test';
+}
+
+/**
+ * Well-known key used ONLY when no secret is configured in development/test.
+ * It is public (it lives in this repository), so it must never be accepted
+ * outside those environments — see `databaseKey` below.
+ */
+export const DEV_FALLBACK_SECRET = 'fallback-secret-for-development-only';
+
 export const config = {
   // Server
   port: Number.parseInt(process.env.PORT || '8333', 10),
@@ -109,26 +127,41 @@ export const config = {
   },
 
   // Database encryption key (used for encrypting sensitive config values)
-  // Also used for session cookie signing
-  // In production, DATABASE_KEY or SESSION_SECRET MUST be set — server will refuse to start without it.
-  // On Cloudflare Workers, secrets are only available through c.env (not process.env),
-  // so module-level validation is skipped — runtime validation happens in middleware instead.
+  // Also used for session cookie signing.
+  //
+  // DATABASE_KEY or SESSION_SECRET MUST be set for every NODE_ENV other than
+  // `development` / `test` — the server refuses to start without it. The
+  // check is deliberately an allow-list rather than `=== 'production'`: a
+  // deployment running with NODE_ENV unset-but-not-development, "staging",
+  // "preview", etc. must never silently sign sessions with the well-known
+  // development fallback below (anyone holding that string can mint an admin
+  // session).
+  //
+  // On Cloudflare Workers, secrets are only available through c.env (not
+  // process.env), so module-level validation is skipped — runtime validation
+  // happens in middleware instead.
   databaseKey: (() => {
     const key = process.env.DATABASE_KEY || process.env.SESSION_SECRET;
-    if (!isCloudflareWorkers && process.env.NODE_ENV === 'production') {
+    if (!isCloudflareWorkers && !isDevOnlyNodeEnv(process.env.NODE_ENV)) {
       if (!key) {
         throw new Error(
-          'DATABASE_KEY or SESSION_SECRET must be set in production. ' +
-            'Generate a secure random key of at least 32 characters.'
+          `DATABASE_KEY or SESSION_SECRET must be set when NODE_ENV is "${process.env.NODE_ENV}". ` +
+            'Generate a secure random key of at least 32 characters (openssl rand -hex 32).'
         );
       }
       if (key.length < 32) {
         throw new Error(
-          'DATABASE_KEY or SESSION_SECRET must be at least 32 characters in production.'
+          `DATABASE_KEY or SESSION_SECRET must be at least 32 characters when NODE_ENV is "${process.env.NODE_ENV}".`
         );
       }
     }
-    return key || 'fallback-secret-for-development-only';
+    if (!key && !isCloudflareWorkers) {
+      console.warn(
+        '[config] DATABASE_KEY / SESSION_SECRET not set — using the public development ' +
+          'fallback. Sessions signed with it are forgeable; never expose this server.'
+      );
+    }
+    return key || DEV_FALLBACK_SECRET;
   })(),
 
   // Session (uses databaseKey for signing)
