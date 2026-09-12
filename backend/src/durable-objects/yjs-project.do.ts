@@ -159,13 +159,32 @@ interface WSAttachment {
 }
 
 interface SessionData {
-  // Standard JWT fields (OAuth format)
-  sub?: string;
-  // Legacy fields
+  /** Present on first-party session JWTs and on Worker-minted DO JWTs. */
   userId?: string;
+  /**
+   * Standard JWT subject. MCP OAuth access tokens carry ONLY `sub` (never
+   * `userId`); Worker-minted DO JWTs carry both. It is never used to identify
+   * the user here — see `isMcpOAuthAccessToken`.
+   */
+  sub?: string;
   username: string;
   email?: string;
   exp?: number;
+  /** MCP OAuth access-token markers (McpAccessTokenPayload). */
+  client_id?: string;
+  session_id?: string;
+}
+
+/**
+ * MCP OAuth access tokens are signed with the same secret as session JWTs but
+ * are scoped to per-project consent grants that live in the database and are
+ * enforced by the MCP tool layer. This DO resolves access purely from a user
+ * id, so treating such a token as a user session would hand the OAuth client
+ * the user's full access to every project. They carry `client_id` and
+ * `session_id` and never `userId`; any of those shapes means "not a session".
+ */
+function isMcpOAuthAccessToken(payload: SessionData): boolean {
+  return payload.client_id !== undefined || payload.session_id !== undefined || !payload.userId;
 }
 
 type YjsEnv = {
@@ -306,18 +325,22 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
         return null;
       }
 
-      // Check required fields - support both OAuth (sub) and legacy (userId) formats
-      const userId = payload.sub || payload.userId;
-      if (!userId || !payload.username) {
-        projDOLog.error('JWT missing required fields', {
-          hasUserId: !!userId,
-          hasUsername: !!payload.username,
+      // Only first-party session JWTs (and the DO JWTs the Worker mints for
+      // MCP tool calls, which carry the same fields) are accepted. MCP OAuth
+      // access tokens are rejected outright — see isMcpOAuthAccessToken.
+      if (isMcpOAuthAccessToken(payload)) {
+        projDOLog.error('JWT is not a user session token', {
+          hasUserId: !!payload.userId,
+          hasSub: !!payload.sub,
+          hasClientId: !!payload.client_id,
+          hasSessionId: !!payload.session_id,
         });
         return null;
       }
-
-      // Normalize to userId for internal use
-      payload.userId = userId;
+      if (!payload.username) {
+        projDOLog.error('JWT missing required fields', { hasUsername: false });
+        return null;
+      }
 
       // Check expiration
       if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
@@ -2223,7 +2246,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
 
       // Authentication successful!
       connInfo.authenticated = true;
-      connInfo.userId = sessionData.userId ?? sessionData.sub;
+      connInfo.userId = sessionData.userId;
       connInfo.username = sessionData.username;
       connInfo.canWrite = canWrite;
 
