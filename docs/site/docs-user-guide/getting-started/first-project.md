@@ -31,14 +31,14 @@ The first step is selecting a template that defines your project's starting stru
 
 Templates provide different starting points:
 
-| Template | Best For | What You Get |
-|----------|----------|--------------|
-| **Empty Project** | Complete flexibility | A blank project with no pre-created folders |
-| **Novel** | Fiction writers | Chapters folder, character & location worldbuilding |
-| **Worldbuilding** | World creators | Organized folders for characters, locations, factions, lore |
-| **Demo Project** | Learning Inkweld | Sample content showing all features |
+| Template          | Best For             | What You Get                                                |
+| ----------------- | -------------------- | ----------------------------------------------------------- |
+| **Empty Project** | Complete flexibility | A blank project with no pre-created folders                 |
+| **Novel**         | Fiction writers      | Chapters folder, character & location worldbuilding         |
+| **Worldbuilding** | World creators       | Organized folders for characters, locations, factions, lore |
+| **Demo Project**  | Learning Inkweld     | Sample content showing all features                         |
 
-:::tip Try the Demo
+:::tip[Try the Demo]
 If you're new to Inkweld, start with the **Demo Project** template. It includes example content that shows how to use all the features.
 :::
 
@@ -53,11 +53,11 @@ Now enter the basic information for your project:
   alt="Project details form"
 />
 
-| Field | Description | Example |
-|-------|-------------|---------|
-| **Title** | Display name for your project | "The Dragon's Legacy" |
-| **Slug** | URL-safe identifier (auto-generated) | `the-dragons-legacy` |
-| **Description** | Short summary or tagline (optional) | "An epic fantasy adventure" |
+| Field           | Description                          | Example                     |
+| --------------- | ------------------------------------ | --------------------------- |
+| **Title**       | Display name for your project        | "The Dragon's Legacy"       |
+| **Slug**        | URL-safe identifier (auto-generated) | `the-dragons-legacy`        |
+| **Description** | Short summary or tagline (optional)  | "An epic fantasy adventure" |
 
 The **slug** is automatically generated from your title. It's used in URLs like `inkweld.example.com/username/the-dragons-legacy`.
 

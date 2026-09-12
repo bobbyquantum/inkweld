@@ -260,8 +260,8 @@ Then open `http://localhost:8333` in your browser.
 ### Documentation
 | Status | Priority | Item | Notes |
 |--------|----------|------|-------|
-| ⬜ | 🟡 | Features marketing page | `/features` landing page for website |
-| ⬜ | 🟡 | Import/archive docs | User guide for importing projects |
+| ✅ | 🟡 | Features marketing page | `/features` landing page for website |
+| ✅ | 🟡 | Import/archive docs | User guide for exporting, importing, and backing up projects |
 | ✅ | 🟢 | Desktop app docs | Electron app installation guide |
 
 ### Optional AI Features
@@ -283,26 +283,12 @@ Then open `http://localhost:8333` in your browser.
 
 Inkweld has two parts that can run together or separately:
 
-```mermaid
-flowchart TB
-    subgraph Browser["YOUR BROWSER"]
-        Client["Angular PWA"]
-        Editor["Rich text editor (ProseMirror)"]
-        Offline["Offline storage (IndexedDB)"]
-        Client --- Editor
-        Client --- Offline
-    end
-
-    subgraph Server["SERVER (optional)"]
-        API["Hono API on Bun"]
-        Auth["User auth & projects"]
-        DB["SQLite + LevelDB"]
-        API --- Auth
-        API --- DB
-    end
-
-    Client <-->|"REST + WebSocket"| API
-```
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/architecture-dark.svg">
+    <img alt="Inkweld architecture: an Angular PWA in the browser talking to an optional Hono/Bun sync server over REST and WebSocket" src="assets/architecture-light.svg" width="920">
+  </picture>
+</p>
 
 **The client** is where you write. It's a full web app that works offline.
 

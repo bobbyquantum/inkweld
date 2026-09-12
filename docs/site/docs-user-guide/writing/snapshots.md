@@ -30,12 +30,13 @@ Each snapshot stores:
 
 Your snapshot appears in the list immediately.
 
-:::tip When to Snapshot
+:::tip[When to Snapshot]
 Good times to create a snapshot:
+
 - Before a major rewrite or restructure
 - When you reach a milestone (finished a chapter, completed a character arc)
 - Before experimenting with a different direction
-:::
+  :::
 
 ## Restoring a Snapshot
 
@@ -85,12 +86,12 @@ Auto-snapshots are **enabled by default**. To toggle them:
 
 ### Auto-Snapshots vs. Manual Snapshots
 
-| Feature | Manual Snapshots | Auto-Snapshots |
-|---------|-----------------|----------------|
-| Created by | You, on demand | Automatically on tab close or project exit |
-| Naming | Custom name & description | Auto-generated name with timestamp |
-| Pruning | Never auto-deleted | Oldest pruned beyond 10 per document |
-| Best for | Intentional milestones | Safety net against accidental loss |
+| Feature    | Manual Snapshots          | Auto-Snapshots                             |
+| ---------- | ------------------------- | ------------------------------------------ |
+| Created by | You, on demand            | Automatically on tab close or project exit |
+| Naming     | Custom name & description | Auto-generated name with timestamp         |
+| Pruning    | Never auto-deleted        | Oldest pruned beyond 10 per document       |
+| Best for   | Intentional milestones    | Safety net against accidental loss         |
 
 Both types are stored the same way and can be restored identically.
 

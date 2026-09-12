@@ -38,13 +38,13 @@ The key benefit: **local storage happens first**, so even if the server connecti
 
 The sync indicator in the project sidebar shows your current connection status:
 
-| Icon | Status | Meaning |
-|------|--------|---------|
-| ✓ Cloud | **Connected** | Synced with server |
-| Cloud with slash | **Offline Mode** | Working locally (changes saved to browser) |
-| ⚠️ Error | **Connection Failed** | Cannot reach server |
+| Icon             | Status                | Meaning                                    |
+| ---------------- | --------------------- | ------------------------------------------ |
+| ✓ Cloud          | **Connected**         | Synced with server                         |
+| Cloud with slash | **Offline Mode**      | Working locally (changes saved to browser) |
+| ⚠️ Error         | **Connection Failed** | Cannot reach server                        |
 
-:::note No "Reconnecting" State
+:::note[No "Reconnecting" State]
 When the connection is interrupted, Inkweld simply shows "Offline Mode" rather than a separate reconnecting state. The app continues working normally with local data while attempting to reconnect in the background.
 :::
 
@@ -95,7 +95,7 @@ Inkweld uses **Yjs**, a CRDT library, to handle concurrent edits. This means:
 
 ### How Merging Works
 
-CRDTs track the *intention* of each edit, not just the result. When merging:
+CRDTs track the _intention_ of each edit, not just the result. When merging:
 
 - Insertions are preserved from both sources
 - Deletions are respected
@@ -105,7 +105,7 @@ For example, if you add a paragraph offline while a collaborator adds a differen
 
 ### Edge Cases
 
-In rare scenarios with simultaneous edits to the *exact same text*:
+In rare scenarios with simultaneous edits to the _exact same text_:
 
 - Characters may interleave
 - Review the content after reconnecting
@@ -117,20 +117,20 @@ In rare scenarios with simultaneous edits to the *exact same text*:
 
 Inkweld stores data in your browser using:
 
-| Storage Type | Purpose |
-|--------------|---------|
-| **IndexedDB** | Documents, elements, media files, sync state |
-| **LocalStorage** | App configuration, user preferences |
+| Storage Type     | Purpose                                      |
+| ---------------- | -------------------------------------------- |
+| **IndexedDB**    | Documents, elements, media files, sync state |
+| **LocalStorage** | App configuration, user preferences          |
 
 ### Storage Limits
 
 Modern browsers allocate generous storage limits:
 
-| Browser | Typical Limit |
-|---------|--------------|
-| Chrome | Up to 60% of available disk space |
+| Browser | Typical Limit                     |
+| ------- | --------------------------------- |
+| Chrome  | Up to 60% of available disk space |
 | Firefox | Up to 50% of available disk space |
-| Safari | ~1GB (may prompt for more) |
+| Safari  | ~1GB (may prompt for more)        |
 
 For most writing projects, you'll never approach these limits.
 
@@ -139,7 +139,7 @@ For most writing projects, you'll never approach these limits.
 If you clear your browser's site data, **you will lose unsynced changes**. Before clearing:
 
 1. Ensure you see "Connected" in the sync indicator
-2. Or export your project as a backup
+2. Or [export your project](./import-export) as a backup
 
 ## Offline Mode vs Server Mode
 

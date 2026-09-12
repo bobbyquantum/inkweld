@@ -1,94 +1,365 @@
 ---
 title: Features
-description: Discover what makes Inkweld the perfect platform for collaborative creative writing.
+description: Everything Inkweld gives novelists and worldbuilders — real-time collaboration, structured worldbuilding, maps, timelines, publishing, and complete data ownership.
+hide_table_of_contents: true
 ---
 
+import Link from '@docusaurus/Link';
 import ThemedImage from '@site/src/components/ThemedImage';
+import styles from './features.module.css';
 
-# Features
+<div className={styles.hero}>
+  <div className={styles.eyebrow}>Features</div>
+  <h1>A writing studio you actually own</h1>
+  <div className={styles.heroLead}>
+    Inkweld brings the manuscript, the world behind it, and the people you write
+    with into one self-hosted app. Write offline, sync when you like, and export
+    a finished book whenever you're ready.
+  </div>
+  <div className={styles.heroButtons}>
+    <Link className="button button--primary button--lg" to="/docs/installation">
+      Install Inkweld
+    </Link>
+    <Link className="button button--outline button--lg" to="/user-guide/">
+      Read the User Guide
+    </Link>
+  </div>
+</div>
 
-<ThemedImage src="/img/generated/bookshelf-desktop" alt="Inkweld Dashboard" />
+<div className={styles.heroShot}>
+  <ThemedImage
+    src="/img/generated/project-home-desktop"
+    alt="Inkweld project home tab"
+  />
+</div>
 
-## Real-Time Collaboration
+## Everything in one place
 
-Work together with co-authors, beta readers, and editors in real-time. Inkweld uses **Conflict-free Replicated Data Types (CRDTs)** to ensure everyone sees changes instantly without conflicts.
+<div className={styles.grid}>
+  <div className={styles.card}>
+    <div className={styles.cardIcon}>✍️</div>
+    <h3>Long-form editor</h3>
+    <div className={styles.cardText}>
+      A ProseMirror-based editor tuned for prose: Markdown shortcuts, zen mode,
+      find and replace, inline images, tables, and full keyboard control.
+    </div>
+    <Link to="/user-guide/writing/editor">The editor →</Link>
+  </div>
+  <div className={styles.card}>
+    <div className={styles.cardIcon}>👥</div>
+    <h3>Real-time collaboration</h3>
+    <div className={styles.cardText}>
+      Co-authors edit the same document at once with live cursors and presence.
+      Yjs CRDTs merge every change without conflicts or manual merges.
+    </div>
+    <Link to="/user-guide/collaboration/real-time">Collaboration →</Link>
+  </div>
+  <div className={styles.card}>
+    <div className={styles.cardIcon}>📴</div>
+    <h3>Local-first</h3>
+    <div className={styles.cardText}>
+      Every keystroke saves to your browser first. Work with no server at all,
+      or connect one later and sync — your drafts never wait on a network.
+    </div>
+    <Link to="/user-guide/organizing/local-first-design">How it works →</Link>
+  </div>
+  <div className={styles.card}>
+    <div className={styles.cardIcon}>🌍</div>
+    <h3>Structured worldbuilding</h3>
+    <div className={styles.cardText}>
+      Characters, locations, factions, items — or any type you define with
+      custom templates, tabs, and fields. Reference them in prose with @mentions
+      and see backlinks everywhere.
+    </div>
+    <Link to="/user-guide/worldbuilding/elements">Worldbuilding →</Link>
+  </div>
+  <div className={styles.card}>
+    <div className={styles.cardIcon}>🕸️</div>
+    <h3>Relationships &amp; charts</h3>
+    <div className={styles.cardText}>
+      Link elements with typed, bidirectional relationships, then visualise the
+      whole web as a force-directed graph or a family-tree hierarchy.
+    </div>
+    <Link to="/user-guide/worldbuilding/relationship-charts">Charts →</Link>
+  </div>
+  <div className={styles.card}>
+    <div className={styles.cardIcon}>🗺️</div>
+    <h3>Canvas &amp; interactive maps</h3>
+    <div className={styles.cardText}>
+      Draw on an infinite layered canvas, drop in map images, and pin locations
+      or trace regions that open the element they belong to.
+    </div>
+    <Link to="/user-guide/worldbuilding/interactive-maps">Maps →</Link>
+  </div>
+  <div className={styles.card}>
+    <div className={styles.cardIcon}>📅</div>
+    <h3>Timelines &amp; calendars</h3>
+    <div className={styles.cardText}>
+      Invent your own calendar, date your elements, and auto-build timelines
+      with eras and parallel tracks for every storyline.
+    </div>
+    <Link to="/user-guide/worldbuilding/timeline">Timelines →</Link>
+  </div>
+  <div className={styles.card}>
+    <div className={styles.cardIcon}>🏷️</div>
+    <h3>Tags, search &amp; quick open</h3>
+    <div className={styles.cardText}>
+      Tag anything, jump to any file with Ctrl/Cmd + P, and search every
+      document in the project at once with filters for tags and element types.
+    </div>
+    <Link to="/user-guide/organizing/project-search">Search →</Link>
+  </div>
+  <div className={styles.card}>
+    <div className={styles.cardIcon}>🕰️</div>
+    <h3>Snapshots &amp; comments</h3>
+    <div className={styles.cardText}>
+      Save named versions of a document and restore them any time. Leave
+      threaded, resolvable comments for editors and beta readers.
+    </div>
+    <Link to="/user-guide/writing/snapshots">Snapshots →</Link>
+  </div>
+  <div className={styles.card}>
+    <div className={styles.cardIcon}>🖼️</div>
+    <h3>Media library</h3>
+    <div className={styles.cardText}>
+      Covers, inline images, and generated art in one searchable library, cached
+      locally for offline access and synced when connected.
+    </div>
+    <Link to="/user-guide/media/library">Media →</Link>
+  </div>
+  <div className={styles.card}>
+    <div className={styles.cardIcon}>📚</div>
+    <h3>Publishing</h3>
+    <div className={styles.cardText}>
+      Export EPUB, print-ready PDF, HTML, or Markdown. Save publish plans and
+      typography presets so every release builds the same way.
+    </div>
+    <Link to="/user-guide/publishing/formats">Publishing →</Link>
+  </div>
+  <div className={styles.card}>
+    <div className={styles.cardIcon}>🤖</div>
+    <h3>AI, on your terms</h3>
+    <div className={styles.cardText}>
+      Optional image generation and grammar suggestions, off by default and
+      behind an admin kill switch. Connect Claude or other assistants to your
+      projects through MCP.
+    </div>
+    <Link to="/user-guide/ai-mcp/mcp-clients">MCP integrations →</Link>
+  </div>
+</div>
 
-- **Live editing** — See changes as collaborators type
-- **No conflicts** — Write simultaneously without version issues
-- **Automatic sync** — Changes sync when you reconnect
+<div className={styles.showcase}>
+  <div className={styles.showcaseText}>
+    <div className={styles.eyebrow}>Writing</div>
+    <h2>An editor built for books, not blog posts</h2>
+    <ul>
+      <li>
+        Chapters, scenes, and notes in a drag-and-drop tree with unlimited
+        nesting
+      </li>
+      <li>
+        Tabs, breadcrumbs, pinned files, and a recent-files list keep big
+        projects navigable
+      </li>
+      <li>Zen mode hides everything but the page</li>
+      <li>Daily word counts and session stats on your profile</li>
+    </ul>
+    <Link to="/user-guide/writing/editor">Explore the editor →</Link>
+  </div>
+  <div className={styles.showcaseImage}>
+    <ThemedImage src="/img/generated/editor-desktop" alt="The Inkweld editor" />
+  </div>
+</div>
 
-## Offline-First
+<div className={`${styles.showcase} ${styles.reverse}`}>
+  <div className={styles.showcaseText}>
+    <div className={styles.eyebrow}>Worldbuilding</div>
+    <h2>Your world, structured your way</h2>
+    <ul>
+      <li>
+        Templates define fields, tabs, and appearance for each element type
+      </li>
+      <li>
+        Type <code>@</code> in any document to link an element; hover for a
+        preview
+      </li>
+      <li>Backlinks show every scene a character appears in</li>
+      <li>Snapshots capture worldbuilding data too</li>
+    </ul>
+    <Link to="/user-guide/worldbuilding/element-references">
+      Element references →
+    </Link>
+  </div>
+  <div className={styles.showcaseImage}>
+    <ThemedImage
+      src="/img/generated/worldbuilding-editor-overview"
+      alt="Worldbuilding element editor"
+    />
+  </div>
+</div>
 
-Write anywhere, even without an internet connection.
+<div className={styles.showcase}>
+  <div className={styles.showcaseText}>
+    <div className={styles.eyebrow}>Maps &amp; canvas</div>
+    <h2>Draw the map. Then make it clickable.</h2>
+    <ul>
+      <li>Freehand, shapes, arrows, text, and pins on independent layers</li>
+      <li>Set any image as a map backdrop, tile several for large worlds</li>
+      <li>Link pins and regions to elements — double-click to open them</li>
+      <li>Crop frames export PNG or SVG, or become the project cover</li>
+    </ul>
+    <Link to="/user-guide/worldbuilding/canvas">The canvas →</Link>
+  </div>
+  <div className={styles.showcaseImage}>
+    <ThemedImage
+      src="/img/generated/canvas-tab-overview"
+      alt="Canvas with map layers and pins"
+    />
+  </div>
+</div>
 
-- **Full offline support** — Continue writing when disconnected
-- **Local storage** — Documents cached for instant access
-- **Seamless sync** — Changes merge automatically when you're back online
+<div className={`${styles.showcase} ${styles.reverse}`}>
+  <div className={styles.showcaseText}>
+    <div className={styles.eyebrow}>Timelines</div>
+    <h2>Chronology that keeps up with your plot</h2>
+    <ul>
+      <li>Gregorian, relative years, or fully custom fantasy calendars</li>
+      <li>Auto-build a timeline from the date fields on your elements</li>
+      <li>
+        Parallel tracks for regions or storylines, eras for ages and reigns
+      </li>
+      <li>Events link straight back to the elements involved</li>
+    </ul>
+    <Link to="/user-guide/worldbuilding/timeline">Timelines →</Link>
+  </div>
+  <div className={styles.showcaseImage}>
+    <ThemedImage
+      src="/img/generated/timeline-tab-overview"
+      alt="Timeline view"
+    />
+  </div>
+</div>
 
-## Worldbuilding Tools
+<div className={styles.showcase}>
+  <div className={styles.showcaseText}>
+    <div className={styles.eyebrow}>Relationships</div>
+    <h2>See the whole cast at a glance</h2>
+    <ul>
+      <li>Typed relationships with automatic reverse links</li>
+      <li>Force-directed graph or hierarchy layout</li>
+      <li>Filter by relationship type or element type</li>
+      <li>Export charts as PNG or SVG</li>
+    </ul>
+    <Link to="/user-guide/worldbuilding/relationships">Relationships →</Link>
+  </div>
+  <div className={styles.showcaseImage}>
+    <ThemedImage
+      src="/img/generated/relationship-chart-overview"
+      alt="Relationship chart"
+    />
+  </div>
+</div>
 
-Build rich fictional worlds with structured element types.
+<div className={`${styles.showcase} ${styles.reverse}`}>
+  <div className={styles.showcaseText}>
+    <div className={styles.eyebrow}>Publishing</div>
+    <h2>From draft to bookshelf without leaving the app</h2>
+    <ul>
+      <li>
+        EPUB for every e-reader, PDF typeset with Typst, HTML, and Markdown
+      </li>
+      <li>
+        Publish plans remember which documents, in what order, with which
+        metadata
+      </li>
+      <li>
+        Six typography presets plus per-section overrides for fonts, spacing,
+        and page breaks
+      </li>
+      <li>
+        Export or import whole projects as portable <code>.inkweld.zip</code>{' '}
+        archives
+      </li>
+    </ul>
+    <Link to="/user-guide/publishing/publish-plans">Publish plans →</Link>
+  </div>
+  <div className={styles.showcaseImage}>
+    <ThemedImage
+      src="/img/generated/publish-style-overview"
+      alt="Publish style editor"
+    />
+  </div>
+</div>
 
-<ThemedImage src="/img/generated/editor-desktop" alt="Inkweld Editor" />
+<div className={styles.band}>
+  <h2>Host it anywhere</h2>
+  <div className={styles.bandLead}>
+    One codebase, several ways to run it. The client works completely offline;
+    add the sync server when you want sharing, backups, and multi-device access.
+  </div>
+  <div className={styles.deployGrid}>
+    <div className={styles.deployCard}>
+      <div className={styles.cardIcon}>🐳</div>
+      <strong>Docker</strong>
+      <span>Single image on GHCR, Compose ready</span>
+    </div>
+    <div className={styles.deployCard}>
+      <div className={styles.cardIcon}>⚡</div>
+      <strong>Native Bun</strong>
+      <span>Standalone binary, no runtime to install</span>
+    </div>
+    <div className={styles.deployCard}>
+      <div className={styles.cardIcon}>☁️</div>
+      <strong>Cloudflare</strong>
+      <span>Workers + D1 on the free tier</span>
+    </div>
+    <div className={styles.deployCard}>
+      <div className={styles.cardIcon}>📱</div>
+      <strong>PWA &amp; Android</strong>
+      <span>Installable web app, Trusted Web Activity</span>
+    </div>
+    <div className={styles.deployCard}>
+      <div className={styles.cardIcon}>🖥️</div>
+      <strong>Desktop</strong>
+      <span>Electron build for macOS, Windows, Linux</span>
+    </div>
+  </div>
+</div>
 
-- **Element types** — Characters, locations, factions, items, and custom schemas
-- **Structured templates** — Configurable fields organized into tabs
-- **Element references** — Use `@mentions` to link elements in your prose
-- **Relationships** — Define connections between elements (parent/child, ally/enemy, etc.)
-- **Backlinks** — See everywhere an element is mentioned
+## Private by design
 
-## Media Library
+- **Self-hosted** — your manuscripts live on hardware you control. No telemetry, no third-party cloud.
+- **Passwordless sign-in** — passkeys (Face ID, Touch ID, Windows Hello, security keys) by default, with optional password login and GitHub OAuth.
+- **Role-based sharing** — invite collaborators per project with the access they need, and see what changed in the activity feed.
+- **AI is opt-in** — every AI feature is disabled until an administrator turns it on, and a single kill switch turns it all off again.
+- **No lock-in** — export to open formats, or take a complete project archive with you.
+- **Open source** — MIT licensed, built in the open on [GitHub](https://github.com/bobbyquantum/inkweld).
 
-Manage your project's images and files in one place.
+## Under the hood
 
-- **Centralized storage** — All media organized by category
-- **Quick preview** — Click any image for full-size view
-- **Offline support** — Media stored locally for offline access
+| Layer          | Technology                                         |
+| -------------- | -------------------------------------------------- |
+| Client         | Angular PWA, ProseMirror editor, IndexedDB storage |
+| Real-time sync | Yjs CRDTs over WebSocket                           |
+| Server         | Hono on Bun, or Cloudflare Workers                 |
+| Database       | SQLite via Drizzle ORM, or Cloudflare D1           |
+| Publishing     | EPUB, Typst-rendered PDF, HTML, Markdown           |
+| Integrations   | Model Context Protocol server with OAuth           |
 
-## Document Organization
+Want the details? Read the [architecture guide](/docs/developer/architecture) or browse the [REST API reference](/docs/developer/api).
 
-Keep your writing organized with a flexible structure.
-
-- **Folders and files** — Organize chapters, scenes, and notes
-- **Drag-and-drop** — Reorder and restructure easily
-- **Tabs** — Work with multiple documents open
-
-## Modern Editor
-
-A rich text editor designed for long-form creative writing.
-
-- **Zen mode** — Distraction-free writing
-- **Markdown shortcuts** — Familiar formatting commands
-- **Keyboard shortcuts** — Speed up your workflow
-- **Mobile-responsive** — Write on any device
-
-## Publishing & Export
-
-Export your work in multiple formats.
-
-- **EPUB** — E-books for Kindle, Kobo, and other readers
-- **PDF** — Print-ready documents
-- **HTML** — Web-ready versions
-- **Markdown** — Plain text for portability
-- **Publish plans** — Save export configurations for reuse
-
-## Privacy & Data Ownership
-
-Your stories belong to you.
-
-- **Self-hosted** — Run on your own server
-- **No cloud dependencies** — All data under your control
-- **Open source** — MIT licensed, free forever
-- **Export anytime** — Standard formats, no lock-in
-
-## Technical Stack
-
-- **Angular** frontend with modern standalone components
-- **Bun + Hono** backend for fast API performance
-- **Yjs CRDTs** for conflict-free real-time collaboration
-- **SQLite or Cloudflare D1** for data storage
-- **Docker deployment** for easy self-hosting
-
----
-
-Ready to get started? Check the [Installation Guide](/docs/installation) or try the [Quick Start](/docs/intro).
+<div className={styles.cta}>
+  <h2>Ready to start writing?</h2>
+  <div className={styles.ctaText}>
+    Spin up a server in one Docker command, or try the app offline with no
+    server at all.
+  </div>
+  <div className={styles.heroButtons}>
+    <Link className="button button--primary button--lg" to="/docs/installation">
+      Installation guide
+    </Link>
+    <Link className="button button--outline button--lg" to="/screenshots">
+      See more screenshots
+    </Link>
+  </div>
+</div>

@@ -1,0 +1,234 @@
+/* Features landing page */
+
+.hero {
+  padding: 4rem 0 3rem;
+  text-align: center;
+}
+
+.hero h1 {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.heroLead {
+  max-width: 720px;
+  margin: 0 auto 2rem;
+  font-size: 1.25rem;
+  line-height: 1.6;
+  color: var(--ifm-color-emphasis-700);
+}
+
+.heroButtons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.eyebrow {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--ifm-color-primary);
+  margin-bottom: 0.75rem;
+}
+
+.heroShot {
+  max-width: 1040px;
+  margin: 0 auto 4rem;
+}
+
+.heroShot img {
+  width: 100%;
+  border-radius: 14px;
+  border: 1px solid var(--ifm-color-emphasis-200);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.25);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.25rem;
+  margin: 2rem 0 3rem;
+}
+
+@media screen and (max-width: 996px) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media screen and (max-width: 600px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1.5rem;
+  border-radius: 14px;
+  background: var(--ifm-card-background-color);
+  border: 1px solid var(--ifm-color-emphasis-200);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-3px);
+  border-color: var(--ifm-color-primary-lighter);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.1);
+}
+
+.cardIcon {
+  font-size: 1.75rem;
+  line-height: 1;
+}
+
+.card h3 {
+  margin: 0.25rem 0 0;
+  font-size: 1.1rem;
+}
+
+.card .cardText {
+  margin: 0;
+  color: var(--ifm-color-emphasis-700);
+  line-height: 1.55;
+  font-size: 0.95rem;
+  flex: 1;
+}
+
+.card a {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.showcase {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3rem;
+  align-items: center;
+  margin: 3.5rem 0;
+}
+
+.showcase.reverse {
+  direction: rtl;
+}
+
+.showcase.reverse > * {
+  direction: ltr;
+}
+
+@media screen and (max-width: 996px) {
+  .showcase,
+  .showcase.reverse {
+    grid-template-columns: 1fr;
+    direction: ltr;
+    gap: 1.5rem;
+  }
+}
+
+.showcaseText h2 {
+  font-size: 1.9rem;
+  margin-bottom: 0.75rem;
+}
+
+.showcaseText ul {
+  padding-left: 1.1rem;
+}
+
+.showcaseText li {
+  margin-bottom: 0.4rem;
+  line-height: 1.5;
+}
+
+.showcaseImage img {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid var(--ifm-color-emphasis-200);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.18);
+}
+
+.band {
+  margin: 3rem -1rem;
+  padding: 3rem 1rem;
+  background: var(--ifm-color-emphasis-100);
+  border-radius: 16px;
+}
+
+.band h2 {
+  text-align: center;
+}
+
+.bandLead {
+  text-align: center;
+  max-width: 680px;
+  margin: 0 auto 2rem;
+  color: var(--ifm-color-emphasis-700);
+}
+
+.deployGrid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+@media screen and (max-width: 996px) {
+  .deployGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.deployCard {
+  text-align: center;
+  padding: 1.25rem 1rem;
+  border-radius: 12px;
+  background: var(--ifm-card-background-color);
+  border: 1px solid var(--ifm-color-emphasis-200);
+}
+
+.deployCard .cardIcon {
+  margin-bottom: 0.5rem;
+}
+
+.deployCard strong {
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.deployCard span {
+  font-size: 0.85rem;
+  color: var(--ifm-color-emphasis-700);
+}
+
+.cta {
+  text-align: center;
+  padding: 3rem 1rem 4rem;
+}
+
+.cta h2 {
+  font-size: 2rem;
+}
+
+.cta .ctaText {
+  color: var(--ifm-color-emphasis-700);
+  margin-bottom: 1.5rem;
+}
+
+/* MDX wraps multi-line text in paragraphs; keep container spacing tight */
+.heroLead p,
+.bandLead p,
+.cardText p,
+.ctaText p {
+  margin: 0;
+}
+
+.card p:last-child {
+  margin: 0;
+}
