@@ -2,7 +2,6 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { Router } from '@angular/router';
-import { UserSettingsDialogComponent } from '@dialogs/user-settings-dialog/user-settings-dialog.component';
 import {
   AuthenticationService,
   type UpdateProfileRequest,
@@ -95,6 +94,12 @@ export class UserService {
   async openSettingsDialog(): Promise<void> {
     this.isLoading.set(true);
     try {
+      // Loaded on demand: the settings dialog pulls in the project-settings
+      // tab and, through it, the auto-snapshot scheduler and DocumentService
+      // (the whole editor stack). A static import here would put all of that
+      // in the initial bundle because UserService is injected at bootstrap.
+      const { UserSettingsDialogComponent } =
+        await import('@dialogs/user-settings-dialog/user-settings-dialog.component');
       await firstValueFrom(
         this.dialog
           .open(UserSettingsDialogComponent, {

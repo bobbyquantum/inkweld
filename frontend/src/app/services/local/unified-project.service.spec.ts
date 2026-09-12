@@ -424,6 +424,51 @@ describe('UnifiedProjectService', () => {
     });
   });
 
+  describe('template sync in server mode', () => {
+    it('resolves DocumentService lazily and syncs template documents to the server', async () => {
+      setupService.getMode.mockReturnValue('server');
+
+      const mockTemplateService = TestBed.inject(
+        ProjectTemplateService
+      ) as unknown as MockedObject<ProjectTemplateService>;
+      (
+        mockTemplateService.loadTemplate as ReturnType<typeof vi.fn>
+      ).mockResolvedValue({
+        manifest: {},
+        project: {},
+        elements: [],
+        documents: [{ elementId: 'el-1', content: '<doc/>' }],
+        worldbuilding: [{ elementId: 'wb-1', data: {} }],
+        schemas: [],
+        relationships: [],
+        customRelationshipTypes: [],
+        tags: [],
+        elementTags: [],
+        publishPlans: [],
+        timeSystems: [],
+        snapshots: [],
+        media: [],
+      });
+      const documentService = TestBed.inject(
+        DocumentService
+      ) as unknown as MockedObject<DocumentService>;
+
+      await service.createProject(
+        { title: 'New Project', slug: 'new-project' },
+        'worldbuilding-demo'
+      );
+
+      expect(documentService.syncDocumentsToServer).toHaveBeenCalledWith([
+        expect.stringMatching(/:el-1$/),
+      ]);
+      expect(
+        documentService.syncWorldbuildingToServerBatch
+      ).toHaveBeenCalledWith([
+        expect.stringMatching(/^worldbuilding:.*:wb-1$/),
+      ]);
+    });
+  });
+
   describe('applyTemplate with media', () => {
     it('should save media blobs to local storage', async () => {
       setupService.getMode.mockReturnValue('local');
