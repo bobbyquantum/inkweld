@@ -4,6 +4,12 @@
  * Tracks request counts per key (default: client IP) within a sliding
  * window. Returns 429 Too Many Requests when the limit is exceeded.
  *
+ * The store is a per-process Map. That is adequate for a single Bun/Node
+ * process. On Cloudflare Workers each isolate has its own Map and isolates
+ * are short-lived, so this middleware provides no meaningful limit there —
+ * use Cloudflare's WAF rate-limiting rules (or a Rate Limiting binding) in
+ * front of the auth endpoints on that runtime.
+ *
  * To disable in test environments, set INKWELD_DISABLE_RATE_LIMIT=true.
  * We use an explicit env var rather than NODE_ENV because Bun's
  * --compile --minify may constant-fold process.env.NODE_ENV at build
@@ -11,6 +17,7 @@
  */
 
 import type { Context, MiddlewareHandler } from 'hono';
+import { getClientIp } from '../utils/client-ip';
 
 interface RateLimitOptions {
   /** Time window in milliseconds */
@@ -28,23 +35,13 @@ interface WindowEntry {
 }
 
 /**
- * Extract the client IP address from the request.
- * Respects proxy headers when available.
+ * Rate-limit bucket key for a request: the client IP as resolved by
+ * `getClientIp` (proxy headers only when trusted — see utils/client-ip.ts).
+ * When no trustworthy address is available every such request shares one
+ * bucket, which fails closed (throttles) rather than open.
  */
-function getClientIp(c: Context): string {
-  const xForwardedFor = c.req.header('x-forwarded-for');
-  if (xForwardedFor) {
-    return xForwardedFor.split(',')[0].trim();
-  }
-  const xRealIp = c.req.header('x-real-ip');
-  if (xRealIp) return xRealIp.trim();
-
-  // Hono provides req.raw for the underlying Request. Bun attaches the client
-  // address as a non-standard `ip` field, so it isn't on the standard Request type.
-  const raw = c.req.raw as Request & { ip?: string };
-  if (raw.ip) return raw.ip;
-
-  return '127.0.0.1';
+function defaultKey(c: Context): string {
+  return getClientIp(c) ?? 'unknown';
 }
 
 /**
@@ -79,7 +76,7 @@ export function rateLimit(options: RateLimitOptions): MiddlewareHandler {
       }
     }
 
-    const key = keyGenerator ? keyGenerator(c) : getClientIp(c);
+    const key = keyGenerator ? keyGenerator(c) : defaultKey(c);
 
     let entry = store.get(key);
     if (!entry) {

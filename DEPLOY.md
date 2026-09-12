@@ -106,6 +106,7 @@ The deployment supports the following environment variables:
 #### Application
 - `SESSION_SECRET` - **Required**: Secret used to sign session cookies (must be at least 32 characters). Generate with: `openssl rand -hex 32`
 - `ALLOWED_ORIGINS` - Comma-separated list of allowed CORS origins (e.g. `https://your-domain.com`)
+- `TRUST_PROXY` - Set to `true` when a reverse proxy (nginx, Caddy, Traefik, Cloudflare Tunnel) sits in front of the container and sets `X-Forwarded-For` / `X-Real-IP`. Enables per-client login rate limiting behind the proxy; leave `false` (default) when clients connect directly, otherwise the header is forgeable
 - `SERVE_FRONTEND` - Serve embedded frontend (default: `true`). Set to `false` for API-only mode
 - `LOG_LEVEL` - Logging level: `debug`, `info`, `warn`, `error`, or `none` (default: `info` in production, `debug` in development)
 - `USER_APPROVAL_REQUIRED` - Require admin approval for new registrations (default: `false`)
@@ -226,7 +227,7 @@ Use `bun run logs:dev` / `bun run logs:prod` to stream Worker logs, and `bun run
 2. Set `SESSION_SECRET` to a strong random value (at least 32 characters) — generate with `openssl rand -hex 32`
 3. Set `WEBAUTHN_RP_ID` to your domain before any users register passkeys — **this value cannot be changed afterwards**
 4. Set `ALLOWED_ORIGINS` to your exact domain(s) to prevent CSRF and WebAuthn origin mismatches
-5. Use HTTPS in production with a reverse proxy (nginx, Caddy, Cloudflare Tunnel, etc.)
+5. Use HTTPS in production with a reverse proxy (nginx, Caddy, Cloudflare Tunnel, etc.) and set `TRUST_PROXY=true` so login rate limits apply per client rather than per proxy
 6. Always use specific image tags in production (not `latest`) to control upgrade timing
 7. Regularly update to the latest image versions for security patches
 8. Monitor logs for any security issues
