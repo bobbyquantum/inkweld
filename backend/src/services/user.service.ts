@@ -18,6 +18,12 @@ export interface ListUsersOptions {
   offset?: number;
   /** If true, only return users who are approved AND enabled */
   activeOnly?: boolean;
+  /**
+   * If true, `search` also matches against email. Off by default: an email
+   * predicate lets a caller confirm whether an address is registered, which
+   * only admins should be able to do.
+   */
+  searchEmail?: boolean;
 }
 
 class UserService {
@@ -327,6 +333,7 @@ class UserService {
     const offset = options?.offset ?? 0;
     const search = options?.search?.trim().toLowerCase();
     const activeOnly = options?.activeOnly ?? false;
+    const searchEmail = options?.searchEmail ?? false;
 
     // Build base conditions
     const conditions: ReturnType<typeof eq>[] = [];
@@ -344,10 +351,9 @@ class UserService {
 
     if (search) {
       const searchPattern = `%${search}%`;
-      const searchCondition = or(
-        like(users.username, searchPattern),
-        like(users.email, searchPattern)
-      );
+      const searchCondition = searchEmail
+        ? or(like(users.username, searchPattern), like(users.email, searchPattern))
+        : like(users.username, searchPattern);
 
       if (conditions.length > 0) {
         // Combine activeOnly conditions with search

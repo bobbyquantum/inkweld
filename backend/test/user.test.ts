@@ -3,7 +3,12 @@ import { getDatabase } from '../src/db/index';
 import { users } from '../src/db/schema/index';
 import { eq } from 'drizzle-orm';
 import * as bcrypt from 'bcryptjs';
-import { startTestServer, stopTestServer, TestClient } from './server-test-helper';
+import {
+  enablePasswordLoginForTests,
+  startTestServer,
+  stopTestServer,
+  TestClient,
+} from './server-test-helper';
 import { userService } from '../src/services/user.service';
 import { TEST_PASSWORDS } from './test-credentials';
 
@@ -506,6 +511,8 @@ describe('User Service', () => {
 
 describe('User Routes', () => {
   let client: TestClient;
+  let adminClient: TestClient;
+  let anonClient: TestClient;
   let testServer: { port: number; baseUrl: string };
   const db = getDatabase();
 
@@ -541,6 +548,13 @@ describe('User Routes', () => {
         isAdmin: true,
       },
     ]);
+
+    // The directory endpoints require a signed-in user.
+    await enablePasswordLoginForTests();
+    expect(await client.login('routeuser', TEST_PASSWORDS.DEFAULT)).toBe(true);
+    adminClient = new TestClient(testServer.baseUrl);
+    expect(await adminClient.login('testadmin', TEST_PASSWORDS.DEFAULT)).toBe(true);
+    anonClient = new TestClient(testServer.baseUrl);
   });
 
   afterAll(async () => {
@@ -551,6 +565,11 @@ describe('User Routes', () => {
   });
 
   describe('GET /api/v1/users', () => {
+    it('requires authentication', async () => {
+      const { response } = await anonClient.request('/api/v1/users');
+      expect(response.status).toBe(401);
+    });
+
     it('should return paginated list of users', async () => {
       const { response, json } = await client.request('/api/v1/users');
 
@@ -642,12 +661,34 @@ describe('User Routes', () => {
       expect(data.users.length).toBeGreaterThanOrEqual(2);
     });
 
-    it('should search users by email', async () => {
+    it('requires authentication', async () => {
+      const { response } = await anonClient.request('/api/v1/users/search?term=searchuser');
+      expect(response.status).toBe(401);
+    });
+
+    it('lets admins search users by email', async () => {
+      const { response, json } = await adminClient.request('/api/v1/users/search?term=search1@');
+
+      expect(response.status).toBe(200);
+      const data = (await json()) as { users: Array<{ username: string; email?: string }> };
+      expect(data.users.map((u) => u.username)).toContain('searchuser1');
+    });
+
+    it('does not let regular users match on email', async () => {
+      // Otherwise the endpoint is an existence oracle for any email address.
       const { response, json } = await client.request('/api/v1/users/search?term=search1@');
 
       expect(response.status).toBe(200);
-      const data = (await json()) as { users: Array<{ username: string }> };
-      expect(data.users.length).toBeGreaterThanOrEqual(1);
+      const data = (await json()) as { users: Array<{ username: string }>; total: number };
+      expect(data.users).toHaveLength(0);
+      expect(data.total).toBe(0);
+    });
+
+    it('never exposes email to regular users', async () => {
+      const { json } = await client.request('/api/v1/users/search?term=searchuser1');
+      const data = (await json()) as { users: Array<Record<string, unknown>> };
+      expect(data.users[0]).toBeDefined();
+      expect(data.users[0]).not.toHaveProperty('email');
     });
 
     it('should return empty results for non-matching search', async () => {
