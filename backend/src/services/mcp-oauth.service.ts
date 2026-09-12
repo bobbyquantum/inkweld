@@ -250,7 +250,10 @@ class McpOAuthService {
     if (total < cap) return;
 
     const cutoff = Date.now() - UNUSED_DYNAMIC_CLIENT_TTL_MS;
-    const usedClientIds = db.select({ clientId: mcpOAuthSessions.clientId }).from(mcpOAuthSessions);
+    // Field-select needs the concrete Drizzle type; the union hides the overload.
+    const usedClientIds = (db as D1DatabaseInstance)
+      .select({ clientId: mcpOAuthSessions.clientId })
+      .from(mcpOAuthSessions);
     const pruned = await db
       .delete(mcpOAuthClients)
       .where(
