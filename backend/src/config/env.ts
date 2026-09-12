@@ -97,9 +97,9 @@ if (!isCloudflareWorkers) {
  * DATABASE_KEY or SESSION_SECRET. An unset NODE_ENV is treated as development,
  * matching `config.nodeEnv` below.
  */
-export function isDevOnlyNodeEnv(nodeEnv: string | undefined): boolean {
-  const env = nodeEnv || 'development';
-  return env === 'development' || env === 'test';
+export function isDevOnlyNodeEnv(nodeEnv: string | undefined = 'development'): boolean {
+  // An empty NODE_ENV is treated like an unset one.
+  return nodeEnv === '' || nodeEnv === 'development' || nodeEnv === 'test';
 }
 
 /**
