@@ -110,6 +110,16 @@ interface WSSharedDoc {
 
 export class YjsService {
   private readonly docs = new Map<string, WSSharedDoc>();
+  /**
+   * In-flight document loads, keyed by documentId. `getDocument` awaits
+   * LevelDB before publishing to `docs`, so two concurrent callers (two tabs,
+   * a reconnect storm) used to both miss the cache and build two divergent
+   * `Y.Doc`s on the same directory — the loser's socket then edited an orphan
+   * that was never broadcast or persisted. The Promise is cached BEFORE the
+   * load starts so the second caller joins the first load instead. Mirrors
+   * `getOrCreateDocument` in the Durable Object.
+   */
+  private readonly pendingLoads = new Map<string, Promise<WSSharedDoc>>();
   // Map by project key (username:projectSlug) instead of documentId
   private readonly persistences = new Map<string, LeveldbPersistence>();
   private readonly persistFailures = new Map<string, number>();
@@ -137,11 +147,33 @@ export class YjsService {
   }
 
   /**
-   * Get or create a document
+   * Get or create a document.
+   *
+   * Concurrent callers for the same documentId share one load (see
+   * `pendingLoads`); a failed load is dropped so a later call can retry.
    */
   async getDocument(documentId: string): Promise<WSSharedDoc> {
-    let doc = this.docs.get(documentId);
-    if (!doc) {
+    const existing = this.docs.get(documentId);
+    if (existing) return existing;
+
+    const inFlight = this.pendingLoads.get(documentId);
+    if (inFlight) return inFlight;
+
+    const load = this.createDocument(documentId);
+    this.pendingLoads.set(documentId, load);
+    try {
+      return await load;
+    } finally {
+      this.pendingLoads.delete(documentId);
+    }
+  }
+
+  /**
+   * Build a fresh shared doc, wire awareness relaying, load persisted state
+   * and publish it to `docs`. Only ever called via `getDocument`.
+   */
+  private async createDocument(documentId: string): Promise<WSSharedDoc> {
+    {
       const ydoc = new Y.Doc();
       const awareness = new awarenessProtocol.Awareness(ydoc);
       // The server itself is not an awareness participant — Yjs creates a
@@ -195,10 +227,9 @@ export class YjsService {
       // Set up persistence
       await this.setupPersistence(documentId, ydoc);
 
-      doc = sharedDoc;
-      this.docs.set(documentId, doc);
+      this.docs.set(documentId, sharedDoc);
+      return sharedDoc;
     }
-    return doc;
   }
 
   /**
