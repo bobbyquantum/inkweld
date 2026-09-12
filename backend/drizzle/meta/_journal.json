@@ -225,6 +225,13 @@
       "when": 1788739200000,
       "tag": "0032_add-profile-banner",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "6",
+      "when": 1789171200000,
+      "tag": "0033_add-hot-path-indexes",
+      "breakpoints": true
     }
   ]
 }
