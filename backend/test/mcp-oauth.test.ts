@@ -870,3 +870,108 @@ describe('MCP OAuth Service - cleanup and utility methods', () => {
     expect(revoked).toBe(true);
   });
 });
+
+describe('MCP OAuth Service - refresh token rotation', () => {
+  const ISSUER = 'http://localhost:8333';
+
+  async function freshSession() {
+    return mcpOAuthService.createSession(db, {
+      userId: testUserId,
+      clientId: testClientId,
+      grants: [{ projectId: testProjectId, role: 'editor' }],
+      issuer: ISSUER,
+    });
+  }
+
+  async function setPreviousExpiry(sessionId: string, previousTokenExpiresAt: number) {
+    await db
+      .update(mcpOAuthSessions)
+      .set({ previousTokenExpiresAt })
+      .where(eq(mcpOAuthSessions.id, sessionId));
+  }
+
+  it('rotates the refresh token and keeps the old one usable within the grace period', async () => {
+    const { sessionId, tokens } = await freshSession();
+
+    const rotated = await mcpOAuthService.refreshTokens(
+      db,
+      tokens.refreshToken,
+      testClientId,
+      undefined,
+      ISSUER
+    );
+    expect(rotated.refreshToken).not.toBe(tokens.refreshToken);
+
+    // Immediately re-presenting the superseded token (lost response) is
+    // tolerated during the grace window.
+    const again = await mcpOAuthService.refreshTokens(
+      db,
+      tokens.refreshToken,
+      testClientId,
+      undefined,
+      ISSUER
+    );
+    expect(again.refreshToken).toBeDefined();
+
+    const [session] = await db
+      .select()
+      .from(mcpOAuthSessions)
+      .where(eq(mcpOAuthSessions.id, sessionId));
+    expect(session.revokedAt).toBeNull();
+  });
+
+  it('rejects the superseded token once the grace period has passed and revokes the session', async () => {
+    const { sessionId, tokens } = await freshSession();
+    const rotated = await mcpOAuthService.refreshTokens(
+      db,
+      tokens.refreshToken,
+      testClientId,
+      undefined,
+      ISSUER
+    );
+
+    // Simulate the grace window elapsing.
+    await setPreviousExpiry(sessionId, Date.now() - 1);
+
+    await expect(
+      mcpOAuthService.refreshTokens(db, tokens.refreshToken, testClientId, undefined, ISSUER)
+    ).rejects.toThrow(OAuthError);
+
+    const [session] = await db
+      .select()
+      .from(mcpOAuthSessions)
+      .where(eq(mcpOAuthSessions.id, sessionId));
+    expect(session.revokedAt).not.toBeNull();
+    expect(session.revokedReason).toBe('Refresh token reuse detected');
+
+    // The current token no longer works either: the whole session is dead.
+    await expect(
+      mcpOAuthService.refreshTokens(db, rotated.refreshToken, testClientId, undefined, ISSUER)
+    ).rejects.toThrow('Session has been revoked');
+  });
+
+  it('does not treat a legacy row with no grace deadline as an open-ended grace period', async () => {
+    const { sessionId, tokens } = await freshSession();
+    await mcpOAuthService.refreshTokens(db, tokens.refreshToken, testClientId, undefined, ISSUER);
+    await db
+      .update(mcpOAuthSessions)
+      .set({ previousTokenExpiresAt: null })
+      .where(eq(mcpOAuthSessions.id, sessionId));
+
+    await expect(
+      mcpOAuthService.refreshTokens(db, tokens.refreshToken, testClientId, undefined, ISSUER)
+    ).rejects.toThrow('Invalid refresh token');
+  });
+
+  it('rejects an unknown refresh token without touching any session', async () => {
+    const { sessionId } = await freshSession();
+    await expect(
+      mcpOAuthService.refreshTokens(db, 'iw_rt_not-a-real-token', testClientId, undefined, ISSUER)
+    ).rejects.toThrow('Invalid refresh token');
+    const [session] = await db
+      .select()
+      .from(mcpOAuthSessions)
+      .where(eq(mcpOAuthSessions.id, sessionId));
+    expect(session.revokedAt).toBeNull();
+  });
+});
