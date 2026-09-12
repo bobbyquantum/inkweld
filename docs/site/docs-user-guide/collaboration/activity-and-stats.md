@@ -39,7 +39,7 @@ Your profile page also shows a year-at-a-glance grid of your writing, one square
 
 ![Profile activity grid](/img/generated/profile-activity-grid-light.png)
 
-Days are counted in your browser's timezone, so a late-night session lands on the day you actually wrote it. Only words you personally wrote are counted, across every project you own or collaborate on — collaborators' words in your projects appear on *their* grid, not yours.
+Days are counted in your browser's timezone, so a late-night session lands on the day you actually wrote it. Only words you personally wrote are counted, across every project you own or collaborate on — collaborators' words in your projects appear on _their_ grid, not yours.
 
 Who can see the grid is up to you: see [Public profile](../settings/user-settings.md#public-profile).
 

@@ -281,7 +281,7 @@ Then open `http://localhost:8333` in your browser.
 
 ## Architecture
 
-Inkweld has two parts that can run together or separately:
+Inkweld has two parts that can run together or separately, plus an optional Cloud Sync mode that needs neither an Inkweld server nor an account:
 
 <p align="center">
   <picture>
@@ -292,7 +292,9 @@ Inkweld has two parts that can run together or separately:
 
 **The client** is where you write. It's a full web app that works offline.
 
-**The server** enables sharing and sync. Run it on your own hardware or a VPS. Without it, you can still use Inkweld locally — documents save to your browser.
+**The server** enables real-time collaboration and sharing. Run it on your own hardware or a VPS. Without it, you can still use Inkweld locally — documents save to your browser.
+
+**Cloud Sync** mirrors your projects to your own Dropbox or Nextcloud straight from the browser, so you can move between devices without running a server.
 
 ---
 

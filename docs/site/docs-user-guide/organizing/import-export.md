@@ -1,7 +1,7 @@
 ---
 id: import-export
 title: Backups, Export & Import
-description: Export a project as a portable .inkweld.zip archive, restore it anywhere, and move projects between offline mode and a server.
+description: Export a project as a portable .inkweld.zip archive, restore it anywhere, and move projects between modes or instances.
 sidebar_position: 7
 ---
 
@@ -50,7 +50,7 @@ In server mode, the export waits for the server copy to be complete first:
 1. **Sync check** — if any document still has unsynced changes, the export stops and lists those documents. Wait a moment for sync to finish, then try again.
 2. **Media download** — the cover and any images not yet cached locally are fetched from the server so the archive is complete.
 
-In offline mode there is nothing to sync; the archive is built straight from your browser's storage.
+In Browser and Cloud Sync modes there is no server check; the archive is built straight from your browser's storage.
 
 ## Importing a project
 
@@ -76,7 +76,7 @@ Choose a **project slug** — the short name used in the project's URL. Inkweld 
 | ---------- | ------------------------------------------------------------------------------------ |
 | Length     | 3–50 characters                                                                      |
 | Characters | Lowercase letters, numbers, and hyphens                                              |
-| Unique     | Must not match another project in your account (or in this browser, in offline mode) |
+| Unique     | Must not match another project in your account (or in this browser, in Browser mode) |
 
 ### Step 3 — Import
 
@@ -90,15 +90,15 @@ The new project appears on your Bookshelf. All element IDs are regenerated on im
 
 ### Backups
 
-Export regularly and store the archive in cloud storage or on an external drive. In offline mode this matters most: projects live in your browser's storage, and clearing site data removes them.
+Export regularly and store the archive in cloud storage or on an external drive. In Browser mode this matters most: projects live only in your browser's storage, and clearing site data removes them. Cloud Sync keeps a continuous mirror in your own storage, but an archive is still the portable copy.
 
 ### Moving between instances
 
 Export from one Inkweld server, import on another. Archives are self-contained and don't depend on the server they came from.
 
-### Going from offline to a server
+### Moving between modes
 
-Export the project in offline mode, connect to a server (see [Choosing Your Mode](../getting-started/client-mode)), log in, and import. For several projects at once, the built-in migration in **User Settings → Connection** does the same thing without the intermediate files.
+Export the project in Browser or Cloud Sync mode, switch mode (see [Choosing Your Mode](../getting-started/client-mode)), sign in if needed, and import. For several projects at once, the built-in migration in **User Settings → Connection** does the same thing without the intermediate files.
 
 ### Duplicating a project
 

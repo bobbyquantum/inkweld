@@ -59,9 +59,10 @@ import styles from './features.module.css';
     <h3>Local-first</h3>
     <div className={styles.cardText}>
       Every keystroke saves to your browser first. Work with no server at all,
-      or connect one later and sync — your drafts never wait on a network.
+      mirror projects to your own Dropbox or Nextcloud with Cloud Sync, or
+      connect an Inkweld server — your drafts never wait on a network.
     </div>
-    <Link to="/user-guide/organizing/local-first-design">How it works →</Link>
+    <Link to="/user-guide/getting-started/client-mode">Choose a mode →</Link>
   </div>
   <div className={styles.card}>
     <div className={styles.cardIcon}>🌍</div>
@@ -294,8 +295,9 @@ import styles from './features.module.css';
 <div className={styles.band}>
   <h2>Host it anywhere</h2>
   <div className={styles.bandLead}>
-    One codebase, several ways to run it. The client works completely offline;
-    add the sync server when you want sharing, backups, and multi-device access.
+    One codebase, several ways to run it. The client works completely offline,
+    Cloud Sync mirrors projects to storage you already own, and the sync server
+    adds real-time collaboration and sharing.
   </div>
   <div className={styles.deployGrid}>
     <div className={styles.deployCard}>
@@ -328,7 +330,8 @@ import styles from './features.module.css';
 
 ## Private by design
 
-- **Self-hosted** — your manuscripts live on hardware you control. No telemetry, no third-party cloud.
+- **Self-hosted** — your manuscripts live on hardware you control. No telemetry, no Inkweld cloud.
+- **Bring your own storage** — Cloud Sync keeps a mirror in your Dropbox or Nextcloud, with no Inkweld account at all.
 - **Passwordless sign-in** — passkeys (Face ID, Touch ID, Windows Hello, security keys) by default, with optional password login and GitHub OAuth.
 - **Role-based sharing** — invite collaborators per project with the access they need, and see what changed in the activity feed.
 - **AI is opt-in** — every AI feature is disabled until an administrator turns it on, and a single kill switch turns it all off again.
