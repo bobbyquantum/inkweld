@@ -158,6 +158,81 @@ afterEach(async () => {
   await fs.rm(tempRoot, { recursive: true, force: true });
 });
 
+describe('YjsService.getDocument concurrency', () => {
+  it('shares one shared doc between concurrent callers for the same documentId', async () => {
+    const service = new YjsService();
+    const documentId = `${USERNAME}:${SLUG}:elements/`;
+
+    // Both calls start before either load has published to `docs`, which is
+    // exactly the two-tabs / reconnect-storm window that used to produce two
+    // divergent Y.Docs on the same LevelDB directory.
+    const [first, second, third] = await Promise.all([
+      service.getDocument(documentId),
+      service.getDocument(documentId),
+      service.getDocument(documentId),
+    ]);
+
+    expect(second).toBe(first);
+    expect(third).toBe(first);
+    expect(second.doc).toBe(first.doc);
+    // A later, sequential call still resolves to the same instance.
+    expect(await service.getDocument(documentId)).toBe(first);
+
+    const internals = service as unknown as { pendingLoads: Map<string, unknown> };
+    expect(internals.pendingLoads.size).toBe(0);
+
+    await service.cleanup();
+  }, 20000);
+
+  it('keeps distinct documentIds independent', async () => {
+    const service = new YjsService();
+    const [a, b] = await Promise.all([
+      service.getDocument(`${USERNAME}:${SLUG}:elements/`),
+      service.getDocument(`${USERNAME}:${SLUG}:doc-1`),
+    ]);
+
+    expect(a).not.toBe(b);
+    expect(a.doc).not.toBe(b.doc);
+
+    await service.cleanup();
+  }, 20000);
+
+  it('drops a failed load so a later call can retry', async () => {
+    const service = new YjsService();
+    const documentId = `${USERNAME}:${SLUG}:elements/`;
+    const internals = service as unknown as {
+      setupPersistence: (documentId: string, ydoc: Y.Doc) => Promise<void>;
+      pendingLoads: Map<string, unknown>;
+      docs: Map<string, unknown>;
+    };
+    const realSetup = internals.setupPersistence.bind(service);
+    let failNext = true;
+    internals.setupPersistence = async (id: string, ydoc: Y.Doc) => {
+      if (failNext) {
+        failNext = false;
+        throw new Error('simulated LevelDB open failure');
+      }
+      return realSetup(id, ydoc);
+    };
+
+    // Two concurrent callers both see the single failure…
+    const results = await Promise.allSettled([
+      service.getDocument(documentId),
+      service.getDocument(documentId),
+    ]);
+    expect(results.map((r) => r.status)).toEqual(['rejected', 'rejected']);
+    expect(internals.pendingLoads.size).toBe(0);
+    expect(internals.docs.has(documentId)).toBe(false);
+
+    // …and the next call retries successfully instead of returning the
+    // cached rejection.
+    const doc = await service.getDocument(documentId);
+    expect(doc.name).toBe(documentId);
+
+    await service.cleanup();
+  }, 20000);
+});
+
 describe('LEVELDB_COMPACT_THRESHOLD', () => {
   it('matches the Durable Object compaction cadence', () => {
     expect(LEVELDB_COMPACT_THRESHOLD).toBe(50);
