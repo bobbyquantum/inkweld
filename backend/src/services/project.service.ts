@@ -297,7 +297,8 @@ class ProjectService {
    */
   async findTombstonesByProjectKeys(
     db: DatabaseInstance,
-    projectKeys: string[]
+    projectKeys: string[],
+    requesterId: string
   ): Promise<Array<{ username: string; slug: string; deletedAt: number }>> {
     if (projectKeys.length === 0) {
       return [];
@@ -332,11 +333,14 @@ class ProjectService {
       if (user.username) usernameToId.set(user.username, user.id);
     }
 
-    // For each parsed key, check if there's a tombstone
+    // For each parsed key, check if there's a tombstone. Only the owner's
+    // own tombstones are reported: a deleted project has no collaborator rows
+    // left to authorise anyone else, and answering for arbitrary keys made
+    // this an oracle for other users' private slugs and deletion times.
     for (const { username, slug } of parsedKeys) {
       const userId = usernameToId.get(username);
-      if (!userId) {
-        continue; // User doesn't exist, no tombstone possible
+      if (!userId || userId !== requesterId) {
+        continue; // Unknown user, or not the requester's own project
       }
 
       const tombstoneResult = await db
