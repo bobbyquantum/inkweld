@@ -61,34 +61,61 @@ describe('rateLimit middleware', () => {
     expect(retryAfter).toBeLessThanOrEqual(60);
   });
 
-  it('uses separate counters for different IPs', async () => {
+  it('uses separate counters for different socket addresses', async () => {
     const app = createApp({ windowMs: 60_000, max: 2 });
+    // Hono passes the third app.request() argument through as c.env; on Bun
+    // that is the Server, whose requestIP() the key derives from.
+    const asIp = (address: string) => ({ requestIP: () => ({ address }) });
 
     // IP A: 2 requests = ok
-    const resA1 = await app.request('/test', {
-      method: 'POST',
-      headers: { 'x-forwarded-for': '10.0.0.1' },
-    });
-    expect(resA1.status).toBe(200);
-
-    const resA2 = await app.request('/test', {
-      method: 'POST',
-      headers: { 'x-forwarded-for': '10.0.0.1' },
-    });
-    expect(resA2.status).toBe(200);
-
-    const resA3 = await app.request('/test', {
-      method: 'POST',
-      headers: { 'x-forwarded-for': '10.0.0.1' },
-    });
-    expect(resA3.status).toBe(429);
+    expect((await app.request('/test', { method: 'POST' }, asIp('10.0.0.1'))).status).toBe(200);
+    expect((await app.request('/test', { method: 'POST' }, asIp('10.0.0.1'))).status).toBe(200);
+    expect((await app.request('/test', { method: 'POST' }, asIp('10.0.0.1'))).status).toBe(429);
 
     // IP B: should still be allowed (separate counter)
-    const resB1 = await app.request('/test', {
-      method: 'POST',
-      headers: { 'x-forwarded-for': '10.0.0.2' },
-    });
-    expect(resB1.status).toBe(200);
+    expect((await app.request('/test', { method: 'POST' }, asIp('10.0.0.2'))).status).toBe(200);
+  });
+
+  it('ignores a forged X-Forwarded-For when no proxy is trusted', async () => {
+    const previous = process.env['TRUST_PROXY'];
+    delete process.env['TRUST_PROXY'];
+    try {
+      const app = createApp({ windowMs: 60_000, max: 2 });
+      const asIp = (address: string) => ({ requestIP: () => ({ address }) });
+      const forged = (fake: string) => ({
+        method: 'POST',
+        headers: { 'x-forwarded-for': fake, 'x-real-ip': fake },
+      });
+
+      // Same socket, a different forged header every time: the header must
+      // not move the request into a fresh bucket.
+      expect((await app.request('/test', forged('1.1.1.1'), asIp('10.0.0.9'))).status).toBe(200);
+      expect((await app.request('/test', forged('2.2.2.2'), asIp('10.0.0.9'))).status).toBe(200);
+      expect((await app.request('/test', forged('3.3.3.3'), asIp('10.0.0.9'))).status).toBe(429);
+    } finally {
+      if (previous === undefined) delete process.env['TRUST_PROXY'];
+      else process.env['TRUST_PROXY'] = previous;
+    }
+  });
+
+  it('keys on the trusted proxy hop of X-Forwarded-For when TRUST_PROXY=true', async () => {
+    const previous = process.env['TRUST_PROXY'];
+    process.env['TRUST_PROXY'] = 'true';
+    try {
+      const app = createApp({ windowMs: 60_000, max: 1 });
+      // The client can prepend anything; only the rightmost entry (added by
+      // the trusted proxy) is used.
+      const via = (client: string, spoofed: string) => ({
+        method: 'POST',
+        headers: { 'x-forwarded-for': `${spoofed}, ${client}` },
+      });
+      expect((await app.request('/test', via('203.0.113.5', '9.9.9.9'))).status).toBe(200);
+      expect((await app.request('/test', via('203.0.113.5', '8.8.8.8'))).status).toBe(429);
+      expect((await app.request('/test', via('203.0.113.6', '8.8.8.8'))).status).toBe(200);
+    } finally {
+      if (previous === undefined) delete process.env['TRUST_PROXY'];
+      else process.env['TRUST_PROXY'] = previous;
+    }
   });
 
   it('supports custom keyGenerator', async () => {

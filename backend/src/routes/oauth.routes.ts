@@ -18,6 +18,7 @@ import { projectService } from '../services/project.service';
 import { authService } from '../services/auth.service';
 import { userService } from '../services/user.service';
 import { logger } from '../services/logger.service';
+import { getClientIp } from '../utils/client-ip';
 
 const oauthRoutes = new OpenAPIHono<AppContext>();
 
@@ -791,8 +792,7 @@ oauthRoutes.openapi(tokenRoute, async (c) => {
     return c.json(body, 401);
   }
 
-  const clientIp =
-    c.req.header('x-forwarded-for')?.split(',')[0]?.trim() || c.req.header('x-real-ip');
+  const clientIp = getClientIp(c);
   const userAgent = c.req.header('user-agent');
   const issuer =
     (c.env as Record<string, string>)?.BASE_URL || process.env.BASE_URL || 'https://localhost:8333';
