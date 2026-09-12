@@ -15,7 +15,16 @@
 import { describe, it, expect } from 'bun:test';
 import { resolveProjectAccess, type ProjectAccessDeps } from '../src/utils/project-access';
 
+const ACTIVE_USER = { enabled: true, approved: true, sessionsValidFrom: 0 };
+
 const fakeDeps: ProjectAccessDeps = {
+  findUserById: async (_db, userId) => {
+    if (userId === 'disabled-1') return { ...ACTIVE_USER, enabled: false };
+    if (userId === 'unapproved-1') return { ...ACTIVE_USER, approved: false };
+    if (userId === 'reset-1') return { ...ACTIVE_USER, sessionsValidFrom: 1_000_000 };
+    if (userId === 'ghost-1') return undefined;
+    return ACTIVE_USER;
+  },
   findByUsernameAndSlug: async (_db, username, slug) => {
     if (username === 'missing' || slug === 'missing') return undefined;
     return {
@@ -201,5 +210,103 @@ describe('resolveProjectAccess', () => {
       );
       expect(result).toEqual({ ok: false, reason: 'forbidden' });
     });
+  });
+});
+
+describe('resolveProjectAccess — account state and session revocation', () => {
+  const db = {} as never;
+  const forbidden = { ok: false, reason: 'forbidden' };
+
+  it('denies a disabled account even when it owns the project', async () => {
+    const result = await resolveProjectAccess(
+      db,
+      'alice',
+      'my-novel',
+      { userId: 'disabled-1', username: 'alice' },
+      {
+        ...fakeDeps,
+        findByUsernameAndSlug: async () => ({ id: 'p', userId: 'disabled-1' }) as never,
+      }
+    );
+    expect(result).toEqual(forbidden);
+  });
+
+  it('denies an unapproved account', async () => {
+    const result = await resolveProjectAccess(
+      db,
+      'alice',
+      'my-novel',
+      { userId: 'unapproved-1', username: 'bob' },
+      fakeDeps
+    );
+    expect(result).toEqual(forbidden);
+  });
+
+  it("denies a token issued before the user's revocation watermark", async () => {
+    const result = await resolveProjectAccess(
+      db,
+      'alice',
+      'my-novel',
+      { userId: 'reset-1', username: 'bob', iat: 999_999 },
+      fakeDeps
+    );
+    expect(result).toEqual(forbidden);
+  });
+
+  it('treats a token without iat as issued at 0 once the user has been bumped', async () => {
+    const result = await resolveProjectAccess(
+      db,
+      'alice',
+      'my-novel',
+      { userId: 'reset-1', username: 'bob' },
+      fakeDeps
+    );
+    expect(result).toEqual(forbidden);
+  });
+
+  it('allows a token issued at or after the watermark', async () => {
+    const result = await resolveProjectAccess(
+      db,
+      'alice',
+      'my-novel',
+      { userId: 'reset-1', username: 'bob', iat: 1_000_000 },
+      {
+        ...fakeDeps,
+        checkAccess: async () => ({
+          isOwner: false,
+          isCollaborator: true,
+          role: 'viewer',
+          canRead: true,
+          canWrite: false,
+          canAdmin: false,
+        }),
+      }
+    );
+    expect(result).toEqual({
+      ok: true,
+      access: { canWrite: false, projectDbId: 'project-1', role: 'viewer' },
+    });
+  });
+
+  it('denies a token whose user row no longer exists', async () => {
+    const result = await resolveProjectAccess(
+      db,
+      'alice',
+      'my-novel',
+      { userId: 'ghost-1', username: 'gone' },
+      fakeDeps
+    );
+    expect(result).toEqual(forbidden);
+  });
+
+  it('still reports project-not-found before consulting the user row', async () => {
+    const result = await resolveProjectAccess(
+      db,
+      'alice',
+      'missing',
+      { userId: 'disabled-1', username: 'alice' },
+      fakeDeps
+    );
+    expect(result).toEqual({ ok: false, reason: 'project-not-found' });
   });
 });

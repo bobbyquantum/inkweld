@@ -4,6 +4,8 @@ import { yjsService } from '../services/yjs.service';
 import { authService } from '../services/auth.service';
 import { projectService } from '../services/project.service';
 import { collaborationService } from '../services/collaboration.service';
+import { userService } from '../services/user.service';
+import { isSessionRevoked } from '../utils/session-validity';
 import { writingSessionService } from '../services/writing-session.service';
 import { activityService } from '../services/activity.service';
 import { countWords, extractTextContent } from '../mcp/tools/mutation.tools';
@@ -317,10 +319,20 @@ app.get(
       authInProgress = true;
       try {
         const sessionData = await authService.verifyToken(token, c);
-        if (!sessionData) {
+        if (!sessionData || sessionData.scope === 'enrol') {
           wsLog.warn(`Invalid auth token for ${documentId}`);
           ws.send('access-denied:invalid-token');
           ws.close(WS_CLOSE_INVALID_TOKEN, 'Invalid token');
+          return;
+        }
+
+        // Mirror requireAuth: the account must still be enabled and approved,
+        // and the token must not predate the user's revocation watermark.
+        const account = await userService.findById(db, sessionData.userId);
+        if (!account || !userService.canLogin(account) || isSessionRevoked(account, sessionData)) {
+          wsLog.warn(`Account not permitted to sync ${documentId}: ${sessionData.username}`);
+          ws.send('access-denied:forbidden');
+          ws.close(WS_CLOSE_FORBIDDEN, 'Access denied');
           return;
         }
 

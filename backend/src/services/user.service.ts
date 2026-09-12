@@ -1,4 +1,5 @@
 import bcrypt from 'bcryptjs';
+import { sessionWatermarkNow } from '../utils/session-validity';
 import { eq, like, or, asc, and } from 'drizzle-orm';
 import type { DatabaseInstance } from '../types/context';
 import { users, type User, type InsertUser, type ProfileVisibility } from '../db/schema';
@@ -202,7 +203,25 @@ class UserService {
    */
   async updatePassword(db: DatabaseInstance, userId: string, newPassword: string): Promise<void> {
     const hashedPassword = await bcrypt.hash(newPassword, SALT_ROUNDS);
-    await db.update(users).set({ password: hashedPassword }).where(eq(users.id, userId));
+    // A password change (self-service or via reset link) must end every
+    // session that predates it — that is the whole point of resetting after
+    // a suspected compromise.
+    await db
+      .update(users)
+      .set({ password: hashedPassword, sessionsValidFrom: sessionWatermarkNow() })
+      .where(eq(users.id, userId));
+  }
+
+  /**
+   * Revoke every session token issued before now for this user. Existing
+   * JWTs keep verifying cryptographically, but getUserFromSession and both
+   * WebSocket auth paths reject them via users.sessionsValidFrom.
+   */
+  async invalidateSessions(db: DatabaseInstance, userId: string): Promise<void> {
+    await db
+      .update(users)
+      .set({ sessionsValidFrom: sessionWatermarkNow() })
+      .where(eq(users.id, userId));
   }
 
   /**
@@ -216,14 +235,21 @@ class UserService {
    * Reject/unapprove user (admin only)
    */
   async rejectUser(db: DatabaseInstance, userId: string): Promise<void> {
-    await db.update(users).set({ approved: false }).where(eq(users.id, userId));
+    await db
+      .update(users)
+      .set({ approved: false, sessionsValidFrom: sessionWatermarkNow() })
+      .where(eq(users.id, userId));
   }
 
   /**
    * Enable/disable user (admin only)
    */
   async setUserEnabled(db: DatabaseInstance, userId: string, enabled: boolean): Promise<void> {
-    await db.update(users).set({ enabled }).where(eq(users.id, userId));
+    // Disabling also cuts existing sessions; re-enabling requires a fresh login.
+    await db
+      .update(users)
+      .set(enabled ? { enabled } : { enabled, sessionsValidFrom: sessionWatermarkNow() })
+      .where(eq(users.id, userId));
   }
 
   /**
