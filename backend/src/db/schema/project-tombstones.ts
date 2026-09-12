@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, primaryKey } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer, primaryKey, index } from 'drizzle-orm/sqlite-core';
 import { users } from './users';
 
 /**
@@ -23,9 +23,12 @@ export const projectTombstones = sqliteTable(
     /** When the project was deleted */
     deletedAt: integer('deleted_at', { mode: 'number' }).notNull(),
   },
-  (table) => ({
-    pk: primaryKey({ columns: [table.slug, table.userId] }),
-  })
+  (table) => [
+    primaryKey({ columns: [table.slug, table.userId] }),
+    // The PK leads with slug, so "all tombstones for this user" (sync /
+    // deleted-project reconciliation) could not use it.
+    index('project_tombstones_user_id_idx').on(table.userId),
+  ]
 );
 
 export type ProjectTombstone = typeof projectTombstones.$inferSelect;
