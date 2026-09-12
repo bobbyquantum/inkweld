@@ -53,14 +53,21 @@ Inkweld offers flexible deployment options to suit different needs, from quick l
 
 ## Quick Comparison
 
-| Feature | Docker | Cloudflare | Native |
-|---------|--------|------------|--------|
-| **Ease of Setup** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ |
-| **Scalability** | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ |
-| **Cost** | Your hosting | Free tier available | Your hosting |
-| **Offline Support** | ✅ Full | ⚠️ Limited | ✅ Full |
-| **Real-time Collab** | ✅ WebSocket | ✅ Durable Objects | ✅ WebSocket |
-| **Best For** | Most users | Global teams | Custom setups |
+| Feature              | Docker       | Cloudflare          | Native        |
+| -------------------- | ------------ | ------------------- | ------------- |
+| **Ease of Setup**    | ⭐⭐⭐⭐⭐   | ⭐⭐⭐⭐            | ⭐⭐⭐        |
+| **Scalability**      | ⭐⭐⭐       | ⭐⭐⭐⭐⭐          | ⭐⭐⭐        |
+| **Cost**             | Your hosting | Free tier available | Your hosting  |
+| **Offline Support**  | ✅ Full      | ⚠️ Limited          | ✅ Full       |
+| **Real-time Collab** | ✅ WebSocket | ✅ Durable Objects  | ✅ WebSocket  |
+| **Best For**         | Most users   | Global teams        | Custom setups |
+
+## Client Apps
+
+The server hosts the web client, which also installs as a Progressive Web App. Two additional packagings are available:
+
+- **[Android (Trusted Web Activity)](/docs/installation/twa)** — wrap your instance as a Play Store app
+- **[Desktop (Electron)](/docs/installation/desktop)** — build a native macOS, Windows, or Linux app from source
 
 ## System Requirements
 
@@ -88,6 +95,6 @@ After installation, you'll want to:
 
 ---
 
-:::tip Need Help?
+:::tip[Need Help?]
 Check the [Troubleshooting guide](/docs/troubleshooting/logging) if you run into issues, or open an issue on [GitHub](https://github.com/bobbyquantum/inkweld/issues).
 :::

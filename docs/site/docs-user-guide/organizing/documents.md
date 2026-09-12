@@ -139,7 +139,7 @@ The only way to move documents is drag and drop:
 
 You can also drag documents to reorder them within a folder.
 
-:::tip Drag Indicator
+:::tip[Drag Indicator]
 When dragging, the target folder highlights to show where the document will be placed.
 :::
 
@@ -151,13 +151,13 @@ When dragging, the target folder highlights to show where the document will be p
 2. Select **Delete**
 3. Confirm the deletion
 
-:::warning Permanent Deletion
+:::warning[Permanent Deletion]
 Deleted documents are **permanently removed**. There is no recycle bin. Consider these precautions:
 
 - **Create a snapshot** before deleting if you're unsure
 - **Move to an archive folder** instead of deleting
 - **Export your project** regularly as a backup
-:::
+  :::
 
 ## Document Snapshots
 
@@ -178,14 +178,14 @@ Snapshots preserve document versions so you can restore previous content.
 3. Click a snapshot to preview its content
 4. Click **Restore** to revert to that version
 
-:::tip Regular Snapshots
+:::tip[Regular Snapshots]
 Create snapshots:
 
 - Before major revisions
 - After completing a chapter
 - Before sharing for feedback
 - At project milestones
-:::
+  :::
 
 ---
 

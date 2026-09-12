@@ -75,13 +75,13 @@ The left sidebar shows all elements in your project as a collapsible tree.
 
 ### Element Types
 
-| Icon | Type | Description |
-|------|------|-------------|
-| 📁 | **Folder** | Container for organizing other elements |
-| 📄 | **Document** | Text content for chapters, scenes, notes |
-| 🏷️ | **Worldbuilding** | Structured entries using templates (characters, locations, items, etc.) |
+| Icon | Type              | Description                                                             |
+| ---- | ----------------- | ----------------------------------------------------------------------- |
+| 📁   | **Folder**        | Container for organizing other elements                                 |
+| 📄   | **Document**      | Text content for chapters, scenes, notes                                |
+| 🏷️   | **Worldbuilding** | Structured entries using templates (characters, locations, items, etc.) |
 
-:::tip Worldbuilding Elements
+:::tip[Worldbuilding Elements]
 All worldbuilding entries—characters, locations, items, and more—are built from customizable **templates**. You can modify existing templates or create entirely new ones with custom fields and icons. See [Worldbuilding Elements](../worldbuilding/elements) for details.
 :::
 

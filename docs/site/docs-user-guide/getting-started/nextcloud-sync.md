@@ -46,7 +46,7 @@ The same setting can live in `config/config.php` instead of the UI:
 Origins must include the scheme and host. Paths are ignored, and a one-level
 wildcard such as `https://*.example.com` is allowed.
 
-:::tip Reverse proxy alternative
+:::tip[Reverse proxy alternative]
 If you would rather not install an app, the same headers can be added by the
 reverse proxy in front of Nextcloud for the `/remote.php/dav/` path:
 `Access-Control-Allow-Origin` set to Inkweld's origin,
@@ -57,7 +57,7 @@ reverse proxy in front of Nextcloud for the `/remote.php/dav/` path:
 `204` reply to `OPTIONS` preflight requests. The app is less error-prone.
 :::
 
-:::note Desktop and Android
+:::note[Desktop and Android]
 The Android app opens the same web page in Chrome, so it needs the server step
 too. A future desktop build may be able to skip it.
 :::

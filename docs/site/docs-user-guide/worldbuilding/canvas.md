@@ -237,7 +237,7 @@ A frame can drive the [project cover](../media/covers) in two ways:
 
 Frames using the **Cover** preset are already the right aspect ratio. If the project already has a cover you'll be asked to confirm the replacement.
 
-:::tip Start from the Cover element
+:::tip[Start from the Cover element]
 **New element → Cover** creates a canvas with a cover-size frame already linked as the live cover. The same shortcut is available as **Design on Canvas** in the project's edit dialog.
 :::
 

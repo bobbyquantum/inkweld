@@ -27,7 +27,7 @@ Before you begin:
 2. **Git** - For cloning the repository
 3. **Bun 1.3+** - Backend runtime and package manager
 
-:::tip Free Tier Available
+:::tip[Free Tier Available]
 Cloudflare offers generous free tiers for all required services. You can run Inkweld without any charges for development and small-scale use.
 :::
 
@@ -93,7 +93,7 @@ Worker name for PRODUCTION (default: your-account-inkweld):
 Continue with this URL? (y/n): y
 ```
 
-:::info Worker Name Uniqueness
+:::info[Worker Name Uniqueness]
 Worker names must be globally unique across all Cloudflare accounts. The wizard suggests names based on your account to avoid conflicts.
 :::
 
@@ -209,7 +209,7 @@ The deploy commands:
 3. Run any pending database migrations
 4. Deploy both frontend and backend
 
-:::info About Preview Environments
+:::info[About Preview Environments]
 Inkweld provides **one shared preview environment** and **one production environment**, plus optional **per-PR frontend previews** triggered by a label.
 
 The shared **preview** environment is what `cloudflare:preview:deploy` deploys to. It always points at your custom (or workers.dev) domain, so it can only show one branch at a time. This is the environment used for testing feature branches before merging and, via the `deploy-cloudflare.yml` workflow, the latest `main`.
@@ -468,7 +468,7 @@ Cloudflare's free tier is generous for development and small teams:
 | **R2 Storage**      | 10GB storage                  | Requires payment method |
 | **Pages**           | Unlimited sites               | 500 builds/month        |
 
-:::info Understanding GB-seconds
+:::info[Understanding GB-seconds]
 Durable Objects are billed by memory × time. 13,000 GB-seconds translates to roughly **21 hours** of continuous real-time collaboration per day.
 :::
 

@@ -9,7 +9,7 @@ sidebar_position: 3
 
 Inkweld keeps a running log of meaningful actions inside each project, and aggregates your daily word counts so you can see how your writing has progressed over time.
 
-:::info Online-only feature
+:::info[Online-only feature]
 Activity and writing statistics are recorded server-side and require a hosted Inkweld instance. They are **not available in local-only mode** — the profile-page widget and activity grid and the project Activity tab are hidden when no server is configured.
 
 The writing-statistics widget and the project Activity tab are only shown to signed-in users. The profile activity grid follows the owner's [profile visibility](../settings/user-settings.md#public-profile): when set to public it is visible to anyone, including visitors who are not signed in.
@@ -39,7 +39,7 @@ Your profile page also shows a year-at-a-glance grid of your writing, one square
 
 ![Profile activity grid](/img/generated/profile-activity-grid-light.png)
 
-Days are counted in your browser's timezone, so a late-night session lands on the day you actually wrote it. Only words you personally wrote are counted, across every project you own or collaborate on — collaborators' words in your projects appear on *their* grid, not yours.
+Days are counted in your browser's timezone, so a late-night session lands on the day you actually wrote it. Only words you personally wrote are counted, across every project you own or collaborate on — collaborators' words in your projects appear on _their_ grid, not yours.
 
 Who can see the grid is up to you: see [Public profile](../settings/user-settings.md#public-profile).
 
