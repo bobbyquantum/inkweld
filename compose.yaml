@@ -13,7 +13,7 @@ services:
       - DB_PATH=${DB_PATH:-/data/sqlite.db}
       - DATA_PATH=${DATA_PATH:-/data/yjs}
       # Required: signs every session cookie. Generate with: openssl rand -hex 32
-      - SESSION_SECRET=${SESSION_SECRET:?SESSION_SECRET is required (generate with: openssl rand -hex 32)}
+      - SESSION_SECRET=${SESSION_SECRET:?SESSION_SECRET is required - generate one with openssl rand -hex 32}
       - SERVE_FRONTEND=${SERVE_FRONTEND:-true}
       - GITHUB_ENABLED=${GITHUB_ENABLED:-false}
       - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID:-}
