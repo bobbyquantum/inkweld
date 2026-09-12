@@ -232,6 +232,13 @@
       "when": 1789171200000,
       "tag": "0033_add-hot-path-indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "6",
+      "when": 1789344000000,
+      "tag": "0035_projects-unique-user-slug",
+      "breakpoints": true
     }
   ]
 }

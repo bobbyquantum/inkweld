@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'bun:test';
 import { getDatabase } from '../src/db/index';
 import { users, projects } from '../src/db/schema/index';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import * as bcrypt from 'bcryptjs';
 import {
   startTestServer,
@@ -193,6 +193,32 @@ describe('Projects', () => {
       );
 
       expect(response.status).toBe(401);
+    });
+  });
+
+  describe('slug uniqueness under concurrency', () => {
+    it('lets exactly one of two simultaneous creates for the same slug succeed', async () => {
+      const body = JSON.stringify({ slug: 'race-slug', title: 'Race' });
+      const results = await Promise.all(
+        [0, 1, 2].map(() =>
+          client
+            .request('/api/v1/projects', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body,
+            })
+            .then((r) => r.response.status)
+        )
+      );
+      expect(results.filter((s) => s === 201)).toHaveLength(1);
+      expect(results.filter((s) => s === 400)).toHaveLength(2);
+
+      const db = getDatabase();
+      const rows = await db
+        .select()
+        .from(projects)
+        .where(and(eq(projects.userId, testUserId), eq(projects.slug, 'race-slug')));
+      expect(rows).toHaveLength(1);
     });
   });
 
