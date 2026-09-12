@@ -6,6 +6,7 @@ import { configService } from '../services/config.service';
 import { getBaseUrl } from '../services/url.service';
 import type { AppContext } from '../types/context';
 import { logger } from '../services/logger.service';
+import { fetchVerifiedGithubEmail } from '../utils/github-emails';
 
 const log = logger.child('GitHubAuth');
 
@@ -111,11 +112,21 @@ githubAuthRoutes.get(
       // Check user approval setting
       const userApprovalRequired = await configService.getBoolean(db, 'USER_APPROVAL_REQUIRED');
 
+      // The middleware's `githubUser.email` ignores GitHub's `verified` flag.
+      // Ask GitHub for the address list ourselves and only trust a verified
+      // one — it is what links this identity to an existing local account.
+      const accessToken = c.get('token')?.token;
+      const verifiedEmail = accessToken ? await fetchVerifiedGithubEmail(accessToken) : null;
+      if (!verifiedEmail) {
+        log.info(`GitHub user ${githubUser.login} has no verified email; not linking by email`);
+      }
+
       // Create or update the GitHub user in our database
       const user = await userService.createOrUpdateGithubUser(db, {
         githubId: String(githubUser.id),
         username: githubUser.login || `github-${githubUser.id}`,
-        email: githubUser.email || '',
+        email: verifiedEmail ?? '',
+        emailVerified: verifiedEmail !== null,
         name: githubUser.name || githubUser.login || '',
       });
 
