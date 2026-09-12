@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'node:crypto';
 import { config as envConfig } from '../config/env';
 import { config, CONFIG_KEYS, type ConfigKey, type ConfigCategory } from '../db/schema/config';
@@ -200,10 +200,43 @@ class ConfigService {
    * Get a single config value by key
    */
   async get(db: DatabaseInstance, key: ConfigKey): Promise<ConfigValue> {
-    const keyConfig = CONFIG_KEYS[key];
-
-    // Try database first
     const dbValue = await db.select().from(config).where(eq(config.key, key)).get();
+    return this.resolve(key, dbValue);
+  }
+
+  /**
+   * Get several config values with ONE database round trip. Each key is
+   * resolved with the same database → environment → default precedence as
+   * `get`. Callers that need many flags at once (the public /config/features
+   * endpoint read ~15 keys serially) should use this.
+   */
+  async getMany<K extends ConfigKey>(
+    db: DatabaseInstance,
+    keys: readonly K[]
+  ): Promise<Record<K, ConfigValue>> {
+    const rows =
+      keys.length === 0
+        ? []
+        : await db
+            .select()
+            .from(config)
+            .where(inArray(config.key, [...keys]));
+    const byKey = new Map(rows.map((row) => [row.key, row] as const));
+    const result = {} as Record<K, ConfigValue>;
+    for (const key of keys) {
+      result[key] = this.resolve(key, byKey.get(key));
+    }
+    return result;
+  }
+
+  /** Apply the database → environment → default precedence for one key. */
+  private resolve(
+    key: ConfigKey,
+    dbValue:
+      | { value: string; encrypted: boolean; category: string; description: string | null }
+      | undefined
+  ): ConfigValue {
+    const keyConfig = CONFIG_KEYS[key];
 
     if (dbValue) {
       let value = dbValue.value;
@@ -278,31 +311,17 @@ class ConfigService {
    * Get all config values
    */
   async getAll(db: DatabaseInstance): Promise<ConfigValues> {
-    const result: ConfigValues = {};
-
-    for (const key of Object.keys(CONFIG_KEYS) as ConfigKey[]) {
-      result[key] = await this.get(db, key);
-    }
-
-    return result;
+    return this.getMany(db, Object.keys(CONFIG_KEYS) as ConfigKey[]);
   }
 
   /**
    * Get all config values for a category
    */
   async getByCategory(db: DatabaseInstance, category: ConfigCategory): Promise<ConfigValues> {
-    const result: ConfigValues = {};
-
-    for (const [key, keyConfig] of Object.entries(CONFIG_KEYS) as [
-      ConfigKey,
-      (typeof CONFIG_KEYS)[ConfigKey],
-    ][]) {
-      if (keyConfig.category === category) {
-        result[key] = await this.get(db, key);
-      }
-    }
-
-    return result;
+    const keys = (Object.entries(CONFIG_KEYS) as [ConfigKey, (typeof CONFIG_KEYS)[ConfigKey]][])
+      .filter(([, keyConfig]) => keyConfig.category === category)
+      .map(([key]) => key);
+    return this.getMany(db, keys);
   }
 
   /**
