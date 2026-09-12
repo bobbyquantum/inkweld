@@ -11,7 +11,13 @@ coverageReporter = ["text", "lcov"]
 # Coverage directory
 coverageDir = "./coverage"
 
-# Exclude specific files/patterns from coverage reports
+# Exclude specific files/patterns from coverage reports.
+#
+# Keep this list minimal and keep it in sync with sonar.coverage.exclusions in
+# sonar-project.properties. Route handlers are deliberately NOT excluded: they
+# are where authorization decisions live (requireAuth, project access checks,
+# role gates) and the integration tests under test/ exercise them through the
+# real HTTP stack.
 coveragePathIgnorePatterns = [
   "**/*.test.ts",
   "**/*.spec.ts",
@@ -19,33 +25,17 @@ coveragePathIgnorePatterns = [
   "**/scripts/**",
   "**/*.config.ts",
   "**/node_modules/**",
-  # MCP protocol handlers & tools (require Yjs runtime / Durable Objects)
-  "**/mcp/**",
-  # Cloudflare Durable Objects (Workers runtime only)
-  "**/durable-objects/**",
-  # Cloudflare R2 storage adapter (Workers runtime only)
-  "**/r2-storage.service.ts",
-  # Yjs collaboration services (require LevelDB / Durable Objects)
-  "**/yjs.service.ts",
+  # Cloudflare Workers runtime only: the Durable Object class and the Worker
+  # side Yjs client cannot run under Bun (cloudflare:workers, DO stubs). The
+  # pieces that are Bun-testable (yjs-do-storage.ts, ws-rate-limiter.ts) are
+  # NOT excluded.
+  "**/durable-objects/yjs-project.do.ts",
   "**/yjs-worker.service.ts",
-  # Backend route handlers are mostly orchestration / transport wiring
-  "**/src/routes/**/*.routes.ts",
-  # Image provider implementations (external API clients)
-  "**/image-providers/falai-provider.ts",
-  "**/image-providers/openai-provider.ts",
-  "**/image-providers/openrouter-provider.ts",
-  "**/image-providers/stable-diffusion-provider.ts",
-  "**/image-providers/workersai-provider.ts",
-  "**/image-providers/base-provider.ts",
+  # MCP protocol handlers & tools (require the Workers Yjs runtime / DO)
+  "**/mcp/**",
   # External API clients with no testable logic
   "**/fal-model-metadata.service.ts",
   "**/reference-image-loader.ts",
-  # OAuth service (complex external OAuth 2.1 flows - tested via route integration tests)
-  "**/mcp-oauth.service.ts",
-  # Image processing & audit (platform-specific / external API dependent)
-  "**/image.service.ts",
-  "**/image-audit.service.ts",
-  "**/image-generation.service.ts",
   # OpenAI lint service (external API calls)
   "**/openai-lint.service.ts",
   # Database schema declarations (declarative table/relation definitions)
