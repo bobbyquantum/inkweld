@@ -11,7 +11,7 @@
  * project collaborators system for permission management.
  */
 
-import { eq, and, not, isNull, or, lt, inArray, isNotNull, sql } from 'drizzle-orm';
+import { eq, and, not, isNull, or, lt, inArray, notInArray, isNotNull, sql } from 'drizzle-orm';
 import { sign, verify } from 'hono/jwt';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import type { DatabaseInstance } from '../types/context';
@@ -51,6 +51,17 @@ const ACCESS_TOKEN_TTL = 60 * 60; // 1 hour in seconds
 const REFRESH_TOKEN_TTL = 30 * 24 * 60 * 60; // 30 days in seconds
 const AUTH_CODE_TTL = 5 * 60 * 1000; // 5 minutes in milliseconds
 const PREV_TOKEN_GRACE_PERIOD = 60 * 1000; // 1 minute grace period for token rotation
+/** Default ceiling on dynamically registered clients; override with MCP_MAX_DYNAMIC_CLIENTS. */
+const DEFAULT_MAX_DYNAMIC_CLIENTS = 500;
+/** A dynamic client with no session after this long is considered abandoned. */
+const UNUSED_DYNAMIC_CLIENT_TTL_MS = 24 * 60 * 60 * 1000;
+
+/** Read the cap at call time (bracket access so bun --minify cannot constant-fold it). */
+function maxDynamicClients(): number {
+  const raw = typeof process !== 'undefined' ? process.env['MCP_MAX_DYNAMIC_CLIENTS'] : undefined;
+  const parsed = raw ? Number.parseInt(raw, 10) : Number.NaN;
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_MAX_DYNAMIC_CLIENTS;
+}
 
 /**
  * Generate a cryptographically secure random string
@@ -228,6 +239,43 @@ class McpOAuthService {
   // ============================================
 
   /**
+   * Registration is anonymous (RFC 7591), so an unauthenticated caller could
+   * insert client rows without limit. Keep the table bounded: when the cap is
+   * reached, first drop dynamic clients that never obtained a session and are
+   * older than a day (abandoned registrations), then refuse if still full.
+   */
+  private async enforceDynamicClientCap(db: DatabaseInstance): Promise<void> {
+    const cap = maxDynamicClients();
+    let total = await db.$count(mcpOAuthClients, eq(mcpOAuthClients.isDynamic, true));
+    if (total < cap) return;
+
+    const cutoff = Date.now() - UNUSED_DYNAMIC_CLIENT_TTL_MS;
+    const usedClientIds = db.select({ clientId: mcpOAuthSessions.clientId }).from(mcpOAuthSessions);
+    const pruned = await db
+      .delete(mcpOAuthClients)
+      .where(
+        and(
+          eq(mcpOAuthClients.isDynamic, true),
+          lt(mcpOAuthClients.createdAt, cutoff),
+          notInArray(mcpOAuthClients.id, usedClientIds)
+        )
+      )
+      .returning();
+    if (pruned.length > 0) {
+      oauthLog.info(`Pruned ${pruned.length} unused dynamic OAuth clients`);
+    }
+
+    total = await db.$count(mcpOAuthClients, eq(mcpOAuthClients.isDynamic, true));
+    if (total >= cap) {
+      throw new OAuthError(
+        'temporarily_unavailable',
+        'Too many registered clients; try again later',
+        503
+      );
+    }
+  }
+
+  /**
    * Register a new OAuth client (Dynamic Client Registration)
    */
   async registerClient(
@@ -243,6 +291,8 @@ class McpOAuthService {
       clientType?: 'public' | 'confidential';
     }
   ): Promise<ClientRegistrationResult> {
+    await this.enforceDynamicClientCap(db);
+
     const clientId = crypto.randomUUID();
     const isConfidential = data.clientType === 'confidential';
 
