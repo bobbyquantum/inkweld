@@ -333,7 +333,7 @@ describe('NewElementDialogComponent', () => {
       const sections = component.sections();
       expect(sections.map(s => s.key)).toEqual(['document', 'visualization']);
       expect(sections[0].className).toBe('category-document');
-      expect(sections[0].options.length).toBe(3);
+      expect(sections[0].options).toHaveLength(3);
       expect(sections[1].className).toBe('category-visualization');
     });
 
