@@ -37,7 +37,7 @@ import { type Node as ProseMirrorModelNode } from 'prosemirror-model';
 import { Plugin, PluginKey } from 'prosemirror-state';
 import { columnResizing, goToNextCell, tableEditing } from 'prosemirror-tables';
 import { Decoration, DecorationSet } from 'prosemirror-view';
-import { Observable, Subject } from 'rxjs';
+import { Observable, type Subject } from 'rxjs';
 import { IndexeddbPersistence, storeState } from 'y-indexeddb';
 import {
   absolutePositionToRelativePosition,
@@ -60,7 +60,6 @@ import { StorageContextService } from '../core/storage-context.service';
 import { SystemConfigService } from '../core/system-config.service';
 import { VersionCompatibilityService } from '../core/version-compatibility.service';
 import { AutoReviewApiService } from '../lint/auto-review.service';
-import { LiveDocumentRegistryService } from './live-document-registry.service';
 import { LocalStorageService } from '../local/local-storage.service';
 import { PresenceService } from '../presence/presence.service';
 import {
@@ -70,6 +69,7 @@ import {
 } from '../sync/authenticated-websocket-provider';
 import { UnifiedUserService } from '../user/unified-user.service';
 import { CommentService } from './comment.service';
+import { LiveDocumentRegistryService } from './live-document-registry.service';
 import { ProjectStateService } from './project-state.service';
 
 /**

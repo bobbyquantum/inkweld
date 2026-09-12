@@ -275,7 +275,7 @@ export class WorldbuildingEditorComponent implements OnDestroy {
       elementId: this.elementId(),
       elementName: this.elementName(),
     };
-    this.dialogGateway.openTagEditorDialog(data);
+    void this.dialogGateway.openTagEditorDialog(data);
   }
 
   /** Reference to the identity panel for accessing its resolved image URL */
@@ -1387,13 +1387,13 @@ export class WorldbuildingEditorComponent implements OnDestroy {
     if (this.templateEditingEnabled()) {
       const schemaId = this.previewSchema()?.id;
       if (schemaId) {
-        this.dialogGateway.openTemplateSnapshotsDialog(schemaId);
+        void this.dialogGateway.openTemplateSnapshotsDialog(schemaId);
         return;
       }
     }
     const data: SnapshotsDialogData = {
       documentId: this.elementId(),
     };
-    this.dialogGateway.openSnapshotsDialog(data);
+    void this.dialogGateway.openSnapshotsDialog(data);
   }
 }

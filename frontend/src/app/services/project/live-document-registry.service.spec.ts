@@ -1,6 +1,6 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as Y from 'yjs';
 
 import { LiveDocumentRegistryService } from './live-document-registry.service';
@@ -21,9 +21,9 @@ function seedDatabase(name: string, records: number): Promise<void> {
         db.close();
         resolve();
       };
-      tx.onerror = () => reject(tx.error);
+      tx.onerror = () => reject(tx.error ?? new Error('transaction failed'));
     };
-    request.onerror = () => reject(request.error);
+    request.onerror = () => reject(request.error ?? new Error('open failed'));
   });
 }
 
@@ -102,6 +102,46 @@ describe('LiveDocumentRegistryService', () => {
     it('is true when persisted updates exist', async () => {
       await seedDatabase(NAME, 2);
       expect(await service.hasLocalContent(NAME)).toBe(true);
+    });
+
+    it('is false for a database with no object stores at all', async () => {
+      await new Promise<void>((resolve, reject) => {
+        const request = indexedDB.open(NAME, 1);
+        request.onsuccess = () => {
+          request.result.close();
+          resolve();
+        };
+        request.onerror = () =>
+          reject(request.error ?? new Error('open failed'));
+      });
+      expect(await service.hasLocalContent(NAME)).toBe(false);
+    });
+
+    it('treats an unexpected schema (no updates store) as having content', async () => {
+      await new Promise<void>((resolve, reject) => {
+        const request = indexedDB.open(NAME, 1);
+        request.onupgradeneeded = () => {
+          request.result.createObjectStore('something-else');
+        };
+        request.onsuccess = () => {
+          request.result.close();
+          resolve();
+        };
+        request.onerror = () =>
+          reject(request.error ?? new Error('open failed'));
+      });
+      expect(await service.hasLocalContent(NAME)).toBe(true);
+    });
+
+    it('is false when IndexedDB is unavailable', async () => {
+      const spy = vi.spyOn(indexedDB, 'open').mockImplementation(() => {
+        throw new Error('IndexedDB disabled');
+      });
+      try {
+        expect(await service.hasLocalContent(NAME)).toBe(false);
+      } finally {
+        spy.mockRestore();
+      }
     });
   });
 });
