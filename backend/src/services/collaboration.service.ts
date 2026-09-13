@@ -5,7 +5,7 @@
  * and checking access permissions for shared projects.
  */
 
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, inArray } from 'drizzle-orm';
 import type { DatabaseInstance } from '../types/context';
 import type { D1DatabaseInstance } from '../db/d1';
 import {
@@ -59,6 +59,26 @@ export interface ProjectAccess {
 
 class CollaborationService {
   /**
+   * Resolve usernames for a set of user ids in one query. The list methods
+   * below used to call userService.findById once per distinct id.
+   */
+  private async usernamesById(
+    db: DatabaseInstance,
+    ids: readonly string[]
+  ): Promise<Map<string, string>> {
+    const map = new Map<string, string>();
+    if (ids.length === 0) return map;
+    const rows = await (db as D1DatabaseInstance)
+      .select({ id: users.id, username: users.username })
+      .from(users)
+      .where(inArray(users.id, [...ids]));
+    for (const row of rows) {
+      if (row.username) map.set(row.id, row.username);
+    }
+    return map;
+  }
+
+  /**
    * Get all collaborators for a project
    */
   async getCollaborators(db: DatabaseInstance, projectId: string): Promise<CollaboratorWithUser[]> {
@@ -87,18 +107,19 @@ class CollaborationService {
       .map((r) => r.mcpSessionId as string)
       .filter((id, index, arr) => arr.indexOf(id) === index);
 
+    // One query for every distinct session (not one per session).
     const clientNameMap = new Map<string, string>();
-    for (const sessionId of sessionIds) {
-      const [sessionWithClient] = await (db as D1DatabaseInstance)
+    if (sessionIds.length > 0) {
+      const sessionsWithClients = await (db as D1DatabaseInstance)
         .select({
+          sessionId: mcpOAuthSessions.id,
           clientName: mcpOAuthClients.clientName,
         })
         .from(mcpOAuthSessions)
         .innerJoin(mcpOAuthClients, eq(mcpOAuthSessions.clientId, mcpOAuthClients.id))
-        .where(eq(mcpOAuthSessions.id, sessionId))
-        .limit(1);
-      if (sessionWithClient?.clientName) {
-        clientNameMap.set(sessionId, sessionWithClient.clientName);
+        .where(inArray(mcpOAuthSessions.id, sessionIds));
+      for (const row of sessionsWithClients) {
+        if (row.clientName) clientNameMap.set(row.sessionId, row.clientName);
       }
     }
 
@@ -107,15 +128,7 @@ class CollaborationService {
       .map((r) => r.invitedBy as string)
       .filter((id, index, arr) => arr.indexOf(id) === index);
 
-    const inviterMap = new Map<string, string>();
-    if (inviterIds.length > 0) {
-      for (const inviterId of inviterIds) {
-        const inviter = await userService.findById(db, inviterId);
-        if (inviter?.username) {
-          inviterMap.set(inviterId, inviter.username);
-        }
-      }
-    }
+    const inviterMap = await this.usernamesById(db, inviterIds);
 
     return results.map((r) => ({
       projectId: r.projectId,
@@ -357,13 +370,7 @@ class CollaborationService {
       if (r.invitedBy) userIds.add(r.invitedBy);
     });
 
-    const usernameMap = new Map<string, string>();
-    for (const uid of userIds) {
-      const user = await userService.findById(db, uid);
-      if (user?.username) {
-        usernameMap.set(uid, user.username as string);
-      }
-    }
+    const usernameMap = await this.usernamesById(db, [...userIds]);
 
     return results.map((r) => ({
       projectId: r.projectId,
@@ -424,13 +431,7 @@ class CollaborationService {
       .map((r) => r.ownerId as string)
       .filter((id, index, arr) => arr.indexOf(id) === index);
 
-    const usernameMap = new Map<string, string>();
-    for (const ownerId of ownerIds) {
-      const user = await userService.findById(db, ownerId);
-      if (user?.username) {
-        usernameMap.set(ownerId, user.username);
-      }
-    }
+    const usernameMap = await this.usernamesById(db, ownerIds);
 
     return filtered.map((r) => ({
       projectId: r.projectId,

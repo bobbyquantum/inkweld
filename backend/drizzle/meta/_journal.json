@@ -244,6 +244,13 @@
       "idx": 34,
       "version": "6",
       "when": 1789344000000,
+      "tag": "0035_projects-unique-user-slug",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "6",
+      "when": 1789430400000,
       "tag": "0036_add-oauth-login-codes",
       "breakpoints": true
     }

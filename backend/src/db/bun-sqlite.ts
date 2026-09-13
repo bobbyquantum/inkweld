@@ -124,14 +124,14 @@ async function runMigrations(database: BunDatabaseInstance): Promise<void> {
     migrationsApplied = true;
     dbLogger.info('Migrations completed successfully');
   } catch (error) {
-    // If the error is about tables already existing, it's safe to continue
-    // This happens when the database is already initialized
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    if (errorMessage.includes('already exists')) {
-      dbLogger.info(`Database tables already exist, skipping migrations (error: ${errorMessage})`);
-      migrationsApplied = true;
-      return;
-    }
+    // Any failure is fatal. This used to treat an "already exists" error as
+    // "the database is already initialised" and mark migrations applied —
+    // but migrate() runs every pending file in one call, so a collision in
+    // migration N aborted N+1… as well, and the swallow then let the app boot
+    // (and stay booted, since migrationsApplied was set) on a half-migrated
+    // schema. Drizzle's __drizzle_migrations table already makes a fully
+    // migrated database a no-op, so a genuine "already exists" means the
+    // schema and the journal disagree, which must be fixed, not hidden.
     dbLogger.error('Failed to run migrations', error);
     throw error;
   }

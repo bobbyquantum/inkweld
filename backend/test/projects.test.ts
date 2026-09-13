@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'bun:test';
 import { getDatabase } from '../src/db/index';
 import { users, projects } from '../src/db/schema/index';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import * as bcrypt from 'bcryptjs';
 import {
   startTestServer,
@@ -10,6 +10,9 @@ import {
   enablePasswordLoginForTests,
 } from './server-test-helper';
 import { TEST_PASSWORDS } from './test-credentials';
+import { existsSync } from 'node:fs';
+import { fileStorageService } from '../src/services/file-storage.service';
+import { yjsService } from '../src/services/yjs.service';
 
 describe('Projects', () => {
   let testUserId: string;
@@ -196,6 +199,32 @@ describe('Projects', () => {
     });
   });
 
+  describe('slug uniqueness under concurrency', () => {
+    it('lets exactly one of two simultaneous creates for the same slug succeed', async () => {
+      const body = JSON.stringify({ slug: 'race-slug', title: 'Race' });
+      const results = await Promise.all(
+        [0, 1, 2].map(() =>
+          client
+            .request('/api/v1/projects', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body,
+            })
+            .then((r) => r.response.status)
+        )
+      );
+      expect(results.filter((s) => s === 201)).toHaveLength(1);
+      expect(results.filter((s) => s === 400)).toHaveLength(2);
+
+      const db = getDatabase();
+      const rows = await db
+        .select()
+        .from(projects)
+        .where(and(eq(projects.userId, testUserId), eq(projects.slug, 'race-slug')));
+      expect(rows).toHaveLength(1);
+    });
+  });
+
   describe('DELETE /api/v1/projects/:username/:slug', () => {
     it('should delete project', async () => {
       // Create a project to delete
@@ -225,6 +254,50 @@ describe('Projects', () => {
         `/api/v1/projects/${testUsername}/${project.slug}`
       );
       expect(getResponse.status).toBe(404);
+    });
+
+    it('removes the project directory and its documents, and a re-created slug starts empty', async () => {
+      const slug = 'delete-with-content';
+      await client.request('/api/v1/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug, title: 'Has content' }),
+      });
+
+      // Give the project some content: a media file and a Yjs elements doc.
+      await fileStorageService.saveProjectFile(testUsername, slug, 'note.txt', 'hello');
+      const docId = `${testUsername}:${slug}:elements`;
+      const shared = await yjsService.getDocument(docId);
+      shared.doc.getArray('elements').insert(0, [{ id: 'e1', name: 'Chapter 1' }]);
+      const projectPath = fileStorageService.getProjectPath(testUsername, slug);
+      expect(existsSync(projectPath)).toBe(true);
+
+      const { response } = await client.request(`/api/v1/projects/${testUsername}/${slug}`, {
+        method: 'DELETE',
+      });
+      expect(response.status).toBe(200);
+
+      // Storage (including the .yjs store) is gone and nothing is held in memory.
+      expect(existsSync(projectPath)).toBe(false);
+      const internals = yjsService as unknown as {
+        docs: Map<string, unknown>;
+        persistences: Map<string, unknown>;
+      };
+      expect(internals.docs.has(docId)).toBe(false);
+      expect(internals.persistences.has(`${testUsername}:${slug}`)).toBe(false);
+
+      // Re-creating the same slug must not resurrect the deleted documents.
+      const recreate = await client.request('/api/v1/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug, title: 'Fresh start' }),
+      });
+      expect(recreate.response.status).toBe(201);
+      const fresh = await yjsService.getDocument(docId);
+      expect(fresh.doc.getArray('elements')).toHaveLength(0);
+      expect(await fileStorageService.projectFileExists(testUsername, slug, 'note.txt')).toBe(
+        false
+      );
     });
 
     it('should create tombstone on delete', async () => {

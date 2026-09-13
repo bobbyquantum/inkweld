@@ -57,7 +57,14 @@ import {
   WS_CLOSE_PROJECT_NOT_FOUND,
   WS_CLOSE_RATE_LIMITED,
   WS_CLOSE_SERVER_ERROR,
+  WS_CLOSE_AUTH_TIMEOUT,
+  WS_CLOSE_PREAUTH_OVERFLOW,
 } from '../utils/ws-close-codes';
+import {
+  PREAUTH_TIMEOUT_MS,
+  preAuthDeadlinePassed,
+  preAuthQueueAccepts,
+} from '../utils/ws-preauth';
 import {
   decodeSnapshotMetrics,
   hasDocContent,
@@ -96,6 +103,8 @@ interface ConnectionInfo {
   canWrite: boolean; // Resolved from collaboration access; viewers cannot send updates
   sharedDoc?: WSSharedDoc; // Document (only set after auth)
   pendingMessages: ArrayBuffer[]; // Binary messages queued before auth
+  /** Bytes currently held in pendingMessages (bounded, see utils/ws-preauth.ts). */
+  pendingBytes?: number;
   unsubscribe?: () => void; // Cleanup function for document subscription
   /**
    * Awareness client IDs this connection "controls" — tracked via the
@@ -138,6 +147,12 @@ interface ConnectionInfo {
 interface WSAttachment {
   documentId: string;
   authenticated: boolean;
+  /**
+   * Epoch ms the socket was accepted. Present only while unauthenticated so
+   * the auth-deadline alarm can find sockets that never sent a token (a
+   * setTimeout would pin the DO in memory; the alarm survives hibernation).
+   */
+  connectedAt?: number;
   userId?: string;
   username?: string;
   /** Whether the user has write access (false = viewer/commenter). Persisted
@@ -159,10 +174,14 @@ interface WSAttachment {
 }
 
 interface SessionData {
-  // Standard JWT fields (OAuth format)
-  sub?: string;
-  // Legacy fields
+  /** Present on first-party session JWTs and on Worker-minted DO JWTs. */
   userId?: string;
+  /**
+   * Standard JWT subject. MCP OAuth access tokens carry ONLY `sub` (never
+   * `userId`); Worker-minted DO JWTs carry both. It is never used to identify
+   * the user here — see `isMcpOAuthAccessToken`.
+   */
+  sub?: string;
   username: string;
   email?: string;
   exp?: number;
@@ -170,6 +189,21 @@ interface SessionData {
   iat?: number;
   /** 'full' for sessions, 'enrol' for the passkey-enrolment-only token. */
   scope?: string;
+  /** MCP OAuth access-token markers (McpAccessTokenPayload). */
+  client_id?: string;
+  session_id?: string;
+}
+
+/**
+ * MCP OAuth access tokens are signed with the same secret as session JWTs but
+ * are scoped to per-project consent grants that live in the database and are
+ * enforced by the MCP tool layer. This DO resolves access purely from a user
+ * id, so treating such a token as a user session would hand the OAuth client
+ * the user's full access to every project. They carry `client_id` and
+ * `session_id` and never `userId`; any of those shapes means "not a session".
+ */
+function isMcpOAuthAccessToken(payload: SessionData): boolean {
+  return payload.client_id !== undefined || payload.session_id !== undefined || !payload.userId;
 }
 
 type YjsEnv = {
@@ -184,6 +218,13 @@ type YjsEnv = {
 
 const Y_MESSAGE_SYNC = 0;
 const Y_MESSAGE_AWARENESS = 1;
+
+function jsonResponse(body: unknown, status: number): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
 
 /**
  * Multi-document Yjs Durable Object
@@ -310,18 +351,22 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
         return null;
       }
 
-      // Check required fields - support both OAuth (sub) and legacy (userId) formats
-      const userId = payload.sub || payload.userId;
-      if (!userId || !payload.username) {
-        projDOLog.error('JWT missing required fields', {
-          hasUserId: !!userId,
-          hasUsername: !!payload.username,
+      // Only first-party session JWTs (and the DO JWTs the Worker mints for
+      // MCP tool calls, which carry the same fields) are accepted. MCP OAuth
+      // access tokens are rejected outright — see isMcpOAuthAccessToken.
+      if (isMcpOAuthAccessToken(payload)) {
+        projDOLog.error('JWT is not a user session token', {
+          hasUserId: !!payload.userId,
+          hasSub: !!payload.sub,
+          hasClientId: !!payload.client_id,
+          hasSessionId: !!payload.session_id,
         });
         return null;
       }
-
-      // Normalize to userId for internal use
-      payload.userId = userId;
+      if (!payload.username) {
+        projDOLog.error('JWT missing required fields', { hasUsername: false });
+        return null;
+      }
 
       if (payload.scope === 'enrol') {
         // Enrolment-only token: may attach a passkey, nothing else.
@@ -460,7 +505,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
         headers: { 'Content-Type': 'application/json' },
       });
     }
-    const { canWrite } = accessResult.access;
+    const { canWrite, role } = accessResult.access;
     if (method === 'POST' && !canWrite) {
       projDOLog.warn(
         `User ${session.username} denied write access to ${parsed.projectOwner}/${parsed.slug}`
@@ -472,7 +517,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     }
 
     try {
-      return await this.dispatchHttpRoute(path, method, request, documentId);
+      return await this.dispatchHttpRoute(path, method, request, documentId, role);
     } catch (error) {
       projDOLog.error('HTTP API error:', error);
       return new Response(JSON.stringify({ error: 'Internal server error' }), {
@@ -486,31 +531,58 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     path: string,
     method: string,
     request: Request,
-    documentId: string
+    documentId: string,
+    role: string | null
   ): Promise<Response> {
-    if (path === '/api/elements' && method === 'GET') {
-      return this.handleGetElements(documentId);
+    switch (`${method} ${path}`) {
+      case 'POST /api/destroy':
+        // resolveProjectAccess reports role null for the owner; collaborators
+        // (even editors) must not be able to wipe the project.
+        if (role !== null) {
+          return jsonResponse({ error: 'Owner access required' }, 403);
+        }
+        return this.handleDestroyProject();
+      case 'GET /api/elements':
+        return this.handleGetElements(documentId);
+      case 'POST /api/elements':
+        return this.handleMutateElements(request, documentId);
+      case 'GET /api/document':
+        return this.handleGetDocument(documentId);
+      case 'POST /api/document':
+        return this.handleUpdateDocument(request, documentId);
+      case 'GET /api/stats':
+        return this.handleGetStats(documentId);
+      case 'GET /api/storage-keys':
+        return this.handleGetStorageKeys(request);
+      case 'GET /api/storage-size':
+        return this.handleGetStorageSize();
+      default:
+        return jsonResponse({ error: 'Not found' }, 404);
     }
-    if (path === '/api/elements' && method === 'POST') {
-      return this.handleMutateElements(request, documentId);
+  }
+
+  /**
+   * POST /api/destroy - The project is being deleted. Close every socket,
+   * drop the in-memory documents and wipe this DO's storage so a project
+   * re-created under the same username:slug (which maps to this same DO)
+   * starts empty instead of resurrecting the deleted content.
+   */
+  private async handleDestroyProject(): Promise<Response> {
+    for (const ws of this.state.getWebSockets()) {
+      this.cleanupConnection(ws);
+      safeSend(ws, 'access-denied:project-not-found');
+      safeClose(ws, WS_CLOSE_PROJECT_NOT_FOUND, 'Project deleted');
     }
-    if (path === '/api/document' && method === 'GET') {
-      return this.handleGetDocument(documentId);
-    }
-    if (path === '/api/document' && method === 'POST') {
-      return this.handleUpdateDocument(request, documentId);
-    }
-    if (path === '/api/stats' && method === 'GET') {
-      return this.handleGetStats(documentId);
-    }
-    if (path === '/api/storage-keys' && method === 'GET') {
-      return this.handleGetStorageKeys(request);
-    }
-    if (path === '/api/storage-size' && method === 'GET') {
-      return this.handleGetStorageSize();
-    }
-    return new Response(JSON.stringify({ error: 'Not found' }), {
-      status: 404,
+    this.connections.clear();
+    this.documents.clear();
+    this.elementSnapshots.clear();
+    for (const timer of this.dedupeTimers.values()) clearTimeout(timer);
+    this.dedupeTimers.clear();
+
+    await this.state.storage.deleteAll();
+    projDOLog.info(`Project ${this.projectId} destroyed: storage wiped`);
+    return new Response(JSON.stringify({ ok: true }), {
+      status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
   }
@@ -1060,6 +1132,62 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
    * NOTE: No authentication here - auth happens over the WebSocket connection
    * Client must send JWT token as first text message after connecting
    */
+  /**
+   * Arm the DO alarm for the pre-auth deadline of a newly accepted socket,
+   * unless an earlier alarm is already pending. Uses the alarm API rather than
+   * setTimeout because a live timer prevents the DO from hibernating.
+   */
+  private async scheduleAuthDeadline(deadlineMs: number): Promise<void> {
+    const storage = this.state.storage as {
+      getAlarm?: () => Promise<number | null>;
+      setAlarm?: (at: number) => Promise<void>;
+    };
+    if (typeof storage.getAlarm !== 'function' || typeof storage.setAlarm !== 'function') return;
+    try {
+      const current = await storage.getAlarm();
+      if (current === null || current === undefined || current > deadlineMs) {
+        await storage.setAlarm(deadlineMs);
+      }
+    } catch (error) {
+      projDOLog.error('Failed to schedule auth-deadline alarm', error);
+    }
+  }
+
+  /** Deserialise a socket's attachment, treating a corrupt one as absent. */
+  private readAttachment(ws: WebSocket): WSAttachment | null {
+    try {
+      return ws.deserializeAttachment() as WSAttachment | null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Alarm handler: close every socket that was accepted but never
+   * authenticated within PREAUTH_TIMEOUT_MS, then re-arm for the earliest
+   * remaining unauthenticated socket, if any.
+   */
+  async alarm(): Promise<void> {
+    const now = Date.now();
+    let nextDeadline: number | null = null;
+    for (const ws of this.state.getWebSockets()) {
+      const attachment = this.readAttachment(ws);
+      if (!attachment || attachment.authenticated || attachment.connectedAt === undefined) continue;
+      if (preAuthDeadlinePassed(attachment.connectedAt, now)) {
+        projDOLog.warn(`No auth token within deadline for ${attachment.documentId}; closing`);
+        safeSend(ws, 'access-denied:auth-timeout');
+        safeClose(ws, WS_CLOSE_AUTH_TIMEOUT, 'Authentication timeout');
+        this.connections.delete(ws);
+        continue;
+      }
+      const deadline = attachment.connectedAt + PREAUTH_TIMEOUT_MS;
+      if (nextDeadline === null || deadline < nextDeadline) nextDeadline = deadline;
+    }
+    if (nextDeadline !== null) {
+      await this.scheduleAuthDeadline(nextDeadline);
+    }
+  }
+
   private async handleWebSocketUpgrade(request: Request, url: URL): Promise<Response> {
     let documentId = url.searchParams.get('documentId');
 
@@ -1096,15 +1224,20 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
 
     // Persist minimal per-connection state so the DO can hibernate
     // and rehydrate this connection on wake. See WSAttachment + rehydrateConnection().
+    const connectedAt = Date.now();
     const attachment: WSAttachment = {
       documentId,
       authenticated: false,
       canWrite: false,
+      connectedAt,
     };
     server.serializeAttachment(attachment);
 
     // Accept WebSocket with hibernation and tag with documentId
     this.state.acceptWebSocket(server, [documentId]);
+
+    // Close it again if no token arrives in time. See alarm().
+    await this.scheduleAuthDeadline(connectedAt + PREAUTH_TIMEOUT_MS);
 
     // Note: We do NOT set up Yjs here - we wait for authentication
     // The client must send a JWT token as the first text message
@@ -1898,7 +2031,17 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
 
   private handleBinaryMessage(ws: WebSocket, connInfo: ConnectionInfo, message: ArrayBuffer): void {
     if (!connInfo.authenticated) {
+      const queuedBytes = connInfo.pendingBytes ?? 0;
+      if (!preAuthQueueAccepts(connInfo.pendingMessages.length, queuedBytes, message.byteLength)) {
+        projDOLog.warn(`Pre-auth queue overflow for ${connInfo.documentId}; closing`);
+        connInfo.pendingMessages = [];
+        connInfo.pendingBytes = 0;
+        safeSend(ws, 'access-denied:queue-overflow');
+        safeClose(ws, WS_CLOSE_PREAUTH_OVERFLOW, 'Authenticate before syncing');
+        return;
+      }
       connInfo.pendingMessages.push(message);
+      connInfo.pendingBytes = queuedBytes + message.byteLength;
       return;
     }
     this.dispatchAuthenticatedFrame(ws, connInfo, message);
@@ -1989,7 +2132,17 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     // have peeled — we read it via frameMessageType above, so advance the
     // decoder past it before handing to the presence service.
     readVarUint(decoder);
-    this.presence.handleMessage(projectKey, ws as unknown as PresenceSocket, decoder, message);
+    const authUser =
+      connInfo.userId && connInfo.username
+        ? { id: connInfo.userId, username: connInfo.username }
+        : undefined;
+    this.presence.handleMessage(
+      projectKey,
+      ws as unknown as PresenceSocket,
+      decoder,
+      message,
+      authUser
+    );
   }
 
   /**
@@ -2266,7 +2419,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
 
       // Authentication successful!
       connInfo.authenticated = true;
-      connInfo.userId = sessionData.userId ?? sessionData.sub;
+      connInfo.userId = sessionData.userId;
       connInfo.username = sessionData.username;
       connInfo.canWrite = canWrite;
 

@@ -1,4 +1,6 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi';
+import { bodyLimit } from 'hono/body-limit';
+import { MAX_PUBLISHED_FILE_UPLOAD_BYTES, MULTIPART_OVERHEAD_BYTES } from '../utils/upload';
 import { eq, and, desc } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError } from '../errors';
@@ -21,6 +23,12 @@ import type { AppContext } from '../types/context';
 import { sanitizeFilename } from '../utils/xml-utils';
 
 const publishedFileRoutes = new OpenAPIHono<AppContext>();
+
+// Reject oversized uploads with 413 before parseBody() buffers them.
+publishedFileRoutes.use(
+  '/:username/:slug/published',
+  bodyLimit({ maxSize: MAX_PUBLISHED_FILE_UPLOAD_BYTES + MULTIPART_OVERHEAD_BYTES })
+);
 
 // Apply auth middleware to all routes (except share endpoint which is public)
 publishedFileRoutes.use('*', requireAuth);

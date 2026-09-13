@@ -353,3 +353,38 @@ describe('ProjectService – delete', () => {
     expect(alias).toBeUndefined();
   });
 });
+
+describe('ProjectService – slug uniqueness per user', () => {
+  it('rejects a second project with the same slug for the same user', async () => {
+    await projectService.create(db, { slug: 'unique-slug', title: 'One', userId: USER_ID });
+    await expect(
+      projectService.create(db, { slug: 'unique-slug', title: 'Two', userId: USER_ID })
+    ).rejects.toThrow('Project with this slug already exists');
+  });
+
+  it('allows the same slug for a different user', async () => {
+    const otherId = crypto.randomUUID();
+    await db.insert(users).values({
+      id: otherId,
+      username: 'other-slug-user',
+      email: 'other-slug-user@example.com',
+      approved: true,
+      enabled: true,
+    });
+    await projectService.create(db, { slug: 'shared-slug', title: 'A', userId: USER_ID });
+    const other = await projectService.create(db, {
+      slug: 'shared-slug',
+      title: 'B',
+      userId: otherId,
+    });
+    expect(other.slug).toBe('shared-slug');
+  });
+
+  it('rejects renaming onto a slug the user already has', async () => {
+    const a = await projectService.create(db, { slug: 'rename-a', title: 'A', userId: USER_ID });
+    await projectService.create(db, { slug: 'rename-b', title: 'B', userId: USER_ID });
+    await expect(projectService.update(db, a.id, { slug: 'rename-b' })).rejects.toThrow(
+      'Project with this slug already exists'
+    );
+  });
+});

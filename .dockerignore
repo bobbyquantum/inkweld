@@ -52,6 +52,8 @@ Thumbs.db
 *.log
 *.md
 !README.md
+# copy-changelog.mjs ships the repo-root changelog as an in-app asset
+!CHANGELOG.md
 LICENSE
 renovate.json
 *.code-workspace

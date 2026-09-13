@@ -1,4 +1,6 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi';
+import { bodyLimit } from 'hono/body-limit';
+import { MAX_IMAGE_UPLOAD_BYTES, MULTIPART_OVERHEAD_BYTES } from '../utils/upload';
 import { requireAuth, optionalAuth } from '../middleware/auth';
 import { type AppContext } from '../types/context';
 import { userService } from '../services/user.service';
@@ -15,15 +17,24 @@ const userRoutes = new OpenAPIHono<AppContext>();
 // Note: /me uses custom auth handling to return anonymous user instead of 401
 userRoutes.use('/me', optionalAuth);
 userRoutes.use('/avatar', requireAuth);
+// Reject oversized avatar uploads with 413 before parseBody() buffers them.
+userRoutes.use(
+  '/avatar',
+  bodyLimit({ maxSize: MAX_IMAGE_UPLOAD_BYTES + MULTIPART_OVERHEAD_BYTES })
+);
 
-// Optional auth for user list and search - admins get full details, others get limited info
-// We apply it specifically to these routes to avoid any interference with public routes like /check-username
-userRoutes.use('/search', optionalAuth);
+// The user directory (list + search) is for signed-in users: admins get full
+// details, everyone else a limited view of active accounts. It used to be
+// optionalAuth, which made the directory — and, through the email predicate in
+// the search, an existence oracle for any email address — readable by anyone.
+// Applied specifically to these routes so public routes like /check-username
+// are unaffected.
+userRoutes.use('/search', requireAuth);
 // For the root / path of the router (which is /api/v1/users)
 userRoutes.use('/', async (c, next) => {
   // Only apply to the exact root path, not subpaths (which are handled by their own definitions)
   if (c.req.path === '/api/v1/users' || c.req.path === '/api/v1/users/') {
-    return optionalAuth(c, next);
+    return requireAuth(c, next);
   }
   await next();
 });
@@ -234,7 +245,10 @@ userRoutes.openapi(updateProfileRoute, async (c) => {
 
 // Query parameters for user list
 const ListUsersQuerySchema = z.object({
-  search: z.string().optional().openapi({ description: 'Search by username or email' }),
+  search: z
+    .string()
+    .optional()
+    .openapi({ description: 'Search by username (admins may also match on email)' }),
   limit: z.string().optional().openapi({ description: 'Number of results per page (default: 20)' }),
   offset: z.string().optional().openapi({ description: 'Offset for pagination (default: 0)' }),
 });
@@ -247,7 +261,7 @@ const getUsersRoute = createRoute({
   operationId: 'listUsers',
   summary: 'List users',
   description:
-    'Get a paginated list of users. Admins see all users with full details (including pending/disabled). Regular users only see active (approved+enabled) users with limited info.',
+    'Get a paginated list of users. Requires authentication. Admins see all users with full details (including pending/disabled). Regular users only see active (approved+enabled) users with limited info.',
   request: {
     query: ListUsersQuerySchema,
   },
@@ -260,6 +274,7 @@ const getUsersRoute = createRoute({
       },
       description: 'Paginated list of users',
     },
+    ...errorResponses.notAuthenticated,
   },
 });
 
@@ -280,6 +295,7 @@ userRoutes.openapi(getUsersRoute, async (c) => {
     limit,
     offset,
     activeOnly: !isAdmin, // Non-admins only see approved+enabled users
+    searchEmail: isAdmin, // Email is never a search key for non-admins
   });
 
   // Format users based on admin status
@@ -328,7 +344,7 @@ const searchUsersRoute = createRoute({
   operationId: 'searchUsers',
   summary: 'Search users',
   description:
-    'Search users by username or name. Admins see all users, regular users only see active users.',
+    'Search users by username. Requires authentication. Admins see all users and may also match on email; regular users only see active users.',
   responses: {
     200: {
       content: {
@@ -338,6 +354,7 @@ const searchUsersRoute = createRoute({
       },
       description: 'Search results',
     },
+    ...errorResponses.notAuthenticated,
   },
 });
 
@@ -358,6 +375,7 @@ userRoutes.openapi(searchUsersRoute, async (c) => {
     limit,
     offset,
     activeOnly: !isAdmin,
+    searchEmail: isAdmin,
   });
 
   // Format users based on admin status

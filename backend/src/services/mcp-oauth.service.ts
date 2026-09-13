@@ -11,7 +11,7 @@
  * project collaborators system for permission management.
  */
 
-import { eq, and, not, isNull, or, lt, inArray, isNotNull, sql } from 'drizzle-orm';
+import { eq, and, not, isNull, or, lt, gt, inArray, notInArray, isNotNull, sql } from 'drizzle-orm';
 import { sign, verify } from 'hono/jwt';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import type { DatabaseInstance } from '../types/context';
@@ -51,6 +51,17 @@ const ACCESS_TOKEN_TTL = 60 * 60; // 1 hour in seconds
 const REFRESH_TOKEN_TTL = 30 * 24 * 60 * 60; // 30 days in seconds
 const AUTH_CODE_TTL = 5 * 60 * 1000; // 5 minutes in milliseconds
 const PREV_TOKEN_GRACE_PERIOD = 60 * 1000; // 1 minute grace period for token rotation
+/** Default ceiling on dynamically registered clients; override with MCP_MAX_DYNAMIC_CLIENTS. */
+const DEFAULT_MAX_DYNAMIC_CLIENTS = 500;
+/** A dynamic client with no session after this long is considered abandoned. */
+const UNUSED_DYNAMIC_CLIENT_TTL_MS = 24 * 60 * 60 * 1000;
+
+/** Read the cap at call time (bracket access so bun --minify cannot constant-fold it). */
+function maxDynamicClients(): number {
+  const raw = typeof process !== 'undefined' ? process.env['MCP_MAX_DYNAMIC_CLIENTS'] : undefined;
+  const parsed = raw ? Number.parseInt(raw, 10) : Number.NaN;
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_MAX_DYNAMIC_CLIENTS;
+}
 
 /**
  * Generate a cryptographically secure random string
@@ -228,6 +239,46 @@ class McpOAuthService {
   // ============================================
 
   /**
+   * Registration is anonymous (RFC 7591), so an unauthenticated caller could
+   * insert client rows without limit. Keep the table bounded: when the cap is
+   * reached, first drop dynamic clients that never obtained a session and are
+   * older than a day (abandoned registrations), then refuse if still full.
+   */
+  private async enforceDynamicClientCap(db: DatabaseInstance): Promise<void> {
+    const cap = maxDynamicClients();
+    let total = await db.$count(mcpOAuthClients, eq(mcpOAuthClients.isDynamic, true));
+    if (total < cap) return;
+
+    const cutoff = Date.now() - UNUSED_DYNAMIC_CLIENT_TTL_MS;
+    // Field-select needs the concrete Drizzle type; the union hides the overload.
+    const usedClientIds = (db as D1DatabaseInstance)
+      .select({ clientId: mcpOAuthSessions.clientId })
+      .from(mcpOAuthSessions);
+    const pruned = await db
+      .delete(mcpOAuthClients)
+      .where(
+        and(
+          eq(mcpOAuthClients.isDynamic, true),
+          lt(mcpOAuthClients.createdAt, cutoff),
+          notInArray(mcpOAuthClients.id, usedClientIds)
+        )
+      )
+      .returning();
+    if (pruned.length > 0) {
+      oauthLog.info(`Pruned ${pruned.length} unused dynamic OAuth clients`);
+    }
+
+    total = await db.$count(mcpOAuthClients, eq(mcpOAuthClients.isDynamic, true));
+    if (total >= cap) {
+      throw new OAuthError(
+        'temporarily_unavailable',
+        'Too many registered clients; try again later',
+        503
+      );
+    }
+  }
+
+  /**
    * Register a new OAuth client (Dynamic Client Registration)
    */
   async registerClient(
@@ -243,6 +294,8 @@ class McpOAuthService {
       clientType?: 'public' | 'confidential';
     }
   ): Promise<ClientRegistrationResult> {
+    await this.enforceDynamicClientCap(db);
+
     const clientId = crypto.randomUUID();
     const isConfidential = data.clientType === 'confidential';
 
@@ -684,7 +737,11 @@ class McpOAuthService {
     const refreshTokenHash = await hashString(refreshToken);
     const now = Date.now();
 
-    // Look up session by current or previous token
+    // Look up session by the current token, or by the immediately previous
+    // token while its rotation grace period is still running. The grace
+    // predicate must compare the stored deadline against `now` — it used to
+    // compare against `now + GRACE`, which is true forever, so a superseded
+    // refresh token never expired.
     const [session] = await db
       .select()
       .from(mcpOAuthSessions)
@@ -693,17 +750,30 @@ class McpOAuthService {
           eq(mcpOAuthSessions.refreshTokenHash, refreshTokenHash),
           and(
             eq(mcpOAuthSessions.previousRefreshTokenHash, refreshTokenHash),
-            // Previous token still in grace period
-            or(
-              isNull(mcpOAuthSessions.previousTokenExpiresAt),
-              lt(mcpOAuthSessions.previousTokenExpiresAt, now + PREV_TOKEN_GRACE_PERIOD)
-            )
+            isNotNull(mcpOAuthSessions.previousTokenExpiresAt),
+            gt(mcpOAuthSessions.previousTokenExpiresAt, now)
           )
         )
       )
       .limit(1);
 
     if (!session) {
+      // A superseded token presented after its grace period is either a
+      // client that lost the rotation response or a stolen token being
+      // replayed. Both are indistinguishable server-side, so revoke the
+      // session (RFC 6819 §5.2.2.3) and force a fresh authorization.
+      const [replayed] = await db
+        .select({ id: mcpOAuthSessions.id, revokedAt: mcpOAuthSessions.revokedAt })
+        .from(mcpOAuthSessions)
+        .where(eq(mcpOAuthSessions.previousRefreshTokenHash, refreshTokenHash))
+        .limit(1);
+      if (replayed && !replayed.revokedAt) {
+        await db
+          .update(mcpOAuthSessions)
+          .set({ revokedAt: now, revokedReason: 'Refresh token reuse detected' })
+          .where(eq(mcpOAuthSessions.id, replayed.id));
+        oauthLog.warn(`Revoked session ${replayed.id}: superseded refresh token reused`);
+      }
       throw new OAuthError('invalid_grant', 'Invalid refresh token');
     }
 

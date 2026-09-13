@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'bun:test';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from 'bun:test';
 import { drizzle, type BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite';
 import { migrate } from 'drizzle-orm/bun-sqlite/migrator';
 import { Database as BunDatabase } from 'bun:sqlite';
@@ -868,5 +868,202 @@ describe('MCP OAuth Service - cleanup and utility methods', () => {
   it('isSessionRevoked should return true for nonexistent session', async () => {
     const revoked = await mcpOAuthService.isSessionRevoked(db, 'nonexistent-id');
     expect(revoked).toBe(true);
+  });
+});
+
+describe('MCP OAuth Service - refresh token rotation', () => {
+  const ISSUER = 'http://localhost:8333';
+
+  async function freshSession() {
+    return mcpOAuthService.createSession(db, {
+      userId: testUserId,
+      clientId: testClientId,
+      grants: [{ projectId: testProjectId, role: 'editor' }],
+      issuer: ISSUER,
+    });
+  }
+
+  async function setPreviousExpiry(sessionId: string, previousTokenExpiresAt: number) {
+    await db
+      .update(mcpOAuthSessions)
+      .set({ previousTokenExpiresAt })
+      .where(eq(mcpOAuthSessions.id, sessionId));
+  }
+
+  it('rotates the refresh token and keeps the old one usable within the grace period', async () => {
+    const { sessionId, tokens } = await freshSession();
+
+    const rotated = await mcpOAuthService.refreshTokens(
+      db,
+      tokens.refreshToken,
+      testClientId,
+      undefined,
+      ISSUER
+    );
+    expect(rotated.refreshToken).not.toBe(tokens.refreshToken);
+
+    // Immediately re-presenting the superseded token (lost response) is
+    // tolerated during the grace window.
+    const again = await mcpOAuthService.refreshTokens(
+      db,
+      tokens.refreshToken,
+      testClientId,
+      undefined,
+      ISSUER
+    );
+    expect(again.refreshToken).toBeDefined();
+
+    const [session] = await db
+      .select()
+      .from(mcpOAuthSessions)
+      .where(eq(mcpOAuthSessions.id, sessionId));
+    expect(session.revokedAt).toBeNull();
+  });
+
+  it('rejects the superseded token once the grace period has passed and revokes the session', async () => {
+    const { sessionId, tokens } = await freshSession();
+    const rotated = await mcpOAuthService.refreshTokens(
+      db,
+      tokens.refreshToken,
+      testClientId,
+      undefined,
+      ISSUER
+    );
+
+    // Simulate the grace window elapsing.
+    await setPreviousExpiry(sessionId, Date.now() - 1);
+
+    await expect(
+      mcpOAuthService.refreshTokens(db, tokens.refreshToken, testClientId, undefined, ISSUER)
+    ).rejects.toThrow(OAuthError);
+
+    const [session] = await db
+      .select()
+      .from(mcpOAuthSessions)
+      .where(eq(mcpOAuthSessions.id, sessionId));
+    expect(session.revokedAt).not.toBeNull();
+    expect(session.revokedReason).toBe('Refresh token reuse detected');
+
+    // The current token no longer works either: the whole session is dead.
+    await expect(
+      mcpOAuthService.refreshTokens(db, rotated.refreshToken, testClientId, undefined, ISSUER)
+    ).rejects.toThrow('Session has been revoked');
+  });
+
+  it('does not treat a legacy row with no grace deadline as an open-ended grace period', async () => {
+    const { sessionId, tokens } = await freshSession();
+    await mcpOAuthService.refreshTokens(db, tokens.refreshToken, testClientId, undefined, ISSUER);
+    await db
+      .update(mcpOAuthSessions)
+      .set({ previousTokenExpiresAt: null })
+      .where(eq(mcpOAuthSessions.id, sessionId));
+
+    await expect(
+      mcpOAuthService.refreshTokens(db, tokens.refreshToken, testClientId, undefined, ISSUER)
+    ).rejects.toThrow('Invalid refresh token');
+  });
+
+  it('rejects an unknown refresh token without touching any session', async () => {
+    const { sessionId } = await freshSession();
+    await expect(
+      mcpOAuthService.refreshTokens(db, 'iw_rt_not-a-real-token', testClientId, undefined, ISSUER)
+    ).rejects.toThrow('Invalid refresh token');
+    const [session] = await db
+      .select()
+      .from(mcpOAuthSessions)
+      .where(eq(mcpOAuthSessions.id, sessionId));
+    expect(session.revokedAt).toBeNull();
+  });
+});
+
+describe('MCP OAuth Service - dynamic client cap', () => {
+  const originalCap = process.env['MCP_MAX_DYNAMIC_CLIENTS'];
+  const DAY = 24 * 60 * 60 * 1000;
+
+  afterEach(async () => {
+    if (originalCap === undefined) delete process.env['MCP_MAX_DYNAMIC_CLIENTS'];
+    else process.env['MCP_MAX_DYNAMIC_CLIENTS'] = originalCap;
+    // Remove clients added by these tests; the shared fixtures are not dynamic
+    // registrations except the confidential one, which we keep.
+    await db.delete(mcpOAuthClients).where(eq(mcpOAuthClients.clientName, 'cap-test-client'));
+  });
+
+  async function dynamicClientCount(): Promise<number> {
+    return db.$count(mcpOAuthClients, eq(mcpOAuthClients.isDynamic, true));
+  }
+
+  async function seedDynamic(ageMs: number): Promise<string> {
+    const id = crypto.randomUUID();
+    await db.insert(mcpOAuthClients).values({
+      id,
+      clientName: 'cap-test-client',
+      redirectUris: JSON.stringify(['http://localhost:9/cb']),
+      clientType: 'public',
+      isDynamic: true,
+      createdAt: Date.now() - ageMs,
+    });
+    return id;
+  }
+
+  it('registers freely below the cap', async () => {
+    process.env['MCP_MAX_DYNAMIC_CLIENTS'] = String((await dynamicClientCount()) + 2);
+    const result = await mcpOAuthService.registerClient(db, {
+      clientName: 'cap-test-client',
+      redirectUris: ['http://localhost:9/cb'],
+    });
+    expect(result.clientId).toBeDefined();
+  });
+
+  it('prunes day-old dynamic clients with no session to make room', async () => {
+    const stale = await seedDynamic(2 * DAY);
+    const fresh = await seedDynamic(60_000);
+    process.env['MCP_MAX_DYNAMIC_CLIENTS'] = String(await dynamicClientCount());
+
+    const result = await mcpOAuthService.registerClient(db, {
+      clientName: 'cap-test-client',
+      redirectUris: ['http://localhost:9/cb'],
+    });
+    expect(result.clientId).toBeDefined();
+
+    const remaining = (await db.select({ id: mcpOAuthClients.id }).from(mcpOAuthClients)).map(
+      (r) => r.id
+    );
+    expect(remaining).not.toContain(stale);
+    expect(remaining).toContain(fresh);
+  });
+
+  it('keeps day-old dynamic clients that hold a session', async () => {
+    const used = await seedDynamic(2 * DAY);
+    await mcpOAuthService.createSession(db, {
+      userId: testUserId,
+      clientId: used,
+      grants: [{ projectId: testProjectId, role: 'viewer' }],
+      issuer: 'http://localhost:8333',
+    });
+    // Cap equals the current count and nothing prunable remains → refused.
+    process.env['MCP_MAX_DYNAMIC_CLIENTS'] = String(await dynamicClientCount());
+
+    await expect(
+      mcpOAuthService.registerClient(db, {
+        clientName: 'cap-test-client',
+        redirectUris: ['http://localhost:9/cb'],
+      })
+    ).rejects.toMatchObject({ code: 'temporarily_unavailable', statusCode: 503 });
+
+    const remaining = (await db.select({ id: mcpOAuthClients.id }).from(mcpOAuthClients)).map(
+      (r) => r.id
+    );
+    expect(remaining).toContain(used);
+  });
+
+  it('refuses at the cap when only fresh clients exist', async () => {
+    await seedDynamic(1_000);
+    process.env['MCP_MAX_DYNAMIC_CLIENTS'] = String(await dynamicClientCount());
+    await expect(
+      mcpOAuthService.registerClient(db, {
+        clientName: 'cap-test-client',
+        redirectUris: ['http://localhost:9/cb'],
+      })
+    ).rejects.toThrow(OAuthError);
   });
 });
