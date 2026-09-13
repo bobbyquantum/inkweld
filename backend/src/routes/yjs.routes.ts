@@ -30,7 +30,10 @@ import {
   WS_CLOSE_INVALID_TOKEN,
   WS_CLOSE_PROJECT_NOT_FOUND,
   WS_CLOSE_SERVER_ERROR,
+  WS_CLOSE_AUTH_TIMEOUT,
+  WS_CLOSE_PREAUTH_OVERFLOW,
 } from '../utils/ws-close-codes';
+import { PREAUTH_TIMEOUT_MS, preAuthQueueAccepts } from '../utils/ws-preauth';
 
 const wsLog = logger.child('WebSocket');
 const app = new Hono<AppContext>();
@@ -194,8 +197,18 @@ app.get(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Yjs WSSharedDoc type is complex
     let doc: any = null;
     let pingInterval: Timer | null = null;
-    // Queue binary messages received before auth is complete
+    // Queue binary messages received before auth is complete — bounded, see
+    // utils/ws-preauth.ts. A socket that never authenticates is closed by
+    // `authDeadline`.
     let pendingMessages: ArrayBuffer[] = [];
+    let pendingBytes = 0;
+    let authDeadline: Timer | null = null;
+    const clearAuthDeadline = (): void => {
+      if (authDeadline) {
+        clearTimeout(authDeadline);
+        authDeadline = null;
+      }
+    };
 
     // Writing-session tracking state. Populated after successful auth, used
     // by the close handler to finalize the row in `writing_sessions` and to
@@ -389,6 +402,7 @@ app.get(
         }
 
         authenticated = true;
+        clearAuthDeadline();
         authUser = { id: sessionData.userId, username: sessionData.username };
         wsLog.info(`Authenticated for ${documentId} (user: ${sessionData.username})`);
         ws.send('authenticated');
@@ -415,7 +429,16 @@ app.get(
 
     const handleBinaryMessage = (data: ArrayBuffer, ws: WsHandle): void => {
       if (!authenticated || !doc) {
+        if (!preAuthQueueAccepts(pendingMessages.length, pendingBytes, data.byteLength)) {
+          wsLog.warn(`Pre-auth queue overflow for ${documentId}; closing`);
+          pendingMessages = [];
+          pendingBytes = 0;
+          ws.send('access-denied:queue-overflow');
+          ws.close(WS_CLOSE_PREAUTH_OVERFLOW, 'Authenticate before syncing');
+          return;
+        }
         pendingMessages.push(data);
+        pendingBytes += data.byteLength;
         return;
       }
 
@@ -448,9 +471,16 @@ app.get(
     };
 
     return {
-      onOpen(_event, _ws) {
+      onOpen(_event, ws) {
         // Don't set up Yjs yet - wait for authentication
         wsLog.debug(`Connected for ${documentId}, awaiting authentication...`);
+        authDeadline = setTimeout(() => {
+          authDeadline = null;
+          if (authenticated) return;
+          wsLog.warn(`No auth token within ${PREAUTH_TIMEOUT_MS}ms for ${documentId}; closing`);
+          ws.send('access-denied:auth-timeout');
+          ws.close(WS_CLOSE_AUTH_TIMEOUT, 'Authentication timeout');
+        }, PREAUTH_TIMEOUT_MS);
       },
 
       async onMessage(event, ws) {
@@ -479,6 +509,7 @@ app.get(
 
       onClose(_event, ws) {
         wsLog.debug(`Closed for ${documentId}`);
+        clearAuthDeadline();
         if (pingInterval) {
           clearInterval(pingInterval);
           pingInterval = null;
@@ -498,6 +529,7 @@ app.get(
 
       onError(evt, ws) {
         wsLog.error(`Error for ${documentId}`, evt);
+        clearAuthDeadline();
         if (pingInterval) {
           clearInterval(pingInterval);
           pingInterval = null;

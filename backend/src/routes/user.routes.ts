@@ -1,4 +1,6 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi';
+import { bodyLimit } from 'hono/body-limit';
+import { MAX_IMAGE_UPLOAD_BYTES, MULTIPART_OVERHEAD_BYTES } from '../utils/upload';
 import { requireAuth, optionalAuth } from '../middleware/auth';
 import { type AppContext } from '../types/context';
 import { userService } from '../services/user.service';
@@ -15,6 +17,11 @@ const userRoutes = new OpenAPIHono<AppContext>();
 // Note: /me uses custom auth handling to return anonymous user instead of 401
 userRoutes.use('/me', optionalAuth);
 userRoutes.use('/avatar', requireAuth);
+// Reject oversized avatar uploads with 413 before parseBody() buffers them.
+userRoutes.use(
+  '/avatar',
+  bodyLimit({ maxSize: MAX_IMAGE_UPLOAD_BYTES + MULTIPART_OVERHEAD_BYTES })
+);
 
 // Optional auth for user list and search - admins get full details, others get limited info
 // We apply it specifically to these routes to avoid any interference with public routes like /check-username

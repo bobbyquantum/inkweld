@@ -1,6 +1,12 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi';
+import { bodyLimit } from 'hono/body-limit';
 import { lookup } from 'mime-types';
 import { requireAuth } from '../middleware/auth';
+import {
+  MAX_MEDIA_UPLOAD_BYTES,
+  MULTIPART_OVERHEAD_BYTES,
+  sanitizeUploadFilename,
+} from '../utils/upload';
 import { getStorageService } from '../services/storage.service';
 import { projectService } from '../services/project.service';
 import { collaborationService } from '../services/collaboration.service';
@@ -11,6 +17,11 @@ const mediaRoutes = new OpenAPIHono<AppContext>();
 
 // Apply auth to all routes - media is project-specific
 mediaRoutes.use('/:username/:slug/*', requireAuth);
+// Reject oversized uploads with 413 before parseBody() buffers them.
+mediaRoutes.use(
+  '/:username/:slug',
+  bodyLimit({ maxSize: MAX_MEDIA_UPLOAD_BYTES + MULTIPART_OVERHEAD_BYTES })
+);
 
 // Schemas
 const MediaItemSchema = z
@@ -246,17 +257,23 @@ mediaRoutes.openapi(uploadMediaRoute, async (c) => {
     );
   }
 
-  // Read file data
-  const arrayBuffer = await file.arrayBuffer();
-  const data = new Uint8Array(arrayBuffer);
+  // The client picks the filename; keep only a safe single path segment so
+  // it cannot create nested keys inside the project's storage prefix.
+  const filename = sanitizeUploadFilename(file.name);
+  if (!filename) {
+    throw new BadRequestError('Invalid filename');
+  }
+
+  // Read file data (one copy — Uint8Array over the buffer, no second clone)
+  const data = new Uint8Array(await file.arrayBuffer());
 
   // Save to storage
-  await storage.saveProjectFile(username, slug, file.name, data, file.type);
+  await storage.saveProjectFile(username, slug, filename, data, file.type);
 
   return c.json({
     message: 'File uploaded successfully',
-    filename: file.name,
-    size: data.length,
+    filename,
+    size: data.byteLength,
   });
 });
 

@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, index } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer, uniqueIndex } from 'drizzle-orm/sqlite-core';
 import { users } from './users';
 
 export const projects = sqliteTable(
@@ -23,9 +23,12 @@ export const projects = sqliteTable(
   (table) => [
     // Every project request resolves `username/slug` -> project: the users
     // row is found by its unique username, then projects is probed by
-    // (user_id, slug). The same index serves "all projects for a user"
-    // (findByUserId) via its leading column. Without it both were full scans.
-    index('projects_user_id_slug_idx').on(table.userId, table.slug),
+    // (user_id, slug); the leading column also serves "all projects for a
+    // user". UNIQUE because slug uniqueness per user was only enforced by a
+    // check-then-insert in the route, which two concurrent requests defeat —
+    // leaving two rows that share one Yjs/storage namespace, one of them
+    // unreachable through findByUsernameAndSlug's LIMIT 1.
+    uniqueIndex('projects_user_slug_unique').on(table.userId, table.slug),
   ]
 );
 

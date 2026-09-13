@@ -1,10 +1,24 @@
 import { eq, and, or, desc, inArray } from 'drizzle-orm';
 import type { DatabaseInstance } from '../types/context';
+import { BadRequestError } from '../errors';
 import type { D1DatabaseInstance } from '../db/d1';
 import { projects, type Project, type InsertProject } from '../db/schema/projects';
 import { users } from '../db/schema/users';
 import { projectSlugAliases, type ProjectSlugAlias } from '../db/schema/project-slug-aliases';
 import { projectTombstones, type ProjectTombstone } from '../db/schema/project-tombstones';
+
+/**
+ * Map a violation of the (user_id, slug) unique index — the race the route's
+ * existence check cannot close — onto the same 400 the check itself raises.
+ * Both bun:sqlite and D1 report SQLite's "UNIQUE constraint failed: ..." text.
+ */
+function translateSlugConflict(error: unknown): unknown {
+  const message = error instanceof Error ? error.message : String(error);
+  if (message.includes('UNIQUE constraint failed') && message.includes('projects.')) {
+    return new BadRequestError('Project with this slug already exists');
+  }
+  return error;
+}
 
 class ProjectService {
   /**
@@ -106,7 +120,11 @@ class ProjectService {
       updatedDate: Date.now(),
     };
 
-    await db.insert(projects).values(newProject);
+    try {
+      await db.insert(projects).values(newProject);
+    } catch (error) {
+      throw translateSlugConflict(error);
+    }
 
     const created = await this.findById(db, id);
     if (created === undefined) {
@@ -128,13 +146,17 @@ class ProjectService {
       coverImage?: string | null;
     }
   ): Promise<void> {
-    await db
-      .update(projects)
-      .set({
-        ...data,
-        updatedDate: Date.now(),
-      })
-      .where(eq(projects.id, id));
+    try {
+      await db
+        .update(projects)
+        .set({
+          ...data,
+          updatedDate: Date.now(),
+        })
+        .where(eq(projects.id, id));
+    } catch (error) {
+      throw translateSlugConflict(error);
+    }
   }
 
   /**

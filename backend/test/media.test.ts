@@ -10,6 +10,7 @@ import {
 import { getDatabase } from '../src/db/index';
 import { users, projects } from '../src/db/schema/index';
 import { TEST_PASSWORDS } from './test-credentials';
+import { MAX_MEDIA_UPLOAD_BYTES } from '../src/utils/upload';
 
 describe('Media Routes', () => {
   let baseUrl: string;
@@ -128,6 +129,52 @@ describe('Media Routes', () => {
     expect(filenames).toContain('test-book.pdf');
     expect(filenames).toContain('test-book.epub');
     expect(filenames).toContain('test-book.md');
+  });
+
+  it('flattens a nested filename to its last segment', async () => {
+    const formData = new FormData();
+    const blob = new Blob(['x'], { type: 'image/png' });
+    formData.append('file', blob, 'nested/dir/../evil.png');
+
+    const { response, json } = await client.request(`/api/v1/media/${username}/${slug}`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    expect(response.status).toBe(200);
+    const data = (await json()) as { filename: string };
+    expect(data.filename).toBe('evil.png');
+
+    const list = await client.request(`/api/v1/media/${username}/${slug}`);
+    const items = ((await list.json()) as { items: Array<{ filename: string }> }).items;
+    const filenames = items.map((i) => i.filename);
+    expect(filenames).toContain('evil.png');
+    expect(filenames.some((f) => f.includes('/'))).toBe(false);
+  });
+
+  it('rejects a filename with nothing usable in it', async () => {
+    const formData = new FormData();
+    formData.append('file', new Blob(['x'], { type: 'image/png' }), '..');
+
+    const { response } = await client.request(`/api/v1/media/${username}/${slug}`, {
+      method: 'POST',
+      body: formData,
+    });
+    expect(response.status).toBe(400);
+  });
+
+  it('rejects an oversized upload before buffering it', async () => {
+    const formData = new FormData();
+    const huge = new Blob([new Uint8Array(MAX_MEDIA_UPLOAD_BYTES + 1024 * 1024)], {
+      type: 'video/mp4',
+    });
+    formData.append('file', huge, 'huge.mp4');
+
+    const { response } = await client.request(`/api/v1/media/${username}/${slug}`, {
+      method: 'POST',
+      body: formData,
+    });
+    expect(response.status).toBe(413);
   });
 
   it('should reject unsupported file types', async () => {

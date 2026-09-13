@@ -1,4 +1,6 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi';
+import { bodyLimit } from 'hono/body-limit';
+import { MAX_IMAGE_UPLOAD_BYTES, MULTIPART_OVERHEAD_BYTES } from '../utils/upload';
 import { requireAuth } from '../middleware/auth';
 import { imageService } from '../services/image.service';
 import { getStorageService } from '../services/storage.service';
@@ -8,6 +10,13 @@ import { type AppContext } from '../types/context';
 import { ProjectPathParamsSchema } from '../schemas/common.schemas';
 
 const imageRoutes = new OpenAPIHono<AppContext>();
+
+// Reject oversized cover uploads with 413 before parseBody() buffers them;
+// imageService.validateImage re-checks the decoded image afterwards.
+imageRoutes.use(
+  '/:username/:slug/cover',
+  bodyLimit({ maxSize: MAX_IMAGE_UPLOAD_BYTES + MULTIPART_OVERHEAD_BYTES })
+);
 
 // Note: Auth is applied per-route using .use() middleware
 // GET routes for images are public (cover images should be viewable)

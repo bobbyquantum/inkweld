@@ -10,7 +10,7 @@ import { getDatabase } from '../src/db/index';
  */
 
 const EXPECTED: Record<string, { table: string; columns: string[] }> = {
-  projects_user_id_slug_idx: { table: 'projects', columns: ['user_id', 'slug'] },
+  projects_user_slug_unique: { table: 'projects', columns: ['user_id', 'slug'] },
   project_collaborators_user_status_idx: {
     table: 'project_collaborators',
     columns: ['user_id', 'status', 'invited_at'],
@@ -61,7 +61,7 @@ describe('hot-path indexes (migration 0033)', () => {
           WHERE u.username = 'alice' AND p.slug = 'novel'`
     )) as Array<{ detail: string }>;
     const details = plan.map((r) => r.detail).join('\n');
-    expect(details).toContain('projects_user_id_slug_idx');
+    expect(details).toContain('projects_user_slug_unique');
     expect(details).not.toMatch(/SCAN (TABLE )?(p|projects)\b/);
   });
 

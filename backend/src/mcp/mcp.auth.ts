@@ -15,6 +15,7 @@ import { mcpKeyService, parsePermissions, type McpPermission } from '../services
 import { mcpOAuthService, type CloudflareEnv } from '../services/mcp-oauth.service';
 import { projectService } from '../services/project.service';
 import { config } from '../config/env';
+import { getClientIp } from '../utils/client-ip';
 import type { McpContext, McpLegacyContext, McpOAuthContext, McpOAuthGrant } from './mcp.types';
 import { createErrorResponse, JSON_RPC_ERRORS } from './mcp.types';
 import { logger } from '../services/logger.service';
@@ -76,25 +77,27 @@ function extractToken(c: Context): string | null {
 /**
  * Get client IP from request
  */
-function getClientIp(c: Context): string | undefined {
-  return (
-    c.req.header('X-Forwarded-For')?.split(',')[0]?.trim() || c.req.header('X-Real-IP') || undefined
-  );
-}
-
 /**
  * Mint a short-lived JWT compatible with the Durable Object's verifyToken().
  *
- * Legacy API keys (iw_proj_...) are not JWTs, so the Durable Object HTTP API
- * rejects them with 401. We mint a short-lived JWT signed with the same
- * DATABASE_KEY / SESSION_SECRET that the DO uses, so it passes verifyToken().
+ * Neither MCP credential is accepted by the DO directly: legacy API keys
+ * (iw_proj_...) are not JWTs, and OAuth access tokens are deliberately
+ * rejected because they are scoped to per-project consent grants the DO
+ * cannot see (it resolves access from a user id alone, so it would treat the
+ * client as the user). Both paths therefore mint this DO JWT, signed with the
+ * same DATABASE_KEY / SESSION_SECRET the DO uses. Per-project grant
+ * enforcement for OAuth stays in the MCP tool layer (getProjectContext /
+ * requirePermission), which runs before any DO call; the minted token never
+ * leaves the Worker.
  *
  * The JWT contains the minimum fields the DO checks:
- *   - userId / sub (required by SessionData)
+ *   - userId       (required by SessionData; `sub` is set too for JWT hygiene)
  *   - username     (required by SessionData; compared against projectOwner)
  *   - exp          (24-hour TTL to prevent indefinite reuse)
+ *
+ * Exported for tests only — it pins the Worker↔DO token contract.
  */
-async function mintDoJwt(
+export async function mintDoJwt(
   username: string,
   userId: string,
   env: Record<string, unknown>
@@ -227,6 +230,13 @@ async function handleOAuthJwt(
     permissions: g.permissions,
   }));
 
+  const env = c.env as { YJS_PROJECTS?: DurableObjectNamespace; [key: string]: unknown };
+
+  // The OAuth access token itself must never reach the Durable Object: the DO
+  // rejects it (see mintDoJwt). Mint the same DO-scoped JWT the legacy path
+  // uses; grant enforcement has already happened / happens in the tool layer.
+  const doAuthToken = await mintDoJwt(payload.username, payload.sub, env);
+
   // Return OAuth context
   return {
     type: 'oauth',
@@ -236,8 +246,8 @@ async function handleOAuthJwt(
     username: payload.username,
     grants,
     clientIp,
-    authToken: token,
-    env: c.env as { YJS_PROJECTS?: DurableObjectNamespace; [key: string]: unknown },
+    authToken: doAuthToken,
+    env,
   };
 }
 
