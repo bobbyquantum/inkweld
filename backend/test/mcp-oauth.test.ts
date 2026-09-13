@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'bun:test';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from 'bun:test';
 import { drizzle, type BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite';
 import { migrate } from 'drizzle-orm/bun-sqlite/migrator';
 import { Database as BunDatabase } from 'bun:sqlite';
@@ -868,5 +868,97 @@ describe('MCP OAuth Service - cleanup and utility methods', () => {
   it('isSessionRevoked should return true for nonexistent session', async () => {
     const revoked = await mcpOAuthService.isSessionRevoked(db, 'nonexistent-id');
     expect(revoked).toBe(true);
+  });
+});
+
+describe('MCP OAuth Service - dynamic client cap', () => {
+  const originalCap = process.env['MCP_MAX_DYNAMIC_CLIENTS'];
+  const DAY = 24 * 60 * 60 * 1000;
+
+  afterEach(async () => {
+    if (originalCap === undefined) delete process.env['MCP_MAX_DYNAMIC_CLIENTS'];
+    else process.env['MCP_MAX_DYNAMIC_CLIENTS'] = originalCap;
+    // Remove clients added by these tests; the shared fixtures are not dynamic
+    // registrations except the confidential one, which we keep.
+    await db.delete(mcpOAuthClients).where(eq(mcpOAuthClients.clientName, 'cap-test-client'));
+  });
+
+  async function dynamicClientCount(): Promise<number> {
+    return db.$count(mcpOAuthClients, eq(mcpOAuthClients.isDynamic, true));
+  }
+
+  async function seedDynamic(ageMs: number): Promise<string> {
+    const id = crypto.randomUUID();
+    await db.insert(mcpOAuthClients).values({
+      id,
+      clientName: 'cap-test-client',
+      redirectUris: JSON.stringify(['http://localhost:9/cb']),
+      clientType: 'public',
+      isDynamic: true,
+      createdAt: Date.now() - ageMs,
+    });
+    return id;
+  }
+
+  it('registers freely below the cap', async () => {
+    process.env['MCP_MAX_DYNAMIC_CLIENTS'] = String((await dynamicClientCount()) + 2);
+    const result = await mcpOAuthService.registerClient(db, {
+      clientName: 'cap-test-client',
+      redirectUris: ['http://localhost:9/cb'],
+    });
+    expect(result.clientId).toBeDefined();
+  });
+
+  it('prunes day-old dynamic clients with no session to make room', async () => {
+    const stale = await seedDynamic(2 * DAY);
+    const fresh = await seedDynamic(60_000);
+    process.env['MCP_MAX_DYNAMIC_CLIENTS'] = String(await dynamicClientCount());
+
+    const result = await mcpOAuthService.registerClient(db, {
+      clientName: 'cap-test-client',
+      redirectUris: ['http://localhost:9/cb'],
+    });
+    expect(result.clientId).toBeDefined();
+
+    const remaining = (await db.select({ id: mcpOAuthClients.id }).from(mcpOAuthClients)).map(
+      (r) => r.id
+    );
+    expect(remaining).not.toContain(stale);
+    expect(remaining).toContain(fresh);
+  });
+
+  it('keeps day-old dynamic clients that hold a session', async () => {
+    const used = await seedDynamic(2 * DAY);
+    await mcpOAuthService.createSession(db, {
+      userId: testUserId,
+      clientId: used,
+      grants: [{ projectId: testProjectId, role: 'viewer' }],
+      issuer: 'http://localhost:8333',
+    });
+    // Cap equals the current count and nothing prunable remains → refused.
+    process.env['MCP_MAX_DYNAMIC_CLIENTS'] = String(await dynamicClientCount());
+
+    await expect(
+      mcpOAuthService.registerClient(db, {
+        clientName: 'cap-test-client',
+        redirectUris: ['http://localhost:9/cb'],
+      })
+    ).rejects.toMatchObject({ code: 'temporarily_unavailable', statusCode: 503 });
+
+    const remaining = (await db.select({ id: mcpOAuthClients.id }).from(mcpOAuthClients)).map(
+      (r) => r.id
+    );
+    expect(remaining).toContain(used);
+  });
+
+  it('refuses at the cap when only fresh clients exist', async () => {
+    await seedDynamic(1_000);
+    process.env['MCP_MAX_DYNAMIC_CLIENTS'] = String(await dynamicClientCount());
+    await expect(
+      mcpOAuthService.registerClient(db, {
+        clientName: 'cap-test-client',
+        redirectUris: ['http://localhost:9/cb'],
+      })
+    ).rejects.toThrow(OAuthError);
   });
 });
