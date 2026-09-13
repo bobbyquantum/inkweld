@@ -118,6 +118,14 @@ class UserService {
       username: string;
       email: string;
       name: string;
+      /**
+       * Whether GitHub reports `email` as verified. Only a verified address
+       * may link this GitHub identity to an existing local account; GitHub
+       * lets anyone add an unverified address to their profile, so matching
+       * on it would let an attacker adopt the victim's account. Defaults to
+       * false so any caller that forgets the flag fails safe.
+       */
+      emailVerified?: boolean;
     }
   ): Promise<User> {
     // 1. Look up by GitHub ID (exact match — user has logged in with GitHub before)
@@ -140,8 +148,9 @@ class UserService {
       return updated;
     }
 
-    // 2. Try to link to an existing local user by email (only if exactly one match)
-    if (data.email) {
+    // 2. Try to link to an existing local user by email (only if exactly one
+    //    match, and only for an address GitHub has verified)
+    if (data.email && data.emailVerified) {
       const matchesByEmail = await db
         .select()
         .from(users)
