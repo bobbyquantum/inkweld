@@ -182,6 +182,13 @@ type YjsEnv = {
 const Y_MESSAGE_SYNC = 0;
 const Y_MESSAGE_AWARENESS = 1;
 
+function jsonResponse(body: unknown, status: number): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
 /**
  * Multi-document Yjs Durable Object
  */
@@ -480,41 +487,30 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     documentId: string,
     role: string | null
   ): Promise<Response> {
-    if (path === '/api/revoke' && method === 'POST') {
-      // Only the owner (role null) or an admin collaborator may revoke.
-      if (role !== null && role !== 'admin') {
-        return new Response(JSON.stringify({ error: 'Admin access required' }), {
-          status: 403,
-          headers: { 'Content-Type': 'application/json' },
-        });
-      }
-      return this.handleRevokeUser(request);
+    switch (`${method} ${path}`) {
+      case 'POST /api/revoke':
+        // Only the owner (role null) or an admin collaborator may revoke.
+        if (role !== null && role !== 'admin') {
+          return jsonResponse({ error: 'Admin access required' }, 403);
+        }
+        return this.handleRevokeUser(request);
+      case 'GET /api/elements':
+        return this.handleGetElements(documentId);
+      case 'POST /api/elements':
+        return this.handleMutateElements(request, documentId);
+      case 'GET /api/document':
+        return this.handleGetDocument(documentId);
+      case 'POST /api/document':
+        return this.handleUpdateDocument(request, documentId);
+      case 'GET /api/stats':
+        return this.handleGetStats(documentId);
+      case 'GET /api/storage-keys':
+        return this.handleGetStorageKeys(request);
+      case 'GET /api/storage-size':
+        return this.handleGetStorageSize();
+      default:
+        return jsonResponse({ error: 'Not found' }, 404);
     }
-    if (path === '/api/elements' && method === 'GET') {
-      return this.handleGetElements(documentId);
-    }
-    if (path === '/api/elements' && method === 'POST') {
-      return this.handleMutateElements(request, documentId);
-    }
-    if (path === '/api/document' && method === 'GET') {
-      return this.handleGetDocument(documentId);
-    }
-    if (path === '/api/document' && method === 'POST') {
-      return this.handleUpdateDocument(request, documentId);
-    }
-    if (path === '/api/stats' && method === 'GET') {
-      return this.handleGetStats(documentId);
-    }
-    if (path === '/api/storage-keys' && method === 'GET') {
-      return this.handleGetStorageKeys(request);
-    }
-    if (path === '/api/storage-size' && method === 'GET') {
-      return this.handleGetStorageSize();
-    }
-    return new Response(JSON.stringify({ error: 'Not found' }), {
-      status: 404,
-      headers: { 'Content-Type': 'application/json' },
-    });
   }
 
   /** Deserialise a socket's attachment, treating a corrupt one as absent. */

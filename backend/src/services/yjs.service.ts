@@ -464,17 +464,8 @@ export class YjsService {
     for (const [docId, doc] of this.docs) {
       if (this.getProjectKey(docId) !== projectKey) continue;
       for (const [ws, wsUserId] of doc.wsUserIds) {
-        if (wsUserId !== userId) continue;
-        try {
-          if (reason === 'removed') {
-            ws.send('access-denied:forbidden');
-            ws.close(WS_CLOSE_FORBIDDEN, 'Access revoked');
-          } else {
-            ws.close(WS_CLOSE_ACCESS_CHANGED, 'Access changed');
-          }
+        if (wsUserId === userId && this.closeRevokedSocket(ws, reason, `${userId} on ${docId}`)) {
           closed++;
-        } catch (error) {
-          yjsLog.error(`Error closing socket for ${userId} on ${docId}`, error);
         }
       }
     }
@@ -482,6 +473,28 @@ export class YjsService {
       yjsLog.info(`Closed ${closed} socket(s) for user ${userId} on ${projectKey} (${reason})`);
     }
     return closed;
+  }
+
+  /**
+   * Close one revoked socket. A removed user gets the permanent forbidden
+   * code (y-websocket stops retrying); a re-roled user gets the transient
+   * access-changed code so the client reconnects with its new permissions.
+   * Returns false if the close itself threw.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- WebSocket type varies by runtime (Bun vs Node)
+  private closeRevokedSocket(ws: any, reason: 'removed' | 'changed', label: string): boolean {
+    try {
+      if (reason === 'removed') {
+        ws.send('access-denied:forbidden');
+        ws.close(WS_CLOSE_FORBIDDEN, 'Access revoked');
+      } else {
+        ws.close(WS_CLOSE_ACCESS_CHANGED, 'Access changed');
+      }
+      return true;
+    } catch (error) {
+      yjsLog.error(`Error closing socket for ${label}`, error);
+      return false;
+    }
   }
 
   /**
