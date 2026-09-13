@@ -182,7 +182,8 @@ export class UserService {
               );
               return throwError(() => new Error('Refresh failed, using cache'));
             }
-            // For auth errors (SESSION_EXPIRED, ACCESS_DENIED), clear cache and propagate
+            // Auth errors (SESSION_EXPIRED, ACCESS_DENIED) propagate; the
+            // outer catch clears the cached user before rethrowing.
             this.error.set(userError);
             return throwError(() => userError);
           })
@@ -203,6 +204,19 @@ export class UserService {
           'Using cached user due to network error'
         );
       } else if (!canRecover) {
+        // The server rejected the session (401) or the account itself (403
+        // disabled). The cached user was already pushed into the signal for
+        // fast paint, so without this the app kept treating a dead session
+        // as signed in: isAuthenticated() stayed true and the auth guard let
+        // the navigation through. Clear token and cache so the next check
+        // sees an anonymous user.
+        if (
+          refreshErr instanceof UserServiceError &&
+          (refreshErr.code === 'SESSION_EXPIRED' ||
+            refreshErr.code === 'ACCESS_DENIED')
+        ) {
+          await this.clearCurrentUser();
+        }
         throw refreshErr;
       }
     }
