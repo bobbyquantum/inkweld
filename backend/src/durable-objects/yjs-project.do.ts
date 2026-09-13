@@ -2023,7 +2023,17 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     // have peeled — we read it via frameMessageType above, so advance the
     // decoder past it before handing to the presence service.
     readVarUint(decoder);
-    this.presence.handleMessage(projectKey, ws as unknown as PresenceSocket, decoder, message);
+    const authUser =
+      connInfo.userId && connInfo.username
+        ? { id: connInfo.userId, username: connInfo.username }
+        : undefined;
+    this.presence.handleMessage(
+      projectKey,
+      ws as unknown as PresenceSocket,
+      decoder,
+      message,
+      authUser
+    );
   }
 
   /**

@@ -50,11 +50,12 @@ function handle(
   service: ProjectPresenceService,
   projectKey: string,
   socket: MockSocket,
-  frame: Uint8Array
+  frame: Uint8Array,
+  authUser?: { id: string; username: string }
 ): void {
   const decoder = createDecoder(frame);
   readVarUint(decoder);
-  service.handleMessage(projectKey, socket, decoder, frame);
+  service.handleMessage(projectKey, socket, decoder, frame, authUser);
 }
 
 describe('ProjectPresenceService', () => {
@@ -153,6 +154,131 @@ describe('ProjectPresenceService', () => {
     if (message.type === PRESENCE_MSG_LEAVE) {
       expect(message.sessionId).toBe('s1');
     }
+  });
+
+  it('replaces the client-asserted identity with the authenticated user', () => {
+    const service = new ProjectPresenceService();
+    const mallory = new MockSocket();
+    const peer = new MockSocket();
+    const projectKey = 'alice:novel';
+    handle(
+      service,
+      projectKey,
+      peer,
+      encodePresenceFrame((e) => writeHello(e, session('p', 'peer'))),
+      {
+        id: 'peer',
+        username: 'peer',
+      }
+    );
+
+    // Socket authenticated as "mallory" claims to be "alice".
+    handle(
+      service,
+      projectKey,
+      mallory,
+      encodePresenceFrame((e) => writeHello(e, session('m1', 'alice'))),
+      { id: 'mallory-id', username: 'mallory' }
+    );
+
+    const registered = service.getProjectSessions(projectKey)?.get('m1');
+    expect(registered?.user).toEqual({ id: 'mallory-id', username: 'mallory', color: '#abcdef' });
+    // Peers see the corrected identity, not the raw frame.
+    const seenByPeer = decode(peer.sent.at(-1)!);
+    expect(seenByPeer.type).toBe(PRESENCE_MSG_HELLO);
+    if (seenByPeer.type === PRESENCE_MSG_HELLO) {
+      expect(seenByPeer.session.user.username).toBe('mallory');
+    }
+  });
+
+  it('refuses a Hello whose sessionId is already held by another socket', () => {
+    const service = new ProjectPresenceService();
+    const victim = new MockSocket();
+    const attacker = new MockSocket();
+    const projectKey = 'alice:novel';
+    handle(
+      service,
+      projectKey,
+      victim,
+      encodePresenceFrame((e) => writeHello(e, session('s1', 'victim')))
+    );
+
+    handle(
+      service,
+      projectKey,
+      attacker,
+      encodePresenceFrame((e) => writeHello(e, session('s1', 'attacker')))
+    );
+
+    // The victim's registration is untouched and the attacker got nothing.
+    expect(service.getProjectSessions(projectKey)?.get('s1')?.user.username).toBe('victim');
+    expect(attacker.sent).toHaveLength(0);
+
+    // The attacker disconnecting must not retire the victim's session either.
+    service.removeSocket(attacker);
+    expect(service.getProjectSessions(projectKey)?.has('s1')).toBe(true);
+    expect(victim.sent.filter((f) => decode(f).type === PRESENCE_MSG_LEAVE)).toHaveLength(0);
+  });
+
+  it("applies updates to the sender's own session regardless of the sessionId on the wire", () => {
+    const service = new ProjectPresenceService();
+    const a = new MockSocket();
+    const b = new MockSocket();
+    const projectKey = 'alice:novel';
+    handle(
+      service,
+      projectKey,
+      a,
+      encodePresenceFrame((e) => writeHello(e, session('sa', 'a')))
+    );
+    handle(
+      service,
+      projectKey,
+      b,
+      encodePresenceFrame((e) => writeHello(e, session('sb', 'b')))
+    );
+
+    // b tries to mark a's session idle.
+    handle(
+      service,
+      projectKey,
+      b,
+      encodePresenceFrame((e) => writeUpdate(e, 'sa', { status: 'idle' }))
+    );
+
+    const sessions = service.getProjectSessions(projectKey)!;
+    expect(sessions.get('sa')?.status).toBe('active');
+    expect(sessions.get('sb')?.status).toBe('idle');
+    // Peers receive the update re-keyed to the real sender.
+    const seenByA = decode(a.sent.at(-1)!);
+    expect(seenByA.type).toBe(PRESENCE_MSG_UPDATE);
+    if (seenByA.type === PRESENCE_MSG_UPDATE) {
+      expect(seenByA.sessionId).toBe('sb');
+    }
+  });
+
+  it('drops an update from a socket that has not said Hello', () => {
+    const service = new ProjectPresenceService();
+    const a = new MockSocket();
+    const stranger = new MockSocket();
+    const projectKey = 'alice:novel';
+    handle(
+      service,
+      projectKey,
+      a,
+      encodePresenceFrame((e) => writeHello(e, session('sa', 'a')))
+    );
+    const before = a.sent.length;
+
+    handle(
+      service,
+      projectKey,
+      stranger,
+      encodePresenceFrame((e) => writeUpdate(e, 'sa', { status: 'idle' }))
+    );
+
+    expect(service.getProjectSessions(projectKey)?.get('sa')?.status).toBe('active');
+    expect(a.sent).toHaveLength(before);
   });
 
   it('defines text keepalive messages for Cloudflare auto-response', () => {

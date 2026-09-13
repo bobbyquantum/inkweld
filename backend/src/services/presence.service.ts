@@ -39,11 +39,19 @@ import {
   Y_MESSAGE_PRESENCE,
   encodePresenceFrame,
   readPresenceMessage,
+  writeHello,
   writeLeave,
   writeSnapshot,
+  writeUpdate,
   type PresenceSession,
 } from '@inkweld/presence';
 export { writeHello, writeUpdate } from '@inkweld/presence';
+
+/** The authenticated user behind a socket, as established by the WS auth handshake. */
+export interface PresenceAuthUser {
+  id: string;
+  username: string;
+}
 import { logger } from './logger.service';
 
 const presLog = logger.child('Presence');
@@ -67,9 +75,12 @@ export class ProjectPresenceService {
   /**
    * `projectKey` (`username:slug`) → sessionId → RegisteredSession.
    *
-   * The sessionId is the client-chosen UUID from the Hello message. We trust
-   * it because the client also picks its own Yjs awareness clientID — same
-   * trust model.
+   * The sessionId is the client-chosen UUID from the Hello message. It is
+   * accepted only if no OTHER socket already holds it, and a socket may only
+   * update the session it registered itself — otherwise one client could
+   * evict or overwrite another's presence by reusing its id. The user
+   * identity inside a session is replaced with the authenticated one when the
+   * caller supplies it, so a client cannot present as someone else.
    */
   private readonly projects = new Map<string, Map<string, RegisteredSession>>();
 
@@ -98,7 +109,8 @@ export class ProjectPresenceService {
     projectKey: string,
     socket: PresenceSocket,
     decoder: decoding.Decoder,
-    rawFrame: Uint8Array
+    rawFrame: Uint8Array,
+    authUser?: PresenceAuthUser
   ): void {
     let msg;
     try {
@@ -110,23 +122,49 @@ export class ProjectPresenceService {
 
     switch (msg.type) {
       case PRESENCE_MSG_HELLO: {
-        this.registerSession(projectKey, socket, msg.session);
+        // The client asserts who it is; the socket already proved who it is.
+        let session = msg.session;
+        let frame = rawFrame;
+        if (
+          authUser &&
+          (session.user.id !== authUser.id || session.user.username !== authUser.username)
+        ) {
+          session = {
+            ...session,
+            user: { ...session.user, id: authUser.id, username: authUser.username },
+          };
+          frame = encodePresenceFrame((enc) => writeHello(enc, session));
+        }
+        if (!this.registerSession(projectKey, socket, session)) {
+          presLog.warn(
+            `Rejected presence Hello for ${projectKey}: session ${session.sessionId} is held by another socket`
+          );
+          return;
+        }
         // Send the new socket a Snapshot of OTHER existing sessions.
-        this.sendSnapshot(projectKey, socket, msg.session.sessionId);
+        this.sendSnapshot(projectKey, socket, session.sessionId);
         // Rebroadcast the Hello as a Hello — peers handle it as
         // "session arrived". We don't translate to Update because the
         // payload shape is identical and re-emitting bytes is cheaper.
-        this.broadcast(projectKey, socket, rawFrame);
+        this.broadcast(projectKey, socket, frame);
         return;
       }
       case PRESENCE_MSG_UPDATE: {
-        const updated = this.applyUpdate(projectKey, msg.sessionId, msg.fields);
-        if (!updated) {
-          // Update for an unknown session — likely out-of-order before Hello.
-          // Drop silently; the sender will resend after connection re-init.
+        // A socket may only update the session it registered; the sessionId
+        // on the wire is ignored so nobody can mutate a peer's presence.
+        const own = this.socketIndex.get(socket);
+        if (own?.projectKey !== projectKey) {
+          // Update before Hello (or on the wrong project) — drop silently;
+          // the sender resends after connection re-init.
           return;
         }
-        this.broadcast(projectKey, socket, rawFrame);
+        const updated = this.applyUpdate(projectKey, own.sessionId, msg.fields);
+        if (!updated) return;
+        const frame =
+          msg.sessionId === own.sessionId
+            ? rawFrame
+            : encodePresenceFrame((enc) => writeUpdate(enc, own.sessionId, msg.fields));
+        this.broadcast(projectKey, socket, frame);
         return;
       }
       default:
@@ -151,6 +189,8 @@ export class ProjectPresenceService {
     const project = this.projects.get(projectKey);
     if (!project) return;
 
+    // Only the socket that owns the session may retire it.
+    if (project.get(sessionId)?.socket !== socket) return;
     project.delete(sessionId);
     if (project.size === 0) {
       this.projects.delete(projectKey);
@@ -177,15 +217,21 @@ export class ProjectPresenceService {
   // Internals
   // ──────────────────────────────────────────────────────────────────────────
 
+  /** Returns false when the sessionId is already held by a different socket. */
   private registerSession(
     projectKey: string,
     socket: PresenceSocket,
     session: PresenceSession
-  ): void {
+  ): boolean {
     let project = this.projects.get(projectKey);
     if (!project) {
       project = new Map();
       this.projects.set(projectKey, project);
+    }
+
+    const holder = project.get(session.sessionId);
+    if (holder && holder.socket !== socket) {
+      return false;
     }
 
     // If the same socket re-Hellos under a new sessionId (e.g. tab reload
@@ -200,6 +246,7 @@ export class ProjectPresenceService {
 
     project.set(session.sessionId, { socket, session });
     this.socketIndex.set(socket, { projectKey, sessionId: session.sessionId });
+    return true;
   }
 
   private applyUpdate(

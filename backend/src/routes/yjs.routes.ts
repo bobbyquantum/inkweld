@@ -186,6 +186,9 @@ app.get(
 
     // Connection state
     let authenticated = false;
+    // The authenticated identity, handed to the presence service so a client
+    // cannot present as another user.
+    let authUser: { id: string; username: string } | null = null;
     let authInProgress = false;
     let canWrite: boolean | null = false; // Viewers can receive but not send updates
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Yjs WSSharedDoc type is complex
@@ -301,7 +304,8 @@ app.get(
                 projectKey,
                 toPresenceSocket(raw),
                 peeked.decoder,
-                bytes
+                bytes,
+                authUser ?? undefined
               );
             }
           }
@@ -385,6 +389,7 @@ app.get(
         }
 
         authenticated = true;
+        authUser = { id: sessionData.userId, username: sessionData.username };
         wsLog.info(`Authenticated for ${documentId} (user: ${sessionData.username})`);
         ws.send('authenticated');
 
@@ -427,7 +432,13 @@ app.get(
         }
         const projectKey = projectKeyForDocumentId(documentId);
         if (!projectKey || !ws.raw) return;
-        presenceService.handleMessage(projectKey, toPresenceSocket(ws.raw), peeked.decoder, bytes);
+        presenceService.handleMessage(
+          projectKey,
+          toPresenceSocket(ws.raw),
+          peeked.decoder,
+          bytes,
+          authUser ?? undefined
+        );
         return;
       }
 
