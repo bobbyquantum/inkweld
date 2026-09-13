@@ -95,6 +95,25 @@
   }
 }
 
+// The drag preview is appended to <body> (CDK's default global preview
+// container), so it sits outside `.project-tree-container.dense` and cannot be
+// reached by the nested selectors above. These elements carry their own
+// `dense` class via `[class.dense]` instead, keeping the ghost row and the
+// drop gap the same compact height as the live rows.
+.drag-placeholder.dense {
+  min-height: 28px;
+  padding: 1px 6px;
+}
+
+.drag-preview.dense {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+
+  .node-title {
+    padding: 2px 6px;
+    font-size: 13px;
+  }
+}
+
 // Open tab indicator - shows a line on the left for items with open tabs
 .has-open-tab {
   position: relative;

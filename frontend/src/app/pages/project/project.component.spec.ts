@@ -1178,13 +1178,7 @@ describe('ProjectComponent', () => {
       fixture.detectChanges();
     });
 
-    it('should not apply the dense class by default', () => {
-      expect(
-        fixture.nativeElement.querySelector('.desktop-layout.dense-sidebar')
-      ).toBeNull();
-    });
-
-    it('should apply the dense class reactively when the setting is on', async () => {
+    it('should apply the dense class when the setting is on', async () => {
       denseLayoutSignal.set(true);
       fixture.detectChanges();
       await fixture.whenStable();
@@ -1192,6 +1186,16 @@ describe('ProjectComponent', () => {
       expect(
         fixture.nativeElement.querySelector('.desktop-layout.dense-sidebar')
       ).not.toBeNull();
+    });
+
+    it('should remove the dense class reactively when the user opts out', async () => {
+      denseLayoutSignal.set(false);
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      expect(
+        fixture.nativeElement.querySelector('.desktop-layout.dense-sidebar')
+      ).toBeNull();
     });
   });
 

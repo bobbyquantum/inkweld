@@ -170,7 +170,8 @@
         <div
           class="drag-placeholder"
           *cdkDragPlaceholder
-          [class.folder-node]="node.expandable">
+          [class.folder-node]="node.expandable"
+          [class.dense]="dense()">
           @if (node.expandable) {
             <button mat-icon-button type="button">
               <mat-icon>{{
@@ -191,7 +192,7 @@
         </div>
 
         <!-- Drag preview -->
-        <div class="drag-preview" *cdkDragPreview>
+        <div class="drag-preview" *cdkDragPreview [class.dense]="dense()">
           <app-tree-node-icon
             [isExpandable]="node.expandable"
             [isExpanded]="node.expanded ?? false"

@@ -137,26 +137,26 @@ describe('ProjectTreeSettingsComponent', () => {
   });
 
   describe('denseLayout', () => {
-    it('should default to false when setting is not set', () => {
-      expect(component.denseLayout).toBe(false);
-    });
-
-    it('should reflect stored value when setting exists', () => {
-      settingsService.setDenseLayout(true);
+    it('should default to true (dense) when setting is not set', () => {
       expect(component.denseLayout).toBe(true);
     });
 
-    it('should persist and update the signal when toggled', () => {
-      component.denseLayout = true;
-      expect(settingsService.denseLayout()).toBe(true);
-      expect(JSON.parse(localStorageMock['userSettings']).denseLayout).toBe(
-        true
-      );
+    it('should reflect stored value when setting exists', () => {
+      settingsService.setDenseLayout(false);
+      expect(component.denseLayout).toBe(false);
+    });
 
+    it('should persist and update the signal when toggled', () => {
       component.denseLayout = false;
       expect(settingsService.denseLayout()).toBe(false);
       expect(JSON.parse(localStorageMock['userSettings']).denseLayout).toBe(
         false
+      );
+
+      component.denseLayout = true;
+      expect(settingsService.denseLayout()).toBe(true);
+      expect(JSON.parse(localStorageMock['userSettings']).denseLayout).toBe(
+        true
       );
     });
 

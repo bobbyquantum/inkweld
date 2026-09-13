@@ -39,14 +39,17 @@ export class SettingsService {
    * to localStorage.
    */
   private readonly _denseLayout = signal<boolean>(
-    this.getSetting<boolean>('denseLayout', false)
+    this.getSetting<boolean>('denseLayout', true)
   );
 
   /**
    * Read-only reactive signal for the "dense sidebar" preference. Components
    * that render the project shell should subscribe so the layout updates
-   * immediately when the user toggles it. It is opt-in and defaults to
-   * `false` so nobody gets a tightened layout they did not ask for.
+   * immediately when the user toggles it.
+   *
+   * Defaults to `true` (dense) — but the preference only ever tightens the
+   * desktop sidebar, so phones keep their larger touch targets regardless.
+   * Users can turn it off in Settings → Project Tree.
    */
   readonly denseLayout = this._denseLayout.asReadonly();
 

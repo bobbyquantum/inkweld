@@ -11,6 +11,34 @@ describe('SettingsService', () => {
   let localStorageMock: { [key: string]: string };
   const originalLocalStorage = window.localStorage;
 
+  /**
+   * (Re)create the service against the current `localStorageMock` contents.
+   * Defaults are read at construction, so tests that need a pre-populated
+   * store must call this *after* seeding `localStorageMock`.
+   */
+  const createService = (): SettingsService => {
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
+      providers: [
+        provideZonelessChangeDetection(),
+        SettingsService,
+        {
+          provide: StorageContextService,
+          useValue: {
+            prefixKey: (key: string) => key,
+            prefixDbName: (key: string) => key,
+            prefixDocumentId: (key: string) => key,
+            getPrefix: () => 'local:',
+            getPrefixForConfig: () => 'local:',
+            getActiveConfig: () => null,
+          },
+        },
+      ],
+    });
+    return TestBed.inject(SettingsService);
+  };
+
   beforeEach(() => {
     localStorageMock = {};
 
@@ -31,26 +59,7 @@ describe('SettingsService', () => {
       writable: true,
     });
 
-    TestBed.configureTestingModule({
-      imports: [translocoTestProvider()],
-      providers: [
-        provideZonelessChangeDetection(),
-        SettingsService,
-        {
-          provide: StorageContextService,
-          useValue: {
-            prefixKey: (key: string) => key,
-            prefixDbName: (key: string) => key,
-            prefixDocumentId: (key: string) => key,
-            getPrefix: () => 'local:',
-            getPrefixForConfig: () => 'local:',
-            getActiveConfig: () => null,
-          },
-        },
-      ],
-    });
-
-    service = TestBed.inject(SettingsService);
+    service = createService();
   });
 
   afterEach(() => {
@@ -161,21 +170,29 @@ describe('SettingsService', () => {
   });
 
   describe('setDenseLayout', () => {
-    it('defaults the signal to false when nothing is stored', () => {
-      expect(service.denseLayout()).toBe(false);
+    it('defaults the signal to true (dense) when nothing is stored', () => {
+      expect(service.denseLayout()).toBe(true);
+    });
+
+    it('honours a stored false opt-out', () => {
+      localStorageMock['userSettings'] = JSON.stringify({
+        denseLayout: false,
+      });
+      const fresh = createService();
+      expect(fresh.denseLayout()).toBe(false);
     });
 
     it('persists the value and updates the reactive signal', () => {
-      service.setDenseLayout(true);
-      expect(service.denseLayout()).toBe(true);
-      expect(JSON.parse(localStorageMock['userSettings']).denseLayout).toBe(
-        true
-      );
-
       service.setDenseLayout(false);
       expect(service.denseLayout()).toBe(false);
       expect(JSON.parse(localStorageMock['userSettings']).denseLayout).toBe(
         false
+      );
+
+      service.setDenseLayout(true);
+      expect(service.denseLayout()).toBe(true);
+      expect(JSON.parse(localStorageMock['userSettings']).denseLayout).toBe(
+        true
       );
     });
 
