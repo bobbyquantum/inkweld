@@ -153,7 +153,7 @@ export class ProjectPresenceService {
         // A socket may only update the session it registered; the sessionId
         // on the wire is ignored so nobody can mutate a peer's presence.
         const own = this.socketIndex.get(socket);
-        if (!own || own.projectKey !== projectKey) {
+        if (own?.projectKey !== projectKey) {
           // Update before Hello (or on the wrong project) — drop silently;
           // the sender resends after connection re-init.
           return;
