@@ -15,6 +15,7 @@ import { mcpKeyService, parsePermissions, type McpPermission } from '../services
 import { mcpOAuthService, type CloudflareEnv } from '../services/mcp-oauth.service';
 import { projectService } from '../services/project.service';
 import { config } from '../config/env';
+import { getClientIp } from '../utils/client-ip';
 import type { McpContext, McpLegacyContext, McpOAuthContext, McpOAuthGrant } from './mcp.types';
 import { createErrorResponse, JSON_RPC_ERRORS } from './mcp.types';
 import { logger } from '../services/logger.service';
@@ -76,12 +77,6 @@ function extractToken(c: Context): string | null {
 /**
  * Get client IP from request
  */
-function getClientIp(c: Context): string | undefined {
-  return (
-    c.req.header('X-Forwarded-For')?.split(',')[0]?.trim() || c.req.header('X-Real-IP') || undefined
-  );
-}
-
 /**
  * Mint a short-lived JWT compatible with the Durable Object's verifyToken().
  *
