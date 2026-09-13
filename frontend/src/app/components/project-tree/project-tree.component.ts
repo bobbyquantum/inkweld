@@ -504,35 +504,43 @@ export class ProjectTreeComponent implements OnDestroy {
       return;
     }
 
-    // Check if confirmation is enabled after validating drop
-    const confirmElementMoves = this.settingsService.getSetting<boolean>(
-      'confirmElementMoves',
-      false
-    );
-    if (confirmElementMoves) {
-      const confirmed = await this.dialogGateway.openConfirmationDialog({
-        title: 'Confirm Move',
-        message: 'Are you sure you want to move this item?',
-        confirmText: 'Move',
-        cancelText: 'Cancel',
-      });
-
-      if (!confirmed) return;
-    }
-
+    // Capture the destination before any await: `cdkDragEnded` can fire while
+    // the dialog is open and would otherwise clear the target folder signal.
+    const dropLevel = this.currentDropLevel;
     const insertIndex = this.projectStateService.getDropInsertIndex(
       nodeAbove,
-      this.currentDropLevel
+      dropLevel
     );
-
-    // Capture the target folder ID before resetting state
     const targetFolderId = this.targetParentFolderId();
 
-    this.projectStateService.moveElement(
-      node.id,
-      insertIndex,
-      this.currentDropLevel
+    // Ask first by default. The user can turn prompts off either in Project
+    // Tree settings or by ticking "don't ask again" in this dialog.
+    const confirmElementMoves = this.settingsService.getSetting<boolean>(
+      'confirmElementMoves',
+      true
     );
+    if (confirmElementMoves) {
+      const result = await this.dialogGateway.openMoveElementDialog({
+        elementName: node.name,
+        fromPath: this.buildElementPath(node.id),
+        toPath: this.buildElementPath(targetFolderId),
+        positionLabel: this.buildMovePositionLabel(nodeAbove, dropLevel),
+      });
+
+      if (!result) return;
+      if (result.dontAskAgain) {
+        try {
+          this.settingsService.setSetting<boolean>(
+            'confirmElementMoves',
+            false
+          );
+        } catch {
+          // Storage can be unavailable (private mode/quota); the move proceeds.
+        }
+      }
+    }
+
+    this.projectStateService.moveElement(node.id, insertIndex, dropLevel);
 
     // Expand the target folder if it was collapsed
     if (targetFolderId) {
@@ -547,6 +555,54 @@ export class ProjectTreeComponent implements OnDestroy {
     this.draggedNode = null;
     this.targetParentFolderId.set(null);
     this.nodeAboveDropPosition = null;
+  }
+
+  /**
+   * Breadcrumb-style path of an element (project name → … → element), used to
+   * make the move dialog unambiguous about source and destination. A null or
+   * unresolvable id resolves to the project root.
+   */
+  private buildElementPath(elementId: string | null): string {
+    const projectName =
+      this.projectStateService.project()?.title ||
+      this.transloco.translate<string>('project.breadcrumbs.untitledProject');
+    if (!elementId) {
+      return projectName;
+    }
+
+    const elements = this.projectStateService.elements();
+    const map = new Map(elements.map(el => [el.id, el]));
+    const chain: string[] = [];
+    let cursor = map.get(elementId);
+    const visited = new Set<string>();
+    while (cursor && !visited.has(cursor.id)) {
+      visited.add(cursor.id);
+      chain.unshift(
+        cursor.name || this.transloco.translate<string>('untitled')
+      );
+      cursor = cursor.parentId ? map.get(cursor.parentId) : undefined;
+    }
+
+    return [projectName, ...chain].join(' › ');
+  }
+
+  /** Where in the destination the item will land, in plain language. */
+  private buildMovePositionLabel(
+    nodeAbove: Element | null,
+    dropLevel: number
+  ): string {
+    if (!nodeAbove) {
+      return this.transloco.translate<string>('dialogs.move.positionTop');
+    }
+    const name = nodeAbove.name;
+    if (dropLevel > nodeAbove.level) {
+      return this.transloco.translate<string>('dialogs.move.positionInside', {
+        name,
+      });
+    }
+    return this.transloco.translate<string>('dialogs.move.positionAfter', {
+      name,
+    });
   }
 
   /**

@@ -86,6 +86,7 @@ describe('ProjectTreeComponent', () => {
 
     settingsService = {
       getSetting: vi.fn().mockReturnValue(false),
+      setSetting: vi.fn(),
     } as unknown as MockedObject<SettingsService>;
 
     projectStateService = {
@@ -130,6 +131,7 @@ describe('ProjectTreeComponent', () => {
 
     dialogGatewayService = {
       openConfirmationDialog: vi.fn().mockResolvedValue(true),
+      openMoveElementDialog: vi.fn().mockResolvedValue({ dontAskAgain: false }),
       openRenameDialog: vi.fn().mockResolvedValue('New Name'),
       openEditProjectDialog: vi.fn().mockResolvedValue(null),
       openNewElementDialog: vi.fn().mockResolvedValue(null),
@@ -249,58 +251,134 @@ describe('ProjectTreeComponent', () => {
     });
 
     describe('Drop Handling', () => {
-      it('should handle valid drops without confirmation', () => {
+      it('should move immediately without prompting when confirmElementMoves is disabled', async () => {
         settingsService.getSetting.mockReturnValue(false); // confirmElementMoves disabled
 
         // Set up the dragged node for the test
         component.draggedNode = mockDto;
         const event = createTestDragEvent();
-        void component.drop(event);
+        await component.drop(event);
         expect(projectStateService.isValidDrop).toHaveBeenCalled();
         expect(projectStateService.getDropInsertIndex).toHaveBeenCalled();
         expect(projectStateService.moveElement).toHaveBeenCalled();
         expect(
-          dialogGatewayService.openConfirmationDialog
+          dialogGatewayService.openMoveElementDialog
         ).not.toHaveBeenCalled();
       });
 
-      it('should show confirmation dialog when confirmElementMoves is enabled', () => {
-        settingsService.getSetting.mockReturnValue(true); // confirmElementMoves enabled
-        // Set up the dragged node for the test
+      it('should default to prompting (getSetting default true)', async () => {
+        // No stored setting: the component must request the prompt default.
+        settingsService.getSetting.mockImplementation(
+          (_key, fallback) => fallback
+        );
         component.draggedNode = mockDto;
-        dialogGatewayService.openConfirmationDialog.mockResolvedValue(true);
 
-        const event = createTestDragEvent();
-        void component.drop(event);
-        expect(projectStateService.isValidDrop).toHaveBeenCalled();
-        expect(dialogGatewayService.openConfirmationDialog).toHaveBeenCalled();
+        await component.drop(createTestDragEvent());
+
+        expect(settingsService.getSetting).toHaveBeenCalledWith(
+          'confirmElementMoves',
+          true
+        );
+        expect(dialogGatewayService.openMoveElementDialog).toHaveBeenCalled();
+        expect(projectStateService.moveElement).toHaveBeenCalled();
       });
 
-      it('should not move element when confirmation is cancelled', () => {
+      it('should show the move dialog when confirmElementMoves is enabled', async () => {
         settingsService.getSetting.mockReturnValue(true); // confirmElementMoves enabled
         // Set up the dragged node for the test
-        dialogGatewayService.openConfirmationDialog.mockResolvedValue(false);
+        component.draggedNode = mockDto;
+        dialogGatewayService.openMoveElementDialog.mockResolvedValue({
+          dontAskAgain: false,
+        });
+
+        const event = createTestDragEvent();
+        await component.drop(event);
+        expect(projectStateService.isValidDrop).toHaveBeenCalled();
+        expect(dialogGatewayService.openMoveElementDialog).toHaveBeenCalled();
+        expect(projectStateService.moveElement).toHaveBeenCalled();
+      });
+
+      it('should not move element when the move dialog is cancelled', async () => {
+        settingsService.getSetting.mockReturnValue(true); // confirmElementMoves enabled
+        // Set up the dragged node for the test
+        dialogGatewayService.openMoveElementDialog.mockResolvedValue(undefined);
         component.draggedNode = mockDto;
 
         const event = createTestDragEvent();
-        void component.drop(event);
+        await component.drop(event);
         expect(projectStateService.isValidDrop).toHaveBeenCalled();
-        expect(dialogGatewayService.openConfirmationDialog).toHaveBeenCalled();
+        expect(dialogGatewayService.openMoveElementDialog).toHaveBeenCalled();
         expect(projectStateService.moveElement).not.toHaveBeenCalled();
       });
 
-      it('should not proceed when drop is invalid', () => {
+      it('should remember "don\'t ask again" from the move dialog', async () => {
+        settingsService.getSetting.mockReturnValue(true);
+        dialogGatewayService.openMoveElementDialog.mockResolvedValue({
+          dontAskAgain: true,
+        });
+        component.draggedNode = mockDto;
+
+        await component.drop(createTestDragEvent());
+
+        expect(settingsService.setSetting).toHaveBeenCalledWith(
+          'confirmElementMoves',
+          false
+        );
+        expect(projectStateService.moveElement).toHaveBeenCalled();
+      });
+
+      it('should describe the move in the dialog payload', async () => {
+        settingsService.getSetting.mockReturnValue(true);
+        const folder: ProjectElement = {
+          ...mockDto,
+          id: 'folder-parent',
+          name: 'Part One',
+          expandable: true,
+          level: 0,
+        };
+        elementsSignal.set([folder, mockDto]);
+        visibleElementsSignal.set([folder, mockDto]);
+        fixture.detectChanges();
+        component.draggedNode = mockDto;
+        component.currentDropLevel = 1;
+        component.targetParentFolderId.set('folder-parent');
+        component['nodeAboveDropPosition'] = folder;
+        // nodeAbove comes from the drop container; make it the folder.
+        projectStateService.getDropInsertIndex.mockReturnValue(1);
+
+        const event = createTestDragEvent();
+        event.item = { data: mockDto } as CdkDrag<ProjectElement>;
+        event.container = {
+          data: [folder, mockDto],
+          getSortedItems: () => [
+            { data: folder } as CdkDrag<ProjectElement>,
+            { data: mockDto } as CdkDrag<ProjectElement>,
+          ],
+        } as CdkDropList<ProjectElement[]>;
+
+        await component.drop(event);
+
+        expect(dialogGatewayService.openMoveElementDialog).toHaveBeenCalledWith(
+          expect.objectContaining({
+            elementName: 'Test Element',
+            toPath: expect.stringContaining('Part One'),
+            fromPath: expect.stringContaining('Test Project'),
+          })
+        );
+      });
+
+      it('should not proceed when drop is invalid', async () => {
         projectStateService.isValidDrop.mockReturnValue(false);
         const event = createTestDragEvent();
 
         // Set up the dragged node for the test
         component.draggedNode = mockDto;
-        void component.drop(event);
+        await component.drop(event);
         expect(projectStateService.isValidDrop).toHaveBeenCalled();
         expect(projectStateService.getDropInsertIndex).not.toHaveBeenCalled();
         expect(projectStateService.moveElement).not.toHaveBeenCalled();
         expect(
-          dialogGatewayService.openConfirmationDialog
+          dialogGatewayService.openMoveElementDialog
         ).not.toHaveBeenCalled();
       });
 

@@ -1,0 +1,63 @@
+h2[mat-dialog-title] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.title-icon {
+  color: var(--sys-primary);
+}
+
+.intro {
+  margin: 0 0 16px;
+}
+
+// The route block reads top-to-bottom as "this item currently lives here; it
+// will now live there", rather than making the user parse two similar paths.
+.move-route {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 16px;
+  border: 1px solid var(--sys-outline-variant);
+  border-radius: 8px;
+  background: var(--sys-surface-container-low);
+}
+
+.route-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.route-label {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--sys-on-surface-variant);
+}
+
+.route-path {
+  font-size: 14px;
+  word-break: break-word;
+
+  &.destination {
+    font-weight: 500;
+    color: var(--sys-primary);
+  }
+}
+
+.route-arrow {
+  align-self: center;
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+  color: var(--sys-on-surface-variant);
+}
+
+.position-note {
+  margin: 12px 0 16px;
+  font-size: 13px;
+  color: var(--sys-on-surface-variant);
+}

@@ -23,7 +23,7 @@ export class ProjectTreeSettingsComponent {
   get confirmElementMoves(): boolean {
     return this.settingsService.getSetting<boolean>(
       'confirmElementMoves',
-      false
+      true
     );
   }
 
@@ -31,7 +31,7 @@ export class ProjectTreeSettingsComponent {
     if (typeof value === 'boolean') {
       this.settingsService.setSetting<boolean>('confirmElementMoves', value);
     } else {
-      this.settingsService.setSetting<boolean>('confirmElementMoves', false);
+      this.settingsService.setSetting<boolean>('confirmElementMoves', true);
     }
   }
 

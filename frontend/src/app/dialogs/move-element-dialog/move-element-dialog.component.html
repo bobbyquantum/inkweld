@@ -1,0 +1,45 @@
+<h2 mat-dialog-title data-testid="move-dialog-title">
+  <mat-icon class="title-icon">drive_file_move</mat-icon>
+  {{ 'dialogs.move.title' | transloco }}
+</h2>
+<mat-dialog-content>
+  <p class="intro">
+    {{ 'dialogs.move.intro' | transloco: { name: data.elementName } }}
+  </p>
+
+  <div class="move-route" data-testid="move-dialog-route">
+    <div class="route-row">
+      <span class="route-label">{{ 'dialogs.move.from' | transloco }}</span>
+      <span class="route-path" data-testid="move-dialog-from">{{
+        data.fromPath
+      }}</span>
+    </div>
+    <mat-icon class="route-arrow">arrow_downward</mat-icon>
+    <div class="route-row">
+      <span class="route-label">{{ 'dialogs.move.to' | transloco }}</span>
+      <span class="route-path destination" data-testid="move-dialog-to">{{
+        data.toPath
+      }}</span>
+    </div>
+  </div>
+
+  <p class="position-note" data-testid="move-dialog-position">
+    {{ data.positionLabel }}
+  </p>
+
+  <mat-checkbox [(ngModel)]="dontAskAgain" data-testid="move-dialog-dont-ask">
+    {{ 'dialogs.move.dontAskAgain' | transloco }}
+  </mat-checkbox>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onCancel()" data-testid="move-dialog-cancel">
+    {{ 'cancel' | transloco }}
+  </button>
+  <button
+    mat-flat-button
+    color="primary"
+    (click)="onConfirm()"
+    data-testid="move-dialog-confirm">
+    {{ 'dialogs.move.confirm' | transloco }}
+  </button>
+</mat-dialog-actions>

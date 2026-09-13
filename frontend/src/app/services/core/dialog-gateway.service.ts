@@ -45,6 +45,10 @@ import type {
   MediaSelectorDialogData,
   MediaSelectorDialogResult,
 } from '../../dialogs/media-selector-dialog/media-selector-dialog.component';
+import type {
+  MoveElementDialogData,
+  MoveElementDialogResult,
+} from '../../dialogs/move-element-dialog/move-element-dialog.component';
 import type { NewElementDialogResult } from '../../dialogs/new-element-dialog/new-element-dialog.component';
 import type { ProfileAppearanceDialogData } from '../../dialogs/profile-appearance-dialog/profile-appearance-dialog.component';
 import type { ProfileManagerDialogData } from '../../dialogs/profile-manager-dialog/profile-manager-dialog.component';
@@ -89,6 +93,28 @@ export class DialogGatewayService {
       }
     );
     return (await firstValueFrom(dialogRef.afterClosed())) ?? false;
+  }
+
+  /**
+   * Confirm a project-tree drag-and-drop move. Resolves with the user's choice
+   * (including whether to stop asking), or undefined when cancelled.
+   */
+  async openMoveElementDialog(
+    data: MoveElementDialogData
+  ): Promise<MoveElementDialogResult | undefined> {
+    const { MoveElementDialogComponent } =
+      await import('../../dialogs/move-element-dialog/move-element-dialog.component');
+    const dialogRef = this.dialog.open<
+      unknown,
+      MoveElementDialogData,
+      MoveElementDialogResult
+    >(MoveElementDialogComponent, {
+      data,
+      disableClose: true,
+      width: '460px',
+      maxWidth: '95vw',
+    });
+    return firstValueFrom(dialogRef.afterClosed());
   }
 
   async openEditProjectDialog(project: Project): Promise<Project | null> {

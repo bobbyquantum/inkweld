@@ -34,6 +34,7 @@ import { ImportProjectDialogComponent } from '../../dialogs/import-project-dialo
 import { InsertImageDialogComponent } from '../../dialogs/insert-image-dialog/insert-image-dialog.component';
 import { InsertLinkDialogComponent } from '../../dialogs/insert-link-dialog/insert-link-dialog.component';
 import { MediaSelectorDialogComponent } from '../../dialogs/media-selector-dialog/media-selector-dialog.component';
+import { MoveElementDialogComponent } from '../../dialogs/move-element-dialog/move-element-dialog.component';
 import {
   NewElementDialogComponent,
   type NewElementDialogResult,
@@ -646,6 +647,27 @@ describe('DialogGatewayService', () => {
       data,
       disableClose: false,
       width: '420px',
+      maxWidth: '95vw',
+    });
+    expect(result).toEqual(dialogResult);
+  });
+
+  it('should open move element dialog', async () => {
+    const data = {
+      elementName: 'Chapter One',
+      fromPath: 'Project',
+      toPath: 'Project › Part One',
+      positionLabel: 'It will be placed inside "Part One".',
+    };
+    const dialogResult = { dontAskAgain: true };
+    (dialogRefMock.afterClosed as Mock).mockReturnValue(of(dialogResult));
+
+    const result = await service.openMoveElementDialog(data);
+
+    expect(dialogMock.open).toHaveBeenCalledWith(MoveElementDialogComponent, {
+      data,
+      disableClose: true,
+      width: '460px',
       maxWidth: '95vw',
     });
     expect(result).toEqual(dialogResult);

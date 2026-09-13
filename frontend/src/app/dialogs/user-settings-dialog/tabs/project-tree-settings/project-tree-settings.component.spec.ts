@@ -69,38 +69,38 @@ describe('ProjectTreeSettingsComponent', () => {
   });
 
   describe('confirmElementMoves', () => {
-    it('should return default value (false) when setting is not set', () => {
-      expect(component.confirmElementMoves).toBe(false);
+    it('should default to true (prompt before moving) when not set', () => {
+      expect(component.confirmElementMoves).toBe(true);
       expect(localStorageMock['userSettings']).toBeUndefined();
     });
 
     it('should return stored value when setting exists', () => {
       // Store setting directly in localStorage
       localStorageMock['userSettings'] = JSON.stringify({
-        confirmElementMoves: true,
+        confirmElementMoves: false,
       });
       fixture.detectChanges();
-      expect(component.confirmElementMoves).toBe(true);
+      expect(component.confirmElementMoves).toBe(false);
     });
 
     it('should update setting when value is set', () => {
-      component.confirmElementMoves = true;
-      expect(settingsService.getSetting('confirmElementMoves', false)).toBe(
-        true
-      );
-      expect(JSON.parse(localStorageMock['userSettings'])).toEqual({
-        confirmElementMoves: true,
-      });
-    });
-
-    it('should not update setting when non-boolean value is set', () => {
-      // @ts-expect-error Testing invalid type
-      component.confirmElementMoves = 'invalid';
-      expect(settingsService.getSetting('confirmElementMoves', false)).toBe(
+      component.confirmElementMoves = false;
+      expect(settingsService.getSetting('confirmElementMoves', true)).toBe(
         false
       );
       expect(JSON.parse(localStorageMock['userSettings'])).toEqual({
         confirmElementMoves: false,
+      });
+    });
+
+    it('should fall back to true when a non-boolean value is set', () => {
+      // @ts-expect-error Testing invalid type
+      component.confirmElementMoves = 'invalid';
+      expect(settingsService.getSetting('confirmElementMoves', true)).toBe(
+        true
+      );
+      expect(JSON.parse(localStorageMock['userSettings'])).toEqual({
+        confirmElementMoves: true,
       });
     });
   });
