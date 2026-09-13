@@ -128,6 +128,12 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   protected readonly isLocalMode = this.storageContext.isLocalMode;
 
   /**
+   * Per-user "dense sidebar" preference. Opt-in only (defaults to false) so
+   * the tightened tree rows are never forced on users who haven't chosen it.
+   */
+  protected readonly denseLayout = this.settingsService.denseLayout;
+
+  /**
    * What the sync strap shows. In cloud sync mode it follows the cloud
    * engine: a problem (offline, error, credentials lost) renders as the
    * offline strip with a retry; otherwise the strap stays hidden.

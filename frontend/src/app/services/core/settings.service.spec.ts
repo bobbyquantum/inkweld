@@ -160,6 +160,43 @@ describe('SettingsService', () => {
     });
   });
 
+  describe('setDenseLayout', () => {
+    it('defaults the signal to false when nothing is stored', () => {
+      expect(service.denseLayout()).toBe(false);
+    });
+
+    it('persists the value and updates the reactive signal', () => {
+      service.setDenseLayout(true);
+      expect(service.denseLayout()).toBe(true);
+      expect(JSON.parse(localStorageMock['userSettings']).denseLayout).toBe(
+        true
+      );
+
+      service.setDenseLayout(false);
+      expect(service.denseLayout()).toBe(false);
+      expect(JSON.parse(localStorageMock['userSettings']).denseLayout).toBe(
+        false
+      );
+    });
+
+    it('still updates the signal when localStorage write throws', () => {
+      Object.defineProperty(window, 'localStorage', {
+        value: {
+          getItem: () => null,
+          setItem: () => {
+            throw new Error('quota exceeded');
+          },
+          removeItem: () => undefined,
+          clear: () => undefined,
+        },
+        writable: true,
+      });
+
+      expect(() => service.setDenseLayout(true)).not.toThrow();
+      expect(service.denseLayout()).toBe(true);
+    });
+  });
+
   describe('error handling', () => {
     it.each([
       ['invalid JSON', 'invalid json'],

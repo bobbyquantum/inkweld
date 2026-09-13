@@ -1,4 +1,8 @@
-<div #treeContainer class="project-tree-container" data-testid="project-tree">
+<div
+  #treeContainer
+  class="project-tree-container"
+  [class.dense]="dense()"
+  data-testid="project-tree">
   <!-- Loading overlay -->
   @if (isLoading()) {
     <div class="loading-overlay">

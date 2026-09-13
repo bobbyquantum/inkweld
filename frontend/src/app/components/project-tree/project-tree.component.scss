@@ -37,6 +37,63 @@
   overflow: hidden;
 }
 
+// Opt-in dense layout (Per-user "Dense sidebar" setting). Shrinks rows,
+// pinned items and the footer so more of the tree fits without scrolling.
+// Scoped to the container so it never applies unless the user chose it.
+.project-tree-container.dense {
+  .aria-tree [role='treeitem'] {
+    min-height: 28px;
+    padding: 1px 6px;
+  }
+
+  // The expand/collapse toggle defaults to a 40px state layer, which would
+  // force the row back to full height. Shrink it so dense rows stay compact.
+  .aria-tree .mat-mdc-icon-button {
+    --mdc-icon-button-state-layer-size: 24px;
+    --mdc-icon-button-icon-size: 20px;
+    padding: 0;
+  }
+
+  .node-title {
+    padding: 2px 6px;
+    font-size: 13px;
+  }
+
+  .tree-toolbar {
+    padding: 2px;
+
+    button {
+      width: 32px;
+      height: 32px;
+    }
+  }
+
+  .pinned-section {
+    .pinned-section-header {
+      padding: 1px 6px;
+    }
+
+    .pinned-item {
+      min-height: 24px;
+      padding: 1px 6px;
+      gap: 4px;
+    }
+
+    .pinned-item-name {
+      font-size: 12px;
+    }
+
+    .pinned-section-divider {
+      margin: 2px 6px;
+    }
+  }
+
+  .create-footer {
+    min-height: 28px;
+    padding: 1px 6px;
+  }
+}
+
 // Open tab indicator - shows a line on the left for items with open tabs
 .has-open-tab {
   position: relative;

@@ -187,7 +187,8 @@
   },
   "projectTreeTab": {
     "confirmMoves": "Confirm element moves",
-    "showBreadcrumbs": "Show breadcrumbs above editors"
+    "showBreadcrumbs": "Show breadcrumbs above editors",
+    "denseLayout": "Dense sidebar (smaller tree rows)"
   },
   "storageSize": {
     "title": "Server Storage",

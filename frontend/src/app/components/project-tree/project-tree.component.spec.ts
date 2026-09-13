@@ -176,6 +176,23 @@ describe('ProjectTreeComponent', () => {
     expect(component.treeElements()[0].level).toBe(1);
   });
 
+  describe('dense layout', () => {
+    it('should not apply the dense class by default', () => {
+      expect(component.dense()).toBe(false);
+      expect(
+        fixture.nativeElement.querySelector('.project-tree-container.dense')
+      ).toBeNull();
+    });
+
+    it('should apply the dense class when the dense input is set', () => {
+      fixture.componentRef.setInput('dense', true);
+      fixture.detectChanges();
+      expect(
+        fixture.nativeElement.querySelector('.project-tree-container.dense')
+      ).not.toBeNull();
+    });
+  });
+
   describe('State Management', () => {
     it('should handle loading, saving and error states', () => {
       loadingSignal.set(true);

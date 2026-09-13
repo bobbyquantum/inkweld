@@ -33,6 +33,23 @@ export class SettingsService {
    */
   readonly showBreadcrumbs = this._showBreadcrumbs.asReadonly();
 
+  /**
+   * Internal writable signal backing the "dense sidebar" preference.
+   * Updates must go through {@link setDenseLayout} so the value is persisted
+   * to localStorage.
+   */
+  private readonly _denseLayout = signal<boolean>(
+    this.getSetting<boolean>('denseLayout', false)
+  );
+
+  /**
+   * Read-only reactive signal for the "dense sidebar" preference. Components
+   * that render the project shell should subscribe so the layout updates
+   * immediately when the user toggles it. It is opt-in and defaults to
+   * `false` so nobody gets a tightened layout they did not ask for.
+   */
+  readonly denseLayout = this._denseLayout.asReadonly();
+
   getSetting<T>(key: string, defaultValue: T): T {
     const settings = this.getSettings();
     const value = settings[key];
@@ -53,6 +70,19 @@ export class SettingsService {
     this._showBreadcrumbs.set(value);
     try {
       this.setSetting<boolean>('showBreadcrumbs', value);
+    } catch {
+      // Storage can be unavailable (private mode/quota); keep UI reactive.
+    }
+  }
+
+  /**
+   * Update the "dense sidebar" preference. Persists to storage and updates
+   * the reactive signal so subscribed components re-render.
+   */
+  setDenseLayout(value: boolean): void {
+    this._denseLayout.set(value);
+    try {
+      this.setSetting<boolean>('denseLayout', value);
     } catch {
       // Storage can be unavailable (private mode/quota); keep UI reactive.
     }

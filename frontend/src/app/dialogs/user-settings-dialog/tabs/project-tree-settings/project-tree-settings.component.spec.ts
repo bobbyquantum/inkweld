@@ -135,4 +135,35 @@ describe('ProjectTreeSettingsComponent', () => {
       expect(settingsService.showBreadcrumbs()).toBe(false);
     });
   });
+
+  describe('denseLayout', () => {
+    it('should default to false when setting is not set', () => {
+      expect(component.denseLayout).toBe(false);
+    });
+
+    it('should reflect stored value when setting exists', () => {
+      settingsService.setDenseLayout(true);
+      expect(component.denseLayout).toBe(true);
+    });
+
+    it('should persist and update the signal when toggled', () => {
+      component.denseLayout = true;
+      expect(settingsService.denseLayout()).toBe(true);
+      expect(JSON.parse(localStorageMock['userSettings']).denseLayout).toBe(
+        true
+      );
+
+      component.denseLayout = false;
+      expect(settingsService.denseLayout()).toBe(false);
+      expect(JSON.parse(localStorageMock['userSettings']).denseLayout).toBe(
+        false
+      );
+    });
+
+    it('should treat non-boolean values as false', () => {
+      // @ts-expect-error Testing invalid type
+      component.denseLayout = 'invalid';
+      expect(settingsService.denseLayout()).toBe(false);
+    });
+  });
 });
