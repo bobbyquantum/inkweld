@@ -75,7 +75,7 @@ test.describe('Worldbuilding Templates', () => {
 
         // Wait for dialog to mount (search field is the first stable signal).
         await expect(
-          page.locator('mat-form-field input[matInput]')
+          page.locator('#new-element-type-search-input')
         ).toBeVisible();
 
         // Element type cards are loaded asynchronously from the schema library.

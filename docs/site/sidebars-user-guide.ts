@@ -32,8 +32,10 @@ const sidebars: SidebarsConfig = {
         'organizing/documents',
         'organizing/tags',
         'organizing/search',
+        'organizing/project-search',
         'organizing/quick-open',
         'organizing/local-first-design',
+        'organizing/import-export',
       ],
     },
     {

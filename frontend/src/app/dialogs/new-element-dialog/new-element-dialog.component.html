@@ -1,233 +1,165 @@
-@if (currentStep() === 1) {
-  <!-- Step 1: Choose Type -->
-  <h2 mat-dialog-title>{{ 'dialogs.newElement.title' | transloco }}</h2>
+<h2 mat-dialog-title class="dialog-title">
+  <span class="title-icon" aria-hidden="true">
+    <mat-icon>add_circle_outline</mat-icon>
+  </span>
+  <span class="title-lines">
+    <span class="title-main">
+      @if (showTypePicker()) {
+        {{ 'dialogs.newElement.title' | transloco }}
+      } @else {
+        {{
+          'dialogs.newElement.newPrefix'
+            | transloco: { label: getSelectedOption()?.label || '' }
+        }}
+      }
+    </span>
+    <span class="title-sub">
+      @if (showTypePicker()) {
+        {{ 'dialogs.newElement.subtitle' | transloco }}
+      } @else {
+        {{ 'dialogs.newElement.nameStepSubtitle' | transloco }}
+      }
+    </span>
+  </span>
+</h2>
 
-  <mat-dialog-content class="type-selection-content">
-    <!-- Search Field -->
-    <mat-form-field appearance="outline" class="search-field">
-      <mat-label>{{ 'dialogs.newElement.searchLabel' | transloco }}</mat-label>
+<mat-dialog-content class="dialog-body">
+  @if (showTypePicker()) {
+    <div class="search-row">
+      <mat-form-field
+        appearance="outline"
+        class="search-field"
+        subscriptSizing="dynamic">
+        <mat-icon matPrefix>search</mat-icon>
+        <input
+          matInput
+          [value]="searchQuery()"
+          (input)="searchQuery.set($any($event.target).value)"
+          [placeholder]="'dialogs.newElement.searchPlaceholder' | transloco"
+          id="new-element-type-search-input"
+          [attr.aria-label]="'dialogs.newElement.searchAria' | transloco" />
+        @if (searchQuery()) {
+          <button
+            mat-icon-button
+            matSuffix
+            type="button"
+            class="clear-search"
+            (click)="searchQuery.set('')"
+            [matTooltip]="'clear' | transloco"
+            [attr.aria-label]="'clear' | transloco">
+            <mat-icon>close</mat-icon>
+          </button>
+        }
+      </mat-form-field>
+    </div>
+
+    <div class="type-scroll">
+      @for (section of sections(); track section.key) {
+        <section [class]="'category-section ' + section.className">
+          <h3 class="category-title">
+            <mat-icon>{{ section.icon }}</mat-icon>
+            <span>{{ section.titleKey | transloco }}</span>
+            <span class="category-count">{{ section.options.length }}</span>
+          </h3>
+          <div class="type-grid">
+            @for (option of section.options; track optionKey(option)) {
+              <button
+                type="button"
+                class="type-card"
+                [class.selected]="isOptionSelected(option)"
+                [attr.data-testid]="optionTestId(option)"
+                [attr.aria-pressed]="isOptionSelected(option)"
+                (click)="selectType(option)"
+                (keydown)="onTypeCardKeydown($event, option)">
+                <span class="type-icon">
+                  <mat-icon>{{ option.icon }}</mat-icon>
+                </span>
+                <span class="type-text">
+                  <span class="type-label">{{ option.label }}</span>
+                  <span class="type-description">{{ option.description }}</span>
+                </span>
+                @if (isOptionSelected(option)) {
+                  <mat-icon class="type-check" aria-hidden="true">
+                    check_circle
+                  </mat-icon>
+                }
+              </button>
+            }
+          </div>
+        </section>
+      } @empty {
+        <div class="no-results">
+          <mat-icon>search_off</mat-icon>
+          <p>{{ 'dialogs.newElement.noMatch' | transloco }}</p>
+        </div>
+      }
+    </div>
+  } @else {
+    <div [class]="'selected-type-info ' + selectedCategoryClass()">
+      <span class="type-icon-large">
+        <mat-icon>{{ getSelectedOption()?.icon }}</mat-icon>
+      </span>
+      <div class="selected-type-text">
+        <span class="selected-type-label">{{
+          getSelectedOption()?.label
+        }}</span>
+        <span class="type-description">
+          {{ getSelectedOption()?.description }}
+        </span>
+      </div>
+    </div>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions class="dialog-actions">
+  <div class="name-slot">
+    <mat-form-field
+      appearance="outline"
+      class="name-field"
+      subscriptSizing="dynamic">
+      <mat-label>{{
+        'dialogs.newElement.nameLabel'
+          | transloco: { label: getSelectedOption()?.label || '' }
+      }}</mat-label>
       <input
         matInput
-        [value]="searchQuery()"
-        (input)="searchQuery.set($event.target.value)"
-        [placeholder]="'dialogs.newElement.searchPlaceholder' | transloco"
-        id="new-element-type-search-input"
-        [attr.aria-label]="'dialogs.newElement.searchAria' | transloco" />
-      <mat-icon matSuffix>search</mat-icon>
+        [formField]="form.name"
+        id="new-element-name-input"
+        data-testid="element-name-input"
+        (keydown.enter)="onCreate()"
+        [placeholder]="namePlaceholder()"
+        [attr.aria-label]="
+          'dialogs.newElement.nameAria'
+            | transloco
+              : {
+                  label:
+                    getSelectedOption()?.label ||
+                    ('dialogs.newElement.elementAria' | transloco),
+                }
+        " />
+      @if (form.name().touched() && form.name().invalid()) {
+        @for (error of form.name().errors(); track error) {
+          <mat-error>{{ error.message }}</mat-error>
+        }
+      }
     </mat-form-field>
+  </div>
 
-    <!-- Document Types Section -->
-    @if (documentOptions().length > 0) {
-      <div class="category-section">
-        <h3 class="category-title">
-          <mat-icon>folder_open</mat-icon>
-          {{ 'dialogs.newElement.documentsCategory' | transloco }}
-        </h3>
-        <div class="type-grid">
-          @for (option of documentOptions(); track optionKey(option)) {
-            <mat-card
-              class="type-card"
-              [class.selected]="isOptionSelected(option)"
-              [attr.data-testid]="optionTestId(option)"
-              (click)="selectType(option)"
-              (keydown)="onTypeCardKeydown($event, option)"
-              tabindex="0">
-              <mat-icon
-                class="type-icon"
-                [style.color]="
-                  option.category === 'document' ? '#4CAF50' : '#2196F3'
-                ">
-                {{ option.icon }}
-              </mat-icon>
-              <h4 class="type-label">{{ option.label }}</h4>
-              <p class="type-description">{{ option.description }}</p>
-            </mat-card>
-          }
-        </div>
-      </div>
-    }
-
-    <!-- Worldbuilding Types Section -->
-    @if (worldbuildingOptions().length > 0) {
-      <div class="category-section">
-        <h3 class="category-title">
-          <mat-icon>language</mat-icon>
-          {{ 'dialogs.newElement.worldbuildingCategory' | transloco }}
-        </h3>
-        <div class="type-grid">
-          @for (option of worldbuildingOptions(); track optionKey(option)) {
-            <mat-card
-              class="type-card"
-              [class.selected]="isOptionSelected(option)"
-              [attr.data-testid]="optionTestId(option)"
-              (click)="selectType(option)"
-              (keydown)="onTypeCardKeydown($event, option)"
-              tabindex="0">
-              <mat-icon class="type-icon" [style.color]="'#9C27B0'">
-                {{ option.icon }}
-              </mat-icon>
-              <h4 class="type-label">{{ option.label }}</h4>
-              <p class="type-description">{{ option.description }}</p>
-            </mat-card>
-          }
-        </div>
-      </div>
-    }
-
-    <!-- Visualization Types Section -->
-    @if (visualizationOptions().length > 0) {
-      <div class="category-section">
-        <h3 class="category-title">
-          <mat-icon>insights</mat-icon>
-          {{ 'dialogs.newElement.visualizationCategory' | transloco }}
-        </h3>
-        <div class="type-grid">
-          @for (option of visualizationOptions(); track optionKey(option)) {
-            <mat-card
-              class="type-card"
-              [class.selected]="isOptionSelected(option)"
-              [attr.data-testid]="optionTestId(option)"
-              (click)="selectType(option)"
-              (keydown)="onTypeCardKeydown($event, option)"
-              tabindex="0">
-              <mat-icon class="type-icon" [style.color]="'#FF9800'">
-                {{ option.icon }}
-              </mat-icon>
-              <h4 class="type-label">{{ option.label }}</h4>
-              <p class="type-description">{{ option.description }}</p>
-            </mat-card>
-          }
-        </div>
-      </div>
-    }
-
-    <!-- No Results Message -->
-    @if (filteredOptions().length === 0) {
-      <div class="no-results">
-        <mat-icon>search_off</mat-icon>
-        <p>{{ 'dialogs.newElement.noMatch' | transloco }}</p>
-      </div>
-    }
-  </mat-dialog-content>
-
-  <mat-dialog-actions align="end">
+  <div class="action-buttons">
     <button mat-button type="button" (click)="onCancel()">
       {{ 'cancel' | transloco }}
     </button>
-  </mat-dialog-actions>
-} @else {
-  <!-- Step 2: Enter Name -->
-  <h2 mat-dialog-title>
     <button
-      mat-icon-button
-      (click)="previousStep()"
-      [matTooltip]="'dialogs.newElement.backToTypes' | transloco">
-      <mat-icon>arrow_back</mat-icon>
+      mat-flat-button
+      color="primary"
+      type="button"
+      data-testid="create-element-button"
+      [disabled]="!getSelectedOption() || form().invalid()"
+      (click)="onCreate()">
+      {{
+        'dialogs.newElement.createPrefix'
+          | transloco: { label: getSelectedOption()?.label || '' }
+      }}
     </button>
-    {{
-      'dialogs.newElement.newPrefix'
-        | transloco: { label: getSelectedOption()?.label || '' }
-    }}
-  </h2>
-
-  <form (submit)="$event.preventDefault(); onCreate()">
-    <mat-dialog-content class="name-content">
-      <!-- Show selected type info -->
-      <div class="selected-type-info">
-        <mat-icon
-          class="type-icon-large"
-          [style.color]="
-            getSelectedOption()?.category === 'document'
-              ? '#4CAF50'
-              : getSelectedOption()?.category === 'visualization'
-                ? '#FF9800'
-                : getSelectedOption()?.category === 'worldbuilding'
-                  ? '#9C27B0'
-                  : '#2196F3'
-          ">
-          {{ getSelectedOption()?.icon }}
-        </mat-icon>
-        <p class="type-description">{{ getSelectedOption()?.description }}</p>
-      </div>
-
-      <!-- Name Input -->
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>{{
-          'dialogs.newElement.nameLabel'
-            | transloco: { label: getSelectedOption()?.label || '' }
-        }}</mat-label>
-        <input
-          matInput
-          [formField]="form.name"
-          id="new-element-name-input"
-          data-testid="element-name-input"
-          [placeholder]="
-            getSelectedOption()?.schemaId?.includes('character')
-              ? ('dialogs.newElement.placeholders.character' | transloco)
-              : getSelectedOption()?.schemaId?.includes('location')
-                ? ('dialogs.newElement.placeholders.location' | transloco)
-                : getSelectedOption()?.schemaId?.includes('item')
-                  ? ('dialogs.newElement.placeholders.item' | transloco)
-                  : getSelectedOption()?.schemaId?.includes('map')
-                    ? ('dialogs.newElement.placeholders.map' | transloco)
-                    : getSelectedOption()?.schemaId?.includes('relationship')
-                      ? ('dialogs.newElement.placeholders.relationship'
-                        | transloco)
-                      : getSelectedOption()?.schemaId?.includes('philosophy')
-                        ? ('dialogs.newElement.placeholders.concept'
-                          | transloco)
-                        : getSelectedOption()?.schemaId?.includes('culture')
-                          ? ('dialogs.newElement.placeholders.culture'
-                            | transloco)
-                          : getSelectedOption()?.schemaId?.includes('species')
-                            ? ('dialogs.newElement.placeholders.species'
-                              | transloco)
-                            : getSelectedOption()?.schemaId?.includes('system')
-                              ? ('dialogs.newElement.placeholders.system'
-                                | transloco)
-                              : getSelectedOption()?.type === 'FOLDER'
-                                ? ('dialogs.newElement.placeholders.folder'
-                                  | transloco)
-                                : ('dialogs.newElement.placeholders.document'
-                                  | transloco)
-          "
-          [attr.aria-label]="
-            'dialogs.newElement.nameAria'
-              | transloco
-                : {
-                    label:
-                      getSelectedOption()?.label ||
-                      ('dialogs.newElement.elementAria' | transloco),
-                  }
-          " />
-        @if (form.name().touched() && form.name().invalid()) {
-          @for (error of form.name().errors(); track error) {
-            <mat-error>{{ error.message }}</mat-error>
-          }
-        }
-      </mat-form-field>
-
-      <!-- Optional: Tags or initial metadata could go here -->
-    </mat-dialog-content>
-
-    <mat-dialog-actions align="end">
-      <button mat-button type="button" (click)="previousStep()">
-        {{ 'back' | transloco }}
-      </button>
-      <button mat-button type="button" (click)="onCancel()">
-        {{ 'cancel' | transloco }}
-      </button>
-      <button
-        mat-raised-button
-        color="primary"
-        type="submit"
-        data-testid="create-element-button"
-        [disabled]="form().invalid()">
-        {{
-          'dialogs.newElement.createPrefix'
-            | transloco: { label: getSelectedOption()?.label || '' }
-        }}
-      </button>
-    </mat-dialog-actions>
-  </form>
-}
+  </div>
+</mat-dialog-actions>

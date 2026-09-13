@@ -37,7 +37,7 @@ import { type Node as ProseMirrorModelNode } from 'prosemirror-model';
 import { Plugin, PluginKey } from 'prosemirror-state';
 import { columnResizing, goToNextCell, tableEditing } from 'prosemirror-tables';
 import { Decoration, DecorationSet } from 'prosemirror-view';
-import { Observable, Subject } from 'rxjs';
+import { Observable, type Subject } from 'rxjs';
 import { IndexeddbPersistence, storeState } from 'y-indexeddb';
 import {
   absolutePositionToRelativePosition,
@@ -69,6 +69,7 @@ import {
 } from '../sync/authenticated-websocket-provider';
 import { UnifiedUserService } from '../user/unified-user.service';
 import { CommentService } from './comment.service';
+import { LiveDocumentRegistryService } from './live-document-registry.service';
 import { ProjectStateService } from './project-state.service';
 
 /**
@@ -207,21 +208,24 @@ export class DocumentService {
   private readonly connections: Map<string, DocumentConnection> = new Map();
 
   private readonly unsyncedChanges = new Map<string, boolean>();
-  /**
-   * Emits the full documentId (username:slug:elementId) whenever a local edit
-   * is applied to a connected document. Used by AutoSnapshotService to track
-   * which documents were modified during a session.
-   */
-  readonly localEdit$ = new Subject<string>();
+  private readonly liveDocs = inject(LiveDocumentRegistryService);
 
   /**
-   * The live Y.Doc for a document that currently has an open connection
-   * (an editor is showing it), or null. Cloud sync applies remote updates to
-   * the live doc so open editors reflect them immediately, and falls back to
-   * a headless IndexedDB load otherwise.
+   * Emits the document ID whenever a document receives a local edit. Owned by
+   * LiveDocumentRegistryService so consumers that only need the edit stream
+   * (Cloud Sync, auto-snapshots) do not have to depend on this service — and
+   * therefore on the whole ProseMirror editor stack.
+   */
+  get localEdit$(): Subject<string> {
+    return this.liveDocs.localEdit$;
+  }
+
+  /**
+   * The live Y.Doc for a document that currently has an open connection, or
+   * null. Delegates to LiveDocumentRegistryService; see there.
    */
   getConnectedYDoc(documentId: string): Y.Doc | null {
-    return this.connections.get(documentId)?.ydoc ?? null;
+    return this.liveDocs.getConnectedYDoc(documentId);
   }
   /** Reactive sync status signals per document */
   private readonly syncStatusSignals = new Map<
@@ -268,9 +272,11 @@ export class DocumentService {
       return;
     }
 
-    // Check if the document already has content in IndexedDB
-    // We use the same abort-on-upgrade technique as ProjectStateService
-    const hasContent = await this.checkDocumentHasContent(documentId);
+    // Check if the document already has content in IndexedDB (abort-on-upgrade
+    // probe, see LiveDocumentRegistryService.hasLocalContent). A live
+    // connection cannot exist yet at this point, so this is purely the
+    // IndexedDB check.
+    const hasContent = await this.liveDocs.hasLocalContent(documentId);
     if (hasContent) {
       return;
     }
@@ -303,75 +309,12 @@ export class DocumentService {
    * @returns True if the document exists and has persisted Yjs update records
    */
   /**
-   * Whether a document has persisted content available locally, either via an
-   * active collaboration connection or Yjs updates in IndexedDB. Never creates
-   * an empty database shell, so it is safe to call for documents that have not
-   * been synced to this device.
+   * Whether a document has persisted content available locally (open
+   * connection or Yjs updates in IndexedDB). Delegates to
+   * LiveDocumentRegistryService; see there.
    */
   hasLocalContent(documentId: string): Promise<boolean> {
-    if (this.connections.has(documentId)) {
-      return Promise.resolve(true);
-    }
-    return this.checkDocumentHasContent(documentId);
-  }
-
-  private checkDocumentHasContent(documentId: string): Promise<boolean> {
-    return new Promise(resolve => {
-      try {
-        const request = indexedDB.open(documentId);
-
-        // onupgradeneeded fires when the DB doesn't exist (version 0 → 1)
-        // Aborting prevents creating an empty shell database
-        request.onupgradeneeded = event => {
-          (event.target as IDBOpenDBRequest).transaction?.abort();
-        };
-
-        request.onsuccess = () => {
-          const db = request.result;
-
-          // No object stores means no schema - definitely empty
-          if (db.objectStoreNames.length === 0) {
-            db.close();
-            resolve(false);
-            return;
-          }
-
-          // y-indexeddb stores persisted updates in the 'updates' store.
-          // A schema-only database (created but never synced) has the store
-          // but zero records. Check for at least one record.
-          const storeName = 'updates';
-          if (!db.objectStoreNames.contains(storeName)) {
-            // Unexpected schema - treat as having content to be safe
-            db.close();
-            resolve(true);
-            return;
-          }
-
-          try {
-            const tx = db.transaction(storeName, 'readonly');
-            const store = tx.objectStore(storeName);
-            const countRequest = store.count();
-
-            countRequest.onsuccess = () => {
-              db.close();
-              resolve(countRequest.result > 0);
-            };
-            countRequest.onerror = () => {
-              db.close();
-              resolve(false);
-            };
-          } catch {
-            db.close();
-            resolve(false);
-          }
-        };
-
-        // Covers both real errors and the AbortError from onupgradeneeded
-        request.onerror = () => resolve(false);
-      } catch {
-        resolve(false);
-      }
-    });
+    return this.liveDocs.hasLocalContent(documentId);
   }
 
   /**
@@ -976,6 +919,7 @@ export class DocumentService {
       // WebSocket connection happens in background (non-blocking)
       connection = { ydoc, provider: null, type, indexeddbProvider };
       this.connections.set(documentId, connection);
+      this.liveDocs.register(documentId, ydoc);
 
       // Track local edits for auto-snapshots (works in both local and connected modes)
       const idbProvider = indexeddbProvider;
@@ -2124,6 +2068,7 @@ export class DocumentService {
 
     // Remove from connections map FIRST to prevent reconnection
     this.connections.delete(documentId);
+    this.liveDocs.unregister(documentId);
 
     this.cleanupProviders(documentId, connection);
     this.cleanupSyncState(documentId);
@@ -2141,6 +2086,7 @@ export class DocumentService {
     // Clear connections map first to prevent reconnections
     const connectionsToClose = Array.from(this.connections.entries());
     this.connections.clear();
+    this.liveDocs.clear();
 
     for (const [docId, connection] of connectionsToClose) {
       // Remove the window 'online' listener before tearing the provider down

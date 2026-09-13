@@ -32,10 +32,10 @@ https://<your-server>/api/v1/ai/mcp
 
 Replace `<your-server>` with your deployment host (e.g. `api.inkweld.app` or `api.preview.inkweld.app` for a preview instance).
 
-:::tip Legacy API keys
+:::tip[Legacy API keys]
 If a tool doesn't support OAuth, your administrator can enable **Legacy MCP API Keys** in **Admin Settings**. When enabled, the project settings page shows a "Legacy API Keys" section where you can create a long-lived, project-scoped `iw_proj_...` token to use instead.
 
-:::warning Treat legacy keys like passwords
+:::warning[Treat legacy keys like passwords]
 Never commit a key to source control, paste it into a shared chat, or leave it in a client config file that others can read. Prefer environment or input variables where your client supports them. If you think a key has been exposed, revoke it immediately from **Project Settings → MCP Access → Legacy API Keys** and create a new one.
 :::
 :::

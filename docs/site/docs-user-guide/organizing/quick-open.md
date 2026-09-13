@@ -15,11 +15,11 @@ Quick Open lets you jump to any document in your project instantly using a keybo
 
 Press the keyboard shortcut to open the Quick Open dialog:
 
-| Platform | Shortcut       |
-| -------- | -------------- |
-| macOS    | `⌘ + P`        |
-| Windows  | `Ctrl + P`     |
-| Linux    | `Ctrl + P`     |
+| Platform | Shortcut   |
+| -------- | ---------- |
+| macOS    | `⌘ + P`    |
+| Windows  | `Ctrl + P` |
+| Linux    | `Ctrl + P` |
 
 <ThemedImage
   src="/img/features/quick-open-dialog"
@@ -47,11 +47,11 @@ When you open Quick Open without typing anything, it shows your recently opened 
 
 Navigate the results without touching your mouse:
 
-| Key       | Action                     |
-| --------- | -------------------------- |
-| `↑` `↓`   | Move selection up/down     |
-| `Enter`   | Open the selected file     |
-| `Escape`  | Close Quick Open           |
+| Key      | Action                 |
+| -------- | ---------------------- |
+| `↑` `↓`  | Move selection up/down |
+| `Enter`  | Open the selected file |
+| `Escape` | Close Quick Open       |
 
 ## Tips
 
@@ -59,7 +59,7 @@ Navigate the results without touching your mouse:
 - **Clear search** — Click the × button or select all and delete to reset the search
 - **Recent files first** — Your most recently opened files appear at the top when no search query is entered
 
-:::tip Pro Tip
+:::tip[Pro Tip]
 Quick Open is the fastest way to navigate large projects. Build muscle memory with `⌘/Ctrl + P` and you'll rarely need to scroll through the project tree.
 :::
 

@@ -1,6 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import { LocalProjectElementsService } from '@services/local/local-project-elements.service';
-import { DocumentService } from '@services/project/document.service';
+import { LiveDocumentRegistryService } from '@services/project/live-document-registry.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
 import { IndexeddbPersistence, storeState } from 'y-indexeddb';
@@ -38,7 +38,7 @@ export interface AcquiredDoc {
 export class YDocAccessService {
   private readonly storageContext = inject(StorageContextService);
   private readonly localElements = inject(LocalProjectElementsService);
-  private readonly documentService = inject(DocumentService);
+  private readonly liveDocs = inject(LiveDocumentRegistryService);
   private readonly worldbuilding = inject(WorldbuildingService);
   private readonly projectState = inject(ProjectStateService);
 
@@ -49,7 +49,7 @@ export class YDocAccessService {
 
   /** Whether a doc has any persisted content, without creating its database */
   exists(docId: string): Promise<boolean> {
-    return this.documentService.hasLocalContent(docId);
+    return this.liveDocs.hasLocalContent(docId);
   }
 
   /**
@@ -67,7 +67,7 @@ export class YDocAccessService {
   }
 
   async acquireDocument(docId: string): Promise<AcquiredDoc> {
-    const live = this.documentService.getConnectedYDoc(docId);
+    const live = this.liveDocs.getConnectedYDoc(docId);
     if (live) return this.liveDoc(live);
     return this.headless(docId);
   }

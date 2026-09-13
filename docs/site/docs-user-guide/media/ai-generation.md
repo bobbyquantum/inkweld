@@ -7,7 +7,7 @@ sidebar_position: 3
 
 # AI Image Generation
 
-:::caution Admin Configuration Required
+:::caution[Admin Configuration Required]
 AI image generation is an **optional feature** that must be enabled and configured by your instance administrator. If you don't see the "Generate Image" button in the media tab or when setting images, this feature is not available on your instance.
 :::
 
@@ -37,12 +37,12 @@ This helps the AI understand your characters, locations, etc. You can skip this 
 
 Configure your generation:
 
-| Field | Description |
-|-------|-------------|
+| Field             | Description                                 |
+| ----------------- | ------------------------------------------- |
 | **Model Profile** | Which AI model to use (configured by admin) |
-| **Prompt** | What you want the image to show |
-| **Size** | Image dimensions |
-| **Count** | How many images to generate (1, 2, or 4) |
+| **Prompt**        | What you want the image to show             |
+| **Size**          | Image dimensions                            |
+| **Count**         | How many images to generate (1, 2, or 4)    |
 
 Additional options like quality, style, or negative prompts appear depending on the model profile.
 

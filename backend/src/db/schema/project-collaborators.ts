@@ -103,6 +103,13 @@ export const projectCollaborators = sqliteTable(
     index('project_collaborators_session_idx').on(table.mcpSessionId),
     // Index for finding all collaborators of a project
     index('project_collaborators_project_idx').on(table.projectId),
+    // Collaborator-side lookups: "my pending invitations", "projects shared
+    // with me" (user_id + status) and OAuth grant listings by granting user.
+    // Every existing index led with project_id or mcp_session_id, so these
+    // scanned the whole table. invitedAt serves the pending-invitations sort
+    // directly; the accepted list sorts by acceptedAt and still benefits from
+    // the (user_id, status) prefix.
+    index('project_collaborators_user_status_idx').on(table.userId, table.status, table.invitedAt),
   ]
 );
 

@@ -15,7 +15,7 @@ import { LocalProjectElementsService } from '@services/local/local-project-eleme
 import { LocalStorageService } from '@services/local/local-storage.service';
 import { ProjectActivationService } from '@services/local/project-activation.service';
 import { ProjectSyncService } from '@services/local/project-sync.service';
-import { DocumentService } from '@services/project/document.service';
+import { LiveDocumentRegistryService } from '@services/project/live-document-registry.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
 import { Subject } from 'rxjs';
@@ -206,7 +206,7 @@ describe('CloudSyncEngineService', () => {
         { provide: ProjectActivationService, useValue: activation },
         { provide: ProjectSyncService, useValue: projectSync },
         { provide: ProjectStateService, useValue: { project: currentProject } },
-        { provide: DocumentService, useValue: { localEdit$ } },
+        { provide: LiveDocumentRegistryService, useValue: { localEdit$ } },
         { provide: WorldbuildingService, useValue: { localEdit$: wbEdit$ } },
         {
           provide: LoggerService,

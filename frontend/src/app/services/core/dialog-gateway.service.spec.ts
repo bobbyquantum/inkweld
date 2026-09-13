@@ -21,6 +21,7 @@ import {
 } from '../../dialogs/confirmation-dialog/confirmation-dialog.component';
 import { EditAvatarDialogComponent } from '../../dialogs/edit-avatar-dialog/edit-avatar-dialog.component';
 import { EditProjectDialogComponent } from '../../dialogs/edit-project-dialog/edit-project-dialog.component';
+import { ElementPickerDialogComponent } from '../../dialogs/element-picker-dialog/element-picker-dialog.component';
 import { FieldConfigDialogComponent } from '../../dialogs/field-config-dialog/field-config-dialog.component';
 import { FileUploadComponent } from '../../dialogs/file-upload/file-upload.component';
 import { IconPickerDialogComponent } from '../../dialogs/icon-picker-dialog/icon-picker-dialog.component';
@@ -47,6 +48,8 @@ import {
   SceneDetailsDialogComponent,
   type SceneDetailsDialogData,
 } from '../../dialogs/scene-details-dialog/scene-details-dialog.component';
+import { SnapshotsDialogComponent } from '../../dialogs/snapshots-dialog/snapshots-dialog.component';
+import { TagEditorDialogComponent } from '../../dialogs/tag-editor-dialog/tag-editor-dialog.component';
 import { TemplateSnapshotsDialogComponent } from '../../dialogs/template-snapshots-dialog/template-snapshots-dialog.component';
 import { UserSettingsDialogComponent } from '../../dialogs/user-settings-dialog/user-settings-dialog.component';
 import { WorldbuildingImageDialogComponent } from '../../dialogs/worldbuilding-image-dialog/worldbuilding-image-dialog.component';
@@ -538,8 +541,51 @@ describe('DialogGatewayService', () => {
     );
   });
 
-  it('should open the template snapshots dialog', () => {
-    service.openTemplateSnapshotsDialog('char');
+  it('should open the tag editor dialog', async () => {
+    const data = { elementId: 'e1' } as unknown as Parameters<
+      DialogGatewayService['openTagEditorDialog']
+    >[0];
+    await service.openTagEditorDialog(data);
+
+    expect(dialogMock.open).toHaveBeenCalledWith(TagEditorDialogComponent, {
+      data,
+      width: '450px',
+      autoFocus: false,
+    });
+  });
+
+  it('should open the snapshots dialog', async () => {
+    const data = { documentId: 'd1' } as unknown as Parameters<
+      DialogGatewayService['openSnapshotsDialog']
+    >[0];
+    await service.openSnapshotsDialog(data);
+
+    expect(dialogMock.open).toHaveBeenCalledWith(SnapshotsDialogComponent, {
+      data,
+      width: '550px',
+      autoFocus: false,
+    });
+  });
+
+  it('should open the element picker dialog and return its result', async () => {
+    const data = { title: 'Pick' } as unknown as Parameters<
+      DialogGatewayService['openElementPickerDialog']
+    >[0];
+    const picked = { elementId: 'e2' };
+    (dialogRefMock.afterClosed as Mock).mockReturnValue(of(picked));
+
+    const result = await service.openElementPickerDialog(data);
+
+    expect(dialogMock.open).toHaveBeenCalledWith(ElementPickerDialogComponent, {
+      width: '500px',
+      maxHeight: '80vh',
+      data,
+    });
+    expect(result).toEqual(picked);
+  });
+
+  it('should open the template snapshots dialog', async () => {
+    await service.openTemplateSnapshotsDialog('char');
 
     expect(dialogMock.open).toHaveBeenCalledWith(
       TemplateSnapshotsDialogComponent,

@@ -111,6 +111,9 @@ let projectService: {
 let collaborationService: {
   checkAccess: (...args: unknown[]) => Promise<unknown>;
 };
+let userService: {
+  findById: (...args: unknown[]) => Promise<unknown>;
+};
 let closeCodes: typeof import('../src/utils/ws-close-codes');
 
 function makeDO(env: Record<string, unknown> = {}): Record<string, unknown> {
@@ -154,6 +157,7 @@ describe('YjsProject DO denial close codes', () => {
     closeCodes = await import('../src/utils/ws-close-codes');
     ({ projectService } = await import('../src/services/project.service'));
     ({ collaborationService } = await import('../src/services/collaboration.service'));
+    ({ userService } = await import('../src/services/user.service'));
     ({ YjsProject } = (await import('../src/durable-objects/yjs-project.do')) as unknown as {
       YjsProject: new (state: unknown, env: unknown) => unknown;
     });
@@ -165,6 +169,7 @@ describe('YjsProject DO denial close codes', () => {
     try {
       (projectService.findByUsernameAndSlug as ReturnType<typeof spyOn>).mockRestore?.();
       (collaborationService.checkAccess as ReturnType<typeof spyOn>).mockRestore?.();
+      (userService.findById as ReturnType<typeof spyOn>).mockRestore?.();
     } catch {
       // Not spied in every test.
     }
@@ -246,6 +251,12 @@ describe('YjsProject DO denial close codes', () => {
       id: 'project-1',
       userId: 'someone-else',
     });
+    spyOn(userService, 'findById').mockResolvedValue({
+      id: 'user-1',
+      enabled: true,
+      approved: true,
+      sessionsValidFrom: 0,
+    });
     spyOn(collaborationService, 'checkAccess').mockResolvedValue({
       isOwner: false,
       canRead: false,
@@ -257,6 +268,77 @@ describe('YjsProject DO denial close codes', () => {
 
     expect(ws.sent).toEqual(['access-denied:forbidden']);
     expect(ws.closes).toEqual([{ code: closeCodes.WS_CLOSE_FORBIDDEN, reason: 'Access denied' }]);
+  });
+
+  it('closes a disabled account with the permanent 4403 code even for the owner', async () => {
+    const doInstance = makeDO({ DB: {} });
+    const ws = makeWs();
+    const token = await signJwt({
+      userId: 'user-1',
+      username: 'alice',
+      iat: Math.floor(Date.now() / 1000),
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    });
+    spyOn(projectService, 'findByUsernameAndSlug').mockResolvedValue({
+      id: 'project-1',
+      userId: 'user-1',
+    });
+    spyOn(userService, 'findById').mockResolvedValue({
+      id: 'user-1',
+      enabled: false,
+      approved: true,
+      sessionsValidFrom: 0,
+    });
+
+    await callAuth(doInstance, ws, makeConnInfo('alice:proj:elements'), token);
+
+    expect(ws.sent).toEqual(['access-denied:forbidden']);
+    expect(ws.closes).toEqual([{ code: closeCodes.WS_CLOSE_FORBIDDEN, reason: 'Access denied' }]);
+  });
+
+  it('closes a token issued before a password reset with the permanent 4403 code', async () => {
+    const doInstance = makeDO({ DB: {} });
+    const ws = makeWs();
+    const now = Math.floor(Date.now() / 1000);
+    const token = await signJwt({
+      userId: 'user-1',
+      username: 'alice',
+      iat: now - 600,
+      exp: now + 3600,
+    });
+    spyOn(projectService, 'findByUsernameAndSlug').mockResolvedValue({
+      id: 'project-1',
+      userId: 'user-1',
+    });
+    spyOn(userService, 'findById').mockResolvedValue({
+      id: 'user-1',
+      enabled: true,
+      approved: true,
+      sessionsValidFrom: now - 60,
+    });
+
+    await callAuth(doInstance, ws, makeConnInfo('alice:proj:elements'), token);
+
+    expect(ws.sent).toEqual(['access-denied:forbidden']);
+    expect(ws.closes).toEqual([{ code: closeCodes.WS_CLOSE_FORBIDDEN, reason: 'Access denied' }]);
+  });
+
+  it('closes an enrolment-scoped token with the permanent 4401 code', async () => {
+    const doInstance = makeDO();
+    const ws = makeWs();
+    const token = await signJwt({
+      userId: 'user-1',
+      username: 'alice',
+      scope: 'enrol',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    });
+
+    await callAuth(doInstance, ws, makeConnInfo('alice:proj:elements'), token);
+
+    expect(ws.sent).toEqual(['access-denied:invalid-token']);
+    expect(ws.closes).toEqual([
+      { code: closeCodes.WS_CLOSE_INVALID_TOKEN, reason: 'Invalid token' },
+    ]);
   });
 
   it('closes server-side auth failures with the transient 4500 code', async () => {

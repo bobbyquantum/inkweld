@@ -111,6 +111,30 @@ describe('registerRateLimits', () => {
     expect(blocked.status).toBe(429);
   });
 
+  it('throttles anonymous OAuth client registration on both paths', async () => {
+    process.env['NODE_ENV'] = 'production';
+    delete process.env['INKWELD_DISABLE_RATE_LIMIT'];
+
+    const app = new Hono();
+    registerRateLimits(app);
+    app.post('/oauth/register', (c) => c.json({ ok: true }));
+    app.post('/register', (c) => c.json({ ok: true }));
+
+    for (let i = 0; i < 10; i++) {
+      const res = await app.request('/oauth/register', { method: 'POST' });
+      expect(res.status).toBe(200);
+    }
+    const blocked = await app.request('/oauth/register', { method: 'POST' });
+    expect(blocked.status).toBe(429);
+
+    for (let i = 0; i < 10; i++) {
+      const res = await app.request('/register', { method: 'POST' });
+      expect(res.status).toBe(200);
+    }
+    const blockedAlias = await app.request('/register', { method: 'POST' });
+    expect(blockedAlias.status).toBe(429);
+  });
+
   it('does not rate-limit unregistered paths', async () => {
     process.env['NODE_ENV'] = 'production';
     delete process.env['INKWELD_DISABLE_RATE_LIMIT'];

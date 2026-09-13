@@ -38,7 +38,7 @@ Projects shared with you by other users display a **group icon** badge, making i
 The top navigation provides quick access to:
 
 - **Search** — Find projects by title (click the search icon on mobile)
-- **+ Create** — Start a new project
+- **+ Create** — Start a new project, or [import one](../organizing/import-export) from a `.inkweld.zip` archive
 - **User Menu** — Access your settings, messages, and logout
 
 ### Mobile View
