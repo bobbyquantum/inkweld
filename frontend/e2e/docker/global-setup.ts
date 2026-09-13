@@ -47,11 +47,22 @@ export default async function globalSetup(): Promise<void> {
     // Container doesn't exist, that's fine
   }
 
-  // Build the image using docker compose
+  // Build the image using docker compose.
+  //
+  // compose.yaml declares SESSION_SECRET as a required variable (no public
+  // default), and Compose validates every interpolation in the file — even
+  // for `build`, which never uses the `environment:` block. Supply the e2e
+  // secret so validation passes; the container below gets the same value
+  // explicitly via `-e`, nothing from here is baked into the image.
 
   execSync('docker compose build inkweld', {
     cwd: rootDir,
     stdio: 'inherit',
+    env: {
+      ...process.env,
+      SESSION_SECRET:
+        process.env['SESSION_SECRET'] ?? TEST_SESSION_SECRETS.DOCKER,
+    },
   });
 
   // Start the container with test configuration

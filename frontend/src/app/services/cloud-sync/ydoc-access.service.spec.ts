@@ -3,7 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { type Project } from '@inkweld/index';
 import { StorageContextService } from '@services/core/storage-context.service';
 import { LocalProjectElementsService } from '@services/local/local-project-elements.service';
-import { DocumentService } from '@services/project/document.service';
+import { LiveDocumentRegistryService } from '@services/project/live-document-registry.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -43,7 +43,7 @@ describe('YDocAccessService', () => {
           useValue: { prefixDocumentId: (id: string) => `cloud-x:${id}` },
         },
         { provide: LocalProjectElementsService, useValue: localElements },
-        { provide: DocumentService, useValue: documentService },
+        { provide: LiveDocumentRegistryService, useValue: documentService },
         { provide: WorldbuildingService, useValue: worldbuilding },
         { provide: ProjectStateService, useValue: { project } },
       ],
@@ -57,7 +57,7 @@ describe('YDocAccessService', () => {
     );
   });
 
-  it('delegates existence checks to DocumentService', async () => {
+  it('delegates existence checks to the live document registry', async () => {
     documentService.hasLocalContent.mockResolvedValue(true);
     expect(await service.exists('bobby:novel:e1')).toBe(true);
     expect(documentService.hasLocalContent).toHaveBeenCalledWith(

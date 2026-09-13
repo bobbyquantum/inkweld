@@ -39,14 +39,12 @@ WEBAUTHN_RP_ID=yourcompany.com
 WEBAUTHN_RP_ID=localhost
 ```
 
-:::danger RP ID cannot change after users register passkeys
-
+:::danger[RP ID cannot change after users register passkeys]
 If you change `WEBAUTHN_RP_ID` after users have registered passkeys, **all existing passkeys will stop working**. They cannot be migrated to a new RP ID. Users will need to delete their old passkeys (if they can still log in via password) and re-register.
 
 :::
 
-:::tip Local development
-
+:::tip[Local development]
 `WEBAUTHN_RP_ID` defaults to `localhost` when not set. This is correct for local dev where both the frontend and backend run on `localhost` (different ports are fine — the RP ID is the hostname only).
 
 :::
@@ -119,8 +117,7 @@ Users can manage their passkeys from **Account Settings → Passkeys** (navigate
 1. In **Account Settings → Passkeys**, click the **delete** (trash) icon next to a passkey.
 2. Confirm the deletion.
 
-:::warning Keep a fallback sign-in method
-
+:::warning[Keep a fallback sign-in method]
 If you delete all your passkeys and have no password set, you may be unable to sign in. Keep at least one passkey or ensure you have a password or GitHub OAuth linked.
 
 :::
@@ -179,16 +176,14 @@ PASSWORD_LOGIN_ENABLED=false
 EMAIL_RECOVERY_ENABLED=true
 ```
 
-:::warning Existing password users without a passkey
-
+:::warning[Existing password users without a passkey]
 When you flip `PASSWORD_LOGIN_ENABLED` from `true` to `false`, any user who had an account but never registered a passkey **will be locked out** until they go through the email recovery flow (which requires `EMAIL_RECOVERY_ENABLED=true` and a working SMTP setup) to enrol one. The admin UI requires you to type "disable password login" to confirm this change.
 
 Existing password hashes are preserved while disabled, so flipping the flag back on restores access for all those users.
 
 :::
 
-:::tip Lockout safety guard
-
+:::tip[Lockout safety guard]
 The admin settings UI will refuse to disable password login while passkeys are also disabled — that combination would lock everyone out. Re-enable passkeys first.
 
 :::

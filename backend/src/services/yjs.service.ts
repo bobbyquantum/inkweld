@@ -110,6 +110,16 @@ interface WSSharedDoc {
 
 export class YjsService {
   private readonly docs = new Map<string, WSSharedDoc>();
+  /**
+   * In-flight document loads, keyed by documentId. `getDocument` awaits
+   * LevelDB before publishing to `docs`, so two concurrent callers (two tabs,
+   * a reconnect storm) used to both miss the cache and build two divergent
+   * `Y.Doc`s on the same directory — the loser's socket then edited an orphan
+   * that was never broadcast or persisted. The Promise is cached BEFORE the
+   * load starts so the second caller joins the first load instead. Mirrors
+   * `getOrCreateDocument` in the Durable Object.
+   */
+  private readonly pendingLoads = new Map<string, Promise<WSSharedDoc>>();
   // Map by project key (username:projectSlug) instead of documentId
   private readonly persistences = new Map<string, LeveldbPersistence>();
   private readonly persistFailures = new Map<string, number>();
@@ -137,68 +147,87 @@ export class YjsService {
   }
 
   /**
-   * Get or create a document
+   * Get or create a document.
+   *
+   * Concurrent callers for the same documentId share one load (see
+   * `pendingLoads`); a failed load is dropped so a later call can retry.
    */
   async getDocument(documentId: string): Promise<WSSharedDoc> {
-    let doc = this.docs.get(documentId);
-    if (!doc) {
-      const ydoc = new Y.Doc();
-      const awareness = new awarenessProtocol.Awareness(ydoc);
-      // The server itself is not an awareness participant — Yjs creates a
-      // default local state, so remove it to avoid broadcasting a phantom
-      // client to every peer.
-      awareness.setLocalState(null);
+    const existing = this.docs.get(documentId);
+    if (existing) return existing;
 
-      const sharedDoc: WSSharedDoc = {
-        name: documentId,
-        doc: ydoc,
-        awareness,
-        conns: new Map(),
-        wsUserIds: new Map(),
-      };
+    const inFlight = this.pendingLoads.get(documentId);
+    if (inFlight) return inFlight;
 
-      // Track which client IDs each socket is responsible for so we can
-      // evict their awareness state on disconnect.
-      const onAwarenessChange = (
-        { added, updated, removed }: { added: number[]; updated: number[]; removed: number[] },
-        origin: unknown
-      ) => {
-        const controlledIds = sharedDoc.conns.get(origin as WebSocket);
-        if (controlledIds) {
-          for (const clientId of [...added, ...updated]) {
-            // Transfer ownership to the current socket so an older connection
-            // can't remove this live client's presence during disconnect cleanup.
-            for (const [conn, ids] of sharedDoc.conns) {
-              if (conn !== origin) {
-                ids.delete(clientId);
-              }
-            }
-            controlledIds.add(clientId);
-          }
-          for (const clientId of removed) controlledIds.delete(clientId);
-        }
-        // Broadcast the awareness change (including removals) to every other
-        // peer so they unmount the ghost user immediately.
-        const encoder = encoding.createEncoder();
-        encoding.writeVarUint(encoder, messageAwareness);
-        const changedClients = [...added, ...updated, ...removed];
-        encoding.writeVarUint8Array(
-          encoder,
-          awarenessProtocol.encodeAwarenessUpdate(awareness, changedClients)
-        );
-        const message = encoding.toUint8Array(encoder);
-        this.broadcastMessage(sharedDoc, message, origin);
-      };
-      awareness.on('update', onAwarenessChange);
-      sharedDoc.awarenessChangeListener = onAwarenessChange;
-
-      // Set up persistence
-      await this.setupPersistence(documentId, ydoc);
-
-      doc = sharedDoc;
-      this.docs.set(documentId, doc);
+    const load = this.createDocument(documentId);
+    this.pendingLoads.set(documentId, load);
+    try {
+      return await load;
+    } finally {
+      this.pendingLoads.delete(documentId);
     }
-    return doc;
+  }
+
+  /**
+   * Build a fresh shared doc, wire awareness relaying, load persisted state
+   * and publish it to `docs`. Only ever called via `getDocument`.
+   */
+  private async createDocument(documentId: string): Promise<WSSharedDoc> {
+    const ydoc = new Y.Doc();
+    const awareness = new awarenessProtocol.Awareness(ydoc);
+    // The server itself is not an awareness participant — Yjs creates a
+    // default local state, so remove it to avoid broadcasting a phantom
+    // client to every peer.
+    awareness.setLocalState(null);
+
+    const sharedDoc: WSSharedDoc = {
+      name: documentId,
+      doc: ydoc,
+      awareness,
+      conns: new Map(),
+      wsUserIds: new Map(),
+    };
+
+    // Track which client IDs each socket is responsible for so we can
+    // evict their awareness state on disconnect.
+    const onAwarenessChange = (
+      { added, updated, removed }: { added: number[]; updated: number[]; removed: number[] },
+      origin: unknown
+    ) => {
+      const controlledIds = sharedDoc.conns.get(origin as WebSocket);
+      if (controlledIds) {
+        for (const clientId of [...added, ...updated]) {
+          // Transfer ownership to the current socket so an older connection
+          // can't remove this live client's presence during disconnect cleanup.
+          for (const [conn, ids] of sharedDoc.conns) {
+            if (conn !== origin) {
+              ids.delete(clientId);
+            }
+          }
+          controlledIds.add(clientId);
+        }
+        for (const clientId of removed) controlledIds.delete(clientId);
+      }
+      // Broadcast the awareness change (including removals) to every other
+      // peer so they unmount the ghost user immediately.
+      const encoder = encoding.createEncoder();
+      encoding.writeVarUint(encoder, messageAwareness);
+      const changedClients = [...added, ...updated, ...removed];
+      encoding.writeVarUint8Array(
+        encoder,
+        awarenessProtocol.encodeAwarenessUpdate(awareness, changedClients)
+      );
+      const message = encoding.toUint8Array(encoder);
+      this.broadcastMessage(sharedDoc, message, origin);
+    };
+    awareness.on('update', onAwarenessChange);
+    sharedDoc.awarenessChangeListener = onAwarenessChange;
+
+    // Set up persistence
+    await this.setupPersistence(documentId, ydoc);
+
+    this.docs.set(documentId, sharedDoc);
+    return sharedDoc;
   }
 
   /**
@@ -680,29 +709,38 @@ export class YjsService {
     const newProjectKey = `${username}:${newSlug}`;
 
     yjsLog.info(`Renaming project: ${oldProjectKey} -> ${newProjectKey}`);
+    await this.teardownProject(oldProjectKey, 'Project renamed');
+    yjsLog.info(`Project rename complete: ${oldProjectKey} -> ${newProjectKey}`);
+  }
 
-    // Close any active persistence for the old project
-    const oldPersistence = this.persistences.get(oldProjectKey);
-    if (oldPersistence) {
-      try {
-        await oldPersistence.destroy();
-        this.persistences.delete(oldProjectKey);
-        yjsLog.debug(`Closed old persistence for ${oldProjectKey}`);
-      } catch (error) {
-        yjsLog.error(`Error closing old persistence for ${oldProjectKey}`, error);
-      }
-    }
+  /**
+   * Release everything this service holds for a project that is being
+   * deleted: close its sockets, destroy the in-memory docs and close the
+   * LevelDB handle so the caller can remove the project directory (the
+   * `.yjs` store lives inside it). Without this, deleting a project left its
+   * documents on disk and a project re-created under the same slug adopted
+   * them.
+   */
+  async destroyProject(username: string, slug: string): Promise<void> {
+    const projectKey = `${username}:${slug}`;
+    yjsLog.info(`Destroying project documents: ${projectKey}`);
+    await this.teardownProject(projectKey, 'Project deleted');
+  }
 
-    // Close any documents from the old project and remove from map
+  /**
+   * Close sockets, destroy docs and release the persistence handle for one
+   * project (`username:slug`). Shared by rename and delete.
+   */
+  private async teardownProject(projectKey: string, closeReason: string): Promise<void> {
+    // Close any documents from the project and remove them from the map
     const docsToRemove: string[] = [];
     this.docs.forEach((doc, docId) => {
-      if (this.getProjectKey(docId) === oldProjectKey) {
-        // Close all connections
+      if (this.getProjectKey(docId) === projectKey) {
         doc.conns.forEach((_, ws) => {
           try {
-            ws.close(1000, 'Project renamed');
+            ws.close(1000, closeReason);
           } catch (error) {
-            yjsLog.error('Error closing WebSocket during rename', error);
+            yjsLog.error(`Error closing WebSocket (${closeReason})`, error);
           }
         });
         if (doc.awarenessChangeListener) {
@@ -720,7 +758,17 @@ export class YjsService {
       this.pendingSinceCompact.delete(docId);
     }
 
-    yjsLog.info(`Project rename complete: ${oldProjectKey} -> ${newProjectKey}`);
+    // Close the LevelDB handle last, after no doc can write to it any more
+    const persistence = this.persistences.get(projectKey);
+    if (persistence) {
+      try {
+        await persistence.destroy();
+        yjsLog.debug(`Closed persistence for ${projectKey}`);
+      } catch (error) {
+        yjsLog.error(`Error closing persistence for ${projectKey}`, error);
+      }
+      this.persistences.delete(projectKey);
+    }
   }
 }
 

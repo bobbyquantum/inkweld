@@ -12,7 +12,7 @@ import ThemedImage from '@site/src/components/ThemedImage';
 
 When you first open Inkweld, you'll see the mode selection screen. This lets you choose how you want to use the application.
 
-:::tip Pre-Configured Instances
+:::tip[Pre-Configured Instances]
 Some Inkweld instances are pre-configured to automatically start in server mode. If your instance has a fixed server URL configured in its build and auto-connect enabled, you'll skip this screen and go directly to the login page. Hosted instances can also enable mode selection (the preview deployment does this) — in that case you'll see this screen even though a server URL is pre-filled.
 :::
 
@@ -45,7 +45,7 @@ Some Inkweld instances are pre-configured to automatically start in server mode.
 
 - All your data is stored **in your browser** using IndexedDB
 - No account, no server, nothing to sign up for
-- Projects can be **exported** as archive files for backup or sharing
+- Projects can be [**exported**](../organizing/import-export) as archive files for backup or sharing
 - You can later move to Cloud Sync or connect to a server
 
 Ideal for trying Inkweld, complete privacy, or writing on a single machine.
@@ -84,7 +84,7 @@ Choose **Cloud Sync** and pick your provider.
 
 The user menu shows the sync status and has a **Sync now** action.
 
-:::info Permissions
+:::info[Permissions]
 With Dropbox, Inkweld asks only for access to its own folder (`Apps/Inkweld`) and cannot see or change anything else in your account. With Nextcloud, the app password grants your normal file access, but Inkweld only touches the `Inkweld` folder; keep the password dedicated to Inkweld so it can be revoked on its own. Both can be revoked at any time from the provider's security settings.
 :::
 
@@ -104,8 +104,8 @@ If you choose **Browser**, you'll create a local profile:
 
 Click **Start in Browser** to begin. Your profile is saved locally and you'll be taken to your bookshelf.
 
-:::info Data Storage
-In Browser mode, your projects are stored in your browser's IndexedDB. Clearing browser data will remove your projects, so use the **Export** feature to create backups.
+:::info[Data Storage]
+In Browser mode, your projects are stored in your browser's IndexedDB. Clearing browser data will remove your projects, so use the [**Export** feature](../organizing/import-export) to create backups.
 :::
 
 ## Connecting to a Server
@@ -121,7 +121,7 @@ Enter the full URL of your Inkweld server (e.g., `http://localhost:8333` for loc
 
 Click **Connect to Server** to test the connection. If successful, you'll be redirected to the login or registration page.
 
-:::tip Hosted Deployments
+:::tip[Hosted Deployments]
 If you're accessing a hosted Inkweld deployment (like one on Cloudflare Workers), the server connection is configured automatically — you won't see this setup screen.
 :::
 

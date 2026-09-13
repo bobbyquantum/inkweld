@@ -8,7 +8,6 @@ import {
 } from '@angular/core';
 import { form, FormField, required } from '@angular/forms/signals';
 import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
 import {
   MAT_DIALOG_DATA,
   MatDialogModule,
@@ -17,7 +16,6 @@ import {
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { DOCUMENT_ROLE_ICONS } from '@models/scene-metadata';
@@ -73,6 +71,14 @@ interface ElementTypeOption {
   testId?: string;
 }
 
+interface ElementTypeSection {
+  key: ElementTypeOption['category'];
+  titleKey: string;
+  icon: string;
+  className: string;
+  options: ElementTypeOption[];
+}
+
 interface NewElementFormValue {
   name: string;
   type: ElementType;
@@ -88,11 +94,9 @@ interface NewElementFormValue {
     MatDialogModule,
     MatFormFieldModule,
     MatInputModule,
-    MatSelectModule,
     MatButtonModule,
     MatIconModule,
     MatTooltipModule,
-    MatCardModule,
     TranslocoModule,
   ],
 })
@@ -107,10 +111,17 @@ export class NewElementDialogComponent {
   });
   private readonly transloco = inject(TranslocoService);
 
-  // Step control
-  currentStep = signal<1 | 2>(1);
-  selectedType = signal<ElementType | null>(null);
-  searchQuery = signal('');
+  readonly searchQuery = signal('');
+
+  readonly selectedType = signal<ElementType | null>(null);
+  readonly selectedSchemaId = signal<string | undefined>(undefined);
+  readonly selectedPreset = signal<ElementPreset | undefined>(undefined);
+
+  /**
+   * When the caller already knows the type (folder rename, "create new" from a
+   * filtered element picker), the picker is hidden and only the name is asked.
+   */
+  readonly showTypePicker = computed(() => !this.data?.skipTypeSelection);
 
   // Document types (constant, always available)
   private readonly documentTypes: ElementTypeOption[] = [
@@ -198,7 +209,7 @@ export class NewElementDialogComponent {
 
   // Filtered options based on search
   filteredOptions = computed(() => {
-    const query = this.searchQuery().toLowerCase();
+    const query = this.searchQuery().trim().toLowerCase();
     if (!query) {
       return this.elementTypeOptions();
     }
@@ -228,11 +239,33 @@ export class NewElementDialogComponent {
     )
   );
 
-  // Track selected schema ID for worldbuilding types
-  selectedSchemaId = signal<string | undefined>(undefined);
-
-  // Preset carried by the selected option (e.g. 'map', 'cover', 'scene')
-  selectedPreset = signal<ElementPreset | undefined>(undefined);
+  /** The non-empty category sections to render, in display order. */
+  readonly sections = computed<ElementTypeSection[]>(() => {
+    const sections: ElementTypeSection[] = [
+      {
+        key: 'document',
+        titleKey: 'dialogs.newElement.documentsCategory',
+        icon: 'folder_open',
+        className: 'category-document',
+        options: this.documentOptions(),
+      },
+      {
+        key: 'worldbuilding',
+        titleKey: 'dialogs.newElement.worldbuildingCategory',
+        icon: 'language',
+        className: 'category-worldbuilding',
+        options: this.worldbuildingOptions(),
+      },
+      {
+        key: 'visualization',
+        titleKey: 'dialogs.newElement.visualizationCategory',
+        icon: 'insights',
+        className: 'category-visualization',
+        options: this.visualizationOptions(),
+      },
+    ];
+    return sections.filter(section => section.options.length > 0);
+  });
 
   readonly model = signal<NewElementFormValue>({
     name: '',
@@ -257,12 +290,13 @@ export class NewElementDialogComponent {
       }
     });
 
-    // If dialog data specifies skipping type selection, go directly to step 2
+    // If dialog data specifies skipping type selection, preselect it and
+    // focus the name input.
     if (this.data?.skipTypeSelection && this.data?.preselectedType) {
       this.selectedType.set(this.data.preselectedType);
       this.selectedSchemaId.set(this.data.preselectedSchemaId);
       this.model.update(m => ({ ...m, type: this.data!.preselectedType! }));
-      this.currentStep.set(2);
+      this.focusNameInput();
     }
   }
 
@@ -320,7 +354,7 @@ export class NewElementDialogComponent {
     }
     const value = this.model();
     const result: NewElementDialogResult = {
-      name: value.name,
+      name: value.name.trim(),
       type: value.type,
       schemaId: this.selectedSchemaId(),
       preset: this.selectedPreset(),
@@ -328,13 +362,23 @@ export class NewElementDialogComponent {
     this.dialogRef.close(result);
   };
 
-  // Step 1: Select type and optionally schema ID for worldbuilding
+  // Select a type (and, for worldbuilding options, its schema), then focus the
+  // name field so the user can type immediately.
   selectType(option: ElementTypeOption): void {
     this.selectedType.set(option.type);
     this.selectedSchemaId.set(option.schemaId);
     this.selectedPreset.set(option.preset);
     this.model.update(m => ({ ...m, type: option.type }));
-    this.nextStep();
+    this.focusNameInput();
+  }
+
+  private focusNameInput(): void {
+    setTimeout(() => {
+      const nameInput = document.querySelector<HTMLInputElement>(
+        'input[data-testid="element-name-input"]'
+      );
+      nameInput?.focus();
+    }, 0);
   }
 
   /** Stable key for `@for` tracking — type alone collides for preset options. */
@@ -366,27 +410,7 @@ export class NewElementDialogComponent {
     }
   }
 
-  // Navigation
-  nextStep(): void {
-    if (this.currentStep() === 1 && this.selectedType()) {
-      this.currentStep.set(2);
-      // Focus on name input after view updates
-      setTimeout(() => {
-        const nameInput = document.querySelector<HTMLInputElement>(
-          'input[data-testid="element-name-input"]'
-        );
-        nameInput?.focus();
-      }, 100);
-    }
-  }
-
-  previousStep(): void {
-    if (this.currentStep() === 2) {
-      this.currentStep.set(1);
-    }
-  }
-
-  // Get the selected type option details
+  /** Get the selected type option details */
   getSelectedOption(): ElementTypeOption | undefined {
     const selected = this.selectedType();
     const schemaId = this.selectedSchemaId();
@@ -396,5 +420,44 @@ export class NewElementDialogComponent {
       (o: ElementTypeOption) =>
         o.type === selected && o.schemaId === schemaId && o.preset === preset
     );
+  }
+
+  /** Category class for the selected-type summary in name-only mode. */
+  selectedCategoryClass(): string {
+    const category = this.getSelectedOption()?.category;
+    return category ? `category-${category}` : '';
+  }
+
+  /**
+   * Contextual placeholder for the name field, chosen from the schema id where
+   * one is available.
+   */
+  namePlaceholder(): string {
+    const option = this.getSelectedOption();
+    const schemaId = option?.schemaId ?? '';
+
+    const schemaPlaceholders: [string, string][] = [
+      ['character', 'character'],
+      ['location', 'location'],
+      ['item', 'item'],
+      ['map', 'map'],
+      ['relationship', 'relationship'],
+      ['philosophy', 'concept'],
+      ['culture', 'culture'],
+      ['species', 'species'],
+      ['system', 'system'],
+    ];
+    for (const [match, key] of schemaPlaceholders) {
+      if (schemaId.includes(match)) {
+        return this.transloco.translate(
+          `dialogs.newElement.placeholders.${key}`
+        );
+      }
+    }
+
+    if (option?.type === ElementType.Folder) {
+      return this.transloco.translate('dialogs.newElement.placeholders.folder');
+    }
+    return this.transloco.translate('dialogs.newElement.placeholders.document');
   }
 }

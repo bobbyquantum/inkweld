@@ -73,7 +73,7 @@ The cryptographic key used to sign session cookies and encrypt sensitive data.
 SESSION_SECRET=your-super-secret-key-at-least-32-characters-long
 ```
 
-:::danger Critical Security Setting
+:::danger[Critical Security Setting]
 
 - Use a strong, random value (at least 32 characters)
 - Never commit this to version control
@@ -244,7 +244,7 @@ The WebAuthn Relying Party ID — the effective domain of your deployment (no pr
 WEBAUTHN_RP_ID=inkweld.yourcompany.com
 ```
 
-:::danger Cannot change after users register passkeys
+:::danger[Cannot change after users register passkeys]
 Changing this value invalidates all existing passkeys.
 :::
 
@@ -374,7 +374,7 @@ Password for the default admin account.
 DEFAULT_ADMIN_PASSWORD=your-secure-admin-password
 ```
 
-:::tip First User Alternative
+:::tip[First User Alternative]
 If you don't set a default admin, the first user to register automatically becomes an administrator.
 :::
 
@@ -471,7 +471,7 @@ Display name shown to email recipients.
 EMAIL_FROM_NAME="My Inkweld"
 ```
 
-:::tip Test your email setup
+:::tip[Test your email setup]
 After configuring SMTP, verify it works by triggering a password reset or recovery email. Check the server logs for SMTP errors if messages don't arrive.
 :::
 

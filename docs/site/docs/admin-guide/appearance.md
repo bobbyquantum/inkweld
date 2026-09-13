@@ -17,10 +17,10 @@ own.
 Backgrounds are configured per surface, because the two have different
 audiences:
 
-| Surface | Pages | Who can change it |
-| --- | --- | --- |
-| **Login** | Welcome/sign-in, first-run setup, approval-pending, password and passkey recovery | Admins only |
-| **Home** | Home screen, create-project, user profiles | Admins, and users if you allow it |
+| Surface   | Pages                                                                             | Who can change it                 |
+| --------- | --------------------------------------------------------------------------------- | --------------------------------- |
+| **Login** | Welcome/sign-in, first-run setup, approval-pending, password and passkey recovery | Admins only                       |
+| **Home**  | Home screen, create-project, user profiles                                        | Admins, and users if you allow it |
 
 Nobody is signed in when the login pages render, so a user preference can never
 apply there — the login background is always the one you set.
@@ -35,7 +35,7 @@ that is happening.
 
 Each surface resolves its image in this order:
 
-1. **An uploaded image** — click *Upload image*. The file is resized to fit
+1. **An uploaded image** — click _Upload image_. The file is resized to fit
    within 2560×1440, re-encoded to WebP and stripped of metadata, which usually
    turns a multi-megabyte photo into a few hundred kilobytes. Accepted formats
    are PNG, JPEG, WebP, GIF and AVIF, up to 12 MB. SVG is rejected.
@@ -43,16 +43,16 @@ Each surface resolves its image in this order:
    be an absolute `https` URL — plain `http` would be blocked as mixed content.
 3. **The bundled default** — what ships with Inkweld.
 
-*Remove image* deletes the upload and drops back to the URL, then to the
+_Remove image_ deletes the upload and drops back to the URL, then to the
 default.
 
-:::note Uploaded backgrounds are public
+:::note[Uploaded backgrounds are public]
 The login page has to load its background before anyone can sign in, so the
 image is served without authentication. Anyone who knows the URL can fetch it.
 Don't use an image you would not put on a public page.
 :::
 
-:::caution External URLs are loaded by the visitor
+:::caution[External URLs are loaded by the visitor]
 An external URL is fetched by each visitor's browser, not by the server, so the
 host you point at sees their IP address and user agent. Uploading the image
 keeps everything on your own origin.
@@ -126,11 +126,11 @@ the default image while the configuration loads.
 Everything except the uploaded images can also be set through the environment.
 The admin UI writes to the database, which takes precedence over these.
 
-| Variable | Default | Purpose |
-| --- | --- | --- |
-| `LOGIN_BACKGROUND_URL` | — | External image URL for the login surface |
-| `HOME_BACKGROUND_URL` | — | External image URL for the home surface |
-| `BACKGROUND_OVERLAY_OPACITY` | per-theme | Scrim opacity, 0–0.95 |
-| `BACKGROUND_BLUR` | `0` | Blur radius in pixels, 0–40 |
-| `USER_BACKGROUND_ENABLED` | `true` | Allow users to choose a preset |
-| `USER_BACKGROUND_UPLOAD_ENABLED` | `false` | Allow users to upload an image |
+| Variable                         | Default   | Purpose                                  |
+| -------------------------------- | --------- | ---------------------------------------- |
+| `LOGIN_BACKGROUND_URL`           | —         | External image URL for the login surface |
+| `HOME_BACKGROUND_URL`            | —         | External image URL for the home surface  |
+| `BACKGROUND_OVERLAY_OPACITY`     | per-theme | Scrim opacity, 0–0.95                    |
+| `BACKGROUND_BLUR`                | `0`       | Blur radius in pixels, 0–40              |
+| `USER_BACKGROUND_ENABLED`        | `true`    | Allow users to choose a preset           |
+| `USER_BACKGROUND_UPLOAD_ENABLED` | `false`   | Allow users to upload an image           |

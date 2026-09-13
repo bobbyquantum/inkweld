@@ -29,7 +29,7 @@ import { LocalProjectElementsService } from '@services/local/local-project-eleme
 import { LocalStorageService } from '@services/local/local-storage.service';
 import { ProjectActivationService } from '@services/local/project-activation.service';
 import { ProjectSyncService } from '@services/local/project-sync.service';
-import { DocumentService } from '@services/project/document.service';
+import { LiveDocumentRegistryService } from '@services/project/live-document-registry.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
 import type * as Y from 'yjs';
@@ -101,7 +101,7 @@ export class CloudSyncEngineService {
   private readonly activation = inject(ProjectActivationService);
   private readonly projectSync = inject(ProjectSyncService);
   private readonly projectState = inject(ProjectStateService);
-  private readonly documentService = inject(DocumentService);
+  private readonly liveDocs = inject(LiveDocumentRegistryService);
   private readonly worldbuilding = inject(WorldbuildingService);
   private readonly logger = inject(LoggerService);
   private readonly destroyRef = inject(DestroyRef);
@@ -240,7 +240,7 @@ export class CloudSyncEngineService {
       if (document.visibilityState === 'visible') void this.syncAll('periodic');
     }, PERIODIC_MS);
 
-    const editSub = this.documentService.localEdit$.subscribe(docId => {
+    const editSub = this.liveDocs.localEdit$.subscribe(docId => {
       const key = projectKeyFromDocId(docId);
       if (key) this.markDirty(key);
     });

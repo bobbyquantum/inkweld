@@ -9,20 +9,20 @@ sidebar_position: 2
 
 Inkweld ships with **29 built-in element types** in the _Worldbuilding (Empty)_ and _Worldbuilding (Demo)_ project templates. Each type is a ready-made template with tabs and fields tuned to its purpose — and every one of them can be cloned and customized, or ignored entirely if you prefer to design your own from scratch.
 
-:::tip Which type should I use?
+:::tip[Which type should I use?]
 There is no wrong answer — the types exist to give you a head start. If an entry doesn't fit any type, the generic **Item** type or a custom template of your own works fine.
 :::
 
 ## People & Groups
 
-| Type             | Icon              | Use for                                                                                                                                                                                   |
-| ---------------- | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Character**    | `person`          | People, gods-as-characters, pets, and any individual with agency. Tabs: Basic Info, Appearance, Personality, Background, Abilities. |
-| **Organization** | `account_balance` | Countries, governments, religions, pantheons, cults, guilds, companies, clans, universities, adventuring parties. Tabs: Basic Info, Leadership, Structure, Holdings, Goals, History.      |
-| **Deity**        | `ac_unit`         | Gods and goddesses as their own entries. Tabs: Basic Info (domains, portfolio, rank), Worship, Relations (divine family, allies, enemies), History.                                       |
-| **Ethnicity**    | `face`            | Cultures and ethnicities — a people sharing ancestry or customs, regardless of borders. Tabs: Basic Info, Culture (dress, values, customs, cuisine, arts), History.                       |
-| **Profession**   | `work`            | Jobs and trades unique to your world (dragon rider, moonsmith, memory tailor). Tabs: Basic Info, Duties & Skills, Training, Notable Practitioners.                                        |
-| **Title**        | `military_tech`   | Ranks and honours held by characters (Chief of Engineering, Guardian of the Wood). Tabs: Basic Info, Privileges & Obligations, History.                                                   |
+| Type             | Icon              | Use for                                                                                                                                                                              |
+| ---------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Character**    | `person`          | People, gods-as-characters, pets, and any individual with agency. Tabs: Basic Info, Appearance, Personality, Background, Abilities.                                                  |
+| **Organization** | `account_balance` | Countries, governments, religions, pantheons, cults, guilds, companies, clans, universities, adventuring parties. Tabs: Basic Info, Leadership, Structure, Holdings, Goals, History. |
+| **Deity**        | `ac_unit`         | Gods and goddesses as their own entries. Tabs: Basic Info (domains, portfolio, rank), Worship, Relations (divine family, allies, enemies), History.                                  |
+| **Ethnicity**    | `face`            | Cultures and ethnicities — a people sharing ancestry or customs, regardless of borders. Tabs: Basic Info, Culture (dress, values, customs, cuisine, arts), History.                  |
+| **Profession**   | `work`            | Jobs and trades unique to your world (dragon rider, moonsmith, memory tailor). Tabs: Basic Info, Duties & Skills, Training, Notable Practitioners.                                   |
+| **Title**        | `military_tech`   | Ranks and honours held by characters (Chief of Engineering, Guardian of the Wood). Tabs: Basic Info, Privileges & Obligations, History.                                              |
 
 ## Places
 

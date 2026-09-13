@@ -739,7 +739,7 @@ export class DocumentElementEditorComponent
       elementName: this.elementName(),
     };
 
-    this.dialogGateway.openTagEditorDialog(data);
+    void this.dialogGateway.openTagEditorDialog(data);
   }
 
   /**
@@ -751,7 +751,7 @@ export class DocumentElementEditorComponent
       currentWordCount: this.wordCount(),
     };
 
-    this.dialogGateway.openSnapshotsDialog(data);
+    void this.dialogGateway.openSnapshotsDialog(data);
   }
 
   /**

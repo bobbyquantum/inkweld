@@ -85,7 +85,7 @@ docker run -d \
   --name inkweld \
   -p 8333:8333 \
   -e HOST=0.0.0.0 \
-  -e SESSION_SECRET=your-secret-key-at-least-32-characters \
+  -e SESSION_SECRET=$(openssl rand -hex 32) \
   -e WEBAUTHN_RP_ID=your-domain.com \
   -e ALLOWED_ORIGINS=https://your-domain.com \
   -v inkweld_data:/data \
@@ -104,7 +104,7 @@ The deployment supports the following environment variables:
 - `PORT` - Port to expose the application on (default: `8333`)
 
 #### Application
-- `SESSION_SECRET` - **Required**: Secret used to sign session cookies (must be at least 32 characters). Generate with: `openssl rand -hex 32`
+- `SESSION_SECRET` - **Required**: Secret used to sign session cookies (must be at least 32 characters). Generate with: `openssl rand -hex 32`. There is no default: both compose files and the server itself refuse to start without it, and any value copied from documentation or examples is public and must not be used
 - `ALLOWED_ORIGINS` - Comma-separated list of allowed CORS origins (e.g. `https://your-domain.com`)
 - `TRUST_PROXY` - Set to `true` when a reverse proxy (nginx, Caddy, Traefik, Cloudflare Tunnel) sits in front of the container and sets `X-Forwarded-For` / `X-Real-IP`. Enables per-client login rate limiting behind the proxy; leave `false` (default) when clients connect directly, otherwise the header is forgeable
 - `SERVE_FRONTEND` - Serve embedded frontend (default: `true`). Set to `false` for API-only mode

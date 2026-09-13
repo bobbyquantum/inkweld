@@ -129,7 +129,8 @@ WEBAUTHN_RP_ID = "your-preview-domain.com"
 ALLOWED_ORIGINS = "http://localhost:4200"
 USER_APPROVAL_REQUIRED = "false"
 GITHUB_ENABLED = "false"
-SESSION_SECRET = "placeholder-set-via-wrangler-secret-put"  # Overridden by secret
+# SESSION_SECRET is a secret, never a var. Set it with:
+#   npx wrangler secret put SESSION_SECRET --env preview
 
 # Create with: npx wrangler d1 create inkweld_preview
 [[env.preview.d1_databases]]
@@ -182,7 +183,8 @@ WEBAUTHN_RP_ID = "your-production-domain.com"
 ALLOWED_ORIGINS = ""
 USER_APPROVAL_REQUIRED = "true"
 GITHUB_ENABLED = "false"
-SESSION_SECRET = "placeholder-set-via-wrangler-secret-put"  # Overridden by secret
+# SESSION_SECRET is a secret, never a var. Set it with:
+#   npx wrangler secret put SESSION_SECRET --env production
 
 # Create with: npx wrangler d1 create inkweld_prod
 [[env.production.d1_databases]]
