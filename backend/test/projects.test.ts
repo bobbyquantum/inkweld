@@ -270,6 +270,50 @@ describe('Projects', () => {
   });
 
   describe('POST /api/v1/projects/tombstones/check', () => {
+    it("does not reveal other users' tombstones", async () => {
+      // Owner deletes a project…
+      await client.request('/api/v1/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug: 'private-tombstone', title: 'Private' }),
+      });
+      await client.request(`/api/v1/projects/${testUsername}/private-tombstone`, {
+        method: 'DELETE',
+      });
+
+      // …and a different authenticated user asks about it by key.
+      const db = getDatabase();
+      await db.delete(users).where(eq(users.username, 'tombstone-snoop'));
+      await db.insert(users).values({
+        id: crypto.randomUUID(),
+        username: 'tombstone-snoop',
+        email: 'tombstone-snoop@example.com',
+        password: await bcrypt.hash(TEST_PASSWORDS.DEFAULT, 10),
+        approved: true,
+        enabled: true,
+      });
+      const snoop = new TestClient(client['baseUrl']);
+      expect(await snoop.login('tombstone-snoop', TEST_PASSWORDS.DEFAULT)).toBe(true);
+
+      const { response, json } = await snoop.request('/api/v1/projects/tombstones/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectKeys: [`${testUsername}/private-tombstone`] }),
+      });
+      expect(response.status).toBe(200);
+      expect((await json()).tombstones).toHaveLength(0);
+
+      // The owner still sees it.
+      const own = await client.request('/api/v1/projects/tombstones/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectKeys: [`${testUsername}/private-tombstone`] }),
+      });
+      expect((await own.json()).tombstones).toHaveLength(1);
+
+      await db.delete(users).where(eq(users.username, 'tombstone-snoop'));
+    });
+
     it('should return empty array for non-deleted projects', async () => {
       const { response, json } = await client.request('/api/v1/projects/tombstones/check', {
         method: 'POST',

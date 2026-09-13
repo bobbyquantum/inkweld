@@ -5,6 +5,30 @@ import { getRequestCorrelationId } from './request-logger';
 
 const log = logger.child('ErrorHandler');
 
+/**
+ * Whether unhandled-error messages may be echoed to the client.
+ *
+ * The check used to be `process.env.NODE_ENV === 'production'`. On Cloudflare
+ * Workers `process.env` is not populated from `[vars]` (the project's
+ * compatibility date predates `nodejs_compat_populate_process_env`), so that
+ * comparison was always false there and every 500 returned the raw error —
+ * DB errors, internal paths, provider responses. Resolve the environment from
+ * the request bindings first, then `process.env`. When neither says anything,
+ * a Workers runtime (detected the same way as config/env.ts) is treated as
+ * production and everything else as development. Details are shown only for
+ * an explicit development/test environment — fail closed.
+ */
+export function shouldExposeErrorDetails(env: unknown): boolean {
+  const bindings = env as { NODE_ENV?: unknown } | undefined;
+  const fromBindings = typeof bindings?.NODE_ENV === 'string' ? bindings.NODE_ENV : undefined;
+  const fromProcess =
+    typeof process !== 'undefined' && process.env ? process.env['NODE_ENV'] : undefined;
+  const g = globalThis as Record<string, unknown>;
+  const isWorkers = g.caches !== undefined && g.WebSocketPair !== undefined;
+  const nodeEnv = fromBindings ?? fromProcess ?? (isWorkers ? 'production' : 'development');
+  return nodeEnv === 'development' || nodeEnv === 'test';
+}
+
 export const errorHandler: ErrorHandler = (err, c) => {
   // Get correlation ID from request context
   const correlationId = getRequestCorrelationId(c);
@@ -80,11 +104,13 @@ export const errorHandler: ErrorHandler = (err, c) => {
     );
   }
 
+  const exposeDetails = shouldExposeErrorDetails(c.env);
+
   if (err.name === 'InternalError') {
     return c.json(
       {
         error: 'Internal Server Error',
-        message: process.env.NODE_ENV === 'production' ? 'An error occurred' : err.message,
+        message: exposeDetails ? err.message : 'An error occurred',
       },
       500
     );
@@ -94,7 +120,7 @@ export const errorHandler: ErrorHandler = (err, c) => {
   return c.json(
     {
       error: 'Internal Server Error',
-      message: process.env.NODE_ENV === 'production' ? 'An error occurred' : err.message,
+      message: exposeDetails ? err.message : 'An error occurred',
     },
     500
   );

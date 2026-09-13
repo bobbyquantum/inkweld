@@ -236,7 +236,14 @@
     {
       "idx": 33,
       "version": "6",
-      "when": 1789430400000,
+      "when": 1789257600000,
+      "tag": "0034_add-sessions-valid-from",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "6",
+      "when": 1789344000000,
       "tag": "0036_add-oauth-login-codes",
       "breakpoints": true
     }

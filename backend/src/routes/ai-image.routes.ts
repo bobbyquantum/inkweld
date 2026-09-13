@@ -11,6 +11,9 @@ import { imageProfileService } from '../services/image-profile.service';
 import { imageAuditService } from '../services/image-audit.service';
 import { configService } from '../services/config.service';
 import { getStorageService } from '../services/storage.service';
+import { projectService } from '../services/project.service';
+import { collaborationService } from '../services/collaboration.service';
+import { NotFoundError } from '../errors';
 import { logger } from '../services/logger.service';
 import { DEFAULT_OPENAI_MODELS } from '../services/image-providers/openai-provider';
 import { DEFAULT_FALAI_MODELS } from '../services/image-providers/falai-provider';
@@ -380,7 +383,9 @@ async function resolveProfileSettings(
 }
 
 async function loadReferenceImagesForRequest(
+  db: DatabaseInstance,
   storage: StorageService,
+  user: User | undefined,
   body: ValidatedBody
 ): Promise<{
   referenceImages: ReferenceImage[] | undefined;
@@ -394,6 +399,21 @@ async function loadReferenceImagesForRequest(
   const [username, slug] = body.projectKey.split('/');
   if (!username || !slug) {
     return { referenceImages: undefined, referenceImageUrls: [] };
+  }
+
+  // `projectKey` is a free-form client string. Reference images are read from
+  // that project's storage and worldbuilding docs and forwarded to the image
+  // provider, so the caller must be able to read the project. Without this
+  // any authenticated user could pull element images out of any project.
+  const project = await projectService.findByUsernameAndSlug(db, username, slug);
+  if (!project || !user) {
+    throw new NotFoundError('Project not found');
+  }
+  if (project.userId !== user.id) {
+    const access = await collaborationService.checkAccess(db, project.id, user.id);
+    if (!access.canRead) {
+      throw new NotFoundError('Project not found');
+    }
   }
 
   const referenceImageUrls = await getElementImageUrls(username, slug, worldbuildingContext);
@@ -470,7 +490,9 @@ aiImageRoutes.openapi(generateRoute, async (c) => {
     const { profile, provider, model, size, quality, style, profileConfig } = profileResult;
 
     const { referenceImages, referenceImageUrls } = await loadReferenceImagesForRequest(
+      db,
       storage,
+      user,
       validatedBody
     );
 
@@ -502,6 +524,10 @@ aiImageRoutes.openapi(generateRoute, async (c) => {
 
     return c.json(result, 200);
   } catch (error: unknown) {
+    // Access-control failures are the caller's problem, not a provider
+    // outage: let the error handler map them to 404 instead of a 503.
+    if (error instanceof NotFoundError) throw error;
+
     const err = error instanceof Error ? error : new Error(String(error));
     aiImageLog.error(' Error in generate endpoint:', err);
 
@@ -711,7 +737,9 @@ aiImageRoutes.post('/generate-stream', async (c) => {
     const { profile, provider, model, size, quality, style, profileConfig } = profileResult;
 
     const { referenceImages, referenceImageUrls } = await loadReferenceImagesForRequest(
+      db,
       storage,
+      user,
       validatedBody
     );
 
