@@ -185,6 +185,13 @@ type YjsEnv = {
 const Y_MESSAGE_SYNC = 0;
 const Y_MESSAGE_AWARENESS = 1;
 
+function jsonResponse(body: unknown, status: number): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
 /**
  * Multi-document Yjs Durable Object
  */
@@ -460,7 +467,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
         headers: { 'Content-Type': 'application/json' },
       });
     }
-    const { canWrite } = accessResult.access;
+    const { canWrite, role } = accessResult.access;
     if (method === 'POST' && !canWrite) {
       projDOLog.warn(
         `User ${session.username} denied write access to ${parsed.projectOwner}/${parsed.slug}`
@@ -472,7 +479,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     }
 
     try {
-      return await this.dispatchHttpRoute(path, method, request, documentId);
+      return await this.dispatchHttpRoute(path, method, request, documentId, role);
     } catch (error) {
       projDOLog.error('HTTP API error:', error);
       return new Response(JSON.stringify({ error: 'Internal server error' }), {
@@ -486,31 +493,58 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     path: string,
     method: string,
     request: Request,
-    documentId: string
+    documentId: string,
+    role: string | null
   ): Promise<Response> {
-    if (path === '/api/elements' && method === 'GET') {
-      return this.handleGetElements(documentId);
+    switch (`${method} ${path}`) {
+      case 'POST /api/destroy':
+        // resolveProjectAccess reports role null for the owner; collaborators
+        // (even editors) must not be able to wipe the project.
+        if (role !== null) {
+          return jsonResponse({ error: 'Owner access required' }, 403);
+        }
+        return this.handleDestroyProject();
+      case 'GET /api/elements':
+        return this.handleGetElements(documentId);
+      case 'POST /api/elements':
+        return this.handleMutateElements(request, documentId);
+      case 'GET /api/document':
+        return this.handleGetDocument(documentId);
+      case 'POST /api/document':
+        return this.handleUpdateDocument(request, documentId);
+      case 'GET /api/stats':
+        return this.handleGetStats(documentId);
+      case 'GET /api/storage-keys':
+        return this.handleGetStorageKeys(request);
+      case 'GET /api/storage-size':
+        return this.handleGetStorageSize();
+      default:
+        return jsonResponse({ error: 'Not found' }, 404);
     }
-    if (path === '/api/elements' && method === 'POST') {
-      return this.handleMutateElements(request, documentId);
+  }
+
+  /**
+   * POST /api/destroy - The project is being deleted. Close every socket,
+   * drop the in-memory documents and wipe this DO's storage so a project
+   * re-created under the same username:slug (which maps to this same DO)
+   * starts empty instead of resurrecting the deleted content.
+   */
+  private async handleDestroyProject(): Promise<Response> {
+    for (const ws of this.state.getWebSockets()) {
+      this.cleanupConnection(ws);
+      safeSend(ws, 'access-denied:project-not-found');
+      safeClose(ws, WS_CLOSE_PROJECT_NOT_FOUND, 'Project deleted');
     }
-    if (path === '/api/document' && method === 'GET') {
-      return this.handleGetDocument(documentId);
-    }
-    if (path === '/api/document' && method === 'POST') {
-      return this.handleUpdateDocument(request, documentId);
-    }
-    if (path === '/api/stats' && method === 'GET') {
-      return this.handleGetStats(documentId);
-    }
-    if (path === '/api/storage-keys' && method === 'GET') {
-      return this.handleGetStorageKeys(request);
-    }
-    if (path === '/api/storage-size' && method === 'GET') {
-      return this.handleGetStorageSize();
-    }
-    return new Response(JSON.stringify({ error: 'Not found' }), {
-      status: 404,
+    this.connections.clear();
+    this.documents.clear();
+    this.elementSnapshots.clear();
+    for (const timer of this.dedupeTimers.values()) clearTimeout(timer);
+    this.dedupeTimers.clear();
+
+    await this.state.storage.deleteAll();
+    projDOLog.info(`Project ${this.projectId} destroyed: storage wiped`);
+    return new Response(JSON.stringify({ ok: true }), {
+      status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
   }
