@@ -256,35 +256,52 @@ describe('ProjectService – tombstone operations', () => {
 
 describe('ProjectService – findTombstonesByProjectKeys', () => {
   it('returns empty array for empty input', async () => {
-    const result = await projectService.findTombstonesByProjectKeys(db, []);
+    const result = await projectService.findTombstonesByProjectKeys(db, [], USER_ID);
     expect(result).toEqual([]);
   });
 
   it('returns empty array for malformed keys', async () => {
-    const result = await projectService.findTombstonesByProjectKeys(db, ['badkey']);
+    const result = await projectService.findTombstonesByProjectKeys(db, ['badkey'], USER_ID);
     expect(result).toEqual([]);
   });
 
   it('returns empty array when user does not exist', async () => {
-    const result = await projectService.findTombstonesByProjectKeys(db, ['nobody/project']);
+    const result = await projectService.findTombstonesByProjectKeys(
+      db,
+      ['nobody/project'],
+      USER_ID
+    );
     expect(result).toEqual([]);
   });
 
   it('returns tombstone for a deleted project', async () => {
     await projectService.createTombstone(db, USER_ID, 'deleted-key');
-    const result = await projectService.findTombstonesByProjectKeys(db, [
-      `${USERNAME}/deleted-key`,
-    ]);
+    const result = await projectService.findTombstonesByProjectKeys(
+      db,
+      [`${USERNAME}/deleted-key`],
+      USER_ID
+    );
     expect(result).toHaveLength(1);
     expect(result[0].username).toBe(USERNAME);
     expect(result[0].slug).toBe('deleted-key');
   });
 
+  it('only reports tombstones owned by the requester', async () => {
+    await projectService.createTombstone(db, USER_ID, 'not-yours');
+    const result = await projectService.findTombstonesByProjectKeys(
+      db,
+      [`${USERNAME}/not-yours`],
+      'someone-else'
+    );
+    expect(result).toEqual([]);
+  });
+
   it('excludes non-deleted projects', async () => {
-    const result = await projectService.findTombstonesByProjectKeys(db, [
-      `${USERNAME}/existing`,
-      `${USERNAME}/deleted`,
-    ]);
+    const result = await projectService.findTombstonesByProjectKeys(
+      db,
+      [`${USERNAME}/existing`, `${USERNAME}/deleted`],
+      USER_ID
+    );
     expect(result).toHaveLength(0);
   });
 });

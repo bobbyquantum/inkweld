@@ -215,6 +215,34 @@ describe('Lint Review Routes', () => {
     expect(response.status).toBe(404);
   });
 
+  it('hides the rejection count from users without read access', async () => {
+    const db = getDatabase();
+    await db.delete(users).where(eq(users.username, 'lreview-outsider'));
+    await db.insert(users).values({
+      id: crypto.randomUUID(),
+      username: 'lreview-outsider',
+      email: 'lreview-outsider@example.com',
+      password: await bcrypt.hash(TEST_PASSWORDS.DEFAULT, 10),
+      approved: true,
+      enabled: true,
+    });
+    const outsider = new TestClient(baseUrl);
+    expect(await outsider.login('lreview-outsider', TEST_PASSWORDS.DEFAULT)).toBe(true);
+
+    const denied = await outsider.request(
+      `/api/v1/projects/${ownerUsername}/${projectSlug}/docs/doc-1/auto-review/rejections`
+    );
+    expect(denied.response.status).toBe(404);
+
+    // The owner still can.
+    const allowed = await ownerClient.request(
+      `/api/v1/projects/${ownerUsername}/${projectSlug}/docs/doc-1/auto-review/rejections`
+    );
+    expect(allowed.response.status).toBe(200);
+
+    await db.delete(users).where(eq(users.username, 'lreview-outsider'));
+  });
+
   it('should require authentication', async () => {
     const anonClient = new TestClient(baseUrl);
     const { response } = await anonClient.request(

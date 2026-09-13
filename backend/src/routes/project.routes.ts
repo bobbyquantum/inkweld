@@ -529,7 +529,11 @@ projectRoutes.openapi(checkTombstonesRoute, async (c) => {
 
   const { projectKeys } = c.req.valid('json');
 
-  const tombstones = await projectService.findTombstonesByProjectKeys(db, projectKeys);
+  const tombstones = await projectService.findTombstonesByProjectKeys(
+    db,
+    projectKeys,
+    contextUser.id
+  );
 
   return c.json(
     {
