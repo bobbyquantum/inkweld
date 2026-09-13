@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, describe, expect, it, mock, spyOn } from 'bun:test';
+import { afterAll, afterEach, beforeAll, describe, expect, it, mock, spyOn } from 'bun:test';
 
 /**
  * POST /api/revoke on the Yjs Durable Object closes a collaborator's sockets
@@ -85,6 +85,12 @@ describe('YjsProject DO POST /api/revoke', () => {
     ({ YjsProject } = (await import('../src/durable-objects/yjs-project.do')) as unknown as {
       YjsProject: typeof YjsProject;
     });
+  });
+
+  // bun runs every test file in one process, so the userService spy above
+  // would otherwise answer for the whole suite (and 403 every admin route).
+  afterAll(() => {
+    (userService.findById as ReturnType<typeof spyOn>).mockRestore?.();
   });
 
   afterEach(() => {
