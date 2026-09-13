@@ -319,6 +319,60 @@ describe('YjsService persist failure tracking', () => {
     await service.renameProject(USERNAME, SLUG, 'renamed');
     expect(failures(service).size).toBe(0);
     await service.cleanup();
+  });
+});
+
+describe('YjsService.destroyProject', () => {
+  it('closes sockets, drops the docs and releases the persistence handle', async () => {
+    const service = new YjsService();
+    const elementsId = `${USERNAME}:${SLUG}:elements/`;
+    const otherProjectId = `${USERNAME}:other:elements/`;
+    const shared = await service.getDocument(elementsId);
+    await service.getDocument(`${USERNAME}:${SLUG}:doc-1`);
+    const untouched = await service.getDocument(otherProjectId);
+
+    const closes: Array<[number, string]> = [];
+    const fakeWs = { close: (code: number, reason: string) => closes.push([code, reason]) };
+    (shared as unknown as { conns: Map<unknown, Set<number>> }).conns.set(fakeWs, new Set());
+
+    await service.destroyProject(USERNAME, SLUG);
+
+    const internals = internalsOf(service) as unknown as {
+      docs: Map<string, unknown>;
+      persistences: Map<string, unknown>;
+    };
+    expect(closes).toEqual([[1000, 'Project deleted']]);
+    expect(internals.docs.has(elementsId)).toBe(false);
+    expect(internals.docs.has(`${USERNAME}:${SLUG}:doc-1`)).toBe(false);
+    expect(internals.persistences.has(PROJECT_KEY)).toBe(false);
+    // Another project on the same service is left alone.
+    expect(internals.docs.get(otherProjectId)).toBe(untouched);
+    expect(internals.persistences.has(`${USERNAME}:other`)).toBe(true);
+
+    await service.cleanup();
+  }, 20000);
+
+  it('still forgets the project when closing the store fails', async () => {
+    const service = new YjsService();
+    await service.getDocument(`${USERNAME}:${SLUG}:elements/`);
+    const internals = internalsOf(service);
+    const real = internals.persistences.get(PROJECT_KEY);
+    if (!real) throw new Error('persistence not installed');
+    internals.persistences.set(PROJECT_KEY, {
+      ...real,
+      getYDoc: (name) => real.getYDoc(name),
+      storeUpdate: (name, update) => real.storeUpdate(name, update),
+      flushDocument: (name) => real.flushDocument(name),
+      destroy: async () => {
+        throw new Error('simulated close failure');
+      },
+    });
+
+    await expect(service.destroyProject(USERNAME, SLUG)).resolves.toBeUndefined();
+    expect(internals.persistences.has(PROJECT_KEY)).toBe(false);
+
+    // Release the real handle so the temp directory can be removed.
+    await real.destroy();
   }, 20000);
 });
 

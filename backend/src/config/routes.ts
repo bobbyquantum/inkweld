@@ -82,6 +82,12 @@ export function registerRateLimits(app: { use: (path: string, ...mw: unknown[]) 
 
     // Passkey recovery (magic-link) — 3 attempts per minute per IP
     app.use('/api/v1/auth/passkey-recovery/*', rateLimit({ windowMs: 60_000, max: 3 }));
+
+    // MCP OAuth dynamic client registration (RFC 7591) is anonymous by
+    // design — 10 registrations per hour per IP. A total cap is enforced in
+    // McpOAuthService.registerClient as well.
+    app.use('/oauth/register', rateLimit({ windowMs: 3_600_000, max: 10 }));
+    app.use('/register', rateLimit({ windowMs: 3_600_000, max: 10 }));
   }
 }
 

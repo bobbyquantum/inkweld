@@ -176,19 +176,38 @@ const getFeaturesRoute = createRoute({
 configRoutes.openapi(getFeaturesRoute, async (c) => {
   const db = c.get('db');
 
+  // Every flag below is a config lookup; fetch them in ONE round trip (this
+  // public endpoint is hit on every page load and used to issue ~15 serial
+  // queries), and run the independent async checks concurrently.
+  const isTruthy = (v: string) => v === 'true' || v === '1';
+  const [cfg, passwordPolicy] = await Promise.all([
+    configService.getMany(db, [
+      'AI_KILL_SWITCH',
+      'AI_TEXT_ENABLED',
+      'AI_TEXT_DEFAULT_PROVIDER',
+      'AI_OPENROUTER_API_KEY',
+      'AI_ANTHROPIC_API_KEY',
+      'AI_OPENAI_API_KEY',
+      'EMAIL_ENABLED',
+      'REQUIRE_EMAIL',
+      'PASSKEYS_ENABLED',
+      'PASSWORD_LOGIN_ENABLED',
+      'EMAIL_RECOVERY_ENABLED',
+      'LEGACY_MCP_ENABLED',
+      'MCP_ENABLED',
+      'PRIVACY_POLICY_URL',
+      'TERMS_OF_SERVICE_URL',
+    ] as const),
+    getPasswordPolicy(db),
+  ]);
+
   // Check AI kill switch status
   // If locked by env var, always use the env value
   // Otherwise, check database or fall back to default (true = AI disabled)
-  let aiKillSwitch: boolean;
   const lockedByEnv = config.aiKillSwitch.lockedByEnv;
-
-  if (lockedByEnv) {
-    // Environment variable takes precedence - cannot be changed in admin UI
-    aiKillSwitch = config.aiKillSwitch.enabled;
-  } else {
-    // Check database value (or default)
-    aiKillSwitch = await configService.getBoolean(db, 'AI_KILL_SWITCH');
-  }
+  const aiKillSwitch = lockedByEnv
+    ? config.aiKillSwitch.enabled
+    : isTruthy(cfg.AI_KILL_SWITCH.value);
 
   // If kill switch is ON (enabled = true), all AI features are disabled
   let hasOpenAI = false;
@@ -196,21 +215,16 @@ configRoutes.openapi(getFeaturesRoute, async (c) => {
 
   if (!aiKillSwitch) {
     // Kill switch is OFF, check actual AI availability
-    const aiTextEnabled = await configService.getBoolean(db, 'AI_TEXT_ENABLED');
-    if (aiTextEnabled) {
+    if (isTruthy(cfg.AI_TEXT_ENABLED.value)) {
       // Check if the configured default provider has an API key
-      const providerCfg = await configService.get(db, 'AI_TEXT_DEFAULT_PROVIDER');
-      const provider = providerCfg.value || 'openai';
+      const provider = cfg.AI_TEXT_DEFAULT_PROVIDER.value || 'openai';
       let providerKey: string;
       if (provider === 'openrouter') {
-        const keyCfg = await configService.get(db, 'AI_OPENROUTER_API_KEY');
-        providerKey = keyCfg.value || process.env.AI_OPENROUTER_API_KEY || '';
+        providerKey = cfg.AI_OPENROUTER_API_KEY.value || process.env.AI_OPENROUTER_API_KEY || '';
       } else if (provider === 'anthropic') {
-        const keyCfg = await configService.get(db, 'AI_ANTHROPIC_API_KEY');
-        providerKey = keyCfg.value || process.env.AI_ANTHROPIC_API_KEY || '';
+        providerKey = cfg.AI_ANTHROPIC_API_KEY.value || process.env.AI_ANTHROPIC_API_KEY || '';
       } else {
-        const keyCfg = await configService.get(db, 'AI_OPENAI_API_KEY');
-        providerKey = keyCfg.value || process.env.OPENAI_API_KEY || '';
+        providerKey = cfg.AI_OPENAI_API_KEY.value || process.env.OPENAI_API_KEY || '';
       }
       hasOpenAI = providerKey.trim().length > 0;
     }
@@ -229,37 +243,10 @@ configRoutes.openapi(getFeaturesRoute, async (c) => {
   // Get default server name
   const defaultServerName = process.env.DEFAULT_SERVER_NAME?.trim() || undefined;
 
-  // Check if email is enabled
-  const emailEnabled = await configService.getBoolean(db, 'EMAIL_ENABLED');
-
-  // Check if email is required for registration
-  const requireEmail = await configService.getBoolean(db, 'REQUIRE_EMAIL');
-
-  // Load password policy
-  const passwordPolicy = await getPasswordPolicy(db);
-
-  // Check if passkeys (WebAuthn) are enabled
-  const passkeysEnabled = await configService.getBoolean(db, 'PASSKEYS_ENABLED');
-
-  // Whether password login + email-recovery flows are available. These two
-  // flags drive the "passwordless mode" UX in the frontend (see login dialog
-  // + registration form + admin Password-Policy section visibility).
-  const passwordLoginEnabled = await configService.getBoolean(db, 'PASSWORD_LOGIN_ENABLED');
-  const emailRecoveryEnabled = await configService.getBoolean(db, 'EMAIL_RECOVERY_ENABLED');
-
-  // Whether legacy MCP API keys are enabled (default OFF — OAuth is the
-  // recommended MCP connection method).
-  const legacyMcpEnabled = await configService.getBoolean(db, 'LEGACY_MCP_ENABLED');
-
-  // Whether MCP access is enabled as a whole (default ON). The AI kill switch
-  // still takes precedence.
-  const mcpEnabled = await configService.getBoolean(db, 'MCP_ENABLED');
-
   // Optional legal links configured by the admin. Trimmed; empty values are
   // omitted from the payload so the frontend can simply check presence.
-  const privacyPolicyUrl =
-    (await configService.get(db, 'PRIVACY_POLICY_URL')).value.trim() || undefined;
-  const termsUrl = (await configService.get(db, 'TERMS_OF_SERVICE_URL')).value.trim() || undefined;
+  const privacyPolicyUrl = cfg.PRIVACY_POLICY_URL.value.trim() || undefined;
+  const termsUrl = cfg.TERMS_OF_SERVICE_URL.value.trim() || undefined;
 
   return c.json({
     aiKillSwitch,
@@ -269,14 +256,18 @@ configRoutes.openapi(getFeaturesRoute, async (c) => {
     appMode,
     defaultServerName,
     userApprovalRequired: config.userApprovalRequired,
-    emailEnabled,
-    requireEmail,
+    emailEnabled: isTruthy(cfg.EMAIL_ENABLED.value),
+    requireEmail: isTruthy(cfg.REQUIRE_EMAIL.value),
     passwordPolicy,
-    passkeysEnabled,
-    passwordLoginEnabled,
-    emailRecoveryEnabled,
-    legacyMcpEnabled,
-    mcpEnabled,
+    passkeysEnabled: isTruthy(cfg.PASSKEYS_ENABLED.value),
+    // Whether password login + email-recovery flows are available. These two
+    // flags drive the "passwordless mode" UX in the frontend.
+    passwordLoginEnabled: isTruthy(cfg.PASSWORD_LOGIN_ENABLED.value),
+    emailRecoveryEnabled: isTruthy(cfg.EMAIL_RECOVERY_ENABLED.value),
+    // Legacy MCP API keys (default OFF — OAuth is the recommended method).
+    legacyMcpEnabled: isTruthy(cfg.LEGACY_MCP_ENABLED.value),
+    // MCP access as a whole (default ON). The AI kill switch takes precedence.
+    mcpEnabled: isTruthy(cfg.MCP_ENABLED.value),
     privacyPolicyUrl,
     termsUrl,
   });
