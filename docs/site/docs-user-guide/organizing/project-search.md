@@ -13,11 +13,11 @@ Project Search lets you find any word or phrase across every document in your pr
 
 ## Opening Project Search
 
-| Platform | Shortcut              |
-| -------- | --------------------- |
-| macOS    | `⌘ + Shift + F`       |
-| Windows  | `Ctrl + Shift + F`    |
-| Linux    | `Ctrl + Shift + F`    |
+| Platform | Shortcut           |
+| -------- | ------------------ |
+| macOS    | `⌘ + Shift + F`    |
+| Windows  | `Ctrl + Shift + F` |
+| Linux    | `Ctrl + Shift + F` |
 
 You can also open it from the **search icon** (`manage_search`) in the sidebar toolbar, or from the collapsed sidebar when the panel is hidden.
 
@@ -36,12 +36,12 @@ Open Project Search without typing anything to **browse all elements** in your p
 
 Click the **filter** button (funnel icon) to narrow results by:
 
-| Filter | Description |
-| ------ | ----------- |
-| **Tags** | Show only elements that have specific tags applied |
-| **Element types** | Limit results to documents, folders, worldbuilding elements, etc. |
+| Filter                    | Description                                                                    |
+| ------------------------- | ------------------------------------------------------------------------------ |
+| **Tags**                  | Show only elements that have specific tags applied                             |
+| **Element types**         | Limit results to documents, folders, worldbuilding elements, etc.              |
 | **Worldbuilding schemas** | Filter worldbuilding elements by their schema (e.g. Character, Location, Item) |
-| **Relationships** | Show only elements related to a specific element |
+| **Relationships**         | Show only elements related to a specific element                               |
 
 Filters combine with each other and with the text query — for example you can search for "castle" filtered to Location-type worldbuilding elements.
 
@@ -62,11 +62,11 @@ Click any result to immediately open that document and jump to the first match. 
 
 ## Keyboard Navigation
 
-| Key      | Action                           |
-| -------- | -------------------------------- |
-| `↑` `↓`  | Move selection between results   |
-| `Enter`  | Open the selected document       |
-| `Escape` | Close Project Search             |
+| Key      | Action                         |
+| -------- | ------------------------------ |
+| `↑` `↓`  | Move selection between results |
+| `Enter`  | Open the selected document     |
+| `Escape` | Close Project Search           |
 
 ## Tips
 
@@ -75,7 +75,7 @@ Click any result to immediately open that document and jump to the first match. 
 - Use Project Search to audit consistency — search for a character&#39;s old name before and after a rename to make sure nothing was missed
 - The match count badge on each result helps you prioritise — a document with 12 matches is more likely to be the one you want than one with 1
 
-:::tip Also try Find in Document
+:::tip[Also try Find in Document]
 Once you&#39;ve opened the right document, use **`Ctrl/Cmd + F`** to jump between individual matches within it.
 :::
 

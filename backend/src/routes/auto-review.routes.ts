@@ -50,13 +50,17 @@ async function loadProjectContext(c: Context<AppContext>, requireWrite = true) {
     throw new NotFoundError('Project not found');
   }
 
-  if (requireWrite) {
-    const user = c.get('user');
-    if (user && project.userId !== user.id) {
-      const access = await collaborationService.checkAccess(db, project.id, user.id);
-      if (!access.canWrite) {
-        throw new ForbiddenError();
-      }
+  // Every caller needs at least read access; mutating callers need write.
+  // Previously the whole check sat behind `requireWrite`, so the read-only
+  // rejection-count endpoint answered for any project id.
+  const user = c.get('user');
+  if (user && project.userId !== user.id) {
+    const access = await collaborationService.checkAccess(db, project.id, user.id);
+    if (!access.canRead) {
+      throw new NotFoundError('Project not found');
+    }
+    if (requireWrite && !access.canWrite) {
+      throw new ForbiddenError();
     }
   }
 

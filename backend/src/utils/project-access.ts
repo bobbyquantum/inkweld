@@ -18,6 +18,8 @@ import type { Project } from '../db/schema/projects';
 import type { ProjectAccess } from '../services/collaboration.service';
 import { projectService } from '../services/project.service';
 import { collaborationService } from '../services/collaboration.service';
+import { userService } from '../services/user.service';
+import { isSessionRevoked } from './session-validity';
 
 /**
  * The data lookups `resolveProjectAccess` needs, injected so the resolver can
@@ -37,12 +39,18 @@ export interface ProjectAccessDeps {
     projectId: string,
     userId: string | null | undefined
   ): Promise<ProjectAccess>;
+  /** The user row behind the token, for enabled/approved + revocation checks. */
+  findUserById(
+    db: D1DatabaseInstance,
+    userId: string
+  ): Promise<{ enabled: boolean; approved: boolean; sessionsValidFrom: number } | undefined>;
 }
 
 const defaultDeps: ProjectAccessDeps = {
   findByUsernameAndSlug: (db, username, slug) =>
     projectService.findByUsernameAndSlug(db, username, slug),
   checkAccess: (db, projectId, userId) => collaborationService.checkAccess(db, projectId, userId),
+  findUserById: (db, userId) => userService.findById(db, userId),
 };
 
 export interface ProjectAccessResolution {
@@ -59,6 +67,8 @@ export interface SessionClaims {
   userId?: string;
   sub?: string;
   username: string;
+  /** Issued-at (unix seconds); compared against users.sessionsValidFrom. */
+  iat?: number;
 }
 
 export type ProjectAccessResult =
@@ -96,6 +106,16 @@ export async function resolveProjectAccess(
   const project = await deps.findByUsernameAndSlug(db, projectOwner, slug);
   if (!project) {
     return { ok: false, reason: 'project-not-found' };
+  }
+
+  // The HTTP middleware re-checks the user row on every request; the socket
+  // paths only verified the JWT, so a disabled or unapproved account — or a
+  // token revoked by a password reset — kept syncing for the token's 30-day
+  // life. Load the row once here so both WS runtimes and the DO HTTP API
+  // apply the same rule.
+  const user = jwtUserId ? await deps.findUserById(db, jwtUserId) : undefined;
+  if (!user || !user.enabled || !user.approved || isSessionRevoked(user, session)) {
+    return { ok: false, reason: 'forbidden' };
   }
 
   if (project.userId === jwtUserId) {

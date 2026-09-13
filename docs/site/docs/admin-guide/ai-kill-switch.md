@@ -60,7 +60,7 @@ AI_KILL_SWITCH=true
 AI_KILL_SWITCH=false
 ```
 
-:::warning Environment Variable Lock
+:::warning[Environment Variable Lock]
 When `AI_KILL_SWITCH` is set as an environment variable, the toggle in the Admin Panel will be disabled (grayed out). This prevents accidental changes through the UI when the server is configured to always have AI disabled.
 :::
 

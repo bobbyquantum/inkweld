@@ -709,29 +709,38 @@ export class YjsService {
     const newProjectKey = `${username}:${newSlug}`;
 
     yjsLog.info(`Renaming project: ${oldProjectKey} -> ${newProjectKey}`);
+    await this.teardownProject(oldProjectKey, 'Project renamed');
+    yjsLog.info(`Project rename complete: ${oldProjectKey} -> ${newProjectKey}`);
+  }
 
-    // Close any active persistence for the old project
-    const oldPersistence = this.persistences.get(oldProjectKey);
-    if (oldPersistence) {
-      try {
-        await oldPersistence.destroy();
-        this.persistences.delete(oldProjectKey);
-        yjsLog.debug(`Closed old persistence for ${oldProjectKey}`);
-      } catch (error) {
-        yjsLog.error(`Error closing old persistence for ${oldProjectKey}`, error);
-      }
-    }
+  /**
+   * Release everything this service holds for a project that is being
+   * deleted: close its sockets, destroy the in-memory docs and close the
+   * LevelDB handle so the caller can remove the project directory (the
+   * `.yjs` store lives inside it). Without this, deleting a project left its
+   * documents on disk and a project re-created under the same slug adopted
+   * them.
+   */
+  async destroyProject(username: string, slug: string): Promise<void> {
+    const projectKey = `${username}:${slug}`;
+    yjsLog.info(`Destroying project documents: ${projectKey}`);
+    await this.teardownProject(projectKey, 'Project deleted');
+  }
 
-    // Close any documents from the old project and remove from map
+  /**
+   * Close sockets, destroy docs and release the persistence handle for one
+   * project (`username:slug`). Shared by rename and delete.
+   */
+  private async teardownProject(projectKey: string, closeReason: string): Promise<void> {
+    // Close any documents from the project and remove them from the map
     const docsToRemove: string[] = [];
     this.docs.forEach((doc, docId) => {
-      if (this.getProjectKey(docId) === oldProjectKey) {
-        // Close all connections
+      if (this.getProjectKey(docId) === projectKey) {
         doc.conns.forEach((_, ws) => {
           try {
-            ws.close(1000, 'Project renamed');
+            ws.close(1000, closeReason);
           } catch (error) {
-            yjsLog.error('Error closing WebSocket during rename', error);
+            yjsLog.error(`Error closing WebSocket (${closeReason})`, error);
           }
         });
         if (doc.awarenessChangeListener) {
@@ -749,7 +758,17 @@ export class YjsService {
       this.pendingSinceCompact.delete(docId);
     }
 
-    yjsLog.info(`Project rename complete: ${oldProjectKey} -> ${newProjectKey}`);
+    // Close the LevelDB handle last, after no doc can write to it any more
+    const persistence = this.persistences.get(projectKey);
+    if (persistence) {
+      try {
+        await persistence.destroy();
+        yjsLog.debug(`Closed persistence for ${projectKey}`);
+      } catch (error) {
+        yjsLog.error(`Error closing persistence for ${projectKey}`, error);
+      }
+      this.persistences.delete(projectKey);
+    }
   }
 }
 

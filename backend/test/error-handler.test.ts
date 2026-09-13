@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'bun:test';
 import { Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
-import { errorHandler } from '../src/middleware/error-handler';
+import { errorHandler, shouldExposeErrorDetails } from '../src/middleware/error-handler';
 
 describe('Error Handler Middleware', () => {
   /**
@@ -197,6 +197,72 @@ describe('Error Handler Middleware', () => {
       expect(json.message).toBe('An error occurred');
 
       process.env.NODE_ENV = originalEnv;
+    });
+  });
+
+  describe('environment-aware redaction', () => {
+    const g = globalThis as Record<string, unknown>;
+
+    function withProcessEnv<T>(value: string | undefined, fn: () => T): T {
+      const original = process.env.NODE_ENV;
+      if (value === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = value;
+      try {
+        return fn();
+      } finally {
+        if (original === undefined) delete process.env.NODE_ENV;
+        else process.env.NODE_ENV = original;
+      }
+    }
+
+    it('prefers the request bindings (Workers [vars]) over process.env', () => {
+      withProcessEnv('development', () => {
+        expect(shouldExposeErrorDetails({ NODE_ENV: 'production' })).toBe(false);
+      });
+      withProcessEnv('production', () => {
+        expect(shouldExposeErrorDetails({ NODE_ENV: 'development' })).toBe(true);
+      });
+    });
+
+    it('only exposes details for an explicit development or test environment', () => {
+      withProcessEnv(undefined, () => {
+        expect(shouldExposeErrorDetails({ NODE_ENV: 'staging' })).toBe(false);
+        expect(shouldExposeErrorDetails({ NODE_ENV: 'preview' })).toBe(false);
+        expect(shouldExposeErrorDetails({ NODE_ENV: 'test' })).toBe(true);
+      });
+    });
+
+    it('treats an unconfigured Workers runtime as production', () => {
+      const hadCaches = 'caches' in g;
+      const hadPair = 'WebSocketPair' in g;
+      const savedCaches = g.caches;
+      const savedPair = g.WebSocketPair;
+      g.caches = g.caches ?? {};
+      g.WebSocketPair = class {};
+      try {
+        withProcessEnv(undefined, () => {
+          expect(shouldExposeErrorDetails(undefined)).toBe(false);
+          expect(shouldExposeErrorDetails({})).toBe(false);
+        });
+      } finally {
+        if (hadCaches) g.caches = savedCaches;
+        else delete g.caches;
+        if (hadPair) g.WebSocketPair = savedPair;
+        else delete g.WebSocketPair;
+      }
+    });
+
+    it('hides the message when the Workers binding says production even if process.env is unset', async () => {
+      await withProcessEnv(undefined, async () => {
+        const app = new Hono<{ Bindings: { NODE_ENV: string } }>();
+        app.onError(errorHandler);
+        app.get('/test', () => {
+          throw new Error('Sensitive error info');
+        });
+        const res = await app.request('/test', {}, { NODE_ENV: 'production' });
+        const json = await res.json();
+        expect(json.message).toBe('An error occurred');
+      });
     });
   });
 });

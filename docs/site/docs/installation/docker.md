@@ -24,7 +24,7 @@ docker run -d \
 
 Then open [http://localhost:8333](http://localhost:8333) in your browser.
 
-:::tip First User is Admin
+:::tip[First User is Admin]
 The first user to register becomes the administrator automatically.
 :::
 
@@ -69,7 +69,7 @@ USER_APPROVAL_REQUIRED=true
 GITHUB_ENABLED=false
 ```
 
-:::warning Keep SESSION_SECRET Safe
+:::warning[Keep SESSION_SECRET Safe]
 The `SESSION_SECRET` is used to encrypt session data. If you change it, all existing sessions will be invalidated. Use a strong, random value and keep it secure.
 :::
 
@@ -222,7 +222,7 @@ docker compose pull
 docker compose up -d
 ```
 
-:::tip Data Persistence
+:::tip[Data Persistence]
 Your data is stored in the `inkweld_data` volume and persists across container updates. Database migrations run automatically on startup.
 :::
 

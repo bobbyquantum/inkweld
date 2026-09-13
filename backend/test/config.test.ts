@@ -112,6 +112,29 @@ describe('ConfigService', () => {
     });
   });
 
+  describe('getMany', () => {
+    it('resolves each key with database > environment > default precedence in one call', async () => {
+      await configService.set(db, 'EMAIL_ENABLED', 'true');
+      const result = await configService.getMany(db, [
+        'EMAIL_ENABLED',
+        'PASSKEYS_ENABLED',
+        'PRIVACY_POLICY_URL',
+      ] as const);
+
+      expect(result.EMAIL_ENABLED.source).toBe('database');
+      expect(result.EMAIL_ENABLED.value).toBe('true');
+      expect(result.PASSKEYS_ENABLED.source).not.toBe('database');
+      expect(result.PRIVACY_POLICY_URL.key).toBe('PRIVACY_POLICY_URL');
+      // Matches the single-key path exactly.
+      expect(result.PASSKEYS_ENABLED).toEqual(await configService.get(db, 'PASSKEYS_ENABLED'));
+      await configService.delete(db, 'EMAIL_ENABLED');
+    });
+
+    it('returns an empty record for no keys', async () => {
+      expect(await configService.getMany(db, [])).toEqual({});
+    });
+  });
+
   describe('getByCategory', () => {
     it('should return only auth category configs', async () => {
       const result = await configService.getByCategory(db, 'auth');
