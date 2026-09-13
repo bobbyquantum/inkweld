@@ -1,9 +1,10 @@
 import { afterEach, beforeAll, describe, expect, it, mock, spyOn } from 'bun:test';
 
 /**
- * POST /api/revoke on the Yjs Durable Object closes a collaborator's sockets
- * so a removal or role change takes effect on open sessions. Same
- * cloudflare:workers stub approach as yjs-do-close-codes.test.ts.
+ * POST /api/destroy on the Yjs Durable Object: project deletion must wipe the
+ * DO's storage (a re-created username:slug maps to the same DO) and close its
+ * sockets, and only the owner may trigger it. Same cloudflare:workers stub
+ * approach as yjs-do-close-codes.test.ts.
  */
 
 mock.module('cloudflare:workers', () => ({
@@ -61,13 +62,22 @@ function makeWs(attachment: unknown) {
   return ws;
 }
 
+function makeState(sockets: unknown[]) {
+  const storage = { deleteAll: mock(async () => {}) };
+  return {
+    storage,
+    getWebSockets: () => sockets,
+    setWebSocketAutoResponse: () => {},
+  };
+}
+
 let YjsProject: new (state: unknown, env: unknown) => { fetch(req: Request): Promise<Response> };
 let projectService: { findByUsernameAndSlug: (...args: unknown[]) => Promise<unknown> };
 let collaborationService: { checkAccess: (...args: unknown[]) => Promise<unknown> };
 let userService: { findById: (...args: unknown[]) => Promise<unknown> };
 let closeCodes: typeof import('../src/utils/ws-close-codes');
 
-describe('YjsProject DO POST /api/revoke', () => {
+describe('YjsProject DO POST /api/destroy', () => {
   beforeAll(async () => {
     closeCodes = await import('../src/utils/ws-close-codes');
     ({ projectService } = await import('../src/services/project.service'));
@@ -98,91 +108,38 @@ describe('YjsProject DO POST /api/revoke', () => {
 
   const exp = () => Math.floor(Date.now() / 1000) + 3600;
 
-  function revoke(sockets: unknown[], token: string, body: unknown): Promise<Response> {
-    const state = {
-      storage: {},
-      getWebSockets: () => sockets,
-      setWebSocketAutoResponse: () => {},
-    };
+  async function destroy(state: ReturnType<typeof makeState>, token: string): Promise<Response> {
     const doInstance = new YjsProject(state, { DATABASE_KEY: SECRET, DB: {} });
     return doInstance.fetch(
-      new Request('https://yjs-do/api/revoke?documentId=alice:proj:elements', {
+      new Request('https://yjs-do/api/destroy?documentId=alice:proj:elements', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        headers: { Authorization: `Bearer ${token}` },
       })
     );
   }
 
-  it("closes only the named user's sockets, permanently on removal", async () => {
-    const bob1 = makeWs({
-      documentId: 'alice:proj:elements',
-      authenticated: true,
-      canWrite: true,
-      userId: 'bob',
-    });
-    const bob2 = makeWs({
-      documentId: 'alice:proj:doc-1',
-      authenticated: true,
-      canWrite: true,
-      userId: 'bob',
-    });
-    const carol = makeWs({
-      documentId: 'alice:proj:doc-1',
-      authenticated: true,
-      canWrite: true,
-      userId: 'carol',
-    });
+  it('wipes storage and closes every socket for the owner', async () => {
+    const ws = makeWs({ documentId: 'alice:proj:doc-1', authenticated: true, canWrite: true });
+    const state = makeState([ws]);
     spyOn(projectService, 'findByUsernameAndSlug').mockResolvedValue({
-      id: 'p1',
+      id: 'project-1',
       userId: 'owner-1',
     });
     const token = await signJwt({ userId: 'owner-1', username: 'alice', exp: exp() });
 
-    const response = await revoke([bob1, bob2, carol], token, { userId: 'bob', reason: 'removed' });
+    const response = await destroy(state, token);
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ closed: 2 });
-    for (const ws of [bob1, bob2]) {
-      expect(ws.sent).toEqual(['access-denied:forbidden']);
-      expect(ws.closes).toEqual([
-        { code: closeCodes.WS_CLOSE_FORBIDDEN, reason: 'Access revoked' },
-      ]);
-    }
-    expect(carol.closes).toEqual([]);
-  });
-
-  it('uses the transient access-changed code for a role change', async () => {
-    const bob = makeWs({
-      documentId: 'alice:proj:elements',
-      authenticated: true,
-      canWrite: true,
-      userId: 'bob',
-    });
-    spyOn(projectService, 'findByUsernameAndSlug').mockResolvedValue({
-      id: 'p1',
-      userId: 'owner-1',
-    });
-    const token = await signJwt({ userId: 'owner-1', username: 'alice', exp: exp() });
-
-    const response = await revoke([bob], token, { userId: 'bob', reason: 'changed' });
-
-    expect(response.status).toBe(200);
-    expect(bob.sent).toEqual([]);
-    expect(bob.closes).toEqual([
-      { code: closeCodes.WS_CLOSE_ACCESS_CHANGED, reason: 'Access changed' },
+    expect(state.storage.deleteAll).toHaveBeenCalledTimes(1);
+    expect(ws.closes).toEqual([
+      { code: closeCodes.WS_CLOSE_PROJECT_NOT_FOUND, reason: 'Project deleted' },
     ]);
   });
 
-  it('refuses an editor', async () => {
-    const bob = makeWs({
-      documentId: 'alice:proj:elements',
-      authenticated: true,
-      canWrite: true,
-      userId: 'bob',
-    });
+  it('refuses a collaborator, even with write access', async () => {
+    const state = makeState([]);
     spyOn(projectService, 'findByUsernameAndSlug').mockResolvedValue({
-      id: 'p1',
+      id: 'project-1',
       userId: 'owner-1',
     });
     spyOn(collaborationService, 'checkAccess').mockResolvedValue({
@@ -191,21 +148,21 @@ describe('YjsProject DO POST /api/revoke', () => {
       canWrite: true,
       role: 'editor',
     });
-    const token = await signJwt({ userId: 'editor-1', username: 'eve', exp: exp() });
+    const token = await signJwt({ userId: 'editor-1', username: 'bob', exp: exp() });
 
-    const response = await revoke([bob], token, { userId: 'bob', reason: 'removed' });
+    const response = await destroy(state, token);
 
     expect(response.status).toBe(403);
-    expect(bob.closes).toEqual([]);
+    expect(state.storage.deleteAll).not.toHaveBeenCalled();
   });
 
-  it('rejects a body without userId', async () => {
-    spyOn(projectService, 'findByUsernameAndSlug').mockResolvedValue({
-      id: 'p1',
-      userId: 'owner-1',
-    });
-    const token = await signJwt({ userId: 'owner-1', username: 'alice', exp: exp() });
-    const response = await revoke([], token, { reason: 'removed' });
-    expect(response.status).toBe(400);
+  it('refuses without a token', async () => {
+    const state = makeState([]);
+    const doInstance = new YjsProject(state, { DATABASE_KEY: SECRET, DB: {} });
+    const response = await doInstance.fetch(
+      new Request('https://yjs-do/api/destroy?documentId=alice:proj:elements', { method: 'POST' })
+    );
+    expect(response.status).toBe(401);
+    expect(state.storage.deleteAll).not.toHaveBeenCalled();
   });
 });

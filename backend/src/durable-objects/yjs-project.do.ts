@@ -167,6 +167,10 @@ interface SessionData {
   username: string;
   email?: string;
   exp?: number;
+  /** Issued-at (unix seconds); resolveProjectAccess compares it to users.sessionsValidFrom. */
+  iat?: number;
+  /** 'full' for sessions, 'enrol' for the passkey-enrolment-only token. */
+  scope?: string;
 }
 
 type YjsEnv = {
@@ -326,6 +330,12 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
 
       // Normalize to userId for internal use
       payload.userId = userId;
+
+      if (payload.scope === 'enrol') {
+        // Enrolment-only token: may attach a passkey, nothing else.
+        projDOLog.error('Enrolment-scoped JWT rejected for collaboration');
+        return null;
+      }
 
       // Check expiration
       if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
@@ -494,6 +504,13 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
           return jsonResponse({ error: 'Admin access required' }, 403);
         }
         return this.handleRevokeUser(request);
+      case 'POST /api/destroy':
+        // resolveProjectAccess reports role null for the owner; collaborators
+        // (even editors) must not be able to wipe the project.
+        if (role !== null) {
+          return jsonResponse({ error: 'Owner access required' }, 403);
+        }
+        return this.handleDestroyProject();
       case 'GET /api/elements':
         return this.handleGetElements(documentId);
       case 'POST /api/elements':
@@ -561,6 +578,32 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       `Revoked ${closed} socket(s) for user ${userId} on ${this.projectId} (${reason})`
     );
     return new Response(JSON.stringify({ closed }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  /**
+   * POST /api/destroy - The project is being deleted. Close every socket,
+   * drop the in-memory documents and wipe this DO's storage so a project
+   * re-created under the same username:slug (which maps to this same DO)
+   * starts empty instead of resurrecting the deleted content.
+   */
+  private async handleDestroyProject(): Promise<Response> {
+    for (const ws of this.state.getWebSockets()) {
+      this.cleanupConnection(ws);
+      safeSend(ws, 'access-denied:project-not-found');
+      safeClose(ws, WS_CLOSE_PROJECT_NOT_FOUND, 'Project deleted');
+    }
+    this.connections.clear();
+    this.documents.clear();
+    this.elementSnapshots.clear();
+    for (const timer of this.dedupeTimers.values()) clearTimeout(timer);
+    this.dedupeTimers.clear();
+
+    await this.state.storage.deleteAll();
+    projDOLog.info(`Project ${this.projectId} destroyed: storage wiped`);
+    return new Response(JSON.stringify({ ok: true }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
@@ -1952,7 +1995,27 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       connInfo.pendingMessages.push(message);
       return;
     }
+    this.dispatchAuthenticatedFrame(ws, connInfo, message);
+  }
 
+  /**
+   * Route one binary frame from an AUTHENTICATED connection to the presence
+   * registry or the Yjs document, applying the read-only-viewer write gate.
+   *
+   * This is the single dispatch path for both live frames (arriving after
+   * auth) and frames that were queued in `pendingMessages` while the auth
+   * handshake was in flight. The two paths used to diverge: the queue drain
+   * called `applyDocumentMessage` directly, so a viewer could queue a
+   * mutation frame before authenticating and have it applied — and broadcast
+   * to every peer — the moment auth completed. Any reconnect could trigger it
+   * accidentally, since y-websocket starts syncing before it hears
+   * `authenticated`.
+   */
+  private dispatchAuthenticatedFrame(
+    ws: WebSocket,
+    connInfo: ConnectionInfo,
+    message: ArrayBuffer
+  ): void {
     // Dispatch presence frames WITHOUT requiring sharedDoc. Presence frames
     // only touch the in-memory presence registry — loading the full document
     // from storage to handle them is pure waste (and was a major source of
@@ -1985,6 +2048,19 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       this.applyDocumentMessage(sharedDoc, ws, message);
     } catch (error) {
       projDOLog.error('Error handling WebSocket message:', error);
+    }
+  }
+
+  /**
+   * Replay frames queued while the auth handshake was in flight, through the
+   * same gate as live frames (viewer write-block, presence routing). The queue
+   * is cleared first so a frame that throws cannot be replayed.
+   */
+  private drainPendingMessages(ws: WebSocket, connInfo: ConnectionInfo): void {
+    const queued = connInfo.pendingMessages;
+    connInfo.pendingMessages = [];
+    for (const data of queued) {
+      this.dispatchAuthenticatedFrame(ws, connInfo, data);
     }
   }
 
@@ -2378,11 +2454,8 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
         this.watchElementsDocDO(sharedDoc, connInfo.documentId, projectDbId, db);
       }
 
-      // Process any binary messages that arrived during auth
-      for (const data of connInfo.pendingMessages) {
-        this.applyDocumentMessage(sharedDoc, ws, data);
-      }
-      connInfo.pendingMessages = [];
+      // Process any binary messages that arrived during auth.
+      this.drainPendingMessages(ws, connInfo);
 
       projDOLog.debug(
         `Yjs sync started for ${connInfo.documentId} (${this.documents.size} docs in DO)`
