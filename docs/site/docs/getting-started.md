@@ -9,7 +9,7 @@ sidebar_position: 2
 
 - [Git](https://git-scm.com/)
 - [Node.js 22+](https://nodejs.org/) (Angular dev server runs on Node)
-- [Bun 1.3+](https://bun.sh/) (backend + workspace scripts)
+- [Bun 1.4+](https://bun.sh/) (backend + workspace scripts)
 - [Docker](https://www.docker.com/) optional but recommended for parity testing
 - Cloudflare account (optional, only for the Worker build)
 

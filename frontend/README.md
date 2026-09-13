@@ -68,7 +68,7 @@ graph TD
 ### Prerequisites
 
 - Node.js 22 or higher
-- [Bun 1.3+](https://bun.sh/)
+- [Bun 1.4+](https://bun.sh/)
 
 ### Installation
 
