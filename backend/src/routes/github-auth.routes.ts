@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { githubAuth } from '@hono/oauth-providers/github';
 import { authService } from '../services/auth.service';
 import { userService } from '../services/user.service';
+import { oauthLoginCodeService } from '../services/oauth-login-code.service';
 import { configService } from '../services/config.service';
 import { getBaseUrl } from '../services/url.service';
 import type { AppContext } from '../types/context';
@@ -16,33 +17,10 @@ const githubAuthRoutes = new Hono<AppContext>();
  * One-time authorization codes for secure token exchange.
  * Instead of passing the JWT in a query parameter (which leaks in browser history,
  * Referer headers, and server logs), we pass a short-lived opaque code that the
- * frontend exchanges for the JWT via a POST request.
+ * frontend exchanges for the JWT via a POST request. Codes are stored (hashed)
+ * in the database — see oauthLoginCodeService — so the exchange works whichever
+ * instance or Workers isolate receives it.
  */
-const pendingCodes = new Map<string, { token: string; expiresAt: number }>();
-const CODE_TTL_MS = 60_000; // 60 seconds
-
-function generateAuthCode(token: string): string {
-  const code = crypto.randomUUID();
-  pendingCodes.set(code, { token, expiresAt: Date.now() + CODE_TTL_MS });
-
-  // Lazy cleanup of expired codes
-  if (pendingCodes.size > 100) {
-    const now = Date.now();
-    for (const [key, value] of pendingCodes) {
-      if (value.expiresAt <= now) pendingCodes.delete(key);
-    }
-  }
-
-  return code;
-}
-
-function consumeAuthCode(code: string): string | null {
-  const entry = pendingCodes.get(code);
-  if (!entry) return null;
-  pendingCodes.delete(code);
-  if (entry.expiresAt <= Date.now()) return null;
-  return entry.token;
-}
 
 /**
  * GET /github
@@ -149,11 +127,9 @@ githubAuthRoutes.get(
         }
       }
 
-      // Create JWT session
-      const token = await authService.createSession(c, updatedUser);
-
-      // Generate a one-time authorization code (avoids leaking JWT in URL)
-      const code = generateAuthCode(token);
+      // Generate a one-time authorization code (avoids leaking the JWT in
+      // the URL). The session itself is minted when the code is exchanged.
+      const code = await oauthLoginCodeService.issue(db, updatedUser.id);
 
       // Redirect to frontend with the opaque code
       return c.redirect(`${baseUrl}/oauth/callback?code=${encodeURIComponent(code)}`);
@@ -178,11 +154,20 @@ githubAuthRoutes.post('/exchange-code', async (c) => {
     return c.json({ error: 'Authorization code is required' }, 400);
   }
 
-  const token = consumeAuthCode(code);
-  if (!token) {
+  const db = c.get('db');
+  const userId = await oauthLoginCodeService.redeem(db, code);
+  if (!userId) {
     return c.json({ error: 'Invalid or expired authorization code' }, 401);
   }
 
+  // The account state is re-checked here rather than trusted from the
+  // callback: an admin may have disabled the user in the meantime.
+  const user = await userService.findById(db, userId);
+  if (!user || !userService.canLogin(user)) {
+    return c.json({ error: 'Invalid or expired authorization code' }, 401);
+  }
+
+  const token = await authService.createSession(c, user);
   return c.json({ token });
 });
 

@@ -1,4 +1,9 @@
 import { describe, it, expect, beforeAll, afterAll } from 'bun:test';
+import { eq } from 'drizzle-orm';
+import { getDatabase } from '../src/db/index';
+import { users, oauthLoginCodes } from '../src/db/schema/index';
+import { oauthLoginCodeService } from '../src/services/oauth-login-code.service';
+import { userService } from '../src/services/user.service';
 import { startTestServer, stopTestServer, TestClient } from './server-test-helper';
 
 describe('GitHub Auth Routes', () => {
@@ -72,6 +77,82 @@ describe('GitHub Auth Routes', () => {
       expect(response.status).toBe(401);
       const data = await json();
       expect((data as { error: string }).error).toBe('Invalid or expired authorization code');
+    });
+
+    it('exchanges a database-backed code exactly once and re-checks the account', async () => {
+      const db = getDatabase();
+      await db.delete(users).where(eq(users.username, 'ghcodeuser'));
+      const [user] = await db
+        .insert(users)
+        .values({
+          id: crypto.randomUUID(),
+          username: 'ghcodeuser',
+          email: 'ghcodeuser@example.com',
+          approved: true,
+          enabled: true,
+        })
+        .returning();
+
+      const code = await oauthLoginCodeService.issue(db, user.id);
+      const first = await client.request('/api/v1/auth/exchange-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code }),
+      });
+      expect(first.response.status).toBe(200);
+      expect(((await first.json()) as { token: string }).token).toBeTruthy();
+
+      // Single use.
+      const second = await client.request('/api/v1/auth/exchange-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code }),
+      });
+      expect(second.response.status).toBe(401);
+
+      // A disabled account cannot redeem even a fresh code.
+      const disabledCode = await oauthLoginCodeService.issue(db, user.id);
+      await userService.setUserEnabled(db, user.id, false);
+      const disabled = await client.request('/api/v1/auth/exchange-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: disabledCode }),
+      });
+      expect(disabled.response.status).toBe(401);
+
+      await db.delete(users).where(eq(users.id, user.id));
+    });
+
+    it('rejects an expired code and prunes it on the next issue', async () => {
+      const db = getDatabase();
+      await db.delete(users).where(eq(users.username, 'ghcodeexpiry'));
+      const [user] = await db
+        .insert(users)
+        .values({
+          id: crypto.randomUUID(),
+          username: 'ghcodeexpiry',
+          email: 'ghcodeexpiry@example.com',
+          approved: true,
+          enabled: true,
+        })
+        .returning();
+
+      const code = await oauthLoginCodeService.issue(db, user.id);
+      await db
+        .update(oauthLoginCodes)
+        .set({ expiresAt: Date.now() - 1 })
+        .where(eq(oauthLoginCodes.userId, user.id));
+      expect(await oauthLoginCodeService.redeem(db, code)).toBeNull();
+
+      await oauthLoginCodeService.issue(db, user.id); // prunes expired rows
+      const rows = await db
+        .select()
+        .from(oauthLoginCodes)
+        .where(eq(oauthLoginCodes.userId, user.id));
+      expect(rows).toHaveLength(1);
+      expect(rows[0].expiresAt).toBeGreaterThan(Date.now());
+
+      await db.delete(users).where(eq(users.id, user.id));
     });
 
     it('should return 400 when code is not a string', async () => {
