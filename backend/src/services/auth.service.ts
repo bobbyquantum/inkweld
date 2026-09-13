@@ -2,6 +2,7 @@ import type { Context } from 'hono';
 import { sign, verify } from 'hono/jwt';
 import { config } from '../config/env';
 import { userService } from './user.service';
+import { isSessionRevoked } from '../utils/session-validity';
 import type { User } from '../db/schema/users';
 import type { DatabaseInstance } from '../types/context';
 import { logger } from './logger.service';
@@ -34,6 +35,8 @@ const ENROLMENT_TOKEN_EXPIRY = 15 * 60; // 15 minutes in seconds
 export type SessionScope = 'full' | 'enrol';
 
 export interface SessionData {
+  /** Issued-at (unix seconds). Compared against users.sessionsValidFrom. */
+  iat?: number;
   userId: string;
   username: string;
   email: string;
@@ -90,6 +93,7 @@ class AuthService {
       username: user.username || '',
       email: '', // Omit actual email from JWT to avoid PII leakage in tokens
       scope: 'full',
+      iat: now,
       exp: now + TOKEN_EXPIRY, // JWT expiration (30 days)
     };
 
@@ -126,6 +130,7 @@ class AuthService {
       username: user.username || '',
       email: '',
       scope: 'enrol',
+      iat: now,
       exp: now + ENROLMENT_TOKEN_EXPIRY,
     };
     const secret = this.getSecret(c);
@@ -271,7 +276,13 @@ class AuthService {
     }
 
     try {
-      return (await userService.findById(db, session.userId)) ?? null;
+      const user = (await userService.findById(db, session.userId)) ?? null;
+      if (user && isSessionRevoked(user, session)) {
+        // Issued before the user's revocation watermark (password reset,
+        // passkey recovery, admin disable) — treat exactly like no session.
+        return null;
+      }
+      return user;
     } catch (err) {
       authLog.error('Failed to get user from session', err);
       return null;

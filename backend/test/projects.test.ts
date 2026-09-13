@@ -10,6 +10,9 @@ import {
   enablePasswordLoginForTests,
 } from './server-test-helper';
 import { TEST_PASSWORDS } from './test-credentials';
+import { existsSync } from 'node:fs';
+import { fileStorageService } from '../src/services/file-storage.service';
+import { yjsService } from '../src/services/yjs.service';
 
 describe('Projects', () => {
   let testUserId: string;
@@ -227,6 +230,50 @@ describe('Projects', () => {
       expect(getResponse.status).toBe(404);
     });
 
+    it('removes the project directory and its documents, and a re-created slug starts empty', async () => {
+      const slug = 'delete-with-content';
+      await client.request('/api/v1/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug, title: 'Has content' }),
+      });
+
+      // Give the project some content: a media file and a Yjs elements doc.
+      await fileStorageService.saveProjectFile(testUsername, slug, 'note.txt', 'hello');
+      const docId = `${testUsername}:${slug}:elements`;
+      const shared = await yjsService.getDocument(docId);
+      shared.doc.getArray('elements').insert(0, [{ id: 'e1', name: 'Chapter 1' }]);
+      const projectPath = fileStorageService.getProjectPath(testUsername, slug);
+      expect(existsSync(projectPath)).toBe(true);
+
+      const { response } = await client.request(`/api/v1/projects/${testUsername}/${slug}`, {
+        method: 'DELETE',
+      });
+      expect(response.status).toBe(200);
+
+      // Storage (including the .yjs store) is gone and nothing is held in memory.
+      expect(existsSync(projectPath)).toBe(false);
+      const internals = yjsService as unknown as {
+        docs: Map<string, unknown>;
+        persistences: Map<string, unknown>;
+      };
+      expect(internals.docs.has(docId)).toBe(false);
+      expect(internals.persistences.has(`${testUsername}:${slug}`)).toBe(false);
+
+      // Re-creating the same slug must not resurrect the deleted documents.
+      const recreate = await client.request('/api/v1/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug, title: 'Fresh start' }),
+      });
+      expect(recreate.response.status).toBe(201);
+      const fresh = await yjsService.getDocument(docId);
+      expect(fresh.doc.getArray('elements')).toHaveLength(0);
+      expect(await fileStorageService.projectFileExists(testUsername, slug, 'note.txt')).toBe(
+        false
+      );
+    });
+
     it('should create tombstone on delete', async () => {
       // Create a project
       const { json: createJson } = await client.request('/api/v1/projects', {
@@ -270,6 +317,50 @@ describe('Projects', () => {
   });
 
   describe('POST /api/v1/projects/tombstones/check', () => {
+    it("does not reveal other users' tombstones", async () => {
+      // Owner deletes a project…
+      await client.request('/api/v1/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug: 'private-tombstone', title: 'Private' }),
+      });
+      await client.request(`/api/v1/projects/${testUsername}/private-tombstone`, {
+        method: 'DELETE',
+      });
+
+      // …and a different authenticated user asks about it by key.
+      const db = getDatabase();
+      await db.delete(users).where(eq(users.username, 'tombstone-snoop'));
+      await db.insert(users).values({
+        id: crypto.randomUUID(),
+        username: 'tombstone-snoop',
+        email: 'tombstone-snoop@example.com',
+        password: await bcrypt.hash(TEST_PASSWORDS.DEFAULT, 10),
+        approved: true,
+        enabled: true,
+      });
+      const snoop = new TestClient(client['baseUrl']);
+      expect(await snoop.login('tombstone-snoop', TEST_PASSWORDS.DEFAULT)).toBe(true);
+
+      const { response, json } = await snoop.request('/api/v1/projects/tombstones/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectKeys: [`${testUsername}/private-tombstone`] }),
+      });
+      expect(response.status).toBe(200);
+      expect((await json()).tombstones).toHaveLength(0);
+
+      // The owner still sees it.
+      const own = await client.request('/api/v1/projects/tombstones/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectKeys: [`${testUsername}/private-tombstone`] }),
+      });
+      expect((await own.json()).tombstones).toHaveLength(1);
+
+      await db.delete(users).where(eq(users.username, 'tombstone-snoop'));
+    });
+
     it('should return empty array for non-deleted projects', async () => {
       const { response, json } = await client.request('/api/v1/projects/tombstones/check', {
         method: 'POST',

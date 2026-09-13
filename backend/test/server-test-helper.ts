@@ -3,6 +3,7 @@
  * This is needed for testing session-based authentication since
  * Hono's app.request() doesn't maintain cookies/sessions.
  */
+import { websocket } from 'hono/bun';
 import { serve, type Server } from 'bun';
 import { createBunApp } from '../src/bun-app';
 import { getDatabase } from '../src/db/index';
@@ -106,6 +107,8 @@ export async function startTestServer(): Promise<{ port: number; baseUrl: string
     hostname: TEST_HOST,
     port: testPort,
     fetch: app.fetch,
+    // Required for the Yjs WebSocket route to upgrade connections in tests
+    websocket,
   });
 
   await waitForServer(baseUrl());
