@@ -568,15 +568,6 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     }
   }
 
-  /** Deserialise a socket's attachment, treating a corrupt one as absent. */
-  private readAttachment(ws: WebSocket): WSAttachment | null {
-    try {
-      return ws.deserializeAttachment() as WSAttachment | null;
-    } catch {
-      return null;
-    }
-  }
-
   /**
    * POST /api/revoke {userId, reason} - Close every socket the user holds on
    * this project. Access is cached per connection (and persisted in the
