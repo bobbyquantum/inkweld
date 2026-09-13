@@ -22,6 +22,12 @@ export const users = sqliteTable('users', {
   enabled: integer('enabled', { mode: 'boolean' }).notNull().default(false),
   approved: integer('approved', { mode: 'boolean' }).notNull().default(false),
   isAdmin: integer('isAdmin', { mode: 'boolean' }).notNull().default(false),
+  /**
+   * Unix seconds. Session JWTs issued before this instant are rejected.
+   * Bumped on password reset, passkey recovery and admin disable/unapprove so
+   * a stateless 30-day token can be revoked without a session table.
+   */
+  sessionsValidFrom: integer('sessionsValidFrom').notNull().default(0),
   hasAvatar: integer('hasAvatar', { mode: 'boolean' }).notNull().default(false),
   // Whether the user has uploaded a personal background image (mirrors
   // hasAvatar: the bytes live in storage, this flag saves a storage round-trip

@@ -4,6 +4,8 @@ import { projectService } from '../services/project.service';
 import { userService } from '../services/user.service';
 import { collaborationService } from '../services/collaboration.service';
 import { fileStorageService } from '../services/file-storage.service';
+import { getStorageService } from '../services/storage.service';
+import { destroyProjectDurableObject } from '../utils/project-durable-object';
 import { yjsService } from '../services/yjs.service';
 import { getProjectStorageSize } from '../services/storage-size.service';
 import {
@@ -416,6 +418,15 @@ projectRoutes.openapi(deleteProjectRoute, async (c) => {
     throw new ForbiddenError('Access denied');
   }
 
+  // Remove the project's content before its DB row. Previously only the row
+  // went: Yjs documents, media, covers and published files stayed on disk /
+  // in R2 / in the Durable Object, and creating a project with the same slug
+  // adopted them all. Order matters on Bun/Node: the LevelDB handle must be
+  // closed before the directory that contains it is removed.
+  await yjsService.destroyProject(username, slug);
+  await getStorageService(c.get('storage')).deleteProjectDirectory(username, slug);
+  await destroyProjectDurableObject(c, username, slug);
+
   await projectService.delete(db, project.id, project.userId, project.slug);
 
   return c.json({ message: 'Project deleted successfully' }, 200);
@@ -529,7 +540,11 @@ projectRoutes.openapi(checkTombstonesRoute, async (c) => {
 
   const { projectKeys } = c.req.valid('json');
 
-  const tombstones = await projectService.findTombstonesByProjectKeys(db, projectKeys);
+  const tombstones = await projectService.findTombstonesByProjectKeys(
+    db,
+    projectKeys,
+    contextUser.id
+  );
 
   return c.json(
     {

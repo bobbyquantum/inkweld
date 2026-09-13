@@ -4,6 +4,8 @@ import { yjsService } from '../services/yjs.service';
 import { authService } from '../services/auth.service';
 import { projectService } from '../services/project.service';
 import { collaborationService } from '../services/collaboration.service';
+import { userService } from '../services/user.service';
+import { isSessionRevoked } from '../utils/session-validity';
 import { writingSessionService } from '../services/writing-session.service';
 import { activityService } from '../services/activity.service';
 import { countWords, extractTextContent } from '../mcp/tools/mutation.tools';
@@ -187,6 +189,9 @@ app.get(
 
     // Connection state
     let authenticated = false;
+    // The authenticated identity, handed to the presence service so a client
+    // cannot present as another user.
+    let authUser: { id: string; username: string } | null = null;
     let authInProgress = false;
     let canWrite: boolean | null = false; // Viewers can receive but not send updates
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Yjs WSSharedDoc type is complex
@@ -312,7 +317,8 @@ app.get(
                 projectKey,
                 toPresenceSocket(raw),
                 peeked.decoder,
-                bytes
+                bytes,
+                authUser ?? undefined
               );
             }
           }
@@ -330,10 +336,20 @@ app.get(
       authInProgress = true;
       try {
         const sessionData = await authService.verifyToken(token, c);
-        if (!sessionData) {
+        if (!sessionData || sessionData.scope === 'enrol') {
           wsLog.warn(`Invalid auth token for ${documentId}`);
           ws.send('access-denied:invalid-token');
           ws.close(WS_CLOSE_INVALID_TOKEN, 'Invalid token');
+          return;
+        }
+
+        // Mirror requireAuth: the account must still be enabled and approved,
+        // and the token must not predate the user's revocation watermark.
+        const account = await userService.findById(db, sessionData.userId);
+        if (!account || !userService.canLogin(account) || isSessionRevoked(account, sessionData)) {
+          wsLog.warn(`Account not permitted to sync ${documentId}: ${sessionData.username}`);
+          ws.send('access-denied:forbidden');
+          ws.close(WS_CLOSE_FORBIDDEN, 'Access denied');
           return;
         }
 
@@ -387,6 +403,7 @@ app.get(
 
         authenticated = true;
         clearAuthDeadline();
+        authUser = { id: sessionData.userId, username: sessionData.username };
         wsLog.info(`Authenticated for ${documentId} (user: ${sessionData.username})`);
         ws.send('authenticated');
 
@@ -438,7 +455,13 @@ app.get(
         }
         const projectKey = projectKeyForDocumentId(documentId);
         if (!projectKey || !ws.raw) return;
-        presenceService.handleMessage(projectKey, toPresenceSocket(ws.raw), peeked.decoder, bytes);
+        presenceService.handleMessage(
+          projectKey,
+          toPresenceSocket(ws.raw),
+          peeked.decoder,
+          bytes,
+          authUser ?? undefined
+        );
         return;
       }
 

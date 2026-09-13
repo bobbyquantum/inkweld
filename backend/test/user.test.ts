@@ -193,11 +193,12 @@ describe('User Service', () => {
         password: TEST_PASSWORDS.DEFAULT,
       });
 
-      // Log in with GitHub using the same email
+      // Log in with GitHub using the same, verified, email
       const linked = await userService.createOrUpdateGithubUser(db, {
         githubId: 'gh-link-1',
         username: 'gh-localuser',
         email: 'shared@example.com',
+        emailVerified: true,
         name: 'GitHub Name',
       });
 
@@ -206,6 +207,43 @@ describe('User Service', () => {
       expect(linked.username).toBe('localuser'); // keeps local username
       expect(linked.githubId).toBe('gh-link-1');
       expect(linked.name).toBe(localUser.name || 'GitHub Name'); // preserves existing name
+    });
+
+    it('does not link to a local user on an unverified email', async () => {
+      const localUser = await userService.create(db, {
+        username: 'victimuser',
+        email: 'victim@example.com',
+        password: TEST_PASSWORDS.DEFAULT,
+      });
+
+      // GitHub lets anyone add an unverified address to their profile.
+      const attacker = await userService.createOrUpdateGithubUser(db, {
+        githubId: 'gh-attacker',
+        username: 'attacker',
+        email: 'victim@example.com',
+        emailVerified: false,
+        name: 'Attacker',
+      });
+
+      expect(attacker.id).not.toBe(localUser.id);
+      expect(attacker.username).toBe('attacker');
+      const victim = await userService.findById(db, localUser.id);
+      expect(victim?.githubId).toBeNull();
+    });
+
+    it('treats a missing emailVerified flag as unverified', async () => {
+      const localUser = await userService.create(db, {
+        username: 'localuser2',
+        email: 'shared2@example.com',
+        password: TEST_PASSWORDS.DEFAULT,
+      });
+      const other = await userService.createOrUpdateGithubUser(db, {
+        githubId: 'gh-link-2',
+        username: 'gh-localuser2',
+        email: 'shared2@example.com',
+        name: 'GitHub Name',
+      });
+      expect(other.id).not.toBe(localUser.id);
     });
 
     it('should not link to a user that already has a different GitHub account', async () => {

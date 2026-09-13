@@ -3,6 +3,7 @@ import type { Context, Hono } from 'hono';
 import { optionalAuth } from '../middleware/auth';
 import { authService } from '../services/auth.service';
 import { userService } from '../services/user.service';
+import { isSessionRevoked } from '../utils/session-validity';
 import { passkeyService } from '../services/passkey.service';
 import { configService } from '../services/config.service';
 import { rpFromContext } from '../utils/webauthn-utils';
@@ -85,8 +86,10 @@ async function resolveRegistrationUser(c: Context): Promise<User | null> {
   // Enrolment scope is the only path through which an unapproved/disabled
   // user reaches a register handler. The token itself is the proof — we
   // do NOT additionally check canLogin here, because by definition this
-  // user has not yet been approved.
-  return (await userService.findById(db, sessionResult.userId)) ?? null;
+  // user has not yet been approved. It is still subject to revocation.
+  const user = (await userService.findById(db, sessionResult.userId)) ?? null;
+  if (user && isSessionRevoked(user, sessionResult)) return null;
+  return user;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
