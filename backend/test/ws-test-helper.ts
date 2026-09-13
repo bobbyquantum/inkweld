@@ -48,7 +48,9 @@ export function connectYjsSocket(baseUrl: string, documentId: string): Promise<C
   });
   return new Promise((resolve, reject) => {
     ws.addEventListener('open', () => resolve(collected));
-    ws.addEventListener('error', (event) => reject(new Error(`WebSocket error: ${String(event)}`)));
+    ws.addEventListener('error', (event) =>
+      reject(new Error(`WebSocket error (${event.type})`, { cause: event }))
+    );
   });
 }
 
