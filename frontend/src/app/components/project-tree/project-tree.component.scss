@@ -46,12 +46,13 @@
     padding: 1px 6px;
   }
 
-  // The expand/collapse toggle defaults to a 40px state layer, which would
-  // force the row back to full height. Shrink it so dense rows stay compact.
+  // The expand/collapse toggle defaults to a 32px state layer (theme density
+  // -2), which exceeds the 28px row and stops it shrinking. Resize the state
+  // layer only — the icon stays 24px and Material's padding calc
+  // `(state-layer - icon) / 2` keeps it centred. Do NOT zero `padding`: that
+  // pins the glyph to the top-left and misaligns it against the node icon.
   .aria-tree .mat-mdc-icon-button {
-    --mdc-icon-button-state-layer-size: 24px;
-    --mdc-icon-button-icon-size: 20px;
-    padding: 0;
+    --mat-icon-button-state-layer-size: 24px;
   }
 
   .node-title {
