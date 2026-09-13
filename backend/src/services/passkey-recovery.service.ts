@@ -215,6 +215,10 @@ class PasskeyRecoveryService {
       .where(and(eq(passkeyRecoveryTokens.id, record.id), isNull(passkeyRecoveryTokens.usedAt)))
       .returning();
 
+    // Recovery means the previous credentials are presumed lost or stolen:
+    // end every session issued before this moment.
+    await userService.invalidateSessions(db, user.id);
+
     if (burnResult.length === 0) {
       // Someone else burned it between our load and update. The passkey
       // was already inserted, so this is a no-op as far as the user is

@@ -166,6 +166,10 @@ interface SessionData {
   username: string;
   email?: string;
   exp?: number;
+  /** Issued-at (unix seconds); resolveProjectAccess compares it to users.sessionsValidFrom. */
+  iat?: number;
+  /** 'full' for sessions, 'enrol' for the passkey-enrolment-only token. */
+  scope?: string;
 }
 
 type YjsEnv = {
@@ -318,6 +322,12 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
 
       // Normalize to userId for internal use
       payload.userId = userId;
+
+      if (payload.scope === 'enrol') {
+        // Enrolment-only token: may attach a passkey, nothing else.
+        projDOLog.error('Enrolment-scoped JWT rejected for collaboration');
+        return null;
+      }
 
       // Check expiration
       if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
