@@ -331,6 +331,95 @@ describe('YjsService idle cleanup', () => {
   });
 });
 
+describe('YjsService persist failure tracking', () => {
+  const settle = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+  /** Replace the project's persistence with one whose storeUpdate can be made to fail. */
+  function installFailingStore(service: YjsService, projectKey: string) {
+    const internals = internalsOf(service);
+    const real = internals.persistences.get(projectKey);
+    if (!real) throw new Error(`No persistence installed for ${projectKey}`);
+    const state = { failing: false, calls: 0 };
+    internals.persistences.set(projectKey, {
+      getYDoc: (name: string) => real.getYDoc(name),
+      storeUpdate: async (name: string, update: Uint8Array) => {
+        state.calls++;
+        if (state.failing) throw new Error('simulated LevelDB write failure');
+        return real.storeUpdate(name, update);
+      },
+      flushDocument: (name: string) => real.flushDocument(name),
+      destroy: () => real.destroy(),
+    });
+    return state;
+  }
+
+  function failures(service: YjsService): Map<string, number> {
+    return (service as unknown as { persistFailures: Map<string, number> }).persistFailures;
+  }
+
+  it('counts consecutive write failures per document and clears on recovery', async () => {
+    const service = new YjsService();
+    const documentId = `${USERNAME}:${SLUG}:elements/`;
+    const shared = await service.getDocument(documentId);
+    const store = installFailingStore(service, PROJECT_KEY);
+
+    store.failing = true;
+    for (let i = 0; i < 3; i++) shared.doc.getMap('scratch').set(`k${i}`, i);
+    await settle(50);
+    expect(failures(service).get(documentId)).toBe(3);
+
+    // Another document in the same project is tracked independently.
+    const other = await service.getDocument(`${USERNAME}:${SLUG}:doc-1`);
+    other.doc.getMap('scratch').set('k', 1);
+    await settle(50);
+    expect(failures(service).get(`${USERNAME}:${SLUG}:doc-1`)).toBe(1);
+    expect(failures(service).get(documentId)).toBe(3);
+
+    // The next successful write clears only the recovered document.
+    store.failing = false;
+    shared.doc.getMap('scratch').set('recovered', true);
+    await settle(50);
+    expect(failures(service).has(documentId)).toBe(false);
+    expect(failures(service).get(`${USERNAME}:${SLUG}:doc-1`)).toBe(1);
+
+    await service.cleanup();
+  }, 20000);
+
+  it('keeps broadcasting to peers while persistence is failing', async () => {
+    const service = new YjsService();
+    const documentId = `${USERNAME}:${SLUG}:elements/`;
+    const received: unknown[] = [];
+    const peer = { send: (m: unknown) => received.push(m), close: () => {} };
+    const shared = await service.handleConnection(peer, documentId);
+    const store = installFailingStore(service, PROJECT_KEY);
+    const before = received.length;
+
+    store.failing = true;
+    shared.doc.getMap('scratch').set('live', 1);
+    await settle(50);
+
+    // Persistence failed but the peer still got the update frame.
+    expect(failures(service).get(documentId)).toBe(1);
+    expect(received.length).toBeGreaterThan(before);
+    await service.cleanup();
+  }, 20000);
+
+  it('drops failure state when the project is torn down', async () => {
+    const service = new YjsService();
+    const documentId = `${USERNAME}:${SLUG}:elements/`;
+    const shared = await service.getDocument(documentId);
+    const store = installFailingStore(service, PROJECT_KEY);
+    store.failing = true;
+    shared.doc.getMap('scratch').set('k', 1);
+    await settle(50);
+    expect(failures(service).size).toBe(1);
+
+    await service.renameProject(USERNAME, SLUG, 'renamed');
+    expect(failures(service).size).toBe(0);
+    await service.cleanup();
+  });
+});
+
 describe('YjsService.destroyProject', () => {
   it('closes sockets, drops the docs and releases the persistence handle', async () => {
     const service = new YjsService();

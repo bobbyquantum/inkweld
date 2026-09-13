@@ -217,6 +217,68 @@ describe('UserService', () => {
       expect(service.error()?.code).toBe('SESSION_EXPIRED');
     });
 
+    it('clears a cached user when the server rejects the session', async () => {
+      // First load succeeds and caches the user.
+      await service.loadCurrentUser();
+      expect(service.isAuthenticated()).toBe(true);
+
+      // The token is now dead on the server.
+      userServiceMock.getCurrentUser.mockReturnValue(
+        throwError(
+          () =>
+            new HttpErrorResponse({
+              error: { error: 'Invalid or expired token' },
+              status: 401,
+              statusText: 'Unauthorized',
+            })
+        )
+      );
+
+      await expect(service.loadCurrentUser()).rejects.toThrow(UserServiceError);
+
+      // Previously the cached user survived here and the auth guard let the
+      // navigation through on a dead session.
+      expect(service.isAuthenticated()).toBe(false);
+      expect(service.currentUser().username).toBe('anonymous');
+      expect(storageContextMock.clearConfigUserProfile).toHaveBeenCalled();
+    });
+
+    it('clears a cached user when access is denied outright', async () => {
+      await service.loadCurrentUser();
+      // A generic 403 (not the "pending approval / disabled" wording, which
+      // maps to ACCOUNT_PENDING and must keep its session for that page).
+      userServiceMock.getCurrentUser.mockReturnValue(
+        throwError(
+          () =>
+            new HttpErrorResponse({
+              error: { message: 'Permission denied', error: 'Forbidden' },
+              status: 403,
+              statusText: 'Forbidden',
+            })
+        )
+      );
+
+      await expect(service.loadCurrentUser()).rejects.toThrow(UserServiceError);
+      expect(service.isAuthenticated()).toBe(false);
+    });
+
+    it('keeps the cached user on a network error', async () => {
+      await service.loadCurrentUser();
+      userServiceMock.getCurrentUser.mockReturnValue(
+        throwError(
+          () =>
+            new HttpErrorResponse({
+              error: new Error('offline'),
+              status: 0,
+              statusText: 'Network Error',
+            })
+        )
+      );
+
+      await service.loadCurrentUser();
+      expect(service.isAuthenticated()).toBe(true);
+    });
+
     it('should handle anonymous user response (not authenticated)', async () => {
       const anonymousUser: User = {
         id: '',
