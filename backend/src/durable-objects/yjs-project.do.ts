@@ -57,7 +57,14 @@ import {
   WS_CLOSE_PROJECT_NOT_FOUND,
   WS_CLOSE_RATE_LIMITED,
   WS_CLOSE_SERVER_ERROR,
+  WS_CLOSE_AUTH_TIMEOUT,
+  WS_CLOSE_PREAUTH_OVERFLOW,
 } from '../utils/ws-close-codes';
+import {
+  PREAUTH_TIMEOUT_MS,
+  preAuthDeadlinePassed,
+  preAuthQueueAccepts,
+} from '../utils/ws-preauth';
 import {
   decodeSnapshotMetrics,
   hasDocContent,
@@ -96,6 +103,8 @@ interface ConnectionInfo {
   canWrite: boolean; // Resolved from collaboration access; viewers cannot send updates
   sharedDoc?: WSSharedDoc; // Document (only set after auth)
   pendingMessages: ArrayBuffer[]; // Binary messages queued before auth
+  /** Bytes currently held in pendingMessages (bounded, see utils/ws-preauth.ts). */
+  pendingBytes?: number;
   unsubscribe?: () => void; // Cleanup function for document subscription
   /**
    * Awareness client IDs this connection "controls" — tracked via the
@@ -138,6 +147,12 @@ interface ConnectionInfo {
 interface WSAttachment {
   documentId: string;
   authenticated: boolean;
+  /**
+   * Epoch ms the socket was accepted. Present only while unauthenticated so
+   * the auth-deadline alarm can find sockets that never sent a token (a
+   * setTimeout would pin the DO in memory; the alarm survives hibernation).
+   */
+  connectedAt?: number;
   userId?: string;
   username?: string;
   /** Whether the user has write access (false = viewer/commenter). Persisted
@@ -1094,6 +1109,62 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
    * NOTE: No authentication here - auth happens over the WebSocket connection
    * Client must send JWT token as first text message after connecting
    */
+  /**
+   * Arm the DO alarm for the pre-auth deadline of a newly accepted socket,
+   * unless an earlier alarm is already pending. Uses the alarm API rather than
+   * setTimeout because a live timer prevents the DO from hibernating.
+   */
+  private async scheduleAuthDeadline(deadlineMs: number): Promise<void> {
+    const storage = this.state.storage as {
+      getAlarm?: () => Promise<number | null>;
+      setAlarm?: (at: number) => Promise<void>;
+    };
+    if (typeof storage.getAlarm !== 'function' || typeof storage.setAlarm !== 'function') return;
+    try {
+      const current = await storage.getAlarm();
+      if (current === null || current === undefined || current > deadlineMs) {
+        await storage.setAlarm(deadlineMs);
+      }
+    } catch (error) {
+      projDOLog.error('Failed to schedule auth-deadline alarm', error);
+    }
+  }
+
+  /** Deserialise a socket's attachment, treating a corrupt one as absent. */
+  private readAttachment(ws: WebSocket): WSAttachment | null {
+    try {
+      return ws.deserializeAttachment() as WSAttachment | null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Alarm handler: close every socket that was accepted but never
+   * authenticated within PREAUTH_TIMEOUT_MS, then re-arm for the earliest
+   * remaining unauthenticated socket, if any.
+   */
+  async alarm(): Promise<void> {
+    const now = Date.now();
+    let nextDeadline: number | null = null;
+    for (const ws of this.state.getWebSockets()) {
+      const attachment = this.readAttachment(ws);
+      if (!attachment || attachment.authenticated || attachment.connectedAt === undefined) continue;
+      if (preAuthDeadlinePassed(attachment.connectedAt, now)) {
+        projDOLog.warn(`No auth token within deadline for ${attachment.documentId}; closing`);
+        safeSend(ws, 'access-denied:auth-timeout');
+        safeClose(ws, WS_CLOSE_AUTH_TIMEOUT, 'Authentication timeout');
+        this.connections.delete(ws);
+        continue;
+      }
+      const deadline = attachment.connectedAt + PREAUTH_TIMEOUT_MS;
+      if (nextDeadline === null || deadline < nextDeadline) nextDeadline = deadline;
+    }
+    if (nextDeadline !== null) {
+      await this.scheduleAuthDeadline(nextDeadline);
+    }
+  }
+
   private async handleWebSocketUpgrade(request: Request, url: URL): Promise<Response> {
     let documentId = url.searchParams.get('documentId');
 
@@ -1130,15 +1201,20 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
 
     // Persist minimal per-connection state so the DO can hibernate
     // and rehydrate this connection on wake. See WSAttachment + rehydrateConnection().
+    const connectedAt = Date.now();
     const attachment: WSAttachment = {
       documentId,
       authenticated: false,
       canWrite: false,
+      connectedAt,
     };
     server.serializeAttachment(attachment);
 
     // Accept WebSocket with hibernation and tag with documentId
     this.state.acceptWebSocket(server, [documentId]);
+
+    // Close it again if no token arrives in time. See alarm().
+    await this.scheduleAuthDeadline(connectedAt + PREAUTH_TIMEOUT_MS);
 
     // Note: We do NOT set up Yjs here - we wait for authentication
     // The client must send a JWT token as the first text message
@@ -1932,7 +2008,17 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
 
   private handleBinaryMessage(ws: WebSocket, connInfo: ConnectionInfo, message: ArrayBuffer): void {
     if (!connInfo.authenticated) {
+      const queuedBytes = connInfo.pendingBytes ?? 0;
+      if (!preAuthQueueAccepts(connInfo.pendingMessages.length, queuedBytes, message.byteLength)) {
+        projDOLog.warn(`Pre-auth queue overflow for ${connInfo.documentId}; closing`);
+        connInfo.pendingMessages = [];
+        connInfo.pendingBytes = 0;
+        safeSend(ws, 'access-denied:queue-overflow');
+        safeClose(ws, WS_CLOSE_PREAUTH_OVERFLOW, 'Authenticate before syncing');
+        return;
+      }
       connInfo.pendingMessages.push(message);
+      connInfo.pendingBytes = queuedBytes + message.byteLength;
       return;
     }
     this.dispatchAuthenticatedFrame(ws, connInfo, message);
