@@ -268,7 +268,7 @@ describe('Projects', () => {
       });
       expect(recreate.response.status).toBe(201);
       const fresh = await yjsService.getDocument(docId);
-      expect(fresh.doc.getArray('elements').length).toBe(0);
+      expect(fresh.doc.getArray('elements')).toHaveLength(0);
       expect(await fileStorageService.projectFileExists(testUsername, slug, 'note.txt')).toBe(
         false
       );
