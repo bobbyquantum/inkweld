@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import {
   fetchVerifiedGithubEmail,
+  resolveGithubProfile,
   selectVerifiedGithubEmail,
   type GithubEmailEntry,
 } from '../src/utils/github-emails';
@@ -58,5 +59,53 @@ describe('fetchVerifiedGithubEmail', () => {
       throw new Error('offline');
     }) as unknown as typeof fetch;
     expect(await fetchVerifiedGithubEmail('tok', failing)).toBeNull();
+  });
+});
+
+describe('resolveGithubProfile', () => {
+  const emailsFetch = (emails: GithubEmailEntry[]): typeof fetch =>
+    (async () => new Response(JSON.stringify(emails), { status: 200 })) as unknown as typeof fetch;
+
+  it('carries the verified address and marks it verified', async () => {
+    const profile = await resolveGithubProfile(
+      { id: 42, login: 'octocat', name: 'The Octocat' },
+      'tok',
+      emailsFetch([entry('octo@example.com', true, true)])
+    );
+    expect(profile).toEqual({
+      githubId: '42',
+      username: 'octocat',
+      email: 'octo@example.com',
+      emailVerified: true,
+      name: 'The Octocat',
+    });
+  });
+
+  it('leaves the email empty and unverified when GitHub has no verified address', async () => {
+    const profile = await resolveGithubProfile(
+      { id: 42, login: 'octocat' },
+      'tok',
+      emailsFetch([entry('victim@example.com', true, false)])
+    );
+    expect(profile.email).toBe('');
+    expect(profile.emailVerified).toBe(false);
+    expect(profile.name).toBe('octocat');
+  });
+
+  it('never looks up emails without an access token', async () => {
+    let called = false;
+    const fetchImpl = (async () => {
+      called = true;
+      return new Response('[]', { status: 200 });
+    }) as unknown as typeof fetch;
+    const profile = await resolveGithubProfile({ id: 7 }, undefined, fetchImpl);
+    expect(called).toBe(false);
+    expect(profile).toEqual({
+      githubId: '7',
+      username: 'github-7',
+      email: '',
+      emailVerified: false,
+      name: 'github-7',
+    });
   });
 });

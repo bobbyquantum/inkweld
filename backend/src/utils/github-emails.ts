@@ -49,3 +49,41 @@ export async function fetchVerifiedGithubEmail(
     return null;
   }
 }
+
+/** The subset of the OAuth middleware's GitHub user object this module reads. */
+export interface GithubOAuthUser {
+  id?: number | string;
+  login?: string;
+  name?: string;
+}
+
+export interface GithubProfile {
+  githubId: string;
+  username: string;
+  email: string;
+  emailVerified: boolean;
+  name: string;
+}
+
+/**
+ * Build the profile handed to `userService.createOrUpdateGithubUser` from the
+ * middleware's user object plus a verified email looked up with the access
+ * token. Without a token, or when GitHub reports no verified address, the
+ * profile carries an empty, unverified email so the identity is never linked
+ * to an existing account by email.
+ */
+export async function resolveGithubProfile(
+  githubUser: GithubOAuthUser,
+  accessToken: string | undefined,
+  fetchImpl: typeof fetch = fetch
+): Promise<GithubProfile> {
+  const verifiedEmail = accessToken ? await fetchVerifiedGithubEmail(accessToken, fetchImpl) : null;
+  const login = githubUser.login || `github-${githubUser.id}`;
+  return {
+    githubId: String(githubUser.id),
+    username: login,
+    email: verifiedEmail ?? '',
+    emailVerified: verifiedEmail !== null,
+    name: githubUser.name || login,
+  };
+}
