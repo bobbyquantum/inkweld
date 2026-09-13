@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, describe, expect, it, mock, spyOn } from 'bun:test';
+import { afterAll, afterEach, beforeAll, describe, expect, it, mock, spyOn } from 'bun:test';
 
 /**
  * POST /api/destroy on the Yjs Durable Object: project deletion must wipe the
@@ -74,6 +74,7 @@ function makeState(sockets: unknown[]) {
 let YjsProject: new (state: unknown, env: unknown) => { fetch(req: Request): Promise<Response> };
 let projectService: { findByUsernameAndSlug: (...args: unknown[]) => Promise<unknown> };
 let collaborationService: { checkAccess: (...args: unknown[]) => Promise<unknown> };
+let userService: { findById: (...args: unknown[]) => Promise<unknown> };
 let closeCodes: typeof import('../src/utils/ws-close-codes');
 
 describe('YjsProject DO POST /api/destroy', () => {
@@ -81,9 +82,25 @@ describe('YjsProject DO POST /api/destroy', () => {
     closeCodes = await import('../src/utils/ws-close-codes');
     ({ projectService } = await import('../src/services/project.service'));
     ({ collaborationService } = await import('../src/services/collaboration.service'));
+    ({ userService } = await import('../src/services/user.service'));
+    // resolveProjectAccess re-checks the user row behind the token; there is
+    // no database here, so answer with an enabled, approved account.
+    spyOn(userService, 'findById').mockImplementation(async (_db: unknown, id: unknown) => ({
+      id,
+      username: String(id),
+      enabled: true,
+      approved: true,
+      sessionsValidFrom: null,
+    }));
     ({ YjsProject } = (await import('../src/durable-objects/yjs-project.do')) as unknown as {
       YjsProject: typeof YjsProject;
     });
+  });
+
+  // bun runs every test file in one process, so the userService spy above
+  // would otherwise answer for the whole suite (and 403 every admin route).
+  afterAll(() => {
+    (userService.findById as ReturnType<typeof spyOn>).mockRestore?.();
   });
 
   afterEach(() => {
