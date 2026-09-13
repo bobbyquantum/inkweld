@@ -59,6 +59,7 @@ import {
   WS_CLOSE_SERVER_ERROR,
   WS_CLOSE_AUTH_TIMEOUT,
   WS_CLOSE_PREAUTH_OVERFLOW,
+  WS_CLOSE_ACCESS_CHANGED,
 } from '../utils/ws-close-codes';
 import {
   PREAUTH_TIMEOUT_MS,
@@ -535,6 +536,12 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     role: string | null
   ): Promise<Response> {
     switch (`${method} ${path}`) {
+      case 'POST /api/revoke':
+        // Only the owner (role null) or an admin collaborator may revoke.
+        if (role !== null && role !== 'admin') {
+          return jsonResponse({ error: 'Admin access required' }, 403);
+        }
+        return this.handleRevokeUser(request);
       case 'POST /api/destroy':
         // resolveProjectAccess reports role null for the owner; collaborators
         // (even editors) must not be able to wipe the project.
@@ -559,6 +566,50 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       default:
         return jsonResponse({ error: 'Not found' }, 404);
     }
+  }
+
+  /**
+   * POST /api/revoke {userId, reason} - Close every socket the user holds on
+   * this project. Access is cached per connection (and persisted in the
+   * hibernation attachment), so a collaborator removal or role change had no
+   * effect on open sessions; forcing a reconnect re-runs the access check.
+   */
+  private async handleRevokeUser(request: Request): Promise<Response> {
+    let body: { userId?: unknown; reason?: unknown };
+    try {
+      body = (await request.json()) as { userId?: unknown; reason?: unknown };
+    } catch {
+      body = {};
+    }
+    const userId = typeof body.userId === 'string' ? body.userId : null;
+    const reason = body.reason === 'changed' ? 'changed' : 'removed';
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'userId is required' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    let closed = 0;
+    for (const ws of this.state.getWebSockets()) {
+      const wsUserId = this.connections.get(ws)?.userId ?? this.readAttachment(ws)?.userId;
+      if (wsUserId !== userId) continue;
+      this.cleanupConnection(ws);
+      if (reason === 'removed') {
+        safeSend(ws, 'access-denied:forbidden');
+        safeClose(ws, WS_CLOSE_FORBIDDEN, 'Access revoked');
+      } else {
+        safeClose(ws, WS_CLOSE_ACCESS_CHANGED, 'Access changed');
+      }
+      closed++;
+    }
+    projDOLog.info(
+      `Revoked ${closed} socket(s) for user ${userId} on ${this.projectId} (${reason})`
+    );
+    return new Response(JSON.stringify({ closed }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 
   /**

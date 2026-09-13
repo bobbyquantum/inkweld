@@ -35,3 +35,8 @@ export const WS_CLOSE_RATE_LIMITED = 4529;
 export const WS_CLOSE_AUTH_TIMEOUT = 4508;
 /** Transient: too many / too large frames queued before authentication. Reconnect and authenticate first. */
 export const WS_CLOSE_PREAUTH_OVERFLOW = 4513;
+/**
+ * Transient: the user's role on this project changed while connected. The
+ * client reconnects and re-authenticates, picking up the new access level.
+ */
+export const WS_CLOSE_ACCESS_CHANGED = 4530;

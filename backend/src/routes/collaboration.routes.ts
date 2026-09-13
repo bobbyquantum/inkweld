@@ -12,6 +12,7 @@ import { collaborationService } from '../services/collaboration.service';
 import { activityService } from '../services/activity.service';
 import { type CollaboratorRole } from '../db/schema/project-collaborators';
 import { UnauthorizedError, ForbiddenError, NotFoundError } from '../errors';
+import { revokeCollaboratorSockets } from '../utils/collaborator-revocation';
 import type { AppContext, DatabaseInstance, User } from '../types/context';
 
 const collaborationRoutes = new OpenAPIHono<AppContext>();
@@ -360,6 +361,9 @@ collaborationRoutes.openapi(updateCollaboratorRoute, async (c) => {
     role as CollaboratorRole
   );
 
+  // Open sockets cached the old role; make them reconnect and pick up the new one.
+  await revokeCollaboratorSockets(c, username, slug, collaboratorId, 'changed');
+
   void activityService.record(db, {
     projectId,
     userId: user!.id,
@@ -418,6 +422,10 @@ collaborationRoutes.openapi(removeCollaboratorRoute, async (c) => {
   const existing = collaborators.find((c) => c.userId === collaboratorId);
 
   await collaborationService.removeCollaborator(db, projectId, collaboratorId);
+
+  // Open sockets cached the old access; close them so the removal takes
+  // effect now rather than at the next reconnect.
+  await revokeCollaboratorSockets(c, username, slug, collaboratorId, 'removed');
 
   void activityService.record(db, {
     projectId,
