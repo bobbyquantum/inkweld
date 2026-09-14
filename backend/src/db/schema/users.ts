@@ -62,6 +62,20 @@ export const users = sqliteTable('users', {
     .notNull()
     .default('private')
     .$type<ProfileVisibility>(),
+  /**
+   * Per-user sync-capacity override in bytes. `NULL` means "use the
+   * instance-wide default" (`SYNC_QUOTA_DEFAULT_BYTES` config key, 100 MB when
+   * unset) so admins can grant extra capacity without copying the default onto
+   * every row. A value of `0` is an explicit zero allowance.
+   */
+  syncQuotaBytes: integer('syncQuotaBytes'),
+  /**
+   * Fast-path usage counter in bytes, maintained incrementally on the write
+   * path and reconciled against the authoritative per-project storage-size
+   * computation. Not the source of truth on its own — reconciliation corrects
+   * drift.
+   */
+  storageUsedBytes: integer('storageUsedBytes').notNull().default(0),
 });
 
 export type User = typeof users.$inferSelect;

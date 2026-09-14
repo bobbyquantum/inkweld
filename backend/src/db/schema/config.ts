@@ -661,6 +661,21 @@ export const CONFIG_KEYS = {
     type: 'string' as const,
   },
 
+  // Sync capacity. The default per-user storage allowance in bytes, applied
+  // when a user has no individual override (users.syncQuotaBytes IS NULL).
+  // Admins can raise an individual's limit without changing this. Stored as a
+  // string (config values are text); parsed with parseSyncQuotaBytes so a
+  // malformed or negative value falls back to the hard default rather than
+  // silently disabling enforcement.
+  SYNC_QUOTA_DEFAULT_BYTES: {
+    category: 'general' as ConfigCategory,
+    description:
+      'Default per-user sync capacity in bytes (default: 104857600 = 100 MB). Individual users can be granted more.',
+    encrypted: false,
+    envVar: 'SYNC_QUOTA_DEFAULT_BYTES',
+    type: 'string' as const,
+  },
+
   // Custom HTML injection slots. Raw HTML injected into every served page —
   // NOT sanitized by design (that is the feature). Admins can add analytics,
   // consent-manager scripts, verification meta tags, etc. Only expose this
