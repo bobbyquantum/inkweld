@@ -109,8 +109,20 @@ interface WSSharedDoc {
   elementSnapshot?: Map<string, ElementSnapshot>;
 }
 
+/** How long an idle document (no sockets) stays in memory before eviction. */
+export const DEFAULT_IDLE_CLEANUP_MS = 60_000;
+
 export class YjsService {
+  constructor(private readonly idleCleanupMs: number = DEFAULT_IDLE_CLEANUP_MS) {}
+
   private readonly docs = new Map<string, WSSharedDoc>();
+  /**
+   * Pending idle-eviction timers by documentId. Each timer is tied to the doc
+   * object it was armed for and is cancelled when the doc is reused, renamed
+   * or destroyed, so a stale timer can never evict a live replacement that
+   * was created under the same name (see scheduleIdleCleanup).
+   */
+  private readonly idleTimers = new Map<string, ReturnType<typeof setTimeout>>();
   /**
    * In-flight document loads, keyed by documentId. `getDocument` awaits
    * LevelDB before publishing to `docs`, so two concurrent callers (two tabs,
@@ -154,6 +166,19 @@ export class YjsService {
    * `pendingLoads`); a failed load is dropped so a later call can retry.
    */
   async getDocument(documentId: string): Promise<WSSharedDoc> {
+    const doc = await this.getOrLoadDocument(documentId);
+    // A document with no sockets is a headless open (HTTP / MCP / activity
+    // observers). Those callers never disconnect, so nothing else would ever
+    // arm the idle timer — such docs (and their project's LevelDB handle) used
+    // to stay in memory for the life of the process. Arm / re-arm it here; a
+    // socket attaching in the meantime cancels it (handleConnection).
+    if (doc.conns.size === 0) {
+      this.scheduleIdleCleanup(doc);
+    }
+    return doc;
+  }
+
+  private async getOrLoadDocument(documentId: string): Promise<WSSharedDoc> {
     const existing = this.docs.get(documentId);
     if (existing) return existing;
 
@@ -166,6 +191,64 @@ export class YjsService {
       return await load;
     } finally {
       this.pendingLoads.delete(documentId);
+    }
+  }
+
+  /**
+   * (Re)arm the idle-eviction timer for `doc`. The callback re-checks that the
+   * map still holds this exact object and that it has no sockets before doing
+   * anything: eviction used to be by name, so a timer armed for an old object
+   * (e.g. one destroyed by a rename) could evict and destroy the live doc
+   * later created under the same name, and close its project's LevelDB
+   * handle from under it.
+   */
+  private scheduleIdleCleanup(doc: WSSharedDoc): void {
+    this.cancelIdleCleanup(doc.name);
+    const timer = setTimeout(() => {
+      this.idleTimers.delete(doc.name);
+      if (this.docs.get(doc.name) !== doc || doc.conns.size > 0) return;
+      void this.evictIdleDocument(doc);
+    }, this.idleCleanupMs);
+    this.idleTimers.set(doc.name, timer);
+  }
+
+  private cancelIdleCleanup(documentId: string): void {
+    const timer = this.idleTimers.get(documentId);
+    if (timer) {
+      clearTimeout(timer);
+      this.idleTimers.delete(documentId);
+    }
+  }
+
+  /** Destroy an idle doc and, if it was the project's last one, close the LevelDB handle. */
+  private async evictIdleDocument(doc: WSSharedDoc): Promise<void> {
+    if (doc.awarenessChangeListener) {
+      doc.awareness.off('update', doc.awarenessChangeListener);
+      doc.awarenessChangeListener = undefined;
+    }
+    doc.awareness.destroy();
+    doc.doc.destroy();
+    this.docs.delete(doc.name);
+    this.persistFailures.delete(doc.name);
+    this.pendingSinceCompact.delete(doc.name);
+    yjsLog.debug(`Document ${doc.name} cleaned up after inactivity`);
+
+    // Only close persistence if NO documents from this project are active
+    const projectKey = this.getProjectKey(doc.name);
+    const hasOtherDocsFromProject = Array.from(this.docs.keys()).some(
+      (docId) => this.getProjectKey(docId) === projectKey
+    );
+    if (!hasOtherDocsFromProject) {
+      const persistence = this.persistences.get(projectKey);
+      if (persistence) {
+        try {
+          await persistence.destroy();
+          this.persistences.delete(projectKey);
+          yjsLog.debug(`Closed LevelDB persistence for project ${projectKey}`);
+        } catch (error) {
+          yjsLog.error(`Error closing persistence for project ${projectKey}`, error);
+        }
+      }
     }
   }
 
@@ -404,8 +487,9 @@ export class YjsService {
   async handleConnection(ws: any, documentId: string, _userId?: string): Promise<WSSharedDoc> {
     const doc = await this.getDocument(documentId);
 
-    // Add connection
+    // Add connection (and cancel any idle-eviction timer armed while headless)
     doc.conns.set(ws, new Set());
+    this.cancelIdleCleanup(doc.name);
 
     // Send initial sync
     const encoder = encoding.createEncoder();
@@ -660,43 +744,10 @@ export class YjsService {
     }
     doc.conns.delete(ws);
 
-    // Clean up document if no more connections
+    // Keep the document in memory for a grace period after the last socket
+    // leaves so a quick reconnect does not reload it from LevelDB.
     if (doc.conns.size === 0) {
-      // Keep document in memory for 1 minute after last disconnect
-      setTimeout(async () => {
-        if (doc.conns.size === 0) {
-          if (doc.awarenessChangeListener) {
-            doc.awareness.off('update', doc.awarenessChangeListener);
-            doc.awarenessChangeListener = undefined;
-          }
-          doc.awareness.destroy();
-          doc.doc.destroy();
-          this.docs.delete(doc.name);
-          this.persistFailures.delete(doc.name);
-          this.pendingSinceCompact.delete(doc.name);
-          yjsLog.debug(`Document ${doc.name} cleaned up after inactivity`);
-
-          // Check if there are any other documents from the same project still active
-          const projectKey = this.getProjectKey(doc.name);
-          const hasOtherDocsFromProject = Array.from(this.docs.keys()).some(
-            (docId) => this.getProjectKey(docId) === projectKey
-          );
-
-          // Only close persistence if NO documents from this project are active
-          if (!hasOtherDocsFromProject) {
-            const persistence = this.persistences.get(projectKey);
-            if (persistence) {
-              try {
-                await persistence.destroy();
-                this.persistences.delete(projectKey);
-                yjsLog.debug(`Closed LevelDB persistence for project ${projectKey}`);
-              } catch (error) {
-                yjsLog.error(`Error closing persistence for project ${projectKey}`, error);
-              }
-            }
-          }
-        }
-      }, 60000);
+      this.scheduleIdleCleanup(doc);
     }
   }
 
@@ -720,6 +771,8 @@ export class YjsService {
    * Close all connections and cleanup
    */
   async cleanup() {
+    for (const timer of this.idleTimers.values()) clearTimeout(timer);
+    this.idleTimers.clear();
     // Close all WebSocket connections
     this.docs.forEach((doc) => {
       doc.conns.forEach((_, ws) => {
@@ -810,6 +863,7 @@ export class YjsService {
     });
 
     for (const docId of docsToRemove) {
+      this.cancelIdleCleanup(docId);
       this.docs.delete(docId);
       this.persistFailures.delete(docId);
       this.pendingSinceCompact.delete(docId);

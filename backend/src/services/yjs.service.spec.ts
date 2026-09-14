@@ -9,7 +9,7 @@ import { getLevelUpdatesKeys, keyEncoding } from 'y-leveldb';
 
 import { config } from '../config/env';
 import { fileStorageService } from './file-storage.service';
-import { LEVELDB_COMPACT_THRESHOLD, YjsService } from './yjs.service';
+import { DEFAULT_IDLE_CLEANUP_MS, LEVELDB_COMPACT_THRESHOLD, YjsService } from './yjs.service';
 import { WS_CLOSE_ACCESS_CHANGED, WS_CLOSE_FORBIDDEN } from '../utils/ws-close-codes';
 
 // Mirror of y-leveldb's internal valueEncoding (not exported by the package):
@@ -232,6 +232,104 @@ describe('YjsService.getDocument concurrency', () => {
 
     await service.cleanup();
   }, 20000);
+});
+
+describe('YjsService idle cleanup', () => {
+  const IDLE_MS = 60;
+  const settle = (ms: number) => new Promise((r) => setTimeout(r, ms));
+  const fakeWs = () => ({ send: () => {}, close: () => {} });
+
+  function internals(service: YjsService) {
+    return service as unknown as {
+      docs: Map<string, unknown>;
+      persistences: Map<string, unknown>;
+      idleTimers: Map<string, unknown>;
+    };
+  }
+
+  it('defaults to a one-minute grace period', () => {
+    expect(DEFAULT_IDLE_CLEANUP_MS).toBe(60_000);
+  });
+
+  it('evicts a headless document (no sockets) after the idle period', async () => {
+    const service = new YjsService(IDLE_MS);
+    const documentId = `${USERNAME}:${SLUG}:elements/`;
+    await service.getDocument(documentId);
+    expect(internals(service).docs.has(documentId)).toBe(true);
+
+    await settle(IDLE_MS * 3);
+
+    expect(internals(service).docs.has(documentId)).toBe(false);
+    expect(internals(service).persistences.has(PROJECT_KEY)).toBe(false);
+    await service.cleanup();
+  });
+
+  it('keeps a headless document alive while it is still being used', async () => {
+    const service = new YjsService(IDLE_MS);
+    const documentId = `${USERNAME}:${SLUG}:elements/`;
+    const first = await service.getDocument(documentId);
+    await settle(IDLE_MS / 2);
+    const second = await service.getDocument(documentId); // re-arms the timer
+    expect(second).toBe(first);
+    await settle(IDLE_MS / 2 + 10);
+    expect(internals(service).docs.get(documentId)).toBe(first);
+    await service.cleanup();
+  });
+
+  it('does not evict a document that has a socket attached', async () => {
+    const service = new YjsService(IDLE_MS);
+    const documentId = `${USERNAME}:${SLUG}:elements/`;
+    const doc = await service.handleConnection(fakeWs(), documentId);
+    expect(internals(service).idleTimers.has(documentId)).toBe(false);
+
+    await settle(IDLE_MS * 3);
+
+    expect(internals(service).docs.get(documentId)).toBe(doc);
+    await service.cleanup();
+  });
+
+  it('evicts after the last socket disconnects and a reconnect cancels it', async () => {
+    const service = new YjsService(IDLE_MS);
+    const documentId = `${USERNAME}:${SLUG}:elements/`;
+    const ws1 = fakeWs();
+    const doc = await service.handleConnection(ws1, documentId);
+    service.handleDisconnect(ws1, doc);
+    expect(internals(service).idleTimers.has(documentId)).toBe(true);
+
+    // Reconnect within the window: same object survives, timer is gone.
+    const reconnected = await service.handleConnection(fakeWs(), documentId);
+    expect(reconnected).toBe(doc);
+    expect(internals(service).idleTimers.has(documentId)).toBe(false);
+    await settle(IDLE_MS * 3);
+    expect(internals(service).docs.get(documentId)).toBe(doc);
+
+    await service.cleanup();
+  });
+
+  it('a stale timer never destroys a live replacement created under the same name', async () => {
+    const service = new YjsService(IDLE_MS);
+    const documentId = `${USERNAME}:${SLUG}:elements/`;
+    const ws = fakeWs();
+    const oldDoc = await service.handleConnection(ws, documentId);
+    service.handleDisconnect(ws, oldDoc); // arms the timer for oldDoc
+
+    // A rename tears the old doc down without waiting for the timer…
+    await service.renameProject(USERNAME, SLUG, 'renamed');
+    expect(internals(service).docs.has(documentId)).toBe(false);
+
+    // …and a client re-opens the same name (e.g. via the slug alias).
+    const newDoc = await service.handleConnection(fakeWs(), documentId);
+    expect(newDoc).not.toBe(oldDoc);
+    newDoc.doc.getArray('elements').insert(0, [{ id: 'live' }]);
+
+    await settle(IDLE_MS * 3);
+
+    // The live doc and its persistence are intact.
+    expect(internals(service).docs.get(documentId)).toBe(newDoc);
+    expect(newDoc.doc.getArray('elements').length).toBe(1);
+    expect(internals(service).persistences.has(PROJECT_KEY)).toBe(true);
+    await service.cleanup();
+  });
 });
 
 describe('YjsService.revokeUserAccess', () => {
