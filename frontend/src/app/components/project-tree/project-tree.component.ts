@@ -522,48 +522,76 @@ export class ProjectTreeComponent implements OnDestroy {
     );
     const targetFolderId = this.targetParentFolderId();
 
+    const confirmed = await this.confirmMove(
+      node,
+      nodeAbove,
+      dropLevel,
+      targetFolderId
+    );
+    if (!confirmed) return;
+
+    this.projectStateService.moveElement(node.id, insertIndex, dropLevel);
+    this.expandTargetFolder(targetFolderId);
+
+    this.draggedNode = null;
+    this.targetParentFolderId.set(null);
+    this.nodeAboveDropPosition = null;
+  }
+
+  /**
+   * Ask the user to confirm a move, unless they have turned prompts off.
+   * Returns true when the move should proceed.
+   */
+  private async confirmMove(
+    node: ProjectElement,
+    nodeAbove: Element | null,
+    dropLevel: number,
+    targetFolderId: string | null
+  ): Promise<boolean> {
     // Ask first by default. The user can turn prompts off either in Project
     // Tree settings or by ticking "don't ask again" in this dialog.
     const confirmElementMoves = this.settingsService.getSetting<boolean>(
       'confirmElementMoves',
       true
     );
-    if (confirmElementMoves) {
-      const result = await this.dialogGateway.openMoveElementDialog({
-        elementName: node.name,
-        fromPath: this.buildElementPath(node.id),
-        toPath: this.buildElementPath(targetFolderId),
-        positionLabel: this.buildMovePositionLabel(nodeAbove, dropLevel),
-      });
-
-      if (!result) return;
-      if (result.dontAskAgain) {
-        try {
-          this.settingsService.setSetting<boolean>(
-            'confirmElementMoves',
-            false
-          );
-        } catch {
-          // Storage can be unavailable (private mode/quota); the move proceeds.
-        }
-      }
+    if (!confirmElementMoves) {
+      return true;
     }
 
-    this.projectStateService.moveElement(node.id, insertIndex, dropLevel);
+    const result = await this.dialogGateway.openMoveElementDialog({
+      elementName: node.name,
+      fromPath: this.buildElementPath(node.id),
+      toPath: this.buildElementPath(targetFolderId),
+      positionLabel: this.buildMovePositionLabel(nodeAbove, dropLevel),
+    });
 
-    // Expand the target folder if it was collapsed
-    if (targetFolderId) {
-      const targetFolder = this.treeElements().find(
-        el => el.id === targetFolderId
-      );
-      if (targetFolder && !targetFolder.expanded) {
-        this.projectStateService.setExpanded(targetFolderId, true);
-      }
+    if (!result) {
+      return false;
     }
+    if (result.dontAskAgain) {
+      this.disableMovePrompts();
+    }
+    return true;
+  }
 
-    this.draggedNode = null;
-    this.targetParentFolderId.set(null);
-    this.nodeAboveDropPosition = null;
+  /** Persist the "don't ask again" choice, ignoring unavailable storage. */
+  private disableMovePrompts(): void {
+    try {
+      this.settingsService.setSetting<boolean>('confirmElementMoves', false);
+    } catch {
+      // Storage can be unavailable (private mode/quota); the move proceeds.
+    }
+  }
+
+  /** Reveal the destination folder when a move lands inside a collapsed one. */
+  private expandTargetFolder(targetFolderId: string | null): void {
+    if (!targetFolderId) return;
+    const targetFolder = this.treeElements().find(
+      el => el.id === targetFolderId
+    );
+    if (targetFolder && !targetFolder.expanded) {
+      this.projectStateService.setExpanded(targetFolderId, true);
+    }
   }
 
   /**

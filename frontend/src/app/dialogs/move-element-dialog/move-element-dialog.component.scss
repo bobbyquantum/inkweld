@@ -40,7 +40,7 @@ h2[mat-dialog-title] {
 
 .route-path {
   font-size: 14px;
-  word-break: break-word;
+  overflow-wrap: break-word;
 
   &.destination {
     font-weight: 500;
