@@ -234,7 +234,9 @@ describe('TutorialOverlayComponent', () => {
       // Anchor rect (100,400 100x40) plus 6px spotlight padding
       expect(highlight?.style.top).toBe('94px');
       expect(highlight?.style.left).toBe('394px');
-      expect(query('tutorial-step-counter')?.textContent).toContain('1 of 5');
+      // Only the two required steps are planned in this DOM: the optional
+      // ones have no anchors, so they never join the count.
+      expect(query('tutorial-step-counter')?.textContent).toContain('1 of 2');
       // Back and next available on interior steps
       expect(query('tutorial-back-button')).not.toBeNull();
       expect(query('tutorial-next-button')).not.toBeNull();
@@ -262,7 +264,7 @@ describe('TutorialOverlayComponent', () => {
     });
   });
 
-  it('skips optional steps whose anchors are missing', async () => {
+  it('never shows optional steps whose anchors are missing', async () => {
     addAnchor('create-new-project-button');
     addAnchor('user-menu-button');
     tutorial.start('home');
@@ -271,12 +273,38 @@ describe('TutorialOverlayComponent', () => {
     query('tutorial-start-button')?.click();
     await settle(() => expect(tutorial.stepIndex()).toBe(1));
 
-    // Steps 2–4 (projects/sync) have no anchors → tour should land on the
-    // user-menu step (index 5).
+    // Steps 2–4 (projects/sync) have no anchors, so they are left out of the
+    // run: Next goes straight to the user-menu step (index 5), the last one.
     query('tutorial-next-button')?.click();
     await settle(() => {
       expect(tutorial.stepIndex()).toBe(5);
       expect(tutorial.currentStep()?.id).toBe('user-menu');
+      expect(query('tutorial-step-counter')?.textContent).toContain('2 of 2');
+      expect(query('tutorial-next-button')?.textContent).toContain('Done');
+    });
+  });
+
+  it('skips a planned optional step whose anchor goes away mid-tour', async () => {
+    addAnchor('create-new-project-button');
+    const grid = addAnchor('covers-grid');
+    addAnchor('user-menu-button');
+    tutorial.start('home');
+    await settle(() => expect(query('tutorial-start-button')).not.toBeNull());
+
+    // Planned with the grid on screen: create → projects-grid → user-menu
+    query('tutorial-start-button')?.click();
+    await settle(() => {
+      expect(tutorial.stepIndex()).toBe(1);
+      expect(query('tutorial-step-counter')?.textContent).toContain('1 of 3');
+    });
+
+    // The grid disappears before the tour reaches it
+    grid.remove();
+    query('tutorial-next-button')?.click();
+
+    await settle(() => {
+      expect(tutorial.currentStep()?.id).toBe('user-menu');
+      expect(query('tutorial-step-counter')?.textContent).toContain('2 of 2');
     });
   });
 
@@ -309,7 +337,7 @@ describe('TutorialOverlayComponent', () => {
     query('tutorial-start-button')?.click();
     await settle(() => expect(tutorial.stepIndex()).toBe(1));
 
-    // Skips the unanchored optional steps → user-menu (last step)
+    // The unanchored optional steps are not part of the run → user-menu
     query('tutorial-next-button')?.click();
     await settle(() => expect(tutorial.currentStep()?.id).toBe('user-menu'));
 

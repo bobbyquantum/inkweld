@@ -9,6 +9,7 @@ import {
 } from '@models/tutorial';
 
 import { SettingsService } from './settings.service';
+import { TUTORIAL_ANCHOR_PRESENT } from './tutorial-anchors';
 import { TUTORIAL_TOURS } from './tutorial-tours';
 
 /** Settings key holding per-tour completion state (per storage profile). */
@@ -28,6 +29,11 @@ const AUTO_START_OVERRIDE_KEY = 'inkweld-tutorial-autostart';
  * `TutorialOverlayComponent` (mounted once in the app shell), which resolves
  * step anchors in the DOM and renders the spotlight + step card.
  *
+ * A run works from a *plan*: the ordered indices of the steps it will visit.
+ * Optional steps whose anchor is not on screen are left out before the first
+ * one is shown, so they never flash past and the progress counter stays fixed
+ * for the whole run.
+ *
  * Progress is persisted through {@link SettingsService}, so it is scoped to
  * the active profile (local vs each server) and works fully offline.
  */
@@ -37,16 +43,18 @@ const AUTO_START_OVERRIDE_KEY = 'inkweld-tutorial-autostart';
 export class TutorialService {
   private readonly settingsService = inject(SettingsService);
   private readonly router = inject(Router);
+  private readonly anchorPresent = inject(TUTORIAL_ANCHOR_PRESENT);
 
   private readonly _activeTour = signal<TutorialTour | null>(null);
   private readonly _stepIndex = signal(0);
 
-  /** Indices of steps skipped because their anchor never appeared. */
-  private readonly _skippedSteps = signal<ReadonlySet<number>>(new Set());
+  /** Indices of the steps this run visits, ascending. Empty when idle. */
+  private readonly _plan = signal<readonly number[]>([]);
 
   /**
    * Direction of the last user navigation (1 = forward, -1 = back). Used to
-   * keep skipping in the same direction when an optional step has no anchor.
+   * keep skipping in the same direction when a planned step turns out to have
+   * no anchor after all.
    */
   private direction: 1 | -1 = 1;
 
@@ -65,35 +73,23 @@ export class TutorialService {
     return tour?.steps[this._stepIndex()] ?? null;
   });
 
-  /** Total number of steps in the active tour. */
-  readonly totalSteps = computed(() => this._activeTour()?.steps.length ?? 0);
-
   /**
-   * 1-based position of the current step among the steps the user actually
-   * sees (the intro and skipped steps are excluded), for the progress counter.
+   * 1-based position of the current step among the steps this run shows (the
+   * intro is excluded), for the progress counter.
    */
-  readonly displayedStepNumber = computed(() => {
-    const index = this._stepIndex();
-    let position = index;
-    for (const skipped of this._skippedSteps()) {
-      if (skipped < index) {
-        position--;
-      }
-    }
-    return position;
-  });
+  readonly displayedStepNumber = computed(() =>
+    Math.max(this._plan().indexOf(this._stepIndex()), 0)
+  );
 
-  /**
-   * Number of non-intro steps not (yet) known to be skipped. Shrinks as
-   * unavailable steps are discovered, so the counter never overstates
-   * progress that is left.
-   */
-  readonly displayedTotalSteps = computed(() => {
-    const tour = this._activeTour();
-    if (!tour) {
-      return 0;
-    }
-    return tour.steps.length - 1 - this._skippedSteps().size;
+  /** Number of steps after the intro that this run will show. */
+  readonly displayedTotalSteps = computed(() =>
+    Math.max(this._plan().length - 1, 0)
+  );
+
+  /** Whether the current step is the last one this run will show. */
+  readonly isLastStep = computed(() => {
+    const plan = this._plan();
+    return plan.length > 0 && plan.at(-1) === this._stepIndex();
   });
 
   constructor() {
@@ -150,56 +146,48 @@ export class TutorialService {
     }
     this.direction = 1;
     this._stepIndex.set(0);
-    this._skippedSteps.set(new Set());
+    this.planSteps(tour);
     this._activeTour.set(tour);
     return true;
   }
 
-  /** Advance to the next step; completes the tour from the last step. */
+  /** Advance to the next planned step; completes from the last one. */
   next(): void {
     const tour = this._activeTour();
     if (!tour) {
       return;
     }
     this.direction = 1;
-    if (this._stepIndex() >= tour.steps.length - 1) {
-      this.complete();
-    } else {
-      this._stepIndex.update(index => index + 1);
+    if (this._stepIndex() === 0) {
+      // Re-plan on the way out of the intro, by which point lazily-rendered
+      // anchors have settled. From here the counter is fixed.
+      this.planSteps(tour);
     }
+    this.moveFrom(this._stepIndex());
   }
 
-  /** Go back one step (no-op on the first step). */
+  /** Go back one planned step (no-op on the intro). */
   previous(): void {
     if (!this.isActive() || this._stepIndex() === 0) {
       return;
     }
     this.direction = -1;
-    this._stepIndex.update(index => index - 1);
+    this.moveFrom(this._stepIndex());
   }
 
   /**
-   * Skip past the current step in the direction of travel. Called by the
-   * overlay when an optional step's anchor is not present on screen.
+   * Drop the current step from the plan and move past it in the direction of
+   * travel. Called by the overlay when a planned step's anchor is not (or no
+   * longer) on screen.
    */
   skipUnavailableStep(): void {
-    const tour = this._activeTour();
-    if (!tour) {
+    const index = this._stepIndex();
+    // The intro needs no anchor, so it is never skippable.
+    if (!this.isActive() || index === 0) {
       return;
     }
-    const skipped = new Set(this._skippedSteps());
-    skipped.add(this._stepIndex());
-    this._skippedSteps.set(skipped);
-
-    const nextIndex = this._stepIndex() + this.direction;
-    if (nextIndex >= tour.steps.length) {
-      this.complete();
-    } else if (nextIndex < 0) {
-      this._stepIndex.set(0);
-      this.direction = 1;
-    } else {
-      this._stepIndex.set(nextIndex);
-    }
+    this._plan.update(plan => plan.filter(planned => planned !== index));
+    this.moveFrom(index);
   }
 
   /** Close the tour and remember it as dismissed (never auto-offered again). */
@@ -212,27 +200,57 @@ export class TutorialService {
     this.close('completed');
   }
 
-  /**
-   * Called by the overlay when the current step is actually shown. A step
-   * skipped earlier (e.g. while its anchor was still loading) that renders on
-   * a revisit is no longer counted as skipped.
-   */
-  markStepDisplayed(): void {
-    const index = this._stepIndex();
-    if (!this._skippedSteps().has(index)) {
-      return;
-    }
-    const skipped = new Set(this._skippedSteps());
-    skipped.delete(index);
-    this._skippedSteps.set(skipped);
-  }
-
   /** Close the tour without persisting anything (offer can reappear). */
   abort(): void {
     this._activeTour.set(null);
     this._stepIndex.set(0);
-    this._skippedSteps.set(new Set());
+    this._plan.set([]);
     this.direction = 1;
+  }
+
+  /**
+   * Move to the planned step either side of `index`, according to the
+   * direction of travel. Running off the end completes the tour; running off
+   * the start lands back on the intro.
+   */
+  private moveFrom(index: number): void {
+    const plan = this._plan();
+    if (this.direction === -1) {
+      // The plan ascends, so the step before `index` is the entry just ahead
+      // of the first one at or past it.
+      const boundary = plan.findIndex(planned => planned >= index);
+      const previous = (boundary === -1 ? plan.length : boundary) - 1;
+      this._stepIndex.set(previous >= 0 ? plan[previous] : 0);
+      return;
+    }
+    const nextIndex = plan.find(planned => planned > index);
+    if (nextIndex === undefined) {
+      this.complete();
+    } else {
+      this._stepIndex.set(nextIndex);
+    }
+  }
+
+  /** Work out which of the tour's steps this run will visit. */
+  private planSteps(tour: TutorialTour): void {
+    this._plan.set(
+      tour.steps
+        .map((step, index) => ({ step, index }))
+        .filter(({ step, index }) => index === 0 || this.willShow(step))
+        .map(({ index }) => index)
+    );
+  }
+
+  /**
+   * Whether a step earns a slot in the plan. Required steps always do — with
+   * no anchor they fall back to a centered card — while optional ones only
+   * count while their anchor is on screen.
+   */
+  private willShow(step: TutorialStep): boolean {
+    if (!step.optional || !step.anchorTestIds?.length) {
+      return true;
+    }
+    return this.anchorPresent(step.anchorTestIds);
   }
 
   private close(status: TutorialTourStatus): void {
