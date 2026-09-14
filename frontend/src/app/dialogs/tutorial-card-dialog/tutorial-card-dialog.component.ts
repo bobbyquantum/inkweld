@@ -80,7 +80,7 @@ export class TutorialCardDialogComponent implements OnDestroy {
   }
 
   protected isLastStep(): boolean {
-    return this.tutorial.stepIndex() >= this.tutorial.totalSteps() - 1;
+    return this.tutorial.isLastStep();
   }
 
   private scheduleCardPlacement(rect: DOMRect | null): void {

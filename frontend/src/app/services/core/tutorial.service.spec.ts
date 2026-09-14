@@ -6,23 +6,34 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { type TutorialProgress } from '../../models/tutorial';
 import { SettingsService } from './settings.service';
 import { TutorialService } from './tutorial.service';
-import { TUTORIAL_TOURS } from './tutorial-tours';
+import { TUTORIAL_ANCHOR_PRESENT } from './tutorial-anchors';
 
 const AUTO_START_KEY = 'inkweld-tutorial-autostart';
 const PROGRESS_KEY = 'tutorialProgress';
 
+/** The optional anchors of the home tour, in step order. */
+const HOME_OPTIONAL_ANCHORS = ['empty-state', 'covers-grid', 'sync-all-btn'];
+
 describe('TutorialService', () => {
   let service: TutorialService;
   let stored: Record<string, unknown>;
+  /** Anchors the tests pretend are on screen when a run is planned. */
+  let onScreen: Set<string>;
 
   beforeEach(() => {
     stored = {};
+    onScreen = new Set(HOME_OPTIONAL_ANCHORS);
     localStorage.removeItem(AUTO_START_KEY);
 
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
         provideRouter([]),
+        {
+          provide: TUTORIAL_ANCHOR_PRESENT,
+          useValue: (testIds: readonly string[]) =>
+            testIds.some(testId => onScreen.has(testId)),
+        },
         {
           provide: SettingsService,
           useValue: {
@@ -48,6 +59,16 @@ describe('TutorialService', () => {
 
   const progress = (): TutorialProgress => stored[PROGRESS_KEY] ?? {};
 
+  /** Walk the whole tour, collecting the id of every step actually shown. */
+  function visitAll(): string[] {
+    const visited: string[] = [];
+    while (service.isActive()) {
+      visited.push(service.currentStep()?.id ?? '');
+      service.next();
+    }
+    return visited;
+  }
+
   describe('start', () => {
     it('activates the tour at the intro step', () => {
       expect(service.start('home')).toBe(true);
@@ -56,7 +77,7 @@ describe('TutorialService', () => {
       expect(service.activeTour()?.id).toBe('home');
       expect(service.stepIndex()).toBe(0);
       expect(service.currentStep()?.id).toBe('welcome');
-      expect(service.totalSteps()).toBe(TUTORIAL_TOURS['home'].steps.length);
+      expect(service.isLastStep()).toBe(false);
     });
 
     it('can restart a tour that was already completed', () => {
@@ -79,11 +100,9 @@ describe('TutorialService', () => {
 
     it('next on the last step completes the tour', () => {
       service.start('home');
-      const lastIndex = service.totalSteps() - 1;
-      for (let i = 0; i < lastIndex; i++) {
+      while (!service.isLastStep()) {
         service.next();
       }
-      expect(service.stepIndex()).toBe(lastIndex);
 
       service.next();
 
@@ -103,14 +122,96 @@ describe('TutorialService', () => {
     });
   });
 
-  describe('skipUnavailableStep', () => {
-    it('skips forward when moving forward', () => {
+  describe('planning which steps a run shows', () => {
+    it('leaves out optional steps whose anchors are off screen', () => {
+      onScreen.clear();
       service.start('home');
       service.next();
 
+      expect(visitAll()).toEqual(['create', 'user-menu']);
+      expect(progress()['home']).toBe('completed');
+    });
+
+    it('keeps the counter fixed for the whole run', () => {
+      onScreen = new Set(['covers-grid']);
+      service.start('home');
+      service.next();
+
+      const counters: string[] = [];
+      while (service.isActive()) {
+        counters.push(
+          `${service.displayedStepNumber()} of ${service.displayedTotalSteps()}`
+        );
+        service.next();
+      }
+
+      expect(counters).toEqual(['1 of 3', '2 of 3', '3 of 3']);
+    });
+
+    it('counts every step when all the anchors are on screen', () => {
+      service.start('home');
+      service.next();
+
+      expect(service.displayedStepNumber()).toBe(1);
+      expect(service.displayedTotalSteps()).toBe(5);
+      expect(visitAll()).toEqual([
+        'create',
+        'projects-empty',
+        'projects-grid',
+        'sync',
+        'user-menu',
+      ]);
+    });
+
+    it('re-plans on the way out of the intro, so late anchors still count', () => {
+      onScreen.clear();
+      service.start('home');
+      expect(service.displayedTotalSteps()).toBe(2);
+
+      // Rendered while the user was reading the intro card
+      onScreen.add('covers-grid');
+      service.next();
+
+      expect(service.displayedTotalSteps()).toBe(3);
+    });
+
+    it('re-plans when a tour restarts', () => {
+      service.start('home');
+      service.next();
+      expect(service.displayedTotalSteps()).toBe(5);
+      service.dismiss();
+
+      onScreen.clear();
+      service.start('home');
+      service.next();
+
+      expect(service.displayedTotalSteps()).toBe(2);
+    });
+
+    it('reports the final planned step as the last one', () => {
+      onScreen.clear();
+      service.start('home');
+      service.next();
+      expect(service.isLastStep()).toBe(false);
+
+      service.next();
+
+      expect(service.currentStep()?.id).toBe('user-menu');
+      expect(service.isLastStep()).toBe(true);
+    });
+  });
+
+  describe('skipUnavailableStep', () => {
+    it('drops the step from the counter and moves forward', () => {
+      service.start('home');
+      service.next();
+      service.next(); // projects-empty, whose anchor has since gone
+
       service.skipUnavailableStep();
 
-      expect(service.stepIndex()).toBe(2);
+      expect(service.currentStep()?.id).toBe('projects-grid');
+      expect(service.displayedStepNumber()).toBe(2);
+      expect(service.displayedTotalSteps()).toBe(4);
     });
 
     it('skips backward when the user was going back', () => {
@@ -118,32 +219,38 @@ describe('TutorialService', () => {
       service.next();
       service.next();
       service.next();
-      service.previous(); // now at 2, moving backward
+      service.previous(); // now at projects-empty, moving backward
 
       service.skipUnavailableStep();
 
-      expect(service.stepIndex()).toBe(1);
+      expect(service.currentStep()?.id).toBe('create');
+      expect(service.displayedTotalSteps()).toBe(4);
     });
 
-    it('clamps to the intro when skipping backward past the start', () => {
+    it('lands on the intro when skipping backward past the first step', () => {
       service.start('home');
       service.next();
-      service.previous(); // back at the intro, direction backward
+      service.next();
+      service.previous(); // now at create, moving backward
 
       service.skipUnavailableStep();
 
       expect(service.stepIndex()).toBe(0);
       expect(service.isActive()).toBe(true);
+    });
 
-      // Direction was reset to forward
+    it('is a no-op on the intro, which needs no anchor', () => {
+      service.start('home');
+
       service.skipUnavailableStep();
-      expect(service.stepIndex()).toBe(1);
+
+      expect(service.stepIndex()).toBe(0);
+      expect(service.displayedTotalSteps()).toBe(5);
     });
 
     it('completes the tour when skipping past the final step', () => {
       service.start('home');
-      const lastIndex = service.totalSteps() - 1;
-      for (let i = 0; i < lastIndex; i++) {
+      while (!service.isLastStep()) {
         service.next();
       }
 
@@ -151,47 +258,6 @@ describe('TutorialService', () => {
 
       expect(service.isActive()).toBe(false);
       expect(progress()['home']).toBe('completed');
-    });
-  });
-
-  describe('displayed progress', () => {
-    it('excludes skipped steps from the counter', () => {
-      service.start('home'); // 6 steps incl. intro
-      service.next();
-      expect(service.displayedStepNumber()).toBe(1);
-      expect(service.displayedTotalSteps()).toBe(5);
-
-      service.next();
-      service.skipUnavailableStep(); // step 2 unavailable → 3
-      service.skipUnavailableStep(); // step 3 unavailable → 4
-
-      expect(service.stepIndex()).toBe(4);
-      expect(service.displayedStepNumber()).toBe(2);
-      expect(service.displayedTotalSteps()).toBe(3);
-    });
-
-    it('un-counts a formerly skipped step once it is displayed', () => {
-      service.start('home');
-      service.next();
-      service.next();
-      service.skipUnavailableStep(); // step 2 marked skipped → index 3
-      expect(service.displayedTotalSteps()).toBe(4);
-
-      service.previous(); // revisit step 2, now assumed available
-      service.markStepDisplayed();
-
-      expect(service.displayedTotalSteps()).toBe(5);
-      expect(service.displayedStepNumber()).toBe(2);
-    });
-
-    it('resets skip tracking when a tour restarts', () => {
-      service.start('home');
-      service.next();
-      service.skipUnavailableStep();
-      service.dismiss();
-
-      service.start('home');
-      expect(service.displayedTotalSteps()).toBe(5);
     });
   });
 

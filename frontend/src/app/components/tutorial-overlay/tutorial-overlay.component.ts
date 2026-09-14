@@ -12,6 +12,7 @@ import { MatDialog, type MatDialogRef } from '@angular/material/dialog';
 import { TutorialCardDialogComponent } from '@dialogs/tutorial-card-dialog/tutorial-card-dialog.component';
 import { type TutorialStep } from '@models/tutorial';
 import { TutorialService } from '@services/core/tutorial.service';
+import { findTutorialAnchor } from '@services/core/tutorial-anchors';
 
 /** How long to wait for a step's anchor to appear before giving up. */
 export const TUTORIAL_ANCHOR_WAIT_MS = new InjectionToken<number>(
@@ -37,8 +38,9 @@ const OPTIONAL_ANCHOR_WAIT_MS = 600;
  * shell and renders nothing while no tour is active.
  *
  * Anchors are looked up by `data-testid`, waiting briefly for lazily-rendered
- * elements. Optional steps whose anchor never appears are skipped; required
- * ones fall back to a centered card.
+ * elements. The service has already left out optional steps with no anchor,
+ * so a miss here means the element went away mid-tour: optional steps are
+ * skipped, required ones fall back to a centered card.
  */
 @Component({
   selector: 'app-tutorial-overlay',
@@ -134,7 +136,6 @@ export class TutorialOverlayComponent implements OnDestroy {
   private resolveStep(step: TutorialStep): void {
     const testIds = step.anchorTestIds;
     if (!testIds || testIds.length === 0) {
-      this.tutorial.markStepDisplayed();
       this.anchorRect.set(null);
       return;
     }
@@ -144,7 +145,7 @@ export class TutorialOverlayComponent implements OnDestroy {
       : this.anchorWaitMs;
     const deadline = Date.now() + waitMs;
     const tryResolve = (): void => {
-      const el = this.findAnchor(testIds);
+      const el = findTutorialAnchor(testIds);
       if (el) {
         this.stopPolling();
         this.attachAnchor(el);
@@ -156,7 +157,6 @@ export class TutorialOverlayComponent implements OnDestroy {
           this.tutorial.skipUnavailableStep();
         } else {
           // Required step without an anchor: show the card centered.
-          this.tutorial.markStepDisplayed();
           this.anchorRect.set(null);
         }
       }
@@ -168,24 +168,8 @@ export class TutorialOverlayComponent implements OnDestroy {
     }
   }
 
-  private findAnchor(testIds: string[]): HTMLElement | null {
-    for (const testId of testIds) {
-      const el = document.querySelector(`[data-testid="${testId}"]`);
-      if (el instanceof HTMLElement && this.isVisible(el)) {
-        return el;
-      }
-    }
-    return null;
-  }
-
-  private isVisible(el: HTMLElement): boolean {
-    const rect = el.getBoundingClientRect();
-    return rect.width > 0 && rect.height > 0;
-  }
-
   private attachAnchor(el: HTMLElement): void {
     this.anchorEl = el;
-    this.tutorial.markStepDisplayed();
 
     if (typeof el.scrollIntoView === 'function') {
       const reducedMotion =

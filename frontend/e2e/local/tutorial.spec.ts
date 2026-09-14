@@ -53,18 +53,19 @@ test.describe('Interactive Tutorial', () => {
     await expect(page.getByTestId('tutorial-card')).toBeVisible();
     await page.getByTestId('tutorial-start-button').click();
 
-    // A fresh local profile shows: create button → empty state → (projects
-    // grid and sync steps skip — no anchors, shrinking the counter total)
-    // → account menu, then Done.
+    // A fresh local profile plans three steps: create button → empty state
+    // → account menu. The projects-grid and sync steps have no anchors here,
+    // so they are left out of the run and out of the counter's total.
     const counter = page.getByTestId('tutorial-step-counter');
     const next = page.getByTestId('tutorial-next-button');
 
-    await expect(counter).toContainText('1 of 5');
+    await expect(counter).toContainText('1 of 3');
     await next.click();
-    await expect(counter).toContainText('2 of 5');
+    await expect(counter).toContainText('2 of 3');
     await next.click();
     await expect(counter).toContainText('3 of 3');
-    await next.click(); // Done
+    await expect(next).toContainText('Done');
+    await next.click();
     await expect(page.getByTestId('tutorial-overlay')).toHaveCount(0);
 
     // Completed — no offer on the next visit
