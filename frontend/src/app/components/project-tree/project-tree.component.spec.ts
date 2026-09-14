@@ -399,7 +399,7 @@ describe('ProjectTreeComponent', () => {
         ).not.toHaveBeenCalled();
       });
 
-      it('should expand a closed folder when dropping into it', () => {
+      it('should expand a closed folder when dropping into it', async () => {
         settingsService.getSetting.mockReturnValue(false); // confirmElementMoves disabled
 
         // Create a closed folder
@@ -428,7 +428,7 @@ describe('ProjectTreeComponent', () => {
         component.targetParentFolderId.set('folder-1');
 
         const event = createTestDragEvent();
-        void component.drop(event);
+        await component.drop(event);
 
         // Verify setExpanded was called to expand the folder
         expect(projectStateService.setExpanded).toHaveBeenCalledWith(
@@ -437,7 +437,7 @@ describe('ProjectTreeComponent', () => {
         );
       });
 
-      it('should not expand an already open folder when dropping into it', () => {
+      it('should not expand an already open folder when dropping into it', async () => {
         settingsService.getSetting.mockReturnValue(false); // confirmElementMoves disabled
 
         // Create an open folder
@@ -466,7 +466,7 @@ describe('ProjectTreeComponent', () => {
         component.targetParentFolderId.set('folder-1');
 
         const event = createTestDragEvent();
-        void component.drop(event);
+        await component.drop(event);
 
         // Verify setExpanded was NOT called since folder is already open
         expect(projectStateService.setExpanded).not.toHaveBeenCalled();
