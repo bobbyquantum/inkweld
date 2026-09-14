@@ -169,7 +169,7 @@
       </div>
     } @else {
       <!-- Desktop layout: sidebar + shared content (single outlet preserves routed state) -->
-      <div class="desktop-layout">
+      <div class="desktop-layout" [class.dense-sidebar]="denseLayout()">
         @if (showSidebar()) {
           @if (sidebarCollapsed()) {
             <!-- Desktop collapsed sidebar -->
@@ -305,6 +305,7 @@
               @defer (on idle) {
                 <app-project-tree
                   [showCollapseButton]="true"
+                  [dense]="denseLayout()"
                   (collapseRequested)="toggleSidebarCollapsed()"
                   (documentOpened)="
                     onDocumentOpened($event)

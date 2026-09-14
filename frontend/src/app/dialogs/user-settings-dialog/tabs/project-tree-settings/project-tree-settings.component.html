@@ -7,4 +7,7 @@
     data-testid="show-breadcrumbs-toggle">
     {{ 'settings.projectTreeTab.showBreadcrumbs' | transloco }}
   </mat-checkbox>
+  <mat-checkbox [(ngModel)]="denseLayout" data-testid="dense-layout-toggle">
+    {{ 'settings.projectTreeTab.denseLayout' | transloco }}
+  </mat-checkbox>
 </section>

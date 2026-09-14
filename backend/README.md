@@ -18,7 +18,7 @@ The Inkweld backend is a lightweight Hono API server designed to be easy to depl
 
 ### Prerequisites
 
-- Bun 1.3.11 or higher
+- Bun 1.4.2 or higher
 - SQLite (default, automatic) or Cloudflare D1
 
 ### Installation

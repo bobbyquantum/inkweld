@@ -86,6 +86,12 @@ export class ProjectTreeComponent implements OnDestroy {
   /** Whether to show the collapse button in the toolbar */
   showCollapseButton = input<boolean>(false);
 
+  /**
+   * Opt-in dense layout for the desktop sidebar. Passed in rather than read
+   * from the user setting so the mobile drawer keeps its larger touch targets.
+   */
+  dense = input<boolean>(false);
+
   /** Emitted when the collapse button is clicked */
   collapseRequested = output<void>();
 

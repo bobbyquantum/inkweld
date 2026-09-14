@@ -302,7 +302,7 @@ Inkweld has two parts that can run together or separately, plus an optional Clou
 
 ### Requirements
 
-- [Bun 1.3+](https://bun.sh/)
+- [Bun 1.4+](https://bun.sh/)
 - [Node.js 22+](https://nodejs.org/)
 
 ### Setup

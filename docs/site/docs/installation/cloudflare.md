@@ -25,7 +25,7 @@ Before you begin:
 
 1. **Cloudflare Account** - [Sign up free](https://dash.cloudflare.com/sign-up)
 2. **Git** - For cloning the repository
-3. **Bun 1.3+** - Backend runtime and package manager
+3. **Bun 1.4+** - Backend runtime and package manager
 
 :::tip[Free Tier Available]
 Cloudflare offers generous free tiers for all required services. You can run Inkweld without any charges for development and small-scale use.

@@ -9,6 +9,7 @@ import {
   Output,
   provideZonelessChangeDetection,
   signal,
+  type WritableSignal,
 } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
@@ -49,6 +50,7 @@ import { TabInterfaceComponent } from './tabs/tab-interface.component';
 })
 class MockProjectTreeComponent {
   @Input() showCollapseButton?: boolean;
+  @Input() dense?: boolean;
 }
 
 @Component({
@@ -93,6 +95,7 @@ describe('ProjectComponent', () => {
   let projectService: Partial<UnifiedProjectService>;
   let dialogGateway: Partial<DialogGatewayService>;
   let settingsService: Partial<SettingsService>;
+  let denseLayoutSignal: WritableSignal<boolean>;
   let quickOpenService: {
     initialize: ReturnType<typeof vi.fn>;
     destroy: ReturnType<typeof vi.fn>;
@@ -247,8 +250,10 @@ describe('ProjectComponent', () => {
       openImportProjectDialog: vi.fn().mockResolvedValue({ success: false }),
     };
 
+    denseLayoutSignal = signal(false);
     settingsService = {
       getSetting: vi.fn().mockReturnValue(true),
+      denseLayout: denseLayoutSignal,
     };
     quickOpenService = {
       initialize: vi.fn(),
@@ -1164,6 +1169,33 @@ describe('ProjectComponent', () => {
       pinnedElementIdsSignal.set(['deleted-1', 'deleted-2']);
 
       expect(component['pinnedElements']()).toEqual([]);
+    });
+  });
+
+  describe('dense sidebar layout', () => {
+    beforeEach(() => {
+      component['isMobile'].set(false);
+      fixture.detectChanges();
+    });
+
+    it('should apply the dense class when the setting is on', async () => {
+      denseLayoutSignal.set(true);
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      expect(
+        fixture.nativeElement.querySelector('.desktop-layout.dense-sidebar')
+      ).not.toBeNull();
+    });
+
+    it('should remove the dense class reactively when the user opts out', async () => {
+      denseLayoutSignal.set(false);
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      expect(
+        fixture.nativeElement.querySelector('.desktop-layout.dense-sidebar')
+      ).toBeNull();
     });
   });
 
