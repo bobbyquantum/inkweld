@@ -470,6 +470,15 @@ export class ProjectTreeComponent implements OnDestroy {
   public async drop(event: CdkDragDrop<ProjectElement[]>) {
     const { previousIndex, currentIndex, container, item } = event;
 
+    // A drag the tree did not accept (a folder released over the publish list,
+    // whose enter predicate refuses folders) still reports `dropped` on the
+    // tree, because the tree remains the drag's active container. The pointer
+    // was never over the tree, so this is not a reorder: ignore it rather than
+    // prompting to move the item back where it already is.
+    if (!event.isPointerOverContainer) {
+      return;
+    }
+
     // Item being dragged (cdkDragData sets this as ProjectElement, but TS infers container type)
     const draggedItem = item.data as unknown as ProjectElement;
 

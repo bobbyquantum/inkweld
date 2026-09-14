@@ -367,6 +367,23 @@ describe('ProjectTreeComponent', () => {
         );
       });
 
+      it('should ignore a drop whose pointer was not over the tree', async () => {
+        // A folder released over the publish list is refused there, but CDK
+        // still reports the drop on the tree (its active container) with the
+        // pointer outside it. That is not a reorder and must not prompt.
+        const event = createTestDragEvent();
+        event.isPointerOverContainer = false;
+        component.draggedNode = mockDto;
+
+        await component.drop(event);
+
+        expect(projectStateService.isValidDrop).not.toHaveBeenCalled();
+        expect(projectStateService.moveElement).not.toHaveBeenCalled();
+        expect(
+          dialogGatewayService.openMoveElementDialog
+        ).not.toHaveBeenCalled();
+      });
+
       it('should not proceed when drop is invalid', async () => {
         projectStateService.isValidDrop.mockReturnValue(false);
         const event = createTestDragEvent();
