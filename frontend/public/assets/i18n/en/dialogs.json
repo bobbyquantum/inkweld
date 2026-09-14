@@ -4,6 +4,17 @@
     "typeToConfirmAria": "Type to confirm",
     "typeToConfirmPlaceholder": "Type to confirm"
   },
+  "move": {
+    "title": "Move Item",
+    "intro": "Move \"{{name}}\" to a new position?",
+    "from": "From",
+    "to": "To",
+    "confirm": "Move",
+    "dontAskAgain": "Don't ask again — move items immediately",
+    "positionTop": "It will be placed at the top of the project.",
+    "positionInside": "It will be placed inside \"{{name}}\".",
+    "positionAfter": "It will be placed after \"{{name}}\"."
+  },
   "rename": {
     "title": "Rename Item",
     "nameLabel": "Name",
