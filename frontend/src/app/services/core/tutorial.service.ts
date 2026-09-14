@@ -216,7 +216,11 @@ export class TutorialService {
   private moveFrom(index: number): void {
     const plan = this._plan();
     if (this.direction === -1) {
-      this._stepIndex.set(plan.filter(planned => planned < index).at(-1) ?? 0);
+      // The plan ascends, so the step before `index` is the entry just ahead
+      // of the first one at or past it.
+      const boundary = plan.findIndex(planned => planned >= index);
+      const previous = (boundary === -1 ? plan.length : boundary) - 1;
+      this._stepIndex.set(previous >= 0 ? plan[previous] : 0);
       return;
     }
     const nextIndex = plan.find(planned => planned > index);
