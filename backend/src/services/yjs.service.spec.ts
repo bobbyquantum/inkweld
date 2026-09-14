@@ -10,6 +10,7 @@ import { getLevelUpdatesKeys, keyEncoding } from 'y-leveldb';
 import { config } from '../config/env';
 import { fileStorageService } from './file-storage.service';
 import { DEFAULT_IDLE_CLEANUP_MS, LEVELDB_COMPACT_THRESHOLD, YjsService } from './yjs.service';
+import { WS_CLOSE_ACCESS_CHANGED, WS_CLOSE_FORBIDDEN } from '../utils/ws-close-codes';
 
 // Mirror of y-leveldb's internal valueEncoding (not exported by the package):
 // values pass through untouched as Buffers.
@@ -327,6 +328,69 @@ describe('YjsService idle cleanup', () => {
     expect(internals(service).docs.get(documentId)).toBe(newDoc);
     expect(newDoc.doc.getArray('elements').length).toBe(1);
     expect(internals(service).persistences.has(PROJECT_KEY)).toBe(true);
+    await service.cleanup();
+  });
+});
+
+describe('YjsService.revokeUserAccess', () => {
+  function socket() {
+    const calls = { sent: [] as unknown[], closes: [] as Array<[number?, string?]> };
+    return {
+      calls,
+      ws: {
+        send: (m: unknown) => calls.sent.push(m),
+        close: (code?: number, reason?: string) => calls.closes.push([code, reason]),
+      },
+    };
+  }
+
+  it("closes only the named user's sockets across the project's documents", async () => {
+    const service = new YjsService();
+    const elements = `${USERNAME}:${SLUG}:elements/`;
+    const doc1 = `${USERNAME}:${SLUG}:doc-1`;
+    const otherProject = `${USERNAME}:other:elements/`;
+
+    const bobA = socket();
+    const bobB = socket();
+    const alice = socket();
+    const bobElsewhere = socket();
+    await service.handleConnection(bobA.ws, elements);
+    await service.handleConnection(bobB.ws, doc1);
+    await service.handleConnection(alice.ws, doc1);
+    await service.handleConnection(bobElsewhere.ws, otherProject);
+    service.registerUserConnection(bobA.ws, elements, 'bob');
+    service.registerUserConnection(bobB.ws, doc1, 'bob');
+    service.registerUserConnection(alice.ws, doc1, 'alice');
+    service.registerUserConnection(bobElsewhere.ws, otherProject, 'bob');
+
+    const closed = service.revokeUserAccess(USERNAME, SLUG, 'bob', 'removed');
+
+    expect(closed).toBe(2);
+    expect(bobA.calls.closes).toEqual([[WS_CLOSE_FORBIDDEN, 'Access revoked']]);
+    expect(bobA.calls.sent).toContain('access-denied:forbidden');
+    expect(bobB.calls.closes).toEqual([[WS_CLOSE_FORBIDDEN, 'Access revoked']]);
+    expect(alice.calls.closes).toEqual([]);
+    expect(bobElsewhere.calls.closes).toEqual([]);
+    await service.cleanup();
+  });
+
+  it('uses the transient access-changed code for a role change', async () => {
+    const service = new YjsService();
+    const elements = `${USERNAME}:${SLUG}:elements/`;
+    const bob = socket();
+    await service.handleConnection(bob.ws, elements);
+    service.registerUserConnection(bob.ws, elements, 'bob');
+
+    expect(service.revokeUserAccess(USERNAME, SLUG, 'bob', 'changed')).toBe(1);
+    expect(bob.calls.closes).toEqual([[WS_CLOSE_ACCESS_CHANGED, 'Access changed']]);
+    // No denial text: the client should simply reconnect.
+    expect(bob.calls.sent.filter((m) => typeof m === 'string')).toEqual([]);
+    await service.cleanup();
+  });
+
+  it('returns 0 when the user has no sockets on the project', async () => {
+    const service = new YjsService();
+    expect(service.revokeUserAccess(USERNAME, SLUG, 'nobody', 'removed')).toBe(0);
     await service.cleanup();
   });
 });

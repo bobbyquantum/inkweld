@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeAll, afterAll } from 'bun:test';
+import { describe, it, expect, beforeAll, afterAll, spyOn } from 'bun:test';
+import { yjsService } from '../src/services/yjs.service';
 import { getDatabase } from '../src/db/index';
 import {
   users,
@@ -284,6 +285,7 @@ describe('Collaboration', () => {
 
   describe('PATCH /api/v1/collaboration/:username/:slug/collaborators/:userId', () => {
     it('should update collaborator role', async () => {
+      const revokeSpy = spyOn(yjsService, 'revokeUserAccess');
       const { response, json } = await ownerClient.request(
         `/api/v1/collaboration/${ownerUsername}/${testProject.slug}/collaborators/${collaboratorUserId}`,
         {
@@ -298,6 +300,14 @@ describe('Collaboration', () => {
       expect(response.status).toBe(200);
       const data = (await json()) as { role: string };
       expect(data.role).toBe('admin');
+      // Open sockets must be told to reconnect and pick up the new role.
+      expect(revokeSpy).toHaveBeenCalledWith(
+        ownerUsername,
+        testProject.slug,
+        collaboratorUserId,
+        'changed'
+      );
+      revokeSpy.mockRestore();
     });
 
     it('should deny admin collaborator from updating roles', async () => {
@@ -354,6 +364,7 @@ describe('Collaboration', () => {
 
   describe('DELETE /api/v1/collaboration/:username/:slug/collaborators/:userId', () => {
     it('should remove a collaborator', async () => {
+      const revokeSpy = spyOn(yjsService, 'revokeUserAccess');
       const { response } = await ownerClient.request(
         `/api/v1/collaboration/${ownerUsername}/${testProject.slug}/collaborators/${collaboratorUserId}`,
         {
@@ -363,6 +374,14 @@ describe('Collaboration', () => {
 
       // Route returns 200 with a message
       expect(response.status).toBe(200);
+      // Any live sockets of the removed user must be closed immediately.
+      expect(revokeSpy).toHaveBeenCalledWith(
+        ownerUsername,
+        testProject.slug,
+        collaboratorUserId,
+        'removed'
+      );
+      revokeSpy.mockRestore();
 
       // Verify the collaborator is removed
       const db = getDatabase();

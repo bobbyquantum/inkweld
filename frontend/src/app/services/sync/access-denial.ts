@@ -45,6 +45,11 @@ export const HARD_DENIAL_REASONS: ReadonlySet<string> = new Set([
 export const LONG_BACKOFF_DENIAL_REASONS: ReadonlySet<string> = new Set([
   'rate-limited',
   'error',
+  // The server closed an unauthenticated socket: no token arrived in time, or
+  // too much was queued before auth. Both are transient (reconnect and send
+  // the token first), but a tight reconnect loop would just repeat them.
+  'auth-timeout',
+  'queue-overflow',
 ]);
 
 /**

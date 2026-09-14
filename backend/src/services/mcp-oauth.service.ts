@@ -11,7 +11,7 @@
  * project collaborators system for permission management.
  */
 
-import { eq, and, not, isNull, or, lt, inArray, notInArray, isNotNull, sql } from 'drizzle-orm';
+import { eq, and, not, isNull, or, lt, gt, inArray, notInArray, isNotNull, sql } from 'drizzle-orm';
 import { sign, verify } from 'hono/jwt';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import type { DatabaseInstance } from '../types/context';
@@ -737,7 +737,11 @@ class McpOAuthService {
     const refreshTokenHash = await hashString(refreshToken);
     const now = Date.now();
 
-    // Look up session by current or previous token
+    // Look up session by the current token, or by the immediately previous
+    // token while its rotation grace period is still running. The grace
+    // predicate must compare the stored deadline against `now` — it used to
+    // compare against `now + GRACE`, which is true forever, so a superseded
+    // refresh token never expired.
     const [session] = await db
       .select()
       .from(mcpOAuthSessions)
@@ -746,17 +750,30 @@ class McpOAuthService {
           eq(mcpOAuthSessions.refreshTokenHash, refreshTokenHash),
           and(
             eq(mcpOAuthSessions.previousRefreshTokenHash, refreshTokenHash),
-            // Previous token still in grace period
-            or(
-              isNull(mcpOAuthSessions.previousTokenExpiresAt),
-              lt(mcpOAuthSessions.previousTokenExpiresAt, now + PREV_TOKEN_GRACE_PERIOD)
-            )
+            isNotNull(mcpOAuthSessions.previousTokenExpiresAt),
+            gt(mcpOAuthSessions.previousTokenExpiresAt, now)
           )
         )
       )
       .limit(1);
 
     if (!session) {
+      // A superseded token presented after its grace period is either a
+      // client that lost the rotation response or a stolen token being
+      // replayed. Both are indistinguishable server-side, so revoke the
+      // session (RFC 6819 §5.2.2.3) and force a fresh authorization.
+      const [replayed] = await db
+        .select({ id: mcpOAuthSessions.id, revokedAt: mcpOAuthSessions.revokedAt })
+        .from(mcpOAuthSessions)
+        .where(eq(mcpOAuthSessions.previousRefreshTokenHash, refreshTokenHash))
+        .limit(1);
+      if (replayed && !replayed.revokedAt) {
+        await db
+          .update(mcpOAuthSessions)
+          .set({ revokedAt: now, revokedReason: 'Refresh token reuse detected' })
+          .where(eq(mcpOAuthSessions.id, replayed.id));
+        oauthLog.warn(`Revoked session ${replayed.id}: superseded refresh token reused`);
+      }
       throw new OAuthError('invalid_grant', 'Invalid refresh token');
     }
 

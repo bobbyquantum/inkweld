@@ -6,6 +6,9 @@ import {
   WS_CLOSE_PROJECT_NOT_FOUND,
   WS_CLOSE_RATE_LIMITED,
   WS_CLOSE_SERVER_ERROR,
+  WS_CLOSE_AUTH_TIMEOUT,
+  WS_CLOSE_PREAUTH_OVERFLOW,
+  WS_CLOSE_ACCESS_CHANGED,
 } from '../src/utils/ws-close-codes';
 
 /**
@@ -33,7 +36,13 @@ describe('ws-close-codes', () => {
   });
 
   it('puts every retryable failure in the transient (45xx) band', () => {
-    for (const code of [WS_CLOSE_SERVER_ERROR, WS_CLOSE_RATE_LIMITED]) {
+    for (const code of [
+      WS_CLOSE_SERVER_ERROR,
+      WS_CLOSE_RATE_LIMITED,
+      WS_CLOSE_AUTH_TIMEOUT,
+      WS_CLOSE_PREAUTH_OVERFLOW,
+      WS_CLOSE_ACCESS_CHANGED,
+    ]) {
       expect(isTransient(code)).toBe(true);
     }
   });
@@ -45,7 +54,13 @@ describe('ws-close-codes', () => {
       WS_CLOSE_FORBIDDEN,
       WS_CLOSE_PROJECT_NOT_FOUND,
     ];
-    const transient = [WS_CLOSE_SERVER_ERROR, WS_CLOSE_RATE_LIMITED];
+    const transient = [
+      WS_CLOSE_SERVER_ERROR,
+      WS_CLOSE_RATE_LIMITED,
+      WS_CLOSE_AUTH_TIMEOUT,
+      WS_CLOSE_PREAUTH_OVERFLOW,
+      WS_CLOSE_ACCESS_CHANGED,
+    ];
     for (const code of transient) {
       expect(permanent).not.toContain(code);
     }
@@ -59,6 +74,9 @@ describe('ws-close-codes', () => {
       WS_CLOSE_PROJECT_NOT_FOUND,
       WS_CLOSE_SERVER_ERROR,
       WS_CLOSE_RATE_LIMITED,
+      WS_CLOSE_AUTH_TIMEOUT,
+      WS_CLOSE_PREAUTH_OVERFLOW,
+      WS_CLOSE_ACCESS_CHANGED,
     ];
     expect(new Set(all).size).toBe(all.length);
   });
