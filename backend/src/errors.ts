@@ -38,3 +38,38 @@ export class InternalError extends Error {
     this.name = 'InternalError';
   }
 }
+
+/**
+ * Raised when a write would push a user past their sync-capacity allowance.
+ *
+ * Carries the numbers the client needs to explain itself (used/quota/needed)
+ * and a machine-readable `reason`, so the UI can render the right message —
+ * and, critically, distinguish "you are out of room" from a generic 403 that
+ * might be mistaken for an access-control problem.
+ *
+ * Only new media uploads and new project creation raise this. Document editing
+ * and Yjs sync are never blocked: stranding a user's work is worse than
+ * temporarily exceeding an allowance.
+ */
+export class QuotaExceededError extends Error {
+  readonly usedBytes: number;
+  readonly quotaBytes: number;
+  /** Bytes the rejected operation would have added, when known. */
+  readonly requiredBytes?: number;
+  readonly reason: 'media_upload' | 'project_create';
+
+  constructor(details: {
+    usedBytes: number;
+    quotaBytes: number;
+    requiredBytes?: number;
+    reason: 'media_upload' | 'project_create';
+    message?: string;
+  }) {
+    super(details.message ?? 'Sync capacity exceeded');
+    this.name = 'QuotaExceededError';
+    this.usedBytes = details.usedBytes;
+    this.quotaBytes = details.quotaBytes;
+    this.requiredBytes = details.requiredBytes;
+    this.reason = details.reason;
+  }
+}
