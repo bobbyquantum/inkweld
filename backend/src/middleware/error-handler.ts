@@ -1,9 +1,75 @@
 import { type ErrorHandler } from 'hono';
 import { HTTPException } from 'hono/http-exception';
+import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import { logger } from '../services/logger.service';
 import { getRequestCorrelationId } from './request-logger';
 
 const log = logger.child('ErrorHandler');
+
+/**
+ * Domain errors that map 1:1 to a status and a plain `{ error, message }` body.
+ * Kept as a table so adding a new one does not add another branch to the
+ * handler (and so the handler's cognitive complexity stays low).
+ */
+const PLAIN_ERROR_RESPONSES: Record<
+  string,
+  { status: ContentfulStatusCode; error: string; fallbackMessage: string }
+> = {
+  BadRequestError: { status: 400, error: 'Bad Request', fallbackMessage: 'Invalid request' },
+  UnauthorizedError: {
+    status: 401,
+    error: 'Unauthorized',
+    fallbackMessage: 'Authentication required',
+  },
+  ForbiddenError: { status: 403, error: 'Forbidden', fallbackMessage: 'Access denied' },
+  NotFoundError: { status: 404, error: 'Not Found', fallbackMessage: 'Resource not found' },
+};
+
+/**
+ * Names of errors expected in normal client flow (4xx). Used only to pick the
+ * log level — these are not failures of the server.
+ */
+const EXPECTED_CLIENT_ERRORS = new Set([
+  ...Object.keys(PLAIN_ERROR_RESPONSES),
+  'QuotaExceededError',
+]);
+
+/** Structural view of a `QuotaExceededError` without importing the class. */
+interface QuotaErrorShape {
+  message?: string;
+  usedBytes?: number;
+  quotaBytes?: number;
+  requiredBytes?: number;
+  reason?: string;
+}
+
+function isQuotaExceededError(err: Error): err is Error & QuotaErrorShape {
+  return err.name === 'QuotaExceededError';
+}
+
+/**
+ * Build the sync-capacity refusal body. Shared by the handler so the shape
+ * (code, usage numbers, reason) is defined in exactly one place.
+ */
+export function quotaExceededBody(err: QuotaErrorShape): {
+  error: string;
+  message: string;
+  code: 'QUOTA_EXCEEDED';
+  usedBytes: number;
+  quotaBytes: number;
+  requiredBytes?: number;
+  reason?: string;
+} {
+  return {
+    error: 'Quota Exceeded',
+    message: err.message || 'Sync capacity exceeded',
+    code: 'QUOTA_EXCEEDED',
+    usedBytes: err.usedBytes ?? 0,
+    quotaBytes: err.quotaBytes ?? 0,
+    ...(err.requiredBytes !== undefined ? { requiredBytes: err.requiredBytes } : {}),
+    ...(err.reason ? { reason: err.reason } : {}),
+  };
+}
 
 /**
  * Whether unhandled-error messages may be echoed to the client.
@@ -37,12 +103,7 @@ export const errorHandler: ErrorHandler = (err, c) => {
 
   // Don't log expected client errors (400/401/403/404) - they're normal flow
   const isExpectedError =
-    err.name === 'UnauthorizedError' ||
-    err.name === 'ForbiddenError' ||
-    err.name === 'QuotaExceededError' ||
-    err.name === 'NotFoundError' ||
-    err.name === 'BadRequestError' ||
-    (err instanceof HTTPException && err.status < 500);
+    EXPECTED_CLIENT_ERRORS.has(err.name) || (err instanceof HTTPException && err.status < 500);
 
   if (isExpectedError) {
     // Log expected errors at debug level for troubleshooting
@@ -57,42 +118,7 @@ export const errorHandler: ErrorHandler = (err, c) => {
 
   // Handle Hono HTTPException (legacy, prefer domain errors)
   if (err instanceof HTTPException) {
-    return c.json(
-      {
-        error: err.message,
-      },
-      err.status
-    );
-  }
-
-  if (err.name === 'BadRequestError') {
-    return c.json(
-      {
-        error: 'Bad Request',
-        message: err.message || 'Invalid request',
-      },
-      400
-    );
-  }
-
-  if (err.name === 'UnauthorizedError') {
-    return c.json(
-      {
-        error: 'Unauthorized',
-        message: err.message || 'Authentication required',
-      },
-      401
-    );
-  }
-
-  if (err.name === 'ForbiddenError') {
-    return c.json(
-      {
-        error: 'Forbidden',
-        message: err.message || 'Access denied',
-      },
-      403
-    );
+    return c.json({ error: err.message }, err.status);
   }
 
   // Sync-capacity refusal. Returned as 403 (the request is understood and the
@@ -100,51 +126,20 @@ export const errorHandler: ErrorHandler = (err, c) => {
   // numbers and a machine-readable reason so the UI can explain the limit
   // instead of showing a bare "access denied" — the two are very different to
   // a user who has just hit their allowance.
-  if (err.name === 'QuotaExceededError') {
-    const quotaErr = err as {
-      message?: string;
-      usedBytes?: number;
-      quotaBytes?: number;
-      requiredBytes?: number;
-      reason?: string;
-    };
+  if (isQuotaExceededError(err)) {
+    return c.json(quotaExceededBody(err), 403);
+  }
+
+  const plain = PLAIN_ERROR_RESPONSES[err.name];
+  if (plain) {
     return c.json(
-      {
-        error: 'Quota Exceeded',
-        message: quotaErr.message || 'Sync capacity exceeded',
-        code: 'QUOTA_EXCEEDED',
-        usedBytes: quotaErr.usedBytes ?? 0,
-        quotaBytes: quotaErr.quotaBytes ?? 0,
-        ...(quotaErr.requiredBytes !== undefined ? { requiredBytes: quotaErr.requiredBytes } : {}),
-        ...(quotaErr.reason ? { reason: quotaErr.reason } : {}),
-      },
-      403
+      { error: plain.error, message: err.message || plain.fallbackMessage },
+      plain.status
     );
   }
 
-  if (err.name === 'NotFoundError') {
-    return c.json(
-      {
-        error: 'Not Found',
-        message: err.message || 'Resource not found',
-      },
-      404
-    );
-  }
-
+  // InternalError and unrecognised errors share the same fail-closed body.
   const exposeDetails = shouldExposeErrorDetails(c.env);
-
-  if (err.name === 'InternalError') {
-    return c.json(
-      {
-        error: 'Internal Server Error',
-        message: exposeDetails ? err.message : 'An error occurred',
-      },
-      500
-    );
-  }
-
-  // Default error
   return c.json(
     {
       error: 'Internal Server Error',
