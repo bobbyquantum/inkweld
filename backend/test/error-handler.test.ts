@@ -167,6 +167,47 @@ describe('Error Handler Middleware', () => {
       expect(json.error).toBe('Internal Server Error');
     });
 
+    it('should handle InternalError with 500 and the exposed message', async () => {
+      const originalEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = 'development';
+      try {
+        const app = createTestApp();
+        app.get('/test', () => {
+          const error = new Error('Database unavailable');
+          error.name = 'InternalError';
+          throw error;
+        });
+
+        const res = await app.request('/test');
+        expect(res.status).toBe(500);
+        const json = await res.json();
+        expect(json.error).toBe('Internal Server Error');
+        expect(json.message).toBe('Database unavailable');
+      } finally {
+        process.env.NODE_ENV = originalEnv;
+      }
+    });
+
+    it('should hide an InternalError message in production', async () => {
+      const originalEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = 'production';
+      try {
+        const app = createTestApp();
+        app.get('/test', () => {
+          const error = new Error('Sensitive internal detail');
+          error.name = 'InternalError';
+          throw error;
+        });
+
+        const res = await app.request('/test');
+        expect(res.status).toBe(500);
+        const json = await res.json();
+        expect(json.message).toBe('An error occurred');
+      } finally {
+        process.env.NODE_ENV = originalEnv;
+      }
+    });
+
     it('should include error message in development mode', async () => {
       const originalEnv = process.env.NODE_ENV;
       process.env.NODE_ENV = 'development';
@@ -197,6 +238,60 @@ describe('Error Handler Middleware', () => {
       expect(json.message).toBe('An error occurred');
 
       process.env.NODE_ENV = originalEnv;
+    });
+  });
+
+  describe('QuotaExceededError handling', () => {
+    /** Build an error whose name routes it to the quota branch. */
+    function quotaError(overrides: Record<string, unknown>): Error {
+      return Object.assign(new Error('Sync capacity exceeded'), {
+        name: 'QuotaExceededError',
+        usedBytes: 0,
+        quotaBytes: 0,
+        ...overrides,
+      });
+    }
+
+    it('should return 403 with code, usage numbers and reason', async () => {
+      const app = createTestApp();
+      app.get('/test', () => {
+        throw quotaError({
+          message: 'Upload would exceed capacity',
+          usedBytes: 900,
+          quotaBytes: 1000,
+          requiredBytes: 200,
+          reason: 'media_upload',
+        });
+      });
+
+      const res = await app.request('/test');
+      expect(res.status).toBe(403);
+
+      const json = await res.json();
+      expect(json.error).toBe('Quota Exceeded');
+      expect(json.code).toBe('QUOTA_EXCEEDED');
+      expect(json.message).toBe('Upload would exceed capacity');
+      expect(json.usedBytes).toBe(900);
+      expect(json.quotaBytes).toBe(1000);
+      expect(json.requiredBytes).toBe(200);
+      expect(json.reason).toBe('media_upload');
+    });
+
+    it('should omit optional fields that are absent and default the numbers', async () => {
+      const app = createTestApp();
+      app.get('/test', () => {
+        throw quotaError({ usedBytes: undefined, quotaBytes: undefined, message: '' });
+      });
+
+      const res = await app.request('/test');
+      expect(res.status).toBe(403);
+
+      const json = await res.json();
+      expect(json.message).toBe('Sync capacity exceeded');
+      expect(json.usedBytes).toBe(0);
+      expect(json.quotaBytes).toBe(0);
+      expect(json).not.toHaveProperty('requiredBytes');
+      expect(json).not.toHaveProperty('reason');
     });
   });
 
