@@ -253,6 +253,13 @@
       "when": 1789430400000,
       "tag": "0036_add-oauth-login-codes",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "6",
+      "when": 1789516800000,
+      "tag": "0037_add-user-sync-quota",
+      "breakpoints": true
     }
   ]
 }

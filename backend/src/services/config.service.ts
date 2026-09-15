@@ -3,6 +3,7 @@ import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'node:
 import { config as envConfig } from '../config/env';
 import { config, CONFIG_KEYS, type ConfigKey, type ConfigCategory } from '../db/schema/config';
 import type { DatabaseInstance } from '../types/context';
+import { DEFAULT_SYNC_QUOTA_BYTES } from '../utils/sync-quota';
 import { logger } from './logger.service';
 
 /**
@@ -191,6 +192,10 @@ class ConfigService {
         return 'false';
       case 'BACKGROUND_BLUR':
         return '0';
+      case 'SYNC_QUOTA_DEFAULT_BYTES':
+        // 100 MB. Generous enough that ordinary writing never notices, small
+        // enough that an instance cannot be filled by one account silently.
+        return String(DEFAULT_SYNC_QUOTA_BYTES);
       default:
         return undefined;
     }

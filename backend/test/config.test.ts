@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import * as schema from '../src/db/schema';
 import { configService, type ConfigValue } from '../src/services/config.service';
 import { config, CONFIG_KEYS, type ConfigKey } from '../src/db/schema/config';
+import { DEFAULT_SYNC_QUOTA_BYTES, parseSyncQuotaBytes } from '../src/utils/sync-quota';
 import { eq } from 'drizzle-orm';
 
 let db: BunSQLiteDatabase<typeof schema>;
@@ -258,6 +259,28 @@ describe('ConfigService', () => {
       const result = await configService.get(db, 'AI_OPENAI_API_KEY');
       expect(result).toBeDefined();
       // The value might be the malformed string or a default, but shouldn't throw
+    });
+  });
+
+  describe('SYNC_QUOTA_DEFAULT_BYTES', () => {
+    it('should default to 100 MB when unset', async () => {
+      const result = await configService.get(db, 'SYNC_QUOTA_DEFAULT_BYTES');
+
+      expect(result.source).toBe('default');
+      expect(result.value).toBe(String(DEFAULT_SYNC_QUOTA_BYTES));
+    });
+
+    it('should use the database value when an admin sets one', async () => {
+      await configService.set(db, 'SYNC_QUOTA_DEFAULT_BYTES', '5242880');
+
+      const result = await configService.get(db, 'SYNC_QUOTA_DEFAULT_BYTES');
+      expect(result.source).toBe('database');
+      expect(parseSyncQuotaBytes(result.value)).toBe(5242880);
+    });
+
+    it('should be listed in the general config category', async () => {
+      const general = await configService.getByCategory(db, 'general');
+      expect(general).toHaveProperty('SYNC_QUOTA_DEFAULT_BYTES');
     });
   });
 });
