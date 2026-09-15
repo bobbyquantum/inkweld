@@ -39,6 +39,7 @@ export const errorHandler: ErrorHandler = (err, c) => {
   const isExpectedError =
     err.name === 'UnauthorizedError' ||
     err.name === 'ForbiddenError' ||
+    err.name === 'QuotaExceededError' ||
     err.name === 'NotFoundError' ||
     err.name === 'BadRequestError' ||
     (err instanceof HTTPException && err.status < 500);
@@ -89,6 +90,33 @@ export const errorHandler: ErrorHandler = (err, c) => {
       {
         error: 'Forbidden',
         message: err.message || 'Access denied',
+      },
+      403
+    );
+  }
+
+  // Sync-capacity refusal. Returned as 403 (the request is understood and the
+  // caller is authorised; the account is simply out of room) but with the
+  // numbers and a machine-readable reason so the UI can explain the limit
+  // instead of showing a bare "access denied" — the two are very different to
+  // a user who has just hit their allowance.
+  if (err.name === 'QuotaExceededError') {
+    const quotaErr = err as {
+      message?: string;
+      usedBytes?: number;
+      quotaBytes?: number;
+      requiredBytes?: number;
+      reason?: string;
+    };
+    return c.json(
+      {
+        error: 'Quota Exceeded',
+        message: quotaErr.message || 'Sync capacity exceeded',
+        code: 'QUOTA_EXCEEDED',
+        usedBytes: quotaErr.usedBytes ?? 0,
+        quotaBytes: quotaErr.quotaBytes ?? 0,
+        ...(quotaErr.requiredBytes !== undefined ? { requiredBytes: quotaErr.requiredBytes } : {}),
+        ...(quotaErr.reason ? { reason: quotaErr.reason } : {}),
       },
       403
     );
