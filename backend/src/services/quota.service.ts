@@ -237,6 +237,44 @@ class QuotaService {
       overSoftLimit: safeQuota === 0 ? true : safeUsed >= safeQuota * SOFT_QUOTA_FRACTION,
     };
   }
+
+  /**
+   * Decide whether a write of `additionalBytes` must be refused, reconciling
+   * first when the cheap counter suggests it would cross the line.
+   *
+   * The cached counter can drift low (a failed upload never counted) or high
+   * (a deletion never counted). Refusing purely on a stale high reading would
+   * wrongly reject someone who actually has room — the worst failure mode for
+   * a quota — so when the fast path says "would exceed", the authoritative
+   * usage is recomputed before refusing. The common path (comfortably under
+   * the limit) stays a single cheap read.
+   */
+  async checkEnforcement(
+    db: DatabaseInstance,
+    user: {
+      id: string;
+      username?: string | null;
+      storageUsedBytes?: number | null;
+      syncQuotaBytes?: number | null;
+    },
+    additionalBytes: number,
+    r2?: R2Bucket,
+    env?: QuotaStorageEnv,
+    authToken = ''
+  ): Promise<QuotaUsage> {
+    const quotaBytes = await this.getEffectiveQuota(db, user);
+    const cached = Math.max(0, user.storageUsedBytes ?? 0);
+    const needed = Math.max(0, additionalBytes);
+
+    // Fast path: clearly within budget, no recompute needed.
+    if (cached + needed <= quotaBytes) {
+      return this.toQuotaUsage(cached, quotaBytes);
+    }
+
+    // The counter says "over" — verify against reality before refusing.
+    const authoritative = await this.reconcile(db, user, r2, env, authToken);
+    return this.toQuotaUsage(authoritative, quotaBytes);
+  }
 }
 
 export const quotaService = new QuotaService();
