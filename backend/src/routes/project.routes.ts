@@ -8,12 +8,14 @@ import { getStorageService } from '../services/storage.service';
 import { destroyProjectDurableObject } from '../utils/project-durable-object';
 import { yjsService } from '../services/yjs.service';
 import { getProjectStorageSize } from '../services/storage-size.service';
+import { quotaService } from '../services/quota.service';
 import {
   UnauthorizedError,
   ForbiddenError,
   NotFoundError,
   BadRequestError,
   InternalError,
+  QuotaExceededError,
 } from '../errors';
 import type { AppContext } from '../types/context';
 import {
@@ -201,6 +203,7 @@ const createProjectRoute = createRoute({
     400: errorResponse('Invalid input or project already exists'),
     ...errorResponses.notAuthenticated,
     404: errorResponse('User not found'),
+    ...errorResponses.quotaExceeded,
   },
 });
 
@@ -223,6 +226,32 @@ projectRoutes.openapi(createProjectRoute, async (c) => {
 
   if (existing) {
     throw new BadRequestError('Project with this slug already exists');
+  }
+
+  // Sync-capacity check. A new project starts empty but its container counts
+  // against the owner, so an account already at (or over) its allowance cannot
+  // open more. Yjs editing of existing projects is deliberately never blocked.
+  // `checkEnforcement` reconciles first if the cached counter looks over, so a
+  // stale reading cannot wrongly refuse.
+  {
+    const authHeader = c.req.header('Authorization') ?? '';
+    const quotaToken = authHeader.startsWith('Bearer ') ? authHeader.substring(7) : '';
+    const usage = await quotaService.checkEnforcement(
+      db,
+      user,
+      0,
+      c.get('storage'),
+      c.env as never,
+      quotaToken
+    );
+    if (usage.overQuota) {
+      throw new QuotaExceededError({
+        usedBytes: usage.usedBytes,
+        quotaBytes: usage.quotaBytes,
+        reason: 'project_create',
+        message: 'This account has reached its sync capacity and cannot create more projects.',
+      });
+    }
   }
 
   // Remove any tombstone for this slug (user is recreating a project)

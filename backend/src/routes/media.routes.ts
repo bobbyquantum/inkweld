@@ -10,9 +10,11 @@ import {
 import { getStorageService } from '../services/storage.service';
 import { projectService } from '../services/project.service';
 import { collaborationService } from '../services/collaboration.service';
-import { BadRequestError, ForbiddenError, NotFoundError } from '../errors';
+import { userService } from '../services/user.service';
+import { quotaService } from '../services/quota.service';
+import { BadRequestError, ForbiddenError, NotFoundError, QuotaExceededError } from '../errors';
 import { type AppContext } from '../types/context';
-import { ProjectPathParamsSchema } from '../schemas/common.schemas';
+import { ProjectPathParamsSchema, QuotaExceededSchema } from '../schemas/common.schemas';
 const mediaRoutes = new OpenAPIHono<AppContext>();
 
 // Apply auth to all routes - media is project-specific
@@ -48,6 +50,13 @@ const ErrorSchema = z
     message: z.string().openapi({ example: 'Error occurred', description: 'Error message' }),
   })
   .openapi('MediaError');
+
+/**
+ * Media upload can answer 403 for two unrelated reasons: an access-control
+ * denial, or the sync-capacity refusal (which carries usage details). Both are
+ * documented under the single 403 status as a union.
+ */
+const MediaUploadForbiddenSchema = z.union([ErrorSchema, QuotaExceededSchema]);
 
 // List project media files
 const listMediaRoute = createRoute({
@@ -191,8 +200,8 @@ const uploadMediaRoute = createRoute({
       description: 'Not authenticated',
     },
     403: {
-      content: { 'application/json': { schema: ErrorSchema } },
-      description: 'Access denied',
+      content: { 'application/json': { schema: MediaUploadForbiddenSchema } },
+      description: 'Access denied, or sync capacity exceeded (QUOTA_EXCEEDED)',
     },
     404: {
       content: { 'application/json': { schema: ErrorSchema } },
@@ -266,6 +275,35 @@ mediaRoutes.openapi(uploadMediaRoute, async (c) => {
 
   // Read file data (one copy — Uint8Array over the buffer, no second clone)
   const data = new Uint8Array(await file.arrayBuffer());
+
+  // Sync-capacity check. Media is the one write that genuinely grows storage by
+  // large amounts, so it is refused at the hard limit. `checkEnforcement`
+  // reconciles before refusing when the cached counter suggests a crossing, so
+  // a stale counter cannot wrongly reject an upload that would actually fit.
+  const owner = await userService.findById(db, project.userId);
+  if (owner) {
+    const authHeader = c.req.header('Authorization') ?? '';
+    const quotaToken = authHeader.startsWith('Bearer ') ? authHeader.substring(7) : '';
+    const usage = await quotaService.checkEnforcement(
+      db,
+      owner,
+      data.byteLength,
+      c.get('storage'),
+      c.env as never,
+      quotaToken
+    );
+    if (usage.usedBytes + data.byteLength > usage.quotaBytes) {
+      throw new QuotaExceededError({
+        usedBytes: usage.usedBytes,
+        quotaBytes: usage.quotaBytes,
+        requiredBytes: data.byteLength,
+        reason: 'media_upload',
+        message: 'Upload would exceed this account’s sync capacity.',
+      });
+    }
+    // Count the accepted upload optimistically; reconcile corrects any drift.
+    await quotaService.recordUpload(db, project.userId, data.byteLength);
+  }
 
   // Save to storage
   await storage.saveProjectFile(username, slug, filename, data, file.type);

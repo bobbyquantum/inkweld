@@ -349,6 +349,87 @@ describe('quotaService.wouldExceedQuota', () => {
   });
 });
 
+describe('quotaService.checkEnforcement', () => {
+  it('allows a write that clearly fits without reconciling', async () => {
+    await seedProject('one');
+    await seedData(USERNAME, 'one', 500);
+    await db
+      .update(users)
+      .set({ syncQuotaBytes: 10_000, storageUsedBytes: 100 })
+      .where(eq(users.id, USER_ID));
+
+    const user = (await db.select().from(users).where(eq(users.id, USER_ID)))[0];
+    const usage = await quotaService.checkEnforcement(db, user, 200);
+
+    // Fast path: reads the cached counter, so the deliberate drift (real=500,
+    // cached=100) is still present in the returned figure.
+    expect(usage.usedBytes).toBe(100);
+    expect(usage.overQuota).toBe(false);
+  });
+
+  it('reconciles before refusing, so a stale high counter cannot wrongly reject', async () => {
+    await seedProject('one');
+    await seedData(USERNAME, 'one', 3000);
+    // Cached 3900 (stale high) + 200 needed crosses the 4000 quota on the fast
+    // path, but reality is 3000 used, so 3000 + 200 actually fits.
+    await db
+      .update(users)
+      .set({ syncQuotaBytes: 4000, storageUsedBytes: 3900 })
+      .where(eq(users.id, USER_ID));
+
+    const user = (await db.select().from(users).where(eq(users.id, USER_ID)))[0];
+    const usage = await quotaService.checkEnforcement(db, user, 200);
+
+    expect(usage.usedBytes).toBe(3000);
+    expect(usage.overQuota).toBe(false);
+
+    // ...and the reconcile persisted the corrected counter.
+    const row = (await db.select().from(users).where(eq(users.id, USER_ID)))[0];
+    expect(row.storageUsedBytes).toBe(3000);
+  });
+
+  it('refuses when the authoritative usage really is over, after reconciling', async () => {
+    await seedProject('one');
+    await seedData(USERNAME, 'one', 5000);
+    await db
+      .update(users)
+      .set({ syncQuotaBytes: 4000, storageUsedBytes: 3900 })
+      .where(eq(users.id, USER_ID));
+
+    const user = (await db.select().from(users).where(eq(users.id, USER_ID)))[0];
+    const usage = await quotaService.checkEnforcement(db, user, 200);
+
+    expect(usage.usedBytes).toBe(5000);
+    expect(usage.overQuota).toBe(true);
+  });
+
+  it('docs the accepted tradeoff: a counter that drifted LOW is only caught on the next crossing', async () => {
+    // This is the deliberate consequence of the fast path. `recordUpload` keeps
+    // the counter accurate as usage grows, so the realistic low-drift sources
+    // are deletions and out-of-band edits; those are corrected by the next
+    // crossing check and by periodic reconcile. Recorded here so the behaviour
+    // is intentional rather than an accident.
+    await seedProject('one');
+    await seedData(USERNAME, 'one', 5000);
+    await db
+      .update(users)
+      .set({ syncQuotaBytes: 4000, storageUsedBytes: 0 })
+      .where(eq(users.id, USER_ID));
+
+    const user = (await db.select().from(users).where(eq(users.id, USER_ID)))[0];
+    const small = await quotaService.checkEnforcement(db, user, 100);
+
+    // Stale-low counter + small write stays on the fast path and is allowed.
+    expect(small.overQuota).toBe(false);
+    expect(small.usedBytes).toBe(0);
+
+    // A write that crosses the quota on the fast path reconciles and catches it.
+    const large = await quotaService.checkEnforcement(db, user, 10_000);
+    expect(large.usedBytes).toBe(5000);
+    expect(large.overQuota).toBe(true);
+  });
+});
+
 describe('quotaService.toQuotaUsage', () => {
   it('clamps negative inputs', () => {
     const usage = quotaService.toQuotaUsage(-100, -5);
