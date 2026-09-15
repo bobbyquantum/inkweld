@@ -47,11 +47,11 @@ export function parseSyncQuotaBytes(value: unknown): number | undefined {
  *
  * A per-user `0` is an explicit zero allowance and is preserved; an invalid
  * override falls back to the default rather than blocking the account.
+ *
+ * Both values are taken as `unknown` because they arrive from a database row
+ * and a text config column, where a driver may hand back a numeric string.
  */
-export function resolveSyncQuotaBytes(
-  userOverride: number | null | undefined,
-  instanceDefault: unknown
-): number {
+export function resolveSyncQuotaBytes(userOverride: unknown, instanceDefault: unknown): number {
   const override = parseSyncQuotaBytes(userOverride);
   if (override !== undefined) return override;
   return parseSyncQuotaBytes(instanceDefault) ?? DEFAULT_SYNC_QUOTA_BYTES;
