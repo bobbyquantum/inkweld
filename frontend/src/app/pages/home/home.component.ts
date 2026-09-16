@@ -34,6 +34,7 @@ import {
 } from '@dialogs/confirmation-dialog/confirmation-dialog.component';
 import { LoginDialogComponent } from '@dialogs/login-dialog/login-dialog.component';
 import { RegisterDialogComponent } from '@dialogs/register-dialog/register-dialog.component';
+import { PullToRefreshDirective } from '@directives/pull-to-refresh.directive';
 import { CollaborationService as CollaborationApiService } from '@inkweld/api/collaboration.service';
 import { ProjectsService } from '@inkweld/api/projects.service';
 import { type Project } from '@inkweld/index';
@@ -63,8 +64,6 @@ import { UnifiedUserService } from '@services/user/unified-user.service';
 import { formatBytes } from '@utils/format-bytes';
 import { firstValueFrom, Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
-
-import { PullToRefreshDirective } from '../../directives/pull-to-refresh.directive';
 
 interface HomeSearchFormValue {
   search: string;
