@@ -29,6 +29,9 @@ function touchEvent(
   return event;
 }
 
+/** Mirrors MIN_REFRESH_MS in the directive. */
+const MIN_REFRESH_MS = 500;
+
 /** One finger at the origin of the drag. */
 const START: TestTouch = { identifier: 1, clientX: 100, clientY: 100 };
 
@@ -149,42 +152,71 @@ describe('PullToRefreshDirective', () => {
   });
 
   it('runs the action on release when armed, then settles', async () => {
-    let settle: () => void = () => undefined;
-    const action = vi.fn(
-      () =>
-        new Promise<void>(resolve => {
-          settle = resolve;
-        })
-    );
-    host.action.set(action);
-    fixture.detectChanges();
+    vi.useFakeTimers();
+    try {
+      let settle: () => void = () => undefined;
+      const action = vi.fn(
+        () =>
+          new Promise<void>(resolve => {
+            settle = resolve;
+          })
+      );
+      host.action.set(action);
+      fixture.detectChanges();
 
-    drag(140);
-    release(140);
+      drag(140);
+      release(140);
 
-    expect(action).toHaveBeenCalledTimes(1);
-    expect(directive.state()).toBe('refreshing');
-    expect(directive.dragging()).toBe(false);
-    expect(pullDistance()).toBe('48px');
+      expect(action).toHaveBeenCalledTimes(1);
+      expect(directive.state()).toBe('refreshing');
+      expect(directive.dragging()).toBe(false);
+      expect(pullDistance()).toBe('48px');
 
-    settle();
-    await fixture.whenStable();
+      settle();
+      await vi.advanceTimersByTimeAsync(MIN_REFRESH_MS);
 
-    expect(directive.state()).toBe('idle');
-    expect(pullDistance()).toBe('0px');
+      expect(directive.state()).toBe('idle');
+      expect(pullDistance()).toBe('0px');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
-  it('keeps the indicator up until a slow action settles', async () => {
-    const action = vi.fn(() => Promise.reject(new Error('offline')));
-    host.action.set(action);
-    fixture.detectChanges();
+  it('holds the indicator up when the action finishes immediately', async () => {
+    vi.useFakeTimers();
+    try {
+      host.action.set(() => Promise.resolve());
+      fixture.detectChanges();
 
-    drag(140);
-    release(140);
-    await fixture.whenStable();
+      drag(140);
+      release(140);
+      // Local and cloud mode land here: the work is already done, but tearing
+      // the spinner down now would mean the user never saw it.
+      await vi.advanceTimersByTimeAsync(MIN_REFRESH_MS - 50);
+      expect(directive.state()).toBe('refreshing');
 
-    // A rejection is the action's business to report; we just stop spinning.
-    expect(directive.state()).toBe('idle');
+      await vi.advanceTimersByTimeAsync(50);
+      expect(directive.state()).toBe('idle');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('brings the indicator down when the action rejects', async () => {
+    vi.useFakeTimers();
+    try {
+      host.action.set(() => Promise.reject(new Error('offline')));
+      fixture.detectChanges();
+
+      drag(140);
+      release(140);
+      await vi.advanceTimersByTimeAsync(MIN_REFRESH_MS);
+
+      // A rejection is the action's business to report; we just stop spinning.
+      expect(directive.state()).toBe('idle');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('does not refresh when released short of the trigger', () => {

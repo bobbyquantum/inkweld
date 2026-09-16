@@ -213,6 +213,7 @@ describe('HomeComponent', () => {
       projects: mockProjectsSignal,
       initialized: mockProjectInitialized,
       loadProjects: vi.fn().mockResolvedValue(undefined),
+      reloadProjects: vi.fn().mockResolvedValue(undefined),
       deleteProject: vi.fn().mockResolvedValue(undefined),
     };
 
@@ -286,7 +287,7 @@ describe('HomeComponent', () => {
           useValue: {
             status: () => 'disabled',
             initialize: () => undefined,
-            syncNow: () => Promise.resolve(),
+            syncNow: vi.fn().mockResolvedValue(undefined),
           },
         },
         provideZonelessChangeDetection(),
@@ -1700,6 +1701,57 @@ describe('HomeComponent', () => {
       component['startTutorial']();
 
       expect(tutorialService.start).toHaveBeenCalledWith('home');
+    });
+  });
+
+  describe('refreshProjects (pull-to-refresh)', () => {
+    it('forces a re-read rather than using the cached load path', async () => {
+      await component['refreshProjects']();
+
+      // loadProjects() short-circuits once the service holds projects, which
+      // would make the gesture a no-op.
+      expect(projectService.reloadProjects).toHaveBeenCalled();
+      expect(projectService.loadProjects).not.toHaveBeenCalled();
+    });
+
+    it('pulls from cloud storage before re-reading in cloud mode', async () => {
+      (setupService.getMode as ReturnType<typeof vi.fn>).mockReturnValue(
+        'cloud'
+      );
+      const cloudSync = TestBed.inject(CloudSyncEngineService);
+
+      await component['refreshProjects']();
+
+      expect(cloudSync.syncNow).toHaveBeenCalled();
+      expect(projectService.reloadProjects).toHaveBeenCalled();
+    });
+
+    it('does not sync cloud storage in server mode', async () => {
+      const cloudSync = TestBed.inject(CloudSyncEngineService);
+
+      await component['refreshProjects']();
+
+      expect(cloudSync.syncNow).not.toHaveBeenCalled();
+    });
+
+    it('keeps the existing grid and warns when the refresh fails', async () => {
+      projectService.reloadProjects = vi
+        .fn()
+        .mockRejectedValue(new Error('offline'));
+
+      await component['refreshProjects']();
+
+      // The error state would replace the grid the user is looking at.
+      expect(component.loadError).toBe(false);
+      expect(snackBar.open).toHaveBeenCalled();
+    });
+
+    it('does nothing when signed out', async () => {
+      mockIsAuthenticated.set(false);
+
+      await component['refreshProjects']();
+
+      expect(projectService.reloadProjects).not.toHaveBeenCalled();
     });
   });
 });

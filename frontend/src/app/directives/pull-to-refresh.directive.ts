@@ -18,6 +18,14 @@ const TRIGGER_DISTANCE = 56;
 const REST_DISTANCE = 48;
 /** Finger travel before we commit to a pull rather than a scroll, in px. */
 const TOUCH_SLOP = 8;
+/**
+ * Shortest time the indicator stays up once the refresh starts, in ms.
+ *
+ * Local and cloud mode finish in well under a frame, so without a floor the
+ * spinner is torn down before it ever paints and the gesture reads as having
+ * done nothing at all.
+ */
+const MIN_REFRESH_MS = 500;
 
 /** Phase of the gesture, used to style the indicator. */
 export type PullToRefreshState = 'idle' | 'pulling' | 'armed' | 'refreshing';
@@ -165,13 +173,14 @@ export class PullToRefreshDirective implements OnDestroy {
   private async runRefresh(): Promise<void> {
     this.phase.set('refreshing');
     this.setDistance(REST_DISTANCE);
-    try {
-      await this.action()();
-    } catch {
-      // The action reports its own failures; all we owe it is to stop spinning.
-    } finally {
-      this.reset();
-    }
+    // allSettled rather than all: the action reports its own failures, and
+    // either way the indicator has to come down -- but not before the floor
+    // has elapsed, or a fast refresh never shows the user anything.
+    await Promise.allSettled([
+      this.action()(),
+      new Promise(resolve => setTimeout(resolve, MIN_REFRESH_MS)),
+    ]);
+    this.reset();
   }
 
   private reset(): void {

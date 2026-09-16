@@ -438,14 +438,21 @@ export class HomeComponent implements OnInit, OnDestroy {
    *
    * Deliberately goes round `loadProjects()`: that short-circuits once the
    * service already holds projects, so it would never refetch the list -- the
-   * one thing the gesture exists to do. A failed refresh keeps the grid we
-   * already have rather than replacing it with the error state.
+   * one thing the gesture exists to do. `reloadProjects()` always re-reads,
+   * which in local mode means picking up projects added in another tab.
+   *
+   * A failed refresh keeps the grid we already have rather than replacing it
+   * with the error state.
    */
   protected readonly refreshProjects = async (): Promise<void> => {
     if (!this.isAuthenticated()) return;
 
     try {
-      await this.projectService.loadProjects();
+      if (this.setupService.getMode() === 'cloud') {
+        // Pull from the user's own cloud storage first, then read what landed.
+        await this.cloudSync.syncNow();
+      }
+      await this.projectService.reloadProjects();
       await this.loadCollaborationData();
       this.triggerCoverSync();
       this.loadError = false;
