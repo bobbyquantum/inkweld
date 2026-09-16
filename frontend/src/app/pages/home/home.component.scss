@@ -350,7 +350,7 @@
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   gap: 24px;
   // Extra headroom so the hover lift and shadow never touch the container edge
-  padding: 20px 12px 28px;
+  padding: 20px 24px 28px;
   max-width: 1600px;
   margin: 0 auto;
 
@@ -508,7 +508,7 @@
 @media (max-width: 768px) {
   .covers-grid {
     gap: 16px;
-    padding: 16px 8px 24px;
+    padding: 16px 16px 24px;
   }
 
   .main-content {
@@ -626,7 +626,7 @@
   max-width: 1600px;
   margin-left: auto;
   margin-right: auto;
-  padding: 0 8px;
+  padding: 0 24px;
 }
 
 .invitations-list,
