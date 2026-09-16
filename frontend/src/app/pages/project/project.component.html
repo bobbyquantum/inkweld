@@ -33,7 +33,7 @@
 
 <mat-sidenav-container class="main-container">
   <!-- Mobile sidenav -->
-  @if (isMobile()) {
+  @if (isMobile() && !isPopout()) {
     <mat-sidenav
       mode="over"
       [opened]="false"
@@ -142,9 +142,11 @@
       </div>
     </mat-sidenav>
   }
-  <mat-sidenav-content [class.no-toolbar]="!isMobile() && useTabsDesktop()">
-    <!-- Main toolbar - only shown on mobile or when desktop tabs are disabled -->
-    @if (isMobile() || !useTabsDesktop()) {
+  <mat-sidenav-content
+    [class.no-toolbar]="isPopout() || (!isMobile() && useTabsDesktop())">
+    <!-- Main toolbar - only shown on mobile or when desktop tabs are disabled.
+         Never in a pop-out, which shows the document and nothing else. -->
+    @if (!isPopout() && (isMobile() || !useTabsDesktop())) {
       <mat-toolbar class="mobile-toolbar">
         <button mat-icon-button (click)="toggleSidebar()">
           <mat-icon>menu</mat-icon>
@@ -170,7 +172,7 @@
     } @else {
       <!-- Desktop layout: sidebar + shared content (single outlet preserves routed state) -->
       <div class="desktop-layout" [class.dense-sidebar]="denseLayout()">
-        @if (showSidebar()) {
+        @if (showSidebar() && !isPopout()) {
           @if (sidebarCollapsed()) {
             <!-- Desktop collapsed sidebar -->
             <div class="collapsed-sidebar">
@@ -403,7 +405,7 @@
         }
         <!-- Shared content area (single outlet; preserved across sidebar state changes) -->
         <div class="desktop-content">
-          @if (useTabsDesktop()) {
+          @if (useTabsDesktop() && !isPopout()) {
             <div class="tabs-header">
               <app-tab-interface (importRequested)="onImportClicked()">
                 <!-- Projected into tab-bar-actions -->

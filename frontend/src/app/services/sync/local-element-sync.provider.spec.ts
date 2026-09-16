@@ -1,3 +1,8 @@
+import {
+  provideZonelessChangeDetection,
+  signal,
+  type WritableSignal,
+} from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { type Element, ElementType } from '@inkweld/index';
 import {
@@ -974,5 +979,143 @@ describe('LocalElementSyncProvider', () => {
 
       expect(provider.getProjectMeta()?.pinnedElementIds).toEqual(['elem-1']);
     });
+  });
+});
+
+/**
+ * Another window of the same browser can now edit the project's shared Yjs
+ * document (a popped-out document window, or simply a second tab), and those
+ * edits arrive through BroadcastSyncProvider rather than through this
+ * provider's own write methods. The provider has to republish them, or its
+ * view of the project silently rots — and its next whole-array write would
+ * undo the other window's change.
+ */
+describe('LocalElementSyncProvider republishing outside changes', () => {
+  let provider: LocalElementSyncProvider;
+  let elements: WritableSignal<Element[]>;
+  let projectMeta: WritableSignal<ProjectMeta | undefined>;
+
+  const config = { username: 'testuser', slug: 'test-project' };
+
+  const otherWindowElement: Element = {
+    id: 'elem-from-other-window',
+    name: 'Written next door',
+    type: ElementType.Item,
+    parentId: null,
+    level: 0,
+    order: 0,
+    expandable: false,
+    version: 0,
+    metadata: {},
+  };
+
+  beforeEach(async () => {
+    TestBed.resetTestingModule();
+
+    elements = signal<Element[]>([]);
+    projectMeta = signal<ProjectMeta | undefined>(undefined);
+
+    // Real signals, unlike the outer suite's plain stubs: the mirror is an
+    // effect, so it only tracks something that actually notifies.
+    const localService = {
+      loadElements: vi.fn().mockResolvedValue(undefined),
+      elements,
+      projectMeta,
+      publishPlans: signal([]),
+      relationships: signal([]),
+      customRelationshipTypes: signal([]),
+      schemas: signal([]),
+      timeSystems: signal([]),
+      elementTags: signal([]),
+      customTags: signal([]),
+      mediaTags: signal([]),
+      mediaProjectTags: signal([]),
+      saveElements: vi.fn().mockResolvedValue(undefined),
+      savePublishPlans: vi.fn().mockResolvedValue(undefined),
+      saveRelationships: vi.fn().mockResolvedValue(undefined),
+      saveCustomRelationshipTypes: vi.fn().mockResolvedValue(undefined),
+      saveSchemas: vi.fn().mockResolvedValue(undefined),
+      saveTimeSystems: vi.fn().mockResolvedValue(undefined),
+      saveElementTags: vi.fn().mockResolvedValue(undefined),
+      saveCustomTags: vi.fn().mockResolvedValue(undefined),
+      saveMediaTags: vi.fn().mockResolvedValue(undefined),
+      saveMediaProjectTags: vi.fn().mockResolvedValue(undefined),
+      saveProjectMeta: vi.fn().mockResolvedValue(undefined),
+      closeConnection: vi.fn().mockResolvedValue(undefined),
+    };
+
+    TestBed.configureTestingModule({
+      imports: [translocoTestProvider()],
+      providers: [
+        provideZonelessChangeDetection(),
+        LocalElementSyncProvider,
+        { provide: LocalProjectElementsService, useValue: localService },
+        {
+          provide: LoggerService,
+          useValue: {
+            debug: vi.fn(),
+            info: vi.fn(),
+            warn: vi.fn(),
+            error: vi.fn(),
+            group: vi.fn(),
+          },
+        },
+      ],
+    });
+
+    provider = TestBed.inject(LocalElementSyncProvider);
+    await provider.connect(config);
+  });
+
+  it('publishes elements that arrived from another window', () => {
+    elements.set([otherWindowElement]);
+    TestBed.flushEffects();
+
+    expect(provider.getElements()).toEqual([otherWindowElement]);
+  });
+
+  it('publishes project metadata that arrived from another window', () => {
+    projectMeta.set({
+      name: 'Renamed next door',
+      description: 'Project Description',
+      updatedAt: '2025-01-02T00:00:00.000Z',
+    });
+    TestBed.flushEffects();
+
+    expect(provider.getProjectMeta()?.name).toBe('Renamed next door');
+  });
+
+  it('notifies subscribers of an outside change', () => {
+    const seen: Element[][] = [];
+    provider.elements$.subscribe(value => seen.push(value));
+
+    elements.set([otherWindowElement]);
+    TestBed.flushEffects();
+
+    expect(seen.at(-1)).toEqual([otherWindowElement]);
+  });
+
+  it("does not re-emit this provider's own write", () => {
+    const seen: Element[][] = [];
+    provider.elements$.subscribe(value => seen.push(value));
+    const emissionsAfterSubscribe = seen.length;
+
+    const written = [otherWindowElement];
+    provider.updateElements(written);
+    // What the service signal ends up holding after a save is the very array
+    // the caller handed over, so the mirror must recognise it and stay quiet.
+    elements.set(written);
+    TestBed.flushEffects();
+
+    expect(seen).toHaveLength(emissionsAfterSubscribe + 1);
+  });
+
+  it('stops republishing once disconnected', () => {
+    provider.disconnect();
+
+    elements.set([otherWindowElement]);
+    TestBed.flushEffects();
+
+    expect(provider.getElements()).toEqual([]);
   });
 });

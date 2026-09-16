@@ -41,6 +41,7 @@ import { type PublishPlan } from '../../models/publish-plan';
 import { type ElementTypeSchema } from '../../models/schema-types';
 import { DialogGatewayService } from '../core/dialog-gateway.service';
 import { LoggerService } from '../core/logger.service';
+import { PopoutService } from '../core/popout.service';
 import { SetupService } from '../core/setup.service';
 import {
   isLocalOrCloudMode,
@@ -104,6 +105,7 @@ export class ProjectStateService implements OnDestroy {
   private readonly storageService = inject(StorageService);
   private readonly storageContext = inject(StorageContextService);
   private readonly logger = inject(LoggerService);
+  private readonly popout = inject(PopoutService);
   private readonly worldbuildingService = inject(WorldbuildingService);
   private readonly timeSystemLibrary = inject(TimeSystemLibraryService);
   private readonly elementTreeService = inject(ElementTreeService);
@@ -1793,6 +1795,10 @@ export class ProjectStateService implements OnDestroy {
   async saveOpenedDocumentsToCache(): Promise<void> {
     if (!this.documentCacheDb || !this.storageService.isAvailable()) return;
 
+    // A popped-out window holds one document, not the user's working set.
+    // Saving from here would replace the main window's tabs with that pair.
+    if (this.popout.isPopout()) return;
+
     const project = this.project();
     if (!project?.username || !project?.slug) return;
 
@@ -1857,6 +1863,15 @@ export class ProjectStateService implements OnDestroy {
 
     const project = this.project();
     if (!project?.username || !project?.slug) return;
+
+    // A popped-out window shows only the document in its URL, so it starts
+    // from the same bare home tab every other index in this service assumes
+    // at position 0. ProjectComponent opens the document itself once the
+    // elements have loaded.
+    if (this.popout.isPopout()) {
+      this.tabManager.openSystemTab('home');
+      return;
+    }
 
     const cacheKey = `${project.username}/${project.slug}/documents`;
     const tabsCacheKey = `${cacheKey}/tabs`;

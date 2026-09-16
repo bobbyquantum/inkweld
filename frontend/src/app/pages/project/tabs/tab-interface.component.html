@@ -86,6 +86,19 @@
         }}</span>
       </button>
     }
+    @if (canPopOutContextTab()) {
+      <button
+        type="button"
+        class="context-menu-item"
+        cdkMenuItem
+        data-testid="tab-open-in-new-window"
+        (click)="onPopOutContextTab()">
+        <mat-icon>open_in_new</mat-icon>
+        <span class="context-menu-item-title">{{
+          'project.tabs.openInNewWindow' | transloco
+        }}</span>
+      </button>
+    }
     @if (
       contextTab &&
       contextTab.type !== 'system' &&

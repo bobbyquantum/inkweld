@@ -23,6 +23,7 @@ import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import { translocoTestProvider } from '../../../../testing/transloco-test-provider';
 import { DocumentSyncState } from '../../../models/document-sync-state';
 import { DialogGatewayService } from '../../../services/core/dialog-gateway.service';
+import { PopoutService } from '../../../services/core/popout.service';
 import { DocumentService } from '../../../services/project/document.service';
 import {
   type AppTab,
@@ -123,6 +124,7 @@ describe('TabInterfaceComponent', () => {
     // Mock document service
     documentService = {
       initializeSyncStatus: vi.fn(),
+      disconnect: vi.fn(),
       getSyncStatusSignal: vi
         .fn()
         .mockReturnValue(() => DocumentSyncState.Synced), // Default mock
@@ -1119,6 +1121,84 @@ describe('TabInterfaceComponent', () => {
       } as any;
 
       expect(() => component.updateSelectedTabFromUrl()).not.toThrow();
+    });
+  });
+  describe('opening a document in its own window', () => {
+    let popoutService: PopoutService;
+
+    beforeEach(() => {
+      popoutService = TestBed.inject(PopoutService);
+      vi.spyOn(popoutService, 'openDocument').mockReturnValue(true);
+    });
+
+    it('offers the action for a document tab', () => {
+      component.contextTab = mockTabs[0];
+
+      expect(component.canPopOutContextTab()).toBe(true);
+    });
+
+    it('does not offer it for a folder tab', () => {
+      component.contextTab = mockTabs[1];
+
+      expect(component.canPopOutContextTab()).toBe(false);
+    });
+
+    it('does not offer it for a system tab', () => {
+      component.contextTab = {
+        id: 'home',
+        name: 'Home',
+        type: 'system',
+        systemType: 'home',
+      };
+
+      expect(component.canPopOutContextTab()).toBe(false);
+    });
+
+    it('does not offer it with no tab under the cursor', () => {
+      component.contextTab = null;
+
+      expect(component.canPopOutContextTab()).toBe(false);
+    });
+
+    it('opens the document the context menu was raised on', () => {
+      component.contextTab = mockTabs[0];
+
+      component.onPopOutContextTab();
+
+      expect(popoutService.openDocument).toHaveBeenCalledWith(
+        'testuser',
+        'test-project',
+        'doc1'
+      );
+    });
+
+    it('leaves the tab open in this window', () => {
+      component.contextTab = mockTabs[0];
+
+      component.onPopOutContextTab();
+
+      expect(projectStateService.closeTab).not.toHaveBeenCalled();
+    });
+
+    it('tells the user when the browser blocks the window', () => {
+      vi.mocked(popoutService.openDocument).mockReturnValue(false);
+      const snackBar = (
+        component as unknown as { snackBar: { open: (m: string) => void } }
+      ).snackBar;
+      const open = vi.spyOn(snackBar, 'open');
+      component.contextTab = mockTabs[0];
+
+      component.onPopOutContextTab();
+
+      expect(open).toHaveBeenCalled();
+    });
+
+    it('does nothing when the tab has no element', () => {
+      component.contextTab = { id: 'x', name: 'X', type: 'document' };
+
+      component.onPopOutContextTab();
+
+      expect(popoutService.openDocument).not.toHaveBeenCalled();
     });
   });
 });

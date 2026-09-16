@@ -18,6 +18,7 @@ import { DocumentSyncState } from '../../models/document-sync-state';
 import { AuthTokenService } from '../auth/auth-token.service';
 import { SetupService } from '../core/setup.service';
 import { SystemConfigService } from '../core/system-config.service';
+import { type BroadcastSyncProvider } from '../sync/broadcast-sync.provider';
 import { UnifiedUserService } from '../user/unified-user.service';
 import { type DocumentConnection, DocumentService } from './document.service';
 import { ProjectStateService } from './project-state.service';
@@ -49,6 +50,7 @@ describe('DocumentService', () => {
   let mockYDoc: DeepMockProxy<Y.Doc>;
   let mockWebSocketProvider: DeepMockProxy<WebsocketProvider>;
   let _mockIndexedDbProvider: DeepMockProxy<IndexeddbPersistence>;
+  let mockBroadcastProvider: BroadcastSyncProvider;
   let mockEditor: DeepMockProxy<Editor>;
   let mockSetupService: DeepMockProxy<SetupService>;
   let mockSystemConfigService: DeepMockProxy<SystemConfigService>;
@@ -84,6 +86,10 @@ describe('DocumentService', () => {
       whenSynced: Promise.resolve(),
       destroy: vi.fn(),
     } as unknown as DeepMockProxy<IndexeddbPersistence>;
+
+    mockBroadcastProvider = {
+      destroy: vi.fn(),
+    } as unknown as BroadcastSyncProvider;
 
     // Mock Editor (ngx-editor) - needs view property for real ProseMirror
     mockEditor = {
@@ -383,12 +389,14 @@ describe('DocumentService', () => {
         provider: mockWebSocketProvider,
         type: ydoc.getXmlFragment('prosemirror'),
         indexeddbProvider: _mockIndexedDbProvider,
+        broadcastProvider: mockBroadcastProvider,
       });
       connectionMap.set(otherDocumentId, {
         ydoc: new Y.Doc(),
         provider: null,
         type: ydoc.getXmlFragment('other'),
         indexeddbProvider: _mockIndexedDbProvider,
+        broadcastProvider: mockBroadcastProvider,
       });
 
       expect(service.getConnectedDocumentIds()).toEqual([
@@ -433,6 +441,7 @@ describe('DocumentService', () => {
         provider: mockWebSocketProvider,
         type: fragment,
         indexeddbProvider: _mockIndexedDbProvider,
+        broadcastProvider: mockBroadcastProvider,
       });
 
       const exportedContent = await new Promise<unknown>(resolve => {
@@ -537,6 +546,7 @@ describe('DocumentService', () => {
         provider: null,
         type: ydoc.getXmlFragment('prosemirror'),
         indexeddbProvider: _mockIndexedDbProvider,
+        broadcastProvider: mockBroadcastProvider,
       };
       type OfflineConnection = typeof connection;
       const privateService = service as unknown as {
@@ -632,6 +642,7 @@ describe('DocumentService', () => {
         provider: mockWebSocketProvider,
         type: new Y.Doc().getXmlFragment('prosemirror'),
         indexeddbProvider: _mockIndexedDbProvider,
+        broadcastProvider: mockBroadcastProvider,
       });
 
       privateService.startMediaUrlObserver({ dom }, testDocumentId);
@@ -673,11 +684,14 @@ describe('DocumentService', () => {
       };
       const timeoutId = setTimeout(() => {}, 0) as unknown as number;
 
+      const broadcastProvider = { destroy: vi.fn() };
+
       privateService.connections.set(testDocumentId, {
         ydoc,
         provider,
         type: ydoc.getXmlFragment('prosemirror'),
         indexeddbProvider,
+        broadcastProvider,
         mediaObserver,
       });
       privateService.reconnectTimeouts.set(testDocumentId, timeoutId);
@@ -688,6 +702,7 @@ describe('DocumentService', () => {
       service.disconnect(testDocumentId);
 
       expect(mediaObserver.disconnect).toHaveBeenCalledTimes(1);
+      expect(broadcastProvider.destroy).toHaveBeenCalledTimes(1);
       expect(provider.awareness.setLocalState).not.toHaveBeenCalled();
       expect(provider.disconnect).toHaveBeenCalledTimes(1);
       expect(provider.destroy).toHaveBeenCalledTimes(1);
@@ -716,6 +731,7 @@ describe('DocumentService', () => {
         ydoc,
         provider,
         type: ydoc.getXmlFragment('prosemirror'),
+        broadcastProvider: { destroy: vi.fn() },
         get indexeddbProvider(): never {
           throw new Error('Provider already destroyed');
         },
@@ -737,6 +753,7 @@ describe('DocumentService', () => {
         ydoc,
         provider: null,
         type: ydoc.getXmlFragment('prosemirror'),
+        broadcastProvider: { destroy: vi.fn() },
         get indexeddbProvider(): never {
           throw new Error('Provider already destroyed');
         },
@@ -755,6 +772,7 @@ describe('DocumentService', () => {
         provider: null,
         type: ydoc.getXmlFragment('prosemirror'),
         indexeddbProvider: _mockIndexedDbProvider,
+        broadcastProvider: mockBroadcastProvider,
       };
       type ConnectedDocument = typeof connection;
       const callbacks: Record<string, (payload: unknown) => void> = {};
@@ -860,6 +878,7 @@ describe('DocumentService', () => {
         provider: null as WebsocketProvider | null,
         type: ydoc.getXmlFragment('prosemirror'),
         indexeddbProvider: _mockIndexedDbProvider,
+        broadcastProvider: mockBroadcastProvider,
       };
       const callbacks: Record<string, StatusCb | ErrCb> = {};
       const scheduled: (() => void)[] = [];
@@ -1167,6 +1186,7 @@ describe('DocumentService', () => {
         provider: null,
         type: ydoc.getXmlFragment('prosemirror'),
         indexeddbProvider: _mockIndexedDbProvider,
+        broadcastProvider: mockBroadcastProvider,
       };
       const editorWithView = {
         ...mockEditor,
@@ -1246,6 +1266,7 @@ describe('DocumentService', () => {
         provider: null,
         type: ydoc.getXmlFragment('prosemirror'),
         indexeddbProvider: _mockIndexedDbProvider,
+        broadcastProvider: mockBroadcastProvider,
       };
       const editorWithView = {
         ...mockEditor,

@@ -1,4 +1,4 @@
-import { inject, Injectable } from '@angular/core';
+import { effect, inject, Injectable, untracked } from '@angular/core';
 import { type Element } from '@inkweld/index';
 import {
   applyCanvasEdit as applyEdit,
@@ -84,6 +84,65 @@ export class LocalElementSyncProvider implements IElementSyncProvider {
     ProjectMeta | undefined
   >(undefined);
   private readonly errorsSubject = new Subject<string>();
+
+  /**
+   * Republishes the backing Yjs document whenever it changes underneath us.
+   *
+   * Local mode has no WebSocket provider, so historically these subjects were
+   * only ever pushed to by this provider's own write methods. That was fine
+   * while one window owned the document, but a popped-out document window
+   * shares it: an element renamed or created in one window now arrives in the
+   * other through BroadcastSyncProvider, and without this mirror the second
+   * window would keep serving a stale list — and overwrite the first window's
+   * change on its next whole-array write.
+   *
+   * Reference equality is the right check here, not a deep one: this
+   * provider's own writes hand the caller's exact array to both the subject
+   * and the service signal, so a self-echo compares equal and is dropped,
+   * while a change arriving from the document always builds a fresh array.
+   */
+  private readonly mirrorDocumentState = effect(() => {
+    // Every signal must be read before the connected guard, or the effect
+    // stops tracking them the first time it bails out early.
+    const elements = this.localService.elements();
+    const publishPlans = this.localService.publishPlans();
+    const relationships = this.localService.relationships();
+    const customTypes = this.localService.customRelationshipTypes();
+    const schemas = this.localService.schemas();
+    const timeSystems = this.localService.timeSystems();
+    const elementTags = this.localService.elementTags();
+    const customTags = this.localService.customTags();
+    const mediaTags = this.localService.mediaTags();
+    const mediaProjectTags = this.localService.mediaProjectTags();
+    const projectMeta = this.localService.projectMeta();
+
+    if (!this.connected) return;
+
+    // Untracked, and it must stay that way: next() runs its subscribers
+    // synchronously, and they read and write signals of their own. Tracked,
+    // those reads would become dependencies of this effect and their writes
+    // would re-trigger it, spinning the window forever. The signals read
+    // above are the only ones that should wake it.
+    untracked(() => {
+      this.republish(this.elementsSubject, elements);
+      this.republish(this.publishPlansSubject, publishPlans);
+      this.republish(this.relationshipsSubject, relationships);
+      this.republish(this.customRelationshipTypesSubject, customTypes);
+      this.republish(this.schemasSubject, schemas);
+      this.republish(this.timeSystemsSubject, timeSystems);
+      this.republish(this.elementTagsSubject, elementTags);
+      this.republish(this.customTagsSubject, customTags);
+      this.republish(this.mediaTagsSubject, mediaTags);
+      this.republish(this.mediaProjectTagsSubject, mediaProjectTags);
+      this.republish(this.projectMetaSubject, projectMeta);
+    });
+  });
+
+  /** Emits on a subject only when the value is not the one it already holds. */
+  private republish<T>(subject: BehaviorSubject<T>, value: T): void {
+    if (subject.getValue() === value) return;
+    subject.next(value);
+  }
   // In local mode, there are no connection errors (we're always local)
   private readonly lastConnectionErrorSubject = new BehaviorSubject<
     string | null

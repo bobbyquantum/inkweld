@@ -19,6 +19,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import {
   ActivatedRoute,
   NavigationCancel,
@@ -33,6 +34,7 @@ import { type Element, ElementType, type Project } from '@inkweld/index';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { getDocumentRole } from '@models/scene-metadata';
 import { LoggerService } from '@services/core/logger.service';
+import { PopoutService } from '@services/core/popout.service';
 import { DocumentService } from '@services/project/document.service';
 import {
   type AppTab,
@@ -119,6 +121,8 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
   protected readonly dialogGateway = inject(DialogGatewayService);
   private readonly transloco = inject(TranslocoService);
   private readonly worldbuildingService = inject(WorldbuildingService);
+  private readonly popoutService = inject(PopoutService);
+  private readonly snackBar = inject(MatSnackBar);
   private readonly logger = inject(LoggerService);
 
   private readonly destroy$ = new Subject<void>();
@@ -855,6 +859,49 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
   onContextMenuClose(): void {
     this.contextTabIndex = null;
     this.contextTab = null;
+  }
+
+  /**
+   * Whether the context-menu tab can be opened in its own window. Only plain
+   * documents qualify: they are the one tab type a pop-out window knows how
+   * to restore from its URL alone.
+   */
+  canPopOutContextTab(): boolean {
+    const tab = this.contextTab;
+    return (
+      !!tab &&
+      tab.type === 'document' &&
+      !!tab.element &&
+      !!this.projectState.project()
+    );
+  }
+
+  /**
+   * Opens the context-menu tab in a standalone window. The tab stays open
+   * here — two views of one document is usually the point of popping one out,
+   * and both stay in sync.
+   *
+   * A separate window is a second copy of the app with its own Yjs document,
+   * so both views can stand and stay in sync.
+   */
+  onPopOutContextTab(): void {
+    const tab = this.contextTab;
+    const project = this.projectState.project();
+    if (!tab?.element || !project) return;
+
+    const opened = this.popoutService.openDocument(
+      project.username,
+      project.slug,
+      tab.element.id
+    );
+
+    if (!opened) {
+      this.snackBar.open(
+        this.transloco.translate('project.snackbar.popoutBlocked'),
+        this.transloco.translate('close'),
+        { duration: 6000 }
+      );
+    }
   }
 
   /**

@@ -14,7 +14,7 @@ import {
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
 import { type Element, ElementType, type Project } from '@inkweld/index';
 import { CloudSyncEngineService } from '@services/cloud-sync/cloud-sync-engine.service';
 import { ProjectSearchService } from '@services/core/project-search.service';
@@ -30,7 +30,7 @@ import { ProjectExportService } from '@services/project/project-export.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { RecentFilesService } from '@services/project/recent-files.service';
 import { MediaAutoSyncService } from '@services/sync/media-auto-sync.service';
-import { BehaviorSubject, of } from 'rxjs';
+import { BehaviorSubject, of, Subject } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
@@ -39,6 +39,7 @@ import { ProjectTreeComponent } from '../../components/project-tree/project-tree
 import { UserMenuComponent } from '../../components/user-menu/user-menu.component';
 import { DocumentSyncState } from '../../models/document-sync-state';
 import { DialogGatewayService } from '../../services/core/dialog-gateway.service';
+import { PopoutService } from '../../services/core/popout.service';
 import { ProjectComponent } from './project.component';
 import { TabInterfaceComponent } from './tabs/tab-interface.component';
 
@@ -153,6 +154,7 @@ describe('ProjectComponent', () => {
   const visibleElementsSignal = signal<any[]>([]);
   const syncStateSignal = signal<DocumentSyncState>(DocumentSyncState.Synced);
   let routerUrl = '/testuser/test-project';
+  let routerEvents: Subject<NavigationEnd>;
 
   beforeEach(async () => {
     // Reset signals
@@ -229,8 +231,10 @@ describe('ProjectComponent', () => {
       }),
     };
 
+    routerEvents = new Subject<NavigationEnd>();
     router = {
       navigate: vi.fn().mockResolvedValue(true),
+      events: routerEvents.asObservable(),
       get url() {
         return routerUrl;
       },
@@ -1267,6 +1271,104 @@ describe('ProjectComponent', () => {
       expect(
         fixture.nativeElement.querySelector('.collapsed-pinned-section')
       ).toBeNull();
+    });
+  });
+  describe('as a popped-out document window', () => {
+    let popoutFixture: ComponentFixture<ProjectComponent>;
+
+    /** Builds a shell that knows from the outset that it is a pop-out. */
+    async function createPopoutShell(url: string): Promise<void> {
+      // The shell reads its pop-out status once, during construction, so the
+      // one the outer setup already built cannot be reused here.
+      fixture.destroy();
+
+      const popoutService = TestBed.inject(PopoutService) as unknown as {
+        popout: WritableSignal<boolean>;
+      };
+      popoutService.popout.set(true);
+      routerUrl = url;
+
+      popoutFixture = TestBed.createComponent(ProjectComponent);
+      popoutFixture.detectChanges();
+      await popoutFixture.whenStable();
+    }
+
+    afterEach(() => {
+      popoutFixture?.destroy();
+      routerUrl = '/testuser/test-project';
+    });
+
+    it('opens the document named in its URL once the elements arrive', async () => {
+      await createPopoutShell('/testuser/test-project/document/elem-1');
+
+      elementsSignal.set([mockElement]);
+      popoutFixture.detectChanges();
+      await popoutFixture.whenStable();
+
+      expect(projectStateService.openDocument).toHaveBeenCalledWith(
+        mockElement
+      );
+    });
+
+    it('opens nothing when the URL names an element the project does not have', async () => {
+      await createPopoutShell('/testuser/test-project/document/missing');
+
+      elementsSignal.set([mockElement]);
+      popoutFixture.detectChanges();
+      await popoutFixture.whenStable();
+
+      expect(projectStateService.openDocument).not.toHaveBeenCalled();
+    });
+
+    it('follows a navigation inside the window to another document', async () => {
+      await createPopoutShell('/testuser/test-project/document/missing');
+      elementsSignal.set([mockElement, mockFolderElement]);
+      popoutFixture.detectChanges();
+      await popoutFixture.whenStable();
+
+      routerUrl = '/testuser/test-project/document/elem-1';
+      routerEvents.next(new NavigationEnd(1, routerUrl, routerUrl));
+      popoutFixture.detectChanges();
+      await popoutFixture.whenStable();
+
+      expect(projectStateService.openDocument).toHaveBeenCalledWith(
+        mockElement
+      );
+    });
+
+    it('does not spin when opening the document writes signals it read', async () => {
+      // The real openDocument stamps the recent-files list, which reads its
+      // own signal and then writes a fresh array every time. If the pop-out
+      // effect runs that tracked, the write re-triggers the effect and the
+      // window locks up, so stand the mock in for that read-then-write shape.
+      const recentFiles = signal<string[]>([]);
+      projectStateService.openDocument = vi.fn((element: Element) => {
+        recentFiles.set([...recentFiles(), element.id]);
+      });
+
+      await createPopoutShell('/testuser/test-project/document/elem-1');
+      elementsSignal.set([mockElement]);
+      popoutFixture.detectChanges();
+      await popoutFixture.whenStable();
+
+      // One settled open, not a runaway. Without untracked this never returns.
+      expect(projectStateService.openDocument).toHaveBeenCalledTimes(1);
+    });
+
+    it('hides the project chrome', async () => {
+      await createPopoutShell('/testuser/test-project/document/elem-1');
+
+      const root = popoutFixture.nativeElement as HTMLElement;
+      expect(root.querySelector('app-tab-interface')).toBeNull();
+      expect(root.querySelector('.desktop-sidebar')).toBeNull();
+      expect(root.querySelector('.collapsed-sidebar')).toBeNull();
+    });
+
+    it('still renders the routed content area', async () => {
+      await createPopoutShell('/testuser/test-project/document/elem-1');
+
+      const root = popoutFixture.nativeElement as HTMLElement;
+      expect(root.querySelector('.content-area')).not.toBeNull();
     });
   });
 });
