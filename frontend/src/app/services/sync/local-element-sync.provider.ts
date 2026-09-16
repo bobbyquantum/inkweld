@@ -1,4 +1,4 @@
-import { effect, inject, Injectable } from '@angular/core';
+import { effect, inject, Injectable, untracked } from '@angular/core';
 import { type Element } from '@inkweld/index';
 import {
   applyCanvasEdit as applyEdit,
@@ -118,17 +118,24 @@ export class LocalElementSyncProvider implements IElementSyncProvider {
 
     if (!this.connected) return;
 
-    this.republish(this.elementsSubject, elements);
-    this.republish(this.publishPlansSubject, publishPlans);
-    this.republish(this.relationshipsSubject, relationships);
-    this.republish(this.customRelationshipTypesSubject, customTypes);
-    this.republish(this.schemasSubject, schemas);
-    this.republish(this.timeSystemsSubject, timeSystems);
-    this.republish(this.elementTagsSubject, elementTags);
-    this.republish(this.customTagsSubject, customTags);
-    this.republish(this.mediaTagsSubject, mediaTags);
-    this.republish(this.mediaProjectTagsSubject, mediaProjectTags);
-    this.republish(this.projectMetaSubject, projectMeta);
+    // Untracked, and it must stay that way: next() runs its subscribers
+    // synchronously, and they read and write signals of their own. Tracked,
+    // those reads would become dependencies of this effect and their writes
+    // would re-trigger it, spinning the window forever. The signals read
+    // above are the only ones that should wake it.
+    untracked(() => {
+      this.republish(this.elementsSubject, elements);
+      this.republish(this.publishPlansSubject, publishPlans);
+      this.republish(this.relationshipsSubject, relationships);
+      this.republish(this.customRelationshipTypesSubject, customTypes);
+      this.republish(this.schemasSubject, schemas);
+      this.republish(this.timeSystemsSubject, timeSystems);
+      this.republish(this.elementTagsSubject, elementTags);
+      this.republish(this.customTagsSubject, customTags);
+      this.republish(this.mediaTagsSubject, mediaTags);
+      this.republish(this.mediaProjectTagsSubject, mediaProjectTags);
+      this.republish(this.projectMetaSubject, projectMeta);
+    });
   });
 
   /** Emits on a subject only when the value is not the one it already holds. */

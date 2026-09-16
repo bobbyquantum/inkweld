@@ -10,6 +10,7 @@ import {
   type OnDestroy,
   type OnInit,
   signal,
+  untracked,
   ViewChild,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
@@ -287,8 +288,13 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
       const element = elements.find(e => e.id === elementId);
       if (!element) return;
 
+      // Untracked, and it must stay that way: openDocument reaches into the
+      // recent-files list, which reads its own signal and then writes a fresh
+      // array stamped with the current time. Tracked, that read becomes a
+      // dependency of this effect and the write re-triggers it, spinning the
+      // window forever. Only the three signals read above should wake it.
       // Idempotent: selects the tab when the document is already open.
-      this.projectState.openDocument(element);
+      untracked(() => this.projectState.openDocument(element));
     });
 
     // Disable zen mode when switching tabs or closing tabs

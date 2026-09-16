@@ -1336,6 +1336,25 @@ describe('ProjectComponent', () => {
       );
     });
 
+    it('does not spin when opening the document writes signals it read', async () => {
+      // The real openDocument stamps the recent-files list, which reads its
+      // own signal and then writes a fresh array every time. If the pop-out
+      // effect runs that tracked, the write re-triggers the effect and the
+      // window locks up, so stand the mock in for that read-then-write shape.
+      const recentFiles = signal<string[]>([]);
+      projectStateService.openDocument = vi.fn((element: Element) => {
+        recentFiles.set([...recentFiles(), element.id]);
+      });
+
+      await createPopoutShell('/testuser/test-project/document/elem-1');
+      elementsSignal.set([mockElement]);
+      popoutFixture.detectChanges();
+      await popoutFixture.whenStable();
+
+      // One settled open, not a runaway. Without untracked this never returns.
+      expect(projectStateService.openDocument).toHaveBeenCalledTimes(1);
+    });
+
     it('hides the project chrome', async () => {
       await createPopoutShell('/testuser/test-project/document/elem-1');
 
