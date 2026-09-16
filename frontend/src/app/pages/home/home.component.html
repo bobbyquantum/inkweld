@@ -254,9 +254,8 @@
         [appPullToRefresh]="refreshProjects"
         [pullToRefreshDisabled]="!isMobile() || !isAuthenticated()">
         @if (pullToRefresh.active()) {
-          <div
+          <output
             class="pull-to-refresh"
-            role="status"
             [class.dragging]="pullToRefresh.dragging()"
             [class.armed]="pullToRefresh.state() === 'armed'"
             [attr.aria-label]="
@@ -272,7 +271,7 @@
                 <mat-icon>arrow_downward</mat-icon>
               }
             </div>
-          </div>
+          </output>
         }
         @if (!isAuthenticated()) {
           <!-- Content for unauthenticated users -->

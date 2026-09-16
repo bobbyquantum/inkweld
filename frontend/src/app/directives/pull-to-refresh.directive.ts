@@ -189,8 +189,5 @@ export class PullToRefreshDirective implements OnDestroy {
 
 /** Finds the tracked touch in a list, since indices are not stable. */
 function findTouch(touches: TouchList, id: number): Touch | undefined {
-  for (let i = 0; i < touches.length; i++) {
-    if (touches[i].identifier === id) return touches[i];
-  }
-  return undefined;
+  return Array.from(touches).find(touch => touch.identifier === id);
 }
