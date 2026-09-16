@@ -66,5 +66,20 @@
         </button>
       }
     </div>
+
+    @if (isIntroStep()) {
+      <!-- Blanket opt-out, kept off the main action row so the choice between
+           taking the tour and deferring it stays the prominent one. -->
+      <div class="tutorial-card-optout">
+        <button
+          mat-button
+          class="tutorial-optout-button"
+          (click)="disableTours()"
+          [matTooltip]="'tutorial.dontShowAgainHint' | transloco"
+          data-testid="tutorial-disable-button">
+          {{ 'tutorial.dontShowAgain' | transloco }}
+        </button>
+      </div>
+    }
   </div>
 }

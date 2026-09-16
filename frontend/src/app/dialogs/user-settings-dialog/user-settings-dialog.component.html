@@ -30,6 +30,18 @@
       <a
         mat-list-item
         role="tab"
+        (click)="selectCategory('general')"
+        (keydown.enter)="selectCategory('general')"
+        [attr.aria-selected]="selectedCategory === 'general'"
+        [class.active]="selectedCategory === 'general'"
+        tabindex="0"
+        [attr.aria-label]="'settings.generalAria' | transloco">
+        <mat-icon matListItemIcon>tune</mat-icon>
+        <span matListItemTitle>{{ 'settings.general' | transloco }}</span>
+      </a>
+      <a
+        mat-list-item
+        role="tab"
         (click)="selectCategory('authorized-apps')"
         (keydown.enter)="selectCategory('authorized-apps')"
         [attr.aria-selected]="selectedCategory === 'authorized-apps'"
@@ -75,6 +87,14 @@
             [animate.enter]="getEnterAnimationClass()"
             [animate.leave]="getLeaveAnimationClass()">
             <app-account-settings />
+          </div>
+        }
+        @case ('general') {
+          <div
+            class="tab-panel"
+            [animate.enter]="getEnterAnimationClass()"
+            [animate.leave]="getLeaveAnimationClass()">
+            <app-general-settings />
           </div>
         }
         @case ('authorized-apps') {
