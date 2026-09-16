@@ -129,10 +129,14 @@ test.describe('Interactive Tutorial', () => {
     await page.getByRole('tab', { name: /general settings/i }).click();
     const toursToggle = page.getByTestId('show-tours-toggle');
     await expect(toursToggle).toBeVisible();
-    await expect(toursToggle.locator('input')).not.toBeChecked();
+    // A slide toggle is a button[role="switch"]; `toBeChecked` reads its
+    // aria-checked, and clicking the switch itself avoids depending on
+    // whether the label forwards the click.
+    const toursSwitch = toursToggle.locator('button[role="switch"]');
+    await expect(toursSwitch).not.toBeChecked();
 
-    await toursToggle.locator('label').click();
-    await expect(toursToggle.locator('input')).toBeChecked();
+    await toursSwitch.click();
+    await expect(toursSwitch).toBeChecked();
     await page.getByTestId('settings-close-button').click();
 
     // Re-enabled and persisted: the unseen workspace tour is offered again

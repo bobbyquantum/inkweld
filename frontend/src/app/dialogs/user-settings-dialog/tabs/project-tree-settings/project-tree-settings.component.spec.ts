@@ -1,7 +1,7 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
-import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { SettingsService } from '@services/core/settings.service';
 import { StorageContextService } from '@services/core/storage-context.service';
 
@@ -39,7 +39,7 @@ describe('ProjectTreeSettingsComponent', () => {
         translocoTestProvider(),
         ProjectTreeSettingsComponent,
         FormsModule,
-        MatCheckboxModule,
+        MatSlideToggleModule,
       ],
       providers: [
         provideZonelessChangeDetection(),
@@ -133,37 +133,6 @@ describe('ProjectTreeSettingsComponent', () => {
       // @ts-expect-error Testing invalid type
       component.showBreadcrumbs = 'invalid';
       expect(settingsService.showBreadcrumbs()).toBe(false);
-    });
-  });
-
-  describe('denseLayout', () => {
-    it('should default to true (dense) when setting is not set', () => {
-      expect(component.denseLayout).toBe(true);
-    });
-
-    it('should reflect stored value when setting exists', () => {
-      settingsService.setDenseLayout(false);
-      expect(component.denseLayout).toBe(false);
-    });
-
-    it('should persist and update the signal when toggled', () => {
-      component.denseLayout = false;
-      expect(settingsService.denseLayout()).toBe(false);
-      expect(JSON.parse(localStorageMock['userSettings']).denseLayout).toBe(
-        false
-      );
-
-      component.denseLayout = true;
-      expect(settingsService.denseLayout()).toBe(true);
-      expect(JSON.parse(localStorageMock['userSettings']).denseLayout).toBe(
-        true
-      );
-    });
-
-    it('should treat non-boolean values as false', () => {
-      // @ts-expect-error Testing invalid type
-      component.denseLayout = 'invalid';
-      expect(settingsService.denseLayout()).toBe(false);
     });
   });
 });

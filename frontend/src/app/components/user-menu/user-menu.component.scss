@@ -27,13 +27,23 @@
   justify-content: start;
 
   &.mini-mode {
-    padding: 6px;
-    width: 44px; /* Increased tappable area */
-    height: 44px;
+    /* Sized by the project layout so the dense tab bar shrinks it; the 44px
+       fallback keeps the tappable area elsewhere (home page, mobile toolbar). */
+    padding: 0;
+    width: var(--app-user-menu-size, 44px);
+    height: var(--app-user-menu-size, 44px);
+    justify-content: center;
     border-radius: 50%;
     min-width: unset;
     overflow: hidden; /* Ensure icon button stays within circle */
     transition: all 0.2s ease;
+
+    /* The avatar is a child component, so it cannot read a class from here —
+       it tracks the button's own size instead, keeping the 6px ring. */
+    ::ng-deep .avatar {
+      width: calc(var(--app-user-menu-size, 44px) - 12px);
+      height: calc(var(--app-user-menu-size, 44px) - 12px);
+    }
 
     &:hover {
       background-color: rgba(255, 255, 255, 0.1);

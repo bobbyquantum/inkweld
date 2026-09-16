@@ -9,7 +9,10 @@
 }
 
 .settings-section-hint {
-  margin: 4px 0 0 32px;
+  // Indented to the toggle's label rather than its switch, so the hint reads
+  // as a continuation of the setting above it. 52px is the switch plus its
+  // gap; it was 32px when this was a checkbox.
+  margin: 4px 0 0 52px;
   font-size: 0.85rem;
   opacity: 0.7;
 }

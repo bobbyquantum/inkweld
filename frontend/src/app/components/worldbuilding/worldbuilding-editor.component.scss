@@ -695,7 +695,9 @@ mat-accordion {
   display: flex;
   align-items: center;
   padding: 0 16px;
-  height: 28px;
+  // Matches a sidebar bottom-nav row on desktop, so this bar's top rule lines
+  // up with the one above "Exit Project" in both densities.
+  height: var(--app-nav-row-height, 28px);
   border-top: 1px solid var(--sys-outline-variant);
   font-size: 0.875rem;
   color: var(--sys-on-surface);

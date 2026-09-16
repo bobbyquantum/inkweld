@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { TranslocoModule } from '@jsverse/transloco';
 import { SettingsService } from '@services/core/settings.service';
 
@@ -9,7 +9,7 @@ import { SettingsService } from '@services/core/settings.service';
   selector: 'app-project-tree-settings',
   imports: [
     FormsModule,
-    MatCheckboxModule,
+    MatSlideToggleModule,
     MatFormFieldModule,
     TranslocoModule,
   ],
@@ -43,13 +43,5 @@ export class ProjectTreeSettingsComponent {
     this.settingsService.setShowBreadcrumbs(
       typeof value === 'boolean' && value
     );
-  }
-
-  get denseLayout(): boolean {
-    return this.settingsService.denseLayout();
-  }
-
-  set denseLayout(value: boolean) {
-    this.settingsService.setDenseLayout(typeof value === 'boolean' && value);
   }
 }

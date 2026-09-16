@@ -201,8 +201,8 @@ export class EditorToolbarComponent implements AfterViewInit, OnDestroy {
       }
     });
 
-    // The auto-review toggle changes the toolbar's reserved right padding
-    // (52px → 96px) without changing its border-box size, so the
+    // The auto-review toggle widens the toolbar's reserved right padding from
+    // one widget slot to two, without changing its border-box size, so the
     // ResizeObserver never fires; recalculate manually when it flips.
     effect(() => {
       this.systemConfig.isAiAutoReviewEnabled();

@@ -62,6 +62,9 @@
 
   .tree-toolbar {
     padding: 2px;
+    // Same lock as above; the fallback is this block's own natural height, for
+    // a dense tree rendered outside the project layout.
+    height: var(--app-tab-bar-height, 37px);
 
     button {
       width: 32px;
@@ -293,6 +296,10 @@
   align-items: center;
   gap: 4px;
   padding: 4px;
+  // Locked to the tab bar so the sidebar header and the tab strip share a
+  // bottom edge. The fallback is what the 40px buttons plus this padding and
+  // border already added up to, for the mobile drawer, which has no tab bar.
+  height: var(--app-tab-bar-height, 49px);
   background-color: var(--sys-surface-container);
   border-bottom: 1px solid var(--sys-outline-variant);
   flex-shrink: 0;
