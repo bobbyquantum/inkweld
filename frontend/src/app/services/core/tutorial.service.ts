@@ -16,6 +16,12 @@ import { TUTORIAL_TOURS } from './tutorial-tours';
 const TUTORIAL_PROGRESS_KEY = 'tutorialProgress';
 
 /**
+ * Settings key holding the user's opt-out from guided tours (per storage
+ * profile). Absent means enabled.
+ */
+const TUTORIALS_ENABLED_KEY = 'tutorialsEnabled';
+
+/**
  * Unprefixed localStorage escape hatch: when set to `off`, tours never start
  * automatically (explicit starts still work). Used by the e2e fixtures so
  * unrelated tests aren't interrupted by the first-run offer.
@@ -35,7 +41,9 @@ const AUTO_START_OVERRIDE_KEY = 'inkweld-tutorial-autostart';
  * for the whole run.
  *
  * Progress is persisted through {@link SettingsService}, so it is scoped to
- * the active profile (local vs each server) and works fully offline.
+ * the active profile (local vs each server) and works fully offline. So is
+ * the blanket opt-out, which stops every tour — present and future — from
+ * being offered while leaving the explicit entry points working.
  */
 @Injectable({
   providedIn: 'root',
@@ -50,6 +58,8 @@ export class TutorialService {
 
   /** Indices of the steps this run visits, ascending. Empty when idle. */
   private readonly _plan = signal<readonly number[]>([]);
+
+  private readonly _toursEnabled = signal(this.readToursEnabled());
 
   /**
    * Direction of the last user navigation (1 = forward, -1 = back). Used to
@@ -66,6 +76,14 @@ export class TutorialService {
 
   /** Whether a tour is currently showing. */
   readonly isActive = computed(() => this._activeTour() !== null);
+
+  /**
+   * Whether tours may be offered automatically. Turning this off is the
+   * "don't show me these again" opt-out: it covers tours the user has not met
+   * yet, and only the automatic offer — the account-menu and empty-state
+   * entry points still start a tour on request.
+   */
+  readonly toursEnabled = this._toursEnabled.asReadonly();
 
   /** The current step definition, or null when no tour is active. */
   readonly currentStep = computed<TutorialStep | null>(() => {
@@ -114,8 +132,9 @@ export class TutorialService {
   }
 
   /**
-   * Offer the tour automatically, unless the user has already seen it, a tour
-   * is showing, the viewport is mobile, or auto-start is globally disabled.
+   * Offer the tour automatically, unless the user has opted out of tours or
+   * already seen this one, a tour is showing, the viewport is mobile, or
+   * auto-start is globally disabled.
    *
    * @returns true if the tour was started
    */
@@ -126,6 +145,7 @@ export class TutorialService {
     if (
       options.isMobile ||
       this.isActive() ||
+      !this._toursEnabled() ||
       !this.shouldOffer(tourId) ||
       this.isAutoStartDisabled()
     ) {
@@ -209,6 +229,28 @@ export class TutorialService {
   }
 
   /**
+   * Turn the automatic offer on or off for every tour. Persisted alongside
+   * per-tour progress, so it is scoped to the active profile.
+   */
+  setToursEnabled(enabled: boolean): void {
+    this._toursEnabled.set(enabled);
+    try {
+      this.settingsService.setSetting<boolean>(TUTORIALS_ENABLED_KEY, enabled);
+    } catch {
+      // Storage can be unavailable (private mode/quota); keep the UI in step.
+    }
+  }
+
+  /**
+   * The "don't show tutorials" opt-out offered alongside the first tour:
+   * closes the current one and stops any tour being offered from now on.
+   */
+  disableTours(): void {
+    this.setToursEnabled(false);
+    this.dismiss();
+  }
+
+  /**
    * Move to the planned step either side of `index`, according to the
    * direction of travel. Running off the end completes the tour; running off
    * the start lands back on the intro.
@@ -277,6 +319,13 @@ export class TutorialService {
     return this.settingsService.getSetting<TutorialProgress>(
       TUTORIAL_PROGRESS_KEY,
       {}
+    );
+  }
+
+  private readToursEnabled(): boolean {
+    return this.settingsService.getSetting<boolean>(
+      TUTORIALS_ENABLED_KEY,
+      true
     );
   }
 

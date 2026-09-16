@@ -23,11 +23,13 @@ import { Subject, takeUntil } from 'rxjs';
 
 import { AccountSettingsComponent } from './tabs/account-settings/account-settings.component';
 import { AuthorizedAppsComponent } from './tabs/authorized-apps/authorized-apps.component';
+import { GeneralSettingsComponent } from './tabs/general-settings/general-settings.component';
 import { ProjectSettingsComponent } from './tabs/project-settings/project-settings.component';
 import { ProjectTreeSettingsComponent } from './tabs/project-tree-settings/project-tree-settings.component';
 
 const CATEGORIES = [
   'account',
+  'general',
   'authorized-apps',
   'project-tree',
   'project',
@@ -47,6 +49,7 @@ type SettingsCategory = (typeof CATEGORIES)[number];
     MatTooltipModule,
     TranslocoModule,
     AccountSettingsComponent,
+    GeneralSettingsComponent,
     AuthorizedAppsComponent,
     ProjectTreeSettingsComponent,
     ProjectSettingsComponent,
@@ -81,9 +84,7 @@ export class UserSettingsDialogComponent implements OnInit, OnDestroy {
     this.destroyed.complete();
   }
 
-  selectCategory(
-    category: 'account' | 'authorized-apps' | 'project-tree' | 'project'
-  ) {
+  selectCategory(category: SettingsCategory) {
     this.previousCategory = this.selectedCategory;
     this.selectedCategory = category;
   }

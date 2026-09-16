@@ -17,8 +17,10 @@ import {
   MatDialogRef,
 } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { computeCardPosition } from '@components/tutorial-overlay/tutorial-position';
-import { TranslocoModule } from '@jsverse/transloco';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { TutorialService } from '@services/core/tutorial.service';
 
 /** Data handed to the step-card dialog by the tutorial overlay. */
@@ -42,7 +44,14 @@ export interface TutorialCardDialogData {
  */
 @Component({
   selector: 'app-tutorial-card-dialog',
-  imports: [MatDialogModule, MatButtonModule, MatIconModule, TranslocoModule],
+  imports: [
+    MatDialogModule,
+    MatButtonModule,
+    MatIconModule,
+    MatSnackBarModule,
+    MatTooltipModule,
+    TranslocoModule,
+  ],
   templateUrl: './tutorial-card-dialog.component.html',
   styleUrl: './tutorial-card-dialog.component.scss',
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -53,6 +62,8 @@ export class TutorialCardDialogComponent implements OnDestroy {
     MatDialogRef<TutorialCardDialogComponent>
   );
   private readonly data = inject<TutorialCardDialogData>(MAT_DIALOG_DATA);
+  private readonly snackBar = inject(MatSnackBar);
+  private readonly transloco = inject(TranslocoService);
 
   /** False while the card is being (re)measured, to avoid position flicker. */
   protected readonly cardReady = signal(false);
@@ -81,6 +92,19 @@ export class TutorialCardDialogComponent implements OnDestroy {
 
   protected isLastStep(): boolean {
     return this.tutorial.isLastStep();
+  }
+
+  /**
+   * Turn off tours for good. The card closes with them, so the confirmation
+   * doubles as the signpost back to the setting that undoes this.
+   */
+  protected disableTours(): void {
+    this.tutorial.disableTours();
+    this.snackBar.open(
+      this.transloco.translate('tutorial.disabledConfirmation'),
+      undefined,
+      { duration: 6000 }
+    );
   }
 
   private scheduleCardPlacement(rect: DOMRect | null): void {

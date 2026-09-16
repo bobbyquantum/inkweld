@@ -10,6 +10,8 @@
   "account": "Account",
   "authorizedAppsAria": "Authorized Apps settings",
   "authorizedApps": "Authorized Apps",
+  "generalAria": "General settings",
+  "general": "General",
   "projectTreeAria": "Project Tree settings",
   "projectTree": "Project Tree",
   "projectAria": "Project settings",
@@ -179,6 +181,11 @@
     "backToMenu": "Back to menu",
     "moveToServer": "Move to a server",
     "removeFailed": "Failed to remove profile"
+  },
+  "generalTab": {
+    "toursTitle": "Guided tours",
+    "showTours": "Offer guided tours on new screens",
+    "showToursHint": "When this is off, no tour is offered automatically — you can still start one from the account menu."
   },
   "projectSettingsTab": {
     "fullscreenZen": "Enable fullscreen in Zen mode",

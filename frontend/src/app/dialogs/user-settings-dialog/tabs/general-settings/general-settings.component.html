@@ -1,0 +1,11 @@
+<section class="settings-section">
+  <h3 class="settings-section-title">
+    {{ 'settings.generalTab.toursTitle' | transloco }}
+  </h3>
+  <mat-checkbox [(ngModel)]="toursEnabled" data-testid="show-tours-toggle">
+    {{ 'settings.generalTab.showTours' | transloco }}
+  </mat-checkbox>
+  <p class="settings-section-hint">
+    {{ 'settings.generalTab.showToursHint' | transloco }}
+  </p>
+</section>

@@ -1,4 +1,4 @@
-import { expect, test } from './fixtures';
+import { expect, openUserSettings, test } from './fixtures';
 
 /**
  * Interactive Tutorial (guided tour) Tests - Local Mode
@@ -93,6 +93,52 @@ test.describe('Interactive Tutorial', () => {
     await expect(page.getByTestId('tutorial-card')).toContainText(
       'Welcome to Inkweld!'
     );
+  });
+
+  test('turns every tour off from the first offer, and back on in settings', async ({
+    localPageWithProject: page,
+  }) => {
+    // Re-enable auto-start (see the note above) and reload into the offer
+    await page.addInitScript(() => {
+      const enableAutoStart = () =>
+        localStorage.removeItem('inkweld-tutorial-autostart');
+      enableAutoStart();
+      document.addEventListener('DOMContentLoaded', enableAutoStart);
+    });
+    await page.goto('/');
+
+    await expect(page.getByTestId('tutorial-card')).toBeVisible();
+    await page.getByTestId('tutorial-disable-button').click();
+    await expect(page.getByTestId('tutorial-overlay')).toHaveCount(0);
+
+    // Explicit entry points still work while tours are off
+    await page.getByTestId('user-menu-button').click();
+    await page.getByTestId('tutorial-menu-item').click();
+    await expect(page.getByTestId('tutorial-card')).toBeVisible();
+    await page.getByTestId('tutorial-close-button').click();
+    await expect(page.getByTestId('tutorial-overlay')).toHaveCount(0);
+
+    // The workspace tour has never been seen, and is not offered either
+    await page.getByTestId('project-card').first().click();
+    await page.waitForURL(/testuser.*test-project/);
+    await expect(page.getByTestId('project-tree')).toBeVisible();
+    await expect(page.getByTestId('tutorial-overlay')).toHaveCount(0);
+
+    // Settings → General is the way back
+    await openUserSettings(page);
+    await page.getByRole('tab', { name: /general settings/i }).click();
+    const toursToggle = page.getByTestId('show-tours-toggle');
+    await expect(toursToggle).toBeVisible();
+    await expect(toursToggle.locator('input')).not.toBeChecked();
+
+    await toursToggle.locator('label').click();
+    await expect(toursToggle.locator('input')).toBeChecked();
+    await page.getByTestId('settings-close-button').click();
+
+    // Re-enabled and persisted: the unseen workspace tour is offered again
+    await page.reload();
+    await expect(page.getByTestId('project-tree')).toBeVisible();
+    await expect(page.getByTestId('tutorial-card')).toContainText('workspace');
   });
 
   test('offers the workspace tour inside a project and Escape dismisses it', async ({

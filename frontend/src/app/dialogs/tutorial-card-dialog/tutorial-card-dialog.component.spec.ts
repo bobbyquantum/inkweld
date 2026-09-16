@@ -5,6 +5,7 @@ import {
 } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
@@ -35,9 +36,11 @@ describe('TutorialCardDialogComponent', () => {
   let tutorial: TutorialService;
   let anchorRectSignal: WritableSignal<DOMRect | null>;
   let updatePosition: ReturnType<typeof vi.fn>;
+  let snackBarOpen: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     anchorRectSignal = signal<DOMRect | null>(null);
+    snackBarOpen = vi.fn();
 
     TestBed.configureTestingModule({
       imports: [TutorialCardDialogComponent, translocoTestProvider()],
@@ -61,7 +64,17 @@ describe('TutorialCardDialogComponent', () => {
           }),
         },
       ],
-    });
+    })
+      // MatSnackBarModule provides MatSnackBar at component level, which would
+      // out-rank a TestBed provider — drop the module and inject the mock there.
+      .overrideComponent(TutorialCardDialogComponent, {
+        remove: { imports: [MatSnackBarModule] },
+        add: {
+          providers: [
+            { provide: MatSnackBar, useValue: { open: snackBarOpen } },
+          ],
+        },
+      });
 
     tutorial = TestBed.inject(TutorialService);
     tutorial.start('home');
@@ -108,6 +121,35 @@ describe('TutorialCardDialogComponent', () => {
         '[data-testid="tutorial-step-counter"]'
       )
     ).toBeNull();
+  });
+
+  it('offers the blanket opt-out on the intro, and nowhere else', () => {
+    const optOut = (): HTMLButtonElement | null =>
+      fixture.nativeElement.querySelector(
+        '[data-testid="tutorial-disable-button"]'
+      );
+    expect(optOut()).not.toBeNull();
+
+    tutorial.next();
+    fixture.detectChanges();
+
+    expect(optOut()).toBeNull();
+  });
+
+  it('turns tours off and says where to turn them back on', () => {
+    const optOut: HTMLButtonElement = fixture.nativeElement.querySelector(
+      '[data-testid="tutorial-disable-button"]'
+    );
+    optOut.click();
+
+    expect(tutorial.toursEnabled()).toBe(false);
+    expect(tutorial.isActive()).toBe(false);
+    expect(snackBarOpen).toHaveBeenCalledOnce();
+    expect(snackBarOpen).toHaveBeenCalledWith(
+      expect.stringContaining('Settings'),
+      undefined,
+      expect.anything()
+    );
   });
 
   it('labels the dialog with the step title via mat-dialog-title', () => {

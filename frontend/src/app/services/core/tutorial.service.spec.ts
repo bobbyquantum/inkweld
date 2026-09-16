@@ -10,6 +10,7 @@ import { TUTORIAL_ANCHOR_PRESENT } from './tutorial-anchors';
 
 const AUTO_START_KEY = 'inkweld-tutorial-autostart';
 const PROGRESS_KEY = 'tutorialProgress';
+const TOURS_ENABLED_KEY = 'tutorialsEnabled';
 
 /** The optional anchors of the home tour, in step order. */
 const HOME_OPTIONAL_ANCHORS = ['empty-state', 'covers-grid', 'sync-all-btn'];
@@ -20,11 +21,12 @@ describe('TutorialService', () => {
   /** Anchors the tests pretend are on screen when a run is planned. */
   let onScreen: Set<string>;
 
-  beforeEach(() => {
-    stored = {};
-    onScreen = new Set(HOME_OPTIONAL_ANCHORS);
-    localStorage.removeItem(AUTO_START_KEY);
-
+  /**
+   * Build a service over the current `stored` contents — a second call stands
+   * in for a fresh session reading back what was persisted.
+   */
+  function freshService(): TutorialService {
+    TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
@@ -48,8 +50,15 @@ describe('TutorialService', () => {
         },
       ],
     });
+    return TestBed.inject(TutorialService);
+  }
 
-    service = TestBed.inject(TutorialService);
+  beforeEach(() => {
+    stored = {};
+    onScreen = new Set(HOME_OPTIONAL_ANCHORS);
+    localStorage.removeItem(AUTO_START_KEY);
+
+    service = freshService();
   });
 
   afterEach(() => {
@@ -315,6 +324,69 @@ describe('TutorialService', () => {
 
     it('respects the global auto-start opt-out', () => {
       localStorage.setItem(AUTO_START_KEY, 'off');
+
+      expect(service.maybeAutoStart('home', { isMobile: false })).toBe(false);
+    });
+  });
+
+  describe('turning tours off entirely', () => {
+    it('is enabled by default', () => {
+      expect(service.toursEnabled()).toBe(true);
+    });
+
+    it('disableTours closes the offered tour and persists the opt-out', () => {
+      service.start('home');
+
+      service.disableTours();
+
+      expect(service.toursEnabled()).toBe(false);
+      expect(stored[TOURS_ENABLED_KEY]).toBe(false);
+      expect(service.isActive()).toBe(false);
+      expect(progress()['home']).toBe('dismissed');
+    });
+
+    it('stops tours the user has never seen being offered', () => {
+      service.disableTours();
+
+      expect(service.shouldOffer('project')).toBe(true);
+      expect(service.maybeAutoStart('project', { isMobile: false })).toBe(
+        false
+      );
+      expect(service.maybeAutoStart('canvas', { isMobile: false })).toBe(false);
+    });
+
+    it('still starts a tour asked for explicitly', () => {
+      service.disableTours();
+
+      expect(service.start('project')).toBe(true);
+      expect(service.isActive()).toBe(true);
+    });
+
+    it('survives into the next session', () => {
+      service.disableTours();
+
+      const revived = freshService();
+
+      expect(revived.toursEnabled()).toBe(false);
+      expect(revived.maybeAutoStart('project', { isMobile: false })).toBe(
+        false
+      );
+    });
+
+    it('setToursEnabled(true) offers unseen tours again', () => {
+      service.disableTours();
+
+      service.setToursEnabled(true);
+
+      expect(stored[TOURS_ENABLED_KEY]).toBe(true);
+      expect(service.maybeAutoStart('project', { isMobile: false })).toBe(true);
+    });
+
+    it('does not re-offer tours that were already closed', () => {
+      service.start('home');
+      service.disableTours();
+
+      service.setToursEnabled(true);
 
       expect(service.maybeAutoStart('home', { isMobile: false })).toBe(false);
     });

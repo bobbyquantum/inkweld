@@ -69,3 +69,19 @@
 .tutorial-footer-spacer {
   flex: 1;
 }
+
+// Opt-out row, under the main actions and deliberately quieter than them.
+.tutorial-card-optout {
+  display: flex;
+  margin: 4px -8px -4px;
+}
+
+.tutorial-optout-button {
+  font-size: 0.8rem;
+  opacity: 0.7;
+
+  &:hover,
+  &:focus-visible {
+    opacity: 1;
+  }
+}
