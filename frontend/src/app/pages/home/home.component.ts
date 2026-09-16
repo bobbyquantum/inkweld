@@ -34,6 +34,7 @@ import {
 } from '@dialogs/confirmation-dialog/confirmation-dialog.component';
 import { LoginDialogComponent } from '@dialogs/login-dialog/login-dialog.component';
 import { RegisterDialogComponent } from '@dialogs/register-dialog/register-dialog.component';
+import { PullToRefreshDirective } from '@directives/pull-to-refresh.directive';
 import { CollaborationService as CollaborationApiService } from '@inkweld/api/collaboration.service';
 import { ProjectsService } from '@inkweld/api/projects.service';
 import { type Project } from '@inkweld/index';
@@ -104,6 +105,7 @@ export const PINNED_PROJECTS_STORAGE_KEY = 'inkweld-home-pinned-projects';
     UserMenuComponent,
     SideNavComponent,
     ThemeToggleComponent,
+    PullToRefreshDirective,
   ],
   templateUrl: './home.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -430,6 +432,47 @@ export class HomeComponent implements OnInit, OnDestroy {
       console.error('Failed to load projects:', error);
     }
   }
+
+  /**
+   * Pull-to-refresh handler for the cover grid.
+   *
+   * Deliberately goes round `loadProjects()`: that short-circuits once the
+   * service already holds projects, so it would never refetch the list -- the
+   * one thing the gesture exists to do. `reloadProjects()` always re-reads,
+   * which in local mode means picking up projects added in another tab.
+   *
+   * A failed refresh keeps the grid we already have rather than replacing it
+   * with the error state.
+   */
+  protected readonly refreshProjects = async (): Promise<void> => {
+    if (!this.isAuthenticated()) return;
+
+    try {
+      if (this.setupService.getMode() === 'cloud') {
+        // Pull from the user's own cloud storage first, then read what landed.
+        await this.cloudSync.syncNow();
+      }
+      await this.projectService.reloadProjects();
+      await this.loadCollaborationData();
+      this.triggerCoverSync();
+      this.loadError = false;
+    } catch (error: unknown) {
+      if (
+        error instanceof ProjectServiceError &&
+        error.code === 'SESSION_EXPIRED'
+      ) {
+        // The auth interceptor redirects to the welcome page from here.
+        return;
+      }
+
+      console.error('Failed to refresh projects:', error);
+      this.snackBar.open(
+        this.transloco.translate('home.snackbar.refreshFailed'),
+        this.transloco.translate('dismiss'),
+        { duration: 3000 }
+      );
+    }
+  };
 
   setupBreakpointObserver() {
     this.breakpointObserver

@@ -196,6 +196,52 @@
   box-sizing: border-box;
   position: relative;
   z-index: 1;
+  // Keeps an overscroll at the top of the grid to this element, so nothing
+  // chains up to the viewport before appPullToRefresh claims the gesture.
+  overscroll-behavior-y: contain;
+}
+
+// Pull-to-refresh indicator for the cover grid. The offset comes from
+// --pull-distance, which appPullToRefresh writes on .main-content as the finger
+// moves; the chip starts a notch above the top edge so it slides into view.
+.pull-to-refresh {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 2;
+  transform: translateY(calc(var(--pull-distance, 0px) - 44px));
+  transition: transform 0.2s ease-out;
+
+  // While the finger is down the chip has to track it exactly.
+  &.dragging {
+    transition: none;
+  }
+
+  .pull-to-refresh-circle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--s2);
+    color: var(--t1);
+    border: 1px solid var(--b);
+    box-shadow: 0 2px 8px rgb(0 0 0 / 30%);
+
+    mat-icon {
+      transition: transform 0.2s ease-out;
+    }
+  }
+
+  // Past the trigger distance: flip the arrow to say releasing will refresh.
+  &.armed .pull-to-refresh-circle mat-icon {
+    transform: rotate(180deg);
+  }
 }
 
 // Header section

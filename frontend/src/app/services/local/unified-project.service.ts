@@ -97,6 +97,24 @@ export class UnifiedProjectService {
     }
   }
 
+  /**
+   * Force a fresh read of the project list, for an explicit user-driven
+   * refresh.
+   *
+   * Unlike {@link loadProjects} this does not short-circuit once the list is
+   * loaded. That matters most in local and cloud mode, where `loadProjects()`
+   * does nothing at all after the first call, so a refresh gesture wired to it
+   * would never pick up work done in another tab.
+   */
+  async reloadProjects(): Promise<void> {
+    const mode = this.setupService.getMode();
+    if (isLocalOrCloudMode(mode)) {
+      this.localProjectService.reloadProjects();
+    } else if (mode === 'server') {
+      return this.projectService.loadAllProjects();
+    }
+  }
+
   async getProject(username: string, slug: string): Promise<Project | null> {
     const mode = this.setupService.getMode();
     if (isLocalOrCloudMode(mode)) {

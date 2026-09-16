@@ -25,6 +25,7 @@
       "@inkweld/*": ["./src/api-client/*"],
       "@components/*": ["./src/app/components/*"],
       "@dialogs/*": ["./src/app/dialogs/*"],
+      "@directives/*": ["./src/app/directives/*"],
       "@services/*": ["./src/app/services/*"],
       "@models/*": ["./src/app/models/*"],
       "@utils/*": ["./src/app/utils/*"],

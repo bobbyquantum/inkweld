@@ -91,6 +91,7 @@ describe('UnifiedProjectService', () => {
       isLoading: offlineIsLoadingSignal,
       initialized: offlineInitializedSignal,
       loadProjects: vi.fn(),
+      reloadProjects: vi.fn(),
       getProject: vi.fn().mockResolvedValue(mockOfflineProject),
       createProject: vi.fn().mockResolvedValue(mockOfflineProject),
       updateProject: vi.fn().mockResolvedValue(mockOfflineProject),
@@ -223,6 +224,11 @@ describe('UnifiedProjectService', () => {
       expect(projectService.loadAllProjects).toHaveBeenCalled();
     });
 
+    it('should refetch from the server on reload', async () => {
+      await service.reloadProjects();
+      expect(projectService.loadAllProjects).toHaveBeenCalled();
+    });
+
     it('should get project from server', async () => {
       const project = await service.getProject('testuser', 'test-project-1');
       expect(project).toEqual(mockProject1);
@@ -318,6 +324,14 @@ describe('UnifiedProjectService', () => {
     it('should load projects from offline service', async () => {
       await service.loadProjects();
       expect(localProjectService.loadProjects).toHaveBeenCalled();
+    });
+
+    it('should force a re-read of storage on reload', async () => {
+      await service.reloadProjects();
+      // Not loadProjects(): that no-ops once initialized, so a refresh wired
+      // to it would never pick up projects added in another tab.
+      expect(localProjectService.reloadProjects).toHaveBeenCalled();
+      expect(localProjectService.loadProjects).not.toHaveBeenCalled();
     });
 
     it('should get project from offline service', async () => {
