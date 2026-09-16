@@ -23,6 +23,7 @@ import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import { translocoTestProvider } from '../../../../testing/transloco-test-provider';
 import { DocumentSyncState } from '../../../models/document-sync-state';
 import { DialogGatewayService } from '../../../services/core/dialog-gateway.service';
+import { DocumentPipService } from '../../../services/core/document-pip.service';
 import { PopoutService } from '../../../services/core/popout.service';
 import { DocumentService } from '../../../services/project/document.service';
 import {
@@ -124,6 +125,7 @@ describe('TabInterfaceComponent', () => {
     // Mock document service
     documentService = {
       initializeSyncStatus: vi.fn(),
+      disconnect: vi.fn(),
       getSyncStatusSignal: vi
         .fn()
         .mockReturnValue(() => DocumentSyncState.Synced), // Default mock
@@ -1124,10 +1126,17 @@ describe('TabInterfaceComponent', () => {
   });
   describe('opening a document in its own window', () => {
     let popoutService: PopoutService;
+    let documentPip: DocumentPipService;
 
     beforeEach(() => {
       popoutService = TestBed.inject(PopoutService);
       vi.spyOn(popoutService, 'openDocument').mockReturnValue(true);
+
+      documentPip = TestBed.inject(DocumentPipService);
+      // Most browsers have no picture-in-picture API, so that is the default
+      // these tests assume; the ones below that care opt into it.
+      vi.spyOn(documentPip, 'isSupported').mockReturnValue(false);
+      vi.spyOn(documentPip, 'open').mockResolvedValue(true);
     });
 
     it('offers the action for a document tab', () => {
@@ -1159,10 +1168,10 @@ describe('TabInterfaceComponent', () => {
       expect(component.canPopOutContextTab()).toBe(false);
     });
 
-    it('opens the document the context menu was raised on', () => {
+    it('opens the document the context menu was raised on', async () => {
       component.contextTab = mockTabs[0];
 
-      component.onPopOutContextTab();
+      await component.onPopOutContextTab();
 
       expect(popoutService.openDocument).toHaveBeenCalledWith(
         'testuser',
@@ -1171,15 +1180,79 @@ describe('TabInterfaceComponent', () => {
       );
     });
 
-    it('leaves the tab open in this window', () => {
+    it('prefers a picture-in-picture window where the browser has one', async () => {
+      vi.mocked(documentPip.isSupported).mockReturnValue(true);
+      component.contextTab = mockTabs[0];
+      component.contextTabIndex = 0;
+
+      await component.onPopOutContextTab();
+
+      expect(documentPip.open).toHaveBeenCalledWith(
+        'testuser:test-project:doc1',
+        'Document 1',
+        expect.any(Function)
+      );
+      // It shares this page's context, so no second window is needed.
+      expect(popoutService.openDocument).not.toHaveBeenCalled();
+    });
+
+    it('hands the document to the floating window rather than copying it', async () => {
+      vi.mocked(documentPip.isSupported).mockReturnValue(true);
+      component.contextTab = mockTabs[0];
+      component.contextTabIndex = 0;
+
+      await component.onPopOutContextTab();
+
+      // Only one editor may be bound to a document, so the tab gives it up.
+      expect(projectStateService.closeTab).toHaveBeenCalledWith(0);
+      expect(documentService.disconnect).toHaveBeenCalledWith(
+        'testuser:test-project:doc1'
+      );
+    });
+
+    it('gives the document back when the floating window closes', async () => {
+      vi.mocked(documentPip.isSupported).mockReturnValue(true);
+      component.contextTab = mockTabs[0];
+      component.contextTabIndex = 0;
+
+      await component.onPopOutContextTab();
+      const onClosed = vi.mocked(documentPip.open).mock
+        .calls[0][2] as () => void;
+      onClosed();
+
+      expect(projectStateService.openDocument).toHaveBeenCalledWith(
+        mockDocuments[0]
+      );
+    });
+
+    it('falls back to an ordinary window when the request is refused', async () => {
+      vi.mocked(documentPip.isSupported).mockReturnValue(true);
+      vi.mocked(documentPip.open).mockResolvedValue(false);
+      component.contextTab = mockTabs[0];
+      component.contextTabIndex = 0;
+
+      await component.onPopOutContextTab();
+
+      // The tab was closed on the way in, so the document goes back first.
+      expect(projectStateService.openDocument).toHaveBeenCalledWith(
+        mockDocuments[0]
+      );
+      expect(popoutService.openDocument).toHaveBeenCalledWith(
+        'testuser',
+        'test-project',
+        'doc1'
+      );
+    });
+
+    it('leaves the tab open in this window', async () => {
       component.contextTab = mockTabs[0];
 
-      component.onPopOutContextTab();
+      await component.onPopOutContextTab();
 
       expect(projectStateService.closeTab).not.toHaveBeenCalled();
     });
 
-    it('tells the user when the browser blocks the window', () => {
+    it('tells the user when the browser blocks the window', async () => {
       vi.mocked(popoutService.openDocument).mockReturnValue(false);
       const snackBar = (
         component as unknown as { snackBar: { open: (m: string) => void } }
@@ -1187,15 +1260,15 @@ describe('TabInterfaceComponent', () => {
       const open = vi.spyOn(snackBar, 'open');
       component.contextTab = mockTabs[0];
 
-      component.onPopOutContextTab();
+      await component.onPopOutContextTab();
 
       expect(open).toHaveBeenCalled();
     });
 
-    it('does nothing when the tab has no element', () => {
+    it('does nothing when the tab has no element', async () => {
       component.contextTab = { id: 'x', name: 'X', type: 'document' };
 
-      component.onPopOutContextTab();
+      await component.onPopOutContextTab();
 
       expect(popoutService.openDocument).not.toHaveBeenCalled();
     });

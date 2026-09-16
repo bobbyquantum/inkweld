@@ -33,6 +33,7 @@ import {
 import { type Element, ElementType, type Project } from '@inkweld/index';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { getDocumentRole } from '@models/scene-metadata';
+import { DocumentPipService } from '@services/core/document-pip.service';
 import { LoggerService } from '@services/core/logger.service';
 import { PopoutService } from '@services/core/popout.service';
 import { DocumentService } from '@services/project/document.service';
@@ -122,6 +123,7 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
   private readonly transloco = inject(TranslocoService);
   private readonly worldbuildingService = inject(WorldbuildingService);
   private readonly popoutService = inject(PopoutService);
+  private readonly documentPip = inject(DocumentPipService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly logger = inject(LoggerService);
 
@@ -880,16 +882,46 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
    * Opens the context-menu tab in a standalone window. The tab stays open
    * here — two views of one document is usually the point of popping one out,
    * and both stay in sync.
+   *
+   * Prefers a picture-in-picture window where the browser has one, because it
+   * shares this page's JavaScript context: the same app talking to the same Yjs
+   * document, opening instantly and floating above other windows. Every other
+   * browser, and a refused request, gets an ordinary window instead.
+   *
+   * The two modes differ in what happens to the tab, and they have to. A
+   * separate window is a second copy of the app with its own Yjs document, so
+   * both views can stand; DocumentService binds one editor per document, so
+   * the floating window takes the document over and hands it back on close.
    */
-  onPopOutContextTab(): void {
+  async onPopOutContextTab(): Promise<void> {
     const tab = this.contextTab;
+    const tabIndex = this.contextTabIndex;
     const project = this.projectState.project();
     if (!tab?.element || !project) return;
+
+    const element = tab.element;
+
+    if (this.documentPip.isSupported() && tabIndex !== null) {
+      const documentId = `${project.username}:${project.slug}:${element.id}`;
+
+      // Close the tab and release the document before the floating editor
+      // claims it, so only one editor is ever bound to it.
+      this.closeTab(tabIndex);
+      this.documentService.disconnect(documentId);
+
+      const shown = await this.documentPip.open(documentId, element.name, () =>
+        this.projectState.openDocument(element)
+      );
+      if (shown) return;
+
+      // Refused: put the document back where it was and open a window instead.
+      this.projectState.openDocument(element);
+    }
 
     const opened = this.popoutService.openDocument(
       project.username,
       project.slug,
-      tab.element.id
+      element.id
     );
 
     if (!opened) {
