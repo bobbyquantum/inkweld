@@ -32,6 +32,16 @@ interface DocumentPictureInPicture {
   readonly window: Window | null;
 }
 
+/**
+ * Pulls in the document editor on demand. Dynamic so the editor stays out of
+ * any bundle that merely references this service.
+ */
+async function loadDocumentEditor(): Promise<Type<unknown>> {
+  const { DocumentElementEditorComponent } =
+    await import('../../components/document-element-editor/document-element-editor.component');
+  return DocumentElementEditorComponent;
+}
+
 /** The API object, or null where the browser does not implement it. */
 function pictureInPictureApi(): DocumentPictureInPicture | null {
   const api = (
@@ -106,14 +116,9 @@ export class DocumentPipService {
   /**
    * @internal Loads the editor on demand, and is writable so tests can stand a
    * stub in its place — esbuild inlines local modules, so vi.mock cannot
-   * intercept the import. Dynamic so the editor stays out of any bundle that
-   * merely references this service.
+   * intercept the import.
    */
-  private loadEditorComponent = async (): Promise<Type<unknown>> => {
-    const { DocumentElementEditorComponent } =
-      await import('../../components/document-element-editor/document-element-editor.component');
-    return DocumentElementEditorComponent;
-  }; // NOSONAR - writable for test overrides
+  private loadEditorComponent = loadDocumentEditor; // NOSONAR - writable for test overrides
 
   /** Run once the window is gone, so the caller can take the document back. */
   private onClosed: (() => void) | null = null;
