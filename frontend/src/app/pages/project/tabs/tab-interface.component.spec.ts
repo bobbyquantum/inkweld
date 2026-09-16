@@ -1190,14 +1190,21 @@ describe('TabInterfaceComponent', () => {
       expect(documentPip.open).toHaveBeenCalledWith(
         'testuser:test-project:doc1',
         'Document 1',
-        expect.any(Function)
+        expect.objectContaining({
+          onGranted: expect.any(Function),
+          onClosed: expect.any(Function),
+        })
       );
       // It shares this page's context, so no second window is needed.
       expect(popoutService.openDocument).not.toHaveBeenCalled();
     });
 
-    it('hands the document to the floating window rather than copying it', async () => {
+    it('hands the document over only once the window is granted', async () => {
       vi.mocked(documentPip.isSupported).mockReturnValue(true);
+      vi.mocked(documentPip.open).mockImplementation((_id, _t, hooks) => {
+        hooks?.onGranted?.();
+        return Promise.resolve(true);
+      });
       component.contextTab = mockTabs[0];
       component.contextTabIndex = 0;
 
@@ -1216,9 +1223,7 @@ describe('TabInterfaceComponent', () => {
       component.contextTabIndex = 0;
 
       await component.onPopOutContextTab();
-      const onClosed = vi.mocked(documentPip.open).mock
-        .calls[0][2] as () => void;
-      onClosed();
+      vi.mocked(documentPip.open).mock.calls[0][2]?.onClosed?.();
 
       expect(projectStateService.openDocument).toHaveBeenCalledWith(
         mockDocuments[0]
@@ -1233,10 +1238,9 @@ describe('TabInterfaceComponent', () => {
 
       await component.onPopOutContextTab();
 
-      // The tab was closed on the way in, so the document goes back first.
-      expect(projectStateService.openDocument).toHaveBeenCalledWith(
-        mockDocuments[0]
-      );
+      // A refusal must leave the tab exactly where it was.
+      expect(projectStateService.closeTab).not.toHaveBeenCalled();
+      expect(documentService.disconnect).not.toHaveBeenCalled();
       expect(popoutService.openDocument).toHaveBeenCalledWith(
         'testuser',
         'test-project',

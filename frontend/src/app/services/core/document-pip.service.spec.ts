@@ -149,6 +149,51 @@ describe('DocumentPipService', () => {
     document.body.classList.remove('dark-theme');
   });
 
+  it('carries component styles across, not just the global sheets', async () => {
+    // Angular keeps component styles in adoptedStyleSheets, which
+    // document.styleSheets does not include. Missing them renders the editor
+    // as bare HTML: default buttons and browser-sized headings.
+    // Stubbed rather than constructed: the test DOM does not implement
+    // adoptedStyleSheets, and the point here is that the copy reads it at all.
+    const sheet = {
+      cssRules: [{ cssText: '.pip-probe { color: rgb(1, 2, 3); }' }],
+    } as unknown as CSSStyleSheet;
+    const previous = Object.getOwnPropertyDescriptor(
+      document,
+      'adoptedStyleSheets'
+    );
+    Object.defineProperty(document, 'adoptedStyleSheets', {
+      value: [sheet],
+      configurable: true,
+    });
+
+    try {
+      await service.open('u:s:el-1', 'Chapter 1');
+
+      const copied = [...pipDocument.querySelectorAll('style')]
+        .map(el => el.textContent ?? '')
+        .join('\n');
+      expect(copied).toContain('.pip-probe');
+    } finally {
+      if (previous) {
+        Object.defineProperty(document, 'adoptedStyleSheets', previous);
+      } else {
+        Reflect.deleteProperty(document, 'adoptedStyleSheets');
+      }
+    }
+  });
+
+  it('does not copy the same sheet twice', async () => {
+    await service.open('u:s:el-1', 'Chapter 1');
+
+    const texts = [...pipDocument.querySelectorAll('style')].map(
+      el => el.textContent ?? ''
+    );
+    const nonEmpty = texts.filter(t => t.trim().length > 0);
+
+    expect(new Set(nonEmpty).size).toBe(nonEmpty.length);
+  });
+
   it('gives Material overlays a home in the new window', async () => {
     await service.open('u:s:el-1', 'Chapter 1');
 

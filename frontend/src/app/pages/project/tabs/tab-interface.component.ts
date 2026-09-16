@@ -904,18 +904,16 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
     if (this.documentPip.isSupported() && tabIndex !== null) {
       const documentId = `${project.username}:${project.slug}:${element.id}`;
 
-      // Close the tab and release the document before the floating editor
-      // claims it, so only one editor is ever bound to it.
-      this.closeTab(tabIndex);
-      this.documentService.disconnect(documentId);
-
-      const shown = await this.documentPip.open(documentId, element.name, () =>
-        this.projectState.openDocument(element)
-      );
+      const shown = await this.documentPip.open(documentId, element.name, {
+        // Release the document only once the window is certain, so a refusal
+        // leaves the tab untouched rather than closing and restoring it.
+        onGranted: () => {
+          this.closeTab(tabIndex);
+          this.documentService.disconnect(documentId);
+        },
+        onClosed: () => this.projectState.openDocument(element),
+      });
       if (shown) return;
-
-      // Refused: put the document back where it was and open a window instead.
-      this.projectState.openDocument(element);
     }
 
     const opened = this.popoutService.openDocument(

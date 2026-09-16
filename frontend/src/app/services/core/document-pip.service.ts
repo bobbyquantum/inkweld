@@ -141,8 +141,11 @@ export class DocumentPipService {
    *
    * @param documentId - Full document ID (`username:slug:elementId`).
    * @param title - Window title, normally the document's name.
-   * @param onClosed - Run once the window is gone, so the caller can take the
-   * document back into a tab.
+   * @param hooks - `onGranted` runs once the browser has agreed to the window
+   * but before the editor mounts, which is where the caller should release the
+   * document; `onClosed` runs once the window is gone, so the caller can take
+   * it back. Nothing is called when the request is refused, so a refusal
+   * leaves the caller exactly as it was.
    * @returns True when the window opened; false when the browser has no such
    * API or refused the request, in which case the caller should fall back to
    * opening an ordinary window.
@@ -150,7 +153,7 @@ export class DocumentPipService {
   async open(
     documentId: string,
     title: string,
-    onClosed?: () => void
+    hooks?: { onGranted?: () => void; onClosed?: () => void }
   ): Promise<boolean> {
     const api = pictureInPictureApi();
     if (!api) return false;
@@ -173,16 +176,24 @@ export class DocumentPipService {
       return false;
     }
 
+    // Only now that the window is certain does the caller give the document
+    // up. Doing it earlier means undoing it on every refusal.
+    hooks?.onGranted?.();
+
     try {
       this.pipWindow = pip;
       pip.document.title = title;
-      copyPresentation(document, pip.document);
 
+      // Twice on purpose. The first pass gives the editor a styled document to
+      // lay itself out in; the second catches the component styles Angular
+      // injects when it renders the editor for the first time.
+      const copied = copyPresentation(document, pip.document);
       await this.mountEditor(pip, documentId);
+      copyPresentation(document, pip.document, copied);
 
       // Closing the window, or the tab that owns it, tears the editor down and
       // hands the document back to whoever asked for it.
-      this.onClosed = onClosed ?? null;
+      this.onClosed = hooks?.onClosed ?? null;
       pip.addEventListener('pagehide', () => this.close(), { once: true });
 
       this.openState.set(true);
@@ -272,8 +283,25 @@ export class DocumentPipService {
  * stylesheet, plus the root element's classes and inline custom properties,
  * which is where the theme tokens and background variables live.
  */
-function copyPresentation(source: Document, target: Document): void {
-  for (const sheet of Array.from(source.styleSheets)) {
+function copyPresentation(
+  source: Document,
+  target: Document,
+  alreadyCopied: Set<CSSStyleSheet> = new Set()
+): Set<CSSStyleSheet> {
+  // Both lists matter. Angular puts component styles in adoptedStyleSheets,
+  // which document.styleSheets does not include — miss them and the editor
+  // renders as bare HTML: default buttons and browser-sized headings.
+  const sheets: CSSStyleSheet[] = [
+    ...Array.from(source.styleSheets),
+    // Guarded: not every engine implements adoptedStyleSheets, and the
+    // stylesheet copy must not be what stops the window from opening.
+    ...(source.adoptedStyleSheets ?? []),
+  ];
+
+  for (const sheet of sheets) {
+    if (alreadyCopied.has(sheet)) continue;
+    alreadyCopied.add(sheet);
+
     try {
       const rules = Array.from(sheet.cssRules)
         .map(rule => rule.cssText)
@@ -298,4 +326,6 @@ function copyPresentation(source: Document, target: Document): void {
     source.documentElement.getAttribute('style') ?? ''
   );
   target.body.className = source.body.className;
+
+  return alreadyCopied;
 }
