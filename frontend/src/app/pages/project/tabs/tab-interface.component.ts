@@ -883,48 +883,69 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
    * here — two views of one document is usually the point of popping one out,
    * and both stay in sync.
    *
-   * Prefers a picture-in-picture window where the browser has one, because it
-   * shares this page's JavaScript context: the same app talking to the same Yjs
-   * document, opening instantly and floating above other windows. Every other
-   * browser, and a refused request, gets an ordinary window instead.
-   *
-   * The two modes differ in what happens to the tab, and they have to. A
-   * separate window is a second copy of the app with its own Yjs document, so
-   * both views can stand; DocumentService binds one editor per document, so
-   * the floating window takes the document over and hands it back on close.
+   * A separate window is a second copy of the app with its own Yjs document,
+   * so both views can stand and stay in sync.
    */
-  async onPopOutContextTab(): Promise<void> {
+  onPopOutContextTab(): void {
     const tab = this.contextTab;
-    const tabIndex = this.contextTabIndex;
     const project = this.projectState.project();
     if (!tab?.element || !project) return;
-
-    const element = tab.element;
-
-    if (this.documentPip.isSupported() && tabIndex !== null) {
-      const documentId = `${project.username}:${project.slug}:${element.id}`;
-
-      const shown = await this.documentPip.open(documentId, element.name, {
-        // Release the document only once the window is certain, so a refusal
-        // leaves the tab untouched rather than closing and restoring it.
-        onGranted: () => {
-          this.closeTab(tabIndex);
-          this.documentService.disconnect(documentId);
-        },
-        onClosed: () => this.projectState.openDocument(element),
-      });
-      if (shown) return;
-    }
 
     const opened = this.popoutService.openDocument(
       project.username,
       project.slug,
-      element.id
+      tab.element.id
     );
 
     if (!opened) {
       this.snackBar.open(
         this.transloco.translate('project.snackbar.popoutBlocked'),
+        this.transloco.translate('close'),
+        { duration: 6000 }
+      );
+    }
+  }
+
+  /**
+   * Whether this browser can float the document in a picture-in-picture
+   * window. Chrome and Edge can; the menu hides the option elsewhere.
+   */
+  canPictureInPictureContextTab(): boolean {
+    return this.canPopOutContextTab() && this.documentPip.isSupported();
+  }
+
+  /**
+   * Floats the context-menu tab in a picture-in-picture window: compact chrome,
+   * always on top, and instant, because it shares this page's JavaScript
+   * context rather than booting a second copy of the app.
+   *
+   * Unlike a separate window it takes the document over rather than copying
+   * it, because DocumentService binds one editor per document. The tab closes
+   * and comes back when the window does. Only one can be open at a time, which
+   * is a limit of the platform, not of this code.
+   */
+  async onPictureInPictureContextTab(): Promise<void> {
+    const tab = this.contextTab;
+    const tabIndex = this.contextTabIndex;
+    const project = this.projectState.project();
+    if (!tab?.element || !project || tabIndex === null) return;
+
+    const element = tab.element;
+    const documentId = `${project.username}:${project.slug}:${element.id}`;
+
+    const shown = await this.documentPip.open(documentId, element.name, {
+      // Release the document only once the window is certain, so a refusal
+      // leaves the tab untouched rather than closing and restoring it.
+      onGranted: () => {
+        this.closeTab(tabIndex);
+        this.documentService.disconnect(documentId);
+      },
+      onClosed: () => this.projectState.openDocument(element),
+    });
+
+    if (!shown) {
+      this.snackBar.open(
+        this.transloco.translate('project.snackbar.pictureInPictureBlocked'),
         this.transloco.translate('close'),
         { duration: 6000 }
       );

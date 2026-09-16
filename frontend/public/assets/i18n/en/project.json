@@ -47,7 +47,8 @@
     "renameDocument": "Rename Document",
     "renameScene": "Rename Scene",
     "renameNote": "Rename Note",
-    "openInNewWindow": "Open in New Window"
+    "openInNewWindow": "Open in New Window",
+    "openAsPictureInPicture": "Open as Picture-in-Picture"
   },
   "sceneStatus": {
     "idea": "Idea",
@@ -204,7 +205,8 @@
     "notActivated": "{{project}} isn't activated on this device — activate it from the home screen to open it",
     "stillOffline": "Could not reach the server — working offline, changes are saved locally",
     "reconnectFailed": "Failed to reconnect to server",
-    "popoutBlocked": "Your browser blocked the new window. Allow pop-ups for this site to open a document in its own window."
+    "popoutBlocked": "Your browser blocked the new window. Allow pop-ups for this site to open a document in its own window.",
+    "pictureInPictureBlocked": "Your browser would not open a picture-in-picture window. Try \"Open in New Window\" instead."
   },
   "sideNav": {
     "projects": "Projects",
