@@ -295,18 +295,24 @@ describe('AppearancePanelComponent', () => {
     });
     rejectSave(new Error('boom'));
 
-    await vi.waitFor(() => {
-      const calls = worldbuildingService.saveIdentityData.mock.calls;
-      expect(calls.length).toBeGreaterThanOrEqual(2);
-      const payload = calls[calls.length - 1][1] as {
-        appearance: Record<string, unknown>;
-      };
-      expect(payload.appearance['menu']).toEqual({
-        type: 'color',
-        mode: 'auto',
-        value: '#abcdef',
-      });
-    });
+    await vi.waitFor(
+      () => {
+        const calls = worldbuildingService.saveIdentityData.mock.calls;
+        expect(calls.length).toBeGreaterThanOrEqual(2);
+        const payload = calls[calls.length - 1][1] as {
+          appearance: Record<string, unknown>;
+        };
+        expect(payload.appearance['menu']).toEqual({
+          type: 'color',
+          mode: 'auto',
+          value: '#abcdef',
+        });
+      },
+      // This is the one assertion in the file that waits out two debounce
+      // windows (400ms each) rather than one, which leaves almost no headroom
+      // under waitFor's 1s default and made the test flaky on CI.
+      { timeout: 5000 }
+    );
   });
 
   describe('observe', () => {
