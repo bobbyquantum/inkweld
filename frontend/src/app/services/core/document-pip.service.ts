@@ -189,9 +189,12 @@ export class DocumentPipService {
       this.pipWindow = pip;
       pip.document.title = title;
 
-      // Twice on purpose. The first pass gives the editor a styled document to
-      // lay itself out in; the second catches the component styles Angular
-      // injects when it renders the editor for the first time.
+      // Twice on purpose, and the second pass is the one that matters.
+      // Angular injects a component's styles when it first renders one, so the
+      // editor's stylesheets do not exist yet at the first pass — copying only
+      // then leaves the floating window showing bare HTML, with default
+      // buttons and browser-sized headings. The first pass still earns its
+      // keep by giving the editor a styled document to lay itself out in.
       const copied = copyPresentation(document, pip.document);
       await this.mountEditor(pip, documentId);
       copyPresentation(document, pip.document, copied);
@@ -293,13 +296,12 @@ function copyPresentation(
   target: Document,
   alreadyCopied: Set<CSSStyleSheet> = new Set()
 ): Set<CSSStyleSheet> {
-  // Both lists matter. Angular puts component styles in adoptedStyleSheets,
-  // which document.styleSheets does not include — miss them and the editor
-  // renders as bare HTML: default buttons and browser-sized headings.
+  // styleSheets is where this app's styles actually live. adoptedStyleSheets
+  // is empty here, but Angular can be configured to use it, so it is read too
+  // — guarded, because not every engine implements it and a missing stylesheet
+  // must not be what stops the window from opening.
   const sheets: CSSStyleSheet[] = [
     ...Array.from(source.styleSheets),
-    // Guarded: not every engine implements adoptedStyleSheets, and the
-    // stylesheet copy must not be what stops the window from opening.
     ...(source.adoptedStyleSheets ?? []),
   ];
 
