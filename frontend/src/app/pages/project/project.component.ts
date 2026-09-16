@@ -23,6 +23,7 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import {
   ActivatedRoute,
+  NavigationEnd,
   Router,
   RouterModule,
   RouterOutlet,
@@ -35,6 +36,7 @@ import { UserMenuComponent } from '@components/user-menu/user-menu.component';
 import { type Element, ElementType } from '@inkweld/index';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { LoggerService } from '@services/core/logger.service';
+import { PopoutService } from '@services/core/popout.service';
 import { SettingsService } from '@services/core/settings.service';
 import { TutorialService } from '@services/core/tutorial.service';
 import { ProjectActivationService } from '@services/local/project-activation.service';
@@ -44,7 +46,7 @@ import { DocumentService } from '@services/project/document.service';
 import { ElementNavigationService } from '@services/project/element-navigation.service';
 import { ProjectExportService } from '@services/project/project-export.service';
 import { ProjectStateService } from '@services/project/project-state.service';
-import { Subject, type Subscription, takeUntil } from 'rxjs';
+import { filter, Subject, type Subscription, takeUntil } from 'rxjs';
 
 import { DocumentElementEditorComponent } from '../../components/document-element-editor/document-element-editor.component';
 import { DocumentSyncState } from '../../models/document-sync-state';
@@ -110,8 +112,18 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   private readonly logger = inject(LoggerService);
   private readonly elementNavigation = inject(ElementNavigationService);
   private readonly tutorialService = inject(TutorialService);
+  private readonly popoutService = inject(PopoutService);
 
   @ViewChild(MatSidenav) sidenav!: MatSidenav;
+
+  /**
+   * True when this window is a popped-out single document. The project shell
+   * (sidebar, tab bar, toolbar) is suppressed and only the editor is shown.
+   */
+  protected readonly isPopout = this.popoutService.isPopout;
+
+  /** Element id in the URL while this window is a pop-out, else null. */
+  private readonly popoutElementId = signal<string | null>(null);
 
   public readonly isMobile = signal(false);
   public readonly isZenMode = signal(false);
@@ -209,7 +221,8 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
       if (
         this.tutorialOffered ||
         !this.projectState.project() ||
-        this.isMobile()
+        this.isMobile() ||
+        this.isPopout()
       ) {
         return;
       }
@@ -258,6 +271,24 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
       } else {
         this.hasUnsavedChanges = false;
       }
+    });
+
+    // A pop-out window has no tab interface, so nothing else turns its URL
+    // into an open tab. Wait for the elements to arrive, then open the one
+    // document this window exists to show. Re-runs on navigation so following
+    // a breadcrumb inside the pop-out still lands on the right document.
+    effect(() => {
+      if (!this.isPopout()) return;
+
+      const elementId = this.popoutElementId();
+      const elements = this.projectState.elements();
+      if (!elementId || elements.length === 0) return;
+
+      const element = elements.find(e => e.id === elementId);
+      if (!element) return;
+
+      // Idempotent: selects the tab when the document is already open.
+      this.projectState.openDocument(element);
     });
 
     // Disable zen mode when switching tabs or closing tabs
@@ -344,6 +375,17 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
 
   ngOnInit() {
     this.logger.debug('ProjectComponent', 'ProjectComponent init');
+
+    if (this.isPopout()) {
+      this.trackPopoutElementId();
+      this.router.events
+        .pipe(
+          filter(event => event instanceof NavigationEnd),
+          takeUntil(this.destroy$)
+        )
+        .subscribe(() => this.trackPopoutElementId());
+    }
+
     this.paramsSubscription = this.route.params.subscribe(params => {
       const username = params['username'] as string;
       const slug = params['slug'] as string;
@@ -418,6 +460,19 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
 
     // Clean up project search service
     this.projectSearchService.destroy();
+  }
+
+  /**
+   * Reads the document element id out of the current URL
+   * (`/:username/:slug/document/:elementId`), or null when the pop-out is
+   * pointed at anything else.
+   */
+  private trackPopoutElementId(): void {
+    const segments = this.router.url.split('?')[0].split('/').filter(Boolean);
+    const isDocumentUrl = segments.length === 4 && segments[2] === 'document';
+    this.popoutElementId.set(
+      isDocumentUrl ? decodeURIComponent(segments[3]) : null
+    );
   }
 
   isLoading = () => this.projectState.isLoading();

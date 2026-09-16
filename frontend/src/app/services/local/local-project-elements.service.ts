@@ -18,6 +18,7 @@ import { type TimeSystem } from '../../models/time-system';
 import { LoggerService } from '../core/logger.service';
 import { StorageContextService } from '../core/storage-context.service';
 import { ElementTreeService } from '../project/element-tree.service';
+import { BroadcastSyncProvider } from '../sync/broadcast-sync.provider';
 import { type ProjectMeta } from '../sync/element-sync-provider.interface';
 
 const LOCAL_ELEMENTS_BASE_KEY = 'inkweld-local-elements';
@@ -35,6 +36,12 @@ interface StoredProjectElements {
 interface YjsProjectConnection {
   doc: Y.Doc;
   provider: IndexeddbPersistence;
+  /**
+   * Mirrors this project's metadata between windows of the same browser, so a
+   * rename or a new element in the main window reaches a popped-out document
+   * window. Local mode has no WebSocket provider to do it.
+   */
+  broadcastProvider: BroadcastSyncProvider;
   elementsArray: Y.Array<Element>;
   publishPlansArray: Y.Array<PublishPlan>;
   relationshipsArray: Y.Array<ElementRelationship>;
@@ -698,6 +705,7 @@ export class LocalProjectElementsService {
     const connection: YjsProjectConnection = {
       doc,
       provider,
+      broadcastProvider: new BroadcastSyncProvider(docId, doc),
       elementsArray,
       publishPlansArray,
       relationshipsArray,
@@ -942,6 +950,7 @@ export class LocalProjectElementsService {
 
     if (connection) {
       try {
+        connection.broadcastProvider.destroy();
         await connection.provider.destroy();
         connection.doc.destroy();
         this.yjsConnections.delete(projectKey);

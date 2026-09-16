@@ -1,5 +1,8 @@
 import { provideHttpClient, withXhr } from '@angular/common/http';
-import { provideZonelessChangeDetection } from '@angular/core';
+import {
+  provideZonelessChangeDetection,
+  type WritableSignal,
+} from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import {
@@ -24,6 +27,7 @@ import { type ElementTypeSchema } from '../../models/schema-types';
 import { type TimeSystem } from '../../models/time-system';
 import { DialogGatewayService } from '../core/dialog-gateway.service';
 import { LoggerService } from '../core/logger.service';
+import { PopoutService } from '../core/popout.service';
 import { SetupService } from '../core/setup.service';
 import { BackgroundSyncService } from '../local/background-sync.service';
 import { LocalProjectElementsService } from '../local/local-project-elements.service';
@@ -276,6 +280,7 @@ describe('ProjectStateService', () => {
       initializeDatabase: vi.fn().mockResolvedValue({}),
       get: vi.fn().mockResolvedValue(null),
       set: vi.fn().mockResolvedValue(undefined),
+      put: vi.fn().mockResolvedValue(undefined),
     } as unknown as MockedObject<StorageService>;
 
     mockLoggerService = {
@@ -1901,6 +1906,58 @@ describe('ProjectStateService', () => {
         value: { ...globalThis.location, pathname: origPathname },
         writable: true,
       });
+    });
+  });
+
+  describe('pop-out windows', () => {
+    const cachedTabs: AppTab[] = [
+      { id: 'home', name: 'Home', type: 'system', systemType: 'home' },
+      { id: 'media-tab', name: 'Media', type: 'system', systemType: 'media' },
+    ];
+
+    /**
+     * Marks the current window as a pop-out. The service decides this once,
+     * from the URL, so the test reaches past the read-only signal instead of
+     * rewriting the location after the fact.
+     */
+    function enterPopoutMode(): void {
+      const popoutService = TestBed.inject(PopoutService) as unknown as {
+        popout: WritableSignal<boolean>;
+      };
+      popoutService.popout.set(true);
+    }
+
+    it('opens a bare home tab instead of restoring the cached set', async () => {
+      enterPopoutMode();
+      mockStorageService.get
+        .mockResolvedValueOnce(cachedTabs)
+        .mockResolvedValue(null);
+
+      await service.loadProject('testuser', 'test-project');
+
+      // The pop-out shows the document in its URL, not the user's working set.
+      const tabManager = TestBed.inject(TabManagerService);
+      expect(tabManager.openTabs()).toHaveLength(1);
+      expect(tabManager.openTabs()[0].systemType).toBe('home');
+    });
+
+    it("never writes its tabs over the main window's", async () => {
+      enterPopoutMode();
+      await service.loadProject('testuser', 'test-project');
+      mockStorageService.put.mockClear();
+
+      await service.saveOpenedDocumentsToCache();
+
+      expect(mockStorageService.put).not.toHaveBeenCalled();
+    });
+
+    it('still saves tabs from an ordinary window', async () => {
+      await service.loadProject('testuser', 'test-project');
+      mockStorageService.put.mockClear();
+
+      await service.saveOpenedDocumentsToCache();
+
+      expect(mockStorageService.put).toHaveBeenCalled();
     });
   });
 

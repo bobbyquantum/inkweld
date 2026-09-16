@@ -67,6 +67,7 @@ import {
   setupReauthentication,
   WS_MAX_BACKOFF_TIME,
 } from '../sync/authenticated-websocket-provider';
+import { BroadcastSyncProvider } from '../sync/broadcast-sync.provider';
 import { UnifiedUserService } from '../user/unified-user.service';
 import { CommentService } from './comment.service';
 import { LiveDocumentRegistryService } from './live-document-registry.service';
@@ -149,6 +150,13 @@ export interface DocumentConnection {
   type: Y.XmlFragment;
   /** IndexedDB provider for offline persistence */
   indexeddbProvider: IndexeddbPersistence;
+  /**
+   * Cross-window provider, so a popped-out document window and the main
+   * window see each other's edits. In server mode y-websocket already
+   * broadcasts between contexts; this covers local and cloud-sync modes,
+   * where there is no WebSocket provider at all.
+   */
+  broadcastProvider: BroadcastSyncProvider;
   /**
    * The window 'online' listener registered for this connection, so it can be
    * removed on disconnect. Kept on the connection (not a module-level
@@ -914,20 +922,36 @@ export class DocumentService {
       // Try to setup WebSocket provider if URL is available
       const websocketUrl = this.setupService.getWebSocketUrl();
 
+      // Cross-window sync. Created after the IndexedDB load so the handshake
+      // offers peers the persisted state rather than an empty document.
+      const broadcastProvider = new BroadcastSyncProvider(documentId, ydoc);
+
       // CRITICAL: Create connection and store it BEFORE awaiting WebSocket
       // This allows us to add Yjs plugins immediately so content appears
       // WebSocket connection happens in background (non-blocking)
-      connection = { ydoc, provider: null, type, indexeddbProvider };
+      connection = {
+        ydoc,
+        provider: null,
+        type,
+        indexeddbProvider,
+        broadcastProvider,
+      };
       this.connections.set(documentId, connection);
       this.liveDocs.register(documentId, ydoc);
 
       // Track local edits for auto-snapshots (works in both local and connected modes)
       const idbProvider = indexeddbProvider;
       ydoc.on('update', (_update: Uint8Array, origin: unknown) => {
-        // Skip updates that come from IndexedDB (loading persisted state)
-        // or from the WebSocket provider (remote edits).
+        // Skip updates that come from IndexedDB (loading persisted state),
+        // from the WebSocket provider (remote edits), or from another window
+        // of this browser (that window already counted the edit as its own —
+        // counting it again would snapshot and re-upload the same change).
         // Everything else is a local edit (ProseMirror, programmatic, etc.)
-        if (origin !== idbProvider && origin !== connection?.provider) {
+        if (
+          origin !== idbProvider &&
+          origin !== connection?.provider &&
+          origin !== broadcastProvider
+        ) {
           this.localEdit$.next(documentId);
         }
       });
@@ -2092,6 +2116,7 @@ export class DocumentService {
       // Remove the window 'online' listener before tearing the provider down
       // so a stale handler can't reconnect a destroyed provider (leak fix).
       this.removeOnlineHandler(connection);
+      connection.broadcastProvider.destroy();
 
       if (connection.provider) {
         try {
@@ -2152,6 +2177,8 @@ export class DocumentService {
     documentId: string,
     connection: DocumentConnection
   ): void {
+    connection.broadcastProvider.destroy();
+
     if (connection.provider) {
       try {
         connection.provider.disconnect();
