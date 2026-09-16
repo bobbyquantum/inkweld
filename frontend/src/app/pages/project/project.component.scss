@@ -18,7 +18,35 @@
 }
 
 // Desktop layout: sidebar + content as flex row (single shared outlet)
+//
+// This element also carries the desktop density tokens. They live here rather
+// than in each component because custom properties inherit through view
+// encapsulation: the sidebar, the tab bar (and the user menu projected into
+// it) and the routed editors all sit inside this element, so one declaration
+// resizes the whole chrome. `.dense-sidebar` below re-declares them; anything
+// outside this layout (mobile, the home page) keeps each component's own
+// fallback.
 .desktop-layout {
+  // A sidebar bottom-nav row. The document and worldbuilding status bars use
+  // the same value so the rule above "Exit Project" lines up with the rule
+  // above the status bar.
+  --app-nav-row-height: 36px;
+  // The tab strip, including its 1px bottom border.
+  --app-tab-bar-height: 49px;
+  // Icon buttons in the tab strip's trailing action area...
+  --app-tab-action-size: 40px;
+  // ...and the slightly larger avatar button beside them.
+  --app-user-menu-size: 44px;
+
+  // Every routed tab sizes itself against this global offset, which bakes in
+  // the old fixed 49px tab bar (plus its 1px separator). Re-derive it from the
+  // density token, or a dense tab bar leaves a gap under each tab's content.
+  // Its `-82` sibling is only read below the 759px breakpoint, where this
+  // layout is replaced by the mobile one, so it needs no counterpart here.
+  --app-height-offset-50: calc(
+    var(--app-height) - var(--app-tab-bar-height) - 1px
+  );
+
   display: flex;
   flex: 1;
   min-height: 0;
@@ -120,7 +148,7 @@
     text-align: left;
     display: flex;
     align-items: center;
-    min-height: 36px;
+    min-height: var(--app-nav-row-height, 36px);
     padding: 4px 8px;
     cursor: pointer;
     outline: none;
@@ -163,14 +191,20 @@
 }
 
 // Opt-in dense sidebar (per-user "Dense sidebar" setting). Only the desktop
-// sidebar is tightened — mobile nav keeps its larger touch targets. Gated on
+// chrome is tightened — mobile nav keeps its larger touch targets. Gated on
 // `.dense-sidebar`, which is only present when the user opted in.
-.desktop-layout.dense-sidebar .sidebar-bottom-nav .sidebar-nav-item {
-  min-height: 28px;
-  padding: 1px 6px;
+.desktop-layout.dense-sidebar {
+  --app-nav-row-height: 28px;
+  --app-tab-bar-height: 40px;
+  --app-tab-action-size: 32px;
+  --app-user-menu-size: 36px;
 
-  .nav-title {
-    padding: 2px 6px;
+  .sidebar-bottom-nav .sidebar-nav-item {
+    padding: 1px 6px;
+
+    .nav-title {
+      padding: 2px 6px;
+    }
   }
 }
 

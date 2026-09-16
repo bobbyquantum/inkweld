@@ -3,7 +3,8 @@
   display: flex;
   align-items: stretch;
   width: 100%;
-  height: 49px;
+  // Set by the project layout, which tightens it in dense mode.
+  height: var(--app-tab-bar-height, 49px);
   background-color: var(--sys-surface-container);
 }
 
@@ -103,7 +104,10 @@
     }
 
     .mat-mdc-icon-button {
-      --mdc-icon-button-state-layer-size: 40px;
+      // `--mat-…`, not the `--mdc-…` spelling that used to be here: only the
+      // former is read by this version of Material, so the old declaration
+      // never did anything and the buttons simply sat at the theme's 40px.
+      --mat-icon-button-state-layer-size: var(--app-tab-action-size, 40px);
       --mdc-icon-button-icon-size: 20px;
     }
   }

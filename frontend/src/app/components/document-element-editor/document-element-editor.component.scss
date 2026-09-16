@@ -242,7 +242,9 @@
   justify-content: space-between;
   align-items: center;
   padding: 0 16px;
-  height: 24px;
+  // Matches a sidebar bottom-nav row on desktop, so this bar's top rule lines
+  // up with the one above "Exit Project" in both densities.
+  height: var(--app-nav-row-height, 24px);
   background-color: var(--sys-surface-container);
   border-top: 1px solid var(--sys-outline-variant);
   font-size: 0.875rem;
