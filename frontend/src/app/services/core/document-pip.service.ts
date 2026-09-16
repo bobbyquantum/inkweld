@@ -114,11 +114,13 @@ export class DocumentPipService {
   private readonly logger = inject(LoggerService);
 
   /**
-   * @internal Loads the editor on demand, and is writable so tests can stand a
-   * stub in its place — esbuild inlines local modules, so vi.mock cannot
-   * intercept the import.
+   * @internal Loads the editor on demand. Tests stand a stub in its place by
+   * assigning through a cast, which `readonly` does not prevent — it is a
+   * compile-time modifier, not a non-writable property — and they have to,
+   * because esbuild inlines local modules so vi.mock cannot intercept the
+   * import.
    */
-  private loadEditorComponent = loadDocumentEditor; // NOSONAR - writable for test overrides
+  private readonly loadEditorComponent = loadDocumentEditor;
 
   /** Run once the window is gone, so the caller can take the document back. */
   private onClosed: (() => void) | null = null;
