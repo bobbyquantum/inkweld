@@ -1,19 +1,19 @@
 <section class="settings-section">
-  <mat-checkbox [(ngModel)]="zenModeFullscreen">
+  <mat-slide-toggle [(ngModel)]="zenModeFullscreen">
     {{ 'settings.projectSettingsTab.fullscreenZen' | transloco }}
-  </mat-checkbox>
+  </mat-slide-toggle>
 </section>
 
 <section class="settings-section">
-  <mat-checkbox [(ngModel)]="useTabsDesktop">
+  <mat-slide-toggle [(ngModel)]="useTabsDesktop">
     {{ 'settings.projectSettingsTab.useTabs' | transloco }}
-  </mat-checkbox>
+  </mat-slide-toggle>
 </section>
 
 <section class="settings-section">
-  <mat-checkbox
+  <mat-slide-toggle
     [(ngModel)]="autoSnapshots"
     data-testid="setting-auto-snapshots">
     {{ 'settings.projectSettingsTab.autoSaveSnapshots' | transloco }}
-  </mat-checkbox>
+  </mat-slide-toggle>
 </section>

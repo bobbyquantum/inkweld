@@ -2,9 +2,9 @@
   <h3 class="settings-section-title">
     {{ 'settings.generalTab.toursTitle' | transloco }}
   </h3>
-  <mat-checkbox [(ngModel)]="toursEnabled" data-testid="show-tours-toggle">
+  <mat-slide-toggle [(ngModel)]="toursEnabled" data-testid="show-tours-toggle">
     {{ 'settings.generalTab.showTours' | transloco }}
-  </mat-checkbox>
+  </mat-slide-toggle>
   <p class="settings-section-hint">
     {{ 'settings.generalTab.showToursHint' | transloco }}
   </p>

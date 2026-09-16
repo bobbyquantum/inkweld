@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { TranslocoModule } from '@jsverse/transloco';
 import { TutorialService } from '@services/core/tutorial.service';
 
@@ -10,7 +10,7 @@ import { TutorialService } from '@services/core/tutorial.service';
  */
 @Component({
   selector: 'app-general-settings',
-  imports: [FormsModule, MatCheckboxModule, TranslocoModule],
+  imports: [FormsModule, MatSlideToggleModule, TranslocoModule],
   templateUrl: './general-settings.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './general-settings.component.scss',

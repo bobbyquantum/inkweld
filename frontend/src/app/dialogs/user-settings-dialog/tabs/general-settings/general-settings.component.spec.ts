@@ -46,19 +46,27 @@ describe('GeneralSettingsComponent', () => {
     fixture.detectChanges();
   }
 
-  /** The rendered "offer guided tours" checkbox input. */
-  function toursCheckbox(): HTMLInputElement {
+  /**
+   * The rendered "offer guided tours" switch. A slide toggle is a
+   * `button[role="switch"]`, not a checkbox input, so its state is read from
+   * `aria-checked`.
+   */
+  function toursToggle(): HTMLButtonElement {
     return fixture.nativeElement.querySelector(
-      '[data-testid="show-tours-toggle"] input'
+      '[data-testid="show-tours-toggle"] button[role="switch"]'
     );
   }
 
+  function toursOn(): boolean {
+    return toursToggle().getAttribute('aria-checked') === 'true';
+  }
+
   it('shows tours as on by default', () => {
-    expect(toursCheckbox().checked).toBe(true);
+    expect(toursOn()).toBe(true);
   });
 
-  it('turns tours off from the checkbox', async () => {
-    toursCheckbox().click();
+  it('turns tours off from the toggle', async () => {
+    toursToggle().click();
     await settle();
 
     expect(tutorial.toursEnabled()).toBe(false);
@@ -69,9 +77,9 @@ describe('GeneralSettingsComponent', () => {
     tutorial.setToursEnabled(false);
     await settle();
 
-    expect(toursCheckbox().checked).toBe(false);
+    expect(toursOn()).toBe(false);
 
-    toursCheckbox().click();
+    toursToggle().click();
     await settle();
 
     expect(tutorial.toursEnabled()).toBe(true);
