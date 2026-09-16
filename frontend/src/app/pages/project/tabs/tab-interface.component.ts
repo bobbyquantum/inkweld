@@ -33,7 +33,6 @@ import {
 import { type Element, ElementType, type Project } from '@inkweld/index';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { getDocumentRole } from '@models/scene-metadata';
-import { DocumentPipService } from '@services/core/document-pip.service';
 import { LoggerService } from '@services/core/logger.service';
 import { PopoutService } from '@services/core/popout.service';
 import { DocumentService } from '@services/project/document.service';
@@ -123,7 +122,6 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
   private readonly transloco = inject(TranslocoService);
   private readonly worldbuildingService = inject(WorldbuildingService);
   private readonly popoutService = inject(PopoutService);
-  private readonly documentPip = inject(DocumentPipService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly logger = inject(LoggerService);
 
@@ -900,52 +898,6 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
     if (!opened) {
       this.snackBar.open(
         this.transloco.translate('project.snackbar.popoutBlocked'),
-        this.transloco.translate('close'),
-        { duration: 6000 }
-      );
-    }
-  }
-
-  /**
-   * Whether this browser can float the document in a picture-in-picture
-   * window. Chrome and Edge can; the menu hides the option elsewhere.
-   */
-  canPictureInPictureContextTab(): boolean {
-    return this.canPopOutContextTab() && this.documentPip.isSupported();
-  }
-
-  /**
-   * Floats the context-menu tab in a picture-in-picture window: compact chrome,
-   * always on top, and instant, because it shares this page's JavaScript
-   * context rather than booting a second copy of the app.
-   *
-   * Unlike a separate window it takes the document over rather than copying
-   * it, because DocumentService binds one editor per document. The tab closes
-   * and comes back when the window does. Only one can be open at a time, which
-   * is a limit of the platform, not of this code.
-   */
-  async onPictureInPictureContextTab(): Promise<void> {
-    const tab = this.contextTab;
-    const tabIndex = this.contextTabIndex;
-    const project = this.projectState.project();
-    if (!tab?.element || !project || tabIndex === null) return;
-
-    const element = tab.element;
-    const documentId = `${project.username}:${project.slug}:${element.id}`;
-
-    const shown = await this.documentPip.open(documentId, element.name, {
-      // Release the document only once the window is certain, so a refusal
-      // leaves the tab untouched rather than closing and restoring it.
-      onGranted: () => {
-        this.closeTab(tabIndex);
-        this.documentService.disconnect(documentId);
-      },
-      onClosed: () => this.projectState.openDocument(element),
-    });
-
-    if (!shown) {
-      this.snackBar.open(
-        this.transloco.translate('project.snackbar.pictureInPictureBlocked'),
         this.transloco.translate('close'),
         { duration: 6000 }
       );

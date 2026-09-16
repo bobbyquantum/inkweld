@@ -99,19 +99,6 @@
         }}</span>
       </button>
     }
-    @if (canPictureInPictureContextTab()) {
-      <button
-        type="button"
-        class="context-menu-item"
-        cdkMenuItem
-        data-testid="tab-open-picture-in-picture"
-        (click)="onPictureInPictureContextTab()">
-        <mat-icon>picture_in_picture_alt</mat-icon>
-        <span class="context-menu-item-title">{{
-          'project.tabs.openAsPictureInPicture' | transloco
-        }}</span>
-      </button>
-    }
     @if (
       contextTab &&
       contextTab.type !== 'system' &&
