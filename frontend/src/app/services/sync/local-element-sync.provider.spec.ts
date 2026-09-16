@@ -1107,7 +1107,7 @@ describe('LocalElementSyncProvider republishing outside changes', () => {
     elements.set(written);
     TestBed.flushEffects();
 
-    expect(seen.length).toBe(emissionsAfterSubscribe + 1);
+    expect(seen).toHaveLength(emissionsAfterSubscribe + 1);
   });
 
   it('stops republishing once disconnected', () => {
