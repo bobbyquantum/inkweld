@@ -37,6 +37,11 @@
   --app-tab-action-size: 40px;
   // ...and the slightly larger avatar button beside them.
   --app-user-menu-size: 44px;
+  // The document editor's formatting toolbar: its row, and the round widget
+  // buttons in it. The toolbar derives its dividers, its alignment segments
+  // and the right-hand slot it reserves for the fixed toggles from the latter.
+  --app-editor-toolbar-height: 49px;
+  --app-editor-toolbar-button-size: 36px;
 
   // Every routed tab sizes itself against this global offset, which bakes in
   // the old fixed 49px tab bar (plus its 1px separator). Re-derive it from the
@@ -198,6 +203,8 @@
   --app-tab-bar-height: 40px;
   --app-tab-action-size: 32px;
   --app-user-menu-size: 36px;
+  --app-editor-toolbar-height: 38px;
+  --app-editor-toolbar-button-size: 28px;
 
   .sidebar-bottom-nav .sidebar-nav-item {
     padding: 1px 6px;

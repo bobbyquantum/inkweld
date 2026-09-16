@@ -11,18 +11,21 @@
   // so flex siblings can never be pushed underneath it. When the auto-review
   // toggle is also visible (see `.has-autoreview-toggle` below) we reserve an
   // extra slot for it.
-  padding-right: 52px;
+  // One widget button, plus its 8px offset from the edge and an 8px gap.
+  padding-right: calc(var(--app-editor-toolbar-button-size, 36px) + 16px);
   gap: 4px;
   background-color: var(--sys-surface-container-lowest);
   border-bottom: 1px solid var(--sys-outline-variant);
-  min-height: 49px;
+  // Set by the project layout, which tightens the row in dense mode.
+  min-height: var(--app-editor-toolbar-height, 49px);
   overflow: hidden; // prevent visual wrapping before JS recalculates
 }
 
-// When the AI auto-review toolbar toggle is rendered, reserve its 44px slot
-// on the right of the toolbar so flex siblings don't slide underneath it.
+// When the AI auto-review toolbar toggle is rendered, reserve its slot on the
+// right of the toolbar so flex siblings don't slide underneath it: a second
+// widget button and the 8px gap before it.
 .editor-toolbar.has-autoreview-toggle {
-  padding-right: 96px;
+  padding-right: calc(var(--app-editor-toolbar-button-size, 36px) * 2 + 24px);
 }
 
 // Pin the comments toggle to the right edge of the toolbar, out of flex flow.
@@ -38,7 +41,7 @@
 // When both the comments + auto-review toggles are visible, shift the
 // comments anchor left so the auto-review toggle sits at the far right.
 .editor-toolbar.has-autoreview-toggle .toolbar-comments-anchor {
-  right: 48px;
+  right: calc(var(--app-editor-toolbar-button-size, 36px) + 12px);
 }
 
 .toolbar-autoreview-anchor {
@@ -72,8 +75,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: var(--app-editor-toolbar-button-size, 36px);
+  height: var(--app-editor-toolbar-button-size, 36px);
   padding: 0;
   border: none;
   border-radius: 50%;
@@ -113,21 +116,40 @@
 
 // Alignment group - radio buttons with connected appearance
 .alignment-group {
+  // Half the button, so the pill's ends stay semicircular at either density.
+  --alignment-radius: calc(var(--app-editor-toolbar-button-size, 36px) / 2);
+  // Segments sit a little tighter than a standalone round button.
+  --alignment-segment: calc(var(--app-editor-toolbar-button-size, 36px) - 4px);
+
   gap: 0;
-  border-radius: 18px;
+  border-radius: var(--alignment-radius);
   overflow: hidden;
 
   [ngToolbarWidget] {
     border-radius: 0;
-    width: 32px;
+    width: var(--alignment-segment);
 
     &:first-child {
-      border-radius: 18px 0 0 18px;
+      border-radius: var(--alignment-radius) 0 0 var(--alignment-radius);
     }
 
     &:last-child {
-      border-radius: 0 18px 18px 0;
+      border-radius: 0 var(--alignment-radius) var(--alignment-radius) 0;
     }
+  }
+}
+
+// The two Material buttons in this toolbar (the heading menu below and the
+// table menu) sit 4px shorter than a widget button. Tracking the widget size
+// keeps that relationship — and keeps them from becoming the tallest thing in
+// the row — when dense mode shrinks it.
+.editor-toolbar {
+  --toolbar-mat-button-size: calc(
+    var(--app-editor-toolbar-button-size, 36px) - 4px
+  );
+
+  ::ng-deep .mat-mdc-icon-button {
+    --mat-icon-button-state-layer-size: var(--toolbar-mat-button-size);
   }
 }
 
@@ -135,6 +157,7 @@
 .heading-button {
   min-width: 64px;
   padding: 0 8px;
+  height: var(--toolbar-mat-button-size);
 
   .heading-label {
     font-weight: 500;
