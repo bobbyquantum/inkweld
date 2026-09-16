@@ -149,10 +149,10 @@ describe('AppearanceSettingsComponent', () => {
     const cards = fixture.nativeElement.querySelectorAll(
       '[data-testid="density-comfortable"], [data-testid="density-compact"]'
     );
-    expect(cards.length).toBe(2);
+    expect(cards).toHaveLength(2);
     // Each card carries its own miniature.
     expect(
-      fixture.nativeElement.querySelectorAll('svg.density-preview').length
-    ).toBe(2);
+      fixture.nativeElement.querySelectorAll('svg.density-preview')
+    ).toHaveLength(2);
   });
 });
