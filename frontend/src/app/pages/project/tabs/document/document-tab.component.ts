@@ -17,6 +17,7 @@ import {
 import { ElementType } from '@inkweld/index';
 import { TranslocoModule } from '@jsverse/transloco';
 import { isScene } from '@models/scene-metadata';
+import { PopoutService } from '@services/core/popout.service';
 import { SettingsService } from '@services/core/settings.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { DocumentSyncService } from '@services/sync/document-sync.service';
@@ -39,6 +40,7 @@ import { DocumentSyncService } from '@services/sync/document-sync.service';
 })
 export class DocumentTabComponent {
   protected readonly settingsService = inject(SettingsService);
+  private readonly popout = inject(PopoutService);
   protected readonly projectState = inject(ProjectStateService);
   protected readonly documentSync = inject(DocumentSyncService);
 
@@ -136,5 +138,14 @@ export class DocumentTabComponent {
    */
   protected useTabsDesktop(): boolean {
     return this.settingsService.getSetting<boolean>('useTabsDesktop', true);
+  }
+
+  /**
+   * Whether the editor should reserve room for the tab bar above it. A
+   * popped-out window renders no tab bar, so reserving its 50px would leave
+   * the editor short of the window and the status bar off-place.
+   */
+  protected tabsHidden(): boolean {
+    return !this.useTabsDesktop() || this.popout.isPopout();
   }
 }

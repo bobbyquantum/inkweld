@@ -15,10 +15,12 @@ import { LoggerService } from './logger.service';
 @Component({
   selector: 'app-stub-editor',
   changeDetection: ChangeDetectionStrategy.Eager,
-  template: '<span class="stub-editor">{{ documentId }}</span>',
+  template:
+    '<span class="stub-editor">{{ documentId }} tabsDisabled={{ tabsDisabled }}</span>',
 })
 class StubEditorComponent {
   @Input() documentId = '';
+  @Input() tabsDisabled = false;
 }
 
 describe('DocumentPipService', () => {
@@ -132,6 +134,17 @@ describe('DocumentPipService', () => {
     const host = pipDocument.querySelector('.inkweld-pip-host');
     expect(host).not.toBeNull();
     expect(host?.textContent).toContain('u:s:el-1');
+  });
+
+  it('tells the editor there is no tab bar to leave room for', async () => {
+    // The editor reserves 50px for the tab bar unless told otherwise, which in
+    // a window that has none leaves it short and the status bar off-place.
+    await service.open('u:s:el-1', 'Chapter 1');
+
+    const host = pipDocument.querySelector('.inkweld-pip-host');
+    expect(host?.querySelector('.stub-editor')?.textContent).toContain(
+      'tabsDisabled=true'
+    );
   });
 
   it('carries the page styling across to the new window', async () => {

@@ -284,6 +284,9 @@ export class DocumentPipService {
     );
     const ref: ComponentRef<unknown> = outlet.attachComponentPortal(portal);
     ref.setInput('documentId', documentId);
+    // No tab bar here, so the editor must not reserve its height — otherwise
+    // it sits 50px short of the window and the status bar lands off-place.
+    ref.setInput('tabsDisabled', true);
     ref.changeDetectorRef.detectChanges();
   }
 }

@@ -12,6 +12,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { ActivatedRoute, convertToParamMap } from '@angular/router';
 import { type Project } from '@inkweld/index';
 import { TranslocoModule } from '@jsverse/transloco';
+import { PopoutService } from '@services/core/popout.service';
 import { SettingsService } from '@services/core/settings.service';
 import { DocumentService } from '@services/project/document.service';
 import { ProjectStateService } from '@services/project/project-state.service';
@@ -477,6 +478,27 @@ describe('DocumentTabComponent', () => {
       (projectStateService.project as any).set(null);
       await (component as any).triggerSync();
       expect(syncQueueService.syncAllProjects).not.toHaveBeenCalled();
+    });
+  });
+  describe('room for the tab bar', () => {
+    /** Puts the window into pop-out mode, as the service decides it once. */
+    function enterPopoutMode(): void {
+      const popout = TestBed.inject(PopoutService) as unknown as {
+        popout: { set: (v: boolean) => void };
+      };
+      popout.popout.set(true);
+    }
+
+    it('reserves room while the tab bar is showing', () => {
+      expect((component as any).tabsHidden()).toBe(false);
+    });
+
+    it('reserves none in a pop-out, which renders no tab bar', () => {
+      // Reserving the tab bar's 50px here leaves the editor short of the
+      // window and puts the status bar in the wrong place.
+      enterPopoutMode();
+
+      expect((component as any).tabsHidden()).toBe(true);
     });
   });
 });

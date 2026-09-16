@@ -41,7 +41,7 @@
     <app-document-element-editor
       [style.--breadcrumb-height.px]="headerOffset()"
       [documentId]="fullDocumentId()"
-      [tabsDisabled]="!useTabsDesktop()"></app-document-element-editor>
+      [tabsDisabled]="tabsHidden()"></app-document-element-editor>
   } @placeholder {
     <div class="editor-placeholder">
       <mat-icon>edit_note</mat-icon>
