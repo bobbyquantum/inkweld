@@ -44,12 +44,4 @@ export class ProjectTreeSettingsComponent {
       typeof value === 'boolean' && value
     );
   }
-
-  get denseLayout(): boolean {
-    return this.settingsService.denseLayout();
-  }
-
-  set denseLayout(value: boolean) {
-    this.settingsService.setDenseLayout(typeof value === 'boolean' && value);
-  }
 }

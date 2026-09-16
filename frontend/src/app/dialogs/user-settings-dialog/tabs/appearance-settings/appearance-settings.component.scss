@@ -1,0 +1,105 @@
+.settings-section {
+  margin: 16px 0;
+}
+
+.settings-section-title {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.settings-section-hint {
+  margin: 0 0 16px;
+  font-size: 0.85rem;
+  opacity: 0.7;
+}
+
+.density-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.density-option {
+  flex: 1 1 200px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--sys-outline-variant);
+  border-radius: 12px;
+  transition:
+    border-color 150ms ease,
+    background-color 150ms ease;
+
+  &:hover {
+    background-color: var(--sys-surface-container-high);
+  }
+
+  // The radio's own label wraps our content; lay it out as a column so the
+  // preview sits above the title and the radio dot stays beside the text.
+  ::ng-deep .mdc-form-field {
+    align-items: flex-start;
+    width: 100%;
+  }
+
+  ::ng-deep .mdc-label {
+    display: grid;
+    gap: 2px;
+    width: 100%;
+    min-width: 0;
+    white-space: normal;
+  }
+}
+
+.density-option.mat-mdc-radio-checked {
+  border-color: var(--sys-primary);
+  background-color: color-mix(in srgb, var(--sys-primary) 8%, transparent);
+}
+
+.density-preview {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 200px;
+  margin-bottom: 8px;
+  border-radius: 6px;
+
+  .preview-frame {
+    fill: var(--sys-surface);
+    stroke: var(--sys-outline-variant);
+    stroke-width: 1;
+  }
+
+  .preview-bar {
+    fill: var(--sys-surface-container-high);
+  }
+
+  .preview-sidebar {
+    fill: var(--sys-surface-container);
+  }
+
+  .preview-row {
+    fill: var(--sys-on-surface-variant);
+    opacity: 0.45;
+  }
+
+  .preview-line {
+    fill: var(--sys-on-surface);
+    opacity: 0.25;
+  }
+}
+
+// The checked option's miniature picks up the accent, so the picture and the
+// radio agree at a glance.
+.density-option.mat-mdc-radio-checked .density-preview .preview-row {
+  fill: var(--sys-primary);
+  opacity: 0.7;
+}
+
+.density-title {
+  font-weight: 500;
+}
+
+.density-help {
+  font-size: 0.8rem;
+  opacity: 0.7;
+}

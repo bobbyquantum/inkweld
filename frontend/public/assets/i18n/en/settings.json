@@ -11,7 +11,9 @@
   "authorizedAppsAria": "Authorized Apps settings",
   "authorizedApps": "Authorized Apps",
   "generalAria": "General settings",
+  "appearanceAria": "Appearance settings",
   "general": "General",
+  "appearance": "Appearance",
   "projectTreeAria": "Project Tree settings",
   "projectTree": "Project Tree",
   "projectAria": "Project settings",
@@ -194,8 +196,7 @@
   },
   "projectTreeTab": {
     "confirmMoves": "Confirm element moves",
-    "showBreadcrumbs": "Show breadcrumbs above editors",
-    "denseLayout": "Dense sidebar (smaller tree rows)"
+    "showBreadcrumbs": "Show breadcrumbs above editors"
   },
   "storageSize": {
     "title": "Server Storage",
@@ -307,5 +308,13 @@
       "invalidType": "Choose a PNG, JPEG, WebP, GIF or AVIF image",
       "tooLarge": "Image is too large (max 12MB)"
     }
+  },
+  "appearanceTab": {
+    "densityTitle": "Density",
+    "densityHint": "How tightly the app's chrome is packed — the sidebar, tabs, toolbars and status bars. Your writing is never resized.",
+    "comfortable": "Comfortable",
+    "comfortableHelp": "Roomier rows and taller bars.",
+    "compact": "Compact",
+    "compactHelp": "Tighter chrome, so more of your project fits on screen."
   }
 }

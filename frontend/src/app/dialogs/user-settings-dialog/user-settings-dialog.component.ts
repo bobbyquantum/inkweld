@@ -22,6 +22,7 @@ import { TranslocoModule } from '@jsverse/transloco';
 import { Subject, takeUntil } from 'rxjs';
 
 import { AccountSettingsComponent } from './tabs/account-settings/account-settings.component';
+import { AppearanceSettingsComponent } from './tabs/appearance-settings/appearance-settings.component';
 import { AuthorizedAppsComponent } from './tabs/authorized-apps/authorized-apps.component';
 import { GeneralSettingsComponent } from './tabs/general-settings/general-settings.component';
 import { ProjectSettingsComponent } from './tabs/project-settings/project-settings.component';
@@ -30,6 +31,7 @@ import { ProjectTreeSettingsComponent } from './tabs/project-tree-settings/proje
 const CATEGORIES = [
   'account',
   'general',
+  'appearance',
   'authorized-apps',
   'project-tree',
   'project',
@@ -50,6 +52,7 @@ type SettingsCategory = (typeof CATEGORIES)[number];
     TranslocoModule,
     AccountSettingsComponent,
     GeneralSettingsComponent,
+    AppearanceSettingsComponent,
     AuthorizedAppsComponent,
     ProjectTreeSettingsComponent,
     ProjectSettingsComponent,

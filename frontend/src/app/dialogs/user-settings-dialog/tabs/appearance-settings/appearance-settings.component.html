@@ -1,0 +1,79 @@
+<section class="settings-section" data-testid="appearance-settings">
+  <h3 class="settings-section-title" id="density-label">
+    {{ 'settings.appearanceTab.densityTitle' | transloco }}
+  </h3>
+  <p class="settings-section-hint">
+    {{ 'settings.appearanceTab.densityHint' | transloco }}
+  </p>
+
+  <mat-radio-group
+    class="density-options"
+    aria-labelledby="density-label"
+    [(ngModel)]="density"
+    data-testid="density-group">
+    @for (option of densityOptions; track option.value) {
+      <mat-radio-button
+        class="density-option"
+        [value]="option.value"
+        [attr.data-testid]="'density-' + option.value">
+        <!--
+          A miniature of the app chrome rather than a screenshot: it stays
+          legible at this size, themes itself, and needs no asset pipeline.
+        -->
+        <svg
+          class="density-preview"
+          [attr.viewBox]="'0 0 ' + previewWidth + ' ' + previewHeight"
+          aria-hidden="true">
+          <rect
+            class="preview-frame"
+            x="0.5"
+            y="0.5"
+            [attr.width]="previewWidth - 1"
+            [attr.height]="previewHeight - 1"
+            rx="5" />
+          <!-- Tab bar / sidebar header -->
+          <rect
+            class="preview-bar"
+            x="1"
+            y="1"
+            [attr.width]="previewWidth - 2"
+            [attr.height]="option.preview.barHeight" />
+          <!-- Sidebar well -->
+          <rect
+            class="preview-sidebar"
+            x="1"
+            [attr.y]="option.preview.barHeight + 1"
+            width="47"
+            [attr.height]="previewHeight - option.preview.barHeight - 2" />
+          @for (y of option.preview.rows; track y) {
+            <rect
+              class="preview-row"
+              x="7"
+              [attr.y]="y"
+              width="35"
+              [attr.height]="rowHeight"
+              rx="2" />
+          }
+          @for (y of option.preview.lines; track y) {
+            <rect
+              class="preview-line"
+              x="56"
+              [attr.y]="y"
+              [attr.width]="$even ? 92 : 72"
+              [attr.height]="lineHeight"
+              rx="2" />
+          }
+        </svg>
+        <span class="density-title">{{
+          'settings.appearanceTab.' + option.value | transloco
+        }}</span>
+        <span class="density-help">{{
+          'settings.appearanceTab.' + option.value + 'Help' | transloco
+        }}</span>
+      </mat-radio-button>
+    }
+  </mat-radio-group>
+</section>
+
+<!-- Renders nothing unless the admin allows users their own background. -->
+<app-background-picker></app-background-picker>

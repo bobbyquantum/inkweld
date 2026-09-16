@@ -61,11 +61,14 @@ async function paintedBackground(page: Page): Promise<string> {
   );
 }
 
-/** Open the user settings dialog on the Account tab. */
-async function openAccountSettings(page: Page): Promise<void> {
+/** Open the user settings dialog on the Appearance tab, where the background
+ *  picker lives alongside the density choice. */
+async function openAppearanceSettings(page: Page): Promise<void> {
   await page.locator('[data-testid="user-menu-button"]').click();
   await page.getByRole('menuitem', { name: /settings/i }).click();
   await expect(page.getByTestId('account-settings')).toBeVisible();
+  await page.getByRole('tab', { name: /appearance/i }).click();
+  await expect(page.getByTestId('appearance-settings')).toBeVisible();
 }
 
 /**
@@ -287,7 +290,7 @@ test.describe('Appearance: customizable backgrounds', () => {
   test('a user picks a preset for their own pages, and it persists', async ({
     authenticatedPage,
   }) => {
-    await openAccountSettings(authenticatedPage);
+    await openAppearanceSettings(authenticatedPage);
 
     await test.step('the picker is offered, presets included', async () => {
       await expect(
@@ -325,7 +328,7 @@ test.describe('Appearance: customizable backgrounds', () => {
     });
 
     await test.step('the preset is remembered as the selected tile', async () => {
-      await openAccountSettings(authenticatedPage);
+      await openAppearanceSettings(authenticatedPage);
       await expect(
         authenticatedPage.getByTestId('background-tile-midnight')
       ).toHaveClass(/selected/);
@@ -358,7 +361,7 @@ test.describe('Appearance: customizable backgrounds', () => {
 
     await test.step('the user can now upload one', async () => {
       await authenticatedPage.reload();
-      await openAccountSettings(authenticatedPage);
+      await openAppearanceSettings(authenticatedPage);
 
       const uploadButton = authenticatedPage.getByTestId(
         'background-upload-button'
@@ -419,7 +422,7 @@ test.describe('Appearance: customizable backgrounds', () => {
 
     await test.step('the picker disappears for the user', async () => {
       await authenticatedPage.reload();
-      await openAccountSettings(authenticatedPage);
+      await openAppearanceSettings(authenticatedPage);
 
       await expect(
         authenticatedPage.getByTestId('background-picker')

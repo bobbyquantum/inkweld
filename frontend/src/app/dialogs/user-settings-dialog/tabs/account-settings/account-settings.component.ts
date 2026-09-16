@@ -19,7 +19,6 @@ import { MatRadioModule } from '@angular/material/radio';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { RouterLink } from '@angular/router';
-import { BackgroundPickerComponent } from '@components/background-picker/background-picker.component';
 import { PasskeysSettingsComponent } from '@components/passkeys-settings/passkeys-settings.component';
 import { ProfileVisibility } from '@inkweld/model/profile-visibility';
 import type { UpdateProfileRequest } from '@inkweld/model/update-profile-request';
@@ -44,7 +43,6 @@ import { UserService } from '@services/user/user.service';
     MatSnackBarModule,
     RouterLink,
     TranslocoModule,
-    BackgroundPickerComponent,
     PasskeysSettingsComponent,
   ],
   templateUrl: './account-settings.component.html',
