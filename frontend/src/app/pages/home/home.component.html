@@ -248,7 +248,32 @@
       }
 
       <!-- Main content section - responsive cover grid -->
-      <div class="main-content">
+      <div
+        class="main-content"
+        #pullToRefresh="pullToRefresh"
+        [appPullToRefresh]="refreshProjects"
+        [pullToRefreshDisabled]="!isMobile() || !isAuthenticated()">
+        @if (pullToRefresh.active()) {
+          <div
+            class="pull-to-refresh"
+            role="status"
+            [class.dragging]="pullToRefresh.dragging()"
+            [class.armed]="pullToRefresh.state() === 'armed'"
+            [attr.aria-label]="
+              pullToRefresh.state() === 'refreshing'
+                ? ('home.refreshing' | transloco)
+                : null
+            "
+            data-testid="pull-to-refresh-indicator">
+            <div class="pull-to-refresh-circle">
+              @if (pullToRefresh.state() === 'refreshing') {
+                <mat-spinner diameter="24" />
+              } @else {
+                <mat-icon>arrow_downward</mat-icon>
+              }
+            </div>
+          </div>
+        }
         @if (!isAuthenticated()) {
           <!-- Content for unauthenticated users -->
           <div class="welcome-content">
@@ -295,7 +320,7 @@
           </div>
         } @else {
           <!-- Content for authenticated users - responsive cover grid -->
-          @if (isLoading()) {
+          @if (isLoading() && pullToRefresh.state() !== 'refreshing') {
             <div class="loading-state" data-testid="loading-projects">
               <mat-spinner diameter="40" />
               <p>{{ 'home.loadingProjects' | transloco }}</p>

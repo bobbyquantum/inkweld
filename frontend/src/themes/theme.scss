@@ -378,6 +378,11 @@ $dark-theme: mat.define-theme(
 
 html {
   height: var(--app-height);
+  // Suppress Chrome's own swipe-to-refresh. In the TWA it reloads the entire
+  // app, which throws away in-memory document state and re-runs the splash --
+  // far too destructive for a stray downward flick in the editor. The home
+  // grid offers a deliberate replacement via appPullToRefresh.
+  overscroll-behavior-y: contain;
 }
 
 body {

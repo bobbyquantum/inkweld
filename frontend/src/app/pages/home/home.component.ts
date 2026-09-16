@@ -64,6 +64,8 @@ import { formatBytes } from '@utils/format-bytes';
 import { firstValueFrom, Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 
+import { PullToRefreshDirective } from '../../directives/pull-to-refresh.directive';
+
 interface HomeSearchFormValue {
   search: string;
 }
@@ -104,6 +106,7 @@ export const PINNED_PROJECTS_STORAGE_KEY = 'inkweld-home-pinned-projects';
     UserMenuComponent,
     SideNavComponent,
     ThemeToggleComponent,
+    PullToRefreshDirective,
   ],
   templateUrl: './home.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -430,6 +433,40 @@ export class HomeComponent implements OnInit, OnDestroy {
       console.error('Failed to load projects:', error);
     }
   }
+
+  /**
+   * Pull-to-refresh handler for the cover grid.
+   *
+   * Deliberately goes round `loadProjects()`: that short-circuits once the
+   * service already holds projects, so it would never refetch the list -- the
+   * one thing the gesture exists to do. A failed refresh keeps the grid we
+   * already have rather than replacing it with the error state.
+   */
+  protected readonly refreshProjects = async (): Promise<void> => {
+    if (!this.isAuthenticated()) return;
+
+    try {
+      await this.projectService.loadProjects();
+      await this.loadCollaborationData();
+      this.triggerCoverSync();
+      this.loadError = false;
+    } catch (error: unknown) {
+      if (
+        error instanceof ProjectServiceError &&
+        error.code === 'SESSION_EXPIRED'
+      ) {
+        // The auth interceptor redirects to the welcome page from here.
+        return;
+      }
+
+      console.error('Failed to refresh projects:', error);
+      this.snackBar.open(
+        this.transloco.translate('home.snackbar.refreshFailed'),
+        this.transloco.translate('dismiss'),
+        { duration: 3000 }
+      );
+    }
+  };
 
   setupBreakpointObserver() {
     this.breakpointObserver

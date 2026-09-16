@@ -22,6 +22,7 @@
   "createProject": "Create Project",
   "noProjectsFound": "No projects found",
   "cloudSyncing": "Fetching your projects from your cloud storage…",
+  "refreshing": "Refreshing projects",
   "tryDifferentSearch": "Try a different search term",
   "openProject": "Open project {{title}}",
   "clickToSync": "Click to download",
@@ -62,7 +63,8 @@
     "nowCollaborator": "You are now a collaborator on \"{{title}}\"",
     "acceptInvitationFailed": "Failed to accept invitation",
     "invitationDeclined": "Invitation declined",
-    "declineInvitationFailed": "Failed to decline invitation"
+    "declineInvitationFailed": "Failed to decline invitation",
+    "refreshFailed": "Couldn't refresh projects"
   },
   "dialogs": {
     "activateTitle": "Activate Project",
