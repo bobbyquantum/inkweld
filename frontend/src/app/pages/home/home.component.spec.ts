@@ -1753,5 +1753,49 @@ describe('HomeComponent', () => {
 
       expect(projectService.reloadProjects).not.toHaveBeenCalled();
     });
+
+    it('kicks the same sync as the Sync All button', async () => {
+      mockProjectsSignal.set(mockProjects);
+
+      await component['refreshProjects']();
+
+      expect(mockSyncQueueService.syncAllProjects).toHaveBeenCalledWith(
+        mockProjects
+      );
+    });
+
+    it('does not start a second sync while one is running', async () => {
+      mockProjectsSignal.set(mockProjects);
+      mockSyncQueueService.isSyncing.set(true);
+
+      await component['refreshProjects']();
+
+      expect(mockSyncQueueService.syncAllProjects).not.toHaveBeenCalled();
+      // The list still refreshes -- only the sync is skipped.
+      expect(projectService.reloadProjects).toHaveBeenCalled();
+    });
+
+    it('stays quiet rather than scolding when nothing is activated', async () => {
+      mockProjectsSignal.set(mockProjects);
+      mockActivationService.isActivationRequired.mockReturnValue(true);
+      mockActivationService.isActivated.mockReturnValue(false);
+
+      await component['refreshProjects']();
+
+      expect(mockSyncQueueService.syncAllProjects).not.toHaveBeenCalled();
+      // Pressing the button in this state shows a snackbar; a pull should not.
+      expect(snackBar.open).not.toHaveBeenCalled();
+    });
+
+    it('does not sync outside server mode', async () => {
+      mockProjectsSignal.set(mockProjects);
+      (setupService.getMode as ReturnType<typeof vi.fn>).mockReturnValue(
+        'local'
+      );
+
+      await component['refreshProjects']();
+
+      expect(mockSyncQueueService.syncAllProjects).not.toHaveBeenCalled();
+    });
   });
 });

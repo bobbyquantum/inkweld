@@ -441,6 +441,9 @@ export class HomeComponent implements OnInit, OnDestroy {
    * one thing the gesture exists to do. `reloadProjects()` always re-reads,
    * which in local mode means picking up projects added in another tab.
    *
+   * In server mode it also triggers the same sync as the Sync All button, so
+   * the gesture is an alternative to reaching for that button.
+   *
    * A failed refresh keeps the grid we already have rather than replacing it
    * with the error state.
    */
@@ -453,6 +456,17 @@ export class HomeComponent implements OnInit, OnDestroy {
         await this.cloudSync.syncNow();
       }
       await this.projectService.reloadProjects();
+      // The gesture equivalent of pressing Sync All, so it kicks the same
+      // sync. Fire-and-forget like the button: progress belongs to the header
+      // sync button, which is where the user already looks for it, not to an
+      // indicator pinned over the grid for however long a sync takes.
+      //
+      // canSyncAll() already covers offline, already-syncing and
+      // nothing-activated, so a pull in any of those states quietly refreshes
+      // the list instead of scolding the user the way the button does.
+      if (this.canSyncAll()) {
+        this.syncAllProjects();
+      }
       await this.loadCollaborationData();
       this.triggerCoverSync();
       this.loadError = false;
