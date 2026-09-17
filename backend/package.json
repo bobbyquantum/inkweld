@@ -39,7 +39,7 @@
     "@hono/zod-openapi": "^1.2.0",
     "@simplewebauthn/server": "^14.0.0",
     "bcryptjs": "^3.0.3",
-    "dotenv": "^17.2.3",
+    "dotenv": "^18.0.0",
     "drizzle-kit": "^0.31.8",
     "drizzle-orm": "^0.45.1",
     "esbuild": "^0.28.0",
