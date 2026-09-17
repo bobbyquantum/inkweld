@@ -220,6 +220,7 @@
             "coverageInclude": ["src/**/*.ts"],
             "coverageExclude": [
               "**/*.spec.ts",
+              "**/*.stories.ts",
               "**/setup-vitest.ts",
               "**/e2e/**",
               "**/testing/**",
@@ -246,6 +247,26 @@
             "shard": {
               "coverageThresholds": {}
             }
+          }
+        },
+        "storybook": {
+          "builder": "@storybook/angular:start-storybook",
+          "options": {
+            "browserTarget": "inkweld-frontend:build:development",
+            "configDir": ".storybook",
+            "compodoc": false,
+            "sourceMap": false,
+            "port": 6006
+          }
+        },
+        "build-storybook": {
+          "builder": "@storybook/angular:build-storybook",
+          "options": {
+            "browserTarget": "inkweld-frontend:build:development",
+            "configDir": ".storybook",
+            "compodoc": false,
+            "sourceMap": false,
+            "outputDir": "storybook-static"
           }
         },
         "lint": {

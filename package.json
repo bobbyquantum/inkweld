@@ -41,7 +41,7 @@
     "lint:fix:frontend": "cd frontend && npm run lint:fix",
     "lint:fix:backend": "cd backend && bun run lint:fix",
     "format": "npm run format:frontend && npm run format:backend && npm run format:docs",
-    "format:frontend": "cd frontend && prettier --write \"src/**/*.{ts,html,scss}\"",
+    "format:frontend": "cd frontend && prettier --write \"src/**/*.{ts,html,scss}\" \".storybook/**/*.ts\"",
     "format:backend": "cd backend && bun run format",
     "format:docs": "cd docs/site && bun run format",
     "typecheck": "npm run typecheck:frontend && npm run typecheck:backend",
@@ -102,6 +102,9 @@
   },
   "lint-staged": {
     "frontend/src/!(api-client)/**/*.{ts,html,scss}": [
+      "prettier --write --config frontend/.prettierrc.json"
+    ],
+    "frontend/.storybook/**/*.ts": [
       "prettier --write --config frontend/.prettierrc.json"
     ],
     "backend/src/**/*.ts": [

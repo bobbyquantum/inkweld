@@ -46,6 +46,9 @@ testem.log
 .DS_Store
 Thumbs.db
 
+# Storybook build output
+/storybook-static
+
 # Playwright
 /test-results/
 /playwright-report/

@@ -133,6 +133,31 @@ npm run lint:fix
 bun run lint:fix
 ```
 
+### Storybook
+
+Component workbench for the shared UI in `src/app/components`. Stories live
+next to their component as `*.component.stories.ts`.
+
+```bash
+npm run storybook
+# or
+bun run storybook
+```
+
+Serves on <http://localhost:6006>. To produce a static build in
+`storybook-static/`:
+
+```bash
+npm run build-storybook
+```
+
+Global styles, SCSS include paths and static assets are inherited from the
+`inkweld-frontend:build:development` target, and `.storybook/preview.ts`
+mirrors the app's root providers (zoneless change detection, `HttpClient`,
+Transloco), so components render as they do in the app. The toolbar's theme
+switcher toggles the same `light-theme` / `dark-theme` body classes that
+`ThemeService` uses.
+
 ## Scripts
 
 - `start` - Run development server
@@ -145,6 +170,8 @@ bun run lint:fix
 - `upgrade-angular` - Upgrade Angular dependencies
 - `fix-angular-control-flow` - Migrate to Angular control flow directives
 - `e2e` - Run Playwright end-to-end tests
+- `storybook` - Run Storybook component workbench
+- `build-storybook` - Build a static Storybook
 
 ## Unique Technical Features
 

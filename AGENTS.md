@@ -239,6 +239,7 @@ npm test               # Run Vitest tests
 npm run e2e            # Run Playwright tests
 npm run lint           # Run linter
 npm run lint:fix       # Auto-fix lint issues
+npm run storybook      # Component workbench (localhost:6006)
 
 # Backend
 cd backend
