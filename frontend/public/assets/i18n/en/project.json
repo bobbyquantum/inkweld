@@ -71,20 +71,11 @@
     "details": "Scene details"
   },
   "homeTab": {
-    "editCover": "Edit project cover",
     "editDetails": "Edit project details",
-    "start": "Start",
-    "newFile": "New File",
-    "exportProject": "Export Project",
-    "importProject": "Import Project",
-    "publishProject": "Publish Project",
-    "mediaLibrary": "Media Library",
-    "templates": "Templates",
-    "projectSettings": "Project Settings",
     "pinned": "Pinned",
     "noPinned": "No pinned elements yet. Right-click an element to pin it.",
     "recentElements": "Recent Elements",
-    "noRecent": "No recent elements yet. Open documents to see them here.",
+    "noRecent": "No recent elements yet. Elements you open will appear here.",
     "coverSaved": "Cover image saved successfully",
     "coverSaveFailed": "Failed to save cover image"
   },

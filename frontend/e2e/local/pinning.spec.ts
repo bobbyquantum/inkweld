@@ -54,7 +54,7 @@ test.describe('Pinning', () => {
       await expect(page.getByTestId('pinned-section')).not.toBeVisible();
 
       await page.locator('[data-testid="toolbar-home-button"]').click();
-      await expect(page.getByTestId('home-pinned-empty')).toBeVisible();
+      await expect(page.getByTestId('home-pinned-section')).not.toBeVisible();
 
       titleBefore = await page.locator(TITLE_SELECTOR).first().textContent();
       expect(titleBefore?.trim()).toBeTruthy();
@@ -75,9 +75,7 @@ test.describe('Pinning', () => {
       await expect(
         page.locator('[data-testid="home-pinned-README"]')
       ).toBeVisible();
-      await expect(
-        page.locator('[data-testid="home-pinned-empty"]')
-      ).not.toBeVisible();
+      await expect(page.getByTestId('home-pinned-section')).toBeVisible();
     });
 
     await test.step('project title is preserved after pinning', async () => {
@@ -111,9 +109,7 @@ test.describe('Pinning', () => {
       await expect(page.getByTestId('pinned-section')).not.toBeVisible();
 
       await page.locator('[data-testid="toolbar-home-button"]').click();
-      await expect(
-        page.locator('[data-testid="home-pinned-empty"]')
-      ).toBeVisible();
+      await expect(page.getByTestId('home-pinned-section')).not.toBeVisible();
     });
   });
 });

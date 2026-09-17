@@ -1,116 +1,52 @@
 <div class="home-tab-content" data-testid="home-tab-content">
-  <div class="full-width-column">
-    <div class="header-container">
-      <div
-        class="cover-image-wrapper"
-        data-testid="project-cover-edit"
-        [class.clickable]="projectState.canWrite()"
-        (click)="
-          projectState.canWrite() && projectState.showEditProjectDialog()
-        "
-        (keydown.enter)="
-          projectState.canWrite() && projectState.showEditProjectDialog()
-        "
-        [attr.tabindex]="projectState.canWrite() ? 0 : null"
-        [attr.role]="projectState.canWrite() ? 'button' : null"
-        [attr.aria-label]="
-          projectState.canWrite()
-            ? ('project.homeTab.editCover' | transloco)
-            : null
-        ">
-        <app-project-cover
-          [project]="projectState.project()!"
-          [coverMediaId]="projectState.coverMediaId()"
-          variant="card"></app-project-cover>
-        @if (projectState.canWrite()) {
-          <div class="cover-overlay">
-            <mat-icon>edit</mat-icon>
-          </div>
-        }
-      </div>
-
-      <div
-        class="full-width-header"
-        [class.clickable]="projectState.canWrite()"
-        [class.has-no-cover]="!hasCover()"
-        (click)="
-          projectState.canWrite() && projectState.showEditProjectDialog()
-        "
-        (keydown.enter)="
-          projectState.canWrite() && projectState.showEditProjectDialog()
-        "
-        [attr.tabindex]="projectState.canWrite() ? 0 : null"
-        [attr.role]="projectState.canWrite() ? 'button' : null"
-        [attr.aria-label]="
-          projectState.canWrite()
-            ? ('project.homeTab.editDetails' | transloco)
-            : null
-        ">
-        <div class="header-content">
-          <div class="project-info">
-            <h2>{{ projectState.project()?.title }}</h2>
-            <p>{{ projectState.project()?.description }}</p>
-          </div>
-        </div>
-        @if (projectState.canWrite()) {
-          <div class="header-overlay">
-            <mat-icon>edit</mat-icon>
-          </div>
-        }
-      </div>
+  <!-- Cover, title and description are one card with one click target: the
+       cover used to float outside the details card, which cost a whole cover's
+       height before the lists below could start. -->
+  <div
+    class="project-header"
+    data-testid="project-cover-edit"
+    [class.clickable]="projectState.canWrite()"
+    (click)="projectState.canWrite() && projectState.showEditProjectDialog()"
+    (keydown.enter)="
+      projectState.canWrite() && projectState.showEditProjectDialog()
+    "
+    [attr.tabindex]="projectState.canWrite() ? 0 : null"
+    [attr.role]="projectState.canWrite() ? 'button' : null"
+    [attr.aria-label]="
+      projectState.canWrite()
+        ? ('project.homeTab.editDetails' | transloco)
+        : null
+    ">
+    <div class="project-header-cover">
+      <app-project-cover
+        [project]="projectState.project()!"
+        [coverMediaId]="projectState.coverMediaId()"
+        variant="list"></app-project-cover>
     </div>
+
+    <div class="project-header-text">
+      <h2 class="project-header-title">{{ projectState.project()?.title }}</h2>
+      @if (projectState.project()?.description) {
+        <p class="project-header-description">
+          {{ projectState.project()?.description }}
+        </p>
+      }
+    </div>
+
+    @if (projectState.canWrite()) {
+      <mat-icon class="project-header-edit" aria-hidden="true">edit</mat-icon>
+    }
   </div>
 
   <div class="columns-container">
-    <div class="home-column">
-      <div class="home-column-header">
-        <h3>{{ 'project.homeTab.start' | transloco }}</h3>
-      </div>
-
-      <div class="start-actions">
-        <button mat-button color="primary" (click)="onNewFileClick()">
-          <mat-icon>note_add</mat-icon>
-          {{ 'project.homeTab.newFile' | transloco }}
-        </button>
-        <button mat-button color="primary" (click)="onExportClick()">
-          <mat-icon>cloud_download</mat-icon>
-          {{ 'project.homeTab.exportProject' | transloco }}
-        </button>
-        <button mat-button color="primary" (click)="onImportClick()">
-          <mat-icon>cloud_upload</mat-icon>
-          {{ 'project.homeTab.importProject' | transloco }}
-        </button>
-        <button mat-button color="primary" (click)="onPublishClick()">
-          <mat-icon>cloud_upload</mat-icon>
-          {{ 'project.homeTab.publishProject' | transloco }}
-        </button>
-        <button mat-button color="primary" (click)="openMediaTab()">
-          <mat-icon>perm_media</mat-icon>
-          {{ 'project.homeTab.mediaLibrary' | transloco }}
-        </button>
-        <button
-          mat-button
-          color="primary"
-          (click)="openTemplatesTab()"
-          data-testid="template-library-button">
-          <mat-icon>description</mat-icon>
-          {{ 'project.homeTab.templates' | transloco }}
-        </button>
-        <button
-          mat-button
-          color="primary"
-          (click)="openSettingsTab()"
-          data-testid="project-settings-button">
-          <mat-icon>settings</mat-icon>
-          {{ 'project.homeTab.projectSettings' | transloco }}
-        </button>
-      </div>
-    </div>
-    <div class="home-column">
-      <div class="home-column-header">
-        <h3>{{ 'project.homeTab.pinned' | transloco }}</h3>
-      </div>
-      @if (pinnedElements().length > 0) {
+    <!-- Nothing pinned means no section at all, matching the sidebar's own
+         pinned section. An empty one cost a phone screen a whole card to say
+         nothing, and its "right-click to pin" hint was untrue on touch. -->
+    @if (pinnedElements().length > 0) {
+      <div class="home-column" data-testid="home-pinned-section">
+        <div class="home-column-header">
+          <h3>{{ 'project.homeTab.pinned' | transloco }}</h3>
+        </div>
         <div class="recent-files-list" data-testid="home-pinned-list">
           @for (element of pinnedElements(); track element.id) {
             <button
@@ -123,13 +59,8 @@
             </button>
           }
         </div>
-      } @else {
-        <p class="no-recent-files" data-testid="home-pinned-empty">
-          <mat-icon>info</mat-icon>
-          {{ 'project.homeTab.noPinned' | transloco }}
-        </p>
-      }
-    </div>
+      </div>
+    }
     <div class="home-column">
       <div class="home-column-header">
         <h3>{{ 'project.homeTab.recentElements' | transloco }}</h3>

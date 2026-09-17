@@ -4,203 +4,155 @@
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+  gap: 24px;
   background-color: var(--sys-surface-container-low);
   transition: background-color 0.3s ease;
 
   @media (max-width: 759px) {
-    padding: 16px;
+    padding: 12px;
+    gap: 12px;
   }
 }
 
-.full-width-column {
-  width: 100%;
-}
+// ─────────────────────────────────────────────────────────────────────────────
+// Project header
+//
+// Cover, title and description are a single card. The cover sets the card's
+// height and the text beside it is clamped to fit, so neither a long title nor
+// a long description can push Pinned and Recent below the fold on a phone.
+// ─────────────────────────────────────────────────────────────────────────────
 
-.header-container {
-  display: flex;
-  align-items: flex-start;
-  gap: 32px;
-  margin-top: 24px;
-  margin-bottom: 32px;
+.project-header {
+  --cover-width: 132px;
 
-  @media (max-width: 759px) {
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    gap: 16px;
-    margin-top: 0;
-  }
-}
-
-.full-width-header {
-  flex: 1;
-  background-color: var(--sys-surface-container-high);
-  color: var(--sys-on-surface);
-  border-radius: 12px;
-  padding: 32px;
-  position: relative;
-  overflow: hidden;
-  border: 1px solid var(--sys-outline-variant);
-  transition: all 0.3s ease;
-  min-height: 160px;
-  display: flex;
-  align-items: flex-start;
-
-  @media (max-width: 759px) {
-    width: 100%;
-    padding: 24px;
-  }
-
-  &.clickable {
-    cursor: pointer;
-
-    &:hover {
-      background-color: var(--sys-surface-container-highest);
-      border-color: var(--sys-outline);
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    }
-
-    &:focus {
-      outline: 2px solid var(--sys-color-primary);
-      outline-offset: 2px;
-    }
-
-    .header-overlay {
-      position: absolute;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.03);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      opacity: 0;
-      transition: opacity 0.2s ease;
-      pointer-events: none;
-
-      mat-icon {
-        font-size: 48px;
-        width: 48px;
-        height: 48px;
-        color: var(--sys-color-primary);
-        opacity: 0.2;
-      }
-    }
-
-    &:hover .header-overlay {
-      opacity: 1;
-    }
-  }
-
-  &.has-no-cover {
-    // We no longer use the background image here to avoid redundancy
-    // with the project cover component and to improve theme consistency.
-    // The theme-aware surface color provides better contrast.
-  }
-}
-
-.header-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 32px;
-  width: 100%;
-  position: relative;
-  z-index: 1;
-
-  @media (max-width: 759px) {
-    flex-direction: column;
-    gap: 16px;
-  }
-}
-
-.cover-image-wrapper {
   flex-shrink: 0;
-  width: 160px;
-  height: 256px; // 1:1.6 aspect ratio
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  padding: 16px;
+  // Same surface, radius and padding as the Pinned/Recent columns below: the
+  // three read as one family of cards on the page background.
   border-radius: 8px;
-  overflow: hidden;
-  position: relative;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  background-color: var(--sys-surface);
+  color: var(--sys-on-surface);
   transition:
-    transform 0.2s ease,
+    background-color 0.2s ease,
     box-shadow 0.2s ease;
 
   @media (max-width: 759px) {
-    width: 140px;
-    height: 224px;
+    // A share of the card rather than a fixed width, so the thumbnail keeps
+    // its proportions across phone widths. Bounded at the top because this
+    // breakpoint runs all the way to 759px, where a raw 25% would be a 180px
+    // cover and a 300px-tall header.
+    --cover-width: clamp(64px, 25%, 104px);
+
+    gap: 12px;
+    padding: 12px;
   }
 
   &.clickable {
     cursor: pointer;
 
+    // Matches the hover on the list items in those columns.
     &:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+      background-color: var(--sys-surface-container-high);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
     }
 
-    .cover-overlay {
-      position: absolute;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.4);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      opacity: 0;
-      transition: opacity 0.2s ease;
-
-      mat-icon {
-        color: white;
-        font-size: 32px;
-        width: 32px;
-        height: 32px;
-      }
-    }
-
-    &:hover .cover-overlay,
-    &:focus .cover-overlay {
+    &:hover .project-header-edit,
+    &:focus-visible .project-header-edit {
       opacity: 1;
     }
 
-    &:focus {
-      outline: 2px solid var(--sys-color-primary);
+    &:focus-visible {
+      outline: 2px solid var(--sys-primary);
       outline-offset: 2px;
     }
   }
 }
 
-.project-info {
+.project-header-cover {
+  flex-shrink: 0;
+  width: var(--cover-width);
+  aspect-ratio: 1 / 1.6;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.project-header-text {
   flex: 1;
-  min-width: 0; // Allow text to truncate
+  min-width: 0; // Allow the title and description to truncate
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  // The line clamps below are what bound this; the overflow is belt and braces.
+  overflow: hidden;
 
-  h2 {
-    margin: 0 0 8px 0;
-    font-size: 2.5rem;
-    font-weight: 700;
-    color: var(--sys-on-surface);
-
-    @media (max-width: 759px) {
-      font-size: 1.75rem;
-    }
-  }
-
-  p {
-    margin: 0;
-    font-size: 1.1rem;
-    line-height: 1.5;
-    color: var(--sys-on-surface-variant);
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    max-width: 800px;
+  @media (max-width: 759px) {
+    gap: 4px;
   }
 }
+
+.project-header-title {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--sys-on-surface);
+  // A single unbroken word (some titles are) has to wrap rather than overflow.
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+
+  @media (max-width: 759px) {
+    font-size: 1.125rem;
+  }
+}
+
+.project-header-description {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.45;
+  color: var(--sys-on-surface-variant);
+  max-width: 72ch; // Keeps the measure readable on a wide desktop card
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+
+  @media (max-width: 759px) {
+    font-size: 0.8125rem;
+    -webkit-line-clamp: 2;
+  }
+}
+
+// Sits in the flow rather than overlaying the text, so it never covers a long
+// title and never shifts the layout when it brightens on hover.
+.project-header-edit {
+  flex-shrink: 0;
+  color: var(--sys-on-surface-variant);
+  opacity: 0.45;
+  transition: opacity 0.2s ease;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Pinned / Recent
+// ─────────────────────────────────────────────────────────────────────────────
 
 .columns-container {
   display: flex;
   flex-direction: row;
+  align-items: flex-start;
   gap: 24px;
   width: 100%;
+
+  @media (max-width: 759px) {
+    flex-direction: column;
+    gap: 12px;
+  }
 }
 
 .home-column {
@@ -209,21 +161,15 @@
   background-color: var(--sys-surface);
   border-radius: 8px;
   padding: 16px;
-}
 
-@media (max-width: 768px) {
-  .columns-container {
-    flex-direction: column;
-  }
-
-  .home-column {
+  @media (max-width: 759px) {
     width: 100%;
-    margin-bottom: 24px;
+    padding: 12px;
   }
 }
 
 .home-column-header {
-  margin-bottom: 16px;
+  margin-bottom: 12px;
   border-bottom: 1px solid var(--sys-outline-variant);
   padding-bottom: 8px;
   font-weight: bold;
@@ -233,30 +179,23 @@
 
   h3 {
     margin: 0;
+    font-size: 1rem;
   }
-}
 
-.start-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  width: 100%; /* Ensure full width */
-}
-
-.start-actions button {
-  text-align: left;
-  display: flex;
-  align-items: center;
-  justify-content: flex-start; /* Explicitly set left alignment */
-  gap: 8px;
-  width: 100%; /* Take full width of container */
-  padding-left: 8px; /* Add some padding on the left */
+  @media (max-width: 759px) {
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+  }
 }
 
 .recent-files-list {
   display: flex;
   flex-direction: column;
   gap: 8px;
+
+  @media (max-width: 759px) {
+    gap: 4px;
+  }
 }
 
 .recent-file-item {
@@ -274,6 +213,17 @@
   color: inherit;
   text-align: left;
   width: 100%;
+
+  mat-icon {
+    flex-shrink: 0;
+  }
+}
+
+.recent-file-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .recent-file-item:hover,
@@ -283,10 +233,16 @@
 
 .no-recent-files {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   color: var(--sys-outline);
   font-style: italic;
+
+  // Without this the icon is squeezed into an oval as soon as the message
+  // wraps, which it always does at phone width.
+  mat-icon {
+    flex-shrink: 0;
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

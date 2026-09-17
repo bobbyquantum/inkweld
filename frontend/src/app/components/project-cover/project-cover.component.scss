@@ -142,4 +142,41 @@
       }
     }
   }
+
+  // The list variant is the project home header's thumbnail. Its default cover
+  // should read as the same one the project grid shows — author over title,
+  // centred, same weight and shadow — only smaller. So the card variant's
+  // 24px padding and 1.5rem/0.9rem type are re-expressed as a proportion of
+  // the thumbnail's own width (the grid card is ~180px, hence 24/180 = 13.3%),
+  // which here ranges from ~76px on a phone to ~132px on desktop. Fixed px
+  // simply overflowed and clipped at the small end.
+  &.list {
+    container-type: inline-size;
+
+    .no-cover-container {
+      padding: 13.3%;
+
+      .text-content {
+        width: 100%;
+        gap: 4.4cqi;
+      }
+
+      .centered-title {
+        font-size: clamp(0.6rem, 13.3cqi, 1.5rem);
+        font-weight: 500;
+        line-height: 1.3;
+        overflow-wrap: anywhere;
+        // The card variant lets a long title fill the cover and centre-clip
+        // rather than capping it at 60% of the height.
+        max-height: none;
+      }
+
+      // Kept on one line unlike the grid card's: a wrapped username would eat
+      // the room the title needs at thumbnail size.
+      .author {
+        font-size: clamp(0.5rem, 8cqi, 0.9rem);
+        max-width: 100%;
+      }
+    }
+  }
 }

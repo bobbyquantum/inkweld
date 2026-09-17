@@ -14,7 +14,6 @@ import { type DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
 import { DialogGatewayService } from '../../../../services/core/dialog-gateway.service';
 import { ProjectService } from '../../../../services/project/project.service';
-import { ProjectExportService } from '../../../../services/project/project-export.service';
 import { ProjectStateService } from '../../../../services/project/project-state.service';
 import { RecentFilesService } from '../../../../services/project/recent-files.service';
 import { HomeTabComponent } from './home-tab.component';
@@ -28,7 +27,6 @@ describe('HomeTabComponent', () => {
   let projectStateService: Partial<ProjectStateService>;
   let projectService: Partial<ProjectService>;
   let recentFilesService: Partial<RecentFilesService>;
-  let exportService: Partial<ProjectExportService>;
   let dialogGateway: Partial<DialogGatewayService>;
   let snackBar: Partial<MatSnackBar>;
 
@@ -103,10 +101,6 @@ describe('HomeTabComponent', () => {
       getRecentFilesForProject: vi.fn().mockReturnValue(mockRecentFiles),
     };
 
-    exportService = {
-      exportProject: vi.fn().mockResolvedValue(undefined),
-    };
-
     projectService = {
       getProjectCover: vi.fn().mockImplementation(() => {
         // Return a promise that never resolves by default
@@ -155,7 +149,6 @@ describe('HomeTabComponent', () => {
         { provide: ProjectsService, useValue: projectsApi },
         { provide: ImagesService, useValue: imagesApi },
         { provide: RecentFilesService, useValue: recentFilesService },
-        { provide: ProjectExportService, useValue: exportService },
         { provide: DialogGatewayService, useValue: dialogGateway },
         { provide: MatSnackBar, useValue: snackBar },
       ],
@@ -190,8 +183,8 @@ describe('HomeTabComponent', () => {
     const titleElement = fixture.nativeElement.querySelector('h2');
     const descriptionElement = fixture.nativeElement.querySelector('p');
 
-    expect(titleElement.textContent).toBe(mockProject.title);
-    expect(descriptionElement.textContent).toBe(mockProject.description);
+    expect(titleElement.textContent.trim()).toBe(mockProject.title);
+    expect(descriptionElement.textContent.trim()).toBe(mockProject.description);
   });
 
   it('should handle recent document click', () => {
@@ -268,39 +261,34 @@ describe('HomeTabComponent', () => {
     expect(mockRouter.navigate).not.toHaveBeenCalled();
   });
 
-  it('should export project when export button is clicked', () => {
-    component.onExportClick();
-    expect(exportService.exportProject).toHaveBeenCalled();
-  });
-
-  it('should not export project when no project is loaded', () => {
-    (projectStateService.project as any).set(undefined);
-
-    component.onExportClick();
-
-    expect(exportService.exportProject).not.toHaveBeenCalled();
-  });
-
-  it('should open import dialog when import button is clicked', () => {
-    component.onImportClick();
-    expect(dialogGateway.openImportProjectDialog).toHaveBeenCalledWith(
-      mockProject.username
+  it('should render the cover inside the single editable header card', () => {
+    const header = fixture.nativeElement.querySelector(
+      '[data-testid="project-cover-edit"]'
     );
+
+    expect(header).toBeTruthy();
+    expect(header.querySelector('app-project-cover')).toBeTruthy();
+    expect(header.querySelector('h2').textContent).toBe(mockProject.title);
+    expect(header.getAttribute('role')).toBe('button');
   });
 
-  it('should navigate to publishing tab when publish button is clicked', () => {
-    component.onPublishClick();
+  it('should not offer the start shortcuts, which duplicate the sidebar', () => {
+    expect(fixture.nativeElement.querySelector('.start-actions')).toBeNull();
+  });
 
-    expect(projectStateService.openSystemTab).toHaveBeenCalledWith(
-      'publish-plans'
+  it('should drop the header edit affordance without write access', () => {
+    (projectStateService.canWrite as ReturnType<typeof signal<boolean>>).set(
+      false
     );
-    expect(projectStateService.selectTab).toHaveBeenCalledWith(1);
-    expect(mockRouter.navigate).toHaveBeenCalledWith([
-      '/',
-      mockProject.username,
-      mockProject.slug,
-      'publish-plans',
-    ]);
+    fixture.detectChanges();
+
+    const header = fixture.nativeElement.querySelector(
+      '[data-testid="project-cover-edit"]'
+    );
+
+    expect(header.getAttribute('role')).toBeNull();
+    expect(header.getAttribute('tabindex')).toBeNull();
+    expect(header.querySelector('.project-header-edit')).toBeNull();
   });
 
   it('should display recent files when available', () => {
@@ -323,19 +311,6 @@ describe('HomeTabComponent', () => {
 
     // Second item is an image
     expect(recentFileItems[1].textContent.trim()).toBe('image');
-  });
-
-  it('should open new file dialog when new file button is clicked', () => {
-    component.onNewFileClick();
-    expect(dialogGateway.openNewElementDialog).toHaveBeenCalled();
-  });
-
-  it('should not open the new file dialog when no project is loaded', () => {
-    (projectStateService.project as any).set(undefined);
-
-    component.onNewFileClick();
-
-    expect(dialogGateway.openNewElementDialog).not.toHaveBeenCalled();
   });
 
   it('should open generate cover dialog when generate cover button is clicked', async () => {
@@ -506,40 +481,6 @@ describe('HomeTabComponent', () => {
     expect(imagesApi.uploadProjectCover).not.toHaveBeenCalled();
   });
 
-  it('should open media tab', () => {
-    component.openMediaTab();
-    expect(projectStateService.openSystemTab).toHaveBeenCalledWith('media');
-    expect(projectStateService.selectTab).toHaveBeenCalledWith(1);
-  });
-
-  it('should open templates tab', () => {
-    component.openTemplatesTab();
-
-    expect(projectStateService.openSystemTab).toHaveBeenCalledWith(
-      'templates-list'
-    );
-    expect(projectStateService.selectTab).toHaveBeenCalledWith(1);
-    expect(mockRouter.navigate).toHaveBeenCalledWith([
-      '/',
-      mockProject.username,
-      mockProject.slug,
-      'templates-list',
-    ]);
-  });
-
-  it('should open settings tab', () => {
-    component.openSettingsTab();
-
-    expect(projectStateService.openSystemTab).toHaveBeenCalledWith('settings');
-    expect(projectStateService.selectTab).toHaveBeenCalledWith(1);
-    expect(mockRouter.navigate).toHaveBeenCalledWith([
-      '/',
-      mockProject.username,
-      mockProject.slug,
-      'settings',
-    ]);
-  });
-
   // Skipped: cover image loading moved to ProjectCoverComponent; these tests
   // reference HomeTab properties (coverImageUrl/coverImageLoading/showCoverPlaceholder)
   // that no longer exist. Cover behaviour is covered by project-cover.component.spec.ts.
@@ -671,6 +612,32 @@ describe('HomeTabComponent', () => {
       version: 0,
       metadata: {},
     };
+
+    it('should not render the Pinned section at all when nothing is pinned', () => {
+      expect(
+        fixture.nativeElement.querySelector(
+          '[data-testid="home-pinned-section"]'
+        )
+      ).toBeNull();
+    });
+
+    it('should render the Pinned section once something is pinned', () => {
+      (
+        projectStateService.elements as ReturnType<typeof signal<Element[]>>
+      ).set([mockElement]);
+      (
+        projectStateService.pinnedElementIds as ReturnType<
+          typeof signal<string[]>
+        >
+      ).set(['elem-1']);
+      fixture.detectChanges();
+
+      expect(
+        fixture.nativeElement.querySelector(
+          '[data-testid="home-pinned-section"]'
+        )
+      ).toBeTruthy();
+    });
 
     it('pinnedElements should return empty array when no pins', () => {
       expect((component as any).pinnedElements()).toEqual([]);
