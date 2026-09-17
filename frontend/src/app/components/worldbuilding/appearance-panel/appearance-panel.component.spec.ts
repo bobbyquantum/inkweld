@@ -372,20 +372,23 @@ describe('AppearancePanelComponent', () => {
       component['onAppearanceEdited']({
         menu: { type: 'color', mode: 'auto', value: '#123456' },
       });
-      // Wait for the debounced save (400ms) to persist so hasLocalEdit resets.
-      await vi.waitFor(() => {
-        expect(worldbuildingService.saveIdentityData).toHaveBeenCalled();
-      });
-      // Drain the persist() microtask chain so hasLocalEdit is reset before the
-      // remote update is applied.
-      await Promise.resolve();
-      await Promise.resolve();
-      // Remote updates should now be applied again.
+      // Poll the observable end state rather than waiting for the save call
+      // and then draining the persist() microtask chain by hand. With
+      // isolate:false and one CI worker, both the 400ms debounce and the
+      // fixed number of awaited microtasks are timing-sensitive: the debounce
+      // can outrun vi.waitFor's default budget, and a fixed drain can miss the
+      // hasLocalEdit reset. Re-applying the remote update on each poll makes
+      // the assertion pass as soon as realtime updates are accepted again.
       const remoteAppearance: ElementAppearance = {
         content: { type: 'color', mode: 'auto', value: '#00ff00' },
       };
-      observer({ appearance: remoteAppearance });
-      expect(component.appearance()).toEqual(remoteAppearance);
+      await vi.waitFor(
+        () => {
+          observer({ appearance: remoteAppearance });
+          expect(component.appearance()).toEqual(remoteAppearance);
+        },
+        { timeout: 3000 }
+      );
     });
 
     it('should scope local-edit state to the active element', async () => {

@@ -87,6 +87,17 @@ describe('app.routes', () => {
     ]);
   });
 
+  it('disables create-project route reuse so the form starts blank', () => {
+    // The reuse strategy caches any route with a path; re-attaching the page
+    // skips ngOnInit (which clears the form), so a second visit would show the
+    // previously created project's title/slug/description.
+    const createRoute = flatRoutes.find(
+      route => route.path === 'create-project'
+    );
+
+    expect(createRoute?.data).toEqual({ reuseComponent: false });
+  });
+
   it('delegates project canDeactivate checks through the injected guard', () => {
     const projectRoute = flatRoutes.find(
       route => route.path === ':username/:slug'

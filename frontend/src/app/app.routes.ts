@@ -176,6 +176,14 @@ export const routes: Routes = [
       ),
     title: 'Create New Project',
     canActivate: [authGuard],
+    data: {
+      // The custom route reuse strategy caches any route with a path. Caching
+      // this page kept the previous project's title/slug/description in the
+      // form, because ngOnInit (which clears it) does not re-run when a
+      // detached route is re-attached. Disable reuse so each visit gets a
+      // fresh component and a blank form.
+      reuseComponent: false,
+    },
   },
   {
     path: 'settings',
