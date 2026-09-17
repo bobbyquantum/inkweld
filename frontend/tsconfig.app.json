@@ -8,5 +8,5 @@
     "types": ["node"]
   },
   "include": ["src/**/*.ts", "../packages/inkweld-prosemirror/src/**/*.ts"],
-  "exclude": ["src/**/*.spec.ts"]
+  "exclude": ["src/**/*.spec.ts", "src/**/*.stories.ts"]
 }

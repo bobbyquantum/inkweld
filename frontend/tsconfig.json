@@ -53,6 +53,9 @@
     },
     {
       "path": "./tsconfig.e2e.json"
+    },
+    {
+      "path": "./.storybook/tsconfig.json"
     }
   ]
 }

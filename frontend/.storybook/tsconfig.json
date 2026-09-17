@@ -1,0 +1,13 @@
+/* TypeScript program for the Storybook preview bundle.
+   `main.ts` is deliberately absent: it is Node-side config compiled by
+   Storybook itself, and including it here makes the Angular webpack plugin
+   warn that it is part of the compilation but unused. */
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "../out-tsc/storybook",
+    "rootDir": "../..",
+    "types": ["node"]
+  },
+  "include": ["./preview.ts", "../src/**/*.stories.ts", "../src/**/*.d.ts"]
+}
