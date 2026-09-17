@@ -3,9 +3,7 @@ import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
-import { ImagesService } from '@inkweld/api/images.service';
 import { ProjectsService } from '@inkweld/api/projects.service';
 import { type Element, ElementType, type Project } from '@inkweld/index';
 import { afterAll, vi } from 'vitest';
@@ -13,22 +11,18 @@ import { type DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 
 import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
 import { DialogGatewayService } from '../../../../services/core/dialog-gateway.service';
-import { ProjectService } from '../../../../services/project/project.service';
 import { ProjectStateService } from '../../../../services/project/project-state.service';
 import { RecentFilesService } from '../../../../services/project/recent-files.service';
 import { HomeTabComponent } from './home-tab.component';
 
 /* Convenience aliases for mocks */
 type ProjectsApiMock = DeepMockProxy<ProjectsService>;
-type ImagesApiMock = DeepMockProxy<ImagesService>;
 describe('HomeTabComponent', () => {
   let component: HomeTabComponent;
   let fixture: ComponentFixture<HomeTabComponent>;
   let projectStateService: Partial<ProjectStateService>;
-  let projectService: Partial<ProjectService>;
   let recentFilesService: Partial<RecentFilesService>;
   let dialogGateway: Partial<DialogGatewayService>;
-  let snackBar: Partial<MatSnackBar>;
 
   const mockProject = {
     id: '1',
@@ -64,7 +58,6 @@ describe('HomeTabComponent', () => {
   let mockRouter: Partial<Router>;
 
   let projectsApi: ProjectsApiMock;
-  let imagesApi: ImagesApiMock;
   const originalClipboardDescriptor = Object.getOwnPropertyDescriptor(
     navigator,
     'clipboard'
@@ -101,32 +94,13 @@ describe('HomeTabComponent', () => {
       getRecentFilesForProject: vi.fn().mockReturnValue(mockRecentFiles),
     };
 
-    projectService = {
-      getProjectCover: vi.fn().mockImplementation(() => {
-        // Return a promise that never resolves by default
-        // Tests will override this with specific behavior
-        return new Promise(() => {});
-      }),
-      uploadProjectCover: vi.fn().mockResolvedValue('cover-1700000000000.png'),
-      getProjectByUsernameAndSlug: vi.fn().mockResolvedValue(mockProject),
-    };
-
     // Use mockDeep for API services
     projectsApi = mockDeep<ProjectsService>();
-    imagesApi = mockDeep<ImagesService>();
-    // No need to set default return value - mockDeep handles it
 
     dialogGateway = {
-      openGenerateCoverDialog: vi
-        .fn()
-        .mockResolvedValue({ approved: false, imageData: null }),
       openNewElementDialog: vi.fn().mockResolvedValue(undefined),
       openImportProjectDialog: vi.fn().mockResolvedValue(undefined),
       openConfirmationDialog: vi.fn().mockResolvedValue(false),
-    };
-
-    snackBar = {
-      open: vi.fn(),
     };
   };
 
@@ -145,12 +119,9 @@ describe('HomeTabComponent', () => {
         provideZonelessChangeDetection(),
         { provide: Router, useValue: mockRouter },
         { provide: ProjectStateService, useValue: projectStateService },
-        { provide: ProjectService, useValue: projectService },
         { provide: ProjectsService, useValue: projectsApi },
-        { provide: ImagesService, useValue: imagesApi },
         { provide: RecentFilesService, useValue: recentFilesService },
         { provide: DialogGatewayService, useValue: dialogGateway },
-        { provide: MatSnackBar, useValue: snackBar },
       ],
     }).compileComponents();
 
@@ -311,293 +282,6 @@ describe('HomeTabComponent', () => {
 
     // Second item is an image
     expect(recentFileItems[1].textContent.trim()).toBe('image');
-  });
-
-  it('should open generate cover dialog when generate cover button is clicked', async () => {
-    const mockResult = {
-      approved: true,
-      saved: true,
-      imageData: 'data:image/png;base64,test123',
-    };
-    (dialogGateway.openGenerateCoverDialog as any).mockResolvedValue(
-      mockResult
-    );
-
-    component.onGenerateCoverClick();
-    await Promise.resolve();
-
-    expect(dialogGateway.openGenerateCoverDialog).toHaveBeenCalledWith(
-      mockProject
-    );
-  });
-
-  it('should not open generate cover dialog when no project is loaded', () => {
-    (projectStateService.project as any).set(undefined);
-
-    component.onGenerateCoverClick();
-
-    expect(dialogGateway.openGenerateCoverDialog).not.toHaveBeenCalled();
-  });
-
-  it('should save cover image when dialog approves with image data', async () => {
-    const mockResult = {
-      saved: true,
-      imageData: 'data:image/png;base64,test123',
-    };
-    (dialogGateway.openGenerateCoverDialog as any).mockResolvedValue(
-      mockResult
-    );
-
-    component.onGenerateCoverClick();
-    await Promise.resolve();
-    await Promise.resolve();
-
-    expect(projectService.uploadProjectCover).toHaveBeenCalled();
-  });
-
-  it('should propagate the coverMediaId via project state after saving a generated cover', async () => {
-    const mockResult = {
-      saved: true,
-      imageData: 'data:image/png;base64,dGVzdA==',
-    };
-
-    (dialogGateway.openGenerateCoverDialog as any).mockResolvedValue(
-      mockResult
-    );
-    (projectService.uploadProjectCover as any).mockResolvedValue(
-      'cover-1707900000000.jpg'
-    );
-
-    component.onGenerateCoverClick();
-    await Promise.resolve();
-    await Promise.resolve();
-    await Promise.resolve();
-
-    expect(projectService.uploadProjectCover).toHaveBeenCalledWith(
-      mockProject.username,
-      mockProject.slug,
-      expect.any(Blob)
-    );
-    expect(snackBar.open).toHaveBeenCalledWith(
-      'Cover image saved successfully',
-      'Close',
-      { duration: 3000 }
-    );
-    // The cover is rendered from Yjs project meta (coverMediaId = the
-    // uploaded filename's stem) — no server refresh round-trip. The old
-    // implementation refreshed through the server-only ProjectService, which
-    // broke in local mode and never set coverMediaId at all.
-    expect(projectService.getProjectByUsernameAndSlug).not.toHaveBeenCalled();
-    expect(projectStateService.updateProject).toHaveBeenCalledWith(
-      expect.objectContaining({ slug: mockProject.slug }),
-      'cover-1707900000000'
-    );
-  });
-
-  it('shows an error snackbar when the dialog claims success without image data', async () => {
-    (dialogGateway.openGenerateCoverDialog as any).mockResolvedValue({
-      saved: true,
-      imageData: undefined,
-    });
-
-    component.onGenerateCoverClick();
-    await Promise.resolve();
-    await Promise.resolve();
-
-    expect(projectService.uploadProjectCover).not.toHaveBeenCalled();
-    expect(snackBar.open).toHaveBeenCalledWith(
-      'Failed to save cover image',
-      'Close',
-      { duration: 5000 }
-    );
-  });
-
-  it('shows an error snackbar when the image data is not a valid data URL', async () => {
-    // A raw provider URL leaking through as imageData used to throw inside
-    // the promise chain — an unhandled rejection the user saw as nothing
-    // happening at all.
-    (dialogGateway.openGenerateCoverDialog as any).mockResolvedValue({
-      saved: true,
-      imageData: 'https://cdn.example.com/not-base64.png',
-    });
-    const consoleErrorSpy = vi
-      .spyOn(console, 'error')
-      .mockImplementation(() => {});
-
-    component.onGenerateCoverClick();
-    await Promise.resolve();
-    await Promise.resolve();
-
-    expect(projectService.uploadProjectCover).not.toHaveBeenCalled();
-    expect(snackBar.open).toHaveBeenCalledWith(
-      'Failed to save cover image',
-      'Close',
-      { duration: 5000 }
-    );
-
-    consoleErrorSpy.mockRestore();
-  });
-
-  it('should report a generated cover image upload failure', async () => {
-    const consoleErrorSpy = vi
-      .spyOn(console, 'error')
-      .mockImplementation(() => {});
-    const uploadError = new Error('upload failed');
-    const mockResult = {
-      saved: true,
-      imageData: 'data:image/png;base64,dGVzdA==',
-    };
-
-    (dialogGateway.openGenerateCoverDialog as any).mockResolvedValue(
-      mockResult
-    );
-    (projectService.uploadProjectCover as any).mockRejectedValue(uploadError);
-
-    component.onGenerateCoverClick();
-    await Promise.resolve();
-    await Promise.resolve();
-    await Promise.resolve();
-
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
-      'Error uploading cover image:',
-      uploadError
-    );
-    expect(snackBar.open).toHaveBeenCalledWith(
-      'Failed to save cover image',
-      'Close',
-      { duration: 5000 }
-    );
-  });
-
-  it('should not save cover image when dialog is cancelled', async () => {
-    const mockResult = { saved: false };
-    (dialogGateway.openGenerateCoverDialog as any).mockResolvedValue(
-      mockResult
-    );
-
-    component.onGenerateCoverClick();
-    await Promise.resolve();
-
-    expect(imagesApi.uploadProjectCover).not.toHaveBeenCalled();
-  });
-
-  // Skipped: cover image loading moved to ProjectCoverComponent; these tests
-  // reference HomeTab properties (coverImageUrl/coverImageLoading/showCoverPlaceholder)
-  // that no longer exist. Cover behaviour is covered by project-cover.component.spec.ts.
-  describe.skip('cover image', () => {
-    it('should load cover image when project is set', async () => {
-      const mockBlob = new Blob(['test'], { type: 'image/png' });
-      (projectService.getProjectCover as any).mockResolvedValue(mockBlob);
-
-      // Wait for initial effect to complete
-      await fixture.whenStable();
-
-      // Clear previous calls
-      (projectService.getProjectCover as any).mockClear();
-
-      // Trigger the effect by setting a new project
-      (projectStateService.project as any).set({
-        ...mockProject,
-        username: 'newuser',
-        slug: 'newproject',
-      });
-
-      // Wait for effect to run and async operations to complete
-      fixture.detectChanges();
-      await fixture.whenStable();
-
-      expect(projectService.getProjectCover).toHaveBeenCalledWith(
-        'newuser',
-        'newproject'
-      );
-      expect((component as any).coverImageUrl()).toBe('mock-blob-url');
-      expect((component as any).coverImageLoading()).toBe(false);
-    });
-
-    it('should handle cover image not found error', async () => {
-      (projectService.getProjectCover as any).mockRejectedValue(
-        new Error('Cover image not found')
-      );
-
-      // Wait for initial effect to complete
-      await fixture.whenStable();
-
-      // Clear previous calls
-      (projectService.getProjectCover as any).mockClear();
-
-      // Trigger the effect by setting a new project
-      (projectStateService.project as any).set({
-        ...mockProject,
-        username: 'nocover',
-        slug: 'project',
-      });
-
-      // Wait for effect to run and async operations to complete
-      fixture.detectChanges();
-      await fixture.whenStable();
-
-      expect((component as any).coverImageUrl()).toBeNull();
-      expect((component as any).coverImageLoading()).toBe(false);
-      expect((component as any).showCoverPlaceholder()).toBe(true);
-    });
-
-    it('should handle other cover image errors', async () => {
-      const consoleErrorSpy = vi
-        .spyOn(console, 'error')
-        .mockImplementation(() => {});
-      (projectService.getProjectCover as any).mockRejectedValue(
-        new Error('Network error')
-      );
-
-      // Wait for initial effect to complete
-      await fixture.whenStable();
-
-      // Clear previous calls
-      (projectService.getProjectCover as any).mockClear();
-
-      // Trigger the effect by setting a new project
-      (projectStateService.project as any).set({
-        ...mockProject,
-        username: 'error',
-        slug: 'project',
-      });
-
-      // Wait for effect to run and async operations to complete
-      fixture.detectChanges();
-      await fixture.whenStable();
-
-      expect((component as any).coverImageUrl()).toBeNull();
-      expect((component as any).coverImageLoading()).toBe(false);
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        '[HomeTab] Failed to load cover image:',
-        expect.objectContaining({
-          message: 'Network error',
-        })
-      );
-
-      consoleErrorSpy.mockRestore();
-    });
-
-    it('should show placeholder when no cover is loading and no URL', () => {
-      (component as any).coverImageUrl.set(null);
-      (component as any).coverImageLoading.set(false);
-
-      expect((component as any).showCoverPlaceholder()).toBe(true);
-    });
-
-    it('should not show placeholder when cover is loading', () => {
-      (component as any).coverImageUrl.set(null);
-      (component as any).coverImageLoading.set(true);
-
-      expect((component as any).showCoverPlaceholder()).toBe(false);
-    });
-
-    it('should not show placeholder when cover URL exists', () => {
-      (component as any).coverImageUrl.set('mock-blob-url');
-      (component as any).coverImageLoading.set(false);
-
-      expect((component as any).showCoverPlaceholder()).toBe(false);
-    });
   });
 
   describe('Pinning', () => {
