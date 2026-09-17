@@ -132,15 +132,20 @@ export class CreateProjectComponent implements OnInit {
     this.selectedTemplateId.set('worldbuilding-empty');
     this.loadingTemplates.set(true);
     this.isSaving.set(false);
+    this.resetForm();
+
+    // Load available templates
+    void this.loadTemplates();
+  }
+
+  /** Clear the project details so a previous creation doesn't linger. */
+  private resetForm(): void {
     this.model.set({
       title: '',
       slug: '',
       description: '',
     });
     this.projectUrl.set('');
-
-    // Load available templates
-    void this.loadTemplates();
   }
 
   generateSlug = (title: string): string => {
@@ -219,6 +224,11 @@ export class CreateProjectComponent implements OnInit {
         this.transloco.translate('close'),
         { duration: 3000 }
       );
+
+      // Clear the details once the project exists, so a user who returns to
+      // this page (or the component is reused) doesn't see the previous
+      // project's title/slug/description still filled in.
+      this.resetForm();
 
       // Auto-activate on the creating device
       if (response?.username && response?.slug) {

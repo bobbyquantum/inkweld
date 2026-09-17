@@ -238,6 +238,24 @@ describe('CreateProjectComponent', () => {
     ]);
   });
 
+  it('should clear the form after a successful creation', async () => {
+    component.model.set({
+      title: 'Test Project',
+      slug: 'test-project',
+      description: 'Test Description',
+    });
+    projectService.createProject.mockResolvedValue(mockProject);
+
+    await component.onSubmit();
+
+    expect(component.model()).toEqual({
+      title: '',
+      slug: '',
+      description: '',
+    });
+    expect(component.projectUrl()).toBe('');
+  });
+
   it('should handle project creation failure', async () => {
     component.model.set({
       title: 'Test Project',
