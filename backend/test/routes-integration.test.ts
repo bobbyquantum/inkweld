@@ -204,14 +204,11 @@ describe('Admin Routes', () => {
     });
 
     it('should reject a negative sync-quota value', async () => {
-      const { response } = await adminClient.request(
-        `/api/v1/admin/users/${pendingUserId}/quota`,
-        {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ syncQuotaBytes: -1 }),
-        }
-      );
+      const { response } = await adminClient.request(`/api/v1/admin/users/${pendingUserId}/quota`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ syncQuotaBytes: -1 }),
+      });
       expect(response.status).toBe(400);
     });
 
