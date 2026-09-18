@@ -59,7 +59,7 @@
         "@angular/cli": "^22.0.1",
         "@angular/compiler-cli": "^22.0.1",
         "@eslint/js": "^10.0.0",
-        "@material-symbols/svg-400": "0.47.3",
+        "@material-symbols/svg-400": "0.47.4",
         "@playwright/test": "^1.57.0",
         "@storybook/addon-a11y": "^10.6.0",
         "@storybook/addon-docs": "^10.6.0",
@@ -698,7 +698,7 @@
 
     "@malept/flatpak-bundler": ["@malept/flatpak-bundler@0.4.0", "", { "dependencies": { "debug": "^4.1.1", "fs-extra": "^9.0.0", "lodash": "^4.17.15", "tmp-promise": "^3.0.2" } }, "sha512-9QOtNffcOF/c1seMCDnjckb3R9WHcG34tky+FHpNKKCW0wc/scYLwMtO+ptyGUfMW0/b/n4qRiALlaFHc9Oj7Q=="],
 
-    "@material-symbols/svg-400": ["@material-symbols/svg-400@0.47.3", "", {}, "sha512-EBdlHojrUG9fpjOVRSnw9re3HKJq/aesQrBoa9nVhmKvB6VW9b+bm2yAshrLyXcyMRED2+VCRWmb5WA9vAfMfw=="],
+    "@material-symbols/svg-400": ["@material-symbols/svg-400@0.47.4", "", {}, "sha512-o6vhGUH7Lk6epJkDJevmjRF2vQz2ognSlJujHW5O10S/2CTwVD+CRxCePfgj3tF0GVwhJMkd8qCMYUCfAEhXkg=="],
 
     "@mdx-js/react": ["@mdx-js/react@3.1.1", "", { "dependencies": { "@types/mdx": "^2.0.0" }, "peerDependencies": { "@types/react": ">=16", "react": ">=16" } }, "sha512-f++rKLQgUVYDAtECQ6fn/is15GkEH9+nZPM3MS0RcxVqoTfawHvDlSCH7JbMhAM6uJ32v3eXLvLmLvjGu7PTQw=="],
 
