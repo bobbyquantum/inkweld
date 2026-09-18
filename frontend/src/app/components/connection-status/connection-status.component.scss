@@ -162,3 +162,20 @@
     color: var(--sys-error);
   }
 }
+
+/* Over-capacity warning on the strap. Distinct from the offline states so a
+   full account is not mistaken for a connection problem. */
+.quota-warning {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-left: 0.25rem;
+  color: var(--mat-sys-error);
+  font-weight: 500;
+
+  .status-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+  }
+}

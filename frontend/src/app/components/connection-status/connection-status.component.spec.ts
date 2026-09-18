@@ -456,4 +456,39 @@ describe('ConnectionStatusComponent', () => {
       expect(statusText?.textContent?.trim()).toBe('Connection Failed');
     });
   });
+
+  describe('over-capacity warning', () => {
+    it('shows the warning on the strap when over quota', async () => {
+      fixture.componentRef.setInput('strap', true);
+      fixture.componentRef.setInput('overQuota', true);
+      await fixture.whenStable();
+
+      const warning = fixture.nativeElement.querySelector(
+        '[data-testid="connection-quota-warning"]'
+      );
+      expect(warning).toBeTruthy();
+    });
+
+    it('does not show the warning when under quota', async () => {
+      fixture.componentRef.setInput('strap', true);
+      fixture.componentRef.setInput('overQuota', false);
+      await fixture.whenStable();
+
+      const warning = fixture.nativeElement.querySelector(
+        '[data-testid="connection-quota-warning"]'
+      );
+      expect(warning).toBeFalsy();
+    });
+
+    it('does not show the warning in collapsed (non-strap) mode', async () => {
+      fixture.componentRef.setInput('collapsed', true);
+      fixture.componentRef.setInput('overQuota', true);
+      await fixture.whenStable();
+
+      const warning = fixture.nativeElement.querySelector(
+        '[data-testid="connection-quota-warning"]'
+      );
+      expect(warning).toBeFalsy();
+    });
+  });
 });

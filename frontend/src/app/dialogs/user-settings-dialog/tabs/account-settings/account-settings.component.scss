@@ -106,3 +106,26 @@
 .view-profile-link {
   align-self: flex-start;
 }
+
+.storage-section {
+  margin: 12px 0;
+
+  &__title {
+    margin: 0 0 4px;
+    font-size: 0.95rem;
+    font-weight: 500;
+  }
+
+  &__description,
+  &__hint {
+    margin: 0 0 8px;
+    font-size: 0.8rem;
+    color: var(--sys-on-surface-variant);
+  }
+
+  &__warning {
+    margin: 8px 0 4px;
+    font-size: 0.82rem;
+    color: var(--mat-sys-error);
+  }
+}

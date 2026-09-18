@@ -1,0 +1,38 @@
+<!--
+  Storage meter: only renders once usage is known. In local mode the service is
+  never called and `usage()` stays undefined, so this is naturally hidden.
+-->
+@if (usage(); as u) {
+  <div
+    class="storage-meter"
+    [class.over]="state() === 'over'"
+    [class.warning]="state() === 'warning'"
+    [matTooltip]="
+      'settings.storage.tooltip'
+        | transloco: { used: usedLabel(), quota: quotaLabel() }
+    "
+    data-testid="storage-meter">
+    <mat-icon class="storage-meter__icon" [inline]="true">
+      {{
+        state() === 'over'
+          ? 'error'
+          : state() === 'warning'
+            ? 'warning'
+            : 'cloud'
+      }}
+    </mat-icon>
+    <div class="storage-meter__body">
+      <div class="storage-meter__labels">
+        <span class="storage-meter__used" data-testid="storage-meter-used">
+          {{ usedLabel() }}
+        </span>
+        <span class="storage-meter__quota">/ {{ quotaLabel() }}</span>
+      </div>
+      <mat-progress-bar
+        mode="determinate"
+        [value]="percent()"
+        [attr.aria-label]="'settings.storage.aria' | transloco"
+        data-testid="storage-meter-bar" />
+    </div>
+  </div>
+}

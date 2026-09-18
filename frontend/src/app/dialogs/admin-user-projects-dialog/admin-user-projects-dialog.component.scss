@@ -86,3 +86,48 @@
     }
   }
 }
+
+.quota-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 0 16px;
+  border-bottom: 1px solid var(--sys-outline-variant, rgba(0, 0, 0, 0.12));
+  margin-bottom: 12px;
+}
+
+.quota-summary {
+  display: flex;
+  gap: 24px;
+}
+
+.quota-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  .label {
+    font-size: 0.75rem;
+    opacity: 0.7;
+  }
+
+  .value {
+    font-size: 1rem;
+    font-weight: 600;
+  }
+}
+
+.quota-editor {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.quota-field {
+  width: 160px;
+}
+
+mat-spinner {
+  display: inline-block;
+}
