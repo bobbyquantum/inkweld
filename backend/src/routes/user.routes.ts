@@ -10,12 +10,18 @@ import { imageService } from '../services/image.service';
 import { UserSchema, PaginatedUsersResponseSchema } from '../schemas/user.schemas';
 import { errorResponse, errorResponses, ProfileVisibilitySchema } from '../schemas/common.schemas';
 import { authService } from '../services/auth.service';
+import { quotaService } from '../services/quota.service';
+import { UnauthorizedError } from '../errors';
 
 const userRoutes = new OpenAPIHono<AppContext>();
 
 // Apply auth middleware to protected routes
 // Note: /me uses custom auth handling to return anonymous user instead of 401
 userRoutes.use('/me', optionalAuth);
+// Storage usage needs a real identity (an anonymous caller has no allowance);
+// `/me/storage` does not match the exact `/me` pattern above, so it gets its
+// own guard.
+userRoutes.use('/me/storage', requireAuth);
 userRoutes.use('/avatar', requireAuth);
 // Reject oversized avatar uploads with 413 before parseBody() buffers them.
 userRoutes.use(
@@ -132,6 +138,84 @@ userRoutes.openapi(getCurrentUserRoute, async (c) => {
       profileVisibility: user.profileVisibility,
       activityVisibility: user.activityVisibility,
       projectsVisibility: user.projectsVisibility,
+    },
+    200
+  );
+});
+
+// ---------------------------------------------------------------------------
+// GET /me/storage — current user's sync-capacity usage
+// ---------------------------------------------------------------------------
+const StorageUsageSchema = z
+  .object({
+    usedBytes: z.number().openapi({ description: 'Authoritative storage usage in bytes' }),
+    quotaBytes: z.number().openapi({ description: 'Effective allowance in bytes' }),
+    fraction: z
+      .number()
+      .nullable()
+      .openapi({ description: 'usedBytes / quotaBytes (null when the allowance is zero)' }),
+    overQuota: z.boolean().openapi({ description: 'True once usage is at or above the allowance' }),
+    overSoftLimit: z
+      .boolean()
+      .openapi({ description: 'True once usage is at or above the warning threshold (80%)' }),
+    projects: z.array(
+      z.object({
+        id: z.string(),
+        slug: z.string(),
+        title: z.string(),
+        dataBytes: z.number(),
+        mediaBytes: z.number(),
+        totalBytes: z.number(),
+      })
+    ),
+  })
+  .openapi('StorageUsage');
+
+const getMyStorageRoute = createRoute({
+  method: 'get',
+  path: '/me/storage',
+  tags: ['Users'],
+  summary: 'Get sync-capacity usage for the current user',
+  description:
+    'Authoritative storage usage across the caller’s projects plus their effective ' +
+    'allowance. Used by the account settings and dashboard meters.',
+  operationId: 'getMyStorageUsage',
+  responses: {
+    200: {
+      content: { 'application/json': { schema: StorageUsageSchema } },
+      description: 'Storage usage and allowance',
+    },
+    ...errorResponses.notAuthenticated,
+  },
+});
+
+userRoutes.openapi(getMyStorageRoute, async (c) => {
+  const db = c.get('db');
+  const user = c.get('user');
+  if (!user?.username) {
+    throw new UnauthorizedError();
+  }
+
+  const authHeader = c.req.header('Authorization') ?? '';
+  const token = authHeader.startsWith('Bearer ') ? authHeader.substring(7) : '';
+
+  const { usage, projects } = await quotaService.getUsage(
+    db,
+    user,
+    c.get('storage'),
+    c.env as never,
+    token
+  );
+
+  return c.json(
+    {
+      usedBytes: usage.usedBytes,
+      quotaBytes: usage.quotaBytes,
+      // Infinity cannot be represented in JSON; the client renders "0 of 0".
+      fraction: Number.isFinite(usage.fraction) ? usage.fraction : null,
+      overQuota: usage.overQuota,
+      overSoftLimit: usage.overSoftLimit,
+      projects,
     },
     200
   );

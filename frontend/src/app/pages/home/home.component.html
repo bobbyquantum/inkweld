@@ -207,6 +207,13 @@
                 </mat-menu>
               }
 
+              <!-- Sync-capacity meter: hidden until usage loads, and in local mode. -->
+              @if (!isLocalMode()) {
+                <app-storage-meter
+                  class="header-storage-meter"
+                  [userId]="userService.currentUser().id"></app-storage-meter>
+              }
+
               <!-- Show user menu if authenticated -->
               <app-user-menu
                 [user]="userService.currentUser()"

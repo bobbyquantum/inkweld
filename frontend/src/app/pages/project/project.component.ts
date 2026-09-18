@@ -62,6 +62,7 @@ import { QuickOpenService } from '../../services/core/quick-open.service';
 import { StorageContextService } from '../../services/core/storage-context.service';
 import { RecentFilesService } from '../../services/project/recent-files.service';
 import { MediaAutoSyncService } from '../../services/sync/media-auto-sync.service';
+import { StorageUsageService } from '../../services/user/storage-usage.service';
 import { TabInterfaceComponent } from './tabs/tab-interface.component';
 
 @Component({
@@ -94,6 +95,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   protected readonly projectState = inject(ProjectStateService);
   protected readonly documentService = inject(DocumentService);
   protected readonly recentFilesService = inject(RecentFilesService);
+  protected readonly storageUsage = inject(StorageUsageService);
   protected readonly breakpointObserver = inject(BreakpointObserver);
   protected readonly snackBar = inject(MatSnackBar);
   protected readonly route = inject(ActivatedRoute);
@@ -172,6 +174,15 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     this.storageContext.isCloudMode()
       ? this.cloudSync.lastError()
       : this.lastConnectionError()
+  );
+
+  /**
+   * Last-known over-capacity state, surfaced on the sync strap. Reads the
+   * cached value only — it must not trigger a fetch per project render; the
+   * account settings and header meters are responsible for refreshing it.
+   */
+  protected readonly overQuota = computed(
+    () => this.storageUsage.usage()?.overQuota === true
   );
 
   /** Elements document ID for storage stats hover */

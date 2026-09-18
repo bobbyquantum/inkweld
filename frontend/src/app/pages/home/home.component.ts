@@ -26,6 +26,7 @@ import { AnnouncementFeedComponent } from '@components/announcement-feed/announc
 import { ProjectCardComponent } from '@components/project-card/project-card.component';
 import { ServerInfoBubbleComponent } from '@components/server-info-bubble/server-info-bubble.component';
 import { SideNavComponent } from '@components/side-nav/side-nav.component';
+import { StorageMeterComponent } from '@components/storage-meter/storage-meter.component';
 import { ThemeToggleComponent } from '@components/theme-toggle/theme-toggle.component';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
 import {
@@ -104,6 +105,7 @@ export const PINNED_PROJECTS_STORAGE_KEY = 'inkweld-home-pinned-projects';
     ServerInfoBubbleComponent,
     UserMenuComponent,
     SideNavComponent,
+    StorageMeterComponent,
     ThemeToggleComponent,
     PullToRefreshDirective,
   ],

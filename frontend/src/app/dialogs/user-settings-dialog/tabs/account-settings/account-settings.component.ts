@@ -20,11 +20,13 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { RouterLink } from '@angular/router';
 import { PasskeysSettingsComponent } from '@components/passkeys-settings/passkeys-settings.component';
+import { StorageMeterComponent } from '@components/storage-meter/storage-meter.component';
 import { ProfileVisibility } from '@inkweld/model/profile-visibility';
 import type { UpdateProfileRequest } from '@inkweld/model/update-profile-request';
 import { type UserAuthProvider } from '@inkweld/model/user';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { SystemConfigService } from '@services/core/system-config.service';
+import { StorageUsageService } from '@services/user/storage-usage.service';
 import { UserService } from '@services/user/user.service';
 
 @Component({
@@ -44,6 +46,7 @@ import { UserService } from '@services/user/user.service';
     RouterLink,
     TranslocoModule,
     PasskeysSettingsComponent,
+    StorageMeterComponent,
   ],
   templateUrl: './account-settings.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -52,6 +55,8 @@ import { UserService } from '@services/user/user.service';
 export class AccountSettingsComponent implements OnInit {
   readonly userService = inject(UserService);
   readonly systemConfig = inject(SystemConfigService);
+  /** Exposed so the template can show the over-quota guidance. */
+  readonly storageUsage = inject(StorageUsageService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly transloco = inject(TranslocoService);
 

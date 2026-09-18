@@ -3,6 +3,7 @@ import { requireAdmin } from '../middleware/auth';
 import { userService } from '../services/user.service';
 import { projectService } from '../services/project.service';
 import { getProjectStorageSize } from '../services/storage-size.service';
+import { quotaService } from '../services/quota.service';
 import { getStorageService } from '../services/storage.service';
 import { logger } from '../services/logger.service';
 import { emailService } from '../services/email.service';
@@ -11,7 +12,7 @@ import { getBaseUrl } from '../services/url.service';
 import { mapWithConcurrency } from '../utils/concurrency';
 import type { AppContext } from '../types/context';
 import type { User } from '../db/schema';
-import { errorResponses, MessageResponseSchema } from '../schemas/common.schemas';
+import { errorResponse, errorResponses, MessageResponseSchema } from '../schemas/common.schemas';
 
 // Helper to safely format user response
 function formatUserResponse(user: User) {
@@ -353,6 +354,81 @@ adminRoutes.openapi(setUserAdminRoute, async (c) => {
   return c.json(formatUserResponse(updatedUser), 200);
 });
 
+// Set a user's sync-capacity override
+const setUserQuotaRoute = createRoute({
+  method: 'patch',
+  path: '/users/{userId}/quota',
+  tags: ['Admin'],
+  summary: 'Set a user sync-capacity override',
+  description:
+    'Grant or adjust an individual storage allowance in bytes (admin only). ' +
+    'Send `null` to clear the override and fall back to the instance default.',
+  operationId: 'adminSetUserQuota',
+  request: {
+    params: UserIdParamsSchema,
+    body: {
+      content: {
+        'application/json': {
+          schema: z.object({
+            syncQuotaBytes: z
+              .number()
+              .int()
+              .min(0)
+              .max(1024 * 1024 * 1024 * 1024)
+              .nullable()
+              .openapi({
+                description: 'Override in bytes, or null to use the instance default',
+                example: 104857600,
+              }),
+          }),
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: 'Quota override updated',
+      content: {
+        'application/json': {
+          schema: AdminUserSchema.extend({
+            syncQuotaBytes: z.number().nullable(),
+            storageUsedBytes: z.number(),
+          }),
+        },
+      },
+    },
+    400: errorResponse('Invalid quota value'),
+    ...errorResponses.adminEntity('User'),
+  },
+});
+
+adminRoutes.openapi(setUserQuotaRoute, async (c) => {
+  const db = c.get('db');
+  const { userId } = c.req.valid('param');
+  const { syncQuotaBytes } = c.req.valid('json');
+
+  const user = await userService.findById(db, userId);
+  if (!user) {
+    return c.json({ error: 'User not found' }, 404);
+  }
+
+  await userService.setUserSyncQuota(db, userId, syncQuotaBytes);
+
+  const updated = await userService.findById(db, userId);
+  if (!updated) {
+    return c.json({ error: 'User not found' }, 404);
+  }
+
+  return c.json(
+    {
+      ...formatUserResponse(updated),
+      syncQuotaBytes: updated.syncQuotaBytes ?? null,
+      storageUsedBytes: updated.storageUsedBytes,
+    },
+    200
+  );
+});
+
 // Delete user
 adminRoutes.openapi(deleteUserRoute, async (c) => {
   const db = c.get('db');
@@ -403,6 +479,14 @@ const AdminUserProjectsSchema = z
     totalDataBytes: z.number().openapi({ description: 'Sum of dataBytes across projects' }),
     totalMediaBytes: z.number().openapi({ description: 'Sum of mediaBytes across projects' }),
     totalBytes: z.number().openapi({ description: 'Sum of totalBytes across projects' }),
+    syncQuotaBytes: z
+      .number()
+      .nullable()
+      .openapi({ description: 'Per-user override in bytes (null = instance default)' }),
+    effectiveQuotaBytes: z.number().openapi({ description: 'Allowance actually in force' }),
+    instanceDefaultQuotaBytes: z
+      .number()
+      .openapi({ description: 'Instance-wide default when no override is set' }),
   })
   .openapi('AdminUserProjects');
 
@@ -468,6 +552,13 @@ adminRoutes.openapi(listUserProjectsRoute, async (c) => {
   const totalDataBytes = sized.reduce((sum, p) => sum + p.dataBytes, 0);
   const totalMediaBytes = sized.reduce((sum, p) => sum + p.mediaBytes, 0);
 
+  // Quota context so the admin dialog can show usage against the allowance and
+  // offer to change it, rather than presenting raw totals with no scale.
+  const [instanceDefaultQuotaBytes, effectiveQuotaBytes] = await Promise.all([
+    quotaService.getInstanceDefaultQuota(db),
+    quotaService.getEffectiveQuota(db, user),
+  ]);
+
   return c.json(
     {
       userId,
@@ -476,6 +567,9 @@ adminRoutes.openapi(listUserProjectsRoute, async (c) => {
       totalDataBytes,
       totalMediaBytes,
       totalBytes: totalDataBytes + totalMediaBytes,
+      syncQuotaBytes: user.syncQuotaBytes ?? null,
+      effectiveQuotaBytes,
+      instanceDefaultQuotaBytes,
     },
     200
   );

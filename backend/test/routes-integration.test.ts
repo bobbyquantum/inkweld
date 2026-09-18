@@ -174,6 +174,68 @@ describe('Admin Routes', () => {
       expect(data.isAdmin).toBe(true);
     });
 
+    it('should set a per-user sync-quota override', async () => {
+      const { response, json } = await adminClient.request(
+        `/api/v1/admin/users/${pendingUserId}/quota`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ syncQuotaBytes: 5242880 }),
+        }
+      );
+      expect(response.status).toBe(200);
+      const data = await json();
+      expect(data.syncQuotaBytes).toBe(5242880);
+      expect(typeof data.storageUsedBytes).toBe('number');
+    });
+
+    it('should clear a sync-quota override with null', async () => {
+      const { response, json } = await adminClient.request(
+        `/api/v1/admin/users/${pendingUserId}/quota`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ syncQuotaBytes: null }),
+        }
+      );
+      expect(response.status).toBe(200);
+      const data = await json();
+      expect(data.syncQuotaBytes).toBeNull();
+    });
+
+    it('should reject a negative sync-quota value', async () => {
+      const { response } = await adminClient.request(
+        `/api/v1/admin/users/${pendingUserId}/quota`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ syncQuotaBytes: -1 }),
+        }
+      );
+      expect(response.status).toBe(400);
+    });
+
+    it('should refuse quota changes from a non-admin', async () => {
+      const { response } = await client.request(`/api/v1/admin/users/${pendingUserId}/quota`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ syncQuotaBytes: 1 }),
+      });
+      expect(response.status).toBe(403);
+    });
+
+    it('should return 404 when setting quota for a missing user', async () => {
+      const { response } = await adminClient.request(
+        `/api/v1/admin/users/${crypto.randomUUID()}/quota`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ syncQuotaBytes: 1024 }),
+        }
+      );
+      expect(response.status).toBe(404);
+    });
+
     it('should delete a user', async () => {
       const { response, json } = await adminClient.request(`/api/v1/admin/users/${pendingUserId}`, {
         method: 'DELETE',

@@ -153,6 +153,18 @@ export const UserSchema = z
     profileVisibility: ProfileVisibilitySchema.optional(),
     activityVisibility: ProfileVisibilitySchema.optional(),
     projectsVisibility: ProfileVisibilitySchema.optional(),
+    /**
+     * Per-user sync-capacity override in bytes; `null` means the instance
+     * default applies. Only surfaced to admins (and the user themselves).
+     */
+    syncQuotaBytes: z.number().nullable().optional().openapi({
+      description: 'Per-user sync-capacity override in bytes (null = instance default)',
+    }),
+    /** Last-known storage usage in bytes (fast-path counter). */
+    storageUsedBytes: z
+      .number()
+      .optional()
+      .openapi({ description: 'Last-known storage usage in bytes' }),
   })
   .openapi('User', {
     example: {
