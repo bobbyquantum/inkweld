@@ -117,6 +117,12 @@ export class TimelineEventDialogComponent {
 
   readonly form = form(this.model, schemaPath => {
     required(schemaPath.title, { message: 'Title is required' });
+    validate(schemaPath.title, ({ value }) => {
+      const trimmed = String(value() ?? '').trim();
+      return trimmed.length === 0 && String(value() ?? '').length > 0
+        ? { kind: 'whitespace', message: 'Title cannot be only whitespace' }
+        : null;
+    });
     required(schemaPath.trackId, { message: 'Track is required' });
 
     applyEach(schemaPath.startUnits, item => {
@@ -272,8 +278,9 @@ export class TimelineEventDialogComponent {
     const raw = this.model();
     const trimmedTitle = raw.title.trim();
 
+    // Whitespace-only titles are caught by the schema validator; this guard
+    // is defence-in-depth so an empty title can never be saved.
     if (trimmedTitle === '') {
-      // Signal forms doesn't support setErrors; mark touched to show required
       this.form.title().markAsTouched();
       return;
     }

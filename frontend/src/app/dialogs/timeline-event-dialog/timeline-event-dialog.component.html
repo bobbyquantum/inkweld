@@ -12,6 +12,11 @@
         [formField]="form.title"
         data-testid="timeline-event-title"
         cdkFocusInitial />
+      @if (form.title().touched() && form.title().invalid()) {
+        @for (error of form.title().errors(); track error) {
+          <mat-error>{{ error.message }}</mat-error>
+        }
+      }
     </mat-form-field>
 
     <mat-form-field appearance="outline">

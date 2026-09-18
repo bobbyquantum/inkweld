@@ -12,6 +12,11 @@
         [formField]="form.name"
         data-testid="timeline-era-name"
         cdkFocusInitial />
+      @if (form.name().touched() && form.name().invalid()) {
+        @for (error of form.name().errors(); track error) {
+          <mat-error>{{ error.message }}</mat-error>
+        }
+      }
     </mat-form-field>
 
     <div class="section-label">Start</div>

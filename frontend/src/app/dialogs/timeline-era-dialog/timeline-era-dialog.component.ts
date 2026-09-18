@@ -123,6 +123,12 @@ export class TimelineEraDialogComponent {
 
   readonly form = form(this.model, schemaPath => {
     required(schemaPath.name, { message: 'Name is required' });
+    validate(schemaPath.name, ({ value }) => {
+      const v = String(value() ?? '');
+      return v.length > 0 && v.trim().length === 0
+        ? { kind: 'whitespace', message: 'Name cannot be only whitespace' }
+        : null;
+    });
     required(schemaPath.color, { message: 'Color is required' });
     applyEach(schemaPath.startUnits, item => {
       validate(item, ({ value }) => {
@@ -244,8 +250,16 @@ export class TimelineEraDialogComponent {
     const trimmedName = raw.name.trim();
     const trimmedColor = raw.color.trim();
 
-    if (trimmedName === '') return;
-    if (trimmedColor === '') return;
+    if (trimmedName === '') {
+      // Whitespace-only names are caught by the schema validator; this guard
+      // is defence-in-depth so an empty name can never be saved.
+      this.form.name().markAsTouched();
+      return;
+    }
+    if (trimmedColor === '') {
+      this.form.color().markAsTouched();
+      return;
+    }
 
     const start = this.pointFromUnits(raw.startUnits);
     const end = this.pointFromUnits(raw.endUnits);

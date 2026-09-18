@@ -398,7 +398,6 @@ export class ImageProfileDialogComponent {
     // Reset models and category when provider changes
     this.availableModels.set([]);
     this.selectedFalaiCategory.set('text-to-image');
-    this.model.update(m => ({ ...m, modelId: '' }));
 
     // For OpenAI, set available models immediately (hardcoded)
     // All OpenAI image models support image input
@@ -406,6 +405,7 @@ export class ImageProfileDialogComponent {
       this.availableModels.set(this.openaiModels);
       this.model.update(m => ({
         ...m,
+        modelId: '',
         usesAspectRatioOnly: false,
         supportsImageInput: true,
       }));
@@ -413,6 +413,7 @@ export class ImageProfileDialogComponent {
       // OpenRouter uses aspect ratio only - auto-configure
       this.model.update(m => ({
         ...m,
+        modelId: '',
         usesAspectRatioOnly: true,
         supportsCustomResolutions: false,
         supportedSizes: [...this.openrouterAspectRatios],
@@ -424,6 +425,7 @@ export class ImageProfileDialogComponent {
       // Workers AI uses pixel dimensions, not aspect ratios
       this.model.update(m => ({
         ...m,
+        modelId: '',
         usesAspectRatioOnly: false,
         supportsCustomResolutions: true,
         supportedSizes: [
@@ -441,25 +443,27 @@ export class ImageProfileDialogComponent {
 
       void this.loadModelsForProvider();
     } else if (this.canBrowseModels() && !this.isFalaiProvider()) {
+      this.model.update(m => ({ ...m, modelId: '' }));
       void this.loadModelsForProvider();
+    } else {
+      // For Fal.ai and other providers, just reset the model selection —
+      // model loading waits for category selection.
+      this.model.update(m => ({ ...m, modelId: '' }));
     }
-    // For Fal.ai, wait for category selection before loading
   }
 
   /** Handle Fal.ai category change */
   onFalaiCategoryChange(category: FalaiCategory): void {
     this.selectedFalaiCategory.set(category);
-    this.model.update(m => ({ ...m, modelId: '' }));
     this.availableModels.set([]);
 
     // Auto-set supportsImageInput based on category
     const categoryConfig = this.falaiCategories.find(c => c.value === category);
-    if (categoryConfig) {
-      this.model.update(m => ({
-        ...m,
-        supportsImageInput: categoryConfig.supportsImageInput,
-      }));
-    }
+    this.model.update(m => ({
+      ...m,
+      modelId: '',
+      supportsImageInput: categoryConfig?.supportsImageInput ?? false,
+    }));
 
     // Load models for the selected category
     void this.loadModelsForProvider();
