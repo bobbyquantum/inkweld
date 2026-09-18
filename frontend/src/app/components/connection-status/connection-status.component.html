@@ -10,6 +10,20 @@
       data-testid="connection-strap">
       <mat-icon class="status-icon">{{ syncIcon() }}</mat-icon>
       <span class="status-text">{{ syncStatusText() }}</span>
+      @if (overQuota()) {
+        <!--
+          Over-capacity warning. The strap is the surface that is visible while
+          offline — the moment new uploads will be paused on reconnect. Editing
+          and syncing keep working; only new media/projects are refused.
+        -->
+        <span
+          class="status-text quota-warning"
+          [matTooltip]="'settings.storage.over' | transloco"
+          data-testid="connection-quota-warning">
+          <mat-icon class="status-icon">error</mat-icon>
+          {{ 'settings.storage.overShort' | transloco }}
+        </span>
+      }
       @if (showRetryButton()) {
         <button
           mat-icon-button

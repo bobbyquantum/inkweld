@@ -316,5 +316,17 @@
     "comfortableHelp": "Roomier rows and taller bars.",
     "compact": "Compact",
     "compactHelp": "Tighter chrome, so more of your project fits on screen."
+  },
+  "storage": {
+    "title": "Sync capacity",
+    "description": "How much server storage your projects use. Editing and syncing are never blocked; new uploads and projects are paused once you reach the limit.",
+    "used": "Used",
+    "of": "of",
+    "tooltip": "{{used}} of {{quota}} used",
+    "aria": "Sync capacity usage",
+    "warning": "You are approaching your sync capacity.",
+    "over": "You have reached your sync capacity. New uploads and projects are paused until you free up space.",
+    "manageHint": "Delete unused media or projects to free up space, or ask an administrator for more capacity.",
+    "overShort": "Storage full"
   }
 }

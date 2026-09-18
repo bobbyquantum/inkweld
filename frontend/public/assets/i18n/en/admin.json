@@ -59,7 +59,21 @@
     "deleteMessage": "Are you sure you want to permanently delete {{name}}? This action cannot be undone.",
     "deleted": "{{name}} has been deleted",
     "deleteFailed": "Failed to delete user",
-    "projectsAndStorage": "Projects & storage"
+    "projectsAndStorage": "Projects & storage",
+    "quota": "Sync capacity",
+    "quotaDefault": "Instance default",
+    "quotaUnlimitedOverride": "No override",
+    "setQuota": "Set capacity",
+    "quotaDialogTitle": "Sync capacity for {{username}}",
+    "quotaDialogMessage": "Grant this user a storage allowance. Leave blank (or use \"Use instance default\") to fall back to the instance-wide default.",
+    "quotaBytesLabel": "Allowance (bytes)",
+    "quotaUseDefault": "Use instance default",
+    "quotaUpdated": "Sync capacity updated",
+    "quotaUpdateFailed": "Failed to update sync capacity",
+    "quotaUsed": "{{used}} used",
+    "storage": "Storage",
+    "storageUsed": "Used",
+    "storageQuota": "Allowance"
   },
   "projects": {
     "title": "{{username}} — Projects",

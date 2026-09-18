@@ -7,6 +7,25 @@ import { catchError, firstValueFrom, throwError } from 'rxjs';
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
 
+/**
+ * The generated `AdminUserProjects` model predates the sync-quota fields the
+ * backend now returns. Regenerating the Angular client needs a Java runtime,
+ * which is not available in every build environment, so the extra fields are
+ * declared locally — the same approach as `BrandingLinks` in
+ * system-config.service.ts. Delete this extension once the client is
+ * regenerated (the fields are in `backend/openapi.json`).
+ */
+export interface AdminUserProjectsQuota {
+  /** Per-user override in bytes; null = instance default applies. */
+  syncQuotaBytes: number | null;
+  /** Allowance actually in force for this user. */
+  effectiveQuotaBytes: number;
+  /** Instance-wide default used when there is no override. */
+  instanceDefaultQuotaBytes: number;
+}
+
+type AdminUserProjectsWithQuota = AdminUserProjects & AdminUserProjectsQuota;
+
 export class AdminServiceError extends Error {
   constructor(
     public code:
@@ -33,6 +52,10 @@ export interface AdminUser {
   isAdmin?: boolean;
   githubId?: string | null;
   hasAvatar?: boolean;
+  /** Per-user sync-capacity override in bytes; null = instance default. */
+  syncQuotaBytes?: number | null;
+  /** Last-known storage usage in bytes. */
+  storageUsedBytes?: number;
 }
 
 export interface PaginatedUsersResponse {
@@ -373,12 +396,48 @@ export class AdminService {
   /**
    * List all projects owned by a user with approximate storage sizes (admin).
    */
-  async listUserProjects(userId: string): Promise<AdminUserProjects> {
-    return firstValueFrom(
+  async listUserProjects(userId: string): Promise<AdminUserProjectsWithQuota> {
+    const result = await firstValueFrom(
       this.apiService
         .adminListUserProjects(userId)
         .pipe(catchError(this.handleError.bind(this)))
     );
+    // The server returns the quota fields; the generated type just doesn't know
+    // about them yet (see AdminUserProjectsQuota above).
+    return result as AdminUserProjectsWithQuota;
+  }
+
+  /**
+   * Set a user's sync-capacity override (admin only).
+   *
+   * `null` clears the override so the instance-wide default applies. Returns
+   * the updated user and patches the cached list. Hand-written HTTP because the
+   * generated client is produced by a Java tool that is not always available;
+   * swap to the generated method if the client is regenerated.
+   */
+  async setUserQuota(
+    userId: string,
+    syncQuotaBytes: number | null
+  ): Promise<void> {
+    try {
+      const updated = await firstValueFrom(
+        this.http
+          .patch<AdminUser>(
+            `${this.basePath}/api/v1/admin/users/${userId}/quota`,
+            { syncQuotaBytes },
+            {
+              withCredentials: true,
+            }
+          )
+          .pipe(catchError(this.handleError.bind(this)))
+      );
+      this.users.update(users =>
+        users.map(u => (u.id === userId ? { ...u, ...updated } : u))
+      );
+    } catch (error) {
+      this.logger.error('AdminService', 'Failed to set user quota', error);
+      throw error;
+    }
   }
 
   private handleError(error: HttpErrorResponse) {

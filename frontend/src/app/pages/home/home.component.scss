@@ -800,3 +800,14 @@
   right: 20px;
   z-index: 100;
 }
+
+/* Compact sync-capacity meter in the authenticated header. Hidden on narrow
+   screens, where the header already has little room. */
+.header-storage-meter {
+  display: none;
+
+  @media (min-width: 900px) {
+    display: inline-flex;
+    max-width: 180px;
+  }
+}

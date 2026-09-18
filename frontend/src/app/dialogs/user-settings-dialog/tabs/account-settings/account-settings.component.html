@@ -208,6 +208,34 @@
 
   <mat-divider></mat-divider>
 
+  <!--
+    Sync capacity: server mode only (local/cloud modes have no server
+    allowance). Renders nothing until usage loads, and stays quiet on error so
+    it cannot break the rest of the account settings.
+  -->
+  @if (!isLocalMode()) {
+    <section class="storage-section" data-testid="account-storage-section">
+      <h4 class="storage-section__title">
+        {{ 'settings.storage.title' | transloco }}
+      </h4>
+      <p class="storage-section__description">
+        {{ 'settings.storage.description' | transloco }}
+      </p>
+      <app-storage-meter
+        [userId]="userService.currentUser().id"></app-storage-meter>
+      @if (storageUsage.usage()?.overQuota) {
+        <p class="storage-section__warning" data-testid="account-storage-over">
+          {{ 'settings.storage.over' | transloco }}
+        </p>
+        <p class="storage-section__hint">
+          {{ 'settings.storage.manageHint' | transloco }}
+        </p>
+      }
+    </section>
+
+    <mat-divider></mat-divider>
+  }
+
   @if (systemConfig.isPasskeyManagementAvailable()) {
     <app-passkeys-settings></app-passkeys-settings>
   }
