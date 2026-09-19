@@ -557,6 +557,57 @@ describe('ProjectService', () => {
       expect(result).toEqual(newProject);
     });
 
+    it('does not put deleted projects back when the cache write failed', async () => {
+      // setProjects only warns when it cannot write the cache, so the signal
+      // can be an authoritative empty list while the old cached list lives on.
+      // Treating "empty" as "not loaded yet" would read those back.
+      cacheHolds(BASE);
+      api.listUserProjects.mockReturnValue(apiOk([]));
+      store.put.mockRejectedValue(new Error('quota exceeded'));
+      vi.spyOn(console, 'warn').mockImplementation(() => {});
+      await service.loadAllProjects();
+      expect(service.projects()).toEqual([]);
+
+      store.put.mockResolvedValue(undefined);
+      const newProject: Project = {
+        id: 'test-project-id',
+        title: 'New Project',
+        slug: 'new-project',
+        username: 'alice',
+        createdDate: date,
+        updatedDate: date,
+      };
+      api.createProject.mockReturnValue(apiOk(newProject));
+      await service.createProject(newProject);
+
+      expect(cachedList()).toEqual([
+        expect.objectContaining({ slug: 'new-project' }),
+      ]);
+    });
+
+    it('keeps both changes when two list mutations overlap', async () => {
+      // Each mutation rewrites the whole list, so unqueued they would both
+      // start from the same snapshot and the last write would win outright.
+      cacheHolds(BASE);
+      const first: Project = { ...BASE[0], id: 'a', slug: 'first-new' };
+      const second: Project = { ...BASE[0], id: 'b', slug: 'second-new' };
+      api.createProject.mockImplementation(dto =>
+        apiOk(dto?.slug === 'first-new' ? first : second)
+      );
+
+      await Promise.all([
+        service.createProject(first),
+        service.createProject(second),
+      ]);
+
+      expect(cachedList()).toEqual([
+        expect.objectContaining({ slug: 'project-1' }),
+        expect.objectContaining({ slug: 'project-2' }),
+        expect.objectContaining({ slug: 'first-new' }),
+        expect.objectContaining({ slug: 'second-new' }),
+      ]);
+    });
+
     it('adds to the cached list when this session has not loaded it', async () => {
       // Reached straight by URL, so nothing has loaded the grid: appending to
       // that empty snapshot made the new project the only one in the cache.

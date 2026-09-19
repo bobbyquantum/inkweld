@@ -130,6 +130,12 @@ export class ProjectService {
   readonly hasProjects = computed(() => this.projects().length > 0);
   readonly initialized = signal(false);
 
+  /** Whether `projects()` holds a real list yet. See {@link projectList}. */
+  private listLoaded = false;
+
+  /** Tail of the project-list mutation queue. See {@link mutateProjectList}. */
+  private listMutations: Promise<unknown> = Promise.resolve();
+
   private readonly db: Promise<IDBDatabase> = this.storage
     .initializeDatabase(this.projectCacheConfig)
     .catch(error => {
@@ -156,6 +162,7 @@ export class ProjectService {
         cachedProjects = await this.getCachedProjects();
         if (cachedProjects && cachedProjects.length > 0) {
           this.projects.set(cachedProjects);
+          this.listLoaded = true;
           // Don't return - continue to fetch fresh data
         }
       }
@@ -838,16 +845,18 @@ export class ProjectService {
         return;
       }
 
-      const listed = (await this.projectList()).find(
-        project => project.username === username && project.slug === slug
+      // Stamped inside the queued mutation rather than looked up first, so
+      // the read and the write cannot be split by another change to the list.
+      // Writes the list, the per-project cache entries and the signal the
+      // grid renders from, so the cover appears without a reload.
+      const isThisProject = (project: Project): boolean =>
+        project.username === username && project.slug === slug;
+      const updated = await this.mutateProjectList(projects =>
+        projects.map(project =>
+          isThisProject(project) ? { ...project, coverImage } : project
+        )
       );
-      if (listed) {
-        // Writes the list, the per-project cache entries and the signal the
-        // grid renders from, so the cover appears without a reload.
-        await this.replaceInProjectList(username, slug, {
-          ...listed,
-          coverImage,
-        });
+      if (updated.some(isThisProject)) {
         return;
       }
 
@@ -945,6 +954,7 @@ export class ProjectService {
       }
     }
     this.projects.set([]);
+    this.listLoaded = false;
   }
 
   private async setProjects(projects: Project[]): Promise<void> {
@@ -972,36 +982,58 @@ export class ProjectService {
       }
     }
     this.projects.set(projects);
+    // Even when the cache write above failed, this list is now the truth —
+    // which is exactly when reading the stale cache back would be wrong.
+    this.listLoaded = true;
   }
 
   /**
-   * The project list to work from: the one this session loaded, or the one
-   * in the cache when it has not loaded any.
+   * The project list to work from: the one this session holds, or the one in
+   * the cache when it holds none yet.
    *
-   * `projects()` is empty until something loads it, and empty there means
-   * "not loaded yet", not "no projects" — so every edit that maps, filters
-   * or appends to that snapshot and writes the result back has to start from
-   * the cache instead. Otherwise a single save from inside a project (or a
-   * create reached straight by URL) replaces the whole cached list with its
-   * own view of the world: harmless with a reachable server, which refills
-   * it on the next load, and not at all harmless without one — the home page
-   * is then left with no projects and no way to fetch any.
+   * Every edit that maps, filters or appends to the list and writes the
+   * result back has to start from a real list. `projects()` is empty until
+   * something fills it, so building on it unloaded replaces the whole cached
+   * list with that edit's own view of the world: harmless with a reachable
+   * server, which refills it on the next load, and not at all harmless
+   * without one — the home page is then left with no projects and no way to
+   * fetch any.
+   *
+   * Whether it is filled is tracked rather than inferred from its length. A
+   * user with no projects has an authoritative empty list, and a cache write
+   * that fails leaves the signal empty while the old cached list survives;
+   * reading that back would put deleted projects on the home page again.
    */
   private async projectList(): Promise<Project[]> {
-    const loaded = this.projects();
-    return loaded.length > 0
-      ? loaded
+    return this.listLoaded
+      ? this.projects()
       : ((await this.getCachedProjects()) ?? []);
   }
 
-  /** Apply a change to the cached project list. See {@link projectList}. */
-  private async mutateProjectList(
+  /**
+   * Apply a change to the project list, one at a time.
+   *
+   * Each change is a read-modify-write of the whole list, so two running
+   * together — an offline rename and a cover saved locally, say — would both
+   * start from the same snapshot and the later write would drop the earlier
+   * one's change. Queueing them keeps each change building on the last.
+   *
+   * Resolves with the list that was written. See {@link projectList}.
+   */
+  private mutateProjectList(
     change: (projects: Project[]) => Project[]
-  ): Promise<void> {
-    await this.setProjects(change(await this.projectList()));
+  ): Promise<Project[]> {
+    const mutation = this.listMutations.then(async () => {
+      const updated = change(await this.projectList());
+      await this.setProjects(updated);
+      return updated;
+    });
+    // A failed mutation must not wedge the ones behind it.
+    this.listMutations = mutation.catch(() => undefined);
+    return mutation;
   }
 
-  /** Swap one project in the cached list for a newer copy of itself. */
+  /** Swap one project in the list for a newer copy of itself. */
   private async replaceInProjectList(
     username: string,
     slug: string,
