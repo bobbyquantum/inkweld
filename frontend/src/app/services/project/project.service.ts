@@ -353,9 +353,7 @@ export class ProjectService {
       );
 
       // Update cached projects list with the new project
-      const currentProjects = this.projects();
-      const updatedProjects = [...currentProjects, project];
-      await this.setProjects(updatedProjects);
+      await this.mutateProjectList(projects => [...projects, project]);
       return project;
     } catch (err: unknown) {
       const error =
@@ -402,9 +400,7 @@ export class ProjectService {
     };
 
     // Add to local cache and projects list
-    const currentProjects = this.projects();
-    const updatedProjects = [...currentProjects, localProject];
-    await this.setProjects(updatedProjects);
+    await this.mutateProjectList(projects => [...projects, localProject]);
 
     // Also cache individually
     const cacheKey = `${username}/${projectData.slug}`;
@@ -432,11 +428,7 @@ export class ProjectService {
     await this.setCachedProject(cacheKey, serverProject);
 
     // Update projects list
-    const currentProjects = this.projects();
-    const updatedProjects = currentProjects.map(p =>
-      p.slug === slug && p.username === username ? serverProject : p
-    );
-    await this.setProjects(updatedProjects);
+    await this.replaceInProjectList(username, slug, serverProject);
   }
 
   async updateProject(
@@ -467,11 +459,7 @@ export class ProjectService {
         await this.setCachedProject(`${username}/${slug}`, project);
 
         // Update the project in the projects list if it exists
-        const currentProjects = this.projects();
-        const updatedProjects = currentProjects.map(p =>
-          p.slug === slug && p.username === username ? project : p
-        );
-        await this.setProjects(updatedProjects);
+        await this.replaceInProjectList(username, slug, project);
 
         // Clear any pending metadata for this project on success
         await this.projectSync.clearPendingMetadata(`${username}/${slug}`);
@@ -499,12 +487,7 @@ export class ProjectService {
           };
 
           await this.setCachedProject(cacheKey, updated);
-
-          const currentProjects = this.projects();
-          const updatedProjects = currentProjects.map(p =>
-            p.slug === slug && p.username === username ? updated : p
-          );
-          await this.setProjects(updatedProjects);
+          await this.replaceInProjectList(username, slug, updated);
 
           await this.projectSync.markPendingMetadata(cacheKey, {
             title: updateRequest.title,
@@ -552,11 +535,9 @@ export class ProjectService {
       }
 
       // Remove the project from the projects list
-      const currentProjects = this.projects();
-      const updatedProjects = currentProjects.filter(
-        p => !(p.slug === slug && p.username === username)
+      await this.mutateProjectList(projects =>
+        projects.filter(p => !(p.slug === slug && p.username === username))
       );
-      await this.setProjects(updatedProjects);
     } catch (err: unknown) {
       const error =
         err instanceof ProjectServiceError
@@ -815,9 +796,9 @@ export class ProjectService {
    *
    * The blob is saved under a timestamped id and that id — not a fixed
    * `'cover'` key — is queued for upload, so the sync can find the blob
-   * again. The local project record's `coverImage` is updated too: home
-   * cards resolve covers from that filename, and in local mode nothing else
-   * would ever set it.
+   * again. The project record's `coverImage` is updated too: home cards
+   * resolve covers from that filename, and with no server to set it nothing
+   * else would.
    */
   private async saveCoverLocally(
     username: string,
@@ -829,15 +810,63 @@ export class ProjectService {
     const mediaId = localFilename.replace(/\.[^.]+$/, '');
     await this.localStorage.saveMedia(projectKey, mediaId, coverImage);
     await this.projectSync.markPendingUpload(projectKey, mediaId);
-    try {
-      this.localProjectService.updateProject(username, slug, {
-        coverImage: localFilename,
-      });
-    } catch {
-      // Server-mode projects have no local record; the pending upload
-      // carries the cover to the server instead.
-    }
+    await this.recordCoverFilename(username, slug, localFilename);
     return localFilename;
+  }
+
+  /**
+   * Point the project record at a cover that only exists on this device.
+   *
+   * Which record that is depends on the mode. In local and cloud mode it is
+   * the local project store. In server mode it is the cached copy of the
+   * server's project list — normally only the server fills `coverImage` in,
+   * so without this a cover saved while the server was unreachable shows
+   * inside the project, where the cover comes from Yjs, and nowhere the
+   * record is the only source: the home grid and the side nav.
+   *
+   * A successful upload (now or when the queued one drains) overwrites this
+   * with the server's own filename.
+   */
+  private async recordCoverFilename(
+    username: string,
+    slug: string,
+    coverImage: string
+  ): Promise<void> {
+    try {
+      if (isLocalOrCloudMode(this.setupService.getMode())) {
+        this.localProjectService.updateProject(username, slug, { coverImage });
+        return;
+      }
+
+      const listed = (await this.projectList()).find(
+        project => project.username === username && project.slug === slug
+      );
+      if (listed) {
+        // Writes the list, the per-project cache entries and the signal the
+        // grid renders from, so the cover appears without a reload.
+        await this.replaceInProjectList(username, slug, {
+          ...listed,
+          coverImage,
+        });
+        return;
+      }
+
+      // Not in the list at all (a project the cache has never seen). The
+      // per-project entry is still worth stamping; the list picks the cover
+      // up whenever it is next fetched or read back.
+      const key = `${username}/${slug}`;
+      const cached = await this.getCachedProject(key);
+      if (cached) {
+        await this.setCachedProject(key, { ...cached, coverImage });
+      }
+    } catch (error) {
+      // The blob and the queued upload are what matter; a record that could
+      // not be stamped costs a cover thumbnail, not the user's image.
+      console.warn(
+        `Failed to record cover filename for ${username}/${slug}:`,
+        error
+      );
+    }
   }
 
   /**
@@ -943,6 +972,48 @@ export class ProjectService {
       }
     }
     this.projects.set(projects);
+  }
+
+  /**
+   * The project list to work from: the one this session loaded, or the one
+   * in the cache when it has not loaded any.
+   *
+   * `projects()` is empty until something loads it, and empty there means
+   * "not loaded yet", not "no projects" — so every edit that maps, filters
+   * or appends to that snapshot and writes the result back has to start from
+   * the cache instead. Otherwise a single save from inside a project (or a
+   * create reached straight by URL) replaces the whole cached list with its
+   * own view of the world: harmless with a reachable server, which refills
+   * it on the next load, and not at all harmless without one — the home page
+   * is then left with no projects and no way to fetch any.
+   */
+  private async projectList(): Promise<Project[]> {
+    const loaded = this.projects();
+    return loaded.length > 0
+      ? loaded
+      : ((await this.getCachedProjects()) ?? []);
+  }
+
+  /** Apply a change to the cached project list. See {@link projectList}. */
+  private async mutateProjectList(
+    change: (projects: Project[]) => Project[]
+  ): Promise<void> {
+    await this.setProjects(change(await this.projectList()));
+  }
+
+  /** Swap one project in the cached list for a newer copy of itself. */
+  private async replaceInProjectList(
+    username: string,
+    slug: string,
+    project: Project
+  ): Promise<void> {
+    await this.mutateProjectList(projects =>
+      projects.map(candidate =>
+        candidate.username === username && candidate.slug === slug
+          ? project
+          : candidate
+      )
+    );
   }
 
   private async setCachedProject(key: string, project: Project): Promise<void> {
