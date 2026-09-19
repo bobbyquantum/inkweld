@@ -45,6 +45,7 @@ import {
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { CloudSyncEngineService } from '@services/cloud-sync/cloud-sync-engine.service';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
+import { ProjectCoverOpenService } from '@services/core/project-cover-open.service';
 import { SetupService } from '@services/core/setup.service';
 import {
   isLocalOrCloudMode,
@@ -121,6 +122,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   private readonly snackBar = inject(MatSnackBar);
   private readonly transloco = inject(TranslocoService);
   private readonly dialogGateway = inject(DialogGatewayService);
+  private readonly coverOpen = inject(ProjectCoverOpenService);
   private readonly setupService = inject(SetupService);
   private readonly cloudSync = inject(CloudSyncEngineService);
   readonly syncQueueService = inject(SyncQueueService);
@@ -614,7 +616,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     }
 
     if (this.isProjectActivated(project)) {
-      this.selectProject(project);
+      this.openProject(project, event);
       return;
     }
 
@@ -925,8 +927,24 @@ export class HomeComponent implements OnInit, OnDestroy {
     );
   }
 
-  selectProject(project: Project) {
-    void this.router.navigate([project.username || '', project.slug || ''], {
+  /**
+   * Open a project from its card, with the cover-opening transition running
+   * from where the card sits. The overlay declines to play (and this is just a
+   * navigation) when the user has asked for reduced motion.
+   */
+  private openProject(project: Project, event: Event): void {
+    const card =
+      event.currentTarget instanceof HTMLElement ? event.currentTarget : null;
+    if (!card) {
+      void this.selectProject(project);
+      return;
+    }
+    this.coverOpen.open(card, project, () => this.selectProject(project));
+  }
+
+  /** Navigate to a project. Resolves to whether the project page was reached. */
+  selectProject(project: Project): Promise<boolean> {
+    return this.router.navigate([project.username || '', project.slug || ''], {
       onSameUrlNavigation: 'reload',
       skipLocationChange: false,
       replaceUrl: false,

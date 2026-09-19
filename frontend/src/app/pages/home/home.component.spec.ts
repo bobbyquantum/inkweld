@@ -24,6 +24,7 @@ import {
 } from '@inkweld/model/models';
 import { CloudSyncEngineService } from '@services/cloud-sync/cloud-sync-engine.service';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
+import { ProjectCoverOpenService } from '@services/core/project-cover-open.service';
 import { SetupService } from '@services/core/setup.service';
 import { StorageContextService } from '@services/core/storage-context.service';
 import { TutorialService } from '@services/core/tutorial.service';
@@ -68,6 +69,7 @@ describe('HomeComponent', () => {
   let breakpointObserver: MockedObject<BreakpointObserver>;
   let httpClient: MockedObject<HttpClient>;
   let router: MockedObject<Router>;
+  let coverOpen: { open: ReturnType<typeof vi.fn> };
   let matDialog: MockedObject<MatDialog>;
   let tutorialService: {
     start: ReturnType<typeof vi.fn>;
@@ -168,6 +170,19 @@ describe('HomeComponent', () => {
       navigate: vi.fn(),
       url: '/',
     } as unknown as MockedObject<Router>;
+
+    // Stands in for the cover-opening overlay, which always navigates.
+    coverOpen = {
+      open: vi.fn(
+        (
+          _card: HTMLElement,
+          _project: { title: string; username: string },
+          navigate: () => Promise<boolean>
+        ) => {
+          void navigate();
+        }
+      ),
+    };
 
     tutorialService = {
       start: vi.fn().mockReturnValue(true),
@@ -307,6 +322,7 @@ describe('HomeComponent', () => {
         { provide: BreakpointObserver, useValue: breakpointObserver },
         { provide: HttpClient, useValue: httpClient },
         { provide: Router, useValue: router },
+        { provide: ProjectCoverOpenService, useValue: coverOpen },
         { provide: TutorialService, useValue: tutorialService },
         { provide: MatDialog, useValue: matDialog },
         { provide: MatSnackBar, useValue: snackBar },
@@ -375,7 +391,7 @@ describe('HomeComponent', () => {
       slug: 'test-project',
       username: 'testuser',
     } as unknown as Project;
-    component.selectProject(project);
+    void component.selectProject(project);
     expect(router.navigate).toHaveBeenCalledWith(['testuser', 'test-project'], {
       onSameUrlNavigation: 'reload',
       skipLocationChange: false,
@@ -1208,6 +1224,36 @@ describe('HomeComponent', () => {
           ['testuser', 'test-project'],
           expect.any(Object)
         );
+      });
+
+      it('should open the project through the cover transition', () => {
+        mockActivationService.isActivated.mockReturnValue(true);
+        const card = document.createElement('button');
+        card.addEventListener('click', event =>
+          component.onProjectClick(mockProjects[0], event)
+        );
+
+        card.click();
+
+        expect(coverOpen.open).toHaveBeenCalledWith(
+          card,
+          mockProjects[0],
+          expect.any(Function)
+        );
+        // The transition plays over the navigation, it does not replace it.
+        expect(router.navigate).toHaveBeenCalledWith(
+          ['testuser', 'test-project'],
+          expect.any(Object)
+        );
+      });
+
+      it('should not play the cover transition without a card to open', () => {
+        mockActivationService.isActivated.mockReturnValue(true);
+
+        component.onProjectClick(mockProjects[0], new MouseEvent('click'));
+
+        expect(coverOpen.open).not.toHaveBeenCalled();
+        expect(router.navigate).toHaveBeenCalled();
       });
 
       it('should suppress click when card reports long-press', () => {

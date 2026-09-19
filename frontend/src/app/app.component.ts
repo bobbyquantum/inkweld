@@ -10,6 +10,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { Router, RouterOutlet } from '@angular/router';
+import { ProjectCoverOpenComponent } from '@components/project-cover-open/project-cover-open.component';
 import { TutorialOverlayComponent } from '@components/tutorial-overlay/tutorial-overlay.component';
 import { TranslocoModule } from '@jsverse/transloco';
 import { isLocalOrCloudMode } from '@services/core/storage-context.service';
@@ -34,6 +35,7 @@ import { UnifiedUserService } from './services/user/unified-user.service';
     MatButtonModule,
     TranslocoModule,
     TutorialOverlayComponent,
+    ProjectCoverOpenComponent,
   ],
   templateUrl: './app.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,

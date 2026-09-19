@@ -1,0 +1,62 @@
+@if (request(); as cover) {
+  @if (geometry(); as geometry) {
+    <div
+      class="cover-open"
+      [class.cover-open--rising]="isOpening()"
+      [class.cover-open--turning]="isTurning()"
+      [class.cover-open--opened]="phase() === 'opened'"
+      [style.--cover-open-veil]="veilMs + 'ms'"
+      [style.--cover-open-rise]="riseMs + 'ms'"
+      [style.--cover-open-turn]="turnMs + 'ms'"
+      [style.--cover-open-fade]="openedMs + 'ms'"
+      [style.--cover-open-type]="geometry.typeScale"
+      data-testid="project-cover-open"
+      aria-hidden="true">
+      <!-- Blacks out the page the cover was lifted off, then lifts from the
+           right-hand page as the book opens. -->
+      <div class="cover-open__veil"></div>
+      <!-- Keeps the far side of the spine dark for the cover to turn onto. -->
+      <div
+        class="cover-open__veil cover-open__veil--spine"
+        [style.width.px]="geometry.spine"></div>
+
+      <div
+        class="cover-open__stage"
+        [style.left.px]="geometry.stageLeft"
+        [style.top.px]="geometry.stageTop"
+        [style.width.px]="geometry.stageWidth"
+        [style.height.px]="geometry.stageHeight"
+        [style.perspective.px]="geometry.perspective">
+        <!-- Flies the cover in from the card that was clicked. -->
+        <div
+          class="cover-open__flight"
+          [style.transform]="phase() === 'closed' ? geometry.closed : 'none'">
+          <!-- Swings open on its left edge: the spine. -->
+          <div class="cover-open__leaf">
+            <div
+              class="cover-open__face cover-open__face--front"
+              [style.border-radius]="
+                phase() === 'closed' ? geometry.radius : '0'
+              ">
+              @if (cover.coverUrl) {
+                <img class="cover-open__image" [src]="cover.coverUrl" alt="" />
+              } @else {
+                <div class="cover-open__default">
+                  <div class="cover-open__author">{{ cover.username }}</div>
+                  <div class="cover-open__title">{{ cover.title }}</div>
+                </div>
+              }
+              <div class="cover-open__gutter"></div>
+              <div class="cover-open__shadow"></div>
+            </div>
+
+            <div class="cover-open__face cover-open__face--back">
+              <div class="cover-open__gutter"></div>
+              <div class="cover-open__shadow cover-open__shadow--lifting"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+}
