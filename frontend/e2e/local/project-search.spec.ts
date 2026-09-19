@@ -11,14 +11,14 @@
 import { type Page } from '@playwright/test';
 
 import { pressShortcut } from '../common';
+import { openProjectFromGrid } from '../common/test-helpers';
 import { expect, test } from './fixtures';
-
 /**
  * Open the fixture project (idempotent).
  */
 async function openProject(page: Page): Promise<void> {
   if (await page.getByTestId('project-card').first().isVisible()) {
-    await page.getByTestId('project-card').first().click();
+    await openProjectFromGrid(page);
   }
   await expect(page.getByTestId('project-tree')).toBeVisible();
 }

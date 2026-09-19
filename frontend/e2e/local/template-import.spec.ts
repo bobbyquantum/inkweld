@@ -14,7 +14,10 @@
  */
 import { type Page } from '@playwright/test';
 
-import { createProjectWithTwoSteps } from '../common/test-helpers';
+import {
+  createProjectWithTwoSteps,
+  openProjectFromGrid,
+} from '../common/test-helpers';
 import { expect, test } from './fixtures';
 
 /**
@@ -236,7 +239,7 @@ test.describe('Template Worldbuilding Import', () => {
         .filter({ hasText: 'Project A' })
         .first();
       await expect(projectACard).toBeVisible();
-      await projectACard.click();
+      await openProjectFromGrid(page, projectACard);
 
       await page.waitForURL(/\/testuser\/project-a/);
       await expect(page.getByTestId('project-tree')).toBeVisible();

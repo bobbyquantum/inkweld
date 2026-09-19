@@ -10,14 +10,17 @@
  * uses the empty `localPageWithProject` fixture; the other three are
  * combined into one project that uses the demo template.
  */
-import { createProjectWithTwoSteps } from '../common/test-helpers';
+import {
+  createProjectWithTwoSteps,
+  openProjectFromGrid,
+} from '../common/test-helpers';
 import { expect, test } from './fixtures';
 
 test.describe('Folder Operations', () => {
   test('create a folder via the create element dialog', async ({
     localPageWithProject: page,
   }) => {
-    await page.getByTestId('project-card').first().click();
+    await openProjectFromGrid(page);
     await page.waitForURL(/\/.+\/.+/);
 
     await page.getByTestId('project-tree').waitFor({ state: 'visible' });

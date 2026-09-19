@@ -12,7 +12,10 @@
  * 320px) before opening the dialogs. Each fit assertion is shared via
  * expectDialogFitsViewport (e2e/common/test-helpers.ts).
  */
-import { expectDialogFitsViewport } from '../common/test-helpers';
+import {
+  expectDialogFitsViewport,
+  openProjectFromGrid,
+} from '../common/test-helpers';
 import { expect, test } from './fixtures';
 
 test.describe('Mobile Dialog Layout', () => {
@@ -22,7 +25,7 @@ test.describe('Mobile Dialog Layout', () => {
     await test.step('import project dialog fits the viewport', async () => {
       // Navigate at desktop width: the mobile layout hides the settings
       // sidebar behind a hamburger, which is not what is under test here.
-      await page.getByTestId('project-card').first().click();
+      await openProjectFromGrid(page);
       await page.waitForURL(/\/.+\/.+/);
 
       await page.getByTestId('sidebar-settings-button').click();

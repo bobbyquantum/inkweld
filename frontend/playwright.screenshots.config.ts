@@ -38,6 +38,11 @@ export default defineConfig({
   },
 
   use: {
+    /* Run with prefers-reduced-motion, as CI browsers do not have a user
+       setting. Transitions that cover the page while they play — the project
+       cover opening into the editor — then resolve instantly instead of
+       holding up clicks and screenshots for a second. */
+    reducedMotion: 'reduce',
     baseURL: process.env['PLAYWRIGHT_TEST_BASE_URL'] ?? FRONTEND_URL,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',

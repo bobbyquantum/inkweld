@@ -1,4 +1,5 @@
 import { TEST_PASSWORDS } from '../common/test-credentials';
+import { openProjectFromGrid } from '../common/test-helpers';
 import {
   createOfflineProject,
   expect,
@@ -6,7 +7,6 @@ import {
   getOfflineProjects,
   test,
 } from './fixtures';
-
 const API_BASE = process.env['API_BASE_URL'] ?? 'http://localhost:9333';
 
 /**
@@ -371,7 +371,7 @@ test.describe('Offline to Server Migration', () => {
     await expect(projectButton).toBeVisible();
 
     // Click on the project card
-    await projectButton.click();
+    await openProjectFromGrid(offlinePage, projectButton);
     await expect(offlinePage).toHaveURL(/.*content-test.*/);
 
     // Step 5: Open the same document
@@ -731,7 +731,7 @@ test.describe('Offline to Server Migration', () => {
       name: /Open project Local Project A Copy/i,
     });
     await expect(projectCard).toBeVisible();
-    await projectCard.click();
+    await openProjectFromGrid(offlinePage, projectCard);
 
     // URL should contain the renamed slug
     await expect(offlinePage).toHaveURL(new RegExp(`.*${uniqueSlug}.*`));
@@ -785,7 +785,7 @@ test.describe('Offline to Server Migration', () => {
     const migratedProjectCard = offlinePage.getByRole('button', {
       name: /Open project Local Project A Copy/i,
     });
-    await migratedProjectCard.click();
+    await openProjectFromGrid(offlinePage, migratedProjectCard);
     await expect(offlinePage).toHaveURL(new RegExp(`.*${uniqueSlug}.*`));
   });
 });

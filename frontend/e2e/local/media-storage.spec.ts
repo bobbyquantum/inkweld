@@ -11,8 +11,8 @@
  */
 import { type Page } from '@playwright/test';
 
+import { openProjectFromGrid } from '../common/test-helpers';
 import { expect, test } from './fixtures';
-
 /**
  * Helper to get the active mode from the v2 config format
  */
@@ -188,7 +188,7 @@ test.describe('Local Media Storage', () => {
   test('project cover: upload trigger, display component, persist across reload', async ({
     localPageWithProject: page,
   }) => {
-    await page.getByTestId('project-card').first().click();
+    await openProjectFromGrid(page);
     await page.waitForURL(/\/.+\/.+/);
     await page.waitForLoadState('domcontentloaded');
 

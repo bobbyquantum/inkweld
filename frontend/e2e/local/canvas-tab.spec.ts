@@ -24,8 +24,8 @@
 
 import { type Page } from '@playwright/test';
 
+import { openProjectFromGrid } from '../common/test-helpers';
 import { expect, test } from './fixtures';
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Helper: create a canvas element and navigate into it
 // ─────────────────────────────────────────────────────────────────────────────
@@ -38,7 +38,7 @@ async function createCanvasAndOpen(page: Page) {
   await page.setViewportSize({ width: 1600, height: 900 });
 
   // Navigate into the project
-  await page.getByTestId('project-card').first().click();
+  await openProjectFromGrid(page);
   await page.waitForURL(/\/.+\/.+/);
 
   // Open the new-element dialog
@@ -529,7 +529,7 @@ test.describe('Canvas Tab', () => {
     localPageWithProject: page,
   }) => {
     await page.setViewportSize({ width: 1600, height: 900 });
-    await page.getByTestId('project-card').first().click();
+    await openProjectFromGrid(page);
     await page.waitForURL(/\/.+\/.+/);
 
     await test.step('create a document to link a pin to', async () => {

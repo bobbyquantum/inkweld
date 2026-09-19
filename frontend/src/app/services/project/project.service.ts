@@ -130,6 +130,12 @@ export class ProjectService {
   readonly hasProjects = computed(() => this.projects().length > 0);
   readonly initialized = signal(false);
 
+  /** Whether `projects()` holds a real list yet. See {@link projectList}. */
+  private listLoaded = false;
+
+  /** Tail of the project-list mutation queue. See {@link mutateProjectList}. */
+  private listMutations: Promise<unknown> = Promise.resolve();
+
   private readonly db: Promise<IDBDatabase> = this.storage
     .initializeDatabase(this.projectCacheConfig)
     .catch(error => {
@@ -156,6 +162,7 @@ export class ProjectService {
         cachedProjects = await this.getCachedProjects();
         if (cachedProjects && cachedProjects.length > 0) {
           this.projects.set(cachedProjects);
+          this.listLoaded = true;
           // Don't return - continue to fetch fresh data
         }
       }
@@ -353,9 +360,7 @@ export class ProjectService {
       );
 
       // Update cached projects list with the new project
-      const currentProjects = this.projects();
-      const updatedProjects = [...currentProjects, project];
-      await this.setProjects(updatedProjects);
+      await this.mutateProjectList(projects => [...projects, project]);
       return project;
     } catch (err: unknown) {
       const error =
@@ -402,9 +407,7 @@ export class ProjectService {
     };
 
     // Add to local cache and projects list
-    const currentProjects = this.projects();
-    const updatedProjects = [...currentProjects, localProject];
-    await this.setProjects(updatedProjects);
+    await this.mutateProjectList(projects => [...projects, localProject]);
 
     // Also cache individually
     const cacheKey = `${username}/${projectData.slug}`;
@@ -432,11 +435,7 @@ export class ProjectService {
     await this.setCachedProject(cacheKey, serverProject);
 
     // Update projects list
-    const currentProjects = this.projects();
-    const updatedProjects = currentProjects.map(p =>
-      p.slug === slug && p.username === username ? serverProject : p
-    );
-    await this.setProjects(updatedProjects);
+    await this.replaceInProjectList(username, slug, serverProject);
   }
 
   async updateProject(
@@ -467,11 +466,7 @@ export class ProjectService {
         await this.setCachedProject(`${username}/${slug}`, project);
 
         // Update the project in the projects list if it exists
-        const currentProjects = this.projects();
-        const updatedProjects = currentProjects.map(p =>
-          p.slug === slug && p.username === username ? project : p
-        );
-        await this.setProjects(updatedProjects);
+        await this.replaceInProjectList(username, slug, project);
 
         // Clear any pending metadata for this project on success
         await this.projectSync.clearPendingMetadata(`${username}/${slug}`);
@@ -499,12 +494,7 @@ export class ProjectService {
           };
 
           await this.setCachedProject(cacheKey, updated);
-
-          const currentProjects = this.projects();
-          const updatedProjects = currentProjects.map(p =>
-            p.slug === slug && p.username === username ? updated : p
-          );
-          await this.setProjects(updatedProjects);
+          await this.replaceInProjectList(username, slug, updated);
 
           await this.projectSync.markPendingMetadata(cacheKey, {
             title: updateRequest.title,
@@ -552,11 +542,9 @@ export class ProjectService {
       }
 
       // Remove the project from the projects list
-      const currentProjects = this.projects();
-      const updatedProjects = currentProjects.filter(
-        p => !(p.slug === slug && p.username === username)
+      await this.mutateProjectList(projects =>
+        projects.filter(p => !(p.slug === slug && p.username === username))
       );
-      await this.setProjects(updatedProjects);
     } catch (err: unknown) {
       const error =
         err instanceof ProjectServiceError
@@ -815,9 +803,9 @@ export class ProjectService {
    *
    * The blob is saved under a timestamped id and that id — not a fixed
    * `'cover'` key — is queued for upload, so the sync can find the blob
-   * again. The local project record's `coverImage` is updated too: home
-   * cards resolve covers from that filename, and in local mode nothing else
-   * would ever set it.
+   * again. The project record's `coverImage` is updated too: home cards
+   * resolve covers from that filename, and with no server to set it nothing
+   * else would.
    */
   private async saveCoverLocally(
     username: string,
@@ -829,15 +817,65 @@ export class ProjectService {
     const mediaId = localFilename.replace(/\.[^.]+$/, '');
     await this.localStorage.saveMedia(projectKey, mediaId, coverImage);
     await this.projectSync.markPendingUpload(projectKey, mediaId);
-    try {
-      this.localProjectService.updateProject(username, slug, {
-        coverImage: localFilename,
-      });
-    } catch {
-      // Server-mode projects have no local record; the pending upload
-      // carries the cover to the server instead.
-    }
+    await this.recordCoverFilename(username, slug, localFilename);
     return localFilename;
+  }
+
+  /**
+   * Point the project record at a cover that only exists on this device.
+   *
+   * Which record that is depends on the mode. In local and cloud mode it is
+   * the local project store. In server mode it is the cached copy of the
+   * server's project list — normally only the server fills `coverImage` in,
+   * so without this a cover saved while the server was unreachable shows
+   * inside the project, where the cover comes from Yjs, and nowhere the
+   * record is the only source: the home grid and the side nav.
+   *
+   * A successful upload (now or when the queued one drains) overwrites this
+   * with the server's own filename.
+   */
+  private async recordCoverFilename(
+    username: string,
+    slug: string,
+    coverImage: string
+  ): Promise<void> {
+    try {
+      if (isLocalOrCloudMode(this.setupService.getMode())) {
+        this.localProjectService.updateProject(username, slug, { coverImage });
+        return;
+      }
+
+      // Stamped inside the queued mutation rather than looked up first, so
+      // the read and the write cannot be split by another change to the list.
+      // Writes the list, the per-project cache entries and the signal the
+      // grid renders from, so the cover appears without a reload.
+      const isThisProject = (project: Project): boolean =>
+        project.username === username && project.slug === slug;
+      const updated = await this.mutateProjectList(projects =>
+        projects.map(project =>
+          isThisProject(project) ? { ...project, coverImage } : project
+        )
+      );
+      if (updated.some(isThisProject)) {
+        return;
+      }
+
+      // Not in the list at all (a project the cache has never seen). The
+      // per-project entry is still worth stamping; the list picks the cover
+      // up whenever it is next fetched or read back.
+      const key = `${username}/${slug}`;
+      const cached = await this.getCachedProject(key);
+      if (cached) {
+        await this.setCachedProject(key, { ...cached, coverImage });
+      }
+    } catch (error) {
+      // The blob and the queued upload are what matter; a record that could
+      // not be stamped costs a cover thumbnail, not the user's image.
+      console.warn(
+        `Failed to record cover filename for ${username}/${slug}:`,
+        error
+      );
+    }
   }
 
   /**
@@ -916,6 +954,7 @@ export class ProjectService {
       }
     }
     this.projects.set([]);
+    this.listLoaded = false;
   }
 
   private async setProjects(projects: Project[]): Promise<void> {
@@ -943,6 +982,70 @@ export class ProjectService {
       }
     }
     this.projects.set(projects);
+    // Even when the cache write above failed, this list is now the truth —
+    // which is exactly when reading the stale cache back would be wrong.
+    this.listLoaded = true;
+  }
+
+  /**
+   * The project list to work from: the one this session holds, or the one in
+   * the cache when it holds none yet.
+   *
+   * Every edit that maps, filters or appends to the list and writes the
+   * result back has to start from a real list. `projects()` is empty until
+   * something fills it, so building on it unloaded replaces the whole cached
+   * list with that edit's own view of the world: harmless with a reachable
+   * server, which refills it on the next load, and not at all harmless
+   * without one — the home page is then left with no projects and no way to
+   * fetch any.
+   *
+   * Whether it is filled is tracked rather than inferred from its length. A
+   * user with no projects has an authoritative empty list, and a cache write
+   * that fails leaves the signal empty while the old cached list survives;
+   * reading that back would put deleted projects on the home page again.
+   */
+  private async projectList(): Promise<Project[]> {
+    return this.listLoaded
+      ? this.projects()
+      : ((await this.getCachedProjects()) ?? []);
+  }
+
+  /**
+   * Apply a change to the project list, one at a time.
+   *
+   * Each change is a read-modify-write of the whole list, so two running
+   * together — an offline rename and a cover saved locally, say — would both
+   * start from the same snapshot and the later write would drop the earlier
+   * one's change. Queueing them keeps each change building on the last.
+   *
+   * Resolves with the list that was written. See {@link projectList}.
+   */
+  private mutateProjectList(
+    change: (projects: Project[]) => Project[]
+  ): Promise<Project[]> {
+    const mutation = this.listMutations.then(async () => {
+      const updated = change(await this.projectList());
+      await this.setProjects(updated);
+      return updated;
+    });
+    // A failed mutation must not wedge the ones behind it.
+    this.listMutations = mutation.catch(() => undefined);
+    return mutation;
+  }
+
+  /** Swap one project in the list for a newer copy of itself. */
+  private async replaceInProjectList(
+    username: string,
+    slug: string,
+    project: Project
+  ): Promise<void> {
+    await this.mutateProjectList(projects =>
+      projects.map(candidate =>
+        candidate.username === username && candidate.slug === slug
+          ? project
+          : candidate
+      )
+    );
   }
 
   private async setCachedProject(key: string, project: Project): Promise<void> {

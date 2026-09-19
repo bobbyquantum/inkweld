@@ -288,6 +288,78 @@ test.describe('Server Unavailable - Local First Behavior', () => {
   });
 });
 
+test.describe('Server Unavailable - Cached Projects', () => {
+  /**
+   * The grid renders from a cached copy of the server's project list. Every
+   * edit that writes that list back used to build it from the in-memory copy,
+   * which is empty until something loads it — so saving from inside a project
+   * on a fresh load replaced the cached list with nothing. With the server up
+   * the next load refilled it and nobody noticed; with the server down it
+   * left the home page on "Failed to load projects" with no way back.
+   */
+  test('should keep cached projects when a save happens with the server down', async ({
+    serverUnavailablePage,
+  }) => {
+    // Two project creations plus a simulated outage — slow on CI runners.
+    test.slow();
+    const page = serverUnavailablePage as ServerUnavailablePage;
+    const { username } = page.testCredentials;
+    const stamp = Date.now();
+    const slugs = [`cached-one-${stamp}`, `cached-two-${stamp}`];
+    // `project-card` is on both the grid's button and the card inside it, so
+    // count the grid's own children to get one hit per project.
+    const cards = page.locator(
+      '[data-testid="covers-grid"] > [data-testid="project-card"]'
+    );
+
+    await test.step('create two projects while the server is up', async () => {
+      await page.serverControl.restore();
+      for (const [index, slug] of slugs.entries()) {
+        await page.goto('/create-project');
+        const nextButton = page.getByTestId('next-button');
+        await nextButton.waitFor();
+        await nextButton.click();
+        await page
+          .getByTestId('project-title-input')
+          .fill(`Cached ${index + 1}`);
+        await page.getByTestId('project-slug-input').fill(slug);
+        await page.getByTestId('create-project-button').click();
+        await page.waitForURL(new RegExp(slug));
+      }
+
+      await page.goto('/');
+      await expect(cards).toHaveCount(slugs.length);
+    });
+
+    await test.step('the server goes down and the user renames one project', async () => {
+      await page.serverControl.block();
+
+      // Straight into the project: a fresh load, so nothing has populated the
+      // in-memory project list — the state that used to wipe the cache.
+      await page.goto(`/${username}/${slugs[0]}`);
+      await page.getByTestId('project-cover-edit').click();
+
+      const editDialog = page.getByTestId('edit-project-dialog');
+      await expect(editDialog).toBeVisible();
+      await editDialog
+        .getByTestId('edit-project-title-input')
+        .fill('Renamed Offline');
+      await editDialog.getByTestId('edit-project-save').click();
+      await expect(editDialog).not.toBeVisible();
+    });
+
+    await test.step('both projects are still on the home page', async () => {
+      await page.goto('/');
+      await expect(cards).toHaveCount(slugs.length);
+      await expect(page.getByTestId('projects-error-state')).toBeHidden();
+      // The rename went into the cached list too, not just the project page.
+      // The grid is sorted, so pick the card out by its text rather than
+      // assuming a position.
+      await expect(cards.filter({ hasText: 'Renamed Offline' })).toHaveCount(1);
+    });
+  });
+});
+
 test.describe('Server Unavailable - Navigation', () => {
   test('should handle navigation when server is down', async ({
     serverUnavailablePage,

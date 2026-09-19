@@ -137,6 +137,7 @@
               matInput
               [formField]="form.title"
               id="edit-project-title-input"
+              data-testid="edit-project-title-input"
               [attr.aria-label]="'dialogs.editProject.titleAria' | transloco" />
             @if (form.title().touched() && form.title().invalid()) {
               @for (error of form.title().errors(); track error.message) {
@@ -246,6 +247,7 @@
       mat-raised-button
       color="primary"
       [disabled]="form().invalid() || isSaving()"
+      data-testid="edit-project-save"
       (click)="onSave()">
       {{ 'save' | transloco }}
     </button>
