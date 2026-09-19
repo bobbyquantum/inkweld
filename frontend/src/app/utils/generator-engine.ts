@@ -518,9 +518,17 @@ export function mulberry32(seed: number): () => number {
   };
 }
 
-/** A fresh 32-bit seed for an unseeded roll. */
+/**
+ * A fresh 32-bit seed for an unseeded roll.
+ *
+ * Drawn from the platform CSPRNG rather than `Math.random()`. Seeds are the
+ * one place in this engine where unpredictability is worth anything — two
+ * collaborators rolling at the same moment should not land on correlated
+ * sequences — and it costs nothing here, since a roll draws one seed and
+ * then runs on {@link mulberry32}, which has to stay reproducible.
+ */
 function randomSeed(): number {
-  return Math.trunc(Math.random() * 0xffffffff) >>> 0;
+  return crypto.getRandomValues(new Uint32Array(1))[0];
 }
 
 /** Derives the next per-result seed from the master PRNG. */

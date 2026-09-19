@@ -100,6 +100,22 @@ describe('generator-engine', () => {
       expect(rollOnce(generator)).toBe('Aldric of Riverwyn');
     });
 
+    it('seeds itself when no seed is given', () => {
+      const generator = makeGenerator('#first#', [
+        {
+          key: 'first',
+          entries: Array.from({ length: 50 }, (_, i) => ({ text: `N${i}` })),
+        },
+      ]);
+
+      // Unseeded rolls take their seed from the platform CSPRNG, so two
+      // batches should not line up.
+      const a = rollGenerator(generator, { count: 12 }).map(r => r.text);
+      const b = rollGenerator(generator, { count: 12 }).map(r => r.text);
+      expect(a).toHaveLength(12);
+      expect(a).not.toEqual(b);
+    });
+
     it('is deterministic for a given seed', () => {
       const generator = makeGenerator('#first# #last#', [
         {
