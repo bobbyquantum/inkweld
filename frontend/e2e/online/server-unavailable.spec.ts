@@ -316,7 +316,7 @@ test.describe('Server Unavailable - Cached Projects', () => {
       await page.serverControl.restore();
       for (const [index, slug] of slugs.entries()) {
         await page.goto('/create-project');
-        const nextButton = page.getByRole('button', { name: /next/i });
+        const nextButton = page.getByTestId('next-button');
         await nextButton.waitFor();
         await nextButton.click();
         await page
@@ -342,22 +342,20 @@ test.describe('Server Unavailable - Cached Projects', () => {
       const editDialog = page.getByTestId('edit-project-dialog');
       await expect(editDialog).toBeVisible();
       await editDialog
-        .locator('#edit-project-title-input')
+        .getByTestId('edit-project-title-input')
         .fill('Renamed Offline');
-      await editDialog
-        .getByRole('button', { name: 'Save', exact: true })
-        .click();
+      await editDialog.getByTestId('edit-project-save').click();
       await expect(editDialog).not.toBeVisible();
     });
 
     await test.step('both projects are still on the home page', async () => {
       await page.goto('/');
       await expect(cards).toHaveCount(slugs.length);
-      await expect(
-        page.getByText(/failed to load projects/i)
-      ).not.toBeVisible();
+      await expect(page.getByTestId('projects-error-state')).toBeHidden();
       // The rename went into the cached list too, not just the project page.
-      await expect(page.getByText('Renamed Offline').first()).toBeVisible();
+      // The grid is sorted, so pick the card out by its text rather than
+      // assuming a position.
+      await expect(cards.filter({ hasText: 'Renamed Offline' })).toHaveCount(1);
     });
   });
 });
