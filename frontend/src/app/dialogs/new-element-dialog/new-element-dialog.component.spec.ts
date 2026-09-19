@@ -10,7 +10,7 @@ import {
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
-import { ElementType, type Project } from '@inkweld/index';
+import { type Element, ElementType, type Project } from '@inkweld/index';
 import { type MockedObject, vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
@@ -25,10 +25,12 @@ describe('NewElementDialogComponent', () => {
   let dialogRef: MockedObject<MatDialogRef<NewElementDialogComponent>>;
   let mockProjectState: {
     project: ReturnType<typeof signal<Project | undefined>>;
+    elements: ReturnType<typeof signal<Element[]>>;
   };
   let mockWorldbuildingService: {
     getAllSchemas: ReturnType<typeof vi.fn>;
     hasNoSchemas: ReturnType<typeof vi.fn>;
+    schemas: ReturnType<typeof signal<ElementTypeSchema[]>>;
   };
 
   const mockProject: Project = {
@@ -62,11 +64,13 @@ describe('NewElementDialogComponent', () => {
 
     mockProjectState = {
       project: signal<Project | undefined>(undefined),
+      elements: signal<Element[]>([]),
     };
 
     mockWorldbuildingService = {
       getAllSchemas: vi.fn(),
       hasNoSchemas: vi.fn(),
+      schemas: signal<ElementTypeSchema[]>([]),
     };
 
     await TestBed.configureTestingModule({

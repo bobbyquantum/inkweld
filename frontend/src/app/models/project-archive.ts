@@ -6,6 +6,7 @@ import {
 import { type ElementTag, type TagDefinition } from '@models/tag.model';
 
 import { type ElementType } from '../../api-client';
+import { type Generator } from './generator';
 import { type MediaTag } from './media-tag.model';
 import { type PublishPlan } from './publish-plan';
 import { type ElementTypeSchema } from './schema-types';
@@ -223,6 +224,12 @@ export interface ProjectArchive {
   schemas: ElementTypeSchema[];
   /** Time systems (calendars) installed in the project */
   timeSystems: TimeSystem[];
+  /**
+   * Random generators defined in the project. Optional so that archives
+   * written before generators existed still import cleanly, without needing
+   * an archive-version bump.
+   */
+  generators?: Generator[];
   /** Element relationships */
   relationships: ElementRelationship[];
   /** Custom relationship types */

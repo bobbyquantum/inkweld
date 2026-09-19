@@ -4,6 +4,7 @@
     "name": "Character",
     "icon": "person",
     "description": "A character in your story or world",
+    "nameGeneratorId": "gen-character-names",
     "version": 1,
     "tabs": [
       {
@@ -21,7 +22,8 @@
             "validation": {
               "required": true
             },
-            "placeholder": "Character's full name"
+            "placeholder": "Character's full name",
+            "generatorId": "gen-character-names"
           },
           {
             "key": "age",
@@ -4541,6 +4543,7 @@
     "name": "Building",
     "icon": "home_work",
     "description": "A specific building or structure in your world",
+    "nameGeneratorId": "gen-tavern-names",
     "version": 1,
     "tabs": [
       {
@@ -4558,7 +4561,8 @@
             "validation": {
               "required": true
             },
-            "placeholder": "Name of the building"
+            "placeholder": "Name of the building",
+            "generatorId": "gen-tavern-names"
           },
           {
             "key": "type",
@@ -4761,6 +4765,7 @@
     "name": "Settlement",
     "icon": "location_city",
     "description": "A city, town, village, or other populated settlement",
+    "nameGeneratorId": "gen-settlement-names",
     "version": 1,
     "tabs": [
       {
@@ -4778,7 +4783,8 @@
             "validation": {
               "required": true
             },
-            "placeholder": "Name of the settlement"
+            "placeholder": "Name of the settlement",
+            "generatorId": "gen-settlement-names"
           },
           {
             "key": "type",
@@ -5025,6 +5031,7 @@
     "name": "Geographic Feature",
     "icon": "terrain",
     "description": "A natural feature: mountain, river, ocean, canyon, or other formation",
+    "nameGeneratorId": "gen-landmark-names",
     "version": 1,
     "tabs": [
       {
@@ -5042,7 +5049,8 @@
             "validation": {
               "required": true
             },
-            "placeholder": "Name of the feature"
+            "placeholder": "Name of the feature",
+            "generatorId": "gen-landmark-names"
           },
           {
             "key": "type",

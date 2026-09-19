@@ -55,6 +55,12 @@ export interface FieldSchema {
   inverseLabel?: string;
   /** Relationship fields only: id of the auto-managed relationship type backing this field */
   relationshipTypeId?: string;
+  /**
+   * Text and textarea fields only: id of a project generator offered as a
+   * dice button beside the field. Unknown ids (generator since deleted) are
+   * ignored and the button is not shown.
+   */
+  generatorId?: string;
 }
 
 export interface TabSchema {
@@ -84,6 +90,12 @@ export interface ElementTypeSchema {
   defaultAppearance?: ElementAppearance;
   /** Default identity image (media:// reference or URL) for new elements of this type. */
   defaultImage?: string;
+  /**
+   * Id of a project generator used to roll names for new elements of this
+   * type. Surfaces as a dice button beside the name field when creating or
+   * renaming an element. Unknown ids are ignored.
+   */
+  nameGeneratorId?: string;
   /** Creation timestamp */
   createdAt?: string;
   /** Last update timestamp */

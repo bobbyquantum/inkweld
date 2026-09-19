@@ -10,6 +10,7 @@ import { nanoid } from 'nanoid';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import * as Y from 'yjs';
 
+import { type Generator } from '../../models/generator';
 import { type MediaProjectTag } from '../../models/media-project-tag.model';
 import { type MediaTag } from '../../models/media-tag.model';
 import { type PublishPlan } from '../../models/publish-plan';
@@ -48,6 +49,7 @@ interface YjsProjectConnection {
   customTypesArray: Y.Array<RelationshipTypeDefinition>;
   schemasArray: Y.Array<ElementTypeSchema>;
   timeSystemsArray: Y.Array<TimeSystem>;
+  generatorsArray: Y.Array<Generator>;
   elementTagsArray: Y.Array<ElementTag>;
   customTagsArray: Y.Array<TagDefinition>;
   mediaTagsArray: Y.Array<MediaTag>;
@@ -91,6 +93,7 @@ export class LocalProjectElementsService {
   readonly customRelationshipTypes = signal<RelationshipTypeDefinition[]>([]);
   readonly schemas = signal<ElementTypeSchema[]>([]);
   readonly timeSystems = signal<TimeSystem[]>([]);
+  readonly generators = signal<Generator[]>([]);
   readonly elementTags = signal<ElementTag[]>([]);
   readonly customTags = signal<TagDefinition[]>([]);
   readonly mediaTags = signal<MediaTag[]>([]);
@@ -117,6 +120,7 @@ export class LocalProjectElementsService {
       this.customRelationshipTypes.set(connection.customTypesArray.toArray());
       this.schemas.set(connection.schemasArray.toArray());
       this.timeSystems.set(connection.timeSystemsArray.toArray());
+      this.generators.set(connection.generatorsArray.toArray());
       this.elementTags.set(connection.elementTagsArray.toArray());
       this.customTags.set(connection.customTagsArray.toArray());
       this.mediaTags.set(connection.mediaTagsArray.toArray());
@@ -146,6 +150,7 @@ export class LocalProjectElementsService {
       this.customRelationshipTypes.set([]);
       this.schemas.set([]);
       this.timeSystems.set([]);
+      this.generators.set([]);
       this.elementTags.set([]);
       this.customTags.set([]);
       this.mediaTags.set([]);
@@ -369,6 +374,41 @@ export class LocalProjectElementsService {
       this.logger.error(
         'LocalProjectElements',
         'Failed to save time systems',
+        error
+      );
+      throw error;
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Random Generators
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Save generators for a specific project using Yjs
+   */
+  async saveGenerators(
+    username: string,
+    slug: string,
+    generators: Generator[]
+  ): Promise<void> {
+    try {
+      const connection = await this.getOrCreateConnection(username, slug);
+
+      connection.doc.transact(() => {
+        connection.generatorsArray.delete(0, connection.generatorsArray.length);
+        connection.generatorsArray.insert(0, generators);
+      });
+
+      this.generators.set(generators);
+      this.logger.debug(
+        'LocalProjectElements',
+        `Saved ${generators.length} generators for ${username}/${slug}`
+      );
+    } catch (error) {
+      this.logger.error(
+        'LocalProjectElements',
+        'Failed to save generators',
         error
       );
       throw error;
@@ -645,6 +685,7 @@ export class LocalProjectElementsService {
     );
     const schemasArray = doc.getArray<ElementTypeSchema>('schemas');
     const timeSystemsArray = doc.getArray<TimeSystem>('timeSystems');
+    const generatorsArray = doc.getArray<Generator>('generators');
     const elementTagsArray = doc.getArray<ElementTag>('elementTags');
     const customTagsArray = doc.getArray<TagDefinition>('customTags');
     const mediaTagsArray = doc.getArray<MediaTag>('mediaTags');
@@ -675,6 +716,10 @@ export class LocalProjectElementsService {
 
     timeSystemsArray.observe(() => {
       this.timeSystems.set(timeSystemsArray.toArray());
+    });
+
+    generatorsArray.observe(() => {
+      this.generators.set(generatorsArray.toArray());
     });
 
     elementTagsArray.observe(() => {
@@ -712,6 +757,7 @@ export class LocalProjectElementsService {
       customTypesArray,
       schemasArray,
       timeSystemsArray,
+      generatorsArray,
       elementTagsArray,
       customTagsArray,
       mediaTagsArray,

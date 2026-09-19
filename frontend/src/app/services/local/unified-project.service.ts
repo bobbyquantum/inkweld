@@ -400,6 +400,15 @@ export class UnifiedProjectService {
       );
     }
 
+    // Import generators
+    if (archive.generators && archive.generators.length > 0) {
+      await this.localElements.saveGenerators(
+        username,
+        slug,
+        archive.generators
+      );
+    }
+
     // Import custom tags from template
     if (archive.tags.length > 0) {
       await this.localElements.saveCustomTags(username, slug, archive.tags);

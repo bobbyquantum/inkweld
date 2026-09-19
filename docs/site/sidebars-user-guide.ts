@@ -71,6 +71,7 @@ const sidebars: SidebarsConfig = {
         'worldbuilding/canvas',
         'worldbuilding/interactive-maps',
         'worldbuilding/timeline',
+        'worldbuilding/generators',
       ],
     },
     {

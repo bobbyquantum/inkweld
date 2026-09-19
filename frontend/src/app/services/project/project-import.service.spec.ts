@@ -45,6 +45,7 @@ async function createTestArchive(archive: ProjectArchive): Promise<File> {
   zip.file('schemas.json', JSON.stringify(archive.schemas));
   zip.file('relationships.json', JSON.stringify(archive.relationships));
   zip.file('time-systems.json', JSON.stringify(archive.timeSystems ?? []));
+  zip.file('generators.json', JSON.stringify(archive.generators ?? []));
   zip.file(
     'relationship-types.json',
     JSON.stringify(archive.customRelationshipTypes)
@@ -579,6 +580,45 @@ describe('ProjectImportService', () => {
           expect.objectContaining({ id: 'ts-1', name: 'Gregorian' }),
         ])
       );
+    });
+
+    it('should import generators', async () => {
+      const archiveWithGenerators: ProjectArchive = {
+        ...mockArchive,
+        generators: [
+          {
+            id: 'gen-1',
+            name: 'Character names',
+            icon: 'casino',
+            description: '',
+            category: 'names',
+            template: '#first#',
+            rules: [{ key: 'first', entries: [{ text: 'Aldric' }] }],
+          },
+        ],
+      };
+      const file = await createTestArchive(archiveWithGenerators);
+
+      await service.importProject(file, { slug: 'imported-project' });
+
+      expect(localElements.saveGenerators).toHaveBeenCalledWith(
+        'testuser',
+        'imported-project',
+        expect.arrayContaining([
+          expect.objectContaining({ id: 'gen-1', name: 'Character names' }),
+        ])
+      );
+    });
+
+    it('skips generators for archives written before they existed', async () => {
+      const file = await createTestArchive({
+        ...mockArchive,
+        generators: undefined,
+      });
+
+      await service.importProject(file, { slug: 'imported-project' });
+
+      expect(localElements.saveGenerators).not.toHaveBeenCalled();
     });
 
     it('should import relationships', async () => {

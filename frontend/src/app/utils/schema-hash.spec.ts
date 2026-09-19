@@ -67,6 +67,22 @@ describe('schema-hash utils', () => {
       expect(schemaContentHash(bumped)).toBe(schemaContentHash(base));
     });
 
+    it('changes when a name generator is bound', () => {
+      const base = makeSchema();
+      const bound = makeSchema({ nameGeneratorId: 'gen-1' });
+      expect(schemaContentHash(bound)).not.toBe(schemaContentHash(base));
+    });
+
+    it('is unchanged for schemas that bind no name generator', () => {
+      // `nameGeneratorId` joined `schemaContent` after elements already held
+      // copies of their schema; an undefined value must hash exactly as it
+      // did before, or every existing element would report schema drift.
+      const withUndefined = makeSchema({ nameGeneratorId: undefined });
+      expect(schemaContentHash(withUndefined)).toBe(
+        schemaContentHash(makeSchema())
+      );
+    });
+
     it('ignores the id so a clone with the same shape hashes equal', () => {
       expect(schemaContentHash(makeSchema({ id: 'other' }))).toBe(
         schemaContentHash(makeSchema())
