@@ -13,8 +13,8 @@
 import { type Page } from '@playwright/test';
 
 import { pressShortcut } from '../common';
+import { openProjectFromGrid } from '../common/test-helpers';
 import { expect, test } from './fixtures';
-
 /**
  * Open the project, create a new document with the given name, and focus
  * the ngx-editor inside it. Returns the editor locator for convenience.
@@ -30,7 +30,7 @@ async function openProjectAndCreateDocument(
   // Project may already be open from a previous step; only click the card
   // if we're still on the project list.
   if (await page.getByTestId('project-card').first().isVisible()) {
-    await page.getByTestId('project-card').first().click();
+    await openProjectFromGrid(page);
   }
   await expect(page.getByTestId('project-tree')).toBeVisible();
 

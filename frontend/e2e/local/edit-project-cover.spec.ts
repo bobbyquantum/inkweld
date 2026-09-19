@@ -15,7 +15,11 @@
  * This test drives the real UI end-to-end: pick an image from the media
  * library and the crop view MUST render while the dialog stays open.
  */
-import { DEMO_ASSETS, storeRealMediaInIndexedDB } from '../common/test-helpers';
+import {
+  DEMO_ASSETS,
+  openProjectFromGrid,
+  storeRealMediaInIndexedDB,
+} from '../common/test-helpers';
 import { expect, test } from './fixtures';
 
 test.describe('Edit Project Dialog - select cover from library', () => {
@@ -46,7 +50,7 @@ test.describe('Edit Project Dialog - select cover from library', () => {
     });
 
     await test.step('open the edit project dialog from the project home tab', async () => {
-      await page.getByTestId('project-card').first().click();
+      await openProjectFromGrid(page);
       await page.waitForURL(/\/.+\/.+/);
       await page.waitForLoadState('domcontentloaded');
 

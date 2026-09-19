@@ -1,5 +1,5 @@
+import { openProjectFromGrid } from '../common/test-helpers';
 import { expect, openUserSettings, test } from './fixtures';
-
 /**
  * Interactive Tutorial (guided tour) Tests - Local Mode
  *
@@ -119,7 +119,7 @@ test.describe('Interactive Tutorial', () => {
     await expect(page.getByTestId('tutorial-overlay')).toHaveCount(0);
 
     // The workspace tour has never been seen, and is not offered either
-    await page.getByTestId('project-card').first().click();
+    await openProjectFromGrid(page);
     await page.waitForURL(/testuser.*test-project/);
     await expect(page.getByTestId('project-tree')).toBeVisible();
     await expect(page.getByTestId('tutorial-overlay')).toHaveCount(0);
@@ -149,7 +149,7 @@ test.describe('Interactive Tutorial', () => {
     localPageWithProject: page,
   }) => {
     // Open the project
-    await page.getByTestId('project-card').first().click();
+    await openProjectFromGrid(page);
     await page.waitForURL(/testuser.*test-project/);
 
     // Auto-start is off in fixtures; use the account menu

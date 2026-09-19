@@ -14,7 +14,10 @@
  */
 import { type Page } from '@playwright/test';
 
-import { waitForElementsDocPersisted } from '../common/test-helpers';
+import {
+  openProjectFromGrid,
+  waitForElementsDocPersisted,
+} from '../common/test-helpers';
 import { expect, test } from './fixtures';
 
 test.describe('Local Publishing Workflow', () => {
@@ -142,7 +145,7 @@ test.describe('Local Publishing Workflow', () => {
     localPageWithProject: page,
   }) => {
     // Open project and navigate to Publishing tab
-    await page.getByTestId('project-card').first().click();
+    await openProjectFromGrid(page);
     await page.waitForURL(/\/.+\/.+/);
     await navigateToPublishingTab(page);
 
@@ -207,7 +210,7 @@ test.describe('Local Publishing Workflow', () => {
     });
 
     // Open project, create a doc, and open a publish plan
-    await page.getByTestId('project-card').first().click();
+    await openProjectFromGrid(page);
     await page.waitForURL(/\/.+\/.+/);
     await createDocumentElement(page, 'TestDoc');
     await navigateToPublishingTab(page);
@@ -333,7 +336,7 @@ test.describe('Local Publishing Workflow', () => {
     localPageWithProject: page,
   }) => {
     // Open project and create a folder + two documents
-    await page.getByTestId('project-card').first().click();
+    await openProjectFromGrid(page);
     await page.waitForURL(/\/.+\/.+/);
 
     await createFolderElement(page, 'TestFolder');

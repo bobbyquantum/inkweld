@@ -928,9 +928,9 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Open a project from its card, with the cover-opening transition running
-   * from where the card sits. The overlay declines to play (and this is just a
-   * navigation) when the user has asked for reduced motion.
+   * Pick a project up off the grid: its cover is lifted out and shown beside
+   * the project's details, and opening it is a second, deliberate step. With
+   * no card to lift — nothing to measure — this is a plain navigation.
    */
   private openProject(project: Project, event: Event): void {
     const card =
@@ -939,7 +939,7 @@ export class HomeComponent implements OnInit, OnDestroy {
       void this.selectProject(project);
       return;
     }
-    this.coverOpen.open(card, project, () => this.selectProject(project));
+    this.coverOpen.select(card, project, () => this.selectProject(project));
   }
 
   /** Navigate to a project. Resolves to whether the project page was reached. */

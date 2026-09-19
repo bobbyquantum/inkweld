@@ -12,8 +12,8 @@
  */
 import { type Page } from '@playwright/test';
 
+import { openProjectFromGrid } from '../common/test-helpers';
 import { expect, test } from './fixtures';
-
 /** Create a Character element from the project home screen. */
 async function createCharacter(page: Page, name: string): Promise<void> {
   await page.getByTestId('create-new-element').click();
@@ -52,7 +52,7 @@ test.describe('Relationship fields', () => {
     localPageWithProject: page,
   }) => {
     await test.step('create two characters to link', async () => {
-      await page.getByTestId('project-card').first().click();
+      await openProjectFromGrid(page);
       await expect(page).toHaveURL(/\/.+\/.+/);
       await createCharacter(page, 'Alice');
       await createCharacter(page, 'Maria');

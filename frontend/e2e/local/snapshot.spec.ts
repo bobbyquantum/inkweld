@@ -13,14 +13,14 @@
  */
 import { type Page } from '@playwright/test';
 
+import { openProjectFromGrid } from '../common/test-helpers';
 import { expect, test } from './fixtures';
-
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
 async function openProject(page: Page): Promise<void> {
-  await page.getByTestId('project-card').first().click();
+  await openProjectFromGrid(page);
   await expect(page).toHaveURL(/\/.+\/.+/);
 }
 
@@ -313,7 +313,7 @@ test.describe('Auto-Snapshots', () => {
     await page.getByTestId('sidebar-exit-button').click();
     await page.waitForURL('/');
 
-    await page.getByTestId('project-card').first().click();
+    await openProjectFromGrid(page);
     await expect(page).toHaveURL(/\/.+\/.+/);
     await page.getByTestId('element-Auto Snapshot Doc').click();
 

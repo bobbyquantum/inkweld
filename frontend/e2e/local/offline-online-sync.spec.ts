@@ -23,8 +23,8 @@
 
 import { type Page } from '@playwright/test';
 
+import { openProjectFromGrid } from '../common/test-helpers';
 import { expect, test } from './fixtures';
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
@@ -129,7 +129,7 @@ test.describe('Offline Mode - Element Availability', () => {
   test('element tree, documents, worldbuilding, folders are all available offline', async ({
     localPageWithProject: page,
   }) => {
-    await page.getByTestId('project-card').first().click();
+    await openProjectFromGrid(page);
     await page.waitForURL(/\/.+\/.+/);
 
     await test.step('element tree shows default README', async () => {
@@ -207,7 +207,7 @@ test.describe('Local Document Creation - IndexedDB Storage', () => {
   test('document, worldbuilding, and tree data persist to IndexedDB', async ({
     localPageWithProject: page,
   }) => {
-    await page.getByTestId('project-card').first().click();
+    await openProjectFromGrid(page);
     await page.waitForURL(/\/.+\/.+/);
 
     await test.step('document content is stored in IndexedDB', async () => {
@@ -280,7 +280,7 @@ test.describe('Unsynchronized Document Detection', () => {
   test('availability detection: phantom IDs, deletion, empty editors, and synced warnings', async ({
     localPageWithProject: page,
   }) => {
-    await page.getByTestId('project-card').first().click();
+    await openProjectFromGrid(page);
     await page.waitForURL(/\/.+\/.+/);
 
     await test.step('phantom doc IDs are detected as unavailable; real ones available', async () => {

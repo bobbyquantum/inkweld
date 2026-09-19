@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import { expect, type Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 
 /**
  * Asserts that the dialog containing the given test id fits the viewport:
@@ -867,4 +867,23 @@ export async function dismissToastIfPresent(page: Page): Promise<void> {
   } catch {
     // No toast present or timed out — that's fine
   }
+}
+
+/**
+ * Open a project from the home grid.
+ *
+ * Clicking a card does not open it: the cover is lifted out and shown beside
+ * the project's details, and a second, deliberate press takes you in. Tests
+ * that just want to be inside the project go through this.
+ *
+ * `card` defaults to the first one in the grid; pass a locator to pick
+ * another.
+ */
+export async function openProjectFromGrid(
+  page: Page,
+  card?: Locator
+): Promise<void> {
+  const target = card ?? page.getByTestId('project-card').first();
+  await target.click();
+  await page.getByTestId('cover-open-begin').click();
 }

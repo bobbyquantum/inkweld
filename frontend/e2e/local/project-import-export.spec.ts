@@ -13,8 +13,8 @@ import JSZip from 'jszip';
 import * as os from 'os';
 import * as path from 'path';
 
+import { openProjectFromGrid } from '../common/test-helpers';
 import { expect, test } from './fixtures';
-
 const tmpDir = os.tmpdir();
 
 /**
@@ -32,7 +32,7 @@ async function openActionsTab(page: Page): Promise<void> {
  */
 async function openProject(page: Page): Promise<void> {
   if (await page.getByTestId('project-card').first().isVisible()) {
-    await page.getByTestId('project-card').first().click();
+    await openProjectFromGrid(page);
   }
   await expect(page.getByTestId('project-tree')).toBeVisible();
 }

@@ -8,8 +8,8 @@
  */
 import { type Page } from '@playwright/test';
 
+import { openProjectFromGrid } from '../common/test-helpers';
 import { expect, test } from './fixtures';
-
 /**
  * Open a project, create a fresh document, and leave the editor focused.
  */
@@ -17,7 +17,7 @@ async function createDocumentAndFocus(
   page: Page,
   docName: string
 ): Promise<void> {
-  await page.getByTestId('project-card').first().click();
+  await openProjectFromGrid(page);
   await expect(page.getByTestId('project-tree')).toBeVisible();
 
   const newDocButton = page.getByTestId('create-new-element');
