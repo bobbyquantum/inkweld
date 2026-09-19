@@ -28,6 +28,29 @@ async function runNavigation(): Promise<void> {
   await vi.advanceTimersByTimeAsync(COVER_VEIL_MS);
 }
 
+/**
+ * Run `body` with the platform asking for reduced motion.
+ *
+ * The replacement is built from the suite's own `matchMedia` mock so it keeps
+ * the whole MediaQueryList shape: the CDK's BreakpointObserver calls the
+ * deprecated `addListener` on whatever comes back, and because the suite
+ * shares one environment across spec files, a stub missing it takes down
+ * unrelated work that happens to be in flight. It is put back immediately
+ * rather than left to the global teardown, for the same reason.
+ */
+function withReducedMotion(body: () => void): void {
+  const matchMedia = globalThis.matchMedia;
+  vi.stubGlobal('matchMedia', (query: string) => ({
+    ...matchMedia(query),
+    matches: query.includes('prefers-reduced-motion'),
+  }));
+  try {
+    body();
+  } finally {
+    vi.unstubAllGlobals();
+  }
+}
+
 describe('ProjectCoverOpenService', () => {
   let service: ProjectCoverOpenService;
 
@@ -147,15 +170,9 @@ describe('ProjectCoverOpenService', () => {
   });
 
   it('navigates without a cover when the user asked for reduced motion', () => {
-    vi.stubGlobal('matchMedia', (query: string) => ({
-      matches: query.includes('reduced-motion'),
-      media: query,
-      addEventListener: () => {},
-      removeEventListener: () => {},
-    }));
     const navigate = vi.fn(() => Promise.resolve(true));
 
-    service.open(makeCard(), PROJECT, navigate);
+    withReducedMotion(() => service.open(makeCard(), PROJECT, navigate));
 
     expect(service.request()).toBeNull();
     expect(navigate).toHaveBeenCalledTimes(1);
