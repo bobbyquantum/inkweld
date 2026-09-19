@@ -29,6 +29,10 @@ import { AdminListPendingUsers200ResponseInner } from '../model/admin-list-pendi
 // @ts-ignore
 import { AdminSetUserAdminRequest } from '../model/admin-set-user-admin-request';
 // @ts-ignore
+import { AdminSetUserQuota200Response } from '../model/admin-set-user-quota200-response';
+// @ts-ignore
+import { AdminSetUserQuotaRequest } from '../model/admin-set-user-quota-request';
+// @ts-ignore
 import { AdminUpdateAnnouncementRequest } from '../model/admin-update-announcement-request';
 // @ts-ignore
 import { AdminUserProjects } from '../model/admin-user-projects';
@@ -1686,6 +1690,134 @@ export class AdminService extends BaseService {
       {
         context: localVarHttpContext,
         body: adminSetUserAdminRequest,
+        responseType: <any>responseType_,
+        ...(withCredentials ? { withCredentials } : {}),
+        headers: localVarHeaders,
+        observe: observe,
+        ...(localVarTransferCache !== undefined
+          ? { transferCache: localVarTransferCache }
+          : {}),
+        reportProgress: reportProgress,
+      }
+    );
+  }
+
+  /**
+   * Set a user sync-capacity override
+   * Grant or adjust an individual storage allowance in bytes (admin only). Send &#x60;null&#x60; to clear the override and fall back to the instance default.
+   * @endpoint patch /api/v1/admin/users/{userId}/quota
+   * @param userId User ID
+   * @param adminSetUserQuotaRequest
+   * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
+   * @param reportProgress flag to report request and response progress.
+   */
+  public adminSetUserQuota(
+    userId: string,
+    adminSetUserQuotaRequest?: AdminSetUserQuotaRequest,
+    observe?: 'body',
+    reportProgress?: boolean,
+    options?: {
+      httpHeaderAccept?: 'application/json';
+      context?: HttpContext;
+      transferCache?: boolean;
+    }
+  ): Observable<AdminSetUserQuota200Response>;
+  public adminSetUserQuota(
+    userId: string,
+    adminSetUserQuotaRequest?: AdminSetUserQuotaRequest,
+    observe?: 'response',
+    reportProgress?: boolean,
+    options?: {
+      httpHeaderAccept?: 'application/json';
+      context?: HttpContext;
+      transferCache?: boolean;
+    }
+  ): Observable<HttpResponse<AdminSetUserQuota200Response>>;
+  public adminSetUserQuota(
+    userId: string,
+    adminSetUserQuotaRequest?: AdminSetUserQuotaRequest,
+    observe?: 'events',
+    reportProgress?: boolean,
+    options?: {
+      httpHeaderAccept?: 'application/json';
+      context?: HttpContext;
+      transferCache?: boolean;
+    }
+  ): Observable<HttpEvent<AdminSetUserQuota200Response>>;
+  public adminSetUserQuota(
+    userId: string,
+    adminSetUserQuotaRequest?: AdminSetUserQuotaRequest,
+    observe: any = 'body',
+    reportProgress: boolean = false,
+    options?: {
+      httpHeaderAccept?: 'application/json';
+      context?: HttpContext;
+      transferCache?: boolean;
+    }
+  ): Observable<any> {
+    if (userId === null || userId === undefined) {
+      throw new Error(
+        'Required parameter userId was null or undefined when calling adminSetUserQuota.'
+      );
+    }
+
+    let localVarHeaders = this.defaultHeaders;
+
+    // authentication (bearerAuth) required
+    localVarHeaders = this.configuration.addCredentialToHeaders(
+      'bearerAuth',
+      'Authorization',
+      localVarHeaders,
+      'Bearer '
+    );
+
+    const localVarHttpHeaderAcceptSelected: string | undefined =
+      options?.httpHeaderAccept ??
+      this.configuration.selectHeaderAccept(['application/json']);
+    if (localVarHttpHeaderAcceptSelected !== undefined) {
+      localVarHeaders = localVarHeaders.set(
+        'Accept',
+        localVarHttpHeaderAcceptSelected
+      );
+    }
+
+    const localVarHttpContext: HttpContext =
+      options?.context ?? new HttpContext();
+
+    const localVarTransferCache: boolean = options?.transferCache ?? true;
+
+    // to determine the Content-Type header
+    const consumes: string[] = ['application/json'];
+    const httpContentTypeSelected: string | undefined =
+      this.configuration.selectHeaderContentType(consumes);
+    if (httpContentTypeSelected !== undefined) {
+      localVarHeaders = localVarHeaders.set(
+        'Content-Type',
+        httpContentTypeSelected
+      );
+    }
+
+    let responseType_: 'text' | 'json' | 'blob' = 'json';
+    if (localVarHttpHeaderAcceptSelected) {
+      if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
+        responseType_ = 'text';
+      } else if (
+        this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)
+      ) {
+        responseType_ = 'json';
+      } else {
+        responseType_ = 'blob';
+      }
+    }
+
+    let localVarPath = `/api/v1/admin/users/${this.configuration.encodeParam({ name: 'userId', value: userId, in: 'path', style: 'simple', explode: false, dataType: 'string', dataFormat: undefined })}/quota`;
+    const { basePath, withCredentials } = this.configuration;
+    return this.httpClient.request<AdminSetUserQuota200Response>(
+      'patch',
+      `${basePath}${localVarPath}`,
+      {
+        context: localVarHttpContext,
+        body: adminSetUserQuotaRequest,
         responseType: <any>responseType_,
         ...(withCredentials ? { withCredentials } : {}),
         headers: localVarHeaders,

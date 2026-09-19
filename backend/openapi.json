@@ -722,6 +722,19 @@
           "totalBytes": {
             "type": "number",
             "description": "Sum of totalBytes across projects"
+          },
+          "syncQuotaBytes": {
+            "type": "number",
+            "nullable": true,
+            "description": "Per-user override in bytes (null = instance default)"
+          },
+          "effectiveQuotaBytes": {
+            "type": "number",
+            "description": "Allowance actually in force"
+          },
+          "instanceDefaultQuotaBytes": {
+            "type": "number",
+            "description": "Instance-wide default when no override is set"
           }
         },
         "required": [
@@ -730,7 +743,10 @@
           "projects",
           "totalDataBytes",
           "totalMediaBytes",
-          "totalBytes"
+          "totalBytes",
+          "syncQuotaBytes",
+          "effectiveQuotaBytes",
+          "instanceDefaultQuotaBytes"
         ]
       },
       "AdminProjectStorage": {

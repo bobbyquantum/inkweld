@@ -29,6 +29,14 @@ export interface User {
   profileVisibility?: ProfileVisibility;
   activityVisibility?: ProfileVisibility;
   projectsVisibility?: ProfileVisibility;
+  /**
+   * Per-user sync-capacity override in bytes (null = instance default)
+   */
+  syncQuotaBytes?: number | null;
+  /**
+   * Last-known storage usage in bytes
+   */
+  storageUsedBytes?: number;
 }
 export enum UserAuthProvider {
   Local = 'local',

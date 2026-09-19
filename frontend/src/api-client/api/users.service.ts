@@ -35,6 +35,8 @@ import { ProfileActivityYear } from '../model/profile-activity-year';
 // @ts-ignore
 import { ProfileBackground } from '../model/profile-background';
 // @ts-ignore
+import { StorageUsage } from '../model/storage-usage';
+// @ts-ignore
 import { UpdateProfileRequest } from '../model/update-profile-request';
 // @ts-ignore
 import { User } from '../model/user';
@@ -447,6 +449,106 @@ export class UsersService extends BaseService {
         : {}),
       reportProgress: reportProgress,
     });
+  }
+
+  /**
+   * Get sync-capacity usage for the current user
+   * Authoritative storage usage across the caller’s projects plus their effective allowance. Used by the account settings and dashboard meters.
+   * @endpoint get /api/v1/users/me/storage
+   * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
+   * @param reportProgress flag to report request and response progress.
+   */
+  public getMyStorageUsage(
+    observe?: 'body',
+    reportProgress?: boolean,
+    options?: {
+      httpHeaderAccept?: 'application/json';
+      context?: HttpContext;
+      transferCache?: boolean;
+    }
+  ): Observable<StorageUsage>;
+  public getMyStorageUsage(
+    observe?: 'response',
+    reportProgress?: boolean,
+    options?: {
+      httpHeaderAccept?: 'application/json';
+      context?: HttpContext;
+      transferCache?: boolean;
+    }
+  ): Observable<HttpResponse<StorageUsage>>;
+  public getMyStorageUsage(
+    observe?: 'events',
+    reportProgress?: boolean,
+    options?: {
+      httpHeaderAccept?: 'application/json';
+      context?: HttpContext;
+      transferCache?: boolean;
+    }
+  ): Observable<HttpEvent<StorageUsage>>;
+  public getMyStorageUsage(
+    observe: any = 'body',
+    reportProgress: boolean = false,
+    options?: {
+      httpHeaderAccept?: 'application/json';
+      context?: HttpContext;
+      transferCache?: boolean;
+    }
+  ): Observable<any> {
+    let localVarHeaders = this.defaultHeaders;
+
+    // authentication (bearerAuth) required
+    localVarHeaders = this.configuration.addCredentialToHeaders(
+      'bearerAuth',
+      'Authorization',
+      localVarHeaders,
+      'Bearer '
+    );
+
+    const localVarHttpHeaderAcceptSelected: string | undefined =
+      options?.httpHeaderAccept ??
+      this.configuration.selectHeaderAccept(['application/json']);
+    if (localVarHttpHeaderAcceptSelected !== undefined) {
+      localVarHeaders = localVarHeaders.set(
+        'Accept',
+        localVarHttpHeaderAcceptSelected
+      );
+    }
+
+    const localVarHttpContext: HttpContext =
+      options?.context ?? new HttpContext();
+
+    const localVarTransferCache: boolean = options?.transferCache ?? true;
+
+    let responseType_: 'text' | 'json' | 'blob' = 'json';
+    if (localVarHttpHeaderAcceptSelected) {
+      if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
+        responseType_ = 'text';
+      } else if (
+        this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)
+      ) {
+        responseType_ = 'json';
+      } else {
+        responseType_ = 'blob';
+      }
+    }
+
+    let localVarPath = `/api/v1/users/me/storage`;
+    const { basePath, withCredentials } = this.configuration;
+    return this.httpClient.request<StorageUsage>(
+      'get',
+      `${basePath}${localVarPath}`,
+      {
+        context: localVarHttpContext,
+        responseType: <any>responseType_,
+        ...(withCredentials ? { withCredentials } : {}),
+        headers: localVarHeaders,
+        observe: observe,
+        ...(localVarTransferCache !== undefined
+          ? { transferCache: localVarTransferCache }
+          : {}),
+        reportProgress: reportProgress,
+      }
+    );
   }
 
   /**
@@ -877,9 +979,9 @@ export class UsersService extends BaseService {
 
   /**
    * List users
-   * Get a paginated list of users. Admins see all users with full details (including pending/disabled). Regular users only see active (approved+enabled) users with limited info.
+   * Get a paginated list of users. Requires authentication. Admins see all users with full details (including pending/disabled). Regular users only see active (approved+enabled) users with limited info.
    * @endpoint get /api/v1/users
-   * @param search Search by username or email
+   * @param search Search by username (admins may also match on email)
    * @param limit Number of results per page (default: 20)
    * @param offset Offset for pagination (default: 0)
    * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
@@ -1010,7 +1112,7 @@ export class UsersService extends BaseService {
 
   /**
    * Search users
-   * Search users by username or name. Admins see all users, regular users only see active users.
+   * Search users by username. Requires authentication. Admins see all users and may also match on email; regular users only see active users.
    * @endpoint get /api/v1/users/search
    * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
    * @param reportProgress flag to report request and response progress.
