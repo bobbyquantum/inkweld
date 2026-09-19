@@ -107,8 +107,10 @@
   transition: transform var(--cover-open-turn) cubic-bezier(0.5, 0.02, 0.3, 1);
   will-change: transform;
 
+  // Negative, so the free edge lifts towards the reader on its way over
+  // rather than dropping away into the screen.
   .cover-open--turning & {
-    transform: rotateY(180deg);
+    transform: rotateY(-180deg);
   }
 }
 
