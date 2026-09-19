@@ -361,25 +361,25 @@
       }
     }
 
-    .identity-content {
-      flex-direction: column !important;
-      flex-wrap: nowrap !important;
-      gap: 16px !important;
+    // Only stack the identity panel where its image is a full-width square.
+    // Below 760px the panel puts the (64px) image and the name on one row,
+    // and this accordion is the layout used at exactly those widths — forcing
+    // a column here left the small icon stranded on its own row.
+    @media (min-width: 760px) {
+      .identity-content {
+        flex-direction: column !important;
+        flex-wrap: nowrap !important;
+        gap: 16px !important;
 
-      .image-section {
-        flex: initial !important;
-        max-width: 400px;
-      }
+        .image-section {
+          flex: initial !important;
+          max-width: 400px;
+        }
 
-      .name-section {
-        flex: initial !important;
-        min-width: initial !important;
-      }
-
-      .description-section,
-      .tags-section {
-        flex: initial !important;
-        max-width: 100%;
+        .name-section {
+          flex: initial !important;
+          min-width: initial !important;
+        }
       }
     }
   }
