@@ -3,7 +3,7 @@ import {
   Component,
   computed,
   effect,
-  type ElementRef,
+  ElementRef,
   inject,
   type OnDestroy,
   signal,
@@ -205,8 +205,14 @@ export class ProjectCoverOpenComponent implements OnDestroy {
     () => this.phase() === 'selected' && (this.geometry()?.hasDetails ?? false)
   );
 
-  private readonly beginButton =
-    viewChild<ElementRef<HTMLButtonElement>>('beginButton');
+  /**
+   * Read as an ElementRef: the button carries `mat-flat-button`, and without
+   * this the query hands back that directive instead of the element.
+   */
+  private readonly beginButton = viewChild<
+    unknown,
+    ElementRef<HTMLButtonElement>
+  >('beginButton', { read: ElementRef });
 
   /** Identifies the running animation, so a superseded one stops stepping. */
   private run = 0;
@@ -224,11 +230,11 @@ export class ProjectCoverOpenComponent implements OnDestroy {
           return;
         }
         if (stage === 'selecting' && this.phase() === 'closed') {
-          void this.lift(request);
+          this.play(this.lift(request));
         } else if (stage === 'opening' && this.phase() === 'selected') {
-          void this.turn();
+          this.play(this.turn());
         } else if (stage === 'returning' && this.phase() === 'selected') {
-          void this.returnToCard();
+          this.play(this.returnToCard());
         }
       });
     });
@@ -236,6 +242,18 @@ export class ProjectCoverOpenComponent implements OnDestroy {
 
   ngOnDestroy(): void {
     this.stop();
+  }
+
+  /**
+   * Run one step of the transition. A step that throws must not take the
+   * overlay down with it, and must not surface as an unhandled rejection:
+   * this is decoration over a page the reader has already asked for.
+   */
+  private play(step: Promise<void>): void {
+    void step.catch((error: unknown) => {
+      console.warn('[ProjectCoverOpen] transition step failed:', error);
+      this.coverOpen.finish();
+    });
   }
 
   /** Go in. Also what a click anywhere over the overlay does. */
