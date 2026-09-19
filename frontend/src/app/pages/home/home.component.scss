@@ -99,7 +99,9 @@
   text-align: center;
   padding: 40px 20px;
 
-  mat-icon {
+  // The state's own illustration, which is always a direct child. Matching
+  // every descendant icon blew the retry button's `refresh` up to 64px too.
+  > mat-icon {
     font-size: 64px;
     height: 64px;
     width: 64px;
