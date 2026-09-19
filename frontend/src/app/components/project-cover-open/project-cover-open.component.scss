@@ -27,7 +27,9 @@
 .cover-open__veil {
   position: absolute;
   inset: 0;
-  background: #000;
+  // The app's own surface rather than a flat black, so the overlay is light
+  // or dark with the rest of it.
+  background: var(--sys-surface, #000);
   opacity: 0;
   transition: opacity var(--cover-open-veil) ease-out;
 
@@ -51,10 +53,10 @@
   top: 12px;
   right: 12px;
   z-index: 2;
-  color: #fff;
+  color: var(--sys-on-surface, #fff);
   // It can land over the cover itself where the screen is narrow, so it
   // carries its own backing rather than relying on the veil behind it.
-  background: rgba(0, 0, 0, 0.45);
+  background: var(--sys-surface-container-high, rgba(0, 0, 0, 0.45));
   backdrop-filter: blur(2px);
   opacity: 0;
   transition: opacity var(--cover-open-rise) ease-out;
@@ -232,7 +234,7 @@
   gap: 16px;
   padding: 48px clamp(32px, 6vw, 96px);
   box-sizing: border-box;
-  color: #fff;
+  color: var(--sys-on-surface, #fff);
   opacity: 0;
   transform: translateY(12px);
   transition:
@@ -266,7 +268,7 @@
   gap: 12px;
   padding: 24px 20px 16px;
   box-sizing: border-box;
-  color: #fff;
+  color: var(--sys-on-surface, #fff);
   text-align: center;
   opacity: 0;
   transition: opacity var(--cover-open-rise) ease-out;
@@ -291,7 +293,7 @@
   font-size: 0.95rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--sys-on-surface-variant, rgba(255, 255, 255, 0.7));
 }
 
 .cover-open__heading {
@@ -307,7 +309,7 @@
   max-width: 46ch;
   font-size: 1.05rem;
   line-height: 1.6;
-  color: rgba(255, 255, 255, 0.82);
+  color: var(--sys-on-surface-variant, rgba(255, 255, 255, 0.82));
   // Long descriptions must not push the button off the screen.
   overflow: hidden;
   display: -webkit-box;
