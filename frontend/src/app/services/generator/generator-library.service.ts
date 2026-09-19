@@ -119,7 +119,7 @@ export class GeneratorLibraryService {
   rollOne(id: string | undefined, options: RollOptions = {}): string | null {
     const [result] = this.roll(id, { ...options, count: 1 });
     const text = result?.text.trim();
-    return text ? text : null;
+    return text || null;
   }
 
   /**

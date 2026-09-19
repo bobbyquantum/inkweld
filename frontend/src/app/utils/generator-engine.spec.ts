@@ -316,7 +316,7 @@ describe('generator-engine', () => {
           },
           { key: 'chunk', entries: [{ text: '0123456789' }] },
         ]);
-        expect(rollOnce(generator).length).toBe(MAX_OUTPUT_LENGTH);
+        expect(rollOnce(generator)).toHaveLength(MAX_OUTPUT_LENGTH);
       });
     });
 

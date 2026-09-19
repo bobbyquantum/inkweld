@@ -47,7 +47,7 @@ export const MAX_EXPANSION_CHARS = MAX_OUTPUT_LENGTH * 4;
  * Matches a reference: `#key#`, optionally followed by dot-separated
  * modifiers such as `#key.capitalize.a#`.
  */
-const REFERENCE_PATTERN = /#([a-zA-Z][a-zA-Z0-9_]*)((?:\.[a-zA-Z]+)*)#/g;
+const REFERENCE_PATTERN = /#([a-zA-Z]\w*)((?:\.[a-zA-Z]+)*)#/g;
 
 /**
  * Modifiers a reference may apply to its expanded text.
@@ -187,21 +187,45 @@ export function rollGenerator(
  * resolve to nothing, and rules whose every path recurses forever.
  */
 export function validateGenerator(generator: Generator): GeneratorIssue[] {
-  // Severity is derived from the code once, at the end, so each push below
-  // only has to say what is wrong.
-  const issues: Omit<GeneratorIssue, 'severity'>[] = [];
-  const generatorRules = rulesOf(generator);
+  const rules = rulesOf(generator);
   const template = templateOf(generator);
 
-  if (template.trim().length === 0) {
-    issues.push({
+  // Severity is derived from the code once, at the end, so each check below
+  // only has to say what is wrong.
+  const issues: RawIssue[] = [
+    ...templateIssues(template),
+    ...ruleIssues(rules),
+    ...referenceIssues(template, rules),
+    ...terminationIssues(rules),
+  ];
+
+  return issues.map(issue => ({
+    ...issue,
+    severity: WARNING_CODES.has(issue.code)
+      ? ('warning' as const)
+      : ('error' as const),
+  }));
+}
+
+/** An issue before its severity is derived from the code. */
+type RawIssue = Omit<GeneratorIssue, 'severity'>;
+
+function templateIssues(template: string): RawIssue[] {
+  if (template.trim().length > 0) return [];
+  return [
+    {
       code: 'empty-template',
       message: 'The template is empty, so every roll produces nothing.',
-    });
-  }
+    },
+  ];
+}
 
+/** Malformed keys, keys used twice, and rules with nothing to choose from. */
+function ruleIssues(rules: GeneratorRule[]): RawIssue[] {
+  const issues: RawIssue[] = [];
   const seenKeys = new Set<string>();
-  for (const rule of generatorRules) {
+
+  for (const rule of rules) {
     if (!RULE_KEY_PATTERN.test(rule.key)) {
       issues.push({
         code: 'invalid-key',
@@ -226,10 +250,15 @@ export function validateGenerator(generator: Generator): GeneratorIssue[] {
     }
   }
 
-  const known = new Set(generatorRules.map(rule => rule.key));
+  return issues;
+}
+
+/** References that resolve to no rule, and modifiers that do not exist. */
+function referenceIssues(template: string, rules: GeneratorRule[]): RawIssue[] {
+  const known = new Set(rules.map(rule => rule.key));
   const sources: { ruleKey?: string; text: string }[] = [
     { text: template },
-    ...generatorRules.flatMap(rule =>
+    ...rules.flatMap(rule =>
       usableEntries(rule).map(entry => ({
         ruleKey: rule.key,
         text: entry.text,
@@ -237,48 +266,58 @@ export function validateGenerator(generator: Generator): GeneratorIssue[] {
     ),
   ];
 
-  const reportedReferences = new Set<string>();
-  const reportedModifiers = new Set<string>();
+  const issues: RawIssue[] = [];
+  // Each bad name is reported once per rule, not once per occurrence.
+  const reported = new Set<string>();
+
   for (const source of sources) {
     for (const reference of parseReferences(source.text)) {
-      const referenceId = `${source.ruleKey ?? ''}:${reference.key}`;
-      if (!known.has(reference.key) && !reportedReferences.has(referenceId)) {
-        reportedReferences.add(referenceId);
-        issues.push({
-          code: 'unknown-reference',
-          ruleKey: source.ruleKey,
-          name: reference.key,
-          message: `#${reference.key}# does not match any rule.`,
-        });
+      if (!known.has(reference.key)) {
+        addOnce(
+          issues,
+          reported,
+          `ref:${source.ruleKey ?? ''}:${reference.key}`,
+          {
+            code: 'unknown-reference',
+            ruleKey: source.ruleKey,
+            name: reference.key,
+            message: `#${reference.key}# does not match any rule.`,
+          }
+        );
       }
       for (const modifier of reference.modifiers) {
-        const modifierId = `${source.ruleKey ?? ''}:${modifier}`;
-        if (!MODIFIERS.has(modifier) && !reportedModifiers.has(modifierId)) {
-          reportedModifiers.add(modifierId);
-          issues.push({
-            code: 'unknown-modifier',
-            ruleKey: source.ruleKey,
-            name: modifier,
-            message: `"${modifier}" is not a known modifier. Available: ${MODIFIER_NAMES.join(', ')}.`,
-          });
-        }
+        if (MODIFIERS.has(modifier)) continue;
+        addOnce(issues, reported, `mod:${source.ruleKey ?? ''}:${modifier}`, {
+          code: 'unknown-modifier',
+          ruleKey: source.ruleKey,
+          name: modifier,
+          message: `"${modifier}" is not a known modifier. Available: ${MODIFIER_NAMES.join(', ')}.`,
+        });
       }
     }
   }
 
-  for (const key of findNonTerminatingRules(generatorRules, known)) {
-    issues.push({
-      code: 'non-terminating',
-      ruleKey: key,
-      message: `Rule "${key}" always refers back to itself, so it can never finish expanding.`,
-    });
-  }
+  return issues;
+}
 
-  return issues.map(issue => ({
-    ...issue,
-    severity: WARNING_CODES.has(issue.code)
-      ? ('warning' as const)
-      : ('error' as const),
+function addOnce(
+  issues: RawIssue[],
+  reported: Set<string>,
+  id: string,
+  issue: RawIssue
+): void {
+  if (reported.has(id)) return;
+  reported.add(id);
+  issues.push(issue);
+}
+
+/** Rules whose every path recurses forever. */
+function terminationIssues(rules: GeneratorRule[]): RawIssue[] {
+  const known = new Set(rules.map(rule => rule.key));
+  return findNonTerminatingRules(rules, known).map(key => ({
+    code: 'non-terminating' as const,
+    ruleKey: key,
+    message: `Rule "${key}" always refers back to itself, so it can never finish expanding.`,
   }));
 }
 
@@ -383,7 +422,7 @@ function pickEntry(
     target -= weight;
     if (target < 0) return usable[index];
   }
-  return usable[usable.length - 1];
+  return usable.at(-1) ?? null;
 }
 
 /** Missing, non-finite and non-positive weights all behave as 1. */

@@ -80,7 +80,7 @@ export const DEFAULT_GENERATOR_ICON = 'casino';
  * restriction keeps `#ref.modifier#` parsing unambiguous — a key can never
  * contain `.` or `#`.
  */
-export const RULE_KEY_PATTERN = /^[a-zA-Z][a-zA-Z0-9_]*$/;
+export const RULE_KEY_PATTERN = /^[a-zA-Z]\w*$/;
 
 /** Creates an empty generator ready for the editor (caller supplies the id). */
 export function createEmptyGenerator(id: string): Generator {
@@ -121,19 +121,36 @@ export function parseEntryLines(text: string): GeneratorEntry[] {
     const trimmed = line.trim();
     if (trimmed.length === 0) continue;
 
-    const match = /^(.*?)\s*\|\s*(\d+(?:\.\d+)?)$/.exec(trimmed);
-    if (match && match[1].trim().length > 0) {
-      const weight = Number.parseFloat(match[2]);
-      entries.push(
-        weight === 1
-          ? { text: match[1].trim() }
-          : { text: match[1].trim(), weight }
-      );
-      continue;
-    }
-    entries.push({ text: trimmed });
+    const entry = parseEntryLine(trimmed);
+    entries.push(entry);
   }
   return entries;
+}
+
+/** Matches a weight on its own: anchored digits, so no backtracking. */
+const WEIGHT_PATTERN = /^\d+(\.\d+)?$/;
+
+/**
+ * Splits one trimmed line into its text and optional trailing weight.
+ *
+ * The split is found with `lastIndexOf` rather than a regex. Matching
+ * `^(.*?)\s*\|\s*(\d+)$` against a line with no separator retries every
+ * split point, which is quadratic — a 64,000-character entry took 2.5s —
+ * and this runs on every keystroke in the editor and on every generator
+ * loaded from the project document or an imported archive.
+ */
+function parseEntryLine(trimmed: string): GeneratorEntry {
+  const separator = trimmed.lastIndexOf('|');
+  if (separator <= 0) return { text: trimmed };
+
+  const text = trimmed.slice(0, separator).trim();
+  const weightText = trimmed.slice(separator + 1).trim();
+  if (text.length === 0 || !WEIGHT_PATTERN.test(weightText)) {
+    return { text: trimmed };
+  }
+
+  const weight = Number.parseFloat(weightText);
+  return weight === 1 ? { text } : { text, weight };
 }
 
 /** Renders entries back into the editor's one-entry-per-line text. */
