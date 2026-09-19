@@ -8,10 +8,11 @@
   position: fixed;
   inset: 0;
   z-index: 12000;
-  // The cover swings past the left edge of the screen on narrow viewports.
+  // The cover swings past the left edge of the screen.
   overflow: hidden;
-  // Swallow clicks: the page underneath is mid-change and mostly hidden.
+  // The whole surface is the way in, so it takes clicks.
   pointer-events: auto;
+  cursor: pointer;
   opacity: 1;
   transition: opacity var(--cover-open-fade) ease-out;
 
@@ -21,21 +22,16 @@
 }
 
 // Blacks out the page the cover was lifted off. It lifts again as the book
-// opens, uncovering the editor from under the turning cover.
+// opens, uncovering the editor behind it, and fades back out when the reader
+// puts the cover down.
 .cover-open__veil {
   position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  inset: 0;
   background: #000;
   opacity: 0;
-  // Slightly quicker than the veil budget the service times the page swap
-  // against: that clock starts on the click, this transition only once the
-  // cover has been drawn over the card, and the swap has to land on black.
-  transition: opacity calc(var(--cover-open-veil) * 0.8) ease-out;
+  transition: opacity var(--cover-open-veil) ease-out;
 
-  .cover-open--rising & {
+  .cover-open--lifted & {
     opacity: 1;
   }
 
@@ -43,42 +39,51 @@
     opacity: 0;
     transition: opacity calc(var(--cover-open-turn) * 0.45) ease-out;
   }
-}
 
-// The far side of the spine stays dark for the cover to turn onto — it is the
-// page that has not been opened yet. Its width is bound in the template. It
-// only takes over at the turn, when the veil above is at full black and hides
-// the handover; fading in with that veil would just darken this half twice as
-// fast as the other.
-.cover-open__veil--spine {
-  right: auto;
-
-  // Both states are instant, and both have to out-specify the rules above or
-  // this half would fade in on its own clock — dipping to grey under the veil
-  // lifting off the other half, which is exactly what it is there to prevent.
-  .cover-open--rising & {
+  .cover-open--returning & {
     opacity: 0;
-    transition: none;
-  }
-
-  .cover-open--turning & {
-    opacity: 1;
-    transition: none;
+    transition: opacity var(--cover-open-return) ease-in;
   }
 }
 
-// Where the opened cover comes to rest: the largest book of the card's shape
-// that fits beside the spine. Placed in the template.
+.cover-open__close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+  color: #fff;
+  // It can land over the cover itself where the screen is narrow, so it
+  // carries its own backing rather than relying on the veil behind it.
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(2px);
+  opacity: 0;
+  transition: opacity var(--cover-open-rise) ease-out;
+
+  .cover-open--lifted & {
+    opacity: 0.8;
+  }
+
+  .cover-open--turning &,
+  .cover-open--returning & {
+    opacity: 0;
+    transition: opacity calc(var(--cover-open-veil) * 0.6) ease-out;
+  }
+
+  &:hover {
+    opacity: 1;
+  }
+}
+
+// Where the lifted cover comes to rest. Placed in the template.
 .cover-open__stage {
   position: absolute;
-  // Look at the book from over the spine, so the cover turns symmetrically.
+  // Look at the book from over its hinge, so the cover turns on that edge
+  // rather than appearing to slide.
   perspective-origin: left center;
   transform-style: preserve-3d;
 }
 
-// Carries the cover from the card that was clicked onto the stage. Separate
-// from the leaf so the flight can scale from the card's top-left corner while
-// the turn pivots on the spine.
+// Carries the cover out of the grid, and back to it when the reader leaves.
 .cover-open__flight {
   position: absolute;
   inset: 0;
@@ -86,18 +91,24 @@
   transform-style: preserve-3d;
   transition: transform var(--cover-open-rise) cubic-bezier(0.32, 0.08, 0.24, 1);
   will-change: transform;
+
+  .cover-open--returning & {
+    transition: transform var(--cover-open-return) cubic-bezier(0.4, 0, 0.6, 1);
+  }
 }
 
 .cover-open__leaf {
   position: absolute;
   inset: 0;
+  // The left edge is the hinge, so the cover swings off the screen instead of
+  // across the details beside it.
   transform-origin: left center;
   transform-style: preserve-3d;
   transition: transform var(--cover-open-turn) cubic-bezier(0.5, 0.02, 0.3, 1);
   will-change: transform;
 
   .cover-open--turning & {
-    transform: rotateY(-180deg);
+    transform: rotateY(180deg);
   }
 }
 
@@ -110,17 +121,19 @@
   // The radius is bound in the template: it starts matching the card's and
   // squares off as the cover grows into a page.
   transition: border-radius var(--cover-open-rise) ease-out;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
 }
 
-// The inside of the cover, seen once the turn passes the spine. Its board is
-// a fixed warm dark rather than a theme surface: it has to read as the back of
-// the cover against a blacked-out page, in either theme.
+// The inside of the board. Barely seen — the cover swings off the left edge
+// rather than landing face-down on the page — so it is a plain dark board.
 .cover-open__face--back {
   transform: rotateY(180deg);
-  background-color: #3d3833;
-  background-image:
-    linear-gradient(90deg, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0) 45%),
-    linear-gradient(160deg, rgba(255, 255, 255, 0.08), rgba(0, 0, 0, 0.2));
+  background-color: #2a2622;
+  background-image: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.45),
+    rgba(0, 0, 0, 0) 55%
+  );
 }
 
 .cover-open__image {
@@ -132,8 +145,8 @@
 
 // The cover a project without artwork gets. It repeats the grid card's design
 // rather than reusing `app-project-cover`, because every length here has to
-// grow with the book: the cover is laid out at its open size, so its type is
-// set from a root size scaled to match (bound in the template) and everything
+// grow with the cover: it is laid out at its lifted size, so its type is set
+// from a root size scaled to match (bound in the template) and everything
 // else is in `em`. That is also why the card's own fixed type could not be
 // reused — and it keeps the media services out of the app shell.
 .cover-open__default {
@@ -171,8 +184,8 @@
   text-shadow: 0 0.083em 0.167em rgba(0, 0, 0, 0.5);
 }
 
-// The shadow a book gathers in its gutter. Held back while the cover is still
-// a card in the grid, where there is no gutter to shade.
+// The shadow a book gathers along its hinge. Held back while the cover is
+// still a card in the grid, where there is no hinge to shade.
 .cover-open__gutter {
   position: absolute;
   inset: 0;
@@ -185,13 +198,12 @@
   );
   transition: opacity var(--cover-open-rise) ease-out;
 
-  .cover-open--rising & {
+  .cover-open--lifted & {
     opacity: 1;
   }
 }
 
-// Light falling off the cover as it turns away, and onto the inside of the
-// cover as that turns towards the reader.
+// Light falling off the cover as it turns away from the reader.
 .cover-open__shadow {
   position: absolute;
   inset: 0;
@@ -200,14 +212,108 @@
   transition: opacity var(--cover-open-turn) ease-in;
 
   .cover-open--turning & {
-    opacity: 0.55;
+    opacity: 0.5;
   }
 }
 
-.cover-open__shadow--lifting {
-  opacity: 0.75;
+// The project beside its cover. Placed in the template, against the cover's
+// right edge.
+.cover-open__details {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 16px;
+  padding: 48px clamp(32px, 6vw, 96px);
+  box-sizing: border-box;
+  color: #fff;
+  opacity: 0;
+  transform: translateY(12px);
+  transition:
+    opacity var(--cover-open-rise) ease-out,
+    transform var(--cover-open-rise) cubic-bezier(0.32, 0.08, 0.24, 1);
 
-  .cover-open--turning & {
-    opacity: 0;
+  .cover-open--lifted & {
+    opacity: 1;
+    transform: none;
   }
+
+  // Out of the way before the cover starts moving again, either direction.
+  .cover-open--turning &,
+  .cover-open--returning & {
+    opacity: 0;
+    transform: none;
+    transition: opacity calc(var(--cover-open-veil) * 0.6) ease-out;
+  }
+}
+
+// The same, under the cover, where there is no room beside it.
+// Directly under the cover, not floating in the space below it: the button
+// belongs to the book it opens.
+.cover-open__actions {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 24px 20px 16px;
+  box-sizing: border-box;
+  color: #fff;
+  text-align: center;
+  opacity: 0;
+  transition: opacity var(--cover-open-rise) ease-out;
+
+  .cover-open--lifted & {
+    opacity: 1;
+  }
+
+  .cover-open--turning &,
+  .cover-open--returning & {
+    opacity: 0;
+    transition: opacity calc(var(--cover-open-veil) * 0.6) ease-out;
+  }
+
+  .cover-open__heading {
+    font-size: 1.25rem;
+  }
+}
+
+.cover-open__byline {
+  margin: 0;
+  font-size: 0.95rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.cover-open__heading {
+  margin: 0;
+  font-size: clamp(1.75rem, 3.2vw, 3rem);
+  font-weight: 500;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.cover-open__description {
+  margin: 0;
+  max-width: 46ch;
+  font-size: 1.05rem;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.82);
+  // Long descriptions must not push the button off the screen.
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 6;
+  line-clamp: 6;
+}
+
+.cover-open__begin {
+  margin-top: 8px;
 }

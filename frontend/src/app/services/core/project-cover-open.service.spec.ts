@@ -2,12 +2,13 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  COVER_VEIL_MS,
-  ProjectCoverOpenService,
-} from './project-cover-open.service';
+import { ProjectCoverOpenService } from './project-cover-open.service';
 
-const PROJECT = { title: 'The Salt Road', username: 'testuser' };
+const PROJECT = {
+  title: 'The Salt Road',
+  username: 'testuser',
+  description: 'A caravan master walks a drying sea.',
+};
 
 /** A card element that measures like one in the grid. */
 function makeCard(coverSrc?: string): HTMLElement {
@@ -23,41 +24,6 @@ function makeCard(coverSrc?: string): HTMLElement {
   return card;
 }
 
-/**
- * Wait for the navigation the service queues behind the veil.
- *
- * Real timers, deliberately. Faking them here would install fake timers on an
- * environment every other spec file in the shard shares, which stalls whatever
- * asynchronous work — IndexedDB especially — happens to be in flight. The wait
- * is the veil's length, a fifth of a second.
- */
-async function runNavigation(): Promise<void> {
-  await new Promise(resolve => setTimeout(resolve, COVER_VEIL_MS + 20));
-}
-
-/**
- * Run `body` with the platform asking for reduced motion.
- *
- * The replacement is built from the suite's own `matchMedia` mock so it keeps
- * the whole MediaQueryList shape: the CDK's BreakpointObserver calls the
- * deprecated `addListener` on whatever comes back, and because the suite
- * shares one environment across spec files, a stub missing it takes down
- * unrelated work that happens to be in flight. It is put back immediately
- * rather than left to the global teardown, for the same reason.
- */
-function withReducedMotion(body: () => void): void {
-  const matchMedia = globalThis.matchMedia;
-  vi.stubGlobal('matchMedia', (query: string) => ({
-    ...matchMedia(query),
-    matches: query.includes('prefers-reduced-motion'),
-  }));
-  try {
-    body();
-  } finally {
-    vi.unstubAllGlobals();
-  }
-}
-
 describe('ProjectCoverOpenService', () => {
   let service: ProjectCoverOpenService;
 
@@ -68,127 +34,165 @@ describe('ProjectCoverOpenService', () => {
     service = TestBed.inject(ProjectCoverOpenService);
   });
 
-  it('starts idle', () => {
+  it('starts with nothing picked up', () => {
     expect(service.request()).toBeNull();
   });
 
-  it('publishes the card it was given, measured where it sits', () => {
-    service.open(makeCard(), PROJECT, () => Promise.resolve(true));
+  describe('select', () => {
+    it('publishes the project and the card it was lifted from', () => {
+      service.select(makeCard(), PROJECT, () => Promise.resolve(true));
 
-    expect(service.request()).toMatchObject({
-      title: 'The Salt Road',
-      username: 'testuser',
-      coverUrl: null,
-      origin: { top: 120, left: 340, width: 200, height: 320 },
+      expect(service.request()).toMatchObject({
+        title: 'The Salt Road',
+        username: 'testuser',
+        description: 'A caravan master walks a drying sea.',
+        coverUrl: null,
+        origin: { top: 120, left: 340, width: 200, height: 320 },
+      });
+      expect(service.stage()).toBe('selecting');
+    });
+
+    it('does not navigate — that is the second step', () => {
+      const navigate = vi.fn(() => Promise.resolve(true));
+
+      service.select(makeCard(), PROJECT, navigate);
+
+      expect(navigate).not.toHaveBeenCalled();
+    });
+
+    it('carries over the cover art the card was already showing', () => {
+      service.select(makeCard('blob:http://localhost/cover-1'), PROJECT, () =>
+        Promise.resolve(true)
+      );
+
+      expect(service.request()?.coverUrl).toBe('blob:http://localhost/cover-1');
+    });
+
+    it('treats a cover image the card has hidden as no cover art', () => {
+      const card = makeCard('blob:http://localhost/broken');
+      card.querySelector('img')!.style.display = 'none';
+
+      service.select(card, PROJECT, () => Promise.resolve(true));
+
+      expect(service.request()?.coverUrl).toBeNull();
+    });
+
+    it('takes a missing description as none', () => {
+      service.select(
+        makeCard(),
+        { title: 'Nightjar', username: 'testuser' },
+        () => Promise.resolve(true)
+      );
+
+      expect(service.request()?.description).toBeNull();
+    });
+
+    it('goes straight in when the card cannot be measured', () => {
+      // Nothing to lift and nothing to animate from, so the reader should not
+      // be made to click twice.
+      const navigate = vi.fn(() => Promise.resolve(true));
+
+      service.select(document.createElement('div'), PROJECT, navigate);
+
+      expect(service.request()).toBeNull();
+      expect(navigate).toHaveBeenCalledTimes(1);
+    });
+
+    it('ignores a second project while one is already up', () => {
+      service.select(makeCard(), PROJECT, () => Promise.resolve(true));
+      const navigate = vi.fn(() => Promise.resolve(true));
+
+      service.select(
+        makeCard(),
+        { title: 'Nightjar', username: 'testuser' },
+        navigate
+      );
+
+      expect(service.request()?.title).toBe('The Salt Road');
+      expect(navigate).not.toHaveBeenCalled();
     });
   });
 
-  it('carries over the cover art the card was already showing', () => {
-    service.open(makeCard('blob:http://localhost/cover-1'), PROJECT, () =>
-      Promise.resolve(true)
-    );
+  describe('open', () => {
+    it('navigates and reports the page it is waiting for', async () => {
+      const navigate = vi.fn(() => Promise.resolve(true));
+      service.select(makeCard(), PROJECT, navigate);
 
-    expect(service.request()?.coverUrl).toBe('blob:http://localhost/cover-1');
+      service.open();
+
+      expect(service.stage()).toBe('opening');
+      expect(navigate).toHaveBeenCalledTimes(1);
+      await expect(service.pageReady).resolves.toBeUndefined();
+      expect(service.request()).not.toBeNull();
+    });
+
+    it('drops the cover when the navigation does not get there', async () => {
+      service.select(makeCard(), PROJECT, () => Promise.resolve(false));
+
+      service.open();
+      await service.pageReady?.catch(() => undefined);
+
+      expect(service.request()).toBeNull();
+    });
+
+    it('drops the cover when the navigation throws', async () => {
+      service.select(makeCard(), PROJECT, () =>
+        Promise.reject(new Error('guard'))
+      );
+
+      service.open();
+      await service.pageReady?.catch(() => undefined);
+
+      expect(service.request()).toBeNull();
+    });
+
+    it('navigates once however many times it is asked', () => {
+      const navigate = vi.fn(() => Promise.resolve(true));
+      service.select(makeCard(), PROJECT, navigate);
+
+      service.open();
+      service.open();
+
+      expect(navigate).toHaveBeenCalledTimes(1);
+    });
+
+    it('does nothing with no cover up', () => {
+      service.open();
+
+      expect(service.stage()).toBe('selecting');
+      expect(service.pageReady).toBeNull();
+    });
   });
 
-  it('treats a cover image the card has hidden as no cover art', () => {
-    const card = makeCard('blob:http://localhost/broken');
-    card.querySelector('img')!.style.display = 'none';
+  describe('dismiss', () => {
+    it('sends the cover back without navigating', () => {
+      const navigate = vi.fn(() => Promise.resolve(true));
+      service.select(makeCard(), PROJECT, navigate);
 
-    service.open(card, PROJECT, () => Promise.resolve(true));
+      service.dismiss();
 
-    expect(service.request()?.coverUrl).toBeNull();
+      expect(service.stage()).toBe('returning');
+      expect(service.request()).not.toBeNull();
+      expect(navigate).not.toHaveBeenCalled();
+    });
+
+    it('cannot call the cover back once it is opening', () => {
+      service.select(makeCard(), PROJECT, () => Promise.resolve(true));
+      service.open();
+
+      service.dismiss();
+
+      expect(service.stage()).toBe('opening');
+    });
   });
 
-  it('holds the navigation back until the veil has covered the page', async () => {
-    const navigate = vi.fn(() => Promise.resolve(true));
-
-    service.open(makeCard(), PROJECT, navigate);
-    expect(navigate).not.toHaveBeenCalled();
-
-    await runNavigation();
-    expect(navigate).toHaveBeenCalledTimes(1);
-  });
-
-  it('resolves pageReady once the project page has been reached', async () => {
-    service.open(makeCard(), PROJECT, () => Promise.resolve(true));
-    const pageReady = service.request()!.pageReady;
-    await runNavigation();
-
-    await expect(pageReady).resolves.toBeUndefined();
-    expect(service.request()).not.toBeNull();
-  });
-
-  it('drops the overlay when the navigation does not get there', async () => {
-    service.open(makeCard(), PROJECT, () => Promise.resolve(false));
-    const pageReady = service.request()!.pageReady;
-    pageReady.catch(() => undefined);
-
-    await runNavigation();
-
-    expect(service.request()).toBeNull();
-  });
-
-  it('drops the overlay when the navigation throws', async () => {
-    service.open(makeCard(), PROJECT, () => Promise.reject(new Error('guard')));
-    service.request()!.pageReady.catch(() => undefined);
-
-    await runNavigation();
-
-    expect(service.request()).toBeNull();
-  });
-
-  it('leaves a later animation alone when an earlier navigation fails', async () => {
-    service.open(makeCard(), PROJECT, () => Promise.resolve(false));
-    service.request()!.pageReady.catch(() => undefined);
-    service.finish();
-
-    const second = { title: 'Nightjar', username: 'testuser' };
-    service.open(makeCard(), second, () => Promise.resolve(true));
-    await runNavigation();
-
-    expect(service.request()?.title).toBe('Nightjar');
-  });
-
-  it('ignores a second cover while one is already opening', () => {
-    service.open(makeCard(), PROJECT, () => Promise.resolve(true));
-    const navigate = vi.fn(() => Promise.resolve(true));
-
-    service.open(
-      makeCard(),
-      { title: 'Nightjar', username: 'testuser' },
-      navigate
-    );
-
-    expect(service.request()?.title).toBe('The Salt Road');
-    // The second click still gets where it was going, just without a cover.
-    expect(navigate).toHaveBeenCalledTimes(1);
-  });
-
-  it('navigates without a cover when the card cannot be measured', () => {
-    const card = document.createElement('div');
-    const navigate = vi.fn(() => Promise.resolve(true));
-
-    service.open(card, PROJECT, navigate);
-
-    expect(service.request()).toBeNull();
-    expect(navigate).toHaveBeenCalledTimes(1);
-  });
-
-  it('navigates without a cover when the user asked for reduced motion', () => {
-    const navigate = vi.fn(() => Promise.resolve(true));
-
-    withReducedMotion(() => service.open(makeCard(), PROJECT, navigate));
-
-    expect(service.request()).toBeNull();
-    expect(navigate).toHaveBeenCalledTimes(1);
-  });
-
-  it('clears the overlay when the animation finishes', () => {
-    service.open(makeCard(), PROJECT, () => Promise.resolve(true));
+  it('clears everything when the overlay finishes', () => {
+    service.select(makeCard(), PROJECT, () => Promise.resolve(true));
 
     service.finish();
 
     expect(service.request()).toBeNull();
+    expect(service.stage()).toBe('selecting');
+    expect(service.pageReady).toBeNull();
   });
 });

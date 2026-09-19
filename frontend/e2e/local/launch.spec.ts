@@ -15,8 +15,8 @@
  * made, so opening the tab guards against surfaces (like passkey management)
  * creeping back in and calling a server that local mode does not have.
  */
+import { openProjectFromGrid } from '../common/test-helpers';
 import { expect, openUserSettings, test } from './fixtures';
-
 /** Read the active mode from the v2 (or legacy v1) config blob. */
 function getActiveMode(config: string): 'local' | 'server' | undefined {
   const parsed = JSON.parse(config);
@@ -60,7 +60,7 @@ test.describe('Local Application Launch', () => {
     });
 
     await test.step('clicking a project card opens the project tree', async () => {
-      await page.getByTestId('project-card').first().click();
+      await openProjectFromGrid(page);
       await expect(page).toHaveURL(/\/.+\/.+/);
       await expect(page.getByTestId('project-tree')).toBeVisible();
     });

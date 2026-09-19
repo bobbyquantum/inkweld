@@ -7,14 +7,14 @@
  * local-mode guard in both ConnectionStatusComponent and
  * DocumentElementEditorComponent.
  */
+import { openProjectFromGrid } from '../common/test-helpers';
 import { expect, test } from './fixtures';
-
 test.describe('Doc Stats Hover (Local Mode)', () => {
   test('hovering sync status does not leak API requests', async ({
     localPageWithProject: page,
   }) => {
     // Open a project
-    await page.getByTestId('project-card').first().click();
+    await openProjectFromGrid(page);
     await page.waitForURL(/\/testuser\//);
     await expect(page.getByTestId('project-tree')).toBeVisible();
 

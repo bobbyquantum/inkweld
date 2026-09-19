@@ -86,5 +86,10 @@
     "projects": "projects",
     "bestDay": "best day",
     "recentActivity": "Recent Activity"
+  },
+  "coverOpen": {
+    "label": "Open {{title}}",
+    "begin": "Begin",
+    "close": "Back to projects"
   }
 }

@@ -69,7 +69,7 @@ describe('HomeComponent', () => {
   let breakpointObserver: MockedObject<BreakpointObserver>;
   let httpClient: MockedObject<HttpClient>;
   let router: MockedObject<Router>;
-  let coverOpen: { open: ReturnType<typeof vi.fn> };
+  let coverOpen: { select: ReturnType<typeof vi.fn> };
   let matDialog: MockedObject<MatDialog>;
   let tutorialService: {
     start: ReturnType<typeof vi.fn>;
@@ -171,9 +171,11 @@ describe('HomeComponent', () => {
       url: '/',
     } as unknown as MockedObject<Router>;
 
-    // Stands in for the cover-opening overlay, which always navigates.
+    // Stands in for the overlay. The real one holds the navigation back until
+    // the reader goes in; the stub runs it so the existing tests still see
+    // the routing they assert on.
     coverOpen = {
-      open: vi.fn(
+      select: vi.fn(
         (
           _card: HTMLElement,
           _project: { title: string; username: string },
@@ -1226,7 +1228,7 @@ describe('HomeComponent', () => {
         );
       });
 
-      it('should open the project through the cover transition', () => {
+      it('should hand the clicked card to the cover overlay', () => {
         mockActivationService.isActivated.mockReturnValue(true);
         const card = document.createElement('button');
         card.addEventListener('click', event =>
@@ -1235,7 +1237,7 @@ describe('HomeComponent', () => {
 
         card.click();
 
-        expect(coverOpen.open).toHaveBeenCalledWith(
+        expect(coverOpen.select).toHaveBeenCalledWith(
           card,
           mockProjects[0],
           expect.any(Function)
@@ -1247,12 +1249,12 @@ describe('HomeComponent', () => {
         );
       });
 
-      it('should not play the cover transition without a card to open', () => {
+      it('should go straight in when there is no card to lift', () => {
         mockActivationService.isActivated.mockReturnValue(true);
 
         component.onProjectClick(mockProjects[0], new MouseEvent('click'));
 
-        expect(coverOpen.open).not.toHaveBeenCalled();
+        expect(coverOpen.select).not.toHaveBeenCalled();
         expect(router.navigate).toHaveBeenCalled();
       });
 

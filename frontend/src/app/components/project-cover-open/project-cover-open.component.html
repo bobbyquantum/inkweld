@@ -1,24 +1,38 @@
 @if (request(); as cover) {
   @if (geometry(); as geometry) {
+    <!-- Clicking anywhere goes in; the close button stops the click. -->
     <div
       class="cover-open"
-      [class.cover-open--rising]="isOpening()"
+      [class.cover-open--lifted]="isLifted()"
       [class.cover-open--turning]="isTurning()"
       [class.cover-open--opened]="phase() === 'opened'"
+      [class.cover-open--returning]="phase() === 'returning'"
+      [class.cover-open--narrow]="!geometry.hasDetails"
       [style.--cover-open-veil]="veilMs + 'ms'"
       [style.--cover-open-rise]="riseMs + 'ms'"
       [style.--cover-open-turn]="turnMs + 'ms'"
       [style.--cover-open-fade]="openedMs + 'ms'"
+      [style.--cover-open-return]="returnMs + 'ms'"
       [style.--cover-open-type]="geometry.typeScale"
+      role="dialog"
+      aria-modal="true"
+      [attr.aria-label]="
+        'home.coverOpen.label' | transloco: { title: cover.title }
+      "
       data-testid="project-cover-open"
-      aria-hidden="true">
-      <!-- Blacks out the page the cover was lifted off, then lifts from the
-           right-hand page as the book opens. -->
+      (click)="begin()"
+      (keydown)="onKeydown($event)">
       <div class="cover-open__veil"></div>
-      <!-- Keeps the far side of the spine dark for the cover to turn onto. -->
-      <div
-        class="cover-open__veil cover-open__veil--spine"
-        [style.width.px]="geometry.spine"></div>
+
+      <button
+        type="button"
+        mat-icon-button
+        class="cover-open__close"
+        data-testid="cover-open-close"
+        [attr.aria-label]="'home.coverOpen.close' | transloco"
+        (click)="close($event)">
+        <mat-icon>close</mat-icon>
+      </button>
 
       <div
         class="cover-open__stage"
@@ -27,16 +41,22 @@
         [style.width.px]="geometry.stageWidth"
         [style.height.px]="geometry.stageHeight"
         [style.perspective.px]="geometry.perspective">
-        <!-- Flies the cover in from the card that was clicked. -->
+        <!-- Carries the cover out of the grid and back again. -->
         <div
           class="cover-open__flight"
-          [style.transform]="phase() === 'closed' ? geometry.closed : 'none'">
-          <!-- Swings open on its left edge: the spine. -->
+          [style.transform]="
+            phase() === 'closed' || phase() === 'returning'
+              ? geometry.closed
+              : 'none'
+          ">
+          <!-- Swings open on its left edge: the hinge. -->
           <div class="cover-open__leaf">
             <div
               class="cover-open__face cover-open__face--front"
               [style.border-radius]="
-                phase() === 'closed' ? geometry.radius : '0'
+                phase() === 'closed' || phase() === 'returning'
+                  ? geometry.radius
+                  : '0'
               ">
               @if (cover.coverUrl) {
                 <img class="cover-open__image" [src]="cover.coverUrl" alt="" />
@@ -50,13 +70,50 @@
               <div class="cover-open__shadow"></div>
             </div>
 
-            <div class="cover-open__face cover-open__face--back">
-              <div class="cover-open__gutter"></div>
-              <div class="cover-open__shadow cover-open__shadow--lifting"></div>
-            </div>
+            <div class="cover-open__face cover-open__face--back"></div>
           </div>
         </div>
       </div>
+
+      @if (geometry.hasDetails) {
+        <div
+          class="cover-open__details"
+          [style.left.px]="geometry.stageLeft + geometry.stageWidth"
+          data-testid="cover-open-details">
+          <p class="cover-open__byline">{{ cover.username }}</p>
+          <h2 class="cover-open__heading">{{ cover.title }}</h2>
+          @if (cover.description) {
+            <p class="cover-open__description">{{ cover.description }}</p>
+          }
+          <button
+            #beginButton
+            type="button"
+            mat-flat-button
+            color="primary"
+            class="cover-open__begin"
+            data-testid="cover-open-begin"
+            (click)="begin($event)">
+            {{ 'home.coverOpen.begin' | transloco }}
+          </button>
+        </div>
+      } @else {
+        <div
+          class="cover-open__actions"
+          [style.top.px]="geometry.stageTop + geometry.stageHeight"
+          data-testid="cover-open-details">
+          <h2 class="cover-open__heading">{{ cover.title }}</h2>
+          <button
+            #beginButton
+            type="button"
+            mat-flat-button
+            color="primary"
+            class="cover-open__begin"
+            data-testid="cover-open-begin"
+            (click)="begin($event)">
+            {{ 'home.coverOpen.begin' | transloco }}
+          </button>
+        </div>
+      }
     </div>
   }
 }

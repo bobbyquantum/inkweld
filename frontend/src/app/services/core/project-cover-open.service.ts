@@ -2,11 +2,11 @@ import { Injectable, signal } from '@angular/core';
 
 /**
  * Timings of the transition, in milliseconds. They live here rather than in
- * the overlay because the service has to start the navigation in step with
- * them; the overlay reads them back for its own stylesheet.
+ * the overlay because the service starts the navigation in step with them;
+ * the overlay reads them back for its own stylesheet.
  */
 
-/** How long the page takes to fade to black behind the lifted cover. */
+/** How long the page takes to fade out behind the lifted cover. */
 export const COVER_VEIL_MS = 240;
 /** How long the cover takes to fly from the grid onto its stage. */
 export const COVER_RISE_MS = 420;
@@ -14,10 +14,12 @@ export const COVER_RISE_MS = 420;
 export const COVER_TURN_MS = 760;
 /** How long the opened book takes to dissolve into the project page. */
 export const COVER_OPENED_MS = 320;
+/** How long the cover takes to drop back onto the card it came from. */
+export const COVER_RETURN_MS = 360;
 /**
- * Longest the closed cover is held waiting for the project page to activate.
- * Past this the cover turns anyway: a page that slow is showing its own
- * loading state, which is a better thing to reveal than a stalled animation.
+ * Longest the cover is held mid-turn waiting for the project page. Past this
+ * it finishes anyway: a page that slow is showing its own loading state,
+ * which is a better thing to reveal than a stalled animation.
  */
 export const COVER_PAGE_WAIT_MS = 2000;
 
@@ -29,132 +31,150 @@ export interface CoverOpenRect {
   readonly height: number;
 }
 
-/**
- * Everything the overlay needs to redraw the clicked cover and open it. The
- * artwork is passed as the blob URL the card was already showing rather than
- * re-resolved from storage: it guarantees the overlay's first frame matches
- * the card pixel for pixel, and it keeps the media services out of the app
- * shell's bootstrap graph.
- */
+/** The project whose cover has been picked up, and where it came from. */
 export interface CoverOpenRequest {
-  /** Project title, drawn on the default cover. */
   readonly title: string;
-  /** Project owner, drawn above the title on the default cover. */
   readonly username: string;
+  readonly description: string | null;
   /** Blob URL of the cover art, or null when the card drew the default cover. */
   readonly coverUrl: string | null;
   /** Rect of the card that was clicked. */
   readonly origin: CoverOpenRect;
-  /**
-   * Resolves once the project page has been activated behind the cover, so
-   * the turn reveals the editor rather than the grid it was launched from.
-   * Rejects if the navigation never got there.
-   */
-  readonly pageReady: Promise<void>;
 }
+
+/**
+ * What the cover is doing:
+ * - `selecting` — it has been lifted out of the grid and is on show
+ * - `opening`   — the reader chose to go in; it is swinging open
+ * - `returning` — the reader backed out; it is dropping onto its card
+ */
+export type CoverOpenStage = 'selecting' | 'opening' | 'returning';
 
 /** Test id of the `<img>` a project card renders when it has cover art. */
 const COVER_IMAGE_SELECTOR = '[data-testid="project-cover-image"]';
 
 /**
- * Drives the book-opening transition between the project grid and the project
- * editor. The home page hands over the card that was clicked and the
- * navigation to run behind it; `ProjectCoverOpenComponent`, mounted once in
- * the app shell, does the drawing. Keeping the state here means the animation
- * outlives the home page, which is destroyed the moment the route changes.
+ * Holds the project whose cover the reader picked up.
+ *
+ * Clicking a project in the grid does not open it. It lifts the cover out of
+ * the grid and puts it on show beside the project's title and description,
+ * and only then — on a click anywhere, or the begin button — does the cover
+ * swing open and the editor load behind it. Backing out drops the cover onto
+ * the card it came from.
+ *
+ * `ProjectCoverOpenComponent`, mounted once in the app shell, does the
+ * drawing. Keeping the state here means it outlives the home page, which is
+ * destroyed the moment the navigation lands.
  */
 @Injectable({ providedIn: 'root' })
 export class ProjectCoverOpenService {
   private readonly _request = signal<CoverOpenRequest | null>(null);
+  private readonly _stage = signal<CoverOpenStage>('selecting');
 
-  /** The cover currently being opened, or null while the overlay is idle. */
+  /** The cover on show, or null when the grid is untouched. */
   readonly request = this._request.asReadonly();
+  /** What that cover is doing. */
+  readonly stage = this._stage.asReadonly();
 
-  /** Identifies the running animation so late navigation results are ignored. */
+  /** Navigation into the project, held until the reader asks for it. */
+  private navigate: (() => Promise<boolean>) | null = null;
+
+  /**
+   * Resolves once the project page has been reached, so the overlay can hold
+   * the cover mid-turn until there is something behind it to uncover. Null
+   * until the reader goes in.
+   */
+  pageReady: Promise<void> | null = null;
+
+  /** Identifies the cover on show, so a stale navigation is ignored. */
   private token = 0;
 
   /**
-   * Open a project, playing its cover over the page while `navigate` runs.
+   * Lift `card`'s cover out of the grid and put it on show.
    *
-   * `navigate` is always called — exactly once, immediately if the transition
-   * is not playing, otherwise once the veil has hidden the page underneath.
-   * The transition is skipped when the user asked for reduced motion, when
-   * another cover is already opening, or when the card has no measurable size.
+   * Nothing is navigated yet — `open()` does that. When the card cannot be
+   * measured there is nothing to animate from, so the caller's navigation is
+   * run at once instead and the reader goes straight into the project.
    */
-  open(
+  select(
     card: HTMLElement,
-    project: { title: string; username: string },
+    project: { title: string; username: string; description?: string | null },
     navigate: () => Promise<boolean>
   ): void {
-    const origin = this.measure(card);
-    if (!origin) {
+    if (this._request()) {
+      return;
+    }
+
+    const rect = card.getBoundingClientRect();
+    if (rect.width < 1 || rect.height < 1) {
       void navigate();
       return;
     }
 
-    const token = ++this.token;
-    // Hold the page swap until the veil is black. Navigating on the click
-    // instead would dissolve the grid into the editor in plain sight, behind
-    // a cover that has barely left its card.
-    const pageReady = new Promise<void>((resolve, reject) => {
-      setTimeout(() => {
-        navigate().then(reached => {
-          if (reached) {
-            resolve();
-          } else {
-            reject(new Error('Project navigation did not complete'));
-          }
-        }, reject);
-      }, COVER_VEIL_MS);
-    });
-    // A navigation that never arrives (a guard, a failed lazy chunk) drops the
-    // overlay rather than leaving a black screen over the grid. The handler
-    // also keeps the rejection from surfacing as an unhandled one before the
-    // overlay has rendered and attached its own.
-    void pageReady.catch(() => this.abandon(token));
-
+    this.token++;
+    this.navigate = navigate;
+    this._stage.set('selecting');
     this._request.set({
       title: project.title,
       username: project.username,
+      description: project.description ?? null,
       coverUrl: findCoverUrl(card),
-      origin,
-      pageReady,
+      origin: {
+        top: rect.top,
+        left: rect.left,
+        width: rect.width,
+        height: rect.height,
+      },
     });
   }
 
-  /** The card's viewport rect, or null when the cover should not play. */
-  private measure(card: HTMLElement): CoverOpenRect | null {
-    if (this._request() || prefersReducedMotion()) {
-      return null;
+  /** Go in: the cover swings open and the project loads behind it. */
+  open(): void {
+    if (!this._request() || this._stage() !== 'selecting') {
+      return;
     }
-    const rect = card.getBoundingClientRect();
-    if (rect.width < 1 || rect.height < 1) {
-      return null;
+    this._stage.set('opening');
+
+    const token = this.token;
+    const navigate = this.navigate;
+    this.navigate = null;
+    if (!navigate) {
+      return;
     }
-    return {
-      top: rect.top,
-      left: rect.left,
-      width: rect.width,
-      height: rect.height,
-    };
+
+    const pageReady = navigate().then(reached => {
+      if (!reached) {
+        throw new Error('Project navigation did not complete');
+      }
+    });
+    // A navigation that never arrives (a guard, a failed lazy chunk) drops the
+    // cover rather than leaving it hanging over the grid. The handler also
+    // keeps the rejection from surfacing as an unhandled one before the
+    // overlay has attached its own.
+    void pageReady.catch(() => {
+      if (this.token === token) {
+        this.finish();
+      }
+    });
+    this.pageReady = pageReady;
+  }
+
+  /** Back out: the cover drops onto the card it came from. */
+  dismiss(): void {
+    if (!this._request() || this._stage() !== 'selecting') {
+      return;
+    }
+    this.navigate = null;
+    this._stage.set('returning');
   }
 
   /** Clear the overlay once it has finished playing. */
   finish(): void {
     this.token++;
+    this.navigate = null;
+    this.pageReady = null;
     this._request.set(null);
-  }
-
-  /** Drop the overlay immediately, leaving whatever page is on screen. */
-  cancel(): void {
-    this.finish();
-  }
-
-  /** Cancel, but only if `token` is still the animation on screen. */
-  private abandon(token: number): void {
-    if (this.token === token) {
-      this.cancel();
-    }
+    this._stage.set('selecting');
   }
 }
 
@@ -167,11 +187,4 @@ function findCoverUrl(card: HTMLElement): string | null {
     return null;
   }
   return image.src;
-}
-
-/** Whether the user has asked the platform for reduced motion. */
-function prefersReducedMotion(): boolean {
-  return (
-    globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
-  );
 }

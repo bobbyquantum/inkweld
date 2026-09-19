@@ -17,7 +17,11 @@
 
 import { type Page } from '@playwright/test';
 
-import { DEMO_ASSETS, storeRealMediaInIndexedDB } from '../common/test-helpers';
+import {
+  DEMO_ASSETS,
+  openProjectFromGrid,
+  storeRealMediaInIndexedDB,
+} from '../common/test-helpers';
 import { expect, test } from './fixtures';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -25,7 +29,7 @@ import { expect, test } from './fixtures';
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function createTimelineAndOpen(page: Page) {
-  await page.getByTestId('project-card').first().click();
+  await openProjectFromGrid(page);
   await page.waitForURL(/\/.+\/.+/);
 
   await page.getByTestId('create-new-element').click();

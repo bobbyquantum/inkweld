@@ -1,15 +1,13 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import {
-  COVER_OPENED_MS,
-  COVER_PAGE_WAIT_MS,
-  COVER_RISE_MS,
-  COVER_TURN_MS,
   type CoverOpenRequest,
+  type CoverOpenStage,
   ProjectCoverOpenService,
 } from '@services/core/project-cover-open.service';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import {
   computeCoverOpenGeometry,
   ProjectCoverOpenComponent,
@@ -24,29 +22,22 @@ function makeRequest(
   return {
     title: 'The Salt Road',
     username: 'testuser',
+    description: 'A caravan master walks a drying sea.',
     coverUrl: null,
     origin: ORIGIN,
-    pageReady: Promise.resolve(),
     ...overrides,
   };
 }
 
 describe('computeCoverOpenGeometry', () => {
-  it('opens the cover beside the spine on a wide viewport', () => {
+  it('hangs the cover on the left edge, where its hinge is', () => {
     const geometry = computeCoverOpenGeometry(ORIGIN, 1440, 900);
 
-    expect(geometry.stageLeft).toBe(720);
-    expect(geometry.spine).toBe(720);
-  });
-
-  it('gives the cover the whole viewport when there is no room for a spread', () => {
-    const geometry = computeCoverOpenGeometry(ORIGIN, 420, 900);
-
     expect(geometry.stageLeft).toBe(0);
-    expect(geometry.spine).toBe(0);
+    expect(geometry.hasDetails).toBe(true);
   });
 
-  it('keeps the card΄s proportions so the cover only ever zooms', () => {
+  it("keeps the card's proportions so the cover only ever zooms", () => {
     const geometry = computeCoverOpenGeometry(ORIGIN, 1440, 900);
 
     expect(geometry.stageWidth / geometry.stageHeight).toBeCloseTo(
@@ -55,26 +46,34 @@ describe('computeCoverOpenGeometry', () => {
     );
   });
 
-  it('fills the height beside the spine when the book fits', () => {
+  it('leaves room beside the cover for the details', () => {
     const geometry = computeCoverOpenGeometry(ORIGIN, 1440, 900);
 
-    expect(geometry.stageHeight).toBe(900);
-    expect(geometry.stageWidth).toBeCloseTo(562.5, 1);
-    expect(geometry.stageTop).toBe(0);
+    expect(geometry.stageHeight).toBe(810);
+    expect(geometry.stageWidth).toBeCloseTo(506.25, 1);
+    // Half the screen still free for the title and description.
+    expect(geometry.stageWidth).toBeLessThan(720);
   });
 
-  it('falls back to the available width, centred, when the book is too wide', () => {
-    // A landscape card cannot be 900 tall beside a 300px spine.
+  it('never lets the cover take more than half the width', () => {
+    // A landscape card would otherwise run over the details beside it.
     const geometry = computeCoverOpenGeometry(
       { top: 0, left: 0, width: 300, height: 200 },
-      600,
+      1200,
       900
     );
 
-    expect(geometry.stageLeft).toBe(0);
-    expect(geometry.stageWidth).toBe(600);
-    expect(geometry.stageHeight).toBe(400);
-    expect(geometry.stageTop).toBe(250);
+    expect(geometry.stageWidth).toBeLessThanOrEqual(600);
+    expect(geometry.hasDetails).toBe(true);
+  });
+
+  it('centres the cover and drops the details on a narrow screen', () => {
+    const geometry = computeCoverOpenGeometry(ORIGIN, 414, 896);
+
+    expect(geometry.hasDetails).toBe(false);
+    expect(geometry.stageLeft).toBeGreaterThan(0);
+    // Room left under it for the title and the begin button.
+    expect(geometry.stageTop + geometry.stageHeight).toBeLessThan(896);
   });
 
   it('lands the closed cover exactly over the card that was clicked', () => {
@@ -87,7 +86,6 @@ describe('computeCoverOpenGeometry', () => {
       )!;
     expect(Number(x)).toBe(ORIGIN.left - geometry.stageLeft);
     expect(Number(y)).toBe(ORIGIN.top - geometry.stageTop);
-    // Rounded for the stylesheet, but still true to a fraction of a pixel.
     expect(Number(applied)).toBeCloseTo(scale, 3);
     expect(geometry.stageWidth * Number(applied)).toBeCloseTo(ORIGIN.width, 0);
   });
@@ -96,12 +94,11 @@ describe('computeCoverOpenGeometry', () => {
     const geometry = computeCoverOpenGeometry(ORIGIN, 1440, 900);
     const zoom = geometry.stageHeight / ORIGIN.height;
 
-    // 12px corners and 16px type on screen, once the closed scale is applied.
     expect(geometry.radius).toBe(`${12 * zoom}px`);
     expect(geometry.typeScale).toBe(`${16 * zoom}px`);
   });
 
-  it('survives a zero-height viewport without dividing by zero', () => {
+  it('survives a zero-sized viewport without dividing by zero', () => {
     const geometry = computeCoverOpenGeometry(ORIGIN, 0, 0);
 
     expect(Number.isFinite(geometry.stageWidth)).toBe(true);
@@ -112,17 +109,26 @@ describe('computeCoverOpenGeometry', () => {
 describe('ProjectCoverOpenComponent', () => {
   let fixture: ComponentFixture<ProjectCoverOpenComponent>;
   let request: ReturnType<typeof signal<CoverOpenRequest | null>>;
-  let finish: ReturnType<typeof vi.fn>;
+  let stage: ReturnType<typeof signal<CoverOpenStage>>;
+  let service: {
+    request: unknown;
+    stage: unknown;
+    pageReady: Promise<void> | null;
+    open: ReturnType<typeof vi.fn>;
+    dismiss: ReturnType<typeof vi.fn>;
+    finish: ReturnType<typeof vi.fn>;
+  };
 
-  /** Run the timers, then let Angular paint what they changed. */
-  async function advance(ms: number): Promise<void> {
-    await vi.advanceTimersByTimeAsync(ms);
+  /**
+   * Let the overlay's frames and its zero-length waits run, then repaint.
+   * Long enough to cover a real animation frame — the overlay waits for two
+   * before it moves anything, and jsdom fires them about 16ms apart.
+   */
+  async function settle(): Promise<void> {
+    for (let i = 0; i < 5; i++) {
+      await new Promise(resolve => setTimeout(resolve, 25));
+    }
     fixture.detectChanges();
-  }
-
-  /** Get past the two frames the component waits before it moves anything. */
-  async function startRising(): Promise<void> {
-    await advance(250);
   }
 
   function overlay(): HTMLElement | null {
@@ -132,18 +138,31 @@ describe('ProjectCoverOpenComponent', () => {
   }
 
   beforeEach(async () => {
-    vi.useFakeTimers();
+    // Reduced motion, so the sequence runs on zero-length waits instead of
+    // the real ones. Built from the suite's own mock so the whole
+    // MediaQueryList shape survives — the CDK calls addListener on it.
+    const matchMedia = globalThis.matchMedia;
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      ...matchMedia(query),
+      matches: query.includes('prefers-reduced-motion'),
+    }));
+
     request = signal<CoverOpenRequest | null>(null);
-    finish = vi.fn(() => request.set(null));
+    stage = signal<CoverOpenStage>('selecting');
+    service = {
+      request: request.asReadonly(),
+      stage: stage.asReadonly(),
+      pageReady: null,
+      open: vi.fn(() => stage.set('opening')),
+      dismiss: vi.fn(() => stage.set('returning')),
+      finish: vi.fn(() => request.set(null)),
+    };
 
     await TestBed.configureTestingModule({
-      imports: [ProjectCoverOpenComponent],
+      imports: [translocoTestProvider(), ProjectCoverOpenComponent],
       providers: [
         provideZonelessChangeDetection(),
-        {
-          provide: ProjectCoverOpenService,
-          useValue: { request: request.asReadonly(), finish, cancel: finish },
-        },
+        { provide: ProjectCoverOpenService, useValue: service },
       ],
     }).compileComponents();
 
@@ -152,35 +171,39 @@ describe('ProjectCoverOpenComponent', () => {
   });
 
   afterEach(() => {
-    vi.useRealTimers();
+    vi.unstubAllGlobals();
   });
 
-  it('draws nothing while no cover is opening', () => {
+  it('draws nothing while the grid is untouched', () => {
     expect(overlay()).toBeNull();
   });
 
-  it('draws the cover closed over the card before anything moves', () => {
+  it('draws the cover over its card before anything moves', () => {
     request.set(makeRequest());
     fixture.detectChanges();
 
     const element = overlay();
     expect(element).not.toBeNull();
-    expect(element!.classList.contains('cover-open--rising')).toBe(false);
+    expect(element!.classList.contains('cover-open--lifted')).toBe(false);
     const flight = element!.querySelector<HTMLElement>('.cover-open__flight');
     expect(flight!.style.transform).toContain('scale(');
   });
 
-  it('draws the default cover when the project has no artwork', () => {
+  it('lifts the cover out and shows the project beside it', async () => {
     request.set(makeRequest());
     fixture.detectChanges();
 
+    await settle();
+
     const element = overlay()!;
-    expect(element.querySelector('.cover-open__image')).toBeNull();
-    expect(element.querySelector('.cover-open__title')!.textContent).toContain(
-      'The Salt Road'
-    );
-    expect(element.querySelector('.cover-open__author')!.textContent).toContain(
-      'testuser'
+    expect(element.classList.contains('cover-open--lifted')).toBe(true);
+    expect(
+      element.querySelector<HTMLElement>('.cover-open__flight')!.style.transform
+    ).toBe('none');
+    const details = element.querySelector('[data-testid="cover-open-details"]');
+    expect(details!.textContent).toContain('The Salt Road');
+    expect(details!.textContent).toContain(
+      'A caravan master walks a drying sea.'
     );
   });
 
@@ -193,88 +216,103 @@ describe('ProjectCoverOpenComponent', () => {
     expect(image!.getAttribute('src')).toBe('blob:http://localhost/cover-1');
   });
 
-  it('lets the cover go once the browser has drawn it', async () => {
+  it('draws the default cover when the project has no artwork', () => {
     request.set(makeRequest());
     fixture.detectChanges();
 
-    await startRising();
-
     const element = overlay()!;
-    expect(element.classList.contains('cover-open--rising')).toBe(true);
-    const flight = element.querySelector<HTMLElement>('.cover-open__flight');
-    expect(flight!.style.transform).toBe('none');
+    expect(element.querySelector('.cover-open__image')).toBeNull();
+    expect(element.querySelector('.cover-open__title')!.textContent).toContain(
+      'The Salt Road'
+    );
   });
 
-  it('holds the cover closed until the project page is behind it', async () => {
-    let arrive = (): void => {};
-    request.set(
-      makeRequest({
-        pageReady: new Promise<void>(resolve => {
-          arrive = resolve;
-        }),
-      })
-    );
+  it('goes in when the begin button is pressed', async () => {
+    request.set(makeRequest());
     fixture.detectChanges();
-    await startRising();
+    await settle();
 
-    await advance(COVER_RISE_MS);
-    expect(overlay()!.classList.contains('cover-open--turning')).toBe(false);
+    overlay()!
+      .querySelector<HTMLButtonElement>('[data-testid="cover-open-begin"]')!
+      .click();
+
+    expect(service.open).toHaveBeenCalledTimes(1);
+  });
+
+  it('goes in when anywhere else is clicked', async () => {
+    request.set(makeRequest());
+    fixture.detectChanges();
+    await settle();
+
+    overlay()!.click();
+
+    expect(service.open).toHaveBeenCalledTimes(1);
+  });
+
+  it('backs out on the close button without going in', async () => {
+    request.set(makeRequest());
+    fixture.detectChanges();
+    await settle();
+
+    overlay()!
+      .querySelector<HTMLButtonElement>('[data-testid="cover-open-close"]')!
+      .click();
+
+    expect(service.dismiss).toHaveBeenCalledTimes(1);
+    expect(service.open).not.toHaveBeenCalled();
+  });
+
+  it('backs out on Escape', async () => {
+    request.set(makeRequest());
+    fixture.detectChanges();
+    await settle();
+
+    overlay()!.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })
+    );
+
+    expect(service.dismiss).toHaveBeenCalledTimes(1);
+  });
+
+  it('holds the cover mid-turn until the project page is behind it', async () => {
+    let arrive = (): void => {};
+    service.pageReady = new Promise<void>(resolve => {
+      arrive = resolve;
+    });
+    request.set(makeRequest());
+    fixture.detectChanges();
+    await settle();
+
+    stage.set('opening');
+    await settle();
+    expect(overlay()!.classList.contains('cover-open--turning')).toBe(true);
+    expect(service.finish).not.toHaveBeenCalled();
 
     arrive();
-    await advance(0);
-    expect(overlay()!.classList.contains('cover-open--turning')).toBe(true);
+    await settle();
+    expect(service.finish).toHaveBeenCalled();
   });
 
-  it('turns anyway when the project page takes too long', async () => {
-    request.set(makeRequest({ pageReady: new Promise<void>(() => {}) }));
-    fixture.detectChanges();
-    await startRising();
-
-    await advance(COVER_RISE_MS + COVER_PAGE_WAIT_MS);
-
-    expect(overlay()!.classList.contains('cover-open--turning')).toBe(true);
-  });
-
-  it('plays through to the end and clears itself', async () => {
+  it('swings the cover open and clears itself', async () => {
     request.set(makeRequest());
     fixture.detectChanges();
-    await startRising();
+    await settle();
 
-    await advance(COVER_RISE_MS);
-    expect(overlay()!.classList.contains('cover-open--turning')).toBe(true);
+    stage.set('opening');
+    await settle();
 
-    await advance(COVER_TURN_MS);
-    expect(overlay()!.classList.contains('cover-open--opened')).toBe(true);
-
-    await advance(COVER_OPENED_MS);
-    expect(finish).toHaveBeenCalledTimes(1);
-    expect(overlay()).toBeNull();
+    expect(service.finish).toHaveBeenCalled();
   });
 
-  it('stops stepping when the cover is dropped mid-flight', async () => {
+  it('puts the cover back on its card when dismissed', async () => {
     request.set(makeRequest());
     fixture.detectChanges();
-    await startRising();
+    await settle();
 
-    request.set(null);
-    await advance(COVER_RISE_MS + COVER_TURN_MS + COVER_OPENED_MS);
+    stage.set('returning');
+    await settle();
 
-    expect(overlay()).toBeNull();
-    expect(finish).not.toHaveBeenCalled();
-  });
-
-  it('starts the next cover from scratch', async () => {
-    request.set(makeRequest());
-    fixture.detectChanges();
-    await startRising();
-
-    request.set(makeRequest({ title: 'Nightjar' }));
-    fixture.detectChanges();
-
-    const element = overlay()!;
-    expect(element.classList.contains('cover-open--rising')).toBe(false);
-    expect(element.querySelector('.cover-open__title')!.textContent).toContain(
-      'Nightjar'
-    );
+    expect(service.finish).toHaveBeenCalled();
+    expect(service.open).not.toHaveBeenCalled();
   });
 });
