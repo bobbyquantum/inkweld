@@ -312,6 +312,7 @@ describe('ProjectExportService', () => {
       expect(await fileExistsInZip('documents.json')).toBe(true);
       expect(await fileExistsInZip('worldbuilding.json')).toBe(true);
       expect(await fileExistsInZip('schemas.json')).toBe(true);
+      expect(await fileExistsInZip('generators.json')).toBe(true);
       expect(await fileExistsInZip('relationships.json')).toBe(true);
       expect(await fileExistsInZip('relationship-types.json')).toBe(true);
       expect(await fileExistsInZip('tags.json')).toBe(true);

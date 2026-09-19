@@ -17,6 +17,7 @@ import { vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { DocumentSyncState } from '../../models/document-sync-state';
+import { type Generator } from '../../models/generator';
 import { type MediaProjectTag } from '../../models/media-project-tag.model';
 import { type MediaTag } from '../../models/media-tag.model';
 import {
@@ -41,6 +42,7 @@ describe('LocalElementSyncProvider', () => {
     customRelationshipTypes: ReturnType<typeof vi.fn>;
     schemas: ReturnType<typeof vi.fn>;
     timeSystems: ReturnType<typeof vi.fn>;
+    generators: ReturnType<typeof vi.fn>;
     elementTags: ReturnType<typeof vi.fn>;
     customTags: ReturnType<typeof vi.fn>;
     mediaTags: ReturnType<typeof vi.fn>;
@@ -52,6 +54,7 @@ describe('LocalElementSyncProvider', () => {
     saveCustomRelationshipTypes: ReturnType<typeof vi.fn>;
     saveSchemas: ReturnType<typeof vi.fn>;
     saveTimeSystems: ReturnType<typeof vi.fn>;
+    saveGenerators: ReturnType<typeof vi.fn>;
     saveElementTags: ReturnType<typeof vi.fn>;
     saveCustomTags: ReturnType<typeof vi.fn>;
     saveMediaTags: ReturnType<typeof vi.fn>;
@@ -64,6 +67,7 @@ describe('LocalElementSyncProvider', () => {
     _customTypesSubject: BehaviorSubject<RelationshipTypeDefinition[]>;
     _schemasSubject: BehaviorSubject<ElementTypeSchema[]>;
     _timeSystemsSubject: BehaviorSubject<TimeSystem[]>;
+    _generatorsSubject: BehaviorSubject<Generator[]>;
     _elementTagsSubject: BehaviorSubject<ElementTag[]>;
     _customTagsSubject: BehaviorSubject<TagDefinition[]>;
     _mediaTagsSubject: BehaviorSubject<MediaTag[]>;
@@ -165,6 +169,7 @@ describe('LocalElementSyncProvider', () => {
     >([]);
     const schemasSubject = new BehaviorSubject<ElementTypeSchema[]>([]);
     const timeSystemsSubject = new BehaviorSubject<TimeSystem[]>([]);
+    const generatorsSubject = new BehaviorSubject<Generator[]>([]);
     const elementTagsSubject = new BehaviorSubject<ElementTag[]>([]);
     const customTagsSubject = new BehaviorSubject<TagDefinition[]>([]);
     const mediaTagsSubject = new BehaviorSubject<MediaTag[]>([]);
@@ -182,6 +187,7 @@ describe('LocalElementSyncProvider', () => {
       customRelationshipTypes: vi.fn(() => customTypesSubject.getValue()),
       schemas: vi.fn(() => schemasSubject.getValue()),
       timeSystems: vi.fn(() => timeSystemsSubject.getValue()),
+      generators: vi.fn(() => generatorsSubject.getValue()),
       elementTags: vi.fn(() => elementTagsSubject.getValue()),
       customTags: vi.fn(() => customTagsSubject.getValue()),
       mediaTags: vi.fn(() => mediaTagsSubject.getValue()),
@@ -193,6 +199,7 @@ describe('LocalElementSyncProvider', () => {
       saveCustomRelationshipTypes: vi.fn().mockResolvedValue(undefined),
       saveSchemas: vi.fn().mockResolvedValue(undefined),
       saveTimeSystems: vi.fn().mockResolvedValue(undefined),
+      saveGenerators: vi.fn().mockResolvedValue(undefined),
       saveElementTags: vi.fn().mockResolvedValue(undefined),
       saveCustomTags: vi.fn().mockResolvedValue(undefined),
       saveMediaTags: vi.fn().mockResolvedValue(undefined),
@@ -205,6 +212,7 @@ describe('LocalElementSyncProvider', () => {
       _customTypesSubject: customTypesSubject,
       _schemasSubject: schemasSubject,
       _timeSystemsSubject: timeSystemsSubject,
+      _generatorsSubject: generatorsSubject,
       _elementTagsSubject: elementTagsSubject,
       _customTagsSubject: customTagsSubject,
       _mediaTagsSubject: mediaTagsSubject,
@@ -606,6 +614,28 @@ describe('LocalElementSyncProvider', () => {
         'testuser',
         'test-project',
         [mockPublishPlan]
+      );
+    });
+
+    it('should save generators and update local state immediately', async () => {
+      const generator: Generator = {
+        id: 'gen-1',
+        name: 'Character names',
+        icon: 'casino',
+        description: '',
+        category: 'names',
+        template: '#first#',
+        rules: [{ key: 'first', entries: [{ text: 'Aldric' }] }],
+      };
+
+      provider.updateGenerators([generator]);
+      await Promise.resolve();
+
+      expect(provider.getGenerators()).toEqual([generator]);
+      expect(mockOfflineElementsService.saveGenerators).toHaveBeenCalledWith(
+        'testuser',
+        'test-project',
+        [generator]
       );
     });
 
@@ -1026,6 +1056,7 @@ describe('LocalElementSyncProvider republishing outside changes', () => {
       customRelationshipTypes: signal([]),
       schemas: signal([]),
       timeSystems: signal([]),
+      generators: signal([]),
       elementTags: signal([]),
       customTags: signal([]),
       mediaTags: signal([]),

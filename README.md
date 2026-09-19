@@ -142,7 +142,7 @@ Then open `http://localhost:8333` in your browser.
 | ✅ | 🟡 | Tags on documents & elements | Categorize and organize content |
 | ✅ | 🟡 | Tags on images | Extend tagging to media library |
 | ✅ | 🟡 | Custom calendar systems | Fantasy calendars with custom months/years |
-| ⬜ | 🟡 | Random generators | Names, locations, prompts for inspiration |
+| ✅ | 🟡 | Random generators | Names, places and writing prompts; the worldbuilding templates ship five, bound to Character, Settlement, Building and Geographic Feature for a dice by the name field |
 | ⬜ | 🟢 | Language/Conlang tools | Vocabulary lists, alphabets |
 | ⬜ | 🟢 | Secrets/GM notes | Per-element spoiler hiding from some collaborators |
 | ⬜ | 🟢 | Reference images panel | Side-by-side images while writing |

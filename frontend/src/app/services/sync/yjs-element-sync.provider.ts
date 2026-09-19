@@ -42,6 +42,7 @@ import { type WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
 
 import { DocumentSyncState } from '../../models/document-sync-state';
+import { type Generator } from '../../models/generator';
 import { type MediaProjectTag } from '../../models/media-project-tag.model';
 import { type MediaTag } from '../../models/media-tag.model';
 import { type PublishPlan } from '../../models/publish-plan';
@@ -279,6 +280,7 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
     []
   );
   private readonly timeSystemsSubject = new BehaviorSubject<TimeSystem[]>([]);
+  private readonly generatorsSubject = new BehaviorSubject<Generator[]>([]);
   private readonly elementTagsSubject = new BehaviorSubject<ElementTag[]>([]);
   private readonly customTagsSubject = new BehaviorSubject<TagDefinition[]>([]);
   private readonly mediaTagsSubject = new BehaviorSubject<MediaTag[]>([]);
@@ -329,6 +331,8 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
     this.schemasSubject.asObservable();
   readonly timeSystems$: Observable<TimeSystem[]> =
     this.timeSystemsSubject.asObservable();
+  readonly generators$: Observable<Generator[]> =
+    this.generatorsSubject.asObservable();
   readonly elementTags$: Observable<ElementTag[]> =
     this.elementTagsSubject.asObservable();
   readonly customTags$: Observable<TagDefinition[]> =
@@ -590,6 +594,7 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
     this.customRelationshipTypesSubject.next([]);
     this.schemasSubject.next([]);
     this.timeSystemsSubject.next([]);
+    this.generatorsSubject.next([]);
     this.mediaTagsSubject.next([]);
     this.mediaProjectTagsSubject.next([]);
     this.projectMetaSubject.next(undefined);
@@ -845,6 +850,46 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
     this.logger.debug(
       'YjsSync',
       `Yjs doc now contains ${timeSystemsArray.length} time systems`
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Random Generators (project name / place / prompt generators)
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  getGenerators(): Generator[] {
+    return this.generatorsSubject.getValue();
+  }
+
+  /**
+   * Update generators in the Yjs document.
+   * Changes propagate to all connected clients.
+   * Applies optimistic update immediately for responsive UI.
+   */
+  updateGenerators(generators: Generator[]): void {
+    if (!this.doc) {
+      this.logger.warn('YjsSync', 'Cannot update generators - not connected');
+      return;
+    }
+
+    this.logger.debug(
+      'YjsSync',
+      `Writing ${generators.length} generators to Yjs`
+    );
+
+    // Optimistic update: emit immediately for responsive UI
+    this.generatorsSubject.next(generators);
+
+    const generatorsArray = this.doc.getArray<Generator>('generators');
+
+    this.doc.transact(() => {
+      generatorsArray.delete(0, generatorsArray.length);
+      generatorsArray.insert(0, generators);
+    });
+
+    this.logger.debug(
+      'YjsSync',
+      `Yjs doc now contains ${generatorsArray.length} generators`
     );
   }
 
@@ -1832,6 +1877,14 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
       this.timeSystemsSubject.next(systems);
     });
 
+    // Generators observer
+    const generatorsArray = this.doc.getArray<Generator>('generators');
+    generatorsArray.observe(() => {
+      const generators = generatorsArray.toArray();
+      this.logger.debug('YjsSync', `Generators changed: ${generators.length}`);
+      this.generatorsSubject.next(generators);
+    });
+
     // Media tags observer
     const mediaTagsArray = this.doc.getArray<MediaTag>('mediaTags');
     mediaTagsArray.observe(() => {
@@ -1990,6 +2043,15 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
       `Loaded ${timeSystems.length} time systems from Yjs`
     );
     this.timeSystemsSubject.next(timeSystems);
+
+    // Load generators
+    const generatorsArray = this.doc.getArray<Generator>('generators');
+    const generators = generatorsArray.toArray();
+    this.logger.debug(
+      'YjsSync',
+      `Loaded ${generators.length} generators from Yjs`
+    );
+    this.generatorsSubject.next(generators);
 
     // Load element tags
     const elementTagsArray = this.doc.getArray<ElementTag>('elementTags');

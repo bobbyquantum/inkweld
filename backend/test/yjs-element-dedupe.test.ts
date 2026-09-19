@@ -96,6 +96,7 @@ describe('ELEMENT_BUNDLE_ARRAYS', () => {
     expect(ELEMENT_BUNDLE_ARRAYS).toContain('elements');
     expect(ELEMENT_BUNDLE_ARRAYS).toContain('relationships');
     expect(ELEMENT_BUNDLE_ARRAYS).toContain('publishPlans');
+    expect(ELEMENT_BUNDLE_ARRAYS).toContain('generators');
     // projectMeta is a Y.Map, not an id-array — must NOT be in the bundle.
     expect(ELEMENT_BUNDLE_ARRAYS).not.toContain('projectMeta');
   });

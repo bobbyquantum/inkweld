@@ -210,6 +210,80 @@ describe('ProjectTemplateService', () => {
       expect(archive.mediaTags).toEqual(mockMediaTags);
     });
 
+    it('should load generators from generators.json', async () => {
+      const mockGenerators = [
+        {
+          id: 'gen-character-names',
+          name: 'Character names',
+          icon: 'person',
+          description: '',
+          category: 'names',
+          template: '#first#',
+          rules: [{ key: 'first', entries: [{ text: 'Aldric' }] }],
+        },
+      ];
+
+      const promise = service.loadTemplate('empty');
+
+      const indexReq = httpMock.expectOne(
+        '/assets/project-templates/index.json'
+      );
+      indexReq.flush(mockTemplateIndex);
+
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      const pending = httpMock.match(() => true);
+      for (const req of pending) {
+        if (req.request.url.includes('manifest.json')) {
+          req.flush(mockEmptyTemplate.manifest);
+        } else if (req.request.url.includes('project.json')) {
+          req.flush(mockEmptyTemplate.project);
+        } else if (req.request.url.includes('elements.json')) {
+          req.flush(mockEmptyTemplate.elements);
+        } else if (req.request.url.includes('documents.json')) {
+          req.flush(mockEmptyTemplate.documents);
+        } else if (req.request.url.includes('generators.json')) {
+          req.flush(mockGenerators);
+        } else {
+          req.flush([]);
+        }
+      }
+
+      const archive = await promise;
+      expect(archive.generators).toEqual(mockGenerators);
+    });
+
+    it('should default generators to an empty array when the file is missing', async () => {
+      const promise = service.loadTemplate('empty');
+
+      const indexReq = httpMock.expectOne(
+        '/assets/project-templates/index.json'
+      );
+      indexReq.flush(mockTemplateIndex);
+
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      const pending = httpMock.match(() => true);
+      for (const req of pending) {
+        if (req.request.url.includes('manifest.json')) {
+          req.flush(mockEmptyTemplate.manifest);
+        } else if (req.request.url.includes('project.json')) {
+          req.flush(mockEmptyTemplate.project);
+        } else if (req.request.url.includes('elements.json')) {
+          req.flush(mockEmptyTemplate.elements);
+        } else if (req.request.url.includes('documents.json')) {
+          req.flush(mockEmptyTemplate.documents);
+        } else if (req.request.url.includes('generators.json')) {
+          req.flush(null, { status: 404, statusText: 'Not Found' });
+        } else {
+          req.flush([]);
+        }
+      }
+
+      const archive = await promise;
+      expect(archive.generators).toEqual([]);
+    });
+
     it('should force manifest version to ARCHIVE_VERSION', async () => {
       // Template ships with version: 1 manifest
       const promise = service.loadTemplate('empty');

@@ -80,6 +80,17 @@
           </div>
         }
 
+        <!-- Generators section -->
+        @if (projectState.accessLoaded() && projectState.canWrite()) {
+          <div
+            class="section-content"
+            [class.section-hidden]="selectedSection() !== 'generators'">
+            <div class="section-inner">
+              <app-generators-settings />
+            </div>
+          </div>
+        }
+
         <!-- Sync section -->
         <div
           class="section-content"
@@ -177,6 +188,18 @@
                 </mat-panel-title>
               </mat-expansion-panel-header>
               <app-time-systems-settings />
+            </mat-expansion-panel>
+
+            <mat-expansion-panel
+              [expanded]="generatorsExpanded()"
+              (opened)="generatorsExpanded.set(true)"
+              (closed)="generatorsExpanded.set(false)">
+              <mat-expansion-panel-header>
+                <mat-panel-title>
+                  <mat-icon>casino</mat-icon> Generators
+                </mat-panel-title>
+              </mat-expansion-panel-header>
+              <app-generators-settings />
             </mat-expansion-panel>
           }
 

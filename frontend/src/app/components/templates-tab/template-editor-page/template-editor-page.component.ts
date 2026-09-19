@@ -127,6 +127,9 @@ export class TemplateEditorPageComponent
   // Default identity image for new elements of this type
   readonly defaultImage = signal<string | undefined>(undefined);
 
+  // Generator rolled for the names of new elements of this type
+  readonly nameGeneratorId = signal<string | undefined>(undefined);
+
   /** A transient schema built from the current editor state, for the preview. */
   readonly previewSchema = computed<ElementTypeSchema>(() => ({
     id: this.schema().id,
@@ -137,6 +140,7 @@ export class TemplateEditorPageComponent
     tabs: this.tabs(),
     defaultAppearance: this.defaultAppearance(),
     defaultImage: this.defaultImage(),
+    nameGeneratorId: this.nameGeneratorId(),
   }));
 
   constructor() {}
@@ -175,6 +179,7 @@ export class TemplateEditorPageComponent
 
     this.defaultAppearance.set(schema.defaultAppearance);
     this.defaultImage.set(schema.defaultImage);
+    this.nameGeneratorId.set(schema.nameGeneratorId);
 
     // Deep clone tabs to avoid mutating the original schema
     const tabs: TabSchema[] = structuredClone(schema.tabs);
@@ -364,6 +369,7 @@ export class TemplateEditorPageComponent
       tabs: this.tabs(),
       defaultAppearance: this.defaultAppearance(),
       defaultImage: this.defaultImage(),
+      nameGeneratorId: this.nameGeneratorId(),
       version: this.schema().version + 1,
       // Once assembled for a save, the template is no longer "new".
       isNew: false,
@@ -425,12 +431,18 @@ export class TemplateEditorPageComponent
     name?: string;
     icon?: string;
     description?: string;
+    nameGeneratorId?: string;
   }): void {
     this.model.update(m => ({
       name: patch.name ?? m.name,
       icon: patch.icon ?? m.icon,
       description: patch.description ?? m.description,
     }));
+    if (patch.nameGeneratorId !== undefined) {
+      // The select's "None" option is the empty string, which clears the
+      // binding rather than storing an id that resolves to nothing.
+      this.nameGeneratorId.set(patch.nameGeneratorId || undefined);
+    }
     this.scheduleAutosave();
   }
 

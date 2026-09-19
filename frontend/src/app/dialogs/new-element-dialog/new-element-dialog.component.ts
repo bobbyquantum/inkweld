@@ -17,6 +17,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { GeneratorDiceComponent } from '@components/generator-dice/generator-dice.component';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { DOCUMENT_ROLE_ICONS } from '@models/scene-metadata';
 
@@ -91,6 +92,7 @@ interface NewElementFormValue {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     FormField,
+    GeneratorDiceComponent,
     MatDialogModule,
     MatFormFieldModule,
     MatInputModule,
@@ -267,6 +269,23 @@ export class NewElementDialogComponent {
     return sections.filter(section => section.options.length > 0);
   });
 
+  /**
+   * Generator bound to the selected worldbuilding template's name, if any.
+   * With none bound the dice falls back to a picker over all generators.
+   */
+  readonly nameGeneratorId = computed(() => {
+    const schemaId = this.selectedSchemaId();
+    if (!schemaId) return undefined;
+    return this.worldbuildingService
+      .schemas()
+      .find(schema => schema.id === schemaId)?.nameGeneratorId;
+  });
+
+  /** Names already in the project, so a rolled suggestion is never a clash. */
+  readonly existingNames = computed(() =>
+    this.projectState.elements().map(element => element.name)
+  );
+
   readonly model = signal<NewElementFormValue>({
     name: '',
     type: ElementType.Item,
@@ -342,6 +361,11 @@ export class NewElementDialogComponent {
     // Use the constant documentTypes instead of reading the signal to avoid
     // creating a dependency in the calling effect
     this.elementTypeOptions.set([...this.baseTypes, ...worldbuildingOptions]);
+  }
+
+  /** Applies a rolled suggestion to the name field. */
+  onNamePicked(name: string): void {
+    this.model.update(value => ({ ...value, name }));
   }
 
   onCancel = (): void => {

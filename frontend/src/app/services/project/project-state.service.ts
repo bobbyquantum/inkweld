@@ -21,6 +21,7 @@ import { type CanvasContents, type CanvasEdit } from '@models/canvas-edit';
 import type { CoverSource } from '@models/cover-source';
 import { type ProjectElement } from '@models/project-element';
 import { type DocumentRole, roleMetadata } from '@models/scene-metadata';
+import { GeneratorLibraryService } from '@services/generator/generator-library.service';
 import { TimeSystemLibraryService } from '@services/timeline/time-system-library.service';
 import { nanoid } from 'nanoid';
 import {
@@ -108,6 +109,7 @@ export class ProjectStateService implements OnDestroy {
   private readonly popout = inject(PopoutService);
   private readonly worldbuildingService = inject(WorldbuildingService);
   private readonly timeSystemLibrary = inject(TimeSystemLibraryService);
+  private readonly generatorLibrary = inject(GeneratorLibraryService);
   private readonly elementTreeService = inject(ElementTreeService);
   private readonly tabManager = inject(TabManagerService);
   private readonly syncProviderFactory = inject(ElementSyncProviderFactory);
@@ -585,6 +587,7 @@ export class ProjectStateService implements OnDestroy {
     // This ensures schemasCache is populated when elements$ triggers component effects
     this.worldbuildingService.setSyncProvider(provider);
     this.timeSystemLibrary.setSyncProvider(provider);
+    this.generatorLibrary.setSyncProvider(provider);
 
     // Subscribe to provider observables
     this.setupProviderSubscriptions();
@@ -780,6 +783,7 @@ export class ProjectStateService implements OnDestroy {
     this.loadGeneration++;
     this.worldbuildingService.setSyncProvider(null);
     this.timeSystemLibrary.setSyncProvider(null);
+    this.generatorLibrary.setSyncProvider(null);
     this.cleanupProviderSubscriptions();
     this.syncProvider?.disconnect();
     this.syncProvider = null;

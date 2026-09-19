@@ -1,0 +1,237 @@
+<div class="page">
+  <header class="header">
+    <button
+      mat-icon-button
+      type="button"
+      [matTooltip]="'worldbuilding.generatorEdit.back' | transloco"
+      [attr.aria-label]="'worldbuilding.generatorEdit.back' | transloco"
+      (click)="onCancel()"
+      data-testid="generator-edit-back">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <div class="title-block">
+      <h1>
+        {{
+          isEditMode()
+            ? ('worldbuilding.generatorEdit.editTitle' | transloco)
+            : ('worldbuilding.generatorEdit.createTitle' | transloco)
+        }}
+      </h1>
+      <p class="hint">{{ 'worldbuilding.generatorEdit.hint' | transloco }}</p>
+    </div>
+  </header>
+
+  @if (loadError()) {
+    <div class="error" data-testid="generator-edit-error">
+      {{ loadError() }}
+    </div>
+  } @else {
+    <form class="form" autocomplete="off">
+      <div class="row">
+        <mat-form-field appearance="outline" class="grow">
+          <mat-label>{{
+            'worldbuilding.generatorEdit.nameLabel' | transloco
+          }}</mat-label>
+          <input
+            matInput
+            [ngModel]="name()"
+            (ngModelChange)="name.set($event)"
+            name="generatorName"
+            data-testid="generator-edit-name" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="category">
+          <mat-label>{{
+            'worldbuilding.generatorEdit.categoryLabel' | transloco
+          }}</mat-label>
+          <mat-select
+            [ngModel]="category()"
+            (ngModelChange)="category.set($event)"
+            name="generatorCategory"
+            data-testid="generator-edit-category">
+            @for (option of categories; track option) {
+              <mat-option [value]="option">{{ option }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      </div>
+
+      <mat-form-field appearance="outline">
+        <mat-label>{{
+          'worldbuilding.generatorEdit.descriptionLabel' | transloco
+        }}</mat-label>
+        <input
+          matInput
+          [ngModel]="description()"
+          (ngModelChange)="description.set($event)"
+          name="generatorDescription"
+          data-testid="generator-edit-description" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>{{
+          'worldbuilding.generatorEdit.templateLabel' | transloco
+        }}</mat-label>
+        <input
+          matInput
+          [ngModel]="template()"
+          (ngModelChange)="template.set($event)"
+          name="generatorTemplate"
+          placeholder="#first# #last#"
+          data-testid="generator-edit-template" />
+        <mat-hint>{{
+          'worldbuilding.generatorEdit.templateHint' | transloco
+        }}</mat-hint>
+      </mat-form-field>
+
+      @for (issue of templateIssues(); track issue.code + issue.message) {
+        <p
+          class="issue"
+          [class.issue--warning]="issue.severity === 'warning'"
+          data-testid="generator-edit-template-issue">
+          <mat-icon>{{
+            issue.severity === 'warning' ? 'info' : 'error_outline'
+          }}</mat-icon>
+          {{ issue.message }}
+        </p>
+      }
+    </form>
+
+    <section class="rules">
+      <div class="section-head">
+        <h2>{{ 'worldbuilding.generatorEdit.rulesTitle' | transloco }}</h2>
+        <button
+          mat-stroked-button
+          type="button"
+          (click)="onAddRule()"
+          data-testid="generator-edit-add-rule">
+          <mat-icon>add</mat-icon>
+          {{ 'worldbuilding.generatorEdit.addRule' | transloco }}
+        </button>
+      </div>
+      <p class="hint">
+        {{
+          'worldbuilding.generatorEdit.rulesHint'
+            | transloco: { modifiers: modifierNames }
+        }}
+      </p>
+
+      @for (rule of rules(); track rule._id) {
+        <div class="rule" [attr.data-testid]="'generator-edit-rule-' + $index">
+          <div class="rule-head">
+            <mat-form-field appearance="outline" class="rule-key">
+              <mat-label>{{
+                'worldbuilding.generatorEdit.ruleKeyLabel' | transloco
+              }}</mat-label>
+              <input
+                matInput
+                [ngModel]="rule.key"
+                (ngModelChange)="onRuleKeyChange(rule._id, $event)"
+                [name]="'ruleKey' + rule._id"
+                [attr.data-testid]="'generator-edit-rule-key-' + $index" />
+            </mat-form-field>
+            <span class="rule-count">
+              {{
+                'worldbuilding.generatorEdit.entryCount'
+                  | transloco: { count: entryCount(rule) }
+              }}
+            </span>
+            <button
+              mat-icon-button
+              type="button"
+              color="warn"
+              (click)="onRemoveRule(rule._id)"
+              [matTooltip]="
+                'worldbuilding.generatorEdit.removeRule' | transloco
+              "
+              [attr.aria-label]="
+                'worldbuilding.generatorEdit.removeRule' | transloco
+              "
+              [attr.data-testid]="'generator-edit-remove-rule-' + $index">
+              <mat-icon>delete_outline</mat-icon>
+            </button>
+          </div>
+
+          <mat-form-field appearance="outline" class="rule-entries">
+            <mat-label>{{
+              'worldbuilding.generatorEdit.entriesLabel' | transloco
+            }}</mat-label>
+            <textarea
+              matInput
+              rows="5"
+              [ngModel]="rule.entriesText"
+              (ngModelChange)="onRuleEntriesChange(rule._id, $event)"
+              [name]="'ruleEntries' + rule._id"
+              [attr.data-testid]="
+                'generator-edit-rule-entries-' + $index
+              "></textarea>
+            <mat-hint>{{
+              'worldbuilding.generatorEdit.entriesHint' | transloco
+            }}</mat-hint>
+          </mat-form-field>
+
+          @for (
+            issue of issuesForRule(rule);
+            track issue.code + issue.message
+          ) {
+            <p
+              class="issue"
+              [class.issue--warning]="issue.severity === 'warning'"
+              [attr.data-testid]="'generator-edit-rule-issue-' + $index">
+              <mat-icon>{{
+                issue.severity === 'warning' ? 'info' : 'error_outline'
+              }}</mat-icon>
+              {{ issue.message }}
+            </p>
+          }
+        </div>
+      } @empty {
+        <p class="hint" data-testid="generator-edit-no-rules">
+          {{ 'worldbuilding.generatorEdit.noRules' | transloco }}
+        </p>
+      }
+    </section>
+
+    <section class="preview">
+      <div class="section-head">
+        <h2>{{ 'worldbuilding.generatorEdit.previewTitle' | transloco }}</h2>
+        <button
+          mat-stroked-button
+          type="button"
+          (click)="onReroll()"
+          data-testid="generator-edit-reroll">
+          <mat-icon>casino</mat-icon>
+          {{ 'worldbuilding.generatorEdit.reroll' | transloco }}
+        </button>
+      </div>
+      <ul class="preview-list" data-testid="generator-edit-preview">
+        @for (result of preview(); track result.seed) {
+          <li>{{ result.text }}</li>
+        } @empty {
+          <li class="hint">
+            {{ 'worldbuilding.generatorEdit.previewEmpty' | transloco }}
+          </li>
+        }
+      </ul>
+    </section>
+
+    <footer class="actions">
+      <button
+        mat-button
+        type="button"
+        (click)="onCancel()"
+        data-testid="generator-edit-cancel">
+        {{ 'worldbuilding.generatorEdit.cancel' | transloco }}
+      </button>
+      <button
+        mat-flat-button
+        color="primary"
+        type="button"
+        [disabled]="!canSave()"
+        (click)="onSave()"
+        data-testid="generator-edit-save">
+        {{ 'worldbuilding.generatorEdit.save' | transloco }}
+      </button>
+    </footer>
+  }
+</div>
