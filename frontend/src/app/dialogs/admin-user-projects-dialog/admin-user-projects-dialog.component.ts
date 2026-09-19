@@ -18,7 +18,6 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import type { AdminUserProjects } from '@inkweld/model/admin-user-projects';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
-import { type AdminUserProjectsQuota } from '@services/admin/admin.service';
 import { AdminService } from '@services/admin/admin.service';
 import { formatBytes } from '@utils/format-bytes';
 export interface AdminUserProjectsDialogData {
@@ -57,9 +56,7 @@ export class AdminUserProjectsDialogComponent implements OnInit {
   readonly userId: string;
   readonly username: string;
 
-  readonly data = signal<(AdminUserProjects & AdminUserProjectsQuota) | null>(
-    null
-  );
+  readonly data = signal<AdminUserProjects | null>(null);
   readonly isLoading = signal(true);
   readonly error = signal<string | null>(null);
 
@@ -96,9 +93,7 @@ export class AdminUserProjectsDialogComponent implements OnInit {
   }
 
   /** Seed the quota editor from the loaded override (null = instance default). */
-  private syncQuotaForm(
-    result: AdminUserProjects & AdminUserProjectsQuota
-  ): void {
+  private syncQuotaForm(result: AdminUserProjects): void {
     const override = result.syncQuotaBytes;
     this.useDefaultQuota.set(override === null);
     this.quotaMb.set(

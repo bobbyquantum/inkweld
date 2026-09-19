@@ -28,6 +28,8 @@ import { MediaError } from '../model/media-error';
 import { MediaListResponse } from '../model/media-list-response';
 // @ts-ignore
 import { UploadProjectMedia200Response } from '../model/upload-project-media200-response';
+// @ts-ignore
+import { UploadProjectMedia403Response } from '../model/upload-project-media403-response';
 
 // @ts-ignore
 import { BASE_PATH, COLLECTION_FORMATS } from '../variables';

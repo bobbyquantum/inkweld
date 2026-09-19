@@ -1,30 +1,12 @@
-import { HttpClient, type HttpErrorResponse } from '@angular/common/http';
 import { inject, Injectable, signal } from '@angular/core';
+import { type StorageUsage, UsersService } from '@inkweld/index';
 import { catchError, firstValueFrom, throwError } from 'rxjs';
 
 import { LoggerService } from '../core/logger.service';
-import { SetupService } from '../core/setup.service';
 
-/** Per-project slice of a user's storage usage. */
-export interface StorageUsageProject {
-  id: string;
-  slug: string;
-  title: string;
-  dataBytes: number;
-  mediaBytes: number;
-  totalBytes: number;
-}
-
-/** A user's sync-capacity usage and allowance. */
-export interface StorageUsage {
-  usedBytes: number;
-  quotaBytes: number;
-  /** used/quota, or `null` when the allowance is zero (nothing fits). */
-  fraction: number | null;
-  overQuota: boolean;
-  overSoftLimit: boolean;
-  projects: StorageUsageProject[];
-}
+/** Re-export the generated model under the name the UI already imports. */
+export type { StorageUsage };
+export type StorageUsageProject = StorageUsage['projects'][number];
 
 export class StorageUsageError extends Error {
   constructor(
@@ -37,20 +19,17 @@ export class StorageUsageError extends Error {
 }
 
 /**
- * Reads the current user's sync-capacity usage.
+ * Reads the current user's sync-capacity usage via the generated API client.
  *
- * This is deliberately a hand-written HTTP call rather than a generated
- * api-client method: the Angular client is produced by a Java tool that is not
- * available in every build environment, and the endpoint is a simple
- * authenticated GET. If the client is later regenerated, this can switch to the
- * generated `getMyStorageUsage` without changing the public surface here.
+ * Usage is per-account, so the cached value is keyed by user id: a value fetched
+ * for one user must never be shown to the next person to sign in on the same SPA
+ * session.
  */
 @Injectable({
   providedIn: 'root',
 })
 export class StorageUsageService {
-  private readonly http = inject(HttpClient);
-  private readonly setupService = inject(SetupService);
+  private readonly usersApi = inject(UsersService);
   private readonly logger = inject(LoggerService);
 
   /** Last fetched usage; `undefined` until the first successful load. */
@@ -58,16 +37,8 @@ export class StorageUsageService {
   readonly isLoading = signal(false);
   readonly error = signal<StorageUsageError | undefined>(undefined);
 
-  /**
-   * The user the cached `usage` belongs to. Usage is per-account, so a cached
-   * value must never be shown to a different user after a sign-out/sign-in in
-   * the same SPA session — `load` drops it when the id changes.
-   */
+  /** The user the cached `usage` belongs to. */
   private cachedForUserId: string | undefined;
-
-  private get basePath(): string {
-    return this.setupService.getServerUrl() ?? '';
-  }
 
   /**
    * Fetch fresh usage. Never throws — failures are recorded in `error` so a UI
@@ -91,10 +62,8 @@ export class StorageUsageService {
     this.error.set(undefined);
     try {
       const usage = await firstValueFrom(
-        this.http
-          .get<StorageUsage>(`${this.basePath}/api/v1/users/me/storage`, {
-            withCredentials: true,
-          })
+        this.usersApi
+          .getMyStorageUsage()
           .pipe(catchError(this.handleError.bind(this)))
       );
       this.usage.set(usage);
@@ -116,14 +85,19 @@ export class StorageUsageService {
     this.cachedForUserId = undefined;
   }
 
-  private handleError(error: HttpErrorResponse) {
+  private handleError(error: unknown) {
+    const status =
+      typeof error === 'object' && error !== null && 'status' in error
+        ? (error as { status?: number }).status
+        : undefined;
+
     let serviceError: StorageUsageError;
-    if (error.status === 0) {
+    if (status === 0 || status === undefined) {
       serviceError = new StorageUsageError(
         'NETWORK_ERROR',
         'Unable to connect to server'
       );
-    } else if (error.status === 401) {
+    } else if (status === 401) {
       serviceError = new StorageUsageError('UNAUTHORIZED', 'Not authenticated');
     } else {
       serviceError = new StorageUsageError(
