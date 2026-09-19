@@ -258,6 +258,29 @@ describe('GeneratorEditPageComponent', () => {
       expect(api.name()).toBe('Half-typed name');
     });
 
+    it('fills in when the generator arrives after the editor opened', async () => {
+      // Opened against a library that has not synced yet: the editor reports
+      // the miss, then loads once the project document catches up.
+      const { fixture, api, libraryMock } = await createComponent('gen-1', []);
+      expect(
+        fixture.nativeElement.querySelector(
+          '[data-testid="generator-edit-error"]'
+        )
+      ).not.toBeNull();
+
+      libraryMock.generatorsSignal.set([makeGenerator()]);
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      expect(api.name()).toBe('Character names');
+      expect(
+        fixture.nativeElement.querySelector(
+          '[data-testid="generator-edit-error"]'
+        )
+      ).toBeNull();
+    });
+
     it('loads a malformed generator without throwing', async () => {
       const malformed = {
         id: 'gen-bad',

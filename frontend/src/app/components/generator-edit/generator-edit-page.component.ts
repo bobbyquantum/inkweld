@@ -141,10 +141,18 @@ export class GeneratorEditPageComponent {
   constructor() {
     effect(() => {
       const id = this.generatorId();
-      // `findGenerator` reads the library signal, and the library is shared:
-      // tracking it would re-run this effect whenever a collaborator saved
-      // any generator, overwriting whatever the user had typed. Only the id
-      // is a dependency; the lookup itself runs untracked.
+
+      // The library is shared, so tracking it unconditionally would re-run
+      // this effect whenever a collaborator saved any generator, replacing
+      // whatever the user had typed. Track it only while the draft has yet
+      // to be filled, so a generator that arrives after the editor opens
+      // still loads; once loaded, the read below stops running and the
+      // dependency drops.
+      if (this.loadedId !== id) {
+        this.library.generators();
+      }
+
+      // The lookup itself always runs untracked: tracking is decided above.
       untracked(() => this.initialiseFor(id));
     });
   }
