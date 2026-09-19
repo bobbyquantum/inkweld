@@ -27,6 +27,16 @@ describe('generator model', () => {
     });
   });
 
+  const source: Generator = {
+    id: 'gen-1',
+    name: 'Names',
+    icon: 'casino',
+    description: 'Character names',
+    category: 'names',
+    template: '#first#',
+    rules: [{ key: 'first', entries: [{ text: 'Aldric', weight: 2 }] }],
+  };
+
   describe('cloneGenerator', () => {
     const source: Generator = {
       id: 'gen-1',
@@ -48,6 +58,52 @@ describe('generator model', () => {
       clone.rules[0].entries[0].text = 'Brynn';
       expect(source.rules[0].key).toBe('first');
       expect(source.rules[0].entries[0].text).toBe('Aldric');
+    });
+  });
+
+  describe('cloneGenerator normalisation', () => {
+    // Generators arrive from imported archives and collaborators' writes,
+    // neither of which is shape-checked.
+    it.each([
+      ['rules missing', {}],
+      ['rules not an array', { rules: 'nope' }],
+      ['a null rule', { rules: [null] }],
+      ['entries missing', { rules: [{ key: 'a' }] }],
+      [
+        'a numeric entry text',
+        { rules: [{ key: 'a', entries: [{ text: 7 }] }] },
+      ],
+      ['a non-string template', { template: 42 }],
+    ])('does not throw on %s', (_label, patch) => {
+      const generator = { ...source, ...patch } as unknown as Generator;
+      expect(() => cloneGenerator(generator)).not.toThrow();
+    });
+
+    it('drops entries whose text is not a string', () => {
+      const generator = {
+        ...source,
+        rules: [{ key: 'a', entries: [{ text: 7 }, { text: 'Aldric' }] }],
+      } as unknown as Generator;
+      expect(cloneGenerator(generator).rules[0].entries).toEqual([
+        { text: 'Aldric' },
+      ]);
+    });
+
+    it('drops a weight that is not a finite number', () => {
+      const generator = {
+        ...source,
+        rules: [{ key: 'a', entries: [{ text: 'Aldric', weight: 'lots' }] }],
+      } as unknown as Generator;
+      expect(cloneGenerator(generator).rules[0].entries).toEqual([
+        { text: 'Aldric' },
+      ]);
+    });
+
+    it('falls back to a usable icon and category', () => {
+      const generator = { ...source, icon: '', category: '' };
+      const clone = cloneGenerator(generator);
+      expect(clone.icon).toBe(DEFAULT_GENERATOR_ICON);
+      expect(clone.category).toBe('other');
     });
   });
 

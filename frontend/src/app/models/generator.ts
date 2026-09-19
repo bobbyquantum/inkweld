@@ -98,15 +98,49 @@ export function createEmptyGenerator(id: string): Generator {
   };
 }
 
-/** Deep-clones a generator so stored copies never alias editor state. */
+/**
+ * Deep-clones a generator so stored copies never alias editor state.
+ *
+ * Also normalises its shape. Generators arrive from imported archives and
+ * from collaborators' writes to the shared document, neither of which is
+ * checked on the way in, so a hand-written `generators.json` can carry a
+ * missing `rules` array or a numeric entry `text`. Coercing here means the
+ * editor and the library work on a sound object instead of throwing.
+ */
 export function cloneGenerator(generator: Generator): Generator {
   return {
     ...generator,
-    rules: generator.rules.map(rule => ({
-      key: rule.key,
-      entries: rule.entries.map(entry => ({ ...entry })),
-    })),
+    name: asText(generator.name),
+    icon: asText(generator.icon) || DEFAULT_GENERATOR_ICON,
+    description: asText(generator.description),
+    category: asText(generator.category) || 'other',
+    template: asText(generator.template),
+    rules: asArray(generator.rules)
+      .filter(rule => rule !== null && typeof rule === 'object')
+      .map(rule => ({
+        key: asText(rule.key),
+        entries: asArray(rule.entries)
+          .filter(
+            entry =>
+              entry !== null &&
+              typeof entry === 'object' &&
+              typeof entry.text === 'string'
+          )
+          .map(entry =>
+            typeof entry.weight === 'number' && Number.isFinite(entry.weight)
+              ? { text: entry.text, weight: entry.weight }
+              : { text: entry.text }
+          ),
+      })),
   };
+}
+
+function asText(value: unknown): string {
+  return typeof value === 'string' ? value : '';
+}
+
+function asArray<T>(value: T[] | undefined): T[] {
+  return Array.isArray(value) ? value : [];
 }
 
 /**

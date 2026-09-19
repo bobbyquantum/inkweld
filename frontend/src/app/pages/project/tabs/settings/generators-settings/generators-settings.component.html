@@ -39,7 +39,9 @@
             </div>
             <div class="generator-meta">
               @if (sampleFor(generator)) {
-                <span class="generator-sample">{{ sampleFor(generator) }}</span>
+                <span class="generator-sample" data-testid="generator-sample">{{
+                  sampleFor(generator)
+                }}</span>
               }
               @if (generator.description) {
                 <span>{{ generator.description }}</span>

@@ -7,10 +7,10 @@ import {
 } from '@inkweld/index';
 import { type ElementAppearance } from '@models/element-appearance';
 import { type ElementRelationship } from '@models/element-ref.model';
+import { type Generator } from '@models/generator';
 import JSZip from '@progress/jszip-esm';
 import { firstValueFrom } from 'rxjs';
 
-import { type Generator } from '../../models/generator';
 import {
   ARCHIVE_VERSION,
   type ArchiveDocumentContent,

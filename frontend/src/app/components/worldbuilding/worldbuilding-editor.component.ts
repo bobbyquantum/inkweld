@@ -1359,10 +1359,21 @@ export class WorldbuildingEditorComponent implements OnDestroy {
   }
 
   /**
+   * Whether field dice should be offered at all. The form is disabled for
+   * readers, and `setValue` writes through a disabled control, so a visible
+   * dice would let a reader edit a field they cannot otherwise touch — and
+   * hand that edit to autosave.
+   */
+  protected canRollFields(): boolean {
+    return !this.previewMode() && this.projectState.canWrite();
+  }
+
+  /**
    * Writes a rolled suggestion into a field. The user picked it from the
    * dice menu, so replacing whatever was there is what they asked for.
    */
   onGeneratorPicked(fieldKey: string, value: string): void {
+    if (!this.canRollFields()) return;
     this.getControl(fieldKey)?.setValue(value);
   }
 

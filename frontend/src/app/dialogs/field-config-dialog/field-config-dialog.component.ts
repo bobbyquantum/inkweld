@@ -241,9 +241,12 @@ export class FieldConfigDialogComponent implements AfterViewInit {
       result.rows = this.clamp(this.rows(), 1, 20);
     }
 
-    if (this.isGeneratorType()) {
-      result.generatorId = this.generatorId() || undefined;
-    }
+    // Always stated, never omitted: the result is merged over the existing
+    // field, so leaving the key out would keep a binding the new field type
+    // cannot use and resurrect it if the field became text again.
+    result.generatorId = this.isGeneratorType()
+      ? this.generatorId() || undefined
+      : undefined;
 
     if (this.isRelationshipType()) {
       const target = this.targetSchemaId();

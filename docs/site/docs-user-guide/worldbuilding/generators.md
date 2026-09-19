@@ -47,7 +47,7 @@ Rule "place":  Riverwyn
                Ashford
 ```
 
-That rolls names like _Brynn Stonehelm_ and _Cera of Riverwyn_. Rules can reference other rules, as `last` does above, to any depth.
+That rolls names like _Brynn Stonehelm_ and _Cera of Riverwyn_. Rules can reference other rules, as `last` does above, nested as deeply as the expansion limit allows — a reference that would recurse past it is left as plain text instead.
 
 A plain word list is just a generator with one rule — set the template to `#word#` and put your list in a rule named `word`.
 

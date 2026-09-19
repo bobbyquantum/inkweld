@@ -48,9 +48,13 @@ async function createComponent(
   generatorId: string | null,
   generators: Generator[] = []
 ) {
+  const generatorsSignal = signal<Generator[]>(generators);
   const libraryMock = {
-    generators: signal<Generator[]>(generators).asReadonly(),
-    findGenerator: vi.fn((id: string) => generators.find(g => g.id === id)),
+    generators: generatorsSignal.asReadonly(),
+    generatorsSignal,
+    findGenerator: vi.fn((id: string) =>
+      generatorsSignal().find(g => g.id === id)
+    ),
     addGenerator: vi.fn(),
     updateGenerator: vi.fn(),
     removeGenerator: vi.fn(),
@@ -233,6 +237,43 @@ describe('GeneratorEditPageComponent', () => {
 
       api.onRemoveRule(rule._id);
       expect(api.rules()).toEqual([]);
+    });
+  });
+
+  describe('untrusted and concurrent input', () => {
+    it('keeps the draft when a collaborator changes the library', async () => {
+      const { fixture, api, libraryMock } = await createComponent('gen-1', [
+        makeGenerator(),
+      ]);
+
+      api.name.set('Half-typed name');
+
+      // Another client saves something; the shared signal emits.
+      libraryMock.generatorsSignal.set([
+        makeGenerator({ name: 'Renamed by someone else' }),
+      ]);
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      expect(api.name()).toBe('Half-typed name');
+    });
+
+    it('loads a malformed generator without throwing', async () => {
+      const malformed = {
+        id: 'gen-bad',
+        name: 'Broken',
+        icon: 'casino',
+        description: '',
+        category: 'names',
+        template: '#a#',
+        rules: 'not-an-array',
+      } as unknown as Generator;
+
+      const { fixture, api } = await createComponent('gen-bad', [malformed]);
+
+      expect(fixture.nativeElement).toBeTruthy();
+      expect(api.rules()).toEqual([]);
+      expect(api.name()).toBe('Broken');
     });
   });
 

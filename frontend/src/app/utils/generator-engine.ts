@@ -400,7 +400,14 @@ function expand(
       budget.remaining--;
       const entry = pickEntry(rule, random);
       if (!entry) return match;
-      const value = expand(entry.text, rules, random, depth + 1, budget);
+      // Clip the entry to what the budget still allows *before* expanding it,
+      // so an oversized entry from an imported archive is never copied in
+      // full just to be truncated afterwards.
+      const source =
+        entry.text.length > budget.chars
+          ? entry.text.slice(0, budget.chars)
+          : entry.text;
+      const value = expand(source, rules, random, depth + 1, budget);
       budget.chars -= value.length;
       return applyModifiers(value, splitModifiers(rawModifiers));
     }

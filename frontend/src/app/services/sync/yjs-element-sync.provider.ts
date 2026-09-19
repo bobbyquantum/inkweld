@@ -32,6 +32,7 @@ import {
   type ElementRelationship,
   type RelationshipTypeDefinition,
 } from '@models/element-ref.model';
+import { type Generator } from '@models/generator';
 import { type ElementTag, type TagDefinition } from '@models/tag.model';
 import type * as decoding from 'lib0/decoding';
 import type * as encoding from 'lib0/encoding';
@@ -42,7 +43,6 @@ import { type WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
 
 import { DocumentSyncState } from '../../models/document-sync-state';
-import { type Generator } from '../../models/generator';
 import { type MediaProjectTag } from '../../models/media-project-tag.model';
 import { type MediaTag } from '../../models/media-tag.model';
 import { type PublishPlan } from '../../models/publish-plan';

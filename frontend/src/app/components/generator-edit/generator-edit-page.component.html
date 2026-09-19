@@ -206,7 +206,7 @@
       </div>
       <ul class="preview-list" data-testid="generator-edit-preview">
         @for (result of preview(); track result.seed) {
-          <li>{{ result.text }}</li>
+          <li data-testid="generator-edit-preview-item">{{ result.text }}</li>
         } @empty {
           <li class="hint">
             {{ 'worldbuilding.generatorEdit.previewEmpty' | transloco }}

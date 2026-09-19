@@ -7,6 +7,7 @@ import {
   input,
   output,
   signal,
+  untracked,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -17,6 +18,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslocoModule } from '@jsverse/transloco';
 import {
+  cloneGenerator,
   DEFAULT_GENERATOR_ICON,
   formatEntryLines,
   type Generator,
@@ -133,18 +135,46 @@ export class GeneratorEditPageComponent {
     () => this.name().trim().length > 0 && this.errors().length === 0
   );
 
+  /** The id whose contents are already in the draft, so it loads once. */
+  private loadedId: string | null | undefined = undefined;
+
   constructor() {
     effect(() => {
       const id = this.generatorId();
-      if (id) {
-        this.loadFromLibrary(id);
-      } else {
-        this.initialiseBlank();
-      }
+      // `findGenerator` reads the library signal, and the library is shared:
+      // tracking it would re-run this effect whenever a collaborator saved
+      // any generator, overwriting whatever the user had typed. Only the id
+      // is a dependency; the lookup itself runs untracked.
+      untracked(() => this.initialiseFor(id));
     });
   }
 
   // ─── State initialisation ─────────────────────────────────────────────
+
+  /**
+   * Fills the draft for `id`, once. A miss is not recorded as loaded, so an
+   * editor opened before the project document finished syncing still fills
+   * in when the generator arrives — the next change to `generatorId` or a
+   * re-entry into the editor retries it.
+   */
+  private initialiseFor(id: string | null): void {
+    if (this.loadedId === id) return;
+
+    if (!id) {
+      this.loadedId = id;
+      this.initialiseBlank();
+      return;
+    }
+
+    const generator = this.library.findGenerator(id);
+    if (!generator) {
+      this.loadError.set(`Generator "${id}" was not found.`);
+      return;
+    }
+
+    this.loadedId = id;
+    this.loadFromLibrary(generator);
+  }
 
   private initialiseBlank(): void {
     this.loadError.set(null);
@@ -158,12 +188,11 @@ export class GeneratorEditPageComponent {
     ]);
   }
 
-  private loadFromLibrary(id: string): void {
-    const generator = this.library.findGenerator(id);
-    if (!generator) {
-      this.loadError.set(`Generator "${id}" was not found.`);
-      return;
-    }
+  private loadFromLibrary(stored: Generator): void {
+    // Normalised first: a generator from an archive or another client is not
+    // shape-checked, and the editor must not throw on a malformed one.
+    const generator = cloneGenerator(stored);
+
     this.loadError.set(null);
     this.name.set(generator.name);
     this.description.set(generator.description);

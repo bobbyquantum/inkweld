@@ -12,11 +12,11 @@ import {
   type ElementRelationship,
   type RelationshipTypeDefinition,
 } from '@models/element-ref.model';
+import { type Generator } from '@models/generator';
 import { type ElementTag, type TagDefinition } from '@models/tag.model';
 import { BehaviorSubject, filter, map, type Observable, Subject } from 'rxjs';
 
 import { DocumentSyncState } from '../../models/document-sync-state';
-import { type Generator } from '../../models/generator';
 import { type MediaProjectTag } from '../../models/media-project-tag.model';
 import { type MediaTag } from '../../models/media-tag.model';
 import { type PublishPlan } from '../../models/publish-plan';

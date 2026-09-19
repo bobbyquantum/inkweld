@@ -61,7 +61,7 @@ test.describe('Random generators', () => {
       await expect(
         page
           .getByTestId('generators-row-gen-character-names')
-          .locator('.generator-sample')
+          .getByTestId('generator-sample')
       ).toHaveText(/^\S+ \S+/);
     });
 
@@ -99,9 +99,9 @@ test.describe('Random generators', () => {
       const fullName = (await suggestion.textContent())?.trim() ?? '';
       await suggestion.click();
 
-      await expect(
-        page.getByTestId('field-fullName').locator('input')
-      ).toHaveValue(fullName);
+      await expect(page.getByTestId('field-input-fullName')).toHaveValue(
+        fullName
+      );
     });
   });
 
@@ -125,8 +125,9 @@ test.describe('Random generators', () => {
       await page.getByTestId('generator-edit-rule-key-1').fill('last');
       await page.getByTestId('generator-edit-rule-entries-1').fill(LAST_NAME);
 
-      const preview = page.getByTestId('generator-edit-preview');
-      await expect(preview.locator('li').first()).toHaveText(ROLLED_NAME);
+      await expect(
+        page.getByTestId('generator-edit-preview-item').first()
+      ).toHaveText(ROLLED_NAME);
     });
 
     await test.step('an unresolved reference blocks saving', async () => {

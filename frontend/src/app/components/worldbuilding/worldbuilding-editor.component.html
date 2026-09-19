@@ -824,9 +824,10 @@
                 <input
                   matInput
                   [attr.id]="'field-' + field.key"
+                  [attr.data-testid]="'field-input-' + field.key"
                   [formControl]="getControl(field.key)"
                   [placeholder]="field.placeholder || ''" />
-                @if (field.generatorId) {
+                @if (field.generatorId && canRollFields()) {
                   <app-generator-dice
                     matSuffix
                     [generatorId]="field.generatorId"
@@ -852,7 +853,7 @@
                   cdkTextareaAutosize
                   [cdkAutosizeMinRows]="field.rows || 3"
                   [cdkAutosizeMaxRows]="12"></textarea>
-                @if (field.generatorId) {
+                @if (field.generatorId && canRollFields()) {
                   <app-generator-dice
                     matSuffix
                     [generatorId]="field.generatorId"

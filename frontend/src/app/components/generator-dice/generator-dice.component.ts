@@ -76,10 +76,18 @@ export class GeneratorDiceComponent {
     this.library.findGenerator(this.generatorId())
   );
 
-  /** Hidden entirely when there is nothing this button could roll. */
-  protected readonly visible = computed(
-    () => this.boundGenerator() !== undefined || this.library.hasGenerators()
-  );
+  /**
+   * Hidden entirely when there is nothing this button should roll.
+   *
+   * A field bound to a generator that has since been deleted hides the
+   * button rather than falling back to the picker: the schema said which
+   * generator belongs here, and offering unrelated ones instead would be
+   * worse than offering none. Only an unbound field opens the picker.
+   */
+  protected readonly visible = computed(() => {
+    if (this.generatorId()) return this.boundGenerator() !== undefined;
+    return this.library.hasGenerators();
+  });
 
   /** Rolls a fresh set of candidates for the bound generator. */
   protected onMenuOpened(): void {

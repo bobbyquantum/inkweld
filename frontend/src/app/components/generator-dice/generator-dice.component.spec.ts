@@ -98,8 +98,21 @@ describe('GeneratorDiceComponent', () => {
       ).not.toBeNull();
     });
 
-    it('renders as a picker when the binding resolves to nothing', async () => {
-      const { api } = await createComponent([makeGenerator()], 'deleted-id');
+    it('hides when the bound generator has been deleted', async () => {
+      // Falling back to the picker would offer generators the schema never
+      // chose for this field, which is worse than offering none.
+      const { fixture, api } = await createComponent(
+        [makeGenerator()],
+        'deleted-id'
+      );
+      expect(api.visible()).toBe(false);
+      expect(
+        fixture.nativeElement.querySelector('[data-testid="generator-dice"]')
+      ).toBeNull();
+    });
+
+    it('renders the picker for an unbound field', async () => {
+      const { api } = await createComponent([makeGenerator()], undefined);
       expect(api.visible()).toBe(true);
     });
 

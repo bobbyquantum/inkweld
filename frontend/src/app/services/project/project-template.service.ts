@@ -4,10 +4,10 @@ import {
   type ElementRelationship,
   type RelationshipTypeDefinition,
 } from '@models/element-ref.model';
+import { type Generator } from '@models/generator';
 import { type ElementTag, type TagDefinition } from '@models/tag.model';
 import { firstValueFrom } from 'rxjs';
 
-import { type Generator } from '../../models/generator';
 import { type MediaTag } from '../../models/media-tag.model';
 import {
   ARCHIVE_VERSION,
