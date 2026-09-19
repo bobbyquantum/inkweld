@@ -12,6 +12,9 @@ import {
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslocoModule } from '@jsverse/transloco';
 import {
   COVER_OPENED_MS,
@@ -21,8 +24,10 @@ import {
   COVER_TURN_MS,
   COVER_VEIL_MS,
   type CoverOpenRect,
+  type CoverOpenRequest,
   ProjectCoverOpenService,
 } from '@services/core/project-cover-open.service';
+import { formatBytes } from '@utils/format-bytes';
 
 /**
  * Stages of the transition:
@@ -59,6 +64,12 @@ const CARD_RADIUS = 12;
 
 /** Root font size the project grid's covers are typeset against, in pixels. */
 const CARD_ROOT_FONT_SIZE = 16;
+
+/**
+ * Put on `<body>` while a cover is up, so the CDK's overlay container can be
+ * lifted above it and the cover's own menus and dialogs can be seen.
+ */
+const COVER_LIFTED_BODY_CLASS = 'cover-lifted';
 
 /** Resolved placement of the cover, in the viewport it was measured against. */
 export interface CoverOpenGeometry {
@@ -163,14 +174,25 @@ function prefersReducedMotion(): boolean {
  * go in. Mounted once in the app shell.
  *
  * Clicking a project in the grid lifts its cover out and puts it on show
- * beside the title and description (underneath them, on a narrow screen).
- * Clicking again — anywhere, or the begin button — swings the cover open on
- * its left edge while the project loads behind it. Backing out drops the
- * cover onto the card it came from.
+ * beside the title, description and size (underneath them, on a narrow
+ * screen). Clicking again — anywhere, or the begin button — swings the cover
+ * open on its left edge while the project loads behind it. Backing out drops
+ * the cover onto the card it came from.
+ *
+ * A project that is not on this device cannot be opened, so the same click
+ * downloads it instead, and the cover stays up until it is ready to be read.
+ * The grid's own project actions hang off the menu beside the close button.
  */
 @Component({
   selector: 'app-project-cover-open',
-  imports: [MatButtonModule, MatIconModule, TranslocoModule],
+  imports: [
+    MatButtonModule,
+    MatIconModule,
+    MatMenuModule,
+    MatProgressSpinnerModule,
+    MatTooltipModule,
+    TranslocoModule,
+  ],
   templateUrl: './project-cover-open.component.html',
   styleUrl: './project-cover-open.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -181,6 +203,18 @@ export class ProjectCoverOpenComponent implements OnDestroy {
   protected readonly request = this.coverOpen.request;
   protected readonly phase = signal<CoverOpenPhase>('closed');
   protected readonly geometry = signal<CoverOpenGeometry | null>(null);
+
+  /** How much the project takes up, once the server has said. */
+  protected readonly size = signal<number | null>(null);
+  /** True while that answer is still being fetched. */
+  protected readonly sizePending = signal(false);
+  /** True while the project is being downloaded onto this device. */
+  protected readonly downloading = signal(false);
+
+  protected readonly sizeText = computed(() => {
+    const size = this.size();
+    return size === null ? null : formatBytes(size);
+  });
 
   /**
    * Zero when the reader asked for reduced motion. The state itself is not
@@ -220,6 +254,14 @@ export class ProjectCoverOpenComponent implements OnDestroy {
   private frame: number | null = null;
 
   constructor() {
+    // Menus, dialogs and snackbars raised from the lifted cover are drawn in
+    // the CDK's own container, which sits well below this overlay. While a
+    // cover is up, that container is lifted over it — see `theme.scss`.
+    effect(() => {
+      const lifted = this.request() !== null;
+      document.body.classList.toggle(COVER_LIFTED_BODY_CLASS, lifted);
+    });
+
     effect(() => {
       const request = this.request();
       const stage = this.coverOpen.stage();
@@ -242,6 +284,7 @@ export class ProjectCoverOpenComponent implements OnDestroy {
 
   ngOnDestroy(): void {
     this.stop();
+    document.body.classList.remove(COVER_LIFTED_BODY_CLASS);
   }
 
   /**
@@ -256,12 +299,93 @@ export class ProjectCoverOpenComponent implements OnDestroy {
     });
   }
 
-  /** Go in. Also what a click anywhere over the overlay does. */
+  /**
+   * The one thing the cover is offering: go in, or — for a project that is
+   * not on this device — fetch it first. Also what a click anywhere over the
+   * overlay does, which is why it is dead once the cover is already moving:
+   * a click meant for the page underneath must not start this again. The two
+   * frames the cover spends still drawn over its card do count, though —
+   * a reader quick enough to click in them meant to click.
+   */
   protected begin(event?: Event): void {
     // The button sits inside the backdrop that opens on any click; without
     // this the one press would be counted twice.
     event?.stopPropagation();
-    this.coverOpen.open();
+    const cover = this.request();
+    const phase = this.phase();
+    if (!cover || (phase !== 'selected' && phase !== 'closed')) {
+      return;
+    }
+    if (cover.activated()) {
+      this.coverOpen.open();
+      return;
+    }
+    this.download(cover);
+  }
+
+  /** Pin the project to the top of the grid, or unpin it. */
+  protected togglePin(): void {
+    this.request()?.actions.togglePin();
+  }
+
+  /** Download the project onto this device, leaving the cover up. */
+  protected activate(): void {
+    const cover = this.request();
+    if (cover) {
+      this.download(cover);
+    }
+  }
+
+  /** Drop the project's local data. The grid asks before it goes ahead. */
+  protected deactivate(): void {
+    void this.request()?.actions.deactivate();
+  }
+
+  /**
+   * Delete the project. The grid asks first; once it is gone there is no card
+   * left to put the cover back on, so the overlay simply clears.
+   */
+  protected remove(): void {
+    const cover = this.request();
+    if (!cover) {
+      return;
+    }
+    void cover.actions.delete().then(deleted => {
+      if (deleted) {
+        this.coverOpen.finish();
+      }
+    });
+  }
+
+  /**
+   * Fetch the project onto this device. The cover stays up throughout: when
+   * the download lands, `activated` flips and the same button turns into the
+   * way in. Failures are the grid's to report — it raised the download.
+   */
+  private download(cover: CoverOpenRequest): void {
+    if (this.downloading() || cover.activated()) {
+      return;
+    }
+    this.downloading.set(true);
+    void cover.actions.activate().finally(() => this.downloading.set(false));
+  }
+
+  /** Ask what the project takes up, and show it once the answer lands. */
+  private async loadSize(cover: CoverOpenRequest): Promise<void> {
+    const run = this.run;
+    this.size.set(null);
+    this.sizePending.set(true);
+    let size: number | null = null;
+    try {
+      size = await cover.size();
+    } catch {
+      // No size to show, which the template already draws as nothing.
+    }
+    if (run !== this.run) {
+      return;
+    }
+    this.size.set(size);
+    this.sizePending.set(false);
   }
 
   /** Back out, putting the cover down where it came from. */
@@ -278,9 +402,7 @@ export class ProjectCoverOpenComponent implements OnDestroy {
   }
 
   /** Lift the cover out of the grid and hold it there. */
-  private async lift(request: {
-    readonly origin: CoverOpenRect;
-  }): Promise<void> {
+  private async lift(request: CoverOpenRequest): Promise<void> {
     const run = ++this.run;
     this.geometry.set(
       computeCoverOpenGeometry(
@@ -290,6 +412,8 @@ export class ProjectCoverOpenComponent implements OnDestroy {
       )
     );
     this.phase.set('closed');
+    this.downloading.set(false);
+    void this.loadSize(request);
 
     // Let the closed cover paint over the card before anything moves: the
     // browser needs to have committed the start value, or the cover skips

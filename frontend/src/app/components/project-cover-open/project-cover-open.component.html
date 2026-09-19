@@ -1,6 +1,6 @@
 @if (request(); as cover) {
   @if (geometry(); as geometry) {
-    <!-- Clicking anywhere goes in; the close button stops the click. -->
+    <!-- Clicking anywhere goes in; the tools in the corner stop the click. -->
     <div
       class="cover-open"
       [class.cover-open--lifted]="isLifted()"
@@ -24,15 +24,74 @@
       (keydown)="onKeydown($event)">
       <div class="cover-open__veil"></div>
 
-      <button
-        type="button"
-        mat-icon-button
-        class="cover-open__close"
-        data-testid="cover-open-close"
-        [attr.aria-label]="'home.coverOpen.close' | transloco"
-        (click)="close($event)">
-        <mat-icon>close</mat-icon>
-      </button>
+      <div class="cover-open__tools">
+        <button
+          type="button"
+          mat-icon-button
+          class="cover-open__tool"
+          [matMenuTriggerFor]="coverMenu"
+          (click)="$event.stopPropagation()"
+          [matTooltip]="'home.coverOpen.menu' | transloco"
+          [attr.aria-label]="'home.coverOpen.menu' | transloco"
+          data-testid="cover-open-menu">
+          <mat-icon>more_vert</mat-icon>
+        </button>
+
+        <button
+          type="button"
+          mat-icon-button
+          class="cover-open__tool"
+          data-testid="cover-open-close"
+          [attr.aria-label]="'home.coverOpen.close' | transloco"
+          (click)="close($event)">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <!-- The grid's own project actions, on the cover it lifted. -->
+      <mat-menu #coverMenu="matMenu">
+        <button
+          mat-menu-item
+          type="button"
+          (click)="togglePin()"
+          data-testid="cover-open-pin">
+          <mat-icon>{{ cover.pinned() ? 'keep_off' : 'push_pin' }}</mat-icon>
+          <span>{{
+            (cover.pinned() ? 'home.unpinAction' : 'home.pinAction') | transloco
+          }}</span>
+        </button>
+
+        @if (cover.activated()) {
+          <button
+            mat-menu-item
+            type="button"
+            (click)="deactivate()"
+            data-testid="cover-open-deactivate">
+            <mat-icon>cloud_off</mat-icon>
+            <span>{{ 'home.deactivateAction' | transloco }}</span>
+          </button>
+        } @else {
+          <button
+            mat-menu-item
+            type="button"
+            (click)="activate()"
+            data-testid="cover-open-activate">
+            <mat-icon>cloud_download</mat-icon>
+            <span>{{ 'home.activateAction' | transloco }}</span>
+          </button>
+        }
+
+        @if (!cover.shared) {
+          <button
+            mat-menu-item
+            type="button"
+            (click)="remove()"
+            data-testid="cover-open-delete">
+            <mat-icon>delete</mat-icon>
+            <span>{{ 'home.deleteAction' | transloco }}</span>
+          </button>
+        }
+      </mat-menu>
 
       <div
         class="cover-open__stage"
@@ -75,45 +134,75 @@
         </div>
       </div>
 
-      @if (geometry.hasDetails) {
-        <div
-          class="cover-open__details"
-          [style.left.px]="geometry.stageLeft + geometry.stageWidth"
-          data-testid="cover-open-details">
+      <!--
+        The project beside its cover, or underneath it where the screen is too
+        narrow to take both. One panel either way: the way in is the same, and
+        only the room around it changes.
+      -->
+      <div
+        [class]="
+          geometry.hasDetails ? 'cover-open__details' : 'cover-open__actions'
+        "
+        [style.left.px]="
+          geometry.hasDetails ? geometry.stageLeft + geometry.stageWidth : null
+        "
+        [style.top.px]="
+          geometry.hasDetails ? null : geometry.stageTop + geometry.stageHeight
+        "
+        data-testid="cover-open-details">
+        @if (geometry.hasDetails) {
           <p class="cover-open__byline">{{ cover.username }}</p>
-          <h2 class="cover-open__heading">{{ cover.title }}</h2>
-          @if (cover.description) {
-            <p class="cover-open__description">{{ cover.description }}</p>
+        }
+
+        <h2 class="cover-open__heading">{{ cover.title }}</h2>
+
+        @if (geometry.hasDetails && cover.description) {
+          <p class="cover-open__description">{{ cover.description }}</p>
+        }
+
+        @if (sizePending()) {
+          <p class="cover-open__size" data-testid="cover-open-size">
+            <mat-icon>storage</mat-icon>
+            {{ 'home.coverOpen.calculatingSize' | transloco }}
+          </p>
+        } @else if (sizeText(); as size) {
+          <p
+            class="cover-open__size"
+            [matTooltip]="'home.coverOpen.sizeTooltip' | transloco"
+            data-testid="cover-open-size">
+            @if (cover.activated()) {
+              <mat-icon>storage</mat-icon>
+              {{ size }}
+            } @else {
+              <mat-icon>cloud_download</mat-icon>
+              {{ 'home.coverOpen.downloadSize' | transloco: { size } }}
+            }
+          </p>
+        }
+
+        <!--
+          One button for the one thing on offer: go in, or fetch the project
+          first when it is not on this device yet.
+        -->
+        <button
+          #beginButton
+          type="button"
+          mat-flat-button
+          color="primary"
+          class="cover-open__begin"
+          [disabled]="downloading()"
+          data-testid="cover-open-begin"
+          (click)="begin($event)">
+          @if (downloading()) {
+            <mat-spinner diameter="18" />
+            {{ 'home.coverOpen.downloading' | transloco }}
+          } @else if (cover.activated()) {
+            {{ 'home.coverOpen.begin' | transloco }}
+          } @else {
+            {{ 'home.coverOpen.download' | transloco }}
           }
-          <button
-            #beginButton
-            type="button"
-            mat-flat-button
-            color="primary"
-            class="cover-open__begin"
-            data-testid="cover-open-begin"
-            (click)="begin($event)">
-            {{ 'home.coverOpen.begin' | transloco }}
-          </button>
-        </div>
-      } @else {
-        <div
-          class="cover-open__actions"
-          [style.top.px]="geometry.stageTop + geometry.stageHeight"
-          data-testid="cover-open-details">
-          <h2 class="cover-open__heading">{{ cover.title }}</h2>
-          <button
-            #beginButton
-            type="button"
-            mat-flat-button
-            color="primary"
-            class="cover-open__begin"
-            data-testid="cover-open-begin"
-            (click)="begin($event)">
-            {{ 'home.coverOpen.begin' | transloco }}
-          </button>
-        </div>
-      }
+        </button>
+      </div>
     </div>
   }
 }

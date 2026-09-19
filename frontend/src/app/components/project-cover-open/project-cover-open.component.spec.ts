@@ -25,6 +25,16 @@ function makeRequest(
     description: 'A caravan master walks a drying sea.',
     coverUrl: null,
     origin: ORIGIN,
+    activated: signal(true),
+    pinned: signal(false),
+    shared: false,
+    actions: {
+      togglePin: vi.fn(),
+      activate: vi.fn(() => Promise.resolve()),
+      deactivate: vi.fn(() => Promise.resolve()),
+      delete: vi.fn(() => Promise.resolve(true)),
+    },
+    size: vi.fn(() => Promise.resolve(2048)),
     ...overrides,
   };
 }
@@ -135,6 +145,13 @@ describe('ProjectCoverOpenComponent', () => {
     return fixture.nativeElement.querySelector(
       '[data-testid="project-cover-open"]'
     );
+  }
+
+  /** The one button the cover offers: the way in, or the way to fetch it. */
+  function begin(): HTMLButtonElement {
+    return overlay()!.querySelector<HTMLButtonElement>(
+      '[data-testid="cover-open-begin"]'
+    )!;
   }
 
   beforeEach(async () => {
@@ -314,5 +331,205 @@ describe('ProjectCoverOpenComponent', () => {
 
     expect(service.finish).toHaveBeenCalled();
     expect(service.open).not.toHaveBeenCalled();
+  });
+
+  it('lifts the overlay container so its own menus can be seen', async () => {
+    request.set(makeRequest());
+    fixture.detectChanges();
+    await settle();
+
+    expect(document.body.classList.contains('cover-lifted')).toBe(true);
+
+    request.set(null);
+    fixture.detectChanges();
+
+    expect(document.body.classList.contains('cover-lifted')).toBe(false);
+  });
+
+  describe('size', () => {
+    it('shows what the project takes up once the answer lands', async () => {
+      request.set(makeRequest());
+      fixture.detectChanges();
+      await settle();
+
+      const size = overlay()!.querySelector('[data-testid="cover-open-size"]');
+      expect(size!.textContent).toContain('2 KB');
+    });
+
+    it('says how much a project not on this device would cost to fetch', async () => {
+      request.set(makeRequest({ activated: signal(false) }));
+      fixture.detectChanges();
+      await settle();
+
+      const size = overlay()!.querySelector('[data-testid="cover-open-size"]');
+      expect(size!.textContent).toContain('2 KB to download');
+    });
+
+    it('shows nothing at all when no size can be had', async () => {
+      request.set(makeRequest({ size: () => Promise.resolve(null) }));
+      fixture.detectChanges();
+      await settle();
+
+      expect(
+        overlay()!.querySelector('[data-testid="cover-open-size"]')
+      ).toBeNull();
+    });
+
+    it('carries on when the size cannot be fetched', async () => {
+      request.set(
+        makeRequest({ size: () => Promise.reject(new Error('offline')) })
+      );
+      fixture.detectChanges();
+      await settle();
+
+      expect(
+        overlay()!.querySelector('[data-testid="cover-open-size"]')
+      ).toBeNull();
+      expect(begin().textContent).toContain('Begin');
+    });
+  });
+
+  describe('a project that is not on this device', () => {
+    it('offers to download it rather than to go in', async () => {
+      request.set(makeRequest({ activated: signal(false) }));
+      fixture.detectChanges();
+      await settle();
+
+      expect(begin().textContent).toContain('Download to this device');
+    });
+
+    it('downloads instead of opening, and stays up while it does', async () => {
+      const cover = makeRequest({ activated: signal(false) });
+      request.set(cover);
+      fixture.detectChanges();
+      await settle();
+
+      begin().click();
+      await settle();
+
+      expect(cover.actions.activate).toHaveBeenCalledTimes(1);
+      expect(service.open).not.toHaveBeenCalled();
+      expect(service.finish).not.toHaveBeenCalled();
+    });
+
+    it('will not start a second download over the first', async () => {
+      const cover = makeRequest({
+        activated: signal(false),
+        actions: {
+          togglePin: vi.fn(),
+          activate: vi.fn(() => new Promise<void>(() => {})),
+          deactivate: vi.fn(() => Promise.resolve()),
+          delete: vi.fn(() => Promise.resolve(true)),
+        },
+      });
+      request.set(cover);
+      fixture.detectChanges();
+      await settle();
+
+      overlay()!.click();
+      await settle();
+      overlay()!.click();
+      await settle();
+
+      expect(cover.actions.activate).toHaveBeenCalledTimes(1);
+    });
+
+    it('turns into the way in once the download has landed', async () => {
+      const activated = signal(false);
+      const cover = makeRequest({ activated });
+      request.set(cover);
+      fixture.detectChanges();
+      await settle();
+
+      activated.set(true);
+      await settle();
+
+      expect(begin().textContent).toContain('Begin');
+      begin().click();
+      expect(service.open).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("the project's own actions", () => {
+    /** Open the menu beside the close button and find one of its items. */
+    async function menuItem(testid: string): Promise<HTMLButtonElement | null> {
+      overlay()!
+        .querySelector<HTMLButtonElement>('[data-testid="cover-open-menu"]')!
+        .click();
+      await settle();
+      return document.querySelector<HTMLButtonElement>(
+        `[data-testid="${testid}"]`
+      );
+    }
+
+    it('pins the project without going in', async () => {
+      const cover = makeRequest();
+      request.set(cover);
+      fixture.detectChanges();
+      await settle();
+
+      (await menuItem('cover-open-pin'))!.click();
+      await settle();
+
+      expect(cover.actions.togglePin).toHaveBeenCalledTimes(1);
+      expect(service.open).not.toHaveBeenCalled();
+    });
+
+    it('offers to drop a project that is on this device', async () => {
+      const cover = makeRequest();
+      request.set(cover);
+      fixture.detectChanges();
+      await settle();
+
+      (await menuItem('cover-open-deactivate'))!.click();
+      await settle();
+
+      expect(cover.actions.deactivate).toHaveBeenCalledTimes(1);
+      expect(service.open).not.toHaveBeenCalled();
+    });
+
+    it('clears itself once the project has been deleted', async () => {
+      const cover = makeRequest();
+      request.set(cover);
+      fixture.detectChanges();
+      await settle();
+
+      (await menuItem('cover-open-delete'))!.click();
+      await settle();
+
+      expect(cover.actions.delete).toHaveBeenCalledTimes(1);
+      expect(service.finish).toHaveBeenCalled();
+    });
+
+    it('stays up when the reader backs out of the delete', async () => {
+      const cover = makeRequest({
+        actions: {
+          togglePin: vi.fn(),
+          activate: vi.fn(() => Promise.resolve()),
+          deactivate: vi.fn(() => Promise.resolve()),
+          delete: vi.fn(() => Promise.resolve(false)),
+        },
+      });
+      request.set(cover);
+      fixture.detectChanges();
+      await settle();
+
+      (await menuItem('cover-open-delete'))!.click();
+      await settle();
+
+      expect(service.finish).not.toHaveBeenCalled();
+    });
+
+    it("does not offer to delete someone else's project", async () => {
+      request.set(makeRequest({ shared: true }));
+      fixture.detectChanges();
+      await settle();
+
+      // One opening: asking twice would close the menu again.
+      expect(await menuItem('cover-open-pin')).not.toBeNull();
+      expect(
+        document.querySelector('[data-testid="cover-open-delete"]')
+      ).toBeNull();
+    });
   });
 });

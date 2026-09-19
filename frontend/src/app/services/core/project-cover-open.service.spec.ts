@@ -1,14 +1,35 @@
-import { provideZonelessChangeDetection } from '@angular/core';
+import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ProjectCoverOpenService } from './project-cover-open.service';
+import {
+  type CoverOpenProject,
+  ProjectCoverOpenService,
+} from './project-cover-open.service';
 
-const PROJECT = {
-  title: 'The Salt Road',
-  username: 'testuser',
-  description: 'A caravan master walks a drying sea.',
-};
+/** A project as the grid hands it over, with its state and its actions. */
+function makeProject(
+  overrides: Partial<CoverOpenProject> = {}
+): CoverOpenProject {
+  return {
+    title: 'The Salt Road',
+    username: 'testuser',
+    description: 'A caravan master walks a drying sea.',
+    activated: signal(true),
+    pinned: signal(false),
+    shared: false,
+    actions: {
+      togglePin: vi.fn(),
+      activate: vi.fn(() => Promise.resolve()),
+      deactivate: vi.fn(() => Promise.resolve()),
+      delete: vi.fn(() => Promise.resolve(true)),
+    },
+    size: vi.fn(() => Promise.resolve(1024)),
+    ...overrides,
+  };
+}
+
+const PROJECT = makeProject();
 
 /** A card element that measures like one in the grid. */
 function makeCard(coverSrc?: string): HTMLElement {
@@ -80,7 +101,7 @@ describe('ProjectCoverOpenService', () => {
     it('takes a missing description as none', () => {
       service.select(
         makeCard(),
-        { title: 'Nightjar', username: 'testuser' },
+        makeProject({ title: 'Nightjar', description: undefined }),
         () => Promise.resolve(true)
       );
 
@@ -98,15 +119,41 @@ describe('ProjectCoverOpenService', () => {
       expect(navigate).toHaveBeenCalledTimes(1);
     });
 
+    it('still lifts an unmeasurable project that is not on this device', () => {
+      // There is nowhere to navigate to yet: the lifted cover is the only
+      // place the reader can download it from.
+      const navigate = vi.fn(() => Promise.resolve(true));
+
+      service.select(
+        document.createElement('div'),
+        makeProject({ activated: signal(false) }),
+        navigate
+      );
+
+      expect(navigate).not.toHaveBeenCalled();
+      const origin = service.request()?.origin;
+      expect(origin?.width).toBeGreaterThan(0);
+      expect(origin?.height).toBeGreaterThan(0);
+    });
+
+    it("carries the project's actions and state across", () => {
+      const project = makeProject({ shared: true, pinned: signal(true) });
+
+      service.select(makeCard(), project, () => Promise.resolve(true));
+
+      const request = service.request()!;
+      expect(request.shared).toBe(true);
+      expect(request.pinned()).toBe(true);
+      expect(request.activated()).toBe(true);
+      expect(request.actions).toBe(project.actions);
+      expect(request.size).toBe(project.size);
+    });
+
     it('ignores a second project while one is already up', () => {
       service.select(makeCard(), PROJECT, () => Promise.resolve(true));
       const navigate = vi.fn(() => Promise.resolve(true));
 
-      service.select(
-        makeCard(),
-        { title: 'Nightjar', username: 'testuser' },
-        navigate
-      );
+      service.select(makeCard(), makeProject({ title: 'Nightjar' }), navigate);
 
       expect(service.request()?.title).toBe('The Salt Road');
       expect(navigate).not.toHaveBeenCalled();

@@ -90,6 +90,12 @@
   "coverOpen": {
     "label": "Open {{title}}",
     "begin": "Begin",
-    "close": "Back to projects"
+    "close": "Back to projects",
+    "menu": "Project actions",
+    "download": "Download to this device",
+    "downloading": "Downloading",
+    "calculatingSize": "Checking size...",
+    "downloadSize": "{{size}} to download",
+    "sizeTooltip": "Approximate size of this project"
   }
 }

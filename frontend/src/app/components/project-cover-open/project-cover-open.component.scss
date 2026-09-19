@@ -48,16 +48,15 @@
   }
 }
 
-.cover-open__close {
+// The project's own actions and the way out, in the corner the cover never
+// reaches.
+.cover-open__tools {
   position: absolute;
   top: 12px;
   right: 12px;
   z-index: 2;
-  color: var(--sys-on-surface, #fff);
-  // It can land over the cover itself where the screen is narrow, so it
-  // carries its own backing rather than relying on the veil behind it.
-  background: var(--sys-surface-container-high, rgba(0, 0, 0, 0.45));
-  backdrop-filter: blur(2px);
+  display: flex;
+  gap: 4px;
   opacity: 0;
   transition: opacity var(--cover-open-rise) ease-out;
 
@@ -74,6 +73,14 @@
   &:hover {
     opacity: 1;
   }
+}
+
+.cover-open__tool {
+  color: var(--sys-on-surface, #fff);
+  // These can land over the cover itself where the screen is narrow, so they
+  // carry their own backing rather than relying on the veil behind them.
+  background: var(--sys-surface-container-high, rgba(0, 0, 0, 0.45));
+  backdrop-filter: blur(2px);
 }
 
 // Where the lifted cover comes to rest. Placed in the template.
@@ -318,6 +325,31 @@
   line-clamp: 6;
 }
 
+// How much room the project takes up. Worth knowing before downloading one,
+// and worth knowing about one already here.
+.cover-open__size {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--sys-on-surface-variant, rgba(255, 255, 255, 0.82));
+
+  mat-icon {
+    font-size: 1.15rem;
+    width: 1.15rem;
+    height: 1.15rem;
+  }
+}
+
 .cover-open__begin {
   margin-top: 8px;
+
+  // The button is filled with the primary colour, which the spinner would
+  // otherwise draw itself in and vanish.
+  mat-spinner {
+    --mdc-circular-progress-active-indicator-color: currentColor;
+
+    margin-right: 8px;
+  }
 }

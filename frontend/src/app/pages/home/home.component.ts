@@ -601,8 +601,10 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.activationService.isActivated(projectKey);
 
   /**
-   * Handle project card click. If deactivated in server mode, prompt to activate.
-   * Suppresses click if it was triggered by a long-press.
+   * Handle project card click: the cover is lifted out of the grid and put on
+   * show, whether or not the project is on this device — a project that is
+   * not offers to download itself from there. Suppresses the click if it was
+   * triggered by a long-press.
    */
   onProjectClick(
     project: Project,
@@ -615,15 +617,10 @@ export class HomeComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if (this.isProjectActivated(project)) {
-      this.openProject(project, event);
-      return;
-    }
-
-    // Deactivated project — show activation dialog
-    event.preventDefault();
-    event.stopPropagation();
-    this.promptActivate(project);
+    this.openProject(
+      project,
+      event.currentTarget instanceof HTMLElement ? event.currentTarget : null
+    );
   }
 
   /**
@@ -633,15 +630,26 @@ export class HomeComponent implements OnInit, OnDestroy {
     if (!this.isProjectActivated(project)) {
       return;
     }
-    this.promptDeactivate(project);
+    void this.promptDeactivate(project);
   }
 
   /**
    * Handle "Download to this device" chosen from a card/tile kebab menu.
    * If the project is already activated, this is a no-op.
+   *
+   * A card can be lifted, so it gets the same cover the reader would have got
+   * by clicking it, with the download offered on the front. The side nav has
+   * no cover to lift, so it falls back to the dialog.
    */
-  onProjectActivateRequested(project: Project): void {
+  onProjectActivateRequested(
+    project: Project,
+    card?: ProjectCardComponent
+  ): void {
     if (this.isProjectActivated(project)) return;
+    if (card) {
+      this.openProject(project, card.hostElement);
+      return;
+    }
     this.promptActivate(project);
   }
 
@@ -651,7 +659,7 @@ export class HomeComponent implements OnInit, OnDestroy {
    */
   onProjectDeactivateRequested(project: Project): void {
     if (!this.isProjectActivated(project)) return;
-    this.promptDeactivate(project);
+    void this.promptDeactivate(project);
   }
 
   /**
@@ -725,9 +733,11 @@ export class HomeComponent implements OnInit, OnDestroy {
    * Handle "Delete project" chosen from a card/tile kebab menu.
 
   /**
-   * Open the deactivation confirmation dialog and purge on confirm.
+   * Open the deactivation confirmation dialog and purge on confirm. Resolves
+   * once the answer has been acted on, so a lifted cover can show the project
+   * as gone from this device the moment it is.
    */
-  private promptDeactivate(project: Project): void {
+  private promptDeactivate(project: Project): Promise<void> {
     const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
       data: {
         title: this.transloco.translate('home.dialogs.deactivateTitle'),
@@ -739,10 +749,14 @@ export class HomeComponent implements OnInit, OnDestroy {
       } satisfies ConfirmationDialogData,
     });
 
-    dialogRef.afterClosed().subscribe((confirmed: boolean) => {
-      if (confirmed) {
-        void this.deactivateProject(project);
-      }
+    return new Promise<void>(resolve => {
+      dialogRef.afterClosed().subscribe((confirmed: boolean) => {
+        if (!confirmed) {
+          resolve();
+          return;
+        }
+        void this.deactivateProject(project).finally(() => resolve());
+      });
     });
   }
 
@@ -873,7 +887,7 @@ export class HomeComponent implements OnInit, OnDestroy {
    * Open the delete confirmation dialog and run the full delete on confirm.
    * Requires the user to type the project slug to confirm.
    */
-  private async promptDeleteProject(project: Project): Promise<void> {
+  private async promptDeleteProject(project: Project): Promise<boolean> {
     const confirmed = await this.dialogGateway.openConfirmationDialog({
       title: this.transloco.translate('home.dialogs.deleteTitle'),
       message: this.transloco.translate('home.dialogs.deleteMessage', {
@@ -885,7 +899,7 @@ export class HomeComponent implements OnInit, OnDestroy {
       requireConfirmationText: project.slug,
     });
 
-    if (!confirmed) return;
+    if (!confirmed) return false;
 
     const projectKey = `${project.username}/${project.slug}`;
     try {
@@ -906,12 +920,14 @@ export class HomeComponent implements OnInit, OnDestroy {
 
       // Reload collaboration data to keep the project list consistent.
       await this.loadCollaborationData().catch(() => {});
+      return true;
     } catch {
       this.snackBar.open(
         this.transloco.translate('home.snackbar.deleteFailed'),
         this.transloco.translate('dismiss'),
         { duration: 5000 }
       );
+      return false;
     }
   }
 
@@ -931,15 +947,45 @@ export class HomeComponent implements OnInit, OnDestroy {
    * Pick a project up off the grid: its cover is lifted out and shown beside
    * the project's details, and opening it is a second, deliberate step. With
    * no card to lift — nothing to measure — this is a plain navigation.
+   *
+   * The lifted cover carries the grid's own actions with it, rather than
+   * reaching for the services behind them: it is drawn from the app shell,
+   * which loads before any page does.
    */
-  private openProject(project: Project, event: Event): void {
-    const card =
-      event.currentTarget instanceof HTMLElement ? event.currentTarget : null;
+  private openProject(project: Project, card: HTMLElement | null): void {
     if (!card) {
       void this.selectProject(project);
       return;
     }
-    this.coverOpen.select(card, project, () => this.selectProject(project));
+
+    const shared =
+      this.allProjects().find(item => item.project.id === project.id)
+        ?.isShared ?? false;
+
+    this.coverOpen.select(
+      card,
+      {
+        title: project.title,
+        username: project.username,
+        description: project.description,
+        activated: computed(() => this.isProjectActivated(project)),
+        pinned: computed(() => this.isProjectPinned(project)),
+        shared,
+        actions: {
+          togglePin: () => this.toggleProjectPinned(project),
+          // The lifted cover is the reader's confirmation, so this downloads
+          // straight away rather than asking again.
+          activate: () => this.activateAndSync(project),
+          deactivate: () => this.promptDeactivate(project),
+          delete: () => this.promptDeleteProject(project),
+        },
+        size: () =>
+          this.fetchActivationSize(project).then(
+            size => size?.totalBytes ?? null
+          ),
+      },
+      () => this.selectProject(project)
+    );
   }
 
   /** Navigate to a project. Resolves to whether the project page was reached. */
