@@ -17,6 +17,7 @@ import { type DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { apiErr, apiOk } from '../../../testing/utils';
 import { SetupService } from '../core/setup.service';
+import { LocalProjectService } from '../local/local-project.service';
 import { LocalStorageService } from '../local/local-storage.service';
 import { ProjectSyncService } from '../local/project-sync.service';
 import { StorageService } from '../local/storage.service';
@@ -50,6 +51,7 @@ type StoreMock = DeepMockProxy<StorageService>;
 type SetupMock = DeepMockProxy<SetupService>;
 type OfflineStorageMock = DeepMockProxy<LocalStorageService>;
 type ProjectSyncMock = DeepMockProxy<ProjectSyncService>;
+type LocalProjectsMock = DeepMockProxy<LocalProjectService>;
 
 describe('ProjectService', () => {
   let service: ProjectService;
@@ -60,6 +62,7 @@ describe('ProjectService', () => {
   let setup: SetupMock;
   let localStorage: OfflineStorageMock;
   let projectSync: ProjectSyncMock;
+  let localProjects: LocalProjectsMock;
 
   beforeEach(() => {
     api = mockDeep<ProjectsService>();
@@ -68,6 +71,7 @@ describe('ProjectService', () => {
     setup = mockDeep<SetupService>();
     localStorage = mockDeep<LocalStorageService>();
     projectSync = mockDeep<ProjectSyncService>();
+    localProjects = mockDeep<LocalProjectService>();
     // Cover uploads consult the pending-upload queue; default to "nothing queued".
     projectSync.getSyncState.mockReturnValue(
       signal({
@@ -123,12 +127,37 @@ describe('ProjectService', () => {
         { provide: SetupService, useValue: setup },
         { provide: LocalStorageService, useValue: localStorage },
         { provide: ProjectSyncService, useValue: projectSync },
+        { provide: LocalProjectService, useValue: localProjects },
       ],
     });
 
     service = TestBed.inject(ProjectService);
     httpMock = TestBed.inject(HttpTestingController);
   });
+
+  /**
+   * Put `projects` in the cache without loading them into the session, the
+   * state any page that is not the project grid starts in.
+   */
+  function cacheHolds(projects: Project[]): void {
+    store.get.mockImplementation(((
+      _db: IDBDatabase,
+      storeName: string,
+      key: string
+    ) => {
+      if (storeName === 'projectsList') return Promise.resolve([...projects]);
+      const match = projects.find(p => `${p.username}/${p.slug}` === key);
+      return Promise.resolve(match ? { ...match } : undefined);
+    }) as never);
+  }
+
+  /** The project list as it was last written to the cache. */
+  function cachedList(): Project[] | undefined {
+    const writes = store.put.mock.calls.filter(
+      call => call[1] === 'projectsList'
+    );
+    return writes.at(-1)?.[2] as Project[] | undefined;
+  }
 
   it('loads projects from API when cache is empty', async () => {
     store.get.mockResolvedValue(undefined);
@@ -528,6 +557,29 @@ describe('ProjectService', () => {
       expect(result).toEqual(newProject);
     });
 
+    it('adds to the cached list when this session has not loaded it', async () => {
+      // Reached straight by URL, so nothing has loaded the grid: appending to
+      // that empty snapshot made the new project the only one in the cache.
+      const newProject: Project = {
+        id: 'test-project-id',
+        title: 'New Project',
+        slug: 'new-project',
+        username: 'alice',
+        createdDate: date,
+        updatedDate: date,
+      };
+      api.createProject.mockReturnValue(apiOk(newProject));
+      cacheHolds(BASE);
+
+      await service.createProject(newProject);
+
+      expect(cachedList()).toEqual([
+        expect.objectContaining({ slug: 'project-1' }),
+        expect.objectContaining({ slug: 'project-2' }),
+        expect.objectContaining({ slug: 'new-project' }),
+      ]);
+    });
+
     it('handles API errors correctly', async () => {
       const newProject: Project = {
         id: 'test-project-id',
@@ -658,6 +710,28 @@ describe('ProjectService', () => {
       expect(service.error()).toBeUndefined();
     });
 
+    it('updates the cached list when this session has not loaded it', async () => {
+      // Saving from inside a project on a fresh load: nothing has populated
+      // the in-memory list yet. Working from that empty snapshot replaced the
+      // cached list with nothing, and with the server unreachable the home
+      // page was left with no projects and no way to fetch any.
+      api.updateProject.mockReturnValue(
+        apiErr(new HttpErrorResponse({ status: 0 }))
+      );
+      cacheHolds(BASE);
+      expect(service.projects()).toEqual([]);
+
+      await service.updateProject('alice', 'project-1', {
+        ...BASE[0],
+        title: 'Offline Update',
+      });
+
+      expect(cachedList()).toEqual([
+        expect.objectContaining({ slug: 'project-1', title: 'Offline Update' }),
+        expect.objectContaining({ slug: 'project-2', title: 'Project 2' }),
+      ]);
+    });
+
     it('handles unauthorized errors correctly', async () => {
       const updatedProject: Project = {
         ...BASE[0],
@@ -708,6 +782,19 @@ describe('ProjectService', () => {
         'projects',
         'alice/project-1'
       );
+    });
+
+    it('leaves the other cached projects alone when the list was not loaded', async () => {
+      // Filtering an empty snapshot and writing it back wiped every other
+      // project out of the cache along with the deleted one.
+      api.deleteProject.mockReturnValue(apiOk({ message: 'Project deleted' }));
+      cacheHolds(BASE);
+
+      await service.deleteProject('alice', 'project-1');
+
+      expect(cachedList()).toEqual([
+        expect.objectContaining({ slug: 'project-2' }),
+      ]);
     });
 
     it('handles API errors correctly', async () => {
@@ -1132,6 +1219,145 @@ describe('ProjectService', () => {
       );
 
       consoleWarnSpy.mockRestore();
+    });
+  });
+
+  /* -------------------------------------------------------------- */
+  /* cover saved with no server to take it                          */
+  /* -------------------------------------------------------------- */
+
+  describe('recording a cover the server never received', () => {
+    const coverBlob = new Blob(['test cover'], { type: 'image/png' });
+
+    /** Kill the cover upload the way an unreachable server does. */
+    async function serverUnreachable(): Promise<void> {
+      // The pipe retries MAX_RETRIES (3) times on top of the first attempt.
+      for (let attempt = 0; attempt < 4; attempt++) {
+        const req = httpMock.expectOne(
+          r =>
+            r.url.includes('/api/v1/projects/alice/project-1/cover') &&
+            r.method === 'POST'
+        );
+        req.error(new ProgressEvent('error'));
+        await Promise.resolve();
+      }
+    }
+
+    beforeEach(() => {
+      vi.spyOn(console, 'warn').mockImplementation(() => {});
+    });
+
+    it('stamps the cover onto the cached project list in server mode', async () => {
+      // The home grid resolves covers from the project record, which only the
+      // server normally fills in — so without this the cover shows inside the
+      // project (from Yjs) and nowhere else.
+      setup.getMode.mockReturnValue('server');
+      await service.loadAllProjects();
+
+      const upload = service.uploadProjectCover(
+        'alice',
+        'project-1',
+        coverBlob
+      );
+      await serverUnreachable();
+      const filename = await upload;
+
+      expect(
+        service.projects().find(p => p.slug === 'project-1')?.coverImage
+      ).toBe(filename);
+      expect(store.put).toHaveBeenCalledWith(
+        DB,
+        'projectsList',
+        expect.arrayContaining([
+          expect.objectContaining({ slug: 'project-1', coverImage: filename }),
+        ]),
+        'allProjects'
+      );
+    });
+
+    it('leaves the other projects alone', async () => {
+      setup.getMode.mockReturnValue('server');
+      await service.loadAllProjects();
+
+      const upload = service.uploadProjectCover(
+        'alice',
+        'project-1',
+        coverBlob
+      );
+      await serverUnreachable();
+      await upload;
+
+      expect(
+        service.projects().find(p => p.slug === 'project-2')?.coverImage
+      ).toBeUndefined();
+    });
+
+    it('stamps the cached project when the list was never loaded', async () => {
+      // Opened straight into a project on a fresh load: there is no list in
+      // memory yet, but the per-project cache entry is still worth correcting.
+      setup.getMode.mockReturnValue('server');
+      store.get.mockImplementation(((
+        _db: IDBDatabase,
+        storeName: string,
+        key: string
+      ) =>
+        Promise.resolve(
+          storeName === 'projects' && key === 'alice/project-1'
+            ? { ...BASE[0] }
+            : undefined
+        )) as never);
+
+      const upload = service.uploadProjectCover(
+        'alice',
+        'project-1',
+        coverBlob
+      );
+      await serverUnreachable();
+      const filename = await upload;
+
+      expect(store.put).toHaveBeenCalledWith(
+        DB,
+        'projects',
+        expect.objectContaining({ slug: 'project-1', coverImage: filename }),
+        'alice/project-1'
+      );
+    });
+
+    it('updates the local project record in local mode', async () => {
+      setup.getMode.mockReturnValue('local');
+
+      const filename = await service.uploadProjectCover(
+        'alice',
+        'project-1',
+        coverBlob
+      );
+
+      expect(localProjects.updateProject).toHaveBeenCalledWith(
+        'alice',
+        'project-1',
+        { coverImage: filename }
+      );
+    });
+
+    it('keeps the cover even when the record cannot be stamped', async () => {
+      setup.getMode.mockReturnValue('local');
+      localProjects.updateProject.mockImplementation(() => {
+        throw new Error('no such project');
+      });
+
+      const filename = await service.uploadProjectCover(
+        'alice',
+        'project-1',
+        coverBlob
+      );
+
+      expect(filename).toMatch(/^cover-\d+\.jpg$/);
+      expect(localStorage.saveMedia).toHaveBeenCalledWith(
+        'alice/project-1',
+        expect.stringMatching(/^cover-\d+$/),
+        coverBlob
+      );
+      expect(projectSync.markPendingUpload).toHaveBeenCalled();
     });
   });
 
