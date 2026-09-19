@@ -23,9 +23,16 @@ function makeCard(coverSrc?: string): HTMLElement {
   return card;
 }
 
-/** Let the service's queued navigation run. */
+/**
+ * Wait for the navigation the service queues behind the veil.
+ *
+ * Real timers, deliberately. Faking them here would install fake timers on an
+ * environment every other spec file in the shard shares, which stalls whatever
+ * asynchronous work — IndexedDB especially — happens to be in flight. The wait
+ * is the veil's length, a fifth of a second.
+ */
 async function runNavigation(): Promise<void> {
-  await vi.advanceTimersByTimeAsync(COVER_VEIL_MS);
+  await new Promise(resolve => setTimeout(resolve, COVER_VEIL_MS + 20));
 }
 
 /**
@@ -59,7 +66,6 @@ describe('ProjectCoverOpenService', () => {
       providers: [provideZonelessChangeDetection()],
     });
     service = TestBed.inject(ProjectCoverOpenService);
-    vi.useFakeTimers();
   });
 
   it('starts idle', () => {
