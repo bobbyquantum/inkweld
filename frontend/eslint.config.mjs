@@ -40,27 +40,17 @@ const LEGACY_FORMS_ALLOWLIST = [
   'src/app/components/worldbuilding/worldbuilding-editor.component.*',
 ];
 
+// Ban the root module wholesale rather than naming symbols: an importNames
+// allowlist silently permits everything it forgot (Validators,
+// NonNullableFormBuilder, FormRecord, the ControlValueAccessor tokens, ...).
+// `paths` matches the exact specifier, so '@angular/forms/signals' — where
+// Signal Forms actually lives — is unaffected.
 const NO_LEGACY_FORMS_IMPORTS = [
   'error',
   {
     paths: [
       {
         name: '@angular/forms',
-        importNames: [
-          'FormsModule',
-          'ReactiveFormsModule',
-          'NgForm',
-          'NgModel',
-          'NgModelGroup',
-          'FormBuilder',
-          'UntypedFormBuilder',
-          'FormControl',
-          'UntypedFormControl',
-          'FormGroup',
-          'UntypedFormGroup',
-          'FormArray',
-          'UntypedFormArray',
-        ],
         message:
           "This app uses Signal Forms. Import from '@angular/forms/signals' instead (form, FormField, FormRoot, required, ...). See LEGACY_FORMS_ALLOWLIST in eslint.config.mjs for the documented exceptions.",
       },
@@ -71,26 +61,46 @@ const NO_LEGACY_FORMS_IMPORTS = [
 const signalFormsMessage = (what, instead) =>
   `${what} is the legacy forms API — this app uses Signal Forms. ${instead}`;
 
+/**
+ * The template parser emits a different node type per binding syntax:
+ * `foo="x"` is a TextAttribute, `[foo]="x"` a BoundAttribute and `(foo)="x"` a
+ * BoundEvent. Matching only one of them leaves the other spellings legal, so
+ * every banned name is matched across all three.
+ */
+const anyBindingOf = (...names) =>
+  names
+    .flatMap(name =>
+      ['TextAttribute', 'BoundAttribute', 'BoundEvent'].map(
+        type => `${type}[name="${name}"]`
+      )
+    )
+    .join(', ');
+
 const NO_LEGACY_FORMS_TEMPLATE_SYNTAX = [
   'error',
   {
-    selector: 'BoundEvent[name="ngSubmit"]',
+    selector: anyBindingOf('ngSubmit'),
     message: signalFormsMessage(
       '(ngSubmit)',
       'Use <form [formRoot]="form"> and declare the handler via form(model, schema, { submission: { action } }). Without FormsModule imported, (ngSubmit) compiles fine and silently never fires.'
     ),
   },
   {
-    selector:
-      'BoundAttribute[name="ngModel"], TextAttribute[name="ngModel"], BoundEvent[name="ngModelChange"], BoundAttribute[name="ngModelGroup"], TextAttribute[name="ngModelGroup"]',
+    selector: anyBindingOf('ngModel', 'ngModelChange', 'ngModelGroup'),
     message: signalFormsMessage(
       'ngModel',
       'Use [formField]="form.someField", or plain [value]/[checked] + an event handler for one-way bindings.'
     ),
   },
   {
-    selector:
-      'BoundAttribute[name="formControl"], TextAttribute[name="formControlName"], BoundAttribute[name="formGroup"], TextAttribute[name="formGroupName"], TextAttribute[name="formArrayName"]',
+    selector: anyBindingOf(
+      'formControl',
+      'formControlName',
+      'formGroup',
+      'formGroupName',
+      'formArray',
+      'formArrayName'
+    ),
     message: signalFormsMessage(
       'ReactiveForms (formControl/formGroup)',
       'Use form() from @angular/forms/signals with [formField].'
