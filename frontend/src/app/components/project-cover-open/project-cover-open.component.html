@@ -1,8 +1,19 @@
 @if (request(); as cover) {
   @if (geometry(); as geometry) {
-    <!-- Clicking anywhere goes in; the tools in the corner stop the click. -->
-    <div
+    <!--
+      Clicking anywhere goes in; the tools in the corner stop the click.
+
+      A real <dialog>, but held open by the attribute rather than by
+      `showModal()`: a modal dialog is promoted to the browser's top layer,
+      which is painted above every z-index on the page — including the CDK's
+      overlay container, where this cover's own menu is drawn. Open this way
+      it keeps the element's semantics and stays in the stacking order the
+      rest of the app is arranged in.
+    -->
+    <dialog
       class="cover-open"
+      open
+      tabindex="-1"
       [class.cover-open--lifted]="isLifted()"
       [class.cover-open--turning]="isTurning()"
       [class.cover-open--opened]="phase() === 'opened'"
@@ -14,7 +25,6 @@
       [style.--cover-open-fade]="openedMs + 'ms'"
       [style.--cover-open-return]="returnMs + 'ms'"
       [style.--cover-open-type]="geometry.typeScale"
-      role="dialog"
       aria-modal="true"
       [attr.aria-label]="
         'home.coverOpen.label' | transloco: { title: cover.title }
@@ -203,6 +213,6 @@
           }
         </button>
       </div>
-    </div>
+    </dialog>
   }
 }

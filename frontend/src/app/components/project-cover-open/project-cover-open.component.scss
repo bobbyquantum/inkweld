@@ -5,6 +5,20 @@
 // Sits above everything — the project chrome (10001) and the CDK overlay
 // container — because it plays across the two pages, not inside either.
 .cover-open {
+  // A <dialog> arrives with a box of its own from the UA stylesheet — a
+  // centred, shrink-wrapped, bordered panel on an opaque background. None of
+  // that applies to a sheet that covers the screen. `fit-content` in
+  // particular would collapse it to nothing: everything inside is positioned
+  // absolutely, so there is no content to shrink-wrap to.
+  margin: 0;
+  padding: 0;
+  border: 0;
+  width: auto;
+  height: auto;
+  max-width: none;
+  max-height: none;
+  background: transparent;
+  color: inherit;
   position: fixed;
   inset: 0;
   z-index: 12000;
