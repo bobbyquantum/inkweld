@@ -459,6 +459,61 @@ describe('ProjectCardComponent', () => {
     });
   });
 
+  describe('activation menu items', () => {
+    const openMenu = async (): Promise<void> => {
+      fixture.detectChanges();
+      await fixture.whenStable();
+      const kebab = fixture.nativeElement.querySelector(
+        '[data-testid="project-card-kebab"]'
+      );
+      kebab.click();
+      fixture.detectChanges();
+      await fixture.whenStable();
+    };
+
+    it('should offer to drop a project a server is also holding', async () => {
+      fixture.componentRef.setInput('activationRequired', true);
+      fixture.componentRef.setInput('isActivated', true);
+
+      await openMenu();
+
+      expect(
+        document.querySelector('[data-testid="project-card-deactivate"]')
+      ).toBeTruthy();
+    });
+
+    it('should offer to download a project that is not on this device', async () => {
+      fixture.componentRef.setInput('activationRequired', true);
+      fixture.componentRef.setInput('isActivated', false);
+
+      await openMenu();
+
+      expect(
+        document.querySelector('[data-testid="project-card-activate"]')
+      ).toBeTruthy();
+    });
+
+    it('should offer neither where the browser holds the only copy', async () => {
+      // A browser-only profile reports every project as activated, and
+      // dropping one there would take the project with it.
+      fixture.componentRef.setInput('activationRequired', false);
+      fixture.componentRef.setInput('isActivated', true);
+
+      await openMenu();
+
+      expect(
+        document.querySelector('[data-testid="project-card-deactivate"]')
+      ).toBeNull();
+      expect(
+        document.querySelector('[data-testid="project-card-activate"]')
+      ).toBeNull();
+      // The rest of the menu is unaffected.
+      expect(
+        document.querySelector('[data-testid="project-card-delete"]')
+      ).toBeTruthy();
+    });
+  });
+
   describe('pinning', () => {
     const openMenu = async () => {
       fixture.detectChanges();

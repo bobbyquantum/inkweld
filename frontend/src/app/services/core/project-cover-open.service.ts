@@ -61,6 +61,12 @@ export interface CoverOpenProject {
   readonly activated: Signal<boolean>;
   /** Whether it is pinned to the top of the grid. Live, for the same reason. */
   readonly pinned: Signal<boolean>;
+  /**
+   * Whether activation means anything here. Only a server or cloud profile
+   * keeps a copy the device can fall back on; in a browser-only profile the
+   * device holds the only one, so there is nothing to download or drop.
+   */
+  readonly activationRequired: boolean;
   /** Someone else's project, shared with the reader: not theirs to delete. */
   readonly shared: boolean;
   readonly actions: CoverOpenActions;

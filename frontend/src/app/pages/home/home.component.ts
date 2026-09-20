@@ -736,8 +736,17 @@ export class HomeComponent implements OnInit, OnDestroy {
    * Open the deactivation confirmation dialog and purge on confirm. Resolves
    * once the answer has been acted on, so a lifted cover can show the project
    * as gone from this device the moment it is.
+   *
+   * Dropping a project only makes sense where something else is holding it.
+   * A browser-only profile has no server behind it, so there the purge would
+   * take the only copy there is — the menus do not offer it, and neither
+   * does this.
    */
   private promptDeactivate(project: Project): Promise<void> {
+    if (!this.activationService.isActivationRequired()) {
+      return Promise.resolve();
+    }
+
     const dialogRef = this.dialog.open(ConfirmationDialogComponent, {
       data: {
         title: this.transloco.translate('home.dialogs.deactivateTitle'),
@@ -970,6 +979,7 @@ export class HomeComponent implements OnInit, OnDestroy {
         description: project.description,
         activated: computed(() => this.isProjectActivated(project)),
         pinned: computed(() => this.isProjectPinned(project)),
+        activationRequired: this.activationService.isActivationRequired(),
         shared,
         actions: {
           togglePin: () => this.toggleProjectPinned(project),

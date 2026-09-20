@@ -27,6 +27,7 @@ function makeRequest(
     origin: ORIGIN,
     activated: signal(true),
     pinned: signal(false),
+    activationRequired: true,
     shared: false,
     actions: {
       togglePin: vi.fn(),
@@ -518,6 +519,25 @@ describe('ProjectCoverOpenComponent', () => {
       await settle();
 
       expect(service.finish).not.toHaveBeenCalled();
+    });
+
+    it('does not offer to drop a project the browser is the only copy of', async () => {
+      // A browser-only profile has no server behind it, so there is nothing
+      // to drop back to.
+      request.set(makeRequest({ activationRequired: false }));
+      fixture.detectChanges();
+      await settle();
+
+      expect(await menuItem('cover-open-pin')).not.toBeNull();
+      expect(
+        document.querySelector('[data-testid="cover-open-deactivate"]')
+      ).toBeNull();
+      expect(
+        document.querySelector('[data-testid="cover-open-activate"]')
+      ).toBeNull();
+      expect(
+        document.querySelector('[data-testid="cover-open-delete"]')
+      ).not.toBeNull();
     });
 
     it("does not offer to delete someone else's project", async () => {

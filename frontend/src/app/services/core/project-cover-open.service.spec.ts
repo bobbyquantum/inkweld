@@ -17,6 +17,7 @@ function makeProject(
     description: 'A caravan master walks a drying sea.',
     activated: signal(true),
     pinned: signal(false),
+    activationRequired: true,
     shared: false,
     actions: {
       togglePin: vi.fn(),
