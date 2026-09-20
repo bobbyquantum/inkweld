@@ -18,11 +18,18 @@ GitHub Actions orchestrates linting, testing, and container publishing for Inkwe
 
 #### Jobs
 
-1. **Test**
+1. **OpenAPI Spec + Client Freshness**
+   - Regenerates `backend/openapi.json` and the Angular client
+     (`frontend/src/api-client/**`) from the current routes
+   - Fails if the committed artifacts differ, so the typed client can never
+     drift from the API
+   - Fix a failure with:
+     `cd backend && bun run generate:openapi && bun run generate:angular-client`
+2. **Test**
    - Uses Ubuntu runners
    - Installs Bun + Node dependencies for both apps
    - Runs linting and the full Vitest/Bun test suites
-2. **Docker Publish** (only on `main` pushes)
+3. **Docker Publish** (only on `main` pushes)
    - Depends on the test job
    - Builds the Angular app, then the bundled backend Docker image
    - Pushes to GHCR with cache reuse enabled
