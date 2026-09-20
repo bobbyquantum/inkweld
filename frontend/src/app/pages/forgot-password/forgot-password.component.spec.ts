@@ -48,13 +48,13 @@ describe('ForgotPasswordComponent', () => {
   });
 
   it('should show error when submitting empty email', async () => {
-    component.email = '';
+    component.form.email().value.set('');
     await component.onSubmit();
     expect(component.error()).toBe('Email address is required');
   });
 
   it('should call forgotPassword on valid submit', async () => {
-    component.email = 'user@example.com';
+    component.form.email().value.set('user@example.com');
     await component.onSubmit();
 
     expect(mockPasswordResetService.forgotPassword).toHaveBeenCalledWith(
@@ -69,7 +69,7 @@ describe('ForgotPasswordComponent', () => {
       new Error('fail')
     );
 
-    component.email = 'user@example.com';
+    component.form.email().value.set('user@example.com');
     await component.onSubmit();
 
     expect(component.error()).toBe('Something went wrong. Please try again.');
@@ -77,7 +77,7 @@ describe('ForgotPasswordComponent', () => {
   });
 
   it('should trim whitespace from email', async () => {
-    component.email = '  user@example.com  ';
+    component.form.email().value.set('  user@example.com  ');
     await component.onSubmit();
 
     expect(mockPasswordResetService.forgotPassword).toHaveBeenCalledWith(

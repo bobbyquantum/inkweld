@@ -67,7 +67,9 @@
     "slugRequired": "Slug is required",
     "minLength": "Must be at least {{min}} characters",
     "maxLength": "Cannot exceed {{max}} characters",
-    "lowercaseHyphens": "Use lowercase letters, numbers, and hyphens only"
+    "lowercaseHyphens": "Use lowercase letters, numbers, and hyphens only",
+    "usernameTaken": "Username is already taken",
+    "invalidUrl": "Enter a valid URL (e.g. https://example.com)"
   },
   "confirmDelete": {
     "title": "Confirm Delete",
