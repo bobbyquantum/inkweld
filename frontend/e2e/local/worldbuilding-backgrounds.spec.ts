@@ -257,5 +257,22 @@ test.describe('Worldbuilding Custom Backgrounds', () => {
       // Content background remains untouched.
       await expect(content).toHaveClass(/has-custom-background/);
     });
+
+    await test.step('switching type drops the old value instead of mangling it', async () => {
+      // Content is still a gradient here. Switching it to a solid colour used
+      // to hand that gradient string to the colour picker, which answers
+      // anything it cannot parse with black and reports it straight back --
+      // persisting black over the gradient without the user choosing anything.
+      // The slot is dropped instead, so nothing is painted until a colour is
+      // actually picked.
+      await page
+        .getByTestId('appearance-content-option-color')
+        .locator('label')
+        .click();
+      await expect(content).not.toHaveClass(/has-custom-background/);
+      await expect
+        .poll(() => contentBgImage(page))
+        .not.toContain('linear-gradient');
+    });
   });
 });

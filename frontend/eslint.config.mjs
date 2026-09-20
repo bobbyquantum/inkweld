@@ -30,11 +30,15 @@ import * as templateParserCompat from './eslint-template-parser-compat.mjs';
  * a conscious decision recorded in review, not an accident.
  */
 const LEGACY_FORMS_ALLOWLIST = [
-  // ngx-input-color / ngx-input-gradient are third-party custom controls that
-  // bind through ngModel's ControlValueAccessor contract; `[value]`+`(input)`
-  // does not work with them (NG8002).
-  'src/app/components/worldbuilding/appearance-panel/color-picker/**',
-  'src/app/components/worldbuilding/appearance-panel/gradient-designer/**',
+  // ngx-input-color / ngx-input-gradient are third-party custom controls whose
+  // value is reachable only through the ControlValueAccessor contract:
+  // `[value]`+`(input)` does not work with them (NG8002). ValueAccessorDirective
+  // drives that contract directly, so it needs the NG_VALUE_ACCESSOR token --
+  // and nothing else from the legacy module. Its callers stay clear of
+  // @angular/forms entirely, and their templates stay under the ngModel
+  // tripwire below.
+  'src/app/directives/value-accessor.directive.ts',
+  'src/app/directives/value-accessor.directive.spec.ts',
 ];
 
 // Ban the root module wholesale rather than naming symbols: an importNames

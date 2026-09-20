@@ -9,7 +9,7 @@ import {
   output,
   signal,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { ValueAccessorDirective } from '@directives/value-accessor.directive';
 import { normalizeHex } from '@utils/color';
 import { NgxInputColorComponent } from 'ngx-input-color/color-picker';
 
@@ -21,7 +21,7 @@ import { NgxInputColorComponent } from 'ngx-input-color/color-picker';
 @Component({
   selector: 'app-color-picker',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, NgxInputColorComponent],
+  imports: [ValueAccessorDirective, NgxInputColorComponent],
   templateUrl: './color-picker.component.html',
   styleUrl: './color-picker.component.scss',
   host: {
