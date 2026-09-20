@@ -1318,6 +1318,7 @@ describe('HomeComponent', () => {
           expect(cover.activated()).toBe(false);
           expect(cover.pinned()).toBe(false);
           expect(cover.shared).toBe(false);
+          expect(cover.activationRequired).toBe(false);
         });
 
         it('downloads without asking a second time', async () => {
@@ -1365,6 +1366,7 @@ describe('HomeComponent', () => {
 
         it('asks before dropping the project off this device', () => {
           mockActivationService.isActivated.mockReturnValue(true);
+          mockActivationService.isActivationRequired.mockReturnValue(true);
           matDialog.open.mockReturnValue({
             afterClosed: () => ({ subscribe: vi.fn() }),
           } as unknown as MatDialogRef<unknown>);
@@ -1397,8 +1399,20 @@ describe('HomeComponent', () => {
         expect(matDialog.open).not.toHaveBeenCalled();
       });
 
+      it('should do nothing where the browser holds the only copy', async () => {
+        mockActivationService.isActivated.mockReturnValue(true);
+        mockActivationService.isActivationRequired.mockReturnValue(false);
+
+        component.onProjectLongPress(mockProjects[0]);
+        await Promise.resolve();
+
+        expect(matDialog.open).not.toHaveBeenCalled();
+        expect(mockActivationService.deactivate).not.toHaveBeenCalled();
+      });
+
       it('should open deactivation dialog for activated project', () => {
         mockActivationService.isActivated.mockReturnValue(true);
+        mockActivationService.isActivationRequired.mockReturnValue(true);
         const afterClosedSubject = { subscribe: vi.fn() };
         matDialog.open.mockReturnValue({
           afterClosed: () => afterClosedSubject,
@@ -1416,6 +1430,7 @@ describe('HomeComponent', () => {
 
       it('should deactivate when dialog confirmed', async () => {
         mockActivationService.isActivated.mockReturnValue(true);
+        mockActivationService.isActivationRequired.mockReturnValue(true);
         let afterClosedCb: (val: boolean) => void;
         matDialog.open.mockReturnValue({
           afterClosed: () => ({
@@ -1493,8 +1508,22 @@ describe('HomeComponent', () => {
         expect(matDialog.open).not.toHaveBeenCalled();
       });
 
+      it('should refuse where the browser holds the only copy', async () => {
+        // A browser-only profile reports every project as activated, but
+        // there is no server behind it: purging would take the project.
+        mockActivationService.isActivated.mockReturnValue(true);
+        mockActivationService.isActivationRequired.mockReturnValue(false);
+
+        component.onProjectDeactivateRequested(mockProjects[0]);
+        await Promise.resolve();
+
+        expect(matDialog.open).not.toHaveBeenCalled();
+        expect(mockActivationService.deactivate).not.toHaveBeenCalled();
+      });
+
       it('should open deactivation dialog for activated project', () => {
         mockActivationService.isActivated.mockReturnValue(true);
+        mockActivationService.isActivationRequired.mockReturnValue(true);
         const afterClosedSubject = { subscribe: vi.fn() };
         matDialog.open.mockReturnValue({
           afterClosed: () => afterClosedSubject,
@@ -1512,6 +1541,7 @@ describe('HomeComponent', () => {
 
       it('should deactivate when dialog confirmed', async () => {
         mockActivationService.isActivated.mockReturnValue(true);
+        mockActivationService.isActivationRequired.mockReturnValue(true);
         let afterClosedCb: (val: boolean) => void;
         matDialog.open.mockReturnValue({
           afterClosed: () => ({

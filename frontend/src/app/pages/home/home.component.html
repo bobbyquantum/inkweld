@@ -462,6 +462,9 @@
                       [isShared]="item.isShared"
                       [sharedByUsername]="item.sharedByUsername"
                       [isActivated]="isProjectActivated(item.project)"
+                      [activationRequired]="
+                        activationService.isActivationRequired()
+                      "
                       [isPinned]="item.isPinned"
                       (longPress)="onProjectLongPress(item.project)"
                       (pinToggled)="toggleProjectPinned(item.project)"

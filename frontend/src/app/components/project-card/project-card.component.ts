@@ -75,6 +75,14 @@ export class ProjectCardComponent implements AfterViewInit, OnDestroy {
   @Input()
   public isActivated = true;
 
+  /**
+   * Whether activation means anything here. Only a server or cloud profile
+   * keeps a copy the device can fall back on; in a browser-only profile the
+   * device holds the only one, so there is nothing to activate or drop.
+   */
+  @Input()
+  public activationRequired = false;
+
   /** Whether the user has pinned this project to the top of the grid */
   @Input()
   public isPinned = false;

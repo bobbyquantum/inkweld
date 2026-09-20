@@ -71,24 +71,30 @@
           }}</span>
         </button>
 
-        @if (cover.activated()) {
-          <button
-            mat-menu-item
-            type="button"
-            (click)="deactivate()"
-            data-testid="cover-open-deactivate">
-            <mat-icon>cloud_off</mat-icon>
-            <span>{{ 'home.deactivateAction' | transloco }}</span>
-          </button>
-        } @else {
-          <button
-            mat-menu-item
-            type="button"
-            (click)="activate()"
-            data-testid="cover-open-activate">
-            <mat-icon>cloud_download</mat-icon>
-            <span>{{ 'home.activateAction' | transloco }}</span>
-          </button>
+        <!--
+          Only offered where a copy survives the drop: a browser-only profile
+          holds the project and nothing else does.
+        -->
+        @if (cover.activationRequired) {
+          @if (cover.activated()) {
+            <button
+              mat-menu-item
+              type="button"
+              (click)="deactivate()"
+              data-testid="cover-open-deactivate">
+              <mat-icon>cloud_off</mat-icon>
+              <span>{{ 'home.deactivateAction' | transloco }}</span>
+            </button>
+          } @else {
+            <button
+              mat-menu-item
+              type="button"
+              (click)="activate()"
+              data-testid="cover-open-activate">
+              <mat-icon>cloud_download</mat-icon>
+              <span>{{ 'home.activateAction' | transloco }}</span>
+            </button>
+          }
         }
 
         @if (!cover.shared) {
