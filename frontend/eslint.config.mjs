@@ -35,9 +35,6 @@ const LEGACY_FORMS_ALLOWLIST = [
   // does not work with them (NG8002).
   'src/app/components/worldbuilding/appearance-panel/color-picker/**',
   'src/app/components/worldbuilding/appearance-panel/gradient-designer/**',
-  // Dynamic, schema-driven field rendering still on ReactiveForms; migrating
-  // it to Signal Forms is tracked separately.
-  'src/app/components/worldbuilding/worldbuilding-editor.component.*',
 ];
 
 // Ban the root module wholesale rather than naming symbols: an importNames
