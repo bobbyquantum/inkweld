@@ -67,7 +67,7 @@
     }
 
     @if (isPasswordLoginEnabled()) {
-      <form (ngSubmit)="onLogin()" data-testid="login-form">
+      <form [formRoot]="form" data-testid="login-form">
         <mat-form-field appearance="outline">
           <mat-label>{{ 'login.username' | transloco }}</mat-label>
           <input

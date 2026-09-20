@@ -4,7 +4,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { form, FormField, required } from '@angular/forms/signals';
+import { form, FormField, FormRoot, required } from '@angular/forms/signals';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -24,6 +24,7 @@ interface ForgotPasswordFormValue {
   selector: 'app-forgot-password',
   imports: [
     FormField,
+    FormRoot,
     MatButtonModule,
     MatCardModule,
     MatFormFieldModule,
@@ -43,9 +44,13 @@ export class ForgotPasswordComponent {
   readonly formErrors = inject(FormErrorTranslationService);
 
   readonly model = signal<ForgotPasswordFormValue>({ email: '' });
-  readonly form = form(this.model, schemaPath => {
-    required(schemaPath.email);
-  });
+  readonly form = form(
+    this.model,
+    schemaPath => {
+      required(schemaPath.email);
+    },
+    { submission: { action: () => this.onSubmit() } }
+  );
 
   readonly isSubmitting = signal(false);
   readonly submitted = signal(false);

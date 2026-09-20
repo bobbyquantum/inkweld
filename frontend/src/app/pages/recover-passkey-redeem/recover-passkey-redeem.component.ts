@@ -5,7 +5,7 @@ import {
   type OnInit,
   signal,
 } from '@angular/core';
-import { form, FormField, maxLength } from '@angular/forms/signals';
+import { form, FormField, FormRoot, maxLength } from '@angular/forms/signals';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -45,6 +45,7 @@ interface RecoverPasskeyRedeemFormValue {
   selector: 'app-recover-passkey-redeem',
   imports: [
     FormField,
+    FormRoot,
     MatButtonModule,
     MatCardModule,
     MatFormFieldModule,
@@ -67,9 +68,13 @@ export class RecoverPasskeyRedeemComponent implements OnInit {
   readonly model = signal<RecoverPasskeyRedeemFormValue>({
     passkeyName: 'Recovery passkey',
   });
-  readonly form = form(this.model, schemaPath => {
-    maxLength(schemaPath.passkeyName, 64);
-  });
+  readonly form = form(
+    this.model,
+    schemaPath => {
+      maxLength(schemaPath.passkeyName, 64);
+    },
+    { submission: { action: () => this.onSubmit() } }
+  );
 
   private token = '';
 

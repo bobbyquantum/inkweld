@@ -20,7 +20,7 @@
           </p>
         </div>
 
-        <form (ngSubmit)="onSubmit()" data-testid="recover-passkey-form">
+        <form [formRoot]="form" data-testid="recover-passkey-form">
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>{{
               'auth.forgotPassword.emailLabel' | transloco

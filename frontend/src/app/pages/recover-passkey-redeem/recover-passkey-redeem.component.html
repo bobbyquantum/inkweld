@@ -39,7 +39,7 @@
           </p>
         </div>
 
-        <form (ngSubmit)="onSubmit()" data-testid="redeem-form">
+        <form [formRoot]="form" data-testid="redeem-form">
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>Passkey Name</mat-label>
             <input

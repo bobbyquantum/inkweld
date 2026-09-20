@@ -4,7 +4,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { form, FormField, required } from '@angular/forms/signals';
+import { form, FormField, FormRoot, required } from '@angular/forms/signals';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -39,6 +39,7 @@ interface RecoverPasskeyFormValue {
   selector: 'app-recover-passkey',
   imports: [
     FormField,
+    FormRoot,
     MatButtonModule,
     MatCardModule,
     MatFormFieldModule,
@@ -61,9 +62,13 @@ export class RecoverPasskeyComponent {
   readonly isEmailRecoveryEnabled = this.systemConfig.isEmailRecoveryEnabled;
 
   readonly model = signal<RecoverPasskeyFormValue>({ email: '' });
-  readonly form = form(this.model, schemaPath => {
-    required(schemaPath.email);
-  });
+  readonly form = form(
+    this.model,
+    schemaPath => {
+      required(schemaPath.email);
+    },
+    { submission: { action: () => this.onSubmit() } }
+  );
 
   readonly isSubmitting = signal(false);
   readonly submitted = signal(false);

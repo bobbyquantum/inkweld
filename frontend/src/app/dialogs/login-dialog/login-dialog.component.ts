@@ -7,7 +7,7 @@ import {
   signal,
   untracked,
 } from '@angular/core';
-import { form, FormField, required } from '@angular/forms/signals';
+import { form, FormField, FormRoot, required } from '@angular/forms/signals';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatDividerModule } from '@angular/material/divider';
@@ -33,6 +33,7 @@ interface LoginFormValue {
   selector: 'app-login-dialog',
   imports: [
     FormField,
+    FormRoot,
     MatDialogModule,
     MatFormFieldModule,
     MatInputModule,
@@ -80,10 +81,14 @@ export class LoginDialogComponent {
     password: '',
   });
 
-  readonly form = form(this.model, schemaPath => {
-    required(schemaPath.username);
-    required(schemaPath.password);
-  });
+  readonly form = form(
+    this.model,
+    schemaPath => {
+      required(schemaPath.username);
+      required(schemaPath.password);
+    },
+    { submission: { action: () => this.onLogin() } }
+  );
 
   readonly passwordError = signal<string | null>(null);
   readonly passkeyError = signal<string | null>(null);

@@ -7,7 +7,13 @@ import {
   type OnInit,
   signal,
 } from '@angular/core';
-import { form, FormField, required, validate } from '@angular/forms/signals';
+import {
+  form,
+  FormField,
+  FormRoot,
+  required,
+  validate,
+} from '@angular/forms/signals';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -37,6 +43,7 @@ interface ResetPasswordFormValue {
   selector: 'app-reset-password',
   imports: [
     FormField,
+    FormRoot,
     KeyValuePipe,
     MatButtonModule,
     MatCardModule,
@@ -63,19 +70,23 @@ export class ResetPasswordComponent implements OnInit {
     confirmPassword: '',
   });
 
-  readonly form = form(this.model, schemaPath => {
-    required(schemaPath.newPassword);
-    required(schemaPath.confirmPassword);
-    validate(schemaPath.newPassword, () => this.passwordValidatorErrors());
-    validate(schemaPath.confirmPassword, ({ value, valueOf }) => {
-      const confirm = value();
-      if (!confirm) return null;
-      const password = valueOf(schemaPath.newPassword);
-      return password && confirm !== password
-        ? { kind: 'passwordMismatch' }
-        : null;
-    });
-  });
+  readonly form = form(
+    this.model,
+    schemaPath => {
+      required(schemaPath.newPassword);
+      required(schemaPath.confirmPassword);
+      validate(schemaPath.newPassword, () => this.passwordValidatorErrors());
+      validate(schemaPath.confirmPassword, ({ value, valueOf }) => {
+        const confirm = value();
+        if (!confirm) return null;
+        const password = valueOf(schemaPath.newPassword);
+        return password && confirm !== password
+          ? { kind: 'passwordMismatch' }
+          : null;
+      });
+    },
+    { submission: { action: () => this.onSubmit() } }
+  );
 
   private token = '';
 
