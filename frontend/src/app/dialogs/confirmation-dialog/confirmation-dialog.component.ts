@@ -4,7 +4,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { form, FormField } from '@angular/forms/signals';
 import { MatButtonModule } from '@angular/material/button';
 import {
   MAT_DIALOG_DATA,
@@ -25,6 +25,10 @@ export interface ConfirmationDialogData {
   details?: string[];
 }
 
+interface ConfirmationFormValue {
+  confirmationInput: string;
+}
+
 @Component({
   selector: 'app-confirmation-dialog',
   templateUrl: './confirmation-dialog.component.html',
@@ -34,7 +38,7 @@ export interface ConfirmationDialogData {
   imports: [
     MatDialogModule,
     MatButtonModule,
-    FormsModule,
+    FormField,
     MatInputModule,
     MatFormFieldModule,
     TranslocoModule,
@@ -45,7 +49,8 @@ export class ConfirmationDialogComponent {
   private readonly dialogRef = inject(
     MatDialogRef<ConfirmationDialogComponent>
   );
-  protected confirmationInput = '';
+  readonly model = signal<ConfirmationFormValue>({ confirmationInput: '' });
+  readonly form = form(this.model);
 
   /** Reactive detail lines so callers can update them after the dialog opens. */
   protected readonly details = signal<string[]>(this.data.details ?? []);
