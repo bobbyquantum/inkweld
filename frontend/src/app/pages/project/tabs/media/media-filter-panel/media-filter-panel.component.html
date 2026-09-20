@@ -131,7 +131,7 @@
           id="filter-date-from-input"
           [attr.aria-label]="'media.filterPanel.fromAria' | transloco"
           [matDatepicker]="fromPicker"
-          [ngModel]="filters().dateFrom"
+          [value]="filters().dateFrom"
           (dateChange)="setDateFrom($event.value)"
           data-testid="filter-date-from" />
         <mat-datepicker-toggle matSuffix [for]="fromPicker">
@@ -145,7 +145,7 @@
           id="filter-date-to-input"
           [attr.aria-label]="'media.filterPanel.toAria' | transloco"
           [matDatepicker]="toPicker"
-          [ngModel]="filters().dateTo"
+          [value]="filters().dateTo"
           (dateChange)="setDateTo($event.value)"
           data-testid="filter-date-to" />
         <mat-datepicker-toggle matSuffix [for]="toPicker">

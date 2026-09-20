@@ -259,7 +259,7 @@
                   type="number"
                   min="1"
                   max="128"
-                  [ngModel]="passwordMinLength()"
+                  [value]="passwordMinLength()"
                   (change)="savePasswordMinLength($any($event.target).value)"
                   [disabled]="isSaving()"
                   id="admin-password-min-length-input"
@@ -362,7 +362,7 @@
             matInput
             type="url"
             [placeholder]="'admin.settings.siteUrlPlaceholder' | transloco"
-            [ngModel]="siteUrl()"
+            [value]="siteUrl()"
             (change)="saveSiteUrl($any($event.target).value)"
             [disabled]="isSaving()"
             id="admin-site-url-input"
@@ -395,7 +395,7 @@
               matInput
               type="url"
               placeholder="https://example.com/privacy"
-              [ngModel]="privacyPolicyUrl()"
+              [value]="privacyPolicyUrl()"
               (change)="savePrivacyPolicyUrl($any($event.target).value)"
               [disabled]="isSaving()"
               id="admin-privacy-policy-url-input"
@@ -414,7 +414,7 @@
               matInput
               type="url"
               placeholder="https://example.com/terms"
-              [ngModel]="termsUrl()"
+              [value]="termsUrl()"
               (change)="saveTermsUrl($any($event.target).value)"
               [disabled]="isSaving()"
               id="admin-terms-url-input"
@@ -452,7 +452,7 @@
             <textarea
               matInput
               rows="4"
-              [ngModel]="customHeadHtml()"
+              [value]="customHeadHtml()"
               (change)="
                 saveCustomHtml('CUSTOM_HEAD_HTML', $any($event.target).value)
               "
@@ -474,7 +474,7 @@
             <textarea
               matInput
               rows="4"
-              [ngModel]="customBodyHtml()"
+              [value]="customBodyHtml()"
               (change)="
                 saveCustomHtml('CUSTOM_BODY_HTML', $any($event.target).value)
               "

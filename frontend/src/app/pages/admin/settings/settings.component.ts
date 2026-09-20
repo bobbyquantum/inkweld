@@ -6,7 +6,6 @@ import {
   type OnInit,
   signal,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
@@ -31,7 +30,6 @@ import { AiKillSwitchDialogComponent } from './ai-kill-switch-dialog/ai-kill-swi
 @Component({
   selector: 'app-admin-settings',
   imports: [
-    FormsModule,
     MatButtonModule,
     MatCardModule,
     MatDialogModule,

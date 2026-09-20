@@ -99,8 +99,8 @@
         'relationships.editDialog.categoryLabel' | transloco
       }}</mat-label>
       <mat-select
-        [ngModel]="category()"
-        (ngModelChange)="category.set($event)"
+        [value]="category()"
+        (selectionChange)="category.set($any($event).value)"
         data-testid="rel-category-select">
         @for (cat of categoryOptions; track cat.value) {
           <mat-option [value]="cat.value">{{
@@ -112,8 +112,8 @@
 
     <div class="toggle-row">
       <mat-slide-toggle
-        [ngModel]="showInverse()"
-        (ngModelChange)="showInverse.set($event)"
+        [checked]="showInverse()"
+        (change)="showInverse.set($any($event).checked)"
         data-testid="rel-show-inverse-toggle">
         {{ 'relationships.editDialog.showInverse' | transloco }}
       </mat-slide-toggle>
@@ -156,8 +156,8 @@
   </div>
   <div class="endpoint-section" data-testid="source-endpoint-section">
     <mat-slide-toggle
-      [ngModel]="sourceAnyType()"
-      (ngModelChange)="sourceAnyType.set($event)"
+      [checked]="sourceAnyType()"
+      (change)="sourceAnyType.set($any($event).checked)"
       data-testid="source-any-type-toggle">
       {{ 'relationships.editDialog.anyElementType' | transloco }}
     </mat-slide-toggle>
@@ -205,8 +205,8 @@
   </div>
   <div class="endpoint-section" data-testid="target-endpoint-section">
     <mat-slide-toggle
-      [ngModel]="targetAnyType()"
-      (ngModelChange)="targetAnyType.set($event)"
+      [checked]="targetAnyType()"
+      (change)="targetAnyType.set($any($event).checked)"
       data-testid="target-any-type-toggle">
       {{ 'relationships.editDialog.anyElementType' | transloco }}
     </mat-slide-toggle>

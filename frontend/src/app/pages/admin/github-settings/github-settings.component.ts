@@ -5,7 +5,6 @@ import {
   type OnInit,
   signal,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -23,7 +22,6 @@ import { SetupService } from '@services/core/setup.service';
 @Component({
   selector: 'app-admin-github-settings',
   imports: [
-    FormsModule,
     MatButtonModule,
     MatCardModule,
     MatFormFieldModule,
