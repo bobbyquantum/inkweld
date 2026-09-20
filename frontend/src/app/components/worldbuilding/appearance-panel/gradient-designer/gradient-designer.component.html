@@ -1,8 +1,8 @@
 <div class="gradient-designer" data-testid="gradient-designer">
   @if (renderReady()) {
     <ngx-input-gradient
-      [ngModel]="value()"
-      (ngModelChange)="onGradientChange($event)"
+      [appValue]="value()"
+      (appValueChange)="onGradientChange($event)"
       [theme]="'light'"
       data-testid="gradient-picker"></ngx-input-gradient>
   }

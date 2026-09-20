@@ -39,7 +39,7 @@ describe('GeneralSettingsComponent', () => {
     await settle();
   });
 
-  /** Render, then let ngModel's async write-back land before asserting. */
+  /** Render, then let pending async state settle before asserting. */
   async function settle(): Promise<void> {
     fixture.detectChanges();
     await fixture.whenStable();

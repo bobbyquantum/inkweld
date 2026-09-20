@@ -9,7 +9,7 @@ import {
   output,
   signal,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { ValueAccessorDirective } from '@directives/value-accessor.directive';
 import { NgxInputGradientComponent } from 'ngx-input-color/gradient-picker';
 
 /**
@@ -20,7 +20,7 @@ import { NgxInputGradientComponent } from 'ngx-input-color/gradient-picker';
 @Component({
   selector: 'app-gradient-designer',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, NgxInputGradientComponent],
+  imports: [ValueAccessorDirective, NgxInputGradientComponent],
   templateUrl: './gradient-designer.component.html',
   styleUrl: './gradient-designer.component.scss',
   host: {
