@@ -326,6 +326,14 @@ $dark-theme: mat.define-theme(
   max-height: var(--app-height);
 }
 
+// A lifted project cover plays across two pages, so it sits above the whole
+// app — including the overlay container, which is where its own menus,
+// dialogs and snackbars are drawn. While one is up, that container comes with
+// it. The class is put on the body by `ProjectCoverOpenComponent`.
+body.cover-lifted .cdk-overlay-container {
+  z-index: 12100;
+}
+
 .dark-theme {
   /* Scrollbar styles for dark theme */
   --scrollbar-thumb-color: #22bccf; /* primary-70 */

@@ -71,6 +71,11 @@ export default (async () => {
 
     /* Shared settings */
     use: {
+      /* Run with prefers-reduced-motion, as CI browsers do not have a user
+         setting. Transitions that cover the page while they play — the
+         project cover opening into the editor — then resolve instantly
+         instead of holding up clicks and screenshots for a second. */
+      reducedMotion: 'reduce',
       /* No base URL - tests use explicit URLs for backend and Inspector */
       actionTimeout: 20000,
       navigationTimeout: 30000,

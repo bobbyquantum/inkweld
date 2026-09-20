@@ -60,6 +60,11 @@ export default (async () => {
 
     /* Shared settings for all the projects below */
     use: {
+      /* Run with prefers-reduced-motion, as CI browsers do not have a user
+         setting. Transitions that cover the page while they play — the
+         project cover opening into the editor — then resolve instantly
+         instead of holding up clicks and screenshots for a second. */
+      reducedMotion: 'reduce',
       /* Base URL to use in actions like `await page.goto('/')` */
       baseURL: frontendUrl,
 

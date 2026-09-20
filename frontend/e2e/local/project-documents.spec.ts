@@ -8,13 +8,13 @@
  * `test.step()`. The seeded-template test is kept separate because it
  * uses a different fixture (`localPage`) and a different project flow.
  */
+import { openProjectFromGrid } from '../common/test-helpers';
 import { expect, test } from './fixtures';
-
 test.describe('Project Documents', () => {
   test('project tree, create button, README open, and settings route', async ({
     localPageWithProject: page,
   }) => {
-    await page.getByTestId('project-card').first().click();
+    await openProjectFromGrid(page);
     await page.waitForURL(/\/.+\/.+/);
 
     await test.step('shows project tree with default README and create button', async () => {

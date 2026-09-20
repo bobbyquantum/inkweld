@@ -9,8 +9,8 @@
  */
 import { type Page } from '@playwright/test';
 
+import { openProjectFromGrid } from '../common/test-helpers';
 import { expect, test } from './fixtures';
-
 const ELEMENT_A = 'Thornfolk';
 const ELEMENT_B = 'Moonshadow Fox';
 
@@ -52,7 +52,7 @@ test.describe('Per-element schema', () => {
   test('element schema can be customised, updated from shared, and reverted', async ({
     localPageWithProject: page,
   }) => {
-    await page.getByTestId('project-card').first().click();
+    await openProjectFromGrid(page);
     await expect(page).toHaveURL(/\/.+\/.+/);
 
     await test.step('new element follows the shared schema', async () => {
@@ -159,7 +159,7 @@ test.describe('Per-element schema', () => {
   test('empty image shows the element icon and Set image lives in Identity', async ({
     localPageWithProject: page,
   }) => {
-    await page.getByTestId('project-card').first().click();
+    await openProjectFromGrid(page);
     await expect(page).toHaveURL(/\/.+\/.+/);
     await createCharacter(page, ELEMENT_A);
     await openElement(page, ELEMENT_A);

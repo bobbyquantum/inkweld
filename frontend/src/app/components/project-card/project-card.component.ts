@@ -55,6 +55,14 @@ export class ProjectCardComponent implements AfterViewInit, OnDestroy {
   @Input()
   public project!: Project;
 
+  /**
+   * The card's own element, so the grid can measure it and lift its cover
+   * out — the same thing a click on the card does.
+   */
+  get hostElement(): HTMLElement {
+    return this.el.nativeElement;
+  }
+
   /** When true, shows a shared indicator badge on the card */
   @Input()
   public isShared = false;

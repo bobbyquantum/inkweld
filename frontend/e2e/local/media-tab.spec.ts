@@ -21,6 +21,7 @@
  */
 import {
   DEMO_ASSETS,
+  openProjectFromGrid,
   storeRealEpubInIndexedDB,
   storeRealMediaInIndexedDB,
 } from '../common/test-helpers';
@@ -63,7 +64,7 @@ test.describe('Media Tab', () => {
   test('navigation and empty state when no media exists', async ({
     localPageWithProject: page,
   }) => {
-    await page.getByTestId('project-card').first().click();
+    await openProjectFromGrid(page);
     await page.waitForURL(/\/.+\/.+/);
     await page.waitForLoadState('domcontentloaded');
 
@@ -93,7 +94,7 @@ test.describe('Media Tab', () => {
     localPageWithProject: page,
   }) => {
     // Navigate to the project to obtain its key
-    await page.getByTestId('project-card').first().click();
+    await openProjectFromGrid(page);
     await page.waitForURL(/\/.+\/.+/);
     await page.waitForLoadState('domcontentloaded');
 

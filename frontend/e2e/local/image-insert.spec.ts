@@ -10,8 +10,8 @@
 import { type Page } from '@playwright/test';
 
 import { pressShortcut } from '../common';
+import { openProjectFromGrid } from '../common/test-helpers';
 import { expect, test } from './fixtures';
-
 /**
  * Create a deterministic test PNG image entirely in the browser and return
  * its data URL. Used to feed file inputs without shipping fixtures.
@@ -43,7 +43,7 @@ async function createDocumentAndFocus(
   page: Page,
   docName: string
 ): Promise<void> {
-  await page.getByTestId('project-card').first().click();
+  await openProjectFromGrid(page);
   await expect(page.getByTestId('project-tree')).toBeVisible();
 
   const newDocButton = page.getByTestId('create-new-element');
@@ -197,7 +197,7 @@ test.describe('Image Insert', () => {
 
       // Navigate back into the project if reload landed us on the home page.
       if (!page.url().includes('test-project')) {
-        await page.getByTestId('project-card').first().click();
+        await openProjectFromGrid(page);
         await expect(page.getByTestId('project-tree')).toBeVisible();
       }
 

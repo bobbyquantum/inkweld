@@ -10,8 +10,8 @@
  */
 import { type Page } from '@playwright/test';
 
+import { openProjectFromGrid } from '../common/test-helpers';
 import { expect, test } from './fixtures';
-
 /**
  * Navigate to /create-project and advance past the template-selection step
  * to the project-details form.
@@ -127,7 +127,7 @@ test.describe('Local Project Workflows', () => {
     });
 
     await test.step('clicking a project card opens it with its tree', async () => {
-      await page.getByTestId('project-card').first().click();
+      await openProjectFromGrid(page);
       await expect(page).toHaveURL(/\/.+\/.+/);
       await expect(page.getByTestId('project-tree')).toBeVisible();
     });

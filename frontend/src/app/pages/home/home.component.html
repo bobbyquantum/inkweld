@@ -325,7 +325,7 @@
               <p>{{ 'home.loadingProjects' | transloco }}</p>
             </div>
           } @else if (loadError) {
-            <div class="error-state">
+            <div class="error-state" data-testid="projects-error-state">
               <mat-icon class="error-icon">error_outline</mat-icon>
               <h2>{{ 'home.failedToLoad' | transloco }}</h2>
               <p>{{ 'home.serverConnectionError' | transloco }}</p>
@@ -466,7 +466,7 @@
                       (longPress)="onProjectLongPress(item.project)"
                       (pinToggled)="toggleProjectPinned(item.project)"
                       (activateRequested)="
-                        onProjectActivateRequested(item.project)
+                        onProjectActivateRequested(item.project, card)
                       "
                       (deactivateRequested)="
                         onProjectDeactivateRequested(item.project)

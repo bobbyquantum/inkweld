@@ -1,7 +1,11 @@
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { HttpClient } from '@angular/common/http';
 import { provideLocationMocks } from '@angular/common/testing';
-import { provideZonelessChangeDetection, signal } from '@angular/core';
+import {
+  provideZonelessChangeDetection,
+  signal,
+  type WritableSignal,
+} from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog, type MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -24,6 +28,10 @@ import {
 } from '@inkweld/model/models';
 import { CloudSyncEngineService } from '@services/cloud-sync/cloud-sync-engine.service';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
+import {
+  type CoverOpenProject,
+  ProjectCoverOpenService,
+} from '@services/core/project-cover-open.service';
 import { SetupService } from '@services/core/setup.service';
 import { StorageContextService } from '@services/core/storage-context.service';
 import { TutorialService } from '@services/core/tutorial.service';
@@ -68,6 +76,7 @@ describe('HomeComponent', () => {
   let breakpointObserver: MockedObject<BreakpointObserver>;
   let httpClient: MockedObject<HttpClient>;
   let router: MockedObject<Router>;
+  let coverOpen: { select: ReturnType<typeof vi.fn> };
   let matDialog: MockedObject<MatDialog>;
   let tutorialService: {
     start: ReturnType<typeof vi.fn>;
@@ -168,6 +177,21 @@ describe('HomeComponent', () => {
       navigate: vi.fn(),
       url: '/',
     } as unknown as MockedObject<Router>;
+
+    // Stands in for the overlay. The real one holds the navigation back until
+    // the reader goes in; the stub runs it so the existing tests still see
+    // the routing they assert on.
+    coverOpen = {
+      select: vi.fn(
+        (
+          _card: HTMLElement,
+          _project: { title: string; username: string },
+          navigate: () => Promise<boolean>
+        ) => {
+          void navigate();
+        }
+      ),
+    };
 
     tutorialService = {
       start: vi.fn().mockReturnValue(true),
@@ -307,6 +331,7 @@ describe('HomeComponent', () => {
         { provide: BreakpointObserver, useValue: breakpointObserver },
         { provide: HttpClient, useValue: httpClient },
         { provide: Router, useValue: router },
+        { provide: ProjectCoverOpenService, useValue: coverOpen },
         { provide: TutorialService, useValue: tutorialService },
         { provide: MatDialog, useValue: matDialog },
         { provide: MatSnackBar, useValue: snackBar },
@@ -375,7 +400,7 @@ describe('HomeComponent', () => {
       slug: 'test-project',
       username: 'testuser',
     } as unknown as Project;
-    component.selectProject(project);
+    void component.selectProject(project);
     expect(router.navigate).toHaveBeenCalledWith(['testuser', 'test-project'], {
       onSameUrlNavigation: 'reload',
       skipLocationChange: false,
@@ -1210,6 +1235,39 @@ describe('HomeComponent', () => {
         );
       });
 
+      it('should hand the clicked card to the cover overlay', () => {
+        mockActivationService.isActivated.mockReturnValue(true);
+        const card = document.createElement('button');
+        card.addEventListener('click', event =>
+          component.onProjectClick(mockProjects[0], event)
+        );
+
+        card.click();
+
+        expect(coverOpen.select).toHaveBeenCalledWith(
+          card,
+          expect.objectContaining({
+            title: mockProjects[0].title,
+            username: mockProjects[0].username,
+          }),
+          expect.any(Function)
+        );
+        // The transition plays over the navigation, it does not replace it.
+        expect(router.navigate).toHaveBeenCalledWith(
+          ['testuser', 'test-project'],
+          expect.any(Object)
+        );
+      });
+
+      it('should go straight in when there is no card to lift', () => {
+        mockActivationService.isActivated.mockReturnValue(true);
+
+        component.onProjectClick(mockProjects[0], new MouseEvent('click'));
+
+        expect(coverOpen.select).not.toHaveBeenCalled();
+        expect(router.navigate).toHaveBeenCalled();
+      });
+
       it('should suppress click when card reports long-press', () => {
         const event = new MouseEvent('click');
         const preventSpy = vi.spyOn(event, 'preventDefault');
@@ -1225,120 +1283,108 @@ describe('HomeComponent', () => {
         expect(router.navigate).not.toHaveBeenCalled();
       });
 
-      it('should open activation dialog for deactivated project', () => {
+      it('should lift the cover of a project that is not on this device', () => {
+        // The lifted cover offers the download now; there is no dialog.
         mockActivationService.isActivated.mockReturnValue(false);
-        const event = new MouseEvent('click');
-        const preventSpy = vi.spyOn(event, 'preventDefault');
-        const afterClosedSubject = { subscribe: vi.fn() };
-        matDialog.open.mockReturnValue({
-          afterClosed: () => afterClosedSubject,
-        } as unknown as MatDialogRef<unknown>);
-
-        component.onProjectClick(mockProjects[0], event);
-
-        expect(preventSpy).toHaveBeenCalled();
-        expect(matDialog.open).toHaveBeenCalled();
-        const dialogData = matDialog.open.mock.calls[0][1]?.data as Record<
-          string,
-          unknown
-        >;
-        expect(dialogData['title']).toBe('Activate Project');
-      });
-
-      it('should show approximate download size in the activation dialog', async () => {
-        mockActivationService.isActivated.mockReturnValue(false);
-        const event = new MouseEvent('click');
-        const afterClosedSubject = { subscribe: vi.fn() };
-        const componentInstance = {
-          setDetails: vi.fn(),
-        };
-        matDialog.open.mockReturnValue({
-          componentInstance,
-          afterClosed: () => afterClosedSubject,
-        } as unknown as MatDialogRef<unknown>);
-
-        component.onProjectClick(mockProjects[0], event);
-
-        // Should show "Calculating..." immediately.
-        expect(componentInstance.setDetails).toHaveBeenCalledWith([
-          'Calculating approximate size...',
-        ]);
-
-        // Wait for the async size fetch to resolve and update the dialog.
-        await vi.waitFor(() => {
-          expect(componentInstance.setDetails).toHaveBeenCalledWith([
-            'Approximate size to download: 300 B',
-          ]);
-        });
-      });
-
-      it('should show error message when the size fetch fails', async () => {
-        projectsService.getProjectStorageSize.mockReturnValue(
-          throwError(() => new Error('boom'))
+        const card = document.createElement('button');
+        card.addEventListener('click', event =>
+          component.onProjectClick(mockProjects[0], event)
         );
-        mockActivationService.isActivated.mockReturnValue(false);
-        const event = new MouseEvent('click');
-        const componentInstance = {
-          setDetails: vi.fn(),
-        };
-        matDialog.open.mockReturnValue({
-          componentInstance,
-          afterClosed: () => ({ subscribe: vi.fn() }),
-        } as unknown as MatDialogRef<unknown>);
 
-        component.onProjectClick(mockProjects[0], event);
+        card.click();
 
-        // Should show "Calculating..." immediately.
-        expect(componentInstance.setDetails).toHaveBeenCalledWith([
-          'Calculating approximate size...',
-        ]);
-
-        await vi.waitFor(() => {
-          expect(componentInstance.setDetails).toHaveBeenCalledWith([
-            'Could not calculate size',
-          ]);
-        });
+        expect(coverOpen.select).toHaveBeenCalledTimes(1);
+        expect(matDialog.open).not.toHaveBeenCalled();
       });
 
-      it('should activate and sync when activation dialog confirmed', async () => {
-        mockActivationService.isActivated.mockReturnValue(false);
-        const event = new MouseEvent('click');
-        let afterClosedCb: (val: boolean) => void;
-        matDialog.open.mockReturnValue({
-          afterClosed: () => ({
-            subscribe: (cb: (val: boolean) => void) => {
-              afterClosedCb = cb;
-            },
-          }),
-        } as unknown as MatDialogRef<unknown>);
+      describe('the cover it lifts', () => {
+        /** Click a card, and read back what the overlay was handed. */
+        function lift(): CoverOpenProject {
+          const card = document.createElement('button');
+          card.addEventListener('click', event =>
+            component.onProjectClick(mockProjects[0], event)
+          );
+          card.click();
+          return coverOpen.select.mock.calls[0][1] as CoverOpenProject;
+        }
 
-        component.onProjectClick(mockProjects[0], event);
-        afterClosedCb!(true);
+        it('carries the project and where it stands', () => {
+          mockActivationService.isActivated.mockReturnValue(false);
 
-        // Wait for async activate
-        await vi.waitFor(() => {
+          const cover = lift();
+
+          expect(cover.title).toBe(mockProjects[0].title);
+          expect(cover.username).toBe(mockProjects[0].username);
+          expect(cover.activated()).toBe(false);
+          expect(cover.pinned()).toBe(false);
+          expect(cover.shared).toBe(false);
+        });
+
+        it('downloads without asking a second time', async () => {
+          // Picking the cover up and pressing download is the confirmation.
+          mockActivationService.isActivated.mockReturnValue(false);
+
+          await lift().actions.activate();
+
           expect(mockActivationService.activate).toHaveBeenCalledWith(
             'testuser/test-project'
           );
+          expect(matDialog.open).not.toHaveBeenCalled();
         });
-      });
 
-      it('should not activate when activation dialog cancelled', () => {
-        mockActivationService.isActivated.mockReturnValue(false);
-        const event = new MouseEvent('click');
-        let afterClosedCb: (val: boolean) => void;
-        matDialog.open.mockReturnValue({
-          afterClosed: () => ({
-            subscribe: (cb: (val: boolean) => void) => {
-              afterClosedCb = cb;
-            },
-          }),
-        } as unknown as MatDialogRef<unknown>);
+        it('knows roughly how much the project takes up', async () => {
+          mockActivationService.isActivated.mockReturnValue(true);
 
-        component.onProjectClick(mockProjects[0], event);
-        afterClosedCb!(false);
+          await expect(lift().size()).resolves.toBe(300);
+          expect(projectsService.getProjectStorageSize).toHaveBeenCalledWith(
+            'testuser',
+            'test-project'
+          );
+        });
 
-        expect(mockActivationService.activate).not.toHaveBeenCalled();
+        it('has no size to offer without a server', async () => {
+          (
+            TestBed.inject(StorageContextService) as unknown as {
+              isLocalMode: WritableSignal<boolean>;
+            }
+          ).isLocalMode.set(true);
+          mockActivationService.isActivated.mockReturnValue(true);
+
+          await expect(lift().size()).resolves.toBeNull();
+        });
+
+        it('pins the project to the top of the grid', () => {
+          mockActivationService.isActivated.mockReturnValue(true);
+          const cover = lift();
+
+          cover.actions.togglePin();
+
+          expect(component.isProjectPinned(mockProjects[0])).toBe(true);
+          expect(cover.pinned()).toBe(true);
+        });
+
+        it('asks before dropping the project off this device', () => {
+          mockActivationService.isActivated.mockReturnValue(true);
+          matDialog.open.mockReturnValue({
+            afterClosed: () => ({ subscribe: vi.fn() }),
+          } as unknown as MatDialogRef<unknown>);
+
+          void lift().actions.deactivate();
+
+          const dialogData = matDialog.open.mock.calls[0][1]?.data as Record<
+            string,
+            unknown
+          >;
+          expect(dialogData['title']).toBe('Deactivate Project');
+        });
+
+        it('asks before deleting the project, and reports the answer', async () => {
+          mockActivationService.isActivated.mockReturnValue(true);
+
+          await expect(lift().actions.delete()).resolves.toBe(false);
+
+          expect(dialogGateway.openConfirmationDialog).toHaveBeenCalled();
+        });
       });
     });
 

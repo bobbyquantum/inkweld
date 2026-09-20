@@ -6,8 +6,8 @@
  *      data/media/total sizes.
  *   2. Admin user menu "Projects & storage" dialog lists a user's projects
  *      with per-project and total sizes.
- *   3. The activation dialog (deactivated project) shows the approximate
- *      download size.
+ *   3. The lifted cover of a project that is not on this device shows the
+ *      approximate download size, and downloads it.
  */
 import { generateUniqueSlug } from '../common';
 import { createProjectWithTwoSteps } from '../common';
@@ -132,7 +132,7 @@ test.describe('Project Storage Size', () => {
     });
   });
 
-  test('activation dialog shows approximate download size for a deactivated project', async ({
+  test('the lifted cover shows the download size for a deactivated project', async ({
     authenticatedPage: page,
   }) => {
     const slug = generateUniqueSlug('storage-activate');
@@ -162,16 +162,29 @@ test.describe('Project Storage Size', () => {
       ).toBeVisible();
     });
 
-    await test.step('clicking the deactivated project shows activation dialog with size', async () => {
+    await test.step('clicking the deactivated project offers the download with its size', async () => {
       await card().click();
 
-      await expect(page.getByTestId('confirmation-dialog')).toBeVisible();
-      const details = page.getByTestId('confirmation-dialog-details');
-      // The size is loaded asynchronously; it may be absent if the call fails,
-      // but when present it should mention a byte size.
+      await expect(page.getByTestId('project-cover-open')).toBeVisible();
+      await expect(page.getByTestId('cover-open-begin')).toContainText(
+        'Download to this device'
+      );
+      // The size is fetched once the cover is up, so it arrives a moment later.
       await expect
-        .poll(async () => (await details.textContent()) ?? '')
-        .toContain('Approximate size to download');
+        .poll(
+          async () =>
+            (await page.getByTestId('cover-open-size').textContent()) ?? ''
+        )
+        .toMatch(/[\d.]+ [KMGTP]?B to download/);
+    });
+
+    await test.step('downloading it turns the cover into the way in', async () => {
+      await page.getByTestId('cover-open-begin').click();
+
+      await expect(page.getByTestId('cover-open-begin')).toContainText(
+        'Begin',
+        { timeout: 15_000 }
+      );
     });
   });
 });

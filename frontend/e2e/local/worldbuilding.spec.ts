@@ -11,7 +11,10 @@
  */
 import { type Page } from '@playwright/test';
 
-import { createProjectWithTwoSteps } from '../common/test-helpers';
+import {
+  createProjectWithTwoSteps,
+  openProjectFromGrid,
+} from '../common/test-helpers';
 import { expect, test } from './fixtures';
 
 /**
@@ -22,7 +25,7 @@ async function openProjectAndInitTemplates(
   page: Page,
   characterName = 'Init Character'
 ): Promise<void> {
-  await page.getByTestId('project-card').first().click();
+  await openProjectFromGrid(page);
   await expect(page).toHaveURL(/\/.+\/.+/);
 
   await page.getByTestId('create-new-element').click();
@@ -49,7 +52,7 @@ test.describe('Worldbuilding Templates', () => {
   test('worldbuilding elements initialize with their expected schemas', async ({
     localPageWithProject: page,
   }) => {
-    await page.getByTestId('project-card').first().click();
+    await openProjectFromGrid(page);
     await page.waitForLoadState('domcontentloaded');
 
     const elementTypes = [
