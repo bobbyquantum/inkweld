@@ -91,9 +91,9 @@ import {
   Y_MESSAGE_PRESENCE,
 } from '@inkweld/presence';
 import { ProjectPresenceService, type PresenceSocket } from '../services/presence.service';
+import type { DocumentRevisionEntry } from '../types/document-revision.types';
 
 const projDOLog = logger.child('YjsProjectDO');
-
 declare const WebSocketPair: any;
 
 interface ConnectionInfo {
@@ -559,6 +559,8 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
         return this.handleUpdateDocument(request, documentId);
       case 'GET /api/stats':
         return this.handleGetStats(documentId);
+      case 'GET /api/revisions':
+        return this.handleGetRevisions(documentId);
       case 'GET /api/storage-keys':
         return this.handleGetStorageKeys(request);
       case 'GET /api/storage-size':
@@ -903,6 +905,59 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
+  }
+
+  /**
+   * GET /api/revisions - Per-document revision tokens for this project.
+   *
+   * Enumerates the project's `ITEM` elements (the caller passes the `elements`
+   * documentId so this DO can read the shared tree) and reports one revision
+   * token per document via {@link YjsDocStorage.readRevision} — a single bounded
+   * reverse `list` per document, no document loaded and no history replayed.
+   *
+   * Used by the bulk-sync manifest so a client can skip opening a WebSocket for
+   * documents whose server revision it has already synced. A document never
+   * persisted reports `revision: null`; a read failure reports `unknown: true`
+   * so the client syncs rather than skips.
+   */
+  private async handleGetRevisions(documentId: string): Promise<Response> {
+    // The elements doc id is `username:slug:elements`; the project key is its
+    // first two segments. readRevision strips trailing slashes for the item ids.
+    const [username, slug] = documentId.split(':');
+    if (!username || !slug) {
+      return jsonResponse({ error: 'Invalid documentId' }, 400);
+    }
+
+    const elementsDoc = await this.getOrCreateDocument(`${username}:${slug}:elements`);
+    const elementsArray = elementsDoc.getArray('elements');
+
+    const documentIds: string[] = [];
+    elementsArray.forEach((value) => {
+      if (value && typeof value === 'object') {
+        const json = this.yValueToJson(value);
+        if (
+          json &&
+          typeof json === 'object' &&
+          !Array.isArray(json) &&
+          (json as { type?: unknown }).type === 'ITEM' &&
+          typeof (json as { id?: unknown }).id === 'string'
+        ) {
+          documentIds.push(`${username}:${slug}:${(json as { id: string }).id}`);
+        }
+      }
+    });
+
+    const documents: DocumentRevisionEntry[] = [];
+    for (const docId of documentIds) {
+      try {
+        documents.push({ documentId: docId, revision: await this.docStorage.readRevision(docId) });
+      } catch (error) {
+        projDOLog.warn(`Failed to read revision for ${docId}`, { error: String(error) });
+        documents.push({ documentId: docId, revision: null, unknown: true });
+      }
+    }
+
+    return jsonResponse({ documents }, 200);
   }
 
   /**

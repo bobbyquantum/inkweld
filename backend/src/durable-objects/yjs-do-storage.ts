@@ -31,6 +31,12 @@ export interface DoStorage {
     prefix: string;
     limit?: number;
     startAfter?: string;
+    /**
+     * Return keys in descending order. Used to read a document's latest update
+     * row (and therefore its revision token) with a single bounded `list` call
+     * instead of paging the whole history.
+     */
+    reverse?: boolean;
   }): Promise<Map<string, T>>;
   put<T>(key: string, value: T): Promise<void>;
   delete(keys: string | string[]): Promise<void>;
@@ -481,6 +487,34 @@ export class YjsDocStorage {
     );
 
     return { totalRowsRead, hadSnapshot, incrementalKeys, corruptedKeys };
+  }
+
+  /**
+   * Read the current revision token for a document without loading it.
+   *
+   * The token is the lexicographically-latest storage row for the document:
+   *  - an incremental `update:*` key (timestamp + sequence + random suffix, so
+   *    key order matches write order), or
+   *  - the `snapshot` key when every incremental row has been compacted away.
+   *
+   * A single bounded reverse `list` returns the newest row, so this is O(1) in
+   * the document's history. Returns `null` when nothing has been persisted
+   * (nothing to pull). Note the token is *not* comparable against the Bun
+   * runtime's clock token — clients only ever compare a token to the one they
+   * previously stored from the same server.
+   */
+  async readRevision(documentId: string): Promise<string | null> {
+    const storagePrefix = `doc:${documentId}:`;
+    // Both key shapes sort after the bare prefix and the snapshot key sorts
+    // after `update:`; a reverse list over the whole document prefix yields
+    // whichever row was written last.
+    const newest = await this.storage.list<StoredBytes>({
+      prefix: storagePrefix,
+      limit: 1,
+      reverse: true,
+    });
+    const first = newest.keys().next();
+    return first.done ? null : first.value;
   }
 
   /**

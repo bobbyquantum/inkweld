@@ -11,6 +11,7 @@ import { type Element, type ElementType } from '../types/element.types';
 import { logger } from './logger.service';
 import { activityService } from './activity.service';
 import type { DatabaseInstance } from '../types/context';
+import type { DocumentRevisionEntry } from '../types/document-revision.types';
 
 const yjsLog = logger.child('Yjs');
 
@@ -28,6 +29,28 @@ interface LeveldbPersistence {
    */
   flushDocument(docName: string): Promise<void>;
   destroy(): Promise<void>;
+  /**
+   * Run `f` inside y-leveldb's serialized transaction, handing it the raw
+   * LevelDB handle. Used to read a document's update clock without loading the
+   * whole document (see {@link YjsService.getDocumentRevision}).
+   */
+  _transact<T>(f: (db: unknown) => Promise<T>): Promise<T>;
+}
+
+/**
+ * Read a document's latest update clock straight from LevelDB. Exported by
+ * `y-leveldb` as `getCurrentUpdateClock`; a reverse scan with `limit: 1`, so it
+ * is O(1) and never loads the document's update history.
+ */
+type GetCurrentUpdateClock = (db: unknown, docName: string) => Promise<number>;
+
+/**
+ * Lazily-loaded pieces of `y-leveldb`. Kept as a pair so the clock reader
+ * travels with the constructor through the same deferred import.
+ */
+interface LeveldbModule {
+  LeveldbPersistence: new (location: string) => LeveldbPersistence;
+  getCurrentUpdateClock: GetCurrentUpdateClock;
 }
 
 /**
@@ -39,14 +62,14 @@ interface LeveldbPersistence {
  * how it ended up as a red herring in DO "corrupted snapshot" logs). Deferring
  * the import means the Worker never initialises any of it.
  */
-let leveldbCtorPromise: Promise<new (location: string) => LeveldbPersistence> | null = null;
-function loadLeveldbPersistence(): Promise<new (location: string) => LeveldbPersistence> {
+let leveldbModulePromise: Promise<LeveldbModule> | null = null;
+function loadLeveldbModule(): Promise<LeveldbModule> {
   // @ts-expect-error - y-leveldb has types but package.json exports aren't properly configured
-  leveldbCtorPromise ??= import('y-leveldb').then(
-    (mod: { LeveldbPersistence: new (location: string) => LeveldbPersistence }) =>
-      mod.LeveldbPersistence
-  );
-  return leveldbCtorPromise;
+  leveldbModulePromise ??= import('y-leveldb').then((mod: LeveldbModule) => mod);
+  return leveldbModulePromise;
+}
+async function loadLeveldbPersistence(): Promise<new (location: string) => LeveldbPersistence> {
+  return (await loadLeveldbModule()).LeveldbPersistence;
 }
 
 const messageSync = 0;
@@ -434,6 +457,119 @@ export class YjsService {
 
     // Sort by order
     return elements.sort((a, b) => a.order - b.order);
+  }
+
+  /**
+   * Read the current revision token for a set of documents in one pass.
+   *
+   * Opens (or reuses) the project's LevelDB handle and reads each document's
+   * latest update clock with a single reverse key scan — no document is loaded
+   * and no update history is replayed, so this is cheap enough to call on
+   * every bulk sync. A document that has never been persisted returns
+   * `revision: null` (nothing to pull); a read failure is reported as
+   * `unknown` so the client falls back to syncing it rather than skipping it.
+   *
+   * The handle is only opened for the duration of the call when this project
+   * had no live document (an idle project would otherwise hold a LevelDB
+   * handle open forever).
+   */
+  async getDocumentRevisions(
+    username: string,
+    projectSlug: string,
+    documentIds: string[]
+  ): Promise<DocumentRevisionEntry[]> {
+    if (documentIds.length === 0) return [];
+
+    const projectKey = `${username}:${projectSlug}`;
+    const openedHere = !this.persistences.has(projectKey);
+    const persistence = await this.getPersistenceForProject(username, projectSlug);
+    const { getCurrentUpdateClock } = await loadLeveldbModule();
+
+    try {
+      const entries: DocumentRevisionEntry[] = [];
+      for (const documentId of documentIds) {
+        try {
+          // `_transact` swallows a thrown callback error and resolves `null`,
+          // so validate the shape rather than trusting `>= 0` (null >= 0 is
+          // true and would mint a bogus "null" revision).
+          const clock = await persistence._transact((db) => getCurrentUpdateClock(db, documentId));
+          const valid = typeof clock === 'number' && Number.isFinite(clock) && clock >= 0;
+          if (!valid) {
+            // Either the document was never persisted (clock === -1) or the
+            // read failed (null). Distinguishing them matters: -1 is "nothing
+            // to pull", null is "couldn't tell, so sync it".
+            const neverPersisted = clock === -1;
+            entries.push(
+              neverPersisted
+                ? { documentId, revision: null }
+                : { documentId, revision: null, unknown: true }
+            );
+            continue;
+          }
+          entries.push({ documentId, revision: String(clock) });
+        } catch (error) {
+          yjsLog.warn(`Failed to read revision for ${documentId}`, {
+            error: String(error),
+          });
+          entries.push({ documentId, revision: null, unknown: true });
+        }
+      }
+      return entries;
+    } finally {
+      // Close a handle we opened ourselves unless a document from this project
+      // is (or has just become) live in memory — that path reuses this handle.
+      if (openedHere) {
+        await this.closePersistenceIfUnused(projectKey);
+      }
+    }
+  }
+
+  /**
+   * Return the project's LevelDB persistence handle, creating it if absent.
+   * Mirrors the project-keyed handle setup in {@link setupPersistence} so the
+   * revision manifest and the live document path share one connection.
+   */
+  private async getPersistenceForProject(
+    username: string,
+    projectSlug: string
+  ): Promise<LeveldbPersistence> {
+    const projectKey = `${username}:${projectSlug}`;
+    const existing = this.persistences.get(projectKey);
+    if (existing) return existing;
+
+    const dbPath = path.join(fileStorageService.getProjectPath(username, projectSlug), '.yjs');
+    const LeveldbPersistenceCtor = await loadLeveldbPersistence();
+    const persistence = new LeveldbPersistenceCtor(dbPath);
+    this.persistences.set(projectKey, persistence);
+    return persistence;
+  }
+
+  /**
+   * Close a project's LevelDB handle if no live or in-flight document still
+   * references it. Used by {@link getDocumentRevisions} so a read-only manifest
+   * call does not leak an idle handle.
+   *
+   * `pendingLoads` is checked alongside `docs`: a document being loaded by a
+   * concurrent `getDocument` has not published to `docs` yet but is already
+   * using this project's handle inside `setupPersistence`, so destroying the
+   * handle here would break that load.
+   */
+  private async closePersistenceIfUnused(projectKey: string): Promise<void> {
+    const belongsToProject = (documentId: string) => this.getProjectKey(documentId) === projectKey;
+    const hasLiveDocs =
+      Array.from(this.docs.keys()).some(belongsToProject) ||
+      Array.from(this.pendingLoads.keys()).some(belongsToProject);
+    if (hasLiveDocs) return;
+    const persistence = this.persistences.get(projectKey);
+    if (!persistence) return;
+    try {
+      await persistence.destroy();
+      this.persistences.delete(projectKey);
+    } catch (error) {
+      yjsLog.warn(`Error closing persistence for project ${projectKey}`, {
+        error: String(error),
+      });
+    }
   }
 
   /**

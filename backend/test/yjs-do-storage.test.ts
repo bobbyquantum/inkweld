@@ -43,12 +43,14 @@ function makeStorage(entries: Map<string, number[]> = new Map()): DoStorage & {
       prefix: string;
       limit?: number;
       startAfter?: string;
+      reverse?: boolean;
     }): Promise<Map<string, T>> {
       const keys = [...entries.keys()]
         .filter(
           (k) => k.startsWith(opts.prefix) && (opts.startAfter === undefined || k > opts.startAfter)
         )
         .sort();
+      if (opts.reverse) keys.reverse();
       const sliced = opts.limit !== undefined ? keys.slice(0, opts.limit) : keys;
       const out = new Map<string, T>();
       for (const k of sliced) out.set(k, entries.get(k) as unknown as T);
@@ -724,6 +726,43 @@ describe('YjsDocStorage.compact regression guard', () => {
 
     expect(seenExisting).toBeUndefined();
     expect(result.snapshotWritten).toBe(true);
+  });
+});
+
+describe('YjsDocStorage.readRevision', () => {
+  it('returns null when nothing is persisted for the document', async () => {
+    const storage = makeStorage();
+    const ds = new YjsDocStorage(storage, noopLogger);
+    expect(await ds.readRevision('d')).toBeNull();
+  });
+
+  it('returns the newest update key as the revision token', async () => {
+    const storage = makeStorage(
+      new Map<string, number[]>([
+        ['doc:d:update:1000:00000000', [0, 1]],
+        ['doc:d:update:2000:00000000', [0, 2]],
+        ['doc:d:update:1500:00000000', [0, 3]],
+      ])
+    );
+    const ds = new YjsDocStorage(storage, noopLogger);
+    expect(await ds.readRevision('d')).toBe('doc:d:update:2000:00000000');
+  });
+
+  it('falls back to the snapshot key once increments are compacted away', async () => {
+    const storage = makeStorage(new Map<string, number[]>([['doc:d:snapshot', [0, 1]]]));
+    const ds = new YjsDocStorage(storage, noopLogger);
+    expect(await ds.readRevision('d')).toBe('doc:d:snapshot');
+  });
+
+  it('never returns a key belonging to another document', async () => {
+    const storage = makeStorage(
+      new Map<string, number[]>([
+        ['doc:d:update:1000:00000000', [0, 1]],
+        ['doc:other:update:9999:00000000', [0, 2]],
+      ])
+    );
+    const ds = new YjsDocStorage(storage, noopLogger);
+    expect(await ds.readRevision('d')).toBe('doc:d:update:1000:00000000');
   });
 });
 

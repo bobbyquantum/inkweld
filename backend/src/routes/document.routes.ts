@@ -2,6 +2,7 @@ import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi';
 import { projectService } from '../services/project.service';
 import { yjsService } from '../services/yjs.service';
 import { collaborationService } from '../services/collaboration.service';
+import { getProjectDocumentRevisions } from '../services/document-revision.service';
 import { requireAuth } from '../middleware/auth';
 import { logger } from '../services/logger.service';
 import { type AppContext } from '../types/context';
@@ -130,6 +131,90 @@ documentRoutes.openapi(listDocsRoute, async (c) => {
   } catch (error) {
     documentLog.error('Error fetching documents', error);
     return c.json({ error: 'Failed to fetch documents' }, 500);
+  }
+});
+
+// Get per-document revision manifest for bulk sync
+const syncManifestRoute = createRoute({
+  method: 'get',
+  path: '/:username/:slug/docs/sync-manifest',
+  operationId: 'getProjectDocumentSyncManifest',
+  tags: ['Documents'],
+  description:
+    'Per-document revision tokens for every prose document in a project. A ' +
+    'client that already synced a revision can skip that document instead of ' +
+    'opening a WebSocket for it.',
+  request: {
+    params: ProjectPathParamsSchema,
+  },
+  responses: {
+    200: {
+      content: {
+        'application/json': {
+          schema: z.object({
+            documents: z.array(
+              z.object({
+                documentId: z.string(),
+                revision: z.string().nullable(),
+                unknown: z.boolean().optional(),
+              })
+            ),
+          }),
+        },
+      },
+      description: 'Per-document revision tokens',
+    },
+    401: {
+      content: { 'application/json': { schema: ErrorSchema } },
+      description: 'Not authenticated',
+    },
+    403: {
+      content: { 'application/json': { schema: ErrorSchema } },
+      description: 'Unauthorized access',
+    },
+    404: {
+      content: { 'application/json': { schema: ErrorSchema } },
+      description: 'Project not found',
+    },
+    500: {
+      content: { 'application/json': { schema: ErrorSchema } },
+      description: 'Internal server error',
+    },
+  },
+});
+
+documentRoutes.openapi(syncManifestRoute, async (c) => {
+  const db = c.get('db');
+  const username = c.req.param('username');
+  const slug = c.req.param('slug');
+
+  const project = await projectService.findByUsernameAndSlug(db, username, slug);
+  if (!project) {
+    return c.json({ error: 'Project not found' }, 404);
+  }
+
+  const user = c.get('user');
+  if (user && project.userId !== user.id) {
+    const access = await collaborationService.checkAccess(db, project.id, user.id);
+    if (!access.canRead) {
+      documentLog.warn(
+        `User ${user.username} attempted to read the sync manifest for ${username}/${slug}`
+      );
+      return c.json({ error: 'Unauthorized' }, 403);
+    }
+  }
+
+  // Forward the caller's Authorization header so the Cloudflare DO HTTP API can
+  // verify it. On Bun/Node this header is unused by the manifest computation.
+  const authHeader = c.req.header('Authorization') ?? '';
+  const token = authHeader.startsWith('Bearer ') ? authHeader.substring(7) : '';
+
+  try {
+    const documents = await getProjectDocumentRevisions(username, slug, c.env as never, token);
+    return c.json({ documents }, 200);
+  } catch (error) {
+    documentLog.error('Error building document sync manifest', error);
+    return c.json({ error: 'Failed to build sync manifest' }, 500);
   }
 });
 

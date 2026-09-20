@@ -322,6 +322,33 @@ import { Context } from 'hono';
 **IMPORTANT - Yjs Document ID Trailing Slash:**
 The frontend uses `username:slug:elements` while the backend/MCP uses `username:slug:elements/` with a trailing slash. **THIS IS NOT A BUG - DO NOT "FIX" IT.** The y-websocket library automatically normalizes these, and both refer to the same document. If you see this difference while debugging sync issues, look elsewhere for the actual problem.
 
+### Bulk Sync Fast Path (Document Revision Manifest)
+
+"Sync All" used to open one WebSocket per prose document (3 at a time), so a
+project with hundreds of documents took minutes and hundreds of upgrades. It now
+first asks the server which documents actually changed:
+
+- `GET /api/v1/projects/:username/:slug/docs/sync-manifest` returns an opaque
+  per-document `revision` token (see `backend/src/services/document-revision.service.ts`).
+  On Bun it is the document's LevelDB update clock (`yjsService.getDocumentRevisions`);
+  on Workers the DO's `GET /api/revisions` returns the newest persisted storage
+  key (`YjsDocStorage.readRevision`) — both are read with one bounded reverse
+  scan, no document loaded. **The two tokens are not comparable across
+  runtimes**; a client only ever compares a token to one from the same server.
+- `DocumentSyncPlannerService` skips a document only when the manifest revision
+  is unchanged **and** the local Yjs state-vector digest still matches the
+  checkpoint stored in `DocumentSyncStateService` (IndexedDB) — i.e. no local
+  edits since the last sync. Missing manifest, unknown revision, changed
+  revision, changed digest, or an unreadable local state all force a sync.
+- Checkpoints are only written when the revision is **identical before and after**
+  the sync run, so a concurrent collaborator edit can never be recorded as
+  synced. `before === null` (manifest unavailable) disables checkpointing.
+- `revision: null` means "never persisted, nothing to pull"; `unknown: true`
+  means "could not read, sync it". Do not collapse these two.
+
+The planner is deliberately conservative: a bug can only cause extra syncs, never
+a missed edit. Keep it that way. The priority document is always force-synced.
+
 ### Authentication
 
 - Session-based auth with httpOnly cookies

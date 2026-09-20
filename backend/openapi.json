@@ -7878,6 +7878,118 @@
         }
       }
     },
+    "/api/v1/projects/{username}/{slug}/docs/sync-manifest": {
+      "get": {
+        "operationId": "getProjectDocumentSyncManifest",
+        "tags": [
+          "Documents"
+        ],
+        "description": "Per-document revision tokens for every prose document in a project. A client that already synced a revision can skip that document instead of opening a WebSocket for it.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "example": "johndoe",
+              "description": "Username"
+            },
+            "required": true,
+            "description": "Username",
+            "name": "username",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "example": "my-novel",
+              "description": "Project slug"
+            },
+            "required": true,
+            "description": "Project slug",
+            "name": "slug",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Per-document revision tokens",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "documents": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "documentId": {
+                            "type": "string"
+                          },
+                          "revision": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "unknown": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "documentId",
+                          "revision"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "documents"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Unauthorized access",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/projects/{username}/{slug}/docs/{docId}": {
       "get": {
         "operationId": "getProjectDocument",

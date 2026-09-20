@@ -17,6 +17,8 @@ describe('Document Routes', () => {
   let ownerUsername: string;
   let projectSlug: string;
   let client: TestClient;
+  let outsiderClient: TestClient;
+  let outsiderUserId: string;
   let baseUrl: string;
 
   beforeAll(async () => {
@@ -25,11 +27,13 @@ describe('Document Routes', () => {
     await enablePasswordLoginForTests();
     baseUrl = server.baseUrl;
     client = new TestClient(baseUrl);
+    outsiderClient = new TestClient(baseUrl);
 
     const db = getDatabase();
 
     // Clean up any existing test users
     await db.delete(users).where(eq(users.username, 'docroutes-user'));
+    await db.delete(users).where(eq(users.username, 'docroutes-outsider'));
 
     // Create test user
     const hashedPassword = await bcrypt.hash(TEST_PASSWORDS.DEFAULT, 10);
@@ -47,6 +51,25 @@ describe('Document Routes', () => {
 
     ownerUserId = testUser.id;
     ownerUsername = testUser.username ?? 'docroutes-user';
+
+    // A second, unrelated user with no collaboration on the project.
+    const [outsider] = await db
+      .insert(users)
+      .values({
+        id: crypto.randomUUID(),
+        username: 'docroutes-outsider',
+        email: 'docroutes-outsider@example.com',
+        password: hashedPassword,
+        approved: true,
+        enabled: true,
+      })
+      .returning();
+    outsiderUserId = outsider.id;
+    const outsiderLoggedIn = await outsiderClient.login(
+      'docroutes-outsider',
+      TEST_PASSWORDS.DEFAULT
+    );
+    expect(outsiderLoggedIn).toBe(true);
 
     // Login
     const loggedIn = await client.login('docroutes-user', TEST_PASSWORDS.DEFAULT);
@@ -74,6 +97,7 @@ describe('Document Routes', () => {
     const db = getDatabase();
     await db.delete(projects).where(eq(projects.userId, ownerUserId));
     await db.delete(users).where(eq(users.id, ownerUserId));
+    await db.delete(users).where(eq(users.id, outsiderUserId));
     await stopTestServer();
   });
 
@@ -106,6 +130,54 @@ describe('Document Routes', () => {
   });
 
   // ───────────────────── GET /:username/:slug/docs/:docId ─────────────
+
+  describe('GET /api/v1/projects/:username/:slug/docs/sync-manifest', () => {
+    it('should return 401 without authentication', async () => {
+      const unauthClient = new TestClient(baseUrl);
+      const { response } = await unauthClient.request(
+        `/api/v1/projects/${ownerUsername}/${projectSlug}/docs/sync-manifest`
+      );
+      expect(response.status).toBe(401);
+    });
+
+    it('should return 404 for non-existent project', async () => {
+      const { response } = await client.request(
+        `/api/v1/projects/${ownerUsername}/nonexistent/docs/sync-manifest`
+      );
+      expect(response.status).toBe(404);
+    });
+
+    it('should deny access to a non-collaborator', async () => {
+      const { response } = await outsiderClient.request(
+        `/api/v1/projects/${ownerUsername}/${projectSlug}/docs/sync-manifest`
+      );
+      expect(response.status).toBe(403);
+    });
+
+    it('reports a revision token for each prose document', async () => {
+      const { response, json } = await client.request(
+        `/api/v1/projects/${ownerUsername}/${projectSlug}/docs/sync-manifest`
+      );
+      expect(response.status).toBe(200);
+
+      const data = (await json()) as {
+        documents: Array<{
+          documentId: string;
+          revision: string | null;
+          unknown?: boolean;
+        }>;
+      };
+
+      const entry = data.documents.find(
+        (d) => d.documentId === `${ownerUsername}:${projectSlug}:doc-test-element`
+      );
+      expect(entry).toBeDefined();
+      // The seeded elements doc is on disk; the document itself was never
+      // persisted, so it reports "nothing to pull" rather than "unknown".
+      expect(entry?.revision).toBeNull();
+      expect(entry?.unknown).toBeUndefined();
+    });
+  });
 
   describe('GET /api/v1/projects/:username/:slug/docs/:docId', () => {
     it('should return 401 without authentication', async () => {
