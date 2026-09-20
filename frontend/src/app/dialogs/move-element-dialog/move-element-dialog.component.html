@@ -27,7 +27,10 @@
     {{ data.positionLabel }}
   </p>
 
-  <mat-checkbox [(ngModel)]="dontAskAgain" data-testid="move-dialog-dont-ask">
+  <mat-checkbox
+    [checked]="dontAskAgain"
+    (change)="dontAskAgain = $any($event).checked"
+    data-testid="move-dialog-dont-ask">
     {{ 'dialogs.move.dontAskAgain' | transloco }}
   </mat-checkbox>
 </mat-dialog-content>
