@@ -158,6 +158,20 @@ export class AppearanceEditorComponent {
     this.emit(a => {
       const current = a[region] ?? { type: 'color', mode: 'auto' };
       const merged: BackgroundSetting = { ...current, ...patch };
+      // A stored value only means anything for the type it was authored
+      // against: a `linear-gradient(...)` handed to the colour picker is not a
+      // colour, and a bare hex handed to the gradient designer is not a
+      // gradient. Carrying them across a type change left each picker
+      // displaying its own fallback for a value it could not read. Drop them
+      // instead, leaving the region exactly as a freshly enabled one.
+      if (patch.type !== undefined && patch.type !== current.type) {
+        for (const k of ['value', 'light', 'dark'] as const) {
+          if (current[k] !== undefined) {
+            deletes[`${region}.${k}`] = true;
+          }
+          merged[k] = undefined;
+        }
+      }
       const clean: BackgroundSetting = {
         type: merged.type,
         mode: merged.mode,

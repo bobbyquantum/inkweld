@@ -138,4 +138,22 @@ describe('GradientDesignerComponent', () => {
     // A rewrite here would mint fresh stop ids underneath a drag in progress.
     expect(write).not.toHaveBeenCalled();
   });
+  it('should not report a value it cannot show as a gradient', async () => {
+    // The mirror of the colour picker case: handed a bare hex, the library
+    // builds a *random* gradient and reports it straight back, which the panel
+    // persisted over the user's colour.
+    fixture.componentRef.setInput('value', '#b32d2d');
+    const emit = vi.fn();
+    component.valueChange.subscribe(emit);
+    await mountDesigner();
+    expect(emit).not.toHaveBeenCalled();
+  });
+
+  it('should not report a random gradient for an empty value', async () => {
+    fixture.componentRef.setInput('value', '');
+    const emit = vi.fn();
+    component.valueChange.subscribe(emit);
+    await mountDesigner();
+    expect(emit).not.toHaveBeenCalled();
+  });
 });

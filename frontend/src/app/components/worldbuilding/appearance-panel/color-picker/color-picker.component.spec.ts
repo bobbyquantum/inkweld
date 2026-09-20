@@ -93,4 +93,26 @@ describe('ColorPickerComponent', () => {
     fixture.detectChanges();
     expect(write).not.toHaveBeenCalled();
   });
+  it('should not report a value it cannot show as a colour', async () => {
+    // Switching a region from gradient to colour used to hand the gradient
+    // string to this picker. The library answers anything it cannot parse with
+    // black and reports it straight back, and the panel persisted that over the
+    // user's gradient without them touching the picker.
+    fixture.componentRef.setInput(
+      'value',
+      'linear-gradient(160deg, #e3d6f5 0%, #f7f4fb 100%)'
+    );
+    const emit = vi.fn();
+    component.valueChange.subscribe(emit);
+    await mountPicker();
+    expect(emit).not.toHaveBeenCalled();
+  });
+
+  it('should not report an empty value back as black', async () => {
+    fixture.componentRef.setInput('value', '');
+    const emit = vi.fn();
+    component.valueChange.subscribe(emit);
+    await mountPicker();
+    expect(emit).not.toHaveBeenCalled();
+  });
 });

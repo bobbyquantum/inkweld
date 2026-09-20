@@ -34,12 +34,17 @@ class StubAccessorComponent implements ControlValueAccessor {
   readonly writes: string[] = [];
   /** Set when the accessor should echo writes back, as the real ones do. */
   echoWrites = false;
+  /**
+   * What an echoing write reports instead of the value written -- the real
+   * accessors answer anything they cannot parse with their own fallback.
+   */
+  coerceTo: string | null = null;
 
   private onChange: (value: string) => void = () => {};
 
   writeValue(value: string): void {
     this.writes.push(value);
-    if (this.echoWrites) this.onChange(value);
+    if (this.echoWrites) this.onChange(this.coerceTo ?? value);
   }
 
   registerOnChange(fn: (value: string) => void): void {
@@ -83,7 +88,15 @@ describe('ValueAccessorDirective', () => {
     accessor = fixture.debugElement.query(
       By.directive(StubAccessorComponent)
     ).componentInstance;
+    // The mount write suppresses reports until the next macrotask; let it
+    // settle so each test starts from a quiet accessor.
+    await settle();
   });
+
+  /** Let a write's suppression window close. */
+  function settle(): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve));
+  }
 
   it('writes the initial value into the accessor', () => {
     expect(accessor.writes).toEqual(['first']);
@@ -120,15 +133,37 @@ describe('ValueAccessorDirective', () => {
     expect(accessor.writes).toEqual(['first', 'elsewhere']);
   });
 
-  it('settles when the accessor echoes its own writes', () => {
-    // The real accessors call the change handler from inside writeValue, so a
-    // write bounces out, round-trips through the host and arrives back here.
+  it('does not report a write back out as a user edit', async () => {
+    // The real accessors call the change handler from inside writeValue, which
+    // the ControlValueAccessor contract forbids. That report is not an edit.
     accessor.echoWrites = true;
     host.value.set('echoed');
     fixture.detectChanges();
-    host.value.set(host.seen[host.seen.length - 1]);
-    fixture.detectChanges();
+    await settle();
     expect(accessor.writes).toEqual(['first', 'echoed']);
-    expect(host.seen).toEqual(['echoed']);
+    expect(host.seen).toEqual([]);
+  });
+
+  it('does not let a write it could not represent come back as an edit', async () => {
+    // A colour picker handed a gradient answers with black; a gradient designer
+    // handed a hex answers with a random gradient. Either would be persisted as
+    // though the user had chosen it.
+    accessor.echoWrites = true;
+    accessor.coerceTo = '#000000';
+    host.value.set('linear-gradient(135deg, #000 0%, #fff 100%)');
+    fixture.detectChanges();
+    await settle();
+    expect(host.seen).toEqual([]);
+  });
+
+  it('still reports a user edit made after a write settles', async () => {
+    accessor.echoWrites = true;
+    accessor.coerceTo = '#000000';
+    host.value.set('linear-gradient(135deg, #000 0%, #fff 100%)');
+    fixture.detectChanges();
+    await settle();
+
+    accessor.report('#ff0000');
+    expect(host.seen).toEqual(['#ff0000']);
   });
 });

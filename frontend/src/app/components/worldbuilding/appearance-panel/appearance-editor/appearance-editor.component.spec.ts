@@ -72,7 +72,9 @@ describe('AppearanceEditorComponent', () => {
     expect(deletes).toHaveBeenCalledWith({ 'menu.value': true });
   });
 
-  it('should set the type via patchSetting', () => {
+  it("should drop the old type's value when the type changes", () => {
+    // A colour is not a gradient: carried over, it reaches the gradient
+    // designer, which answers an unreadable value with a random gradient.
     fixture.componentRef.setInput('value', {
       menu: { type: 'color', mode: 'auto', value: '#123456' },
     });
@@ -81,7 +83,52 @@ describe('AppearanceEditorComponent', () => {
     component.valueChange.subscribe(emit);
     component['setType']('menu', 'gradient');
     expect(emit).toHaveBeenCalledWith({
-      menu: { type: 'gradient', mode: 'auto', value: '#123456' },
+      menu: { type: 'gradient', mode: 'auto' },
+    });
+  });
+
+  it('should mark the dropped slots for deletion when the type changes', () => {
+    fixture.componentRef.setInput('value', {
+      menu: {
+        type: 'gradient',
+        mode: 'manual',
+        light: 'linear-gradient(135deg, #000 0%, #fff 100%)',
+        dark: 'linear-gradient(135deg, #fff 0%, #000 100%)',
+      },
+    });
+    fixture.detectChanges();
+    const deletes = vi.fn();
+    component.deletes.subscribe(deletes);
+    component['setType']('menu', 'color');
+    expect(deletes).toHaveBeenCalledWith({
+      'menu.light': true,
+      'menu.dark': true,
+    });
+  });
+
+  it('should keep the value when the type is re-set to what it already was', () => {
+    fixture.componentRef.setInput('value', {
+      menu: { type: 'color', mode: 'auto', value: '#123456' },
+    });
+    fixture.detectChanges();
+    const emit = vi.fn();
+    component.valueChange.subscribe(emit);
+    component['setType']('menu', 'color');
+    expect(emit).toHaveBeenCalledWith({
+      menu: { type: 'color', mode: 'auto', value: '#123456' },
+    });
+  });
+
+  it('should keep the value when a different field is patched', () => {
+    fixture.componentRef.setInput('value', {
+      menu: { type: 'color', mode: 'auto', value: '#123456' },
+    });
+    fixture.detectChanges();
+    const emit = vi.fn();
+    component.valueChange.subscribe(emit);
+    component['setMode']('menu', 'manual');
+    expect(emit).toHaveBeenCalledWith({
+      menu: { type: 'color', mode: 'manual', value: '#123456' },
     });
   });
 
