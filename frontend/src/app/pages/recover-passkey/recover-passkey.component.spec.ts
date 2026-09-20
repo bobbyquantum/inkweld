@@ -93,4 +93,35 @@ describe('RecoverPasskeyComponent', () => {
     isEmailRecoveryEnabled.set(false);
     expect(component.isEmailRecoveryEnabled()).toBe(false);
   });
+
+  // Regression guard: the submit path must be wired up in the *template*, not
+  // just reachable by calling onSubmit() directly. A `<form>` whose submit
+  // binding has no matching directive compiles fine and fails silently at
+  // runtime, so dispatch a real submit event and assert the action is hit.
+  describe('template submit wiring', () => {
+    it('submits when the form element is submitted', async () => {
+      component.form.email().value.set('user@example.com');
+      fixture.detectChanges();
+
+      const formEl: HTMLFormElement = fixture.nativeElement.querySelector(
+        '[data-testid="recover-passkey-form"]'
+      );
+      expect(formEl).toBeTruthy();
+      formEl.dispatchEvent(
+        new Event('submit', { bubbles: true, cancelable: true })
+      );
+      await fixture.whenStable();
+
+      expect(mockPasskeyRecoveryService.requestRecovery).toHaveBeenCalledWith(
+        'user@example.com'
+      );
+    });
+
+    it('disables native browser validation on the form', () => {
+      const formEl: HTMLFormElement = fixture.nativeElement.querySelector(
+        '[data-testid="recover-passkey-form"]'
+      );
+      expect(formEl.hasAttribute('novalidate')).toBe(true);
+    });
+  });
 });

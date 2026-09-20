@@ -221,4 +221,40 @@ describe('ResetPasswordComponent', () => {
     expect(component.passwordRequirements['number'].met).toBe(false);
     expect(component.passwordRequirements['special'].met).toBe(false);
   });
+
+  // Regression guard: the submit path must be wired up in the *template*, not
+  // just reachable by calling onSubmit() directly. A `<form>` whose submit
+  // binding has no matching directive compiles fine and fails silently at
+  // runtime, so dispatch a real submit event and assert the action is hit.
+  describe('template submit wiring', () => {
+    it('submits when the form element is submitted', async () => {
+      setupWithToken('abc123');
+      component.form.newPassword().value.set(VALID_PASSWORD);
+      component.form.confirmPassword().value.set(VALID_PASSWORD);
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      const formEl: HTMLFormElement = fixture.nativeElement.querySelector(
+        '[data-testid="reset-password-form"]'
+      );
+      expect(formEl).toBeTruthy();
+      formEl.dispatchEvent(
+        new Event('submit', { bubbles: true, cancelable: true })
+      );
+      await fixture.whenStable();
+
+      expect(mockPasswordResetService.resetPassword).toHaveBeenCalledWith(
+        'abc123',
+        VALID_PASSWORD
+      );
+    });
+
+    it('disables native browser validation on the form', () => {
+      setupWithToken('abc123');
+      const formEl: HTMLFormElement = fixture.nativeElement.querySelector(
+        '[data-testid="reset-password-form"]'
+      );
+      expect(formEl.hasAttribute('novalidate')).toBe(true);
+    });
+  });
 });

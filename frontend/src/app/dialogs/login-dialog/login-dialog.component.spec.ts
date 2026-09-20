@@ -453,4 +453,36 @@ describe('LoginDialogComponent', () => {
       expect(passkeyService.abortLogin).toHaveBeenCalledOnce();
     });
   });
+
+  // Regression guard: the submit path must be wired up in the *template*, not
+  // just reachable by calling onLogin() directly. A `<form>` whose submit
+  // binding has no matching directive compiles fine and fails silently at
+  // runtime, so dispatch a real submit event and assert the action is hit.
+  describe('template submit wiring', () => {
+    it('submits when the form element is submitted', async () => {
+      userService.login.mockResolvedValue(undefined);
+      component.form.username().value.set('testuser');
+      component.form.password().value.set('pw123456');
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      const formEl: HTMLFormElement = fixture.nativeElement.querySelector(
+        '[data-testid="login-form"]'
+      );
+      expect(formEl).toBeTruthy();
+      formEl.dispatchEvent(
+        new Event('submit', { bubbles: true, cancelable: true })
+      );
+      await fixture.whenStable();
+
+      expect(userService.login).toHaveBeenCalledWith('testuser', 'pw123456');
+    });
+
+    it('disables native browser validation on the form', () => {
+      const formEl: HTMLFormElement = fixture.nativeElement.querySelector(
+        '[data-testid="login-form"]'
+      );
+      expect(formEl.hasAttribute('novalidate')).toBe(true);
+    });
+  });
 });
