@@ -29,11 +29,14 @@
               matInput
               id="recover-passkey-email-input"
               type="email"
-              [(ngModel)]="email"
-              name="email"
-              required
+              [formField]="form.email"
               data-testid="recover-email-input"
               [attr.aria-label]="'auth.forgotPassword.emailAria' | transloco" />
+            @if (form.email().touched() && form.email().invalid()) {
+              <mat-error>{{
+                formErrors.first(form.email().errors())
+              }}</mat-error>
+            }
           </mat-form-field>
 
           @if (error()) {
@@ -51,7 +54,7 @@
             mat-raised-button
             color="primary"
             type="submit"
-            [disabled]="isSubmitting() || !email.trim()"
+            [disabled]="isSubmitting() || !model().email.trim()"
             class="submit-button"
             data-testid="recover-submit-button">
             @if (isSubmitting()) {
