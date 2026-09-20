@@ -4,6 +4,7 @@ import {
   type ElementRelationship,
   type RelationshipTypeDefinition,
 } from '@models/element-ref.model';
+import { type Generator } from '@models/generator';
 import { type ElementTag, type TagDefinition } from '@models/tag.model';
 import { firstValueFrom } from 'rxjs';
 
@@ -121,6 +122,7 @@ export class ProjectTemplateService {
       worldbuilding,
       schemas,
       timeSystems,
+      generators,
       relationships,
       customRelationshipTypes,
       tags,
@@ -140,6 +142,7 @@ export class ProjectTemplateService {
       ),
       this.loadJsonFile<ElementTypeSchema[]>(basePath, 'schemas.json', []),
       this.loadJsonFile<TimeSystem[]>(basePath, 'time-systems.json', []),
+      this.loadJsonFile<Generator[]>(basePath, 'generators.json', []),
       this.loadJsonFile<ElementRelationship[]>(
         basePath,
         'relationships.json',
@@ -171,6 +174,7 @@ export class ProjectTemplateService {
       worldbuilding,
       schemas,
       timeSystems,
+      generators,
       relationships,
       customRelationshipTypes,
       tags,

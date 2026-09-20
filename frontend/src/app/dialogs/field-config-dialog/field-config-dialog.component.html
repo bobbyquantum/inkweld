@@ -116,6 +116,32 @@
       </div>
     }
 
+    @if (isGeneratorType() && generatorOptions().length > 0) {
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>{{
+          'worldbuilding.generators.fieldGeneratorLabel' | transloco
+        }}</mat-label>
+        <mat-select
+          [value]="generatorId()"
+          (selectionChange)="generatorId.set($event.value)"
+          data-testid="fc-generator">
+          <mat-option value="" data-testid="fc-generator-none">
+            {{ 'worldbuilding.generators.noGenerator' | transloco }}
+          </mat-option>
+          @for (generator of generatorOptions(); track generator.id) {
+            <mat-option
+              [value]="generator.id"
+              [attr.data-testid]="'fc-generator-' + generator.id">
+              {{ generator.name }}
+            </mat-option>
+          }
+        </mat-select>
+        <mat-hint>{{
+          'worldbuilding.generators.fieldGeneratorHint' | transloco
+        }}</mat-hint>
+      </mat-form-field>
+    }
+
     @if (isRelationshipType()) {
       <div class="fc-relationship" data-testid="fc-relationship">
         <mat-form-field appearance="outline" class="full-width">

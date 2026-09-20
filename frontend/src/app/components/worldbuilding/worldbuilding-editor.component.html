@@ -288,6 +288,36 @@
               data-testid="schema-description-input"
               rows="3"></textarea>
           </mat-form-field>
+
+          @if (generatorOptions().length > 0) {
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>{{
+                'worldbuilding.generators.nameGeneratorLabel' | transloco
+              }}</mat-label>
+              <mat-select
+                [value]="previewSchema()?.nameGeneratorId ?? ''"
+                (selectionChange)="
+                  onSchemaInfoChange({ nameGeneratorId: $event.value })
+                "
+                data-testid="schema-name-generator">
+                <mat-option value="" data-testid="schema-name-generator-none">
+                  {{ 'worldbuilding.generators.noGenerator' | transloco }}
+                </mat-option>
+                @for (generator of generatorOptions(); track generator.id) {
+                  <mat-option
+                    [value]="generator.id"
+                    [attr.data-testid]="
+                      'schema-name-generator-' + generator.id
+                    ">
+                    {{ generator.name }}
+                  </mat-option>
+                }
+              </mat-select>
+              <mat-hint>{{
+                'worldbuilding.generators.nameGeneratorHint' | transloco
+              }}</mat-hint>
+            </mat-form-field>
+          }
         </div>
       </ng-template>
       @if (elementSchemaEditing()) {
@@ -794,8 +824,16 @@
                 <input
                   matInput
                   [attr.id]="'field-' + field.key"
+                  [attr.data-testid]="'field-input-' + field.key"
                   [formField]="getControl(field.key)"
                   [placeholder]="field.placeholder || ''" />
+                @if (field.generatorId && canRollFields()) {
+                  <app-generator-dice
+                    matSuffix
+                    [generatorId]="field.generatorId"
+                    (picked)="onGeneratorPicked(field.key, $event)"
+                    [testId]="'field-dice-' + field.key" />
+                }
                 @if (field.description) {
                   <mat-hint>{{ field.description }}</mat-hint>
                 }
@@ -815,6 +853,13 @@
                   cdkTextareaAutosize
                   [cdkAutosizeMinRows]="field.rows || 3"
                   [cdkAutosizeMaxRows]="12"></textarea>
+                @if (field.generatorId && canRollFields()) {
+                  <app-generator-dice
+                    matSuffix
+                    [generatorId]="field.generatorId"
+                    (picked)="onGeneratorPicked(field.key, $event)"
+                    [testId]="'field-dice-' + field.key" />
+                }
                 @if (field.description) {
                   <mat-hint>{{ field.description }}</mat-hint>
                 }

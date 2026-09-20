@@ -137,6 +137,12 @@
                     ('dialogs.newElement.elementAria' | transloco),
                 }
         " />
+      <app-generator-dice
+        matSuffix
+        [generatorId]="nameGeneratorId()"
+        [exclude]="existingNames()"
+        (picked)="onNamePicked($event)"
+        testId="new-element-dice" />
       @if (form.name().touched() && form.name().invalid()) {
         @for (error of form.name().errors(); track error) {
           <mat-error>{{ error.message }}</mat-error>

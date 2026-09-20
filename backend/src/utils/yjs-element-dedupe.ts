@@ -49,6 +49,7 @@ export const ELEMENT_BUNDLE_ARRAYS = [
   'customRelationshipTypes',
   'schemas',
   'timeSystems',
+  'generators',
   'mediaTags',
   'mediaProjectTags',
 ] as const;

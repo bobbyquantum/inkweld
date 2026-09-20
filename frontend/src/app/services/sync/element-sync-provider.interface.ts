@@ -12,6 +12,7 @@ import {
   type ElementRelationship,
   type RelationshipTypeDefinition,
 } from '@models/element-ref.model';
+import { type Generator } from '@models/generator';
 import { type ElementTag, type TagDefinition } from '@models/tag.model';
 import { type Observable } from 'rxjs';
 
@@ -286,6 +287,30 @@ export interface IElementSyncProvider {
    * @param systems The new time systems array
    */
   updateTimeSystems(systems: TimeSystem[]): void;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Random Generators (project name / place / prompt generators)
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Get the generators defined in the project.
+   * Returns an empty array if not connected.
+   */
+  getGenerators(): Generator[];
+
+  /**
+   * Observable stream of generator changes.
+   * Emits whenever generators are added, removed, or modified.
+   */
+  generators$: Observable<Generator[]>;
+
+  /**
+   * Update the entire generators array.
+   * The provider handles merging/conflict resolution.
+   *
+   * @param generators The new generators array
+   */
+  updateGenerators(generators: Generator[]): void;
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Tags (element tagging system)

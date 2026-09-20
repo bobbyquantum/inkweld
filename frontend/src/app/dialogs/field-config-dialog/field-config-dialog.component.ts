@@ -20,6 +20,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { TranslocoModule } from '@jsverse/transloco';
 import { type FieldSchema } from '@models/schema-types';
+import { GeneratorLibraryService } from '@services/generator/generator-library.service';
 import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
 
 export interface FieldConfigDialogData {
@@ -54,6 +55,7 @@ export class FieldConfigDialogComponent implements AfterViewInit {
   private readonly dialogRef = inject(MatDialogRef<FieldConfigDialogComponent>);
   protected readonly data = inject<FieldConfigDialogData>(MAT_DIALOG_DATA);
   private readonly worldbuildingService = inject(WorldbuildingService);
+  private readonly generatorLibrary = inject(GeneratorLibraryService);
 
   // Text inputs are NOT bound with [value]: in zoneless mode a [value] binding
   // re-runs during CD and can clobber a rapid programmatic fill()/select().
@@ -79,6 +81,12 @@ export class FieldConfigDialogComponent implements AfterViewInit {
     this.data.field.targetSchemaId ?? ''
   );
   protected readonly multiple = signal(this.data.field.multiple ?? false);
+  protected readonly generatorId = signal<string>(
+    this.data.field.generatorId ?? ''
+  );
+
+  /** Generators offered for the dice button on text fields. */
+  protected readonly generatorOptions = this.generatorLibrary.generators;
   protected readonly inverseLabel = signal(this.data.field.inverseLabel ?? '');
 
   /** Schema choices for relationship fields (target element template). */
@@ -136,6 +144,11 @@ export class FieldConfigDialogComponent implements AfterViewInit {
 
   protected isRelationshipType(): boolean {
     return this.type() === 'relationship';
+  }
+
+  /** Only free-text fields can usefully be filled from a generator. */
+  protected isGeneratorType(): boolean {
+    return this.type() === 'text' || this.type() === 'textarea';
   }
 
   /** Set the span by clicking a grid cell (1-12). */
@@ -225,6 +238,13 @@ export class FieldConfigDialogComponent implements AfterViewInit {
     if (this.type() === 'textarea') {
       result.rows = this.clamp(this.rows(), 1, 20);
     }
+
+    // Always stated, never omitted: the result is merged over the existing
+    // field, so leaving the key out would keep a binding the new field type
+    // cannot use and resurrect it if the field became text again.
+    result.generatorId = this.isGeneratorType()
+      ? this.generatorId() || undefined
+      : undefined;
 
     if (this.isRelationshipType()) {
       const target = this.targetSchemaId();

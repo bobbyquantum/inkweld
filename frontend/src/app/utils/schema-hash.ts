@@ -61,6 +61,7 @@ export function schemaContent(
     defaultValues: schema.defaultValues,
     defaultAppearance: schema.defaultAppearance,
     defaultImage: schema.defaultImage,
+    nameGeneratorId: schema.nameGeneratorId,
   };
 }
 

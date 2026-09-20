@@ -7,6 +7,7 @@ import {
 } from '@inkweld/index';
 import { type ElementAppearance } from '@models/element-appearance';
 import { type ElementRelationship } from '@models/element-ref.model';
+import { type Generator } from '@models/generator';
 import JSZip from '@progress/jszip-esm';
 import { firstValueFrom } from 'rxjs';
 
@@ -159,6 +160,7 @@ export class ProjectExportService {
       // Get additional project data
       const schemas = await this.getSchemas();
       const timeSystems = await this.getTimeSystems(username, slug);
+      const generators = await this.getGenerators(username, slug);
       const relationships = await this.getRelationships(username, slug);
       const customRelationshipTypes = await this.getCustomRelationshipTypes(
         username,
@@ -206,6 +208,7 @@ export class ProjectExportService {
         worldbuilding,
         schemas,
         timeSystems,
+        generators,
         relationships,
         customRelationshipTypes,
         tags,
@@ -595,6 +598,21 @@ export class ProjectExportService {
   }
 
   /**
+   * Get random generators for the project. Read through localElements for the
+   * same reason as {@link getTimeSystems}.
+   */
+  private async getGenerators(
+    username: string,
+    slug: string
+  ): Promise<Generator[]> {
+    if (this.syncFactory.isLocalMode()) {
+      return this.localElements.generators();
+    }
+    await this.localElements.loadElements(username, slug);
+    return this.localElements.generators();
+  }
+
+  /**
    * Get element relationships.
    */
   private async getRelationships(
@@ -834,6 +852,10 @@ export class ProjectExportService {
     );
     zip.file('schemas.json', JSON.stringify(archive.schemas, null, 2));
     zip.file('time-systems.json', JSON.stringify(archive.timeSystems, null, 2));
+    zip.file(
+      'generators.json',
+      JSON.stringify(archive.generators ?? [], null, 2)
+    );
     zip.file(
       'relationships.json',
       JSON.stringify(archive.relationships, null, 2)

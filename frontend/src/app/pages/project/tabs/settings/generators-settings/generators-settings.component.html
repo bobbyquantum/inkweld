@@ -1,0 +1,73 @@
+@if (editingState().mode === 'edit') {
+  <app-generator-edit-page
+    [generatorId]="editingGeneratorId()"
+    (done)="onEditorDone()" />
+} @else {
+  <div class="header">
+    <h2>{{ 'worldbuilding.generators.title' | transloco }}</h2>
+    <p class="hint">{{ 'worldbuilding.generators.hint' | transloco }}</p>
+  </div>
+
+  <div class="actions">
+    <button
+      mat-flat-button
+      color="primary"
+      (click)="onCreate()"
+      data-testid="generators-create">
+      <mat-icon>add</mat-icon>
+      {{ 'worldbuilding.generators.create' | transloco }}
+    </button>
+  </div>
+
+  @if (generators().length === 0) {
+    <div class="empty" data-testid="generators-empty">
+      <mat-icon>casino</mat-icon>
+      <p>{{ 'worldbuilding.generators.none' | transloco }}</p>
+      <p class="hint">{{ 'worldbuilding.generators.noneHint' | transloco }}</p>
+    </div>
+  } @else {
+    <div class="generators-list" data-testid="generators-list">
+      @for (generator of generators(); track generator.id) {
+        <div
+          class="generator-row"
+          [attr.data-testid]="'generators-row-' + generator.id">
+          <mat-icon class="generator-icon">{{ generator.icon }}</mat-icon>
+          <div class="generator-info">
+            <div class="generator-name">
+              {{ generator.name }}
+              <span class="generator-category">{{ generator.category }}</span>
+            </div>
+            <div class="generator-meta">
+              @if (sampleFor(generator)) {
+                <span class="generator-sample" data-testid="generator-sample">{{
+                  sampleFor(generator)
+                }}</span>
+              }
+              @if (generator.description) {
+                <span>{{ generator.description }}</span>
+              }
+            </div>
+          </div>
+          <div class="generator-actions">
+            <button
+              mat-icon-button
+              [matTooltip]="'worldbuilding.generators.edit' | transloco"
+              [attr.aria-label]="'worldbuilding.generators.edit' | transloco"
+              (click)="onEdit(generator)"
+              [attr.data-testid]="'generators-edit-' + generator.id">
+              <mat-icon>edit</mat-icon>
+            </button>
+            <button
+              mat-icon-button
+              [matTooltip]="'worldbuilding.generators.remove' | transloco"
+              [attr.aria-label]="'worldbuilding.generators.remove' | transloco"
+              (click)="onRemove(generator)"
+              [attr.data-testid]="'generators-remove-' + generator.id">
+              <mat-icon>delete_outline</mat-icon>
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+}

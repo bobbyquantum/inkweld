@@ -1,0 +1,83 @@
+@if (visible()) {
+  <button
+    mat-icon-button
+    type="button"
+    class="dice-trigger"
+    [matMenuTriggerFor]="rollMenu"
+    (menuOpened)="onMenuOpened()"
+    [matTooltip]="'worldbuilding.generators.rollTooltip' | transloco"
+    [attr.aria-label]="'worldbuilding.generators.rollTooltip' | transloco"
+    [attr.data-testid]="testId()">
+    <mat-icon>casino</mat-icon>
+  </button>
+
+  <mat-menu #rollMenu class="generator-dice-menu">
+    <ng-template matMenuContent>
+      @if (boundGenerator(); as generator) {
+        <div class="menu-header">
+          <span class="menu-title">{{ generator.name }}</span>
+          <button
+            mat-icon-button
+            type="button"
+            (click)="onReroll($event)"
+            [matTooltip]="'worldbuilding.generators.rollAgain' | transloco"
+            [attr.aria-label]="'worldbuilding.generators.rollAgain' | transloco"
+            data-testid="generator-dice-reroll">
+            <mat-icon>refresh</mat-icon>
+          </button>
+        </div>
+        <mat-divider />
+        @for (suggestion of suggestions(); track suggestion.seed) {
+          <button
+            mat-menu-item
+            type="button"
+            (click)="onPick(suggestion.text)"
+            [attr.data-testid]="'generator-dice-suggestion-' + $index">
+            {{ suggestion.text }}
+          </button>
+        } @empty {
+          <div class="menu-empty" data-testid="generator-dice-empty">
+            {{ 'worldbuilding.generators.nothingRolled' | transloco }}
+          </div>
+        }
+      } @else {
+        <div class="menu-header">
+          <span class="menu-title">{{
+            'worldbuilding.generators.pickGenerator' | transloco
+          }}</span>
+        </div>
+        <mat-divider />
+        @for (generator of generators(); track generator.id) {
+          <button
+            mat-menu-item
+            type="button"
+            [matMenuTriggerFor]="pickerSubMenu"
+            (menuOpened)="rollFor(generator)"
+            [attr.data-testid]="'generator-dice-pick-' + generator.id">
+            <mat-icon>{{ generator.icon }}</mat-icon>
+            {{ generator.name }}
+          </button>
+          <mat-menu #pickerSubMenu>
+            <ng-template matMenuContent>
+              @for (suggestion of suggestions(); track suggestion.seed) {
+                <button
+                  mat-menu-item
+                  type="button"
+                  (click)="onPick(suggestion.text)"
+                  [attr.data-testid]="
+                    'generator-dice-suggestion-' + generator.id + '-' + $index
+                  ">
+                  {{ suggestion.text }}
+                </button>
+              } @empty {
+                <div class="menu-empty">
+                  {{ 'worldbuilding.generators.nothingRolled' | transloco }}
+                </div>
+              }
+            </ng-template>
+          </mat-menu>
+        }
+      }
+    </ng-template>
+  </mat-menu>
+}

@@ -5,6 +5,7 @@ import {
   type ElementRelationship,
   type RelationshipTypeDefinition,
 } from '@models/element-ref.model';
+import { type Generator } from '@models/generator';
 import { type MediaTag } from '@models/media-tag.model';
 import { type ElementTag, type TagDefinition } from '@models/tag.model';
 import JSZip from '@progress/jszip-esm';
@@ -393,6 +394,11 @@ export class ProjectImportService {
       'time-systems.json',
       []
     );
+    const generatorsJson = await this.readJsonFile<Generator[]>(
+      zip,
+      'generators.json',
+      []
+    );
     const relationshipsJson = await this.readJsonFile<ElementRelationship[]>(
       zip,
       'relationships.json',
@@ -442,6 +448,7 @@ export class ProjectImportService {
       worldbuilding: worldbuildingJson,
       schemas: schemasJson,
       timeSystems: timeSystemsJson,
+      generators: generatorsJson,
       relationships: relationshipsJson,
       customRelationshipTypes: customTypesJson,
       tags: tagsJson,
@@ -719,6 +726,15 @@ export class ProjectImportService {
         username,
         slug,
         archive.timeSystems
+      );
+    }
+
+    // Import generators
+    if (archive.generators && archive.generators.length > 0) {
+      await this.localElements.saveGenerators(
+        username,
+        slug,
+        archive.generators
       );
     }
 

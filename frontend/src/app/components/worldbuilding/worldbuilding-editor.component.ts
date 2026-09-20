@@ -37,6 +37,7 @@ import {
   type ElementRefTooltipData,
 } from '@components/element-ref';
 import { ElementRefService } from '@components/element-ref/element-ref.service';
+import { GeneratorDiceComponent } from '@components/generator-dice/generator-dice.component';
 import { MetaPanelComponent } from '@components/meta-panel/meta-panel.component';
 import { RelationshipFieldComponent } from '@components/relationship-field/relationship-field.component';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
@@ -44,6 +45,7 @@ import { DocumentSyncState } from '@models/document-sync-state';
 import { type ElementAppearance } from '@models/element-appearance';
 import { type ResolvedTag } from '@models/tag.model';
 import { WORLDBUILDING_ICONS } from '@models/worldbuilding-icons';
+import { GeneratorLibraryService } from '@services/generator/generator-library.service';
 import { RelationshipFieldService } from '@services/relationship/relationship-field.service';
 import { AppearanceService } from '@services/worldbuilding/appearance.service';
 import {
@@ -185,6 +187,7 @@ function mergeIntoShape(
     AppearanceEditorComponent,
     RelationshipFieldComponent,
     ElementRefTooltipComponent,
+    GeneratorDiceComponent,
     TranslocoModule,
   ],
   templateUrl: './worldbuilding-editor.component.html',
@@ -215,11 +218,12 @@ export class WorldbuildingEditorComponent implements OnDestroy {
   /** Emits schema-editing intents when `editMode` is active. */
   readonly schemaEdit = output<SchemaEditEvent>();
 
-  /** Emits updated schema metadata (name/icon/description) from the Schema Details section. */
+  /** Emits updated schema metadata (name/icon/description/name generator) from the Schema Details section. */
   readonly schemaInfoChange = output<{
     name?: string;
     icon?: string;
     description?: string;
+    nameGeneratorId?: string;
   }>();
 
   /** Emits the schema's default appearance when edited from the Styling section. */
@@ -229,6 +233,7 @@ export class WorldbuildingEditorComponent implements OnDestroy {
   readonly previewMode = computed(() => this.previewSchema() !== null);
 
   private readonly worldbuildingService = inject(WorldbuildingService);
+  private readonly generatorLibrary = inject(GeneratorLibraryService);
   protected readonly projectState = inject(ProjectStateService);
   private readonly dialogGateway = inject(DialogGatewayService);
   private readonly tagService = inject(TagService);
@@ -1282,11 +1287,15 @@ export class WorldbuildingEditorComponent implements OnDestroy {
     ];
   }
 
+  /** Generators offered as the template's name generator. */
+  protected readonly generatorOptions = this.generatorLibrary.generators;
+
   /** Emit a schema metadata change from the Schema Details section. */
   protected onSchemaInfoChange(patch: {
     name?: string;
     icon?: string;
     description?: string;
+    nameGeneratorId?: string;
   }): void {
     if (!this.templateEditingEnabled()) return;
     this.schemaInfoChange.emit(patch);
@@ -1366,6 +1375,26 @@ export class WorldbuildingEditorComponent implements OnDestroy {
       value = value[part];
     }
     return value;
+  }
+
+  /**
+   * Whether field dice should be offered at all.
+   *
+   * A roll writes straight into the model, which bypasses whatever the form
+   * does about read-only state, so a visible dice would let a reader change
+   * a field they cannot otherwise touch — and hand that edit to autosave.
+   */
+  protected canRollFields(): boolean {
+    return !this.previewMode() && this.projectState.canWrite();
+  }
+
+  /**
+   * Writes a rolled suggestion into a field. The user picked it from the
+   * dice menu, so replacing whatever was there is what they asked for.
+   */
+  onGeneratorPicked(fieldKey: string, value: string): void {
+    if (!this.canRollFields()) return;
+    this.updateAt(fieldKey, value);
   }
 
   /**

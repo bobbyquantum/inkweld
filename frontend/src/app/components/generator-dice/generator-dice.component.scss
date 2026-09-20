@@ -1,0 +1,28 @@
+:host {
+  display: inline-flex;
+  align-items: center;
+}
+
+.menu-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 8px 4px 16px;
+  min-height: 40px;
+}
+
+.menu-title {
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--sys-on-surface-variant);
+}
+
+.menu-empty {
+  padding: 8px 16px;
+  color: var(--sys-on-surface-variant);
+  font-size: 0.85rem;
+  max-width: 260px;
+}

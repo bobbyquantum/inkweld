@@ -13,6 +13,7 @@ import * as Y from 'yjs';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { DocumentSyncState } from '../../models/document-sync-state';
+import { type Generator } from '../../models/generator';
 import { type MediaTag } from '../../models/media-tag.model';
 import { type PublishPlan } from '../../models/publish-plan';
 import { type ElementTypeSchema } from '../../models/schema-types';
@@ -41,6 +42,7 @@ function createMockSyncProvider(): IElementSyncProvider & {
   );
   const schemasSubject = new BehaviorSubject<ElementTypeSchema[]>([]);
   const timeSystemsSubject = new BehaviorSubject<TimeSystem[]>([]);
+  const generatorsSubject = new BehaviorSubject<Generator[]>([]);
   const elementTagsSubject = new BehaviorSubject<ElementTag[]>([]);
   const customTagsSubject = new BehaviorSubject<TagDefinition[]>([]);
   const mediaTagsSubject = new BehaviorSubject<MediaTag[]>([]);
@@ -64,6 +66,7 @@ function createMockSyncProvider(): IElementSyncProvider & {
     getCustomRelationshipTypes: vi.fn(() => customTypesSubject.getValue()),
     getSchemas: vi.fn(() => schemasSubject.getValue()),
     getTimeSystems: vi.fn(() => timeSystemsSubject.getValue()),
+    getGenerators: vi.fn(() => generatorsSubject.getValue()),
     getElementTags: vi.fn(() => elementTagsSubject.getValue()),
     getCustomTags: vi.fn(() => customTagsSubject.getValue()),
     getMediaTags: vi.fn(() => mediaTagsSubject.getValue()),
@@ -79,6 +82,9 @@ function createMockSyncProvider(): IElementSyncProvider & {
     updateTimeSystems: vi.fn((systems: TimeSystem[]) => {
       timeSystemsSubject.next(systems);
     }),
+    updateGenerators: vi.fn((generators: Generator[]) => {
+      generatorsSubject.next(generators);
+    }),
     updateElementTags: vi.fn(),
     updateCustomTags: vi.fn(),
     updateMediaTags: vi.fn(),
@@ -92,6 +98,7 @@ function createMockSyncProvider(): IElementSyncProvider & {
     customRelationshipTypes$: customTypesSubject.asObservable(),
     schemas$: schemasSubject.asObservable(),
     timeSystems$: timeSystemsSubject.asObservable(),
+    generators$: generatorsSubject.asObservable(),
     elementTags$: elementTagsSubject.asObservable(),
     customTags$: customTagsSubject.asObservable(),
     mediaTags$: mediaTagsSubject.asObservable(),

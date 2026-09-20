@@ -1,0 +1,148 @@
+:host {
+  display: block;
+}
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 8px 4px;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.title-block h1 {
+  margin: 0;
+  font-size: 1.3rem;
+}
+
+.hint {
+  color: var(--sys-on-surface-variant);
+  font-size: 0.9rem;
+  margin: 4px 0 0;
+}
+
+.error {
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--sys-error-container);
+  color: var(--sys-on-error-container);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+}
+
+.row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.grow {
+  flex: 1 1 240px;
+}
+
+.category {
+  flex: 0 1 180px;
+}
+
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.section-head h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.rules,
+.preview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rule {
+  border: 1px solid var(--sys-outline-variant);
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+}
+
+.rule-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.rule-key {
+  flex: 0 1 220px;
+}
+
+.rule-count {
+  flex: 1;
+  color: var(--sys-on-surface-variant);
+  font-size: 0.85rem;
+}
+
+.rule-entries {
+  width: 100%;
+}
+
+.issue {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 8px;
+  font-size: 0.85rem;
+  color: var(--sys-error);
+}
+
+.issue--warning {
+  color: var(--sys-on-surface-variant);
+}
+
+.issue mat-icon {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+}
+
+.preview-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.preview-list li {
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--sys-surface-container-high);
+  font-size: 0.9rem;
+}
+
+.preview-list li.hint {
+  background: none;
+  padding-left: 0;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}

@@ -52,6 +52,7 @@ import { ProjectStateService } from '@services/project/project-state.service';
 import { formatBytes } from '@utils/format-bytes';
 import { firstValueFrom } from 'rxjs';
 
+import { GeneratorsSettingsComponent } from './generators-settings/generators-settings.component';
 import { TimeSystemsSettingsComponent } from './time-systems-settings/time-systems-settings.component';
 
 /**
@@ -88,6 +89,7 @@ import { TimeSystemsSettingsComponent } from './time-systems-settings/time-syste
     TagsTabComponent,
     TemplatesTabComponent,
     TimeSystemsSettingsComponent,
+    GeneratorsSettingsComponent,
   ],
 })
 export class SettingsTabComponent implements OnDestroy {
@@ -105,7 +107,8 @@ export class SettingsTabComponent implements OnDestroy {
         { key: 'templates', icon: 'description', label: 'Templates' },
         { key: 'relationships', icon: 'hub', label: 'Relationships' },
         { key: 'tags', icon: 'local_offer', label: 'Tags' },
-        { key: 'time-systems', icon: 'schedule', label: 'Time Systems' }
+        { key: 'time-systems', icon: 'schedule', label: 'Time Systems' },
+        { key: 'generators', icon: 'casino', label: 'Generators' }
       );
     }
 
@@ -132,6 +135,7 @@ export class SettingsTabComponent implements OnDestroy {
   protected relationshipsExpanded = signal(false);
   protected tagsExpanded = signal(false);
   protected timeSystemsExpanded = signal(false);
+  protected generatorsExpanded = signal(false);
   protected syncExpanded = signal(false);
   protected collaborationExpanded = signal(false);
   protected mcpExpanded = signal(false);
@@ -331,6 +335,7 @@ export class SettingsTabComponent implements OnDestroy {
         relationships: this.relationshipsExpanded,
         tags: this.tagsExpanded,
         'time-systems': this.timeSystemsExpanded,
+        generators: this.generatorsExpanded,
         sync: this.syncExpanded,
         collaboration: this.collaborationExpanded,
         mcp: this.mcpExpanded,

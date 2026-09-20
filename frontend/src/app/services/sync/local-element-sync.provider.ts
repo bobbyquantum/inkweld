@@ -12,6 +12,7 @@ import {
   type ElementRelationship,
   type RelationshipTypeDefinition,
 } from '@models/element-ref.model';
+import { type Generator } from '@models/generator';
 import { type ElementTag, type TagDefinition } from '@models/tag.model';
 import { BehaviorSubject, filter, map, type Observable, Subject } from 'rxjs';
 
@@ -74,6 +75,7 @@ export class LocalElementSyncProvider implements IElementSyncProvider {
     []
   );
   private readonly timeSystemsSubject = new BehaviorSubject<TimeSystem[]>([]);
+  private readonly generatorsSubject = new BehaviorSubject<Generator[]>([]);
   private readonly elementTagsSubject = new BehaviorSubject<ElementTag[]>([]);
   private readonly customTagsSubject = new BehaviorSubject<TagDefinition[]>([]);
   private readonly mediaTagsSubject = new BehaviorSubject<MediaTag[]>([]);
@@ -110,6 +112,7 @@ export class LocalElementSyncProvider implements IElementSyncProvider {
     const customTypes = this.localService.customRelationshipTypes();
     const schemas = this.localService.schemas();
     const timeSystems = this.localService.timeSystems();
+    const generators = this.localService.generators();
     const elementTags = this.localService.elementTags();
     const customTags = this.localService.customTags();
     const mediaTags = this.localService.mediaTags();
@@ -130,6 +133,7 @@ export class LocalElementSyncProvider implements IElementSyncProvider {
       this.republish(this.customRelationshipTypesSubject, customTypes);
       this.republish(this.schemasSubject, schemas);
       this.republish(this.timeSystemsSubject, timeSystems);
+      this.republish(this.generatorsSubject, generators);
       this.republish(this.elementTagsSubject, elementTags);
       this.republish(this.customTagsSubject, customTags);
       this.republish(this.mediaTagsSubject, mediaTags);
@@ -163,6 +167,8 @@ export class LocalElementSyncProvider implements IElementSyncProvider {
     this.schemasSubject.asObservable();
   readonly timeSystems$: Observable<TimeSystem[]> =
     this.timeSystemsSubject.asObservable();
+  readonly generators$: Observable<Generator[]> =
+    this.generatorsSubject.asObservable();
   readonly elementTags$: Observable<ElementTag[]> =
     this.elementTagsSubject.asObservable();
   readonly customTags$: Observable<TagDefinition[]> =
@@ -312,6 +318,7 @@ export class LocalElementSyncProvider implements IElementSyncProvider {
       const customTypes = this.localService.customRelationshipTypes();
       const schemas = this.localService.schemas();
       const timeSystems = this.localService.timeSystems();
+      const generators = this.localService.generators();
       const elementTags = this.localService.elementTags();
       const customTags = this.localService.customTags();
       const mediaTags = this.localService.mediaTags();
@@ -324,6 +331,7 @@ export class LocalElementSyncProvider implements IElementSyncProvider {
       this.customRelationshipTypesSubject.next(customTypes);
       this.schemasSubject.next(schemas);
       this.timeSystemsSubject.next(timeSystems);
+      this.generatorsSubject.next(generators);
       this.elementTagsSubject.next(elementTags);
       this.customTagsSubject.next(customTags);
       this.mediaTagsSubject.next(mediaTags);
@@ -380,6 +388,7 @@ export class LocalElementSyncProvider implements IElementSyncProvider {
     this.customRelationshipTypesSubject.next([]);
     this.schemasSubject.next([]);
     this.timeSystemsSubject.next([]);
+    this.generatorsSubject.next([]);
     this.elementTagsSubject.next([]);
     this.customTagsSubject.next([]);
     this.mediaTagsSubject.next([]);
@@ -613,6 +622,44 @@ export class LocalElementSyncProvider implements IElementSyncProvider {
       .catch(error => {
         this.logger.error('OfflineSync', 'Failed to save time systems', error);
         this.errorsSubject.next('Failed to save time systems offline');
+      });
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────────
+  // Random Generators
+  // ───────────────────────────────────────────────────────────────────────────────
+
+  getGenerators(): Generator[] {
+    return this.generatorsSubject.getValue();
+  }
+
+  /**
+   * Update generators in offline storage.
+   */
+  updateGenerators(generators: Generator[]): void {
+    if (!this.connected || !this.currentUsername || !this.currentSlug) {
+      this.logger.warn(
+        'OfflineSync',
+        'Cannot update generators - not connected'
+      );
+      return;
+    }
+
+    // Update local state immediately
+    this.generatorsSubject.next(generators);
+
+    // Save to offline service asynchronously
+    void this.localService
+      .saveGenerators(this.currentUsername, this.currentSlug, generators)
+      .then(() => {
+        this.logger.debug(
+          'OfflineSync',
+          `Saved ${generators.length} generators`
+        );
+      })
+      .catch(error => {
+        this.logger.error('OfflineSync', 'Failed to save generators', error);
+        this.errorsSubject.next('Failed to save generators offline');
       });
   }
 
