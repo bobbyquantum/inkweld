@@ -603,9 +603,16 @@ cd backend && bun run generate:openapi && bun run generate:angular-client
 ```
 
 > **Note**: `bun run generate:angular-client` requires a Java runtime (the
-> OpenAPI generator is a JVM tool). Generate the client in a Java-enabled
-> environment. The generated `frontend/src/api-client/**` must not be edited by
-> hand — always regenerate from the OpenAPI spec.
+> OpenAPI generator is a JVM tool) — install a JRE if `java -version` fails
+> (e.g. `apt-get install openjdk-21-jre-headless`). The script also runs the
+> frontend's prettier config over its output, so regenerating produces only the
+> real API changes rather than a whole-client reformat. The generated
+> `frontend/src/api-client/**` must not be edited by hand — always regenerate
+> from the OpenAPI spec.
+>
+> CI enforces this: the **OpenAPI Spec + Client Freshness** job regenerates both
+> `backend/openapi.json` and the client, then fails if the committed artifacts
+> differ. If it fails, run the command above and commit the result.
 
 ### Wrangler Version Pin (backend)
 
