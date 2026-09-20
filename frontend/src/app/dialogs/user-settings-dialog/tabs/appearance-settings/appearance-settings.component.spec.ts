@@ -93,13 +93,13 @@ describe('AppearanceSettingsComponent', () => {
     });
 
     it('should persist and update the signal when changed', () => {
-      component.density = 'comfortable';
+      component.setDensity('comfortable');
       expect(settingsService.denseLayout()).toBe(false);
       expect(JSON.parse(localStorageMock['userSettings']).denseLayout).toBe(
         false
       );
 
-      component.density = 'compact';
+      component.setDensity('compact');
       expect(settingsService.denseLayout()).toBe(true);
       expect(JSON.parse(localStorageMock['userSettings']).denseLayout).toBe(
         true
@@ -109,7 +109,7 @@ describe('AppearanceSettingsComponent', () => {
     it('should treat anything but "compact" as comfortable', () => {
       settingsService.setDenseLayout(true);
       // @ts-expect-error Testing an unknown value
-      component.density = 'nonsense';
+      component.setDensity('nonsense');
       expect(settingsService.denseLayout()).toBe(false);
     });
   });

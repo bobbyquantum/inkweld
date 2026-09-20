@@ -8,7 +8,7 @@
     <input
       matInput
       id="account-settings-display-name-input"
-      [(ngModel)]="displayName"
+      [formField]="form.displayName"
       [placeholder]="'settings.accountTab.displayNamePlaceholder' | transloco"
       data-testid="account-display-name-input"
       [attr.aria-label]="'settings.accountTab.displayNameAria' | transloco" />
@@ -22,7 +22,7 @@
         matInput
         type="email"
         id="account-settings-email-input"
-        [(ngModel)]="email"
+        [formField]="form.email"
         [placeholder]="'settings.accountTab.emailPlaceholder' | transloco"
         data-testid="account-email-input"
         [attr.aria-label]="'settings.accountTab.emailAria' | transloco" />
@@ -89,9 +89,8 @@
         <textarea
           matInput
           rows="3"
-          maxlength="500"
           id="account-settings-bio-input"
-          [(ngModel)]="bio"
+          [formField]="form.bio"
           [placeholder]="
             'settings.accountTab.publicProfile.bioPlaceholder' | transloco
           "
@@ -102,7 +101,7 @@
         <mat-hint align="start">{{
           'settings.accountTab.publicProfile.bioHint' | transloco
         }}</mat-hint>
-        <mat-hint align="end">{{ bio.length }}/500</mat-hint>
+        <mat-hint align="end">{{ model().bio.length }}/500</mat-hint>
       </mat-form-field>
 
       <div class="visibility-group">
@@ -112,8 +111,8 @@
         <mat-radio-group
           class="visibility-radios"
           aria-labelledby="profile-visibility-label"
-          [ngModel]="profileVisibility"
-          (ngModelChange)="onProfileVisibilityChange($event)"
+          [value]="model().profileVisibility"
+          (change)="onProfileVisibilityChange($any($event).value)"
           data-testid="profile-visibility-group">
           @for (level of visibilityLevels; track level) {
             <mat-radio-button
@@ -131,7 +130,7 @@
         </mat-radio-group>
       </div>
 
-      @if (profileVisibility !== 'private') {
+      @if (model().profileVisibility !== 'private') {
         <div class="sections-group" data-testid="profile-sections-group">
           <span class="field-label">{{
             'settings.accountTab.publicProfile.sectionsLabel' | transloco
@@ -145,7 +144,7 @@
                 'settings.accountTab.publicProfile.activityLabel' | transloco
               }}</mat-label>
               <mat-select
-                [(ngModel)]="activityVisibility"
+                [formField]="form.activityVisibility"
                 data-testid="activity-visibility-select">
                 @for (level of sectionLevels(); track level) {
                   <mat-option [value]="level">{{
@@ -163,7 +162,7 @@
                 'settings.accountTab.publicProfile.projectsLabel' | transloco
               }}</mat-label>
               <mat-select
-                [(ngModel)]="projectsVisibility"
+                [formField]="form.projectsVisibility"
                 data-testid="projects-visibility-select">
                 @for (level of sectionLevels(); track level) {
                   <mat-option [value]="level">{{

@@ -102,7 +102,7 @@ describe('ProjectSettingsComponent', () => {
     });
 
     it('should update setting when value is set', () => {
-      component.zenModeFullscreen = false; // Set to non-default
+      component.setZenModeFullscreen(false); // Set to non-default
       expect(settingsService.getSetting('zenModeFullscreen', true)).toBe(
         false // Updated check
       );
@@ -113,7 +113,7 @@ describe('ProjectSettingsComponent', () => {
 
     it('should reset to default (true) when non-boolean value is set', () => {
       // @ts-expect-error Testing invalid type
-      component.zenModeFullscreen = 'invalid';
+      component.setZenModeFullscreen('invalid');
       expect(settingsService.getSetting('zenModeFullscreen', true)).toBe(
         true // Updated check (should reset to default)
       );
@@ -139,13 +139,13 @@ describe('ProjectSettingsComponent', () => {
     });
 
     it('should update setting when value is set', () => {
-      component.useTabsDesktop = false;
+      component.setUseTabsDesktop(false);
       expect(settingsService.getSetting('useTabsDesktop', true)).toBe(false);
     });
 
     it('should reset to default (true) when non-boolean value is set', () => {
       // @ts-expect-error Testing invalid type
-      component.useTabsDesktop = 'invalid';
+      component.setUseTabsDesktop('invalid');
       expect(settingsService.getSetting('useTabsDesktop', true)).toBe(true);
     });
   });
@@ -166,7 +166,7 @@ describe('ProjectSettingsComponent', () => {
     });
 
     it('should update setting when value is set', () => {
-      component.autoSnapshots = false;
+      component.setAutoSnapshots(false);
       expect(settingsService.getSetting('autoSnapshotsEnabled', true)).toBe(
         false
       );
@@ -174,7 +174,7 @@ describe('ProjectSettingsComponent', () => {
 
     it('should reset to default (true) when non-boolean value is set', () => {
       // @ts-expect-error Testing invalid type
-      component.autoSnapshots = 'invalid';
+      component.setAutoSnapshots('invalid');
       expect(settingsService.getSetting('autoSnapshotsEnabled', true)).toBe(
         true
       );

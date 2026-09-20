@@ -84,7 +84,7 @@ describe('ProjectTreeSettingsComponent', () => {
     });
 
     it('should update setting when value is set', () => {
-      component.confirmElementMoves = false;
+      component.setConfirmElementMoves(false);
       expect(settingsService.getSetting('confirmElementMoves', true)).toBe(
         false
       );
@@ -95,7 +95,7 @@ describe('ProjectTreeSettingsComponent', () => {
 
     it('should fall back to true when a non-boolean value is set', () => {
       // @ts-expect-error Testing invalid type
-      component.confirmElementMoves = 'invalid';
+      component.setConfirmElementMoves('invalid');
       expect(settingsService.getSetting('confirmElementMoves', true)).toBe(
         true
       );
@@ -116,13 +116,13 @@ describe('ProjectTreeSettingsComponent', () => {
     });
 
     it('should persist and update the signal when toggled', () => {
-      component.showBreadcrumbs = false;
+      component.setShowBreadcrumbs(false);
       expect(settingsService.showBreadcrumbs()).toBe(false);
       expect(JSON.parse(localStorageMock['userSettings']).showBreadcrumbs).toBe(
         false
       );
 
-      component.showBreadcrumbs = true;
+      component.setShowBreadcrumbs(true);
       expect(settingsService.showBreadcrumbs()).toBe(true);
       expect(JSON.parse(localStorageMock['userSettings']).showBreadcrumbs).toBe(
         true
@@ -131,7 +131,7 @@ describe('ProjectTreeSettingsComponent', () => {
 
     it('should treat non-boolean values as false', () => {
       // @ts-expect-error Testing invalid type
-      component.showBreadcrumbs = 'invalid';
+      component.setShowBreadcrumbs('invalid');
       expect(settingsService.showBreadcrumbs()).toBe(false);
     });
   });
