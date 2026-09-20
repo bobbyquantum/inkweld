@@ -107,7 +107,7 @@ describe('RecoverPasskeyRedeemComponent', () => {
     });
 
     it('redeems with passkey name and shows success', async () => {
-      component.passkeyName = 'My Backup';
+      component.form.passkeyName().value.set('My Backup');
       await component.onSubmit();
 
       expect(mockPasskeyRecoveryService.redeemRecovery).toHaveBeenCalledWith(
@@ -120,7 +120,7 @@ describe('RecoverPasskeyRedeemComponent', () => {
     });
 
     it('passes undefined when name is empty after trim', async () => {
-      component.passkeyName = '   ';
+      component.form.passkeyName().value.set('   ');
       await component.onSubmit();
       expect(mockPasskeyRecoveryService.redeemRecovery).toHaveBeenCalledWith(
         'tok-123',
@@ -154,6 +154,36 @@ describe('RecoverPasskeyRedeemComponent', () => {
       expect(mockRouter.navigate).toHaveBeenCalledWith(['/'], {
         queryParams: { showLogin: 'true' },
       });
+    });
+  });
+
+  // Regression guard: the submit path must be wired up in the *template*, not
+  // just reachable by calling onSubmit() directly. A `<form>` whose submit
+  // binding has no matching directive compiles fine and fails silently at
+  // runtime, so dispatch a real submit event and assert the action is hit.
+  describe('template submit wiring', () => {
+    it('submits when the form element is submitted', async () => {
+      await setup({ token: 'tok' });
+      fixture.detectChanges();
+
+      const formEl: HTMLFormElement = fixture.nativeElement.querySelector(
+        '[data-testid="redeem-form"]'
+      );
+      expect(formEl).toBeTruthy();
+      formEl.dispatchEvent(
+        new Event('submit', { bubbles: true, cancelable: true })
+      );
+      await fixture.whenStable();
+
+      expect(mockPasskeyRecoveryService.redeemRecovery).toHaveBeenCalled();
+    });
+
+    it('disables native browser validation on the form', async () => {
+      await setup({ token: 'tok' });
+      const formEl: HTMLFormElement = fixture.nativeElement.querySelector(
+        '[data-testid="redeem-form"]'
+      );
+      expect(formEl.hasAttribute('novalidate')).toBe(true);
     });
   });
 });

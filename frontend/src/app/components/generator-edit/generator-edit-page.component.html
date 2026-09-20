@@ -34,9 +34,8 @@
           }}</mat-label>
           <input
             matInput
-            [ngModel]="name()"
-            (ngModelChange)="name.set($event)"
-            name="generatorName"
+            [value]="name()"
+            (input)="name.set($any($event.target).value)"
             data-testid="generator-edit-name" />
         </mat-form-field>
 
@@ -45,9 +44,8 @@
             'worldbuilding.generatorEdit.categoryLabel' | transloco
           }}</mat-label>
           <mat-select
-            [ngModel]="category()"
-            (ngModelChange)="category.set($event)"
-            name="generatorCategory"
+            [value]="category()"
+            (selectionChange)="category.set($event.value)"
             data-testid="generator-edit-category">
             @for (option of categories; track option) {
               <mat-option [value]="option">{{ option }}</mat-option>
@@ -62,9 +60,8 @@
         }}</mat-label>
         <input
           matInput
-          [ngModel]="description()"
-          (ngModelChange)="description.set($event)"
-          name="generatorDescription"
+          [value]="description()"
+          (input)="description.set($any($event.target).value)"
           data-testid="generator-edit-description" />
       </mat-form-field>
 
@@ -74,9 +71,8 @@
         }}</mat-label>
         <input
           matInput
-          [ngModel]="template()"
-          (ngModelChange)="template.set($event)"
-          name="generatorTemplate"
+          [value]="template()"
+          (input)="template.set($any($event.target).value)"
           placeholder="#first# #last#"
           data-testid="generator-edit-template" />
         <mat-hint>{{
@@ -125,9 +121,8 @@
               }}</mat-label>
               <input
                 matInput
-                [ngModel]="rule.key"
-                (ngModelChange)="onRuleKeyChange(rule._id, $event)"
-                [name]="'ruleKey' + rule._id"
+                [value]="rule.key"
+                (input)="onRuleKeyChange(rule._id, $any($event.target).value)"
                 [attr.data-testid]="'generator-edit-rule-key-' + $index" />
             </mat-form-field>
             <span class="rule-count">
@@ -159,9 +154,8 @@
             <textarea
               matInput
               rows="5"
-              [ngModel]="rule.entriesText"
-              (ngModelChange)="onRuleEntriesChange(rule._id, $event)"
-              [name]="'ruleEntries' + rule._id"
+              [value]="rule.entriesText"
+              (input)="onRuleEntriesChange(rule._id, $any($event.target).value)"
               [attr.data-testid]="
                 'generator-edit-rule-entries-' + $index
               "></textarea>

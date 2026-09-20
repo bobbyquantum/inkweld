@@ -1,5 +1,4 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { TranslocoModule } from '@jsverse/transloco';
@@ -8,14 +7,9 @@ import { AutoSnapshotService } from '@services/project/auto-snapshot.service';
 
 @Component({
   selector: 'app-project-settings',
-  imports: [
-    FormsModule,
-    MatSlideToggleModule,
-    MatFormFieldModule,
-    TranslocoModule,
-  ],
+  imports: [MatSlideToggleModule, MatFormFieldModule, TranslocoModule],
   templateUrl: './project-settings.component.html',
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './project-settings.component.scss',
 })
 export class ProjectSettingsComponent {
@@ -26,7 +20,7 @@ export class ProjectSettingsComponent {
     return this.settingsService.getSetting<boolean>('zenModeFullscreen', true);
   }
 
-  set zenModeFullscreen(value: boolean) {
+  setZenModeFullscreen(value: boolean): void {
     if (typeof value === 'boolean') {
       this.settingsService.setSetting<boolean>('zenModeFullscreen', value);
     } else {
@@ -38,7 +32,7 @@ export class ProjectSettingsComponent {
     return this.settingsService.getSetting<boolean>('useTabsDesktop', true);
   }
 
-  set useTabsDesktop(value: boolean) {
+  setUseTabsDesktop(value: boolean): void {
     if (typeof value === 'boolean') {
       this.settingsService.setSetting<boolean>('useTabsDesktop', value);
     } else {
@@ -50,7 +44,7 @@ export class ProjectSettingsComponent {
     return this.autoSnapshotService.isEnabled();
   }
 
-  set autoSnapshots(value: boolean) {
+  setAutoSnapshots(value: boolean): void {
     if (typeof value === 'boolean') {
       this.autoSnapshotService.setEnabled(value);
     } else {

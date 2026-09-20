@@ -7,7 +7,6 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import {
   MAT_DIALOG_DATA,
@@ -33,7 +32,6 @@ export interface RenameDialogData {
     MatButtonModule,
     MatFormFieldModule,
     MatInputModule,
-    FormsModule,
     TranslocoModule,
   ],
 })

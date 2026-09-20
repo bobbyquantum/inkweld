@@ -17,13 +17,11 @@ import {
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import {
-  type AbstractControl,
-  FormArray,
-  FormControl,
-  FormGroup,
-  ReactiveFormsModule,
-} from '@angular/forms';
-import { compatForm } from '@angular/forms/signals/compat';
+  disabled,
+  type FieldTree,
+  form as createForm,
+  FormField,
+} from '@angular/forms/signals';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatExpansionModule } from '@angular/material/expansion';
@@ -88,12 +86,88 @@ export type { SchemaEditEvent };
  * Main worldbuilding editor component that renders the dynamic
  * editor logic that used to be in a separate dynamic component.
  */
+/** True for a non-null, non-array object — i.e. a nested field group. */
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/** Immutably write `value` at a key path, creating intermediate groups. */
+function writeAt(
+  target: Record<string, unknown>,
+  path: string[],
+  value: unknown
+): Record<string, unknown> {
+  const [head, ...rest] = path;
+  if (head === undefined) return target;
+  if (rest.length === 0) {
+    return { ...target, [head]: value };
+  }
+  const child = target[head];
+  return {
+    ...target,
+    [head]: writeAt(isPlainRecord(child) ? child : {}, rest, value),
+  };
+}
+
+/**
+ * Recursively merge `patch` into `target`, matching `FormGroup.patchValue`:
+ * a nested object merges into the existing group rather than replacing it,
+ * so patching one field of a group leaves its siblings intact.
+ */
+function deepPatch(
+  target: Record<string, unknown>,
+  patch: Record<string, unknown>
+): Record<string, unknown> {
+  const out: Record<string, unknown> = { ...target };
+  for (const [key, value] of Object.entries(patch)) {
+    const current = out[key];
+    out[key] =
+      isPlainRecord(value) && isPlainRecord(current)
+        ? deepPatch(current, value)
+        : value;
+  }
+  return out;
+}
+
+/**
+ * Merge `data` into `shape`, keeping `shape`'s keys and structure.
+ *
+ * Only keys the schema produced are copied across, and a value whose shape
+ * disagrees with the default it would replace is skipped — so a scalar
+ * arriving where a group is expected (or vice versa) leaves the model valid
+ * instead of corrupting the field tree.
+ */
+function mergeIntoShape(
+  shape: Record<string, unknown>,
+  data: Record<string, unknown>
+): Record<string, unknown> {
+  const out: Record<string, unknown> = { ...shape };
+  for (const [key, incoming] of Object.entries(data)) {
+    if (!(key in shape)) continue;
+    const current = shape[key];
+    if (isPlainRecord(current)) {
+      if (isPlainRecord(incoming)) {
+        out[key] = mergeIntoShape(current, incoming);
+      } else {
+        console.warn(
+          `[WorldbuildingEditor] Skipping field "${key}": expected an object but got ${typeof incoming}`
+        );
+      }
+    } else if (Array.isArray(current)) {
+      if (Array.isArray(incoming)) out[key] = [...(incoming as unknown[])];
+    } else {
+      out[key] = incoming;
+    }
+  }
+  return out;
+}
+
 @Component({
   selector: 'app-worldbuilding-editor',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
-    ReactiveFormsModule,
+    FormField,
     TextFieldModule,
     DragDropModule,
     MatCheckboxModule,
@@ -207,29 +281,27 @@ export class WorldbuildingEditorComponent implements OnDestroy {
   schema = signal<ElementTypeSchema | null>(null);
 
   /**
-   * Signal holding the underlying reactive `FormGroup`. The structure is
-   * built dynamically at runtime from the resolved `ElementTypeSchema` —
-   * field keys and types are not known at compile time, so we keep the
-   * reactive-forms `FormGroup` as the source of truth and expose it to
-   * signal-forms via {@link formTree} (a `compatForm` tree).
+   * The form's data, and the single source of truth for it.
    *
-   * Exposed as a public readonly field so legacy callers (and tests) that
-   * treat `form()` as a `FormGroup` accessor keep working: invoking the
-   * signal returns the current `FormGroup` instance.
+   * Field keys and types come from the resolved `ElementTypeSchema` at
+   * runtime, so the shape is a plain record rather than a statically-typed
+   * model. Dotted schema keys (`"group.child"`) are stored nested, so this
+   * mirrors exactly what gets persisted.
    */
-  readonly form: WritableSignal<FormGroup> = signal(new FormGroup({}));
+  readonly model: WritableSignal<Record<string, unknown>> = signal({});
 
   /**
-   * Signal-forms compatibility view over {@link form}.
+   * Signal Forms tree over {@link model}.
    *
-   * This exposes signal-based state (validity, errors, touched/dirty) for
-   * the dynamically-built reactive form, integrating it with the Angular 22
-   * signal-forms APIs while preserving the runtime-driven `FormGroup`
-   * structure. The template still binds `[formControl]` to the underlying
-   * `FormControl` instances returned by {@link getControl}; `compatForm`
-   * wires their state into the signal-forms reactivity graph.
+   * Built once and never rebuilt: the tree follows the model, so replacing
+   * the model's whole key set on a schema change is enough. Read-only mode
+   * is declared here rather than imperatively toggled — `disabled` on the
+   * root propagates to every field, and re-evaluates when `canWrite()` or
+   * preview mode changes.
    */
-  readonly formTree = compatForm(this.form);
+  readonly form = createForm(this.model, path => {
+    disabled(path, () => this.previewMode() || !this.projectState.canWrite());
+  });
 
   /** Computed element name from project state */
   elementName = computed(() => {
@@ -397,7 +469,15 @@ export class WorldbuildingEditorComponent implements OnDestroy {
 
   private unsubscribeObserver: (() => void) | null = null;
   private readonly resizeCleanup: (() => void) | null = null;
-  private isUpdatingFromRemote = false;
+  /**
+   * Set when the model is replaced from persisted/remote data so the next
+   * auto-save run skips it. Cleared by the auto-save effect itself, not by
+   * the caller: effects run after the signal write, so a flag cleared
+   * synchronously around `model.set()` would always be false again by the
+   * time the effect observed the change — and every remote update would echo
+   * straight back as a local save.
+   */
+  private skipNextAutoSave = false;
   private loadSequence = 0;
   private schemaEditorSectionInitialized = false;
 
@@ -447,10 +527,9 @@ export class WorldbuildingEditorComponent implements OnDestroy {
       if (this.previewMode()) {
         const schema = this.previewSchema();
         this.schema.set(schema);
-        this.form.set(new FormGroup({}));
+        this.model.set({});
         if (schema) {
           this.buildFormFromSchema(schema);
-          this.form().disable({ emitEvent: false });
         }
         this.isInitialLoading.set(false);
         return;
@@ -468,27 +547,18 @@ export class WorldbuildingEditorComponent implements OnDestroy {
       }
     });
 
-    // React to access changes and disable/enable form accordingly
-    effect(() => {
-      const canWrite = this.projectState.canWrite();
-      const form = untracked(() => this.form());
-      if (form) {
-        if (canWrite) {
-          form.enable({ emitEvent: false });
-        } else {
-          form.disable({ emitEvent: false });
-        }
-      }
-    });
-
     // Auto-save on form changes (debounced). The compatForm exposes the
     // reactive form's value as a signal, so we can react to edits without
     // a `valueChanges` subscription. A trailing debounce avoids saving on
     // every keystroke, matching the previous reactive-forms behaviour.
     effect(onCleanup => {
-      // Track the form value signal via the compatForm tree.
-      this.formTree().value();
-      if (this.isUpdatingFromRemote || this.previewMode()) return;
+      // Track the model; every edit through [formField] writes to it.
+      this.model();
+      if (this.previewMode()) return;
+      if (this.skipNextAutoSave) {
+        this.skipNextAutoSave = false;
+        return;
+      }
       const timer = setTimeout(() => {
         untracked(() => void this.saveData());
       }, 500);
@@ -534,7 +604,7 @@ export class WorldbuildingEditorComponent implements OnDestroy {
     const currentLoad = ++this.loadSequence;
     this.isInitialLoading.set(true);
     this.schema.set(null);
-    this.form.set(new FormGroup({}));
+    this.model.set({});
 
     try {
       const username = this.username();
@@ -566,11 +636,6 @@ export class WorldbuildingEditorComponent implements OnDestroy {
       if (currentLoad !== this.loadSequence) return;
       if (data) {
         this.updateFormFromData(data);
-      }
-
-      // Apply read-only state AFTER loading data to ensure values display correctly
-      if (!this.projectState.canWrite()) {
-        this.form().disable({ emitEvent: false });
       }
     } catch (error) {
       console.error('[WorldbuildingEditor] Error loading element data:', error);
@@ -653,75 +718,76 @@ export class WorldbuildingEditorComponent implements OnDestroy {
       return;
     }
 
-    const formGroup: Record<string, AbstractControl> = {};
+    const next: Record<string, unknown> = {};
 
     schema.tabs.forEach((tab: TabSchema) => {
       tab.fields?.forEach((field: FieldSchema) => {
-        const control = this.createControlForField(field);
-        if (!control) {
+        const value = this.defaultValueForField(field);
+        if (value === undefined) {
           return;
         }
 
         const groupName = this.getFieldGroupName(field);
         if (groupName) {
-          const existing = formGroup[groupName];
-          if (existing instanceof FormGroup) {
-            existing.addControl(this.getFieldControlName(field), control);
-          } else if (!existing) {
-            formGroup[groupName] = new FormGroup({
-              [this.getFieldControlName(field)]: control,
-            });
+          const existing = next[groupName];
+          if (isPlainRecord(existing)) {
+            existing[this.getFieldControlName(field)] = value;
+          } else if (existing === undefined) {
+            next[groupName] = { [this.getFieldControlName(field)]: value };
           } else {
-            // A top-level field shares the group's key; the form can't hold
-            // both. Keep the top-level control and skip the nested field.
+            // A top-level field shares the group's key; the model can't hold
+            // both. Keep the top-level value and skip the nested field.
             console.warn(
               `[WorldbuildingEditor] Skipping nested field "${field.key}": ` +
                 `"${groupName}" is already a non-group field`
             );
           }
-        } else if (formGroup[field.key] instanceof FormGroup) {
+        } else if (isPlainRecord(next[field.key])) {
           // A nested group with this key already exists; skip the flat field.
           console.warn(
             `[WorldbuildingEditor] Skipping field "${field.key}": ` +
               `it conflicts with a nested field group`
           );
         } else {
-          formGroup[field.key] = control;
+          next[field.key] = value;
         }
       });
     });
 
-    this.form.set(new FormGroup(formGroup));
-    // Note: Read-only state is applied AFTER data loading in loadElementData()
-    // to avoid issues with disabled forms not displaying values correctly.
-    // Auto-save is wired via the constructor effect that watches
-    // `this.formTree().value()` (the compatForm's value signal).
+    this.model.set(next);
+    // Read-only state is declarative (see the `disabled` rule on `form`), and
+    // auto-save is wired via the constructor effect that watches `model()`.
   }
 
-  private createControlForField(field: FieldSchema): AbstractControl | null {
+  /**
+   * Initial value for a field, or `undefined` for an unsupported type (which
+   * the caller skips). `undefined` is never a legitimate field value, so it
+   * doubles safely as the "no control" signal the old code used `null` for.
+   */
+  private defaultValueForField(field: FieldSchema): unknown {
     switch (field.type) {
       case 'text':
       case 'textarea':
       case 'number':
       case 'date':
       case 'select':
-        return new FormControl('');
+        return '';
       case 'multiselect':
-        return new FormControl<string[]>([]);
+        return [] as string[];
       case 'array':
-        return new FormArray([]);
+        return [] as string[];
       case 'checkbox':
-        return new FormControl(false);
+        return false;
       case 'relationship':
-        // The canonical value lives in the relationships store; the control
+        // The canonical value lives in the relationships store; the model
         // only mirrors linked element ids for form completeness and is
         // excluded from persistence (see saveData).
-        return new FormControl<string[]>([]);
+        return [] as string[];
       default:
         console.warn(
           `[WorldbuildingEditor] Unsupported field type "${field.type}" for "${field.key}"`
         );
-        return null;
+        return undefined;
     }
   }
 
@@ -739,64 +805,22 @@ export class WorldbuildingEditorComponent implements OnDestroy {
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private updateFormFromData(data: any): void {
-    this.isUpdatingFromRemote = true;
+  /** Arm the auto-save skip for the model write that follows. */
+  private suppressAutoSaveFor(_next: Record<string, unknown>): void {
+    this.skipNextAutoSave = true;
+  }
 
-    const form = this.form();
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-    Object.entries(data).forEach(([key, value]) => {
-      const control = form.get(key);
-      if (control) {
-        try {
-          if (control instanceof FormArray) {
-            control.clear({ emitEvent: false });
-            if (Array.isArray(value)) {
-              value.forEach(item =>
-                control.push(new FormControl(item), { emitEvent: false })
-              );
-            }
-          } else if (
-            control instanceof FormGroup &&
-            typeof value === 'object' &&
-            value !== null &&
-            !Array.isArray(value)
-          ) {
-            // Nested FormGroup - update child controls
-            Object.entries(value).forEach(([nestedKey, nestedValue]) => {
-              const nestedControl = control.get(nestedKey);
-              if (nestedControl) {
-                if (nestedControl instanceof FormArray) {
-                  nestedControl.clear({ emitEvent: false });
-                  if (Array.isArray(nestedValue)) {
-                    (nestedValue as unknown[]).forEach(item =>
-                      nestedControl.push(new FormControl(item), {
-                        emitEvent: false,
-                      })
-                    );
-                  }
-                } else {
-                  nestedControl.setValue(nestedValue, { emitEvent: false });
-                }
-              }
-            });
-          } else if (control instanceof FormGroup) {
-            // FormGroup but value is not an object - skip, can't map incompatible types
-            console.warn(
-              `[WorldbuildingEditor] Skipping field "${key}": FormGroup expected object but got ${typeof value}`
-            );
-          } else {
-            control.setValue(value, { emitEvent: false });
-          }
-        } catch (err) {
-          console.warn(
-            `[WorldbuildingEditor] Error updating field "${key}":`,
-            err
-          );
-        }
-      }
-    });
-    this.isUpdatingFromRemote = false;
+  /**
+   * Merge persisted/remote data into the model, keeping the schema-derived
+   * shape: only keys the schema produced are written, and a value whose shape
+   * disagrees with the default (e.g. a scalar where a group is expected) is
+   * skipped rather than corrupting the tree.
+   */
+  private updateFormFromData(data: unknown): void {
+    if (!isPlainRecord(data)) return;
+    const merged = mergeIntoShape(this.model(), data);
+    this.suppressAutoSaveFor(merged);
+    this.model.set(merged);
   }
 
   private async setupRealtimeSync(elementId: string): Promise<void> {
@@ -817,8 +841,6 @@ export class WorldbuildingEditorComponent implements OnDestroy {
       elementId,
       data => {
         void (async () => {
-          this.isUpdatingFromRemote = true;
-
           // If we don't have a schema yet, try to get it from the synced data
           // This handles the case where WebSocket sync completes after initial load
           if (!this.schema() && data['schemaId']) {
@@ -840,7 +862,6 @@ export class WorldbuildingEditorComponent implements OnDestroy {
           }
 
           this.updateFormFromData(data);
-          this.isUpdatingFromRemote = false;
         })();
       },
       this.username(),
@@ -849,7 +870,7 @@ export class WorldbuildingEditorComponent implements OnDestroy {
   }
 
   private async saveData(): Promise<void> {
-    const formValue = this.form().value as Record<string, unknown>;
+    const formValue = this.model();
     const relationshipKeys = this.getRelationshipFieldKeys();
     const persistable = this.stripRelationshipValues(
       formValue,
@@ -1121,10 +1142,9 @@ export class WorldbuildingEditorComponent implements OnDestroy {
 
   /** Swap in a new schema and rebuild the form, re-applying stored values. */
   private async rebuildFormForSchema(schema: ElementTypeSchema): Promise<void> {
-    this.isUpdatingFromRemote = true;
     this.schema.set(schema);
-    this.form.set(new FormGroup({}));
     this.buildFormFromSchema(schema);
+    this.skipNextAutoSave = true;
     this.ensureRelationshipFieldTypes(schema);
     const data = await this.worldbuildingService.getWorldbuildingData(
       this.elementId(),
@@ -1134,10 +1154,7 @@ export class WorldbuildingEditorComponent implements OnDestroy {
     if (data) {
       this.updateFormFromData(data);
     }
-    if (!this.projectState.canWrite()) {
-      this.form().disable({ emitEvent: false });
-    }
-    this.isUpdatingFromRemote = false;
+    // Read-only state is declarative (see the `disabled` rule on `form`).
   }
 
   /**
@@ -1304,12 +1321,8 @@ export class WorldbuildingEditorComponent implements OnDestroy {
 
   /** Check whether a single field has a non-empty value */
   private isFieldFilled(field: FieldSchema): boolean {
-    const control = this.form().get(field.key);
-    if (!control) return false;
-    if (control instanceof FormArray) {
-      return control.length > 0;
-    }
-    const value: unknown = control.value;
+    const value = this.getValue(field.key);
+    if (value === undefined) return false;
     if (value == null) return false;
     if (typeof value === 'boolean') {
       return value === true;
@@ -1354,15 +1367,22 @@ export class WorldbuildingEditorComponent implements OnDestroy {
     return typeof option === 'string' ? option : option.label;
   }
 
-  getControl(fieldKey: string): FormControl {
-    return this.form().get(fieldKey) as FormControl;
+  /** Raw value at a (possibly dotted) schema key, or `undefined`. */
+  getValue(fieldKey: string): unknown {
+    let value: unknown = this.model();
+    for (const part of fieldKey.split('.')) {
+      if (!isPlainRecord(value)) return undefined;
+      value = value[part];
+    }
+    return value;
   }
 
   /**
-   * Whether field dice should be offered at all. The form is disabled for
-   * readers, and `setValue` writes through a disabled control, so a visible
-   * dice would let a reader edit a field they cannot otherwise touch — and
-   * hand that edit to autosave.
+   * Whether field dice should be offered at all.
+   *
+   * A roll writes straight into the model, which bypasses whatever the form
+   * does about read-only state, so a visible dice would let a reader change
+   * a field they cannot otherwise touch — and hand that edit to autosave.
    */
   protected canRollFields(): boolean {
     return !this.previewMode() && this.projectState.canWrite();
@@ -1374,21 +1394,76 @@ export class WorldbuildingEditorComponent implements OnDestroy {
    */
   onGeneratorPicked(fieldKey: string, value: string): void {
     if (!this.canRollFields()) return;
-    this.getControl(fieldKey)?.setValue(value);
+    this.updateAt(fieldKey, value);
   }
 
-  getFormArray(fieldKey: string): FormArray {
-    return this.form().get(fieldKey) as FormArray;
+  /**
+   * The Signal Forms node for a (possibly dotted) schema key.
+   *
+   * The model is a runtime-shaped record, so nodes come back as
+   * `FieldTree<unknown>`; the typed accessors below narrow them at the
+   * binding site, which is what `[formField]` needs.
+   */
+  private nodeAt(fieldKey: string): FieldTree<unknown> | undefined {
+    let node: unknown = this.form;
+    for (const part of fieldKey.split('.')) {
+      if (node === undefined || node === null) return undefined;
+      node = (node as Record<string, unknown>)[part];
+    }
+    return node as FieldTree<unknown> | undefined;
+  }
+
+  /** Text-like field node (text, textarea, number, date, select). */
+  getControl(fieldKey: string): FieldTree<string> {
+    return this.nodeAt(fieldKey) as unknown as FieldTree<string>;
+  }
+
+  /** Boolean field node (checkbox). */
+  getCheckboxControl(fieldKey: string): FieldTree<boolean> {
+    return this.nodeAt(fieldKey) as unknown as FieldTree<boolean>;
+  }
+
+  /** Multi-value field node (multiselect). */
+  getMultiControl(fieldKey: string): FieldTree<string[]> {
+    return this.nodeAt(fieldKey) as unknown as FieldTree<string[]>;
+  }
+
+  /** Per-item nodes for an `array` field, in order. */
+  getArrayItemControls(fieldKey: string): Array<FieldTree<string>> {
+    const node = this.nodeAt(fieldKey) as unknown as
+      ArrayLike<FieldTree<string>> | undefined;
+    if (!node) return [];
+    const length = this.getArrayValue(fieldKey).length;
+    return Array.from({ length }, (_, i) => node[i]);
+  }
+
+  /** Current items of an `array` field. */
+  getArrayValue(fieldKey: string): string[] {
+    const value = this.getValue(fieldKey);
+    return Array.isArray(value) ? (value as string[]) : [];
   }
 
   addArrayItem(fieldKey: string): void {
-    const formArray = this.getFormArray(fieldKey);
-    formArray.push(new FormControl(''));
+    this.updateAt(fieldKey, [...this.getArrayValue(fieldKey), '']);
   }
 
   removeArrayItem(fieldKey: string, index: number): void {
-    const formArray = this.getFormArray(fieldKey);
-    formArray.removeAt(index);
+    const next = [...this.getArrayValue(fieldKey)];
+    next.splice(index, 1);
+    this.updateAt(fieldKey, next);
+  }
+
+  /**
+   * Merge a partial value into the model, honouring dotted keys. Replaces
+   * `FormGroup.patchValue` for callers that set values directly.
+   */
+  patchValue(patch: Record<string, unknown>): void {
+    this.model.set(deepPatch(this.model(), patch));
+  }
+
+  /** Write a single (possibly dotted) key into the model immutably. */
+  private updateAt(fieldKey: string, value: unknown): void {
+    this.model.set(writeAt(this.model(), fieldKey.split('.'), value));
   }
 
   /** Handle rename request from identity panel */

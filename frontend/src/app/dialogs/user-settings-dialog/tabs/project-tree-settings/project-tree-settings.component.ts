@@ -1,5 +1,4 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { TranslocoModule } from '@jsverse/transloco';
@@ -7,14 +6,9 @@ import { SettingsService } from '@services/core/settings.service';
 
 @Component({
   selector: 'app-project-tree-settings',
-  imports: [
-    FormsModule,
-    MatSlideToggleModule,
-    MatFormFieldModule,
-    TranslocoModule,
-  ],
+  imports: [MatSlideToggleModule, MatFormFieldModule, TranslocoModule],
   templateUrl: './project-tree-settings.component.html',
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './project-tree-settings.component.scss',
 })
 export class ProjectTreeSettingsComponent {
@@ -27,7 +21,7 @@ export class ProjectTreeSettingsComponent {
     );
   }
 
-  set confirmElementMoves(value: boolean) {
+  setConfirmElementMoves(value: boolean): void {
     if (typeof value === 'boolean') {
       this.settingsService.setSetting<boolean>('confirmElementMoves', value);
     } else {
@@ -39,7 +33,7 @@ export class ProjectTreeSettingsComponent {
     return this.settingsService.showBreadcrumbs();
   }
 
-  set showBreadcrumbs(value: boolean) {
+  setShowBreadcrumbs(value: boolean): void {
     this.settingsService.setShowBreadcrumbs(
       typeof value === 'boolean' && value
     );

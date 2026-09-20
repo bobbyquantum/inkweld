@@ -6,7 +6,6 @@ import {
   type OnInit,
   signal,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatDividerModule } from '@angular/material/divider';
@@ -101,7 +100,6 @@ export const NEXTCLOUD_SETUP_GUIDE_URL =
 @Component({
   selector: 'app-setup',
   imports: [
-    FormsModule,
     MatCardModule,
     MatFormFieldModule,
     MatInputModule,

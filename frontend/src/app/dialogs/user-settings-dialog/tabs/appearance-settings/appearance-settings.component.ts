@@ -1,5 +1,4 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { MatRadioModule } from '@angular/material/radio';
 import { BackgroundPickerComponent } from '@components/background-picker/background-picker.component';
 import { TranslocoModule } from '@jsverse/transloco';
@@ -55,14 +54,9 @@ function preview(barHeight: number, gap: number): DensityPreview {
  */
 @Component({
   selector: 'app-appearance-settings',
-  imports: [
-    FormsModule,
-    MatRadioModule,
-    TranslocoModule,
-    BackgroundPickerComponent,
-  ],
+  imports: [MatRadioModule, TranslocoModule, BackgroundPickerComponent],
   templateUrl: './appearance-settings.component.html',
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './appearance-settings.component.scss',
 })
 export class AppearanceSettingsComponent {
@@ -83,7 +77,7 @@ export class AppearanceSettingsComponent {
     return this.settingsService.denseLayout() ? 'compact' : 'comfortable';
   }
 
-  set density(value: DensityOption['value']) {
+  setDensity(value: DensityOption['value']): void {
     this.settingsService.setDenseLayout(value === 'compact');
   }
 }

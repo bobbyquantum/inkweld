@@ -52,20 +52,20 @@ describe('RecoverPasskeyComponent', () => {
   });
 
   it('shows error when submitting empty email', async () => {
-    component.email = '';
+    component.form.email().value.set('');
     await component.onSubmit();
     expect(component.error()).toBe('Email address is required');
     expect(mockPasskeyRecoveryService.requestRecovery).not.toHaveBeenCalled();
   });
 
   it('shows error when submitting whitespace-only email', async () => {
-    component.email = '   ';
+    component.form.email().value.set('   ');
     await component.onSubmit();
     expect(component.error()).toBe('Email address is required');
   });
 
   it('calls requestRecovery on valid submit and trims whitespace', async () => {
-    component.email = '  user@example.com  ';
+    component.form.email().value.set('  user@example.com  ');
     await component.onSubmit();
 
     expect(mockPasskeyRecoveryService.requestRecovery).toHaveBeenCalledWith(
@@ -80,7 +80,7 @@ describe('RecoverPasskeyComponent', () => {
     mockPasskeyRecoveryService.requestRecovery.mockRejectedValue(
       new Error('boom')
     );
-    component.email = 'user@example.com';
+    component.form.email().value.set('user@example.com');
     await component.onSubmit();
 
     expect(component.error()).toBe('Something went wrong. Please try again.');
@@ -92,5 +92,36 @@ describe('RecoverPasskeyComponent', () => {
     expect(component.isEmailRecoveryEnabled()).toBe(true);
     isEmailRecoveryEnabled.set(false);
     expect(component.isEmailRecoveryEnabled()).toBe(false);
+  });
+
+  // Regression guard: the submit path must be wired up in the *template*, not
+  // just reachable by calling onSubmit() directly. A `<form>` whose submit
+  // binding has no matching directive compiles fine and fails silently at
+  // runtime, so dispatch a real submit event and assert the action is hit.
+  describe('template submit wiring', () => {
+    it('submits when the form element is submitted', async () => {
+      component.form.email().value.set('user@example.com');
+      fixture.detectChanges();
+
+      const formEl: HTMLFormElement = fixture.nativeElement.querySelector(
+        '[data-testid="recover-passkey-form"]'
+      );
+      expect(formEl).toBeTruthy();
+      formEl.dispatchEvent(
+        new Event('submit', { bubbles: true, cancelable: true })
+      );
+      await fixture.whenStable();
+
+      expect(mockPasskeyRecoveryService.requestRecovery).toHaveBeenCalledWith(
+        'user@example.com'
+      );
+    });
+
+    it('disables native browser validation on the form', () => {
+      const formEl: HTMLFormElement = fixture.nativeElement.querySelector(
+        '[data-testid="recover-passkey-form"]'
+      );
+      expect(formEl.hasAttribute('novalidate')).toBe(true);
+    });
   });
 });

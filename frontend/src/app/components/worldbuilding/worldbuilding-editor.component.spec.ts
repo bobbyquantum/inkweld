@@ -1,12 +1,6 @@
 import { provideHttpClient, withXhr } from '@angular/common/http';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
-import {
-  FormArray,
-  FormControl,
-  FormGroup,
-  ReactiveFormsModule,
-} from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { BehaviorSubject, EMPTY } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -256,11 +250,7 @@ describe('WorldbuildingEditorComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [
-        translocoTestProvider(),
-        WorldbuildingEditorComponent,
-        ReactiveFormsModule,
-      ],
+      imports: [translocoTestProvider(), WorldbuildingEditorComponent],
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(withXhr()),
@@ -296,11 +286,11 @@ describe('WorldbuildingEditorComponent', () => {
 
     expect(component.previewMode()).toBe(true);
     expect(component.schema()).toBe(mockCharacterSchema);
-    expect(component.form().get('name')).toBeDefined();
-    expect(component.form().get('age')).toBeDefined();
+    expect(component.getValue('name')).toBeDefined();
+    expect(component.getValue('age')).toBeDefined();
     expect(component.isInitialLoading()).toBe(false);
     // Preview form is read-only.
-    expect(component.form().disabled).toBe(true);
+    expect(component.form().disabled()).toBe(true);
   });
 
   describe('syncTooltip', () => {
@@ -372,37 +362,37 @@ describe('WorldbuildingEditorComponent', () => {
     });
 
     it('should count text fields as filled when non-empty', () => {
-      component.form().patchValue({ name: 'Alice' });
+      component.patchValue({ name: 'Alice' });
       expect(component.getFilledFieldCountForTab('basic')).toBe(1);
     });
 
     it('should not count whitespace-only text as filled', () => {
-      component.form().patchValue({ name: '   ' });
+      component.patchValue({ name: '   ' });
       expect(component.getFilledFieldCountForTab('basic')).toBe(0);
     });
 
     it('should count number fields as filled', () => {
-      component.form().patchValue({ age: 25 });
+      component.patchValue({ age: 25 });
       expect(component.getFilledFieldCountForTab('basic')).toBe(1);
     });
 
     it('should count textarea fields as filled when non-empty', () => {
-      component.form().patchValue({ bio: 'A brave warrior' });
+      component.patchValue({ bio: 'A brave warrior' });
       expect(component.getFilledFieldCountForTab('basic')).toBe(1);
     });
 
     it('should count checkbox as filled when true', () => {
-      component.form().patchValue({ isAlive: true });
+      component.patchValue({ isAlive: true });
       expect(component.getFilledFieldCountForTab('basic')).toBe(1);
     });
 
     it('should count multiselect fields as filled when non-empty', () => {
-      component.form().patchValue({ traits: ['brave'] });
+      component.patchValue({ traits: ['brave'] });
       expect(component.getFilledFieldCountForTab('basic')).toBe(1);
     });
 
     it('should not count checkbox as filled when false', () => {
-      component.form().patchValue({ isAlive: false });
+      component.patchValue({ isAlive: false });
       expect(component.getFilledFieldCountForTab('basic')).toBe(0);
     });
 
@@ -416,7 +406,7 @@ describe('WorldbuildingEditorComponent', () => {
     });
 
     it('should count multiple filled fields', () => {
-      component.form().patchValue({
+      component.patchValue({
         name: 'Alice',
         age: 30,
         bio: 'A mage',
@@ -428,7 +418,7 @@ describe('WorldbuildingEditorComponent', () => {
     });
 
     it('should count nested fields in appearance tab', () => {
-      component.form().patchValue({ appearance: { height: '180cm' } });
+      component.patchValue({ appearance: { height: '180cm' } });
       expect(component.getFilledFieldCountForTab('appearance')).toBe(1);
     });
 
@@ -437,29 +427,32 @@ describe('WorldbuildingEditorComponent', () => {
     });
   });
 
-  describe('FormArray operations', () => {
+  describe('array field operations', () => {
     beforeEach(() => {
       // Build the form first
       component['buildFormFromSchema'](mockCharacterSchema);
     });
 
     it('should get form array for field', () => {
-      const formArray = component.getFormArray('aliases');
-      expect(formArray).toBeInstanceOf(FormArray);
+      expect(component.getArrayValue('aliases')).toEqual([]);
     });
 
     it('should add item to array field', () => {
-      const initialLength = component.getFormArray('aliases').length;
+      const initialLength = component.getArrayValue('aliases').length;
       component.addArrayItem('aliases');
-      expect(component.getFormArray('aliases')).toHaveLength(initialLength + 1);
+      expect(component.getArrayValue('aliases')).toHaveLength(
+        initialLength + 1
+      );
     });
 
     it('should remove item from array field', () => {
       component.addArrayItem('aliases');
       component.addArrayItem('aliases');
-      const initialLength = component.getFormArray('aliases').length;
+      const initialLength = component.getArrayValue('aliases').length;
       component.removeArrayItem('aliases', 0);
-      expect(component.getFormArray('aliases')).toHaveLength(initialLength - 1);
+      expect(component.getArrayValue('aliases')).toHaveLength(
+        initialLength - 1
+      );
     });
   });
 
@@ -468,32 +461,31 @@ describe('WorldbuildingEditorComponent', () => {
       component['buildFormFromSchema'](mockCharacterSchema);
 
       // Check text field
-      expect(component.form().get('name')).toBeDefined();
+      expect(component.getValue('name')).toBeDefined();
       // Check number field
-      expect(component.form().get('age')).toBeDefined();
+      expect(component.getValue('age')).toBeDefined();
       // Check textarea field
-      expect(component.form().get('bio')).toBeDefined();
+      expect(component.getValue('bio')).toBeDefined();
       // Check date field
-      expect(component.form().get('birthDate')).toBeDefined();
+      expect(component.getValue('birthDate')).toBeDefined();
       // Check select field
-      expect(component.form().get('gender')).toBeDefined();
+      expect(component.getValue('gender')).toBeDefined();
       // Check multiselect field
-      expect(component.form().get('traits')?.value).toEqual([]);
+      expect(component.getValue('traits')).toEqual([]);
       // Check checkbox field
-      expect(component.form().get('isAlive')).toBeDefined();
+      expect(component.getValue('isAlive')).toBeDefined();
       // Check array field
-      expect(component.form().get('aliases')).toBeInstanceOf(FormArray);
+      expect(component.getValue('aliases')).toEqual([]);
     });
 
     it('should handle nested fields with dot notation', () => {
       component['buildFormFromSchema'](mockCharacterSchema);
 
       // Check nested fields under 'appearance' group
-      const appearanceGroup = component.form().get('appearance');
-      expect(appearanceGroup).toBeDefined();
-      expect(appearanceGroup?.get('height')).toBeDefined();
-      expect(appearanceGroup?.get('palette')?.value).toEqual([]);
-      expect(appearanceGroup?.get('weight')).toBeDefined();
+      expect(component.getValue('appearance')).toBeDefined();
+      expect(component.getValue('appearance.height')).toBeDefined();
+      expect(component.getValue('appearance.palette')).toEqual([]);
+      expect(component.getValue('appearance.weight')).toBeDefined();
     });
 
     it('should handle schema with no tabs gracefully', () => {
@@ -534,10 +526,9 @@ describe('WorldbuildingEditorComponent', () => {
       // Should not throw.
       component['buildFormFromSchema'](collisionSchema);
 
-      const form = component.form();
-      // The top-level control wins; the nested field is skipped.
-      expect(form.get('significance')).toBeInstanceOf(FormControl);
-      expect(form.get('significance.cultural')).toBeNull();
+      // The top-level field wins; the nested field is skipped.
+      expect(component.getValue('significance')).toBe('');
+      expect(component.getValue('significance.cultural')).toBeUndefined();
     });
 
     it('should not crash when a nested group collides with an existing flat field', () => {
@@ -562,10 +553,9 @@ describe('WorldbuildingEditorComponent', () => {
       // Should not throw.
       component['buildFormFromSchema'](collisionSchema);
 
-      const form = component.form();
       // The nested group wins; the flat field is skipped.
-      expect(form.get('significance')).toBeInstanceOf(FormGroup);
-      expect(form.get('significance')?.get('cultural')).toBeDefined();
+      expect(component.getValue('significance')).toEqual({ cultural: '' });
+      expect(component.getValue('significance.cultural')).toBeDefined();
     });
   });
 
@@ -576,26 +566,26 @@ describe('WorldbuildingEditorComponent', () => {
 
     it('should update simple form values', () => {
       component['updateFormFromData']({ name: 'John Doe', age: 30 });
-      expect(component.form().get('name')?.value).toBe('John Doe');
-      expect(component.form().get('age')?.value).toBe(30);
+      expect(component.getValue('name')).toBe('John Doe');
+      expect(component.getValue('age')).toBe(30);
     });
 
     it('should update nested form values', () => {
       component['updateFormFromData']({
         appearance: { height: '180cm', weight: '75kg' },
       });
-      expect(component.form().get('appearance.height')?.value).toBe('180cm');
-      expect(component.form().get('appearance.weight')?.value).toBe('75kg');
+      expect(component.getValue('appearance.height')).toBe('180cm');
+      expect(component.getValue('appearance.weight')).toBe('75kg');
     });
 
     it('should update array form values', () => {
       component['updateFormFromData']({
         aliases: ['John', 'Johnny', 'J'],
       });
-      const aliasesArray = component.getFormArray('aliases');
+      const aliasesArray = component.getArrayValue('aliases');
       expect(aliasesArray).toHaveLength(3);
-      expect(aliasesArray.at(0).value).toBe('John');
-      expect(aliasesArray.at(1).value).toBe('Johnny');
+      expect(aliasesArray[0]).toBe('John');
+      expect(aliasesArray[1]).toBe('Johnny');
     });
 
     it('should update nested array form values', () => {
@@ -603,10 +593,10 @@ describe('WorldbuildingEditorComponent', () => {
         appearance: { features: ['Scar', 'Tattoo'] },
       });
 
-      const featuresArray = component.getFormArray('appearance.features');
+      const featuresArray = component.getArrayValue('appearance.features');
       expect(featuresArray).toHaveLength(2);
-      expect(featuresArray.at(0).value).toBe('Scar');
-      expect(featuresArray.at(1).value).toBe('Tattoo');
+      expect(featuresArray[0]).toBe('Scar');
+      expect(featuresArray[1]).toBe('Tattoo');
     });
 
     it('should update multiselect values from remote data', () => {
@@ -615,10 +605,8 @@ describe('WorldbuildingEditorComponent', () => {
         appearance: { palette: ['Warm'] },
       });
 
-      expect(component.form().get('traits')?.value).toEqual(['brave']);
-      expect(component.form().get('appearance.palette')?.value).toEqual([
-        'Warm',
-      ]);
+      expect(component.getValue('traits')).toEqual(['brave']);
+      expect(component.getValue('appearance.palette')).toEqual(['Warm']);
     });
 
     it('should warn when nested group data is not an object', () => {
@@ -627,16 +615,18 @@ describe('WorldbuildingEditorComponent', () => {
       component['updateFormFromData']({ appearance: 'unknown' });
 
       expect(consoleSpy).toHaveBeenCalledWith(
-        '[WorldbuildingEditor] Skipping field "appearance": FormGroup expected object but got string'
+        '[WorldbuildingEditor] Skipping field "appearance": expected an object but got string'
       );
       consoleSpy.mockRestore();
     });
 
-    it('should set isUpdatingFromRemote flag during update', () => {
-      expect(component['isUpdatingFromRemote']).toBe(false);
-      // The flag is set to true during update and false after
+    it('arms the auto-save skip so a remote update does not echo back', () => {
+      expect(component['skipNextAutoSave']).toBe(false);
       component['updateFormFromData']({ name: 'Test' });
-      expect(component['isUpdatingFromRemote']).toBe(false);
+      // Stays armed until the auto-save effect observes the model change and
+      // clears it. Clearing it synchronously here (as the old flag did) would
+      // mean every remote update was saved straight back to the server.
+      expect(component['skipNextAutoSave']).toBe(true);
     });
   });
 
@@ -694,7 +684,7 @@ describe('WorldbuildingEditorComponent', () => {
 
       await component['loadElementData']('test-element-123');
 
-      expect(component.form().disabled).toBe(true);
+      expect(component.form().disabled()).toBe(true);
     });
 
     it('should handle errors gracefully', async () => {
@@ -759,7 +749,7 @@ describe('WorldbuildingEditorComponent', () => {
         'test-project'
       );
       expect(component['schema']()).toEqual(mockCharacterSchema);
-      expect(component.form().get('name')?.value).toBe('Realtime Name');
+      expect(component.getValue('name')).toBe('Realtime Name');
     });
   });
 
@@ -769,7 +759,7 @@ describe('WorldbuildingEditorComponent', () => {
     });
 
     it('should save form data to service', async () => {
-      component.form().patchValue({ name: 'Test Name', age: 30 });
+      component.patchValue({ name: 'Test Name', age: 30 });
 
       await component['saveData']();
 
@@ -804,15 +794,13 @@ describe('WorldbuildingEditorComponent', () => {
 
     it('should create a control for relationship fields', () => {
       component['buildFormFromSchema'](schemaWithRelationship);
-      const control = component.form().get('mother');
-      expect(control).toBeDefined();
-      expect(control?.value).toEqual([]);
+      expect(component.getValue('mother')).toEqual([]);
     });
 
     it('should exclude relationship fields from saved data', async () => {
       component['schema'].set(schemaWithRelationship);
       component['buildFormFromSchema'](schemaWithRelationship);
-      component.form().patchValue({ name: 'Hero', mother: ['mother-el'] });
+      component.patchValue({ name: 'Hero', mother: ['mother-el'] });
 
       await component['saveData']();
 
@@ -844,7 +832,7 @@ describe('WorldbuildingEditorComponent', () => {
       };
       component['schema'].set(schemaWithNestedRel);
       component['buildFormFromSchema'](schemaWithNestedRel);
-      component.form().patchValue({
+      component.patchValue({
         family: { mother: ['mother-el'], notes: 'kept' },
         standalone: 'also kept',
       });
@@ -1763,8 +1751,8 @@ describe('WorldbuildingEditorComponent', () => {
       expect(component.schema()?.tabs[0].fields.map(f => f.key)).toContain(
         'eyes'
       );
-      expect(component.form().get('eyes')).toBeTruthy();
-      expect(component.form().get('name')?.value).toBe('Test Character');
+      expect(component.getValue('eyes')).toBeDefined();
+      expect(component.getValue('name')).toBe('Test Character');
     });
 
     it('opens element snapshots, not template snapshots, in element edit mode', () => {

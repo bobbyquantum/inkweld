@@ -1,5 +1,4 @@
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
-import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatDividerModule } from '@angular/material/divider';
@@ -109,7 +108,6 @@ describe('SetupComponent', () => {
       imports: [
         translocoTestProvider(),
         SetupComponent,
-        FormsModule,
         MatCardModule,
         MatFormFieldModule,
         MatInputModule,

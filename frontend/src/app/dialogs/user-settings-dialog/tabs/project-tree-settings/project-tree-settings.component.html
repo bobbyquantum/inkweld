@@ -1,9 +1,12 @@
 <section class="settings-section">
-  <mat-slide-toggle [(ngModel)]="confirmElementMoves">
+  <mat-slide-toggle
+    [checked]="confirmElementMoves"
+    (change)="setConfirmElementMoves($any($event).checked)">
     {{ 'settings.projectTreeTab.confirmMoves' | transloco }}
   </mat-slide-toggle>
   <mat-slide-toggle
-    [(ngModel)]="showBreadcrumbs"
+    [checked]="showBreadcrumbs"
+    (change)="setShowBreadcrumbs($any($event).checked)"
     data-testid="show-breadcrumbs-toggle">
     {{ 'settings.projectTreeTab.showBreadcrumbs' | transloco }}
   </mat-slide-toggle>

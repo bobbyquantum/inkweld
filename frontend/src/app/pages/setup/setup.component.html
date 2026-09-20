@@ -139,7 +139,8 @@
                 <input
                   matInput
                   id="setup-server-url-input"
-                  [(ngModel)]="serverUrl"
+                  [value]="serverUrl"
+                  (input)="serverUrl = $any($event.target).value"
                   [placeholder]="
                     'settings.connectionTab.serverUrlPlaceholder' | transloco
                   "
@@ -170,7 +171,8 @@
                 <input
                   matInput
                   id="setup-local-username-input"
-                  [(ngModel)]="userName"
+                  [value]="userName"
+                  (input)="userName = $any($event.target).value"
                   placeholder="local"
                   data-testid="local-username-input"
                   [attr.aria-label]="
@@ -192,7 +194,8 @@
                 <input
                   matInput
                   id="setup-local-display-name-input"
-                  [(ngModel)]="displayName"
+                  [value]="displayName"
+                  (input)="displayName = $any($event.target).value"
                   placeholder="Local User"
                   data-testid="local-displayname-input"
                   [attr.aria-label]="
@@ -255,7 +258,8 @@
                 <input
                   matInput
                   id="setup-nextcloud-url-input"
-                  [(ngModel)]="nextcloudUrl"
+                  [value]="nextcloudUrl"
+                  (input)="nextcloudUrl = $any($event.target).value"
                   placeholder="https://cloud.example.com"
                   type="url"
                   required
@@ -275,7 +279,8 @@
                 <input
                   matInput
                   id="setup-nextcloud-user-input"
-                  [(ngModel)]="nextcloudUser"
+                  [value]="nextcloudUser"
+                  (input)="nextcloudUser = $any($event.target).value"
                   required
                   autocomplete="username"
                   data-testid="nextcloud-user-input"
@@ -294,7 +299,8 @@
                 <input
                   matInput
                   id="setup-nextcloud-password-input"
-                  [(ngModel)]="nextcloudAppPassword"
+                  [value]="nextcloudAppPassword"
+                  (input)="nextcloudAppPassword = $any($event.target).value"
                   type="password"
                   required
                   autocomplete="off"
@@ -455,7 +461,8 @@
                 <input
                   matInput
                   id="setup-cloud-display-name-input"
-                  [(ngModel)]="displayName"
+                  [value]="displayName"
+                  (input)="displayName = $any($event.target).value"
                   data-testid="cloud-displayname-input"
                   [attr.aria-label]="
                     'settings.accountTab.displayNameAria' | transloco
@@ -476,7 +483,8 @@
                 <input
                   matInput
                   id="setup-cloud-username-input"
-                  [(ngModel)]="userName"
+                  [value]="userName"
+                  (input)="userName = $any($event.target).value"
                   data-testid="cloud-username-input"
                   [attr.aria-label]="
                     'settings.connectionTab.usernameAria' | transloco

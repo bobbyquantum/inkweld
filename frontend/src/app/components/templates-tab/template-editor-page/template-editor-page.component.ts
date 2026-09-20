@@ -15,7 +15,7 @@ import {
   ViewChildren,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { form, FormField, required } from '@angular/forms/signals';
+import { form, required } from '@angular/forms/signals';
 import { MatButtonModule } from '@angular/material/button';
 import { MatExpansionPanel } from '@angular/material/expansion';
 import { MatIconModule } from '@angular/material/icon';
@@ -54,7 +54,6 @@ interface BasicFormValue {
   styleUrls: ['./template-editor-page.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    FormField,
     MatButtonModule,
     MatIconModule,
     MatTooltipModule,

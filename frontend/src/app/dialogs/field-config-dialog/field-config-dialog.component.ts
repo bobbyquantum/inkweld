@@ -7,7 +7,6 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import {
@@ -49,7 +48,6 @@ export type FieldConfigDialogResult = Partial<FieldSchema>;
     MatSelectModule,
     MatCheckboxModule,
     MatIconModule,
-    FormsModule,
     TranslocoModule,
   ],
 })

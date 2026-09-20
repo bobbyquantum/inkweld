@@ -39,16 +39,14 @@
           </p>
         </div>
 
-        <form (ngSubmit)="onSubmit()" data-testid="redeem-form">
+        <form [formRoot]="form" data-testid="redeem-form">
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>Passkey Name</mat-label>
             <input
               matInput
               id="redeem-passkey-name-input"
               type="text"
-              [(ngModel)]="passkeyName"
-              name="passkeyName"
-              maxlength="64"
+              [formField]="form.passkeyName"
               data-testid="redeem-name-input"
               aria-label="Passkey name" />
             <mat-hint

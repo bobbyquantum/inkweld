@@ -5,7 +5,6 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import {
@@ -87,7 +86,6 @@ interface OverrideRow {
   selector: 'app-unit-editor-dialog',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    FormsModule,
     MatButtonModule,
     MatCheckboxModule,
     MatDialogModule,

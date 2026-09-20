@@ -1,6 +1,11 @@
 import { TextFieldModule } from '@angular/cdk/text-field';
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  signal,
+} from '@angular/core';
+import { form, FormField, maxLength } from '@angular/forms/signals';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -11,7 +16,7 @@ import { TranslocoModule } from '@jsverse/transloco';
   selector: 'app-add-comment-dialog',
   imports: [
     TextFieldModule,
-    FormsModule,
+    FormField,
     MatDialogModule,
     MatButtonModule,
     MatFormFieldModule,
@@ -25,10 +30,13 @@ import { TranslocoModule } from '@jsverse/transloco';
 export class AddCommentDialogComponent {
   private readonly dialogRef = inject(MatDialogRef<AddCommentDialogComponent>);
 
-  commentText = '';
+  readonly model = signal<AddCommentFormValue>({ commentText: '' });
+  readonly form = form(this.model, schemaPath => {
+    maxLength(schemaPath.commentText, 2000);
+  });
 
   onSubmit(): void {
-    const text = this.commentText.trim();
+    const text = this.model().commentText.trim();
     if (text) {
       this.dialogRef.close(text);
     }
@@ -37,4 +45,8 @@ export class AddCommentDialogComponent {
   onCancel(): void {
     this.dialogRef.close();
   }
+}
+
+interface AddCommentFormValue {
+  commentText: string;
 }

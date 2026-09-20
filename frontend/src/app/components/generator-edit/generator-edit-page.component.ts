@@ -9,7 +9,6 @@ import {
   signal,
   untracked,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
@@ -64,7 +63,6 @@ let nextRuleId = 1;
   selector: 'app-generator-edit-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    FormsModule,
     MatButtonModule,
     MatFormFieldModule,
     MatIconModule,

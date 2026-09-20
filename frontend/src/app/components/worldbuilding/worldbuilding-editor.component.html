@@ -825,7 +825,7 @@
                   matInput
                   [attr.id]="'field-' + field.key"
                   [attr.data-testid]="'field-input-' + field.key"
-                  [formControl]="getControl(field.key)"
+                  [formField]="getControl(field.key)"
                   [placeholder]="field.placeholder || ''" />
                 @if (field.generatorId && canRollFields()) {
                   <app-generator-dice
@@ -847,7 +847,7 @@
                   matInput
                   [attr.id]="'field-' + field.key + '-textarea'"
                   [attr.aria-label]="field.label"
-                  [formControl]="getControl(field.key)"
+                  [formField]="getControl(field.key)"
                   [placeholder]="field.placeholder || ''"
                   [rows]="field.rows || 3"
                   cdkTextareaAutosize
@@ -873,7 +873,7 @@
                   matInput
                   type="number"
                   [attr.id]="'field-' + field.key"
-                  [formControl]="getControl(field.key)"
+                  [formField]="getControl(field.key)"
                   [placeholder]="field.placeholder || ''" />
                 @if (field.description) {
                   <mat-hint>{{ field.description }}</mat-hint>
@@ -888,7 +888,7 @@
                   matInput
                   [attr.id]="'field-' + field.key"
                   type="text"
-                  [formControl]="getControl(field.key)"
+                  [formField]="getControl(field.key)"
                   [placeholder]="field.placeholder || ''" />
                 @if (field.description) {
                   <mat-hint>{{ field.description }}</mat-hint>
@@ -899,7 +899,7 @@
             @case ('select') {
               <mat-form-field appearance="outline" class="full-width">
                 <mat-label>{{ field.label }}</mat-label>
-                <mat-select [formControl]="getControl(field.key)">
+                <mat-select [formField]="getControl(field.key)">
                   @for (
                     option of getFieldOptions(field);
                     track getOptionValue(option)
@@ -919,7 +919,7 @@
               <mat-form-field appearance="outline" class="full-width">
                 <mat-label>{{ field.label }}</mat-label>
                 <mat-select
-                  [formControl]="$any(getControl(field.key))"
+                  [formField]="getMultiControl(field.key)"
                   [multiple]="true">
                   @for (
                     option of getFieldOptions(field);
@@ -938,7 +938,7 @@
 
             @case ('checkbox') {
               <div class="checkbox-field">
-                <mat-checkbox [formControl]="$any(getControl(field.key))">
+                <mat-checkbox [formField]="getCheckboxControl(field.key)">
                   {{ field.label }}
                 </mat-checkbox>
                 @if (field.description) {
@@ -955,7 +955,7 @@
                 }
 
                 @for (
-                  control of getFormArray(field.key).controls;
+                  control of getArrayItemControls(field.key);
                   track $index
                 ) {
                   <div class="array-item">
@@ -963,7 +963,7 @@
                       <input
                         matInput
                         [attr.id]="'field-' + field.key + '-' + $index"
-                        [formControl]="$any(control)"
+                        [formField]="control"
                         [placeholder]="field.placeholder || 'Add item'" />
                     </mat-form-field>
                     <button

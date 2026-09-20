@@ -114,30 +114,30 @@ describe('ResetPasswordComponent', () => {
     expect(component.noToken()).toBe(false);
   });
 
-  it('should validate passwords meet policy requirements', () => {
+  it('should validate passwords meet policy requirements', async () => {
     setupWithToken('abc123');
-    component.newPassword = 'short';
-    component.confirmPassword = 'short';
-    component.onPasswordInput();
+    component.form.newPassword().value.set('short');
+    component.form.confirmPassword().value.set('short');
+    await fixture.whenStable();
 
     expect(component.isFormValid()).toBe(false);
   });
 
-  it('should validate passwords match', () => {
+  it('should validate passwords match', async () => {
     setupWithToken('abc123');
-    component.newPassword = VALID_PASSWORD;
-    component.confirmPassword = 'different';
-    component.onPasswordInput();
+    component.form.newPassword().value.set(VALID_PASSWORD);
+    component.form.confirmPassword().value.set('different');
+    await fixture.whenStable();
 
     expect(component.isFormValid()).toBe(false);
     expect(component.getPasswordError()).toBe('Passwords do not match');
   });
 
-  it('should return null error when form is valid', () => {
+  it('should return null error when form is valid', async () => {
     setupWithToken('abc123');
-    component.newPassword = VALID_PASSWORD;
-    component.confirmPassword = VALID_PASSWORD;
-    component.onPasswordInput();
+    component.form.newPassword().value.set(VALID_PASSWORD);
+    component.form.confirmPassword().value.set(VALID_PASSWORD);
+    await fixture.whenStable();
 
     expect(component.isFormValid()).toBe(true);
     expect(component.getPasswordError()).toBeNull();
@@ -145,9 +145,9 @@ describe('ResetPasswordComponent', () => {
 
   it('should call resetPassword on valid submit', async () => {
     setupWithToken('my-token');
-    component.newPassword = VALID_PASSWORD;
-    component.confirmPassword = VALID_PASSWORD;
-    component.onPasswordInput();
+    component.form.newPassword().value.set(VALID_PASSWORD);
+    component.form.confirmPassword().value.set(VALID_PASSWORD);
+    await fixture.whenStable();
 
     await component.onSubmit();
 
@@ -161,9 +161,9 @@ describe('ResetPasswordComponent', () => {
 
   it('should not submit when form is invalid', async () => {
     setupWithToken('my-token');
-    component.newPassword = 'abc';
-    component.confirmPassword = 'abc';
-    component.onPasswordInput();
+    component.form.newPassword().value.set('abc');
+    component.form.confirmPassword().value.set('abc');
+    await fixture.whenStable();
 
     await component.onSubmit();
 
@@ -176,9 +176,9 @@ describe('ResetPasswordComponent', () => {
       error: { error: 'Token has expired' },
     });
 
-    component.newPassword = VALID_PASSWORD;
-    component.confirmPassword = VALID_PASSWORD;
-    component.onPasswordInput();
+    component.form.newPassword().value.set(VALID_PASSWORD);
+    component.form.confirmPassword().value.set(VALID_PASSWORD);
+    await fixture.whenStable();
     await component.onSubmit();
 
     expect(component.error()).toBe('Token has expired');
@@ -191,18 +191,18 @@ describe('ResetPasswordComponent', () => {
       new Error('Network error')
     );
 
-    component.newPassword = VALID_PASSWORD;
-    component.confirmPassword = VALID_PASSWORD;
-    component.onPasswordInput();
+    component.form.newPassword().value.set(VALID_PASSWORD);
+    component.form.confirmPassword().value.set(VALID_PASSWORD);
+    await fixture.whenStable();
     await component.onSubmit();
 
     expect(component.error()).toBe('Something went wrong. Please try again.');
   });
 
-  it('should update password requirements on input', () => {
+  it('should update password requirements on input', async () => {
     setupWithToken('abc123');
-    component.newPassword = 'Aa1!aaaa';
-    component.onPasswordInput();
+    component.form.newPassword().value.set('Aa1!aaaa');
+    await fixture.whenStable();
 
     expect(component.passwordRequirements['minLength'].met).toBe(true);
     expect(component.passwordRequirements['uppercase'].met).toBe(true);
@@ -211,14 +211,50 @@ describe('ResetPasswordComponent', () => {
     expect(component.passwordRequirements['special'].met).toBe(true);
   });
 
-  it('should detect unmet requirements', () => {
+  it('should detect unmet requirements', async () => {
     setupWithToken('abc123');
-    component.newPassword = 'lowercase';
-    component.onPasswordInput();
+    component.form.newPassword().value.set('lowercase');
+    await fixture.whenStable();
 
     expect(component.passwordRequirements['lowercase'].met).toBe(true);
     expect(component.passwordRequirements['uppercase'].met).toBe(false);
     expect(component.passwordRequirements['number'].met).toBe(false);
     expect(component.passwordRequirements['special'].met).toBe(false);
+  });
+
+  // Regression guard: the submit path must be wired up in the *template*, not
+  // just reachable by calling onSubmit() directly. A `<form>` whose submit
+  // binding has no matching directive compiles fine and fails silently at
+  // runtime, so dispatch a real submit event and assert the action is hit.
+  describe('template submit wiring', () => {
+    it('submits when the form element is submitted', async () => {
+      setupWithToken('abc123');
+      component.form.newPassword().value.set(VALID_PASSWORD);
+      component.form.confirmPassword().value.set(VALID_PASSWORD);
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      const formEl: HTMLFormElement = fixture.nativeElement.querySelector(
+        '[data-testid="reset-password-form"]'
+      );
+      expect(formEl).toBeTruthy();
+      formEl.dispatchEvent(
+        new Event('submit', { bubbles: true, cancelable: true })
+      );
+      await fixture.whenStable();
+
+      expect(mockPasswordResetService.resetPassword).toHaveBeenCalledWith(
+        'abc123',
+        VALID_PASSWORD
+      );
+    });
+
+    it('disables native browser validation on the form', () => {
+      setupWithToken('abc123');
+      const formEl: HTMLFormElement = fixture.nativeElement.querySelector(
+        '[data-testid="reset-password-form"]'
+      );
+      expect(formEl.hasAttribute('novalidate')).toBe(true);
+    });
   });
 });

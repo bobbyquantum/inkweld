@@ -1,5 +1,4 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import {
@@ -44,7 +43,6 @@ export interface MoveElementDialogResult {
     MatButtonModule,
     MatCheckboxModule,
     MatIconModule,
-    FormsModule,
     TranslocoModule,
   ],
 })

@@ -8,7 +8,6 @@ import {
   Output,
   signal,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -35,7 +34,6 @@ function isGradientValue(value: string): boolean {
   styleUrls: ['./color-swatches.component.scss'],
   changeDetection: ChangeDetectionStrategy.Eager,
   imports: [
-    FormsModule,
     MatIconModule,
     MatInputModule,
     MatTooltipModule,
