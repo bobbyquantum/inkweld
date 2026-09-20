@@ -6,7 +6,6 @@
  */
 
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
-import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
@@ -38,7 +37,6 @@ describe('ElementRefContextMenuComponent', () => {
       imports: [
         translocoTestProvider(),
         ElementRefContextMenuComponent,
-        FormsModule,
         MatButtonModule,
         MatDividerModule,
         MatIconModule,

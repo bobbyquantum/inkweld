@@ -5,7 +5,6 @@ import {
   signal,
 } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
-import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatDialog } from '@angular/material/dialog';
@@ -296,7 +295,6 @@ describe('SettingsTabComponent', () => {
     await TestBed.configureTestingModule({
       imports: [
         translocoTestProvider(),
-        FormsModule,
         MatButtonModule,
         MatCardModule,
         MatFormFieldModule,

@@ -1,6 +1,5 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
-import { FormsModule } from '@angular/forms';
 import { type ResolvedTag, type TagDefinition } from '@models/tag.model';
 import { TagService } from '@services/tag/tag.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -61,7 +60,7 @@ describe('TagChipListComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [translocoTestProvider(), TagChipListComponent, FormsModule],
+      imports: [translocoTestProvider(), TagChipListComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: TagService, useValue: mockTagService },

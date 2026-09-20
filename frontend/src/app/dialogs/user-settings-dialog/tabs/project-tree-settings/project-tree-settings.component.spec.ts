@@ -1,6 +1,5 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
-import { FormsModule } from '@angular/forms';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { SettingsService } from '@services/core/settings.service';
 import { StorageContextService } from '@services/core/storage-context.service';
@@ -38,7 +37,6 @@ describe('ProjectTreeSettingsComponent', () => {
       imports: [
         translocoTestProvider(),
         ProjectTreeSettingsComponent,
-        FormsModule,
         MatSlideToggleModule,
       ],
       providers: [

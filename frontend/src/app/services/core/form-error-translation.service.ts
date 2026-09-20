@@ -40,12 +40,6 @@ export class FormErrorTranslationService {
     return this.transloco.translate(key, params);
   }
 
-  /** Resolve the display text for a specific error kind if present. */
-  kind(errors: readonly FormValidationError[], kind: string): string {
-    const error = errors.find(e => e.kind === kind);
-    return error ? this.first([error]) : '';
-  }
-
   private errorParams(error: FormValidationError): Record<string, unknown> {
     const params: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(error as object)) {

@@ -1,6 +1,5 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
-import { FormsModule } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { type TagDefinition, type TagIndexEntry } from '@models/tag.model';
@@ -99,7 +98,7 @@ describe('TagsTabComponent', () => {
     };
 
     await TestBed.configureTestingModule({
-      imports: [translocoTestProvider(), TagsTabComponent, FormsModule],
+      imports: [translocoTestProvider(), TagsTabComponent],
       providers: [
         provideZonelessChangeDetection(),
         { provide: TagService, useValue: mockTagService },

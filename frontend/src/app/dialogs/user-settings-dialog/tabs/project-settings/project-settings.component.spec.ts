@@ -1,6 +1,5 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
-import { FormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { SettingsService } from '@services/core/settings.service';
@@ -41,7 +40,6 @@ describe('ProjectSettingsComponent', () => {
       imports: [
         translocoTestProvider(),
         ProjectSettingsComponent, // Updated
-        FormsModule,
         MatSlideToggleModule,
         MatFormFieldModule, // Added
       ],
