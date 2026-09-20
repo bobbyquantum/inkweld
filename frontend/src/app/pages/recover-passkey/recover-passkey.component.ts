@@ -4,7 +4,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { form, FormField, FormRoot, required } from '@angular/forms/signals';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -14,7 +14,12 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { RouterModule } from '@angular/router';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { PasskeyRecoveryService } from '@services/auth/passkey-recovery.service';
+import { FormErrorTranslationService } from '@services/core/form-error-translation.service';
 import { SystemConfigService } from '@services/core/system-config.service';
+
+interface RecoverPasskeyFormValue {
+  email: string;
+}
 
 /**
  * "Lost your passkey?" page — collects the user's email and asks the backend
@@ -33,7 +38,8 @@ import { SystemConfigService } from '@services/core/system-config.service';
 @Component({
   selector: 'app-recover-passkey',
   imports: [
-    FormsModule,
+    FormField,
+    FormRoot,
     MatButtonModule,
     MatCardModule,
     MatFormFieldModule,
@@ -51,16 +57,25 @@ export class RecoverPasskeyComponent {
   private readonly passkeyRecoveryService = inject(PasskeyRecoveryService);
   private readonly systemConfig = inject(SystemConfigService);
   private readonly transloco = inject(TranslocoService);
+  readonly formErrors = inject(FormErrorTranslationService);
 
   readonly isEmailRecoveryEnabled = this.systemConfig.isEmailRecoveryEnabled;
 
-  email = '';
+  readonly model = signal<RecoverPasskeyFormValue>({ email: '' });
+  readonly form = form(
+    this.model,
+    schemaPath => {
+      required(schemaPath.email);
+    },
+    { submission: { action: () => this.onSubmit() } }
+  );
+
   readonly isSubmitting = signal(false);
   readonly submitted = signal(false);
   readonly error = signal<string | null>(null);
 
   async onSubmit(): Promise<void> {
-    if (!this.email.trim()) {
+    if (!this.model().email.trim()) {
       this.error.set(this.transloco.translate('validation.emailRequired'));
       return;
     }
@@ -69,7 +84,9 @@ export class RecoverPasskeyComponent {
     this.error.set(null);
 
     try {
-      await this.passkeyRecoveryService.requestRecovery(this.email.trim());
+      await this.passkeyRecoveryService.requestRecovery(
+        this.model().email.trim()
+      );
       // Backend always returns 200 to prevent enumeration — surface the same
       // generic confirmation regardless of whether a user was actually found.
       this.submitted.set(true);

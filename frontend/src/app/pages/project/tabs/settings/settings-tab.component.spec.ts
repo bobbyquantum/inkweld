@@ -5,7 +5,6 @@ import {
   signal,
 } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
-import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatDialog } from '@angular/material/dialog';
@@ -296,7 +295,6 @@ describe('SettingsTabComponent', () => {
     await TestBed.configureTestingModule({
       imports: [
         translocoTestProvider(),
-        FormsModule,
         MatButtonModule,
         MatCardModule,
         MatFormFieldModule,
@@ -1022,8 +1020,10 @@ describe('SettingsTabComponent', () => {
 
     it('should invite a collaborator', async () => {
       await component.loadCollaborators();
-      component.inviteUsername = 'newuser';
-      component.inviteRole = CollaboratorRole.Editor;
+      component.inviteModel.set({
+        inviteUsername: 'newuser',
+        inviteRole: CollaboratorRole.Editor,
+      });
 
       await component.inviteCollaborator();
       await fixture.whenStable();
@@ -1040,7 +1040,7 @@ describe('SettingsTabComponent', () => {
     });
 
     it('should not invite if username is empty', async () => {
-      component.inviteUsername = '';
+      component.inviteModel.update(m => ({ ...m, inviteUsername: '' }));
 
       await component.inviteCollaborator();
       await fixture.whenStable();
@@ -1110,8 +1110,10 @@ describe('SettingsTabComponent', () => {
         collaborationService.inviteCollaborator as ReturnType<typeof vi.fn>
       ).mockReturnValue(throwError(() => new Error('User not found')));
 
-      component.inviteUsername = 'nonexistent';
-      component.inviteRole = CollaboratorRole.Editor;
+      component.inviteModel.set({
+        inviteUsername: 'nonexistent',
+        inviteRole: CollaboratorRole.Editor,
+      });
 
       await component.inviteCollaborator();
       await fixture.whenStable();
@@ -1180,18 +1182,20 @@ describe('SettingsTabComponent', () => {
     });
 
     it('should reset invite form', () => {
-      component.inviteUsername = 'someone';
-      component.inviteRole = CollaboratorRole.Admin;
+      component.inviteModel.set({
+        inviteUsername: 'someone',
+        inviteRole: CollaboratorRole.Admin,
+      });
 
       component.resetInviteForm();
 
-      expect(component.inviteUsername).toBe('');
-      expect(component.inviteRole).toBe(CollaboratorRole.Viewer);
+      expect(component.inviteModel().inviteUsername).toBe('');
+      expect(component.inviteModel().inviteRole).toBe(CollaboratorRole.Viewer);
     });
 
     it('should not invite collaborator without project', async () => {
       (projectStateService.project as ReturnType<typeof signal>).set(undefined);
-      component.inviteUsername = 'newuser';
+      component.inviteModel.update(m => ({ ...m, inviteUsername: 'newuser' }));
       await component.inviteCollaborator();
       expect(collaborationService.inviteCollaborator).not.toHaveBeenCalled();
     });
@@ -1243,58 +1247,58 @@ describe('SettingsTabComponent', () => {
         valid: true,
       },
     ])('$name', ({ slug, valid }) => {
-      component['newProjectSlug'] = slug;
+      component['renameModel'].set({ newProjectSlug: slug });
       expect(component.isValidSlug()).toBe(valid);
     });
 
     it('should validate slug - invalid chars are rejected', () => {
-      component['newProjectSlug'] = 'invalid_slug';
+      component['renameModel'].set({ newProjectSlug: 'invalid_slug' });
       expect(component.isValidSlug()).toBe(false);
 
-      component['newProjectSlug'] = 'Invalid';
+      component['renameModel'].set({ newProjectSlug: 'Invalid' });
       expect(component.isValidSlug()).toBe(false);
 
-      component['newProjectSlug'] = 'has spaces';
+      component['renameModel'].set({ newProjectSlug: 'has spaces' });
       expect(component.isValidSlug()).toBe(false);
     });
 
     it('should validate slug - same as current slug is invalid', () => {
-      component['newProjectSlug'] = 'test-project';
+      component['renameModel'].set({ newProjectSlug: 'test-project' });
       expect(component.isValidSlug()).toBe(false);
     });
 
     it('should validate slug - different valid slug is valid', () => {
-      component['newProjectSlug'] = 'new-valid-slug';
+      component['renameModel'].set({ newProjectSlug: 'new-valid-slug' });
       expect(component.isValidSlug()).toBe(true);
     });
 
     it('should cancel rename form', () => {
       component['showRenameForm'].set(true);
-      component['newProjectSlug'] = 'some-slug';
+      component['renameModel'].set({ newProjectSlug: 'some-slug' });
       component['renameError'].set('Some error');
 
       component.cancelRename();
 
       expect(component['showRenameForm']()).toBe(false);
-      expect(component['newProjectSlug']).toBe('');
+      expect(component['renameModel']().newProjectSlug).toBe('');
       expect(component['renameError']()).toBeNull();
     });
 
     it('should not rename if slug is invalid', async () => {
-      component['newProjectSlug'] = '';
+      component['renameModel'].set({ newProjectSlug: '' });
       await component.renameProject();
       expect(projectsService.updateProject).not.toHaveBeenCalled();
     });
 
     it('should not rename if no project', async () => {
       (projectStateService.project as ReturnType<typeof signal>).set(undefined);
-      component['newProjectSlug'] = 'new-slug';
+      component['renameModel'].set({ newProjectSlug: 'new-slug' });
       await component.renameProject();
       expect(projectsService.updateProject).not.toHaveBeenCalled();
     });
 
     it('should call API to rename project with valid slug', async () => {
-      component['newProjectSlug'] = 'new-slug';
+      component['renameModel'].set({ newProjectSlug: 'new-slug' });
       await component.renameProject();
 
       expect(projectsService.updateProject).toHaveBeenCalledWith(
@@ -1310,7 +1314,7 @@ describe('SettingsTabComponent', () => {
     });
 
     it('should set isRenaming during rename operation', async () => {
-      component['newProjectSlug'] = 'new-slug';
+      component['renameModel'].set({ newProjectSlug: 'new-slug' });
 
       expect(component['isRenaming']()).toBe(false);
 
@@ -1328,7 +1332,7 @@ describe('SettingsTabComponent', () => {
         projectsService.updateProject as ReturnType<typeof vi.fn>
       ).mockReturnValue(throwError(() => new Error('Slug already exists')));
 
-      component['newProjectSlug'] = 'existing-slug';
+      component['renameModel'].set({ newProjectSlug: 'existing-slug' });
       await component.renameProject();
 
       expect(component['renameError']()).toBe('Slug already exists');
@@ -1340,7 +1344,7 @@ describe('SettingsTabComponent', () => {
         projectsService.updateProject as ReturnType<typeof vi.fn>
       ).mockReturnValue(throwError(() => 'Unknown error'));
 
-      component['newProjectSlug'] = 'some-slug';
+      component['renameModel'].set({ newProjectSlug: 'some-slug' });
       await component.renameProject();
 
       expect(component['renameError']()).toBe(

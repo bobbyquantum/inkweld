@@ -82,8 +82,8 @@ describe('AccountSettingsComponent (dialog tab)', () => {
   });
 
   it('should populate fields from current user on init', () => {
-    expect(component.displayName).toBe('Test User');
-    expect(component.email).toBe('test@example.com');
+    expect(component.model().displayName).toBe('Test User');
+    expect(component.model().email).toBe('test@example.com');
   });
 
   it('should reflect local mode from system config', () => {
@@ -124,7 +124,7 @@ describe('AccountSettingsComponent (dialog tab)', () => {
     });
 
     it('should save only changed name', async () => {
-      component.displayName = 'New Name';
+      component.form.displayName().value.set('New Name');
       await component.saveProfile();
 
       expect(mockUserService.updateProfile).toHaveBeenCalledWith({
@@ -138,7 +138,7 @@ describe('AccountSettingsComponent (dialog tab)', () => {
     });
 
     it('should save only changed email', async () => {
-      component.email = 'new@example.com';
+      component.form.email().value.set('new@example.com');
       await component.saveProfile();
 
       expect(mockUserService.updateProfile).toHaveBeenCalledWith({
@@ -147,8 +147,8 @@ describe('AccountSettingsComponent (dialog tab)', () => {
     });
 
     it('should save both name and email when both changed', async () => {
-      component.displayName = 'New Name';
-      component.email = 'new@example.com';
+      component.form.displayName().value.set('New Name');
+      component.form.email().value.set('new@example.com');
       await component.saveProfile();
 
       expect(mockUserService.updateProfile).toHaveBeenCalledWith({
@@ -159,8 +159,8 @@ describe('AccountSettingsComponent (dialog tab)', () => {
 
     it('should not send email in local mode even if changed', async () => {
       mockSystemConfig.isLocalMode.mockReturnValue(true);
-      component.displayName = 'New Name';
-      component.email = 'new@example.com';
+      component.form.displayName().value.set('New Name');
+      component.form.email().value.set('new@example.com');
       await component.saveProfile();
 
       expect(mockUserService.updateProfile).toHaveBeenCalledWith({
@@ -172,7 +172,7 @@ describe('AccountSettingsComponent (dialog tab)', () => {
       mockUserService.updateProfile.mockRejectedValue(
         new Error('Network error')
       );
-      component.displayName = 'New Name';
+      component.form.displayName().value.set('New Name');
       await component.saveProfile();
 
       expect(mockSnackBar.open).toHaveBeenCalledWith(
@@ -190,7 +190,7 @@ describe('AccountSettingsComponent (dialog tab)', () => {
         enabled: true,
       });
 
-      component.displayName = 'New Name';
+      component.form.displayName().value.set('New Name');
       const savePromise = component.saveProfile();
 
       // isSaving is set synchronously before any await
@@ -302,10 +302,16 @@ describe('AccountSettingsComponent (dialog tab)', () => {
 
   describe('public profile section', () => {
     it('defaults to a private profile when the user has no settings yet', () => {
-      expect(component.bio).toBe('');
-      expect(component.profileVisibility).toBe(ProfileVisibility.Private);
-      expect(component.activityVisibility).toBe(ProfileVisibility.Public);
-      expect(component.projectsVisibility).toBe(ProfileVisibility.Private);
+      expect(component.model().bio).toBe('');
+      expect(component.model().profileVisibility).toBe(
+        ProfileVisibility.Private
+      );
+      expect(component.model().activityVisibility).toBe(
+        ProfileVisibility.Public
+      );
+      expect(component.model().projectsVisibility).toBe(
+        ProfileVisibility.Private
+      );
       const el: HTMLElement = fixture.nativeElement;
       expect(
         el.querySelector('[data-testid="public-profile-section"]')
@@ -340,10 +346,10 @@ describe('AccountSettingsComponent (dialog tab)', () => {
       fixture = TestBed.createComponent(AccountSettingsComponent);
       fixture.detectChanges();
       const c = fixture.componentInstance;
-      expect(c.bio).toBe('Hello');
-      expect(c.profileVisibility).toBe(ProfileVisibility.Public);
-      expect(c.activityVisibility).toBe(ProfileVisibility.Members);
-      expect(c.projectsVisibility).toBe(ProfileVisibility.Public);
+      expect(c.model().bio).toBe('Hello');
+      expect(c.model().profileVisibility).toBe(ProfileVisibility.Public);
+      expect(c.model().activityVisibility).toBe(ProfileVisibility.Members);
+      expect(c.model().projectsVisibility).toBe(ProfileVisibility.Public);
       expect(
         fixture.nativeElement.querySelector(
           '[data-testid="profile-sections-group"]'
@@ -367,19 +373,32 @@ describe('AccountSettingsComponent (dialog tab)', () => {
 
     it('pulls wider section levels down when the profile narrows', () => {
       component.onProfileVisibilityChange(ProfileVisibility.Public);
-      component.activityVisibility = ProfileVisibility.Public;
-      component.projectsVisibility = ProfileVisibility.Private;
+      component.model.update(m => ({
+        ...m,
+        activityVisibility: ProfileVisibility.Public,
+      }));
+      component.model.update(m => ({
+        ...m,
+        projectsVisibility: ProfileVisibility.Private,
+      }));
 
       component.onProfileVisibilityChange(ProfileVisibility.Members);
-      expect(component.activityVisibility).toBe(ProfileVisibility.Members);
+      expect(component.model().activityVisibility).toBe(
+        ProfileVisibility.Members
+      );
       // Already stricter — left alone.
-      expect(component.projectsVisibility).toBe(ProfileVisibility.Private);
+      expect(component.model().projectsVisibility).toBe(
+        ProfileVisibility.Private
+      );
     });
 
     it('saves only the changed profile fields', async () => {
-      component.bio = '  Slow-burn fantasy.  ';
+      component.form.bio().value.set('  Slow-burn fantasy.  ');
       component.onProfileVisibilityChange(ProfileVisibility.Public);
-      component.activityVisibility = ProfileVisibility.Members;
+      component.model.update(m => ({
+        ...m,
+        activityVisibility: ProfileVisibility.Members,
+      }));
       await component.saveProfile();
 
       expect(mockUserService.updateProfile).toHaveBeenCalledWith({
@@ -391,9 +410,9 @@ describe('AccountSettingsComponent (dialog tab)', () => {
 
     it('does not send profile fields in local mode', async () => {
       mockSystemConfig.isLocalMode.mockReturnValue(true);
-      component.bio = 'x';
+      component.form.bio().value.set('x');
       component.onProfileVisibilityChange(ProfileVisibility.Public);
-      component.displayName = 'New Name';
+      component.form.displayName().value.set('New Name');
       await component.saveProfile();
       expect(mockUserService.updateProfile).toHaveBeenCalledWith({
         name: 'New Name',

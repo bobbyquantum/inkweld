@@ -6,7 +6,6 @@
  */
 
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
-import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatListModule } from '@angular/material/list';
@@ -70,7 +69,6 @@ describe('ElementRefPopupComponent', () => {
       imports: [
         translocoTestProvider(),
         ElementRefPopupComponent,
-        FormsModule,
         MatIconModule,
         MatInputModule,
         MatListModule,

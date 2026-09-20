@@ -5,7 +5,6 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import {
@@ -68,7 +67,6 @@ const MIN_FRAME_SIZE = 16;
   styleUrls: ['./canvas-setup-dialog.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    FormsModule,
     MatDialogModule,
     MatButtonModule,
     MatButtonToggleModule,

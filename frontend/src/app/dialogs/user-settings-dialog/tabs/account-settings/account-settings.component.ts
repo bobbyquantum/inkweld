@@ -7,7 +7,7 @@ import {
   type OnInit,
   signal,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { form, FormField, maxLength } from '@angular/forms/signals';
 import { MatButtonModule } from '@angular/material/button';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatDividerModule } from '@angular/material/divider';
@@ -27,10 +27,19 @@ import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { SystemConfigService } from '@services/core/system-config.service';
 import { UserService } from '@services/user/user.service';
 
+interface AccountSettingsFormValue {
+  displayName: string;
+  email: string;
+  bio: string;
+  profileVisibility: ProfileVisibility;
+  activityVisibility: ProfileVisibility;
+  projectsVisibility: ProfileVisibility;
+}
+
 @Component({
   selector: 'app-account-settings',
   imports: [
-    FormsModule,
+    FormField,
     MatButtonModule,
     MatChipsModule,
     MatDividerModule,
@@ -46,7 +55,7 @@ import { UserService } from '@services/user/user.service';
     PasskeysSettingsComponent,
   ],
   templateUrl: './account-settings.component.html',
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './account-settings.component.scss',
 })
 export class AccountSettingsComponent implements OnInit {
@@ -59,12 +68,17 @@ export class AccountSettingsComponent implements OnInit {
   readonly isSaving = signal(false);
   readonly authProvider = signal<UserAuthProvider | undefined>(undefined);
 
-  displayName = '';
-  email = '';
-  bio = '';
-  profileVisibility: ProfileVisibility = ProfileVisibility.Private;
-  activityVisibility: ProfileVisibility = ProfileVisibility.Public;
-  projectsVisibility: ProfileVisibility = ProfileVisibility.Private;
+  readonly model = signal<AccountSettingsFormValue>({
+    displayName: '',
+    email: '',
+    bio: '',
+    profileVisibility: ProfileVisibility.Private,
+    activityVisibility: ProfileVisibility.Public,
+    projectsVisibility: ProfileVisibility.Private,
+  });
+  readonly form = form(this.model, schemaPath => {
+    maxLength(schemaPath.bio, 500);
+  });
 
   /** Profile-level choices, most open first. */
   readonly visibilityLevels: ProfileVisibility[] = [
@@ -89,16 +103,15 @@ export class AccountSettingsComponent implements OnInit {
 
   ngOnInit(): void {
     const user = this.userService.currentUser();
-    this.displayName = user.name ?? '';
-    this.email = user.email ?? '';
-    this.bio = user.bio ?? '';
-    this.profileVisibility =
-      user.profileVisibility ?? ProfileVisibility.Private;
-    this.activityVisibility =
-      user.activityVisibility ?? ProfileVisibility.Public;
-    this.projectsVisibility =
-      user.projectsVisibility ?? ProfileVisibility.Private;
-    this.profileLevel.set(this.profileVisibility);
+    this.model.set({
+      displayName: user.name ?? '',
+      email: user.email ?? '',
+      bio: user.bio ?? '',
+      profileVisibility: user.profileVisibility ?? ProfileVisibility.Private,
+      activityVisibility: user.activityVisibility ?? ProfileVisibility.Public,
+      projectsVisibility: user.projectsVisibility ?? ProfileVisibility.Private,
+    });
+    this.profileLevel.set(this.model().profileVisibility);
     this.authProvider.set(user.authProvider);
   }
 
@@ -107,15 +120,19 @@ export class AccountSettingsComponent implements OnInit {
    * section that was wider than the new profile level is pulled down to it.
    */
   onProfileVisibilityChange(level: ProfileVisibility): void {
-    this.profileVisibility = level;
+    // Update the mirror first so sectionLevels() reflects the new profile.
     this.profileLevel.set(level);
     const allowed = this.sectionLevels();
-    if (!allowed.includes(this.activityVisibility)) {
-      this.activityVisibility = level;
-    }
-    if (!allowed.includes(this.projectsVisibility)) {
-      this.projectsVisibility = level;
-    }
+    this.model.update(m => ({
+      ...m,
+      profileVisibility: level,
+      activityVisibility: allowed.includes(m.activityVisibility)
+        ? m.activityVisibility
+        : level,
+      projectsVisibility: allowed.includes(m.projectsVisibility)
+        ? m.projectsVisibility
+        : level,
+    }));
   }
 
   /**
@@ -125,8 +142,9 @@ export class AccountSettingsComponent implements OnInit {
   private collectChanges(): UpdateProfileRequest {
     const data: UpdateProfileRequest = {};
     const currentUser = this.userService.currentUser();
+    const values = this.model();
 
-    const newName = this.displayName.trim();
+    const newName = values.displayName.trim();
     if (newName !== (currentUser.name ?? '')) {
       data.name = newName;
     }
@@ -134,11 +152,11 @@ export class AccountSettingsComponent implements OnInit {
       return data;
     }
 
-    const newEmail = this.email.trim();
+    const newEmail = values.email.trim();
     if (newEmail !== (currentUser.email ?? '')) {
       data.email = newEmail;
     }
-    const newBio = this.bio.trim();
+    const newBio = values.bio.trim();
     if (newBio !== (currentUser.bio ?? '')) {
       data.bio = newBio;
     }
@@ -150,11 +168,19 @@ export class AccountSettingsComponent implements OnInit {
         fallback: ProfileVisibility,
       ]
     > = [
-      ['profileVisibility', this.profileVisibility, ProfileVisibility.Private],
-      ['activityVisibility', this.activityVisibility, ProfileVisibility.Public],
+      [
+        'profileVisibility',
+        values.profileVisibility,
+        ProfileVisibility.Private,
+      ],
+      [
+        'activityVisibility',
+        values.activityVisibility,
+        ProfileVisibility.Public,
+      ],
       [
         'projectsVisibility',
-        this.projectsVisibility,
+        values.projectsVisibility,
         ProfileVisibility.Private,
       ],
     ];

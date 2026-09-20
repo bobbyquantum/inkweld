@@ -6,7 +6,6 @@ import {
   type OnInit,
   signal,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -41,7 +40,6 @@ const MAX_UPLOAD_BYTES = 12 * 1024 * 1024;
 @Component({
   selector: 'app-admin-appearance',
   imports: [
-    FormsModule,
     MatButtonModule,
     MatCardModule,
     MatFormFieldModule,

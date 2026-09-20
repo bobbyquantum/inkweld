@@ -79,7 +79,7 @@ describe('CreateMcpKeyDialogComponent', () => {
 
   describe('getExpirationTimestamp', () => {
     it('should return undefined for "never"', () => {
-      (component as any).keyExpiration = 'never';
+      component.form.keyExpiration().value.set('never');
       const result = (component as any).getExpirationTimestamp() as
         number | undefined;
       expect(result).toBeUndefined();
@@ -92,7 +92,9 @@ describe('CreateMcpKeyDialogComponent', () => {
     ])('should return correct timestamp for "%s"', (expiration, offsetMs) => {
       const fixedNow = 1_700_000_000_000;
       vi.spyOn(Date, 'now').mockReturnValue(fixedNow);
-      (component as any).keyExpiration = expiration;
+      component.form
+        .keyExpiration()
+        .value.set(expiration as '7days' | '30days' | '90days');
       const result = (component as any).getExpirationTimestamp() as number;
       expect(result).toBe(fixedNow + offsetMs);
     });
@@ -146,21 +148,21 @@ describe('CreateMcpKeyDialogComponent', () => {
 
   describe('createKey', () => {
     it('should not call API if no key name', async () => {
-      (component as any).keyName = '';
+      component.form.keyName().value.set('');
       component.togglePermission(McpPermission.ReadProject);
       await component.createKey();
       expect(mcpKeysService.createMcpKey).not.toHaveBeenCalled();
     });
 
     it('should not call API if no permissions selected', async () => {
-      (component as any).keyName = 'My Key';
+      component.form.keyName().value.set('My Key');
       component.clearPermissions();
       await component.createKey();
       expect(mcpKeysService.createMcpKey).not.toHaveBeenCalled();
     });
 
     it('should create key and close dialog on success', async () => {
-      (component as any).keyName = 'My Key';
+      component.form.keyName().value.set('My Key');
       component.togglePermission(McpPermission.ReadProject);
       await component.createKey();
       expect(mcpKeysService.createMcpKey).toHaveBeenCalled();
@@ -183,7 +185,7 @@ describe('CreateMcpKeyDialogComponent', () => {
       mcpKeysService.createMcpKey.mockReturnValue(
         throwError(() => new Error('API error'))
       );
-      (component as any).keyName = 'My Key';
+      component.form.keyName().value.set('My Key');
       component.togglePermission(McpPermission.ReadProject);
       await component.createKey();
       expect(snackBar.open).toHaveBeenCalledWith(

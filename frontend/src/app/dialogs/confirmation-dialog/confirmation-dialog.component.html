@@ -22,7 +22,7 @@
         matInput
         id="confirm-dialog-input"
         [attr.aria-label]="'dialogs.confirmation.typeToConfirmAria' | transloco"
-        [(ngModel)]="confirmationInput"
+        [formField]="form.confirmationInput"
         [placeholder]="
           'dialogs.confirmation.typeToConfirmPlaceholder' | transloco
         "
@@ -41,7 +41,7 @@
     data-testid="confirm-delete-button"
     [disabled]="
       data.requireConfirmationText &&
-      confirmationInput !== data.requireConfirmationText
+      model().confirmationInput !== data.requireConfirmationText
     ">
     {{ data.confirmText || ('confirm' | transloco) }}
   </button>

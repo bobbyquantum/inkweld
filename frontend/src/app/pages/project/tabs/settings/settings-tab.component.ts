@@ -8,7 +8,7 @@ import {
   type OnDestroy,
   signal,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { form, FormField, pattern, required } from '@angular/forms/signals';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
@@ -69,7 +69,7 @@ import { TimeSystemsSettingsComponent } from './time-systems-settings/time-syste
   changeDetection: ChangeDetectionStrategy.Eager,
   imports: [
     DatePipe,
-    FormsModule,
+    FormField,
     MatButtonModule,
     MatCardModule,
     MatChipsModule,
@@ -176,7 +176,15 @@ export class SettingsTabComponent implements OnDestroy {
   protected readonly showRenameForm = signal(false);
   protected readonly isRenaming = signal(false);
   protected readonly renameError = signal<string | null>(null);
-  protected newProjectSlug = '';
+  readonly renameModel = signal<{ newProjectSlug: string }>({
+    newProjectSlug: '',
+  });
+  readonly renameForm = form(this.renameModel, schemaPath => {
+    required(schemaPath.newProjectSlug);
+    pattern(schemaPath.newProjectSlug, /^[a-z0-9-]+$/, {
+      message: 'validation.lowercaseHyphens',
+    });
+  });
 
   // Danger zone: project delete state
   protected readonly isDeleting = signal(false);
@@ -199,8 +207,14 @@ export class SettingsTabComponent implements OnDestroy {
     )
   );
   protected readonly isInviting = signal(false);
-  inviteUsername = '';
-  inviteRole: CollaboratorRole = CollaboratorRole.Viewer;
+  readonly inviteModel = signal<{
+    inviteUsername: string;
+    inviteRole: CollaboratorRole;
+  }>({
+    inviteUsername: '',
+    inviteRole: CollaboratorRole.Viewer,
+  });
+  readonly inviteForm = form(this.inviteModel);
 
   // Role options for dropdown
   protected readonly roleOptions = [
@@ -522,13 +536,15 @@ export class SettingsTabComponent implements OnDestroy {
   }
 
   resetInviteForm(): void {
-    this.inviteUsername = '';
-    this.inviteRole = CollaboratorRole.Viewer;
+    this.inviteModel.set({
+      inviteUsername: '',
+      inviteRole: CollaboratorRole.Viewer,
+    });
   }
 
   async inviteCollaborator(): Promise<void> {
     const project = this.projectState.project();
-    if (!project || !this.inviteUsername.trim()) {
+    if (!project || !this.inviteModel().inviteUsername.trim()) {
       return;
     }
 
@@ -539,13 +555,16 @@ export class SettingsTabComponent implements OnDestroy {
         this.collaborationService.inviteCollaborator(
           project.username,
           project.slug,
-          { username: this.inviteUsername.trim(), role: this.inviteRole }
+          {
+            username: this.inviteModel().inviteUsername.trim(),
+            role: this.inviteModel().inviteRole,
+          }
         )
       );
 
       this.collaborators.update(collabs => [...collabs, collaborator]);
       this.snackBar.open(
-        `Invited ${this.inviteUsername} as ${this.inviteRole}`,
+        `Invited ${this.inviteModel().inviteUsername} as ${this.inviteModel().inviteRole}`,
         'Close',
         {
           duration: 3000,
@@ -924,7 +943,7 @@ export class SettingsTabComponent implements OnDestroy {
    * Check if the entered slug is valid
    */
   isValidSlug(): boolean {
-    const slug = this.newProjectSlug.trim();
+    const slug = this.renameModel().newProjectSlug.trim();
     if (!slug || slug.length < 3) return false;
     if (!/^[a-z0-9-]+$/.test(slug)) return false;
 
@@ -940,7 +959,7 @@ export class SettingsTabComponent implements OnDestroy {
    */
   cancelRename(): void {
     this.showRenameForm.set(false);
-    this.newProjectSlug = '';
+    this.renameModel.set({ newProjectSlug: '' });
     this.renameError.set(null);
   }
 
@@ -951,7 +970,7 @@ export class SettingsTabComponent implements OnDestroy {
     const project = this.projectState.project();
     if (!project || !this.isValidSlug()) return;
 
-    const newSlug = this.newProjectSlug.trim();
+    const newSlug = this.renameModel().newProjectSlug.trim();
     const oldSlug = project.slug;
 
     this.isRenaming.set(true);

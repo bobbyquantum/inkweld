@@ -7,7 +7,13 @@ import {
   type OnInit,
   signal,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import {
+  form,
+  FormField,
+  FormRoot,
+  required,
+  validate,
+} from '@angular/forms/signals';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -28,10 +34,16 @@ interface PasswordRequirement {
   enabled: boolean;
 }
 
+interface ResetPasswordFormValue {
+  newPassword: string;
+  confirmPassword: string;
+}
+
 @Component({
   selector: 'app-reset-password',
   imports: [
-    FormsModule,
+    FormField,
+    FormRoot,
     KeyValuePipe,
     MatButtonModule,
     MatCardModule,
@@ -53,8 +65,29 @@ export class ResetPasswordComponent implements OnInit {
   private readonly transloco = inject(TranslocoService);
   private readonly policy = this.systemConfig.passwordPolicy;
 
-  newPassword = '';
-  confirmPassword = '';
+  readonly model = signal<ResetPasswordFormValue>({
+    newPassword: '',
+    confirmPassword: '',
+  });
+
+  readonly form = form(
+    this.model,
+    schemaPath => {
+      required(schemaPath.newPassword);
+      required(schemaPath.confirmPassword);
+      validate(schemaPath.newPassword, () => this.passwordValidatorErrors());
+      validate(schemaPath.confirmPassword, ({ value, valueOf }) => {
+        const confirm = value();
+        if (!confirm) return null;
+        const password = valueOf(schemaPath.newPassword);
+        return password && confirm !== password
+          ? { kind: 'passwordMismatch' }
+          : null;
+      });
+    },
+    { submission: { action: () => this.onSubmit() } }
+  );
+
   private token = '';
 
   readonly isSubmitting = signal(false);
@@ -115,9 +148,16 @@ export class ResetPasswordComponent implements OnInit {
       this.passwordRequirements['number'].enabled = p.requireNumber;
       this.passwordRequirements['special'].enabled = p.requireSymbol;
       // Re-evaluate met status with current password
-      if (this.newPassword) {
-        this.updatePasswordRequirements(this.newPassword);
+      const password = this.model().newPassword;
+      if (password) {
+        this.updatePasswordRequirements(password);
       }
+    });
+
+    // Update password requirements when the password changes
+    effect(() => {
+      const password = this.model().newPassword;
+      this.updatePasswordRequirements(password);
     });
   }
 
@@ -128,15 +168,11 @@ export class ResetPasswordComponent implements OnInit {
     }
   }
 
-  onPasswordInput(): void {
-    this.updatePasswordRequirements(this.newPassword);
-  }
-
   isFormValid(): boolean {
     return (
       this.isPasswordValid() &&
-      this.newPassword.length > 0 &&
-      this.newPassword === this.confirmPassword
+      this.model().newPassword.length > 0 &&
+      this.model().newPassword === this.model().confirmPassword
     );
   }
 
@@ -147,7 +183,7 @@ export class ResetPasswordComponent implements OnInit {
   }
 
   getPasswordError(): string | null {
-    if (this.newPassword && !this.isPasswordValid()) {
+    if (this.model().newPassword && !this.isPasswordValid()) {
       const unmet = Object.values(this.passwordRequirements).find(
         req => req.enabled && !req.met
       );
@@ -155,7 +191,10 @@ export class ResetPasswordComponent implements OnInit {
         ? this.transloco.translate(unmet.messageKey, unmet.messageParams)
         : this.transloco.translate('auth.registration.passwordTooWeak');
     }
-    if (this.confirmPassword && this.newPassword !== this.confirmPassword) {
+    if (
+      this.model().confirmPassword &&
+      this.model().newPassword !== this.model().confirmPassword
+    ) {
       return this.transloco.translate('auth.registration.passwordsMismatch');
     }
     return null;
@@ -170,7 +209,7 @@ export class ResetPasswordComponent implements OnInit {
     try {
       await this.passwordResetService.resetPassword(
         this.token,
-        this.newPassword
+        this.model().newPassword
       );
       this.success.set(true);
     } catch (err: unknown) {
@@ -192,6 +231,33 @@ export class ResetPasswordComponent implements OnInit {
     } finally {
       this.isSubmitting.set(false);
     }
+  }
+
+  private passwordValidatorErrors(): { kind: string } | null {
+    const password = this.model().newPassword;
+    if (!password) {
+      return null;
+    }
+
+    const p = this.policy();
+
+    if (password.length < p.minLength) {
+      return { kind: 'minLength' };
+    }
+    if (p.requireUppercase && !/[A-Z]/.test(password)) {
+      return { kind: 'uppercase' };
+    }
+    if (p.requireLowercase && !/[a-z]/.test(password)) {
+      return { kind: 'lowercase' };
+    }
+    if (p.requireNumber && !/\d/.test(password)) {
+      return { kind: 'number' };
+    }
+    if (p.requireSymbol && !/[@$!%*?&]/.test(password)) {
+      return { kind: 'special' };
+    }
+
+    return null;
   }
 
   private updatePasswordRequirements(password: string): void {

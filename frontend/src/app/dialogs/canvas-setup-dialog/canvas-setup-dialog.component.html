@@ -42,8 +42,8 @@
               type="number"
               id="canvas-setup-width-input"
               [attr.aria-label]="'canvas.frames.widthLabel' | transloco"
-              [ngModel]="customWidth()"
-              (ngModelChange)="customWidth.set($event)"
+              [value]="customWidth()"
+              (input)="customWidth.set($any($event.target).value)"
               data-testid="canvas-size-width" />
           </mat-form-field>
           <mat-form-field appearance="outline">
@@ -53,8 +53,8 @@
               type="number"
               id="canvas-setup-height-input"
               [attr.aria-label]="'canvas.frames.heightLabel' | transloco"
-              [ngModel]="customHeight()"
-              (ngModelChange)="customHeight.set($event)"
+              [value]="customHeight()"
+              (input)="customHeight.set($any($event.target).value)"
               data-testid="canvas-size-height" />
           </mat-form-field>
         </div>

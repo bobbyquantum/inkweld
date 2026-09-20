@@ -48,13 +48,13 @@ describe('ForgotPasswordComponent', () => {
   });
 
   it('should show error when submitting empty email', async () => {
-    component.email = '';
+    component.form.email().value.set('');
     await component.onSubmit();
     expect(component.error()).toBe('Email address is required');
   });
 
   it('should call forgotPassword on valid submit', async () => {
-    component.email = 'user@example.com';
+    component.form.email().value.set('user@example.com');
     await component.onSubmit();
 
     expect(mockPasswordResetService.forgotPassword).toHaveBeenCalledWith(
@@ -69,15 +69,44 @@ describe('ForgotPasswordComponent', () => {
       new Error('fail')
     );
 
-    component.email = 'user@example.com';
+    component.form.email().value.set('user@example.com');
     await component.onSubmit();
 
     expect(component.error()).toBe('Something went wrong. Please try again.');
     expect(component.submitted()).toBe(false);
   });
 
+  // Regression guard: the submit path must be wired up in the *template*, not
+  // just reachable by calling onSubmit() directly. A `<form>` whose submit
+  // binding has no matching directive compiles fine and fails silently at
+  // runtime, so dispatch a real submit event and assert the service is hit.
+  it('submits when the form element is submitted', async () => {
+    component.form.email().value.set('user@example.com');
+    fixture.detectChanges();
+
+    const formEl: HTMLFormElement = fixture.nativeElement.querySelector(
+      '[data-testid="forgot-password-form"]'
+    );
+    expect(formEl).toBeTruthy();
+    formEl.dispatchEvent(
+      new Event('submit', { bubbles: true, cancelable: true })
+    );
+    await fixture.whenStable();
+
+    expect(mockPasswordResetService.forgotPassword).toHaveBeenCalledWith(
+      'user@example.com'
+    );
+  });
+
+  it('disables native browser validation on the form', () => {
+    const formEl: HTMLFormElement = fixture.nativeElement.querySelector(
+      '[data-testid="forgot-password-form"]'
+    );
+    expect(formEl.hasAttribute('novalidate')).toBe(true);
+  });
+
   it('should trim whitespace from email', async () => {
-    component.email = '  user@example.com  ';
+    component.form.email().value.set('  user@example.com  ');
     await component.onSubmit();
 
     expect(mockPasswordResetService.forgotPassword).toHaveBeenCalledWith(

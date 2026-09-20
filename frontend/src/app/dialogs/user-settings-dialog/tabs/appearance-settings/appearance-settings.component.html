@@ -9,7 +9,8 @@
   <mat-radio-group
     class="density-options"
     aria-labelledby="density-label"
-    [(ngModel)]="density"
+    [value]="density"
+    (change)="setDensity($any($event).value)"
     data-testid="density-group">
     @for (option of densityOptions; track option.value) {
       <mat-radio-button

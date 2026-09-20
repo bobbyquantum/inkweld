@@ -1,5 +1,4 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { TranslocoModule } from '@jsverse/transloco';
 import { TutorialService } from '@services/core/tutorial.service';
@@ -10,9 +9,9 @@ import { TutorialService } from '@services/core/tutorial.service';
  */
 @Component({
   selector: 'app-general-settings',
-  imports: [FormsModule, MatSlideToggleModule, TranslocoModule],
+  imports: [MatSlideToggleModule, TranslocoModule],
   templateUrl: './general-settings.component.html',
-  changeDetection: ChangeDetectionStrategy.Eager,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './general-settings.component.scss',
 })
 export class GeneralSettingsComponent {
@@ -22,7 +21,7 @@ export class GeneralSettingsComponent {
     return this.tutorialService.toursEnabled();
   }
 
-  set toursEnabled(value: boolean) {
+  setToursEnabled(value: boolean): void {
     this.tutorialService.setToursEnabled(typeof value === 'boolean' && value);
   }
 }
