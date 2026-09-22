@@ -16,6 +16,64 @@
       </button>
     </div>
   } @else if (data(); as result) {
+    <!-- Sync capacity: usage against the allowance, with an inline editor. -->
+    <section class="quota-panel" data-testid="admin-quota-panel">
+      <div class="quota-summary">
+        <div class="quota-item">
+          <span class="label">{{ 'admin.users.storageUsed' | transloco }}</span>
+          <span class="value" data-testid="admin-quota-used">
+            {{ formatBytes(result.totalBytes) }}
+          </span>
+        </div>
+        <div class="quota-item">
+          <span class="label">{{
+            'admin.users.storageQuota' | transloco
+          }}</span>
+          <span class="value" data-testid="admin-quota-effective">
+            {{ formatBytes(result.effectiveQuotaBytes) }}
+          </span>
+        </div>
+      </div>
+
+      <div class="quota-editor">
+        <mat-checkbox
+          [checked]="useDefaultQuota()"
+          (change)="onUseDefaultChange($any($event).checked === true)"
+          data-testid="admin-quota-use-default">
+          {{ 'admin.users.quotaUseDefault' | transloco }}
+        </mat-checkbox>
+
+        @if (!useDefaultQuota()) {
+          <mat-form-field appearance="outline" class="quota-field">
+            <mat-label>{{
+              'admin.users.quotaBytesLabel' | transloco
+            }}</mat-label>
+            <input
+              matInput
+              type="number"
+              min="0"
+              [ngModel]="quotaMb()"
+              (ngModelChange)="quotaMb.set($event)"
+              data-testid="admin-quota-input" />
+            <mat-hint>MB</mat-hint>
+          </mat-form-field>
+        }
+
+        <button
+          mat-raised-button
+          color="primary"
+          (click)="saveQuota()"
+          [disabled]="isSavingQuota()"
+          data-testid="admin-quota-save">
+          @if (isSavingQuota()) {
+            <mat-spinner diameter="18"></mat-spinner>
+          } @else {
+            {{ 'admin.users.setQuota' | transloco }}
+          }
+        </button>
+      </div>
+    </section>
+
     @if (result.projects.length === 0) {
       <div class="empty-state">
         <mat-icon>folder_open</mat-icon>

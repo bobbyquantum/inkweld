@@ -51,6 +51,8 @@ model/admin-list-pending-users200-response-inner.ts
 model/admin-project-storage.ts
 model/admin-set-config-request.ts
 model/admin-set-user-admin-request.ts
+model/admin-set-user-quota-request.ts
+model/admin-set-user-quota200-response.ts
 model/admin-update-announcement-request.ts
 model/admin-user-projects.ts
 model/appearance-config.ts
@@ -214,6 +216,7 @@ model/public-o-auth-session.ts
 model/published-file-error.ts
 model/published-file-metadata.ts
 model/published-file.ts
+model/quota-exceeded-error.ts
 model/ready-response.ts
 model/register-request.ts
 model/register-response.ts
@@ -226,6 +229,8 @@ model/set-provider-endpoint-request.ts
 model/set-provider-key-request.ts
 model/share-link-response.ts
 model/snapshot-with-content.ts
+model/storage-usage-projects-inner.ts
+model/storage-usage.ts
 model/style-recommendation.ts
 model/surface-background.ts
 model/system-features-password-policy.ts
@@ -249,6 +254,7 @@ model/update-profile-request.ts
 model/update-project-request.ts
 model/update-published-file-request.ts
 model/upload-project-media200-response.ts
+model/upload-project-media403-response.ts
 model/user-profile-sections.ts
 model/user-profile.ts
 model/user.ts

@@ -23,6 +23,23 @@ export const ErrorResponseSchema = z
   })
   .openapi('ErrorResponse', { example: { error: 'An error occurred' } });
 
+/**
+ * Sync-capacity refusal body. A 403 that is not an access-control failure: the
+ * caller is authorised, the account is out of room. Kept as its own schema so
+ * the frontend client can distinguish it by `code`.
+ */
+export const QuotaExceededSchema = z
+  .object({
+    error: z.string(),
+    message: z.string().optional(),
+    code: z.literal('QUOTA_EXCEEDED'),
+    usedBytes: z.number(),
+    quotaBytes: z.number(),
+    requiredBytes: z.number().optional(),
+    reason: z.enum(['media_upload', 'project_create']),
+  })
+  .openapi('QuotaExceededError');
+
 /** Single OpenAPI error response entry — exported for one-off custom codes */
 export function errorResponse(description: string) {
   return {
@@ -47,6 +64,22 @@ export const errorResponses = {
   notFound: (entity: string) => ({ 404: errorResponse(`${entity} not found`) }),
   /** 400 Invalid request */
   badRequest: { 400: errorResponse('Invalid request') },
+
+  /**
+   * 403 Sync capacity exceeded. A distinct reason from an access-control 403:
+   * the caller is authorised, the account is simply out of room. The body
+   * carries usage details so the UI can explain the limit.
+   */
+  quotaExceeded: {
+    403: {
+      description: 'Sync capacity exceeded',
+      content: {
+        'application/json': {
+          schema: QuotaExceededSchema,
+        },
+      },
+    } as const,
+  },
 
   /** 401 + 403 admin combo */
   admin: {
@@ -120,6 +153,18 @@ export const UserSchema = z
     profileVisibility: ProfileVisibilitySchema.optional(),
     activityVisibility: ProfileVisibilitySchema.optional(),
     projectsVisibility: ProfileVisibilitySchema.optional(),
+    /**
+     * Per-user sync-capacity override in bytes; `null` means the instance
+     * default applies. Only surfaced to admins (and the user themselves).
+     */
+    syncQuotaBytes: z.number().nullable().optional().openapi({
+      description: 'Per-user sync-capacity override in bytes (null = instance default)',
+    }),
+    /** Last-known storage usage in bytes (fast-path counter). */
+    storageUsedBytes: z
+      .number()
+      .optional()
+      .openapi({ description: 'Last-known storage usage in bytes' }),
   })
   .openapi('User', {
     example: {

@@ -275,6 +275,21 @@ class UserService {
   }
 
   /**
+   * Set a user's sync-capacity override in bytes (admin only).
+   *
+   * `null` clears the override so the instance default applies. `0` is an
+   * explicit zero allowance and is stored as `0`, not `null` — the two mean
+   * different things and the column relies on that distinction.
+   */
+  async setUserSyncQuota(
+    db: DatabaseInstance,
+    userId: string,
+    syncQuotaBytes: number | null
+  ): Promise<void> {
+    await db.update(users).set({ syncQuotaBytes }).where(eq(users.id, userId));
+  }
+
+  /**
    * Update user profile (name and/or email)
    */
   async updateProfile(

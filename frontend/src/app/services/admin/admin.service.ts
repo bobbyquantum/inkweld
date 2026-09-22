@@ -33,6 +33,10 @@ export interface AdminUser {
   isAdmin?: boolean;
   githubId?: string | null;
   hasAvatar?: boolean;
+  /** Per-user sync-capacity override in bytes; null = instance default. */
+  syncQuotaBytes?: number | null;
+  /** Last-known storage usage in bytes. */
+  storageUsedBytes?: number;
 }
 
 export interface PaginatedUsersResponse {
@@ -372,6 +376,8 @@ export class AdminService {
 
   /**
    * List all projects owned by a user with approximate storage sizes (admin).
+   * Includes the user's sync-capacity override, effective allowance and the
+   * instance default.
    */
   async listUserProjects(userId: string): Promise<AdminUserProjects> {
     return firstValueFrom(
@@ -379,6 +385,31 @@ export class AdminService {
         .adminListUserProjects(userId)
         .pipe(catchError(this.handleError.bind(this)))
     );
+  }
+
+  /**
+   * Set a user's sync-capacity override (admin only).
+   *
+   * `null` clears the override so the instance-wide default applies. Returns
+   * the updated user and patches the cached list.
+   */
+  async setUserQuota(
+    userId: string,
+    syncQuotaBytes: number | null
+  ): Promise<void> {
+    try {
+      const updated = await firstValueFrom(
+        this.apiService
+          .adminSetUserQuota(userId, { syncQuotaBytes })
+          .pipe(catchError(this.handleError.bind(this)))
+      );
+      this.users.update(users =>
+        users.map(u => (u.id === userId ? { ...u, ...updated } : u))
+      );
+    } catch (error) {
+      this.logger.error('AdminService', 'Failed to set user quota', error);
+      throw error;
+    }
   }
 
   private handleError(error: HttpErrorResponse) {

@@ -14,7 +14,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { TranslocoService } from '@jsverse/transloco';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 
 import { DocumentSyncState } from '../../models/document-sync-state';
 import { type MediaSyncState } from '../../services/local/media-sync.service';
@@ -49,6 +49,7 @@ const OFFLINE_DISPLAY_DEBOUNCE_MS = 4000;
     MatButtonModule,
     MatTooltipModule,
     MatProgressSpinnerModule,
+    TranslocoModule,
   ],
   templateUrl: './connection-status.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -83,6 +84,15 @@ export class ConnectionStatusComponent {
 
   /** Whether the app is in local-only mode (no server configured) */
   isLocalMode = input<boolean>(false);
+
+  /**
+   * The user's last-known sync-capacity over-quota state.
+   *
+   * Surfaced here because this component is the one thing already visible while
+   * offline — exactly when new uploads will be paused on reconnect and there is
+   * no other place to warn. `false` (or unknown) renders nothing.
+   */
+  overQuota = input<boolean>(false);
 
   /** Elements document ID for storage stats hover (e.g. "user:slug:elements") */
   elementsDocId = input<string | null>(null);

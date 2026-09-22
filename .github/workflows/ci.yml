@@ -12,6 +12,80 @@ concurrency:
 
 jobs:
   # ===========================================
+  # OpenAPI spec + Angular client freshness
+  # ===========================================
+  # A stale committed `backend/openapi.json` or `frontend/src/api-client/**`
+  # means the typed client silently diverges from the API. #1476 shipped
+  # exactly that: the spec predated a response-schema extension, so the
+  # generated models were missing fields the server already returned.
+  # Regenerate both and fail if the committed artifacts differ.
+  openapi-client-freshness:
+    name: OpenAPI Spec + Client Freshness
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: "24"
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version-file: package.json
+
+      - name: Setup Java
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # `generate:openapi` boots the backend and fetches the spec from it.
+      # NODE_ENV=development keeps the config module from demanding a
+      # production secret; the throwaway key below is for the same reason.
+      - name: Regenerate OpenAPI spec
+        run: cd backend && bun run generate:openapi
+        env:
+          NODE_ENV: development
+          DATABASE_KEY: freshness-check-placeholder-key-32-chars
+          SESSION_SECRET: freshness-check-placeholder-key-32-chars
+
+      # Also runs prettier over the client, so the comparison is against the
+      # repository's committed formatting rather than the generator's own.
+      - name: Regenerate Angular client
+        run: cd backend && bun run generate:angular-client
+
+      - name: Fail if committed artifacts are stale
+        run: |
+          # Stage the regenerated artifacts so the comparison also catches
+          # NEW files (a new endpoint's model is untracked, and `git diff`
+          # alone would not notice it).
+          git add -A -- backend/openapi.json frontend/src/api-client
+
+          if ! git diff --cached --exit-code --stat -- backend/openapi.json frontend/src/api-client; then
+            echo ""
+            echo "::error::The OpenAPI spec and/or the generated Angular client are stale."
+            echo "Run the following and commit the result:"
+            echo "  cd backend && bun run generate:openapi && bun run generate:angular-client"
+            exit 1
+          fi
+          echo "✅ OpenAPI spec and Angular client are up to date."
+
+  # ===========================================
   # Lint - Check code formatting
   # ===========================================
   lint:

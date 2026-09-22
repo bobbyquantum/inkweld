@@ -1,0 +1,52 @@
+.storage-meter {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.6rem;
+  border-radius: 8px;
+  background: var(--mat-sys-surface-container, rgba(0, 0, 0, 0.04));
+  min-width: 0;
+
+  &__icon {
+    flex: 0 0 auto;
+    color: var(--mat-sys-primary);
+  }
+
+  &__body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  &__labels {
+    display: flex;
+    align-items: baseline;
+    gap: 0.25rem;
+    font-size: 0.75rem;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
+  &__used {
+    font-weight: 600;
+  }
+
+  &__quota {
+    opacity: 0.7;
+  }
+
+  mat-progress-bar {
+    height: 4px;
+    border-radius: 2px;
+  }
+
+  &.warning &__icon {
+    color: var(--mat-sys-tertiary, #b26a00);
+  }
+
+  &.over &__icon {
+    color: var(--mat-sys-error);
+  }
+}

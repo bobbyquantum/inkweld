@@ -110,6 +110,15 @@
           },
           "projectsVisibility": {
             "$ref": "#/components/schemas/ProfileVisibility"
+          },
+          "syncQuotaBytes": {
+            "type": "number",
+            "nullable": true,
+            "description": "Per-user sync-capacity override in bytes (null = instance default)"
+          },
+          "storageUsedBytes": {
+            "type": "number",
+            "description": "Last-known storage usage in bytes"
           }
         },
         "required": [
@@ -258,6 +267,74 @@
         },
         "required": [
           "providers"
+        ]
+      },
+      "StorageUsage": {
+        "type": "object",
+        "properties": {
+          "usedBytes": {
+            "type": "number",
+            "description": "Authoritative storage usage in bytes"
+          },
+          "quotaBytes": {
+            "type": "number",
+            "description": "Effective allowance in bytes"
+          },
+          "fraction": {
+            "type": "number",
+            "nullable": true,
+            "description": "usedBytes / quotaBytes (null when the allowance is zero)"
+          },
+          "overQuota": {
+            "type": "boolean",
+            "description": "True once usage is at or above the allowance"
+          },
+          "overSoftLimit": {
+            "type": "boolean",
+            "description": "True once usage is at or above the warning threshold (80%)"
+          },
+          "projects": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "slug": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "dataBytes": {
+                  "type": "number"
+                },
+                "mediaBytes": {
+                  "type": "number"
+                },
+                "totalBytes": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "id",
+                "slug",
+                "title",
+                "dataBytes",
+                "mediaBytes",
+                "totalBytes"
+              ]
+            }
+          }
+        },
+        "required": [
+          "usedBytes",
+          "quotaBytes",
+          "fraction",
+          "overQuota",
+          "overSoftLimit",
+          "projects"
         ]
       },
       "UpdateProfileRequest": {
@@ -645,6 +722,19 @@
           "totalBytes": {
             "type": "number",
             "description": "Sum of totalBytes across projects"
+          },
+          "syncQuotaBytes": {
+            "type": "number",
+            "nullable": true,
+            "description": "Per-user override in bytes (null = instance default)"
+          },
+          "effectiveQuotaBytes": {
+            "type": "number",
+            "description": "Allowance actually in force"
+          },
+          "instanceDefaultQuotaBytes": {
+            "type": "number",
+            "description": "Instance-wide default when no override is set"
           }
         },
         "required": [
@@ -653,7 +743,10 @@
           "projects",
           "totalDataBytes",
           "totalMediaBytes",
-          "totalBytes"
+          "totalBytes",
+          "syncQuotaBytes",
+          "effectiveQuotaBytes",
+          "instanceDefaultQuotaBytes"
         ]
       },
       "AdminProjectStorage": {
@@ -865,6 +958,46 @@
           "newSlug",
           "username",
           "renamedAt"
+        ]
+      },
+      "QuotaExceededError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "enum": [
+              "QUOTA_EXCEEDED"
+            ]
+          },
+          "usedBytes": {
+            "type": "number"
+          },
+          "quotaBytes": {
+            "type": "number"
+          },
+          "requiredBytes": {
+            "type": "number"
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "media_upload",
+              "project_create"
+            ]
+          }
+        },
+        "required": [
+          "error",
+          "code",
+          "usedBytes",
+          "quotaBytes",
+          "reason"
         ]
       },
       "CreateProjectRequest": {
@@ -5418,6 +5551,38 @@
         }
       }
     },
+    "/api/v1/users/me/storage": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Get sync-capacity usage for the current user",
+        "description": "Authoritative storage usage across the caller’s projects plus their effective allowance. Used by the account settings and dashboard meters.",
+        "operationId": "getMyStorageUsage",
+        "responses": {
+          "200": {
+            "description": "Storage usage and allowance",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageUsage"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/users": {
       "get": {
         "tags": [
@@ -5425,15 +5590,15 @@
         ],
         "operationId": "listUsers",
         "summary": "List users",
-        "description": "Get a paginated list of users. Admins see all users with full details (including pending/disabled). Regular users only see active (approved+enabled) users with limited info.",
+        "description": "Get a paginated list of users. Requires authentication. Admins see all users with full details (including pending/disabled). Regular users only see active (approved+enabled) users with limited info.",
         "parameters": [
           {
             "schema": {
               "type": "string",
-              "description": "Search by username or email"
+              "description": "Search by username (admins may also match on email)"
             },
             "required": false,
-            "description": "Search by username or email",
+            "description": "Search by username (admins may also match on email)",
             "name": "search",
             "in": "query"
           },
@@ -5468,6 +5633,16 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -5479,7 +5654,7 @@
         ],
         "operationId": "searchUsers",
         "summary": "Search users",
-        "description": "Search users by username or name. Admins see all users, regular users only see active users.",
+        "description": "Search users by username. Requires authentication. Admins see all users and may also match on email; regular users only see active users.",
         "responses": {
           "200": {
             "description": "Search results",
@@ -5487,6 +5662,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/PaginatedUsersResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -6584,6 +6769,145 @@
         }
       }
     },
+    "/api/v1/admin/users/{userId}/quota": {
+      "patch": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Set a user sync-capacity override",
+        "description": "Grant or adjust an individual storage allowance in bytes (admin only). Send `null` to clear the override and fall back to the instance default.",
+        "operationId": "adminSetUserQuota",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "example": "abc-123",
+              "description": "User ID"
+            },
+            "required": true,
+            "description": "User ID",
+            "name": "userId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "syncQuotaBytes": {
+                    "type": "integer",
+                    "nullable": true,
+                    "minimum": 0,
+                    "maximum": 1099511627776,
+                    "description": "Override in bytes, or null to use the instance default",
+                    "example": 104857600
+                  }
+                },
+                "required": [
+                  "syncQuotaBytes"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Quota override updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "username": {
+                      "type": "string"
+                    },
+                    "email": {
+                      "type": "string"
+                    },
+                    "approved": {
+                      "type": "boolean"
+                    },
+                    "enabled": {
+                      "type": "boolean"
+                    },
+                    "isAdmin": {
+                      "type": "boolean"
+                    },
+                    "githubId": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "syncQuotaBytes": {
+                      "type": "number",
+                      "nullable": true
+                    },
+                    "storageUsedBytes": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "username",
+                    "email",
+                    "approved",
+                    "enabled",
+                    "isAdmin",
+                    "githubId",
+                    "syncQuotaBytes",
+                    "storageUsedBytes"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid quota value",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Admin access required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/admin/users/{userId}": {
       "delete": {
         "tags": [
@@ -7421,6 +7745,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sync capacity exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuotaExceededError"
                 }
               }
             }
@@ -14269,11 +14603,18 @@
             }
           },
           "403": {
-            "description": "Access denied",
+            "description": "Access denied, or sync capacity exceeded (QUOTA_EXCEEDED)",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MediaError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/MediaError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/QuotaExceededError"
+                    }
+                  ]
                 }
               }
             }
