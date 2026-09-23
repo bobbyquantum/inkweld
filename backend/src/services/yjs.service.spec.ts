@@ -38,6 +38,7 @@ interface ServiceInternals {
       getYDoc(docName: string): Promise<Y.Doc>;
       storeUpdate(docName: string, update: Uint8Array): Promise<unknown>;
       flushDocument(docName: string): Promise<void>;
+      _transact<T>(f: (db: unknown) => Promise<T>): Promise<T>;
       destroy(): Promise<void>;
     }
   >;
@@ -73,6 +74,8 @@ function installFlushProbe(
   const state = { stores: 0, inFlight: 0, attempts: 0, settled: 0 };
   const wrapped = {
     getYDoc: (docName: string) => real.getYDoc(docName),
+    // Forwarded so revision reads through the probe hit the real LevelDB.
+    _transact: <T>(f: (db: unknown) => Promise<T>) => real._transact(f),
     storeUpdate: async (docName: string, update: Uint8Array) => {
       state.stores++;
       try {
@@ -696,6 +699,9 @@ describe('YjsService.getDocumentRevisions', () => {
     const after = await service.getDocumentRevisions(USERNAME, SLUG, [documentId]);
 
     // Reading the revision must not itself move the token.
+    expect(before[0].revision).not.toBeNull();
+    expect(before[0].unknown).toBeUndefined();
+    expect(after[0].unknown).toBeUndefined();
     expect(after[0].revision).toBe(before[0].revision);
     await service.cleanup();
   }, 30000);
