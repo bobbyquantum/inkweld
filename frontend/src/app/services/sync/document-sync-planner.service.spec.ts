@@ -18,7 +18,7 @@ describe('DocumentSyncPlannerService', () => {
   let service: DocumentSyncPlannerService;
   let manifestService: { getManifest: Mock };
   let syncState: { getMany: Mock; setMany: Mock };
-  let documentService: { getLocalStateVectorDigest: Mock };
+  let documentService: { getLocalStateDigest: Mock };
   let logger: { info: Mock; warn: Mock; error: Mock; debug: Mock };
 
   const manifest = (
@@ -37,7 +37,7 @@ describe('DocumentSyncPlannerService', () => {
   ): DocumentSyncRecord => ({
     documentId,
     serverRevision: revision,
-    stateVectorDigest: digest,
+    stateDigest: digest,
     syncedAt: '2026-09-07T00:00:00.000Z',
   });
 
@@ -48,7 +48,7 @@ describe('DocumentSyncPlannerService', () => {
       setMany: vi.fn().mockResolvedValue(undefined),
     };
     documentService = {
-      getLocalStateVectorDigest: vi.fn().mockResolvedValue(null),
+      getLocalStateDigest: vi.fn().mockResolvedValue(null),
     };
     logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() };
 
@@ -80,7 +80,7 @@ describe('DocumentSyncPlannerService', () => {
     syncState.getMany.mockResolvedValue(
       new Map([['u:p:a', record('u:p:a', 'r1', 'd1')]])
     );
-    documentService.getLocalStateVectorDigest.mockResolvedValue('d1');
+    documentService.getLocalStateDigest.mockResolvedValue('d1');
 
     const plan = await service.plan('u', 'p', ['u:p:a']);
 
@@ -94,7 +94,7 @@ describe('DocumentSyncPlannerService', () => {
     syncState.getMany.mockResolvedValue(
       new Map([['u:p:a', record('u:p:a', 'r1', 'd1')]])
     );
-    documentService.getLocalStateVectorDigest.mockResolvedValue('d1');
+    documentService.getLocalStateDigest.mockResolvedValue('d1');
 
     const plan = await service.plan('u', 'p', ['u:p:a']);
 
@@ -107,7 +107,7 @@ describe('DocumentSyncPlannerService', () => {
     syncState.getMany.mockResolvedValue(
       new Map([['u:p:a', record('u:p:a', 'r1', 'd1')]])
     );
-    documentService.getLocalStateVectorDigest.mockResolvedValue('d2');
+    documentService.getLocalStateDigest.mockResolvedValue('d2');
 
     const plan = await service.plan('u', 'p', ['u:p:a']);
 
@@ -121,7 +121,7 @@ describe('DocumentSyncPlannerService', () => {
     const plan = await service.plan('u', 'p', ['u:p:a']);
 
     expect(plan.toSync).toEqual(['u:p:a']);
-    expect(documentService.getLocalStateVectorDigest).not.toHaveBeenCalled();
+    expect(documentService.getLocalStateDigest).not.toHaveBeenCalled();
   });
 
   it('syncs a document with an unknown or null revision', async () => {
@@ -137,7 +137,7 @@ describe('DocumentSyncPlannerService', () => {
         ['u:p:b', record('u:p:b', null, 'd1')],
       ])
     );
-    documentService.getLocalStateVectorDigest.mockResolvedValue('d1');
+    documentService.getLocalStateDigest.mockResolvedValue('d1');
 
     const plan = await service.plan('u', 'p', ['u:p:a', 'u:p:b']);
 
@@ -149,7 +149,7 @@ describe('DocumentSyncPlannerService', () => {
     syncState.getMany.mockResolvedValue(
       new Map([['u:p:a', record('u:p:a', 'r1', 'd1')]])
     );
-    documentService.getLocalStateVectorDigest.mockResolvedValue('d1');
+    documentService.getLocalStateDigest.mockResolvedValue('d1');
 
     const plan = await service.plan('u', 'p', ['u:p:a'], new Set(['u:p:a']));
 
@@ -173,10 +173,103 @@ describe('DocumentSyncPlannerService', () => {
 
     await service.plan('u', 'p', ['u:p:a']);
 
-    expect(documentService.getLocalStateVectorDigest).not.toHaveBeenCalled();
+    expect(documentService.getLocalStateDigest).not.toHaveBeenCalled();
+  });
+
+  it('syncs everything when the checkpoint store cannot be read', async () => {
+    manifestService.getManifest.mockResolvedValue(manifest([['u:p:a', 'r1']]));
+    syncState.getMany.mockRejectedValue(new Error('IndexedDB unavailable'));
+
+    const plan = await service.plan('u', 'p', ['u:p:a']);
+
+    expect(plan.toSync).toEqual(['u:p:a']);
+    expect(plan.skipped).toEqual([]);
+    // The manifest was read, so the run can still be checkpointed.
+    expect(plan.before?.get('u:p:a')?.revision).toBe('r1');
+    expect(logger.warn).toHaveBeenCalled();
+  });
+
+  it('syncs a candidate whose local state cannot be read', async () => {
+    manifestService.getManifest.mockResolvedValue(manifest([['u:p:a', 'r1']]));
+    syncState.getMany.mockResolvedValue(
+      new Map([['u:p:a', record('u:p:a', 'r1', 'd1')]])
+    );
+    documentService.getLocalStateDigest.mockResolvedValue(null);
+
+    const plan = await service.plan('u', 'p', ['u:p:a']);
+
+    expect(plan.toSync).toEqual(['u:p:a']);
+  });
+
+  it('reads digests for every candidate across concurrency batches', async () => {
+    const ids = ['a', 'b', 'c', 'd', 'e'].map(id => `u:p:${id}`);
+    manifestService.getManifest.mockResolvedValue(
+      manifest(ids.map(id => [id, 'r1']))
+    );
+    syncState.getMany.mockResolvedValue(
+      new Map(ids.map(id => [id, record(id, 'r1', `d-${id}`)]))
+    );
+    // Only u:p:c has local edits since its checkpoint.
+    documentService.getLocalStateDigest.mockImplementation((id: string) =>
+      Promise.resolve(id === 'u:p:c' ? 'edited' : `d-${id}`)
+    );
+
+    const plan = await service.plan('u', 'p', ids);
+
+    expect(documentService.getLocalStateDigest).toHaveBeenCalledTimes(5);
+    expect(plan.toSync).toEqual(['u:p:c']);
+    expect(plan.skipped).toEqual(['u:p:a', 'u:p:b', 'u:p:d', 'u:p:e']);
   });
 
   describe('record', () => {
+    it('does not checkpoint a document whose revision is null, unknown or missing afterwards', async () => {
+      const before = new Map([
+        ['u:p:null', { documentId: 'u:p:null', revision: null }],
+        [
+          'u:p:unknown-before',
+          { documentId: 'u:p:unknown-before', revision: 'r1', unknown: true },
+        ],
+        [
+          'u:p:unknown-after',
+          { documentId: 'u:p:unknown-after', revision: 'r1' },
+        ],
+        ['u:p:gone', { documentId: 'u:p:gone', revision: 'r1' }],
+      ]);
+      manifestService.getManifest.mockResolvedValue({
+        documents: [
+          { documentId: 'u:p:null', revision: null },
+          { documentId: 'u:p:unknown-before', revision: 'r1' },
+          { documentId: 'u:p:unknown-after', revision: 'r1', unknown: true },
+        ],
+      });
+
+      await service.record(
+        'u',
+        'p',
+        before,
+        new Map([...before.keys()].map(id => [id, `d-${id}`]))
+      );
+
+      expect(syncState.setMany).not.toHaveBeenCalled();
+    });
+
+    it('does not reject when the checkpoint write fails', async () => {
+      manifestService.getManifest.mockResolvedValue(
+        manifest([['u:p:a', 'r1']])
+      );
+      syncState.setMany.mockRejectedValue(new Error('quota exceeded'));
+
+      await expect(
+        service.record(
+          'u',
+          'p',
+          new Map([['u:p:a', { documentId: 'u:p:a', revision: 'r1' }]]),
+          new Map([['u:p:a', 'd-a']])
+        )
+      ).resolves.toBeUndefined();
+      expect(logger.warn).toHaveBeenCalled();
+    });
+
     it('persists checkpoints only for revisions stable across the run', async () => {
       const before = new Map([
         ['u:p:a', { documentId: 'u:p:a', revision: 'r1' }],
@@ -204,7 +297,7 @@ describe('DocumentSyncPlannerService', () => {
         .calls[0][0] as DocumentSyncRecord[];
       expect(records.map(r => r.documentId)).toEqual(['u:p:a']);
       expect(records[0].serverRevision).toBe('r1');
-      expect(records[0].stateVectorDigest).toBe('d-a');
+      expect(records[0].stateDigest).toBe('d-a');
     });
 
     it('does nothing when checkpointing is disabled (null before)', async () => {

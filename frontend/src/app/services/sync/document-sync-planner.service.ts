@@ -1,15 +1,14 @@
 import { inject, Injectable } from '@angular/core';
-
-import { LoggerService } from '../core/logger.service';
-import { DocumentService } from '../project/document.service';
+import { LoggerService } from '@services/core/logger.service';
+import { DocumentService } from '@services/project/document.service';
 import {
   type DocumentRevisionEntry,
   DocumentSyncManifestService,
-} from './document-sync-manifest.service';
+} from '@services/sync/document-sync-manifest.service';
 import {
   type DocumentSyncRecord,
   DocumentSyncStateService,
-} from './document-sync-state.service';
+} from '@services/sync/document-sync-state.service';
 
 /**
  * Concurrent local IndexedDB digest reads while planning. Matches the bulk
@@ -81,7 +80,7 @@ export class DocumentSyncPlannerService {
     const before = new Map(
       manifest.documents.map(entry => [entry.documentId, entry])
     );
-    const records = await this.syncState.getMany(documentIds);
+    const records = await this.readRecords(documentIds);
 
     // Only candidates need a local IndexedDB digest read, and those reads are
     // independent — run them with bounded concurrency so the plan itself does
@@ -128,18 +127,36 @@ export class DocumentSyncPlannerService {
       const results = await Promise.all(
         batch.map(async documentId => ({
           documentId,
-          digest:
-            await this.documentService.getLocalStateVectorDigest(documentId),
+          digest: await this.documentService.getLocalStateDigest(documentId),
         }))
       );
       for (const { documentId, digest } of results) {
         const record = records.get(documentId);
-        if (digest !== null && record && digest === record.stateVectorDigest) {
+        if (digest !== null && record && digest === record.stateDigest) {
           digests.set(documentId, digest);
         }
       }
     }
     return digests;
+  }
+
+  /**
+   * Load stored checkpoints. An unreadable store yields no records, which
+   * syncs every document instead of failing the project's sync.
+   */
+  private async readRecords(
+    documentIds: string[]
+  ): Promise<Map<string, DocumentSyncRecord>> {
+    try {
+      return await this.syncState.getMany(documentIds);
+    } catch (error) {
+      this.logger.warn(
+        'DocumentSyncPlanner',
+        'Could not read sync checkpoints; syncing all documents',
+        error
+      );
+      return new Map();
+    }
   }
 
   /** Whether the manifest+record permit even considering a skip. */
@@ -163,7 +180,8 @@ export class DocumentSyncPlannerService {
    * sync again next time (conservative, never stale).
    *
    * A `before` of `null` (manifest was unavailable) disables checkpointing
-   * entirely.
+   * entirely. Never rejects: the documents are already synced, so a failed
+   * checkpoint write only costs a redundant sync next time.
    */
   async record(
     username: string,
@@ -200,13 +218,20 @@ export class DocumentSyncPlannerService {
       records.push({
         documentId,
         serverRevision: afterEntry.revision,
-        stateVectorDigest: digest,
+        stateDigest: digest,
         syncedAt,
       });
     }
 
-    if (records.length > 0) {
+    if (records.length === 0) return;
+    try {
       await this.syncState.setMany(records);
+    } catch (error) {
+      this.logger.warn(
+        'DocumentSyncPlanner',
+        `[${username}/${slug}] Could not persist sync checkpoints`,
+        error
+      );
     }
   }
 }

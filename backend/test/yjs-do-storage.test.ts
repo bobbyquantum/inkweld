@@ -733,25 +733,26 @@ describe('YjsDocStorage.readRevision', () => {
   it('returns null when nothing is persisted for the document', async () => {
     const storage = makeStorage();
     const ds = new YjsDocStorage(storage, noopLogger);
-    expect(await ds.readRevision('d')).toBeNull();
+    expect(await ds.readRevision('d')).toEqual({ revision: null });
   });
 
   it('returns the newest update key as the revision token', async () => {
     const storage = makeStorage(
       new Map<string, number[]>([
+        ['doc:d:snapshot', [0, 9]],
         ['doc:d:update:1000:00000000', [0, 1]],
         ['doc:d:update:2000:00000000', [0, 2]],
         ['doc:d:update:1500:00000000', [0, 3]],
       ])
     );
     const ds = new YjsDocStorage(storage, noopLogger);
-    expect(await ds.readRevision('d')).toBe('doc:d:update:2000:00000000');
+    expect(await ds.readRevision('d')).toEqual({ revision: 'doc:d:update:2000:00000000' });
   });
 
-  it('falls back to the snapshot key once increments are compacted away', async () => {
+  it('reports a snapshot without a revision marker as unknown', async () => {
     const storage = makeStorage(new Map<string, number[]>([['doc:d:snapshot', [0, 1]]]));
     const ds = new YjsDocStorage(storage, noopLogger);
-    expect(await ds.readRevision('d')).toBe('doc:d:snapshot');
+    expect(await ds.readRevision('d')).toEqual({ revision: null, unknown: true });
   });
 
   it('never returns a key belonging to another document', async () => {
@@ -759,10 +760,40 @@ describe('YjsDocStorage.readRevision', () => {
       new Map<string, number[]>([
         ['doc:d:update:1000:00000000', [0, 1]],
         ['doc:other:update:9999:00000000', [0, 2]],
+        // A document whose id extends `d` shares the `doc:d:` prefix.
+        ['doc:d:child:update:9999:00000000', [0, 3]],
       ])
     );
     const ds = new YjsDocStorage(storage, noopLogger);
-    expect(await ds.readRevision('d')).toBe('doc:d:update:1000:00000000');
+    expect(await ds.readRevision('d')).toEqual({ revision: 'doc:d:update:1000:00000000' });
+  });
+
+  it('never repeats a token across snapshot -> edit -> compaction', async () => {
+    const storage = makeStorage();
+    const ds = new YjsDocStorage(storage, noopLogger);
+    const state = new Uint8Array([0, 0]);
+
+    await ds.compact('d', state, []);
+    const firstSnapshot = await ds.readRevision('d');
+    expect(firstSnapshot.revision).toMatch(/^snapshot:/);
+
+    const key = await ds.persist('d', new Uint8Array([0, 2, 1, 0]));
+    const afterEdit = await ds.readRevision('d');
+    expect(afterEdit).toEqual({ revision: key });
+
+    await ds.compact('d', state, [key as string]);
+    const secondSnapshot = await ds.readRevision('d');
+    expect(secondSnapshot.revision).toMatch(/^snapshot:/);
+
+    const tokens = [firstSnapshot.revision, afterEdit.revision, secondSnapshot.revision];
+    expect(new Set(tokens).size).toBe(3);
+  });
+
+  it('does not write a marker when compaction is skipped', async () => {
+    const storage = makeStorage();
+    const ds = new YjsDocStorage(storage, noopLogger);
+    await ds.compact('d', new Uint8Array([0, 0]), [], { skipCompaction: () => true });
+    expect(await ds.readRevision('d')).toEqual({ revision: null });
   });
 });
 
@@ -799,6 +830,20 @@ describe('describeDocStorage', () => {
     expect(desc.ghost.updateBytes).toBe(5);
     expect(desc.keys).toHaveLength(5);
     expect(desc.keysTruncated).toBe(false);
+  });
+
+  it('lists the revision marker without counting it as an update row', async () => {
+    const storage = makeStorage(
+      new Map<string, number[]>([
+        ['doc:d:revision', [1, 2, 3]],
+        ['doc:d:snapshot', [1, 7]],
+        ['doc:d:update:1:00000000', [0, 1]],
+      ])
+    );
+    const desc = await describeDocStorage(storage, 'd', decode);
+    expect(desc.canonical.updateRows).toBe(1);
+    expect(desc.canonical.updateBytes).toBe(2);
+    expect(desc.keys.map((k) => k.key)).toContain('doc:d:revision');
   });
 
   it('strips a trailing slash off the raw id before deriving prefixes', async () => {

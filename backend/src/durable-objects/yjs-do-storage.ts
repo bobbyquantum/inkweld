@@ -74,6 +74,15 @@ export function snapshotKey(storagePrefix: string): string {
 }
 
 /**
+ * Storage key for the revision marker written with each snapshot. Read by
+ * {@link YjsDocStorage.readRevision} once no `update:*` rows remain; see there
+ * for why the snapshot key cannot double as the token.
+ */
+export function revisionKey(storagePrefix: string): string {
+  return `${storagePrefix}revision`;
+}
+
+/**
  * Callbacks for replaying persisted state onto a live doc.
  *
  * The two stored formats are NOT interchangeable:
@@ -174,6 +183,13 @@ export function persistUpdateKey(
   sequence: number
 ): string {
   return `${storagePrefix}update:${timestamp}:${String(sequence).padStart(8, '0')}`;
+}
+
+/** `bytes` random bytes as lowercase hex. */
+function randomHex(bytes: number): string {
+  const rand = new Uint8Array(bytes);
+  crypto.getRandomValues(rand);
+  return Array.from(rand, (b) => b.toString(16).padStart(2, '0')).join('');
 }
 
 /** Coerce a persisted value (legacy `number[]` or current `Uint8Array`) to bytes. */
@@ -286,6 +302,7 @@ export async function describeDocStorage(
     let updateRows = 0;
     let updateBytes = 0;
     const snapKeyForPrefix = snapshotKey(prefix);
+    const revKeyForPrefix = revisionKey(prefix);
 
     await pagePrefix(storage, prefix, (page) => {
       for (const [key, value] of page.entries()) {
@@ -311,7 +328,7 @@ export async function describeDocStorage(
             ...content,
             ...(decodeError ? { decodeError } : {}),
           };
-        } else {
+        } else if (key !== revKeyForPrefix) {
           updateRows++;
           updateBytes += bytes.byteLength;
         }
@@ -492,29 +509,42 @@ export class YjsDocStorage {
   /**
    * Read the current revision token for a document without loading it.
    *
-   * The token is the lexicographically-latest storage row for the document:
-   *  - an incremental `update:*` key (timestamp + sequence + random suffix, so
-   *    key order matches write order), or
-   *  - the `snapshot` key when every incremental row has been compacted away.
+   * The token is:
+   *  - the newest incremental `update:*` key (timestamp + zero-padded sequence
+   *    + random suffix, so key order matches write order), or
+   *  - once every incremental row has been compacted away, the unique marker
+   *    {@link compact} wrote alongside the snapshot.
    *
-   * A single bounded reverse `list` returns the newest row, so this is O(1) in
-   * the document's history. Returns `null` when nothing has been persisted
-   * (nothing to pull). Note the token is *not* comparable against the Bun
-   * runtime's clock token — clients only ever compare a token to the one they
-   * previously stored from the same server.
+   * The snapshot key itself is never used as a token: it is a fixed name that
+   * every compaction overwrites, so `snapshot → edits → compaction` would
+   * return to the same token and a client holding the old one would skip a
+   * changed document.
+   *
+   * One bounded reverse `list` (plus at most two point reads when no update
+   * rows remain), so this is O(1) in the document's history. `revision: null`
+   * means nothing has been persisted (nothing to pull); `unknown: true` means a
+   * snapshot exists without a marker, so the caller must sync rather than skip.
+   * The token is *not* comparable against the Bun runtime's clock token —
+   * clients only ever compare a token to one previously received from the same
+   * server.
    */
-  async readRevision(documentId: string): Promise<string | null> {
+  async readRevision(documentId: string): Promise<{ revision: string | null; unknown?: true }> {
     const storagePrefix = `doc:${documentId}:`;
-    // Both key shapes sort after the bare prefix and the snapshot key sorts
-    // after `update:`; a reverse list over the whole document prefix yields
-    // whichever row was written last.
+    // Scope the scan to `update:` — a whole-prefix scan would also match the
+    // rows of any document whose id extends this one (`doc:<id>:<more>:...`).
     const newest = await this.storage.list<StoredBytes>({
-      prefix: storagePrefix,
+      prefix: `${storagePrefix}update:`,
       limit: 1,
       reverse: true,
     });
     const first = newest.keys().next();
-    return first.done ? null : first.value;
+    if (!first.done) return { revision: first.value };
+
+    const marker = await this.storage.get<StoredBytes>(revisionKey(storagePrefix));
+    if (marker) return { revision: new TextDecoder().decode(toBytes(marker)) };
+
+    const snapshot = await this.storage.get<StoredBytes>(snapshotKey(storagePrefix));
+    return snapshot ? { revision: null, unknown: true } : { revision: null };
   }
 
   /**
@@ -598,6 +628,13 @@ export class YjsDocStorage {
     // inflates stored size ~8x (one boxed number per byte) and the in-memory
     // load cost likewise.
     await this.storage.put(snapKey, encodedState);
+    // A fresh marker per snapshot write, so the revision token never repeats
+    // (see readRevision). Written after the snapshot: a crash in between leaves
+    // the update rows in place, and those still supply the token.
+    await this.storage.put(
+      revisionKey(storagePrefix),
+      new TextEncoder().encode(`snapshot:${Date.now()}:${randomHex(8)}`)
+    );
 
     let keys: string[];
     if (knownKeys) {
@@ -680,10 +717,7 @@ export class YjsDocStorage {
     if (!isSyncFrame(frame)) return null;
     const storagePrefix = `doc:${documentId}:`;
     const base = persistUpdateKey(storagePrefix, Date.now(), this.sequence++);
-    const rand = new Uint8Array(16);
-    crypto.getRandomValues(rand);
-    const suffix = Array.from(rand, (b) => b.toString(16).padStart(2, '0')).join('');
-    const key = `${base}:${suffix}`;
+    const key = `${base}:${randomHex(16)}`;
     try {
       await this.storage.put(key, frame);
     } catch (err) {

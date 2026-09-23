@@ -1,4 +1,4 @@
-import { describe, it, expect, mock } from 'bun:test';
+import { describe, it, expect } from 'bun:test';
 
 import { getProjectDocumentRevisions } from '../src/services/document-revision.service';
 import type { DurableObjectNamespace, DurableObjectStub } from '../src/types/cloudflare';

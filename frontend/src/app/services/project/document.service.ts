@@ -32,6 +32,7 @@ import {
   rateLimitBackoff,
   withJitter,
 } from '@services/sync/access-denial';
+import { yjsStateDigest } from '@utils/yjs-state-digest';
 import { keymap } from 'prosemirror-keymap';
 import { type Node as ProseMirrorModelNode } from 'prosemirror-model';
 import { Plugin, PluginKey } from 'prosemirror-state';
@@ -124,13 +125,6 @@ function syncStateForStatus(
 type YjsProseMirrorMapping = Parameters<
   typeof absolutePositionToRelativePosition
 >[2];
-
-/** Base64-encode raw bytes (no Buffer in the browser). */
-function bytesToBase64(bytes: Uint8Array): string {
-  let binary = '';
-  for (const byte of bytes) binary += String.fromCodePoint(byte);
-  return btoa(binary);
-}
 
 /** Internal Yjs item node shape used for cursor position traversal. */
 interface YjsItemNode {
@@ -333,7 +327,7 @@ export class DocumentService {
   }
 
   /**
-   * Encode a base64 digest of a document's local Yjs state vector, read
+   * Digest of a document's local Yjs state (see {@link yjsStateDigest}), read
    * headlessly from IndexedDB (no WebSocket, no editor).
    *
    * This is the client half of the bulk-sync fast path: a document can be
@@ -341,25 +335,33 @@ export class DocumentService {
    * matches the one captured at the last sync — the digest is the cheap,
    * local proof that this device has no unsynced edits.
    *
-   * Returns `null` when the document has no local content, so callers treat it
-   * as "must sync" rather than trying to compare an absent digest.
+   * Never rejects: any IndexedDB failure (opening, loading or closing) returns
+   * `null`, which callers treat as "must sync".
    */
-  async getLocalStateVectorDigest(documentId: string): Promise<string | null> {
+  async getLocalStateDigest(documentId: string): Promise<string | null> {
     const ydoc = new Y.Doc();
-    const provider = new IndexeddbPersistence(documentId, ydoc);
+    let provider: IndexeddbPersistence | null = null;
     try {
+      provider = new IndexeddbPersistence(documentId, ydoc);
       await provider.whenSynced;
-      const digest = bytesToBase64(Y.encodeStateVector(ydoc));
-      return digest;
+      return yjsStateDigest(ydoc);
     } catch (error) {
       this.logger.warn(
         'DocumentService',
-        `Could not compute local state vector digest for ${documentId}`,
+        `Could not compute local state digest for ${documentId}`,
         error
       );
       return null;
     } finally {
-      await provider.destroy();
+      try {
+        await provider?.destroy();
+      } catch (error) {
+        this.logger.warn(
+          'DocumentService',
+          `Could not close local store for ${documentId}`,
+          error
+        );
+      }
       ydoc.destroy();
     }
   }
@@ -2944,7 +2946,7 @@ export class DocumentService {
 
       // Digest AFTER the merge, so it reflects exactly the state this device
       // now shares with the server. Callers persist it as the sync checkpoint.
-      return bytesToBase64(Y.encodeStateVector(params.ydoc));
+      return yjsStateDigest(params.ydoc);
     } finally {
       if (provider) {
         provider.disconnect();

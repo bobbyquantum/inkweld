@@ -406,12 +406,23 @@ describe('DocumentService', () => {
       expect(service.getActiveConnections()).toHaveLength(1);
     });
 
-    it('computes a base64 state-vector digest from IndexedDB', async () => {
-      const digest = await service.getLocalStateVectorDigest(testDocumentId);
+    it('computes a base64 state digest from IndexedDB', async () => {
+      const digest = await service.getLocalStateDigest(testDocumentId);
 
       expect(typeof digest).toBe('string');
       expect(digest).not.toBe('');
       expect(() => atob(digest!)).not.toThrow();
+    });
+
+    it('still returns the digest when closing the local store fails', async () => {
+      const { IndexeddbPersistence } = await import('y-indexeddb');
+      vi.spyOn(IndexeddbPersistence.prototype, 'destroy').mockRejectedValueOnce(
+        new Error('close failed')
+      );
+
+      await expect(
+        service.getLocalStateDigest(testDocumentId)
+      ).resolves.toEqual(expect.any(String));
     });
 
     it('should initialize and update word count signals', () => {
@@ -1888,7 +1899,7 @@ describe('DocumentService', () => {
         expect(mockWebSocketProvider.destroy).toHaveBeenCalledTimes(1);
       });
 
-      it('returns the post-sync state-vector digest', async () => {
+      it('returns the post-sync state digest', async () => {
         mockWebSocketProvider.on.mockImplementation(
           (event: string, callback: any) => {
             if (event === 'sync') callback(true);
@@ -1898,7 +1909,7 @@ describe('DocumentService', () => {
 
         const digest = await service.syncDocumentToServer(testDocumentId, 1000);
 
-        // Base64 of a Yjs state vector (empty doc still encodes a valid vector).
+        // Base64 of a Yjs snapshot (an empty doc still encodes a valid one).
         expect(typeof digest).toBe('string');
         expect(digest).not.toBe('');
         expect(() => atob(digest!)).not.toThrow();

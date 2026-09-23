@@ -331,14 +331,20 @@ first asks the server which documents actually changed:
 - `GET /api/v1/projects/:username/:slug/docs/sync-manifest` returns an opaque
   per-document `revision` token (see `backend/src/services/document-revision.service.ts`).
   On Bun it is the document's LevelDB update clock (`yjsService.getDocumentRevisions`);
-  on Workers the DO's `GET /api/revisions` returns the newest persisted storage
-  key (`YjsDocStorage.readRevision`) — both are read with one bounded reverse
-  scan, no document loaded. **The two tokens are not comparable across
-  runtimes**; a client only ever compares a token to one from the same server.
+  on Workers the DO's `GET /api/revisions` returns the newest `update:*` row key,
+  or once compaction has removed them all, the unique `doc:<id>:revision` marker
+  `compact()` writes with each snapshot (`YjsDocStorage.readRevision`) — both are
+  read with one bounded reverse scan, no document loaded. **Never use the fixed
+  `snapshot` key as the token**: every compaction overwrites it, so a token would
+  repeat after `snapshot → edit → compaction` and a changed document be skipped.
+  **The two tokens are not comparable across runtimes**; a client only ever
+  compares a token to one from the same server.
 - `DocumentSyncPlannerService` skips a document only when the manifest revision
-  is unchanged **and** the local Yjs state-vector digest still matches the
-  checkpoint stored in `DocumentSyncStateService` (IndexedDB) — i.e. no local
-  edits since the last sync. Missing manifest, unknown revision, changed
+  is unchanged **and** the local Yjs state digest still matches the checkpoint
+  stored in `DocumentSyncStateService` (IndexedDB) — i.e. no local edits since
+  the last sync. The digest (`utils/yjs-state-digest.ts`) encodes a Yjs
+  *snapshot* (state vector + delete set): **a state vector alone does not change
+  on a delete-only edit**, so text removed offline would never be pushed. Missing manifest, unknown revision, changed
   revision, changed digest, or an unreadable local state all force a sync.
 - Checkpoints are only written when the revision is **identical before and after**
   the sync run, so a concurrent collaborator edit can never be recorded as

@@ -10,8 +10,8 @@
  * the cheapest monotonic value it can read:
  *  - Bun/LevelDB: the document's latest update clock (an integer, read with a
  *    single reverse LevelDB scan).
- *  - Cloudflare: the lexicographically-latest persisted update row key (or a
- *    marker written at compaction time when only a snapshot remains).
+ *  - Cloudflare: the newest persisted `update:*` row key, or — once compaction
+ *    has removed every update row — a unique marker written with the snapshot.
  */
 export interface DocumentRevisionEntry {
   documentId: string;

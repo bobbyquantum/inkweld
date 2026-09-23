@@ -1,9 +1,8 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
+import { LoggerService } from '@services/core/logger.service';
+import { SetupService } from '@services/core/setup.service';
 import { firstValueFrom } from 'rxjs';
-
-import { LoggerService } from '../core/logger.service';
-import { SetupService } from '../core/setup.service';
 
 /**
  * Response shape for the bulk-sync manifest.

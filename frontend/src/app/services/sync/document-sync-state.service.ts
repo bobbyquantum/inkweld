@@ -13,7 +13,7 @@ function toError(reason: DOMException | null): Error {
  *
  * `serverRevision` is the opaque token the server reported for the document at
  * the moment of our last successful sync (see the backend's per-document
- * revision manifest). `stateVectorDigest` is base64 of the document's Yjs state
+ * revision manifest). `stateDigest` is base64 of the document's Yjs state
  * vector after that same sync, so "has anything changed locally since" is a
  * cheap string comparison with no network round trip.
  *
@@ -25,7 +25,7 @@ export interface DocumentSyncRecord {
   /** Server document id (`username:slug:elementId`). */
   documentId: string;
   serverRevision: string | null;
-  stateVectorDigest: string;
+  stateDigest: string;
   syncedAt: string;
 }
 
@@ -42,9 +42,12 @@ export interface DocumentSyncRecord {
 })
 export class DocumentSyncStateService {
   private readonly storageContext = inject(StorageContextService);
-  private db: IDBDatabase | null = null;
-  private dbName: string | null = null;
-  private opening: Promise<IDBDatabase> | null = null;
+  /**
+   * One connection per account database, keyed by prefixed name. Each call
+   * resolves the name for the *current* context, so an open that finishes
+   * after an account switch can never hand one account's handle to another.
+   */
+  private readonly connections = new Map<string, Promise<IDBDatabase>>();
 
   async get(documentId: string): Promise<DocumentSyncRecord | null> {
     const db = await this.ensureDb();
@@ -119,16 +122,20 @@ export class DocumentSyncStateService {
   }
 
   private ensureDb(): Promise<IDBDatabase> {
-    const wanted = this.storageContext.prefixDbName(DB_BASE_NAME);
-    if (this.db && this.dbName === wanted) return Promise.resolve(this.db);
-    if (this.opening && this.dbName === wanted) return this.opening;
+    const name = this.storageContext.prefixDbName(DB_BASE_NAME);
+    let connection = this.connections.get(name);
+    if (!connection) {
+      connection = this.open(name);
+      this.connections.set(name, connection);
+      // A failed open is retried on the next call.
+      connection.catch(() => this.connections.delete(name));
+    }
+    return connection;
+  }
 
-    // Context switched (different account): drop the old handle
-    this.db?.close();
-    this.db = null;
-    this.dbName = wanted;
-    this.opening = new Promise((resolve, reject) => {
-      const request = indexedDB.open(wanted, 1);
+  private open(name: string): Promise<IDBDatabase> {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open(name, 1);
       request.onupgradeneeded = () => {
         const db = request.result;
         if (!db.objectStoreNames.contains(STORE_NAME)) {
@@ -136,15 +143,16 @@ export class DocumentSyncStateService {
         }
       };
       request.onsuccess = () => {
-        this.db = request.result;
-        this.opening = null;
-        resolve(this.db);
+        const db = request.result;
+        // Let an account's databases be deleted (sign-out, account removal)
+        // without this handle blocking it; the next call reopens.
+        db.onversionchange = () => {
+          db.close();
+          this.connections.delete(name);
+        };
+        resolve(db);
       };
-      request.onerror = () => {
-        this.opening = null;
-        reject(toError(request.error));
-      };
+      request.onerror = () => reject(toError(request.error));
     });
-    return this.opening;
   }
 }

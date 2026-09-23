@@ -22,7 +22,7 @@ describe('DocumentSyncStateService', () => {
     return {
       documentId,
       serverRevision: revision,
-      stateVectorDigest: digest,
+      stateDigest: digest,
       syncedAt: '2026-09-07T00:00:00.000Z',
     };
   }
@@ -74,5 +74,50 @@ describe('DocumentSyncStateService', () => {
   it('treats a null server revision as a valid stored record', async () => {
     await service.set(record('u:p:empty', null, 'digest-empty'));
     expect((await service.get('u:p:empty'))?.serverRevision).toBeNull();
+  });
+
+  it('keeps each account context in its own database', async () => {
+    const accountA = prefix;
+    await service.set(record('u:p:d', 'rA'));
+
+    prefix = `${accountA}other:`;
+    expect(await service.get('u:p:d')).toBeNull();
+    await service.set(record('u:p:d', 'rB'));
+
+    prefix = accountA;
+    expect((await service.get('u:p:d'))?.serverRevision).toBe('rA');
+  });
+
+  it('does not hand a stale open to a different account', async () => {
+    const accountA = prefix;
+    await service.set(record('u:p:d', 'rA'));
+    const accountB = `${accountA}b:`;
+
+    // A new instance has no open connection, so account A's read starts an
+    // open that is still pending when the context switches to account B.
+    const fresh = TestBed.runInInjectionContext(
+      () => new DocumentSyncStateService()
+    );
+    const readA = fresh.get('u:p:d');
+    prefix = accountB;
+    const readB = fresh.get('u:p:d');
+
+    expect((await readA)?.serverRevision).toBe('rA');
+    expect(await readB).toBeNull();
+  });
+
+  it('releases its handle so the database can be deleted', async () => {
+    await service.set(record('u:p:d'));
+    const name = `${prefix}inkweld-document-sync-state`;
+
+    await new Promise<void>((resolve, reject) => {
+      const request = indexedDB.deleteDatabase(name);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(new Error('delete failed'));
+      request.onblocked = () => reject(new Error('delete blocked'));
+    });
+
+    // The next call reopens a fresh, empty database.
+    expect(await service.get('u:p:d')).toBeNull();
   });
 });

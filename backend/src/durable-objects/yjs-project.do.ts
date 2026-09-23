@@ -94,6 +94,7 @@ import { ProjectPresenceService, type PresenceSocket } from '../services/presenc
 import type { DocumentRevisionEntry } from '../types/document-revision.types';
 
 const projDOLog = logger.child('YjsProjectDO');
+
 declare const WebSocketPair: any;
 
 interface ConnectionInfo {
@@ -922,7 +923,8 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
    */
   private async handleGetRevisions(documentId: string): Promise<Response> {
     // The elements doc id is `username:slug:elements`; the project key is its
-    // first two segments. readRevision strips trailing slashes for the item ids.
+    // first two segments. Item ids are built without a trailing slash, matching
+    // the stripped ids documents are persisted under.
     const [username, slug] = documentId.split(':');
     if (!username || !slug) {
       return jsonResponse({ error: 'Invalid documentId' }, 400);
@@ -950,7 +952,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     const documents: DocumentRevisionEntry[] = [];
     for (const docId of documentIds) {
       try {
-        documents.push({ documentId: docId, revision: await this.docStorage.readRevision(docId) });
+        documents.push({ documentId: docId, ...(await this.docStorage.readRevision(docId)) });
       } catch (error) {
         projDOLog.warn(`Failed to read revision for ${docId}`, { error: String(error) });
         documents.push({ documentId: docId, revision: null, unknown: true });
