@@ -522,8 +522,11 @@ export class YjsDocStorage {
    *
    * One bounded reverse `list` (plus at most two point reads when no update
    * rows remain), so this is O(1) in the document's history. `revision: null`
-   * means nothing has been persisted (nothing to pull); `unknown: true` means a
-   * snapshot exists without a marker, so the caller must sync rather than skip.
+   * means nothing has been persisted (nothing to pull). A snapshot written
+   * before markers existed gets one backfilled on first read — a fresh token
+   * no client can already hold, so it cannot match a stale checkpoint.
+   * `unknown: true` means that backfill failed, so the caller must sync rather
+   * than skip.
    * The token is *not* comparable against the Bun runtime's clock token —
    * clients only ever compare a token to one previously received from the same
    * server.
@@ -544,7 +547,20 @@ export class YjsDocStorage {
     if (marker) return { revision: new TextDecoder().decode(toBytes(marker)) };
 
     const snapshot = await this.storage.get<StoredBytes>(snapshotKey(storagePrefix));
-    return snapshot ? { revision: null, unknown: true } : { revision: null };
+    if (!snapshot) return { revision: null };
+    try {
+      return { revision: await this.writeRevisionMarker(storagePrefix) };
+    } catch (err) {
+      this.log.warn(`Failed to backfill revision marker for ${documentId}`, { error: String(err) });
+      return { revision: null, unknown: true };
+    }
+  }
+
+  /** Write a fresh, never-repeating revision marker and return its token. */
+  private async writeRevisionMarker(storagePrefix: string): Promise<string> {
+    const token = `snapshot:${Date.now()}:${randomHex(8)}`;
+    await this.storage.put(revisionKey(storagePrefix), new TextEncoder().encode(token));
+    return token;
   }
 
   /**
@@ -631,10 +647,7 @@ export class YjsDocStorage {
     // A fresh marker per snapshot write, so the revision token never repeats
     // (see readRevision). Written after the snapshot: a crash in between leaves
     // the update rows in place, and those still supply the token.
-    await this.storage.put(
-      revisionKey(storagePrefix),
-      new TextEncoder().encode(`snapshot:${Date.now()}:${randomHex(8)}`)
-    );
+    await this.writeRevisionMarker(storagePrefix);
 
     let keys: string[];
     if (knownKeys) {

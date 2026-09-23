@@ -150,17 +150,20 @@ describe('YjsProject DO GET /api/revisions', () => {
     ]);
   });
 
-  it('reports a document whose revision cannot be read as unknown', async () => {
+  it('backfills a revision for a snapshot written without a marker', async () => {
     const entries = storageWithElements([{ id: 'doc-a', type: 'ITEM', name: 'A' }]);
-    // A snapshot without a revision marker cannot be told apart from an older one.
     entries.set('doc:alice:proj:doc-a:snapshot', new Uint8Array([0, 0]));
 
     const response = await revisions(entries);
 
-    const body = (await response.json()) as { documents: unknown[] };
-    expect(body.documents).toEqual([
-      { documentId: 'alice:proj:doc-a', revision: null, unknown: true },
-    ]);
+    const body = (await response.json()) as {
+      documents: Array<{ documentId: string; revision: string | null; unknown?: boolean }>;
+    };
+    expect(body.documents).toHaveLength(1);
+    expect(body.documents[0].documentId).toBe('alice:proj:doc-a');
+    expect(body.documents[0].revision).toMatch(/^snapshot:/);
+    expect(body.documents[0].unknown).toBeUndefined();
+    expect(entries.has('doc:alice:proj:doc-a:revision')).toBe(true);
   });
 
   it('refuses without a token', async () => {

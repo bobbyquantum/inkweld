@@ -337,6 +337,8 @@ first asks the server which documents actually changed:
   read with one bounded reverse scan, no document loaded. **Never use the fixed
   `snapshot` key as the token**: every compaction overwrites it, so a token would
   repeat after `snapshot → edit → compaction` and a changed document be skipped.
+  A snapshot with no marker (written before markers existed) gets a fresh one
+  backfilled on first read; only if that write fails is it reported `unknown`.
   **The two tokens are not comparable across runtimes**; a client only ever
   compares a token to one from the same server.
 - `DocumentSyncPlannerService` skips a document only when the manifest revision

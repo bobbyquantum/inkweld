@@ -749,8 +749,25 @@ describe('YjsDocStorage.readRevision', () => {
     expect(await ds.readRevision('d')).toEqual({ revision: 'doc:d:update:2000:00000000' });
   });
 
-  it('reports a snapshot without a revision marker as unknown', async () => {
+  it('backfills a stable marker for a snapshot written without one', async () => {
     const storage = makeStorage(new Map<string, number[]>([['doc:d:snapshot', [0, 1]]]));
+    const ds = new YjsDocStorage(storage, noopLogger);
+
+    const first = await ds.readRevision('d');
+    expect(first.revision).toMatch(/^snapshot:/);
+    expect(first.unknown).toBeUndefined();
+    expect(storage.puts.map((p) => p.key)).toEqual(['doc:d:revision']);
+
+    // The backfilled marker is the token from now on — no second write.
+    expect(await ds.readRevision('d')).toEqual(first);
+    expect(storage.puts).toHaveLength(1);
+  });
+
+  it('reports a snapshot as unknown when the marker backfill fails', async () => {
+    const storage = makeStorage(new Map<string, number[]>([['doc:d:snapshot', [0, 1]]]));
+    storage.put = async () => {
+      throw new Error('storage write failed');
+    };
     const ds = new YjsDocStorage(storage, noopLogger);
     expect(await ds.readRevision('d')).toEqual({ revision: null, unknown: true });
   });
