@@ -12,6 +12,7 @@ import {
   type MediaSyncState,
 } from '../local/media-sync.service';
 import { DocumentService } from '../project/document.service';
+import { DocumentSyncPlannerService } from './document-sync-planner.service';
 import { SyncQueueService, SyncStage } from './sync-queue.service';
 
 describe('SyncQueueService', () => {
@@ -29,6 +30,7 @@ describe('SyncQueueService', () => {
   let mockStorageContext: { getPrefix: Mock };
   let mockSetupService: { getMode: Mock };
   let mockLogger: { info: Mock; warn: Mock; error: Mock; debug: Mock };
+  let mockSyncPlanner: { plan: Mock; record: Mock };
 
   const createMockProject = (id: string, slug: string): Project => ({
     id,
@@ -64,10 +66,24 @@ describe('SyncQueueService', () => {
       syncElementsToServer: vi.fn().mockResolvedValue(undefined),
       syncDocumentsToServer: vi
         .fn()
-        .mockResolvedValue({ success: [], failed: [] }),
+        .mockResolvedValue({ success: [], failed: [], digests: new Map() }),
       syncWorldbuildingToServerBatch: vi
         .fn()
         .mockResolvedValue({ success: [], failed: [] }),
+    };
+
+    // Default planner: sync everything (no skips), no checkpointing.
+    mockSyncPlanner = {
+      plan: vi
+        .fn()
+        .mockImplementation((_u: string, _s: string, documentIds: string[]) =>
+          Promise.resolve({
+            toSync: [...documentIds],
+            skipped: [],
+            before: null,
+          })
+        ),
+      record: vi.fn().mockResolvedValue(undefined),
     };
 
     mockStorageContext = {
@@ -92,6 +108,7 @@ describe('SyncQueueService', () => {
         { provide: ProjectsService, useValue: mockProjectsApi },
         { provide: MediaSyncService, useValue: mockMediaSyncService },
         { provide: DocumentService, useValue: mockDocumentService },
+        { provide: DocumentSyncPlannerService, useValue: mockSyncPlanner },
         { provide: StorageContextService, useValue: mockStorageContext },
         { provide: SetupService, useValue: mockSetupService },
         { provide: LoggerService, useValue: mockLogger },

@@ -32,6 +32,7 @@ import {
   rateLimitBackoff,
   withJitter,
 } from '@services/sync/access-denial';
+import { yjsStateDigest } from '@utils/yjs-state-digest';
 import { keymap } from 'prosemirror-keymap';
 import { type Node as ProseMirrorModelNode } from 'prosemirror-model';
 import { Plugin, PluginKey } from 'prosemirror-state';
@@ -323,6 +324,46 @@ export class DocumentService {
    */
   hasLocalContent(documentId: string): Promise<boolean> {
     return this.liveDocs.hasLocalContent(documentId);
+  }
+
+  /**
+   * Digest of a document's local Yjs state (see {@link yjsStateDigest}), read
+   * headlessly from IndexedDB (no WebSocket, no editor).
+   *
+   * This is the client half of the bulk-sync fast path: a document can be
+   * skipped only when its server revision is unchanged AND this digest still
+   * matches the one captured at the last sync — the digest is the cheap,
+   * local proof that this device has no unsynced edits.
+   *
+   * Never rejects: any IndexedDB failure (opening, loading or closing) returns
+   * `null`, which callers treat as "must sync".
+   */
+  async getLocalStateDigest(documentId: string): Promise<string | null> {
+    const ydoc = new Y.Doc();
+    let provider: IndexeddbPersistence | null = null;
+    try {
+      provider = new IndexeddbPersistence(documentId, ydoc);
+      await provider.whenSynced;
+      return yjsStateDigest(ydoc);
+    } catch (error) {
+      this.logger.warn(
+        'DocumentService',
+        `Could not compute local state digest for ${documentId}`,
+        error
+      );
+      return null;
+    } finally {
+      try {
+        await provider?.destroy();
+      } catch (error) {
+        this.logger.warn(
+          'DocumentService',
+          `Could not close local store for ${documentId}`,
+          error
+        );
+      }
+      ydoc.destroy();
+    }
   }
 
   /**
@@ -2445,7 +2486,7 @@ export class DocumentService {
     timeoutMs: number = 30000,
     sourceDocumentId?: string,
     _sourceConfigId?: string
-  ): Promise<void> {
+  ): Promise<string | null> {
     // Use sourceDocumentId for local lookup if provided (migration scenario)
     // NOTE: Documents are stored in IndexedDB WITHOUT a prefix (unlike elements which use prefixDocumentId).
     // The sourceConfigId parameter is kept for API compatibility but not used for documents.
@@ -2476,7 +2517,7 @@ export class DocumentService {
         'DocumentService',
         `syncDocumentToServer: No WebSocket URL available, skipping sync for ${documentId}`
       );
-      return;
+      return null;
     }
 
     // Get auth token for WebSocket authentication
@@ -2486,7 +2527,7 @@ export class DocumentService {
         'DocumentService',
         `syncDocumentToServer: No auth token available, skipping sync for ${documentId}`
       );
-      return;
+      return null;
     }
 
     // Create a new Yjs doc for this sync operation
@@ -2509,7 +2550,7 @@ export class DocumentService {
     const formattedDocId = documentId.replace(/^\/+/, '');
     const wsUrl = `${websocketUrl}/api/v1/ws/yjs?documentId=${formattedDocId}`;
 
-    await this.syncViaWebSocket({
+    return this.syncViaWebSocket({
       wsUrl,
       ydoc,
       authToken,
@@ -2556,16 +2597,22 @@ export class DocumentService {
    * @param concurrency - Maximum number of concurrent syncs (default 3)
    * @param sourceDocumentIds - Optional array of source document IDs for local data (for migration)
    * @param sourceConfigId - Source config ID for storage prefix (e.g., 'local' for local mode migration)
-   * @returns Promise that resolves when all syncs are attempted
+   * @returns Promise that resolves when all syncs are attempted, with the
+   *   post-merge state-vector digest of each successful document
    */
   async syncDocumentsToServer(
     documentIds: string[],
     concurrency: number = 3,
     sourceDocumentIds?: string[],
     sourceConfigId?: string
-  ): Promise<{ success: string[]; failed: string[] }> {
+  ): Promise<{
+    success: string[];
+    failed: string[];
+    digests: Map<string, string>;
+  }> {
     const success: string[] = [];
     const failed: string[] = [];
+    const digests = new Map<string, string>();
 
     // Process in batches for controlled concurrency
     for (let i = 0; i < documentIds.length; i += concurrency) {
@@ -2586,6 +2633,7 @@ export class DocumentService {
         const docId = batch[idx];
         if (result.status === 'fulfilled') {
           success.push(docId);
+          if (result.value) digests.set(docId, result.value);
         } else {
           this.logger.error(
             'DocumentService',
@@ -2602,7 +2650,7 @@ export class DocumentService {
       `syncDocumentsToServer: Completed - ${success.length} synced, ${failed.length} failed`
     );
 
-    return { success, failed };
+    return { success, failed, digests };
   }
 
   /**
@@ -2855,7 +2903,7 @@ export class DocumentService {
     indexeddbProvider: IndexeddbPersistence;
     timeoutMs: number;
     description: string;
-  }): Promise<void> {
+  }): Promise<string> {
     let provider: WebsocketProvider | null = null;
 
     try {
@@ -2895,6 +2943,10 @@ export class DocumentService {
         'DocumentService',
         `${params.description}: Successfully synced`
       );
+
+      // Digest AFTER the merge, so it reflects exactly the state this device
+      // now shares with the server. Callers persist it as the sync checkpoint.
+      return yjsStateDigest(params.ydoc);
     } finally {
       if (provider) {
         provider.disconnect();

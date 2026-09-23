@@ -38,6 +38,7 @@ interface ServiceInternals {
       getYDoc(docName: string): Promise<Y.Doc>;
       storeUpdate(docName: string, update: Uint8Array): Promise<unknown>;
       flushDocument(docName: string): Promise<void>;
+      _transact<T>(f: (db: unknown) => Promise<T>): Promise<T>;
       destroy(): Promise<void>;
     }
   >;
@@ -73,6 +74,8 @@ function installFlushProbe(
   const state = { stores: 0, inFlight: 0, attempts: 0, settled: 0 };
   const wrapped = {
     getYDoc: (docName: string) => real.getYDoc(docName),
+    // Forwarded so revision reads through the probe hit the real LevelDB.
+    _transact: <T>(f: (db: unknown) => Promise<T>) => real._transact(f),
     storeUpdate: async (docName: string, update: Uint8Array) => {
       state.stores++;
       try {
@@ -652,4 +655,71 @@ describe('YjsService live-path LevelDB compaction', () => {
     expect(await countUpdateRows(documentId)).toBeLessThanOrEqual(bursts);
     expect(internalsOf(service).pendingSinceCompact.size).toBe(0);
   }, 30000);
+});
+
+describe('YjsService.getDocumentRevisions', () => {
+  it('returns null for documents that were never persisted', async () => {
+    const service = new YjsService();
+    const entries = await service.getDocumentRevisions(USERNAME, SLUG, [
+      `${USERNAME}:${SLUG}:missing`,
+    ]);
+    expect(entries).toEqual([{ documentId: `${USERNAME}:${SLUG}:missing`, revision: null }]);
+    await service.cleanup();
+  });
+
+  it('returns a monotonic clock token per document', async () => {
+    const service = new YjsService();
+    const documentId = `${USERNAME}:${SLUG}:doc-1`;
+    await applyUpdates(service, documentId, 3);
+
+    const first = await service.getDocumentRevisions(USERNAME, SLUG, [documentId]);
+    expect(first[0].revision).not.toBeNull();
+    expect(first[0].unknown).toBeUndefined();
+
+    await applyUpdates(service, documentId, 1);
+    const second = await service.getDocumentRevisions(USERNAME, SLUG, [documentId]);
+
+    // The token must strictly advance with new local updates.
+    expect(Number(second[0].revision)).toBeGreaterThan(Number(first[0].revision));
+    await service.cleanup();
+  }, 20000);
+
+  it('keeps the token stable across compaction', async () => {
+    const service = new YjsService();
+    const documentId = `${USERNAME}:${SLUG}:elements/`;
+    await service.getDocument(documentId);
+    const probe = installFlushProbe(service, PROJECT_KEY);
+
+    await applyUpdates(service, documentId, LEVELDB_COMPACT_THRESHOLD);
+    await awaitWriteSettled(probe);
+    // A compaction has merged the history into one row at the clock key.
+    expect(probe.attemptedFlushes()).toBeGreaterThanOrEqual(1);
+
+    const before = await service.getDocumentRevisions(USERNAME, SLUG, [documentId]);
+    const after = await service.getDocumentRevisions(USERNAME, SLUG, [documentId]);
+
+    // Reading the revision must not itself move the token.
+    expect(before[0].revision).not.toBeNull();
+    expect(before[0].unknown).toBeUndefined();
+    expect(after[0].unknown).toBeUndefined();
+    expect(after[0].revision).toBe(before[0].revision);
+    await service.cleanup();
+  }, 30000);
+
+  it('reports distinct revisions for independent documents', async () => {
+    const service = new YjsService();
+    const a = `${USERNAME}:${SLUG}:doc-a`;
+    const b = `${USERNAME}:${SLUG}:doc-b`;
+    await applyUpdates(service, a, 2);
+    await applyUpdates(service, a, 2);
+    await applyUpdates(service, b, 1);
+
+    const entries = await service.getDocumentRevisions(USERNAME, SLUG, [a, b]);
+    const byId = new Map(entries.map((e) => [e.documentId, e.revision]));
+
+    expect(byId.get(a)).not.toBeNull();
+    expect(byId.get(b)).not.toBeNull();
+    expect(Number(byId.get(a))).toBeGreaterThan(Number(byId.get(b)));
+    await service.cleanup();
+  }, 20000);
 });

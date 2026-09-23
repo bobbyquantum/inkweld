@@ -14,6 +14,7 @@ import { SetupService } from '../core/setup.service';
 import { StorageContextService } from '../core/storage-context.service';
 import { MediaSyncService } from '../local/media-sync.service';
 import { DocumentService } from '../project/document.service';
+import { DocumentSyncPlannerService } from './document-sync-planner.service';
 
 /**
  * Sync stage for a project
@@ -72,6 +73,7 @@ export class SyncQueueService {
   private readonly mediaSyncService = inject(MediaSyncService);
   private readonly documentService = inject(DocumentService);
   private readonly storageContext = inject(StorageContextService);
+  private readonly syncPlanner = inject(DocumentSyncPlannerService);
 
   /** Queue of project keys waiting to be synced */
   private queue: string[] = [];
@@ -427,11 +429,39 @@ export class SyncQueueService {
       }
     }
 
-    const result =
-      await this.documentService.syncDocumentsToServer(documentIds);
+    // Skip documents whose server revision and local state vector are both
+    // unchanged since this device last synced them. The priority document is
+    // always synced because its in-memory state may not be checkpointed yet.
+    const forceSync = this.priorityDocumentId
+      ? new Set([this.priorityDocumentId])
+      : new Set<string>();
+    const plan = await this.syncPlanner.plan(
+      username,
+      slug,
+      documentIds,
+      forceSync
+    );
+
+    if (plan.toSync.length === 0) {
+      this.logger.info(
+        'SyncQueueService',
+        `[${projectKey}] All ${documentIds.length} documents already synced, skipping WebSockets`
+      );
+      return;
+    }
+
+    const result = await this.documentService.syncDocumentsToServer(
+      plan.toSync
+    );
+
+    // Checkpoint successful documents so the next sync can skip them. Only
+    // revisions that stayed stable across the run are recorded (see planner).
+    await this.syncPlanner.record(username, slug, plan.before, result.digests);
+
     this.logger.debug(
       'SyncQueueService',
-      `[${projectKey}] Documents synced: ${result.success.length} ok, ${result.failed.length} failed`
+      `[${projectKey}] Documents synced: ${result.success.length} ok, ` +
+        `${result.failed.length} failed, ${plan.skipped.length} skipped`
     );
   }
 

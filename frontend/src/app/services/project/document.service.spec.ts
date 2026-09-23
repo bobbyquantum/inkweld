@@ -406,6 +406,25 @@ describe('DocumentService', () => {
       expect(service.getActiveConnections()).toHaveLength(1);
     });
 
+    it('computes a base64 state digest from IndexedDB', async () => {
+      const digest = await service.getLocalStateDigest(testDocumentId);
+
+      expect(typeof digest).toBe('string');
+      expect(digest).not.toBe('');
+      expect(() => atob(digest!)).not.toThrow();
+    });
+
+    it('still returns the digest when closing the local store fails', async () => {
+      const { IndexeddbPersistence } = await import('y-indexeddb');
+      vi.spyOn(IndexeddbPersistence.prototype, 'destroy').mockRejectedValueOnce(
+        new Error('close failed')
+      );
+
+      await expect(
+        service.getLocalStateDigest(testDocumentId)
+      ).resolves.toEqual(expect.any(String));
+    });
+
     it('should initialize and update word count signals', () => {
       let initialCount = -1;
       let updatedCount = -1;
@@ -1879,6 +1898,37 @@ describe('DocumentService', () => {
         expect(mockWebSocketProvider.disconnect).toHaveBeenCalledTimes(1);
         expect(mockWebSocketProvider.destroy).toHaveBeenCalledTimes(1);
       });
+
+      it('returns the post-sync state digest', async () => {
+        mockWebSocketProvider.on.mockImplementation(
+          (event: string, callback: any) => {
+            if (event === 'sync') callback(true);
+            return () => {};
+          }
+        );
+
+        const digest = await service.syncDocumentToServer(testDocumentId, 1000);
+
+        // Base64 of a Yjs snapshot (an empty doc still encodes a valid one).
+        expect(typeof digest).toBe('string');
+        expect(digest).not.toBe('');
+        expect(() => atob(digest!)).not.toThrow();
+      });
+
+      it('returns null when there is no WebSocket URL', async () => {
+        mockSetupService.getWebSocketUrl.mockReturnValue(null);
+        await expect(
+          service.syncDocumentToServer(testDocumentId)
+        ).resolves.toBeNull();
+      });
+
+      it('returns null when there is no auth token', async () => {
+        mockSetupService.getWebSocketUrl.mockReturnValue('ws://localhost:8333');
+        mockAuthTokenService.getToken.mockReturnValue(null);
+        await expect(
+          service.syncDocumentToServer(testDocumentId)
+        ).resolves.toBeNull();
+      });
     });
 
     describe('syncDocumentsToServer', () => {
@@ -1896,6 +1946,27 @@ describe('DocumentService', () => {
         // All should succeed (skipped due to no WebSocket URL)
         expect(result.success).toHaveLength(3);
         expect(result.failed).toHaveLength(0);
+        // No WebSocket sync happened, so no digests were produced.
+        expect(result.digests.size).toBe(0);
+      });
+
+      it('collects the digest of each successfully synced document', async () => {
+        mockWebSocketProvider.on.mockImplementation(
+          (event: string, callback: any) => {
+            if (event === 'sync') callback(true);
+            return () => {};
+          }
+        );
+
+        const result = await service.syncDocumentsToServer([
+          'user:project:doc1',
+          'user:project:doc2',
+        ]);
+
+        expect(result.success).toHaveLength(2);
+        expect(result.digests.size).toBe(2);
+        expect(result.digests.get('user:project:doc1')).toBeTruthy();
+        expect(result.digests.get('user:project:doc2')).toBeTruthy();
       });
 
       it('should handle empty document list', async () => {

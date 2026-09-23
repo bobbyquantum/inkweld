@@ -31,6 +31,12 @@ export interface DoStorage {
     prefix: string;
     limit?: number;
     startAfter?: string;
+    /**
+     * Return keys in descending order. Used to read a document's latest update
+     * row (and therefore its revision token) with a single bounded `list` call
+     * instead of paging the whole history.
+     */
+    reverse?: boolean;
   }): Promise<Map<string, T>>;
   put<T>(key: string, value: T): Promise<void>;
   delete(keys: string | string[]): Promise<void>;
@@ -65,6 +71,15 @@ export const SNAPSHOT_VALUE_LIMIT = 1_900_000;
 /** Storage key for the compacted document snapshot. */
 export function snapshotKey(storagePrefix: string): string {
   return `${storagePrefix}snapshot`;
+}
+
+/**
+ * Storage key for the revision marker written with each snapshot. Read by
+ * {@link YjsDocStorage.readRevision} once no `update:*` rows remain; see there
+ * for why the snapshot key cannot double as the token.
+ */
+export function revisionKey(storagePrefix: string): string {
+  return `${storagePrefix}revision`;
 }
 
 /**
@@ -168,6 +183,13 @@ export function persistUpdateKey(
   sequence: number
 ): string {
   return `${storagePrefix}update:${timestamp}:${String(sequence).padStart(8, '0')}`;
+}
+
+/** `bytes` random bytes as lowercase hex. */
+function randomHex(bytes: number): string {
+  const rand = new Uint8Array(bytes);
+  crypto.getRandomValues(rand);
+  return Array.from(rand, (b) => b.toString(16).padStart(2, '0')).join('');
 }
 
 /** Coerce a persisted value (legacy `number[]` or current `Uint8Array`) to bytes. */
@@ -280,6 +302,7 @@ export async function describeDocStorage(
     let updateRows = 0;
     let updateBytes = 0;
     const snapKeyForPrefix = snapshotKey(prefix);
+    const revKeyForPrefix = revisionKey(prefix);
 
     await pagePrefix(storage, prefix, (page) => {
       for (const [key, value] of page.entries()) {
@@ -305,7 +328,7 @@ export async function describeDocStorage(
             ...content,
             ...(decodeError ? { decodeError } : {}),
           };
-        } else {
+        } else if (key !== revKeyForPrefix) {
           updateRows++;
           updateBytes += bytes.byteLength;
         }
@@ -484,6 +507,63 @@ export class YjsDocStorage {
   }
 
   /**
+   * Read the current revision token for a document without loading it.
+   *
+   * The token is:
+   *  - the newest incremental `update:*` key (timestamp + zero-padded sequence
+   *    + random suffix, so key order matches write order), or
+   *  - once every incremental row has been compacted away, the unique marker
+   *    {@link compact} wrote alongside the snapshot.
+   *
+   * The snapshot key itself is never used as a token: it is a fixed name that
+   * every compaction overwrites, so `snapshot → edits → compaction` would
+   * return to the same token and a client holding the old one would skip a
+   * changed document.
+   *
+   * One bounded reverse `list` (plus at most two point reads when no update
+   * rows remain), so this is O(1) in the document's history. `revision: null`
+   * means nothing has been persisted (nothing to pull). A snapshot written
+   * before markers existed gets one backfilled on first read — a fresh token
+   * no client can already hold, so it cannot match a stale checkpoint.
+   * `unknown: true` means that backfill failed, so the caller must sync rather
+   * than skip.
+   * The token is *not* comparable against the Bun runtime's clock token —
+   * clients only ever compare a token to one previously received from the same
+   * server.
+   */
+  async readRevision(documentId: string): Promise<{ revision: string | null; unknown?: true }> {
+    const storagePrefix = `doc:${documentId}:`;
+    // Scope the scan to `update:` — a whole-prefix scan would also match the
+    // rows of any document whose id extends this one (`doc:<id>:<more>:...`).
+    const newest = await this.storage.list<StoredBytes>({
+      prefix: `${storagePrefix}update:`,
+      limit: 1,
+      reverse: true,
+    });
+    const first = newest.keys().next();
+    if (!first.done) return { revision: first.value };
+
+    const marker = await this.storage.get<StoredBytes>(revisionKey(storagePrefix));
+    if (marker) return { revision: new TextDecoder().decode(toBytes(marker)) };
+
+    const snapshot = await this.storage.get<StoredBytes>(snapshotKey(storagePrefix));
+    if (!snapshot) return { revision: null };
+    try {
+      return { revision: await this.writeRevisionMarker(storagePrefix) };
+    } catch (err) {
+      this.log.warn(`Failed to backfill revision marker for ${documentId}`, { error: String(err) });
+      return { revision: null, unknown: true };
+    }
+  }
+
+  /** Write a fresh, never-repeating revision marker and return its token. */
+  private async writeRevisionMarker(storagePrefix: string): Promise<string> {
+    const token = `snapshot:${Date.now()}:${randomHex(8)}`;
+    await this.storage.put(revisionKey(storagePrefix), new TextEncoder().encode(token));
+    return token;
+  }
+
+  /**
    * Delete one batch of keys, swallowing + logging failures. Returns the count
    * deleted on success, 0 on failure (best-effort purge/compaction cleanup).
    */
@@ -564,6 +644,10 @@ export class YjsDocStorage {
     // inflates stored size ~8x (one boxed number per byte) and the in-memory
     // load cost likewise.
     await this.storage.put(snapKey, encodedState);
+    // A fresh marker per snapshot write, so the revision token never repeats
+    // (see readRevision). Written after the snapshot: a crash in between leaves
+    // the update rows in place, and those still supply the token.
+    await this.writeRevisionMarker(storagePrefix);
 
     let keys: string[];
     if (knownKeys) {
@@ -646,10 +730,7 @@ export class YjsDocStorage {
     if (!isSyncFrame(frame)) return null;
     const storagePrefix = `doc:${documentId}:`;
     const base = persistUpdateKey(storagePrefix, Date.now(), this.sequence++);
-    const rand = new Uint8Array(16);
-    crypto.getRandomValues(rand);
-    const suffix = Array.from(rand, (b) => b.toString(16).padStart(2, '0')).join('');
-    const key = `${base}:${suffix}`;
+    const key = `${base}:${randomHex(16)}`;
     try {
       await this.storage.put(key, frame);
     } catch (err) {
