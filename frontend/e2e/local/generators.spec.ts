@@ -8,6 +8,7 @@
  */
 import { type Page } from '@playwright/test';
 
+import { openProjectFromGrid } from '../common/test-helpers';
 import { expect, test } from './fixtures';
 
 /** Entries are chosen so every roll is recognisable in an assertion. */
@@ -45,7 +46,7 @@ test.describe('Random generators', () => {
     // per-test budget on a cold dev server.
     test.slow();
 
-    await page.getByTestId('project-card').first().click();
+    await openProjectFromGrid(page);
     await expect(page).toHaveURL(/\/.+\/.+/);
     const projectUrl = page.url();
 
@@ -108,7 +109,7 @@ test.describe('Random generators', () => {
   test('a generator can be authored, previewed and reloaded', async ({
     localPageWithProject: page,
   }) => {
-    await page.getByTestId('project-card').first().click();
+    await openProjectFromGrid(page);
     await expect(page).toHaveURL(/\/.+\/.+/);
 
     await test.step('the preview rolls from the draft', async () => {
