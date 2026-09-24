@@ -45,7 +45,7 @@
         "prosemirror-history": "1.5.0",
         "prosemirror-tables": "1.8.5",
         "prosemirror-transform": "1.12.1",
-        "prosemirror-view": "1.42.4",
+        "prosemirror-view": "1.42.5",
         "rxjs": "7.8.2",
         "tslib": "2.8.1",
         "y-indexeddb": "9.0.12",
@@ -113,7 +113,7 @@
     "prosemirror-state": "1.4.4",
     "prosemirror-tables": "1.8.5",
     "prosemirror-transform": "1.12.1",
-    "prosemirror-view": "1.42.4",
+    "prosemirror-view": "1.42.5",
   },
   "packages": {
     "@adobe/css-tools": ["@adobe/css-tools@4.5.0", "", {}, "sha512-6OzddxPio9UiWTCemp4N8cYLV2ZN1ncRnV1cVGtve7dhPOtRkleRyx32GQCYSwDYgaHU3USMm84tNsvKzRCa1Q=="],
@@ -2212,7 +2212,7 @@
 
     "prosemirror-transform": ["prosemirror-transform@1.12.1", "", { "dependencies": { "prosemirror-model": "^1.21.0" } }, "sha512-t4F5615FycnCqsX7ShTUs8+jfnwcf46kuFRvSl/3qFx2QTZ4DjgowesLHQXcFP7G//TjesqZG3WtgL7vdyVJyA=="],
 
-    "prosemirror-view": ["prosemirror-view@1.42.4", "", { "dependencies": { "prosemirror-model": "^1.25.8", "prosemirror-state": "^1.0.0", "prosemirror-transform": "^1.1.0" } }, "sha512-H/LErnE8Vms1GYkvhfj6G3K9rc2p+o5EHGmTwvPOl0f21wPPxlMVRB8ICOseH+COb2oPKFEoufbgY6yet/dR4w=="],
+    "prosemirror-view": ["prosemirror-view@1.42.5", "", { "dependencies": { "prosemirror-model": "^1.25.12", "prosemirror-state": "^1.0.0", "prosemirror-transform": "^1.1.0" } }, "sha512-7qcRaCWM48NC4utNQnx5Obvvs48/jMHXXvOXHH6WlBojmiK15eyxoHYlv5aJARHJHiFccSuWZ7ULW2SPrFAS/g=="],
 
     "proxy-addr": ["proxy-addr@2.0.8", "", { "dependencies": { "forwarded": "0.2.0", "ipaddr.js": "1.9.1" } }, "sha512-5nnx0yGyVUcY6t9RnWcARWtwT9F1D8O9rt08htPvnd49W1IgZtmLkhu9WfMzQj1cFxjHIO6connUNVW5k7AVyQ=="],
 
