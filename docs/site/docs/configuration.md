@@ -475,6 +475,45 @@ EMAIL_FROM_NAME="My Inkweld"
 After configuring SMTP, verify it works by triggering a password reset or recovery email. Check the server logs for SMTP errors if messages don't arrive.
 :::
 
+### SITE_URL
+
+**Default:** - | URL
+
+Public URL of your instance, used to build links in emails (password resets,
+passkey recovery, welcome emails). Include the protocol. When unset, Inkweld
+falls back to `DEFAULT_SERVER_NAME`, then the first `ALLOWED_ORIGINS` entry.
+
+```bash
+SITE_URL=https://inkweld.example.com
+```
+
+---
+
+## Legal Links & Custom HTML
+
+These can also be set in **Admin → Settings**; values saved there take
+precedence. See [Legal Links & Custom HTML](./admin-guide/custom-html.md).
+
+### PRIVACY_POLICY_URL / TERMS_OF_SERVICE_URL
+
+**Default:** - | URL
+
+Links shown in the login and registration dialogs. Leave unset to hide them.
+
+```bash
+PRIVACY_POLICY_URL=https://example.com/privacy
+TERMS_OF_SERVICE_URL=https://example.com/terms
+```
+
+### CUSTOM_HEAD_HTML / CUSTOM_BODY_HTML
+
+**Default:** - | HTML
+
+Raw HTML injected into `<head>` and at the end of `<body>` of every page the
+Inkweld server serves — for analytics, consent managers or verification meta
+tags. **Not sanitized.** Has no effect when the frontend is served elsewhere
+(Cloudflare Pages, or `SERVE_FRONTEND=false`).
+
 ---
 
 ## Frontend Serving
@@ -662,6 +701,11 @@ wrangler secret put SESSION_SECRET --env production
 | `GITHUB_CALLBACK_URL`         | Auto                                                | GitHub OAuth callback URL                                                                                                                                                                 |
 | `DEFAULT_ADMIN_USERNAME`      | -                                                   | Initial admin username                                                                                                                                                                    |
 | `DEFAULT_ADMIN_PASSWORD`      | -                                                   | Initial admin password                                                                                                                                                                    |
+| `SITE_URL`                    | -                                                   | Public URL used in email links                                                                                                                                                            |
+| `PRIVACY_POLICY_URL`          | -                                                   | Privacy policy link in login/registration dialogs                                                                                                                                         |
+| `TERMS_OF_SERVICE_URL`        | -                                                   | Terms of service link in login/registration dialogs                                                                                                                                       |
+| `CUSTOM_HEAD_HTML`            | -                                                   | Raw HTML injected into `<head>` (not sanitized)                                                                                                                                           |
+| `CUSTOM_BODY_HTML`            | -                                                   | Raw HTML injected at the end of `<body>` (not sanitized)                                                                                                                                  |
 | `SERVE_FRONTEND`              | `true`                                              | Serve embedded frontend                                                                                                                                                                   |
 | `FRONTEND_DIST`               | -                                                   | External frontend path                                                                                                                                                                    |
 | `OPENAI_API_KEY`              | -                                                   | OpenAI API key for AI features                                                                                                                                                            |
