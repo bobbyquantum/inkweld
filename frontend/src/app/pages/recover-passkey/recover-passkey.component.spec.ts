@@ -37,7 +37,11 @@ describe('RecoverPasskeyComponent', () => {
         },
         {
           provide: SystemConfigService,
-          useValue: { isEmailRecoveryEnabled },
+          useValue: {
+            isEmailRecoveryEnabled,
+            hasPrivacyPolicy: signal(false),
+            hasTerms: signal(false),
+          },
         },
       ],
     }).compileComponents();

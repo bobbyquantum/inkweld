@@ -40,6 +40,7 @@ encoder.ts
 git_push.sh
 index.ts
 model/accept-auto-review-suggestion-request.ts
+model/accept-policy-request.ts
 model/add-comment-message-request.ts
 model/add-o-auth-grant-request.ts
 model/admin-create-announcement-request.ts
@@ -115,6 +116,8 @@ model/get-element-images-request.ts
 model/get-element-images200-response.ts
 model/get-mcp-permissions200-response-permissions-inner.ts
 model/get-mcp-permissions200-response.ts
+model/get-project-document-sync-manifest200-response-documents-inner.ts
+model/get-project-document-sync-manifest200-response.ts
 model/get-provider-models200-response.ts
 model/get-shared-file-info200-response.ts
 model/get-unread-announcement-count200-response.ts
@@ -143,6 +146,7 @@ model/json-rpc-request.ts
 model/json-rpc-response-error.ts
 model/json-rpc-response-id.ts
 model/json-rpc-response.ts
+model/legal-document-response.ts
 model/lint-error.ts
 model/lint-request.ts
 model/lint-response.ts
@@ -189,6 +193,7 @@ model/passkey-register-finish-response.ts
 model/passkey-rename-request.ts
 model/passkey.ts
 model/pending-invitation.ts
+model/policy-acceptance-status.ts
 model/profile-activity-day.ts
 model/profile-activity-year.ts
 model/profile-appearance.ts

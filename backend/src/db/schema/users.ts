@@ -76,6 +76,14 @@ export const users = sqliteTable('users', {
    * drift.
    */
   storageUsedBytes: integer('storageUsedBytes').notNull().default(0),
+  /**
+   * The legal-document version (see services/legal.service.ts) the user last
+   * accepted, or NULL if they never have. Compared against the current version
+   * to decide whether to ask them to accept again.
+   */
+  policyAcceptedVersion: text('policyAcceptedVersion'),
+  /** Unix seconds when policyAcceptedVersion was recorded. */
+  policyAcceptedAt: integer('policyAcceptedAt'),
 });
 
 export type User = typeof users.$inferSelect;

@@ -33,25 +33,6 @@ const DEFAULT_PASSWORD_POLICY: SystemFeaturesPasswordPolicy = {
   requireSymbol: true,
 };
 
-/**
- * Legal links the server exposes for this instance, set by an admin via
- * PRIVACY_POLICY_URL / TERMS_OF_SERVICE_URL.
- *
- * NOTE: These fields are intentionally declared locally instead of in the
- * generated api-client model — regenerating that client requires a Java
- * runtime which is not available everywhere. Because optional properties do
- * not affect assignability, a plain SystemFeatures response is assignable to
- * this intersection and the extra fields flow through at runtime. Once the
- * generated model gains these fields (SystemFeatures.privacyPolicyUrl /
- * termsUrl), this local interface can be deleted.
- */
-export interface BrandingLinks {
-  privacyPolicyUrl?: string;
-  termsUrl?: string;
-}
-
-type FeaturesWithLinks = SystemFeatures & BrandingLinks;
-
 /** Default system features when user explicitly chooses local mode */
 const LOCAL_DEFAULTS: SystemFeatures = {
   aiKillSwitch: true, // Kill switch ON = AI disabled in local mode
@@ -71,6 +52,9 @@ const LOCAL_DEFAULTS: SystemFeatures = {
   emailRecoveryEnabled: false,
   legacyMcpEnabled: true,
   mcpEnabled: true,
+  hasPrivacyPolicy: false,
+  hasTerms: false,
+  requirePolicyAcceptance: false,
 };
 
 /** Default system features when server is unavailable (degraded mode) */
@@ -92,6 +76,9 @@ const SERVER_UNAVAILABLE_DEFAULTS: SystemFeatures = {
   emailRecoveryEnabled: false,
   legacyMcpEnabled: false,
   mcpEnabled: false,
+  hasPrivacyPolicy: false,
+  hasTerms: false,
+  requirePolicyAcceptance: false,
 };
 
 @Injectable({
@@ -102,7 +89,7 @@ export class SystemConfigService {
   private readonly setupService = inject(SetupService);
   private readonly logger = inject(LoggerService);
 
-  private readonly systemFeaturesSignal = signal<FeaturesWithLinks>({
+  private readonly systemFeaturesSignal = signal<SystemFeatures>({
     aiKillSwitch: true, // Default to ON (AI disabled) for safety
     aiKillSwitchLockedByEnv: false,
     aiAutoReview: false,
@@ -123,6 +110,9 @@ export class SystemConfigService {
     legacyMcpEnabled: false,
     // Pessimistic initial state — assume MCP off until we hear otherwise.
     mcpEnabled: false,
+    hasPrivacyPolicy: false,
+    hasTerms: false,
+    requirePolicyAcceptance: false,
   });
 
   /** Tracks if the config was loaded successfully (true) or failed/using defaults (false) */
@@ -206,19 +196,24 @@ export class SystemConfigService {
   public readonly isMcpEnabled = computed(
     () => this.systemFeaturesSignal().mcpEnabled ?? false
   );
-  /**
-   * URL of the instance privacy policy, if the admin configured one. Rendered
-   * in the login/registration dialogs when present. Undefined when unset.
-   */
-  public readonly privacyPolicyUrl = computed(
-    () => this.systemFeaturesSignal().privacyPolicyUrl
+  /** Whether /privacy has anything to show (hosted text or an external URL). */
+  public readonly hasPrivacyPolicy = computed(
+    () => this.systemFeaturesSignal().hasPrivacyPolicy ?? false
+  );
+  /** Whether /terms has anything to show (hosted text or an external URL). */
+  public readonly hasTerms = computed(
+    () => this.systemFeaturesSignal().hasTerms ?? false
   );
   /**
-   * URL of the instance terms of service, if the admin configured one.
-   * Undefined when unset.
+   * Opaque token for the current wording of the legal documents; what the
+   * user agrees to at registration. Undefined when nothing is configured.
    */
-  public readonly termsUrl = computed(
-    () => this.systemFeaturesSignal().termsUrl
+  public readonly policyVersion = computed(
+    () => this.systemFeaturesSignal().policyVersion
+  );
+  /** Whether users must accept policyVersion before using the app. */
+  public readonly requirePolicyAcceptance = computed(
+    () => this.systemFeaturesSignal().requirePolicyAcceptance ?? false
   );
   public readonly isConfigLoaded = this.isLoaded.asReadonly();
 

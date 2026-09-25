@@ -12,6 +12,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { RouterModule } from '@angular/router';
+import { LegalLinksComponent } from '@components/legal-links/legal-links.component';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { PasswordResetService } from '@services/auth/password-reset.service';
 import { FormErrorTranslationService } from '@services/core/form-error-translation.service';
@@ -23,6 +24,7 @@ interface ForgotPasswordFormValue {
 @Component({
   selector: 'app-forgot-password',
   imports: [
+    LegalLinksComponent,
     FormField,
     FormRoot,
     MatButtonModule,

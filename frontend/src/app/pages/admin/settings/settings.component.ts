@@ -76,6 +76,11 @@ export class AdminSettingsComponent implements OnInit {
   // Branding / legal links state
   readonly privacyPolicyUrl = signal('');
   readonly termsUrl = signal('');
+  // Hosted legal text (Markdown), served at /privacy and /terms. Takes
+  // precedence over the URL for the same document.
+  readonly privacyPolicyContent = signal('');
+  readonly termsContent = signal('');
+  readonly requirePolicyAcceptance = signal(false);
 
   // Custom HTML injection slots (raw, intentionally unsanitized). Empty
   // string means "no injection" — the SPA shell is served untouched.
@@ -144,6 +149,9 @@ export class AdminSettingsComponent implements OnInit {
         termsUrl,
         customHeadHtml,
         customBodyHtml,
+        privacyPolicyContent,
+        termsContent,
+        requirePolicyAcceptance,
       ] = await Promise.all([
         this.configService.getConfig('USER_APPROVAL_REQUIRED'),
         this.configService.getConfig('AI_KILL_SWITCH'),
@@ -163,6 +171,9 @@ export class AdminSettingsComponent implements OnInit {
         this.configService.getConfig('TERMS_OF_SERVICE_URL'),
         this.configService.getConfig('CUSTOM_HEAD_HTML'),
         this.configService.getConfig('CUSTOM_BODY_HTML'),
+        this.configService.getConfig('PRIVACY_POLICY_CONTENT'),
+        this.configService.getConfig('TERMS_OF_SERVICE_CONTENT'),
+        this.configService.getConfig('REQUIRE_POLICY_ACCEPTANCE'),
       ]);
 
       this.userApprovalRequired.set(userApproval?.value === 'true');
@@ -187,6 +198,11 @@ export class AdminSettingsComponent implements OnInit {
       // Branding / legal links
       this.privacyPolicyUrl.set(privacyPolicyUrl?.value || '');
       this.termsUrl.set(termsUrl?.value || '');
+      this.privacyPolicyContent.set(privacyPolicyContent?.value || '');
+      this.termsContent.set(termsContent?.value || '');
+      this.requirePolicyAcceptance.set(
+        requirePolicyAcceptance?.value === 'true'
+      );
       this.customHeadHtml.set(customHeadHtml?.value || '');
       this.customBodyHtml.set(customBodyHtml?.value || '');
 
@@ -352,6 +368,7 @@ export class AdminSettingsComponent implements OnInit {
     const trimmed = value.trim();
     if (await this.saveStringConfig('PRIVACY_POLICY_URL', trimmed)) {
       this.privacyPolicyUrl.set(trimmed);
+      this.systemConfigService.refreshSystemFeatures();
     }
   }
 
@@ -359,6 +376,42 @@ export class AdminSettingsComponent implements OnInit {
     const trimmed = value.trim();
     if (await this.saveStringConfig('TERMS_OF_SERVICE_URL', trimmed)) {
       this.termsUrl.set(trimmed);
+      this.systemConfigService.refreshSystemFeatures();
+    }
+  }
+
+  /**
+   * Save the hosted Markdown for /privacy or /terms. Any change — like a URL
+   * change — alters the policy version, so users are asked to accept again
+   * when REQUIRE_POLICY_ACCEPTANCE is on.
+   */
+  async saveLegalContent(
+    key: 'PRIVACY_POLICY_CONTENT' | 'TERMS_OF_SERVICE_CONTENT',
+    value: string
+  ): Promise<void> {
+    const trimmed = value.trim();
+    if (!(await this.saveStringConfig(key, trimmed))) {
+      return;
+    }
+    if (key === 'PRIVACY_POLICY_CONTENT') {
+      this.privacyPolicyContent.set(trimmed);
+    } else {
+      this.termsContent.set(trimmed);
+    }
+    this.systemConfigService.refreshSystemFeatures();
+  }
+
+  async toggleRequirePolicyAcceptance(enabled: boolean): Promise<void> {
+    if (
+      await this.saveStringConfig(
+        'REQUIRE_POLICY_ACCEPTANCE',
+        enabled ? 'true' : 'false'
+      )
+    ) {
+      this.requirePolicyAcceptance.set(enabled);
+      this.systemConfigService.refreshSystemFeatures();
+    } else {
+      this.requirePolicyAcceptance.set(!enabled);
     }
   }
 

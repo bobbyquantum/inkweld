@@ -4,7 +4,9 @@ import { PROTOCOL_VERSION, MIN_CLIENT_VERSION } from '../config/protocol';
 import { imageGenerationService } from '../services/image-generation.service';
 import { configService } from '../services/config.service';
 import { getPasswordPolicy } from '../services/password-validation.service';
+import { LEGAL_DOCUMENTS, legalService } from '../services/legal.service';
 import type { AppContext } from '../types/context';
+import { errorResponse } from '../schemas/common.schemas';
 
 const configRoutes = new OpenAPIHono<AppContext>();
 
@@ -114,15 +116,45 @@ const SystemFeaturesSchema = z
         'Whether MCP (Model Context Protocol) access is enabled. The AI kill switch takes ' +
         'precedence: when the kill switch is on, MCP is disabled regardless of this flag.',
     }),
-    privacyPolicyUrl: z.string().optional().openapi({
-      example: 'https://example.com/privacy',
-      description:
-        'URL of the instance privacy policy, if configured by an admin. Absent when unset.',
+    privacyPolicyUrl: z
+      .string()
+      .optional()
+      .openapi({
+        example: 'https://example.com/privacy',
+        description:
+          'External URL of the instance privacy policy, if configured by an admin. Absent when ' +
+          'unset or when the policy text is hosted by Inkweld itself (see hasPrivacyPolicy).',
+      }),
+    termsUrl: z
+      .string()
+      .optional()
+      .openapi({
+        example: 'https://example.com/terms',
+        description:
+          'External URL of the instance terms of service, if configured by an admin. Absent when ' +
+          'unset or when the terms are hosted by Inkweld itself (see hasTerms).',
+      }),
+    hasPrivacyPolicy: z.boolean().openapi({
+      example: true,
+      description: 'Whether /privacy has anything to show (hosted text or an external URL).',
     }),
-    termsUrl: z.string().optional().openapi({
-      example: 'https://example.com/terms',
+    hasTerms: z.boolean().openapi({
+      example: false,
+      description: 'Whether /terms has anything to show (hosted text or an external URL).',
+    }),
+    policyVersion: z
+      .string()
+      .optional()
+      .openapi({
+        example: '3f2a9c0d1b4e5f67',
+        description:
+          'Opaque token for the current wording of the legal documents. Changes when an admin ' +
+          'edits either document. Absent when neither is configured.',
+      }),
+    requirePolicyAcceptance: z.boolean().openapi({
+      example: false,
       description:
-        'URL of the instance terms of service, if configured by an admin. Absent when unset.',
+        'Whether users must accept policyVersion (at registration, and again after changes).',
     }),
   })
   .openapi('SystemFeatures');
@@ -180,7 +212,7 @@ configRoutes.openapi(getFeaturesRoute, async (c) => {
   // public endpoint is hit on every page load and used to issue ~15 serial
   // queries), and run the independent async checks concurrently.
   const isTruthy = (v: string) => v === 'true' || v === '1';
-  const [cfg, passwordPolicy] = await Promise.all([
+  const [cfg, passwordPolicy, legal] = await Promise.all([
     configService.getMany(db, [
       'AI_KILL_SWITCH',
       'AI_TEXT_ENABLED',
@@ -195,10 +227,9 @@ configRoutes.openapi(getFeaturesRoute, async (c) => {
       'EMAIL_RECOVERY_ENABLED',
       'LEGACY_MCP_ENABLED',
       'MCP_ENABLED',
-      'PRIVACY_POLICY_URL',
-      'TERMS_OF_SERVICE_URL',
     ] as const),
     getPasswordPolicy(db),
+    legalService.getLegalState(db),
   ]);
 
   // Check AI kill switch status
@@ -243,11 +274,6 @@ configRoutes.openapi(getFeaturesRoute, async (c) => {
   // Get default server name
   const defaultServerName = process.env.DEFAULT_SERVER_NAME?.trim() || undefined;
 
-  // Optional legal links configured by the admin. Trimmed; empty values are
-  // omitted from the payload so the frontend can simply check presence.
-  const privacyPolicyUrl = cfg.PRIVACY_POLICY_URL.value.trim() || undefined;
-  const termsUrl = cfg.TERMS_OF_SERVICE_URL.value.trim() || undefined;
-
   return c.json({
     aiKillSwitch,
     aiKillSwitchLockedByEnv: lockedByEnv,
@@ -268,9 +294,64 @@ configRoutes.openapi(getFeaturesRoute, async (c) => {
     legacyMcpEnabled: isTruthy(cfg.LEGACY_MCP_ENABLED.value),
     // MCP access as a whole (default ON). The AI kill switch takes precedence.
     mcpEnabled: isTruthy(cfg.MCP_ENABLED.value),
-    privacyPolicyUrl,
-    termsUrl,
+    // Legal documents. The URLs are only present for externally-hosted
+    // documents; hosted text is fetched separately from /config/legal/{document}.
+    privacyPolicyUrl: legal.privacy.url,
+    termsUrl: legal.terms.url,
+    hasPrivacyPolicy: !!(legal.privacy.content || legal.privacy.url),
+    hasTerms: !!(legal.terms.content || legal.terms.url),
+    policyVersion: legal.version,
+    requirePolicyAcceptance: legal.requireAcceptance,
   });
+});
+
+// Get a legal document (privacy policy / terms of service). Anonymous: the
+// /privacy and /terms pages must be readable before anyone signs in.
+const LegalDocumentResponseSchema = z
+  .object({
+    document: z.enum(LEGAL_DOCUMENTS).openapi({ example: 'privacy' }),
+    content: z.string().optional().openapi({
+      description: 'Markdown body, when the document is hosted by Inkweld.',
+      example: '# Privacy Policy\n\nWe store only what you write.',
+    }),
+    url: z.string().optional().openapi({
+      description: 'External page to redirect to, when no hosted text is configured.',
+      example: 'https://example.com/privacy',
+    }),
+    version: z.string().openapi({
+      description: 'Same token as SystemFeatures.policyVersion.',
+      example: '3f2a9c0d1b4e5f67',
+    }),
+  })
+  .openapi('LegalDocumentResponse');
+
+const getLegalDocumentRoute = createRoute({
+  method: 'get',
+  path: '/legal/{document}',
+  tags: ['Configuration'],
+  operationId: 'getLegalDocument',
+  request: {
+    params: z.object({
+      document: z.enum(LEGAL_DOCUMENTS).openapi({ param: { name: 'document', in: 'path' } }),
+    }),
+  },
+  responses: {
+    200: {
+      content: { 'application/json': { schema: LegalDocumentResponseSchema } },
+      description: 'The legal document',
+    },
+    404: errorResponse('The admin has not configured this document'),
+  },
+});
+
+configRoutes.openapi(getLegalDocumentRoute, async (c) => {
+  const { document } = c.req.valid('param');
+  const legal = await legalService.getLegalState(c.get('db'));
+  const doc = legal[document];
+  if (!legal.version || (!doc.content && !doc.url)) {
+    return c.json({ error: 'Not configured' }, 404);
+  }
+  return c.json({ document, content: doc.content, url: doc.url, version: legal.version }, 200);
 });
 
 export default configRoutes;

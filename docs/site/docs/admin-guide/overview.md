@@ -35,6 +35,16 @@ Configure system-wide settings:
 
 - **User Approval Required**: When enabled, new user registrations require admin approval
 - **AI Kill Switch**: Master control to disable all AI features
+- **Privacy Policy & Terms**: Publish your instance's legal documents. Paste the
+  text (Markdown) to host it at `/privacy` and `/terms`, or give a URL for those
+  pages to redirect to. Once set, they are linked from the landing page, the
+  sign-in and registration dialogs, and the other pages people see before
+  signing in. Turn on **Require acceptance** to make new users tick "I agree"
+  when registering; everyone is asked again whenever you change the text or a
+  URL, and anyone who declines is signed out. Same settings as environment
+  variables: `PRIVACY_POLICY_CONTENT`, `PRIVACY_POLICY_URL`,
+  `TERMS_OF_SERVICE_CONTENT`, `TERMS_OF_SERVICE_URL`,
+  `REQUIRE_POLICY_ACCEPTANCE`.
 
 ### Appearance
 

@@ -45,6 +45,8 @@ describe('ResetPasswordComponent', () => {
     isUserApprovalRequired: signal(true),
     isEmailEnabled: signal(false),
     isLocalMode: signal(false),
+    hasPrivacyPolicy: signal(false),
+    hasTerms: signal(false),
     systemFeatures: signal({
       aiKillSwitch: true,
       aiKillSwitchLockedByEnv: false,

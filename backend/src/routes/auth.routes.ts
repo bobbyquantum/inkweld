@@ -5,6 +5,7 @@ import { configService } from '../services/config.service';
 import { emailService } from '../services/email.service';
 import { welcomeEmail, awaitingApprovalEmail } from '../services/email-templates';
 import { getBaseUrl } from '../services/url.service';
+import { legalService } from '../services/legal.service';
 import { getPasswordPolicy, validatePassword } from '../services/password-validation.service';
 import { type AppContext, type DatabaseInstance } from '../types/context';
 import {
@@ -82,9 +83,33 @@ async function validateRegistrationInput(
   return { error: null, passwordLoginEnabled };
 }
 
+/**
+ * Policy acceptance at registration. When required, the client must echo the
+ * exact version it showed the user, so an edit made while the form was open
+ * is not silently "accepted". Otherwise an accepted version is recorded only
+ * if it matches what is current (a stale value would just be re-prompted).
+ */
+async function checkPolicyAcceptance(
+  db: DatabaseInstance,
+  acceptedPolicyVersion: string | undefined
+): Promise<{ error: string } | { policyAcceptedVersion: string | undefined }> {
+  const legal = await legalService.getLegalState(db);
+  if (legalService.needsAcceptance(legal, acceptedPolicyVersion)) {
+    return {
+      error: acceptedPolicyVersion
+        ? 'The privacy policy or terms have changed. Please review and accept them again.'
+        : 'You must accept the privacy policy and terms to register.',
+    };
+  }
+  return {
+    policyAcceptedVersion:
+      legal.version && acceptedPolicyVersion === legal.version ? legal.version : undefined,
+  };
+}
+
 authRoutes.openapi(registerRoute, async (c) => {
   const db = c.get('db');
-  const { username, password, email, name } = c.req.valid('json');
+  const { username, password, email, name, acceptedPolicyVersion } = c.req.valid('json');
 
   // Check USER_APPROVAL_REQUIRED from database config (set via admin UI)
   // configService reads database first, then environment, then defaults
@@ -96,6 +121,12 @@ authRoutes.openapi(registerRoute, async (c) => {
     return c.json({ error: validation.error }, 400);
   }
   const { passwordLoginEnabled } = validation as { error: null; passwordLoginEnabled: boolean };
+
+  const policy = await checkPolicyAcceptance(db, acceptedPolicyVersion);
+  if ('error' in policy) {
+    return c.json({ error: policy.error }, 400);
+  }
+  const { policyAcceptedVersion } = policy;
 
   // Passwordless mode: when PASSWORD_LOGIN_ENABLED is false the server creates
   // a user row with a NULL password column. The client is then responsible for
@@ -119,6 +150,7 @@ authRoutes.openapi(registerRoute, async (c) => {
         password: passwordLoginEnabled ? password : undefined,
         email: email || username + '@local',
         name: name || username,
+        policyAcceptedVersion,
       },
       { autoApprove: isFirstUser || !userApprovalRequired }
     );

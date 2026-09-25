@@ -1,18 +1,23 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { TranslocoModule } from '@jsverse/transloco';
 import { SystemConfigService } from '@services/core/system-config.service';
 
 /**
- * Renders the instance's Privacy Policy / Terms of Service links when the
- * admin has configured them (PRIVACY_POLICY_URL / TERMS_OF_SERVICE_URL).
- * Hidden entirely when neither is set — Inkweld sets only strictly-necessary
- * cookies by default, so nothing needs to be shown.
+ * Links to the instance's /privacy and /terms pages when the admin has
+ * configured either document (hosted text or an external URL — the page
+ * itself decides whether to render or redirect). Hidden entirely when neither
+ * is set: Inkweld sets only strictly-necessary cookies by default, so nothing
+ * needs to be shown.
  *
- * Used in the login and registration dialogs where legal links belong.
+ * Used on the pages reachable before sign-in (landing page, login and
+ * registration dialogs, passkey recovery, password reset, OAuth consent,
+ * about) — not /setup, which runs before a server is chosen. Links open in a
+ * new tab so a half-filled form is not lost.
  */
 @Component({
   selector: 'app-legal-links',
-  imports: [TranslocoModule],
+  imports: [RouterLink, TranslocoModule],
   templateUrl: './legal-links.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './legal-links.component.scss',
@@ -20,6 +25,6 @@ import { SystemConfigService } from '@services/core/system-config.service';
 export class LegalLinksComponent {
   private readonly systemConfig = inject(SystemConfigService);
 
-  readonly privacyPolicyUrl = this.systemConfig.privacyPolicyUrl;
-  readonly termsUrl = this.systemConfig.termsUrl;
+  readonly hasPrivacyPolicy = this.systemConfig.hasPrivacyPolicy;
+  readonly hasTerms = this.systemConfig.hasTerms;
 }

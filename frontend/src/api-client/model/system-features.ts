@@ -68,13 +68,29 @@ export interface SystemFeatures {
    */
   mcpEnabled: boolean;
   /**
-   * URL of the instance privacy policy, if configured by an admin. Absent when unset.
+   * External URL of the instance privacy policy, if configured by an admin. Absent when unset or when the policy text is hosted by Inkweld itself (see hasPrivacyPolicy).
    */
   privacyPolicyUrl?: string;
   /**
-   * URL of the instance terms of service, if configured by an admin. Absent when unset.
+   * External URL of the instance terms of service, if configured by an admin. Absent when unset or when the terms are hosted by Inkweld itself (see hasTerms).
    */
   termsUrl?: string;
+  /**
+   * Whether /privacy has anything to show (hosted text or an external URL).
+   */
+  hasPrivacyPolicy: boolean;
+  /**
+   * Whether /terms has anything to show (hosted text or an external URL).
+   */
+  hasTerms: boolean;
+  /**
+   * Opaque token for the current wording of the legal documents. Changes when an admin edits either document. Absent when neither is configured.
+   */
+  policyVersion?: string;
+  /**
+   * Whether users must accept policyVersion (at registration, and again after changes).
+   */
+  requirePolicyAcceptance: boolean;
 }
 export enum SystemFeaturesAppMode {
   Online = 'ONLINE',

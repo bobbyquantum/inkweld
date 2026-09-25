@@ -20,6 +20,8 @@ export const RESERVED_USERNAMES = [
   'reset-password',
   'recover-passkey',
   'about',
+  'privacy',
+  'terms',
   'settings',
   'messages',
   'oauth',
@@ -65,6 +67,16 @@ export const RegisterRequestSchema = z
       .string()
       .optional()
       .openapi({ description: 'Display name (optional)', example: 'John Doe' }),
+    acceptedPolicyVersion: z
+      .string()
+      .max(64)
+      .optional()
+      .openapi({
+        description:
+          'The SystemFeatures.policyVersion the user agreed to. Required (and must be ' +
+          'current) when SystemFeatures.requirePolicyAcceptance is true.',
+        example: '3f2a9c0d1b4e5f67',
+      }),
   })
   .openapi('RegisterRequest');
 

@@ -660,6 +660,36 @@ export const CONFIG_KEYS = {
     envVar: 'TERMS_OF_SERVICE_URL',
     type: 'string' as const,
   },
+  // Hosted legal documents. Markdown rendered by the anonymous /privacy and
+  // /terms pages. When both a URL and content are set, the content wins and
+  // the URL is ignored for that document.
+  PRIVACY_POLICY_CONTENT: {
+    category: 'general' as ConfigCategory,
+    description:
+      'Privacy policy text (Markdown) served at /privacy. Takes precedence over the URL.',
+    encrypted: false,
+    envVar: 'PRIVACY_POLICY_CONTENT',
+    type: 'string' as const,
+  },
+  TERMS_OF_SERVICE_CONTENT: {
+    category: 'general' as ConfigCategory,
+    description:
+      'Terms of service text (Markdown) served at /terms. Takes precedence over the URL.',
+    encrypted: false,
+    envVar: 'TERMS_OF_SERVICE_CONTENT',
+    type: 'string' as const,
+  },
+  // When on (and at least one legal document is configured) new accounts must
+  // tick "I agree" at registration, and existing users are asked to accept
+  // again whenever the documents change.
+  REQUIRE_POLICY_ACCEPTANCE: {
+    category: 'general' as ConfigCategory,
+    description:
+      'Require users to accept the privacy policy / terms at registration and again whenever they change',
+    encrypted: false,
+    envVar: 'REQUIRE_POLICY_ACCEPTANCE',
+    type: 'boolean' as const,
+  },
 
   // Sync capacity. The default per-user storage allowance in bytes, applied
   // when a user has no individual override (users.syncQuotaBytes IS NULL).

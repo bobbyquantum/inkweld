@@ -13,6 +13,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
+import { LegalLinksComponent } from '@components/legal-links/legal-links.component';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { PasskeyError } from '@services/auth/passkey.service';
 import { PasskeyRecoveryService } from '@services/auth/passkey-recovery.service';
@@ -44,6 +45,7 @@ interface RecoverPasskeyRedeemFormValue {
 @Component({
   selector: 'app-recover-passkey-redeem',
   imports: [
+    LegalLinksComponent,
     FormField,
     FormRoot,
     MatButtonModule,

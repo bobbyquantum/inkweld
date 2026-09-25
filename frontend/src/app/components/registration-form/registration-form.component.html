@@ -175,6 +175,35 @@
     </div>
   }
 
+  @if (requiresPolicyAcceptance()) {
+    <div class="policy-acceptance" data-testid="policy-acceptance">
+      <mat-checkbox
+        [checked]="model().acceptPolicy"
+        (change)="setPolicyAccepted($event.checked)"
+        [attr.data-testid]="testIdPrefix + 'policy-accept-checkbox'">
+        {{ 'auth.registration.policyAgreePrefix' | transloco }}
+        @if (hasPrivacyPolicy()) {
+          <a routerLink="/privacy" target="_blank" rel="noopener">{{
+            'auth.legal.privacyPolicy' | transloco
+          }}</a>
+        }
+        @if (hasPrivacyPolicy() && hasTerms()) {
+          {{ 'auth.registration.policyAgreeAnd' | transloco }}
+        }
+        @if (hasTerms()) {
+          <a routerLink="/terms" target="_blank" rel="noopener">{{
+            'auth.legal.termsOfService' | transloco
+          }}</a>
+        }
+      </mat-checkbox>
+      @if (form.acceptPolicy().touched() && form.acceptPolicy().invalid()) {
+        <mat-error data-testid="policy-accept-error">{{
+          'auth.registration.policyRequired' | transloco
+        }}</mat-error>
+      }
+    </div>
+  }
+
   @if (showSubmitButton) {
     <button
       mat-raised-button

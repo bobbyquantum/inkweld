@@ -11,6 +11,7 @@ import { By } from '@angular/platform-browser';
 import { type Event, Router } from '@angular/router';
 import { SwUpdate } from '@angular/service-worker';
 import { Configuration, UsersService } from '@inkweld/index';
+import { PolicyAcceptanceService } from '@services/auth/policy-acceptance.service';
 import { CloudSyncEngineService } from '@services/cloud-sync/cloud-sync-engine.service';
 import { BackgroundService } from '@services/core/background.service';
 import { SetupService } from '@services/core/setup.service';
@@ -93,6 +94,7 @@ describe('AppComponent', () => {
         { provide: UnifiedUserService, useValue: unifiedUserService },
         { provide: SetupService, useValue: setupService },
         { provide: BackgroundService, useValue: backgroundService },
+        { provide: PolicyAcceptanceService, useValue: { start: vi.fn() } },
         {
           provide: Configuration,
           useValue: {},

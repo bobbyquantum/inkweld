@@ -178,6 +178,12 @@
             "type": "string",
             "description": "Display name (optional)",
             "example": "John Doe"
+          },
+          "acceptedPolicyVersion": {
+            "type": "string",
+            "maxLength": 64,
+            "description": "The SystemFeatures.policyVersion the user agreed to. Required (and must be current) when SystemFeatures.requirePolicyAcceptance is true.",
+            "example": "3f2a9c0d1b4e5f67"
           }
         },
         "required": [
@@ -312,6 +318,54 @@
             ]
           }
         }
+      },
+      "PolicyAcceptanceStatus": {
+        "type": "object",
+        "properties": {
+          "required": {
+            "type": "boolean",
+            "description": "Whether the instance requires acceptance at all (REQUIRE_POLICY_ACCEPTANCE)."
+          },
+          "currentVersion": {
+            "type": "string",
+            "description": "SystemFeatures.policyVersion. Absent when no document is configured.",
+            "example": "3f2a9c0d1b4e5f67"
+          },
+          "acceptedVersion": {
+            "type": "string",
+            "nullable": true,
+            "description": "The version this user last accepted, or null if never."
+          },
+          "acceptedAt": {
+            "type": "number",
+            "nullable": true,
+            "description": "Unix seconds when acceptedVersion was recorded, or null."
+          },
+          "needsAcceptance": {
+            "type": "boolean",
+            "description": "True when required and acceptedVersion differs from currentVersion."
+          }
+        },
+        "required": [
+          "required",
+          "acceptedVersion",
+          "acceptedAt",
+          "needsAcceptance"
+        ]
+      },
+      "AcceptPolicyRequest": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string",
+            "maxLength": 64,
+            "description": "The policyVersion the user was shown and agreed to.",
+            "example": "3f2a9c0d1b4e5f67"
+          }
+        },
+        "required": [
+          "version"
+        ]
       },
       "PaginatedUsersResponse": {
         "type": "object",
@@ -1666,12 +1720,32 @@
           "privacyPolicyUrl": {
             "type": "string",
             "example": "https://example.com/privacy",
-            "description": "URL of the instance privacy policy, if configured by an admin. Absent when unset."
+            "description": "External URL of the instance privacy policy, if configured by an admin. Absent when unset or when the policy text is hosted by Inkweld itself (see hasPrivacyPolicy)."
           },
           "termsUrl": {
             "type": "string",
             "example": "https://example.com/terms",
-            "description": "URL of the instance terms of service, if configured by an admin. Absent when unset."
+            "description": "External URL of the instance terms of service, if configured by an admin. Absent when unset or when the terms are hosted by Inkweld itself (see hasTerms)."
+          },
+          "hasPrivacyPolicy": {
+            "type": "boolean",
+            "example": true,
+            "description": "Whether /privacy has anything to show (hosted text or an external URL)."
+          },
+          "hasTerms": {
+            "type": "boolean",
+            "example": false,
+            "description": "Whether /terms has anything to show (hosted text or an external URL)."
+          },
+          "policyVersion": {
+            "type": "string",
+            "example": "3f2a9c0d1b4e5f67",
+            "description": "Opaque token for the current wording of the legal documents. Changes when an admin edits either document. Absent when neither is configured."
+          },
+          "requirePolicyAcceptance": {
+            "type": "boolean",
+            "example": false,
+            "description": "Whether users must accept policyVersion (at registration, and again after changes)."
           }
         },
         "required": [
@@ -1688,7 +1762,42 @@
           "passwordLoginEnabled",
           "emailRecoveryEnabled",
           "legacyMcpEnabled",
-          "mcpEnabled"
+          "mcpEnabled",
+          "hasPrivacyPolicy",
+          "hasTerms",
+          "requirePolicyAcceptance"
+        ]
+      },
+      "LegalDocumentResponse": {
+        "type": "object",
+        "properties": {
+          "document": {
+            "type": "string",
+            "enum": [
+              "privacy",
+              "terms"
+            ],
+            "example": "privacy"
+          },
+          "content": {
+            "type": "string",
+            "description": "Markdown body, when the document is hosted by Inkweld.",
+            "example": "# Privacy Policy\n\nWe store only what you write."
+          },
+          "url": {
+            "type": "string",
+            "description": "External page to redirect to, when no hosted text is configured.",
+            "example": "https://example.com/privacy"
+          },
+          "version": {
+            "type": "string",
+            "description": "Same token as SystemFeatures.policyVersion.",
+            "example": "3f2a9c0d1b4e5f67"
+          }
+        },
+        "required": [
+          "document",
+          "version"
         ]
       },
       "AppearanceConfig": {
@@ -5418,6 +5527,83 @@
         }
       }
     },
+    "/api/v1/users/me/policy-acceptance": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "operationId": "getPolicyAcceptance",
+        "responses": {
+          "200": {
+            "description": "Policy acceptance status for the current user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PolicyAcceptanceStatus"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Users"
+        ],
+        "operationId": "acceptPolicy",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcceptPolicyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Acceptance recorded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PolicyAcceptanceStatus"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The version is not the current one (the documents changed)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/users": {
       "get": {
         "tags": [
@@ -5425,15 +5611,15 @@
         ],
         "operationId": "listUsers",
         "summary": "List users",
-        "description": "Get a paginated list of users. Admins see all users with full details (including pending/disabled). Regular users only see active (approved+enabled) users with limited info.",
+        "description": "Get a paginated list of users. Requires authentication. Admins see all users with full details (including pending/disabled). Regular users only see active (approved+enabled) users with limited info.",
         "parameters": [
           {
             "schema": {
               "type": "string",
-              "description": "Search by username or email"
+              "description": "Search by username (admins may also match on email)"
             },
             "required": false,
-            "description": "Search by username or email",
+            "description": "Search by username (admins may also match on email)",
             "name": "search",
             "in": "query"
           },
@@ -5468,6 +5654,16 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -5479,7 +5675,7 @@
         ],
         "operationId": "searchUsers",
         "summary": "Search users",
-        "description": "Search users by username or name. Admins see all users, regular users only see active users.",
+        "description": "Search users by username. Requires authentication. Admins see all users and may also match on email; regular users only see active users.",
         "responses": {
           "200": {
             "description": "Search results",
@@ -5487,6 +5683,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/PaginatedUsersResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -9770,6 +9976,50 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/SystemFeatures"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/config/legal/{document}": {
+      "get": {
+        "tags": [
+          "Configuration"
+        ],
+        "operationId": "getLegalDocument",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "privacy",
+                "terms"
+              ]
+            },
+            "required": true,
+            "name": "document",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The legal document",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LegalDocumentResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The admin has not configured this document",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
