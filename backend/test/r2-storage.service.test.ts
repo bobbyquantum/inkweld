@@ -10,6 +10,7 @@ import { R2StorageService } from '../src/services/r2-storage.service';
 function createPagingBucket(keys: string[], pageSize = 1000) {
   const store = new Map(keys.map((key) => [key, 10]));
   const listCalls: Array<{ prefix?: string; cursor?: string }> = [];
+  const deleteCalls: number[] = [];
 
   const bucket = {
     async list(opts: { prefix?: string; cursor?: string }) {
@@ -30,12 +31,16 @@ function createPagingBucket(keys: string[], pageSize = 1000) {
         cursor: truncated ? String(end) : undefined,
       };
     },
-    async delete(key: string) {
-      store.delete(key);
+    async delete(keys: string | string[]) {
+      const batch = Array.isArray(keys) ? keys : [keys];
+      deleteCalls.push(batch.length);
+      for (const key of batch) {
+        store.delete(key);
+      }
     },
   };
 
-  return { bucket: bucket as unknown as R2Bucket, store, listCalls };
+  return { bucket: bucket as unknown as R2Bucket, store, listCalls, deleteCalls };
 }
 
 const keysFor = (prefix: string, count: number) =>
@@ -68,13 +73,16 @@ describe('R2StorageService listing', () => {
   });
 
   it('deletes every object in a project directory, not just the first page', async () => {
-    const { bucket, store } = createPagingBucket(
+    const { bucket, store, deleteCalls } = createPagingBucket(
       [...keysFor('alice/novel/', 1500), ...keysFor('alice/other/', 5)],
       1000
     );
     const service = new R2StorageService(bucket);
 
     await service.deleteProjectDirectory('alice', 'novel');
+
+    // Batched: 1500 keys in two calls, never one call per key
+    expect(deleteCalls).toEqual([1000, 500]);
 
     expect([...store.keys()].filter((key) => key.startsWith('alice/novel/'))).toHaveLength(0);
     expect([...store.keys()].filter((key) => key.startsWith('alice/other/'))).toHaveLength(5);
