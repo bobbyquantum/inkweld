@@ -104,14 +104,30 @@ export class R2StorageService {
   }
 
   /**
+   * List every object under a prefix. `bucket.list` returns at most 1000
+   * objects per call, so follow the cursor until the listing is complete —
+   * a single call silently drops everything past the first page.
+   */
+  private async listAll(prefix: string): Promise<R2Object[]> {
+    const objects: R2Object[] = [];
+    let cursor: string | undefined;
+    do {
+      const page = await this.bucket.list({ prefix, cursor });
+      objects.push(...page.objects);
+      cursor = page.truncated ? page.cursor : undefined;
+    } while (cursor);
+    return objects;
+  }
+
+  /**
    * Delete all files in a project directory
    */
   async deleteProjectDirectory(username: string, projectSlug: string): Promise<void> {
     const prefix = `${username}/${projectSlug}/`;
-    const listed = await this.bucket.list({ prefix });
+    const objects = await this.listAll(prefix);
 
     // Delete all objects with this prefix
-    const deletePromises = listed.objects.map((obj) => this.bucket.delete(obj.key));
+    const deletePromises = objects.map((obj) => this.bucket.delete(obj.key));
     await Promise.all(deletePromises);
   }
 
@@ -229,9 +245,9 @@ export class R2StorageService {
     const basePrefix = `${username}/${projectSlug}/`;
     const fullPrefix = prefix ? `${basePrefix}${prefix}` : basePrefix;
 
-    const listed = await this.bucket.list({ prefix: fullPrefix });
+    const objects = await this.listAll(fullPrefix);
 
-    return listed.objects
+    return objects
       .filter((obj) => {
         // Skip internal files
         const filename = obj.key.replace(basePrefix, '');

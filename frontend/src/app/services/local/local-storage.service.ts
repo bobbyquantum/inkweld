@@ -247,23 +247,27 @@ export class LocalStorageService {
       const store = transaction.objectStore(STORE_NAME);
       const results: MediaInfo[] = [];
 
-      const request = store.openCursor();
+      // Keys are "projectKey:mediaId", so every record for this project (and
+      // prefix) sorts into one contiguous range. Walking only that range keeps
+      // the cost proportional to this project's media instead of every
+      // project's media on the device — this runs once per project on Sync All.
+      const request = store.openCursor(
+        IDBKeyRange.bound(keyPrefix, `${keyPrefix}\uffff`)
+      );
 
       request.onsuccess = () => {
         const cursor = request.result;
         if (cursor) {
           const record = cursor.value as StoredMedia;
-          if (record.id.startsWith(keyPrefix)) {
-            const { mediaId } = this.parseKey(record.id);
-            results.push({
-              mediaId,
-              mimeType: record.mimeType,
-              size: record.size,
-              createdAt: record.createdAt,
-              filename: record.filename,
-              generation: record.generation,
-            });
-          }
+          const { mediaId } = this.parseKey(record.id);
+          results.push({
+            mediaId,
+            mimeType: record.mimeType,
+            size: record.size,
+            createdAt: record.createdAt,
+            filename: record.filename,
+            generation: record.generation,
+          });
           cursor.continue();
         } else {
           resolve(results);

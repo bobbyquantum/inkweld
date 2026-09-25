@@ -74,6 +74,13 @@ export interface MediaSyncState {
   downloadProgress: number;
 }
 
+/**
+ * How many media files are downloaded at once. Browsers allow ~6 concurrent
+ * connections per origin over HTTP/1.1; leaving headroom keeps the WebSocket
+ * and ordinary API calls responsive while a large library downloads.
+ */
+const DOWNLOAD_CONCURRENCY = 4;
+
 const DEFAULT_STATE: MediaSyncState = {
   isSyncing: false,
   lastChecked: null,
@@ -329,22 +336,48 @@ export class MediaSyncService {
         return;
       }
 
+      // A small pool of workers pulls from a shared queue, so several files
+      // are in flight at once instead of paying one round trip per file in
+      // series. A failed file does not stop the others; the first failure is
+      // rethrown once the queue has drained.
       let downloaded = 0;
-      for (const item of toDownload) {
-        await this.downloadFromServer(projectKey, item.filename);
-        downloaded++;
-        state.update(s => ({
-          ...s,
-          downloadProgress: Math.round((downloaded / toDownload.length) * 100),
-        }));
-      }
+      let settled = 0;
+      const errors: unknown[] = [];
+      let next = 0;
+      const worker = async (): Promise<void> => {
+        while (next < toDownload.length) {
+          const item = toDownload[next++];
+          try {
+            await this.downloadFromServer(projectKey, item.filename);
+            downloaded++;
+          } catch (error) {
+            errors.push(error);
+          }
+          settled++;
+          state.update(s => ({
+            ...s,
+            downloadProgress: Math.round((settled / toDownload.length) * 100),
+          }));
+        }
+      };
+      await Promise.all(
+        Array.from(
+          { length: Math.min(DOWNLOAD_CONCURRENCY, toDownload.length) },
+          worker
+        )
+      );
 
-      state.update(s => ({ ...s, isSyncing: false, downloadProgress: 100 }));
-
-      // Increment version to trigger UI refreshes (e.g., project covers)
+      // Increment version to trigger UI refreshes (e.g., project covers),
+      // including after a partial failure — what did arrive should show.
       if (downloaded > 0) {
         this.mediaSyncVersion.update(v => v + 1);
       }
+
+      if (errors.length > 0) {
+        throw errors[0];
+      }
+
+      state.update(s => ({ ...s, isSyncing: false, downloadProgress: 100 }));
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
