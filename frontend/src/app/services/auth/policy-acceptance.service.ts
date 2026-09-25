@@ -15,7 +15,7 @@ import { UnifiedUserService } from '@services/user/unified-user.service';
 import { filter, firstValueFrom, map } from 'rxjs';
 
 /** Pages the user must be able to read while the prompt is pending. */
-const LEGAL_ROUTES = ['/privacy', '/terms'];
+const LEGAL_ROUTES = new Set(['/privacy', '/terms']);
 
 /**
  * Asks signed-in users to accept the instance's privacy policy / terms when
@@ -80,7 +80,7 @@ export class PolicyAcceptanceService {
           !!version &&
           !!user?.id &&
           path !== null &&
-          !LEGAL_ROUTES.includes(path);
+          !LEGAL_ROUTES.has(path);
         if (!shouldCheck) return;
 
         const key = `${user.id}:${version}`;
