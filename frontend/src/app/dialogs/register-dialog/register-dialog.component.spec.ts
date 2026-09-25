@@ -75,8 +75,10 @@ describe('RegisterDialogComponent', () => {
         requireNumber: true,
         requireSymbol: true,
       }),
-      privacyPolicyUrl: signal(undefined),
-      termsUrl: signal(undefined),
+      hasPrivacyPolicy: signal(false),
+      hasTerms: signal(false),
+      policyVersion: signal(undefined),
+      requirePolicyAcceptance: signal(false),
     };
 
     // PasskeyService is injected by RegisterDialogComponent so it can chain

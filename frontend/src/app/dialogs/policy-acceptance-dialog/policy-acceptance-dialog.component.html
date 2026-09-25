@@ -1,0 +1,75 @@
+<h2 mat-dialog-title>
+  {{
+    (data.isUpdate
+      ? 'auth.policyAcceptance.updatedTitle'
+      : 'auth.policyAcceptance.title'
+    ) | transloco
+  }}
+</h2>
+<mat-dialog-content>
+  <p data-testid="policy-acceptance-message">
+    {{
+      (data.isUpdate
+        ? 'auth.policyAcceptance.updatedMessage'
+        : 'auth.policyAcceptance.message'
+      ) | transloco
+    }}
+  </p>
+  <ul class="policy-links">
+    @if (hasPrivacyPolicy()) {
+      <li>
+        <a
+          routerLink="/privacy"
+          target="_blank"
+          rel="noopener"
+          data-testid="policy-acceptance-privacy-link"
+          >{{ 'auth.legal.privacyPolicy' | transloco }}</a
+        >
+      </li>
+    }
+    @if (hasTerms()) {
+      <li>
+        <a
+          routerLink="/terms"
+          target="_blank"
+          rel="noopener"
+          data-testid="policy-acceptance-terms-link"
+          >{{ 'auth.legal.termsOfService' | transloco }}</a
+        >
+      </li>
+    }
+  </ul>
+  @if (changedWhileOpen()) {
+    <p class="policy-notice" data-testid="policy-acceptance-changed">
+      {{ 'auth.policyAcceptance.changedWhileOpen' | transloco }}
+    </p>
+  }
+  @if (failed()) {
+    <p class="policy-notice" data-testid="policy-acceptance-failed">
+      {{ 'auth.policyAcceptance.saveFailed' | transloco }}
+    </p>
+  }
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button
+    mat-button
+    type="button"
+    (click)="decline()"
+    [disabled]="isSaving()"
+    data-testid="policy-acceptance-decline">
+    {{ 'auth.policyAcceptance.signOut' | transloco }}
+  </button>
+  <button
+    mat-flat-button
+    color="primary"
+    type="button"
+    (click)="accept()"
+    [disabled]="isSaving()"
+    data-testid="policy-acceptance-accept">
+    @if (isSaving()) {
+      <mat-spinner diameter="18"></mat-spinner>
+    } @else {
+      {{ 'auth.policyAcceptance.accept' | transloco }}
+    }
+  </button>
+</mat-dialog-actions>

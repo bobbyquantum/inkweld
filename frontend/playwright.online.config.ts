@@ -34,6 +34,9 @@ export default (async () => {
   process.env['API_BASE_URL'] = backendUrl;
   process.env['PLAYWRIGHT_FRONTEND_PORT'] = String(frontendPort);
   process.env['PLAYWRIGHT_BACKEND_PORT'] = String(backendPort);
+  // Specs that must flip instance-wide flags start their own Bun backend
+  // (e2e/common/isolated-backend.ts); only this config can do that.
+  process.env['E2E_BACKEND_RUNTIME'] = 'bun';
 
   return defineConfig({
     testDir: './e2e/online',

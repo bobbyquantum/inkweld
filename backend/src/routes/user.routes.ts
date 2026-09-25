@@ -10,6 +10,7 @@ import { imageService } from '../services/image.service';
 import { UserSchema, PaginatedUsersResponseSchema } from '../schemas/user.schemas';
 import { errorResponse, errorResponses, ProfileVisibilitySchema } from '../schemas/common.schemas';
 import { authService } from '../services/auth.service';
+import { legalService } from '../services/legal.service';
 
 const userRoutes = new OpenAPIHono<AppContext>();
 
@@ -17,6 +18,7 @@ const userRoutes = new OpenAPIHono<AppContext>();
 // Note: /me uses custom auth handling to return anonymous user instead of 401
 userRoutes.use('/me', optionalAuth);
 userRoutes.use('/avatar', requireAuth);
+userRoutes.use('/me/policy-acceptance', requireAuth);
 // Reject oversized avatar uploads with 413 before parseBody() buffers them.
 userRoutes.use(
   '/avatar',
@@ -238,6 +240,120 @@ userRoutes.openapi(updateProfileRoute, async (c) => {
       profileVisibility: updated.profileVisibility,
       activityVisibility: updated.activityVisibility,
       projectsVisibility: updated.projectsVisibility,
+    },
+    200
+  );
+});
+
+// ---------------------------------------------------------------------------
+// /me/policy-acceptance — has the user accepted the current legal documents?
+// ---------------------------------------------------------------------------
+const PolicyAcceptanceStatusSchema = z
+  .object({
+    required: z.boolean().openapi({
+      description: 'Whether the instance requires acceptance at all (REQUIRE_POLICY_ACCEPTANCE).',
+    }),
+    currentVersion: z.string().optional().openapi({
+      description: 'SystemFeatures.policyVersion. Absent when no document is configured.',
+      example: '3f2a9c0d1b4e5f67',
+    }),
+    acceptedVersion: z.string().nullable().openapi({
+      description: 'The version this user last accepted, or null if never.',
+    }),
+    acceptedAt: z.number().nullable().openapi({
+      description: 'Unix seconds when acceptedVersion was recorded, or null.',
+    }),
+    needsAcceptance: z.boolean().openapi({
+      description: 'True when required and acceptedVersion differs from currentVersion.',
+    }),
+  })
+  .openapi('PolicyAcceptanceStatus');
+
+const getPolicyAcceptanceRoute = createRoute({
+  method: 'get',
+  path: '/me/policy-acceptance',
+  tags: ['Users'],
+  operationId: 'getPolicyAcceptance',
+  responses: {
+    200: {
+      content: { 'application/json': { schema: PolicyAcceptanceStatusSchema } },
+      description: 'Policy acceptance status for the current user',
+    },
+    ...errorResponses.notAuthenticated,
+  },
+});
+
+userRoutes.openapi(getPolicyAcceptanceRoute, async (c) => {
+  const db = c.get('db');
+  const sessionUser = c.get('user');
+  const user = sessionUser?.id ? await userService.findById(db, sessionUser.id) : undefined;
+  if (!user) {
+    return c.json({ error: 'Not authenticated' }, 401);
+  }
+  const legal = await legalService.getLegalState(db);
+  return c.json(
+    {
+      required: legal.requireAcceptance,
+      currentVersion: legal.version,
+      acceptedVersion: user.policyAcceptedVersion ?? null,
+      acceptedAt: user.policyAcceptedAt ?? null,
+      needsAcceptance: legalService.needsAcceptance(legal, user.policyAcceptedVersion),
+    },
+    200
+  );
+});
+
+const AcceptPolicyRequestSchema = z
+  .object({
+    version: z.string().max(64).openapi({
+      description: 'The policyVersion the user was shown and agreed to.',
+      example: '3f2a9c0d1b4e5f67',
+    }),
+  })
+  .openapi('AcceptPolicyRequest');
+
+const acceptPolicyRoute = createRoute({
+  method: 'post',
+  path: '/me/policy-acceptance',
+  tags: ['Users'],
+  operationId: 'acceptPolicy',
+  request: {
+    body: { content: { 'application/json': { schema: AcceptPolicyRequestSchema } } },
+  },
+  responses: {
+    200: {
+      content: { 'application/json': { schema: PolicyAcceptanceStatusSchema } },
+      description: 'Acceptance recorded',
+    },
+    400: errorResponse('The version is not the current one (the documents changed)'),
+    ...errorResponses.notAuthenticated,
+  },
+});
+
+userRoutes.openapi(acceptPolicyRoute, async (c) => {
+  const db = c.get('db');
+  const user = c.get('user');
+  if (!user?.id) {
+    return c.json({ error: 'Not authenticated' }, 401);
+  }
+  const { version } = c.req.valid('json');
+  const legal = await legalService.getLegalState(db);
+  // Only the current version can be accepted: if an admin edited the text
+  // while the dialog was open, the user must see the new wording first.
+  if (!legal.version || version !== legal.version) {
+    return c.json(
+      { error: 'The privacy policy or terms have changed. Please review them again.' },
+      400
+    );
+  }
+  const recorded = await userService.recordPolicyAcceptance(db, user.id, version);
+  return c.json(
+    {
+      required: legal.requireAcceptance,
+      currentVersion: legal.version,
+      acceptedVersion: recorded.acceptedVersion,
+      acceptedAt: recorded.acceptedAt,
+      needsAcceptance: false,
     },
     200
   );

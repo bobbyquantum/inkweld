@@ -40,6 +40,9 @@ describe('SystemConfigService', () => {
     emailRecoveryEnabled: false,
     legacyMcpEnabled: false,
     mcpEnabled: true,
+    hasPrivacyPolicy: false,
+    hasTerms: false,
+    requirePolicyAcceptance: false,
   };
 
   beforeEach(() => {
@@ -150,6 +153,9 @@ describe('SystemConfigService', () => {
         emailRecoveryEnabled: false,
         legacyMcpEnabled: true,
         mcpEnabled: true,
+        hasPrivacyPolicy: false,
+        hasTerms: false,
+        requirePolicyAcceptance: false,
       });
 
       expect(offlineService.isConfigLoaded()).toBe(true);
@@ -203,6 +209,9 @@ describe('SystemConfigService', () => {
             emailRecoveryEnabled: false,
             legacyMcpEnabled: false,
             mcpEnabled: false,
+            hasPrivacyPolicy: false,
+            hasTerms: false,
+            requirePolicyAcceptance: false,
           });
           expect(errorService.isConfigLoaded()).toBe(true);
           expect(consoleWarnSpy).toHaveBeenCalledWith(
@@ -251,6 +260,9 @@ describe('SystemConfigService', () => {
         emailRecoveryEnabled: false,
         legacyMcpEnabled: false,
         mcpEnabled: true,
+        hasPrivacyPolicy: false,
+        hasTerms: false,
+        requirePolicyAcceptance: false,
       };
 
       // Wait for initial load
@@ -655,6 +667,9 @@ describe('SystemConfigService', () => {
             emailRecoveryEnabled: false,
             legacyMcpEnabled: false,
             mcpEnabled: false,
+            hasPrivacyPolicy: false,
+            hasTerms: false,
+            requirePolicyAcceptance: false,
           });
           expect(testService.isConfigLoaded()).toBe(true);
           expect(consoleWarnSpy).toHaveBeenCalledWith(
@@ -703,6 +718,9 @@ describe('SystemConfigService', () => {
               emailRecoveryEnabled: false,
               legacyMcpEnabled: false,
               mcpEnabled: false,
+              hasPrivacyPolicy: false,
+              hasTerms: false,
+              requirePolicyAcceptance: false,
             });
             expect(service.isConfigLoaded()).toBe(true);
             expect(consoleWarnSpy).toHaveBeenCalledWith(
@@ -849,28 +867,32 @@ describe('SystemConfigService', () => {
     });
   });
 
-  describe('branding links', () => {
-    it('exposes privacy policy and terms URLs when the server sends them', () => {
+  describe('legal documents', () => {
+    it('exposes the legal flags and policy version from the server', () => {
       (mockConfigService.getSystemFeatures as Mock).mockReturnValue(
         of({
           ...mockSystemFeatures,
-          // Extra fields ride along at runtime even though the generated
-          // model does not declare them yet (see BrandingLinks in the service)
-          privacyPolicyUrl: 'https://example.com/privacy',
-          termsUrl: 'https://example.com/terms',
+          hasPrivacyPolicy: true,
+          hasTerms: false,
+          policyVersion: 'abc123',
+          requirePolicyAcceptance: true,
         })
       );
       service.refreshSystemFeatures();
 
-      expect(service.privacyPolicyUrl()).toBe('https://example.com/privacy');
-      expect(service.termsUrl()).toBe('https://example.com/terms');
+      expect(service.hasPrivacyPolicy()).toBe(true);
+      expect(service.hasTerms()).toBe(false);
+      expect(service.policyVersion()).toBe('abc123');
+      expect(service.requirePolicyAcceptance()).toBe(true);
     });
 
-    it('leaves branding link signals undefined when not configured', () => {
+    it('defaults to nothing configured', () => {
       service.refreshSystemFeatures();
 
-      expect(service.privacyPolicyUrl()).toBeUndefined();
-      expect(service.termsUrl()).toBeUndefined();
+      expect(service.hasPrivacyPolicy()).toBe(false);
+      expect(service.hasTerms()).toBe(false);
+      expect(service.policyVersion()).toBeUndefined();
+      expect(service.requirePolicyAcceptance()).toBe(false);
     });
   });
 });

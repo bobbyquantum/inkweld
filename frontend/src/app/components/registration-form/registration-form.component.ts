@@ -11,6 +11,7 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   effect,
   ElementRef,
   EventEmitter,
@@ -34,11 +35,13 @@ import {
   validate,
 } from '@angular/forms/signals';
 import { MatButtonModule } from '@angular/material/button';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { RouterLink } from '@angular/router';
 import {
   AuthenticationService,
   type User,
@@ -75,6 +78,8 @@ interface RegistrationFormValue {
   email: string;
   password: string;
   confirmPassword: string;
+  /** "I agree to the privacy policy / terms". Only validated when required. */
+  acceptPolicy: boolean;
 }
 
 /**
@@ -109,6 +114,8 @@ interface RegistrationFormValue {
     KeyValuePipe,
     OverlayModule,
     MatProgressSpinnerModule,
+    MatCheckboxModule,
+    RouterLink,
     TranslocoModule,
   ],
   templateUrl: './registration-form.component.html',
@@ -135,6 +142,8 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
    */
   readonly isPasswordLoginEnabled = this.systemConfig.isPasswordLoginEnabled;
   private readonly policy = this.systemConfig.passwordPolicy;
+  readonly hasPrivacyPolicy = this.systemConfig.hasPrivacyPolicy;
+  readonly hasTerms = this.systemConfig.hasTerms;
 
   /** Whether to show the submit button (can be hidden if parent handles submission) */
   @Input() showSubmitButton = true;
@@ -152,8 +161,17 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
    * When true, the component doesn't perform registration API calls.
    * Instead, it emits the form values via `submitRequest` output for the parent to handle.
    * This is useful when registration is part of a larger flow (e.g., migration).
+   *
+   * Backed by a signal so the policy-acceptance validator reacts to it.
    */
-  @Input() externalSubmit = false;
+  @Input()
+  set externalSubmit(value: boolean) {
+    this.externalSubmitSignal.set(value);
+  }
+  get externalSubmit(): boolean {
+    return this.externalSubmitSignal();
+  }
+  private readonly externalSubmitSignal = signal(false);
 
   /**
    * When true, disables the username availability check.
@@ -204,7 +222,19 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
     email: '',
     password: '',
     confirmPassword: '',
+    acceptPolicy: false,
   });
+
+  /**
+   * Whether the user must tick "I agree" before registering. Never in
+   * externalSubmit mode: that registers against a different server (profile
+   * migration), whose policy this instance's config does not describe.
+   */
+  readonly requiresPolicyAcceptance = computed(
+    () =>
+      this.systemConfig.requirePolicyAcceptance() &&
+      !this.externalSubmitSignal()
+  );
 
   /** Set by the async username availability check when the username is taken. */
   private readonly usernameTaken = signal(false);
@@ -231,6 +261,14 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
         : null
     );
     email(schemaPath.email, { message: 'Please enter a valid email address' });
+    validate(schemaPath.acceptPolicy, ({ value }) =>
+      this.requiresPolicyAcceptance() && !value()
+        ? {
+            kind: 'policyNotAccepted',
+            message: 'You must accept to create an account',
+          }
+        : null
+    );
     required(schemaPath.email, {
       message: 'Email address is required',
       when: () => this.isRequireEmail(),
@@ -681,9 +719,21 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
       password?: string;
       name?: string;
       email?: string;
+      acceptedPolicyVersion?: string;
     } = {
       username: formValues.username,
     };
+
+    // Echo the exact version the user agreed to; the server rejects the
+    // registration if the documents changed while the form was open.
+    const policyVersion = this.systemConfig.policyVersion();
+    if (
+      this.requiresPolicyAcceptance() &&
+      formValues.acceptPolicy &&
+      policyVersion
+    ) {
+      credentials.acceptedPolicyVersion = policyVersion;
+    }
 
     // Only attach a password when password login is on AND the user typed
     // something. The backend treats an absent/empty password as "passwordless
@@ -745,6 +795,12 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
     }
   }
 
+  /** Checkbox handler for the policy agreement (mat-checkbox has no FormField binding). */
+  setPolicyAccepted(accepted: boolean): void {
+    this.model.update(m => ({ ...m, acceptPolicy: accepted }));
+    this.form.acceptPolicy().markAsTouched();
+  }
+
   /**
    * Get the current form values
    */
@@ -766,6 +822,7 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
       email: '',
       password: '',
       confirmPassword: '',
+      acceptPolicy: false,
     });
     this.usernameAvailability.set('unknown');
     this.usernameSuggestions.set([]);

@@ -429,9 +429,26 @@ Inkweld sets only strictly-necessary cookies, so it ships **no consent banner**
 and never needs one by default. Instead, admins can bring their own compliance
 tooling via `general`-category config keys (editable in the admin Settings page):
 
-- `PRIVACY_POLICY_URL` / `TERMS_OF_SERVICE_URL` — exposed anonymously through
-  `GET /api/v1/config/features` (`privacyPolicyUrl`, `termsUrl`) and rendered by
-  `LegalLinksComponent` in the login/registration dialogs when set.
+- Legal documents — `PRIVACY_POLICY_CONTENT` / `TERMS_OF_SERVICE_CONTENT`
+  (Markdown) or `PRIVACY_POLICY_URL` / `TERMS_OF_SERVICE_URL` (external page;
+  content wins when both are set). Served by the anonymous `/privacy` and
+  `/terms` routes (`pages/legal/`), which render the Markdown through Angular's
+  `[innerHTML]` sanitizer or redirect to an http(s) URL. The text comes from
+  `GET /api/v1/config/legal/{privacy|terms}`; `/config/features` carries
+  `hasPrivacyPolicy`, `hasTerms`, `policyVersion`, `requirePolicyAcceptance`
+  (and the URL fields only for externally-hosted documents).
+  `LegalLinksComponent` links to `/privacy` and `/terms` on every page reachable
+  before sign-in (landing page, login/register dialogs, passkey recovery,
+  forgot/reset password, approval-pending, OAuth consent, about) — not on
+  `/setup`, which runs before any server is chosen.
+- `REQUIRE_POLICY_ACCEPTANCE` — registration needs an `acceptedPolicyVersion`
+  equal to the current `policyVersion` (checkbox in `RegistrationFormComponent`),
+  and `PolicyAcceptanceService` (started from `AppComponent`) shows a blocking
+  dialog to signed-in users whose `users.policyAcceptedVersion` is stale, via
+  `GET/POST /api/v1/users/me/policy-acceptance`. Declining signs out. The
+  service resolves `SystemConfigService` lazily, only once a server user is
+  signed in: creating it at startup would cache features from before first-run
+  setup picks a server (setup navigates on without reloading).
 - `CUSTOM_HEAD_HTML` / `CUSTOM_BODY_HTML` — raw HTML injected at serve time into
   the `<!-- INKWELD_HEAD_EXTRA -->` / `<!-- INKWELD_BODY_EXTRA -->` markers in
   the built `index.html` (`injectCustomHtml()` in `backend/src/utils/spa-utils.ts`,
@@ -441,9 +458,20 @@ tooling via `general`-category config keys (editable in the admin Settings page)
   frontend at serve time and are absent from the JSON API.
 
 **Gotchas:**
-- The Angular API client is NOT regenerated for the two link fields (regeneration
-  needs Java). `SystemConfigService` declares a local `BrandingLinks` extension;
-  delete it if the generated `SystemFeatures` model ever gains those fields.
+- `policyVersion` is a short SHA-256 of all four legal values
+  (`legal.service.ts`), so **any** edit to the text or a URL makes everyone
+  accept again. Editing a policy hosted elsewhere doesn't change the version;
+  touch its URL (e.g. add `?v=2`) to re-prompt.
+- Acceptance is a UI gate only: the API, MCP and WebSockets keep working for an
+  account that has not accepted.
+- `/privacy` and `/terms` are reserved usernames and must stay above the
+  `:username` route. The gate never opens while one of them is the current
+  route, and waits for the first `NavigationEnd` (before it, `router.url` is
+  `/`), so a policy opened in a new tab can be read.
+- E2E: `policy-acceptance.spec.ts` flips the instance-wide flag, so it starts
+  its own backend via `e2e/common/isolated-backend.ts` (online config only,
+  `E2E_BACKEND_RUNTIME=bun`). Use the same helper for any other spec that must
+  change a global setting which would break parallel specs.
 - Custom HTML must never bypass substitution: `index.html` requests always go
   through `respondWithInjectedIndex()`, even when a pre-compressed `.br` variant
   exists. Keep any new serve path consistent with this.

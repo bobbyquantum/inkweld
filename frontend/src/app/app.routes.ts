@@ -26,6 +26,26 @@ export const routes: Routes = [
     title: 'About Inkweld',
   },
   {
+    // Anonymous legal pages. Must stay above ':username' — 'privacy' and
+    // 'terms' are also reserved usernames on the backend.
+    path: 'privacy',
+    loadComponent: () =>
+      import('./pages/legal/legal-page.component').then(
+        m => m.LegalPageComponent
+      ),
+    data: { document: 'privacy' },
+    title: 'Privacy Policy',
+  },
+  {
+    path: 'terms',
+    loadComponent: () =>
+      import('./pages/legal/legal-page.component').then(
+        m => m.LegalPageComponent
+      ),
+    data: { document: 'terms' },
+    title: 'Terms of Service',
+  },
+  {
     path: 'about/changelog',
     loadComponent: () =>
       import('./pages/about/changelog/changelog.component').then(

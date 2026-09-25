@@ -1,4 +1,4 @@
-import { provideZonelessChangeDetection } from '@angular/core';
+import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute } from '@angular/router';
 import { SystemConfigService } from '@services/core/system-config.service';
@@ -12,12 +12,16 @@ describe('ApprovalPendingComponent', () => {
   let fixture: ComponentFixture<ApprovalPendingComponent>;
   let mockSystemConfigService: {
     systemFeatures: () => { defaultServerName?: string };
+    hasPrivacyPolicy: () => boolean;
+    hasTerms: () => boolean;
   };
   let mockActivatedRoute: any;
 
   beforeEach(async () => {
     mockSystemConfigService = {
       systemFeatures: vi.fn(() => ({ defaultServerName: 'Test Server' })),
+      hasPrivacyPolicy: signal(false),
+      hasTerms: signal(false),
     };
 
     // Create a custom queryParams object that mimics ParamMap behavior but is mutable

@@ -8,6 +8,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { LegalLinksComponent } from '@components/legal-links/legal-links.component';
 import { ServerInfoBubbleComponent } from '@components/server-info-bubble/server-info-bubble.component';
 import { ThemeToggleComponent } from '@components/theme-toggle/theme-toggle.component';
 import { TranslocoModule } from '@jsverse/transloco';
@@ -16,6 +17,7 @@ import { SystemConfigService } from '@services/core/system-config.service';
 @Component({
   selector: 'app-approval-pending',
   imports: [
+    LegalLinksComponent,
     MatCardModule,
     MatButtonModule,
     MatIconModule,

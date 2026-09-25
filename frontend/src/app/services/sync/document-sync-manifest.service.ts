@@ -9,8 +9,8 @@ import { firstValueFrom } from 'rxjs';
  *
  * NOTE: Declared locally rather than in the generated api-client because
  * regenerating that client requires a Java runtime which is not available
- * everywhere (the same reason `SystemConfigService` declares `BrandingLinks`
- * locally). If the generated model ever gains these types, this can be deleted.
+ * everywhere. The generated model now has equivalent types
+ * (GetProjectDocumentSyncManifest200Response), so this can be deleted.
  */
 export interface DocumentRevisionEntry {
   documentId: string;

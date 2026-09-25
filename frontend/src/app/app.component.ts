@@ -16,6 +16,7 @@ import { TranslocoModule } from '@jsverse/transloco';
 import { isLocalOrCloudMode } from '@services/core/storage-context.service';
 
 import { ThemeService } from '../themes/theme.service';
+import { PolicyAcceptanceService } from './services/auth/policy-acceptance.service';
 import { CloudSyncEngineService } from './services/cloud-sync/cloud-sync-engine.service';
 import { BackgroundService } from './services/core/background.service';
 import { LocaleService } from './services/core/locale.service';
@@ -53,6 +54,7 @@ export class AppComponent implements OnInit {
   protected readonly backgroundSync = inject(BackgroundSyncService);
   private readonly cloudSync = inject(CloudSyncEngineService);
   private readonly backgroundService = inject(BackgroundService);
+  private readonly policyAcceptance = inject(PolicyAcceptanceService);
   protected readonly router = inject(Router);
 
   // Track if we ever had a real authenticated user session
@@ -80,6 +82,7 @@ export class AppComponent implements OnInit {
 
   ngOnInit(): void {
     this.themeService.initTheme();
+    this.policyAcceptance.start();
     // Applies the cached background synchronously before the config fetch, so
     // a branded login page does not flash the bundled default first.
     this.backgroundService.initialize();

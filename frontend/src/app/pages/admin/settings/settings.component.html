@@ -422,6 +422,74 @@
               [attr.aria-label]="'admin.settings.termsUrlAria' | transloco" />
             <mat-hint>{{ 'admin.settings.termsUrlHint' | transloco }}</mat-hint>
           </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>{{
+              'admin.settings.privacyPolicyContent' | transloco
+            }}</mat-label>
+            <textarea
+              matInput
+              rows="8"
+              [value]="privacyPolicyContent()"
+              (change)="
+                saveLegalContent(
+                  'PRIVACY_POLICY_CONTENT',
+                  $any($event.target).value
+                )
+              "
+              [disabled]="isSaving()"
+              id="admin-privacy-policy-content-input"
+              data-testid="privacy-policy-content-input"
+              [attr.aria-label]="
+                'admin.settings.privacyPolicyContent' | transloco
+              "></textarea>
+            <mat-hint>{{
+              'admin.settings.legalContentHint'
+                | transloco: { path: '/privacy' }
+            }}</mat-hint>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>{{
+              'admin.settings.termsContent' | transloco
+            }}</mat-label>
+            <textarea
+              matInput
+              rows="8"
+              [value]="termsContent()"
+              (change)="
+                saveLegalContent(
+                  'TERMS_OF_SERVICE_CONTENT',
+                  $any($event.target).value
+                )
+              "
+              [disabled]="isSaving()"
+              id="admin-terms-content-input"
+              data-testid="terms-content-input"
+              [attr.aria-label]="
+                'admin.settings.termsContent' | transloco
+              "></textarea>
+            <mat-hint>{{
+              'admin.settings.legalContentHint' | transloco: { path: '/terms' }
+            }}</mat-hint>
+          </mat-form-field>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-info">
+            <span class="setting-label">{{
+              'admin.settings.requirePolicyAcceptance' | transloco
+            }}</span>
+            <span class="setting-description">{{
+              'admin.settings.requirePolicyAcceptanceDesc' | transloco
+            }}</span>
+          </div>
+          <mat-slide-toggle
+            [checked]="requirePolicyAcceptance()"
+            (change)="toggleRequirePolicyAcceptance($event.checked)"
+            [disabled]="isSaving()"
+            color="primary"
+            data-testid="setting-toggle-require-policy-acceptance"></mat-slide-toggle>
         </div>
       </mat-card-content>
     </mat-card>

@@ -1,10 +1,11 @@
 import { provideHttpClient, withXhr } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
-import { provideZonelessChangeDetection } from '@angular/core';
+import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { PasswordResetService } from '@services/auth/password-reset.service';
 import { SetupService } from '@services/core/setup.service';
+import { SystemConfigService } from '@services/core/system-config.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
@@ -31,6 +32,13 @@ describe('ForgotPasswordComponent', () => {
         provideHttpClientTesting(),
         provideRouter([]),
         { provide: SetupService, useValue: mockSetupService },
+        {
+          provide: SystemConfigService,
+          useValue: {
+            hasPrivacyPolicy: signal(false),
+            hasTerms: signal(false),
+          },
+        },
         {
           provide: PasswordResetService,
           useValue: mockPasswordResetService,

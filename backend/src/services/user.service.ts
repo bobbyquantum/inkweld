@@ -78,6 +78,8 @@ class UserService {
        */
       password?: string;
       name?: string;
+      /** Legal-document version accepted at registration, if any. */
+      policyAcceptedVersion?: string;
     },
     options?: {
       /** Override the default approval behavior. If true, user is auto-approved. */
@@ -100,6 +102,10 @@ class UserService {
       name: data.name || null,
       enabled: true,
       approved: shouldAutoApprove,
+      ...(data.policyAcceptedVersion && {
+        policyAcceptedVersion: data.policyAcceptedVersion,
+        policyAcceptedAt: Math.floor(Date.now() / 1000),
+      }),
     };
 
     await db.insert(users).values(newUser);
@@ -272,6 +278,16 @@ class UserService {
    */
   async setUserAdmin(db: DatabaseInstance, userId: string, isAdmin: boolean): Promise<void> {
     await db.update(users).set({ isAdmin }).where(eq(users.id, userId));
+  }
+
+  /** Record that the user accepted the given legal-document version now. */
+  async recordPolicyAcceptance(db: DatabaseInstance, userId: string, version: string) {
+    const acceptedAt = Math.floor(Date.now() / 1000);
+    await db
+      .update(users)
+      .set({ policyAcceptedVersion: version, policyAcceptedAt: acceptedAt })
+      .where(eq(users.id, userId));
+    return { acceptedVersion: version, acceptedAt };
   }
 
   /**

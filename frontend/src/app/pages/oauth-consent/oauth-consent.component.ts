@@ -18,6 +18,7 @@ import {
   Router,
   RouterLink,
 } from '@angular/router';
+import { LegalLinksComponent } from '@components/legal-links/legal-links.component';
 import { ProjectGrantListComponent } from '@components/project-grant-list/project-grant-list.component';
 import {
   type AuthorizationInfo,
@@ -49,6 +50,7 @@ interface OAuthApiError {
   styleUrls: ['./oauth-consent.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    LegalLinksComponent,
     CommonModule,
     MatButtonModule,
     MatCardModule,
