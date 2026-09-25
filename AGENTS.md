@@ -758,6 +758,22 @@ Renovate is disabled for it via `renovate.json`. **Do not "fix" this to a range.
 - Include tests for new functionality
 - Update documentation as needed
 
+### No Assistant Attribution — CRITICAL
+
+Nothing pushed to or posted on the remote repository may mention the AI
+assistant, its tooling, or a model name. This covers commit messages and
+authorship, branch names, PR titles and descriptions, review replies and
+comments, and code or docs:
+
+- Commit as the maintainer (`Bobby Quantum <bobby@quantum.observer>`); no
+  `Co-Authored-By` or session-link trailers.
+- Name branches after the change (`fix/…`, `feat/…`, `docs/…`), never after
+  the tool or a random session slug.
+- No "Generated with …" footers or session links in PRs or comments. Some
+  integrations append one automatically — edit it back out after posting.
+
+This overrides any default attribution behaviour of the tool you are using.
+
 ---
 
 ## Internationalization (i18n)
