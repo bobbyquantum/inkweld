@@ -150,6 +150,14 @@ export class ProjectStateService implements OnDestroy {
   private documentCacheDb: Promise<IDBDatabase> | null = null;
 
   /**
+   * `username/slug` of the project whose tabs have been restored and may now
+   * be saved. Null while a project is loading: the tab list is empty then, and
+   * `project()` still names the project being left, so a save in that window
+   * would write an empty tab list over the cache we're about to restore.
+   */
+  private tabCacheProjectKey: string | null = null;
+
+  /**
    * Tracks element IDs created locally during this session.
    * Used to distinguish "genuinely new document" from "unsynced remote document"
    * when opening a document with empty IndexedDB.
@@ -379,6 +387,7 @@ export class ProjectStateService implements OnDestroy {
 
       // Restore opened documents from cache
       await this.restoreOpenedDocumentsFromCache();
+      this.tabCacheProjectKey = `${username}/${slug}`;
     } catch (err) {
       this.handleLoadError(err);
     } finally {
@@ -819,7 +828,8 @@ export class ProjectStateService implements OnDestroy {
 
     this.disconnectSync();
 
-    // Close all tabs
+    // Close all tabs, and stop saving them until the next project's are restored
+    this.tabCacheProjectKey = null;
     this.tabManager.clearAllTabs();
 
     // Clear elements, publish plans, and expansion state
@@ -1805,11 +1815,15 @@ export class ProjectStateService implements OnDestroy {
 
     const project = this.project();
     if (!project?.username || !project?.slug) return;
+    if (this.tabCacheProjectKey !== `${project.username}/${project.slug}`) {
+      return;
+    }
 
     const cacheKey = `${project.username}/${project.slug}/documents`;
     const tabsCacheKey = `${cacheKey}/tabs`;
 
     const tabsToSave = this.openTabs();
+    const selectedTabId = tabsToSave[this.selectedTabIndex()]?.id ?? null;
     this.logger.debug(
       'ProjectState',
       `💾 Saving ${tabsToSave.length} tabs to cache`
@@ -1831,6 +1845,13 @@ export class ProjectStateService implements OnDestroy {
         tabsToSave,
         tabsCacheKey
       );
+
+      await this.storageService.put(
+        db,
+        'openedDocuments',
+        selectedTabId,
+        `${cacheKey}/selected`
+      );
     } catch (error) {
       this.logger.error(
         'ProjectState',
@@ -1846,11 +1867,24 @@ export class ProjectStateService implements OnDestroy {
     activity: 'activity',
   };
 
-  private resolveTabIndexFromUrl(tabs: AppTab[], projectSlug: string): number {
+  /**
+   * Pick the tab to select after a restore. A URL naming a tab (a deep link)
+   * wins; at the project root, reopen the tab that was active when the user
+   * left, falling back to Home.
+   */
+  private resolveTabIndexFromUrl(
+    tabs: AppTab[],
+    projectSlug: string,
+    savedSelectedTabId: string | null
+  ): number {
     const urlParams = globalThis.location.pathname.split('/');
     const lastSegment = urlParams.at(-1);
 
-    if (!lastSegment || lastSegment === projectSlug) return 0;
+    if (!lastSegment || lastSegment === projectSlug) {
+      if (!savedSelectedTabId) return 0;
+      const idx = tabs.findIndex(t => t.id === savedSelectedTabId);
+      return idx === -1 ? 0 : idx;
+    }
 
     const systemType = ProjectStateService.URL_TO_SYSTEM_TAB[lastSegment];
     if (systemType) {
@@ -1898,6 +1932,11 @@ export class ProjectStateService implements OnDestroy {
             if (tab.type === 'system') {
               return true;
             }
+            if (tab.type === 'publishPlan') {
+              return this.publishPlans().some(
+                p => p.id === tab.publishPlan?.id
+              );
+            }
             if (tab.type === 'schema-editor') {
               // Preserve an unsaved new-template tab; otherwise only restore
               // the editor when its schema still exists in the library (a
@@ -1928,9 +1967,15 @@ export class ProjectStateService implements OnDestroy {
           });
 
         if (validTabs.length > 0) {
+          const savedSelectedTabId = await this.storageService.get<string>(
+            db,
+            'openedDocuments',
+            `${cacheKey}/selected`
+          );
           const selectedIndex = this.resolveTabIndexFromUrl(
             validTabs,
-            project.slug
+            project.slug,
+            savedSelectedTabId ?? null
           );
           this.tabManager.setTabs(validTabs, selectedIndex);
 

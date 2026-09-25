@@ -25,6 +25,7 @@ import {
   NavigationCancel,
   NavigationEnd,
   NavigationError,
+  type NavigationExtras,
   NavigationStart,
   PRIMARY_OUTLET,
   Router,
@@ -206,57 +207,7 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
         return;
       }
 
-      // Get the tab info
-      const tab = tabs[tabIndex];
-
-      // Handle different tab types
-      if (tab.type === 'system') {
-        if (tab.systemType === 'home') {
-          // Home tab - navigate to project root
-          void this.router.navigate(['/', project.username, project.slug]);
-        } else {
-          // Other system tabs (media, settings, etc.)
-          void this.router.navigate([
-            '/',
-            project.username,
-            project.slug,
-            tab.systemType,
-          ]);
-        }
-      } else if (tab.type === 'publishPlan') {
-        // Publish plan tab
-        void this.router.navigate([
-          '/',
-          project.username,
-          project.slug,
-          'publish-plan',
-          tab.publishPlan?.id ||
-            (tab.id.startsWith('publish-plan-')
-              ? tab.id.slice('publish-plan-'.length)
-              : tab.id),
-        ]);
-      } else if (tab.type === 'schema-editor') {
-        // Schema editor tab — id is "schema-<schemaId>"
-        const schemaId = tab.id.startsWith('schema-')
-          ? tab.id.slice('schema-'.length)
-          : tab.id;
-        void this.router.navigate([
-          '/',
-          project.username,
-          project.slug,
-          'schema',
-          schemaId,
-        ]);
-      } else {
-        // Document or folder tab
-        void this.router.navigate([
-          '/',
-          project.username,
-          project.slug,
-          tab.type, // 'document' or 'folder'
-          tab.id,
-        ]);
-      }
+      this.navigateToTab(tabs[tabIndex], project);
 
       // Scroll to reveal the newly selected tab
       setTimeout(() => this.scrollToActiveTab(), 0);
@@ -296,7 +247,7 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
         const urlSlug = urlParts[1];
 
         if (urlUsername === project.username && urlSlug === project.slug) {
-          this.updateSelectedTabFromUrl();
+          this.syncInitialTab(project);
           this.initialSyncDone = true;
           setTimeout(() => this.scrollToActiveTab(), 0);
         }
@@ -500,6 +451,64 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
 
     // Update scroll state after scrolling
     setTimeout(() => this.updateScrollState(), 150);
+  }
+
+  /**
+   * Route to a tab's URL. Navigation is what selects a tab: the NavigationEnd
+   * handler turns the new URL back into a selection.
+   */
+  private navigateToTab(
+    tab: AppTab,
+    project: Project,
+    extras?: NavigationExtras
+  ): void {
+    const base = ['/', project.username, project.slug];
+    let commands: string[];
+    if (tab.type === 'system') {
+      commands =
+        tab.systemType === 'home' ? base : [...base, tab.systemType ?? ''];
+    } else if (tab.type === 'publishPlan') {
+      const planId =
+        tab.publishPlan?.id ||
+        (tab.id.startsWith('publish-plan-')
+          ? tab.id.slice('publish-plan-'.length)
+          : tab.id);
+      commands = [...base, 'publish-plan', planId];
+    } else if (tab.type === 'schema-editor') {
+      // Schema editor tab — id is "schema-<schemaId>"
+      const schemaId = tab.id.startsWith('schema-')
+        ? tab.id.slice('schema-'.length)
+        : tab.id;
+      commands = [...base, 'schema', schemaId];
+    } else {
+      // Document, folder, worldbuilding, canvas, ... tab
+      commands = [...base, tab.type, tab.id];
+    }
+    void (extras
+      ? this.router.navigate(commands, extras)
+      : this.router.navigate(commands));
+  }
+
+  /**
+   * First tab selection after a project loads. Arriving at the bare project
+   * URL (e.g. from the project list) reopens the tab that was active when the
+   * user left, which the restore has already selected; any other URL is a
+   * deep link and wins.
+   */
+  private syncInitialTab(project: Project): void {
+    const { systemRoute, publishPlanId, schemaId, tabId } =
+      this.parseRouteInfo();
+    const atRoot = !tabId && !systemRoute && !publishPlanId && !schemaId;
+    const restoredTab =
+      this.projectState.openTabs()[this.projectState.selectedTabIndex()];
+
+    if (atRoot && restoredTab && restoredTab.systemType !== 'home') {
+      // Replace the root URL so Back doesn't return to it and flip to Home.
+      this.navigateToTab(restoredTab, project, { replaceUrl: true });
+      return;
+    }
+
+    this.updateSelectedTabFromUrl();
   }
 
   updateSelectedTabFromUrl(): void {
