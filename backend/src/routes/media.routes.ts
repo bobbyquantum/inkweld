@@ -340,13 +340,9 @@ mediaRoutes.openapi(getMediaRoute, async (c) => {
     throw new ForbiddenError('Access denied');
   }
 
-  // Check if file exists
-  const exists = await storage.projectFileExists(username, slug, filename);
-  if (!exists) {
-    throw new NotFoundError('File not found');
-  }
-
-  // Read file
+  // Read file. A missing file reads back as null on every backend, so there
+  // is no separate existence check — that was an extra storage round trip
+  // (an R2 HEAD on Workers) for every file a media sync downloads.
   const data = await storage.readProjectFile(username, slug, filename);
   if (!data) {
     throw new NotFoundError('File not found');

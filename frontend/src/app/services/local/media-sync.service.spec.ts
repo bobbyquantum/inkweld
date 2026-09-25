@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { of, throwError } from 'rxjs';
+import { Observable, of, throwError } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
@@ -380,6 +380,78 @@ describe('MediaSyncService', () => {
       const newState = state();
       expect(newState.isSyncing).toBe(false);
       expect(newState.error).toContain('Download failed');
+    });
+
+    it('should download several files at once, capped at the pool size', async () => {
+      const serverOnly = Array.from({ length: 10 }, (_, i) => ({
+        mediaId: `img-${i}`,
+        filename: `img-${i}.png`,
+        size: 100,
+        status: 'server-only' as const,
+      }));
+      const state = service.getSyncState(TEST_PROJECT_KEY);
+      state.update(s => ({ ...s, needsDownload: 10, items: serverOnly }));
+
+      let inFlight = 0;
+      let maxInFlight = 0;
+      httpMock.get.mockImplementation(
+        () =>
+          new Observable<Blob>(subscriber => {
+            inFlight++;
+            maxInFlight = Math.max(maxInFlight, inFlight);
+            setTimeout(() => {
+              inFlight--;
+              subscriber.next(new Blob(['x'], { type: 'image/png' }));
+              subscriber.complete();
+            }, 5);
+          })
+      );
+
+      await service.downloadAllFromServer(TEST_PROJECT_KEY);
+
+      expect(localStorageMock.saveMedia).toHaveBeenCalledTimes(10);
+      expect(maxInFlight).toBeGreaterThan(1);
+      expect(maxInFlight).toBeLessThanOrEqual(4);
+      expect(state().items.every(item => item.status === 'synced')).toBe(true);
+      expect(state().downloadProgress).toBe(100);
+    });
+
+    it('should keep downloading the rest after one file fails', async () => {
+      const state = service.getSyncState(TEST_PROJECT_KEY);
+      state.update(s => ({
+        ...s,
+        needsDownload: 3,
+        items: ['a', 'bad', 'c'].map(id => ({
+          mediaId: id,
+          filename: `${id}.png`,
+          size: 100,
+          status: 'server-only' as const,
+        })),
+      }));
+      httpMock.get.mockImplementation((url: string) =>
+        url.endsWith('/bad.png')
+          ? throwError(() => new Error('Not found'))
+          : of(new Blob(['x'], { type: 'image/png' }))
+      );
+      const initialVersion = service.mediaSyncVersion();
+
+      await expect(
+        service.downloadAllFromServer(TEST_PROJECT_KEY)
+      ).rejects.toThrow('Not found');
+
+      expect(localStorageMock.saveMedia).toHaveBeenCalledTimes(2);
+      const statuses = Object.fromEntries(
+        state().items.map(item => [item.mediaId, item.status])
+      );
+      expect(statuses).toEqual({
+        a: 'synced',
+        bad: 'server-only',
+        c: 'synced',
+      });
+      expect(state().isSyncing).toBe(false);
+      expect(state().error).toContain('Download failed');
+      // The files that did arrive still refresh covers
+      expect(service.mediaSyncVersion()).toBe(initialVersion + 1);
     });
 
     it('should skip items without filename', async () => {

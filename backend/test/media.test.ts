@@ -131,6 +131,20 @@ describe('Media Routes', () => {
     expect(filenames).toContain('test-book.md');
   });
 
+  it('should download an uploaded file', async () => {
+    const { response } = await client.request(`/api/v1/media/${username}/${slug}/test-image.png`);
+    expect(response.status).toBe(200);
+    expect(response.headers.get('content-type')).toBe('image/png');
+    expect(await response.text()).toBe('fake-image-content');
+  });
+
+  it('should return 404 when downloading a file that does not exist', async () => {
+    const { response } = await client.request(
+      `/api/v1/media/${username}/${slug}/does-not-exist.png`
+    );
+    expect(response.status).toBe(404);
+  });
+
   it('flattens a nested filename to its last segment', async () => {
     const formData = new FormData();
     const blob = new Blob(['x'], { type: 'image/png' });
