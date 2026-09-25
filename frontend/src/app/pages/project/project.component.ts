@@ -375,8 +375,9 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     // Start automated media sync for this project
     void this.mediaAutoSync.startAutoSync(`${username}/${slug}`);
 
-    // Ensure we're starting with tab index 0 (home tab)
-    this.projectState.selectTab(0);
+    // No selectTab(0) here: loadProject already resets the selection, and
+    // selectTab saves the (now empty) tab list over the cached tabs before
+    // they can be restored. Tab selection comes from the restore and the URL.
   }
 
   ngOnInit() {
