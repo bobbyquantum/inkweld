@@ -48,7 +48,8 @@ feature, but it means:
 - Only paste code from sources you trust.
 - Anyone with admin rights can run script as any user who opens the app. Only
   give admin rights to people you would trust with that.
-  :::
+
+:::
 
 If the settings can't be read when a page is requested, the page is served
 without the custom HTML rather than failing, so a mistake here can't take the
