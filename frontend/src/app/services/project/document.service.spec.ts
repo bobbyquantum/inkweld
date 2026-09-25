@@ -359,7 +359,7 @@ describe('DocumentService', () => {
         '<paragraph>New <strong>bold</strong> text</paragraph>'
       );
 
-      expect(testFragment.length).toBe(1);
+      expect(testFragment).toHaveLength(1);
       expect(testFragment.toJSON()).toBe(
         '<paragraph>New <strong>bold</strong> text</paragraph>'
       );
