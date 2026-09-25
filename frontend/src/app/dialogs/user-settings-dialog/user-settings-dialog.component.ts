@@ -3,13 +3,13 @@ import {
   ChangeDetectionStrategy,
   Component,
   inject,
-  Input,
   type OnDestroy,
   type OnInit,
   signal,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import {
+  MAT_DIALOG_DATA,
   MatDialogClose,
   MatDialogContent,
   MatDialogTitle,
@@ -36,7 +36,12 @@ const CATEGORIES = [
   'project-tree',
   'project',
 ] as const;
-type SettingsCategory = (typeof CATEGORIES)[number];
+export type SettingsCategory = (typeof CATEGORIES)[number];
+
+export interface UserSettingsDialogData {
+  /** Tab to open on; defaults to the account tab. */
+  selectedCategory?: SettingsCategory;
+}
 
 @Component({
   selector: 'app-user-settings-dialog',
@@ -63,9 +68,13 @@ type SettingsCategory = (typeof CATEGORIES)[number];
 })
 export class UserSettingsDialogComponent implements OnInit, OnDestroy {
   private readonly breakpointObserver = inject(BreakpointObserver);
+  private readonly data = inject<UserSettingsDialogData | null>(
+    MAT_DIALOG_DATA,
+    { optional: true }
+  );
 
-  @Input() selectedCategory: SettingsCategory = 'account';
-  previousCategory: SettingsCategory = 'account';
+  selectedCategory: SettingsCategory = this.data?.selectedCategory ?? 'account';
+  previousCategory: SettingsCategory = this.selectedCategory;
   // Signal required: BreakpointObserver does not notify the zoneless
   // scheduler (it wraps emissions in NgZone.run, a no-op in zoneless), so a
   // plain property would go stale when the viewport crosses a breakpoint

@@ -10,7 +10,7 @@ import {
 } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { UserAvatarComponent } from '@components/user-avatar/user-avatar.component';
 import { type User } from '@inkweld/model/user';
 import { AdminService, type AdminUser } from '@services/admin/admin.service';
@@ -166,8 +166,10 @@ describe('AdminUsersComponent', () => {
       ],
       schemas: [CUSTOM_ELEMENTS_SCHEMA],
     })
+      // MatSnackBarModule provides MatSnackBar at component level, which would
+      // out-rank the TestBed mock — drop the module so the root mock is used.
       .overrideComponent(AdminUsersComponent, {
-        remove: { imports: [UserAvatarComponent] },
+        remove: { imports: [UserAvatarComponent, MatSnackBarModule] },
         add: { imports: [MockUserAvatarComponent] },
       })
       .compileComponents();
@@ -345,9 +347,7 @@ describe('AdminUsersComponent', () => {
     expect(adminServiceMock.deleteUser).not.toHaveBeenCalled();
   });
 
-  // Error handling tests are skipped due to DI complexity with root-level services
-  // These scenarios are better covered by e2e tests
-  it.skip('should handle error when approving user fails', async () => {
+  it('should handle error when approving user fails', async () => {
     adminServiceMock.approveUser.mockRejectedValue(new Error('Failed'));
     fixture.detectChanges();
 
@@ -360,9 +360,7 @@ describe('AdminUsersComponent', () => {
     );
   });
 
-  // Skipped: MatSnackBar DI resolves to a different instance than snackBarMock
-  // (root-level provider complexity); error handling is covered by e2e tests.
-  it.skip('should handle error when rejecting user fails', async () => {
+  it('should handle error when rejecting user fails', async () => {
     adminServiceMock.rejectUser.mockRejectedValue(new Error('Failed'));
     dialogMock.open.mockReturnValue({
       afterClosed: () => of(true),

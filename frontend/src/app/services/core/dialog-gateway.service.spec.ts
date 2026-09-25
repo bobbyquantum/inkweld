@@ -355,21 +355,21 @@ describe('DialogGatewayService', () => {
       maxWidth: '90vw',
       maxHeight: '90vh',
       panelClass: 'user-settings-dialog-panel',
-      data: { selectedCategory: 'project-tree' },
+      data: { selectedCategory: 'account' },
     });
   });
 
   it('should open user settings dialog with specified category', async () => {
     (dialogRefMock.afterClosed as Mock).mockReturnValue(of(undefined));
 
-    await service.openUserSettingsDialog('project-tree');
+    await service.openUserSettingsDialog('authorized-apps');
 
     expect(dialogMock.open).toHaveBeenCalledWith(UserSettingsDialogComponent, {
       width: '1000px',
       maxWidth: '90vw',
       maxHeight: '90vh',
       panelClass: 'user-settings-dialog-panel',
-      data: { selectedCategory: 'project-tree' },
+      data: { selectedCategory: 'authorized-apps' },
     });
   });
 

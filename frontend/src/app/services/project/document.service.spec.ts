@@ -6,7 +6,7 @@ import { DocumentsService } from '@inkweld/api/documents.service';
 import { type PresenceSession } from '@inkweld/presence';
 import { generateUserColor } from '@services/presence/user-color';
 import { type Node as ProseMirrorDoc, Schema } from 'prosemirror-model';
-import { of } from 'rxjs';
+import { firstValueFrom, of } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { type DeepMockProxy } from 'vitest-mock-extended';
 import { type IndexeddbPersistence } from 'y-indexeddb';
@@ -28,8 +28,6 @@ import { ProjectStateService } from './project-state.service';
 // authenticated-websocket-provider is mocked via service instance properties
 // (vi.mock can't intercept local source files bundled by esbuild)
 
-type ProviderStatus = 'connected' | 'disconnected' | 'connecting';
-
 const testSchema = new Schema({
   nodes: {
     doc: { content: 'paragraph+' },
@@ -47,7 +45,6 @@ describe('DocumentService', () => {
   let service: DocumentService;
   let mockProjectStateService: DeepMockProxy<ProjectStateService>;
   let mockDocumentsService: DeepMockProxy<DocumentsService>;
-  let mockYDoc: DeepMockProxy<Y.Doc>;
   let mockWebSocketProvider: DeepMockProxy<WebsocketProvider>;
   let _mockIndexedDbProvider: DeepMockProxy<IndexeddbPersistence>;
   let mockBroadcastProvider: BroadcastSyncProvider;
@@ -64,9 +61,6 @@ describe('DocumentService', () => {
   beforeEach(() => {
     // Reset mocks before each test
     vi.clearAllMocks();
-
-    // Use real Y.Doc since Yjs works fine in tests now
-    mockYDoc = new Y.Doc() as unknown as DeepMockProxy<Y.Doc>;
 
     // Mock WebSocket and IndexedDB providers (these have side effects)
     mockWebSocketProvider = {
@@ -246,72 +240,56 @@ describe('DocumentService', () => {
   });
 
   describe('Sync Status Management', () => {
-    it.skip('should update sync status when WebSocket connects', async () => {
-      // Skip: Requires mocking WebSocket event handlers created internally
-      // Mock WebSocket status handler
+    /** Capture provider callbacks, then open the document. */
+    async function connectAndCaptureCallbacks(): Promise<
+      Record<string, (payload: unknown) => void>
+    > {
+      const callbacks: Record<string, (payload: unknown) => void> = {};
       mockWebSocketProvider.on.mockImplementation(
         (event: string, callback: any) => {
-          if (event === 'status') {
-            const mockEvent = new CloseEvent('close', {
-              code: 1000,
-              reason: '',
-              wasClean: true,
-              bubbles: true,
-              cancelable: true,
-            }) as CloseEvent & {
-              status: ProviderStatus;
-            } & boolean;
-            mockEvent.status = 'connected';
-            Object.assign(mockEvent, { valueOf: () => true });
-            callback(mockEvent, mockWebSocketProvider);
-          }
+          callbacks[event] = callback;
           return () => {};
         }
       );
-
       await service.setupCollaboration(mockEditor, testDocumentId);
+      // connectWebSocketInBackground is fire-and-forget
+      await vi.waitFor(() => expect(callbacks['status']).toBeDefined());
+      return callbacks;
+    }
 
-      let currentStatus: DocumentSyncState | undefined;
-      TestBed.runInInjectionContext(() => {
-        const syncStatus = service.getSyncStatusSignal(testDocumentId);
-        currentStatus = syncStatus();
-      });
+    it('should report Synced once the authenticated provider is up', async () => {
+      await connectAndCaptureCallbacks();
 
-      expect(currentStatus).toBe(DocumentSyncState.Synced);
+      expect(service.getSyncStatusSignal(testDocumentId)()).toBe(
+        DocumentSyncState.Synced
+      );
     });
 
-    it.skip('should handle WebSocket connection errors', async () => {
-      // Skip: Requires mocking WebSocket event handlers created internally
-      // Mock WebSocket error handler
-      mockWebSocketProvider.on.mockImplementation(
-        (event: string, callback: any) => {
-          if (event === 'connection-error') {
-            const mockErrorEvent = new CloseEvent('error', {
-              code: 1006,
-              reason: 'Connection error',
-              wasClean: false,
-              bubbles: true,
-              cancelable: true,
-            }) as CloseEvent & {
-              status: ProviderStatus;
-            } & boolean;
-            mockErrorEvent.status = 'disconnected';
-            Object.assign(mockErrorEvent, { valueOf: () => false });
-            callback(mockErrorEvent, mockWebSocketProvider);
-          }
-          return () => {};
-        }
+    it('should return to Synced when the WebSocket reconnects', async () => {
+      const callbacks = await connectAndCaptureCallbacks();
+      // Swallow the reconnect the 'disconnected' handler schedules
+      vi.spyOn(globalThis, 'setTimeout').mockReturnValue(
+        1 as unknown as ReturnType<typeof setTimeout>
       );
 
-      await service.setupCollaboration(mockEditor, testDocumentId);
+      callbacks['status']({ status: 'disconnected' });
+      expect(service.getSyncStatusSignal(testDocumentId)()).toBe(
+        DocumentSyncState.Local
+      );
 
-      let currentStatus: DocumentSyncState | undefined;
-      TestBed.runInInjectionContext(() => {
-        const syncStatus = service.getSyncStatusSignal(testDocumentId);
-        currentStatus = syncStatus();
-      });
+      callbacks['status']({ status: 'connected' });
+      expect(service.getSyncStatusSignal(testDocumentId)()).toBe(
+        DocumentSyncState.Synced
+      );
+    });
 
-      expect(currentStatus).toBe(DocumentSyncState.Local);
+    it('should fall back to Local on a WebSocket connection error', async () => {
+      const callbacks = await connectAndCaptureCallbacks();
+      callbacks['connection-error'](new Error('Connection refused'));
+
+      expect(service.getSyncStatusSignal(testDocumentId)()).toBe(
+        DocumentSyncState.Local
+      );
     });
 
     it('should initialize with Offline status', () => {
@@ -326,15 +304,15 @@ describe('DocumentService', () => {
   });
 
   describe('Document Import/Export', () => {
-    it.skip('should export document content', async () => {
-      // Skip: Requires setupCollaboration which creates internal Y.Doc - complex to test
+    it('should export document content', async () => {
       await service.setupCollaboration(mockEditor, testDocumentId);
-      return new Promise<void>(resolve => {
-        service.exportDocument(testDocumentId).subscribe(content => {
-          expect(content).toEqual({ content: 'mocked content' });
-          resolve();
-        });
-      });
+      service.importDocument(testDocumentId, '<paragraph>Hello</paragraph>');
+
+      const content = await firstValueFrom(
+        service.exportDocument(testDocumentId)
+      );
+
+      expect(content).toBe('<paragraph>Hello</paragraph>');
     });
 
     it('should throw error when exporting non-existent document', () => {
@@ -343,14 +321,20 @@ describe('DocumentService', () => {
       );
     });
 
-    it.skip('should import document content', async () => {
-      // Skip: Requires setupCollaboration which creates internal Y.Doc - complex to test
+    it('should import document content into the connected document', async () => {
       await service.setupCollaboration(mockEditor, testDocumentId);
-      const mockContent = '<p>Test content</p>';
-      service.importDocument(testDocumentId, mockContent);
 
-      // Verify Y.transact was called to update the document
-      expect(Y.transact).toHaveBeenCalled();
+      service.importDocument(
+        testDocumentId,
+        '<paragraph>First</paragraph><paragraph>Second</paragraph>'
+      );
+
+      const fragment = service
+        .getConnectedYDoc(testDocumentId)!
+        .getXmlFragment('prosemirror');
+      expect(fragment.toJSON()).toBe(
+        '<paragraph>First</paragraph><paragraph>Second</paragraph>'
+      );
     });
 
     it('should throw error when importing to non-existent document', () => {
@@ -360,19 +344,40 @@ describe('DocumentService', () => {
       );
     });
 
-    it.skip('should import XML string into document fragment', () => {
-      // Skip: Requires real Y.Doc/Fragment setup or extensive mocking - integration test candidate
-      // Setup
+    it('should replace fragment content when importing an XML string', () => {
       const testDoc = new Y.Doc();
       const testFragment = testDoc.getXmlFragment('test');
-      const xmlContent = '<p>Test paragraph</p>';
+      service.importXmlString(
+        testDoc,
+        testFragment,
+        '<paragraph>Old content</paragraph>'
+      );
 
-      // Call the method
-      service.importXmlString(testDoc, testFragment, xmlContent);
+      service.importXmlString(
+        testDoc,
+        testFragment,
+        '<paragraph>New <strong>bold</strong> text</paragraph>'
+      );
 
-      // Verify Y.transact was called to update the document
-      expect(Y.transact).toHaveBeenCalledWith(testDoc, expect.any(Function));
-      expect(testFragment.delete).toHaveBeenCalledWith(0, testFragment.length);
+      expect(testFragment.length).toBe(1);
+      expect(testFragment.toJSON()).toBe(
+        '<paragraph>New <strong>bold</strong> text</paragraph>'
+      );
+    });
+
+    it('should apply an XML import as a single Yjs transaction', () => {
+      const testDoc = new Y.Doc();
+      const testFragment = testDoc.getXmlFragment('test');
+      const onUpdate = vi.fn();
+      testDoc.on('update', onUpdate);
+
+      service.importXmlString(
+        testDoc,
+        testFragment,
+        '<paragraph>One</paragraph><paragraph>Two</paragraph>'
+      );
+
+      expect(onUpdate).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -783,8 +788,7 @@ describe('DocumentService', () => {
       expect(service.isConnected(testDocumentId)).toBe(false);
     });
 
-    // Skip: integration-level websocket lifecycle test that depends on real provider timing
-    it.skip('should connect websocket in the background and react to status changes', async () => {
+    it('should connect websocket in the background and react to status changes', async () => {
       const ydoc = new Y.Doc();
       const connection = {
         ydoc,
@@ -831,6 +835,11 @@ describe('DocumentService', () => {
       });
 
       service.initializeSyncStatus(testDocumentId);
+      // Register the connection the way setupCollaboration does; otherwise the
+      // new provider is treated as orphaned and torn down.
+      (
+        service as unknown as { connections: Map<string, unknown> }
+      ).connections.set(testDocumentId, connection);
 
       await privateService.connectWebSocketInBackground(
         'ws://localhost:8333',
@@ -844,12 +853,6 @@ describe('DocumentService', () => {
       expect(connection.provider).toBe(mockWebSocketProvider);
       expect(service.getSyncStatusSignal(testDocumentId)()).toBe(
         DocumentSyncState.Synced
-      );
-      expect(
-        mockWebSocketProvider.awareness.setLocalStateField
-      ).toHaveBeenCalledWith(
-        'user',
-        expect.objectContaining({ name: 'testuser' })
       );
       expect(mockSetupWsReauth).toHaveBeenCalledTimes(1);
 
@@ -1333,10 +1336,37 @@ describe('DocumentService', () => {
   });
 
   describe('Collaboration Setup', () => {
-    it.skip('should add ProseMirror plugins', async () => {
-      // Skip: Cannot verify internal editor.state.reconfigure calls - integration test candidate
-      await service.setupCollaboration(mockEditor, testDocumentId);
-      expect(mockEditor).toBeDefined();
+    it('should add the Yjs sync plugin to the editor', async () => {
+      const reconfiguredState = {};
+      const reconfigure = vi.fn().mockReturnValue(reconfiguredState);
+      const dom = document.createElement('div');
+      document.createElement('div').appendChild(dom);
+      const editorWithView = {
+        ...mockEditor,
+        view: {
+          ...mockEditor.view,
+          dom,
+          state: {
+            ...mockEditor.view.state,
+            schema: testSchema,
+            plugins: [],
+            reconfigure,
+          },
+          updateState: vi.fn(),
+        },
+      } as unknown as DeepMockProxy<Editor>;
+
+      await service.setupCollaboration(editorWithView, testDocumentId);
+
+      // The first reconfigure adds the core plugins (presence follows later)
+      expect(reconfigure).toHaveBeenCalled();
+      const { plugins } = reconfigure.mock.calls[0][0] as {
+        plugins: { spec: { key?: { key: string } } }[];
+      };
+      expect(plugins.map(p => p.spec.key?.key)).toContain('y-sync$');
+      expect(editorWithView.view.updateState).toHaveBeenCalledWith(
+        reconfiguredState
+      );
     });
 
     it('should handle editor initialization errors', async () => {
@@ -1665,38 +1695,6 @@ describe('DocumentService', () => {
   });
 
   describe('Network Handling', () => {
-    it.skip('should attempt reconnection when online', async () => {
-      // Skip: Network event handling is tested via integration - complex WebSocket mocking needed
-      await service.setupCollaboration(mockEditor, testDocumentId);
-
-      // Simulate network restoration
-      globalThis.dispatchEvent(
-        new Event('online', { bubbles: true, cancelable: true })
-      );
-
-      expect(mockWebSocketProvider.connect).toHaveBeenCalled();
-    });
-
-    it.skip('should handle WebSocket provider events', async () => {
-      // Skip: WebSocket event callbacks are internal - integration test candidate
-      // Setup
-      const statusHandler = vi.fn();
-      const errorHandler = vi.fn();
-
-      mockWebSocketProvider.on.mockImplementation(
-        (event: string, callback: any) => {
-          if (event === 'status') statusHandler(callback);
-          if (event === 'connection-error') errorHandler(callback);
-          return () => {};
-        }
-      );
-
-      await service.setupCollaboration(mockEditor, testDocumentId);
-
-      expect(statusHandler).toHaveBeenCalled();
-      expect(errorHandler).toHaveBeenCalled();
-    });
-
     it('should extract message from Error instances in connection-error handler', async () => {
       let connectionErrorHandler:
         ((error: Error | string | Event) => void) | undefined;
@@ -1745,80 +1743,55 @@ describe('DocumentService', () => {
   });
 
   describe('Unsynced Changes Tracking', () => {
-    it.skip('should track unsynced changes when document is modified locally', async () => {
-      // Skip: Y.Doc observer callbacks are internal - integration test candidate
+    /** Open the document and wait for the background WebSocket setup. */
+    async function connect(): Promise<{
+      ydoc: Y.Doc;
+      statusCallback: () => (payload: { status: string }) => void;
+    }> {
+      let status: ((payload: { status: string }) => void) | undefined;
+      mockWebSocketProvider.on.mockImplementation(
+        (event: string, callback: any) => {
+          if (event === 'status') status = callback;
+          return () => {};
+        }
+      );
       await service.setupCollaboration(mockEditor, testDocumentId);
+      await vi.waitFor(() => expect(status).toBeDefined());
+      return {
+        ydoc: service.getConnectedYDoc(testDocumentId)!,
+        statusCallback: () => status!,
+      };
+    }
 
-      // Get the update handler that was registered
-      const updateHandler = mockYDoc.on.mock.calls.find(
-        (call: any) => call[0] === 'update'
-      )?.[1] as any;
-      if (!updateHandler) {
-        throw new Error('Update handler was not registered');
-      }
+    function edit(ydoc: Y.Doc, origin?: unknown): void {
+      ydoc.transact(() => {
+        ydoc.getXmlFragment('prosemirror').push([new Y.XmlText('edit')]);
+      }, origin);
+    }
 
-      // Simulate a local update (origin !== provider)
-      updateHandler(new Uint8Array(), 'local', mockYDoc, new Set());
+    it('should track unsynced changes when document is modified locally', async () => {
+      const { ydoc } = await connect();
+      expect(service.hasUnsyncedChanges(testDocumentId)).toBe(false);
+
+      edit(ydoc);
 
       expect(service.hasUnsyncedChanges(testDocumentId)).toBe(true);
     });
 
-    it.skip('should not track changes from the provider as unsynced', async () => {
-      // Skip: Y.Doc observer callbacks are internal - integration test candidate
-      await service.setupCollaboration(mockEditor, testDocumentId);
+    it('should not track changes from the provider as unsynced', async () => {
+      const { ydoc } = await connect();
 
-      // Get the update handler
-      const updateHandler = mockYDoc.on.mock.calls.find(
-        (call: any) => call[0] === 'update'
-      )?.[1] as any;
-      if (!updateHandler) {
-        throw new Error('Update handler was not registered');
-      }
-
-      // Simulate an update from the provider (origin === provider)
-      updateHandler(
-        new Uint8Array(),
-        mockWebSocketProvider,
-        mockYDoc,
-        new Set()
-      );
+      edit(ydoc, mockWebSocketProvider);
 
       expect(service.hasUnsyncedChanges(testDocumentId)).toBe(false);
     });
 
-    it.skip('should clear unsynced changes when reconnecting', async () => {
-      // Skip: Combined Y.Doc observer and WebSocket events - integration test candidate
-      await service.setupCollaboration(mockEditor, testDocumentId);
-
-      // First simulate a local change
-      const updateHandler = mockYDoc.on.mock.calls.find(
-        (call: any) => call[0] === 'update'
-      )?.[1] as any;
-      if (!updateHandler) {
-        throw new Error('Update handler was not registered');
-      }
-      updateHandler(new Uint8Array(), 'local', mockYDoc, new Set());
+    it('should clear unsynced changes when reconnecting', async () => {
+      const { ydoc, statusCallback } = await connect();
+      edit(ydoc);
       expect(service.hasUnsyncedChanges(testDocumentId)).toBe(true);
 
-      // Now simulate reconnection
-      const statusHandler = mockWebSocketProvider.on.mock.calls.find(
-        (call: any) => call[0] === 'status'
-      )?.[1];
-      if (!statusHandler) {
-        throw new Error('Status handler was not registered');
-      }
-      const mockEvent = new CloseEvent('close', {
-        code: 1000,
-        reason: '',
-        wasClean: true,
-        bubbles: true,
-        cancelable: true,
-      }) as CloseEvent & {
-        status: 'connected' | 'disconnected' | 'connecting';
-      } & boolean;
-      mockEvent.status = 'connected';
-      Object.assign(mockEvent, { valueOf: () => true });
-      statusHandler(mockEvent, mockWebSocketProvider);
+      statusCallback()({ status: 'connected' });
 
       expect(service.hasUnsyncedChanges(testDocumentId)).toBe(false);
     });
