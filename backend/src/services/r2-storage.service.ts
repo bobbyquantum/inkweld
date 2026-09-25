@@ -1,6 +1,9 @@
 import type { R2Bucket } from '@cloudflare/workers-types';
 import type { SlotNamespace } from './storage.service';
 
+/** Maximum number of keys R2 accepts in a single `delete` call. */
+const R2_DELETE_BATCH_SIZE = 1000;
+
 /** Binary payloads accepted for R2 uploads. */
 type BinaryData = Buffer | ArrayBuffer | Uint8Array;
 
@@ -104,15 +107,36 @@ export class R2StorageService {
   }
 
   /**
+   * List every object under a prefix. `bucket.list` returns at most 1000
+   * objects per call, so follow the cursor until the listing is complete —
+   * a single call silently drops everything past the first page.
+   */
+  private async listAll(prefix: string): Promise<R2Object[]> {
+    const objects: R2Object[] = [];
+    let cursor: string | undefined;
+    do {
+      const page = await this.bucket.list({ prefix, cursor });
+      objects.push(...page.objects);
+      cursor = page.truncated ? page.cursor : undefined;
+    } while (cursor);
+    return objects;
+  }
+
+  /**
    * Delete all files in a project directory
    */
   async deleteProjectDirectory(username: string, projectSlug: string): Promise<void> {
     const prefix = `${username}/${projectSlug}/`;
-    const listed = await this.bucket.list({ prefix });
+    const objects = await this.listAll(prefix);
 
-    // Delete all objects with this prefix
-    const deletePromises = listed.objects.map((obj) => this.bucket.delete(obj.key));
-    await Promise.all(deletePromises);
+    // Delete in batches: one R2 call removes up to 1000 keys, and each call
+    // counts against the Worker's subrequest limit (1000 to Cloudflare
+    // services on the Free plan), so a per-key delete fails partway through
+    // on large projects.
+    for (let i = 0; i < objects.length; i += R2_DELETE_BATCH_SIZE) {
+      const keys = objects.slice(i, i + R2_DELETE_BATCH_SIZE).map((obj) => obj.key);
+      await this.bucket.delete(keys);
+    }
   }
 
   /**
@@ -229,9 +253,9 @@ export class R2StorageService {
     const basePrefix = `${username}/${projectSlug}/`;
     const fullPrefix = prefix ? `${basePrefix}${prefix}` : basePrefix;
 
-    const listed = await this.bucket.list({ prefix: fullPrefix });
+    const objects = await this.listAll(fullPrefix);
 
-    return listed.objects
+    return objects
       .filter((obj) => {
         // Skip internal files
         const filename = obj.key.replace(basePrefix, '');

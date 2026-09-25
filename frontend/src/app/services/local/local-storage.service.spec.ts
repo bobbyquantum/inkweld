@@ -173,6 +173,24 @@ describe('LocalStorageService', () => {
       expect(mediaList[0].mediaId).toBe('cover');
     });
 
+    it('should not include media from projects whose key extends this one', async () => {
+      await service.saveMedia(TEST_PROJECT_KEY, 'cover', createTestBlob());
+      await service.saveMedia(
+        `${TEST_PROJECT_KEY}-sequel`,
+        'img-1',
+        createTestBlob()
+      );
+      await service.saveMedia(
+        `${TEST_PROJECT_KEY}x`,
+        'img-2',
+        createTestBlob()
+      );
+
+      const mediaList = await service.listMedia(TEST_PROJECT_KEY);
+
+      expect(mediaList.map(m => m.mediaId)).toEqual(['cover']);
+    });
+
     it('should include metadata in listing', async () => {
       const blob = createTestBlob('test', 'image/png');
       await service.saveMedia(TEST_PROJECT_KEY, 'cover', blob, 'cover.png');
