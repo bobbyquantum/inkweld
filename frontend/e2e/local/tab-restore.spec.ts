@@ -32,7 +32,11 @@ async function createDocument(page: Page, name: string): Promise<void> {
 async function exitAndReenter(page: Page): Promise<void> {
   await page.getByTestId('sidebar-exit-button').click();
   await page.waitForURL('/');
-  await openProject(page);
+  // Wait for the grid: openProject's isVisible() check doesn't wait, and
+  // skipping the click would leave us waiting for the tree on the home page.
+  await expect(page.getByTestId('project-card').first()).toBeVisible();
+  await openProjectFromGrid(page);
+  await expect(page.getByTestId('project-tree')).toBeVisible();
 }
 
 test.describe('Tab restore', () => {
@@ -43,21 +47,32 @@ test.describe('Tab restore', () => {
     await createDocument(page, 'Chapter One');
     await createDocument(page, 'Chapter Two');
 
-    await test.step('open both documents, leave the first one active', async () => {
-      await page.getByTestId('element-Chapter One').click();
-      await page.getByTestId('element-Chapter Two').click();
-      await page.getByTestId('tab-Chapter One').click();
-      await expect(page).toHaveURL(/\/document\/[^/]+$/);
-    });
+    let chapterOneUrl = '';
 
-    const activeDocumentUrl = page.url();
+    await test.step('open both documents, leave the first one active', async () => {
+      // Creating a document opens it; start from Home so the first document
+      // URL we see can only be Chapter One's.
+      await page.getByTestId('home-tab-button').click();
+      await expect(page).not.toHaveURL(/\/document\//);
+
+      await page.getByTestId('element-Chapter One').click();
+      await expect(page).toHaveURL(/\/document\/[^/]+$/);
+      chapterOneUrl = page.url();
+
+      await page.getByTestId('element-Chapter Two').click();
+      await expect(page).toHaveURL(/\/document\/[^/]+$/);
+      await expect(page).not.toHaveURL(chapterOneUrl);
+
+      await page.getByTestId('tab-Chapter One').click();
+      await expect(page).toHaveURL(chapterOneUrl);
+    });
 
     await test.step('tabs and active tab survive exit and re-entry', async () => {
       await exitAndReenter(page);
 
       await expect(page.getByTestId('tab-Chapter One')).toBeVisible();
       await expect(page.getByTestId('tab-Chapter Two')).toBeVisible();
-      await expect(page).toHaveURL(activeDocumentUrl);
+      await expect(page).toHaveURL(chapterOneUrl);
     });
 
     await test.step('Home stays selected when Home was active', async () => {
