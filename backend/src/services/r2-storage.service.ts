@@ -1,6 +1,9 @@
 import type { R2Bucket } from '@cloudflare/workers-types';
 import type { SlotNamespace } from './storage.service';
 
+/** Maximum number of keys R2 accepts in a single `delete` call. */
+const R2_DELETE_BATCH_SIZE = 1000;
+
 /** Binary payloads accepted for R2 uploads. */
 type BinaryData = Buffer | ArrayBuffer | Uint8Array;
 
@@ -126,9 +129,14 @@ export class R2StorageService {
     const prefix = `${username}/${projectSlug}/`;
     const objects = await this.listAll(prefix);
 
-    // Delete all objects with this prefix
-    const deletePromises = objects.map((obj) => this.bucket.delete(obj.key));
-    await Promise.all(deletePromises);
+    // Delete in batches: one R2 call removes up to 1000 keys, and each call
+    // counts against the Worker's subrequest limit (1000 to Cloudflare
+    // services on the Free plan), so a per-key delete fails partway through
+    // on large projects.
+    for (let i = 0; i < objects.length; i += R2_DELETE_BATCH_SIZE) {
+      const keys = objects.slice(i, i + R2_DELETE_BATCH_SIZE).map((obj) => obj.key);
+      await this.bucket.delete(keys);
+    }
   }
 
   /**
