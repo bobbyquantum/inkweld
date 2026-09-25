@@ -1,0 +1,83 @@
+.legal-page {
+  display: flex;
+  flex-direction: column;
+  min-height: var(--app-height);
+  background-color: var(--sys-surface-container);
+}
+
+.legal-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 24px;
+  background-color: var(--sys-surface);
+  border-bottom: 1px solid var(--sys-outline-variant);
+
+  h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 500;
+    color: var(--sys-on-surface);
+  }
+
+  @media (max-width: 600px) {
+    padding: 12px 16px;
+  }
+}
+
+.legal-content {
+  flex: 1;
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 24px;
+  box-sizing: border-box;
+  color: var(--sys-on-surface);
+
+  @media (max-width: 600px) {
+    padding: 16px;
+  }
+}
+
+.legal-spinner {
+  margin: 48px auto;
+}
+
+.legal-body {
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+
+  // The body is [innerHTML] from Markdown, so its elements carry no
+  // encapsulation attributes.
+  ::ng-deep {
+    a {
+      color: var(--sys-primary);
+    }
+
+    table {
+      border-collapse: collapse;
+      display: block;
+      overflow-x: auto;
+    }
+
+    th,
+    td {
+      border: 1px solid var(--sys-outline-variant);
+      padding: 4px 8px;
+    }
+  }
+}
+
+.legal-message {
+  color: var(--sys-on-surface-variant);
+}
+
+.legal-other {
+  margin-top: 32px;
+  padding-top: 16px;
+  border-top: 1px solid var(--sys-outline-variant);
+
+  a {
+    color: var(--sys-primary);
+  }
+}

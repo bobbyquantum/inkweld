@@ -1,0 +1,64 @@
+<div class="legal-page" [attr.data-testid]="'legal-page-' + kind">
+  <header class="legal-header">
+    <a
+      mat-icon-button
+      routerLink="/"
+      [attr.aria-label]="'auth.legal.backHome' | transloco"
+      data-testid="legal-back-button">
+      <mat-icon>arrow_back</mat-icon>
+    </a>
+    <h1>
+      {{
+        (kind === 'privacy'
+          ? 'auth.legal.privacyPolicy'
+          : 'auth.legal.termsOfService'
+        ) | transloco
+      }}
+    </h1>
+  </header>
+
+  <main class="legal-content">
+    @switch (state().kind) {
+      @case ('content') {
+        <article
+          class="legal-body"
+          data-testid="legal-content"
+          [innerHTML]="contentHtml()"></article>
+      }
+      @case ('not-configured') {
+        <p class="legal-message" data-testid="legal-not-configured">
+          {{
+            (kind === 'privacy'
+              ? 'auth.legal.privacyNotConfigured'
+              : 'auth.legal.termsNotConfigured'
+            ) | transloco
+          }}
+        </p>
+      }
+      @case ('error') {
+        <p class="legal-message" data-testid="legal-error">
+          {{ 'auth.legal.loadFailed' | transloco }}
+        </p>
+      }
+      @default {
+        <!-- loading, or redirecting to the external page -->
+        <mat-spinner diameter="32" class="legal-spinner"></mat-spinner>
+      }
+    }
+
+    @if (hasOtherDocument()) {
+      <nav class="legal-other">
+        <a
+          [routerLink]="'/' + otherKind"
+          [attr.data-testid]="'legal-other-link'"
+          >{{
+            (otherKind === 'privacy'
+              ? 'auth.legal.privacyPolicy'
+              : 'auth.legal.termsOfService'
+            ) | transloco
+          }}</a
+        >
+      </nav>
+    }
+  </main>
+</div>

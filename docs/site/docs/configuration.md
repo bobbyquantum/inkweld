@@ -489,21 +489,37 @@ SITE_URL=https://inkweld.example.com
 
 ---
 
-## Legal Links & Custom HTML
+## Legal Pages & Custom HTML
 
 These can also be set in **Admin → Settings**; values saved there take
-precedence. See [Legal Links & Custom HTML](./admin-guide/custom-html.md).
+precedence. See [Legal Pages & Custom HTML](./admin-guide/custom-html.md).
+
+### PRIVACY_POLICY_CONTENT / TERMS_OF_SERVICE_CONTENT
+
+**Default:** - | Markdown
+
+Text of your privacy policy and terms of service, hosted at `/privacy` and
+`/terms`. Takes precedence over the matching URL.
 
 ### PRIVACY_POLICY_URL / TERMS_OF_SERVICE_URL
 
 **Default:** - | URL
 
-Links shown in the login and registration dialogs. Leave unset to hide them.
+Where `/privacy` and `/terms` redirect when no text is set. Leave both the text
+and the URL unset to hide a document.
 
 ```bash
 PRIVACY_POLICY_URL=https://example.com/privacy
 TERMS_OF_SERVICE_URL=https://example.com/terms
 ```
+
+### REQUIRE_POLICY_ACCEPTANCE
+
+**Default:** `false` | Boolean
+
+Require new users to accept the documents when registering, and ask everyone to
+accept again whenever the text or a URL changes. Has no effect until at least
+one document is set.
 
 ### CUSTOM_HEAD_HTML / CUSTOM_BODY_HTML
 
@@ -702,8 +718,11 @@ wrangler secret put SESSION_SECRET --env production
 | `DEFAULT_ADMIN_USERNAME`      | -                                                   | Initial admin username                                                                                                                                                                    |
 | `DEFAULT_ADMIN_PASSWORD`      | -                                                   | Initial admin password                                                                                                                                                                    |
 | `SITE_URL`                    | -                                                   | Public URL used in email links                                                                                                                                                            |
-| `PRIVACY_POLICY_URL`          | -                                                   | Privacy policy link in login/registration dialogs                                                                                                                                         |
-| `TERMS_OF_SERVICE_URL`        | -                                                   | Terms of service link in login/registration dialogs                                                                                                                                       |
+| `PRIVACY_POLICY_CONTENT`      | -                                                   | Privacy policy text (Markdown) served at `/privacy`                                                                                                                                       |
+| `PRIVACY_POLICY_URL`          | -                                                   | Where `/privacy` redirects when no text is set                                                                                                                                            |
+| `TERMS_OF_SERVICE_CONTENT`    | -                                                   | Terms of service text (Markdown) served at `/terms`                                                                                                                                       |
+| `TERMS_OF_SERVICE_URL`        | -                                                   | Where `/terms` redirects when no text is set                                                                                                                                              |
+| `REQUIRE_POLICY_ACCEPTANCE`   | `false`                                             | Require users to accept the privacy policy / terms                                                                                                                                        |
 | `CUSTOM_HEAD_HTML`            | -                                                   | Raw HTML injected into `<head>` (not sanitized)                                                                                                                                           |
 | `CUSTOM_BODY_HTML`            | -                                                   | Raw HTML injected at the end of `<body>` (not sanitized)                                                                                                                                  |
 | `SERVE_FRONTEND`              | `true`                                              | Serve embedded frontend                                                                                                                                                                   |

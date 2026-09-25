@@ -908,6 +908,60 @@ describe('TabInterfaceComponent', () => {
   // Route Parsing & Tab Creation (extracted methods)
   // ─────────────────────────────────────────────────────────────────────────
 
+  describe('initial tab after a project loads', () => {
+    const homeTab: AppTab = {
+      id: 'home',
+      name: 'Home',
+      type: 'system',
+      systemType: 'home',
+    };
+
+    function syncInitialTab(): void {
+      (
+        component as unknown as { syncInitialTab(p: Project): void }
+      ).syncInitialTab(mockProject);
+    }
+
+    beforeEach(() => {
+      (projectStateService.openTabs as any).set([homeTab, ...mockTabs]);
+      vi.mocked(router.navigate!).mockClear();
+      vi.mocked(projectStateService.selectTab!).mockClear();
+    });
+
+    it('opens the restored active tab when entering at the project root', () => {
+      (router as any).url = '/testuser/test-project';
+      (projectStateService.selectedTabIndex as any).set(1);
+
+      syncInitialTab();
+
+      expect(router.navigate).toHaveBeenCalledWith(
+        ['/', 'testuser', 'test-project', 'document', 'doc1'],
+        { replaceUrl: true }
+      );
+      expect(projectStateService.selectTab).not.toHaveBeenCalled();
+    });
+
+    it('stays on Home when Home was the active tab', () => {
+      (router as any).url = '/testuser/test-project';
+      (projectStateService.selectedTabIndex as any).set(0);
+
+      syncInitialTab();
+
+      expect(router.navigate).not.toHaveBeenCalled();
+      expect(projectStateService.selectTab).toHaveBeenCalledWith(0);
+    });
+
+    it('follows a deep link instead of the restored tab', () => {
+      (router as any).url = '/testuser/test-project/media';
+      (projectStateService.selectedTabIndex as any).set(1);
+
+      syncInitialTab();
+
+      expect(router.navigate).not.toHaveBeenCalled();
+      expect(projectStateService.openSystemTab).toHaveBeenCalledWith('media');
+    });
+  });
+
   describe('route parsing and tab creation', () => {
     it('should detect media system route and open tab', () => {
       (router as any).url = '/testuser/test-project/media';

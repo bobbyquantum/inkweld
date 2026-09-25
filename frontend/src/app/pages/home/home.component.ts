@@ -23,6 +23,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router, RouterModule } from '@angular/router';
 import { AnnouncementFeedComponent } from '@components/announcement-feed/announcement-feed.component';
+import { LegalLinksComponent } from '@components/legal-links/legal-links.component';
 import { ProjectCardComponent } from '@components/project-card/project-card.component';
 import { ServerInfoBubbleComponent } from '@components/server-info-bubble/server-info-bubble.component';
 import { SideNavComponent } from '@components/side-nav/side-nav.component';
@@ -88,6 +89,7 @@ export const PINNED_PROJECTS_STORAGE_KEY = 'inkweld-home-pinned-projects';
 @Component({
   selector: 'app-home',
   imports: [
+    LegalLinksComponent,
     FormField,
     MatButtonModule,
     MatCardModule,

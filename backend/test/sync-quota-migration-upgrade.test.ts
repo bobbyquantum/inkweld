@@ -18,18 +18,21 @@ const SOURCE_MIGRATIONS = join(__dirname, '../drizzle');
 
 let workDir = '';
 
-/** Copy the migrations folder, optionally stopping the journal before 0037. */
+/**
+ * Copy the migrations folder, optionally stopping the journal before 0037.
+ * Everything from 0037 on is left out, not just 0037: drizzle skips a
+ * migration older than the newest one already applied, so staging a later
+ * migration first would silently drop 0037 from the upgrade.
+ */
 async function stageMigrations(dest: string, include0037: boolean): Promise<void> {
   await mkdir(join(dest, 'meta'), { recursive: true });
   const journal = JSON.parse(await readFile(join(SOURCE_MIGRATIONS, 'meta/_journal.json'), 'utf8'));
-  journal.entries = journal.entries.filter(
-    (e: { tag: string }) => include0037 || e.tag !== '0037_add-user-sync-quota'
-  );
+  journal.entries = journal.entries.filter((e: { tag: string }) => include0037 || e.tag < '0037');
   await writeFile(join(dest, 'meta/_journal.json'), JSON.stringify(journal, null, 2));
 
   for (const file of await readdir(SOURCE_MIGRATIONS)) {
     if (!file.endsWith('.sql')) continue;
-    if (!include0037 && file.startsWith('0037_')) continue;
+    if (!include0037 && file >= '0037') continue;
     await copyFile(join(SOURCE_MIGRATIONS, file), join(dest, file));
   }
 }

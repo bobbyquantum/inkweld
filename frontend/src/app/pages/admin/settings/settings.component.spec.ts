@@ -44,6 +44,9 @@ function flushAllConfigRequests(
     TERMS_OF_SERVICE_URL: '',
     CUSTOM_HEAD_HTML: '',
     CUSTOM_BODY_HTML: '',
+    PRIVACY_POLICY_CONTENT: '',
+    TERMS_OF_SERVICE_CONTENT: '',
+    REQUIRE_POLICY_ACCEPTANCE: 'false',
   };
   const values = { ...defaults, ...overrides };
 
@@ -931,6 +934,67 @@ describe('AdminSettingsComponent', () => {
       await savePromise;
       expect(component.privacyPolicyUrl()).toBe('https://example.com/privacy');
       expect(component.isSaving()).toBe(false);
+    });
+
+    it('loads hosted legal text and the acceptance flag on init', async () => {
+      fixture.detectChanges();
+      flushAllConfigRequests(httpMock, {
+        PRIVACY_POLICY_CONTENT: '# Privacy',
+        TERMS_OF_SERVICE_CONTENT: '# Terms',
+        REQUIRE_POLICY_ACCEPTANCE: 'true',
+      });
+      await flushMicrotasks();
+
+      expect(component.privacyPolicyContent()).toBe('# Privacy');
+      expect(component.termsContent()).toBe('# Terms');
+      expect(component.requirePolicyAcceptance()).toBe(true);
+    });
+
+    it('saves hosted legal text and refreshes the public features', async () => {
+      fixture.detectChanges();
+      flushAllConfigRequests(httpMock);
+      await flushMicrotasks();
+
+      const savePromise = component.saveLegalContent(
+        'TERMS_OF_SERVICE_CONTENT',
+        '  # Terms\n\nBe nice.  '
+      );
+      const putReq = httpMock.expectOne(
+        '/api/v1/admin/config/TERMS_OF_SERVICE_CONTENT'
+      );
+      expect(putReq.request.body).toEqual({ value: '# Terms\n\nBe nice.' });
+      putReq.flush(null);
+      await savePromise;
+
+      expect(component.termsContent()).toBe('# Terms\n\nBe nice.');
+      expect(mockSystemConfigService.refreshSystemFeatures).toHaveBeenCalled();
+    });
+
+    it('toggles policy acceptance and reverts on failure', async () => {
+      const consoleErrorSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+      fixture.detectChanges();
+      flushAllConfigRequests(httpMock);
+      await flushMicrotasks();
+
+      let promise = component.toggleRequirePolicyAcceptance(true);
+      let putReq = httpMock.expectOne(
+        '/api/v1/admin/config/REQUIRE_POLICY_ACCEPTANCE'
+      );
+      expect(putReq.request.body).toEqual({ value: 'true' });
+      putReq.flush(null);
+      await promise;
+      expect(component.requirePolicyAcceptance()).toBe(true);
+
+      promise = component.toggleRequirePolicyAcceptance(false);
+      putReq = httpMock.expectOne(
+        '/api/v1/admin/config/REQUIRE_POLICY_ACCEPTANCE'
+      );
+      putReq.error(new ProgressEvent('error'), { status: 500 });
+      await promise;
+      expect(component.requirePolicyAcceptance()).toBe(true);
+      consoleErrorSpy.mockRestore();
     });
 
     it('does not update the custom HTML signal when the save fails', async () => {

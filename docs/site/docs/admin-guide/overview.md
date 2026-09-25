@@ -51,8 +51,13 @@ System-wide switches:
 - **Require email** at registration
 - **Password policy** — minimum length and required character classes
 - **Site URL** — the public URL used in email links
-- **Privacy policy & terms** and **custom HTML** — see
-  [Legal Links & Custom HTML](./custom-html.md)
+- **Privacy policy & terms** — publish your legal documents at `/privacy` and
+  `/terms` (as Markdown, or as a redirect to a URL), and optionally require
+  users to accept them
+- **Custom HTML** — raw HTML injected into every page, for analytics or a
+  consent manager
+
+The last two are covered in [Legal Pages & Custom HTML](./custom-html.md).
 
 ### Appearance
 

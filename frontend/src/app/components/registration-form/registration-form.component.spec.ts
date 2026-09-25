@@ -4,6 +4,7 @@ import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { provideRouter } from '@angular/router';
 import { AuthenticationService, type User } from '@inkweld/index';
 import { SetupService } from '@services/core/setup.service';
 import { SystemConfigService } from '@services/core/system-config.service';
@@ -43,6 +44,10 @@ describe('RegistrationFormComponent', () => {
     isRequireEmailEnabled: ReturnType<typeof vi.fn>;
     isPasswordLoginEnabled: ReturnType<typeof vi.fn>;
     passwordPolicy: ReturnType<typeof vi.fn>;
+    requirePolicyAcceptance: ReturnType<typeof vi.fn>;
+    policyVersion: ReturnType<typeof vi.fn>;
+    hasPrivacyPolicy: ReturnType<typeof vi.fn>;
+    hasTerms: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(async () => {
@@ -68,12 +73,17 @@ describe('RegistrationFormComponent', () => {
       // passwordless-mode tests can flip this with `.mockReturnValue(false)`.
       isPasswordLoginEnabled: vi.fn().mockReturnValue(true),
       passwordPolicy: vi.fn().mockReturnValue(DEFAULT_POLICY),
+      requirePolicyAcceptance: vi.fn().mockReturnValue(false),
+      policyVersion: vi.fn().mockReturnValue(undefined),
+      hasPrivacyPolicy: vi.fn().mockReturnValue(false),
+      hasTerms: vi.fn().mockReturnValue(false),
     };
 
     await TestBed.configureTestingModule({
       imports: [translocoTestProvider(), RegistrationFormComponent],
       providers: [
         provideZonelessChangeDetection(),
+        provideRouter([]),
         provideHttpClient(withXhr()),
         provideHttpClientTesting(),
         { provide: AuthenticationService, useValue: authService },
@@ -279,6 +289,7 @@ describe('RegistrationFormComponent', () => {
         email: '',
         password: VALID_PASSWORD,
         confirmPassword: VALID_PASSWORD,
+        acceptPolicy: false,
       });
 
       const mockUser: User = {
@@ -314,6 +325,7 @@ describe('RegistrationFormComponent', () => {
         email: 'test@example.com',
         password: VALID_PASSWORD,
         confirmPassword: VALID_PASSWORD,
+        acceptPolicy: false,
       });
 
       const mockUser: User = {
@@ -356,6 +368,7 @@ describe('RegistrationFormComponent', () => {
         email: '',
         password: VALID_PASSWORD,
         confirmPassword: VALID_PASSWORD,
+        acceptPolicy: false,
       });
 
       const mockUser: User = {
@@ -395,6 +408,7 @@ describe('RegistrationFormComponent', () => {
         email: '',
         password: VALID_PASSWORD,
         confirmPassword: VALID_PASSWORD,
+        acceptPolicy: false,
       });
 
       const errorResponse = new HttpErrorResponse({
@@ -419,6 +433,7 @@ describe('RegistrationFormComponent', () => {
         email: '',
         password: VALID_PASSWORD,
         confirmPassword: VALID_PASSWORD,
+        acceptPolicy: false,
       });
 
       const mockUser: User = {
@@ -458,6 +473,7 @@ describe('RegistrationFormComponent', () => {
         email: '',
         password: VALID_PASSWORD,
         confirmPassword: VALID_PASSWORD,
+        acceptPolicy: false,
       });
 
       await component.submit();
@@ -658,6 +674,7 @@ describe('RegistrationFormComponent', () => {
         email: '',
         password: VALID_PASSWORD,
         confirmPassword: VALID_PASSWORD,
+        acceptPolicy: false,
       });
 
       expect(component.isValid).toBe(true);
@@ -700,6 +717,7 @@ describe('RegistrationFormComponent', () => {
         email: '',
         password: VALID_PASSWORD,
         confirmPassword: VALID_PASSWORD,
+        acceptPolicy: false,
       });
       fixture.detectChanges();
 
@@ -727,6 +745,7 @@ describe('RegistrationFormComponent', () => {
         email: '',
         password: VALID_PASSWORD,
         confirmPassword: VALID_PASSWORD,
+        acceptPolicy: false,
       });
       fixture.detectChanges();
 
@@ -746,6 +765,7 @@ describe('RegistrationFormComponent', () => {
         email: '',
         password: VALID_PASSWORD,
         confirmPassword: VALID_PASSWORD,
+        acceptPolicy: false,
       });
       fixture.detectChanges();
 
@@ -765,6 +785,7 @@ describe('RegistrationFormComponent', () => {
         email: '',
         password: VALID_PASSWORD,
         confirmPassword: VALID_PASSWORD,
+        acceptPolicy: false,
       });
       fixture.detectChanges();
 
@@ -857,6 +878,94 @@ describe('RegistrationFormComponent', () => {
         username: 'newuser',
         name: 'New User',
         email: 'new@example.com',
+      });
+    });
+  });
+
+  describe('policy acceptance', () => {
+    const mockUser: User = { id: '1', username: 'newuser', enabled: true };
+
+    function fillValidForm(): void {
+      component.model.set({
+        username: 'newuser',
+        displayName: '',
+        email: '',
+        password: VALID_PASSWORD,
+        confirmPassword: VALID_PASSWORD,
+        acceptPolicy: false,
+      });
+    }
+
+    function requireAcceptance(): void {
+      systemConfigService.requirePolicyAcceptance.mockReturnValue(true);
+      systemConfigService.policyVersion.mockReturnValue('v1');
+      systemConfigService.hasPrivacyPolicy.mockReturnValue(true);
+      systemConfigService.hasTerms.mockReturnValue(true);
+      // Recreate so the computed/validators pick up the new mock values.
+      fixture = TestBed.createComponent(RegistrationFormComponent);
+      component = fixture.componentInstance;
+      fixture.detectChanges();
+      (authService.registerUser as ReturnType<typeof vi.fn>).mockReturnValue(
+        of({ message: 'ok', user: mockUser, token: 't' })
+      );
+    }
+
+    it('does not render the checkbox when acceptance is not required', () => {
+      const el = fixture.nativeElement as HTMLElement;
+      expect(el.querySelector('[data-testid="policy-acceptance"]')).toBeNull();
+    });
+
+    it('renders the checkbox with links to both documents when required', () => {
+      requireAcceptance();
+      const el = fixture.nativeElement as HTMLElement;
+      const block = el.querySelector('[data-testid="policy-acceptance"]');
+      expect(block).toBeTruthy();
+      const hrefs = Array.from(block!.querySelectorAll('a')).map(a =>
+        a.getAttribute('href')
+      );
+      expect(hrefs).toEqual(['/privacy', '/terms']);
+    });
+
+    it('blocks submission until the box is ticked', async () => {
+      requireAcceptance();
+      fillValidForm();
+
+      await component.submit();
+      expect(authService.registerUser).not.toHaveBeenCalled();
+      fixture.detectChanges();
+      expect(
+        (fixture.nativeElement as HTMLElement).querySelector(
+          '[data-testid="policy-accept-error"]'
+        )
+      ).toBeTruthy();
+    });
+
+    it('sends the accepted policy version once ticked', async () => {
+      requireAcceptance();
+      fillValidForm();
+      component.setPolicyAccepted(true);
+
+      await component.submit();
+
+      expect(authService.registerUser).toHaveBeenCalledWith({
+        username: 'newuser',
+        password: VALID_PASSWORD,
+        acceptedPolicyVersion: 'v1',
+      });
+    });
+
+    it('is not required in externalSubmit mode (different server)', async () => {
+      requireAcceptance();
+      component.externalSubmit = true;
+      const spy = vi.fn();
+      component.submitRequest.subscribe(spy);
+      fillValidForm();
+
+      await component.submit();
+
+      expect(spy).toHaveBeenCalledWith({
+        username: 'newuser',
+        password: VALID_PASSWORD,
       });
     });
   });

@@ -1,22 +1,22 @@
-@if (privacyPolicyUrl() || termsUrl()) {
+@if (hasPrivacyPolicy() || hasTerms()) {
   <div class="legal-links" data-testid="legal-links">
-    @if (privacyPolicyUrl()) {
+    @if (hasPrivacyPolicy()) {
       <a
-        [href]="privacyPolicyUrl()"
+        routerLink="/privacy"
         target="_blank"
-        rel="noopener noreferrer"
+        rel="noopener"
         data-testid="legal-privacy-link"
         >{{ 'auth.legal.privacyPolicy' | transloco }}</a
       >
     }
-    @if (privacyPolicyUrl() && termsUrl()) {
+    @if (hasPrivacyPolicy() && hasTerms()) {
       <span class="legal-separator">·</span>
     }
-    @if (termsUrl()) {
+    @if (hasTerms()) {
       <a
-        [href]="termsUrl()"
+        routerLink="/terms"
         target="_blank"
-        rel="noopener noreferrer"
+        rel="noopener"
         data-testid="legal-terms-link"
         >{{ 'auth.legal.termsOfService' | transloco }}</a
       >

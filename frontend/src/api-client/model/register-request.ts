@@ -25,4 +25,8 @@ export interface RegisterRequest {
    * Display name (optional)
    */
   name?: string;
+  /**
+   * The SystemFeatures.policyVersion the user agreed to. Required (and must be current) when SystemFeatures.requirePolicyAcceptance is true.
+   */
+  acceptedPolicyVersion?: string;
 }

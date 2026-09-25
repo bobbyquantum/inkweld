@@ -21,6 +21,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ActivatedRoute, RouterModule } from '@angular/router';
+import { LegalLinksComponent } from '@components/legal-links/legal-links.component';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { PasswordResetService } from '@services/auth/password-reset.service';
 import { SystemConfigService } from '@services/core/system-config.service';
@@ -42,6 +43,7 @@ interface ResetPasswordFormValue {
 @Component({
   selector: 'app-reset-password',
   imports: [
+    LegalLinksComponent,
     FormField,
     FormRoot,
     KeyValuePipe,

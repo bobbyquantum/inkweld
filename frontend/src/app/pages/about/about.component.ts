@@ -12,6 +12,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Router, RouterModule } from '@angular/router';
+import { LegalLinksComponent } from '@components/legal-links/legal-links.component';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
 import { TranslocoModule } from '@jsverse/transloco';
 import packageJson from '@package';
@@ -31,6 +32,7 @@ function stripSemverPrefix(version: string): string {
 @Component({
   selector: 'app-about',
   imports: [
+    LegalLinksComponent,
     MatButtonModule,
     MatCardModule,
     MatDividerModule,

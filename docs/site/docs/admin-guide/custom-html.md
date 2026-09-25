@@ -1,10 +1,10 @@
 ---
-title: Legal Links & Custom HTML
-description: Link your privacy policy and terms, and inject your own HTML (analytics, consent managers, verification tags) into every page.
+title: Legal Pages & Custom HTML
+description: Publish your privacy policy and terms, optionally require users to accept them, and inject your own HTML (analytics, consent managers, verification tags) into every page.
 sidebar_position: 8
 ---
 
-# Legal Links & Custom HTML
+# Legal Pages & Custom HTML
 
 Inkweld sets only strictly-necessary cookies, so out of the box it needs no
 cookie consent banner and ships without one. If your instance needs more — a
@@ -15,15 +15,40 @@ yourself from **Admin → Settings**.
 
 ## Privacy policy and terms of service
 
-The **Privacy Policy & Terms** card takes two URLs:
+The **Privacy Policy & Terms** card publishes two documents. For each one,
+either:
 
-| Setting                  | Shown as                                                        |
-| ------------------------ | --------------------------------------------------------------- |
-| **Privacy policy URL**   | A _Privacy Policy_ link in the login and registration dialogs   |
-| **Terms of service URL** | A _Terms of Service_ link in the login and registration dialogs |
+- **paste the text** (Markdown) — Inkweld hosts it at `/privacy` or `/terms`, or
+- **give a URL** — `/privacy` or `/terms` redirects there.
 
-Leave a field empty to hide its link. These links work on every deployment
-type, including Cloudflare.
+If both are set, the text wins and the URL is ignored. Leave both empty to hide
+that document.
+
+Once a document is set, it is linked from the landing page, the sign-in and
+registration dialogs, and the other pages people see before signing in
+(password and passkey recovery, approval-pending, the About page). These pages
+are served by the app itself, so they work on every deployment type, including
+Cloudflare.
+
+### Requiring acceptance
+
+Turn on **Require acceptance** to make agreement mandatory:
+
+- New users must tick "I agree" before they can register.
+- Signed-in users are shown a dialog asking them to accept whenever the
+  documents change. Anyone who declines is signed out.
+
+It has no effect until at least one document is set.
+
+"Change" means **any** edit to either document's text or URL — fixing a typo
+asks everyone to accept again. If your policy is hosted elsewhere, editing it
+there does not change anything Inkweld can see; change its URL (for example,
+add `?v=2`) to ask users to accept the new version.
+
+:::note
+Acceptance is enforced by the web app only. The API, MCP connections and
+real-time sync keep working for an account that has not yet accepted.
+:::
 
 ---
 
@@ -69,19 +94,22 @@ frontend from your own web server.
 Once you add analytics or other third-party scripts, Inkweld's "strictly
 necessary cookies only" posture no longer covers your instance. Depending on
 where you and your users are, you may need a consent manager (load it through
-the head slot) and a privacy policy that describes the tracking (link it
+the head slot) and a privacy policy that describes the tracking (publish it
 above).
 
 ---
 
 ## Environment variables
 
-All four settings can also be set through the environment. Values saved in the
-admin UI are stored in the database and take precedence.
+All of these settings can also be set through the environment. Values saved in
+the admin UI are stored in the database and take precedence.
 
-| Variable               | Purpose                                                 |
-| ---------------------- | ------------------------------------------------------- |
-| `PRIVACY_POLICY_URL`   | Privacy policy link in the login/registration dialogs   |
-| `TERMS_OF_SERVICE_URL` | Terms of service link in the login/registration dialogs |
-| `CUSTOM_HEAD_HTML`     | Raw HTML injected into `<head>`                         |
-| `CUSTOM_BODY_HTML`     | Raw HTML injected at the end of `<body>`                |
+| Variable                    | Purpose                                                        |
+| --------------------------- | -------------------------------------------------------------- |
+| `PRIVACY_POLICY_CONTENT`    | Privacy policy text (Markdown) served at `/privacy`            |
+| `PRIVACY_POLICY_URL`        | Where `/privacy` redirects when no text is set                 |
+| `TERMS_OF_SERVICE_CONTENT`  | Terms of service text (Markdown) served at `/terms`            |
+| `TERMS_OF_SERVICE_URL`      | Where `/terms` redirects when no text is set                   |
+| `REQUIRE_POLICY_ACCEPTANCE` | Require users to accept the documents, and again when they change |
+| `CUSTOM_HEAD_HTML`          | Raw HTML injected into `<head>`                                |
+| `CUSTOM_BODY_HTML`          | Raw HTML injected at the end of `<body>`                       |

@@ -1,5 +1,6 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import {
   ConfigurationService,
   type SystemFeatures,
@@ -35,6 +36,9 @@ function baseFeatures(overrides: Record<string, unknown> = {}): SystemFeatures {
     emailRecoveryEnabled: false,
     legacyMcpEnabled: false,
     mcpEnabled: true,
+    hasPrivacyPolicy: false,
+    hasTerms: false,
+    requirePolicyAcceptance: false,
     ...overrides,
   };
 }
@@ -50,6 +54,7 @@ async function setup(
     imports: [translocoTestProvider(), LegalLinksComponent],
     providers: [
       provideZonelessChangeDetection(),
+      provideRouter([]),
       {
         provide: SetupService,
         useValue: { getMode: () => 'server' },
@@ -86,7 +91,7 @@ describe('LegalLinksComponent', () => {
     vi.clearAllMocks();
   });
 
-  it('renders nothing when no links are configured', async () => {
+  it('renders nothing when no documents are configured', async () => {
     const wrapper = await setup();
     wrapper.render();
 
@@ -95,11 +100,8 @@ describe('LegalLinksComponent', () => {
     ).toBeNull();
   });
 
-  it('renders privacy and terms links when both are configured', async () => {
-    const wrapper = await setup({
-      privacyPolicyUrl: 'https://example.com/privacy',
-      termsUrl: 'https://example.com/terms',
-    });
+  it('links to the hosted pages when both documents are configured', async () => {
+    const wrapper = await setup({ hasPrivacyPolicy: true, hasTerms: true });
     wrapper.render();
 
     expect(
@@ -113,15 +115,15 @@ describe('LegalLinksComponent', () => {
       .element()
       .querySelector<HTMLAnchorElement>('[data-testid="legal-terms-link"]');
 
-    expect(privacy?.getAttribute('href')).toBe('https://example.com/privacy');
-    expect(terms?.getAttribute('href')).toBe('https://example.com/terms');
+    expect(privacy?.getAttribute('href')).toBe('/privacy');
+    expect(terms?.getAttribute('href')).toBe('/terms');
     expect(privacy?.getAttribute('target')).toBe('_blank');
     expect(privacy?.getAttribute('rel')).toContain('noopener');
     expect(wrapper.element().querySelector('.legal-separator')).toBeTruthy();
   });
 
-  it('renders only one link when just a policy URL is set', async () => {
-    const wrapper = await setup({ privacyPolicyUrl: 'https://example.com/p' });
+  it('renders only one link when just the privacy policy is set', async () => {
+    const wrapper = await setup({ hasPrivacyPolicy: true });
     wrapper.render();
 
     expect(
