@@ -484,9 +484,11 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
       // Document, folder, worldbuilding, canvas, ... tab
       commands = [...base, tab.type, tab.id];
     }
-    void (extras
-      ? this.router.navigate(commands, extras)
-      : this.router.navigate(commands));
+    if (extras) {
+      void this.router.navigate(commands, extras);
+    } else {
+      void this.router.navigate(commands);
+    }
   }
 
   /**
