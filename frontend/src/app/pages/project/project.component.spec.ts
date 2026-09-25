@@ -395,11 +395,12 @@ describe('ProjectComponent', () => {
       });
     });
 
-    it('should select home tab (0) on init', async () => {
+    it('should not select a tab on init (that would save over the tab cache)', async () => {
       component.ngOnInit();
       await vi.waitFor(() => {
-        expect(projectStateService.selectTab).toHaveBeenCalledWith(0);
+        expect(projectStateService.loadProject).toHaveBeenCalled();
       });
+      expect(projectStateService.selectTab).not.toHaveBeenCalled();
     });
 
     it('should initialize quick open and project search on init', () => {

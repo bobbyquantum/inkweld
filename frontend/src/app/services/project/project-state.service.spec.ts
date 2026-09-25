@@ -1916,6 +1916,162 @@ describe('ProjectStateService', () => {
     });
   });
 
+  describe('tab persistence across exit and re-entry', () => {
+    const TABS_KEY = 'testuser/test-project/documents/tabs';
+    const SELECTED_KEY = 'testuser/test-project/documents/selected';
+    const docElement: Element = {
+      ...mockElementDto,
+      id: 'doc-123',
+      name: 'Test Doc',
+    };
+    const cachedTabs: AppTab[] = [
+      { id: 'home', name: 'Home', type: 'system', systemType: 'home' },
+      {
+        id: 'doc-123',
+        name: 'Test Doc',
+        type: 'document',
+        element: docElement,
+      },
+    ];
+
+    let origPathname: string;
+
+    function setPathname(pathname: string): void {
+      Object.defineProperty(globalThis, 'location', {
+        value: { ...globalThis.location, pathname },
+        writable: true,
+      });
+    }
+
+    function putsFor(key: string): unknown[] {
+      return mockStorageService.put.mock.calls
+        .filter(call => call[3] === key)
+        .map(call => call[2]);
+    }
+
+    beforeEach(() => {
+      origPathname = globalThis.location.pathname;
+      setPathname('/testuser/test-project');
+      mockSyncProvider._elementsSubject.next([docElement]);
+    });
+
+    afterEach(() => {
+      setPathname(origPathname);
+    });
+
+    it('does not save an empty tab list over the cache while re-entering a project', async () => {
+      await service.loadProject('testuser', 'test-project');
+      // Leaving the project (ProjectComponent.ngOnDestroy)
+      service.disconnectSync();
+      mockStorageService.put.mockClear();
+      mockStorageService.get.mockImplementation((_db, _store, key) =>
+        Promise.resolve(key === TABS_KEY ? cachedTabs : null)
+      );
+
+      // Re-entering: tabs are cleared synchronously while project() still
+      // names this project, then something selects a tab before the restore.
+      const loading = service.loadProject('testuser', 'test-project');
+      service.selectTab(0);
+      await loading;
+
+      expect(putsFor(TABS_KEY)).not.toContainEqual([]);
+      expect(service.openTabs().map(t => t.id)).toEqual(['home', 'doc-123']);
+    });
+
+    it('saves the id of the active tab', async () => {
+      mockStorageService.get.mockImplementation((_db, _store, key) =>
+        Promise.resolve(key === TABS_KEY ? cachedTabs : null)
+      );
+      await service.loadProject('testuser', 'test-project');
+      mockStorageService.put.mockClear();
+
+      service.selectTab(1);
+      await vi.waitFor(() => {
+        expect(putsFor(SELECTED_KEY)).toContain('doc-123');
+      });
+    });
+
+    it('reopens the saved active tab when entering at the project root', async () => {
+      mockStorageService.get.mockImplementation((_db, _store, key) =>
+        Promise.resolve(
+          key === TABS_KEY
+            ? cachedTabs
+            : key === SELECTED_KEY
+              ? 'doc-123'
+              : null
+        )
+      );
+
+      await service.loadProject('testuser', 'test-project');
+
+      expect(TestBed.inject(TabManagerService).selectedTabIndex()).toBe(1);
+    });
+
+    it('lets a deep link win over the saved active tab', async () => {
+      setPathname('/testuser/test-project/media');
+      const tabs: AppTab[] = [
+        ...cachedTabs,
+        { id: 'media', name: 'Media', type: 'system', systemType: 'media' },
+      ];
+      mockStorageService.get.mockImplementation((_db, _store, key) =>
+        Promise.resolve(
+          key === TABS_KEY ? tabs : key === SELECTED_KEY ? 'doc-123' : null
+        )
+      );
+
+      await service.loadProject('testuser', 'test-project');
+
+      expect(TestBed.inject(TabManagerService).selectedTabIndex()).toBe(2);
+    });
+
+    it('falls back to Home when the saved active tab no longer exists', async () => {
+      mockStorageService.get.mockImplementation((_db, _store, key) =>
+        Promise.resolve(
+          key === TABS_KEY
+            ? cachedTabs
+            : key === SELECTED_KEY
+              ? 'deleted-doc'
+              : null
+        )
+      );
+
+      await service.loadProject('testuser', 'test-project');
+
+      expect(TestBed.inject(TabManagerService).selectedTabIndex()).toBe(0);
+    });
+
+    it('restores publish plan tabs whose plan still exists', async () => {
+      const plan = { id: 'plan-1', name: 'Plan' } as unknown as PublishPlan;
+      const gone = { id: 'plan-gone', name: 'Gone' } as unknown as PublishPlan;
+      mockSyncProvider._publishPlansSubject.next([plan]);
+      const tabs: AppTab[] = [
+        cachedTabs[0],
+        {
+          id: 'publish-plan-plan-1',
+          name: 'Plan',
+          type: 'publishPlan',
+          publishPlan: plan,
+        },
+        {
+          id: 'publish-plan-plan-gone',
+          name: 'Gone',
+          type: 'publishPlan',
+          publishPlan: gone,
+        },
+      ];
+      mockStorageService.get.mockImplementation((_db, _store, key) =>
+        Promise.resolve(key === TABS_KEY ? tabs : null)
+      );
+
+      await service.loadProject('testuser', 'test-project');
+
+      expect(service.openTabs().map(t => t.id)).toEqual([
+        'home',
+        'publish-plan-plan-1',
+      ]);
+    });
+  });
+
   describe('pop-out windows', () => {
     const cachedTabs: AppTab[] = [
       { id: 'home', name: 'Home', type: 'system', systemType: 'home' },
