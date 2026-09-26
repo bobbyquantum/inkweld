@@ -407,10 +407,19 @@ describe('PdfGeneratorService', () => {
       const result = await service.generatePdf(planWithElement);
       expect(result.success).toBe(true);
 
-      const call = (
-        $typstSnippet.pdf as unknown as { mock: { calls: unknown[][] } }
-      ).mock.calls.at(-1)!;
-      return (call[0] as { mainContent: string }).mainContent;
+      // Read the markup from the per-test logger rather than the $typst.pdf
+      // mock: with isolate:false the service module can hold a $typst object
+      // from an earlier spec file, so the mock patched here may never be called.
+      const prefix = 'Compiling Typst markup:\n';
+      const logged = (loggerMock.debug.mock.calls as unknown[][])
+        .map(args => args[1])
+        .filter(
+          (msg): msg is string =>
+            typeof msg === 'string' && msg.startsWith(prefix)
+        )
+        .at(-1);
+      expect(logged).toBeDefined();
+      return logged!.slice(prefix.length);
     }
 
     const cell = (text: string, type = 'table_cell', attrs = {}) => ({
