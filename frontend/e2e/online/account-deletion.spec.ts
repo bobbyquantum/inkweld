@@ -123,13 +123,16 @@ test.describe('Account deletion', () => {
     const upload = await page.request.post(
       `${base}/api/v1/media/${username}/${slug}`,
       {
-        headers: api(token),
+        // A form upload needs an allowed Origin to pass the backend's CSRF
+        // check (enforced outside the test env, e.g. the Docker image), as
+        // the browser would send.
+        headers: { ...api(token), Origin: new URL(page.url()).origin },
         multipart: {
           file: { name: 'pixel.png', mimeType: 'image/png', buffer: PNG },
         },
       }
     );
-    expect(upload.ok()).toBe(true);
+    expect(upload.status(), await upload.text()).toBe(200);
     const mediaUrl = `${base}/api/v1/media/${username}/${slug}/pixel.png`;
     expect(
       (await page.request.get(mediaUrl, { headers: api(token) })).ok()
