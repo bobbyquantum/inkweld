@@ -557,6 +557,36 @@ weight. Only the schema and plugins are used.
 - `markdown-to-xml.ts` / `xml-to-markdown.ts` — GFM table parsing and emission
 - `markdown-`, `html-`, `epub-`, `pdf-generator.service.ts` — publish output
 
+### EPUB Output
+
+`frontend/src/app/services/publish/epub-generator.service.ts` targets
+EPUBCheck-clean EPUB 3.3 with EPUB 2 fallbacks (NCX, `<guide>`,
+`<meta name="cover">`) for Kindle and older readers. Pure helpers live in
+`epub-utils.ts`. Rules that are easy to break:
+
+- **Filenames are assigned once, globally** (`assignFilenames`, after all items
+  are processed). Never derive a filename from a per-item counter — that made
+  every chapter `chapter_001.xhtml`, so the zip kept only the last one.
+- **Every resource must be inside the container.** Document images (`media:`
+  ids, `data:` URLs, and http(s) when CORS allows) are copied into
+  `OEBPS/images/` with a sniffed media type; only EPUB core image types are
+  packaged, anything else becomes a visible placeholder plus a warning.
+- **Markup is whitelisted.** Unknown node types render their children with no
+  wrapper, and only specific attributes (`start`, `colspan`, `rowspan`,
+  align/indent classes) are emitted. Plan text fields (dedication, custom
+  front/back matter) are plain text → escaped paragraphs, never raw HTML.
+  `escapeXml` also strips XML-invalid control characters, which otherwise make
+  a chapter unreadable.
+- `dcterms:modified` must have no milliseconds (`epubTimestamp`). The
+  identifier is the ISBN, or a UUID derived from project + plan id so
+  re-exports update the same book in readers; the NCX `dtb:uid` must match it.
+- Scene/chapter-break separators are appended to the preceding chapter; page
+  breaks are no-ops (each content document starts a page). A plan TOC item
+  puts `nav.xhtml` in the spine at that position; its `depth` hides deeper
+  levels on the page (`hidden`) while keeping them in reader navigation.
+- Element references are written with an `inkweld-element:` sentinel href and
+  rewritten to the target chapter file (or unlinked) in `resolveElementRefs`.
+
 ### App Backgrounds (Login / Home)
 
 The full-screen background behind the login page and home screen is
