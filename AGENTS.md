@@ -475,6 +475,13 @@ tooling via `general`-category config keys (editable in the admin Settings page)
 - Custom HTML must never bypass substitution: `index.html` requests always go
   through `respondWithInjectedIndex()`, even when a pre-compressed `.br` variant
   exists. Keep any new serve path consistent with this.
+- **Service worker hash.** The Angular service worker rejects an app version
+  if `index.html` doesn't match its build-time SHA-1 in `ngsw.json`, which
+  breaks offline installs and updates. So an empty snippet leaves its marker
+  in place (index.html stays byte-identical to the build), and `ngsw.json` is
+  served through `patchNgswIndexHash()` so its `/index.html` hash follows the
+  injected document. Both bypass the `.br` variants; never "tidy" the markers
+  away when nothing is configured.
 - The `$&`-style `String.replace` pattern pitfall is handled in
   `injectCustomHtml` (function replacements); keep it that way.
 
