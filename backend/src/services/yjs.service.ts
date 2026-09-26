@@ -503,7 +503,9 @@ export class YjsService {
           // "Yjs Document ID Trailing Slash" in AGENTS.md), while MCP and other
           // backend writers may use the bare `<id>`. Read both and report a
           // token that moves when either one does.
-          const bareName = documentId.replace(/\/+$/, '');
+          let end = documentId.length;
+          while (end > 0 && documentId[end - 1] === '/') end--;
+          const bareName = documentId.slice(0, end);
           const slashName = `${bareName}/`;
           const [slashClock, bareClock] = await Promise.all([
             readClock(slashName),
