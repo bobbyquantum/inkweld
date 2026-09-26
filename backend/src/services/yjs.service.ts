@@ -63,6 +63,38 @@ interface LeveldbModule {
  * the import means the Worker never initialises any of it.
  */
 let leveldbModulePromise: Promise<LeveldbModule> | null = null;
+
+/** Remove any trailing `/` from a document id (no regex, so no backtracking). */
+function stripTrailingSlashes(documentId: string): string {
+  let end = documentId.length;
+  while (end > 0 && documentId[end - 1] === '/') end--;
+  return documentId.slice(0, end);
+}
+
+/**
+ * Build a manifest entry from the update clocks read under a document's
+ * `<id>/` and `<id>` names. Each clock is `-1` (never persisted), `null`
+ * (read failed) or the latest clock.
+ */
+function revisionEntryFromClocks(
+  documentId: string,
+  slashClock: number | null,
+  bareClock: number | null
+): DocumentRevisionEntry {
+  // A failed read is "couldn't tell, so sync it" — never "nothing to pull".
+  if (slashClock === null || bareClock === null) {
+    return { documentId, revision: null, unknown: true };
+  }
+  // Never persisted under either name: nothing to pull.
+  if (slashClock === -1 && bareClock === -1) return { documentId, revision: null };
+  // Clocks under different names are independent counters, so a max could
+  // hide an update to the lower one; combine them instead when both exist,
+  // and keep the plain clock when only one does.
+  if (bareClock === -1) return { documentId, revision: String(slashClock) };
+  if (slashClock === -1) return { documentId, revision: String(bareClock) };
+  return { documentId, revision: `${slashClock}/${bareClock}` };
+}
+
 function loadLeveldbModule(): Promise<LeveldbModule> {
   // @ts-expect-error - y-leveldb has types but package.json exports aren't properly configured
   leveldbModulePromise ??= import('y-leveldb').then((mod: LeveldbModule) => mod);
@@ -503,33 +535,12 @@ export class YjsService {
           // "Yjs Document ID Trailing Slash" in AGENTS.md), while MCP and other
           // backend writers may use the bare `<id>`. Read both and report a
           // token that moves when either one does.
-          let end = documentId.length;
-          while (end > 0 && documentId[end - 1] === '/') end--;
-          const bareName = documentId.slice(0, end);
-          const slashName = `${bareName}/`;
+          const bareName = stripTrailingSlashes(documentId);
           const [slashClock, bareClock] = await Promise.all([
-            readClock(slashName),
+            readClock(`${bareName}/`),
             readClock(bareName),
           ]);
-
-          if (slashClock === null || bareClock === null) {
-            // A failed read is "couldn't tell, so sync it" — never "nothing to pull".
-            entries.push({ documentId, revision: null, unknown: true });
-            continue;
-          }
-          if (slashClock === -1 && bareClock === -1) {
-            // Never persisted under either name: nothing to pull.
-            entries.push({ documentId, revision: null });
-            continue;
-          }
-          // Clocks under different names are independent counters, so a max
-          // could hide an update to the lower one; combine them instead when
-          // both exist, and keep the plain clock when only one does.
-          let revision: string;
-          if (bareClock === -1) revision = String(slashClock);
-          else if (slashClock === -1) revision = String(bareClock);
-          else revision = `${slashClock}/${bareClock}`;
-          entries.push({ documentId, revision });
+          entries.push(revisionEntryFromClocks(documentId, slashClock, bareClock));
         } catch (error) {
           yjsLog.warn(`Failed to read revision for ${documentId}`, {
             error: String(error),
