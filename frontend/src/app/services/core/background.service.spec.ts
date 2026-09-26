@@ -187,25 +187,18 @@ describe('BackgroundService', () => {
       expect(cssVar('--app-bg-image')).toBe(BUNDLED);
     });
 
-    it('refuses plain http (mixed content on the https app)', async () => {
+    it.each([
+      ['a protocol-relative URL', '//cdn.example.com/bg.jpg'],
+      [
+        'plain http (mixed content on the https app)',
+        'http://cdn.example.com/bg.jpg',
+      ],
+      ['a non-http scheme', 'data:image/png;base64,AAA'],
+    ])('refuses %s', async (_label, value) => {
       const refresh = service.refresh();
-      http.expectOne(CONFIG_URL).flush(
-        makeConfig({
-          login: { source: 'url', value: 'http://cdn.example.com/bg.jpg' },
-        })
-      );
-      await refresh;
-
-      expect(cssVar('--app-bg-image')).toBe(BUNDLED);
-    });
-
-    it('refuses a non-http scheme', async () => {
-      const refresh = service.refresh();
-      http.expectOne(CONFIG_URL).flush(
-        makeConfig({
-          login: { source: 'url', value: 'data:image/png;base64,AAA' },
-        })
-      );
+      http
+        .expectOne(CONFIG_URL)
+        .flush(makeConfig({ login: { source: 'url', value } }));
       await refresh;
 
       expect(cssVar('--app-bg-image')).toBe(BUNDLED);
@@ -563,18 +556,51 @@ describe('BackgroundService', () => {
       http.expectOne(CONFIG_URL).flush(makeConfig());
     });
 
-    it('discards a tampered cache entry', () => {
+    it('replays its own asset cached over a plain-http server base', async () => {
+      // SERVER is http, as on self-hosted and local instances. What the
+      // service wrote, it must accept back on the next load.
+      const refresh = service.refresh();
+      http.expectOne(CONFIG_URL).flush(
+        makeConfig({
+          login: {
+            source: 'asset',
+            value: '/api/v1/appearance/background/login?v=abc',
+          },
+        })
+      );
+      await refresh;
+      const expected = `url("${SERVER}/api/v1/appearance/background/login?v=abc")`;
+      expect(cssVar('--app-bg-image')).toBe(expected);
+      document.documentElement.style.removeProperty('--app-bg-image');
+
+      // A fresh instance, as after a page reload.
+      const fresh = TestBed.runInInjectionContext(
+        () => new BackgroundService()
+      );
+      fresh.initialize();
+      expect(cssVar('--app-bg-image')).toBe(expected);
+      http.expectOne(CONFIG_URL).flush(makeConfig());
+    });
+
+    it.each([
+      ['a protocol-relative URL', 'url("//tracker.example.com/pixel.png")'],
+      [
+        'an http URL for a host other than the server',
+        'url("http://cdn.example.com/bg.jpg")',
+      ],
+      ['a tampered entry', 'url("javascript:alert(1)")'],
+    ])('discards a cached image that is %s', (_label, image) => {
       store['appearance.background.login'] = JSON.stringify({
-        image: 'url("javascript:alert(1)")',
+        image,
         color: 'transparent',
         blur: 0,
         overlayOpacity: null,
       });
 
       service.initialize();
+      // Asserted before the config arrives, when only the cache could apply.
+      expect(cssVar('--app-bg-image')).not.toBe(image);
       http.expectOne(CONFIG_URL).flush(makeConfig());
-
-      expect(cssVar('--app-bg-image')).not.toContain('javascript');
     });
 
     it('discards a cache entry with an unrecognised colour', () => {
