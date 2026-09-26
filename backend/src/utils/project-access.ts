@@ -132,3 +132,27 @@ export async function resolveProjectAccess(
     access: { canWrite: access.canWrite, projectDbId: project.id, role: access.role },
   };
 }
+
+/**
+ * Whether the session belongs to an active site administrator (enabled,
+ * approved, admin, token not revoked). Used only to let an admin wipe a
+ * project's Durable Object when deleting another user's account — the
+ * project-level check above admits owners and collaborators, never admins.
+ */
+export async function isActiveSiteAdmin(
+  db: D1DatabaseInstance | null,
+  session: SessionClaims,
+  findUserById: (
+    db: D1DatabaseInstance,
+    userId: string
+  ) => Promise<
+    { enabled: boolean; approved: boolean; isAdmin: boolean; sessionsValidFrom: number } | undefined
+  > = (database, userId) => userService.findById(database, userId)
+): Promise<boolean> {
+  const userId = session.userId ?? session.sub;
+  if (!db || !userId) return false;
+  const user = await findUserById(db, userId);
+  return (
+    !!user && user.enabled && user.approved && user.isAdmin && !isSessionRevoked(user, session)
+  );
+}

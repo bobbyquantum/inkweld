@@ -22,11 +22,13 @@ contains your app's package name and signing key fingerprint.
 ## Setup
 
 1. Install dependencies:
+
    ```bash
    bun install
    ```
 
 2. Run the interactive setup script:
+
    ```bash
    bun run twa:setup
    ```
@@ -46,10 +48,10 @@ contains your app's package name and signing key fingerprint.
 
 Two product flavors are available:
 
-| Command | Flavor | Output | Use case |
-|---|---|---|---|
-| `bun run twa:build:preview` | preview | APK | Side-loading, internal testing |
-| `bun run twa:bundle:prod` | prod | AAB | Play Store submission |
+| Command                     | Flavor  | Output | Use case                       |
+| --------------------------- | ------- | ------ | ------------------------------ |
+| `bun run twa:build:preview` | preview | APK    | Side-loading, internal testing |
+| `bun run twa:bundle:prod`   | prod    | AAB    | Play Store submission          |
 
 The preview variant appends `.preview` to the package name (so it can be
 installed alongside the production app) and points at your preview host.
@@ -66,6 +68,7 @@ KEY_PASSWORD=your-password
 ```
 
 Or use Gradle project properties:
+
 ```bash
 ./gradlew assemblePreviewRelease \
   -PKEYSTORE_PATH=inkweld-release.keystore \
@@ -123,14 +126,15 @@ the TWA wrapper rarely changes, it does not run on every push.
 
 ### Required GitHub Actions secrets
 
-| Secret | Description |
-|---|---|
-| `TWA_KEYSTORE_BASE64` | Base64-encoded `.keystore` file |
-| `TWA_KEYSTORE_PASSWORD` | Keystore password |
-| `TWA_KEY_ALIAS` | Key alias inside the keystore |
-| `TWA_KEY_PASSWORD` | Key password (same as keystore if auto-generated) |
+| Secret                  | Description                                       |
+| ----------------------- | ------------------------------------------------- |
+| `TWA_KEYSTORE_BASE64`   | Base64-encoded `.keystore` file                   |
+| `TWA_KEYSTORE_PASSWORD` | Keystore password                                 |
+| `TWA_KEY_ALIAS`         | Key alias inside the keystore                     |
+| `TWA_KEY_PASSWORD`      | Key password (same as keystore if auto-generated) |
 
 Encode your keystore for the secret:
+
 ```bash
 base64 < android/inkweld-release.keystore | pbcopy  # macOS
 base64 < android/inkweld-release.keystore           # Linux — pipe to clipboard or copy
@@ -143,8 +147,28 @@ base64 < android/inkweld-release.keystore           # Linux — pipe to clipboar
 3. Create a new app in [Google Play Console](https://play.google.com/console)
 4. Upload the AAB under **Production → App bundles**
 5. Complete the store listing (description, screenshots, privacy policy)
-6. Google will verify `assetlinks.json` automatically
-7. Submit for review
+6. Under **App content → Data safety**, answer the account deletion
+   questions: users can delete their account in the app, and the web link
+   for deletion requests is `https://<host>/delete-account` (see below)
+7. Google will verify `assetlinks.json` automatically
+8. Submit for review
+
+### Account deletion
+
+Google Play requires apps that let people create an account to let them
+delete it, both inside the app and from a web page linked from the listing.
+Inkweld provides both:
+
+- **In the app:** Settings → Account → **Delete account**
+- **On the web:** `https://<host>/delete-account`. Signed-in visitors get the
+  same delete flow; everyone else is asked to sign in first and returned to
+  the page afterwards.
+
+Deleting an account permanently removes every project the user owns (documents,
+worldbuilding, media and published files), their profile images, passkeys,
+sessions, authorized apps, collaborator access and comments. The person must
+type their username to confirm. The last remaining administrator cannot delete
+their own account — promote another user first.
 
 The TWA approach means your app is always up-to-date with your deployed PWA —
 no separate app update cycle needed.
@@ -152,15 +176,18 @@ no separate app update cycle needed.
 ## Troubleshooting
 
 **"App not linked to website" error in Play Console**
+
 - Verify `assetlinks.json` is accessible at `https://<host>/.well-known/assetlinks.json`
 - Check the SHA256 fingerprint matches your signing key
 - Ensure `android:autoVerify="true"` is set in the manifest's intent filter
 
 **Gradle build fails with signing errors**
+
 - Verify `gradle.properties` or env vars have correct signing values
 - Re-run `bun run twa:setup` to regenerate the config
 
 **Wrong host in the built APK**
+
 - The hosts are set in `android/app/build.gradle.kts` under `productFlavors`
 - Run `bun run twa:setup` to update them interactively
 - Or edit `manifestPlaceholders["twaHost"]` directly in the gradle file

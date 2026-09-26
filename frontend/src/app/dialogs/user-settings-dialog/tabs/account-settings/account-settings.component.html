@@ -210,4 +210,8 @@
   @if (systemConfig.isPasskeyManagementAvailable()) {
     <app-passkeys-settings></app-passkeys-settings>
   }
+
+  @if (!isLocalMode()) {
+    <app-delete-account />
+  }
 </div>

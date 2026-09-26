@@ -319,6 +319,21 @@
           }
         }
       },
+      "DeleteAccountRequest": {
+        "type": "object",
+        "properties": {
+          "confirmUsername": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "description": "The account username, typed by the user to confirm. Guards against a stray or scripted request deleting the wrong account.",
+            "example": "johndoe"
+          }
+        },
+        "required": [
+          "confirmUsername"
+        ]
+      },
       "PolicyAcceptanceStatus": {
         "type": "object",
         "properties": {
@@ -5516,6 +5531,65 @@
           },
           "401": {
             "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Delete my account",
+        "description": "Permanently delete the signed-in account, every project it owns (documents, media and published files) and its profile images, passkeys, grants and comments. Cannot be undone.",
+        "operationId": "deleteAccount",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteAccountRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Account deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "confirmUsername does not match the account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The last administrator cannot delete their account",
             "content": {
               "application/json": {
                 "schema": {

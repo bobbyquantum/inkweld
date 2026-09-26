@@ -1,0 +1,60 @@
+<div class="delete-account-page" data-testid="delete-account-page">
+  <header class="page-header">
+    <a
+      mat-icon-button
+      routerLink="/"
+      [attr.aria-label]="'settings.deleteAccount.page.home' | transloco">
+      <mat-icon>arrow_back</mat-icon>
+    </a>
+    <h1>{{ 'settings.deleteAccount.page.title' | transloco }}</h1>
+  </header>
+
+  <main class="page-content">
+    @switch (state()) {
+      @case ('deleted') {
+        <section data-testid="delete-account-done">
+          <h2>{{ 'settings.deleteAccount.page.deletedTitle' | transloco }}</h2>
+          <p>{{ 'settings.deleteAccount.page.deletedMessage' | transloco }}</p>
+          <a mat-raised-button color="primary" routerLink="/">
+            {{ 'settings.deleteAccount.page.home' | transloco }}
+          </a>
+        </section>
+      }
+      @case ('local') {
+        <p class="page-message" data-testid="delete-account-local">
+          {{ 'settings.deleteAccount.page.localMode' | transloco }}
+        </p>
+      }
+      @case ('sign-in') {
+        <section data-testid="delete-account-sign-in">
+          <p>{{ 'settings.deleteAccount.page.signInPrompt' | transloco }}</p>
+          <button
+            mat-raised-button
+            color="primary"
+            (click)="signIn()"
+            data-testid="delete-account-sign-in-button">
+            <mat-icon>login</mat-icon>
+            {{ 'settings.deleteAccount.page.signIn' | transloco }}
+          </button>
+        </section>
+      }
+      @case ('signed-in') {
+        <app-delete-account />
+      }
+      @default {
+        <mat-spinner diameter="32" class="page-spinner"></mat-spinner>
+      }
+    }
+
+    @if (state() === 'sign-in' || state() === 'signed-in') {
+      <p class="page-message help">
+        {{
+          'settings.deleteAccount.page.helpAdmin'
+            | transloco: { server: serverName() }
+        }}
+      </p>
+    }
+
+    <app-legal-links />
+  </main>
+</div>
