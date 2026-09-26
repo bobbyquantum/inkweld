@@ -44,29 +44,50 @@ Object.defineProperty(Error, 'stackTraceLimit', {
 });
 
 // Mock @myriaddreamin/typst.ts globally BEFORE any imports that might use it
-// This is needed for non-isolated test mode where module cache is shared
-const mockTypstGlobal = {
-  setCompilerInitOptions: vi.fn().mockReturnValue(undefined),
-  setRendererInitOptions: vi.fn().mockReturnValue(undefined),
-  pdf: vi.fn().mockResolvedValue(new Uint8Array([1, 2, 3])),
-  mapShadow: vi.fn().mockResolvedValue(undefined),
-  // `use(...providers)` is called from PdfGeneratorService.initTypst() to
-  // preload bundled fonts. The real signature accepts variadic providers
-  // and returns void; the mock just no-ops.
-  use: vi.fn().mockReturnValue(undefined),
-};
+// This is needed for non-isolated test mode where module cache is shared.
+//
+// With `isolate: false` this setup file runs again before EVERY spec file in
+// a worker, and each run re-creates the mocked typst modules — but modules
+// that already imported them (e.g. `pdf-generator.service.ts`, loaded by an
+// earlier spec) keep the object they captured first. If each run built new
+// mock objects, a later spec patching `$typst.pdf` would patch a different
+// object from the one the service calls, and assertions on the calls would
+// see none (order-dependent failures). So the mocks are created once per
+// worker and shared through `globalThis`: every run, every mock factory and
+// every importer then sees the same objects.
+function createTypstMocks() {
+  return {
+    global: {
+      setCompilerInitOptions: vi.fn().mockReturnValue(undefined),
+      setRendererInitOptions: vi.fn().mockReturnValue(undefined),
+      pdf: vi.fn().mockResolvedValue(new Uint8Array([1, 2, 3])),
+      mapShadow: vi.fn().mockResolvedValue(undefined),
+      // `use(...providers)` is called from PdfGeneratorService.initTypst() to
+      // preload bundled fonts. The real signature accepts variadic providers
+      // and returns void; the mock just no-ops.
+      use: vi.fn().mockReturnValue(undefined),
+    },
+    // `TypstSnippet` is the class whose static helpers (preloadFonts,
+    // preloadFontFromUrl, etc.) build provider objects passed to
+    // `$typst.use()`. Tests don't need them to do anything real — they just
+    // need to exist as callables that return *something* (we pass a token
+    // through).
+    snippet: {
+      preloadFonts: vi.fn().mockReturnValue({}),
+      preloadFontFromUrl: vi.fn().mockReturnValue({}),
+      preloadFontData: vi.fn().mockReturnValue({}),
+      preloadFontAssets: vi.fn().mockReturnValue({}),
+      disableDefaultFontAssets: vi.fn().mockReturnValue({}),
+    },
+  };
+}
 
-// `TypstSnippet` is the class whose static helpers (preloadFonts,
-// preloadFontFromUrl, etc.) build provider objects passed to `$typst.use()`.
-// Tests don't need them to do anything real — they just need to exist as
-// callables that return *something* (we pass a token through).
-const mockTypstSnippet = {
-  preloadFonts: vi.fn().mockReturnValue({}),
-  preloadFontFromUrl: vi.fn().mockReturnValue({}),
-  preloadFontData: vi.fn().mockReturnValue({}),
-  preloadFontAssets: vi.fn().mockReturnValue({}),
-  disableDefaultFontAssets: vi.fn().mockReturnValue({}),
+const typstMockHolder = globalThis as typeof globalThis & {
+  __inkweldTypstMocks?: ReturnType<typeof createTypstMocks>;
 };
+typstMockHolder.__inkweldTypstMocks ??= createTypstMocks();
+const mockTypstGlobal = typstMockHolder.__inkweldTypstMocks.global;
+const mockTypstSnippet = typstMockHolder.__inkweldTypstMocks.snippet;
 
 vi.mock('@myriaddreamin/typst.ts', () => {
   const mockCompiler = {
