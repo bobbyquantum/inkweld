@@ -63,6 +63,38 @@ interface LeveldbModule {
  * the import means the Worker never initialises any of it.
  */
 let leveldbModulePromise: Promise<LeveldbModule> | null = null;
+
+/** Remove any trailing `/` from a document id (no regex, so no backtracking). */
+function stripTrailingSlashes(documentId: string): string {
+  let end = documentId.length;
+  while (end > 0 && documentId[end - 1] === '/') end--;
+  return documentId.slice(0, end);
+}
+
+/**
+ * Build a manifest entry from the update clocks read under a document's
+ * `<id>/` and `<id>` names. Each clock is `-1` (never persisted), `null`
+ * (read failed) or the latest clock.
+ */
+function revisionEntryFromClocks(
+  documentId: string,
+  slashClock: number | null,
+  bareClock: number | null
+): DocumentRevisionEntry {
+  // A failed read is "couldn't tell, so sync it" — never "nothing to pull".
+  if (slashClock === null || bareClock === null) {
+    return { documentId, revision: null, unknown: true };
+  }
+  // Never persisted under either name: nothing to pull.
+  if (slashClock === -1 && bareClock === -1) return { documentId, revision: null };
+  // Clocks under different names are independent counters, so a max could
+  // hide an update to the lower one; combine them instead when both exist,
+  // and keep the plain clock when only one does.
+  if (bareClock === -1) return { documentId, revision: String(slashClock) };
+  if (slashClock === -1) return { documentId, revision: String(bareClock) };
+  return { documentId, revision: `${slashClock}/${bareClock}` };
+}
+
 function loadLeveldbModule(): Promise<LeveldbModule> {
   // @ts-expect-error - y-leveldb has types but package.json exports aren't properly configured
   leveldbModulePromise ??= import('y-leveldb').then((mod: LeveldbModule) => mod);
@@ -486,27 +518,29 @@ export class YjsService {
     const { getCurrentUpdateClock } = await loadLeveldbModule();
 
     try {
+      const readClock = async (docName: string): Promise<number | null> => {
+        // `_transact` swallows a thrown callback error and resolves `null`,
+        // so validate the shape rather than trusting `>= 0` (null >= 0 is
+        // true and would mint a bogus "null" revision).
+        const clock = await persistence._transact((db) => getCurrentUpdateClock(db, docName));
+        if (clock === -1) return -1;
+        return typeof clock === 'number' && Number.isFinite(clock) && clock >= 0 ? clock : null;
+      };
+
       const entries: DocumentRevisionEntry[] = [];
       for (const documentId of documentIds) {
         try {
-          // `_transact` swallows a thrown callback error and resolves `null`,
-          // so validate the shape rather than trusting `>= 0` (null >= 0 is
-          // true and would mint a bogus "null" revision).
-          const clock = await persistence._transact((db) => getCurrentUpdateClock(db, documentId));
-          const valid = typeof clock === 'number' && Number.isFinite(clock) && clock >= 0;
-          if (!valid) {
-            // Either the document was never persisted (clock === -1) or the
-            // read failed (null). Distinguishing them matters: -1 is "nothing
-            // to pull", null is "couldn't tell, so sync it".
-            const neverPersisted = clock === -1;
-            entries.push(
-              neverPersisted
-                ? { documentId, revision: null }
-                : { documentId, revision: null, unknown: true }
-            );
-            continue;
-          }
-          entries.push({ documentId, revision: String(clock) });
+          // Browser clients join y-websocket with an empty room name, so a
+          // document edited over the WebSocket is persisted as `<id>/` (see
+          // "Yjs Document ID Trailing Slash" in AGENTS.md), while MCP and other
+          // backend writers may use the bare `<id>`. Read both and report a
+          // token that moves when either one does.
+          const bareName = stripTrailingSlashes(documentId);
+          const [slashClock, bareClock] = await Promise.all([
+            readClock(`${bareName}/`),
+            readClock(bareName),
+          ]);
+          entries.push(revisionEntryFromClocks(documentId, slashClock, bareClock));
         } catch (error) {
           yjsLog.warn(`Failed to read revision for ${documentId}`, {
             error: String(error),

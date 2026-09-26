@@ -330,7 +330,9 @@ first asks the server which documents actually changed:
 
 - `GET /api/v1/projects/:username/:slug/docs/sync-manifest` returns an opaque
   per-document `revision` token (see `backend/src/services/document-revision.service.ts`).
-  On Bun it is the document's LevelDB update clock (`yjsService.getDocumentRevisions`);
+  On Bun it is the document's LevelDB update clock (`yjsService.getDocumentRevisions`),
+  read under **both** `<id>/` (how WebSocket-edited docs are stored) and `<id>`
+  (MCP/backend writers) — a single clock when one exists, `slash/bare` when both do;
   on Workers the DO's `GET /api/revisions` returns the newest `update:*` row key,
   or once compaction has removed them all, the unique `doc:<id>:revision` marker
   `compact()` writes with each snapshot (`YjsDocStorage.readRevision`) — both are
