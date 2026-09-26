@@ -475,6 +475,61 @@ EMAIL_FROM_NAME="My Inkweld"
 After configuring SMTP, verify it works by triggering a password reset or recovery email. Check the server logs for SMTP errors if messages don't arrive.
 :::
 
+### SITE_URL
+
+**Default:** - | URL
+
+Public URL of your instance, used to build links in emails (password resets,
+passkey recovery, welcome emails). Include the protocol. When unset, Inkweld
+falls back to `DEFAULT_SERVER_NAME`, then the first `ALLOWED_ORIGINS` entry.
+
+```bash
+SITE_URL=https://inkweld.example.com
+```
+
+---
+
+## Legal Pages & Custom HTML
+
+These can also be set in **Admin → Settings**; values saved there take
+precedence. See [Legal Pages & Custom HTML](./admin-guide/custom-html.md).
+
+### PRIVACY_POLICY_CONTENT / TERMS_OF_SERVICE_CONTENT
+
+**Default:** - | Markdown
+
+Text of your privacy policy and terms of service, hosted at `/privacy` and
+`/terms`. Takes precedence over the matching URL.
+
+### PRIVACY_POLICY_URL / TERMS_OF_SERVICE_URL
+
+**Default:** - | URL
+
+Where `/privacy` and `/terms` redirect when no text is set. Leave both the text
+and the URL unset to hide a document.
+
+```bash
+PRIVACY_POLICY_URL=https://example.com/privacy
+TERMS_OF_SERVICE_URL=https://example.com/terms
+```
+
+### REQUIRE_POLICY_ACCEPTANCE
+
+**Default:** `false` | Boolean
+
+Require new users to accept the documents when registering, and ask everyone to
+accept again whenever the text or a URL changes. Has no effect until at least
+one document is set.
+
+### CUSTOM_HEAD_HTML / CUSTOM_BODY_HTML
+
+**Default:** - | HTML
+
+Raw HTML injected into `<head>` and at the end of `<body>` of every page the
+Inkweld server serves — for analytics, consent managers or verification meta
+tags. **Not sanitized.** Has no effect when the frontend is served elsewhere
+(Cloudflare Pages, or `SERVE_FRONTEND=false`).
+
 ---
 
 ## Frontend Serving
@@ -662,6 +717,14 @@ wrangler secret put SESSION_SECRET --env production
 | `GITHUB_CALLBACK_URL`         | Auto                                                | GitHub OAuth callback URL                                                                                                                                                                 |
 | `DEFAULT_ADMIN_USERNAME`      | -                                                   | Initial admin username                                                                                                                                                                    |
 | `DEFAULT_ADMIN_PASSWORD`      | -                                                   | Initial admin password                                                                                                                                                                    |
+| `SITE_URL`                    | -                                                   | Public URL used in email links                                                                                                                                                            |
+| `PRIVACY_POLICY_CONTENT`      | -                                                   | Privacy policy text (Markdown) served at `/privacy`                                                                                                                                       |
+| `PRIVACY_POLICY_URL`          | -                                                   | Where `/privacy` redirects when no text is set                                                                                                                                            |
+| `TERMS_OF_SERVICE_CONTENT`    | -                                                   | Terms of service text (Markdown) served at `/terms`                                                                                                                                       |
+| `TERMS_OF_SERVICE_URL`        | -                                                   | Where `/terms` redirects when no text is set                                                                                                                                              |
+| `REQUIRE_POLICY_ACCEPTANCE`   | `false`                                             | Require users to accept the privacy policy / terms                                                                                                                                        |
+| `CUSTOM_HEAD_HTML`            | -                                                   | Raw HTML injected into `<head>` (not sanitized)                                                                                                                                           |
+| `CUSTOM_BODY_HTML`            | -                                                   | Raw HTML injected at the end of `<body>` (not sanitized)                                                                                                                                  |
 | `SERVE_FRONTEND`              | `true`                                              | Serve embedded frontend                                                                                                                                                                   |
 | `FRONTEND_DIST`               | -                                                   | External frontend path                                                                                                                                                                    |
 | `OPENAI_API_KEY`              | -                                                   | OpenAI API key for AI features                                                                                                                                                            |

@@ -223,6 +223,33 @@ Benefits:
 - **Cleanup** - Easy to delete project data
 - **Connection pooling** - Automatic idle connection management
 
+### Bulk Sync Fast Path
+
+"Sync All" on the home screen would otherwise open one WebSocket per prose
+document. Instead it first asks the server which documents have changed:
+
+- `GET /api/v1/projects/:username/:slug/docs/sync-manifest` returns an opaque
+  `revision` token per document (`document-revision.service.ts`). On Bun it is
+  the document's LevelDB update clock; on Workers it is the newest `update:*`
+  row key in the project's Durable Object, or, once compaction has removed
+  them all, a unique revision marker written with each snapshot. Tokens from
+  the two runtimes are not comparable, and a client only compares tokens from
+  the same server.
+- `DocumentSyncPlannerService` skips a document only when its revision is
+  unchanged **and** its local Yjs state digest still matches the checkpoint
+  stored in IndexedDB — that is, nothing changed on either side since the last
+  sync. The digest (`utils/yjs-state-digest.ts`) encodes a Yjs snapshot (state
+  vector plus delete set), because a state vector alone does not change when
+  text is only deleted.
+- A checkpoint is written only when the revision is identical before and after
+  the sync, so a concurrent edit by a collaborator is never recorded as synced.
+- `revision: null` means "never persisted, nothing to pull"; `unknown: true`
+  means "could not be read, sync it". A missing manifest, an unknown or changed
+  revision, a changed digest, or unreadable local state all force a sync.
+
+The planner is deliberately conservative: a bug can only cause an extra sync,
+never a missed edit.
+
 ## Database Schema
 
 ### Drizzle ORM Schema

@@ -34,6 +34,8 @@ Templates define the structure of elements:
 
 Every element uses a template. You can create as many templates as your story needs.
 
+When you create an element, it takes its **own copy** of the template's structure. Editing a template later doesn't silently rearrange elements you've already filled in — each element picks up template changes when you choose to update it, and you can tweak a single element's structure without touching the template. See [Per-Element Schemas](#per-element-schemas).
+
 ## Quick Start
 
 ### Creating an Element
@@ -111,16 +113,16 @@ A template consists of:
 
 ### Field Types
 
-| Type             | Use For                          | Example                    |
-| ---------------- | -------------------------------- | -------------------------- |
-| **Short Text**   | Names, titles, brief info        | "Elena Blackwood"          |
-| **Long Text**    | Plain text descriptions          | Backstory summary          |
-| **Selection**    | Pick from options                | "Faction Type: Guild"      |
-| **Multi-Select** | Pick multiple options            | "Abilities: Flight, Magic" |
-| **Number**       | Numeric values                   | "Level: 5"                 |
-| **Date**         | Timeline entries                 | "Founded: 1242"            |
-| **Toggle**       | Yes/No values                    | "Active: ✓"                |
-| **Array**        | A list of short tags             | Tags, features             |
+| Type             | Use For                   | Example                    |
+| ---------------- | ------------------------- | -------------------------- |
+| **Short Text**   | Names, titles, brief info | "Elena Blackwood"          |
+| **Long Text**    | Plain text descriptions   | Backstory summary          |
+| **Selection**    | Pick from options         | "Faction Type: Guild"      |
+| **Multi-Select** | Pick multiple options     | "Abilities: Flight, Magic" |
+| **Number**       | Numeric values            | "Level: 5"                 |
+| **Date**         | Timeline entries          | "Founded: 1242"            |
+| **Toggle**       | Yes/No values             | "Active: ✓"                |
+| **Array**        | A list of short tags      | Tags, features             |
 
 ### The Template Editor
 
@@ -271,8 +273,12 @@ Track objects and artifacts:
   alt="Template card with action menu"
 />
 
-:::warning
-Deleting a field removes that data from all existing elements using this template.
+:::note
+Template changes reach **new** elements straight away. Existing elements keep
+their own copy and show an update badge on their schema chip until you choose
+**Update from shared schema** — see [Per-Element Schemas](#per-element-schemas).
+Removing a field never deletes the values already stored in an element; the
+field simply stops being shown once the element is updated.
 :::
 
 ### Cloning Templates
@@ -291,8 +297,15 @@ To create a variation of an existing template:
 2. Select **"Delete"**
 3. Confirm the deletion
 
-:::danger
-Deleting a template **does not** delete elements that use it, but those elements will lose their structured data and become orphaned.
+:::warning
+Deleting a template **does not** delete elements that use it. Each element keeps
+its own copy of the schema and carries on working, labelled **Custom schema
+(template removed)**, but can no longer be updated from or reverted to the
+template.
+
+Elements created before per-element schemas were introduced only get their copy
+the first time they are opened. Open any such element before deleting its
+template, or its fields will no longer be shown.
 :::
 
 ### Organizing Fields
@@ -423,6 +436,7 @@ The status bar at the bottom of the editor shows:
 
 | Control            | Purpose                                                        |
 | ------------------ | -------------------------------------------------------------- |
+| **Schema chip**    | Shows how the element's schema relates to its template (below) |
 | **Tags**           | View and manage element tags (click to open the tag editor)    |
 | **Snapshots**      | Open the document snapshots dialog to save or restore versions |
 | **Sync indicator** | Shows the real-time sync state (synced, syncing, or offline)   |
@@ -431,6 +445,42 @@ The status bar at the bottom of the editor shows:
   src="/img/features/worldbuilding-editor-statusbar"
   alt="The editor status bar showing tags, snapshots button, and sync status"
 />
+
+### Per-Element Schemas
+
+Every element keeps its own copy of its template's structure (its _schema_).
+The **schema chip** in the status bar tells you how that copy relates to the
+template it came from:
+
+| Chip                                 | Meaning                                                                    |
+| ------------------------------------ | -------------------------------------------------------------------------- |
+| **Shared schema**                    | The element matches the template it was created from                       |
+| **Custom schema**                    | The element's tabs or fields have been changed, just for this element      |
+| **Custom schema (template removed)** | The template has been deleted; the element keeps working from its own copy |
+| Update badge                         | The template has changed since this element was created or last updated    |
+
+Click the chip to open the schema menu:
+
+- **Edit schema** — edit this element's tabs and fields in place, using the same
+  controls as the [Template Editor](#the-template-editor). A banner confirms that
+  other elements aren't affected; click **Done editing** when you're finished.
+  Changes save automatically. The template's name, icon, description and
+  defaults can only be changed in the Template Editor.
+- **Update from shared schema** — available when the template has changed. The
+  template wins for every tab and field it defines. Anything only this element
+  has is kept and appended, and the confirmation lists what will be kept. This
+  includes fields the template has since removed, because the element can't
+  tell a field you added from one the template dropped.
+- **Revert to shared schema** — available on a custom schema. Discards this
+  element's changes and copies the current template back in.
+
+None of these actions deletes field values. A field that disappears from the
+element's schema just stops being shown, and its value reappears if the field
+comes back. You need write access to the project to change an element's
+schema.
+
+Project archives and snapshots include each element's schema copy, so a custom
+element survives export, import and restore unchanged.
 
 ### Mobile Layout (Accordion)
 

@@ -38,6 +38,7 @@ const sidebars: SidebarsConfig = {
       items: [
         'admin-guide/overview',
         'admin-guide/appearance',
+        'admin-guide/custom-html',
         'admin-guide/ai-kill-switch',
         'admin-guide/ai-image-generation',
         'admin-guide/passkeys',
