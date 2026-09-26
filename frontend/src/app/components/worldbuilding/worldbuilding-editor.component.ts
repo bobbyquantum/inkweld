@@ -1089,7 +1089,10 @@ export class WorldbuildingEditorComponent implements OnDestroy {
   /** Drop this element's customised schema copy and follow the shared schema. */
   async revertSchemaToShared(): Promise<void> {
     const state = this.schemaState();
-    if (!state?.isCustom || !this.canEditElementSchema()) return;
+    // With the shared schema deleted there is nothing to revert to, and
+    // dropping the copy would leave the element with no fields to show.
+    if (!state?.isCustom || !state.sharedSchema || !this.canEditElementSchema())
+      return;
     const confirmed = await this.dialogGateway.openConfirmationDialog({
       title: this.transloco.translate('worldbuilding.schemaSource.revertTitle'),
       message: this.transloco.translate(
