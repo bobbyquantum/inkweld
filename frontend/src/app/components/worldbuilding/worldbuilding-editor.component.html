@@ -744,7 +744,7 @@
             </button>
             <button
               mat-menu-item
-              [disabled]="!isCustomSchema()"
+              [disabled]="!isCustomSchema() || sharedSchemaMissing()"
               (click)="revertSchemaToShared()"
               data-testid="schema-menu-revert">
               <mat-icon>restart_alt</mat-icon>

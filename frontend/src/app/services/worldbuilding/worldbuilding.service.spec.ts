@@ -775,6 +775,31 @@ describe('WorldbuildingService', () => {
       );
     });
 
+    it('keeps the schema copy on revert when the shared schema is deleted', async () => {
+      service.saveSchemaToLibrary(mockCharacterSchema);
+      await service.initializeWorldbuildingElement(
+        makeElement('el-orphan'),
+        username,
+        slug
+      );
+      await service.saveElementSchema(
+        'el-orphan',
+        withExtraField(mockCharacterSchema, 'eyes'),
+        username,
+        slug
+      );
+      service['schemasCache'] = [];
+
+      const reverted = await service.revertElementSchema(
+        'el-orphan',
+        username,
+        slug
+      );
+      expect(reverted).not.toBeNull();
+      expect(reverted?.sharedSchema).toBeNull();
+      expect(reverted?.schema.tabs[0].fields.map(f => f.key)).toContain('eyes');
+    });
+
     it('notifies observers when the schema copy changes', async () => {
       service.saveSchemaToLibrary(mockCharacterSchema);
       await service.initializeWorldbuildingElement(

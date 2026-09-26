@@ -1733,6 +1733,21 @@ describe('WorldbuildingEditorComponent', () => {
       expect(component.isCustomSchema()).toBe(false);
     });
 
+    it('does not revert when the shared schema has been deleted', async () => {
+      component.schemaState.set({
+        schema: customSchema,
+        baseHash: 'base',
+        sharedSchema: null,
+        isCustom: true,
+        sharedUpdated: false,
+      });
+      await component.revertSchemaToShared();
+
+      expect(dialogGatewayMock.openConfirmationDialog).not.toHaveBeenCalled();
+      expect(worldbuildingService.revertElementSchema).not.toHaveBeenCalled();
+      expect(component.schemaState()?.schema).toBe(customSchema);
+    });
+
     it('does nothing on revert when the schema is not custom', async () => {
       await component.revertSchemaToShared();
       expect(dialogGatewayMock.openConfirmationDialog).not.toHaveBeenCalled();

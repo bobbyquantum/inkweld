@@ -1201,7 +1201,9 @@ export class WorldbuildingService {
 
   /**
    * Discard the element's schema copy so it follows the shared schema again.
-   * The copy is re-created from the shared schema immediately.
+   * The copy is re-created from the shared schema immediately. When the
+   * shared schema has been deleted the copy is kept: removing it would leave
+   * nothing to re-create it from, and the element would render no fields.
    */
   async revertElementSchema(
     elementId: string,
@@ -1210,6 +1212,12 @@ export class WorldbuildingService {
   ): Promise<ElementSchemaState | null> {
     const connection = await this.requireConnection(elementId, username, slug);
     if (!connection) return null;
+    const shared = this.getSchemaById(
+      connection.dataMap.get('schemaId') as string
+    );
+    if (!shared) {
+      return this.getElementSchemaState(elementId, username, slug);
+    }
     connection.ydoc.transact(() => {
       connection.schemaMap.delete(SCHEMA_SNAPSHOT_KEY);
       connection.schemaMap.delete(SCHEMA_BASE_HASH_KEY);
