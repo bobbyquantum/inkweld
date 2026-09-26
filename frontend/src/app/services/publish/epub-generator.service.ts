@@ -1870,8 +1870,8 @@ ${this.opfGuide(slots, hasCover)}
         `<meta refines="#subtitle" property="title-type">subtitle</meta>`
       );
     }
-    lines.push(...this.creatorMetadata(metadata));
     lines.push(
+      ...this.creatorMetadata(metadata),
       `<dc:language>${language}</dc:language>`,
       `<dc:date>${now.toISOString().slice(0, 10)}</dc:date>`
     );
