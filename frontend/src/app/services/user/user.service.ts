@@ -394,10 +394,9 @@ export class UserService {
       // on this device (same username on a different server, or local mode)
       // could be using the very same databases, possibly holding edits not
       // yet synced — so they are only removed when no other profile exists.
-      const sharedWithOtherProfiles =
-        this.storageContext
-          .getConfigurations()
-          .filter(config => config.id !== activeConfig.id).length > 0;
+      const sharedWithOtherProfiles = this.storageContext
+        .getConfigurations()
+        .some(config => config.id !== activeConfig.id);
       if (sharedWithOtherProfiles) {
         if (ownedSlugs.length > 0) {
           this.logger.info(
