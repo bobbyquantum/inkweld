@@ -37,47 +37,68 @@ class AccountDeletionService {
     user: User,
     options: DeleteAccountOptions
   ): Promise<void> {
-    const db = c.get('db');
-    const storage = getStorageService(c.get('storage'));
     const username = user.username;
-
     if (username) {
-      // One project at a time, each fully removed (row included) before the
-      // next: a failure part-way leaves the account in place with the
-      // remaining projects intact, so the request can simply be retried.
-      const owned = await projectService.findByUserId(db, user.id);
-      for (const project of owned) {
-        await yjsService.destroyProject(username, project.slug);
-        await storage.deleteProjectDirectory(username, project.slug);
-        if (options.destroyDurableObjects) {
-          await destroyProjectDurableObject(c, username, project.slug);
-        }
-        await projectService.delete(db, project.id, user.id, project.slug);
-      }
-
-      // Profile images are keyed by username, so drop them while it is known.
-      // An orphaned image is not a reason to block the deletion. Slot deletes
-      // tolerate a missing image; the avatar delete does not, so it is only
-      // attempted when one was uploaded.
-      const cleanups: Array<[string, boolean, () => Promise<void>]> = [
-        ['avatar', user.hasAvatar, () => storage.deleteUserAvatar(username)],
-        ['banner', true, () => storage.deleteSlotImage('banners', username)],
-        ['background', true, () => storage.deleteSlotImage('backgrounds', username)],
-      ];
-      for (const [what, present, cleanup] of cleanups) {
-        if (!present) continue;
-        try {
-          await cleanup();
-        } catch (error) {
-          logger.warn('AccountDeletion', `Failed to delete user ${what}`, {
-            reason: error instanceof Error ? error.message : String(error),
-          });
-        }
-      }
+      await this.deleteOwnedProjects(c, user.id, username, options);
+      await this.deleteProfileImages(c, username, user.hasAvatar);
     }
 
-    await userService.deleteUser(db, user.id);
+    await userService.deleteUser(c.get('db'), user.id);
     logger.info('AccountDeletion', 'Account deleted', { userId: user.id });
+  }
+
+  /**
+   * One project at a time, each fully removed (row included) before the
+   * next: a failure part-way leaves the account in place with the remaining
+   * projects intact, so the request can simply be retried.
+   */
+  private async deleteOwnedProjects(
+    c: Context<AppContext>,
+    userId: string,
+    username: string,
+    options: DeleteAccountOptions
+  ): Promise<void> {
+    const db = c.get('db');
+    const storage = getStorageService(c.get('storage'));
+    const owned = await projectService.findByUserId(db, userId);
+    for (const project of owned) {
+      await yjsService.destroyProject(username, project.slug);
+      await storage.deleteProjectDirectory(username, project.slug);
+      if (options.destroyDurableObjects) {
+        await destroyProjectDurableObject(c, username, project.slug);
+      }
+      await projectService.delete(db, project.id, userId, project.slug);
+    }
+  }
+
+  /**
+   * Profile images are keyed by username, so drop them while it is known.
+   * An orphaned image is not a reason to block the deletion. Slot deletes
+   * tolerate a missing image; the avatar delete does not, so it is only
+   * attempted when one was uploaded.
+   */
+  private async deleteProfileImages(
+    c: Context<AppContext>,
+    username: string,
+    hasAvatar: boolean
+  ): Promise<void> {
+    const storage = getStorageService(c.get('storage'));
+    const cleanups: Array<[string, () => Promise<void>]> = [
+      ['banner', () => storage.deleteSlotImage('banners', username)],
+      ['background', () => storage.deleteSlotImage('backgrounds', username)],
+    ];
+    if (hasAvatar) {
+      cleanups.unshift(['avatar', () => storage.deleteUserAvatar(username)]);
+    }
+    for (const [what, cleanup] of cleanups) {
+      try {
+        await cleanup();
+      } catch (error) {
+        logger.warn('AccountDeletion', `Failed to delete user ${what}`, {
+          reason: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
   }
 }
 
