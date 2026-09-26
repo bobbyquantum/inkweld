@@ -598,6 +598,26 @@ function createEmbeddedSpaHandler(
     return await indexFile.text();
   }
 
+  /**
+   * Serve the embedded ngsw.json with its index.html hash patched, or null
+   * to fall through to the normal asset lookup.
+   */
+  async function serveEmbeddedNgsw(
+    db: BunSqliteAppContext['Variables']['db']
+  ): Promise<Response | null> {
+    const ngswFile = findEmbeddedFile(embeddedFiles, 'ngsw.json')?.file;
+    if (ngswFile === undefined) {
+      return null;
+    }
+    try {
+      const ngswText =
+        typeof ngswFile === 'string' ? await Bun.file(ngswFile).text() : await ngswFile.text();
+      return await respondWithPatchedNgsw(ngswText, await readEmbeddedIndexText(), db);
+    } catch {
+      return null;
+    }
+  }
+
   return async (c, next) => {
     if (c.req.method !== 'GET') {
       return next();
@@ -621,15 +641,9 @@ function createEmbeddedSpaHandler(
     }
 
     if (sanitizeSpaPath(pathname) === 'ngsw.json') {
-      const ngswFile = findEmbeddedFile(embeddedFiles, 'ngsw.json')?.file;
-      if (ngswFile !== undefined) {
-        try {
-          const ngswText =
-            typeof ngswFile === 'string' ? await Bun.file(ngswFile).text() : await ngswFile.text();
-          return await respondWithPatchedNgsw(ngswText, await readEmbeddedIndexText(), db);
-        } catch {
-          // Fall through to the normal asset lookup below.
-        }
+      const ngswResponse = await serveEmbeddedNgsw(db);
+      if (ngswResponse) {
+        return ngswResponse;
       }
     }
 
