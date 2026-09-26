@@ -322,6 +322,33 @@ import { Context } from 'hono';
 **IMPORTANT - Yjs Document ID Trailing Slash:**
 The frontend uses `username:slug:elements` while the backend/MCP uses `username:slug:elements/` with a trailing slash. **THIS IS NOT A BUG - DO NOT "FIX" IT.** The y-websocket library automatically normalizes these, and both refer to the same document. If you see this difference while debugging sync issues, look elsewhere for the actual problem.
 
+### Local Document Storage Is Profile-Scoped
+
+Prose documents are cached in IndexedDB (y-indexeddb) under
+`storageContext.prefixDocumentId(documentId)` — e.g. `local:alice:novel:<id>`
+or `srv:<configId>:alice:novel:<id>` — just like the elements doc. **Only the
+local database name carries the prefix; the WebSocket document id stays the
+bare `username:slug:elementId`.** Every path that opens a document database
+must use the prefixed name: the editor connection, headless reads
+(`getLocalStateDigest`, `getDocumentContent`, `getYDoc`), headless sync
+(`syncDocumentToServer`, which takes a `sourceConfigId` for migrations),
+`LiveDocumentRegistryService.hasLocalContent`, import, Cloud Sync's
+`YDocAccessService`, and the project rename/migration services. Because of
+this, `StorageContextService.clearContextData()` (profile disconnect, account
+deletion) removes a profile's documents without touching another profile's
+copy of the same `username:slug`. Worldbuilding docs
+(`worldbuilding:username:slug:id`) are still unprefixed.
+
+Older builds stored documents under the bare id, shared by every profile with
+the same username and slug. `DocumentStorageMigrationService` runs once at
+startup (an app initializer, before the router can open a document) and
+copies each bare `username:slug:elementId` database into **every** profile
+that has that project on the device (its elements database exists, or the
+project is in its project list), verifies each copy by re-reading it, and only
+then deletes the original. Databases no profile claims are left in place.
+The `inkweld-document-storage-migrated` localStorage flag records completion;
+a failed copy leaves the flag unset so the migration retries next start.
+
 ### Bulk Sync Fast Path (Document Revision Manifest)
 
 "Sync All" used to open one WebSocket per prose document (3 at a time), so a

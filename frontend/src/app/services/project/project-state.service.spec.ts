@@ -933,7 +933,11 @@ describe('ProjectStateService', () => {
       queueMicrotask(() => mockRequest.onsuccess?.({} as Event));
 
       await promise;
-      expect(openSpy).toHaveBeenCalledWith('testuser:test-project:doc-element');
+      // Prose documents live under the active profile's prefix ("local:"
+      // with no stored configuration)
+      expect(openSpy).toHaveBeenCalledWith(
+        'local:testuser:test-project:doc-element'
+      );
 
       vi.restoreAllMocks();
     });

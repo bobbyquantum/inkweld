@@ -1,6 +1,8 @@
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { Subject } from 'rxjs';
 import type * as Y from 'yjs';
+
+import { StorageContextService } from '../core/storage-context.service';
 
 /**
  * ProseMirror-free view of the documents that currently have a live
@@ -18,6 +20,7 @@ import type * as Y from 'yjs';
   providedIn: 'root',
 })
 export class LiveDocumentRegistryService {
+  private readonly storageContext = inject(StorageContextService);
   private readonly liveDocs = new Map<string, Y.Doc>();
 
   /**
@@ -67,13 +70,20 @@ export class LiveDocumentRegistryService {
     if (this.liveDocs.has(documentId)) {
       return Promise.resolve(true);
     }
-    return this.checkDocumentHasContent(documentId);
+    return this.databaseHasContent(
+      this.storageContext.prefixDocumentId(documentId)
+    );
   }
 
-  private checkDocumentHasContent(documentId: string): Promise<boolean> {
+  /**
+   * Whether the y-indexeddb database named `dbName` holds at least one
+   * persisted update. Takes the database name as-is (no profile prefix is
+   * added), for docs whose storage name is not a prose document id.
+   */
+  databaseHasContent(dbName: string): Promise<boolean> {
     return new Promise(resolve => {
       try {
-        const request = indexedDB.open(documentId);
+        const request = indexedDB.open(dbName);
 
         // onupgradeneeded fires when the DB doesn't exist (version 0 → 1)
         // Aborting prevents creating an empty shell database

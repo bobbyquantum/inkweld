@@ -419,6 +419,31 @@ describe('DocumentService', () => {
       expect(() => atob(digest!)).not.toThrow();
     });
 
+    it('stores and reads documents under the active profile prefix', async () => {
+      const names = vi.spyOn(
+        service as unknown as { localDbName: (id: string) => string },
+        'localDbName'
+      );
+
+      await service.getLocalStateDigest(testDocumentId);
+      await service.getDocumentContent(testDocumentId);
+      await service.getYDoc(testDocumentId);
+      await service.setupCollaboration(mockEditor, testDocumentId);
+
+      // "local:" is the prefix when no configuration is stored. The editor
+      // connection names both its database and its cross-tab channel.
+      expect(names.mock.results.map(r => r.value as string)).toEqual(
+        Array.from({ length: 5 }, () => `local:${testDocumentId}`)
+      );
+      // The cross-tab channel is scoped the same way
+      const connections = (
+        service as unknown as { connections: Map<string, DocumentConnection> }
+      ).connections;
+      expect(connections.get(testDocumentId)?.broadcastProvider?.docId).toBe(
+        `local:${testDocumentId}`
+      );
+    });
+
     it('still returns the digest when closing the local store fails', async () => {
       const { IndexeddbPersistence } = await import('y-indexeddb');
       vi.spyOn(IndexeddbPersistence.prototype, 'destroy').mockRejectedValueOnce(
@@ -1870,6 +1895,38 @@ describe('DocumentService', () => {
         );
         expect(mockWebSocketProvider.disconnect).toHaveBeenCalledTimes(1);
         expect(mockWebSocketProvider.destroy).toHaveBeenCalledTimes(1);
+      });
+
+      it('reads the local copy from the profile-scoped database but syncs the bare id', async () => {
+        mockWebSocketProvider.on.mockImplementation(
+          (event: string, callback: any) => {
+            if (event === 'sync') callback(true);
+            return () => {};
+          }
+        );
+        const names = vi.spyOn(
+          service as unknown as { localDbName: (id: string) => string },
+          'localDbName'
+        );
+
+        await service.syncDocumentToServer(testDocumentId, 1000);
+        await service.syncDocumentToServer(
+          testDocumentId,
+          1000,
+          'olduser:old-project:test-doc',
+          'abc123'
+        );
+
+        expect(names.mock.results.map(r => r.value as string)).toEqual([
+          `local:${testDocumentId}`,
+          // Migration: read the source profile's copy of the source document
+          'srv:abc123:olduser:old-project:test-doc',
+        ]);
+        for (const [url] of mockCreateAuthWsProvider.mock.calls) {
+          expect(url).toBe(
+            `ws://localhost:8333/api/v1/ws/yjs?documentId=${testDocumentId}`
+          );
+        }
       });
 
       it('returns the post-sync state digest', async () => {

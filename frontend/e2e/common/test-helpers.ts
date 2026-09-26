@@ -36,6 +36,29 @@ export async function expectDialogFitsViewport(
 }
 
 /**
+ * IndexedDB database name of a prose document (`username:slug:elementId`) in
+ * the active profile. Documents are stored under the profile's storage
+ * prefix, mirroring `StorageContextService.getPrefixForConfig`: `local:` (or
+ * `local-…:` / `cloud-…:`) for the id itself, `srv:{configId}:` for a server.
+ */
+export async function documentDbName(
+  page: Page,
+  documentId: string
+): Promise<string> {
+  const prefix = await page.evaluate(() => {
+    const raw = localStorage.getItem('inkweld-app-config');
+    const id = raw
+      ? (JSON.parse(raw) as { activeConfigId?: string }).activeConfigId
+      : undefined;
+    if (!id) return 'local:';
+    return id === 'local' || id.startsWith('local-') || id.startsWith('cloud-')
+      ? `${id}:`
+      : `srv:${id}:`;
+  });
+  return `${prefix}${documentId}`;
+}
+
+/**
  * Poll the y-indexeddb `updates` object store for a database until the
  * concatenated Yjs update bytes contain all of the given UTF-8 strings.
  *
