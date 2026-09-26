@@ -36,6 +36,8 @@ export function makeCanvas2dStub() {
     transform: vi.fn(),
     setTransform: vi.fn(),
     resetTransform: vi.fn(),
+    // Konva ≥ 10.7 reads the current matrix when drawing.
+    getTransform: vi.fn(() => ({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 })),
     drawImage: vi.fn(),
     createLinearGradient: vi.fn(() => ({ addColorStop: vi.fn() })),
     createRadialGradient: vi.fn(() => ({ addColorStop: vi.fn() })),
