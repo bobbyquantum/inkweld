@@ -120,19 +120,32 @@ test.describe('Account deletion', () => {
     };
     await createProject(page, 'Doomed Project', slug);
     await expect.poll(() => serverDocuments(token)).toBeGreaterThan(0);
-    const upload = await page.request.post(
-      `${base}/api/v1/media/${username}/${slug}`,
+    // Uploaded from inside the page, as the app does: the backend's CSRF
+    // check (enforced outside the test env, e.g. in the Docker image) only
+    // accepts form uploads the browser marks as same-origin or that come from
+    // an allowed Origin, and Playwright's API client can do neither.
+    const upload = await page.evaluate(
+      async ({ url, auth, png }) => {
+        const body = new FormData();
+        const bytes = Uint8Array.from(atob(png), c => c.charCodeAt(0));
+        body.append(
+          'file',
+          new File([bytes], 'pixel.png', { type: 'image/png' })
+        );
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${auth}` },
+          body,
+        });
+        return { status: res.status, text: await res.text() };
+      },
       {
-        // A form upload needs an allowed Origin to pass the backend's CSRF
-        // check (enforced outside the test env, e.g. the Docker image), as
-        // the browser would send.
-        headers: { ...api(token), Origin: new URL(page.url()).origin },
-        multipart: {
-          file: { name: 'pixel.png', mimeType: 'image/png', buffer: PNG },
-        },
+        url: `${base}/api/v1/media/${username}/${slug}`,
+        auth: token,
+        png: PNG.toString('base64'),
       }
     );
-    expect(upload.status(), await upload.text()).toBe(200);
+    expect(upload.status, upload.text).toBe(200);
     const mediaUrl = `${base}/api/v1/media/${username}/${slug}/pixel.png`;
     expect(
       (await page.request.get(mediaUrl, { headers: api(token) })).ok()
