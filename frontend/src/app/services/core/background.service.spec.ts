@@ -187,6 +187,18 @@ describe('BackgroundService', () => {
       expect(cssVar('--app-bg-image')).toBe(BUNDLED);
     });
 
+    it('refuses a protocol-relative URL', async () => {
+      const refresh = service.refresh();
+      http.expectOne(CONFIG_URL).flush(
+        makeConfig({
+          login: { source: 'url', value: '//cdn.example.com/bg.jpg' },
+        })
+      );
+      await refresh;
+
+      expect(cssVar('--app-bg-image')).toBe(BUNDLED);
+    });
+
     it('refuses plain http (mixed content on the https app)', async () => {
       const refresh = service.refresh();
       http.expectOne(CONFIG_URL).flush(
@@ -560,6 +572,58 @@ describe('BackgroundService', () => {
       expect(cssVar('--app-bg-filter')).toBe('blur(8px)');
       expect(cssVar('--app-bg-scrim-override')).toBe('0.6');
 
+      http.expectOne(CONFIG_URL).flush(makeConfig());
+    });
+
+    it('replays its own asset cached over a plain-http server base', async () => {
+      // SERVER is http, as on self-hosted and local instances. What the
+      // service wrote, it must accept back on the next load.
+      const refresh = service.refresh();
+      http.expectOne(CONFIG_URL).flush(
+        makeConfig({
+          login: {
+            source: 'asset',
+            value: '/api/v1/appearance/background/login?v=abc',
+          },
+        })
+      );
+      await refresh;
+      const expected = `url("${SERVER}/api/v1/appearance/background/login?v=abc")`;
+      expect(cssVar('--app-bg-image')).toBe(expected);
+      document.documentElement.style.removeProperty('--app-bg-image');
+
+      // A fresh instance, as after a page reload.
+      const fresh = TestBed.runInInjectionContext(
+        () => new BackgroundService()
+      );
+      fresh.initialize();
+      expect(cssVar('--app-bg-image')).toBe(expected);
+      http.expectOne(CONFIG_URL).flush(makeConfig());
+    });
+
+    it('discards a cached protocol-relative URL', () => {
+      store['appearance.background.login'] = JSON.stringify({
+        image: 'url("//tracker.example.com/pixel.png")',
+        color: 'transparent',
+        blur: 0,
+        overlayOpacity: null,
+      });
+
+      service.initialize();
+      expect(cssVar('--app-bg-image')).not.toContain('tracker');
+      http.expectOne(CONFIG_URL).flush(makeConfig());
+    });
+
+    it('discards a cached http URL for a host other than the server', () => {
+      store['appearance.background.login'] = JSON.stringify({
+        image: 'url("http://cdn.example.com/bg.jpg")',
+        color: 'transparent',
+        blur: 0,
+        overlayOpacity: null,
+      });
+
+      service.initialize();
+      expect(cssVar('--app-bg-image')).not.toContain('cdn.example.com');
       http.expectOne(CONFIG_URL).flush(makeConfig());
     });
 

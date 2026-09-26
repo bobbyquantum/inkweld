@@ -490,7 +490,10 @@ export class BackgroundService {
       }
       // Cached values are replayed straight into style properties, so they get
       // the same scrutiny as ones arriving from the API.
-      if (!isSafeCssImageValue(parsed.image) || !isSafeCssColor(parsed.color)) {
+      if (
+        !isSafeCssImageValue(parsed.image, this.serverBase) ||
+        !isSafeCssColor(parsed.color)
+      ) {
         return null;
       }
       return parsed;
@@ -576,22 +579,31 @@ function isSafeUrlToken(url: string): boolean {
   // Same-origin/relative paths, or an absolute https URL. Anything else
   // (http:, data:, javascript:, protocol-relative) is refused — plain http
   // would be blocked as mixed content on the https app anyway.
-  return trimmed.startsWith('/') || trimmed.startsWith('https://');
+  return (
+    (trimmed.startsWith('/') && !trimmed.startsWith('//')) ||
+    trimmed.startsWith('https://')
+  );
 }
 
 /**
  * Whether a cached `background-image` value is one we are willing to replay.
  * Accepts the shapes this service produces — a `url("…")` token, a gradient, or
- * `none` — and nothing else.
+ * `none` — and nothing else. A URL on our own server is accepted whatever its
+ * scheme, matching {@link cssOwnUrl}; any other URL must pass
+ * {@link isSafeUrlToken}.
  */
-function isSafeCssImageValue(value: string): boolean {
+function isSafeCssImageValue(value: string, serverBase: string): boolean {
   if (value === 'none') {
     return true;
   }
 
   const urlMatch = /^url\("([^"]*)"\)$/.exec(value);
   if (urlMatch) {
-    return isSafeUrlToken(urlMatch[1]);
+    const url = urlMatch[1];
+    if (serverBase && url.startsWith(`${serverBase}/`)) {
+      return cssOwnUrl(serverBase, url.slice(serverBase.length)) === value;
+    }
+    return isSafeUrlToken(url);
   }
 
   // Gradients only ever come from the built-in preset table, so compare
