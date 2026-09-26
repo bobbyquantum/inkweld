@@ -640,8 +640,7 @@ describe('UserService', () => {
   });
 
   describe('logout', () => {
-    // Skip: flaky due to IndexedDB timing issues
-    it.skip('should logout successfully and clear user', async () => {
+    it('should logout successfully and clear user', async () => {
       // First set a user so we can verify it's cleared
       await service.setCurrentUser(TEST_USER);
       expect(service.currentUser()).toEqual(TEST_USER);
@@ -661,6 +660,11 @@ describe('UserService', () => {
         username: 'anonymous',
         enabled: false,
       });
+      // The cached profile must be gone too, or the next load would restore it
+      const db = (await service['db'])!;
+      await expect(
+        storageService.get(db, 'users', 'currentUser')
+      ).resolves.toBeUndefined();
       expect(routerMock.navigate).toHaveBeenCalledWith(['/']);
     });
 

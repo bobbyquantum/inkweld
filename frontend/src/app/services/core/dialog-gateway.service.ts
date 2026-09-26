@@ -60,6 +60,10 @@ import type {
 import type { SnapshotsDialogData } from '../../dialogs/snapshots-dialog/snapshots-dialog.component';
 import type { TagEditorDialogData } from '../../dialogs/tag-editor-dialog/tag-editor-dialog.component';
 import type {
+  SettingsCategory,
+  UserSettingsDialogData,
+} from '../../dialogs/user-settings-dialog/user-settings-dialog.component';
+import type {
   WorldbuildingImageDialogData,
   WorldbuildingImageDialogResult,
 } from '../../dialogs/worldbuilding-image-dialog/worldbuilding-image-dialog.component';
@@ -333,19 +337,18 @@ export class DialogGatewayService {
   }
 
   async openUserSettingsDialog(
-    selectedCategory?:
-      'account' | 'authorized-apps' | 'project-tree' | 'project'
+    selectedCategory: SettingsCategory = 'account'
   ): Promise<void> {
     const { UserSettingsDialogComponent } =
       await import('../../dialogs/user-settings-dialog/user-settings-dialog.component');
-    const dialogRef = this.dialog.open<unknown, unknown, void>(
+    const dialogRef = this.dialog.open<unknown, UserSettingsDialogData, void>(
       UserSettingsDialogComponent,
       {
         width: '1000px',
         maxWidth: '90vw',
         maxHeight: '90vh',
         panelClass: 'user-settings-dialog-panel',
-        data: { selectedCategory: selectedCategory || 'project-tree' },
+        data: { selectedCategory },
       }
     );
     await firstValueFrom(dialogRef.afterClosed());

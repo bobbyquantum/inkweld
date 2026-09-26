@@ -402,15 +402,17 @@ describe('yjs-xml-serializer', () => {
       ]);
     });
 
-    // Note: Skipped because DOMParser behavior varies between environments.
-    // jsdom may not produce parsererror for all types of malformed XML.
-    // The implementation handles parsererror correctly when it's present.
-    it.skip('should throw on invalid XML', () => {
-      // DOMParser returns <parsererror> for invalid XML, which our code detects and throws
-      // Use XML with invalid entity reference to trigger parse error
+    it('should throw on mismatched closing tags without touching the fragment', () => {
+      applyXmlToFragment(ydoc, fragment, '<paragraph>kept</paragraph>');
+
       expect(() => {
-        applyXmlToFragment(ydoc, fragment, '<p>&invalidEntity;</p>');
-      }).toThrow();
+        applyXmlToFragment(
+          ydoc,
+          fragment,
+          '<paragraph><strong>bold</paragraph></strong>'
+        );
+      }).toThrow(/Mismatched closing tag <\/paragraph>/);
+      expect(fragment.toJSON()).toBe('<paragraph>kept</paragraph>');
     });
 
     it('should preserve boolean-looking attributes as strings', () => {
