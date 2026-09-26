@@ -6,11 +6,10 @@ import { createDefaultPublishStyles } from '@models/publish-style';
 // The production code (`pdf-generator.service.ts`) imports from
 // `@myriaddreamin/typst.ts/contrib/snippet`, while older specs imported
 // from the bare `@myriaddreamin/typst.ts`. setup-vitest.ts mocks both
-// to share the same `mockTypstGlobal` object, so reassigning members on
-// one *should* be visible from the other — but with `isolate: false` and
-// shared module state across spec files, defensively patching both
-// surfaces eliminates a rare flake where `$typst.pdf()` resolved to
-// `undefined` and triggered "Typst compilation failed to produce PDF data".
+// to share the same `mockTypstGlobal` object — created once per worker on
+// `globalThis`, because the setup file re-runs before every spec file and the
+// service module keeps whichever object it imported first. Patching both
+// surfaces is kept as a belt-and-braces guard.
 // Do NOT re-mock these modules here — duplicate vi.mock creates a separate
 // object that diverges from the one the service captures.
 import { $typst } from '@myriaddreamin/typst.ts';
