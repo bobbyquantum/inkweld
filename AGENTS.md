@@ -491,14 +491,23 @@ Google Play requires in-app **and** web account deletion for apps that allow
 sign-up, so users can delete their own server account:
 
 - `DELETE /api/v1/users/me` with `{ confirmUsername }` (case-insensitive).
-  Refuses with 409 when the caller is the last enabled administrator.
+  Refuses with 409 when the caller is the last enabled administrator (the
+  admin "Delete user" route does the same).
 - `accountDeletionService.deleteAccount()` (`backend/src/services/account-deletion.service.ts`)
-  is shared with the admin "Delete user" route. It tears down each owned
-  project exactly like `DELETE /projects/:u/:s` (Yjs docs, storage directory,
-  row + tombstone) **before** deleting the user row — the row cascade alone
-  would leave project content on disk/R2 — then drops avatar/banner/background.
-  Durable Objects are only wiped for self-deletion (`destroyDurableObjects`):
-  the DO accepts only the owner's own token.
+  is shared with the admin "Delete user" route. It first calls
+  `userService.reserveForDeletion()` — one conditional UPDATE that drops the
+  admin flag only while another active admin remains, so two admins deleting
+  themselves at once cannot both succeed. **Do not reserve by disabling the
+  account**: the Durable Object refuses a disabled owner's token, which breaks
+  the wipe on Workers. It then tears down each owned project exactly like
+  `DELETE /projects/:u/:s` (Yjs docs, storage directory, Durable Object, row +
+  tombstone) **before** deleting the user row — the row cascade alone would
+  leave project content on disk/R2 — then drops avatar/banner/background. On
+  failure the admin flag is restored so the request can be retried.
+- The Durable Object's `POST /api/destroy` accepts the owner **or an active
+  site admin** (`isActiveSiteAdmin` in `utils/project-access.ts`); without
+  that, an admin deletion on Workers would leave the DO named
+  `username:slug`, and a re-registered username would inherit its documents.
 - Frontend: `DeleteAccountComponent` (`components/delete-account/`) in
   Settings → Account (hidden in local mode) and on the public `/delete-account`
   page (`pages/delete-account/`, the web link for the Play listing; also a
@@ -508,9 +517,9 @@ sign-up, so users can delete their own server account:
   that the profile wipe cannot see — then the app does a full load of
   `/delete-account?deleted=1` so queued IndexedDB deletes can complete.
 - E2E: `e2e/online/account-deletion.spec.ts` also runs under the wrangler
-  config; its "removes owned projects" test re-registers the same username and
-  re-creates the slug to prove nothing (media, LevelDB, Durable Object, local
-  IndexedDB) survives.
+  config; its self-service and admin deletion tests re-register the same
+  username and re-create the slug to prove nothing (media, LevelDB, Durable
+  Object, local IndexedDB) survives.
 - `/delete-account` is exempt from the policy-acceptance gate, so someone who
   won't accept new terms can still delete their account.
 

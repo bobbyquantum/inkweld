@@ -16,7 +16,7 @@ import {
 
 async function currentSession(
   page: Page
-): Promise<{ token: string; username: string }> {
+): Promise<{ token: string; username: string; id: string }> {
   const token = await page.evaluate(() =>
     localStorage.getItem('srv:server-1:auth_token')
   );
@@ -25,8 +25,8 @@ async function currentSession(
     `${getApiBaseUrl()}/api/v1/users/me`,
     { headers: { Authorization: `Bearer ${token}` } }
   );
-  const me = (await response.json()) as { username: string };
-  return { token: token!, username: me.username };
+  const me = (await response.json()) as { username: string; id: string };
+  return { token: token!, username: me.username, id: me.id };
 }
 
 async function confirmDeletion(page: Page, username: string): Promise<void> {
@@ -58,6 +58,26 @@ const PNG = Buffer.from(
 
 function api(token: string) {
   return { Authorization: `Bearer ${token}` };
+}
+
+/**
+ * Documents in the server's copy of a project tree, read through the sync
+ * manifest — LevelDB on Bun, the project's Durable Object on Workers — or -1
+ * when the project cannot be read.
+ */
+async function countServerDocuments(
+  page: Page,
+  auth: string,
+  username: string,
+  slug: string
+): Promise<number> {
+  const res = await page.request.get(
+    `${getApiBaseUrl()}/api/v1/projects/${username}/${slug}/docs/sync-manifest`,
+    { headers: api(auth) }
+  );
+  if (!res.ok()) return -1;
+  const { documents } = (await res.json()) as { documents: unknown[] };
+  return documents.length;
 }
 
 /** IndexedDB databases this page's origin holds whose name mentions `text`. */
@@ -109,15 +129,8 @@ test.describe('Account deletion', () => {
     // the device too) and an uploaded media file. The sync manifest lists the
     // documents in the server's copy of the project tree on both runtimes:
     // LevelDB on Bun, the project's Durable Object on Workers.
-    const manifestUrl = `${base}/api/v1/projects/${username}/${slug}/docs/sync-manifest`;
-    const serverDocuments = async (auth: string): Promise<number> => {
-      const res = await page.request.get(manifestUrl, {
-        headers: api(auth),
-      });
-      if (!res.ok()) return -1;
-      const { documents } = (await res.json()) as { documents: unknown[] };
-      return documents.length;
-    };
+    const serverDocuments = (auth: string) =>
+      countServerDocuments(page, auth, username, slug);
     await createProject(page, 'Doomed Project', slug);
     await expect.poll(() => serverDocuments(token)).toBeGreaterThan(0);
     // Uploaded from inside the page, as the app does: the backend's CSRF
@@ -178,6 +191,43 @@ test.describe('Account deletion', () => {
       (await page.request.get(mediaUrl, { headers: api(fresh) })).status()
     ).toBe(404);
     expect(await serverDocuments(fresh)).toBe(0);
+  });
+
+  test("admin deletion also wipes the user's projects on the server", async ({
+    authenticatedPage: page,
+    adminPage,
+  }) => {
+    const { token, username, id } = await currentSession(page);
+    const slug = `admin-doomed-${Date.now().toString(36)}`;
+    const base = getApiBaseUrl();
+    await createProject(page, 'Doomed By Admin', slug);
+    await expect
+      .poll(() => countServerDocuments(page, token, username, slug))
+      .toBeGreaterThan(0);
+
+    const adminToken = await adminPage.evaluate(() =>
+      localStorage.getItem('srv:server-1:auth_token')
+    );
+    const removed = await adminPage.request.delete(
+      `${base}/api/v1/admin/users/${id}`,
+      // A body-less request counts as a form post to the CSRF check.
+      { headers: { ...api(adminToken!), 'Content-Type': 'application/json' } }
+    );
+    expect(removed.status(), await removed.text()).toBe(200);
+
+    // Same username, same slug: the old project must not come back (on
+    // Workers this is the Durable Object named after username:slug).
+    const register = await page.request.post(`${base}/api/v1/auth/register`, {
+      data: { username, password: TEST_PASSWORDS.USER },
+    });
+    expect(register.ok()).toBe(true);
+    const fresh = ((await register.json()) as { token: string }).token;
+    const recreate = await page.request.post(`${base}/api/v1/projects`, {
+      headers: api(fresh),
+      data: { slug, title: 'Fresh start' },
+    });
+    expect(recreate.status()).toBe(201);
+    expect(await countServerDocuments(page, fresh, username, slug)).toBe(0);
   });
 
   test('confirms the deletion once the flow lands back on the page', async ({

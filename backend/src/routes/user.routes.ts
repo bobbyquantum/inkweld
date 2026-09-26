@@ -306,7 +306,8 @@ userRoutes.openapi(deleteAccountRoute, async (c) => {
     return c.json({ error: 'The username you typed does not match your account' }, 400);
   }
 
-  if (user.isAdmin && (await userService.countActiveAdmins(db)) <= 1) {
+  const result = await accountDeletionService.deleteAccount(c, user);
+  if (result === 'last-admin') {
     return c.json(
       {
         error:
@@ -316,8 +317,6 @@ userRoutes.openapi(deleteAccountRoute, async (c) => {
       409
     );
   }
-
-  await accountDeletionService.deleteAccount(c, user, { destroyDurableObjects: true });
   authService.destroySession(c);
   return c.json({ message: 'Account deleted' }, 200);
 });

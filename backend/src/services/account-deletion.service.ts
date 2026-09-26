@@ -22,29 +22,37 @@ import { getStorageService } from './storage.service';
 import { userService } from './user.service';
 import { yjsService } from './yjs.service';
 
-export interface DeleteAccountOptions {
-  /**
-   * Also wipe each project's Durable Object (Workers only). The DO checks
-   * that the bearer token belongs to the project owner, so this only works
-   * when the request is made by the account being deleted.
-   */
-  destroyDurableObjects: boolean;
-}
+export type DeleteAccountResult = 'deleted' | 'last-admin';
 
 class AccountDeletionService {
-  async deleteAccount(
-    c: Context<AppContext>,
-    user: User,
-    options: DeleteAccountOptions
-  ): Promise<void> {
-    const username = user.username;
-    if (username) {
-      await this.deleteOwnedProjects(c, user.id, username, options);
-      await this.deleteProfileImages(c, username, user.hasAvatar);
+  /**
+   * Returns 'last-admin' (and deletes nothing) when the account is the only
+   * active administrator. On Workers each project's Durable Object is wiped
+   * with the caller's token, which the DO accepts from the owner or a site
+   * admin.
+   */
+  async deleteAccount(c: Context<AppContext>, user: User): Promise<DeleteAccountResult> {
+    const db = c.get('db');
+    if (!(await userService.reserveForDeletion(db, user.id))) {
+      return 'last-admin';
     }
 
-    await userService.deleteUser(c.get('db'), user.id);
+    try {
+      const username = user.username;
+      if (username) {
+        await this.deleteOwnedProjects(c, user.id, username);
+        await this.deleteProfileImages(c, username, user.hasAvatar);
+      }
+      await userService.deleteUser(db, user.id);
+    } catch (error) {
+      // Leave the account usable so the deletion can be retried; projects
+      // already removed stay removed.
+      await userService.releaseDeletionReservation(db, user.id, user.isAdmin);
+      throw error;
+    }
+
     logger.info('AccountDeletion', 'Account deleted', { userId: user.id });
+    return 'deleted';
   }
 
   /**
@@ -55,8 +63,7 @@ class AccountDeletionService {
   private async deleteOwnedProjects(
     c: Context<AppContext>,
     userId: string,
-    username: string,
-    options: DeleteAccountOptions
+    username: string
   ): Promise<void> {
     const db = c.get('db');
     const storage = getStorageService(c.get('storage'));
@@ -64,9 +71,7 @@ class AccountDeletionService {
     for (const project of owned) {
       await yjsService.destroyProject(username, project.slug);
       await storage.deleteProjectDirectory(username, project.slug);
-      if (options.destroyDurableObjects) {
-        await destroyProjectDurableObject(c, username, project.slug);
-      }
+      await destroyProjectDurableObject(c, username, project.slug);
       await projectService.delete(db, project.id, userId, project.slug);
     }
   }

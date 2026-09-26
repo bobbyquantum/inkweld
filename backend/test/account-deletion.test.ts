@@ -5,6 +5,7 @@ import { eq, inArray } from 'drizzle-orm';
 import { getDatabase } from '../src/db/index';
 import { projects, users } from '../src/db/schema/index';
 import { fileStorageService } from '../src/services/file-storage.service';
+import { userService } from '../src/services/user.service';
 import { yjsService } from '../src/services/yjs.service';
 import {
   enablePasswordLoginForTests,
@@ -14,7 +15,14 @@ import {
 } from './server-test-helper';
 import { TEST_PASSWORDS } from './test-credentials';
 
-const USERNAMES = ['deleteme', 'soleadmin', 'otheradmin', 'deleteradmin'];
+const USERNAMES = [
+  'deleteme',
+  'soleadmin',
+  'otheradmin',
+  'deleteradmin',
+  'raceadmin1',
+  'raceadmin2',
+];
 
 describe('DELETE /api/v1/users/me', () => {
   const db = getDatabase();
@@ -174,5 +182,57 @@ describe('DELETE /api/v1/users/me', () => {
     expect(existsSync(projectPath)).toBe(false);
     const internals = yjsService as unknown as { docs: Map<string, unknown> };
     expect(internals.docs.has(docId)).toBe(false);
+  });
+
+  it('lets only one of two last admins delete themselves when both try at once', async () => {
+    // Other admins left over from other suites would let both through.
+    const others = await db.select({ id: users.id }).from(users).where(eq(users.isAdmin, true));
+    const demoted = others.map((u) => u.id);
+    if (demoted.length > 0) {
+      await db.update(users).set({ isAdmin: false }).where(inArray(users.id, demoted));
+    }
+    try {
+      const firstId = await createUser('raceadmin1', { isAdmin: true });
+      const secondId = await createUser('raceadmin2', { isAdmin: true });
+      const [first, second] = await Promise.all([signIn('raceadmin1'), signIn('raceadmin2')]);
+
+      const statuses = (
+        await Promise.all([deleteAccount(first, 'raceadmin1'), deleteAccount(second, 'raceadmin2')])
+      )
+        .map((r) => r.response.status)
+        .sort();
+
+      expect(statuses).toEqual([200, 409]);
+      const remaining = await db
+        .select()
+        .from(users)
+        .where(inArray(users.id, [firstId, secondId]));
+      expect(remaining).toHaveLength(1);
+      // The refused one is left exactly as it was: still an enabled admin.
+      expect(remaining[0].enabled).toBe(true);
+      expect(remaining[0].isAdmin).toBe(true);
+    } finally {
+      if (demoted.length > 0) {
+        await db.update(users).set({ isAdmin: true }).where(inArray(users.id, demoted));
+      }
+    }
+  });
+
+  it('reserveForDeletion drops admin rights only while another admin remains', async () => {
+    const memberId = await createUser('deleteme');
+    expect(await userService.reserveForDeletion(db, memberId)).toBe(true);
+    let [row] = await db.select().from(users).where(eq(users.id, memberId));
+    expect(row.enabled).toBe(true);
+
+    const adminId = await createUser('raceadmin1', { isAdmin: true });
+    await createUser('raceadmin2', { isAdmin: true });
+    expect(await userService.reserveForDeletion(db, adminId)).toBe(true);
+    [row] = await db.select().from(users).where(eq(users.id, adminId));
+    expect(row.isAdmin).toBe(false);
+    expect(row.enabled).toBe(true);
+
+    await userService.releaseDeletionReservation(db, adminId, true);
+    [row] = await db.select().from(users).where(eq(users.id, adminId));
+    expect(row.isAdmin).toBe(true);
   });
 });

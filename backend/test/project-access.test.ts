@@ -13,7 +13,11 @@
  * test file that imports them and fail the whole suite.
  */
 import { describe, it, expect } from 'bun:test';
-import { resolveProjectAccess, type ProjectAccessDeps } from '../src/utils/project-access';
+import {
+  isActiveSiteAdmin,
+  resolveProjectAccess,
+  type ProjectAccessDeps,
+} from '../src/utils/project-access';
 
 const ACTIVE_USER = { enabled: true, approved: true, sessionsValidFrom: 0 };
 
@@ -308,5 +312,37 @@ describe('resolveProjectAccess — account state and session revocation', () => 
       fakeDeps
     );
     expect(result).toEqual({ ok: false, reason: 'project-not-found' });
+  });
+});
+
+describe("isActiveSiteAdmin — who may wipe another user's project DO", () => {
+  const db = {} as never;
+  const ADMIN = { enabled: true, approved: true, isAdmin: true, sessionsValidFrom: 0 };
+  const rows: Record<string, typeof ADMIN> = {
+    'admin-1': ADMIN,
+    'member-1': { ...ADMIN, isAdmin: false },
+    'disabled-admin': { ...ADMIN, enabled: false },
+    'unapproved-admin': { ...ADMIN, approved: false },
+    'reset-admin': { ...ADMIN, sessionsValidFrom: 1_000_000 },
+  };
+  const find = async (_db: never, userId: string) => rows[userId];
+  const check = (userId: string | undefined, iat = 500_000) =>
+    isActiveSiteAdmin(db, { userId, username: 'x', iat }, find);
+
+  it('admits an active admin', async () => {
+    expect(await check('admin-1')).toBe(true);
+  });
+
+  it('refuses non-admins, inactive admins, revoked tokens and unknown users', async () => {
+    expect(await check('member-1')).toBe(false);
+    expect(await check('disabled-admin')).toBe(false);
+    expect(await check('unapproved-admin')).toBe(false);
+    expect(await check('reset-admin')).toBe(false);
+    expect(await check('ghost')).toBe(false);
+    expect(await check(undefined)).toBe(false);
+  });
+
+  it('refuses without a database binding', async () => {
+    expect(await isActiveSiteAdmin(null, { userId: 'admin-1', username: 'x' }, find)).toBe(false);
   });
 });

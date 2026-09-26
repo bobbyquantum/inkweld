@@ -10,7 +10,7 @@ import { getBaseUrl } from '../services/url.service';
 import { mapWithConcurrency } from '../utils/concurrency';
 import type { AppContext } from '../types/context';
 import type { User } from '../db/schema';
-import { errorResponses, MessageResponseSchema } from '../schemas/common.schemas';
+import { errorResponse, errorResponses, MessageResponseSchema } from '../schemas/common.schemas';
 
 // Helper to safely format user response
 function formatUserResponse(user: User) {
@@ -215,6 +215,7 @@ const deleteUserRoute = createRoute({
       },
     },
     ...errorResponses.adminEntity('User'),
+    409: errorResponse('Cannot delete the last active administrator'),
   },
 });
 
@@ -363,10 +364,13 @@ adminRoutes.openapi(deleteUserRoute, async (c) => {
     return c.json({ error: 'User not found' }, 404);
   }
 
-  // Removes the user's projects (documents, media, published files) and
-  // profile images too — the row cascade alone used to leave them on disk.
-  // Durable Objects are skipped: they only accept the owner's own token.
-  await accountDeletionService.deleteAccount(c, user, { destroyDurableObjects: false });
+  // Removes the user's projects (documents, media, published files, and the
+  // Durable Object on Workers) and profile images too — the row cascade
+  // alone used to leave them behind.
+  const result = await accountDeletionService.deleteAccount(c, user);
+  if (result === 'last-admin') {
+    return c.json({ error: 'Cannot delete the last active administrator' }, 409);
+  }
   return c.json({ message: 'User deleted' }, 200);
 });
 
