@@ -22,6 +22,7 @@ import {
   guessMimeType,
   buildAssetHeaders,
   injectCustomHtml,
+  patchNgswIndexHash,
 } from './utils/spa-utils';
 import {
   bunSqliteDatabaseMiddleware,
@@ -162,26 +163,52 @@ async function getCustomHtml(db: BunSqliteAppContext['Variables']['db']): Promis
 }
 
 /**
- * Serve index.html with the admin custom-HTML markers substituted. On any
- * failure reading config we fall back to the un-injected document — a broken
+ * Substitute the admin custom-HTML markers in index.html. On any failure
+ * reading config we fall back to the un-injected document — a broken
  * snippet must never take down the whole app shell.
  */
-async function respondWithInjectedIndex(
+async function renderIndex(
   html: string,
   db: BunSqliteAppContext['Variables']['db']
-): Promise<Response> {
-  let content = html;
+): Promise<string> {
   try {
     const { head, body } = await getCustomHtml(db);
-    content = injectCustomHtml(html, head, body);
+    return injectCustomHtml(html, head, body);
   } catch (err) {
     logger.warn('SPA', 'Failed to load custom HTML config, serving without injection', {
       err: String(err),
     });
+    return html;
   }
-  return new Response(content, {
+}
+
+async function respondWithInjectedIndex(
+  html: string,
+  db: BunSqliteAppContext['Variables']['db']
+): Promise<Response> {
+  return new Response(await renderIndex(html, db), {
     headers: {
       'Content-Type': 'text/html; charset=utf-8',
+      'Cache-Control': 'no-cache',
+    },
+  });
+}
+
+/**
+ * Serve ngsw.json with its index.html hash matching the index.html this
+ * server renders (see patchNgswIndexHash). Like index.html, this must bypass
+ * the pre-compressed .br variant, and it is served no-cache because its
+ * content now follows the admin config rather than the build.
+ */
+async function respondWithPatchedNgsw(
+  ngswJson: string,
+  indexHtml: string,
+  db: BunSqliteAppContext['Variables']['db']
+): Promise<Response> {
+  const served = patchNgswIndexHash(ngswJson, await renderIndex(indexHtml, db));
+  return new Response(served, {
+    headers: {
+      'Content-Type': 'application/json',
       'Cache-Control': 'no-cache',
     },
   });
@@ -492,6 +519,14 @@ async function serveSpaAsset(
     return respondWithInjectedIndex(await file.text(), db);
   }
 
+  if (relativePath === 'ngsw.json') {
+    const ngswFile = Bun.file(join(root, relativePath));
+    const indexFile = Bun.file(join(root, 'index.html'));
+    if ((await ngswFile.exists()) && (await indexFile.exists())) {
+      return respondWithPatchedNgsw(await ngswFile.text(), await indexFile.text(), db);
+    }
+  }
+
   const filePath = join(root, relativePath);
 
   // Check for pre-compressed Brotli asset if client supports it
@@ -563,6 +598,26 @@ function createEmbeddedSpaHandler(
     return await indexFile.text();
   }
 
+  /**
+   * Serve the embedded ngsw.json with its index.html hash patched, or null
+   * to fall through to the normal asset lookup.
+   */
+  async function serveEmbeddedNgsw(
+    db: BunSqliteAppContext['Variables']['db']
+  ): Promise<Response | null> {
+    const ngswFile = findEmbeddedFile(embeddedFiles, 'ngsw.json')?.file;
+    if (ngswFile === undefined) {
+      return null;
+    }
+    try {
+      const ngswText =
+        typeof ngswFile === 'string' ? await Bun.file(ngswFile).text() : await ngswFile.text();
+      return await respondWithPatchedNgsw(ngswText, await readEmbeddedIndexText(), db);
+    } catch {
+      return null;
+    }
+  }
+
   return async (c, next) => {
     if (c.req.method !== 'GET') {
       return next();
@@ -582,6 +637,13 @@ function createEmbeddedSpaHandler(
         return await respondWithInjectedIndex(await readEmbeddedIndexText(), db);
       } catch {
         // Fall through to the normal asset lookup below.
+      }
+    }
+
+    if (sanitizeSpaPath(pathname) === 'ngsw.json') {
+      const ngswResponse = await serveEmbeddedNgsw(db);
+      if (ngswResponse) {
+        return ngswResponse;
       }
     }
 

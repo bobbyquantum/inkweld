@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'bun:test';
+import { createHash } from 'node:crypto';
 
-import { CUSTOM_BODY_MARKER, CUSTOM_HEAD_MARKER, injectCustomHtml } from './spa-utils';
+import {
+  CUSTOM_BODY_MARKER,
+  CUSTOM_HEAD_MARKER,
+  injectCustomHtml,
+  patchNgswIndexHash,
+} from './spa-utils';
 
 const makeDocument = () => `<!doctype html>
 <html lang="en">
@@ -30,13 +36,11 @@ describe('injectCustomHtml', () => {
     expect(result.indexOf('analytics.example.com')).toBeGreaterThan(headEnd);
   });
 
-  it('consumes both markers when no snippets are configured', () => {
+  it('returns the document byte-for-byte when no snippets are configured', () => {
+    // The service worker verifies index.html against its build-time hash, so
+    // the default (no custom HTML) must not alter a single byte.
     const source = makeDocument();
-    const result = injectCustomHtml(source, '', '');
-
-    expect(result).not.toContain(CUSTOM_HEAD_MARKER);
-    expect(result).not.toContain(CUSTOM_BODY_MARKER);
-    expect(result).toContain('<app-root></app-root>');
+    expect(injectCustomHtml(source, '', '')).toBe(source);
   });
 
   it('returns documents without markers unchanged', () => {
@@ -58,6 +62,43 @@ describe('injectCustomHtml', () => {
 
     expect(result).not.toContain(CUSTOM_BODY_MARKER);
     expect(result).toContain('<div id="widget"></div>');
-    expect(result).toContain('<head>\n    <title>Inkweld</title>\n    ');
+    expect(result).toContain(CUSTOM_HEAD_MARKER);
+  });
+});
+
+describe('patchNgswIndexHash', () => {
+  const sha1 = (text: string) => createHash('sha1').update(text, 'utf8').digest('hex');
+  const makeManifest = (indexHash: string) =>
+    JSON.stringify(
+      {
+        configVersion: 1,
+        index: '/index.html',
+        hashTable: { '/index.html': indexHash, '/main.js': 'abc123' },
+      },
+      null,
+      2
+    );
+
+  it('leaves the manifest untouched when index.html is served as built', () => {
+    const index = makeDocument();
+    const manifest = makeManifest(sha1(index));
+    expect(patchNgswIndexHash(manifest, index)).toBe(manifest);
+  });
+
+  it('rewrites the index.html hash to match the injected document', () => {
+    const built = makeDocument();
+    const served = injectCustomHtml(built, '<meta name="x" content="é">', '');
+    const patched = JSON.parse(patchNgswIndexHash(makeManifest(sha1(built)), served)) as {
+      hashTable: Record<string, string>;
+    };
+
+    expect(patched.hashTable['/index.html']).toBe(sha1(served));
+    expect(patched.hashTable['/main.js']).toBe('abc123');
+  });
+
+  it('returns unparseable or index-less manifests unchanged', () => {
+    expect(patchNgswIndexHash('not json', 'x')).toBe('not json');
+    const noIndex = JSON.stringify({ hashTable: { '/main.js': 'abc' } });
+    expect(patchNgswIndexHash(noIndex, 'x')).toBe(noIndex);
   });
 });
