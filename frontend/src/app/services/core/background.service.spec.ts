@@ -187,37 +187,18 @@ describe('BackgroundService', () => {
       expect(cssVar('--app-bg-image')).toBe(BUNDLED);
     });
 
-    it('refuses a protocol-relative URL', async () => {
+    it.each([
+      ['a protocol-relative URL', '//cdn.example.com/bg.jpg'],
+      [
+        'plain http (mixed content on the https app)',
+        'http://cdn.example.com/bg.jpg',
+      ],
+      ['a non-http scheme', 'data:image/png;base64,AAA'],
+    ])('refuses %s', async (_label, value) => {
       const refresh = service.refresh();
-      http.expectOne(CONFIG_URL).flush(
-        makeConfig({
-          login: { source: 'url', value: '//cdn.example.com/bg.jpg' },
-        })
-      );
-      await refresh;
-
-      expect(cssVar('--app-bg-image')).toBe(BUNDLED);
-    });
-
-    it('refuses plain http (mixed content on the https app)', async () => {
-      const refresh = service.refresh();
-      http.expectOne(CONFIG_URL).flush(
-        makeConfig({
-          login: { source: 'url', value: 'http://cdn.example.com/bg.jpg' },
-        })
-      );
-      await refresh;
-
-      expect(cssVar('--app-bg-image')).toBe(BUNDLED);
-    });
-
-    it('refuses a non-http scheme', async () => {
-      const refresh = service.refresh();
-      http.expectOne(CONFIG_URL).flush(
-        makeConfig({
-          login: { source: 'url', value: 'data:image/png;base64,AAA' },
-        })
-      );
+      http
+        .expectOne(CONFIG_URL)
+        .flush(makeConfig({ login: { source: 'url', value } }));
       await refresh;
 
       expect(cssVar('--app-bg-image')).toBe(BUNDLED);
@@ -601,44 +582,25 @@ describe('BackgroundService', () => {
       http.expectOne(CONFIG_URL).flush(makeConfig());
     });
 
-    it('discards a cached protocol-relative URL', () => {
+    it.each([
+      ['a protocol-relative URL', 'url("//tracker.example.com/pixel.png")'],
+      [
+        'an http URL for a host other than the server',
+        'url("http://cdn.example.com/bg.jpg")',
+      ],
+      ['a tampered entry', 'url("javascript:alert(1)")'],
+    ])('discards a cached image that is %s', (_label, image) => {
       store['appearance.background.login'] = JSON.stringify({
-        image: 'url("//tracker.example.com/pixel.png")',
+        image,
         color: 'transparent',
         blur: 0,
         overlayOpacity: null,
       });
 
       service.initialize();
-      expect(cssVar('--app-bg-image')).not.toContain('tracker');
+      // Asserted before the config arrives, when only the cache could apply.
+      expect(cssVar('--app-bg-image')).not.toBe(image);
       http.expectOne(CONFIG_URL).flush(makeConfig());
-    });
-
-    it('discards a cached http URL for a host other than the server', () => {
-      store['appearance.background.login'] = JSON.stringify({
-        image: 'url("http://cdn.example.com/bg.jpg")',
-        color: 'transparent',
-        blur: 0,
-        overlayOpacity: null,
-      });
-
-      service.initialize();
-      expect(cssVar('--app-bg-image')).not.toContain('cdn.example.com');
-      http.expectOne(CONFIG_URL).flush(makeConfig());
-    });
-
-    it('discards a tampered cache entry', () => {
-      store['appearance.background.login'] = JSON.stringify({
-        image: 'url("javascript:alert(1)")',
-        color: 'transparent',
-        blur: 0,
-        overlayOpacity: null,
-      });
-
-      service.initialize();
-      http.expectOne(CONFIG_URL).flush(makeConfig());
-
-      expect(cssVar('--app-bg-image')).not.toContain('javascript');
     });
 
     it('discards a cache entry with an unrecognised colour', () => {
