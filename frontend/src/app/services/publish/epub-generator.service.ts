@@ -491,30 +491,13 @@ export class EpubGeneratorService {
       });
 
       try {
-        if (item.type === PublishPlanItemType.Separator) {
-          this.applySeparator(item, slots, plan.options);
-        } else if (item.type === PublishPlanItemType.TableOfContents) {
-          if (plan.options.includeToc !== false) {
-            slots.push({ type: 'toc', item });
-          }
-        } else {
-          const itemSlots = await this.processItem(
-            item,
-            elements,
-            plan,
-            chapterNumber
-          );
-          for (const slot of itemSlots) {
-            if (
-              slot.type === 'chapter' &&
-              slot.chapter.part === 'bodymatter' &&
-              slot.chapter.level === 0
-            ) {
-              chapterNumber++;
-            }
-            slots.push(slot);
-          }
-        }
+        chapterNumber = await this.appendItemSlots(
+          item,
+          slots,
+          elements,
+          plan,
+          chapterNumber
+        );
       } catch (error) {
         const msg = error instanceof Error ? error.message : 'Unknown error';
         result.warnings.push(`Failed to process item: ${msg}`);
@@ -530,6 +513,46 @@ export class EpubGeneratorService {
     }
 
     return slots;
+  }
+
+  /**
+   * Add one plan item's slots to reading order. Separators modify the
+   * preceding chapter instead of adding a slot. Returns the chapter number
+   * after the item, for numbering the next chapter.
+   */
+  private async appendItemSlots(
+    item: PublishPlanItem,
+    slots: Slot[],
+    elements: Element[],
+    plan: PublishPlan,
+    chapterNumber: number
+  ): Promise<number> {
+    if (item.type === PublishPlanItemType.Separator) {
+      this.applySeparator(item, slots, plan.options);
+      return chapterNumber;
+    }
+    if (item.type === PublishPlanItemType.TableOfContents) {
+      if (plan.options.includeToc !== false) slots.push({ type: 'toc', item });
+      return chapterNumber;
+    }
+    const itemSlots = await this.processItem(
+      item,
+      elements,
+      plan,
+      chapterNumber
+    );
+    let next = chapterNumber;
+    for (const slot of itemSlots) {
+      if (
+        slot.type === 'chapter' &&
+        slot.chapter.part === 'bodymatter' &&
+        slot.chapter.level === 0
+      ) {
+        next++;
+      }
+    }
+    slots.push(...itemSlots);
+    return next;
   }
 
   /**
@@ -1720,12 +1743,10 @@ export class EpubGeneratorService {
       if (slot.type !== 'chapter') continue;
       const chapter = slot.chapter;
       if (!chapter.inToc || !chapter.title) continue;
-      flat.push({
-        title: chapter.title,
-        href: chapter.filename,
-        level: chapter.level,
-      });
-      flat.push(...this.headingEntries(chapter));
+      flat.push(
+        { title: chapter.title, href: chapter.filename, level: chapter.level },
+        ...this.headingEntries(chapter)
+      );
     }
     return buildNavTree(flat);
   }
@@ -1849,17 +1870,7 @@ ${this.opfGuide(slots, hasCover)}
         `<meta refines="#subtitle" property="title-type">subtitle</meta>`
       );
     }
-    if (metadata.author) {
-      lines.push(
-        `<dc:creator id="creator">${escapeXml(metadata.author)}</dc:creator>`,
-        `<meta refines="#creator" property="role" scheme="marc:relators">aut</meta>`
-      );
-      if (metadata.authorSort) {
-        lines.push(
-          `<meta refines="#creator" property="file-as">${escapeXml(metadata.authorSort)}</meta>`
-        );
-      }
-    }
+    lines.push(...this.creatorMetadata(metadata));
     lines.push(
       `<dc:language>${language}</dc:language>`,
       `<dc:date>${now.toISOString().slice(0, 10)}</dc:date>`
@@ -1882,35 +1893,56 @@ ${this.opfGuide(slots, hasCover)}
         lines.push(`<dc:subject>${escapeXml(keyword.trim())}</dc:subject>`);
       }
     }
-    if (metadata.series) {
-      lines.push(
-        `<meta property="belongs-to-collection" id="series">${escapeXml(metadata.series)}</meta>`,
-        `<meta refines="#series" property="collection-type">series</meta>`
-      );
-      if (metadata.seriesNumber !== undefined) {
-        lines.push(
-          `<meta refines="#series" property="group-position">${metadata.seriesNumber}</meta>`
-        );
-      }
-      // Calibre's EPUB 2 series metadata, read by Calibre and Kobo.
-      lines.push(
-        `<meta name="calibre:series" content="${escapeXml(metadata.series)}"/>`
-      );
-      if (metadata.seriesNumber !== undefined) {
-        lines.push(
-          `<meta name="calibre:series_index" content="${metadata.seriesNumber}"/>`
-        );
-      }
-    }
+    lines.push(...this.seriesMetadata(metadata));
     if (hasCover) {
       // EPUB 2 cover hint, still required by Kindle and older readers.
       lines.push(`<meta name="cover" content="cover-image"/>`);
     }
-    lines.push(...this.accessibilityMetadata());
     lines.push(
+      ...this.accessibilityMetadata(),
       `<meta property="dcterms:modified">${epubTimestamp(now)}</meta>`
     );
     return lines.map(l => `    ${l}`).join('\n');
+  }
+
+  /** The author, with its MARC role and optional sort form. */
+  private creatorMetadata(metadata: PublishMetadata): string[] {
+    if (!metadata.author) return [];
+    const lines = [
+      `<dc:creator id="creator">${escapeXml(metadata.author)}</dc:creator>`,
+      `<meta refines="#creator" property="role" scheme="marc:relators">aut</meta>`,
+    ];
+    if (metadata.authorSort) {
+      lines.push(
+        `<meta refines="#creator" property="file-as">${escapeXml(metadata.authorSort)}</meta>`
+      );
+    }
+    return lines;
+  }
+
+  /**
+   * Series membership as an EPUB 3 collection, plus Calibre's EPUB 2 series
+   * metadata, which Calibre and Kobo read.
+   */
+  private seriesMetadata(metadata: PublishMetadata): string[] {
+    if (!metadata.series) return [];
+    const series = escapeXml(metadata.series);
+    const hasNumber = metadata.seriesNumber !== undefined;
+    return [
+      `<meta property="belongs-to-collection" id="series">${series}</meta>`,
+      `<meta refines="#series" property="collection-type">series</meta>`,
+      ...(hasNumber
+        ? [
+            `<meta refines="#series" property="group-position">${metadata.seriesNumber}</meta>`,
+          ]
+        : []),
+      `<meta name="calibre:series" content="${series}"/>`,
+      ...(hasNumber
+        ? [
+            `<meta name="calibre:series_index" content="${metadata.seriesNumber}"/>`,
+          ]
+        : []),
+    ];
   }
 
   /**
@@ -2029,8 +2061,9 @@ ${indent}</navPoint>`;
             : `<span>${escapeXml(node.title)}</span>`;
           const hidden =
             node.depth + 1 >= visibleDepth && tocItem ? ' hidden=""' : '';
+          const childItems = render(node.children, indent + '    ');
           const children = node.children.length
-            ? `\n${indent}  <ol${hidden}>\n${render(node.children, `${indent}    `)}\n${indent}  </ol>\n${indent}`
+            ? `\n${indent}  <ol${hidden}>\n${childItems}\n${indent}  </ol>\n${indent}`
             : '';
           return `${indent}<li class="ink-toc-entry" data-level="${node.depth + 1}">${label}${children}</li>`;
         })
@@ -2182,12 +2215,12 @@ ${chapter.body}
    * Generate title page HTML
    */
   private generateTitlePage(metadata: PublishMetadata): string {
-    const series = metadata.series
-      ? `\n  <p class="ink-frontmatter-series">${escapeXml(
-          metadata.seriesNumber === undefined
-            ? metadata.series
-            : `${metadata.series}, Book ${metadata.seriesNumber}`
-        )}</p>`
+    let seriesText = metadata.series ?? '';
+    if (seriesText && metadata.seriesNumber !== undefined) {
+      seriesText += `, Book ${metadata.seriesNumber}`;
+    }
+    const series = seriesText
+      ? `\n  <p class="ink-frontmatter-series">${escapeXml(seriesText)}</p>`
       : '';
     return `<div class="ink-frontmatter ink-frontmatter-title">
   <h1 class="ink-frontmatter-title-text">${escapeXml(metadata.title)}</h1>

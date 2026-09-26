@@ -225,10 +225,10 @@ export function buildNavTree(entries: FlatNavEntry[]): NavNode[] {
   const roots: NavNode[] = [];
   const stack: { level: number; node: NavNode }[] = [];
   for (const entry of entries) {
-    while (stack.length && stack[stack.length - 1].level >= entry.level) {
+    while ((stack.at(-1)?.level ?? -Infinity) >= entry.level) {
       stack.pop();
     }
-    const parent = stack[stack.length - 1]?.node;
+    const parent = stack.at(-1)?.node;
     const node: NavNode = {
       title: entry.title,
       href: entry.href,
