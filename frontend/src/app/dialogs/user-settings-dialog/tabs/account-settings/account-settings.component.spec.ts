@@ -22,6 +22,7 @@ describe('AccountSettingsComponent (dialog tab)', () => {
     isPasskeysEnabled: ReturnType<typeof vi.fn>;
     isPasskeyManagementAvailable: ReturnType<typeof vi.fn>;
     isPasswordLoginEnabled: ReturnType<typeof vi.fn>;
+    systemFeatures: ReturnType<typeof vi.fn>;
   };
   let mockSnackBar: {
     open: ReturnType<typeof vi.fn>;
@@ -50,6 +51,7 @@ describe('AccountSettingsComponent (dialog tab)', () => {
       isPasskeysEnabled: vi.fn().mockReturnValue(true),
       isPasskeyManagementAvailable: vi.fn().mockReturnValue(true),
       isPasswordLoginEnabled: vi.fn().mockReturnValue(true),
+      systemFeatures: vi.fn().mockReturnValue({}),
     };
 
     mockSnackBar = {
@@ -109,6 +111,24 @@ describe('AccountSettingsComponent (dialog tab)', () => {
 
       const el: HTMLElement = fixture.nativeElement;
       expect(el.querySelector('app-passkeys-settings')).toBeFalsy();
+    });
+  });
+
+  describe('delete account section', () => {
+    it('is shown when connected to a server', () => {
+      const el: HTMLElement = fixture.nativeElement;
+      expect(el.querySelector('app-delete-account')).toBeTruthy();
+    });
+
+    it('is hidden in local mode, where there is no server account', () => {
+      mockSystemConfig.isLocalMode.mockReturnValue(true);
+      mockSystemConfig.isPasskeyManagementAvailable.mockReturnValue(false);
+
+      fixture = TestBed.createComponent(AccountSettingsComponent);
+      fixture.detectChanges();
+
+      const el: HTMLElement = fixture.nativeElement;
+      expect(el.querySelector('app-delete-account')).toBeFalsy();
     });
   });
 

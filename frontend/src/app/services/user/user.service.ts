@@ -4,6 +4,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { Router } from '@angular/router';
 import {
   AuthenticationService,
+  ProjectsService,
   type UpdateProfileRequest,
   type User,
   UsersService,
@@ -48,6 +49,7 @@ export class UserService {
   private readonly dialog = inject(MatDialog);
   private readonly http = inject(HttpClient);
   private readonly userAPI = inject(UsersService);
+  private readonly projectAPI = inject(ProjectsService);
   private readonly authenticationService = inject(AuthenticationService);
   private readonly router = inject(Router);
   private readonly storage = inject(StorageService);
@@ -365,6 +367,46 @@ export class UserService {
       throw error;
     } finally {
       this.isLoading.set(false);
+    }
+  }
+
+  /**
+   * Permanently delete the signed-in account on the server, then sign out and
+   * wipe what this server profile stored on the device (cached projects,
+   * documents, media). The profile entry itself is kept so the person can
+   * register again on the same server. Callers should reload the app
+   * afterwards: open IndexedDB handles only release on a full page load,
+   * which is when the queued database deletes complete.
+   */
+  async deleteAccount(confirmUsername: string): Promise<void> {
+    const username = this.currentUser().username;
+    // Listed first: the owned projects cannot be looked up once they are gone.
+    const ownedSlugs = await this.listOwnedProjectSlugs(username);
+
+    await firstValueFrom(this.userAPI.deleteAccount({ confirmUsername }));
+
+    const activeConfig = this.storageContext.getActiveConfig();
+    await this.clearCurrentUser();
+    if (activeConfig?.type === 'server') {
+      await this.storageContext.clearContextData(activeConfig.id);
+      // Prose documents are cached under their unprefixed `user:slug:doc`
+      // ids, so the profile wipe above does not reach them.
+      for (const slug of ownedSlugs) {
+        await this.storageContext.clearDatabasesWithPrefix(
+          `${username}:${slug}:`
+        );
+      }
+    }
+  }
+
+  /** Best effort: a failed lookup only leaves some cached documents behind. */
+  private async listOwnedProjectSlugs(username: string): Promise<string[]> {
+    try {
+      const projects = await firstValueFrom(this.projectAPI.listUserProjects());
+      return projects.filter(p => p.username === username).map(p => p.slug);
+    } catch (error) {
+      this.logger.warn('UserService', 'Could not list owned projects', error);
+      return [];
     }
   }
 

@@ -46,6 +46,16 @@ export const routes: Routes = [
     title: 'Terms of Service',
   },
   {
+    // Public account-deletion page, linked from the Google Play listing.
+    // Must stay above ':username' — 'delete-account' is a reserved username.
+    path: 'delete-account',
+    loadComponent: () =>
+      import('./pages/delete-account/delete-account-page.component').then(
+        m => m.DeleteAccountPageComponent
+      ),
+    title: 'Delete Account',
+  },
+  {
     path: 'about/changelog',
     loadComponent: () =>
       import('./pages/about/changelog/changelog.component').then(

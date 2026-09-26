@@ -369,7 +369,8 @@ class UserService {
   }
 
   /**
-   * Delete user (admin only)
+   * Delete the user row. Callers should go through accountDeletionService,
+   * which removes project content stored outside the database first.
    */
   async deleteUser(db: DatabaseInstance, userId: string): Promise<void> {
     await db.delete(users).where(eq(users.id, userId));
@@ -447,6 +448,17 @@ class UserService {
    */
   async countUsers(db: DatabaseInstance): Promise<number> {
     return db.$count(users);
+  }
+
+  /**
+   * Count admins who can still sign in. Used to stop the last one deleting
+   * their own account and leaving the instance without an administrator.
+   */
+  async countActiveAdmins(db: DatabaseInstance): Promise<number> {
+    return db.$count(
+      users,
+      and(eq(users.isAdmin, true), eq(users.enabled, true), eq(users.approved, true))
+    );
   }
 
   /**

@@ -3,6 +3,8 @@ import { vi } from 'vitest';
 import { HttpHeaders, HttpParameterCodec } from '@angular/common/http';
 import { Configuration } from '@inkweld/configuration';
 import {
+  DeleteAccountRequest,
+  MessageResponse,
   UpdateProfileRequest,
   User,
   UsernameAvailability,
@@ -20,4 +22,6 @@ export const userServiceMock = {
   listOAuthProviders: vi.fn<() => Observable<string[]>>(),
   registerUser: vi.fn<(dto: RegisterRequest) => Observable<User>>(),
   updateProfile: vi.fn<(dto: UpdateProfileRequest) => Observable<User>>(),
+  deleteAccount:
+    vi.fn<(dto: DeleteAccountRequest) => Observable<MessageResponse>>(),
 };

@@ -1034,6 +1034,28 @@ describe('StorageContextService', () => {
       expect(mockStorage['srv:abc12345:auth_token']).toBe('t');
       expect(mockStorage[APP_CONFIG_STORAGE_KEY]).toBeDefined();
     });
+
+    it('clearDatabasesWithPrefix removes only matching databases', async () => {
+      const open = (name: string) =>
+        new Promise<void>((resolve, reject) => {
+          const req = indexedDB.open(name, 1);
+          req.onsuccess = () => {
+            req.result.close();
+            resolve();
+          };
+          req.onerror = () => reject(req.error ?? new Error('open failed'));
+        });
+      await open('gone-spec:novel:chapter-1');
+      await open('gone-spec:novel-two:chapter-1');
+      mockStorage['gone-spec:novel:note'] = 'kept';
+
+      await service.clearDatabasesWithPrefix('gone-spec:novel:');
+
+      const names = (await indexedDB.databases()).map(db => db.name);
+      expect(names).not.toContain('gone-spec:novel:chapter-1');
+      expect(names).toContain('gone-spec:novel-two:chapter-1');
+      expect(mockStorage['gone-spec:novel:note']).toBe('kept');
+    });
   });
 
   describe('edge cases', () => {

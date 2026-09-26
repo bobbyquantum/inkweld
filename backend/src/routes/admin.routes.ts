@@ -3,8 +3,7 @@ import { requireAdmin } from '../middleware/auth';
 import { userService } from '../services/user.service';
 import { projectService } from '../services/project.service';
 import { getProjectStorageSize } from '../services/storage-size.service';
-import { getStorageService } from '../services/storage.service';
-import { logger } from '../services/logger.service';
+import { accountDeletionService } from '../services/account-deletion.service';
 import { emailService } from '../services/email.service';
 import { accountApprovedEmail, accountRejectedEmail } from '../services/email-templates';
 import { getBaseUrl } from '../services/url.service';
@@ -364,20 +363,10 @@ adminRoutes.openapi(deleteUserRoute, async (c) => {
     return c.json({ error: 'User not found' }, 404);
   }
 
-  // Drop the user's background image before the row goes, while we still know
-  // the username the storage slot is keyed by.
-  if (user.username) {
-    try {
-      await getStorageService(c.get('storage')).deleteSlotImage('backgrounds', user.username);
-    } catch (error) {
-      // An orphaned image is not a reason to block the deletion.
-      logger.warn('Admin', 'Failed to delete user background during account deletion', {
-        reason: error instanceof Error ? error.message : String(error),
-      });
-    }
-  }
-
-  await userService.deleteUser(db, userId);
+  // Removes the user's projects (documents, media, published files) and
+  // profile images too — the row cascade alone used to leave them on disk.
+  // Durable Objects are skipped: they only accept the owner's own token.
+  await accountDeletionService.deleteAccount(c, user, { destroyDurableObjects: false });
   return c.json({ message: 'User deleted' }, 200);
 });
 

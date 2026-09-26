@@ -8,9 +8,15 @@ import { isSessionRevoked } from '../utils/session-validity';
 import { fileStorageService } from '../services/file-storage.service';
 import { imageService } from '../services/image.service';
 import { UserSchema, PaginatedUsersResponseSchema } from '../schemas/user.schemas';
-import { errorResponse, errorResponses, ProfileVisibilitySchema } from '../schemas/common.schemas';
+import {
+  errorResponse,
+  errorResponses,
+  MessageResponseSchema,
+  ProfileVisibilitySchema,
+} from '../schemas/common.schemas';
 import { authService } from '../services/auth.service';
 import { legalService } from '../services/legal.service';
+import { accountDeletionService } from '../services/account-deletion.service';
 
 const userRoutes = new OpenAPIHono<AppContext>();
 
@@ -197,10 +203,10 @@ const updateProfileRoute = createRoute({
   },
 });
 
-// PATCH /me requires auth — add middleware
+// PATCH and DELETE /me require auth — add middleware
 userRoutes.use('/me', async (c, next) => {
-  // Only intercept PATCH requests for update profile
-  if (c.req.method === 'PATCH') {
+  // GET /me stays optionalAuth so anonymous visitors get the anonymous user
+  if (c.req.method === 'PATCH' || c.req.method === 'DELETE') {
     return requireAuth(c, next);
   }
   await next();
@@ -243,6 +249,77 @@ userRoutes.openapi(updateProfileRoute, async (c) => {
     },
     200
   );
+});
+
+// ---------------------------------------------------------------------------
+// DELETE /me — self-service account deletion
+// ---------------------------------------------------------------------------
+const DeleteAccountRequestSchema = z
+  .object({
+    confirmUsername: z
+      .string()
+      .min(1)
+      .max(64)
+      .openapi({
+        description:
+          'The account username, typed by the user to confirm. Guards against a ' +
+          'stray or scripted request deleting the wrong account.',
+        example: 'johndoe',
+      }),
+  })
+  .openapi('DeleteAccountRequest');
+
+const deleteAccountRoute = createRoute({
+  method: 'delete',
+  path: '/me',
+  tags: ['Users'],
+  summary: 'Delete my account',
+  description:
+    'Permanently delete the signed-in account, every project it owns (documents, ' +
+    'media and published files) and its profile images, passkeys, grants and ' +
+    'comments. Cannot be undone.',
+  operationId: 'deleteAccount',
+  request: {
+    body: { content: { 'application/json': { schema: DeleteAccountRequestSchema } } },
+  },
+  responses: {
+    200: {
+      content: { 'application/json': { schema: MessageResponseSchema } },
+      description: 'Account deleted',
+    },
+    400: errorResponse('confirmUsername does not match the account'),
+    ...errorResponses.notAuthenticated,
+    409: errorResponse('The last administrator cannot delete their account'),
+  },
+});
+
+userRoutes.openapi(deleteAccountRoute, async (c) => {
+  const db = c.get('db');
+  const sessionUser = c.get('user');
+  const user = sessionUser?.id ? await userService.findById(db, sessionUser.id) : undefined;
+  if (!user) {
+    return c.json({ error: 'Not authenticated' }, 401);
+  }
+
+  const { confirmUsername } = c.req.valid('json');
+  if (confirmUsername.trim().toLowerCase() !== (user.username ?? '').toLowerCase()) {
+    return c.json({ error: 'The username you typed does not match your account' }, 400);
+  }
+
+  if (user.isAdmin && (await userService.countActiveAdmins(db)) <= 1) {
+    return c.json(
+      {
+        error:
+          'You are the only administrator. Make another user an administrator ' +
+          'before deleting your account.',
+      },
+      409
+    );
+  }
+
+  await accountDeletionService.deleteAccount(c, user, { destroyDurableObjects: true });
+  authService.destroySession(c);
+  return c.json({ message: 'Account deleted' }, 200);
 });
 
 // ---------------------------------------------------------------------------

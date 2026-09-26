@@ -31,7 +31,8 @@ Manage user accounts:
 - Approve or reject pending registrations (when user approval is required)
 - Search all users by username or email
 - Enable or disable accounts, and grant or remove admin status
-- Delete accounts
+- Delete accounts, including every project the user owns (users can also
+  delete their own account from Settings → Account or `/delete-account`)
 - Open **Projects & storage** to see each of a user's projects and how much
   document and media storage it uses
 
