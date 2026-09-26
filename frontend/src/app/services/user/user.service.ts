@@ -390,7 +390,23 @@ export class UserService {
     if (activeConfig?.type === 'server') {
       await this.storageContext.clearContextData(activeConfig.id);
       // Prose documents are cached under their unprefixed `user:slug:doc`
-      // ids, so the profile wipe above does not reach them.
+      // ids, so the profile wipe above does not reach them. Another profile
+      // on this device (same username on a different server, or local mode)
+      // could be using the very same databases, possibly holding edits not
+      // yet synced — so they are only removed when no other profile exists.
+      const sharedWithOtherProfiles =
+        this.storageContext
+          .getConfigurations()
+          .filter(config => config.id !== activeConfig.id).length > 0;
+      if (sharedWithOtherProfiles) {
+        if (ownedSlugs.length > 0) {
+          this.logger.info(
+            'UserService',
+            'Kept cached documents that another profile may share'
+          );
+        }
+        return;
+      }
       for (const slug of ownedSlugs) {
         await this.storageContext.clearDatabasesWithPrefix(
           `${username}:${slug}:`

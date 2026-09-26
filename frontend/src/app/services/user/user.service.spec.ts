@@ -63,6 +63,7 @@ describe('UserService', () => {
     clearConfigUserProfile: Mock;
     clearContextData: Mock;
     clearDatabasesWithPrefix: Mock;
+    getConfigurations: Mock;
     prefixKey: Mock;
     prefixDbName: Mock;
     prefixDocumentId: Mock;
@@ -94,6 +95,9 @@ describe('UserService', () => {
       clearConfigUserProfile: vi.fn(),
       clearContextData: vi.fn().mockResolvedValue(undefined),
       clearDatabasesWithPrefix: vi.fn().mockResolvedValue(undefined),
+      getConfigurations: vi
+        .fn()
+        .mockReturnValue([{ id: 'test-config-id', type: 'server' }]),
       prefixKey: vi.fn((key: string) => `local:${key}`),
       prefixDbName: vi.fn((name: string) => `local:${name}`),
       prefixDocumentId: vi.fn((id: string) => `local:${id}`),
@@ -719,6 +723,30 @@ describe('UserService', () => {
       expect(storageContextMock.clearDatabasesWithPrefix.mock.calls).toEqual([
         ['testuser:mine:'],
       ]);
+    });
+
+    it('keeps unprefixed document databases another profile may share', async () => {
+      await service.setCurrentUser(TEST_USER);
+      projectsApiMock.listUserProjects.mockReturnValue(
+        of([{ username: 'testuser', slug: 'mine' }])
+      );
+      storageContextMock.getConfigurations.mockReturnValue([
+        { id: 'test-config-id', type: 'server' },
+        { id: 'other-server', type: 'server' },
+      ]);
+      userServiceMock.deleteAccount.mockReturnValue(
+        of({ message: 'Account deleted' })
+      );
+
+      await service.deleteAccount('testuser');
+
+      // The profile's own prefixed data still goes.
+      expect(storageContextMock.clearContextData).toHaveBeenCalledWith(
+        'test-config-id'
+      );
+      expect(
+        storageContextMock.clearDatabasesWithPrefix
+      ).not.toHaveBeenCalled();
     });
 
     it('still deletes when the project list cannot be fetched', async () => {

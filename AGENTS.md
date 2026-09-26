@@ -514,12 +514,15 @@ sign-up, so users can delete their own server account:
   reserved username). After success `UserService.deleteAccount()` signs out and
   wipes the server profile's local data — plus the `user:slug:*` databases of
   each owned project, because prose documents are cached under unprefixed ids
-  that the profile wipe cannot see — then the app does a full load of
+  that the profile wipe cannot see. Those are skipped when any other profile
+  exists on the device: it may share the same unprefixed databases and hold
+  unsynced edits in them. Then the app does a full load of
   `/delete-account?deleted=1` so queued IndexedDB deletes can complete.
 - E2E: `e2e/online/account-deletion.spec.ts` also runs under the wrangler
-  config; its self-service and admin deletion tests re-register the same
-  username and re-create the slug to prove nothing (media, LevelDB, Durable
-  Object, local IndexedDB) survives.
+  config. The self-service test re-registers the same username and re-creates
+  the slug to prove that media, LevelDB, Durable Object and local IndexedDB
+  data do not survive; the admin-deletion test does the same for server
+  documents only.
 - `/delete-account` is exempt from the policy-acceptance gate, so someone who
   won't accept new terms can still delete their account.
 
