@@ -172,9 +172,10 @@ export class DocumentStorageMigrationService {
       }
     }
     await deleteDatabase(name);
+    const targets = prefixes.map(prefix => prefix + name).join(', ');
     this.logger.debug(
       'DocumentStorageMigration',
-      `Moved ${name} into ${prefixes.map(p => `${p}${name}`).join(', ')}`
+      `Moved ${name} into ${targets}`
     );
   }
 
