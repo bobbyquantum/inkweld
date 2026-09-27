@@ -86,7 +86,7 @@ describe('SettingsTabComponent', () => {
   let dialog: Partial<MatDialog>;
   let projectsService: Partial<ProjectsService>;
   let router: Partial<Router>;
-  let storageContext: Partial<StorageContextService>;
+  let storageContext: StorageContextService;
   let projectActivation: Partial<ProjectActivationService>;
   let renameMigration: Partial<ProjectRenameMigrationService>;
   const originalClipboardDescriptor = Object.getOwnPropertyDescriptor(
@@ -175,10 +175,6 @@ describe('SettingsTabComponent', () => {
       disconnectSync: vi.fn(),
     };
 
-    storageContext = {
-      getActiveConfig: vi.fn().mockReturnValue({ id: 'server-1' }),
-      renameProjectInContext: vi.fn().mockResolvedValue(undefined),
-    };
     projectActivation = {
       activate: vi.fn().mockResolvedValue(undefined),
     };
@@ -344,7 +340,6 @@ describe('SettingsTabComponent', () => {
         { provide: MatDialog, useValue: dialog },
         { provide: ProjectsService, useValue: projectsService },
         { provide: Router, useValue: router },
-        { provide: StorageContextService, useValue: storageContext },
         { provide: ProjectActivationService, useValue: projectActivation },
         {
           provide: ProjectRenameMigrationService,
@@ -381,6 +376,10 @@ describe('SettingsTabComponent', () => {
 
     fixture = TestBed.createComponent(SettingsTabComponent);
     component = fixture.componentInstance;
+    storageContext = TestBed.inject(StorageContextService);
+    vi.spyOn(storageContext, 'renameProjectInContext').mockResolvedValue(
+      undefined
+    );
     fixture.detectChanges();
   });
 
@@ -1348,6 +1347,9 @@ describe('SettingsTabComponent', () => {
       beforeEach(() => {
         location = { href: '' };
         vi.stubGlobal('location', location);
+        vi.spyOn(storageContext, 'getActiveConfig').mockReturnValue({
+          id: 'server-1',
+        } as ReturnType<StorageContextService['getActiveConfig']>);
       });
 
       afterEach(() => {
@@ -1363,6 +1365,12 @@ describe('SettingsTabComponent', () => {
         const activateOrder = vi.mocked(projectActivation.activate!).mock
           .invocationCallOrder[0];
         expect(disconnectOrder).toBeLessThan(activateOrder);
+        // Docs are copied before renameProjectInContext deletes the old ones
+        const migrateOrder = vi.mocked(renameMigration.migrateProject!).mock
+          .invocationCallOrder[0];
+        const renameOrder = vi.mocked(storageContext.renameProjectInContext)
+          .mock.invocationCallOrder[0];
+        expect(migrateOrder).toBeLessThan(renameOrder);
         expect(projectActivation.activate).toHaveBeenCalledWith(
           'testuser/new-slug'
         );

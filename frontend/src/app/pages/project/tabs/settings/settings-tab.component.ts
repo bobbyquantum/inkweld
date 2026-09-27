@@ -158,7 +158,6 @@ export class SettingsTabComponent implements OnDestroy {
   private readonly systemConfigService = inject(SystemConfigService);
   private readonly exportService = inject(ProjectExportService);
   private readonly transloco = inject(TranslocoService);
-  private readonly storageContext = inject(StorageContextService);
   private readonly projectActivation = inject(ProjectActivationService);
   private readonly renameMigration = inject(ProjectRenameMigrationService);
 
@@ -1042,6 +1041,16 @@ export class SettingsTabComponent implements OnDestroy {
       console.error('Failed to activate renamed project:', error);
     }
 
+    // Copy the Yjs docs first, while the old databases still exist: this
+    // also covers worldbuilding docs, which carry no profile prefix
+    try {
+      await this.renameMigration.migrateProject(username, oldSlug, newSlug);
+    } catch (error) {
+      console.error('Failed to migrate local documents:', error);
+    }
+
+    // Then move the profile's media, snapshots, activations and project list
+    // entry, and drop the old-slug databases
     const configId = this.storageContext.getActiveConfig()?.id;
     if (configId) {
       try {
@@ -1054,13 +1063,6 @@ export class SettingsTabComponent implements OnDestroy {
       } catch (error) {
         console.error('Failed to move local project data:', error);
       }
-    }
-
-    // Prose documents are cached under unprefixed ids
-    try {
-      await this.renameMigration.migrateProject(username, oldSlug, newSlug);
-    } catch (error) {
-      console.error('Failed to migrate local documents:', error);
     }
   }
 
