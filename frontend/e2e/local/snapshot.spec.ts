@@ -61,7 +61,7 @@ async function closeSnapshotsDialog(page: Page): Promise<void> {
 
 /**
  * Wait until the worldbuilding editor's debounced save has flushed by
- * polling every `worldbuilding:*` y-indexeddb database for the given
+ * polling every `local:worldbuilding:*` y-indexeddb database for the given
  * value (Yjs persists updates verbatim, so the value appears as a UTF-8
  * substring once written).
  */
@@ -74,7 +74,9 @@ async function waitForWorldbuildingPersisted(
       page.evaluate(async needle => {
         const names = (await indexedDB.databases())
           .map(db => db.name)
-          .filter((n): n is string => !!n && n.startsWith('worldbuilding:'));
+          .filter(
+            (n): n is string => !!n && n.startsWith('local:worldbuilding:')
+          );
         const decoder = new TextDecoder('utf-8');
         for (const name of names) {
           const open = indexedDB.open(name);

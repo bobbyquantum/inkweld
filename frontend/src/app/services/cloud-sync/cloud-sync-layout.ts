@@ -73,7 +73,10 @@ export function mediaPath(
   return `${projectFolder(username, slug)}/media/${mediaId}`;
 }
 
-/** Local IndexedDB doc id for a prose document (unprefixed, see DocumentService) */
+/**
+ * Bare doc id of a prose document. Its local IndexedDB database is this id
+ * under the profile prefix (see DocumentService).
+ */
 export function documentDocId(
   username: string,
   slug: string,
@@ -82,7 +85,10 @@ export function documentDocId(
   return `${username}:${slug}:${elementId}`;
 }
 
-/** Local IndexedDB doc id for a worldbuilding element (unprefixed) */
+/**
+ * Bare doc id of a worldbuilding element. Its local IndexedDB database is
+ * this id under the profile prefix (see WorldbuildingService).
+ */
 export function worldbuildingDocId(
   username: string,
   slug: string,

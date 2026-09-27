@@ -842,16 +842,16 @@ export class HomeComponent implements OnInit, OnDestroy {
       .catch(() => {});
 
     // Delete every IndexedDB database that belongs to this project:
-    //  - prefixed elements/metadata:       {prefix}username:slug:elements
-    //  - prefixed prose documents:         {prefix}username:slug:{elementId}
-    //  - unprefixed worldbuilding:         worldbuilding:username:slug:{id}
-    //  - prefixed worldbuilding (legacy):  {prefix}worldbuilding:username:slug:{id}
+    //  - elements/metadata:  {prefix}username:slug:elements
+    //  - prose documents:    {prefix}username:slug:{elementId}
+    //  - worldbuilding:      {prefix}worldbuilding:username:slug:{id}
+    // Bare (unprefixed) legacy databases are left to
+    // DocumentStorageMigrationService: they may belong to another profile.
     if ('databases' in indexedDB) {
       try {
         const allDbs = await indexedDB.databases();
         const matches = (name: string): boolean =>
           name.startsWith(`${prefix}${username}:${slug}:`) ||
-          name.startsWith(`worldbuilding:${username}:${slug}:`) ||
           name.startsWith(`${prefix}worldbuilding:${username}:${slug}:`);
 
         for (const db of allDbs) {

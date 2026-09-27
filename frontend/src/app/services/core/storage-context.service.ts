@@ -1384,16 +1384,17 @@ export class StorageContextService {
     const newKey = `${username}/${newSlug}`;
 
     // 1. Yjs document databases: <prefix><user>:<slug>:... and the
-    //    worldbuilding variant
-    const docMarkers = [
-      `${prefix}${username}:${oldSlug}:`,
-      `${prefix}worldbuilding:${username}:${oldSlug}:`,
+    //    worldbuilding variant <prefix>worldbuilding:<user>:<slug>:...
+    const docMarkers = (slug: string): string[] => [
+      `${prefix}${username}:${slug}:`,
+      `${prefix}worldbuilding:${username}:${slug}:`,
     ];
+    const oldMarkers = docMarkers(oldSlug);
+    const newMarkers = docMarkers(newSlug);
     for (const name of await this.listAllDatabaseNames()) {
-      const marker = docMarkers.find(m => name.startsWith(m));
-      if (!marker) continue;
-      const renamedMarker = marker.replace(`:${oldSlug}:`, `:${newSlug}:`);
-      const target = renamedMarker + name.slice(marker.length);
+      const index = oldMarkers.findIndex(m => name.startsWith(m));
+      if (index < 0) continue;
+      const target = newMarkers[index] + name.slice(oldMarkers[index].length);
       await cloneDatabase(name, target);
       await deleteDatabase(name);
     }

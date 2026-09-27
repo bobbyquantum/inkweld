@@ -354,7 +354,8 @@ export class UnifiedProjectService {
     // Import worldbuilding data
     for (const wb of archive.worldbuilding) {
       await this.documentImport.writeWorldbuildingData(wb, username, slug);
-      // Track the worldbuilding ID for syncing (format: worldbuilding:username:slug:elementId)
+      // Track the bare worldbuilding ID for syncing (worldbuilding:username:slug:elementId);
+      // the sync resolves the profile-scoped database name from it
       const worldbuildingId = `worldbuilding:${username}:${slug}:${wb.elementId}`;
       worldbuildingIds.push(worldbuildingId);
     }

@@ -69,7 +69,7 @@ export async function documentDbName(
  * on real persistence (instead of a fixed debounce wait) before reloading.
  *
  * @param page - Playwright page
- * @param dbName - IndexedDB database name (e.g. `worldbuilding:user:slug:id`)
+ * @param dbName - IndexedDB database name (e.g. `local:worldbuilding:user:slug:id`)
  * @param expected - Substrings that must all be present in the persisted bytes
  */
 export async function waitForIndexedDBPersisted(

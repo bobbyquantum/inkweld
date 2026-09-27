@@ -775,7 +775,7 @@ describe('MigrationService', () => {
         )
         .mockResolvedValue(undefined);
 
-    it('copies prose documents between profile prefixes even when the name is unchanged', async () => {
+    it('copies prose and worldbuilding documents between profile prefixes even when the name is unchanged', async () => {
       const copySingle = spyOnCopySingleDocument();
       const copyDocumentFiles = getCopyDocumentFiles();
 
@@ -791,13 +791,16 @@ describe('MigrationService', () => {
         ]
       );
 
-      // Worldbuilding keys are unprefixed, so an unchanged name needs no copy
       expect(copySingle.mock.calls).toEqual([
         ['local:testuser:my-slug:doc1', 'srv:cfg1:testuser:my-slug:doc1'],
+        [
+          'local:worldbuilding:testuser:my-slug:wb1',
+          'srv:cfg1:worldbuilding:testuser:my-slug:wb1',
+        ],
       ]);
       expect(loggerMock.info).toHaveBeenCalledWith(
         'MigrationService',
-        'Copying 1 document files'
+        'Copying 1 document files and 1 worldbuilding elements'
       );
     });
 
@@ -820,8 +823,8 @@ describe('MigrationService', () => {
       expect(copySingle.mock.calls).toEqual([
         ['local:olduser:old-slug:doc1', 'srv:cfg1:newuser:new-slug:doc1'],
         [
-          'worldbuilding:olduser:old-slug:wb1',
-          'worldbuilding:newuser:new-slug:wb1',
+          'local:worldbuilding:olduser:old-slug:wb1',
+          'srv:cfg1:worldbuilding:newuser:new-slug:wb1',
         ],
       ]);
     });

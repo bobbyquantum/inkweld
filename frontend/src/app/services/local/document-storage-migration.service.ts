@@ -8,14 +8,18 @@ import {
   StorageContextService,
 } from '../core/storage-context.service';
 
-/** localStorage flag recording that the one-time migration has completed */
+/** localStorage flag recording that the prose document pass has completed */
 export const DOCUMENT_STORAGE_MIGRATION_KEY =
   'inkweld-document-storage-migrated';
+
+/** localStorage flag recording that the worldbuilding pass has completed */
+export const WORLDBUILDING_STORAGE_MIGRATION_KEY =
+  'inkweld-worldbuilding-storage-migrated';
 
 /** Web Lock that keeps two tabs from migrating the same databases at once */
 const MIGRATION_LOCK = 'inkweld-document-storage-migration';
 
-/** A prose document database written before names were profile-scoped */
+/** A Yjs database written before names were profile-scoped */
 export interface LegacyDocumentDb {
   name: string;
   username: string;
@@ -31,6 +35,14 @@ export interface DocumentStorageMigrationResult {
   /** Legacy databases whose copy failed or did not verify; left in place */
   failed: number;
 }
+
+/** The kinds of database the migration moves, each with its own flag */
+export type LegacyStorageKind = 'documents' | 'worldbuilding';
+
+/** Per-kind results; a kind is absent when its pass had already completed */
+export type StorageMigrationResults = Partial<
+  Record<LegacyStorageKind, DocumentStorageMigrationResult>
+>;
 
 /**
  * Parse a bare `username:slug:elementId` database name, the layout prose
@@ -52,9 +64,49 @@ export function parseLegacyDocumentDbName(
 }
 
 /**
- * One-time move of prose document databases from their bare
- * `username:slug:elementId` name to the profile-scoped
- * `<prefix>username:slug:elementId` name.
+ * Parse a bare `worldbuilding:username:slug:elementId` database name, the
+ * layout worldbuilding docs used before they were stored under a profile
+ * prefix. Prefixed names (`local:worldbuilding:u:s:e`,
+ * `srv:<hash>:worldbuilding:u:s:e`) have more parts, so they never match.
+ */
+export function parseLegacyWorldbuildingDbName(
+  name: string
+): LegacyDocumentDb | null {
+  const parts = name.split(':');
+  if (
+    parts.length !== 4 ||
+    parts[0] !== 'worldbuilding' ||
+    parts.some(part => part.trim() === '')
+  ) {
+    return null;
+  }
+  const [, username, slug, elementId] = parts;
+  return { name, username, slug, elementId };
+}
+
+interface MigrationPass {
+  /** localStorage flag set once the pass has completed */
+  flag: string;
+  /** Recognises a legacy database of this kind */
+  parse: (name: string) => LegacyDocumentDb | null;
+}
+
+const PASSES: Record<LegacyStorageKind, MigrationPass> = {
+  documents: {
+    flag: DOCUMENT_STORAGE_MIGRATION_KEY,
+    parse: parseLegacyDocumentDbName,
+  },
+  worldbuilding: {
+    flag: WORLDBUILDING_STORAGE_MIGRATION_KEY,
+    parse: parseLegacyWorldbuildingDbName,
+  },
+};
+
+/**
+ * One-time move of Yjs databases from their bare name to the profile-scoped
+ * `<prefix><name>` name, in two passes with their own completion flags:
+ * prose documents (`username:slug:elementId`) and worldbuilding docs
+ * (`worldbuilding:username:slug:elementId`).
  *
  * Older builds stored every profile's copy of a document in one database, so
  * two profiles with the same username and project slug (the same username on
@@ -74,13 +126,14 @@ export class DocumentStorageMigrationService {
   private readonly logger = inject(LoggerService);
 
   /**
-   * Run the migration unless it has already completed on this device. Never
-   * rejects: a failure leaves the legacy database in place and the migration
-   * runs again on the next start.
+   * Run every pass that has not yet completed on this device. Returns null
+   * when nothing ran. Never rejects: a failure leaves the legacy database in
+   * place and its pass runs again on the next start.
    */
-  async migrateIfNeeded(): Promise<DocumentStorageMigrationResult | null> {
+  async migrateIfNeeded(): Promise<StorageMigrationResults | null> {
     try {
-      if (localStorage.getItem(DOCUMENT_STORAGE_MIGRATION_KEY)) return null;
+      const pending = this.pendingKinds();
+      if (pending.length === 0) return null;
       // Nothing to migrate into yet; wait until a profile exists
       if (this.storageContext.getConfigurations().length === 0) return null;
       if (!('databases' in indexedDB)) {
@@ -90,7 +143,11 @@ export class DocumentStorageMigrationService {
         );
         return null;
       }
-      return await this.withLock(() => this.migrate());
+      return await this.withLock(async () => {
+        const results: StorageMigrationResults = {};
+        for (const kind of pending) results[kind] = await this.migrate(kind);
+        return results;
+      });
     } catch (error) {
       this.logger.error(
         'DocumentStorageMigration',
@@ -101,15 +158,18 @@ export class DocumentStorageMigrationService {
     }
   }
 
-  /** Migrate every legacy prose document database on this device. */
-  async migrate(): Promise<DocumentStorageMigrationResult> {
+  /** Migrate every legacy database of one kind on this device. */
+  async migrate(
+    kind: LegacyStorageKind = 'documents'
+  ): Promise<DocumentStorageMigrationResult> {
+    const pass = PASSES[kind];
     const result: DocumentStorageMigrationResult = {
       migrated: 0,
       unclaimed: 0,
       failed: 0,
     };
     // Re-check under the lock: another tab may have finished meanwhile
-    if (localStorage.getItem(DOCUMENT_STORAGE_MIGRATION_KEY)) return result;
+    if (localStorage.getItem(pass.flag)) return result;
 
     const names = (await indexedDB.databases())
       .map(db => db.name)
@@ -118,7 +178,7 @@ export class DocumentStorageMigrationService {
     const configs = this.storageContext.getConfigurations();
 
     for (const name of names) {
-      const legacy = parseLegacyDocumentDbName(name);
+      const legacy = pass.parse(name);
       if (!legacy) continue;
       const prefixes = configs
         .filter(config => this.claims(config, legacy, existing))
@@ -150,16 +210,19 @@ export class DocumentStorageMigrationService {
     // another server) claim it and push those edits to its own server —
     // the cross-profile mixing this migration exists to end.
     if (result.failed === 0) {
-      localStorage.setItem(
-        DOCUMENT_STORAGE_MIGRATION_KEY,
-        new Date().toISOString()
-      );
+      localStorage.setItem(pass.flag, new Date().toISOString());
     }
     this.logger.info(
       'DocumentStorageMigration',
-      `Migrated ${result.migrated} document(s); ${result.unclaimed} unclaimed, ${result.failed} failed`
+      `Migrated ${result.migrated} ${kind} database(s); ${result.unclaimed} unclaimed, ${result.failed} failed`
     );
     return result;
+  }
+
+  private pendingKinds(): LegacyStorageKind[] {
+    return (Object.keys(PASSES) as LegacyStorageKind[]).filter(
+      kind => !localStorage.getItem(PASSES[kind].flag)
+    );
   }
 
   /**

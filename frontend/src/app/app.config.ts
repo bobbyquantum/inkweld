@@ -37,7 +37,7 @@ registerLocaleData(localeEn);
 export const appConfig: ApplicationConfig = {
   providers: [
     provideZonelessChangeDetection(),
-    // Move prose documents to profile-scoped IndexedDB names before the
+    // Move prose and worldbuilding docs to profile-scoped IndexedDB names before the
     // router can open one. Never rejects, so it cannot block startup.
     provideAppInitializer(async () => {
       await inject(DocumentStorageMigrationService).migrateIfNeeded();

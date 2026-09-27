@@ -1535,10 +1535,12 @@ describe('SettingsTabComponent', () => {
         databases: vi.fn().mockResolvedValue([
           { name: 'local:testuser:test-project:elements' },
           { name: 'local:testuser:test-project:doc-1' },
-          { name: 'worldbuilding:testuser:test-project:char-1' },
+          { name: 'local:worldbuilding:testuser:test-project:char-1' },
           { name: 'local:someone-else:other-project:elements' },
-          // Another profile's copy of the same project is left alone
+          // Other profiles' copies of the same project are left alone
           { name: 'srv:abc123:testuser:test-project:doc-1' },
+          { name: 'srv:abc123:worldbuilding:testuser:test-project:char-1' },
+          { name: 'worldbuilding:testuser:test-project:char-2' },
         ]),
       });
 
@@ -1550,7 +1552,7 @@ describe('SettingsTabComponent', () => {
       expect(databases).toEqual([
         'local:testuser:test-project:elements',
         'local:testuser:test-project:doc-1',
-        'worldbuilding:testuser:test-project:char-1',
+        'local:worldbuilding:testuser:test-project:char-1',
       ]);
     });
 
@@ -1571,9 +1573,9 @@ describe('SettingsTabComponent', () => {
       expect(databases).toEqual([
         'local:testuser:test-project:elements',
         'local:testuser:test-project:doc-1',
-        'worldbuilding:testuser:test-project:doc-1',
+        'local:worldbuilding:testuser:test-project:doc-1',
         'local:testuser:test-project:doc-2',
-        'worldbuilding:testuser:test-project:doc-2',
+        'local:worldbuilding:testuser:test-project:doc-2',
       ]);
     });
 

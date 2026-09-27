@@ -167,13 +167,30 @@ test.describe('Account deletion', () => {
       .poll(() => databasesMentioning(page, slug))
       .not.toHaveLength(0);
 
+    // A worldbuilding element, opened so its doc is cached on the device.
+    // Its database lives under the profile prefix, so clearing the profile
+    // on deletion removes it too.
+    const worldbuildingDb = `worldbuilding:${username}:${slug}:`;
+    await page.getByTestId('project-tree').waitFor({ state: 'visible' });
+    await page.getByTestId('create-new-element').click();
+    await page.getByTestId('element-type-character-v1').click();
+    await page.getByTestId('element-name-input').fill('Doomed Character');
+    await page.getByTestId('create-element-button').click();
+    await page.getByTestId('element-Doomed Character').first().click();
+    await expect(page.getByTestId('worldbuilding-editor')).toBeVisible();
+    await expect
+      .poll(() => databasesMentioning(page, worldbuildingDb))
+      .toEqual([expect.stringMatching(/^srv:[^:]+:worldbuilding:/)]);
+
     await page.goto('/delete-account');
     await page.getByTestId('delete-account-button').click();
     await confirmDeletion(page, username);
     await expectAccountGone(page, token);
 
-    // Nothing of the project is left cached on this device.
+    // Nothing of the project is left cached on this device, worldbuilding
+    // included.
     await expect.poll(() => databasesMentioning(page, slug)).toHaveLength(0);
+    expect(await databasesMentioning(page, worldbuildingDb)).toEqual([]);
 
     // Re-register the same username and re-create the same slug: nothing
     // must come back from storage, the Yjs store or the Durable Object.

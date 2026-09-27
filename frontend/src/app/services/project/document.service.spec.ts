@@ -2104,6 +2104,41 @@ describe('DocumentService', () => {
         expect(mockWebSocketProvider.disconnect).toHaveBeenCalledTimes(1);
         expect(mockWebSocketProvider.destroy).toHaveBeenCalledTimes(1);
       });
+
+      it('reads the local copy from the profile-scoped database but syncs the bare id', async () => {
+        mockWebSocketProvider.on.mockImplementation(
+          (event: string, callback: any) => {
+            if (event === 'sync') callback(true);
+            return () => {};
+          }
+        );
+        const names = vi.spyOn(
+          service as unknown as { localDbName: (id: string) => string },
+          'localDbName'
+        );
+
+        await service.syncWorldbuildingToServer(
+          'worldbuilding:testuser:test-project:element123',
+          1000
+        );
+        await service.syncWorldbuildingToServer(
+          'worldbuilding:testuser:test-project:element123',
+          1000,
+          'worldbuilding:olduser:old-project:element123',
+          'abc123'
+        );
+
+        expect(names.mock.results.map(r => r.value as string)).toEqual([
+          'local:worldbuilding:testuser:test-project:element123',
+          // Migration: read the source profile's copy of the source element
+          'srv:abc123:worldbuilding:olduser:old-project:element123',
+        ]);
+        for (const [url] of mockCreateAuthWsProvider.mock.calls) {
+          expect(url).toBe(
+            'ws://localhost:8333/api/v1/ws/yjs?documentId=testuser:test-project:element123'
+          );
+        }
+      });
     });
 
     describe('syncWorldbuildingToServerBatch', () => {

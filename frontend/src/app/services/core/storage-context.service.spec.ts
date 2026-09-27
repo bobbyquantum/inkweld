@@ -880,6 +880,42 @@ describe('StorageContextService', () => {
         await drop(name);
       }
     });
+
+    it('renames worldbuilding databases, also when the username equals the slug', async () => {
+      service.addLocalConfig({ name: 'A', username: 'a' });
+      for (const name of [
+        'local:worldbuilding:novel:novel:w1',
+        'local:novel:novel:e1',
+        // Another profile's copy and a bare legacy name stay put
+        'srv:abc:worldbuilding:novel:novel:w1',
+        'worldbuilding:novel:novel:w1',
+      ]) {
+        const db = await open(name, d => {
+          d.createObjectStore('updates', { autoIncrement: true });
+        });
+        await write(db, 'updates', new Uint8Array([9]));
+        db.close();
+      }
+
+      await service.renameProjectInContext(
+        LOCAL_CONFIG_ID,
+        'novel',
+        'novel',
+        'saga'
+      );
+
+      const names = (await indexedDB.databases())
+        .map(d => d.name ?? '')
+        .filter(name => name.includes('novel:'))
+        .sort();
+      expect(names).toEqual([
+        'local:novel:saga:e1',
+        'local:worldbuilding:novel:saga:w1',
+        'srv:abc:worldbuilding:novel:novel:w1',
+        'worldbuilding:novel:novel:w1',
+      ]);
+      for (const name of names) await drop(name);
+    });
   });
 
   describe('activateProjectsInContext', () => {

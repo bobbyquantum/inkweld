@@ -83,10 +83,9 @@ export interface MigrationState {
  * After migration, the normal project sync mechanism handles uploading
  * to the server when online (same as creating a project while offline).
  *
- * Prose documents are stored under the profile prefix
- * (<prefix>user:slug:elementId), so they are always copied. Worldbuilding
- * data uses the unprefixed worldbuilding:user:slug:elementId and only needs
- * copying when the username or slug changes.
+ * Prose documents (<prefix>user:slug:elementId) and worldbuilding data
+ * (<prefix>worldbuilding:user:slug:elementId) are stored under the profile
+ * prefix, so both are always copied.
  */
 @Injectable({
   providedIn: 'root',
@@ -324,8 +323,7 @@ export class MigrationService {
 
       // ═══════════════════════════════════════════════════════════════════════
       // STAGE 2: DOCUMENTS - Copy document files for ITEM and WORLDBUILDING elements
-      // Prose documents move between profile prefixes; worldbuilding docs
-      // (unprefixed) only move when the username or slug changes.
+      // Both kinds are stored under the profile prefix, so both move.
       // ═══════════════════════════════════════════════════════════════════════
       this.updateProjectStatus(
         targetSlug,
@@ -578,10 +576,9 @@ export class MigrationService {
   /**
    * Copy document files for ITEM elements and worldbuilding data for WORLDBUILDING elements.
    *
-   * Prose documents use format: <profile prefix>user:slug:elementId, so they
-   * are copied from the Browser profile's prefix to the target profile's.
-   * Worldbuilding data uses format: worldbuilding:user:slug:elementId and is
-   * only copied when the username or slug changes during migration.
+   * Prose documents (<profile prefix>user:slug:elementId) and worldbuilding
+   * data (<profile prefix>worldbuilding:user:slug:elementId) are both copied
+   * from the Browser profile's prefix to the target profile's.
    */
   private async copyDocumentFiles(
     sourceUsername: string,
@@ -596,15 +593,10 @@ export class MigrationService {
     const worldbuildingElements = elements.filter(
       e => e.type === ElementType.Worldbuilding
     );
-    const renamed =
-      sourceUsername !== targetUsername || sourceSlug !== targetSlug;
 
     this.logger.info(
       'MigrationService',
-      `Copying ${itemElements.length} document files` +
-        (renamed
-          ? ` and ${worldbuildingElements.length} worldbuilding elements`
-          : '')
+      `Copying ${itemElements.length} document files and ${worldbuildingElements.length} worldbuilding elements`
     );
 
     // Copy ITEM documents (ProseMirror content) between profile prefixes
@@ -619,13 +611,11 @@ export class MigrationService {
       );
     }
 
-    // Copy WORLDBUILDING documents. Their keys carry no prefix, so there is
-    // nothing to copy unless the project was renamed.
-    const worldbuildingToCopy = renamed ? worldbuildingElements : [];
-    for (const element of worldbuildingToCopy) {
+    // Copy WORLDBUILDING documents between profile prefixes
+    for (const element of worldbuildingElements) {
       await this.copySingleDocument(
-        `worldbuilding:${sourceUsername}:${sourceSlug}:${element.id}`,
-        `worldbuilding:${targetUsername}:${targetSlug}:${element.id}`
+        `${sourcePrefix}worldbuilding:${sourceUsername}:${sourceSlug}:${element.id}`,
+        `${targetPrefix}worldbuilding:${targetUsername}:${targetSlug}:${element.id}`
       );
     }
 
