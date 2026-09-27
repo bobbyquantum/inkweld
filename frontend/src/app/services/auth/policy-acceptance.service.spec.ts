@@ -182,6 +182,12 @@ describe('PolicyAcceptanceService', () => {
     expect(getPolicyAcceptance).toHaveBeenCalledTimes(1);
   });
 
+  it('lets the user delete their account without accepting first', async () => {
+    setup('/delete-account');
+    await flush();
+    expect(getPolicyAcceptance).not.toHaveBeenCalled();
+  });
+
   it('signs the user out when they decline', async () => {
     setup();
     await flush();

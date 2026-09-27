@@ -13,8 +13,9 @@ import type { AppContext } from '../types/context';
 /**
  * No-op when there is no YJS_PROJECTS binding (Bun/Node, where the Yjs
  * service and the project directory removal already covered the documents).
- * The DO re-checks that the bearer token belongs to the owner, so the
- * caller's Authorization header is forwarded as-is.
+ * The DO re-checks that the bearer token belongs to the owner (or an active
+ * site admin, for account deletion), so the caller's Authorization header is
+ * forwarded as-is.
  */
 export async function destroyProjectDurableObject(
   c: Context<AppContext>,

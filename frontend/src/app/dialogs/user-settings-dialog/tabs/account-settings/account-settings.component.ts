@@ -19,6 +19,7 @@ import { MatRadioModule } from '@angular/material/radio';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { RouterLink } from '@angular/router';
+import { DeleteAccountComponent } from '@components/delete-account/delete-account.component';
 import { PasskeysSettingsComponent } from '@components/passkeys-settings/passkeys-settings.component';
 import { ProfileVisibility } from '@inkweld/model/profile-visibility';
 import type { UpdateProfileRequest } from '@inkweld/model/update-profile-request';
@@ -53,6 +54,7 @@ interface AccountSettingsFormValue {
     RouterLink,
     TranslocoModule,
     PasskeysSettingsComponent,
+    DeleteAccountComponent,
   ],
   templateUrl: './account-settings.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -58,6 +58,7 @@ export * from './default-text-to-image-models-response-providers';
 export * from './default-text-to-image-models-response-providers-falai';
 export * from './default-text-to-image-models-response-providers-openai';
 export * from './default-text-to-image-models-response-providers-openrouter';
+export * from './delete-account-request';
 export * from './delete-comment-message200-response';
 export * from './delete-published-file200-response';
 export * from './document';

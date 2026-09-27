@@ -1,0 +1,36 @@
+<section class="delete-account" data-testid="delete-account-section">
+  <h4 class="delete-account-title">
+    <mat-icon>warning</mat-icon>
+    {{ 'settings.deleteAccount.title' | transloco }}
+  </h4>
+  <p class="delete-account-text">
+    {{
+      'settings.deleteAccount.description' | transloco: { server: serverName() }
+    }}
+  </p>
+  <ul class="delete-account-list">
+    <li>{{ 'settings.deleteAccount.removesProjects' | transloco }}</li>
+    <li>{{ 'settings.deleteAccount.removesProfile' | transloco }}</li>
+    <li>{{ 'settings.deleteAccount.removesAccess' | transloco }}</li>
+    <li>{{ 'settings.deleteAccount.removesComments' | transloco }}</li>
+  </ul>
+  <p class="delete-account-text">
+    <strong>{{ 'settings.deleteAccount.irreversible' | transloco }}</strong>
+  </p>
+  <div class="delete-account-actions">
+    <button
+      mat-raised-button
+      color="warn"
+      (click)="deleteAccount()"
+      [disabled]="isDeleting()"
+      data-testid="delete-account-button">
+      @if (isDeleting()) {
+        <mat-spinner diameter="18" class="button-spinner"></mat-spinner>
+        {{ 'settings.deleteAccount.deleting' | transloco }}
+      } @else {
+        <mat-icon>delete_forever</mat-icon>
+        {{ 'settings.deleteAccount.button' | transloco }}
+      }
+    </button>
+  </div>
+</section>

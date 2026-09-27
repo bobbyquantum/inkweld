@@ -25,6 +25,8 @@ import { Observable } from 'rxjs';
 // @ts-ignore
 import { AcceptPolicyRequest } from '../model/accept-policy-request';
 // @ts-ignore
+import { DeleteAccountRequest } from '../model/delete-account-request';
+// @ts-ignore
 import { ErrorResponse } from '../model/error-response';
 // @ts-ignore
 import { Message } from '../model/message';
@@ -265,6 +267,123 @@ export class UsersService extends BaseService {
       `${basePath}${localVarPath}`,
       {
         context: localVarHttpContext,
+        responseType: <any>responseType_,
+        ...(withCredentials ? { withCredentials } : {}),
+        headers: localVarHeaders,
+        observe: observe,
+        ...(localVarTransferCache !== undefined
+          ? { transferCache: localVarTransferCache }
+          : {}),
+        reportProgress: reportProgress,
+      }
+    );
+  }
+
+  /**
+   * Delete my account
+   * Permanently delete the signed-in account, every project it owns (documents, media and published files) and its profile images, passkeys, grants and comments. Cannot be undone.
+   * @endpoint delete /api/v1/users/me
+   * @param deleteAccountRequest
+   * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
+   * @param reportProgress flag to report request and response progress.
+   */
+  public deleteAccount(
+    deleteAccountRequest?: DeleteAccountRequest,
+    observe?: 'body',
+    reportProgress?: boolean,
+    options?: {
+      httpHeaderAccept?: 'application/json';
+      context?: HttpContext;
+      transferCache?: boolean;
+    }
+  ): Observable<MessageResponse>;
+  public deleteAccount(
+    deleteAccountRequest?: DeleteAccountRequest,
+    observe?: 'response',
+    reportProgress?: boolean,
+    options?: {
+      httpHeaderAccept?: 'application/json';
+      context?: HttpContext;
+      transferCache?: boolean;
+    }
+  ): Observable<HttpResponse<MessageResponse>>;
+  public deleteAccount(
+    deleteAccountRequest?: DeleteAccountRequest,
+    observe?: 'events',
+    reportProgress?: boolean,
+    options?: {
+      httpHeaderAccept?: 'application/json';
+      context?: HttpContext;
+      transferCache?: boolean;
+    }
+  ): Observable<HttpEvent<MessageResponse>>;
+  public deleteAccount(
+    deleteAccountRequest?: DeleteAccountRequest,
+    observe: any = 'body',
+    reportProgress: boolean = false,
+    options?: {
+      httpHeaderAccept?: 'application/json';
+      context?: HttpContext;
+      transferCache?: boolean;
+    }
+  ): Observable<any> {
+    let localVarHeaders = this.defaultHeaders;
+
+    // authentication (bearerAuth) required
+    localVarHeaders = this.configuration.addCredentialToHeaders(
+      'bearerAuth',
+      'Authorization',
+      localVarHeaders,
+      'Bearer '
+    );
+
+    const localVarHttpHeaderAcceptSelected: string | undefined =
+      options?.httpHeaderAccept ??
+      this.configuration.selectHeaderAccept(['application/json']);
+    if (localVarHttpHeaderAcceptSelected !== undefined) {
+      localVarHeaders = localVarHeaders.set(
+        'Accept',
+        localVarHttpHeaderAcceptSelected
+      );
+    }
+
+    const localVarHttpContext: HttpContext =
+      options?.context ?? new HttpContext();
+
+    const localVarTransferCache: boolean = options?.transferCache ?? true;
+
+    // to determine the Content-Type header
+    const consumes: string[] = ['application/json'];
+    const httpContentTypeSelected: string | undefined =
+      this.configuration.selectHeaderContentType(consumes);
+    if (httpContentTypeSelected !== undefined) {
+      localVarHeaders = localVarHeaders.set(
+        'Content-Type',
+        httpContentTypeSelected
+      );
+    }
+
+    let responseType_: 'text' | 'json' | 'blob' = 'json';
+    if (localVarHttpHeaderAcceptSelected) {
+      if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
+        responseType_ = 'text';
+      } else if (
+        this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)
+      ) {
+        responseType_ = 'json';
+      } else {
+        responseType_ = 'blob';
+      }
+    }
+
+    let localVarPath = `/api/v1/users/me`;
+    const { basePath, withCredentials } = this.configuration;
+    return this.httpClient.request<MessageResponse>(
+      'delete',
+      `${basePath}${localVarPath}`,
+      {
+        context: localVarHttpContext,
+        body: deleteAccountRequest,
         responseType: <any>responseType_,
         ...(withCredentials ? { withCredentials } : {}),
         headers: localVarHeaders,

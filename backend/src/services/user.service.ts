@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
 import { sessionWatermarkNow } from '../utils/session-validity';
-import { eq, like, or, asc, and } from 'drizzle-orm';
+import { eq, like, or, asc, and, sql } from 'drizzle-orm';
 import type { DatabaseInstance } from '../types/context';
 import { users, type User, type InsertUser, type ProfileVisibility } from '../db/schema';
 import { configService } from './config.service';
@@ -369,7 +369,8 @@ class UserService {
   }
 
   /**
-   * Delete user (admin only)
+   * Delete the user row. Callers should go through accountDeletionService,
+   * which removes project content stored outside the database first.
    */
   async deleteUser(db: DatabaseInstance, userId: string): Promise<void> {
     await db.delete(users).where(eq(users.id, userId));
@@ -447,6 +448,41 @@ class UserService {
    */
   async countUsers(db: DatabaseInstance): Promise<number> {
     return db.$count(users);
+  }
+
+  /**
+   * First step of deleting an account: give up admin rights, unless that
+   * would leave the instance without an active administrator. Returns false
+   * (and changes nothing) when the account is the last enabled, approved
+   * admin; a non-admin always succeeds and is left unchanged.
+   *
+   * One conditional UPDATE, so the check and the write are atomic: SQLite
+   * and D1 serialise writes, and two admins deleting themselves at once
+   * cannot both see the other as the remaining admin. The account stays
+   * enabled, because the owner's own token must still be accepted while its
+   * project Durable Objects are wiped.
+   */
+  async reserveForDeletion(db: DatabaseInstance, userId: string): Promise<boolean> {
+    const otherActiveAdmins = sql`(
+      select count(*) from ${users} as other
+      where other."isAdmin" = 1 and other."enabled" = 1 and other."approved" = 1
+        and other."id" <> ${userId}
+    )`;
+    const reserved = await db
+      .update(users)
+      .set({ isAdmin: false })
+      .where(and(eq(users.id, userId), or(eq(users.isAdmin, false), sql`${otherActiveAdmins} > 0`)))
+      .returning();
+    return reserved.length > 0;
+  }
+
+  /** Undo {@link reserveForDeletion} when the deletion could not finish. */
+  async releaseDeletionReservation(
+    db: DatabaseInstance,
+    userId: string,
+    wasAdmin: boolean
+  ): Promise<void> {
+    await db.update(users).set({ isAdmin: wasAdmin }).where(eq(users.id, userId));
   }
 
   /**

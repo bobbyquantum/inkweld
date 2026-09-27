@@ -316,5 +316,31 @@
     "comfortableHelp": "Roomier rows and taller bars.",
     "compact": "Compact",
     "compactHelp": "Tighter chrome, so more of your project fits on screen."
+  },
+  "deleteAccount": {
+    "title": "Delete account",
+    "description": "Permanently delete your account on {{server}}. This removes:",
+    "removesProjects": "Every project you own, including its documents, worldbuilding, media and published files",
+    "removesProfile": "Your profile, avatar, banner and background",
+    "removesAccess": "Your passkeys, sign-in sessions, authorized apps and access to projects shared with you",
+    "removesComments": "Comments you wrote, including on other people's projects",
+    "irreversible": "This cannot be undone. Export any projects you want to keep first.",
+    "button": "Delete account…",
+    "confirmTitle": "Delete your account?",
+    "confirmMessage": "Your account and everything listed will be permanently deleted from {{server}}. Type your username \"{{username}}\" to confirm.",
+    "confirmButton": "Delete my account",
+    "deleting": "Deleting your account…",
+    "failed": "Could not delete your account. Please try again.",
+    "page": {
+      "title": "Delete your account",
+      "subtitle": "{{server}}",
+      "signInPrompt": "Sign in to the account you want to delete, then return to this page or open Settings → Account → Delete account.",
+      "signIn": "Sign in",
+      "localMode": "This app is not connected to an Inkweld server, so there is no online account to delete. Your projects are stored only on this device; remove them from the project list or clear the app's data.",
+      "deletedTitle": "Account deleted",
+      "deletedMessage": "Your account and its data have been permanently deleted from this server.",
+      "home": "Go to home page",
+      "helpAdmin": "If you can no longer sign in, contact the administrator of {{server}} and ask them to delete your account."
+    }
   }
 }

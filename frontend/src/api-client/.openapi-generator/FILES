@@ -99,6 +99,7 @@ model/default-text-to-image-models-response-providers-openai.ts
 model/default-text-to-image-models-response-providers-openrouter.ts
 model/default-text-to-image-models-response-providers.ts
 model/default-text-to-image-models-response.ts
+model/delete-account-request.ts
 model/delete-comment-message200-response.ts
 model/delete-published-file200-response.ts
 model/document-error.ts

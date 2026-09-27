@@ -1259,6 +1259,17 @@ export class StorageContextService {
   }
 
   /**
+   * Delete the IndexedDB databases whose name starts with `prefix`, for data
+   * stored outside any context prefix (prose documents use their bare
+   * `user:slug:doc` id). Leaves localStorage alone.
+   */
+  async clearDatabasesWithPrefix(prefix: string): Promise<void> {
+    for (const name of await this.listAllDatabaseNames()) {
+      if (name.startsWith(prefix)) await deleteDatabase(name);
+    }
+  }
+
+  /**
    * Find data left behind by connections that were removed without cleanup
    * (or written by older builds). Returns one entry per orphaned prefix.
    */

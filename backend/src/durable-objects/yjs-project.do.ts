@@ -49,7 +49,7 @@ import {
 } from '../utils/yjs-document-utils';
 import { YjsDocStorage, COMPACT_THRESHOLD, snapshotKey } from './yjs-do-storage';
 import { safeSend, safeClose } from '../utils/ws-guards';
-import { resolveProjectAccess } from '../utils/project-access';
+import { isActiveSiteAdmin, resolveProjectAccess } from '../utils/project-access';
 import {
   WS_CLOSE_FORBIDDEN,
   WS_CLOSE_INVALID_DOCUMENT,
@@ -495,6 +495,11 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       });
     }
     const db = this.getDb();
+    // A site admin deleting another user's account wipes that user's
+    // projects; the project-level check below only admits the owner.
+    if (method === 'POST' && path === '/api/destroy' && (await isActiveSiteAdmin(db, session))) {
+      return this.handleDestroyProject();
+    }
     const accessResult = await resolveProjectAccess(db, parsed.projectOwner, parsed.slug, session);
     if (!accessResult.ok) {
       const deniedMessage =

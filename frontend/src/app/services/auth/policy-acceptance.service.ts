@@ -14,8 +14,12 @@ import { SystemConfigService } from '@services/core/system-config.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
 import { filter, firstValueFrom, map } from 'rxjs';
 
-/** Pages the user must be able to read while the prompt is pending. */
-const LEGAL_ROUTES = new Set(['/privacy', '/terms']);
+/**
+ * Pages the user must be able to use while the prompt is pending: the
+ * documents themselves, and account deletion — someone who does not accept
+ * the new terms must still be able to delete their account.
+ */
+const UNGATED_ROUTES = new Set(['/privacy', '/terms', '/delete-account']);
 
 /**
  * Asks signed-in users to accept the instance's privacy policy / terms when
@@ -80,7 +84,7 @@ export class PolicyAcceptanceService {
           !!version &&
           !!user?.id &&
           path !== null &&
-          !LEGAL_ROUTES.has(path);
+          !UNGATED_ROUTES.has(path);
         if (!shouldCheck) return;
 
         const key = `${user.id}:${version}`;
