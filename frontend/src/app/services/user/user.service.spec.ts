@@ -15,11 +15,7 @@ import { TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { Router } from '@angular/router';
 import { UserSettingsDialogComponent } from '@dialogs/user-settings-dialog/user-settings-dialog.component';
-import {
-  AuthenticationService,
-  ProjectsService,
-  type User,
-} from '@inkweld/index';
+import { AuthenticationService, type User } from '@inkweld/index';
 import { UsersService } from '@inkweld/index';
 import { of, throwError } from 'rxjs';
 import { type Mock, vi } from 'vitest';
@@ -54,7 +50,6 @@ describe('UserService', () => {
     logout: Mock;
   };
   let dialogMock: { open: Mock };
-  let projectsApiMock: { listUserProjects: Mock };
   let routerMock: { navigate: Mock };
   let storageContextMock: {
     getActiveConfig: Mock;
@@ -62,7 +57,6 @@ describe('UserService', () => {
     adoptServerLogin: Mock;
     clearConfigUserProfile: Mock;
     clearContextData: Mock;
-    clearDatabasesWithPrefix: Mock;
     getConfigurations: Mock;
     prefixKey: Mock;
     prefixDbName: Mock;
@@ -81,7 +75,6 @@ describe('UserService', () => {
       logout: vi.fn(),
     };
     dialogMock = { open: vi.fn() };
-    projectsApiMock = { listUserProjects: vi.fn().mockReturnValue(of([])) };
     routerMock = { navigate: vi.fn() };
     storageContextMock = {
       getActiveConfig: vi
@@ -94,7 +87,6 @@ describe('UserService', () => {
       }),
       clearConfigUserProfile: vi.fn(),
       clearContextData: vi.fn().mockResolvedValue(undefined),
-      clearDatabasesWithPrefix: vi.fn().mockResolvedValue(undefined),
       getConfigurations: vi
         .fn()
         .mockReturnValue([{ id: 'test-config-id', type: 'server' }]),
@@ -125,7 +117,6 @@ describe('UserService', () => {
           provide: AuthenticationService,
           useValue: authServiceMock,
         },
-        { provide: ProjectsService, useValue: projectsApiMock },
         {
           provide: MatDialog,
           useValue: dialogMock,
@@ -697,12 +688,6 @@ describe('UserService', () => {
   describe('deleteAccount', () => {
     it('deletes the account, signs out and wipes the server profile data', async () => {
       await service.setCurrentUser(TEST_USER);
-      projectsApiMock.listUserProjects.mockReturnValue(
-        of([
-          { username: 'testuser', slug: 'mine' },
-          { username: 'someone', slug: 'shared-with-me' },
-        ])
-      );
       userServiceMock.deleteAccount.mockReturnValue(
         of({ message: 'Account deleted' })
       );
@@ -716,55 +701,10 @@ describe('UserService', () => {
       expect(storageContextMock.clearConfigUserProfile).toHaveBeenCalledWith(
         'test-config-id'
       );
-      expect(storageContextMock.clearContextData).toHaveBeenCalledWith(
-        'test-config-id'
-      );
-      // Unprefixed prose-document databases of owned projects only.
-      expect(storageContextMock.clearDatabasesWithPrefix.mock.calls).toEqual([
-        ['testuser:mine:'],
+      // Prose documents are profile-scoped, so this wipe covers them too
+      expect(storageContextMock.clearContextData.mock.calls).toEqual([
+        ['test-config-id'],
       ]);
-    });
-
-    it('keeps unprefixed document databases another profile may share', async () => {
-      await service.setCurrentUser(TEST_USER);
-      projectsApiMock.listUserProjects.mockReturnValue(
-        of([{ username: 'testuser', slug: 'mine' }])
-      );
-      storageContextMock.getConfigurations.mockReturnValue([
-        { id: 'test-config-id', type: 'server' },
-        { id: 'other-server', type: 'server' },
-      ]);
-      userServiceMock.deleteAccount.mockReturnValue(
-        of({ message: 'Account deleted' })
-      );
-
-      await service.deleteAccount('testuser');
-
-      // The profile's own prefixed data still goes.
-      expect(storageContextMock.clearContextData).toHaveBeenCalledWith(
-        'test-config-id'
-      );
-      expect(
-        storageContextMock.clearDatabasesWithPrefix
-      ).not.toHaveBeenCalled();
-    });
-
-    it('still deletes when the project list cannot be fetched', async () => {
-      await service.setCurrentUser(TEST_USER);
-      projectsApiMock.listUserProjects.mockReturnValue(
-        throwError(() => new Error('offline'))
-      );
-      userServiceMock.deleteAccount.mockReturnValue(
-        of({ message: 'Account deleted' })
-      );
-
-      await service.deleteAccount('testuser');
-
-      expect(userServiceMock.deleteAccount).toHaveBeenCalled();
-      expect(storageContextMock.clearContextData).toHaveBeenCalled();
-      expect(
-        storageContextMock.clearDatabasesWithPrefix
-      ).not.toHaveBeenCalled();
     });
 
     it('leaves the session and local data alone when the server refuses', async () => {

@@ -305,6 +305,19 @@ export class DocumentService {
   }
 
   /**
+   * IndexedDB name of a prose document's local copy: the document id under
+   * the profile's storage prefix (the active profile unless `configId` is
+   * given). Only the local database is scoped; the WebSocket document id
+   * stays the bare `username:slug:elementId`.
+   */
+  private localDbName(documentId: string, configId?: string): string {
+    const prefix = configId
+      ? this.storageContext.getPrefixForConfig(configId)
+      : this.storageContext.getPrefix();
+    return `${prefix}${documentId}`;
+  }
+
+  /**
    * Check if a Yjs document has content in IndexedDB without creating it.
    *
    * Uses the abort-on-upgrade technique: if the database doesn't exist,
@@ -342,7 +355,7 @@ export class DocumentService {
     const ydoc = new Y.Doc();
     let provider: IndexeddbPersistence | null = null;
     try {
-      provider = new IndexeddbPersistence(documentId, ydoc);
+      provider = new IndexeddbPersistence(this.localDbName(documentId), ydoc);
       await provider.whenSynced;
       return yjsStateDigest(ydoc);
     } catch (error) {
@@ -461,7 +474,10 @@ export class DocumentService {
     );
 
     const ydoc = new Y.Doc();
-    const provider = new IndexeddbPersistence(documentId, ydoc);
+    const provider = new IndexeddbPersistence(
+      this.localDbName(documentId),
+      ydoc
+    );
 
     try {
       await provider.whenSynced;
@@ -563,7 +579,10 @@ export class DocumentService {
    */
   private async loadContentFromIndexedDB(documentId: string): Promise<unknown> {
     const ydoc = new Y.Doc();
-    const provider = new IndexeddbPersistence(documentId, ydoc);
+    const provider = new IndexeddbPersistence(
+      this.localDbName(documentId),
+      ydoc
+    );
 
     try {
       await provider.whenSynced;
@@ -923,8 +942,12 @@ export class DocumentService {
       // Create new connection if one doesn't exist
       const ydoc = new Y.Doc();
       const type = ydoc.getXmlFragment('prosemirror');
-      // Initialize IndexedDB provider first
-      const indexeddbProvider = new IndexeddbPersistence(documentId, ydoc);
+      // Initialize IndexedDB provider first. The local database is
+      // profile-scoped; the WebSocket document id stays unprefixed.
+      const indexeddbProvider = new IndexeddbPersistence(
+        this.localDbName(documentId),
+        ydoc
+      );
       this.logger.debug('DocumentService', 'Waiting for IndexedDB sync...');
 
       // Set state to Offline while waiting for IndexedDB
@@ -965,7 +988,12 @@ export class DocumentService {
 
       // Cross-window sync. Created after the IndexedDB load so the handshake
       // offers peers the persisted state rather than an empty document.
-      const broadcastProvider = new BroadcastSyncProvider(documentId, ydoc);
+      // Scoped like the database, so a tab on another profile with the same
+      // username:slug never exchanges edits with this one.
+      const broadcastProvider = new BroadcastSyncProvider(
+        this.localDbName(documentId),
+        ydoc
+      );
 
       // CRITICAL: Create connection and store it BEFORE awaiting WebSocket
       // This allows us to add Yjs plugins immediately so content appears
@@ -2485,12 +2513,15 @@ export class DocumentService {
     documentId: string,
     timeoutMs: number = 30000,
     sourceDocumentId?: string,
-    _sourceConfigId?: string
+    sourceConfigId?: string
   ): Promise<string | null> {
-    // Use sourceDocumentId for local lookup if provided (migration scenario)
-    // NOTE: Documents are stored in IndexedDB WITHOUT a prefix (unlike elements which use prefixDocumentId).
-    // The sourceConfigId parameter is kept for API compatibility but not used for documents.
-    const localDocId = sourceDocumentId ?? documentId;
+    // Documents are stored in IndexedDB under a profile-scoped name, like
+    // elements. Read from the source document and profile when given
+    // (migration scenario); the WebSocket always uses the bare documentId.
+    const localDocId = this.localDbName(
+      sourceDocumentId ?? documentId,
+      sourceConfigId
+    );
     const sourceSuffix = sourceDocumentId
       ? ` (source: ${sourceDocumentId})`
       : '';

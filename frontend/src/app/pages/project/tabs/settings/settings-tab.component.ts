@@ -44,6 +44,7 @@ import {
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SetupService } from '@services/core/setup.service';
+import { StorageContextService } from '@services/core/storage-context.service';
 import { SystemConfigService } from '@services/core/system-config.service';
 import { MediaSyncService } from '@services/local/media-sync.service';
 import { UnifiedProjectService } from '@services/local/unified-project.service';
@@ -150,6 +151,7 @@ export class SettingsTabComponent implements OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly snackBar = inject(MatSnackBar);
   private readonly setupService = inject(SetupService);
+  private readonly storageContext = inject(StorageContextService);
   private readonly mediaSyncService = inject(MediaSyncService);
   private readonly systemConfigService = inject(SystemConfigService);
   private readonly exportService = inject(ProjectExportService);
@@ -746,14 +748,18 @@ export class SettingsTabComponent implements OnDestroy {
   }
 
   /**
-   * Get all IndexedDB databases that belong to this project.
-   * y-indexeddb creates databases named after the document ID.
+   * Get all IndexedDB databases that belong to this project in the active
+   * profile. y-indexeddb creates databases named after the document ID;
+   * elements and prose documents carry the profile prefix, worldbuilding
+   * docs do not.
    */
   private async getProjectDatabases(
     username: string,
     slug: string
   ): Promise<string[]> {
-    const projectPrefix = `${username}:${slug}`;
+    const projectPrefix = this.storageContext.prefixDocumentId(
+      `${username}:${slug}`
+    );
     const worldbuildingPrefix = `worldbuilding:${username}:${slug}`;
     const databases: string[] = [];
 
@@ -778,17 +784,16 @@ export class SettingsTabComponent implements OnDestroy {
     // If we couldn't enumerate, try known patterns
     if (databases.length === 0) {
       // Known document patterns:
-      // - {username}:{slug}:elements (element tree)
-      // - {username}:{slug}:elements/ (element tree with trailing slash)
-      // - {username}:{slug}:doc:{elementId} (individual documents)
+      // - {prefix}{username}:{slug}:elements (element tree)
+      // - {prefix}{username}:{slug}:{elementId} (prose documents)
       // - worldbuilding:{username}:{slug}:{elementId} (worldbuilding data per element)
-      databases.push(`${projectPrefix}:elements`, `${projectPrefix}:elements/`);
+      databases.push(`${projectPrefix}:elements`);
 
       // Try to get element IDs from current state
       const elements = this.projectState.elements();
       for (const element of elements) {
         databases.push(
-          `${projectPrefix}:doc:${element.id}`,
+          `${projectPrefix}:${element.id}`,
           `${worldbuildingPrefix}:${element.id}`
         );
       }

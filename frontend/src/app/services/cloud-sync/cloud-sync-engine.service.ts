@@ -482,7 +482,6 @@ export class CloudSyncEngineService {
         const name = db.name ?? '';
         if (
           name.startsWith(`${prefix}${username}:${slug}:`) ||
-          name.startsWith(`${username}:${slug}:`) ||
           name.startsWith(`worldbuilding:${username}:${slug}:`)
         ) {
           indexedDB.deleteDatabase(name);

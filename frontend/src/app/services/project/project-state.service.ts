@@ -1550,12 +1550,15 @@ export class ProjectStateService implements OnDestroy {
     const project = this.project();
     if (!project) return false;
 
-    // Worldbuilding elements use a different IndexedDB key format
-    const documentId =
+    // Worldbuilding elements use a different IndexedDB key format; prose
+    // documents are stored under a profile-scoped name
+    const dbName =
       elementType === 'worldbuilding'
         ? `worldbuilding:${project.username}:${project.slug}:${elementId}`
-        : `${project.username}:${project.slug}:${elementId}`;
-    const hasContent = await this.checkDocumentInIndexedDB(documentId);
+        : this.storageContext.prefixDocumentId(
+            `${project.username}:${project.slug}:${elementId}`
+          );
+    const hasContent = await this.checkDocumentInIndexedDB(dbName);
     return !hasContent;
   }
 

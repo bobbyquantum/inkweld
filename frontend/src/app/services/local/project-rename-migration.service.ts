@@ -3,6 +3,7 @@ import { IndexeddbPersistence, storeState } from 'y-indexeddb';
 import * as Y from 'yjs';
 
 import { LoggerService } from '../core/logger.service';
+import { StorageContextService } from '../core/storage-context.service';
 
 /**
  * Result of a project rename migration
@@ -37,6 +38,7 @@ export interface MigrationResult {
 })
 export class ProjectRenameMigrationService {
   private readonly logger = inject(LoggerService);
+  private readonly storageContext = inject(StorageContextService);
 
   /**
    * Migrate all local IndexedDB data for a project from old slug to new slug.
@@ -126,7 +128,9 @@ export class ProjectRenameMigrationService {
    * List all IndexedDB databases that belong to a project.
    *
    * y-indexeddb creates databases with the document ID as the name.
-   * Document IDs follow the pattern: username:slug:elementId
+   * Elements and prose documents live under the active profile's prefix
+   * (`<prefix>username:slug:elementId`); worldbuilding docs are unprefixed
+   * (`worldbuilding:username:slug:elementId`).
    *
    * @param username - Project owner username
    * @param slug - Project slug
@@ -140,12 +144,13 @@ export class ProjectRenameMigrationService {
     if ('databases' in indexedDB) {
       try {
         const allDatabases = await indexedDB.databases();
-        const projectPrefix = `${username}:${slug}:`;
+        const markers = this.projectMarkers(username, slug);
 
         return allDatabases
           .map(db => db.name)
           .filter(
-            (name): name is string => name?.startsWith(projectPrefix) === true
+            (name): name is string =>
+              !!name && markers.some(marker => name.startsWith(marker))
           );
       } catch (error) {
         this.logger.warn(
@@ -170,7 +175,8 @@ export class ProjectRenameMigrationService {
     slug: string
   ): Promise<string[]> {
     const knownPatterns = [
-      `${username}:${slug}:elements`, // Main elements document
+      // Main elements document
+      this.storageContext.prefixDocumentId(`${username}:${slug}:elements`),
       // Add more known patterns as needed
     ];
 
@@ -216,6 +222,38 @@ export class ProjectRenameMigrationService {
   }
 
   /**
+   * Database-name prefixes of a project's Yjs docs: elements and prose
+   * documents under the active profile's prefix, then worldbuilding docs.
+   */
+  private projectMarkers(username: string, slug: string): string[] {
+    return [
+      this.storageContext.prefixDocumentId(`${username}:${slug}:`),
+      `worldbuilding:${username}:${slug}:`,
+    ];
+  }
+
+  /**
+   * The name `dbName` gets once the project moves from `oldSlug` to
+   * `newSlug`, keeping its profile prefix (or worldbuilding marker).
+   */
+  private renamedDatabaseName(
+    dbName: string,
+    username: string,
+    oldSlug: string,
+    newSlug: string
+  ): string {
+    const oldMarkers = this.projectMarkers(username, oldSlug);
+    const newMarkers = this.projectMarkers(username, newSlug);
+    const index = oldMarkers.findIndex(marker => dbName.startsWith(marker));
+    if (index < 0) {
+      throw new Error(
+        `Database name ${dbName} doesn't match expected pattern ${oldMarkers[0]}`
+      );
+    }
+    return `${newMarkers[index]}${dbName.substring(oldMarkers[index].length)}`;
+  }
+
+  /**
    * Migrate a single database from old document ID to new document ID.
    *
    * Uses Yjs to load the document from the old ID and save to the new ID.
@@ -234,15 +272,12 @@ export class ProjectRenameMigrationService {
     newSlug: string
   ): Promise<boolean> {
     // Calculate the new database name
-    const oldPrefix = `${username}:${oldSlug}:`;
-    if (!dbName.startsWith(oldPrefix)) {
-      throw new Error(
-        `Database name ${dbName} doesn't match expected pattern ${oldPrefix}`
-      );
-    }
-
-    const suffix = dbName.substring(oldPrefix.length);
-    const newDbName = `${username}:${newSlug}:${suffix}`;
+    const newDbName = this.renamedDatabaseName(
+      dbName,
+      username,
+      oldSlug,
+      newSlug
+    );
 
     this.logger.debug(
       'ProjectRenameMigration',

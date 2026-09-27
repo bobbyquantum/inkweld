@@ -23,7 +23,7 @@
 
 import { type Page } from '@playwright/test';
 
-import { openProjectFromGrid } from '../common/test-helpers';
+import { documentDbName, openProjectFromGrid } from '../common/test-helpers';
 import { expect, test } from './fixtures';
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -216,7 +216,10 @@ test.describe('Local Document Creation - IndexedDB Storage', () => {
       await expect(page).toHaveURL(/document\/.+/);
 
       const elementId = new URL(page.url()).pathname.split('/').pop()!;
-      const expectedDocDb = `testuser:test-project:${elementId}`;
+      const expectedDocDb = await documentDbName(
+        page,
+        `testuser:test-project:${elementId}`
+      );
 
       const editor = page
         .getByTestId('document-editor')
@@ -289,7 +292,10 @@ test.describe('Unsynchronized Document Detection', () => {
       await expect(page).toHaveURL(/document\/.+/);
 
       const elementId = new URL(page.url()).pathname.split('/').pop()!;
-      const expectedDocDb = `testuser:test-project:${elementId}`;
+      const expectedDocDb = await documentDbName(
+        page,
+        `testuser:test-project:${elementId}`
+      );
 
       const editor = page
         .getByTestId('document-editor')
@@ -324,7 +330,10 @@ test.describe('Unsynchronized Document Detection', () => {
       await expect(page).toHaveURL(/document\/.+/);
 
       const elementId = new URL(page.url()).pathname.split('/').pop()!;
-      const expectedDocDb = `testuser:test-project:${elementId}`;
+      const expectedDocDb = await documentDbName(
+        page,
+        `testuser:test-project:${elementId}`
+      );
 
       const editor = page
         .getByTestId('document-editor')
@@ -366,7 +375,10 @@ test.describe('Unsynchronized Document Detection', () => {
       await expect(page).toHaveURL(/document\/.+/);
 
       const elementId = new URL(page.url()).pathname.split('/').pop()!;
-      const expectedDocDb = `testuser:test-project:${elementId}`;
+      const expectedDocDb = await documentDbName(
+        page,
+        `testuser:test-project:${elementId}`
+      );
 
       const editor = page
         .getByTestId('document-editor')
