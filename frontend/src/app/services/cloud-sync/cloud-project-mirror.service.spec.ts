@@ -135,7 +135,12 @@ describe('CloudProjectMirrorService', () => {
 
     const docAccessMock = {
       elementsDocId: () => elementsId,
-      exists: vi.fn((docId: string) => Promise.resolve(docs.docs.has(docId))),
+      documentExists: vi.fn((docId: string) =>
+        Promise.resolve(docs.docs.has(docId))
+      ),
+      worldbuildingExists: vi.fn((docId: string) =>
+        Promise.resolve(docs.docs.has(docId))
+      ),
       acquireElements: vi.fn(() => docs.acquire(elementsId)),
       acquireDocument: vi.fn((docId: string) => docs.acquire(docId)),
       acquireWorldbuilding: vi.fn(

@@ -171,7 +171,7 @@ describe('ProjectRenameMigrationService', () => {
 
     it('should migrate databases when databases() returns matching entries', async () => {
       // First create a Yjs database with some content
-      const oldDocId = 'testuser:old-project:elements';
+      const oldDocId = 'local:testuser:old-project:elements';
       const doc = new Y.Doc();
       doc.getText('content').insert(0, 'Content to migrate');
       const provider = new IndexeddbPersistence(oldDocId, doc);
@@ -197,7 +197,7 @@ describe('ProjectRenameMigrationService', () => {
 
     it('should increment documentsMigrated when database is successfully processed', async () => {
       // Create a Yjs database with actual content so migration logic runs
-      const oldDocId = 'testuser:old-project:doc1';
+      const oldDocId = 'local:testuser:old-project:doc1';
       const doc = new Y.Doc();
       const text = doc.getText('content');
       text.insert(0, 'This is real content that should persist');
@@ -227,7 +227,7 @@ describe('ProjectRenameMigrationService', () => {
     it('should handle migration errors and record them', async () => {
       // Mock databases() to return a database matching the prefix
       vi.spyOn(indexedDB, 'databases').mockResolvedValue([
-        { name: 'testuser:old-project:elements', version: 1 },
+        { name: 'local:testuser:old-project:elements', version: 1 },
       ]);
 
       // Spy on private migrateDatabase to simulate a real migration error
@@ -252,7 +252,7 @@ describe('ProjectRenameMigrationService', () => {
     it('should process Yjs databases with data', async () => {
       // Create a database with content under the old slug - using inline creation
       // to ensure the provider stays in scope during the test
-      const oldDocId = 'testuser:old-project:elements';
+      const oldDocId = 'local:testuser:old-project:elements';
       const doc = new Y.Doc();
       doc.getText('content').insert(0, 'Test content');
       const provider = new IndexeddbPersistence(oldDocId, doc);
@@ -274,7 +274,7 @@ describe('ProjectRenameMigrationService', () => {
 
     it('should skip empty Yjs databases', async () => {
       // Create an empty database (just open and close)
-      const oldDocId = 'testuser:old-project:elements';
+      const oldDocId = 'local:testuser:old-project:elements';
       const emptyDoc = new Y.Doc();
       const provider = new IndexeddbPersistence(oldDocId, emptyDoc);
       await provider.whenSynced;
@@ -300,7 +300,7 @@ describe('ProjectRenameMigrationService', () => {
         const doc = new Y.Doc();
         doc.getText('content').insert(0, `Content for ${suffix}`);
         const provider = new IndexeddbPersistence(
-          `testuser:old-project:${suffix}`,
+          `local:testuser:old-project:${suffix}`,
           doc
         );
         await provider.whenSynced;
@@ -323,6 +323,61 @@ describe('ProjectRenameMigrationService', () => {
       // Migration should complete successfully
       expect(result.success).toBe(true);
       expect(result.documentsFailed).toBe(0);
+    });
+
+    it("selects the active profile's docs and worldbuilding docs, leaving other profiles alone", async () => {
+      vi.spyOn(indexedDB, 'databases').mockResolvedValue([
+        { name: 'local:testuser:old-project:doc-1', version: 1 },
+        { name: 'worldbuilding:testuser:old-project:wb-1', version: 1 },
+        // Another profile's copy and a pre-migration unprefixed doc
+        { name: 'srv:abc:testuser:old-project:doc-1', version: 1 },
+        { name: 'testuser:old-project:doc-2', version: 1 },
+      ]);
+      const migrate = vi
+        .spyOn(
+          service as unknown as {
+            migrateDatabase: (name: string) => Promise<boolean>;
+          },
+          'migrateDatabase'
+        )
+        .mockResolvedValue(true);
+
+      const result = await service.migrateProject(
+        'testuser',
+        'old-project',
+        'new-project'
+      );
+
+      expect(result.documentsMigrated).toBe(2);
+      expect(migrate.mock.calls.map(call => call[0])).toEqual([
+        'local:testuser:old-project:doc-1',
+        'worldbuilding:testuser:old-project:wb-1',
+      ]);
+    });
+
+    it('renames a database keeping its profile prefix or worldbuilding marker', () => {
+      const rename = (name: string) =>
+        (
+          service as unknown as {
+            renamedDatabaseName: (
+              dbName: string,
+              username: string,
+              oldSlug: string,
+              newSlug: string
+            ) => string;
+          }
+        ).renamedDatabaseName(name, 'testuser', 'old-project', 'new-project');
+
+      expect(rename('local:testuser:old-project:doc-1')).toBe(
+        'local:testuser:new-project:doc-1'
+      );
+      expect(rename('local:testuser:old-project:elements')).toBe(
+        'local:testuser:new-project:elements'
+      );
+      expect(rename('worldbuilding:testuser:old-project:wb-1')).toBe(
+        'worldbuilding:testuser:new-project:wb-1'
+      );
+      expect(() => rename('testuser:old-project:doc-2')).toThrow();
     });
 
     it('should handle same old and new slugs', async () => {
@@ -355,7 +410,7 @@ describe('ProjectRenameMigrationService', () => {
       delete (indexedDB as any)['databases'];
 
       // Create a proper y-indexeddb database so IndexeddbPersistence can read it
-      const dbName = 'testuser:old-project:elements';
+      const dbName = 'local:testuser:old-project:elements';
       const doc = new Y.Doc();
       doc.getText('content').insert(0, 'Fallback test content');
       const provider = new IndexeddbPersistence(dbName, doc);
@@ -387,7 +442,7 @@ describe('ProjectRenameMigrationService', () => {
       const doc = new Y.Doc();
       doc.getText('content').insert(0, 'Content');
       const provider = new IndexeddbPersistence(
-        'testuser:old-project:elements',
+        'local:testuser:old-project:elements',
         doc
       );
       await provider.whenSynced;
@@ -516,7 +571,7 @@ describe('ProjectRenameMigrationService', () => {
       const doc = new Y.Doc();
       doc.getText('content').insert(0, 'Content');
       const provider = new IndexeddbPersistence(
-        'testuser:old-project:elements',
+        'local:testuser:old-project:elements',
         doc
       );
       await provider.whenSynced;
@@ -538,7 +593,7 @@ describe('ProjectRenameMigrationService', () => {
       const doc = new Y.Doc();
       doc.getText('content').insert(0, 'Content');
       const provider = new IndexeddbPersistence(
-        'testuser:old-project:elements',
+        'local:testuser:old-project:elements',
         doc
       );
       await provider.whenSynced;
@@ -598,7 +653,7 @@ describe('ProjectRenameMigrationService', () => {
       const doc1 = new Y.Doc();
       doc1.getText('content').insert(0, 'Content 1');
       const provider1 = new IndexeddbPersistence(
-        'testuser:old-project:elements',
+        'local:testuser:old-project:elements',
         doc1
       );
       await provider1.whenSynced;
@@ -632,7 +687,7 @@ describe('ProjectRenameMigrationService', () => {
       text.insert(0, 'Test content');
 
       const provider = new IndexeddbPersistence(
-        'testuser:old-project:elements',
+        'local:testuser:old-project:elements',
         doc
       );
       await provider.whenSynced;

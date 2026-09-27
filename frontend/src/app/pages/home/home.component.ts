@@ -843,7 +843,7 @@ export class HomeComponent implements OnInit, OnDestroy {
 
     // Delete every IndexedDB database that belongs to this project:
     //  - prefixed elements/metadata:       {prefix}username:slug:elements
-    //  - unprefixed prose documents:       username:slug:{elementId}
+    //  - prefixed prose documents:         {prefix}username:slug:{elementId}
     //  - unprefixed worldbuilding:         worldbuilding:username:slug:{id}
     //  - prefixed worldbuilding (legacy):  {prefix}worldbuilding:username:slug:{id}
     if ('databases' in indexedDB) {
@@ -851,7 +851,6 @@ export class HomeComponent implements OnInit, OnDestroy {
         const allDbs = await indexedDB.databases();
         const matches = (name: string): boolean =>
           name.startsWith(`${prefix}${username}:${slug}:`) ||
-          name.startsWith(`${username}:${slug}:`) ||
           name.startsWith(`worldbuilding:${username}:${slug}:`) ||
           name.startsWith(`${prefix}worldbuilding:${username}:${slug}:`);
 

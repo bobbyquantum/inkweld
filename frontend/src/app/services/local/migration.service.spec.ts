@@ -28,6 +28,7 @@ describe('MigrationService', () => {
     getServerUrl: ReturnType<typeof vi.fn>;
     getActiveConfig: ReturnType<typeof vi.fn>;
     updateConfigUserProfile: ReturnType<typeof vi.fn>;
+    getPrefixForConfig: ReturnType<typeof vi.fn>;
     storagePrefix: ReturnType<typeof signal>;
   };
   let localProjectService: {
@@ -163,6 +164,9 @@ describe('MigrationService', () => {
         },
       }),
       updateConfigUserProfile: vi.fn(),
+      getPrefixForConfig: vi.fn((id: string) =>
+        id === 'local' ? 'local:' : `srv:${id}:`
+      ),
       storagePrefix: signal('local'),
     };
 
@@ -753,6 +757,7 @@ describe('MigrationService', () => {
           copyDocumentFiles: (
             sourceUsername: string,
             sourceSlug: string,
+            targetConfigId: string,
             targetUsername: string,
             targetSlug: string,
             elements: { id: string; type: string }[]
@@ -760,15 +765,65 @@ describe('MigrationService', () => {
         }
       ).copyDocumentFiles.bind(service);
 
-    it('should skip when username and slug are unchanged', async () => {
+    const spyOnCopySingleDocument = () =>
+      vi
+        .spyOn(
+          service as unknown as {
+            copySingleDocument: (a: string, b: string) => Promise<void>;
+          },
+          'copySingleDocument'
+        )
+        .mockResolvedValue(undefined);
+
+    it('copies prose documents between profile prefixes even when the name is unchanged', async () => {
+      const copySingle = spyOnCopySingleDocument();
       const copyDocumentFiles = getCopyDocumentFiles();
 
-      await copyDocumentFiles('testuser', 'my-slug', 'testuser', 'my-slug', []);
-
-      expect(loggerMock.debug).toHaveBeenCalledWith(
-        'MigrationService',
-        'Skipping document copy - username and slug unchanged'
+      await copyDocumentFiles(
+        'testuser',
+        'my-slug',
+        'cfg1',
+        'testuser',
+        'my-slug',
+        [
+          { id: 'doc1', type: 'ITEM' },
+          { id: 'wb1', type: 'WORLDBUILDING' },
+        ]
       );
+
+      // Worldbuilding keys are unprefixed, so an unchanged name needs no copy
+      expect(copySingle.mock.calls).toEqual([
+        ['local:testuser:my-slug:doc1', 'srv:cfg1:testuser:my-slug:doc1'],
+      ]);
+      expect(loggerMock.info).toHaveBeenCalledWith(
+        'MigrationService',
+        'Copying 1 document files'
+      );
+    });
+
+    it('copies prose and worldbuilding documents when renamed', async () => {
+      const copySingle = spyOnCopySingleDocument();
+      const copyDocumentFiles = getCopyDocumentFiles();
+
+      await copyDocumentFiles(
+        'olduser',
+        'old-slug',
+        'cfg1',
+        'newuser',
+        'new-slug',
+        [
+          { id: 'doc1', type: 'ITEM' },
+          { id: 'wb1', type: 'WORLDBUILDING' },
+        ]
+      );
+
+      expect(copySingle.mock.calls).toEqual([
+        ['local:olduser:old-slug:doc1', 'srv:cfg1:newuser:new-slug:doc1'],
+        [
+          'worldbuilding:olduser:old-slug:wb1',
+          'worldbuilding:newuser:new-slug:wb1',
+        ],
+      ]);
     });
 
     it('should log the count of documents to copy', async () => {
@@ -782,6 +837,7 @@ describe('MigrationService', () => {
       await copyDocumentFiles(
         'olduser',
         'old-slug',
+        'cfg1',
         'newuser',
         'new-slug',
         elements
@@ -801,6 +857,7 @@ describe('MigrationService', () => {
       await copyDocumentFiles(
         'olduser',
         'old-slug',
+        'cfg1',
         'newuser',
         'new-slug',
         elements
@@ -822,6 +879,7 @@ describe('MigrationService', () => {
       await copyDocumentFiles(
         'olduser',
         'old-slug',
+        'cfg1',
         'newuser',
         'new-slug',
         elements

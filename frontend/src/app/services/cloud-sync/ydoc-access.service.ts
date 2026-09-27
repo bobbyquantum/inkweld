@@ -47,9 +47,21 @@ export class YDocAccessService {
     return this.storageContext.prefixDocumentId(`${username}:${slug}:elements`);
   }
 
-  /** Whether a doc has any persisted content, without creating its database */
-  exists(docId: string): Promise<boolean> {
+  /**
+   * Whether a prose document has any persisted content, without creating its
+   * database. Takes the bare `user:slug:elementId` id; the local database
+   * name is profile-scoped.
+   */
+  documentExists(docId: string): Promise<boolean> {
     return this.liveDocs.hasLocalContent(docId);
+  }
+
+  /**
+   * Whether a worldbuilding doc has any persisted content, without creating
+   * its database. Worldbuilding databases are named by their doc id as-is.
+   */
+  worldbuildingExists(docId: string): Promise<boolean> {
+    return this.liveDocs.databaseHasContent(docId);
   }
 
   /**
@@ -69,7 +81,7 @@ export class YDocAccessService {
   async acquireDocument(docId: string): Promise<AcquiredDoc> {
     const live = this.liveDocs.getConnectedYDoc(docId);
     if (live) return this.liveDoc(live);
-    return this.headless(docId);
+    return this.headless(this.storageContext.prefixDocumentId(docId));
   }
 
   async acquireWorldbuilding(

@@ -9,6 +9,7 @@ import AdmZip from 'adm-zip';
 import { promises as fs } from 'fs';
 
 import {
+  documentDbName,
   waitForElementsDocPersisted,
   waitForIndexedDBStable,
 } from '../common/test-helpers';
@@ -300,7 +301,7 @@ test.describe('Online Publishing Workflow', () => {
     const elementId = new URL(page.url()).pathname.split('/').pop()!;
     await waitForIndexedDBStable(
       page,
-      `${username}:format-content:${elementId}`
+      await documentDbName(page, `${username}:format-content:${elementId}`)
     );
 
     await createPublishPlan(page);

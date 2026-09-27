@@ -214,7 +214,8 @@ export class CloudProjectMirrorService {
         await this.syncOptionalDoc(
           store,
           documentPath(username, slug, element.id),
-          documentDocId(username, slug, element.id),
+          () =>
+            this.docs.documentExists(documentDocId(username, slug, element.id)),
           () =>
             this.docs.acquireDocument(
               documentDocId(username, slug, element.id)
@@ -227,7 +228,7 @@ export class CloudProjectMirrorService {
         await this.syncOptionalDoc(
           store,
           worldbuildingPath(username, slug, element.id),
-          docId,
+          () => this.docs.worldbuildingExists(docId),
           () =>
             this.docs.acquireWorldbuilding(username, slug, element.id, docId),
           files,
@@ -337,13 +338,13 @@ export class CloudProjectMirrorService {
   private async syncOptionalDoc(
     store: RemoteStore,
     path: string,
-    docId: string,
+    existsLocally: () => Promise<boolean>,
     acquire: () => Promise<AcquiredDoc>,
     files: Map<string, RemoteFileInfo>,
     summary: ProjectSyncSummary
   ): Promise<void> {
     const remote = files.get(path);
-    if (!remote && !(await this.docs.exists(docId))) return;
+    if (!remote && !(await existsLocally())) return;
     const acquired = await acquire();
     try {
       await this.syncYDoc(store, path, acquired, files, summary);

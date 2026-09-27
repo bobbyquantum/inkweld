@@ -19,6 +19,7 @@ describe('YDocAccessService', () => {
   let documentService: {
     getConnectedYDoc: ReturnType<typeof vi.fn>;
     hasLocalContent: ReturnType<typeof vi.fn>;
+    databaseHasContent: ReturnType<typeof vi.fn>;
   };
   let worldbuilding: { getYDoc: ReturnType<typeof vi.fn> };
 
@@ -31,6 +32,7 @@ describe('YDocAccessService', () => {
     documentService = {
       getConnectedYDoc: vi.fn().mockReturnValue(null),
       hasLocalContent: vi.fn().mockResolvedValue(false),
+      databaseHasContent: vi.fn().mockResolvedValue(false),
     };
     worldbuilding = { getYDoc: vi.fn().mockReturnValue(null) };
 
@@ -57,12 +59,35 @@ describe('YDocAccessService', () => {
     );
   });
 
-  it('delegates existence checks to the live document registry', async () => {
+  it('checks prose documents by their bare id (the registry scopes it)', async () => {
     documentService.hasLocalContent.mockResolvedValue(true);
-    expect(await service.exists('bobby:novel:e1')).toBe(true);
+    expect(await service.documentExists('bobby:novel:e1')).toBe(true);
     expect(documentService.hasLocalContent).toHaveBeenCalledWith(
       'bobby:novel:e1'
     );
+  });
+
+  it('checks worldbuilding docs by their database name as-is', async () => {
+    documentService.databaseHasContent.mockResolvedValue(true);
+    expect(
+      await service.worldbuildingExists('worldbuilding:bobby:novel:w1')
+    ).toBe(true);
+    expect(documentService.databaseHasContent).toHaveBeenCalledWith(
+      'worldbuilding:bobby:novel:w1'
+    );
+  });
+
+  it('loads a headless prose document from its profile-scoped database', async () => {
+    const prefix = vi.spyOn(
+      TestBed.inject(StorageContextService),
+      'prefixDocumentId'
+    );
+
+    const headless = await service.acquireDocument('bobby:novel:e9');
+    await headless.release();
+
+    expect(prefix).toHaveBeenCalledWith('bobby:novel:e9');
+    expect(prefix).toHaveReturnedWith('cloud-x:bobby:novel:e9');
   });
 
   it('uses the live elements doc only for the open project', async () => {

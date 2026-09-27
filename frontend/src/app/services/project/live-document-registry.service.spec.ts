@@ -79,29 +79,50 @@ describe('LiveDocumentRegistryService', () => {
   });
 
   describe('hasLocalContent', () => {
-    const NAME = 'registry-spec:doc';
+    // The document id, and its profile-scoped database name ("local:" is the
+    // prefix when no configuration is stored)
+    const ID = 'registry-spec:p:doc';
+    const NAME = `local:${ID}`;
 
-    beforeEach(() => deleteDatabase(NAME));
+    beforeEach(async () => {
+      localStorage.clear();
+      await deleteDatabase(NAME);
+      await deleteDatabase(ID);
+    });
 
     it('is true for a registered live doc without touching IndexedDB', async () => {
-      service.register(NAME, new Y.Doc());
-      expect(await service.hasLocalContent(NAME)).toBe(true);
+      service.register(ID, new Y.Doc());
+      expect(await service.hasLocalContent(ID)).toBe(true);
     });
 
     it('is false for a document with no database, and does not create one', async () => {
-      expect(await service.hasLocalContent(NAME)).toBe(false);
+      expect(await service.hasLocalContent(ID)).toBe(false);
       const names = (await indexedDB.databases()).map(d => d.name);
       expect(names).not.toContain(NAME);
+      expect(names).not.toContain(ID);
+    });
+
+    it('reads the profile-scoped database, not the bare document id', async () => {
+      await seedDatabase(ID, 2);
+      expect(await service.hasLocalContent(ID)).toBe(false);
+      await seedDatabase(NAME, 1);
+      expect(await service.hasLocalContent(ID)).toBe(true);
+    });
+
+    it('checks a database by its name as-is with databaseHasContent', async () => {
+      await seedDatabase(ID, 1);
+      expect(await service.databaseHasContent(ID)).toBe(true);
+      expect(await service.databaseHasContent(NAME)).toBe(false);
     });
 
     it('is false for a schema-only database with no persisted updates', async () => {
       await seedDatabase(NAME, 0);
-      expect(await service.hasLocalContent(NAME)).toBe(false);
+      expect(await service.hasLocalContent(ID)).toBe(false);
     });
 
     it('is true when persisted updates exist', async () => {
       await seedDatabase(NAME, 2);
-      expect(await service.hasLocalContent(NAME)).toBe(true);
+      expect(await service.hasLocalContent(ID)).toBe(true);
     });
 
     it('is false for a database with no object stores at all', async () => {
@@ -114,7 +135,7 @@ describe('LiveDocumentRegistryService', () => {
         request.onerror = () =>
           reject(request.error ?? new Error('open failed'));
       });
-      expect(await service.hasLocalContent(NAME)).toBe(false);
+      expect(await service.hasLocalContent(ID)).toBe(false);
     });
 
     it('treats an unexpected schema (no updates store) as having content', async () => {
@@ -130,7 +151,7 @@ describe('LiveDocumentRegistryService', () => {
         request.onerror = () =>
           reject(request.error ?? new Error('open failed'));
       });
-      expect(await service.hasLocalContent(NAME)).toBe(true);
+      expect(await service.hasLocalContent(ID)).toBe(true);
     });
 
     it('is false when IndexedDB is unavailable', async () => {
@@ -138,7 +159,7 @@ describe('LiveDocumentRegistryService', () => {
         throw new Error('IndexedDB disabled');
       });
       try {
-        expect(await service.hasLocalContent(NAME)).toBe(false);
+        expect(await service.hasLocalContent(ID)).toBe(false);
       } finally {
         spy.mockRestore();
       }

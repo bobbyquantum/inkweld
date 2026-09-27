@@ -1524,13 +1524,14 @@ describe('SettingsTabComponent', () => {
 
     it('should enumerate project databases from IndexedDB when supported', async () => {
       vi.stubGlobal('indexedDB', {
-        databases: vi
-          .fn()
-          .mockResolvedValue([
-            { name: 'testuser:test-project:elements' },
-            { name: 'worldbuilding:testuser:test-project:char-1' },
-            { name: 'someone-else:other-project:elements' },
-          ]),
+        databases: vi.fn().mockResolvedValue([
+          { name: 'local:testuser:test-project:elements' },
+          { name: 'local:testuser:test-project:doc-1' },
+          { name: 'worldbuilding:testuser:test-project:char-1' },
+          { name: 'local:someone-else:other-project:elements' },
+          // Another profile's copy of the same project is left alone
+          { name: 'srv:abc123:testuser:test-project:doc-1' },
+        ]),
       });
 
       const databases = await (component as any).getProjectDatabases(
@@ -1539,7 +1540,8 @@ describe('SettingsTabComponent', () => {
       );
 
       expect(databases).toEqual([
-        'testuser:test-project:elements',
+        'local:testuser:test-project:elements',
+        'local:testuser:test-project:doc-1',
         'worldbuilding:testuser:test-project:char-1',
       ]);
     });
@@ -1559,11 +1561,10 @@ describe('SettingsTabComponent', () => {
       );
 
       expect(databases).toEqual([
-        'testuser:test-project:elements',
-        'testuser:test-project:elements/',
-        'testuser:test-project:doc:doc-1',
+        'local:testuser:test-project:elements',
+        'local:testuser:test-project:doc-1',
         'worldbuilding:testuser:test-project:doc-1',
-        'testuser:test-project:doc:doc-2',
+        'local:testuser:test-project:doc-2',
         'worldbuilding:testuser:test-project:doc-2',
       ]);
     });

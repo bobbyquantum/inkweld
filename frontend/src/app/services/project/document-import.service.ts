@@ -1,6 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { type ArchiveWorldbuildingData } from '@models/project-archive';
 import { LoggerService } from '@services/core/logger.service';
+import { StorageContextService } from '@services/core/storage-context.service';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import * as Y from 'yjs';
 
@@ -15,6 +16,7 @@ import * as Y from 'yjs';
 })
 export class DocumentImportService {
   private readonly logger = inject(LoggerService);
+  private readonly storageContext = inject(StorageContextService);
 
   /**
    * Write document content to IndexedDB using Yjs.
@@ -35,8 +37,12 @@ export class DocumentImportService {
     const ydoc = new Y.Doc();
 
     // Create IndexedDB provider BEFORE writing data
-    // This ensures the provider observes the document changes
-    const provider = new IndexeddbPersistence(documentId, ydoc);
+    // This ensures the provider observes the document changes.
+    // The database name is profile-scoped, like DocumentService's.
+    const provider = new IndexeddbPersistence(
+      this.storageContext.prefixDocumentId(documentId),
+      ydoc
+    );
     await provider.whenSynced;
 
     // Store the imported content as JSON in a map
