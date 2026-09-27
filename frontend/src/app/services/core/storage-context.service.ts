@@ -1471,14 +1471,11 @@ export class StorageContextService {
    * Rename a project inside one profile's storage without loading it. This is
    * the one path for moving a project's local data to a new slug; it covers:
    *
-   * 1. Yjs databases. Elements and prose docs under the profile prefix
-   *    (`<prefix>user:slug:id`) and prefixed worldbuilding docs
-   *    (`<prefix>worldbuilding:user:slug:id`) are merged into their new name
-   *    and the original deleted. Legacy worldbuilding docs carry no prefix
-   *    (`worldbuilding:user:slug:id`) and are shared by every profile with
-   *    the same project address, so they are copied to the new name and the
-   *    original is only deleted once no other profile on this device still
-   *    has the old slug.
+   * 1. Yjs databases: elements and prose docs (`<prefix>user:slug:id`) and
+   *    worldbuilding docs (`<prefix>worldbuilding:user:slug:id`) are merged
+   *    into their new name and the original deleted. Bare legacy names are
+   *    never touched here; `DocumentStorageMigrationService` moves them under
+   *    a prefix at startup, before any rename can run.
    * 2. Composite keys in the media, snapshot and activation stores.
    * 3. The cached project record and the project list entry.
    *
@@ -1499,24 +1496,18 @@ export class StorageContextService {
     const oldKey = `${username}/${oldSlug}`;
     const newKey = `${username}/${newSlug}`;
 
-    // 1. Yjs document databases
-    const markers = (slug: string) => ({
-      owned: [
-        `${prefix}${username}:${slug}:`,
-        `${prefix}worldbuilding:${username}:${slug}:`,
-      ],
-      shared: `worldbuilding:${username}:${slug}:`,
-    });
-    const from = markers(oldSlug);
-    const to = markers(newSlug);
-    const sharedCopied: string[] = [];
+    // 1. Yjs document databases: <prefix><user>:<slug>:... and the
+    //    worldbuilding variant <prefix>worldbuilding:<user>:<slug>:...
+    const docMarkers = (slug: string): string[] => [
+      `${prefix}${username}:${slug}:`,
+      `${prefix}worldbuilding:${username}:${slug}:`,
+    ];
+    const oldMarkers = docMarkers(oldSlug);
+    const newMarkers = docMarkers(newSlug);
     for (const name of await this.listAllDatabaseNames()) {
-      const owned = from.owned.findIndex(m => name.startsWith(m));
-      const shared = owned < 0 && name.startsWith(from.shared);
-      if (owned < 0 && !shared) continue;
-      const target = shared
-        ? to.shared + name.slice(from.shared.length)
-        : to.owned[owned] + name.slice(from.owned[owned].length);
+      const index = oldMarkers.findIndex(m => name.startsWith(m));
+      if (index < 0) continue;
+      const target = newMarkers[index] + name.slice(oldMarkers[index].length);
       try {
         await cloneDatabase(name, target);
       } catch (error) {
@@ -1525,8 +1516,7 @@ export class StorageContextService {
         continue;
       }
       result.databasesMoved++;
-      if (shared) sharedCopied.push(name);
-      else await deleteDatabase(name);
+      await deleteDatabase(name);
     }
 
     // 2. Composite-key stores: media, snapshots, activations
@@ -1559,38 +1549,7 @@ export class StorageContextService {
       // Unparseable list: nothing to rename
     }
 
-    // 4. Legacy shared worldbuilding docs, once nobody else needs them. Runs
-    //    last so this profile's own list no longer claims the old slug.
-    if (sharedCopied.length > 0) {
-      const names = new Set(await this.listAllDatabaseNames());
-      const stillClaimed = this.configurations().some(config =>
-        this.profileHasProject(config.id, username, oldSlug, names)
-      );
-      if (!stillClaimed) {
-        for (const name of sharedCopied) await deleteDatabase(name);
-      }
-    }
-
     return result;
-  }
-
-  /**
-   * Whether a profile has a project on this device: its elements database
-   * exists, or the project is in its project list.
-   */
-  private profileHasProject(
-    configId: string,
-    username: string,
-    slug: string,
-    databaseNames: Set<string>
-  ): boolean {
-    const prefix = this.getPrefixForConfig(configId);
-    if (databaseNames.has(`${prefix}${username}:${slug}:elements`)) {
-      return true;
-    }
-    return this.listProjectsForContext(configId).some(
-      p => p.username === username && p.slug === slug
-    );
   }
 
   /**

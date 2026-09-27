@@ -20,6 +20,7 @@ import { type ElementTypeSchema } from '../../models/schema-types';
 import { type TimeSystem } from '../../models/time-system';
 import { AuthTokenService } from '../auth/auth-token.service';
 import { SetupService } from '../core/setup.service';
+import { StorageContextService } from '../core/storage-context.service';
 import { VersionCompatibilityService } from '../core/version-compatibility.service';
 import { ElementSyncProviderFactory } from '../sync/element-sync-provider.factory';
 import {
@@ -197,6 +198,23 @@ describe('WorldbuildingService', () => {
 
   it('should be created', () => {
     expect(service).toBeDefined();
+  });
+
+  it('caches a worldbuilding doc under the active profile prefix', async () => {
+    const prefix = vi.spyOn(
+      TestBed.inject(StorageContextService),
+      'prefixDocumentId'
+    );
+
+    await service.getWorldbuildingData('scoped-element', username, slug);
+
+    // "local:" is the prefix when no configuration is stored
+    expect(prefix).toHaveBeenCalledWith(
+      `worldbuilding:${username}:${slug}:scoped-element`
+    );
+    expect(prefix).toHaveReturnedWith(
+      `local:worldbuilding:${username}:${slug}:scoped-element`
+    );
   });
 
   describe('getWorldbuildingData', () => {

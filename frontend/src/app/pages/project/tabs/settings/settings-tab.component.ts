@@ -754,17 +754,20 @@ export class SettingsTabComponent implements OnDestroy {
   /**
    * Get all IndexedDB databases that belong to this project in the active
    * profile. y-indexeddb creates databases named after the document ID;
-   * elements and prose documents carry the profile prefix, worldbuilding
-   * docs do not.
+   * elements, prose documents and worldbuilding docs all carry the profile
+   * prefix.
    */
   private async getProjectDatabases(
     username: string,
     slug: string
   ): Promise<string[]> {
+    // Trailing ':' so project "foo" never matches project "foo-bar"
     const projectPrefix = this.storageContext.prefixDocumentId(
-      `${username}:${slug}`
+      `${username}:${slug}:`
     );
-    const worldbuildingPrefix = `worldbuilding:${username}:${slug}`;
+    const worldbuildingPrefix = this.storageContext.prefixDocumentId(
+      `worldbuilding:${username}:${slug}:`
+    );
     const databases: string[] = [];
 
     // Try to get all databases (not supported in all browsers)
@@ -790,15 +793,15 @@ export class SettingsTabComponent implements OnDestroy {
       // Known document patterns:
       // - {prefix}{username}:{slug}:elements (element tree)
       // - {prefix}{username}:{slug}:{elementId} (prose documents)
-      // - worldbuilding:{username}:{slug}:{elementId} (worldbuilding data per element)
-      databases.push(`${projectPrefix}:elements`);
+      // - {prefix}worldbuilding:{username}:{slug}:{elementId} (worldbuilding data per element)
+      databases.push(`${projectPrefix}elements`);
 
       // Try to get element IDs from current state
       const elements = this.projectState.elements();
       for (const element of elements) {
         databases.push(
-          `${projectPrefix}:${element.id}`,
-          `${worldbuildingPrefix}:${element.id}`
+          `${projectPrefix}${element.id}`,
+          `${worldbuildingPrefix}${element.id}`
         );
       }
     }

@@ -1040,71 +1040,6 @@ describe('StorageContextService', () => {
       });
     }
 
-    it('moves prefixed and legacy worldbuilding docs, dropping the old ones', async () => {
-      service.addLocalConfig({ name: 'W', username: 'w' });
-      mockStorage['local:inkweld-local-projects'] = JSON.stringify([
-        { username: 'w', slug: 'old' },
-      ]);
-      await yDoc('local:w:old:elements', [1]);
-      await yDoc('local:worldbuilding:w:old:e1', [2]);
-      await yDoc('worldbuilding:w:old:e2', [3]);
-
-      const result = await service.renameProjectInContext(
-        LOCAL_CONFIG_ID,
-        'w',
-        'old',
-        'new'
-      );
-
-      expect(result).toEqual({ databasesMoved: 3, errors: [] });
-      expect(await updatesOf('local:w:new:elements')).toEqual([[1]]);
-      expect(await updatesOf('local:worldbuilding:w:new:e1')).toEqual([[2]]);
-      expect(await updatesOf('worldbuilding:w:new:e2')).toEqual([[3]]);
-      for (const name of [
-        'local:w:old:elements',
-        'local:worldbuilding:w:old:e1',
-        'worldbuilding:w:old:e2',
-      ]) {
-        expect(await dbExists(name)).toBe(false);
-      }
-
-      for (const name of [
-        'local:w:new:elements',
-        'local:worldbuilding:w:new:e1',
-        'worldbuilding:w:new:e2',
-      ]) {
-        await drop(name);
-      }
-    });
-
-    it('keeps a legacy worldbuilding doc another profile still uses', async () => {
-      service.addLocalConfig({ name: 'S', username: 's' });
-      const other = service.addServerConfig(
-        'https://rename-shared.example.com'
-      );
-      const otherPrefix = service.getPrefixForConfig(other.id);
-      mockStorage['local:inkweld-local-projects'] = JSON.stringify([
-        { username: 's', slug: 'old' },
-      ]);
-      // The server profile has its own copy of s/old on this device
-      await yDoc(`${otherPrefix}s:old:elements`, [5]);
-      await yDoc('worldbuilding:s:old:e1', [6]);
-
-      await service.renameProjectInContext(LOCAL_CONFIG_ID, 's', 'old', 'new');
-
-      expect(await updatesOf('worldbuilding:s:new:e1')).toEqual([[6]]);
-      expect(await updatesOf('worldbuilding:s:old:e1')).toEqual([[6]]);
-      expect(await dbExists(`${otherPrefix}s:old:elements`)).toBe(true);
-
-      for (const name of [
-        `${otherPrefix}s:old:elements`,
-        'worldbuilding:s:old:e1',
-        'worldbuilding:s:new:e1',
-      ]) {
-        await drop(name);
-      }
-    });
-
     it('merges into an existing new-slug database without losing its edits', async () => {
       service.addLocalConfig({ name: 'M', username: 'm' });
       await yDoc('local:m:old:doc1', [1]);
@@ -1178,6 +1113,42 @@ describe('StorageContextService', () => {
       expect(
         await service.renameProjectInContext(LOCAL_CONFIG_ID, 'a', 'x', 'x')
       ).toEqual({ databasesMoved: 0, errors: [] });
+    });
+
+    it('renames worldbuilding databases, also when the username equals the slug', async () => {
+      service.addLocalConfig({ name: 'A', username: 'a' });
+      for (const name of [
+        'local:worldbuilding:novel:novel:w1',
+        'local:novel:novel:e1',
+        // Another profile's copy and a bare legacy name stay put
+        'srv:abc:worldbuilding:novel:novel:w1',
+        'worldbuilding:novel:novel:w1',
+      ]) {
+        const db = await open(name, d => {
+          d.createObjectStore('updates', { autoIncrement: true });
+        });
+        await write(db, 'updates', new Uint8Array([9]));
+        db.close();
+      }
+
+      await service.renameProjectInContext(
+        LOCAL_CONFIG_ID,
+        'novel',
+        'novel',
+        'saga'
+      );
+
+      const names = (await indexedDB.databases())
+        .map(d => d.name ?? '')
+        .filter(name => name.includes('novel:'))
+        .sort();
+      expect(names).toEqual([
+        'local:novel:saga:e1',
+        'local:worldbuilding:novel:saga:w1',
+        'srv:abc:worldbuilding:novel:novel:w1',
+        'worldbuilding:novel:novel:w1',
+      ]);
+      for (const name of names) await drop(name);
     });
   });
 

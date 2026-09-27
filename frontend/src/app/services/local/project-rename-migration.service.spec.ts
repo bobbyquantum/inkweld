@@ -216,9 +216,10 @@ describe('ProjectRenameMigrationService', () => {
       );
       await writeDoc('local:alice:old:elements', 'tree');
       await writeDoc('local:alice:old:doc1', 'prose');
-      await writeDoc('worldbuilding:alice:old:char1', 'hero');
-      // Another profile's copy of the same project is not touched
+      await writeDoc('local:worldbuilding:alice:old:char1', 'hero');
+      // Another profile's copy and a bare legacy name are not touched
       await writeDoc('srv:other:alice:old:doc1', 'theirs');
+      await writeDoc('worldbuilding:alice:old:char2', 'legacy');
 
       const result = await service.migrateProject('alice', 'old', 'new');
 
@@ -231,12 +232,13 @@ describe('ProjectRenameMigrationService', () => {
       expect(await names()).toEqual([
         'local:alice:new:doc1',
         'local:alice:new:elements',
+        'local:worldbuilding:alice:new:char1',
         'srv:other:alice:old:doc1',
-        'worldbuilding:alice:new:char1',
+        'worldbuilding:alice:old:char2',
       ]);
       expect(await readDoc('local:alice:new:elements')).toBe('tree');
       expect(await readDoc('local:alice:new:doc1')).toBe('prose');
-      expect(await readDoc('worldbuilding:alice:new:char1')).toBe('hero');
+      expect(await readDoc('local:worldbuilding:alice:new:char1')).toBe('hero');
       expect(
         JSON.parse(localStorage.getItem('local:inkweld-local-projects')!)
       ).toEqual([{ username: 'alice', slug: 'new' }]);

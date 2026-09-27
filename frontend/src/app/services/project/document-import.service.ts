@@ -82,9 +82,11 @@ export class DocumentImportService {
     username: string,
     slug: string
   ): Promise<void> {
-    // Key format must match worldbuilding.service.ts setupCollaboration()
-    // Include project key to prevent cross-project data collisions
-    const docId = `worldbuilding:${username}:${slug}:${wb.elementId}`;
+    // Database name must match worldbuilding.service.ts createConnection():
+    // the project-scoped doc id under the active profile's prefix
+    const docId = this.storageContext.prefixDocumentId(
+      `worldbuilding:${username}:${slug}:${wb.elementId}`
+    );
 
     try {
       // Create a Yjs document for the worldbuilding data

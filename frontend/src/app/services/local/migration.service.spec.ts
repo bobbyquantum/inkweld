@@ -319,6 +319,22 @@ describe('MigrationService', () => {
       );
     });
 
+    it('fails the project, leaving it unmigrated, when a document copy fails', async () => {
+      setMockProjects([mockProjects[0]]);
+      vi.spyOn(
+        service as unknown as { copyDocumentFiles: () => Promise<void> },
+        'copyDocumentFiles'
+      ).mockRejectedValue(new Error('Failed to copy document x'));
+
+      await service.migrateToServerMode('config-123', 'testuser');
+
+      const state = service.migrationState();
+      expect(state.failedProjects).toBe(1);
+      expect(state.completedProjects).toBe(0);
+      expect(state.projectStatuses[0].status).toBe(MigrationStatus.Failed);
+      expect(localProjectService.markProjectAsMigrated).not.toHaveBeenCalled();
+    });
+
     it('should update project statuses during migration', async () => {
       setMockProjects([mockProjects[0]]);
 
@@ -775,7 +791,7 @@ describe('MigrationService', () => {
         )
         .mockResolvedValue(undefined);
 
-    it('copies prose documents between profile prefixes even when the name is unchanged', async () => {
+    it('copies prose and worldbuilding documents between profile prefixes even when the name is unchanged', async () => {
       const copySingle = spyOnCopySingleDocument();
       const copyDocumentFiles = getCopyDocumentFiles();
 
@@ -791,13 +807,16 @@ describe('MigrationService', () => {
         ]
       );
 
-      // Worldbuilding keys are unprefixed, so an unchanged name needs no copy
       expect(copySingle.mock.calls).toEqual([
         ['local:testuser:my-slug:doc1', 'srv:cfg1:testuser:my-slug:doc1'],
+        [
+          'local:worldbuilding:testuser:my-slug:wb1',
+          'srv:cfg1:worldbuilding:testuser:my-slug:wb1',
+        ],
       ]);
       expect(loggerMock.info).toHaveBeenCalledWith(
         'MigrationService',
-        'Copying 1 document files'
+        'Copying 1 document files and 1 worldbuilding elements'
       );
     });
 
@@ -820,8 +839,8 @@ describe('MigrationService', () => {
       expect(copySingle.mock.calls).toEqual([
         ['local:olduser:old-slug:doc1', 'srv:cfg1:newuser:new-slug:doc1'],
         [
-          'worldbuilding:olduser:old-slug:wb1',
-          'worldbuilding:newuser:new-slug:wb1',
+          'local:worldbuilding:olduser:old-slug:wb1',
+          'srv:cfg1:worldbuilding:newuser:new-slug:wb1',
         ],
       ]);
     });
@@ -905,14 +924,21 @@ describe('MigrationService', () => {
         }
       ).copySingleDocument.bind(service);
 
-    it('should handle errors gracefully and log warning', async () => {
+    it('rethrows a failed copy after logging it', async () => {
       const copySingleDocument = getCopySingleDocument();
+      // Fail inside the copy via the spec's own logger mock: in CI specs share
+      // one module graph, so spying on y-indexeddb may miss the service's copy
+      loggerMock.debug.mockImplementationOnce(() => {
+        throw new Error('boom');
+      });
 
-      // Mock IndexeddbPersistence to throw - it will fail but should be caught
-      // Should not throw - errors are caught and logged
       await expect(
-        copySingleDocument('nonexistent:source:key', 'nonexistent:target:key')
-      ).resolves.toBeUndefined();
+        copySingleDocument('local:u:s:e1', 'srv:cfg:u:s:e1')
+      ).rejects.toThrow('Failed to copy document local:u:s:e1: boom');
+      expect(loggerMock.warn).toHaveBeenCalledWith(
+        'MigrationService',
+        'Failed to copy document local:u:s:e1: boom'
+      );
     });
 
     it('should skip empty documents', async () => {

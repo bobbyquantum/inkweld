@@ -67,13 +67,13 @@ describe('YDocAccessService', () => {
     );
   });
 
-  it('checks worldbuilding docs by their database name as-is', async () => {
+  it('checks worldbuilding docs under their profile-scoped database name', async () => {
     documentService.databaseHasContent.mockResolvedValue(true);
     expect(
       await service.worldbuildingExists('worldbuilding:bobby:novel:w1')
     ).toBe(true);
     expect(documentService.databaseHasContent).toHaveBeenCalledWith(
-      'worldbuilding:bobby:novel:w1'
+      'cloud-x:worldbuilding:bobby:novel:w1'
     );
   });
 
@@ -137,6 +137,10 @@ describe('YDocAccessService', () => {
     expect(connected.live).toBe(true);
     expect(worldbuilding.getYDoc).toHaveBeenCalledWith('w1', 'bobby', 'novel');
 
+    const prefix = vi.spyOn(
+      TestBed.inject(StorageContextService),
+      'prefixDocumentId'
+    );
     const headless = await service.acquireWorldbuilding(
       'bobby',
       'novel',
@@ -144,6 +148,7 @@ describe('YDocAccessService', () => {
       'worldbuilding:bobby:novel:w2'
     );
     expect(headless.live).toBe(false);
+    expect(prefix).toHaveReturnedWith('cloud-x:worldbuilding:bobby:novel:w2');
     await headless.release();
   });
 });

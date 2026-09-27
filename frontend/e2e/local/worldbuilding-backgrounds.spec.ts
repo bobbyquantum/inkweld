@@ -25,7 +25,7 @@ import { expect, test } from './fixtures';
 const ELEMENT_ID = 'char-elara';
 const USERNAME = 'testuser';
 const SLUG = 'wb-bg-demo';
-const APPEARANCE_DB = `worldbuilding:${USERNAME}:${SLUG}:${ELEMENT_ID}`;
+const APPEARANCE_DB = `local:worldbuilding:${USERNAME}:${SLUG}:${ELEMENT_ID}`;
 
 /** The colour actually chosen via the picker in the first test step. */
 let menuChosenColour = '#4fd8eb';

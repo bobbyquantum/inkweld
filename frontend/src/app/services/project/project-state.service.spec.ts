@@ -908,8 +908,9 @@ describe('ProjectStateService', () => {
       queueMicrotask(() => mockRequest.onsuccess?.({} as Event));
 
       await promise;
+      // Worldbuilding docs also live under the active profile's prefix
       expect(openSpy).toHaveBeenCalledWith(
-        'worldbuilding:testuser:test-project:wb-element'
+        'local:worldbuilding:testuser:test-project:wb-element'
       );
 
       vi.restoreAllMocks();

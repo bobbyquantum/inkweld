@@ -2700,12 +2700,15 @@ export class DocumentService {
     worldbuildingId: string,
     timeoutMs: number = 30000,
     sourceWorldbuildingId?: string,
-    _sourceConfigId?: string
+    sourceConfigId?: string
   ): Promise<void> {
-    // Use sourceWorldbuildingId for local lookup if provided (migration scenario)
-    // NOTE: Worldbuilding data is stored in IndexedDB WITHOUT a prefix (like documents, unlike elements).
-    // The sourceConfigId parameter is kept for API compatibility but not used for worldbuilding.
-    const localDocId = sourceWorldbuildingId ?? worldbuildingId;
+    // Use sourceWorldbuildingId for local lookup if provided (migration
+    // scenario). Like prose documents, the local database is profile-scoped:
+    // the source profile's prefix during a migration, otherwise the active one.
+    const localDocId = this.localDbName(
+      sourceWorldbuildingId ?? worldbuildingId,
+      sourceConfigId
+    );
     const wbSourceSuffix = sourceWorldbuildingId
       ? ` (source: ${sourceWorldbuildingId})`
       : '';
