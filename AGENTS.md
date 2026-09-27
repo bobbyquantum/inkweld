@@ -343,6 +343,16 @@ deletion) removes a profile's documents and worldbuilding data without
 touching another profile's copy of the same `username:slug`, and
 `renameProjectInContext()` moves both.
 
+**Project rename has one local path**: `StorageContextService.renameProjectInContext()`
+(called through `ProjectRenameMigrationService` for the active profile, and by
+`ProfileManagerService.upgradeInto` for a copied profile). It merges each
+old-slug Yjs database — `<prefix>u:s:*` and `<prefix>worldbuilding:u:s:*` —
+into its new name with `cloneDatabase` and deletes the original, then rekeys
+media/snapshots/activations/project cache and the project list.
+`cloneDatabase` never overwrites an existing target: y-indexeddb `updates`
+records are appended under fresh keys, other records only fill free keys.
+Don't add a second copy step in front of it.
+
 Older builds stored these under the bare id, shared by every profile with
 the same username and slug. `DocumentStorageMigrationService` runs at startup
 (an app initializer, before the router can open a document) in two passes —

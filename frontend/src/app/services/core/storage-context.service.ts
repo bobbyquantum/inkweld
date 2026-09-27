@@ -157,6 +157,14 @@ export interface MigrationRecord {
   at: string;
 }
 
+/** Outcome of {@link StorageContextService.renameProjectInContext} */
+export interface ProjectRenameResult {
+  /** Yjs databases copied to the new slug */
+  databasesMoved: number;
+  /** Databases that could not be copied; their originals are kept */
+  errors: string[];
+}
+
 /** What one connection (or an orphaned prefix) has stored on this device */
 export interface ContextDataSummary {
   prefix: string;
@@ -196,10 +204,53 @@ interface StoreShape {
   }[];
 }
 
+/** Open `name` only if it already exists; never creates an empty shell */
+async function openExistingDatabase(name: string): Promise<IDBDatabase | null> {
+  return new Promise((resolve, reject) => {
+    let created = false;
+    const request = indexedDB.open(name);
+    request.onupgradeneeded = () => {
+      // Only a database that did not exist gets here without a version bump
+      created = true;
+      request.transaction?.abort();
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = event => {
+      if (created) {
+        event.preventDefault();
+        resolve(null);
+      } else {
+        reject(request.error ?? new Error(`Failed to open ${name}`));
+      }
+    };
+  });
+}
+
+function createStores(db: IDBDatabase, shapes: StoreShape[]): void {
+  for (const shape of shapes) {
+    if (db.objectStoreNames.contains(shape.name)) continue;
+    const store = db.createObjectStore(shape.name, {
+      keyPath: shape.keyPath ?? undefined,
+      autoIncrement: shape.autoIncrement,
+    });
+    for (const index of shape.indexes) {
+      store.createIndex(index.name, index.keyPath, {
+        unique: index.unique,
+        multiEntry: index.multiEntry,
+      });
+    }
+  }
+}
+
 /**
  * Copy an IndexedDB database to a new name: same version, same object stores
  * and indexes, every record. Records in stores with out-of-line keys keep
  * their original keys.
+ *
+ * If the target already exists it is merged into, never overwritten:
+ * records of out-of-line autoIncrement stores (y-indexeddb's `updates` log)
+ * are appended under fresh keys, which is lossless for Yjs updates, and in
+ * every other store a record is only added when its key is not taken.
  */
 export async function cloneDatabase(
   sourceName: string,
@@ -229,23 +280,19 @@ export async function cloneDatabase(
       }
     );
 
-    const openTarget = indexedDB.open(targetName, source.version);
-    openTarget.onupgradeneeded = () => {
-      const db = openTarget.result;
-      for (const shape of shapes) {
-        if (db.objectStoreNames.contains(shape.name)) continue;
-        const store = db.createObjectStore(shape.name, {
-          keyPath: shape.keyPath ?? undefined,
-          autoIncrement: shape.autoIncrement,
-        });
-        for (const index of shape.indexes) {
-          store.createIndex(index.name, index.keyPath, {
-            unique: index.unique,
-            multiEntry: index.multiEntry,
-          });
-        }
-      }
-    };
+    const existing = await openExistingDatabase(targetName);
+    const merge = existing !== null;
+    let version = source.version;
+    if (existing) {
+      const missing = shapes.some(
+        shape => !existing.objectStoreNames.contains(shape.name)
+      );
+      version = missing ? existing.version + 1 : existing.version;
+      existing.close();
+    }
+
+    const openTarget = indexedDB.open(targetName, version);
+    openTarget.onupgradeneeded = () => createStores(openTarget.result, shapes);
     const target = await requestToPromise(openTarget);
     try {
       for (const shape of shapes) {
@@ -255,8 +302,22 @@ export async function cloneDatabase(
           const tx = target.transaction(shape.name, 'readwrite');
           const store = tx.objectStore(shape.name);
           for (const { key, value } of records) {
-            if (shape.keyPath) store.put(value);
-            else store.put(value, key);
+            if (!merge) {
+              if (shape.keyPath) store.put(value);
+              else store.put(value, key);
+            } else if (!shape.keyPath && shape.autoIncrement) {
+              store.add(value);
+            } else {
+              const request = shape.keyPath
+                ? store.add(value)
+                : store.add(value, key);
+              // Key already taken: the target's own record wins
+              request.onerror = event => {
+                if (request.error?.name !== 'ConstraintError') return;
+                event.preventDefault();
+                event.stopPropagation();
+              };
+            }
           }
           tx.oncomplete = () => resolve();
           tx.onerror = () =>
@@ -328,6 +389,47 @@ async function rekeyProjectRecords(
           reject(tx.error ?? new Error('IndexedDB rekey aborted'));
       });
     }
+  } finally {
+    db.close();
+  }
+}
+
+/**
+ * Move the cached project record (ProjectService's `projects` store, keyed by
+ * `username/slug`) to its new key with the new slug. A missing database or
+ * record is skipped; a record already under the new key is kept.
+ */
+async function moveCachedProject(
+  dbName: string,
+  oldKey: string,
+  newKey: string,
+  newSlug: string
+): Promise<void> {
+  const db = await openExistingDatabase(dbName);
+  if (!db) return;
+  try {
+    if (!db.objectStoreNames.contains('projects')) return;
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction('projects', 'readwrite');
+      const store = tx.objectStore('projects');
+      const read = store.get(oldKey);
+      read.onsuccess = () => {
+        const cached = read.result as Record<string, unknown> | undefined;
+        if (!cached) return;
+        store.delete(oldKey);
+        const write = store.add({ ...cached, slug: newSlug }, newKey);
+        write.onerror = event => {
+          if (write.error?.name !== 'ConstraintError') return;
+          event.preventDefault();
+          event.stopPropagation();
+        };
+      };
+      tx.oncomplete = () => resolve();
+      tx.onerror = () =>
+        reject(tx.error ?? new Error('Project cache move failed'));
+      tx.onabort = () =>
+        reject(tx.error ?? new Error('Project cache move aborted'));
+    });
   } finally {
     db.close();
   }
@@ -1366,19 +1468,30 @@ export class StorageContextService {
   }
 
   /**
-   * Rename a project inside one profile's storage without loading it: every
-   * IndexedDB database named after the project, every composite key in the
-   * media, snapshot and activation stores, and the project list entry.
-   * Used when copying a profile into a cloud account that already holds a
-   * project with the same address.
+   * Rename a project inside one profile's storage without loading it. This is
+   * the one path for moving a project's local data to a new slug; it covers:
+   *
+   * 1. Yjs databases: elements and prose docs (`<prefix>user:slug:id`) and
+   *    worldbuilding docs (`<prefix>worldbuilding:user:slug:id`) are merged
+   *    into their new name and the original deleted. Bare legacy names are
+   *    never touched here; `DocumentStorageMigrationService` moves them under
+   *    a prefix at startup, before any rename can run.
+   * 2. Composite keys in the media, snapshot and activation stores.
+   * 3. The cached project record and the project list entry.
+   *
+   * A database that fails to copy keeps its original and is reported in
+   * `errors`; the other steps still run. Used for a rename on the server
+   * (from settings, or noticed while loading) and when copying a profile into
+   * a cloud account that already holds a project with the same address.
    */
   async renameProjectInContext(
     configId: string,
     username: string,
     oldSlug: string,
     newSlug: string
-  ): Promise<void> {
-    if (oldSlug === newSlug) return;
+  ): Promise<ProjectRenameResult> {
+    const result: ProjectRenameResult = { databasesMoved: 0, errors: [] };
+    if (oldSlug === newSlug) return result;
     const prefix = this.getPrefixForConfig(configId);
     const oldKey = `${username}/${oldSlug}`;
     const newKey = `${username}/${newSlug}`;
@@ -1395,7 +1508,14 @@ export class StorageContextService {
       const index = oldMarkers.findIndex(m => name.startsWith(m));
       if (index < 0) continue;
       const target = newMarkers[index] + name.slice(oldMarkers[index].length);
-      await cloneDatabase(name, target);
+      try {
+        await cloneDatabase(name, target);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        result.errors.push(`Failed to copy ${name} to ${target}: ${message}`);
+        continue;
+      }
+      result.databasesMoved++;
       await deleteDatabase(name);
     }
 
@@ -1408,7 +1528,8 @@ export class StorageContextService {
       await rekeyProjectRecords(`${prefix}${base}`, oldKey, newKey);
     }
 
-    // 3. The project list itself
+    // 3. The cached project and the project list itself
+    await moveCachedProject(`${prefix}projectCache`, oldKey, newKey, newSlug);
     const listKey = `${prefix}inkweld-local-projects`;
     try {
       const raw = localStorage.getItem(listKey);
@@ -1427,6 +1548,8 @@ export class StorageContextService {
     } catch {
       // Unparseable list: nothing to rename
     }
+
+    return result;
   }
 
   /**
