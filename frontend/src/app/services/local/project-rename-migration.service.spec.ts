@@ -328,10 +328,12 @@ describe('ProjectRenameMigrationService', () => {
     it("selects the active profile's docs and worldbuilding docs, leaving other profiles alone", async () => {
       vi.spyOn(indexedDB, 'databases').mockResolvedValue([
         { name: 'local:testuser:old-project:doc-1', version: 1 },
-        { name: 'worldbuilding:testuser:old-project:wb-1', version: 1 },
-        // Another profile's copy and a pre-migration unprefixed doc
+        { name: 'local:worldbuilding:testuser:old-project:wb-1', version: 1 },
+        // Other profiles' copies and pre-migration unprefixed docs
         { name: 'srv:abc:testuser:old-project:doc-1', version: 1 },
+        { name: 'srv:abc:worldbuilding:testuser:old-project:wb-1', version: 1 },
         { name: 'testuser:old-project:doc-2', version: 1 },
+        { name: 'worldbuilding:testuser:old-project:wb-2', version: 1 },
       ]);
       const migrate = vi
         .spyOn(
@@ -351,11 +353,11 @@ describe('ProjectRenameMigrationService', () => {
       expect(result.documentsMigrated).toBe(2);
       expect(migrate.mock.calls.map(call => call[0])).toEqual([
         'local:testuser:old-project:doc-1',
-        'worldbuilding:testuser:old-project:wb-1',
+        'local:worldbuilding:testuser:old-project:wb-1',
       ]);
     });
 
-    it('renames a database keeping its profile prefix or worldbuilding marker', () => {
+    it('renames a database keeping its profile prefix and worldbuilding marker', () => {
       const rename = (name: string) =>
         (
           service as unknown as {
@@ -374,10 +376,11 @@ describe('ProjectRenameMigrationService', () => {
       expect(rename('local:testuser:old-project:elements')).toBe(
         'local:testuser:new-project:elements'
       );
-      expect(rename('worldbuilding:testuser:old-project:wb-1')).toBe(
-        'worldbuilding:testuser:new-project:wb-1'
+      expect(rename('local:worldbuilding:testuser:old-project:wb-1')).toBe(
+        'local:worldbuilding:testuser:new-project:wb-1'
       );
       expect(() => rename('testuser:old-project:doc-2')).toThrow();
+      expect(() => rename('worldbuilding:testuser:old-project:wb-1')).toThrow();
     });
 
     it('should handle same old and new slugs', async () => {

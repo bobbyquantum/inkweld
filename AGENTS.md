@@ -324,30 +324,38 @@ The frontend uses `username:slug:elements` while the backend/MCP uses `username:
 
 ### Local Document Storage Is Profile-Scoped
 
-Prose documents are cached in IndexedDB (y-indexeddb) under
-`storageContext.prefixDocumentId(documentId)` — e.g. `local:alice:novel:<id>`
-or `srv:<configId>:alice:novel:<id>` — just like the elements doc. **Only the
-local database name carries the prefix; the WebSocket document id stays the
-bare `username:slug:elementId`.** Every path that opens a document database
-must use the prefixed name: the editor connection, headless reads
-(`getLocalStateDigest`, `getDocumentContent`, `getYDoc`), headless sync
-(`syncDocumentToServer`, which takes a `sourceConfigId` for migrations),
-`LiveDocumentRegistryService.hasLocalContent`, import, Cloud Sync's
-`YDocAccessService`, and the project rename/migration services. Because of
-this, `StorageContextService.clearContextData()` (profile disconnect, account
-deletion) removes a profile's documents without touching another profile's
-copy of the same `username:slug`. Worldbuilding docs
-(`worldbuilding:username:slug:id`) are still unprefixed.
+Prose documents and worldbuilding docs are cached in IndexedDB (y-indexeddb)
+under `storageContext.prefixDocumentId(docId)` — e.g. `local:alice:novel:<id>`,
+`srv:<configId>:alice:novel:<id>` or `local:worldbuilding:alice:novel:<id>` —
+just like the elements doc. **Only the local database name carries the prefix;
+the WebSocket document id stays the bare `username:slug:elementId`** (for
+worldbuilding too — the `worldbuilding:` marker is local-only). Every path
+that opens a document database must use the prefixed name: the editor and
+`WorldbuildingService` connections, headless reads (`getLocalStateDigest`,
+`getDocumentContent`, `getYDoc`), headless sync (`syncDocumentToServer` /
+`syncWorldbuildingToServer`, which take a `sourceConfigId` for migrations and
+are called with bare ids), `LiveDocumentRegistryService.hasLocalContent`,
+`ProjectStateService.isDocumentUnavailable`, import, Cloud Sync's
+`YDocAccessService` (which takes bare ids and prefixes them), the project
+reset/purge paths, and the project rename/migration services. Because of this,
+`StorageContextService.clearContextData()` (profile disconnect, account
+deletion) removes a profile's documents and worldbuilding data without
+touching another profile's copy of the same `username:slug`, and
+`renameProjectInContext()` moves both.
 
-Older builds stored documents under the bare id, shared by every profile with
-the same username and slug. `DocumentStorageMigrationService` runs once at
-startup (an app initializer, before the router can open a document) and
-copies each bare `username:slug:elementId` database into **every** profile
-that has that project on the device (its elements database exists, or the
-project is in its project list), verifies each copy by re-reading it, and only
-then deletes the original. Databases no profile claims are left in place.
-The `inkweld-document-storage-migrated` localStorage flag records completion;
-a failed copy leaves the flag unset so the migration retries next start.
+Older builds stored these under the bare id, shared by every profile with
+the same username and slug. `DocumentStorageMigrationService` runs at startup
+(an app initializer, before the router can open a document) in two passes —
+prose (bare `username:slug:elementId`) and worldbuilding (bare
+`worldbuilding:username:slug:elementId`) — and copies each legacy database
+into **every** profile that has that project on the device (its elements
+database exists, or the project is in its project list), verifies each copy
+by re-reading it, and only then deletes the original. Databases no profile
+claims are left in place, and code that deletes a project's databases never
+touches bare names (they may belong to another profile). Each pass has its own
+localStorage flag (`inkweld-document-storage-migrated`,
+`inkweld-worldbuilding-storage-migrated`); a failed copy leaves that pass's
+flag unset so it retries next start.
 
 ### Bulk Sync Fast Path (Document Revision Manifest)
 
@@ -542,14 +550,16 @@ sign-up, so users can delete their own server account:
   page (`pages/delete-account/`, the web link for the Play listing; also a
   reserved username). After success `UserService.deleteAccount()` signs out and
   wipes the server profile's local data with `clearContextData` — prose
-  documents included, since they are stored under the profile prefix (see
+  documents and worldbuilding data included, since they are stored under the
+  profile prefix (see
   "Local Document Storage Is Profile-Scoped"); other profiles on the device
   keep their own copies. Then the app does a full load of
   `/delete-account?deleted=1` so queued IndexedDB deletes can complete.
 - E2E: `e2e/online/account-deletion.spec.ts` also runs under the wrangler
   config. The self-service test re-registers the same username and re-creates
   the slug to prove that media, LevelDB, Durable Object and local IndexedDB
-  data do not survive; the admin-deletion test does the same for server
+  data (prose and worldbuilding) do not survive; the admin-deletion test does
+  the same for server
   documents only.
 - `/delete-account` is exempt from the policy-acceptance gate, so someone who
   won't accept new terms can still delete their account.

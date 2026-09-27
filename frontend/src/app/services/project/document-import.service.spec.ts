@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { LoggerService } from '../core/logger.service';
+import { StorageContextService } from '../core/storage-context.service';
 import { DocumentImportService } from './document-import.service';
 
 // y-indexeddb is mocked globally in setup-vitest.ts with full on/off support.
@@ -87,6 +88,27 @@ describe('DocumentImportService', () => {
   });
 
   describe('writeWorldbuildingData', () => {
+    it('stores the data under the active profile prefix', async () => {
+      const prefix = vi.spyOn(
+        TestBed.inject(StorageContextService),
+        'prefixDocumentId'
+      );
+
+      await service.writeWorldbuildingData(
+        { elementId: 'wb-1', schemaId: 'character-v1', data: {} },
+        'testuser',
+        'project-slug'
+      );
+
+      // "local:" is the prefix when no configuration is stored
+      expect(prefix).toHaveBeenCalledWith(
+        'worldbuilding:testuser:project-slug:wb-1'
+      );
+      expect(prefix).toHaveReturnedWith(
+        'local:worldbuilding:testuser:project-slug:wb-1'
+      );
+    });
+
     it('should write worldbuilding data to IndexedDB', async () => {
       const wb = {
         elementId: 'wb-elem-123',

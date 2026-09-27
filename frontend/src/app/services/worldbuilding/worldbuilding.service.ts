@@ -18,6 +18,7 @@ import { type ElementTypeSchema } from '../../models/schema-types';
 import { AuthTokenService } from '../auth/auth-token.service';
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
+import { StorageContextService } from '../core/storage-context.service';
 import { VersionCompatibilityService } from '../core/version-compatibility.service';
 import { createAuthenticatedWebsocketProvider } from '../sync/authenticated-websocket-provider';
 import { ElementSyncProviderFactory } from '../sync/element-sync-provider.factory';
@@ -81,6 +82,7 @@ export class WorldbuildingService {
   private readonly authTokenService = inject(AuthTokenService);
   private readonly versionCompatibility = inject(VersionCompatibilityService);
   private readonly logger = inject(LoggerService);
+  private readonly storageContext = inject(StorageContextService);
 
   // Per-element worldbuilding data connections (each element has its own Yjs doc)
   private readonly connections = new Map<string, WorldbuildingConnection>();
@@ -235,9 +237,13 @@ export class WorldbuildingService {
     const identityMap = ydoc.getMap('identity');
     const schemaMap = ydoc.getMap('schema');
 
-    // Initialize IndexedDB provider for offline persistence
-    // Include project key to prevent cross-project data collisions
-    const dbKey = `worldbuilding:${username}:${slug}:${elementId}`;
+    // Initialize IndexedDB provider for offline persistence. The database is
+    // named after the project (no cross-project collisions) under the active
+    // profile's prefix (no cross-profile sharing); the WebSocket doc id is
+    // unprefixed.
+    const dbKey = this.storageContext.prefixDocumentId(
+      `worldbuilding:${username}:${slug}:${elementId}`
+    );
     const indexeddbProvider = new IndexeddbPersistence(dbKey, ydoc);
 
     // Wait for IndexedDB sync with timeout

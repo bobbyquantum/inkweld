@@ -14,6 +14,8 @@ import {
   DOCUMENT_STORAGE_MIGRATION_KEY,
   DocumentStorageMigrationService,
   parseLegacyDocumentDbName,
+  parseLegacyWorldbuildingDbName,
+  WORLDBUILDING_STORAGE_MIGRATION_KEY,
 } from './document-storage-migration.service';
 
 /** Write `update` into a database laid out the way y-indexeddb does it */
@@ -119,6 +121,32 @@ describe('parseLegacyDocumentDbName', () => {
   });
 });
 
+describe('parseLegacyWorldbuildingDbName', () => {
+  it('matches bare worldbuilding:username:slug:elementId names', () => {
+    expect(
+      parseLegacyWorldbuildingDbName('worldbuilding:alice:novel:w1')
+    ).toEqual({
+      name: 'worldbuilding:alice:novel:w1',
+      username: 'alice',
+      slug: 'novel',
+      elementId: 'w1',
+    });
+  });
+
+  it.each([
+    'local:worldbuilding:alice:novel:w1',
+    'srv:abc123:worldbuilding:alice:novel:w1',
+    'cloud-dropbox-1a2b:worldbuilding:alice:novel:w1',
+    'alice:novel:e1',
+    'local:alice:novel:e1',
+    'worldbuilding:alice:novel',
+    'worldbuilding:alice::w1',
+    'inkweld-media',
+  ])('ignores %s', name => {
+    expect(parseLegacyWorldbuildingDbName(name)).toBeNull();
+  });
+});
+
 describe('DocumentStorageMigrationService', () => {
   let service: DocumentStorageMigrationService;
 
@@ -152,7 +180,7 @@ describe('DocumentStorageMigrationService', () => {
 
     const result = await service.migrateIfNeeded();
 
-    expect(result).toEqual({ migrated: 1, unclaimed: 0, failed: 0 });
+    expect(result?.documents).toEqual({ migrated: 1, unclaimed: 0, failed: 0 });
     expect(await read('local:alice:novel:e1')).toBe('hello');
     const names = await databaseNames();
     expect(names).not.toContain('alice:novel:e1');
@@ -196,7 +224,7 @@ describe('DocumentStorageMigrationService', () => {
 
     const result = await service.migrateIfNeeded();
 
-    expect(result).toEqual({ migrated: 0, unclaimed: 1, failed: 0 });
+    expect(result?.documents).toEqual({ migrated: 0, unclaimed: 1, failed: 0 });
     const names = await databaseNames();
     expect(names).toContain('alice:novel:e1');
     expect(names).not.toContain('local:alice:novel:e1');
@@ -230,7 +258,7 @@ describe('DocumentStorageMigrationService', () => {
 
     const result = await service.migrateIfNeeded();
 
-    expect(result).toEqual({ migrated: 0, unclaimed: 0, failed: 1 });
+    expect(result?.documents).toEqual({ migrated: 0, unclaimed: 0, failed: 1 });
     expect(await read('alice:novel:e1')).toBe('precious');
     expect(localStorage.getItem(DOCUMENT_STORAGE_MIGRATION_KEY)).toBeNull();
   });
@@ -238,12 +266,34 @@ describe('DocumentStorageMigrationService', () => {
   it('only runs once', async () => {
     saveConfig(['local']);
     localStorage.setItem(DOCUMENT_STORAGE_MIGRATION_KEY, 'done');
+    localStorage.setItem(WORLDBUILDING_STORAGE_MIGRATION_KEY, 'done');
     await seed('local:alice:novel:elements', 'tree');
     await seed('alice:novel:e1', 'late');
+    await seed('worldbuilding:alice:novel:w1', 'late');
     createService();
 
     expect(await service.migrateIfNeeded()).toBeNull();
     expect(await databaseNames()).toContain('alice:novel:e1');
+    expect(await databaseNames()).toContain('worldbuilding:alice:novel:w1');
+  });
+
+  it('runs a pass whose flag is unset even when the other has completed', async () => {
+    saveConfig(['local']);
+    localStorage.setItem(DOCUMENT_STORAGE_MIGRATION_KEY, 'done');
+    await seed('local:alice:novel:elements', 'tree');
+    await seed('alice:novel:e1', 'late');
+    await seed('worldbuilding:alice:novel:w1', 'wb');
+    createService();
+
+    const result = await service.migrateIfNeeded();
+
+    expect(result).toEqual({
+      worldbuilding: { migrated: 1, unclaimed: 0, failed: 0 },
+    });
+    const names = await databaseNames();
+    expect(names).toContain('alice:novel:e1');
+    expect(names).not.toContain('worldbuilding:alice:novel:w1');
+    expect(await read('local:worldbuilding:alice:novel:w1')).toBe('wb');
   });
 
   it('waits for a profile to exist before migrating', async () => {
@@ -253,6 +303,9 @@ describe('DocumentStorageMigrationService', () => {
     expect(await service.migrateIfNeeded()).toBeNull();
     expect(await databaseNames()).toContain('alice:novel:e1');
     expect(localStorage.getItem(DOCUMENT_STORAGE_MIGRATION_KEY)).toBeNull();
+    expect(
+      localStorage.getItem(WORLDBUILDING_STORAGE_MIGRATION_KEY)
+    ).toBeNull();
   });
 
   it('refuses a database that is not a Yjs document store', async () => {
@@ -272,25 +325,146 @@ describe('DocumentStorageMigrationService', () => {
 
     const result = await service.migrateIfNeeded();
 
-    expect(result).toEqual({ migrated: 0, unclaimed: 0, failed: 1 });
+    expect(result?.documents).toEqual({ migrated: 0, unclaimed: 0, failed: 1 });
     expect(await databaseNames()).toContain('alice:novel:e1');
   });
 
-  it('leaves elements, worldbuilding and prefixed databases untouched', async () => {
+  it('leaves elements and prefixed databases untouched', async () => {
     saveConfig(['local']);
     await seed('local:alice:novel:elements', 'tree');
     await seed('local:alice:novel:e2', 'scoped');
-    await seed('worldbuilding:alice:novel:w1', 'wb');
+    await seed('local:worldbuilding:alice:novel:w2', 'scoped wb');
     createService();
 
     const result = await service.migrateIfNeeded();
 
-    expect(result).toEqual({ migrated: 0, unclaimed: 0, failed: 0 });
+    expect(result).toEqual({
+      documents: { migrated: 0, unclaimed: 0, failed: 0 },
+      worldbuilding: { migrated: 0, unclaimed: 0, failed: 0 },
+    });
     expect(await databaseNames()).toEqual([
       'local:alice:novel:e2',
       'local:alice:novel:elements',
-      'worldbuilding:alice:novel:w1',
+      'local:worldbuilding:alice:novel:w2',
     ]);
+  });
+
+  describe('worldbuilding pass', () => {
+    it('moves a worldbuilding doc into every profile that has its project', async () => {
+      saveConfig(['local', 'abc123']);
+      await seed('local:alice:novel:elements', 'tree');
+      await seed('srv:abc123:alice:novel:elements', 'tree');
+      await seed('worldbuilding:alice:novel:w1', 'shared wb');
+      createService();
+
+      const result = await service.migrateIfNeeded();
+
+      expect(result?.worldbuilding).toEqual({
+        migrated: 1,
+        unclaimed: 0,
+        failed: 0,
+      });
+      expect(await read('local:worldbuilding:alice:novel:w1')).toBe(
+        'shared wb'
+      );
+      expect(await read('srv:abc123:worldbuilding:alice:novel:w1')).toBe(
+        'shared wb'
+      );
+      expect(await databaseNames()).not.toContain(
+        'worldbuilding:alice:novel:w1'
+      );
+      expect(
+        localStorage.getItem(WORLDBUILDING_STORAGE_MIGRATION_KEY)
+      ).toBeTruthy();
+    });
+
+    it('does not complete the pass while another tab holds the original open', async () => {
+      saveConfig(['local']);
+      await seed('local:alice:novel:elements', 'tree');
+      await seed('worldbuilding:alice:novel:w1', 'held');
+      // Another tab's connection, which does not close on versionchange
+      const held = await new Promise<IDBDatabase>((resolve, reject) => {
+        const request = indexedDB.open('worldbuilding:alice:novel:w1');
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error ?? new Error('open'));
+      });
+      createService();
+
+      const result = await service.migrateIfNeeded();
+
+      expect(result?.worldbuilding).toEqual({
+        migrated: 0,
+        unclaimed: 0,
+        failed: 1,
+      });
+      expect(await read('local:worldbuilding:alice:novel:w1')).toBe('held');
+      expect(
+        localStorage.getItem(WORLDBUILDING_STORAGE_MIGRATION_KEY)
+      ).toBeNull();
+      held.close();
+    });
+
+    it('merges into an existing prefixed worldbuilding database', async () => {
+      saveConfig(['local']);
+      await seed('local:alice:novel:elements', 'tree');
+      await seed('worldbuilding:alice:novel:w1', 'old');
+      const target = await readDoc('worldbuilding:alice:novel:w1');
+      target.getText('t').insert(3, ' and new');
+      await writeUpdate(
+        'local:worldbuilding:alice:novel:w1',
+        Y.encodeStateAsUpdate(target)
+      );
+      createService();
+
+      await service.migrateIfNeeded();
+
+      expect(await read('local:worldbuilding:alice:novel:w1')).toBe(
+        'old and new'
+      );
+    });
+
+    it('leaves an unclaimed worldbuilding doc in place', async () => {
+      saveConfig(['local']);
+      await seed('local:bob:other:elements', 'tree');
+      await seed('worldbuilding:alice:novel:w1', 'orphan');
+      createService();
+
+      const result = await service.migrateIfNeeded();
+
+      expect(result?.worldbuilding).toEqual({
+        migrated: 0,
+        unclaimed: 1,
+        failed: 0,
+      });
+      const names = await databaseNames();
+      expect(names).toContain('worldbuilding:alice:novel:w1');
+      expect(names).not.toContain('local:worldbuilding:alice:novel:w1');
+    });
+
+    it('keeps the original and only its own flag unset when a copy does not verify', async () => {
+      saveConfig(['local']);
+      await seed('local:alice:novel:elements', 'tree');
+      await seed('worldbuilding:alice:novel:w1', 'precious');
+      createService();
+      vi.spyOn(
+        service as unknown as { contains: () => Promise<boolean> },
+        'contains'
+      ).mockResolvedValue(false);
+
+      const result = await service.migrateIfNeeded();
+
+      expect(result?.worldbuilding).toEqual({
+        migrated: 0,
+        unclaimed: 0,
+        failed: 1,
+      });
+      expect(await read('worldbuilding:alice:novel:w1')).toBe('precious');
+      expect(
+        localStorage.getItem(WORLDBUILDING_STORAGE_MIGRATION_KEY)
+      ).toBeNull();
+      // No prose documents failed, so the prose pass is done
+      expect(localStorage.getItem(DOCUMENT_STORAGE_MIGRATION_KEY)).toBeTruthy();
+    });
   });
 
   it('never rejects', async () => {

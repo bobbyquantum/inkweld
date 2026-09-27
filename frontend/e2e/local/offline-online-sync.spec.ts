@@ -243,7 +243,7 @@ test.describe('Local Document Creation - IndexedDB Storage', () => {
       await expect(page.getByTestId('worldbuilding-editor')).toBeVisible();
 
       const elementId = new URL(page.url()).pathname.split('/').pop()!;
-      const expectedWbDb = `worldbuilding:testuser:test-project:${elementId}`;
+      const expectedWbDb = `local:worldbuilding:testuser:test-project:${elementId}`;
 
       await expect
         .poll(async () => {

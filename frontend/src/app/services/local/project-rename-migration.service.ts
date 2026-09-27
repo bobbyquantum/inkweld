@@ -128,9 +128,9 @@ export class ProjectRenameMigrationService {
    * List all IndexedDB databases that belong to a project.
    *
    * y-indexeddb creates databases with the document ID as the name.
-   * Elements and prose documents live under the active profile's prefix
-   * (`<prefix>username:slug:elementId`); worldbuilding docs are unprefixed
-   * (`worldbuilding:username:slug:elementId`).
+   * Elements, prose documents (`<prefix>username:slug:elementId`) and
+   * worldbuilding docs (`<prefix>worldbuilding:username:slug:elementId`) all
+   * live under the active profile's prefix.
    *
    * @param username - Project owner username
    * @param slug - Project slug
@@ -222,13 +222,15 @@ export class ProjectRenameMigrationService {
   }
 
   /**
-   * Database-name prefixes of a project's Yjs docs: elements and prose
-   * documents under the active profile's prefix, then worldbuilding docs.
+   * Database-name prefixes of a project's Yjs docs under the active
+   * profile's prefix: elements and prose documents, then worldbuilding docs.
    */
   private projectMarkers(username: string, slug: string): string[] {
     return [
       this.storageContext.prefixDocumentId(`${username}:${slug}:`),
-      `worldbuilding:${username}:${slug}:`,
+      this.storageContext.prefixDocumentId(
+        `worldbuilding:${username}:${slug}:`
+      ),
     ];
   }
 

@@ -58,10 +58,13 @@ export class YDocAccessService {
 
   /**
    * Whether a worldbuilding doc has any persisted content, without creating
-   * its database. Worldbuilding databases are named by their doc id as-is.
+   * its database. Takes the bare `worldbuilding:user:slug:elementId` id; the
+   * local database name is profile-scoped.
    */
   worldbuildingExists(docId: string): Promise<boolean> {
-    return this.liveDocs.databaseHasContent(docId);
+    return this.liveDocs.databaseHasContent(
+      this.storageContext.prefixDocumentId(docId)
+    );
   }
 
   /**
@@ -92,7 +95,7 @@ export class YDocAccessService {
   ): Promise<AcquiredDoc> {
     const live = this.worldbuilding.getYDoc(elementId, username, slug);
     if (live) return this.liveDoc(live);
-    return this.headless(docId);
+    return this.headless(this.storageContext.prefixDocumentId(docId));
   }
 
   private liveDoc(doc: Y.Doc): AcquiredDoc {
