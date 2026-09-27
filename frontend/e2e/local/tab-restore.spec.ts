@@ -87,3 +87,72 @@ test.describe('Tab restore', () => {
     });
   });
 });
+
+/** The active tab id saved to the tab cache for the test project. */
+async function savedSelectedTabId(page: Page): Promise<unknown> {
+  return page.evaluate(async () => {
+    const db = await new Promise<IDBDatabase>((resolve, reject) => {
+      const req = indexedDB.open('local:documentCache');
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () =>
+        reject(req.error ?? new Error('IndexedDB request failed'));
+    });
+    try {
+      if (!db.objectStoreNames.contains('openedDocuments')) return null;
+      return await new Promise<unknown>((resolve, reject) => {
+        const req = db
+          .transaction('openedDocuments')
+          .objectStore('openedDocuments')
+          .get('testuser/test-project/documents/selected');
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () =>
+          reject(req.error ?? new Error('IndexedDB request failed'));
+      });
+    } finally {
+      db.close();
+    }
+  });
+}
+
+/**
+ * Closing and reopening the app (e.g. the Android app, which always starts
+ * at "/") must also reopen the active document. On phones there is no tab
+ * bar, which used to do both the saving of the selection and the reopening.
+ */
+test.describe('Tab restore after reopening the app', () => {
+  for (const layout of ['desktop', 'phone'] as const) {
+    test(`reopens the active document after a full reload (${layout})`, async ({
+      localPageWithProject: page,
+    }) => {
+      // Create the documents at desktop width, where the tree is always shown.
+      await openProject(page);
+      await createDocument(page, 'Chapter One');
+      await createDocument(page, 'Chapter Two');
+      await page.getByTestId('home-tab-button').click();
+      await expect(page).not.toHaveURL(/\/document\//);
+
+      if (layout === 'phone') {
+        await page.setViewportSize({ width: 412, height: 915 });
+        // At phone width the project tree sits behind the hamburger.
+        await page
+          .locator('mat-toolbar.mobile-toolbar button[mat-icon-button]')
+          .first()
+          .click();
+      }
+
+      // Chapter One is already open (creating it opened it), so this only
+      // changes the selection.
+      await page.getByTestId('element-Chapter One').click();
+      await expect(page).toHaveURL(/\/document\/[^/]+$/);
+      const chapterOneUrl = page.url();
+      const chapterOneId = chapterOneUrl.split('/').at(-1);
+      await expect.poll(() => savedSelectedTabId(page)).toBe(chapterOneId);
+
+      await page.goto('/');
+      await expect(page.getByTestId('project-card').first()).toBeVisible();
+      await openProjectFromGrid(page);
+
+      await expect(page).toHaveURL(chapterOneUrl);
+    });
+  }
+});

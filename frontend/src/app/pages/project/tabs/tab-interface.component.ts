@@ -41,6 +41,7 @@ import {
   type AppTab,
   ProjectStateService,
 } from '@services/project/project-state.service';
+import { tabRouteCommands } from '@utils/tab-route';
 import { filter, Subject, type Subscription, takeUntil } from 'rxjs';
 
 import { DialogGatewayService } from '../../../services/core/dialog-gateway.service';
@@ -462,28 +463,7 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
     project: Project,
     extras?: NavigationExtras
   ): void {
-    const base = ['/', project.username, project.slug];
-    let commands: string[];
-    if (tab.type === 'system') {
-      commands =
-        tab.systemType === 'home' ? base : [...base, tab.systemType ?? ''];
-    } else if (tab.type === 'publishPlan') {
-      const planId =
-        tab.publishPlan?.id ||
-        (tab.id.startsWith('publish-plan-')
-          ? tab.id.slice('publish-plan-'.length)
-          : tab.id);
-      commands = [...base, 'publish-plan', planId];
-    } else if (tab.type === 'schema-editor') {
-      // Schema editor tab — id is "schema-<schemaId>"
-      const schemaId = tab.id.startsWith('schema-')
-        ? tab.id.slice('schema-'.length)
-        : tab.id;
-      commands = [...base, 'schema', schemaId];
-    } else {
-      // Document, folder, worldbuilding, canvas, ... tab
-      commands = [...base, tab.type, tab.id];
-    }
+    const commands = tabRouteCommands(tab, project);
     if (extras) {
       void this.router.navigate(commands, extras);
     } else {
