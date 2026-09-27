@@ -761,11 +761,12 @@ export class SettingsTabComponent implements OnDestroy {
     username: string,
     slug: string
   ): Promise<string[]> {
+    // Trailing ':' so project "foo" never matches project "foo-bar"
     const projectPrefix = this.storageContext.prefixDocumentId(
-      `${username}:${slug}`
+      `${username}:${slug}:`
     );
     const worldbuildingPrefix = this.storageContext.prefixDocumentId(
-      `worldbuilding:${username}:${slug}`
+      `worldbuilding:${username}:${slug}:`
     );
     const databases: string[] = [];
 
@@ -793,14 +794,14 @@ export class SettingsTabComponent implements OnDestroy {
       // - {prefix}{username}:{slug}:elements (element tree)
       // - {prefix}{username}:{slug}:{elementId} (prose documents)
       // - {prefix}worldbuilding:{username}:{slug}:{elementId} (worldbuilding data per element)
-      databases.push(`${projectPrefix}:elements`);
+      databases.push(`${projectPrefix}elements`);
 
       // Try to get element IDs from current state
       const elements = this.projectState.elements();
       for (const element of elements) {
         databases.push(
-          `${projectPrefix}:${element.id}`,
-          `${worldbuildingPrefix}:${element.id}`
+          `${projectPrefix}${element.id}`,
+          `${worldbuildingPrefix}${element.id}`
         );
       }
     }

@@ -319,6 +319,22 @@ describe('MigrationService', () => {
       );
     });
 
+    it('fails the project, leaving it unmigrated, when a document copy fails', async () => {
+      setMockProjects([mockProjects[0]]);
+      vi.spyOn(
+        service as unknown as { copyDocumentFiles: () => Promise<void> },
+        'copyDocumentFiles'
+      ).mockRejectedValue(new Error('Failed to copy document x'));
+
+      await service.migrateToServerMode('config-123', 'testuser');
+
+      const state = service.migrationState();
+      expect(state.failedProjects).toBe(1);
+      expect(state.completedProjects).toBe(0);
+      expect(state.projectStatuses[0].status).toBe(MigrationStatus.Failed);
+      expect(localProjectService.markProjectAsMigrated).not.toHaveBeenCalled();
+    });
+
     it('should update project statuses during migration', async () => {
       setMockProjects([mockProjects[0]]);
 
@@ -908,14 +924,20 @@ describe('MigrationService', () => {
         }
       ).copySingleDocument.bind(service);
 
-    it('should handle errors gracefully and log warning', async () => {
+    it('rethrows a failed copy after logging it', async () => {
       const copySingleDocument = getCopySingleDocument();
+      const { IndexeddbPersistence } = await import('y-indexeddb');
+      vi.spyOn(IndexeddbPersistence.prototype, 'destroy').mockRejectedValueOnce(
+        new Error('boom')
+      );
 
-      // Mock IndexeddbPersistence to throw - it will fail but should be caught
-      // Should not throw - errors are caught and logged
       await expect(
-        copySingleDocument('nonexistent:source:key', 'nonexistent:target:key')
-      ).resolves.toBeUndefined();
+        copySingleDocument('local:u:s:e1', 'srv:cfg:u:s:e1')
+      ).rejects.toThrow('Failed to copy document local:u:s:e1: boom');
+      expect(loggerMock.warn).toHaveBeenCalledWith(
+        'MigrationService',
+        'Failed to copy document local:u:s:e1: boom'
+      );
     });
 
     it('should skip empty documents', async () => {

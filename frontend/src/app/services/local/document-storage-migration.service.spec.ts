@@ -378,6 +378,32 @@ describe('DocumentStorageMigrationService', () => {
       ).toBeTruthy();
     });
 
+    it('does not complete the pass while another tab holds the original open', async () => {
+      saveConfig(['local']);
+      await seed('local:alice:novel:elements', 'tree');
+      await seed('worldbuilding:alice:novel:w1', 'held');
+      // Another tab's connection, which does not close on versionchange
+      const held = await new Promise<IDBDatabase>((resolve, reject) => {
+        const request = indexedDB.open('worldbuilding:alice:novel:w1');
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error ?? new Error('open'));
+      });
+      createService();
+
+      const result = await service.migrateIfNeeded();
+
+      expect(result?.worldbuilding).toEqual({
+        migrated: 0,
+        unclaimed: 0,
+        failed: 1,
+      });
+      expect(await read('local:worldbuilding:alice:novel:w1')).toBe('held');
+      expect(
+        localStorage.getItem(WORLDBUILDING_STORAGE_MIGRATION_KEY)
+      ).toBeNull();
+      held.close();
+    });
+
     it('merges into an existing prefixed worldbuilding database', async () => {
       saveConfig(['local']);
       await seed('local:alice:novel:elements', 'tree');

@@ -623,7 +623,9 @@ export class MigrationService {
   }
 
   /**
-   * Copy a single Yjs document from source key to target key.
+   * Copy a single Yjs document from source key to target key. Throws on
+   * failure so the project migration fails (and stays retryable) rather than
+   * completing without the document in the target profile.
    */
   private async copySingleDocument(
     sourceKey: string,
@@ -675,11 +677,12 @@ export class MigrationService {
         `Copied document: ${sourceKey} -> ${targetKey} (${sourceState.length} bytes)`
       );
     } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
       this.logger.warn(
         'MigrationService',
-        `Failed to copy document ${sourceKey}: ${error instanceof Error ? error.message : String(error)}`
+        `Failed to copy document ${sourceKey}: ${message}`
       );
-      // Continue with other documents - don't fail the whole migration
+      throw new Error(`Failed to copy document ${sourceKey}: ${message}`);
     }
   }
 

@@ -228,7 +228,10 @@ export class DocumentStorageMigrationService {
   /**
    * Copy one legacy database into `<prefix><name>` for each prefix, verify
    * each copy, then delete the original. Throws (keeping the original) if
-   * any copy does not verify.
+   * any copy does not verify, and also if another tab holds the original
+   * open: the delete stays queued until that tab closes it, but the pass must
+   * not record completion while the original still exists, so it retries
+   * (merging any later edits) on the next start.
    */
   async migrateDatabase(name: string, prefixes: string[]): Promise<void> {
     const update = await this.readUpdate(name);
@@ -239,7 +242,11 @@ export class DocumentStorageMigrationService {
         throw new Error(`Copy of ${name} into ${target} did not verify`);
       }
     }
-    await deleteDatabase(name);
+    if (!(await deleteDatabase(name))) {
+      throw new Error(
+        `Deleting ${name} is blocked by another tab; retrying next start`
+      );
+    }
     const targets = prefixes.map(prefix => prefix + name).join(', ');
     this.logger.debug(
       'DocumentStorageMigration',
@@ -364,13 +371,17 @@ function openYDatabase(name: string): Promise<IDBDatabase> {
   });
 }
 
-function deleteDatabase(name: string): Promise<void> {
+/**
+ * Delete a database. Resolves `true` once deleted, or `false` when another
+ * tab holds it open — the request then stays queued and completes when that
+ * tab closes it, which must not hold up app startup.
+ */
+function deleteDatabase(name: string): Promise<boolean> {
   return new Promise((resolve, reject) => {
     const request = indexedDB.deleteDatabase(name);
-    request.onsuccess = () => resolve();
+    request.onsuccess = () => resolve(true);
     request.onerror = () =>
       reject(request.error ?? new Error(`Failed to delete ${name}`));
-    // Another tab holds it open; the delete completes once it closes
-    request.onblocked = () => resolve();
+    request.onblocked = () => resolve(false);
   });
 }

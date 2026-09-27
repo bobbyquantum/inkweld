@@ -1541,6 +1541,9 @@ describe('SettingsTabComponent', () => {
           { name: 'srv:abc123:testuser:test-project:doc-1' },
           { name: 'srv:abc123:worldbuilding:testuser:test-project:char-1' },
           { name: 'worldbuilding:testuser:test-project:char-2' },
+          // A project whose slug starts with this one's
+          { name: 'local:testuser:test-project-2:doc-1' },
+          { name: 'local:worldbuilding:testuser:test-project-2:char-1' },
         ]),
       });
 
