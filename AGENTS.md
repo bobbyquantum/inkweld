@@ -541,11 +541,10 @@ sign-up, so users can delete their own server account:
   Settings → Account (hidden in local mode) and on the public `/delete-account`
   page (`pages/delete-account/`, the web link for the Play listing; also a
   reserved username). After success `UserService.deleteAccount()` signs out and
-  wipes the server profile's local data — plus the `user:slug:*` databases of
-  each owned project, because prose documents are cached under unprefixed ids
-  that the profile wipe cannot see. Those are skipped when any other profile
-  exists on the device: it may share the same unprefixed databases and hold
-  unsynced edits in them. Then the app does a full load of
+  wipes the server profile's local data with `clearContextData` — prose
+  documents included, since they are stored under the profile prefix (see
+  "Local Document Storage Is Profile-Scoped"); other profiles on the device
+  keep their own copies. Then the app does a full load of
   `/delete-account?deleted=1` so queued IndexedDB deletes can complete.
 - E2E: `e2e/online/account-deletion.spec.ts` also runs under the wrangler
   config. The self-service test re-registers the same username and re-creates
