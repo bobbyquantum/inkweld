@@ -46,7 +46,7 @@ test.describe('Danger Zone', () => {
   test('rename project: form, validation, cancel, and successful rename', async ({
     authenticatedPage: page,
   }) => {
-    await setupProjectAndNavigateToDanger(page, 'rename');
+    const { baseUrl } = await setupProjectAndNavigateToDanger(page, 'rename');
 
     await test.step('shows the rename form when clicking Rename', async () => {
       await expect(page.getByTestId('rename-project-card')).toBeVisible();
@@ -90,17 +90,14 @@ test.describe('Danger Zone', () => {
       await expect(page.getByTestId('confirm-rename-button')).toBeEnabled();
       await page.getByTestId('confirm-rename-button').click();
 
-      // After rename the component triggers a full navigation to the new URL.
-      // On rare occasions the backend renames successfully but the WebSocket
-      // drops and the client falls back to home; in that case re-navigate to
-      // the new project URL directly so we still verify the rename persisted.
-      try {
-        await page.waitForURL(new RegExp(newSlug));
-      } catch {
-        await page.goto(`/testuser/${newSlug}`);
-        await page.waitForLoadState('domcontentloaded');
-      }
-      await expect(page).toHaveURL(new RegExp(newSlug));
+      // After rename the component carries this device's activation over to
+      // the new slug and reloads there. The project must open, not bounce
+      // home with "not activated on this device".
+      const username = baseUrl.split('/').filter(Boolean)[0];
+      const renamedUrl = new RegExp(`/${username}/${newSlug}/settings$`);
+      await page.waitForURL(renamedUrl);
+      await expect(page.getByTestId('settings-tab-content')).toBeVisible();
+      await expect(page).toHaveURL(renamedUrl);
     });
   });
 

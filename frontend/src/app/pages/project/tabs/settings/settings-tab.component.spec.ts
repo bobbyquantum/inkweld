@@ -33,8 +33,11 @@ import {
 } from '@inkweld/index';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SetupService } from '@services/core/setup.service';
+import { StorageContextService } from '@services/core/storage-context.service';
 import { SystemConfigService } from '@services/core/system-config.service';
 import { MediaSyncService } from '@services/local/media-sync.service';
+import { ProjectActivationService } from '@services/local/project-activation.service';
+import { ProjectRenameMigrationService } from '@services/local/project-rename-migration.service';
 import { UnifiedProjectService } from '@services/local/unified-project.service';
 import { ProjectExportService } from '@services/project/project-export.service';
 import { ProjectStateService } from '@services/project/project-state.service';
@@ -83,6 +86,9 @@ describe('SettingsTabComponent', () => {
   let dialog: Partial<MatDialog>;
   let projectsService: Partial<ProjectsService>;
   let router: Partial<Router>;
+  let storageContext: Partial<StorageContextService>;
+  let projectActivation: Partial<ProjectActivationService>;
+  let renameMigration: Partial<ProjectRenameMigrationService>;
   const originalClipboardDescriptor = Object.getOwnPropertyDescriptor(
     navigator,
     'clipboard'
@@ -166,6 +172,23 @@ describe('SettingsTabComponent', () => {
       openSystemTab: vi.fn().mockReturnValue({ index: 1 }),
       selectTab: vi.fn(),
       elements: signal([]),
+      disconnectSync: vi.fn(),
+    };
+
+    storageContext = {
+      getActiveConfig: vi.fn().mockReturnValue({ id: 'server-1' }),
+      renameProjectInContext: vi.fn().mockResolvedValue(undefined),
+    };
+    projectActivation = {
+      activate: vi.fn().mockResolvedValue(undefined),
+    };
+    renameMigration = {
+      migrateProject: vi.fn().mockResolvedValue({
+        documentsMigrated: 0,
+        documentsFailed: 0,
+        errors: [],
+        success: true,
+      }),
     };
 
     mcpKeysService = {
@@ -321,6 +344,12 @@ describe('SettingsTabComponent', () => {
         { provide: MatDialog, useValue: dialog },
         { provide: ProjectsService, useValue: projectsService },
         { provide: Router, useValue: router },
+        { provide: StorageContextService, useValue: storageContext },
+        { provide: ProjectActivationService, useValue: projectActivation },
+        {
+          provide: ProjectRenameMigrationService,
+          useValue: renameMigration,
+        },
         {
           provide: ActivatedRoute,
           useValue: {
@@ -1311,6 +1340,95 @@ describe('SettingsTabComponent', () => {
         'Close',
         expect.any(Object)
       );
+    });
+
+    describe('after a successful rename', () => {
+      let location: { href: string };
+
+      beforeEach(() => {
+        location = { href: '' };
+        vi.stubGlobal('location', location);
+      });
+
+      afterEach(() => {
+        vi.unstubAllGlobals();
+      });
+
+      it('carries activation and local data to the new slug, then reloads there', async () => {
+        component['renameModel'].set({ newProjectSlug: 'new-slug' });
+        await component.renameProject();
+
+        const disconnectOrder = vi.mocked(projectStateService.disconnectSync!)
+          .mock.invocationCallOrder[0];
+        const activateOrder = vi.mocked(projectActivation.activate!).mock
+          .invocationCallOrder[0];
+        expect(disconnectOrder).toBeLessThan(activateOrder);
+        expect(projectActivation.activate).toHaveBeenCalledWith(
+          'testuser/new-slug'
+        );
+        expect(storageContext.renameProjectInContext).toHaveBeenCalledWith(
+          'server-1',
+          'testuser',
+          'test-project',
+          'new-slug'
+        );
+        expect(renameMigration.migrateProject).toHaveBeenCalledWith(
+          'testuser',
+          'test-project',
+          'new-slug'
+        );
+        expect(location.href).toBe('/testuser/new-slug/settings');
+      });
+
+      it('still reloads on the new slug when moving local data fails', async () => {
+        const errorSpy = vi
+          .spyOn(console, 'error')
+          .mockImplementation(() => {});
+        (
+          projectActivation.activate as ReturnType<typeof vi.fn>
+        ).mockRejectedValue(new Error('idb closed'));
+        (
+          storageContext.renameProjectInContext as ReturnType<typeof vi.fn>
+        ).mockRejectedValue(new Error('clone failed'));
+        (
+          renameMigration.migrateProject as ReturnType<typeof vi.fn>
+        ).mockRejectedValue(new Error('migrate failed'));
+
+        component['renameModel'].set({ newProjectSlug: 'new-slug' });
+        await component.renameProject();
+
+        expect(location.href).toBe('/testuser/new-slug/settings');
+        expect(component['renameError']()).toBeNull();
+        expect(errorSpy).toHaveBeenCalledTimes(3);
+      });
+
+      it('skips the storage rename without an active config', async () => {
+        (
+          storageContext.getActiveConfig as ReturnType<typeof vi.fn>
+        ).mockReturnValue(null);
+
+        component['renameModel'].set({ newProjectSlug: 'new-slug' });
+        await component.renameProject();
+
+        expect(storageContext.renameProjectInContext).not.toHaveBeenCalled();
+        expect(projectActivation.activate).toHaveBeenCalledWith(
+          'testuser/new-slug'
+        );
+        expect(location.href).toBe('/testuser/new-slug/settings');
+      });
+    });
+
+    it('does not touch local state when the rename fails', async () => {
+      (
+        projectsService.updateProject as ReturnType<typeof vi.fn>
+      ).mockReturnValue(throwError(() => new Error('Slug already exists')));
+
+      component['renameModel'].set({ newProjectSlug: 'existing-slug' });
+      await component.renameProject();
+
+      expect(projectStateService.disconnectSync).not.toHaveBeenCalled();
+      expect(projectActivation.activate).not.toHaveBeenCalled();
+      expect(storageContext.renameProjectInContext).not.toHaveBeenCalled();
     });
 
     it('should set isRenaming during rename operation', async () => {
