@@ -47,11 +47,7 @@ test.describe('User Login', () => {
     await expect(page).toHaveURL('/');
   });
 
-  // FIXME: This test is flaky - the login dialog doesn't show error in e2e tests
-  // The component works correctly in manual testing, but in e2e the button
-  // stays in "Logging in..." state even after 401 response is received.
-  // This needs investigation into potential race conditions with auth interceptor.
-  test.skip('should show error with invalid credentials', async ({
+  test('should show error with invalid credentials', async ({
     anonymousPage: page,
   }) => {
     // Use a non-existent user with wrong password - should show same error
