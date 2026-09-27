@@ -144,6 +144,11 @@ export class DocumentStorageMigrationService {
       }
     }
 
+    // Unclaimed databases do not hold the flag back on purpose. One no
+    // profile claims now most likely belonged to a profile since removed;
+    // retrying would let a profile added later (say, the same username on
+    // another server) claim it and push those edits to its own server —
+    // the cross-profile mixing this migration exists to end.
     if (result.failed === 0) {
       localStorage.setItem(
         DOCUMENT_STORAGE_MIGRATION_KEY,
