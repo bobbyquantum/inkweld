@@ -682,7 +682,9 @@ export class MigrationService {
         'MigrationService',
         `Failed to copy document ${sourceKey}: ${message}`
       );
-      throw new Error(`Failed to copy document ${sourceKey}: ${message}`);
+      throw new Error(`Failed to copy document ${sourceKey}: ${message}`, {
+        cause: error,
+      });
     }
   }
 
