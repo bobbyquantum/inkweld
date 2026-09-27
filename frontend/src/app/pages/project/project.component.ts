@@ -47,6 +47,7 @@ import { DocumentService } from '@services/project/document.service';
 import { ElementNavigationService } from '@services/project/element-navigation.service';
 import { ProjectExportService } from '@services/project/project-export.service';
 import { ProjectStateService } from '@services/project/project-state.service';
+import { tabRouteCommands } from '@utils/tab-route';
 import { filter, Subject, type Subscription, takeUntil } from 'rxjs';
 
 import { DocumentElementEditorComponent } from '../../components/document-element-editor/document-element-editor.component';
@@ -214,6 +215,9 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   /** Latch so the workspace tour is offered at most once per visit. */
   private tutorialOffered = false;
 
+  /** Project key whose restored tab has already been reopened. */
+  private restoredTabRoutedFor: string | null = null;
+
   constructor() {
     // Offer the workspace tour once a project is loaded on a desktop
     // viewport. Reactive rather than a one-shot check because the project
@@ -295,6 +299,24 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
       // window forever. Only the three signals read above should wake it.
       // Idempotent: selects the tab when the document is already open.
       untracked(() => this.projectState.openDocument(element));
+    });
+
+    // Reopen the tab that was active when the user left. The tab bar does
+    // this itself (TabInterfaceComponent.syncInitialTab); without it — on
+    // phones, or with desktop tabs turned off — nothing else would, and the
+    // restored tab would sit unseen behind Home.
+    effect(() => {
+      const key = this.projectState.restoredTabsProjectKey();
+      if (
+        !key ||
+        key === this.restoredTabRoutedFor ||
+        this.isPopout() ||
+        (!this.isMobile() && this.useTabsDesktop())
+      ) {
+        return;
+      }
+      this.restoredTabRoutedFor = key;
+      untracked(() => this.openRestoredTab(key));
     });
 
     // Disable zen mode when switching tabs or closing tabs
@@ -825,6 +847,27 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
             });
         }
       });
+  }
+
+  /**
+   * At the bare project URL (e.g. arriving from the project list), route to
+   * the restored active tab, replacing the root URL so Back doesn't return
+   * to it. Any other URL is a deep link and wins.
+   */
+  private openRestoredTab(key: string): void {
+    const project = this.projectState.project();
+    if (!project || `${project.username}/${project.slug}` !== key) return;
+
+    const path = this.router.url.split(/[?#]/)[0];
+    if (path !== `/${project.username}/${project.slug}`) return;
+
+    const tab =
+      this.projectState.openTabs()[this.projectState.selectedTabIndex()];
+    if (!tab || tab.systemType === 'home') return;
+
+    void this.router.navigate(tabRouteCommands(tab, project), {
+      replaceUrl: true,
+    });
   }
 
   // Navigate to home tab

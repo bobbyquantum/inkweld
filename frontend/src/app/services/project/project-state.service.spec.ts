@@ -1982,6 +1982,34 @@ describe('ProjectStateService', () => {
       expect(service.openTabs().map(t => t.id)).toEqual(['home', 'doc-123']);
     });
 
+    it('saves the selection when an already-open document is opened again', async () => {
+      mockStorageService.get.mockImplementation((_db, _store, key) =>
+        Promise.resolve(key === TABS_KEY ? cachedTabs : null)
+      );
+      await service.loadProject('testuser', 'test-project');
+      service.selectTab(0);
+      await vi.waitFor(() => expect(putsFor(SELECTED_KEY).at(-1)).toBe('home'));
+      mockStorageService.put.mockClear();
+
+      // Without a tab bar (phones) nothing calls selectTab afterwards, so
+      // opening the document must record the selection itself.
+      service.openDocument(docElement);
+
+      await vi.waitFor(() =>
+        expect(putsFor(SELECTED_KEY)).toEqual(['doc-123'])
+      );
+    });
+
+    it('reports which project has had its tabs restored', async () => {
+      expect(service.restoredTabsProjectKey()).toBeNull();
+
+      await service.loadProject('testuser', 'test-project');
+      expect(service.restoredTabsProjectKey()).toBe('testuser/test-project');
+
+      service.disconnectSync();
+      expect(service.restoredTabsProjectKey()).toBeNull();
+    });
+
     it('saves the id of the active tab', async () => {
       mockStorageService.get.mockImplementation((_db, _store, key) =>
         Promise.resolve(key === TABS_KEY ? cachedTabs : null)

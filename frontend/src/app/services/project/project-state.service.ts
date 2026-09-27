@@ -5,6 +5,7 @@ import {
   NgZone,
   type OnDestroy,
   signal,
+  untracked,
 } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
@@ -155,7 +156,14 @@ export class ProjectStateService implements OnDestroy {
    * `project()` still names the project being left, so a save in that window
    * would write an empty tab list over the cache we're about to restore.
    */
-  private tabCacheProjectKey: string | null = null;
+  private readonly tabCacheProjectKey = signal<string | null>(null);
+
+  /**
+   * `username/slug` of the project whose saved tabs have been restored, or
+   * null while a project is loading. Lets the project page wait for the
+   * restore without mistaking the previous project's state for it.
+   */
+  readonly restoredTabsProjectKey = this.tabCacheProjectKey.asReadonly();
 
   /**
    * Tracks element IDs created locally during this session.
@@ -387,7 +395,7 @@ export class ProjectStateService implements OnDestroy {
 
       // Restore opened documents from cache
       await this.restoreOpenedDocumentsFromCache();
-      this.tabCacheProjectKey = `${username}/${slug}`;
+      this.tabCacheProjectKey.set(`${username}/${slug}`);
     } catch (err) {
       this.handleLoadError(err);
     } finally {
@@ -790,6 +798,8 @@ export class ProjectStateService implements OnDestroy {
     // Invalidate any in-flight loadProject so a slow metadata/provider await
     // that resumes after teardown can't connect a fresh, orphaned provider.
     this.loadGeneration++;
+    // Leaving the project: stop saving its tabs until a load restores them.
+    this.tabCacheProjectKey.set(null);
     this.worldbuildingService.setSyncProvider(null);
     this.timeSystemLibrary.setSyncProvider(null);
     this.generatorLibrary.setSyncProvider(null);
@@ -828,8 +838,8 @@ export class ProjectStateService implements OnDestroy {
 
     this.disconnectSync();
 
-    // Close all tabs, and stop saving them until the next project's are restored
-    this.tabCacheProjectKey = null;
+    // Close all tabs (disconnectSync already stopped saving them until the
+    // next project's are restored)
     this.tabManager.clearAllTabs();
 
     // Clear elements, publish plans, and expansion state
@@ -1215,10 +1225,9 @@ export class ProjectStateService implements OnDestroy {
    * Open a publish plan in a tab.
    */
   openPublishPlan(plan: PublishPlan): void {
-    const result = this.tabManager.openPublishPlanTab(plan);
-    if (result.wasCreated) {
-      void this.saveOpenedDocumentsToCache();
-    }
+    this.tabManager.openPublishPlanTab(plan);
+    // Save even when the tab already existed: opening it selected it.
+    void this.saveOpenedDocumentsToCache();
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -1311,9 +1320,8 @@ export class ProjectStateService implements OnDestroy {
       }
     }
 
-    if (result.wasCreated) {
-      void this.saveOpenedDocumentsToCache();
-    }
+    // Save even when the tab already existed: opening it selected it.
+    void this.saveOpenedDocumentsToCache();
   }
 
   openSystemTab(
@@ -1328,9 +1336,8 @@ export class ProjectStateService implements OnDestroy {
       | 'activity'
   ): { index: number; wasCreated: boolean } {
     const result = this.tabManager.openSystemTab(type);
-    if (result.wasCreated) {
-      void this.saveOpenedDocumentsToCache();
-    }
+    // Save even when the tab already existed: opening it selected it.
+    void this.saveOpenedDocumentsToCache();
     return { index: result.index, wasCreated: result.wasCreated };
   }
 
@@ -1343,9 +1350,8 @@ export class ProjectStateService implements OnDestroy {
     wasCreated: boolean;
   } {
     const result = this.tabManager.openSchemaEditor(schema);
-    if (result.wasCreated) {
-      void this.saveOpenedDocumentsToCache();
-    }
+    // Save even when the tab already existed: opening it selected it.
+    void this.saveOpenedDocumentsToCache();
     return { index: result.index, wasCreated: result.wasCreated };
   }
 
@@ -1818,7 +1824,10 @@ export class ProjectStateService implements OnDestroy {
 
     const project = this.project();
     if (!project?.username || !project?.slug) return;
-    if (this.tabCacheProjectKey !== `${project.username}/${project.slug}`) {
+    if (
+      untracked(this.tabCacheProjectKey) !==
+      `${project.username}/${project.slug}`
+    ) {
       return;
     }
 

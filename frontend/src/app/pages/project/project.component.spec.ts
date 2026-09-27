@@ -61,6 +61,7 @@ class MockProjectTreeComponent {
 })
 class MockUserMenuComponent {
   @Input() miniMode?: boolean;
+  @Input() tutorialTour?: string | null;
 }
 
 @Component({
@@ -149,6 +150,7 @@ describe('ProjectComponent', () => {
   const openTabsSignal = signal<any[]>([]);
   const selectedTabIndexSignal = signal(0);
   const isLoadingSignal = signal(false);
+  const restoredTabsProjectKeySignal = signal<string | null>(null);
   const errorSignal = signal<string | undefined>(undefined);
   const openDocumentsSignal = signal<Element[]>([]);
   const visibleElementsSignal = signal<any[]>([]);
@@ -164,6 +166,7 @@ describe('ProjectComponent', () => {
     openTabsSignal.set([]);
     selectedTabIndexSignal.set(0);
     isLoadingSignal.set(false);
+    restoredTabsProjectKeySignal.set(null);
     errorSignal.set(undefined);
     openDocumentsSignal.set([]);
     visibleElementsSignal.set([]);
@@ -182,6 +185,7 @@ describe('ProjectComponent', () => {
       openTabs: openTabsSignal,
       selectedTabIndex: selectedTabIndexSignal,
       isLoading: isLoadingSignal,
+      restoredTabsProjectKey: restoredTabsProjectKeySignal,
       error: errorSignal,
       openDocuments: openDocumentsSignal,
       visibleElements: visibleElementsSignal,
@@ -489,6 +493,81 @@ describe('ProjectComponent', () => {
         'testuser',
         'test-project',
       ]);
+    });
+
+    describe('reopening the restored tab without a tab bar', () => {
+      const docTab = {
+        id: 'elem-1',
+        name: 'Test Document',
+        type: 'document',
+        element: mockElement,
+      };
+      const homeTab = {
+        id: 'system-home',
+        name: 'Home',
+        type: 'system',
+        systemType: 'home',
+      };
+
+      function restore(selectedIndex: number): void {
+        openTabsSignal.set([homeTab, docTab]);
+        selectedTabIndexSignal.set(selectedIndex);
+        restoredTabsProjectKeySignal.set('testuser/test-project');
+        TestBed.tick();
+      }
+
+      beforeEach(() => {
+        vi.mocked(router.navigate!).mockClear();
+      });
+
+      it('routes to the restored tab on phones', () => {
+        component.isMobile.set(true);
+        restore(1);
+
+        expect(router.navigate).toHaveBeenCalledWith(
+          ['/', 'testuser', 'test-project', 'document', 'elem-1'],
+          { replaceUrl: true }
+        );
+      });
+
+      it('routes to the restored tab on desktop with tabs turned off', () => {
+        vi.mocked(settingsService.getSetting!).mockReturnValue(false);
+        restore(1);
+
+        expect(router.navigate).toHaveBeenCalledTimes(1);
+      });
+
+      it('leaves it to the tab bar when tabs are shown', () => {
+        restore(1);
+
+        expect(router.navigate).not.toHaveBeenCalled();
+      });
+
+      it('lets a deep link win', () => {
+        component.isMobile.set(true);
+        routerUrl = '/testuser/test-project/settings';
+        restore(1);
+
+        expect(router.navigate).not.toHaveBeenCalled();
+      });
+
+      it('stays put when Home was the active tab', () => {
+        component.isMobile.set(true);
+        restore(0);
+
+        expect(router.navigate).not.toHaveBeenCalled();
+      });
+
+      it('routes only once per project load', () => {
+        component.isMobile.set(true);
+        restore(1);
+        selectedTabIndexSignal.set(0);
+        TestBed.tick();
+        selectedTabIndexSignal.set(1);
+        TestBed.tick();
+
+        expect(router.navigate).toHaveBeenCalledTimes(1);
+      });
     });
 
     it('should open the project search dialog', () => {
