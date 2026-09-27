@@ -47,6 +47,8 @@ import { SetupService } from '@services/core/setup.service';
 import { StorageContextService } from '@services/core/storage-context.service';
 import { SystemConfigService } from '@services/core/system-config.service';
 import { MediaSyncService } from '@services/local/media-sync.service';
+import { ProjectActivationService } from '@services/local/project-activation.service';
+import { ProjectRenameMigrationService } from '@services/local/project-rename-migration.service';
 import { UnifiedProjectService } from '@services/local/unified-project.service';
 import { ProjectExportService } from '@services/project/project-export.service';
 import { ProjectStateService } from '@services/project/project-state.service';
@@ -156,6 +158,8 @@ export class SettingsTabComponent implements OnDestroy {
   private readonly systemConfigService = inject(SystemConfigService);
   private readonly exportService = inject(ProjectExportService);
   private readonly transloco = inject(TranslocoService);
+  private readonly projectActivation = inject(ProjectActivationService);
+  private readonly renameMigration = inject(ProjectRenameMigrationService);
 
   // MCP Keys should only be visible when AI kill switch is OFF
   protected readonly isAiKillSwitchEnabled =
@@ -1000,12 +1004,10 @@ export class SettingsTabComponent implements OnDestroy {
         { duration: 3000 }
       );
 
-      // Navigate to the new URL
-      setTimeout(() => {
-        void this.router.navigate(['/', project.username, newSlug, 'settings']);
-        // Reload to ensure all state is refreshed
-        globalThis.location.href = `/${project.username}/${newSlug}/settings`;
-      }, 1000);
+      await this.carryLocalStateToNewSlug(project.username, oldSlug, newSlug);
+
+      // Full reload so every service starts over on the new slug
+      globalThis.location.href = `/${project.username}/${newSlug}/settings`;
     } catch (error) {
       console.error('Failed to rename project:', error);
       const message =
@@ -1015,6 +1017,52 @@ export class SettingsTabComponent implements OnDestroy {
       this.renameError.set(message);
     } finally {
       this.isRenaming.set(false);
+    }
+  }
+
+  /**
+   * Move this device's state for a renamed project to its new slug before
+   * reloading. Without the activation record the project page would treat the
+   * renamed project as never downloaded here and send the user home.
+   * Best-effort: the server already holds the project under the new slug.
+   */
+  private async carryLocalStateToNewSlug(
+    username: string,
+    oldSlug: string,
+    newSlug: string
+  ): Promise<void> {
+    // Stop the old-slug connections first: the server now rejects them, and
+    // they would otherwise keep writing to the databases being moved
+    this.projectState.disconnectSync();
+
+    try {
+      await this.projectActivation.activate(`${username}/${newSlug}`);
+    } catch (error) {
+      console.error('Failed to activate renamed project:', error);
+    }
+
+    // Copy the Yjs docs first, while the old databases still exist: this
+    // also covers worldbuilding docs, which carry no profile prefix
+    try {
+      await this.renameMigration.migrateProject(username, oldSlug, newSlug);
+    } catch (error) {
+      console.error('Failed to migrate local documents:', error);
+    }
+
+    // Then move the profile's media, snapshots, activations and project list
+    // entry, and drop the old-slug databases
+    const configId = this.storageContext.getActiveConfig()?.id;
+    if (configId) {
+      try {
+        await this.storageContext.renameProjectInContext(
+          configId,
+          username,
+          oldSlug,
+          newSlug
+        );
+      } catch (error) {
+        console.error('Failed to move local project data:', error);
+      }
     }
   }
 
