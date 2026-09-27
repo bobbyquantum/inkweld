@@ -1041,28 +1041,19 @@ export class SettingsTabComponent implements OnDestroy {
       console.error('Failed to activate renamed project:', error);
     }
 
-    // Copy the Yjs docs first, while the old databases still exist: this
-    // also covers worldbuilding docs, which carry no profile prefix
+    // Move the Yjs docs, media, snapshots, activation and project list
+    // entry to the new slug, and drop the old-slug databases
     try {
-      await this.renameMigration.migrateProject(username, oldSlug, newSlug);
-    } catch (error) {
-      console.error('Failed to migrate local documents:', error);
-    }
-
-    // Then move the profile's media, snapshots, activations and project list
-    // entry, and drop the old-slug databases
-    const configId = this.storageContext.getActiveConfig()?.id;
-    if (configId) {
-      try {
-        await this.storageContext.renameProjectInContext(
-          configId,
-          username,
-          oldSlug,
-          newSlug
-        );
-      } catch (error) {
-        console.error('Failed to move local project data:', error);
+      const result = await this.renameMigration.migrateProject(
+        username,
+        oldSlug,
+        newSlug
+      );
+      if (!result.success) {
+        console.error('Failed to migrate local data:', result.errors);
       }
+    } catch (error) {
+      console.error('Failed to migrate local data:', error);
     }
   }
 

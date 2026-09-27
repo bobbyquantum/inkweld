@@ -377,9 +377,10 @@ describe('SettingsTabComponent', () => {
     fixture = TestBed.createComponent(SettingsTabComponent);
     component = fixture.componentInstance;
     storageContext = TestBed.inject(StorageContextService);
-    vi.spyOn(storageContext, 'renameProjectInContext').mockResolvedValue(
-      undefined
-    );
+    vi.spyOn(storageContext, 'renameProjectInContext').mockResolvedValue({
+      databasesMoved: 0,
+      errors: [],
+    });
     fixture.detectChanges();
   });
 
@@ -1347,16 +1348,13 @@ describe('SettingsTabComponent', () => {
       beforeEach(() => {
         location = { href: '' };
         vi.stubGlobal('location', location);
-        vi.spyOn(storageContext, 'getActiveConfig').mockReturnValue({
-          id: 'server-1',
-        } as ReturnType<StorageContextService['getActiveConfig']>);
       });
 
       afterEach(() => {
         vi.unstubAllGlobals();
       });
 
-      it('carries activation and local data to the new slug, then reloads there', async () => {
+      it('carries activation and local data to the new slug in one pass, then reloads there', async () => {
         component['renameModel'].set({ newProjectSlug: 'new-slug' });
         await component.renameProject();
 
@@ -1364,27 +1362,22 @@ describe('SettingsTabComponent', () => {
           .mock.invocationCallOrder[0];
         const activateOrder = vi.mocked(projectActivation.activate!).mock
           .invocationCallOrder[0];
-        expect(disconnectOrder).toBeLessThan(activateOrder);
-        // Docs are copied before renameProjectInContext deletes the old ones
         const migrateOrder = vi.mocked(renameMigration.migrateProject!).mock
           .invocationCallOrder[0];
-        const renameOrder = vi.mocked(storageContext.renameProjectInContext)
-          .mock.invocationCallOrder[0];
-        expect(migrateOrder).toBeLessThan(renameOrder);
+        expect(disconnectOrder).toBeLessThan(activateOrder);
+        expect(activateOrder).toBeLessThan(migrateOrder);
         expect(projectActivation.activate).toHaveBeenCalledWith(
           'testuser/new-slug'
         );
-        expect(storageContext.renameProjectInContext).toHaveBeenCalledWith(
-          'server-1',
-          'testuser',
-          'test-project',
-          'new-slug'
-        );
+        // One migration does the whole move; the storage rename is not
+        // run a second time on top of it
+        expect(renameMigration.migrateProject).toHaveBeenCalledTimes(1);
         expect(renameMigration.migrateProject).toHaveBeenCalledWith(
           'testuser',
           'test-project',
           'new-slug'
         );
+        expect(storageContext.renameProjectInContext).not.toHaveBeenCalled();
         expect(location.href).toBe('/testuser/new-slug/settings');
       });
 
@@ -1396,9 +1389,6 @@ describe('SettingsTabComponent', () => {
           projectActivation.activate as ReturnType<typeof vi.fn>
         ).mockRejectedValue(new Error('idb closed'));
         (
-          storageContext.renameProjectInContext as ReturnType<typeof vi.fn>
-        ).mockRejectedValue(new Error('clone failed'));
-        (
           renameMigration.migrateProject as ReturnType<typeof vi.fn>
         ).mockRejectedValue(new Error('migrate failed'));
 
@@ -1407,21 +1397,28 @@ describe('SettingsTabComponent', () => {
 
         expect(location.href).toBe('/testuser/new-slug/settings');
         expect(component['renameError']()).toBeNull();
-        expect(errorSpy).toHaveBeenCalledTimes(3);
+        expect(errorSpy).toHaveBeenCalledTimes(2);
       });
 
-      it('skips the storage rename without an active config', async () => {
+      it('logs databases that could not be moved and still reloads', async () => {
+        const errorSpy = vi
+          .spyOn(console, 'error')
+          .mockImplementation(() => {});
         (
-          storageContext.getActiveConfig as ReturnType<typeof vi.fn>
-        ).mockReturnValue(null);
+          renameMigration.migrateProject as ReturnType<typeof vi.fn>
+        ).mockResolvedValue({
+          documentsMigrated: 1,
+          documentsFailed: 1,
+          errors: ['Failed to copy a to b: boom'],
+          success: false,
+        });
 
         component['renameModel'].set({ newProjectSlug: 'new-slug' });
         await component.renameProject();
 
-        expect(storageContext.renameProjectInContext).not.toHaveBeenCalled();
-        expect(projectActivation.activate).toHaveBeenCalledWith(
-          'testuser/new-slug'
-        );
+        expect(errorSpy).toHaveBeenCalledWith('Failed to migrate local data:', [
+          'Failed to copy a to b: boom',
+        ]);
         expect(location.href).toBe('/testuser/new-slug/settings');
       });
     });
@@ -1436,7 +1433,7 @@ describe('SettingsTabComponent', () => {
 
       expect(projectStateService.disconnectSync).not.toHaveBeenCalled();
       expect(projectActivation.activate).not.toHaveBeenCalled();
-      expect(storageContext.renameProjectInContext).not.toHaveBeenCalled();
+      expect(renameMigration.migrateProject).not.toHaveBeenCalled();
     });
 
     it('should set isRenaming during rename operation', async () => {

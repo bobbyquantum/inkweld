@@ -284,7 +284,9 @@ describe('ProfileManagerService', () => {
         projectCount: 2,
       });
       storage.recordMigration = vi.fn();
-      storage.renameProjectInContext = vi.fn().mockResolvedValue(undefined);
+      storage.renameProjectInContext = vi
+        .fn()
+        .mockResolvedValue({ databasesMoved: 0, errors: [] });
       storage.activateProjectsInContext = vi.fn().mockResolvedValue(2);
       TestBed.resetTestingModule();
       TestBed.configureTestingModule({

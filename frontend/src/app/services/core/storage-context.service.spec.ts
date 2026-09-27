@@ -10,6 +10,7 @@ import {
   buildCloudConfigId,
   buildLocalConfigId,
   buildServerConfigId,
+  cloneDatabase,
   extractContextPrefix,
   getCloudProviderDisplayName,
   getLocalConfigDisplayName,
@@ -772,6 +773,136 @@ describe('StorageContextService', () => {
     });
   });
 
+  describe('cloneDatabase', () => {
+    function open(
+      name: string,
+      version: number,
+      setup: (db: IDBDatabase) => void
+    ): Promise<IDBDatabase> {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open(name, version);
+        req.onupgradeneeded = () => setup(req.result);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error ?? new Error('open failed'));
+      });
+    }
+    function yStores(db: IDBDatabase): void {
+      db.createObjectStore('updates', { autoIncrement: true });
+      db.createObjectStore('custom');
+    }
+    function write(
+      db: IDBDatabase,
+      store: string,
+      entries: { value: unknown; key?: IDBValidKey }[]
+    ): Promise<void> {
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(store, 'readwrite');
+        for (const { value, key } of entries) {
+          if (key === undefined) tx.objectStore(store).put(value);
+          else tx.objectStore(store).put(value, key);
+        }
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error ?? new Error('write failed'));
+      });
+    }
+    function readAll(name: string, store: string): Promise<unknown[]> {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open(name);
+        req.onsuccess = () => {
+          const db = req.result;
+          const all = db
+            .transaction(store, 'readonly')
+            .objectStore(store)
+            .getAll();
+          all.onsuccess = () => {
+            db.close();
+            resolve(all.result);
+          };
+          all.onerror = () => reject(all.error ?? new Error('read failed'));
+        };
+        req.onerror = () => reject(req.error ?? new Error('open failed'));
+      });
+    }
+    function drop(name: string): Promise<void> {
+      return new Promise(resolve => {
+        const req = indexedDB.deleteDatabase(name);
+        req.onsuccess = () => resolve();
+        req.onerror = () => resolve();
+        req.onblocked = () => resolve();
+      });
+    }
+
+    it('merges into an existing target instead of overwriting its records', async () => {
+      const src = await open('clone-merge-src', 1, yStores);
+      await write(src, 'updates', [
+        { value: new Uint8Array([1]) },
+        { value: new Uint8Array([2]) },
+      ]);
+      await write(src, 'custom', [
+        { value: 'source', key: 'shared' },
+        { value: 'only-source', key: 'extra' },
+      ]);
+      src.close();
+      // The target already has its own edit under key 1
+      const dst = await open('clone-merge-dst', 1, yStores);
+      await write(dst, 'updates', [{ value: new Uint8Array([7]) }]);
+      await write(dst, 'custom', [{ value: 'target', key: 'shared' }]);
+      dst.close();
+
+      await cloneDatabase('clone-merge-src', 'clone-merge-dst');
+
+      const updates = (await readAll('clone-merge-dst', 'updates')).map(u =>
+        Array.from(u as Uint8Array)
+      );
+      expect(updates).toEqual([[7], [1], [2]]);
+      expect((await readAll('clone-merge-dst', 'custom')).sort()).toEqual([
+        'only-source',
+        'target',
+      ]);
+
+      await drop('clone-merge-src');
+      await drop('clone-merge-dst');
+    });
+
+    it('adds stores an existing target lacks', async () => {
+      const src = await open('clone-stores-src', 1, yStores);
+      await write(src, 'updates', [{ value: new Uint8Array([3]) }]);
+      src.close();
+      const dst = await open('clone-stores-dst', 1, db => {
+        db.createObjectStore('custom');
+      });
+      dst.close();
+
+      await cloneDatabase('clone-stores-src', 'clone-stores-dst');
+
+      const updates = await readAll('clone-stores-dst', 'updates');
+      expect(updates.map(u => Array.from(u as Uint8Array))).toEqual([[3]]);
+
+      await drop('clone-stores-src');
+      await drop('clone-stores-dst');
+    });
+
+    it('creates a missing target at the source version', async () => {
+      const src = await open('clone-new-src', 3, yStores);
+      src.close();
+
+      await cloneDatabase('clone-new-src', 'clone-new-dst');
+
+      const dst = await open('clone-new-dst', 3, () => {
+        throw new Error('should not upgrade');
+      });
+      expect(dst.version).toBe(3);
+      expect(Array.from(dst.objectStoreNames).sort()).toEqual([
+        'custom',
+        'updates',
+      ]);
+      dst.close();
+
+      await drop('clone-new-src');
+      await drop('clone-new-dst');
+    });
+  });
+
   describe('renameProjectInContext', () => {
     function open(
       name: string,
@@ -879,6 +1010,174 @@ describe('StorageContextService', () => {
       ]) {
         await drop(name);
       }
+    });
+
+    function yDoc(name: string, bytes: number[]): Promise<void> {
+      return open(name, db => {
+        db.createObjectStore('updates', { autoIncrement: true });
+        db.createObjectStore('custom');
+      }).then(async db => {
+        await write(db, 'updates', new Uint8Array(bytes));
+        db.close();
+      });
+    }
+    function updatesOf(name: string): Promise<number[][]> {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open(name);
+        req.onsuccess = () => {
+          const db = req.result;
+          const all = db
+            .transaction('updates', 'readonly')
+            .objectStore('updates')
+            .getAll();
+          all.onsuccess = () => {
+            db.close();
+            resolve(all.result.map(u => Array.from(u as Uint8Array)));
+          };
+          all.onerror = () => reject(all.error ?? new Error('read failed'));
+        };
+        req.onerror = () => reject(req.error ?? new Error('open failed'));
+      });
+    }
+
+    it('moves prefixed and legacy worldbuilding docs, dropping the old ones', async () => {
+      service.addLocalConfig({ name: 'W', username: 'w' });
+      mockStorage['local:inkweld-local-projects'] = JSON.stringify([
+        { username: 'w', slug: 'old' },
+      ]);
+      await yDoc('local:w:old:elements', [1]);
+      await yDoc('local:worldbuilding:w:old:e1', [2]);
+      await yDoc('worldbuilding:w:old:e2', [3]);
+
+      const result = await service.renameProjectInContext(
+        LOCAL_CONFIG_ID,
+        'w',
+        'old',
+        'new'
+      );
+
+      expect(result).toEqual({ databasesMoved: 3, errors: [] });
+      expect(await updatesOf('local:w:new:elements')).toEqual([[1]]);
+      expect(await updatesOf('local:worldbuilding:w:new:e1')).toEqual([[2]]);
+      expect(await updatesOf('worldbuilding:w:new:e2')).toEqual([[3]]);
+      for (const name of [
+        'local:w:old:elements',
+        'local:worldbuilding:w:old:e1',
+        'worldbuilding:w:old:e2',
+      ]) {
+        expect(await dbExists(name)).toBe(false);
+      }
+
+      for (const name of [
+        'local:w:new:elements',
+        'local:worldbuilding:w:new:e1',
+        'worldbuilding:w:new:e2',
+      ]) {
+        await drop(name);
+      }
+    });
+
+    it('keeps a legacy worldbuilding doc another profile still uses', async () => {
+      service.addLocalConfig({ name: 'S', username: 's' });
+      const other = service.addServerConfig(
+        'https://rename-shared.example.com'
+      );
+      const otherPrefix = service.getPrefixForConfig(other.id);
+      mockStorage['local:inkweld-local-projects'] = JSON.stringify([
+        { username: 's', slug: 'old' },
+      ]);
+      // The server profile has its own copy of s/old on this device
+      await yDoc(`${otherPrefix}s:old:elements`, [5]);
+      await yDoc('worldbuilding:s:old:e1', [6]);
+
+      await service.renameProjectInContext(LOCAL_CONFIG_ID, 's', 'old', 'new');
+
+      expect(await updatesOf('worldbuilding:s:new:e1')).toEqual([[6]]);
+      expect(await updatesOf('worldbuilding:s:old:e1')).toEqual([[6]]);
+      expect(await dbExists(`${otherPrefix}s:old:elements`)).toBe(true);
+
+      for (const name of [
+        `${otherPrefix}s:old:elements`,
+        'worldbuilding:s:old:e1',
+        'worldbuilding:s:new:e1',
+      ]) {
+        await drop(name);
+      }
+    });
+
+    it('merges into an existing new-slug database without losing its edits', async () => {
+      service.addLocalConfig({ name: 'M', username: 'm' });
+      await yDoc('local:m:old:doc1', [1]);
+      await yDoc('local:m:new:doc1', [9]);
+
+      await service.renameProjectInContext(LOCAL_CONFIG_ID, 'm', 'old', 'new');
+
+      expect(await updatesOf('local:m:new:doc1')).toEqual([[9], [1]]);
+      expect(await dbExists('local:m:old:doc1')).toBe(false);
+
+      await drop('local:m:new:doc1');
+    });
+
+    it('moves the cached project to the new slug', async () => {
+      service.addLocalConfig({ name: 'C', username: 'c' });
+      const cache = await open('local:projectCache', db => {
+        db.createObjectStore('projects');
+        db.createObjectStore('projectsList');
+      });
+      await write(cache, 'projects', { slug: 'old', title: 'T' }, 'c/old');
+      cache.close();
+
+      await service.renameProjectInContext(LOCAL_CONFIG_ID, 'c', 'old', 'new');
+
+      expect(await keysOf('local:projectCache', 'projects')).toEqual(['c/new']);
+      const moved = await new Promise<unknown>((resolve, reject) => {
+        const req = indexedDB.open('local:projectCache');
+        req.onsuccess = () => {
+          const db = req.result;
+          const get = db
+            .transaction('projects', 'readonly')
+            .objectStore('projects')
+            .get('c/new');
+          get.onsuccess = () => {
+            db.close();
+            resolve(get.result);
+          };
+        };
+        req.onerror = () => reject(req.error ?? new Error('open failed'));
+      });
+      expect(moved).toEqual({ slug: 'new', title: 'T' });
+
+      await drop('local:projectCache');
+    });
+
+    it('keeps the original and reports a database that fails to copy', async () => {
+      service.addLocalConfig({ name: 'F', username: 'f' });
+      await yDoc('local:f:old:doc1', [1]);
+      const openSpy = vi.spyOn(indexedDB, 'open').mockImplementationOnce(() => {
+        throw new Error('boom');
+      });
+
+      const result = await service.renameProjectInContext(
+        LOCAL_CONFIG_ID,
+        'f',
+        'old',
+        'new'
+      );
+      openSpy.mockRestore();
+
+      expect(result.databasesMoved).toBe(0);
+      expect(result.errors).toEqual([
+        'Failed to copy local:f:old:doc1 to local:f:new:doc1: boom',
+      ]);
+      expect(await dbExists('local:f:old:doc1')).toBe(true);
+
+      await drop('local:f:old:doc1');
+    });
+
+    it('does nothing when the slug is unchanged', async () => {
+      expect(
+        await service.renameProjectInContext(LOCAL_CONFIG_ID, 'a', 'x', 'x')
+      ).toEqual({ databasesMoved: 0, errors: [] });
     });
   });
 
