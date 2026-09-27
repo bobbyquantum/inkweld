@@ -9,7 +9,7 @@ import { AuthenticationService } from '@inkweld/api/authentication.service';
 import { ProjectsService } from '@inkweld/api/projects.service';
 import { type Project } from '@inkweld/model/project';
 import { of, throwError } from 'rxjs';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { AuthTokenService } from '../auth/auth-token.service';
@@ -927,9 +927,11 @@ describe('MigrationService', () => {
     it('rethrows a failed copy after logging it', async () => {
       const copySingleDocument = getCopySingleDocument();
       const { IndexeddbPersistence } = await import('y-indexeddb');
-      vi.spyOn(IndexeddbPersistence.prototype, 'destroy').mockRejectedValueOnce(
-        new Error('boom')
-      );
+      const destroy = vi
+        .spyOn(IndexeddbPersistence.prototype, 'destroy')
+        .mockRejectedValueOnce(new Error('boom'));
+      // Specs share one module graph in CI (isolate: false): never leak the spy
+      onTestFinished(() => destroy.mockRestore());
 
       await expect(
         copySingleDocument('local:u:s:e1', 'srv:cfg:u:s:e1')
