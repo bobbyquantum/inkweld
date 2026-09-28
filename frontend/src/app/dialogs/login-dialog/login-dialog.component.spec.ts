@@ -480,6 +480,45 @@ describe('LoginDialogComponent', () => {
       expect(userService.login).toHaveBeenCalledWith('testuser', 'pw123456');
     });
 
+    // Regression: the app is zoneless, so state set after the awaited login
+    // only re-renders if it lives in signals. When it was plain fields the
+    // button stayed on "Logging in..." and no error appeared after a 401.
+    // No manual detectChanges() after submit — rendering must be scheduled
+    // by the state change itself.
+    it('resets the button and renders the error after a failed login', async () => {
+      component.providersLoaded.set(true);
+      let rejectLogin!: (error: unknown) => void;
+      userService.login.mockReturnValue(
+        new Promise<void>((_, reject) => {
+          rejectLogin = reject;
+        })
+      );
+      component.form.username().value.set('testuser');
+      component.form.password().value.set('wrongpassword');
+      await fixture.whenStable();
+
+      const el: HTMLElement = fixture.nativeElement;
+      const button = () =>
+        el.querySelector<HTMLButtonElement>('[data-testid="login-button"]')!;
+      el.querySelector('[data-testid="login-form"]')!.dispatchEvent(
+        new Event('submit', { bubbles: true, cancelable: true })
+      );
+      await fixture.whenStable();
+      expect(button().textContent).toContain('Logging in...');
+
+      rejectLogin(new UserServiceError('LOGIN_FAILED', 'Invalid credentials'));
+
+      // whenStable() can settle before the rejection has passed through the
+      // form's submit() and onLogin(), so wait on the rendered DOM instead.
+      await vi.waitFor(() => {
+        expect(button().textContent).not.toContain('Logging in...');
+        expect(
+          el.querySelector('[data-testid="password-error"]')?.textContent
+        ).toContain('Invalid username or password');
+      });
+      expect(dialogRef.close).not.toHaveBeenCalled();
+    });
+
     it('disables native browser validation on the form', () => {
       const formEl: HTMLFormElement = fixture.nativeElement.querySelector(
         '[data-testid="login-form"]'
