@@ -83,7 +83,7 @@ test.describe('Element Reference (@mentions)', () => {
             {
               id: 'local',
               type: 'local',
-              displayName: 'Local Mode',
+              displayName: 'Browser',
               userProfile: {
                 name: userProfile.name,
                 username: userProfile.username,

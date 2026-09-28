@@ -48,7 +48,7 @@ const LINK_TYPE_IDS: Record<SceneLinkKind, string> = {
  * in place, POV and location open the element picker, everything else
  * opens the scene details dialog.
  *
- * Renders nothing for notes and legacy documents; the host reserves the
+ * Renders nothing for notes and role-less documents; the host reserves the
  * strip's height only when {@link visible} is true.
  */
 @Component({

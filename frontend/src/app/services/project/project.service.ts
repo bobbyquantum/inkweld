@@ -562,9 +562,8 @@ export class ProjectService {
    * Fetch the project cover, offline-first.
    *
    * `coverMediaId` is the cache key (the `coverImage` filename stem). Covers
-   * are versioned by filename, so caching under the real id means a fresh
-   * cover is never shadowed by a stale blob under the legacy fixed `'cover'`
-   * key — which is still consulted for projects saved before ids existed.
+   * are versioned by filename, so a fresh cover is never shadowed by a stale
+   * blob. Without an id the cover is fetched but not cached.
    */
   async getProjectCover(
     username: string,
@@ -573,13 +572,13 @@ export class ProjectService {
   ): Promise<Blob> {
     this.error.set(undefined);
     const projectKey = `${username}/${slug}`;
-    const cacheId = coverMediaId ?? 'cover';
+    const cacheId = coverMediaId;
 
     // Offline-first: if we have a cached cover, return it immediately
-    const cachedCover =
-      (await this.localStorage.getMedia(projectKey, cacheId)) ??
-      (await this.localStorage.getProjectCover(username, slug));
-    if (cachedCover) {
+    const cachedCover = cacheId
+      ? await this.localStorage.getMedia(projectKey, cacheId)
+      : null;
+    if (cacheId && cachedCover) {
       // If in server mode, try a background refresh to update cache
       if (!isLocalOrCloudMode(this.setupService.getMode())) {
         void (async () => {
@@ -622,24 +621,22 @@ export class ProjectService {
       );
 
       // Cache the cover for offline access
-      try {
-        await this.localStorage.saveMedia(projectKey, cacheId, blob);
-      } catch (cacheError) {
-        console.warn('Failed to cache project cover:', cacheError);
+      if (cacheId) {
+        try {
+          await this.localStorage.saveMedia(projectKey, cacheId, blob);
+        } catch (cacheError) {
+          console.warn('Failed to cache project cover:', cacheError);
+        }
       }
 
       return blob;
     } catch (err: unknown) {
-      return await this.handleCoverFetchError(err, username, slug);
+      return this.handleCoverFetchError(err);
     }
   }
 
-  /** Handle errors from cover image fetching with offline fallback. */
-  private async handleCoverFetchError(
-    err: unknown,
-    username: string,
-    slug: string
-  ): Promise<Blob> {
+  /** Record and rethrow an error from cover image fetching. */
+  private handleCoverFetchError(err: unknown): never {
     if (
       err instanceof ProjectServiceError &&
       err.code === 'PROJECT_NOT_FOUND'
@@ -647,15 +644,6 @@ export class ProjectService {
       this.error.set(err);
       console.warn('Project cover image not found:', err);
       throw err;
-    }
-
-    // If server error but we have cached cover, return cache
-    const offlineBlob = await this.localStorage.getProjectCover(username, slug);
-    if (offlineBlob) {
-      console.warn(
-        `Server unavailable, using cached cover for ${username}/${slug}`
-      );
-      return offlineBlob;
     }
 
     const error =
@@ -675,9 +663,8 @@ export class ProjectService {
     this.error.set(undefined);
 
     try {
-      // In offline mode, just delete from IndexedDB cache
+      // In offline mode the caller has already removed the local blob
       if (isLocalOrCloudMode(this.setupService.getMode())) {
-        await this.localStorage.deleteProjectCover(username, slug);
         return;
       }
 
@@ -688,13 +675,6 @@ export class ProjectService {
           catchError(err => throwError(() => this.formatError(err)))
         )
       );
-
-      // Clear the cached cover from IndexedDB
-      try {
-        await this.localStorage.deleteProjectCover(username, slug);
-      } catch (cacheError) {
-        console.warn('Failed to clear cached cover image:', cacheError);
-      }
 
       // Update the project in the projects list if it exists to reflect no cover
       const currentProjects = this.projects();
@@ -1139,7 +1119,7 @@ export class ProjectService {
   }
 }
 
-/** Timestamp embedded in a `cover-<ms>` media id (0 for legacy ids). */
+/** Timestamp embedded in a `cover-<ms>` media id (0 if there is none). */
 function coverTimestamp(mediaId: string): number {
   const match = /^cover-(\d+)/.exec(mediaId);
   return match ? Number(match[1]) : 0;

@@ -192,7 +192,7 @@ export class TemplateEditorPageComponent
       });
     });
 
-    // Legacy/imported relationship fields may lack a backing-type id. Stamp
+    // Imported relationship fields may lack a backing-type id. Stamp
     // a deterministic one (stable across sessions even before the save lands)
     // so ensureRelationshipTypes below can register the matching type.
     let stampedTypeIds = false;

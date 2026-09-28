@@ -145,7 +145,7 @@ export class DocumentImportService {
         }
 
         // Restore the element's own schema copy when the archive carries one.
-        // Older archives fall back to copying the shared schema on first open.
+        // Without one, the shared schema is copied in on first open.
         if (wb.schema) {
           const schemaMap = ydoc.getMap<unknown>('schema');
           schemaMap.set('snapshot', wb.schema);

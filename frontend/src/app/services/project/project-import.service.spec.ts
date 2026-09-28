@@ -1066,21 +1066,5 @@ describe('ProjectImportService', () => {
         archiveMigrations.ARCHIVE_MIGRATIONS.push(...originalMigrations);
       }
     });
-
-    it('v1→v2 migration should default timeSystems to empty array', async () => {
-      const v1Archive: ProjectArchive = {
-        ...mockArchive,
-        manifest: { ...mockManifest, version: 1 },
-        // v1 archives have no time-systems.json entry; the field
-        // may already be [] from parsing but the migration guarantees it.
-      };
-      const file = await createTestArchive(v1Archive);
-
-      await service.importProject(file, { slug: 'imported-project' });
-
-      // The migration sets timeSystems = [] and saveTimeSystems should
-      // NOT be called when the array is empty.
-      expect(localElements.saveTimeSystems).not.toHaveBeenCalled();
-    });
   });
 });

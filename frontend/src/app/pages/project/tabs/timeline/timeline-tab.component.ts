@@ -249,8 +249,6 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
   private readonly labelMinGap = 8;
   /** Vertical padding below event area, before the divider line. */
   private readonly eventAreaPadding = 4;
-  /** @deprecated retained for backward-compat with older tests. */
-  protected readonly trackHeight = 52;
   /**
    * Dedicated strip above the top axis showing era names. Tall enough for
    * two centred rows: the era name and its formatted time range.
@@ -502,9 +500,6 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
 
   /** Local Y within the bottom fixed SVG where the axis line is rendered. */
   protected readonly bottomAxisY = 1;
-
-  /** Backward-compat alias used by older tests. */
-  protected readonly axisY = computed(() => this.topAxisY);
 
   protected readonly tickMarks = computed<TickMark[]>(() => {
     const system = this.activeSystem();
@@ -1379,8 +1374,8 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
         timePointToAbsolute(end, system)
       );
     } catch {
-      // Existing tests and imported legacy data can contain mismatched time
-      // points; presence must never block the core timeline interaction.
+      // Imported data can contain mismatched time points; presence must
+      // never block the core timeline interaction.
     }
   }
 

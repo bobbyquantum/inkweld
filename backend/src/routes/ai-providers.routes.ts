@@ -770,7 +770,7 @@ aiProvidersRoutes.openapi(getOpenRouterModelsRoute, async (c) => {
       .filter((m) => {
         // Include models that output text
         const outputModalities = m.architecture?.output_modalities || [];
-        // If no output_modalities defined, assume it's a text model (legacy)
+        // If no output_modalities defined, assume it's a text model
         if (outputModalities.length === 0) return true;
         // Include if it can output text
         return outputModalities.includes('text');

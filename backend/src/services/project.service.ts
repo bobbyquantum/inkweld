@@ -384,26 +384,6 @@ class ProjectService {
   }
 
   /**
-   * @deprecated Use findTombstonesByProjectKeys instead for proper username-scoped lookups
-   */
-  async findTombstones(
-    db: DatabaseInstance,
-    userId: string,
-    slugs: string[]
-  ): Promise<ProjectTombstone[]> {
-    if (slugs.length === 0) {
-      return [];
-    }
-
-    const result = await db
-      .select()
-      .from(projectTombstones)
-      .where(and(eq(projectTombstones.userId, userId), inArray(projectTombstones.slug, slugs)));
-
-    return result;
-  }
-
-  /**
    * Remove a tombstone (e.g., if user recreates a project with same slug)
    */
   async removeTombstone(db: DatabaseInstance, userId: string, slug: string): Promise<void> {

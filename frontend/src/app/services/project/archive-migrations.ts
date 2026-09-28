@@ -38,29 +38,7 @@ export interface ArchiveMigration {
  * }
  * ```
  */
-export const ARCHIVE_MIGRATIONS: ArchiveMigration[] = [
-  {
-    fromVersion: 1,
-    toVersion: 2,
-    description:
-      'Add time-systems array (project-owned calendars for the Timeline feature). v1 archives default to an empty library.',
-    migrate: archive => ({
-      ...archive,
-      timeSystems: [],
-      manifest: { ...archive.manifest, version: 2 },
-    }),
-  },
-  {
-    fromVersion: 2,
-    toVersion: 3,
-    description:
-      'Per-element schema copies: worldbuilding entries may carry `schema` and `schemaBaseHash`. Both are optional, so v2 archives need no data changes; the bump stops older importers from silently dropping customised element schemas.',
-    migrate: archive => ({
-      ...archive,
-      manifest: { ...archive.manifest, version: 3 },
-    }),
-  },
-];
+export const ARCHIVE_MIGRATIONS: ArchiveMigration[] = [];
 
 /**
  * Find a migration for the given source version.

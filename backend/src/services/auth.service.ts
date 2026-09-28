@@ -23,8 +23,7 @@ const ENROLMENT_TOKEN_EXPIRY = 15 * 60; // 15 minutes in seconds
  *
  *   - `'full'`   — issued after a normal login or auto-approved registration.
  *                  Grants every authenticated route subject to canLogin().
- *                  Default when the field is absent (back-compat with tokens
- *                  minted before this field existed).
+ *                  Assumed when the field is absent.
  *   - `'enrol'`  — issued only by `/auth/register` when the user requires
  *                  admin approval AND password login is disabled. The user
  *                  has no other way to attach a credential to the new
@@ -40,7 +39,7 @@ export interface SessionData {
   userId: string;
   username: string;
   email: string;
-  scope?: SessionScope; // omitted == 'full' (back-compat)
+  scope?: SessionScope; // omitted == 'full'
   exp?: number; // JWT expiration timestamp
   [key: string]: string | number | undefined; // Index signature for JWT compatibility
 }
@@ -63,7 +62,7 @@ class AuthService {
     // Try to get from request context first (Cloudflare Workers)
     // In Hono Workers, c.env is the raw Cloudflare env bindings object
     const env = (c as unknown as { env: Record<string, string | undefined> }).env;
-    // Support both DATABASE_KEY (new) and SESSION_SECRET (legacy)
+    // DATABASE_KEY overrides SESSION_SECRET when set
     let envSecret: string | undefined;
     if (env && typeof env.DATABASE_KEY === 'string') {
       envSecret = env.DATABASE_KEY;

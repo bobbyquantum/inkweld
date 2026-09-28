@@ -896,8 +896,8 @@ export class ProjectImportService {
         media.filename
       );
 
-      // In server mode, upload cover image (matches both legacy 'cover' and new 'cover-*' IDs)
-      if (!isOffline && media.mediaId.startsWith('cover')) {
+      // In server mode, upload the cover image
+      if (!isOffline && media.mediaId.startsWith('cover-')) {
         try {
           await this.uploadCoverImage(username, slug, blob);
         } catch (err) {

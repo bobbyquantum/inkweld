@@ -415,7 +415,7 @@ export const test = base.extend<OnlineTestFixtures>({
             {
               id: 'local',
               type: 'local',
-              displayName: 'Local Mode',
+              displayName: 'Browser',
               userProfile,
               addedAt: now,
               lastUsedAt: now,

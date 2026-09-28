@@ -9,10 +9,8 @@ import {
 import localeEn from '@angular/common/locales/en';
 import {
   type ApplicationConfig,
-  inject,
   isDevMode,
   LOCALE_ID,
-  provideAppInitializer,
   provideZonelessChangeDetection,
 } from '@angular/core';
 import {
@@ -29,7 +27,6 @@ import { routes } from './app.routes';
 import { API_PROVIDERS } from './config/api.config';
 import { AuthInterceptor } from './interceptors/auth.interceptor';
 import { InkweldTitleStrategy } from './services/core/title-strategy.service';
-import { DocumentStorageMigrationService } from './services/local/document-storage-migration.service';
 import { TranslocoHttpLoader } from './transloco-loader';
 
 registerLocaleData(localeEn);
@@ -37,11 +34,6 @@ registerLocaleData(localeEn);
 export const appConfig: ApplicationConfig = {
   providers: [
     provideZonelessChangeDetection(),
-    // Move prose and worldbuilding docs to profile-scoped IndexedDB names before the
-    // router can open one. Never rejects, so it cannot block startup.
-    provideAppInitializer(async () => {
-      await inject(DocumentStorageMigrationService).migrateIfNeeded();
-    }),
     provideRouter(routes),
     provideHttpClient(
       withXhr(),

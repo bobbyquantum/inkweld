@@ -993,45 +993,6 @@ describe('ProjectService', () => {
       // Verify error was set with correct code
       expect(service.error()?.code).toBe('NETWORK_ERROR');
     });
-
-    it('clears the IndexedDB cache after successful delete', async () => {
-      // Set up API to succeed
-      imagesApi.deleteProjectCover.mockReturnValue(
-        apiOk({ message: 'Cover deleted' })
-      );
-      api.listUserProjects.mockReturnValue(apiOk(BASE));
-      localStorage.deleteProjectCover.mockResolvedValue(undefined);
-
-      await service.deleteProjectCover('alice', 'project-1');
-
-      // Should clear the cached cover
-      expect(localStorage.deleteProjectCover).toHaveBeenCalledWith(
-        'alice',
-        'project-1'
-      );
-    });
-
-    it('continues even if IndexedDB cache clear fails', async () => {
-      // Set up API to succeed
-      imagesApi.deleteProjectCover.mockReturnValue(
-        apiOk({ message: 'Cover deleted' })
-      );
-      api.listUserProjects.mockReturnValue(apiOk(BASE));
-      localStorage.deleteProjectCover.mockRejectedValue(
-        new Error('IndexedDB error')
-      );
-
-      // Should not throw - cache clear failure is non-fatal
-      await expect(
-        service.deleteProjectCover('alice', 'project-1')
-      ).resolves.not.toThrow();
-
-      // Should still have called the cache clear
-      expect(localStorage.deleteProjectCover).toHaveBeenCalledWith(
-        'alice',
-        'project-1'
-      );
-    });
   });
 
   // uploadProjectCover tests removed - the method uses http.post() directly instead of

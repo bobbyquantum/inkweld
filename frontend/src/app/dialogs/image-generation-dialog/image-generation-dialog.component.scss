@@ -423,61 +423,6 @@ mat-expansion-panel {
   }
 }
 
-// Legacy grid layout (keep for backward compatibility if needed)
-.image-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.image-item {
-  position: relative;
-  aspect-ratio: 1;
-  border-radius: 8px;
-  overflow: hidden;
-  cursor: pointer;
-  border: 2px solid transparent;
-  transition:
-    border-color 0.2s,
-    transform 0.2s;
-
-  &:hover {
-    transform: scale(1.02);
-  }
-
-  &:focus {
-    outline: 2px solid var(--sys-primary);
-    outline-offset: 2px;
-  }
-
-  &.selected {
-    border-color: var(--sys-primary);
-  }
-
-  img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-
-  .selected-indicator {
-    position: absolute;
-    top: 4px;
-    right: 4px;
-    background-color: var(--sys-primary);
-    color: var(--sys-on-primary);
-    border-radius: 50%;
-    padding: 2px;
-
-    mat-icon {
-      font-size: 20px;
-      width: 20px;
-      height: 20px;
-    }
-  }
-}
-
 .generation-info {
   text-align: center;
   font-size: 0.875rem;

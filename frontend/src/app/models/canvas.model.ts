@@ -395,10 +395,7 @@ export interface CanvasConfig extends CanvasPageSettings {
   layers: CanvasLayer[];
   /** All objects on all layers */
   objects: CanvasObject[];
-  /**
-   * Canvas size + crop frames. Optional for back-compat: canvases created
-   * before frames existed simply have none.
-   */
+  /** Canvas size + crop frames; absent until the first frame is added */
   frames?: CanvasFrame[];
 }
 

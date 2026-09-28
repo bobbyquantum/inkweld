@@ -702,11 +702,9 @@ describe('CloudSyncConnectService', () => {
       );
 
       const written = JSON.parse(uploaded) as {
-        profile: { username: string };
         profiles: { username: string }[];
         revision: number;
       };
-      expect(written.profile.username).toBe('alice');
       expect(written.profiles.map(p => p.username)).toEqual(['alice', 'bob']);
       expect(written.revision).toBe(2);
       // The upload was conditional on the manifest version it read
@@ -766,7 +764,7 @@ describe('CloudSyncConnectService', () => {
         provider: 'dropbox',
         accountId: 'dbid:abc',
       });
-      expect(written.profile).toEqual({ name: 'Bobby', username: 'bobby' });
+      expect(written.profiles).toEqual([{ name: 'Bobby', username: 'bobby' }]);
       expect(setupService.configureCloudMode).toHaveBeenCalledWith({
         provider: 'dropbox',
         accountId: 'dbid:abc',

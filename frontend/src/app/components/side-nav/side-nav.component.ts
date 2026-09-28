@@ -61,8 +61,6 @@ export class SideNavComponent {
 
   @Input() isOpen = signal(false);
   @Input() isMobile = false;
-  /** @deprecated Use projectItems instead */
-  @Input() projects: Project[] = [];
   /** Unified project items (owned + shared) */
   @Input() projectItems: UnifiedProjectItem[] = [];
   @Input() selectedProject: Project | null = null;

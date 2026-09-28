@@ -297,7 +297,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
    * Get the JWT secret from environment
    */
   private getSecret(): string {
-    // Support both DATABASE_KEY (new) and SESSION_SECRET (legacy)
+    // DATABASE_KEY overrides SESSION_SECRET when set
     const secret = this.env.DATABASE_KEY || this.env.SESSION_SECRET;
     projDOLog.debug('getSecret check', {
       hasDatabaseKey: !!this.env.DATABASE_KEY,
@@ -479,8 +479,8 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     console.log('[DO-HTTP] projectId:', this.projectId);
 
     // Enforce project-level access (owner or collaborator with read access).
-    // The WebSocket path has always checked this (checkAccessWithDb /
-    // checkAccessLegacy); the HTTP API previously only verified the JWT,
+    // The WebSocket path has always checked this (checkAccessWithDb); the
+    // HTTP API previously only verified the JWT,
     // letting any authenticated user read or mutate ANY project's documents
     // with a predictable username:slug:docId (cross-tenant IDOR). Route both
     // transports through the same resolveProjectAccess helper so they can't
@@ -495,6 +495,12 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       });
     }
     const db = this.getDb();
+    if (!db) {
+      return new Response(JSON.stringify({ error: 'Database unavailable' }), {
+        status: 503,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
     // A site admin deleting another user's account wipes that user's
     // projects; the project-level check below only admits the owner.
     if (method === 'POST' && path === '/api/destroy' && (await isActiveSiteAdmin(db, session))) {
@@ -2472,26 +2478,6 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
   }
 
   /**
-   * Legacy owner-only access check for deployments without a D1 binding.
-   * Returns `{ canWrite, projectDbId }` or null if access was denied (response already sent).
-   */
-  private checkAccessLegacy(
-    parsed: { projectOwner: string },
-    sessionData: SessionData,
-    ws: WebSocket
-  ): { canWrite: boolean; projectDbId: null } | null {
-    if (sessionData.username !== parsed.projectOwner) {
-      projDOLog.error(
-        `User ${sessionData.username} attempted to access project owned by ${parsed.projectOwner}`
-      );
-      safeSend(ws, 'access-denied:forbidden');
-      safeClose(ws, WS_CLOSE_FORBIDDEN, 'Access denied');
-      return null;
-    }
-    return { canWrite: true, projectDbId: null };
-  }
-
-  /**
    * Verify the JWT token from a connection's first text message and, if
    * valid, transition the connection to authenticated and start Yjs sync.
    *
@@ -2511,10 +2497,9 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
         return;
       }
 
-      // Validate project access. Replaces the legacy owner-only check with a
-      // real collaboration lookup so collaborators (editor/commenter/viewer)
-      // can sync via the Cloudflare Durable Object runtime. Mirrors
-      // routes/yjs.routes.ts (Bun reference impl).
+      // Validate project access with a collaboration lookup so collaborators
+      // (editor/commenter/viewer) can sync via the Cloudflare Durable Object
+      // runtime. Mirrors routes/yjs.routes.ts (Bun reference impl).
       const parsed = this.parseDocumentOwner(connInfo.documentId);
       if (!parsed) {
         projDOLog.error(`Invalid documentId format: ${connInfo.documentId}`);
@@ -2524,9 +2509,12 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       }
 
       const db = this.getDb();
-      const accessResult = db
-        ? await this.checkAccessWithDb(db, parsed, sessionData, ws)
-        : this.checkAccessLegacy(parsed, sessionData, ws);
+      if (!db) {
+        safeSend(ws, 'access-denied:forbidden');
+        safeClose(ws, WS_CLOSE_FORBIDDEN, 'Access denied');
+        return;
+      }
+      const accessResult = await this.checkAccessWithDb(db, parsed, sessionData, ws);
       if (!accessResult) return;
       const { canWrite, projectDbId } = accessResult;
 

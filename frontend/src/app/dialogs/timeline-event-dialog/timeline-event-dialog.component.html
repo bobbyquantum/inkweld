@@ -77,12 +77,6 @@
         }
       }
     </div>
-    <!-- Compatibility testid: combined start value (for legacy selectors). -->
-    <input
-      type="hidden"
-      data-testid="timeline-event-start"
-      [value]="combinedStart()" />
-
     <mat-checkbox [formField]="form.ranged" data-testid="timeline-event-ranged">
       {{ 'timeline.eventDialog.rangedEvent' | transloco }}
     </mat-checkbox>
@@ -132,10 +126,6 @@
           }
         }
       </div>
-      <input
-        type="hidden"
-        data-testid="timeline-event-end"
-        [value]="combinedEnd()" />
       @if (
         form()
           .errors()

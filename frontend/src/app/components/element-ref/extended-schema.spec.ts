@@ -2,32 +2,32 @@ import { DOMParser, DOMSerializer, Schema } from 'prosemirror-model';
 import { describe, expect, it } from 'vitest';
 
 import {
-  createExtendedSchema,
+  buildInkweldSchema,
   extendedSchema,
   ngxEditorSchema,
 } from './extended-schema';
 
 describe('extended-schema', () => {
-  describe('createExtendedSchema', () => {
+  describe('buildInkweldSchema', () => {
     it('should create a valid ProseMirror Schema', () => {
-      const schema = createExtendedSchema();
+      const schema = buildInkweldSchema();
       expect(schema).toBeInstanceOf(Schema);
     });
 
     it('should include the elementRef node type', () => {
-      const schema = createExtendedSchema();
+      const schema = buildInkweldSchema();
       expect(schema.nodes['elementRef']).toBeDefined();
     });
 
     it('should include standard nodes from ngx-editor', () => {
-      const schema = createExtendedSchema();
+      const schema = buildInkweldSchema();
       expect(schema.nodes['doc']).toBeDefined();
       expect(schema.nodes['paragraph']).toBeDefined();
       expect(schema.nodes['text']).toBeDefined();
     });
 
     it('should include standard marks from ngx-editor', () => {
-      const schema = createExtendedSchema();
+      const schema = buildInkweldSchema();
       expect(schema.marks['strong']).toBeDefined();
       expect(schema.marks['em']).toBeDefined();
       expect(schema.marks['link']).toBeDefined();
@@ -35,7 +35,7 @@ describe('extended-schema', () => {
   });
 
   describe('table nodes', () => {
-    const schema = createExtendedSchema();
+    const schema = buildInkweldSchema();
 
     it('should include the prosemirror-tables node types', () => {
       expect(schema.nodes['table']).toBeDefined();
@@ -136,7 +136,7 @@ describe('extended-schema', () => {
   });
 
   describe('link mark spec', () => {
-    const schema = createExtendedSchema();
+    const schema = buildInkweldSchema();
     const linkMarkType = schema.marks['link'];
 
     it('should declare href, title, target and rel attrs', () => {

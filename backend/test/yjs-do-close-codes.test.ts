@@ -205,8 +205,8 @@ describe('YjsProject DO denial close codes', () => {
     ]);
   });
 
-  it('closes legacy (no D1) forbidden with the permanent 4403 code', async () => {
-    // No env.DB -> getDb() returns null -> owner-only legacy check.
+  it('refuses access with the permanent 4403 code when there is no D1 binding', async () => {
+    // No env.DB -> getDb() returns null -> access cannot be resolved.
     const doInstance = makeDO();
     const ws = makeWs();
     const token = await signJwt({
@@ -215,7 +215,7 @@ describe('YjsProject DO denial close codes', () => {
       exp: Math.floor(Date.now() / 1000) + 3600,
     });
 
-    await callAuth(doInstance, ws, makeConnInfo('bob:proj:elements'), token);
+    await callAuth(doInstance, ws, makeConnInfo('alice:proj:elements'), token);
 
     expect(ws.sent).toEqual(['access-denied:forbidden']);
     expect(ws.closes).toEqual([{ code: closeCodes.WS_CLOSE_FORBIDDEN, reason: 'Access denied' }]);
@@ -362,12 +362,22 @@ describe('YjsProject DO denial close codes', () => {
   });
 
   it('closes rate-limited reconnects with the transient 4529 code', async () => {
-    const doInstance = makeDO();
+    const doInstance = makeDO({ DB: {} });
     const ws = makeWs();
     const token = await signJwt({
       userId: 'user-1',
       username: 'alice',
       exp: Math.floor(Date.now() / 1000) + 3600,
+    });
+    spyOn(projectService, 'findByUsernameAndSlug').mockResolvedValue({
+      id: 'project-1',
+      userId: 'user-1',
+    });
+    spyOn(userService, 'findById').mockResolvedValue({
+      id: 'user-1',
+      enabled: true,
+      approved: true,
+      sessionsValidFrom: 0,
     });
     // Saturate the sliding window: 3 recent attempts -> the next one is
     // denied inside its 5s cooldown.

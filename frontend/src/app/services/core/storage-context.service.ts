@@ -121,13 +121,9 @@ export function isLocalOrCloudMode(
   return mode === 'local' || mode === 'cloud';
 }
 
-/**
- * Display name for a Browser-mode connection. Older builds saved it as
- * "Local Mode"; the app now calls that mode Browser everywhere.
- */
+/** Display name for a Browser-mode connection */
 export function getLocalConfigDisplayName(config: ServerConfig): string {
-  const name = config.displayName?.trim();
-  return !name || name === 'Local Mode' ? 'Browser' : name;
+  return config.displayName?.trim() || 'Browser';
 }
 
 /** Human-readable provider names for display */
@@ -500,8 +496,7 @@ function deleteDatabase(name: string): Promise<void> {
 export const APP_CONFIG_STORAGE_KEY = 'inkweld-app-config';
 
 /**
- * Id of the first Browser profile. Kept as plain "local" so data written by
- * older builds stays attached; further Browser profiles use
+ * Id of the first Browser profile. Further Browser profiles use
  * `local-<usernameHash>` (see {@link buildLocalConfigId}).
  */
 export const LOCAL_CONFIG_ID = 'local';
@@ -515,7 +510,7 @@ export function buildLocalConfigId(username: string): string {
 }
 
 /**
- * Id for a server profile. The first profile on a server keeps the legacy
+ * Id for a server profile. The first profile on a server uses the
  * `hash(serverUrl)` id; further author profiles on the same server append a
  * hash of the username so each gets its own storage prefix and login token.
  */
@@ -815,7 +810,7 @@ export class StorageContextService {
       locals.find(
         c => wanted && c.userProfile?.username.trim().toLowerCase() === wanted
       ) ??
-      // A profile with no user yet can be claimed; the legacy single id too
+      // A profile with no user yet can be claimed; the first Browser id too
       locals.find(c => !c.userProfile) ??
       (locals.length === 0 || !userProfile
         ? locals.find(c => c.id === LOCAL_CONFIG_ID)
@@ -934,7 +929,7 @@ export class StorageContextService {
 
   /**
    * Pick the config id for a server profile. Without a username this is the
-   * legacy per-server id. With one: reuse the profile already bound to that
+   * per-server id. With one: reuse the profile already bound to that
    * user, else claim a profile on that server that has no user yet, else mint
    * a user-specific id so a second author gets separate storage.
    */
@@ -960,7 +955,7 @@ export class StorageContextService {
 
   /**
    * Pick the config id for a cloud profile. The first author on an account
-   * keeps the legacy per-account id; a further author on the same account
+   * uses the per-account id; a further author on the same account
    * gets a username-specific id so each has its own storage and sync state.
    */
   private resolveCloudConfigId(
@@ -1361,8 +1356,8 @@ export class StorageContextService {
   }
 
   /**
-   * Find data left behind by connections that were removed without cleanup
-   * (or written by older builds). Returns one entry per orphaned prefix.
+   * Find data left behind by connections that were removed without cleanup.
+   * Returns one entry per orphaned prefix.
    */
   async findOrphanedData(): Promise<ContextDataSummary[]> {
     const known = new Set(this.getKnownPrefixes());
@@ -1473,9 +1468,7 @@ export class StorageContextService {
    *
    * 1. Yjs databases: elements and prose docs (`<prefix>user:slug:id`) and
    *    worldbuilding docs (`<prefix>worldbuilding:user:slug:id`) are merged
-   *    into their new name and the original deleted. Bare legacy names are
-   *    never touched here; `DocumentStorageMigrationService` moves them under
-   *    a prefix at startup, before any rename can run.
+   *    into their new name and the original deleted.
    * 2. Composite keys in the media, snapshot and activation stores.
    * 3. The cached project record and the project list entry.
    *

@@ -259,12 +259,6 @@ describe('SideNavComponent', () => {
       expect(component.isMobile).toBe(true);
     });
 
-    it('should accept projects input', () => {
-      component.projects = mockProjects;
-
-      expect(component.projects).toEqual(mockProjects);
-    });
-
     it('should accept selectedProject input', () => {
       const selectedProject = mockProjects[0];
       component.selectedProject = selectedProject;

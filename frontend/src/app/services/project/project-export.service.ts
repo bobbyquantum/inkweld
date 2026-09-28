@@ -307,14 +307,10 @@ export class ProjectExportService {
     // Determine cover media ID from the project's coverImage field
     const project = this.projectState.project();
     const coverFilename = project?.coverImage;
-    const coverMediaId = coverFilename
-      ? coverFilename.replace(/\.[^.]+$/, '')
-      : undefined;
+    if (!coverFilename) return;
+    const coverMediaId = coverFilename.replace(/\.[^.]+$/, '');
 
-    // Check if we have the cover image locally (try new ID, then legacy 'cover')
-    const hasCover = coverMediaId
-      ? await this.localStorage.hasMedia(projectKey, coverMediaId)
-      : await this.localStorage.hasMedia(projectKey, 'cover');
+    const hasCover = await this.localStorage.hasMedia(projectKey, coverMediaId);
 
     if (!hasCover) {
       this.updateProgress(
@@ -328,13 +324,11 @@ export class ProjectExportService {
           this.imagesService.getProjectCover(username, slug)
         );
         if (coverBlob) {
-          const saveId = coverMediaId || 'cover';
-          const saveName = coverFilename || 'cover.jpg';
           await this.localStorage.saveMedia(
             projectKey,
-            saveId,
+            coverMediaId,
             coverBlob,
-            saveName
+            coverFilename
           );
           this.logger.debug(
             'ProjectExport',

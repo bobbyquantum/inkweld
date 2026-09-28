@@ -808,9 +808,6 @@ export class MigrationService {
 
     // Only clear all elements and user data if cleaning up everything
     if (!projectSlugs) {
-      // Clear elements storage (will clear all project elements)
-      localStorage.removeItem('inkweld-local-elements');
-
       // Clear local user (no longer needed in server mode)
       localStorage.removeItem('inkweld-local-user');
     }
@@ -819,17 +816,14 @@ export class MigrationService {
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // LEGACY API COMPATIBILITY
-  // These methods are provided for backward compatibility with existing code
-  // that calls the old server-syncing migration API.
+  // SERVER ACCOUNT HELPERS (used by the profile manager's migration flow)
   // ═══════════════════════════════════════════════════════════════════════════
 
   /**
-   * @deprecated Use migrateToServerMode instead. This method is kept for
-   * backward compatibility but now performs local-only migration.
+   * Migrate into the active server profile, resolving its config id and
+   * signed-in username.
    */
   async migrateToServer(
-    _serverUrl: string,
     projectSlugs?: string[],
     slugRenames?: Map<string, string>
   ): Promise<void> {
@@ -855,8 +849,6 @@ export class MigrationService {
 
   /**
    * Register a new user on the server.
-   * This is an authentication operation, not a migration operation.
-   * Kept here for backward compatibility with existing UI code.
    *
    * @param username - Username to register
    * @param password - Password for the new account
@@ -927,8 +919,6 @@ export class MigrationService {
 
   /**
    * Log in to the server.
-   * This is an authentication operation, not a migration operation.
-   * Kept here for backward compatibility with existing UI code.
    *
    * @param username - Username
    * @param password - Password

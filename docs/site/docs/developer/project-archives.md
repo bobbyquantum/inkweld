@@ -221,13 +221,11 @@ interface ArchiveMediaFile {
 
 ### Current Version
 
-The current archive format version is **3** (defined in `ARCHIVE_VERSION`).
+The current archive format version is **1** (defined in `ARCHIVE_VERSION`).
 
-| Version | Change |
-|---|---|
-| 1 | Initial format |
-| 2 | Adds the `timeSystems` array (Timeline calendars) |
-| 3 | Worldbuilding entries may carry `schema` and `schemaBaseHash` (per-element schema copies). Both are optional, so migrating a v2 archive changes no data; the bump exists so an older importer rejects the archive instead of silently dropping customised element schemas. |
+| Version | Change         |
+| ------- | -------------- |
+| 1       | Initial format |
 
 ### Version Checking on Import
 
@@ -257,7 +255,7 @@ export const ARCHIVE_MIGRATIONS: ArchiveMigration[] = [
 ];
 ```
 
-Migrations are applied sequentially. An archive at version 1 being imported into version 3 would go through: v1 → v2 → v3.
+Migrations are applied sequentially: an archive at version 1 imported into version 3 would go through v1 → v2 → v3.
 
 ### Adding a New Migration
 
@@ -314,30 +312,30 @@ The import process (`project-import.service.ts`):
 
 The service throws `ProjectArchiveError` with specific types:
 
-| Error Type | Cause |
-|------------|-------|
-| `InvalidFormat` | Not a valid ZIP file |
-| `CorruptedArchive` | Missing or invalid required files |
-| `UnsupportedVersion` | Archive version too new |
-| `VersionMismatch` | Archive version too old or no migration path |
-| `SlugTaken` | Project slug already exists |
-| `ValidationFailed` | Invalid data structure |
-| `StorageError` | IndexedDB or file system error |
-| `NetworkError` | Server communication failed |
-| `SyncRequired` | Documents not synced before export |
-| `MediaDownloadFailed` | Failed to download media |
-| `MediaUploadFailed` | Failed to upload cover |
-| `Cancelled` | User cancelled operation |
+| Error Type            | Cause                                        |
+| --------------------- | -------------------------------------------- |
+| `InvalidFormat`       | Not a valid ZIP file                         |
+| `CorruptedArchive`    | Missing or invalid required files            |
+| `UnsupportedVersion`  | Archive version too new                      |
+| `VersionMismatch`     | Archive version too old or no migration path |
+| `SlugTaken`           | Project slug already exists                  |
+| `ValidationFailed`    | Invalid data structure                       |
+| `StorageError`        | IndexedDB or file system error               |
+| `NetworkError`        | Server communication failed                  |
+| `SyncRequired`        | Documents not synced before export           |
+| `MediaDownloadFailed` | Failed to download media                     |
+| `MediaUploadFailed`   | Failed to upload cover                       |
+| `Cancelled`           | User cancelled operation                     |
 
 ## Related Files
 
-| File | Purpose |
-|------|---------|
-| `frontend/src/app/models/project-archive.ts` | Archive types and constants |
-| `frontend/src/app/services/project/project-export.service.ts` | Export implementation |
-| `frontend/src/app/services/project/project-import.service.ts` | Import implementation |
-| `frontend/src/app/services/project/archive-migrations.ts` | Migration registry |
-| `frontend/src/app/services/project/document-import.service.ts` | Document content writing |
+| File                                                           | Purpose                     |
+| -------------------------------------------------------------- | --------------------------- |
+| `frontend/src/app/models/project-archive.ts`                   | Archive types and constants |
+| `frontend/src/app/services/project/project-export.service.ts`  | Export implementation       |
+| `frontend/src/app/services/project/project-import.service.ts`  | Import implementation       |
+| `frontend/src/app/services/project/archive-migrations.ts`      | Migration registry          |
+| `frontend/src/app/services/project/document-import.service.ts` | Document content writing    |
 
 ## Best Practices
 

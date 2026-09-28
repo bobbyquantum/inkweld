@@ -141,56 +141,6 @@ describe('archive-migrations', () => {
       expect(hasMigrationPath(1, ARCHIVE_VERSION)).toBe(true);
     });
 
-    it('v1->v2 migration should add timeSystems array', () => {
-      const migration = findMigration(1);
-      expect(migration).toBeDefined();
-      const v1Archive = {
-        manifest: {
-          version: 1,
-          exportedAt: '2026-01-01T00:00:00Z',
-          projectTitle: 'Test',
-          originalSlug: 'test',
-        },
-        project: { title: 'Test', slug: 'test' },
-        elements: [],
-        documents: [],
-        worldbuilding: [],
-        schemas: [],
-        relationships: [],
-        customRelationshipTypes: [],
-        tags: [],
-        elementTags: [],
-        publishPlans: [],
-        media: [],
-      } as unknown as ProjectArchive;
-      const result = migration!.migrate(v1Archive);
-      expect(result.timeSystems).toEqual([]);
-      expect(result.manifest.version).toBe(2);
-    });
-
-    it('v2->v3 migration should only bump the manifest version', () => {
-      const migration = findMigration(2);
-      expect(migration).toBeDefined();
-      expect(migration!.toVersion).toBe(3);
-      const v2Archive = {
-        manifest: {
-          version: 2,
-          exportedAt: '2026-01-01T00:00:00Z',
-          projectTitle: 'Test',
-          originalSlug: 'test',
-        },
-        worldbuilding: [
-          { elementId: 'e1', schemaId: 'character-v1', data: {} },
-        ],
-        timeSystems: [],
-      } as unknown as ProjectArchive;
-      const result = migration!.migrate(v2Archive);
-      expect(result.manifest.version).toBe(3);
-      // Optional per-element schema fields stay absent; the element copies the
-      // shared schema in on first open.
-      expect(result.worldbuilding).toEqual(v2Archive.worldbuilding);
-    });
-
     it('should maintain referential integrity across imports', () => {
       const length1 = ARCHIVE_MIGRATIONS.length;
       const migration: ArchiveMigration = {

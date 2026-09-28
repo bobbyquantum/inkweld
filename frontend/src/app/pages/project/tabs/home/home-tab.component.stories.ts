@@ -113,7 +113,6 @@ function stubProviders(options: StubOptions = {}) {
 
   const localStorage = {
     getMediaUrl: () => Promise.resolve(hasCover ? COVER_DATA_URL : null),
-    getProjectCoverUrl: () => Promise.resolve(null),
     saveMedia: () => Promise.resolve(),
   };
 

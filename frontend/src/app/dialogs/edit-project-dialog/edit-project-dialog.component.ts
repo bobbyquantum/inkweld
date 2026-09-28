@@ -184,19 +184,6 @@ export class EditProjectDialogComponent implements OnInit {
         }
       }
 
-      // Also try the legacy "cover" mediaId for backward compatibility
-      const legacyCover = await this.localStorage.getMedia(projectKey, 'cover');
-      if (legacyCover) {
-        this.coverImage = legacyCover;
-        this.coverImageUrl = this.sanitizer.bypassSecurityTrustUrl(
-          URL.createObjectURL(legacyCover)
-        );
-        this.hasCoverImage = true;
-        // Migrate to new coverMediaId system
-        this.currentCoverMediaId = 'cover';
-        return;
-      }
-
       // Fall back to server API if local storage has nothing. Cache it under
       // the real cover id so a later cover change is never shadowed.
       const serverMediaId = this.project.coverImage
@@ -591,8 +578,8 @@ export class EditProjectDialogComponent implements OnInit {
       //
       // A live (canvas-linked) cover is owned by the render pipeline: unless
       // the user picked a new image, leave its id alone. Passing the id the
-      // dialog happened to load (possibly a legacy key) would read as a
-      // manual change and unlink the canvas.
+      // dialog happened to load would read as a manual change and unlink the
+      // canvas.
       const keepLiveCover =
         this.liveCoverSource() !== undefined &&
         !(this.coverImage instanceof File);
