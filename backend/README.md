@@ -176,7 +176,6 @@ High-level groups:
 - **Media** — `/api/v1/media/*`
 - **AI** — `/api/v1/ai/lint`, `/api/v1/ai/image`, `/api/v1/ai/text`,
   `/api/v1/ai/providers`, `/api/v1/ai/mcp`, `/api/v1/ai/image-profiles`
-- **MCP keys** — `/api/v1/mcp-keys/*`
 - **Admin** — `/api/v1/admin/*` (users, stats, config, announcements,
   image profiles, image audits, email)
 - **Announcements** — `/api/v1/announcements/*`

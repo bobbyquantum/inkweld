@@ -14,7 +14,7 @@ test.describe('resources/list', () => {
   }) => {
     const result = await mcpRequest(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'resources/list',
       {}
     );
@@ -42,7 +42,7 @@ test.describe('resources/list', () => {
   }) => {
     const result = await mcpRequest(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'resources/list',
       {}
     );
@@ -69,7 +69,7 @@ test.describe('resources/read', () => {
   }) => {
     const result = await mcpRequest(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'resources/read',
       { uri: 'inkweld://projects' }
     );
@@ -102,7 +102,7 @@ test.describe('resources/read', () => {
 
     const result = await mcpRequest(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'resources/read',
       { uri: projectUri }
     );
@@ -132,7 +132,7 @@ test.describe('resources/read', () => {
 
     const result = await mcpRequest(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'resources/read',
       { uri: elementsUri }
     );
@@ -154,7 +154,7 @@ test.describe('resources/read', () => {
 
     const result = await mcpRequest(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'resources/read',
       { uri: wbUri }
     );
@@ -174,7 +174,7 @@ test.describe('resources/read', () => {
   }) => {
     const result = await mcpRequest(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'resources/read',
       { uri: 'inkweld://nonexistent/resource' }
     );
@@ -188,7 +188,7 @@ test.describe('resource templates', () => {
   test('should list resource templates', async ({ mcpContext, apiRequest }) => {
     const result = await mcpRequest(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'resources/templates/list',
       {}
     );
@@ -214,7 +214,7 @@ test.describe('prompts', () => {
   test('should list available prompts', async ({ mcpContext, apiRequest }) => {
     const result = await mcpRequest(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'prompts/list',
       {}
     );
@@ -234,7 +234,7 @@ test.describe('prompts', () => {
     // First list to get available prompt names
     const listResult = await mcpRequest(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'prompts/list',
       {}
     );
@@ -247,7 +247,7 @@ test.describe('prompts', () => {
 
       const result = await mcpRequest(
         apiRequest,
-        mcpContext.mcpApiKey,
+        mcpContext.mcpToken,
         'prompts/get',
         { name: promptName }
       );
@@ -265,7 +265,7 @@ test.describe('server/discover', () => {
   }) => {
     const result = await mcpRequest(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'server/discover',
       {}
     );

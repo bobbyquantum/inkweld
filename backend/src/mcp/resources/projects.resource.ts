@@ -1,9 +1,8 @@
 /**
  * MCP Resources: Projects
  *
- * Lists all projects the user has authorized access to.
- * For OAuth auth: lists all granted projects with their permission levels
- * For legacy auth: lists the single project the API key has access to
+ * Lists all projects the user has authorized access to, with their
+ * permission levels.
  */
 
 import {

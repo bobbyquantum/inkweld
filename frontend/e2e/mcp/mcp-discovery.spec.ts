@@ -1,7 +1,5 @@
 import { expect, test } from '@playwright/test';
 
-import { TEST_PASSWORDS } from '../common/test-credentials';
-
 const API_BASE = process.env['API_BASE_URL'] ?? 'http://localhost:9333';
 
 /**
@@ -241,76 +239,6 @@ test.describe('MCP Endpoint Authentication', () => {
       },
     });
     expect(response.status()).toBe(401);
-  });
-
-  test('should reject revoked API key', async ({ request }) => {
-    // Register a single user and create a project
-    const username = `revoketest${Date.now()}`;
-    const regResponse = await request.post(`${API_BASE}/api/v1/auth/register`, {
-      data: { username, password: TEST_PASSWORDS.USER },
-    });
-    expect(regResponse.ok()).toBeTruthy();
-    const { token: authToken } = (await regResponse.json()) as {
-      token: string;
-    };
-
-    const slug = `revkey-${Date.now()}`;
-    const projectResponse = await request.post(`${API_BASE}/api/v1/projects`, {
-      headers: { Authorization: `Bearer ${authToken}` },
-      data: { title: 'Revoke Key Test', slug },
-    });
-    expect(projectResponse.ok()).toBeTruthy();
-
-    // Create and then revoke a key
-    const keyResponse = await request.post(
-      `${API_BASE}/api/v1/mcp-keys/${username}/${slug}/keys`,
-      {
-        headers: { Authorization: `Bearer ${authToken}` },
-        data: {
-          name: 'Key to Revoke',
-          permissions: ['read:project'],
-        },
-      }
-    );
-    expect(keyResponse.ok()).toBeTruthy();
-    const keyData = (await keyResponse.json()) as {
-      fullKey: string;
-      key: { id: string };
-    };
-
-    // Revoke it
-    await request.post(
-      `${API_BASE}/api/v1/mcp-keys/${username}/${slug}/keys/${keyData.key.id}/revoke`,
-      {
-        headers: { Authorization: `Bearer ${authToken}` },
-      }
-    );
-
-    // Try to use the revoked key
-    const mcpResponse = await request.post(`${API_BASE}/api/v1/ai/mcp`, {
-      headers: {
-        Authorization: `Bearer ${keyData.fullKey}`,
-        'Content-Type': 'application/json',
-        'MCP-Protocol-Version': '2026-07-28',
-        'Mcp-Method': 'server/discover',
-      },
-      data: {
-        jsonrpc: '2.0',
-        method: 'server/discover',
-        params: {
-          _meta: {
-            'io.modelcontextprotocol/protocolVersion': '2026-07-28',
-            'io.modelcontextprotocol/clientInfo': {
-              name: 'test',
-              version: '1.0.0',
-            },
-            'io.modelcontextprotocol/clientCapabilities': {},
-          },
-        },
-        id: 1,
-      },
-    });
-    expect(mcpResponse.status()).toBe(401);
   });
 
   test('should return 405 for GET (SSE stream endpoint removed)', async ({

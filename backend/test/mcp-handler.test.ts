@@ -26,7 +26,7 @@ interface FakeContext {
 }
 
 function makeContext(body: unknown, headers: Record<string, string> = {}): FakeContext {
-  const mcpContext = { type: 'legacy', permissions: [], key: {}, projectId: 'p' } as never;
+  const mcpContext = { type: 'oauth', userId: 'u', username: 'u', grants: [] } as never;
   const db = {} as never;
   const ctx: FakeContext = {
     req: {

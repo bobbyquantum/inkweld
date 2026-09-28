@@ -11,7 +11,7 @@ test.describe('create_element', () => {
   test('should create a folder element', async ({ mcpContext, apiRequest }) => {
     const result = await mcpCallTool(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'create_element',
       {
         project: mcpContext.projectKey,
@@ -33,7 +33,7 @@ test.describe('create_element', () => {
   test('should create an item element', async ({ mcpContext, apiRequest }) => {
     const result = await mcpCallTool(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'create_element',
       {
         project: mcpContext.projectKey,
@@ -57,7 +57,7 @@ test.describe('create_element', () => {
   }) => {
     const result = await mcpCallTool(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'create_element',
       {
         project: mcpContext.projectKey,
@@ -81,7 +81,7 @@ test.describe('create_element', () => {
     // Create parent folder
     const parentResult = await mcpCallTool(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'create_element',
       {
         project: mcpContext.projectKey,
@@ -107,7 +107,7 @@ test.describe('create_element', () => {
       // Create child under parent
       const childResult = await mcpCallTool(
         apiRequest,
-        mcpContext.mcpApiKey,
+        mcpContext.mcpToken,
         'create_element',
         {
           project: mcpContext.projectKey,
@@ -126,7 +126,7 @@ test.describe('update_element', () => {
     // Create element
     const createResult = await mcpCallTool(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'create_element',
       {
         project: mcpContext.projectKey,
@@ -150,7 +150,7 @@ test.describe('update_element', () => {
     if (idMatch) {
       const result = await mcpCallTool(
         apiRequest,
-        mcpContext.mcpApiKey,
+        mcpContext.mcpToken,
         'update_element',
         {
           project: mcpContext.projectKey,
@@ -174,7 +174,7 @@ test.describe('delete_element', () => {
     // Create element to delete
     const createResult = await mcpCallTool(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'create_element',
       {
         project: mcpContext.projectKey,
@@ -198,7 +198,7 @@ test.describe('delete_element', () => {
     if (idMatch) {
       const result = await mcpCallTool(
         apiRequest,
-        mcpContext.mcpApiKey,
+        mcpContext.mcpToken,
         'delete_element',
         {
           project: mcpContext.projectKey,
@@ -210,7 +210,7 @@ test.describe('delete_element', () => {
       // Verify deletion - search should not find it
       const searchResult = await mcpCallTool(
         apiRequest,
-        mcpContext.mcpApiKey,
+        mcpContext.mcpToken,
         'search_elements',
         {
           project: mcpContext.projectKey,
@@ -228,17 +228,17 @@ test.describe('sort_elements', () => {
     apiRequest,
   }) => {
     // Create elements in reverse order
-    await mcpCallTool(apiRequest, mcpContext.mcpApiKey, 'create_element', {
+    await mcpCallTool(apiRequest, mcpContext.mcpToken, 'create_element', {
       project: mcpContext.projectKey,
       name: 'Zebra',
       type: 'ITEM',
     });
-    await mcpCallTool(apiRequest, mcpContext.mcpApiKey, 'create_element', {
+    await mcpCallTool(apiRequest, mcpContext.mcpToken, 'create_element', {
       project: mcpContext.projectKey,
       name: 'Apple',
       type: 'ITEM',
     });
-    await mcpCallTool(apiRequest, mcpContext.mcpApiKey, 'create_element', {
+    await mcpCallTool(apiRequest, mcpContext.mcpToken, 'create_element', {
       project: mcpContext.projectKey,
       name: 'Mango',
       type: 'ITEM',
@@ -246,7 +246,7 @@ test.describe('sort_elements', () => {
 
     const result = await mcpCallTool(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'sort_elements',
       {
         project: mcpContext.projectKey,
@@ -263,7 +263,7 @@ test.describe('tag_element', () => {
     // Create element
     const createResult = await mcpCallTool(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'create_element',
       {
         project: mcpContext.projectKey,
@@ -287,7 +287,7 @@ test.describe('tag_element', () => {
     if (idMatch) {
       const result = await mcpCallTool(
         apiRequest,
-        mcpContext.mcpApiKey,
+        mcpContext.mcpToken,
         'tag_element',
         {
           project: mcpContext.projectKey,
@@ -307,7 +307,7 @@ test.describe('tag_element', () => {
   }) => {
     const createResult = await mcpCallTool(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'create_element',
       {
         project: mcpContext.projectKey,
@@ -330,7 +330,7 @@ test.describe('tag_element', () => {
 
     if (idMatch) {
       // Add tags first
-      await mcpCallTool(apiRequest, mcpContext.mcpApiKey, 'tag_element', {
+      await mcpCallTool(apiRequest, mcpContext.mcpToken, 'tag_element', {
         project: mcpContext.projectKey,
         elementId: idMatch[1],
         action: 'add',
@@ -340,7 +340,7 @@ test.describe('tag_element', () => {
       // Set (replace) tags
       const result = await mcpCallTool(
         apiRequest,
-        mcpContext.mcpApiKey,
+        mcpContext.mcpToken,
         'tag_element',
         {
           project: mcpContext.projectKey,
@@ -362,7 +362,7 @@ test.describe('update_worldbuilding', () => {
   }) => {
     const createResult = await mcpCallTool(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'create_element',
       {
         project: mcpContext.projectKey,
@@ -386,7 +386,7 @@ test.describe('update_worldbuilding', () => {
     if (idMatch) {
       const result = await mcpCallTool(
         apiRequest,
-        mcpContext.mcpApiKey,
+        mcpContext.mcpToken,
         'update_worldbuilding',
         {
           project: mcpContext.projectKey,
@@ -422,7 +422,7 @@ test.describe('update_worldbuilding', () => {
     // 1. Create a worldbuilding element
     const createResult = await mcpCallTool(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'create_element',
       {
         project: mcpContext.projectKey,
@@ -442,7 +442,7 @@ test.describe('update_worldbuilding', () => {
     // 2. Update worldbuilding fields
     const updateResult = await mcpCallTool(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'update_worldbuilding',
       {
         project: mcpContext.projectKey,
@@ -459,7 +459,7 @@ test.describe('update_worldbuilding', () => {
     // 3. Read the element to verify the data structure
     const readResult = await mcpCallTool(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'get_element_full',
       {
         project: mcpContext.projectKey,
@@ -512,7 +512,7 @@ test.describe('update_worldbuilding', () => {
     // 1. Create a worldbuilding element
     const createResult = await mcpCallTool(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'create_element',
       {
         project: mcpContext.projectKey,
@@ -531,7 +531,7 @@ test.describe('update_worldbuilding', () => {
     // 2. Update with identity field (description)
     const updateResult = await mcpCallTool(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'update_worldbuilding',
       {
         project: mcpContext.projectKey,
@@ -547,7 +547,7 @@ test.describe('update_worldbuilding', () => {
     // 3. Read the element
     const readResult = await mcpCallTool(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'get_element_full',
       {
         project: mcpContext.projectKey,
@@ -585,7 +585,7 @@ test.describe('create_relationship & delete_relationship', () => {
     // Create two worldbuilding elements
     const source = await mcpCallTool(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'create_element',
       {
         project: mcpContext.projectKey,
@@ -597,7 +597,7 @@ test.describe('create_relationship & delete_relationship', () => {
 
     const target = await mcpCallTool(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'create_element',
       {
         project: mcpContext.projectKey,
@@ -629,7 +629,7 @@ test.describe('create_relationship & delete_relationship', () => {
       // Create relationship
       const createRel = await mcpCallTool(
         apiRequest,
-        mcpContext.mcpApiKey,
+        mcpContext.mcpToken,
         'create_relationship',
         {
           project: mcpContext.projectKey,
@@ -658,7 +658,7 @@ test.describe('create_relationship & delete_relationship', () => {
         // Delete relationship
         const deleteRel = await mcpCallTool(
           apiRequest,
-          mcpContext.mcpApiKey,
+          mcpContext.mcpToken,
           'delete_relationship',
           {
             project: mcpContext.projectKey,
@@ -677,7 +677,7 @@ test.describe('replace_all_elements', () => {
     apiRequest,
   }) => {
     // First create some elements
-    await mcpCallTool(apiRequest, mcpContext.mcpApiKey, 'create_element', {
+    await mcpCallTool(apiRequest, mcpContext.mcpToken, 'create_element', {
       project: mcpContext.projectKey,
       name: 'Old Element',
       type: 'ITEM',
@@ -686,7 +686,7 @@ test.describe('replace_all_elements', () => {
     // Replace all with new elements
     const result = await mcpCallTool(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'replace_all_elements',
       {
         project: mcpContext.projectKey,
@@ -704,7 +704,7 @@ test.describe('replace_all_elements', () => {
     // Verify the new structure
     const tree = await mcpCallTool(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'get_project_tree',
       { project: mcpContext.projectKey }
     );
@@ -728,7 +728,7 @@ test.describe('move_elements', () => {
     // Create structure: folder + item at root
     const folderResult = await mcpCallTool(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'create_element',
       {
         project: mcpContext.projectKey,
@@ -740,7 +740,7 @@ test.describe('move_elements', () => {
 
     const itemResult = await mcpCallTool(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'create_element',
       {
         project: mcpContext.projectKey,
@@ -774,7 +774,7 @@ test.describe('move_elements', () => {
     if (folderId && itemId) {
       const result = await mcpCallTool(
         apiRequest,
-        mcpContext.mcpApiKey,
+        mcpContext.mcpToken,
         'move_elements',
         {
           project: mcpContext.projectKey,
@@ -795,7 +795,7 @@ test.describe('reorder_element', () => {
     // Create multiple elements
     const first = await mcpCallTool(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'create_element',
       {
         project: mcpContext.projectKey,
@@ -805,7 +805,7 @@ test.describe('reorder_element', () => {
     );
     const second = await mcpCallTool(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'create_element',
       {
         project: mcpContext.projectKey,
@@ -839,7 +839,7 @@ test.describe('reorder_element', () => {
       // Move second before first
       const result = await mcpCallTool(
         apiRequest,
-        mcpContext.mcpApiKey,
+        mcpContext.mcpToken,
         'reorder_element',
         {
           project: mcpContext.projectKey,
@@ -860,7 +860,7 @@ test.describe('update_document_content', () => {
     // 1. Create a document element
     const createResult = await mcpCallTool(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'create_element',
       {
         project: mcpContext.projectKey,
@@ -881,13 +881,13 @@ test.describe('update_document_content', () => {
       '<paragraph>The dawn broke over the mountains.</paragraph><paragraph>A new chapter begins.</paragraph>';
     const updateResult = await mcpCallTool(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'update_document_content',
       {
         project: mcpContext.projectKey,
         elementId,
         content: xmlContent,
-        format: 'xml',
+        format: 'prosemirror_xml',
       }
     );
     expect(updateResult.error).toBeUndefined();
@@ -903,7 +903,7 @@ test.describe('update_document_content', () => {
     // 3. Verify content was written by reading it back
     const readResult = await mcpCallTool(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'get_document_content',
       {
         project: mcpContext.projectKey,
@@ -928,7 +928,7 @@ test.describe('update_document_content', () => {
     // 1. Create a document element
     const createResult = await mcpCallTool(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'create_element',
       {
         project: mcpContext.projectKey,
@@ -947,7 +947,7 @@ test.describe('update_document_content', () => {
     // 2. Update with markdown format (write side accepts prosemirror_xml or markdown)
     const updateResult = await mcpCallTool(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'update_document_content',
       {
         project: mcpContext.projectKey,
@@ -967,7 +967,7 @@ test.describe('update_document_content', () => {
     // 3. Verify content
     const readResult = await mcpCallTool(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'get_document_content',
       {
         project: mcpContext.projectKey,
@@ -992,7 +992,7 @@ test.describe('update_document_content', () => {
     // 1. Create a folder (not a document)
     const createResult = await mcpCallTool(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'create_element',
       {
         project: mcpContext.projectKey,
@@ -1011,7 +1011,7 @@ test.describe('update_document_content', () => {
     // 2. Attempt to update content - should fail
     const updateResult = await mcpCallTool(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'update_document_content',
       {
         project: mcpContext.projectKey,
@@ -1033,7 +1033,7 @@ test.describe('update_document_content', () => {
     // 1. Create a document element
     const createResult = await mcpCallTool(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'create_element',
       {
         project: mcpContext.projectKey,
@@ -1052,7 +1052,7 @@ test.describe('update_document_content', () => {
     // 2. Set some initial content
     await mcpCallTool(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'update_document_content',
       {
         project: mcpContext.projectKey,
@@ -1064,7 +1064,7 @@ test.describe('update_document_content', () => {
     // 3. Clear it with empty content
     const clearResult = await mcpCallTool(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'update_document_content',
       {
         project: mcpContext.projectKey,
@@ -1088,7 +1088,7 @@ test.describe('update_document_content', () => {
     // 1. Create a document element
     const createResult = await mcpCallTool(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'create_element',
       {
         project: mcpContext.projectKey,
@@ -1107,7 +1107,7 @@ test.describe('update_document_content', () => {
     // 2. Set initial content
     await mcpCallTool(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'update_document_content',
       {
         project: mcpContext.projectKey,
@@ -1120,7 +1120,7 @@ test.describe('update_document_content', () => {
     // 3. Replace with new content
     const updateResult = await mcpCallTool(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'update_document_content',
       {
         project: mcpContext.projectKey,
@@ -1133,7 +1133,7 @@ test.describe('update_document_content', () => {
     // 4. Verify old content is gone and new content is present
     const readResult = await mcpCallTool(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'get_document_content',
       {
         project: mcpContext.projectKey,

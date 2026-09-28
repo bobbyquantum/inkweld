@@ -25,7 +25,6 @@ api/health.service.ts
 api/image-profiles.service.ts
 api/images.service.ts
 api/linting.service.ts
-api/mcp-keys.service.ts
 api/mcp.service.ts
 api/media.service.ts
 api/o-auth.service.ts
@@ -83,8 +82,6 @@ model/consent-response.ts
 model/correction.ts
 model/create-comment-thread-request.ts
 model/create-image-model-profile-request.ts
-model/create-mcp-key-request.ts
-model/create-mcp-key-response.ts
 model/create-project-request.ts
 model/create-snapshot-request.ts
 model/custom-image-size.ts
@@ -115,8 +112,6 @@ model/generated-image.ts
 model/get-auto-review-rejections200-response.ts
 model/get-element-images-request.ts
 model/get-element-images200-response.ts
-model/get-mcp-permissions200-response-permissions-inner.ts
-model/get-mcp-permissions200-response.ts
 model/get-project-document-sync-manifest200-response-documents-inner.ts
 model/get-project-document-sync-manifest200-response.ts
 model/get-provider-models200-response.ts
@@ -158,10 +153,6 @@ model/login-request.ts
 model/login-response.ts
 model/mark-comments-seen-request.ts
 model/mcp-error.ts
-model/mcp-key-error.ts
-model/mcp-key-message.ts
-model/mcp-permission.ts
-model/mcp-public-key.ts
 model/media-error.ts
 model/media-item.ts
 model/media-list-response.ts

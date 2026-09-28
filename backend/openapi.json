@@ -1722,11 +1722,6 @@
             "example": false,
             "description": "Whether email-based recovery is enabled. When passwords are off, this controls the magic-link passkey-enrolment recovery flow. When passwords are on, this gates the forgot-password reset email."
           },
-          "legacyMcpEnabled": {
-            "type": "boolean",
-            "example": false,
-            "description": "Whether legacy MCP API keys (long-lived project-scoped tokens) are enabled. When false (default) the \"Legacy API Keys\" section in project settings is hidden and only OAuth-based MCP connections are offered."
-          },
           "mcpEnabled": {
             "type": "boolean",
             "example": true,
@@ -1776,7 +1771,6 @@
           "passkeysEnabled",
           "passwordLoginEnabled",
           "emailRecoveryEnabled",
-          "legacyMcpEnabled",
           "mcpEnabled",
           "hasPrivacyPolicy",
           "hasTerms",
@@ -3823,126 +3817,6 @@
           "moderatedCount",
           "byProfile",
           "byUser"
-        ]
-      },
-      "McpPublicKey": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "keyPrefix": {
-            "type": "string"
-          },
-          "permissions": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/McpPermission"
-            }
-          },
-          "expiresAt": {
-            "type": "number",
-            "nullable": true
-          },
-          "lastUsedAt": {
-            "type": "number",
-            "nullable": true
-          },
-          "createdAt": {
-            "type": "number"
-          },
-          "revoked": {
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "id",
-          "name",
-          "keyPrefix",
-          "permissions",
-          "expiresAt",
-          "lastUsedAt",
-          "createdAt",
-          "revoked"
-        ]
-      },
-      "McpPermission": {
-        "type": "string",
-        "enum": [
-          "read:project",
-          "read:elements",
-          "read:worldbuilding",
-          "read:schemas",
-          "write:elements",
-          "write:worldbuilding"
-        ]
-      },
-      "McpKeyError": {
-        "type": "object",
-        "properties": {
-          "error": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "error"
-        ]
-      },
-      "CreateMcpKeyResponse": {
-        "type": "object",
-        "properties": {
-          "key": {
-            "$ref": "#/components/schemas/McpPublicKey"
-          },
-          "fullKey": {
-            "type": "string",
-            "description": "Full API key (only shown once!)"
-          }
-        },
-        "required": [
-          "key",
-          "fullKey"
-        ]
-      },
-      "CreateMcpKeyRequest": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 100,
-            "description": "Friendly name for the key"
-          },
-          "permissions": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/McpPermission"
-            },
-            "minItems": 1,
-            "description": "Permissions to grant"
-          },
-          "expiresAt": {
-            "type": "number",
-            "description": "Expiration timestamp (ms since epoch)"
-          }
-        },
-        "required": [
-          "name",
-          "permissions"
-        ]
-      },
-      "McpKeyMessage": {
-        "type": "object",
-        "properties": {
-          "message": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "message"
         ]
       },
       "Collaborator": {
@@ -6918,6 +6792,16 @@
           },
           "404": {
             "description": "User not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Cannot delete the last active administrator",
             "content": {
               "application/json": {
                 "schema": {
@@ -11945,10 +11829,10 @@
           {
             "schema": {
               "type": "string",
-              "description": "Bearer token (OAuth JWT or legacy API key)"
+              "description": "Bearer token (OAuth access token)"
             },
             "required": false,
-            "description": "Bearer token (OAuth JWT or legacy API key)",
+            "description": "Bearer token (OAuth access token)",
             "name": "Authorization",
             "in": "header"
           }
@@ -12681,379 +12565,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/mcp-keys/{username}/{slug}/keys": {
-      "get": {
-        "tags": [
-          "MCP Keys"
-        ],
-        "operationId": "listMcpKeys",
-        "parameters": [
-          {
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "name": "username",
-            "in": "path"
-          },
-          {
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "name": "slug",
-            "in": "path"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "List of API keys",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/McpPublicKey"
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/McpKeyError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Not authorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/McpKeyError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Project not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/McpKeyError"
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "MCP Keys"
-        ],
-        "operationId": "createMcpKey",
-        "parameters": [
-          {
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "name": "username",
-            "in": "path"
-          },
-          {
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "name": "slug",
-            "in": "path"
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateMcpKeyRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Key created. IMPORTANT: The fullKey is only shown once!",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CreateMcpKeyResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/McpKeyError"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/McpKeyError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Not authorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/McpKeyError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Project not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/McpKeyError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/mcp-keys/{username}/{slug}/keys/{keyId}/revoke": {
-      "post": {
-        "tags": [
-          "MCP Keys"
-        ],
-        "operationId": "revokeMcpKey",
-        "parameters": [
-          {
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "name": "username",
-            "in": "path"
-          },
-          {
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "name": "slug",
-            "in": "path"
-          },
-          {
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "name": "keyId",
-            "in": "path"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Key revoked",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/McpKeyMessage"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/McpKeyError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Not authorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/McpKeyError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Key not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/McpKeyError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/mcp-keys/{username}/{slug}/keys/{keyId}": {
-      "delete": {
-        "tags": [
-          "MCP Keys"
-        ],
-        "operationId": "deleteMcpKey",
-        "parameters": [
-          {
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "name": "username",
-            "in": "path"
-          },
-          {
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "name": "slug",
-            "in": "path"
-          },
-          {
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "name": "keyId",
-            "in": "path"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Key deleted",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/McpKeyMessage"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/McpKeyError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Not authorized",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/McpKeyError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Key not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/McpKeyError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/mcp-keys/permissions": {
-      "get": {
-        "tags": [
-          "MCP Keys"
-        ],
-        "operationId": "getMcpPermissions",
-        "responses": {
-          "200": {
-            "description": "Available permissions and presets",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "permissions": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "$ref": "#/components/schemas/McpPermission"
-                          },
-                          "name": {
-                            "type": "string"
-                          },
-                          "description": {
-                            "type": "string"
-                          },
-                          "category": {
-                            "type": "string",
-                            "enum": [
-                              "read",
-                              "write"
-                            ]
-                          }
-                        },
-                        "required": [
-                          "id",
-                          "name",
-                          "description",
-                          "category"
-                        ]
-                      }
-                    },
-                    "presets": {
-                      "type": "object",
-                      "additionalProperties": {
-                        "type": "array",
-                        "items": {
-                          "$ref": "#/components/schemas/McpPermission"
-                        }
-                      }
-                    }
-                  },
-                  "required": [
-                    "permissions",
-                    "presets"
-                  ]
                 }
               }
             }

@@ -20,16 +20,12 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { RelationshipsTabComponent } from '@components/relationships-tab/relationships-tab.component';
 import { TagsTabComponent } from '@components/tags-tab/tags-tab.component';
 import { TemplatesTabComponent } from '@components/templates-tab/templates-tab.component';
-import { type CreateMcpKeyDialogResult } from '@dialogs/create-mcp-key-dialog/create-mcp-key-dialog.component';
 import { CollaborationService as CollaborationApiService } from '@inkweld/api/collaboration.service';
-import { MCPKeysService } from '@inkweld/api/mcp-keys.service';
 import { ProjectsService } from '@inkweld/api/projects.service';
 import {
   type Collaborator,
   CollaboratorRole,
   InvitationStatus,
-  McpPermission,
-  type McpPublicKey,
 } from '@inkweld/index';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SetupService } from '@services/core/setup.service';
@@ -73,7 +69,6 @@ describe('SettingsTabComponent', () => {
   let component: SettingsTabComponent;
   let fixture: ComponentFixture<SettingsTabComponent>;
   let projectStateService: Partial<ProjectStateService>;
-  let mcpKeysService: Partial<MCPKeysService>;
   let collaborationService: Partial<CollaborationApiService>;
   let snackBar: Partial<MatSnackBar>;
   let setupService: Partial<SetupService>;
@@ -135,29 +130,6 @@ describe('SettingsTabComponent', () => {
     },
   ];
 
-  const mockMcpKeys: McpPublicKey[] = [
-    {
-      id: 'key-1',
-      name: 'Test Key 1',
-      keyPrefix: 'ink_abc',
-      permissions: [McpPermission.ReadProject, McpPermission.ReadElements],
-      expiresAt: null,
-      lastUsedAt: null,
-      createdAt: Date.now() - 86400000,
-      revoked: false,
-    },
-    {
-      id: 'key-2',
-      name: 'Test Key 2',
-      keyPrefix: 'ink_xyz',
-      permissions: [McpPermission.ReadProject],
-      expiresAt: Date.now() + 86400000 * 30,
-      lastUsedAt: Date.now() - 3600000,
-      createdAt: Date.now() - 86400000 * 7,
-      revoked: true,
-    },
-  ];
-
   beforeEach(async () => {
     projectStateService = {
       project: signal(mockProject),
@@ -185,27 +157,6 @@ describe('SettingsTabComponent', () => {
         errors: [],
         success: true,
       }),
-    };
-
-    mcpKeysService = {
-      listMcpKeys: vi.fn().mockReturnValue(of(mockMcpKeys)),
-      createMcpKey: vi.fn().mockReturnValue(
-        of({
-          key: {
-            id: 'new-key',
-            name: 'New Key',
-            keyPrefix: 'ink_new',
-            permissions: [McpPermission.ReadProject],
-            expiresAt: null,
-            lastUsedAt: null,
-            createdAt: Date.now(),
-            revoked: false,
-          },
-          fullKey: 'ink_new_fullkey123456789',
-        })
-      ),
-      revokeMcpKey: vi.fn().mockReturnValue(of({ message: 'Key revoked' })),
-      deleteMcpKey: vi.fn().mockReturnValue(of({ message: 'Key deleted' })),
     };
 
     collaborationService = {
@@ -247,7 +198,6 @@ describe('SettingsTabComponent', () => {
 
     systemConfigService = {
       isAiKillSwitchEnabled: signal(false), // AI enabled (kill switch OFF)
-      isLegacyMcpEnabled: signal(true), // Legacy MCP keys enabled
       isMcpEnabled: signal(true), // MCP access enabled
     };
 
@@ -328,7 +278,6 @@ describe('SettingsTabComponent', () => {
       providers: [
         provideZonelessChangeDetection(),
         { provide: ProjectStateService, useValue: projectStateService },
-        { provide: MCPKeysService, useValue: mcpKeysService },
         { provide: CollaborationApiService, useValue: collaborationService },
         { provide: MatSnackBar, useValue: snackBar },
         { provide: DialogGatewayService, useValue: dialogGateway },
@@ -401,211 +350,10 @@ describe('SettingsTabComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  describe('MCP Keys Management', () => {
-    it('should load MCP keys on init when in server mode', async () => {
-      await component.loadMcpKeys();
-      await fixture.whenStable();
-
-      expect(mcpKeysService.listMcpKeys).toHaveBeenCalledWith(
-        'testuser',
-        'test-project'
-      );
-      expect(component['mcpKeys']()).toHaveLength(2);
-      expect(component['isLoadingKeys']()).toBe(false);
-    });
-
-    it('should not load keys in offline mode', async () => {
-      (setupService.getMode as ReturnType<typeof vi.fn>).mockReturnValue(
-        'local'
-      );
-
-      // Create a new component instance to pick up the offline mode
-      const offlineFixture = TestBed.createComponent(SettingsTabComponent);
-      const offlineComponent = offlineFixture.componentInstance;
-
-      // Force project state to trigger effect
-      (projectStateService.project as ReturnType<typeof signal>).set(
-        mockProject
-      );
-
-      await offlineComponent.loadMcpKeys();
-
-      expect(offlineComponent['mcpKeys']()).toHaveLength(0);
-      expect(offlineComponent['isLoadingKeys']()).toBe(false);
-    });
-
-    it('should handle error when loading keys', async () => {
-      (mcpKeysService.listMcpKeys as ReturnType<typeof vi.fn>).mockReturnValue(
-        throwError(() => new Error('Network error'))
-      );
-
-      await component.loadMcpKeys();
-
-      expect(component['keysError']()).toBe('Failed to load API keys');
-      expect(component['isLoadingKeys']()).toBe(false);
-    });
-
-    it('should toggle permission selection', () => {
-      // Permission management is now in the CreateMcpKeyDialogComponent
-      // This test validates the dialog is opened correctly
-      expect(component.openCreateKeyDialog).toBeDefined();
-    });
-
-    it('should open create key dialog', () => {
-      const dialogSpy = vi.spyOn(component['dialog'], 'open').mockReturnValue({
-        afterClosed: () => of(null),
-      } as ReturnType<MatDialog['open']>);
-
-      component.openCreateKeyDialog();
-      expect(dialogSpy).toHaveBeenCalled();
-    });
-
-    it('should handle dialog result when key is created', () => {
-      const mockResult: CreateMcpKeyDialogResult = {
-        fullKey: 'ink_new_fullkey123456789',
-        key: {
-          id: 'new-key',
-          name: 'Test Key',
-          keyPrefix: 'ink_new_',
-          permissions: [McpPermission.ReadProject],
-          createdAt: Date.now(),
-          expiresAt: null,
-          lastUsedAt: null,
-          revoked: false,
-        },
-      };
-
-      vi.spyOn(component['dialog'], 'open').mockReturnValue({
-        afterClosed: () => of(mockResult),
-      } as ReturnType<MatDialog['open']>);
-
-      component.openCreateKeyDialog();
-      expect(component['newlyCreatedKey']()).toBe('ink_new_fullkey123456789');
-    });
-
-    it('should revoke a key', async () => {
-      (
-        dialogGateway.openConfirmationDialog as ReturnType<typeof vi.fn>
-      ).mockResolvedValueOnce(true);
-      await component.loadMcpKeys();
-      const keyToRevoke = component['mcpKeys']()[0];
-
-      (
-        dialogGateway.openConfirmationDialog as ReturnType<typeof vi.fn>
-      ).mockResolvedValueOnce(true);
-      await component.revokeKey(keyToRevoke);
-
-      expect(mcpKeysService.revokeMcpKey).toHaveBeenCalledWith(
-        'testuser',
-        'test-project',
-        'key-1'
-      );
-      expect(snackBar.open).toHaveBeenCalledWith('API key revoked', 'Close', {
-        duration: 3000,
-      });
-    });
-
-    it('should delete a key', async () => {
-      (
-        dialogGateway.openConfirmationDialog as ReturnType<typeof vi.fn>
-      ).mockResolvedValueOnce(true);
-      await component.loadMcpKeys();
-      const keyToDelete = component['mcpKeys']()[0];
-
-      (
-        dialogGateway.openConfirmationDialog as ReturnType<typeof vi.fn>
-      ).mockResolvedValueOnce(true);
-      await component.deleteKey(keyToDelete);
-
-      expect(mcpKeysService.deleteMcpKey).toHaveBeenCalledWith(
-        'testuser',
-        'test-project',
-        'key-1'
-      );
-      expect(
-        component['mcpKeys']().find(k => k.id === 'key-1')
-      ).toBeUndefined();
-      expect(snackBar.open).toHaveBeenCalledWith('API key deleted', 'Close', {
-        duration: 3000,
-      });
-    });
-
-    it('should not revoke key when confirmation is cancelled', async () => {
-      await component.loadMcpKeys();
-      const keyToRevoke = component['mcpKeys']()[0];
-
-      // Default mock returns false (cancelled)
-      await component.revokeKey(keyToRevoke);
-
-      expect(mcpKeysService.revokeMcpKey).not.toHaveBeenCalled();
-    });
-
-    it('should not delete key when confirmation is cancelled', async () => {
-      await component.loadMcpKeys();
-      const keyToDelete = component['mcpKeys']()[0];
-
-      // Default mock returns false (cancelled)
-      await component.deleteKey(keyToDelete);
-
-      expect(mcpKeysService.deleteMcpKey).not.toHaveBeenCalled();
-    });
-
-    it('should get active keys count', async () => {
-      await component.loadMcpKeys();
-
-      expect(component.getActiveKeysCount()).toBe(1);
-    });
-
-    it('should dismiss newly created key', () => {
-      component['newlyCreatedKey'].set('test-key');
-
-      component.dismissNewKey();
-
-      expect(component['newlyCreatedKey']()).toBeNull();
-    });
-
+  describe('MCP', () => {
     it('should expose the MCP endpoint URL', () => {
       expect(component.getMcpEndpointUrl()).toBe(
         'https://inkweld.test/api/v1/ai/mcp'
-      );
-    });
-
-    it('should copy a key to the clipboard', async () => {
-      const writeTextSpy = vi.fn().mockResolvedValue(undefined);
-      Object.defineProperty(navigator, 'clipboard', {
-        value: { writeText: writeTextSpy },
-        configurable: true,
-        writable: true,
-      });
-
-      component.copyKeyToClipboard('ink_secret');
-      await Promise.resolve();
-
-      expect(writeTextSpy).toHaveBeenCalledWith('ink_secret');
-      expect(snackBar.open).toHaveBeenCalledWith(
-        'API key copied to clipboard',
-        'Close',
-        { duration: 2000 }
-      );
-    });
-
-    it('should handle key copy failures', async () => {
-      const writeTextSpy = vi
-        .fn()
-        .mockRejectedValue(new Error('clipboard unavailable'));
-      Object.defineProperty(navigator, 'clipboard', {
-        value: { writeText: writeTextSpy },
-        configurable: true,
-        writable: true,
-      });
-
-      component.copyKeyToClipboard('ink_secret');
-      await Promise.resolve();
-
-      expect(snackBar.open).toHaveBeenCalledWith(
-        'Failed to copy to clipboard',
-        'Close',
-        { duration: 2000 }
       );
     });
 
@@ -648,73 +396,6 @@ describe('SettingsTabComponent', () => {
         'Close',
         { duration: 2000 }
       );
-    });
-
-    it('should format date', () => {
-      const now = Date.now();
-      const formatted = component.formatDate(now);
-      expect(formatted).toBeTruthy();
-      expect(formatted).not.toBe('Never');
-
-      expect(component.formatDate(null)).toBe('Never');
-    });
-
-    it('should handle error when revoking key', async () => {
-      (
-        dialogGateway.openConfirmationDialog as ReturnType<typeof vi.fn>
-      ).mockResolvedValueOnce(true);
-      await component.loadMcpKeys();
-      (mcpKeysService.revokeMcpKey as ReturnType<typeof vi.fn>).mockReturnValue(
-        throwError(() => new Error('Failed'))
-      );
-
-      const keyToRevoke = component['mcpKeys']()[0];
-      (
-        dialogGateway.openConfirmationDialog as ReturnType<typeof vi.fn>
-      ).mockResolvedValueOnce(true);
-      await component.revokeKey(keyToRevoke);
-
-      expect(snackBar.open).toHaveBeenCalledWith(
-        'Failed to revoke API key',
-        'Close',
-        { duration: 3000 }
-      );
-    });
-
-    it('should handle error when deleting key', async () => {
-      (
-        dialogGateway.openConfirmationDialog as ReturnType<typeof vi.fn>
-      ).mockResolvedValueOnce(true);
-      await component.loadMcpKeys();
-      (mcpKeysService.deleteMcpKey as ReturnType<typeof vi.fn>).mockReturnValue(
-        throwError(() => new Error('Failed'))
-      );
-
-      const keyToDelete = component['mcpKeys']()[0];
-      (
-        dialogGateway.openConfirmationDialog as ReturnType<typeof vi.fn>
-      ).mockResolvedValueOnce(true);
-      await component.deleteKey(keyToDelete);
-
-      expect(snackBar.open).toHaveBeenCalledWith(
-        'Failed to delete API key',
-        'Close',
-        { duration: 3000 }
-      );
-    });
-
-    it('should not revoke key without project', async () => {
-      (projectStateService.project as ReturnType<typeof signal>).set(undefined);
-      const keyToRevoke = { id: 'key-1' } as McpPublicKey;
-      await component.revokeKey(keyToRevoke);
-      expect(mcpKeysService.revokeMcpKey).not.toHaveBeenCalled();
-    });
-
-    it('should not delete key without project', async () => {
-      (projectStateService.project as ReturnType<typeof signal>).set(undefined);
-      const keyToDelete = { id: 'key-1' } as McpPublicKey;
-      await component.deleteKey(keyToDelete);
-      expect(mcpKeysService.deleteMcpKey).not.toHaveBeenCalled();
     });
   });
 
