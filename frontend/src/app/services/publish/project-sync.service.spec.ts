@@ -1,14 +1,22 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { type Element, ElementType } from '@inkweld/index';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { type Element, ElementType, type Project } from '@inkweld/index';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  type Mock,
+  vi,
+} from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
-import { DocumentSyncState } from '../../models/document-sync-state';
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
 import { DocumentService } from '../project/document.service';
 import { ProjectStateService } from '../project/project-state.service';
+import { DocumentSyncPlannerService } from '../sync/document-sync-planner.service';
 import {
   ProjectSyncService,
   SyncPhase,
@@ -25,14 +33,25 @@ describe('ProjectSyncService', () => {
     error: ReturnType<typeof vi.fn>;
   };
   let setupServiceMock: {
-    appConfig: ReturnType<typeof signal>;
+    isServerMode: ReturnType<typeof vi.fn>;
   };
   let documentServiceMock: {
     getSyncStatusSignal: ReturnType<typeof vi.fn>;
+    hasLocalContent: Mock<(documentId: string) => Promise<boolean>>;
+    getConnectedDocumentIds: ReturnType<typeof vi.fn>;
+    syncDocumentToServer: ReturnType<typeof vi.fn>;
+  };
+  let plannerMock: {
+    plan: ReturnType<typeof vi.fn>;
+    record: ReturnType<typeof vi.fn>;
   };
   let projectStateMock: {
+    project: ReturnType<typeof signal<Partial<Project> | undefined>>;
     elements: ReturnType<typeof signal<Element[]>>;
   };
+  let indexedDbOpen: ReturnType<typeof vi.fn>;
+
+  const docId = (elementId: string) => `alice:novel:${elementId}`;
 
   const mockElements: Element[] = [
     {
@@ -90,39 +109,39 @@ describe('ProjectSyncService', () => {
     };
 
     setupServiceMock = {
-      appConfig: signal({ mode: 'local' }),
+      isServerMode: vi.fn().mockReturnValue(false),
     };
 
     documentServiceMock = {
-      getSyncStatusSignal: vi
-        .fn()
-        .mockReturnValue(signal(DocumentSyncState.Synced)),
+      getSyncStatusSignal: vi.fn(),
+      hasLocalContent: vi
+        .fn<(documentId: string) => Promise<boolean>>()
+        .mockResolvedValue(true),
+      getConnectedDocumentIds: vi.fn().mockReturnValue([]),
+      syncDocumentToServer: vi.fn().mockResolvedValue('digest'),
+    };
+
+    plannerMock = {
+      plan: vi.fn((_u: string, _s: string, ids: string[]) =>
+        Promise.resolve({ toSync: [...ids], skipped: [], before: null })
+      ),
+      record: vi.fn().mockResolvedValue(undefined),
     };
 
     projectStateMock = {
+      project: signal<Partial<Project> | undefined>({
+        username: 'alice',
+        slug: 'novel',
+      }),
       elements: signal(mockElements),
     };
 
-    // Mock indexedDB
-    const mockIndexedDB = {
-      open: vi.fn().mockImplementation(() => {
-        const request = {
-          onsuccess: null as ((event: Event) => void) | null,
-          onerror: null as ((event: Event) => void) | null,
-          result: {
-            objectStoreNames: { length: 1 },
-            close: vi.fn(),
-          },
-        };
-        setTimeout(() => {
-          if (request.onsuccess) {
-            request.onsuccess({} as Event);
-          }
-        }, 0);
-        return request;
-      }),
-    };
-    vi.stubGlobal('indexedDB', mockIndexedDB);
+    // Documents must be probed through DocumentService, which knows the
+    // profile-scoped database name — never by opening IndexedDB directly.
+    indexedDbOpen = vi.fn(() => {
+      throw new Error('indexedDB.open must not be called directly');
+    });
+    vi.stubGlobal('indexedDB', { open: indexedDbOpen });
 
     TestBed.configureTestingModule({
       imports: [translocoTestProvider()],
@@ -132,6 +151,7 @@ describe('ProjectSyncService', () => {
         { provide: LoggerService, useValue: loggerMock },
         { provide: SetupService, useValue: setupServiceMock },
         { provide: DocumentService, useValue: documentServiceMock },
+        { provide: DocumentSyncPlannerService, useValue: plannerMock },
         { provide: ProjectStateService, useValue: projectStateMock },
       ],
     });
@@ -203,60 +223,42 @@ describe('ProjectSyncService', () => {
       expect(result.syncedDocuments).toContain('doc-2');
     });
 
-    it('should handle sync failures gracefully', async () => {
-      // Mock IndexedDB to fail
-      const failingIndexedDB = {
-        open: vi.fn().mockImplementation(() => {
-          const request = {
-            onsuccess: null as ((event: Event) => void) | null,
-            onerror: null as ((event: Event) => void) | null,
-            result: {
-              objectStoreNames: { length: 0 }, // No data
-              close: vi.fn(),
-            },
-          };
-          setTimeout(() => {
-            if (request.onsuccess) {
-              request.onsuccess({} as Event);
-            }
-          }, 0);
-          return request;
-        }),
-      };
-      vi.stubGlobal('indexedDB', failingIndexedDB);
+    it('checks the full, profile-scoped document id in local mode', async () => {
+      await service.syncDocuments(['doc-1']);
 
-      const result = await service.syncDocuments(['doc-1']);
-
-      expect(result.failedDocuments).toContain('doc-1');
-      expect(result.warnings.length).toBeGreaterThan(0);
+      expect(documentServiceMock.hasLocalContent).toHaveBeenCalledWith(
+        docId('doc-1')
+      );
+      expect(indexedDbOpen).not.toHaveBeenCalled();
+      expect(documentServiceMock.syncDocumentToServer).not.toHaveBeenCalled();
     });
 
-    it('should complete sync with errors when some documents fail', async () => {
-      // Set up one document to fail
-      const mixedIndexedDB = {
-        open: vi.fn().mockImplementation((dbName: string) => {
-          const request = {
-            onsuccess: null as ((event: Event) => void) | null,
-            onerror: null as ((event: Event) => void) | null,
-            result: {
-              objectStoreNames: { length: dbName === 'doc-1' ? 1 : 0 },
-              close: vi.fn(),
-            },
-          };
-          setTimeout(() => {
-            if (request.onsuccess) {
-              request.onsuccess({} as Event);
-            }
-          }, 0);
-          return request;
-        }),
-      };
-      vi.stubGlobal('indexedDB', mixedIndexedDB);
+    it('does not create sync-status signals', async () => {
+      await service.syncDocuments(['folder-1', 'doc-3']);
+
+      expect(documentServiceMock.getSyncStatusSignal).not.toHaveBeenCalled();
+    });
+
+    it('treats a missing local copy as an empty document in local mode', async () => {
+      documentServiceMock.hasLocalContent.mockImplementation(id =>
+        Promise.resolve(id === docId('doc-1'))
+      );
 
       const result = await service.syncDocuments(['doc-1', 'doc-3']);
 
-      expect(result.syncedDocuments).toContain('doc-1');
-      expect(result.failedDocuments).toContain('doc-3');
+      expect(result.success).toBe(true);
+      expect(result.syncedDocuments).toEqual(['doc-1']);
+      expect(result.failedDocuments).toHaveLength(0);
+      expect(result.warnings).toContain('"Standalone Doc" has no content');
+    });
+
+    it('fails when no project is loaded', async () => {
+      projectStateMock.project.set(undefined);
+
+      const result = await service.syncDocuments(['doc-1']);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('No project loaded');
     });
 
     it('should emit complete event when done', async () => {
@@ -318,30 +320,111 @@ describe('ProjectSyncService', () => {
 
   describe('syncDocuments in server mode', () => {
     beforeEach(() => {
-      setupServiceMock.appConfig = signal({ mode: 'server' });
+      setupServiceMock.isServerMode.mockReturnValue(true);
+      vi.stubGlobal('navigator', { onLine: true });
     });
 
-    it('should wait for document sync via WebSocket', async () => {
-      documentServiceMock.getSyncStatusSignal.mockReturnValue(
-        signal(DocumentSyncState.Synced)
+    it('pulls each document from the server by its full id', async () => {
+      const result = await service.syncDocuments(['folder-1', 'doc-3']);
+
+      expect(plannerMock.plan).toHaveBeenCalledWith('alice', 'novel', [
+        docId('doc-1'),
+        docId('doc-2'),
+        docId('doc-3'),
+      ]);
+      expect(documentServiceMock.syncDocumentToServer.mock.calls).toEqual([
+        [docId('doc-1')],
+        [docId('doc-2')],
+        [docId('doc-3')],
+      ]);
+      expect(result.success).toBe(true);
+      expect(result.syncedDocuments).toEqual(['doc-1', 'doc-2', 'doc-3']);
+      expect(documentServiceMock.getSyncStatusSignal).not.toHaveBeenCalled();
+    });
+
+    it('skips documents that are open in an editor', async () => {
+      documentServiceMock.getConnectedDocumentIds.mockReturnValue([
+        docId('doc-1'),
+      ]);
+
+      const result = await service.syncDocuments(['doc-1', 'doc-3']);
+
+      expect(plannerMock.plan).toHaveBeenCalledWith('alice', 'novel', [
+        docId('doc-3'),
+      ]);
+      expect(documentServiceMock.syncDocumentToServer).toHaveBeenCalledTimes(1);
+      expect(result.syncedDocuments).toEqual(['doc-1', 'doc-3']);
+    });
+
+    it('skips documents the planner proves unchanged and checkpoints the rest', async () => {
+      const before = new Map();
+      plannerMock.plan.mockResolvedValue({
+        toSync: [docId('doc-3')],
+        skipped: [docId('doc-1')],
+        before,
+      });
+      documentServiceMock.syncDocumentToServer.mockResolvedValue('d3');
+
+      const result = await service.syncDocuments(['doc-1', 'doc-3']);
+
+      expect(documentServiceMock.syncDocumentToServer).toHaveBeenCalledWith(
+        docId('doc-3')
+      );
+      expect(documentServiceMock.syncDocumentToServer).toHaveBeenCalledTimes(1);
+      expect(result.syncedDocuments).toEqual(
+        expect.arrayContaining(['doc-1', 'doc-3'])
+      );
+      expect(plannerMock.record).toHaveBeenCalledWith(
+        'alice',
+        'novel',
+        before,
+        new Map([[docId('doc-3'), 'd3']])
+      );
+    });
+
+    it('falls back to the local copy when a server sync fails', async () => {
+      documentServiceMock.syncDocumentToServer.mockRejectedValue(
+        new Error('Sync timeout')
       );
 
       const result = await service.syncDocuments(['doc-1']);
 
-      expect(result.success).toBe(true);
-      expect(documentServiceMock.getSyncStatusSignal).toHaveBeenCalledWith(
-        'doc-1'
+      expect(documentServiceMock.hasLocalContent).toHaveBeenCalledWith(
+        docId('doc-1')
       );
+      expect(result.success).toBe(true);
+      expect(result.syncedDocuments).toEqual(['doc-1']);
+      expect(result.warnings[0]).toContain('using the copy on this device');
     });
 
-    it('should handle offline documents in server mode', async () => {
-      documentServiceMock.getSyncStatusSignal.mockReturnValue(
-        signal(DocumentSyncState.Local)
-      );
+    it('fails a document that could not be synced and has no local copy', async () => {
+      documentServiceMock.syncDocumentToServer.mockResolvedValue(null);
+      documentServiceMock.hasLocalContent.mockResolvedValue(false);
 
       const result = await service.syncDocuments(['doc-1']);
 
-      expect(result.success).toBe(true);
+      expect(result.success).toBe(false);
+      expect(result.failedDocuments).toEqual(['doc-1']);
+      expect(plannerMock.record).toHaveBeenCalledWith(
+        'alice',
+        'novel',
+        null,
+        new Map()
+      );
+    });
+
+    it('checks local copies instead of syncing when offline', async () => {
+      vi.stubGlobal('navigator', { onLine: false });
+      documentServiceMock.hasLocalContent.mockImplementation(id =>
+        Promise.resolve(id === docId('doc-1'))
+      );
+
+      const result = await service.syncDocuments(['doc-1', 'doc-3']);
+
+      expect(documentServiceMock.syncDocumentToServer).not.toHaveBeenCalled();
+      expect(result.syncedDocuments).toEqual(['doc-1']);
+      expect(result.failedDocuments).toEqual(['doc-3']);
+      expect(result.warnings[0]).toContain('Offline');
     });
   });
 
@@ -351,34 +434,29 @@ describe('ProjectSyncService', () => {
 
       expect(result.available).toBe(true);
       expect(result.missing).toHaveLength(0);
+      expect(documentServiceMock.hasLocalContent).toHaveBeenCalledWith(
+        docId('doc-1')
+      );
+      expect(indexedDbOpen).not.toHaveBeenCalled();
     });
 
     it('should return missing documents when some are unavailable', async () => {
-      // Mock IndexedDB to return no data for one document
-      const mixedIndexedDB = {
-        open: vi.fn().mockImplementation((dbName: string) => {
-          const request = {
-            onsuccess: null as ((event: Event) => void) | null,
-            onerror: null as ((event: Event) => void) | null,
-            result: {
-              objectStoreNames: { length: dbName === 'doc-1' ? 1 : 0 },
-              close: vi.fn(),
-            },
-          };
-          setTimeout(() => {
-            if (request.onsuccess) {
-              request.onsuccess({} as Event);
-            }
-          }, 0);
-          return request;
-        }),
-      };
-      vi.stubGlobal('indexedDB', mixedIndexedDB);
+      documentServiceMock.hasLocalContent.mockImplementation(id =>
+        Promise.resolve(id === docId('doc-1'))
+      );
 
       const result = await service.verifyLocalAvailability(['doc-1', 'doc-3']);
 
       expect(result.available).toBe(false);
-      expect(result.missing).toContain('doc-3');
+      expect(result.missing).toEqual(['doc-3']);
+    });
+
+    it('reports every document missing when no project is loaded', async () => {
+      projectStateMock.project.set(undefined);
+
+      const result = await service.verifyLocalAvailability(['doc-1']);
+
+      expect(result.missing).toEqual(['doc-1']);
     });
   });
 
