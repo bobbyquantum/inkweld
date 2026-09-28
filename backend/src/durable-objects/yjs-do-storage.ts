@@ -8,7 +8,7 @@
  * the DO stays a thin wrapper.
  */
 
-import { isSyncFrame } from '../utils/yjs-document-utils';
+import { isSyncFrame, isSyncUpdateFrame } from '../utils/yjs-document-utils';
 import { stripTrailingSlashes } from '../utils/string-utils';
 
 /**
@@ -706,8 +706,10 @@ export class YjsDocStorage {
   }
 
   /**
-   * Persist a Yjs wire frame. Only sync frames are stored — awareness/presence
-   * are ephemeral and persisting them grew the update log without bound.
+   * Persist a Yjs wire frame. Only sync *update* frames are stored:
+   * awareness/presence are ephemeral and persisting them grew the update log
+   * without bound, and the sync-step-2 reply sent to each connecting client
+   * is the server's existing state (see `isSyncUpdateFrame`).
    * Returns the key written, or null if the frame was filtered out.
    *
    * The frame is stored as a compact `Uint8Array` BLOB (not `Array.from`,
@@ -727,7 +729,7 @@ export class YjsDocStorage {
    * for diagnosis rather than silently dropped.
    */
   async persist(documentId: string, frame: Uint8Array): Promise<string | null> {
-    if (!isSyncFrame(frame)) return null;
+    if (!isSyncUpdateFrame(frame)) return null;
     const storagePrefix = `doc:${documentId}:`;
     const base = persistUpdateKey(storagePrefix, Date.now(), this.sequence++);
     const key = `${base}:${randomHex(16)}`;

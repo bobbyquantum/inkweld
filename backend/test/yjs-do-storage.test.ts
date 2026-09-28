@@ -395,7 +395,7 @@ describe('YjsDocStorage.persist', () => {
   it('persists sync frames under a collision-free timestamp:sequence:suffix key', async () => {
     const storage = makeStorage();
     const ds = new YjsDocStorage(storage, noopLogger);
-    const sync = new Uint8Array([Y_MESSAGE_SYNC, 0, 1]);
+    const sync = new Uint8Array([Y_MESSAGE_SYNC, 2, 1]);
 
     const key = await ds.persist('d', sync);
 
@@ -412,7 +412,7 @@ describe('YjsDocStorage.persist', () => {
   it('increments the sequence across calls within the same millisecond', async () => {
     const storage = makeStorage();
     const ds = new YjsDocStorage(storage, noopLogger);
-    const sync = new Uint8Array([Y_MESSAGE_SYNC, 0]);
+    const sync = new Uint8Array([Y_MESSAGE_SYNC, 2, 0]);
 
     const a = await ds.persist('d', sync);
     const b = await ds.persist('d', sync);
@@ -420,6 +420,19 @@ describe('YjsDocStorage.persist', () => {
     expect(a).not.toBe(b);
     expect(a).toMatch(/:00000000:[0-9a-f]{32}$/);
     expect(b).toMatch(/:00000001:[0-9a-f]{32}$/);
+  });
+
+  it('filters out sync-step-1 and sync-step-2 frames', async () => {
+    // Step 2 is the reply the shared doc emits to every connecting client —
+    // the server's own state. Persisting it wrote a full copy of the
+    // document on each connection and moved its revision token.
+    const storage = makeStorage();
+    const ds = new YjsDocStorage(storage, noopLogger);
+
+    expect(await ds.persist('d', new Uint8Array([Y_MESSAGE_SYNC, 0, 1]))).toBeNull();
+    expect(await ds.persist('d', new Uint8Array([Y_MESSAGE_SYNC, 1, 1]))).toBeNull();
+    expect(storage.puts).toHaveLength(0);
+    expect(await ds.readRevision('d')).toEqual({ revision: null });
   });
 
   it('filters out awareness frames (returns null, writes nothing)', async () => {
@@ -459,7 +472,7 @@ describe('YjsDocStorage.persist', () => {
     // restart (sequence resets to 0). With the random suffix, two frames
     // persisted at the same millisecond + same sequence must still get
     // distinct keys.
-    const sync = new Uint8Array([Y_MESSAGE_SYNC, 0]);
+    const sync = new Uint8Array([Y_MESSAGE_SYNC, 2, 0]);
     const keys = new Set<string>();
     for (let i = 0; i < 50; i++) {
       const storage = makeStorage();
@@ -481,7 +494,7 @@ describe('YjsDocStorage.persist', () => {
     };
     const errorLog = mock(() => {});
     const ds = new YjsDocStorage(storage, { ...noopLogger, error: errorLog });
-    const sync = new Uint8Array([Y_MESSAGE_SYNC, 0]);
+    const sync = new Uint8Array([Y_MESSAGE_SYNC, 2, 0]);
 
     // Should not reject — the caller invokes this fire-and-forget.
     const key = await ds.persist('d', sync);

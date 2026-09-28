@@ -2947,25 +2947,43 @@ export class DocumentService {
       );
 
       await new Promise<void>((resolve, reject) => {
+        const settle = (error?: Error) => {
+          clearTimeout(timeout);
+          provider?.off('sync', checkSynced);
+          provider?.off('status', checkStatus);
+          if (error) reject(error);
+          else resolve();
+        };
+
         const timeout = globalThis.setTimeout(() => {
-          reject(new Error(`Sync timeout for ${params.description}`));
+          settle(new Error(`Sync timeout for ${params.description}`));
         }, params.timeoutMs);
 
         const checkSynced = (isSynced: boolean) => {
-          if (isSynced) {
-            clearTimeout(timeout);
-            provider?.off('sync', checkSynced);
-            resolve();
+          if (isSynced) settle();
+        };
+
+        // A headless provider has no re-authentication handler, so if the
+        // server closes the socket before the sync completes (e.g. its
+        // reconnect rate limit), y-websocket's reconnects never authenticate
+        // and would sit out the whole timeout. Fail now instead.
+        const checkStatus = ({ status }: { status: string }) => {
+          if (status === 'disconnected') {
+            settle(
+              new Error(
+                `Connection closed before sync for ${params.description}`
+              )
+            );
           }
         };
 
         if (provider?.synced) {
-          clearTimeout(timeout);
-          resolve();
+          settle();
           return;
         }
 
         provider?.on('sync', checkSynced);
+        provider?.on('status', checkStatus);
       });
 
       await storeState(params.indexeddbProvider);

@@ -5,6 +5,7 @@ import {
   isYjsFrameBlockedForViewer,
   frameMessageType,
   isSyncFrame,
+  isSyncUpdateFrame,
   Y_MESSAGE_SYNC,
   Y_MESSAGE_AWARENESS,
 } from '../src/utils/yjs-document-utils';
@@ -152,5 +153,22 @@ describe('isSyncFrame', () => {
 
   it('is false for empty frames', () => {
     expect(isSyncFrame(new Uint8Array([]))).toBe(false);
+  });
+});
+
+describe('isSyncUpdateFrame', () => {
+  it('accepts sync update frames', () => {
+    expect(isSyncUpdateFrame(new Uint8Array([Y_MESSAGE_SYNC, 2, 1, 0]))).toBe(true);
+  });
+
+  it('rejects sync-step-1 and sync-step-2 frames', () => {
+    expect(isSyncUpdateFrame(new Uint8Array([Y_MESSAGE_SYNC, 0, 1]))).toBe(false);
+    expect(isSyncUpdateFrame(new Uint8Array([Y_MESSAGE_SYNC, 1, 1]))).toBe(false);
+  });
+
+  it('rejects awareness, truncated and empty frames', () => {
+    expect(isSyncUpdateFrame(new Uint8Array([Y_MESSAGE_AWARENESS, 2]))).toBe(false);
+    expect(isSyncUpdateFrame(new Uint8Array([Y_MESSAGE_SYNC]))).toBe(false);
+    expect(isSyncUpdateFrame(new Uint8Array([]))).toBe(false);
   });
 });
