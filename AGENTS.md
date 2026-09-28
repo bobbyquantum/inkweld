@@ -388,6 +388,10 @@ first asks the server which documents actually changed:
   backfilled on first read; only if that write fails is it reported `unknown`.
   **The two tokens are not comparable across runtimes**; a client only ever
   compares a token to one from the same server.
+  The DO persists only sync *update* frames (`isSyncUpdateFrame`), never the
+  sync-step-2 reply each connecting client receives: storing that reply wrote
+  a full copy of the document per connection and moved the token, so no
+  document could ever be skipped on Workers.
 - `DocumentSyncPlannerService` skips a document only when the manifest revision
   is unchanged **and** the local Yjs state digest still matches the checkpoint
   stored in `DocumentSyncStateService` (IndexedDB) — i.e. no local edits since

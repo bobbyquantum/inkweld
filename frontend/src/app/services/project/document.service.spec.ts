@@ -1945,6 +1945,30 @@ describe('DocumentService', () => {
         expect(() => atob(digest!)).not.toThrow();
       });
 
+      it('fails as soon as the connection closes before syncing', async () => {
+        vi.useFakeTimers();
+        try {
+          mockWebSocketProvider.on.mockImplementation(
+            (event: string, callback: any) => {
+              if (event === 'status') {
+                setTimeout(() => callback({ status: 'disconnected' }), 10);
+              }
+              return () => {};
+            }
+          );
+
+          const result = service.syncDocumentToServer(testDocumentId, 30000);
+          const assertion = expect(result).rejects.toThrow(
+            /Connection closed before sync/
+          );
+          await vi.advanceTimersByTimeAsync(20);
+          await assertion;
+          expect(mockWebSocketProvider.destroy).toHaveBeenCalledTimes(1);
+        } finally {
+          vi.useRealTimers();
+        }
+      });
+
       it('returns null when there is no WebSocket URL', async () => {
         mockSetupService.getWebSocketUrl.mockReturnValue(null);
         await expect(

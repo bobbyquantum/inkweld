@@ -2,11 +2,17 @@ import { inject, Injectable } from '@angular/core';
 import { type Element, ElementType } from '@inkweld/index';
 import { BehaviorSubject, type Observable, Subject } from 'rxjs';
 
-import { DocumentSyncState } from '../../models/document-sync-state';
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
 import { DocumentService } from '../project/document.service';
 import { ProjectStateService } from '../project/project-state.service';
+import { DocumentSyncPlannerService } from '../sync/document-sync-planner.service';
+
+/** Concurrent headless document syncs, matching the bulk "Sync All" path. */
+const DOCUMENT_SYNC_CONCURRENCY = 3;
+
+/** The parts of the current project that address its documents. */
+type ProjectRef = { username: string; slug: string };
 
 /**
  * Progress information for sync operations
@@ -77,8 +83,9 @@ interface DocumentSyncStatus {
 /**
  * Service for synchronizing project content before publishing.
  *
- * In online mode, ensures all documents are synced from the server.
- * In offline mode, verifies all documents are available in IndexedDB.
+ * In server mode (online), merges each document with the server through a
+ * headless sync so the latest content is published. Otherwise (local mode,
+ * or offline) it verifies each document has a local copy.
  *
  * Provides detailed progress callbacks for UI feedback.
  */
@@ -90,6 +97,7 @@ export class ProjectSyncService {
   private readonly setupService = inject(SetupService);
   private readonly documentService = inject(DocumentService);
   private readonly projectStateService = inject(ProjectStateService);
+  private readonly syncPlanner = inject(DocumentSyncPlannerService);
 
   // Progress state
   private readonly progressSubject = new BehaviorSubject<SyncProgress>({
@@ -244,12 +252,15 @@ export class ProjectSyncService {
   async verifyLocalAvailability(
     elementIds: string[]
   ): Promise<{ available: boolean; missing: string[] }> {
+    const project = this.projectStateService.project();
     const elements = this.projectStateService.elements();
     const documentsToCheck = this.getDocumentsToSync(elements, elementIds);
     const missing: string[] = [];
 
     for (const doc of documentsToCheck) {
-      const isAvailable = await this.checkDocumentAvailable(doc.id);
+      const isAvailable =
+        !!project &&
+        (await this.hasLocalCopy(this.fullDocumentId(project, doc.id)));
       if (!isAvailable) {
         missing.push(doc.id);
       }
@@ -319,135 +330,202 @@ export class ProjectSyncService {
   }
 
   /**
-   * Sync a list of documents
+   * Sync a list of documents.
+   *
+   * In server mode (and online) each document's local copy is merged with the
+   * server's through a headless WebSocket sync, so the generators — which read
+   * the open connection or IndexedDB — publish the latest server content.
+   * Otherwise the local copies are only checked for presence.
    */
   private async syncDocumentList(
     documents: DocumentSyncStatus[],
     result: SyncResult
   ): Promise<void> {
-    const total = documents.length;
-    let completed = 0;
+    const project = this.projectStateService.project();
+    if (!project) {
+      throw new Error('No project loaded');
+    }
 
     this.updateProgress({
       phase: SyncPhase.SyncingDocuments,
-      message: `Syncing documents (0/${total})...`,
-      totalItems: total,
+      overallProgress: 10,
+      message: `Syncing documents (0/${documents.length})...`,
+      totalItems: documents.length,
       completedItems: 0,
     });
 
-    for (const doc of documents) {
-      if (this.isCancelled) return;
-
-      this.updateProgress({
-        currentItem: doc.name,
-        detail: `Syncing "${doc.name}"...`,
-      });
-
-      try {
-        await this.syncDocument(doc.id);
-        doc.synced = true;
-        result.syncedDocuments.push(doc.id);
-      } catch (error) {
-        doc.synced = false;
-        doc.error = error instanceof Error ? error.message : 'Unknown error';
-        result.failedDocuments.push(doc.id);
-        result.warnings.push(`Failed to sync "${doc.name}": ${doc.error}`);
-        this.logger.warn(
-          'ProjectSyncService',
-          `Failed to sync document ${doc.id}`,
-          error
+    const serverMode = this.setupService.isServerMode();
+    if (serverMode && this.isOnline()) {
+      await this.pullFromServer(project, documents, result);
+    } else {
+      if (serverMode) {
+        result.warnings.push(
+          'Offline: publishing from the copies saved on this device'
         );
       }
-
-      completed++;
-      const progress = 10 + (completed / total) * 70; // 10-80%
-      this.updateProgress({
-        overallProgress: Math.round(progress),
-        message: `Syncing documents (${completed}/${total})...`,
-        completedItems: completed,
-      });
+      await this.checkLocalCopies(project, documents, result, serverMode);
     }
   }
 
   /**
-   * Sync a single document
+   * Headless-sync every document that is not open in an editor. Open
+   * documents already have a live connection, which the generators read.
+   * Documents unchanged on both sides since this device's last sync are
+   * skipped using the bulk-sync planner.
    */
-  private async syncDocument(documentId: string): Promise<void> {
-    const config = this.setupService.appConfig();
-
-    if (config?.mode === 'server') {
-      // In server mode, we need to ensure the document is synced via WebSocket
-      // The DocumentService handles this, but we may need to wait for sync
-      await this.waitForDocumentSync(documentId);
-    } else {
-      // In offline mode, just verify it exists in IndexedDB
-      const available = await this.checkDocumentAvailable(documentId);
-      if (!available) {
-        throw new Error('Document not available in offline storage');
-      }
-    }
-  }
-
-  /**
-   * Wait for a document to be synced via WebSocket
-   */
-  private async waitForDocumentSync(
-    documentId: string,
-    timeoutMs = 10000
+  private async pullFromServer(
+    project: ProjectRef,
+    documents: DocumentSyncStatus[],
+    result: SyncResult
   ): Promise<void> {
-    const startTime = Date.now();
+    const { username, slug } = project;
+    const connected = new Set(this.documentService.getConnectedDocumentIds());
+    const byDocId = new Map(
+      documents.map(doc => [this.fullDocumentId(project, doc.id), doc])
+    );
 
-    // Check if document is already synced
-    const syncSignal = this.documentService.getSyncStatusSignal(documentId);
-
-    while (Date.now() - startTime < timeoutMs) {
-      const status = syncSignal();
-
-      // Check if document is synced or at least available offline
-      if (
-        status === DocumentSyncState.Synced ||
-        status === DocumentSyncState.Local
-      ) {
-        return;
+    const headless: string[] = [];
+    for (const [docId, doc] of byDocId) {
+      if (connected.has(docId)) {
+        this.markSynced(doc, result);
+      } else {
+        headless.push(docId);
       }
-
-      await this.delay(100);
     }
 
-    throw new Error(`Timeout waiting for document sync: ${documentId}`);
+    const plan = await this.syncPlanner.plan(username, slug, headless);
+    for (const docId of plan.skipped) {
+      this.markSynced(byDocId.get(docId)!, result);
+    }
+    const done = () =>
+      result.syncedDocuments.length + result.failedDocuments.length;
+    this.reportDocumentProgress(done(), documents.length);
+
+    const digests = new Map<string, string>();
+    for (let i = 0; i < plan.toSync.length; i += DOCUMENT_SYNC_CONCURRENCY) {
+      if (this.isCancelled) break;
+      const batch = plan.toSync.slice(i, i + DOCUMENT_SYNC_CONCURRENCY);
+      this.updateProgress({
+        currentItem: byDocId.get(batch[0])!.name,
+        detail: `Syncing "${byDocId.get(batch[0])!.name}"...`,
+      });
+
+      await Promise.all(
+        batch.map(async docId => {
+          const doc = byDocId.get(docId)!;
+          try {
+            const digest =
+              await this.documentService.syncDocumentToServer(docId);
+            if (digest === null) {
+              throw new Error('Server connection unavailable');
+            }
+            digests.set(docId, digest);
+            this.markSynced(doc, result);
+          } catch (error) {
+            await this.handleSyncFailure(docId, doc, error, result);
+          }
+        })
+      );
+      this.reportDocumentProgress(done(), documents.length);
+    }
+
+    await this.syncPlanner.record(username, slug, plan.before, digests);
   }
 
   /**
-   * Check if a document is available in IndexedDB.
-   *
-   * We must abort any `onupgradeneeded` transaction so we do NOT commit an
-   * empty version-1 database.  If we did, y-indexeddb would later see the DB
-   * already at version 1, skip its own upgrade, and crash trying to open
-   * the 'updates' object store that was never created.
+   * A failed server sync is only fatal for a document with no local copy;
+   * otherwise publishing proceeds from the local copy, with a warning.
    */
-  private async checkDocumentAvailable(documentId: string): Promise<boolean> {
-    try {
-      const dbName = documentId;
-      const request = indexedDB.open(dbName);
+  private async handleSyncFailure(
+    docId: string,
+    doc: DocumentSyncStatus,
+    error: unknown,
+    result: SyncResult
+  ): Promise<void> {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    this.logger.warn(
+      'ProjectSyncService',
+      `Failed to sync document ${docId}`,
+      error
+    );
 
-      return new Promise(resolve => {
-        // Abort the version-change transaction so no empty DB is committed.
-        request.onupgradeneeded = event => {
-          (event.target as IDBOpenDBRequest).transaction?.abort();
-        };
-        request.onsuccess = () => {
-          const db = request.result;
-          const hasData = db.objectStoreNames.length > 0;
-          db.close();
-          resolve(hasData);
-        };
-        request.onerror = () => {
-          resolve(false);
-        };
+    if (await this.hasLocalCopy(docId)) {
+      this.markSynced(doc, result);
+      result.warnings.push(
+        `Could not sync "${doc.name}" (${message}); using the copy on this device`
+      );
+      return;
+    }
+
+    doc.synced = false;
+    doc.error = message;
+    result.failedDocuments.push(doc.id);
+    result.warnings.push(`Failed to sync "${doc.name}": ${message}`);
+  }
+
+  /**
+   * Without a server to pull from, check each document has a local copy. In
+   * local mode a missing copy is a document nobody has written in yet, so it
+   * is only a warning; in server mode (offline) its content is unavailable.
+   */
+  private async checkLocalCopies(
+    project: ProjectRef,
+    documents: DocumentSyncStatus[],
+    result: SyncResult,
+    missingIsFailure: boolean
+  ): Promise<void> {
+    for (const [index, doc] of documents.entries()) {
+      if (this.isCancelled) return;
+      this.updateProgress({
+        currentItem: doc.name,
+        detail: `Checking "${doc.name}"...`,
       });
+
+      if (await this.hasLocalCopy(this.fullDocumentId(project, doc.id))) {
+        this.markSynced(doc, result);
+      } else if (missingIsFailure) {
+        doc.error = 'Document not available on this device';
+        result.failedDocuments.push(doc.id);
+        result.warnings.push(`"${doc.name}" is not available offline`);
+      } else {
+        result.warnings.push(`"${doc.name}" has no content`);
+      }
+      this.reportDocumentProgress(index + 1, documents.length);
+    }
+  }
+
+  private markSynced(doc: DocumentSyncStatus, result: SyncResult): void {
+    doc.synced = true;
+    result.syncedDocuments.push(doc.id);
+  }
+
+  private reportDocumentProgress(completed: number, total: number): void {
+    this.updateProgress({
+      overallProgress: Math.round(10 + (completed / total) * 70), // 10-80%
+      message: `Syncing documents (${completed}/${total})...`,
+      completedItems: completed,
+    });
+  }
+
+  /**
+   * Whether a document has content on this device: an open connection, or
+   * Yjs updates in its profile-scoped IndexedDB database.
+   */
+  private async hasLocalCopy(documentId: string): Promise<boolean> {
+    try {
+      return await this.documentService.hasLocalContent(documentId);
     } catch {
       return false;
     }
+  }
+
+  /** Full document id (`username:slug:elementId`) as DocumentService keys it. */
+  private fullDocumentId(project: ProjectRef, elementId: string): string {
+    return `${project.username}:${project.slug}:${elementId}`;
+  }
+
+  private isOnline(): boolean {
+    return typeof navigator === 'undefined' || navigator.onLine !== false;
   }
 
   /**

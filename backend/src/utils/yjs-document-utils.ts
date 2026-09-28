@@ -58,6 +58,24 @@ export function isSyncFrame(message: ArrayBuffer | Uint8Array): boolean {
   return frameMessageType(message) === Y_MESSAGE_SYNC;
 }
 
+/** Sync sub-type of a document update (`y-protocols/sync` messageYjsUpdate). */
+export const Y_SYNC_UPDATE = 2;
+
+/**
+ * True when the frame is a sync *update* — a change to the document, as the
+ * Durable Object's shared doc emits for every applied edit.
+ *
+ * The shared doc's notify stream also carries the sync-step-2 reply the
+ * server sends to each connecting client. That reply is the server's own,
+ * already-persisted state, so storing it would write a full copy of the
+ * document on every connection and move the document's revision token (see
+ * `readRevision`) even though nothing changed.
+ */
+export function isSyncUpdateFrame(message: ArrayBuffer | Uint8Array): boolean {
+  const bytes = message instanceof Uint8Array ? message : new Uint8Array(message);
+  return bytes.length > 1 && bytes[0] === Y_MESSAGE_SYNC && bytes[1] === Y_SYNC_UPDATE;
+}
+
 /**
  * Parse the project owner + slug out of a Yjs document id. Returns null
  * for malformed ids. Strips the optional `worldbuilding:` prefix so the
