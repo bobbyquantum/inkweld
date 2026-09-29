@@ -80,11 +80,13 @@ function storageWithElements(rows: Array<Record<string, unknown>>) {
 let YjsProject: new (state: unknown, env: unknown) => { fetch(req: Request): Promise<Response> };
 let projectService: { findByUsernameAndSlug: (...args: unknown[]) => Promise<unknown> };
 let userService: { findById: (...args: unknown[]) => Promise<unknown> };
+let collaborationService: { checkAccess: (...args: unknown[]) => Promise<unknown> };
 
 describe('YjsProject DO GET /api/revisions', () => {
   beforeAll(async () => {
     ({ projectService } = await import('../src/services/project.service'));
     ({ userService } = await import('../src/services/user.service'));
+    ({ collaborationService } = await import('../src/services/collaboration.service'));
     spyOn(userService, 'findById').mockImplementation(async (_db: unknown, id: unknown) => ({
       id,
       username: String(id),
@@ -104,6 +106,7 @@ describe('YjsProject DO GET /api/revisions', () => {
 
   afterEach(() => {
     (projectService.findByUsernameAndSlug as ReturnType<typeof spyOn>).mockRestore?.();
+    (collaborationService.checkAccess as ReturnType<typeof spyOn>).mockRestore?.();
   });
 
   const exp = () => Math.floor(Date.now() / 1000) + 3600;
@@ -177,5 +180,65 @@ describe('YjsProject DO GET /api/revisions', () => {
       new Request('https://yjs-do/api/revisions?documentId=alice:proj:elements')
     );
     expect(response.status).toBe(401);
+  });
+
+  describe('access', () => {
+    function makeDO(env: Record<string, unknown>) {
+      const state = {
+        storage: makeStorage(new Map()),
+        getWebSockets: () => [],
+        setWebSocketAutoResponse: () => {},
+      };
+      return new YjsProject(state, { DATABASE_KEY: SECRET, ...env });
+    }
+
+    async function call(
+      doInstance: { fetch(req: Request): Promise<Response> },
+      path: string,
+      method = 'GET'
+    ): Promise<Response> {
+      const token = await signJwt({ userId: 'user-2', username: 'bob', exp: exp() });
+      return doInstance.fetch(
+        new Request(`https://yjs-do${path}?documentId=alice:proj:elements`, {
+          method,
+          headers: { Authorization: `Bearer ${token}` },
+        })
+      );
+    }
+
+    it('returns 503 when the DO has no D1 binding', async () => {
+      const response = await call(makeDO({}), '/api/revisions');
+      expect(response.status).toBe(503);
+    });
+
+    it('returns 403 for a user who is not a collaborator', async () => {
+      spyOn(projectService, 'findByUsernameAndSlug').mockResolvedValue({
+        id: 'project-1',
+        userId: 'owner-1',
+      });
+      spyOn(collaborationService, 'checkAccess').mockResolvedValue({
+        isOwner: false,
+        canRead: false,
+        canWrite: false,
+        role: null,
+      });
+      const response = await call(makeDO({ DB: {} }), '/api/revisions');
+      expect(response.status).toBe(403);
+    });
+
+    it('returns 403 when a read-only collaborator writes', async () => {
+      spyOn(projectService, 'findByUsernameAndSlug').mockResolvedValue({
+        id: 'project-1',
+        userId: 'owner-1',
+      });
+      spyOn(collaborationService, 'checkAccess').mockResolvedValue({
+        isOwner: false,
+        canRead: true,
+        canWrite: false,
+        role: 'viewer',
+      });
+      const response = await call(makeDO({ DB: {} }), '/api/document', 'POST');
+      expect(response.status).toBe(403);
+    });
   });
 });

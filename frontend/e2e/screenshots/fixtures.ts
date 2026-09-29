@@ -242,7 +242,7 @@ export const test = base.extend<ScreenshotFixtures>({
             {
               id: 'local',
               type: 'local',
-              displayName: 'Local Mode',
+              displayName: 'Browser',
               userProfile: {
                 name: 'Demo User',
                 username: 'demouser',

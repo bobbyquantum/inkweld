@@ -23,7 +23,7 @@ describe('cloud-manifest', () => {
       const manifest = createCloudManifest(owner, profile);
       expect(manifest.version).toBe(CLOUD_MANIFEST_VERSION);
       expect(manifest.owner).toEqual(owner);
-      expect(manifest.profile).toEqual(profile);
+      expect(manifest.profiles).toEqual([profile]);
       expect(manifest.projects).toEqual([]);
       expect(manifest.revision).toBe(1);
       expect(manifest.createdAt).toBe(manifest.updatedAt);
@@ -50,13 +50,15 @@ describe('cloud-manifest', () => {
       expect(parseCloudManifest(JSON.stringify(manifest))).toBeNull();
     });
 
-    it('returns null when owner or profile is missing', () => {
+    it('returns null when owner or profiles are missing', () => {
       const base = createCloudManifest(owner, profile);
       expect(
         parseCloudManifest(JSON.stringify({ ...base, owner: undefined }))
       ).toBeNull();
       expect(
-        parseCloudManifest(JSON.stringify({ ...base, profile: { name: 'x' } }))
+        parseCloudManifest(
+          JSON.stringify({ ...base, profiles: [{ name: 'x' }] })
+        )
       ).toBeNull();
     });
 
@@ -65,7 +67,7 @@ describe('cloud-manifest', () => {
         JSON.stringify({
           version: 1,
           owner,
-          profile,
+          profiles: [profile],
           projects: 'not-an-array',
           revision: -3,
         })
@@ -130,7 +132,7 @@ describe('cloud-manifest', () => {
   });
 
   describe('multiple authors', () => {
-    it('lists the legacy profile and any extra profiles, deduplicated', () => {
+    it('parses the profile list, dropping invalid and duplicate entries', () => {
       const manifest = createCloudManifest(owner, profile);
       expect(manifest.profiles).toEqual([profile]);
 
@@ -138,6 +140,7 @@ describe('cloud-manifest', () => {
         JSON.stringify({
           ...manifest,
           profiles: [
+            profile,
             { name: 'Bobby Quantum', username: 'BOBBY' },
             { name: 'Bee', username: 'bee' },
             { name: 'broken' },
@@ -157,7 +160,7 @@ describe('cloud-manifest', () => {
         username: 'bee',
       });
       expect(withBee.profiles.map(p => p.username)).toEqual(['bobby', 'bee']);
-      expect(withBee.profile).toEqual(profile);
+      expect(withBee.profiles[0]).toEqual(profile);
       expect(withBee.revision).toBe(2);
 
       const renamed = withManifestProfile(withBee, {
@@ -228,7 +231,7 @@ describe('cloud-manifest', () => {
         'cee',
         'bee',
       ]);
-      expect(merged.profile).toEqual(profile);
+      expect(merged.profiles[0]).toEqual(profile);
     });
   });
 
@@ -240,7 +243,7 @@ describe('cloud-manifest', () => {
         revision: 5,
       };
       const merged = mergeCloudManifests(local, remote);
-      expect(merged.profile.name).toBe('Renamed');
+      expect(merged.profiles[0].name).toBe('Renamed');
       expect(merged.revision).toBe(6);
     });
 
@@ -270,7 +273,7 @@ describe('cloud-manifest', () => {
       const b = { ...a, revision: 9, updatedAt: 'later' };
       expect(manifestsEquivalent(a, b)).toBe(true);
       expect(
-        manifestsEquivalent(a, { ...b, profile: { ...profile, name: 'X' } })
+        manifestsEquivalent(a, { ...b, profiles: [{ ...profile, name: 'X' }] })
       ).toBe(false);
       expect(
         manifestsEquivalent(

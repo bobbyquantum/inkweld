@@ -385,7 +385,7 @@ export class ImageProfileDialogComponent {
             maxImages: 1,
           })) ?? [];
       } else {
-        // Fallback to legacy endpoint for other providers
+        // Other providers list their models through the generic endpoint
         const response = await firstValueFrom(
           this.aiImageService.getProviderModels(provider as ImageProviderType)
         );

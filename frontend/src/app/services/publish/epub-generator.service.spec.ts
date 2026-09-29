@@ -132,7 +132,7 @@ describe('EpubGeneratorService', () => {
     projectStateMock = {
       project: signal(mockProject),
       elements: signal(mockElements),
-      coverMediaId: signal<string | undefined>(undefined),
+      coverMediaId: signal<string | undefined>('cover-1'),
     };
 
     localStorageMock = {
@@ -298,7 +298,7 @@ describe('EpubGeneratorService', () => {
 
       expect(localStorageMock.getMedia).toHaveBeenCalledWith(
         'testuser/test-project',
-        'cover'
+        'cover-1'
       );
     });
 

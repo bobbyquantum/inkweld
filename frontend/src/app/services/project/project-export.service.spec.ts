@@ -487,6 +487,39 @@ describe('ProjectExportService', () => {
         type: ProjectArchiveErrorType.SyncRequired,
       });
     });
+
+    it('does not look for a cover when the project has none', async () => {
+      documentService.hasUnsyncedChanges.mockReturnValue(false);
+
+      await service.exportProject();
+
+      expect(localStorage.hasMedia).not.toHaveBeenCalled();
+      expect(imagesService.getProjectCover).not.toHaveBeenCalled();
+    });
+
+    it('downloads a missing cover under its media id', async () => {
+      documentService.hasUnsyncedChanges.mockReturnValue(false);
+      projectState.project.mockReturnValue({
+        ...mockProject,
+        coverImage: 'cover-123.jpg',
+      });
+      localStorage.hasMedia.mockResolvedValue(false);
+      const cover = new Blob(['jpeg'], { type: 'image/jpeg' });
+      imagesService.getProjectCover.mockReturnValue(of(cover) as never);
+
+      await service.exportProject();
+
+      expect(localStorage.hasMedia).toHaveBeenCalledWith(
+        'testuser/test-project',
+        'cover-123'
+      );
+      expect(localStorage.saveMedia).toHaveBeenCalledWith(
+        'testuser/test-project',
+        'cover-123',
+        cover,
+        'cover-123.jpg'
+      );
+    });
   });
 
   describe('progress tracking', () => {

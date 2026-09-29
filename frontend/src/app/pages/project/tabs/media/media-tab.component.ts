@@ -186,7 +186,7 @@ export class MediaTabComponent implements OnInit, OnDestroy {
     }
   });
 
-  // Legacy compatibility — keep these as computed from filterState
+  // Single-value views of filterState for the template
   selectedCategory = computed(() => this.filterState().category);
   elementFilter = computed(() =>
     this.filterState().elementIds.length === 1
@@ -1094,7 +1094,7 @@ export class MediaTabComponent implements OnInit, OnDestroy {
   }
 
   private categorizeMedia(mediaId: string): MediaCategory {
-    if (mediaId === 'cover' || mediaId.startsWith('cover-')) return 'cover';
+    if (mediaId.startsWith('cover-')) return 'cover';
     if (mediaId.startsWith('generated-')) return 'generated';
     if (mediaId.startsWith('img-')) return 'inline';
     if (mediaId.startsWith('published-')) return 'published';

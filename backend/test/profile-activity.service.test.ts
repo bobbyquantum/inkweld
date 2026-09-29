@@ -2,12 +2,14 @@ import { describe, it, expect } from 'bun:test';
 import {
   computeCurrentStreak,
   computeLongestStreak,
-  computeStreaks,
   dayKeyInZone,
   daysOfYear,
   isValidTimeZone,
   type ActivityDay,
 } from '../src/services/profile-activity.service';
+
+const activeDays = (days: ActivityDay[]): string[] =>
+  days.filter((d) => d.words > 0).map((d) => d.day);
 
 const day = (d: string, words: number): ActivityDay => ({
   day: d,
@@ -46,7 +48,7 @@ describe('profile activity service helpers', () => {
     });
   });
 
-  describe('computeStreaks', () => {
+  describe('streaks', () => {
     it('finds the longest run of consecutive active days', () => {
       const days = [
         day('2026-01-01', 10),
@@ -57,23 +59,24 @@ describe('profile activity service helpers', () => {
         day('2026-01-06', 10),
         day('2026-01-07', 0),
       ];
-      expect(computeStreaks(days, '2026-01-07').longest).toBe(3);
+      expect(computeLongestStreak(days)).toBe(3);
     });
 
     it('counts the current streak back from today', () => {
       const days = [day('2026-01-05', 1), day('2026-01-06', 1), day('2026-01-07', 1)];
-      expect(computeStreaks(days, '2026-01-07').current).toBe(3);
+      expect(computeCurrentStreak(activeDays(days), '2026-01-07')).toBe(3);
     });
 
     it('keeps the streak alive when today has no words yet', () => {
       const days = [day('2026-01-05', 1), day('2026-01-06', 1), day('2026-01-07', 0)];
-      expect(computeStreaks(days, '2026-01-07').current).toBe(2);
+      expect(computeCurrentStreak(activeDays(days), '2026-01-07')).toBe(2);
     });
 
     it('is zero when neither today nor yesterday was active', () => {
       const days = [day('2026-01-01', 1), day('2026-01-06', 0), day('2026-01-07', 0)];
-      expect(computeStreaks(days, '2026-01-07').current).toBe(0);
-      expect(computeStreaks([], '2026-01-07')).toEqual({ longest: 0, current: 0 });
+      expect(computeCurrentStreak(activeDays(days), '2026-01-07')).toBe(0);
+      expect(computeLongestStreak([])).toBe(0);
+      expect(computeCurrentStreak([], '2026-01-07')).toBe(0);
     });
   });
 

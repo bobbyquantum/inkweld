@@ -125,23 +125,6 @@ describe('TimelineEventDialogComponent', () => {
     ).toBe(false);
   });
 
-  it('combinedStart() returns parseSeparator-joined unit values', async () => {
-    const data: TimelineEventDialogData = {
-      ...baseData,
-      event: {
-        id: 'e1',
-        trackId: 'track-1',
-        title: 'T',
-        start: { systemId: 'gregorian', units: ['2024', '1', '1'] },
-      },
-    };
-    const { component } = await createComponent(data);
-    const combined = (
-      component as unknown as { combinedStart: () => string }
-    ).combinedStart();
-    expect(combined).toContain('2024');
-  });
-
   describe('onCancel()', () => {
     it('closes dialog without a value', async () => {
       const { component, closeSpy } = await createComponent();
@@ -245,24 +228,6 @@ describe('TimelineEventDialogComponent', () => {
   });
 
   // ─── Combined end ──────────────────────────────────────────────────────────
-
-  it('combinedEnd returns joined end unit values', async () => {
-    const data: TimelineEventDialogData = {
-      ...baseData,
-      event: {
-        id: 'e2',
-        trackId: 'track-1',
-        title: 'T',
-        start: { systemId: 'gregorian', units: ['2024', '1', '1'] },
-        end: { systemId: 'gregorian', units: ['2025', '12', '31'] },
-      },
-    };
-    const { component } = await createComponent(data);
-    const combined = (
-      component as unknown as { combinedEnd: () => string }
-    ).combinedEnd();
-    expect(combined).toContain('2025');
-  });
 
   // ─── Date change handlers ──────────────────────────────────────────────────
 

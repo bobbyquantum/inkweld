@@ -86,12 +86,6 @@ export function buildInkweldSchema(): Schema {
 export const extendedSchema = buildInkweldSchema();
 
 /**
- * @deprecated Use `buildInkweldSchema()` (clearer name). Kept as an alias
- * for back-compat with existing call sites.
- */
-export { buildInkweldSchema as createExtendedSchema };
-
-/**
  * Re-export ngx-editor's plain schema for cases where Inkweld extensions
  * aren't needed.
  */

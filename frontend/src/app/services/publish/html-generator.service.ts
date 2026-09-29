@@ -371,9 +371,8 @@ export class HtmlGeneratorService {
 
   /**
    * Try multiple media IDs to find the cover blob:
-   * 1. coverMediaId from Yjs (new system)
+   * 1. coverMediaId from Yjs
    * 2. project.coverImage filename stem (DB value)
-   * 3. Legacy 'cover' key (backward compat)
    */
   /** Shared with {@link HtmlSiteGeneratorService}. */
   async loadCoverBlob(project: {
@@ -394,8 +393,6 @@ export class HtmlGeneratorService {
 
     const stem = project.coverImage?.replace(/\.[^.]+$/, '');
     if (stem && !idsToTry.includes(stem)) idsToTry.push(stem);
-
-    if (!idsToTry.includes('cover')) idsToTry.push('cover');
 
     // Sequential: candidates are tried in priority order; first hit wins.
     const found = await firstResultSequential(idsToTry, async id => {

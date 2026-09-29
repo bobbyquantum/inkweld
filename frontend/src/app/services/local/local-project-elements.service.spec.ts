@@ -15,7 +15,6 @@ describe('LocalProjectElementsService', () => {
   let service: LocalProjectElementsService;
   const TEST_USERNAME = 'testuser';
   const TEST_SLUG = 'test-project';
-  const PROJECT_KEY = `${TEST_USERNAME}:${TEST_SLUG}`;
 
   // Mock localStorage
   const mockLocalStorage = {
@@ -69,7 +68,7 @@ describe('LocalProjectElementsService', () => {
   });
 
   describe('loadElements', () => {
-    it('should load elements from localStorage', async () => {
+    it('should load previously saved elements', async () => {
       const mockElements: Element[] = [
         {
           id: 'element-1',
@@ -84,8 +83,8 @@ describe('LocalProjectElementsService', () => {
         },
       ];
 
-      const storedData = { [PROJECT_KEY]: mockElements };
-      mockLocalStorage.getItem.mockReturnValue(JSON.stringify(storedData));
+      await service.saveElements(TEST_USERNAME, TEST_SLUG, mockElements);
+      service.elements.set([]);
 
       await service.loadElements(TEST_USERNAME, TEST_SLUG);
 
@@ -181,7 +180,7 @@ describe('LocalProjectElementsService', () => {
   });
 
   describe('addElement', () => {
-    beforeEach(() => {
+    beforeEach(async () => {
       const initialElements: Element[] = [
         {
           id: 'folder-1',
@@ -195,10 +194,7 @@ describe('LocalProjectElementsService', () => {
           metadata: {},
         },
       ];
-      service.elements.set(initialElements);
-      mockLocalStorage.getItem.mockReturnValue(
-        JSON.stringify({ [PROJECT_KEY]: initialElements })
-      );
+      await service.saveElements(TEST_USERNAME, TEST_SLUG, initialElements);
     });
 
     it('should add element at root level', async () => {
@@ -267,7 +263,7 @@ describe('LocalProjectElementsService', () => {
   });
 
   describe('deleteElement', () => {
-    beforeEach(() => {
+    beforeEach(async () => {
       const initialElements: Element[] = [
         {
           id: 'folder-1',
@@ -314,10 +310,7 @@ describe('LocalProjectElementsService', () => {
           metadata: {},
         },
       ];
-      service.elements.set(initialElements);
-      mockLocalStorage.getItem.mockReturnValue(
-        JSON.stringify({ [PROJECT_KEY]: initialElements })
-      );
+      await service.saveElements(TEST_USERNAME, TEST_SLUG, initialElements);
     });
 
     it('should delete single element', async () => {
@@ -358,7 +351,7 @@ describe('LocalProjectElementsService', () => {
   });
 
   describe('moveElement', () => {
-    beforeEach(() => {
+    beforeEach(async () => {
       const initialElements: Element[] = [
         {
           id: 'folder-1',
@@ -394,10 +387,7 @@ describe('LocalProjectElementsService', () => {
           metadata: {},
         },
       ];
-      service.elements.set(initialElements);
-      mockLocalStorage.getItem.mockReturnValue(
-        JSON.stringify({ [PROJECT_KEY]: initialElements })
-      );
+      await service.saveElements(TEST_USERNAME, TEST_SLUG, initialElements);
     });
 
     it('should move element to different position', async () => {
@@ -518,7 +508,7 @@ describe('LocalProjectElementsService', () => {
   });
 
   describe('renameElement', () => {
-    beforeEach(() => {
+    beforeEach(async () => {
       const initialElements: Element[] = [
         {
           id: 'doc-1',
@@ -532,10 +522,7 @@ describe('LocalProjectElementsService', () => {
           metadata: {},
         },
       ];
-      service.elements.set(initialElements);
-      mockLocalStorage.getItem.mockReturnValue(
-        JSON.stringify({ [PROJECT_KEY]: initialElements })
-      );
+      await service.saveElements(TEST_USERNAME, TEST_SLUG, initialElements);
     });
 
     it('should rename element', async () => {
@@ -547,7 +534,7 @@ describe('LocalProjectElementsService', () => {
       );
 
       expect(result[0].name).toBe('New Name');
-      expect(mockLocalStorage.setItem).toHaveBeenCalled();
+      expect(service.elements()[0].name).toBe('New Name');
     });
 
     it('should handle non-existent element', async () => {
@@ -593,11 +580,8 @@ describe('LocalProjectElementsService', () => {
         },
       ];
 
-      const storedData = {
-        'user1:project1': project1Elements,
-        'user2:project2': project2Elements,
-      };
-      mockLocalStorage.getItem.mockReturnValue(JSON.stringify(storedData));
+      await service.saveElements('user1', 'project1', project1Elements);
+      await service.saveElements('user2', 'project2', project2Elements);
 
       // Load project 1
       await service.loadElements('user1', 'project1');

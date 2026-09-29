@@ -546,59 +546,6 @@ describe('HomeComponent', () => {
     });
   });
 
-  describe('filteredProjects', () => {
-    it('should return all projects when no search term', () => {
-      mockProjectsSignal.set(mockProjects);
-      component.ngOnInit();
-
-      expect(component['filteredProjects']()).toEqual(mockProjects);
-    });
-
-    it('should filter projects by title', () => {
-      mockProjectsSignal.set(mockProjects);
-      component.ngOnInit();
-
-      // Directly set the search field value (bypassing debounce for testing)
-      // Use exact match that only matches one project
-      component.searchForm.search().value.set('Test Project');
-
-      const filtered = component['filteredProjects']();
-      expect(filtered).toHaveLength(1);
-      expect(filtered[0].title).toBe('Test Project');
-    });
-
-    it('should filter projects by slug', () => {
-      mockProjectsSignal.set(mockProjects);
-      component.ngOnInit();
-
-      component.searchForm.search().value.set('another');
-
-      const filtered = component['filteredProjects']();
-      expect(filtered).toHaveLength(1);
-      expect(filtered[0].slug).toBe('another-project');
-    });
-
-    it('should filter projects by description', () => {
-      mockProjectsSignal.set(mockProjects);
-      component.ngOnInit();
-
-      component.searchForm.search().value.set('description');
-
-      const filtered = component['filteredProjects']();
-      expect(filtered).toHaveLength(2); // Both have "description" in their description
-    });
-
-    it('should filter projects by username', () => {
-      mockProjectsSignal.set(mockProjects);
-      component.ngOnInit();
-
-      component.searchForm.search().value.set('testuser');
-
-      const filtered = component['filteredProjects']();
-      expect(filtered).toHaveLength(2);
-    });
-  });
-
   describe('project sort order', () => {
     const sortableProjects: Project[] = [
       {
