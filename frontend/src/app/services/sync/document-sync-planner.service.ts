@@ -1,4 +1,5 @@
 import { inject, Injectable } from '@angular/core';
+import { chunk, forEachSequential } from '@inkweld/async';
 import { LoggerService } from '@services/core/logger.service';
 import { DocumentService } from '@services/project/document.service';
 import {
@@ -122,21 +123,24 @@ export class DocumentSyncPlannerService {
 
     const digests = new Map<string, string>();
     const concurrency = DOCUMENT_DIGEST_CONCURRENCY;
-    for (let i = 0; i < candidatesForRead.length; i += concurrency) {
-      const batch = candidatesForRead.slice(i, i + concurrency);
-      const results = await Promise.all(
-        batch.map(async documentId => ({
-          documentId,
-          digest: await this.documentService.getLocalStateDigest(documentId),
-        }))
-      );
-      for (const { documentId, digest } of results) {
-        const record = records.get(documentId);
-        if (digest !== null && record && digest === record.stateDigest) {
-          digests.set(documentId, digest);
+    // Sequential batches: each batch reads concurrently, the next starts after.
+    await forEachSequential(
+      chunk(candidatesForRead, concurrency),
+      async batch => {
+        const results = await Promise.all(
+          batch.map(async documentId => ({
+            documentId,
+            digest: await this.documentService.getLocalStateDigest(documentId),
+          }))
+        );
+        for (const { documentId, digest } of results) {
+          const record = records.get(documentId);
+          if (digest !== null && record && digest === record.stateDigest) {
+            digests.set(documentId, digest);
+          }
         }
       }
-    }
+    );
     return digests;
   }
 

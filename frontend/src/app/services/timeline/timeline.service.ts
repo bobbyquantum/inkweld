@@ -9,6 +9,7 @@
 
 import { effect, inject, Injectable, signal, untracked } from '@angular/core';
 import { type AutoBuildCandidate } from '@dialogs/timeline-auto-build-dialog/timeline-auto-build-dialog.models';
+import { forEachSequential } from '@inkweld/async';
 import { type Element, ElementType } from '@inkweld/index';
 import { type ElementTypeSchema, type FieldSchema } from '@models/schema-types';
 import {
@@ -390,22 +391,24 @@ export class TimelineService {
 
       const candidates: AutoBuildCandidate[] = [];
 
-      for (const element of worldbuildingElements) {
+      // Sequential: each element opens its Yjs document, and candidates are
+      // collected in element order.
+      await forEachSequential(worldbuildingElements, async element => {
         const schema = await this.worldbuilding.getSchemaForElement(
           element.id,
           username,
           slug
         );
-        if (!schema) continue;
+        if (!schema) return;
         const dateFields = collectDateFields(schema);
-        if (dateFields.length === 0) continue;
+        if (dateFields.length === 0) return;
 
         const data = await this.worldbuilding.getWorldbuildingData(
           element.id,
           username,
           slug
         );
-        if (!data) continue;
+        if (!data) return;
 
         this.collectCandidatesForElement(
           element,
@@ -415,7 +418,7 @@ export class TimelineService {
           existingKeys,
           candidates
         );
-      }
+      });
 
       return candidates;
     } catch (err) {

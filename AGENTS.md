@@ -301,6 +301,27 @@ export class MyComponent {
 <div *ngFor="let item of items">{{ item.name }}</div>
 ```
 
+### Awaiting in Loops
+
+SonarCloud flags `await` inside a loop (S9382) and `async` functions with no
+`await` (S7503). Do not disable the rules:
+
+- Independent iterations: `await Promise.all(items.map(...))` (or
+  `mapWithConcurrency` in `backend/src/utils/concurrency.ts` /
+  `forEachConcurrent` from `@inkweld/async` when the fan-out must be
+  bounded).
+- Work that must run one item at a time (ordered writes, IndexedDB
+  transactions on one database, rate-limited remote calls, progress reporting,
+  early exit): use the helpers in `@inkweld/async` (`packages/inkweld-async`,
+  shared by frontend and backend: `forEachSequential`,
+  `mapSequential`, `firstResultSequential`, `forEachPage` for cursor
+  pagination, `chunk` for batches). Say in a one-line comment why it is
+  sequential.
+- An `async` function that never awaits: drop `async` and return
+  `Promise.resolve(...)` / `Promise.reject(...)`. If the body can throw
+  synchronously and callers rely on a rejection, keep `async` and use
+  `return await` on the promise you return.
+
 ### Backend Type Imports
 
 ```typescript

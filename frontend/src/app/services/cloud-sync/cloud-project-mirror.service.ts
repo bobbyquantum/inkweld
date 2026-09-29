@@ -1,4 +1,5 @@
 import { inject, Injectable } from '@angular/core';
+import { forEachSequential } from '@inkweld/async';
 import { type Element, ElementType, type Project } from '@inkweld/index';
 import { LoggerService } from '@services/core/logger.service';
 import { LocalProjectService } from '@services/local/local-project.service';
@@ -209,7 +210,8 @@ export class CloudProjectMirrorService {
     );
 
     // 2. Prose documents and worldbuilding docs
-    for (const element of elementList) {
+    // Sequential: remote stores are rate limited and updates are ordered.
+    await forEachSequential(elementList, async element => {
       if (element.type === ElementType.Item) {
         await this.syncOptionalDoc(
           store,
@@ -235,7 +237,7 @@ export class CloudProjectMirrorService {
           summary
         );
       }
-    }
+    });
 
     // 3. Media blobs
     await this.syncMedia(store, username, slug, files, summary);
@@ -453,11 +455,13 @@ export class CloudProjectMirrorService {
     const { store, username, slug, files, summary } = ctx;
     const projectKey = projectKeyOf(username, slug);
     let indexChanged = false;
-    for (const item of local) {
+    // Sequential: uploads to the remote store are rate limited and the index
+    // is updated as we go.
+    await forEachSequential(local, async item => {
       const alreadyRemote = remoteIds.has(item.mediaId);
       if (!alreadyRemote) {
         const blob = await this.media.getMedia(projectKey, item.mediaId);
-        if (!blob) continue;
+        if (!blob) return;
         const info = await store.put(
           mediaPath(username, slug, item.mediaId),
           new Uint8Array(await blob.arrayBuffer())
@@ -474,7 +478,7 @@ export class CloudProjectMirrorService {
         };
         indexChanged = true;
       }
-    }
+    });
     return indexChanged;
   }
 
@@ -489,7 +493,9 @@ export class CloudProjectMirrorService {
   ): Promise<number> {
     const projectKey = projectKeyOf(username, slug);
     let downloaded = 0;
-    for (const mediaId of mediaIds) {
+    // Sequential: downloads from the remote store are rate limited, and the
+    // first unexpected error stops the rest.
+    await forEachSequential(mediaIds, async mediaId => {
       try {
         const file = await store.get(mediaPath(username, slug, mediaId));
         const meta = index.items[mediaId];
@@ -506,7 +512,7 @@ export class CloudProjectMirrorService {
       } catch (error) {
         if (!(error instanceof RemoteFileNotFoundError)) throw error;
       }
-    }
+    });
     return downloaded;
   }
 
@@ -533,20 +539,22 @@ export class CloudProjectMirrorService {
       )
     );
 
-    for (const [snapshotId, snap] of localBySnapshotId) {
-      if (remotePaths.has(snapshotId)) continue;
+    // Sequential: remote uploads are rate limited, and pushes finish before
+    // pulls start.
+    await forEachSequential(localBySnapshotId, async ([snapshotId, snap]) => {
+      if (remotePaths.has(snapshotId)) return;
       const info = await store.put(
         snapshotPath(username, slug, snap.documentId, snapshotId),
         JSON.stringify(toRemoteSnapshot(snapshotId, snap))
       );
       files.set(info.path, info);
       summary.pushed++;
-    }
+    });
 
-    for (const [snapshotId, path] of remotePaths) {
-      if (localBySnapshotId.has(snapshotId)) continue;
+    await forEachSequential(remotePaths, async ([snapshotId, path]) => {
+      if (localBySnapshotId.has(snapshotId)) return;
       const parsed = await this.readRemoteSnapshot(store, path);
-      if (!parsed) continue;
+      if (!parsed) return;
       await this.snapshots.importSnapshot(
         projectKey,
         {
@@ -562,7 +570,7 @@ export class CloudProjectMirrorService {
         { snapshotId }
       );
       summary.pulled++;
-    }
+    });
   }
 
   /** Download and validate one snapshot file; null when missing or unreadable */

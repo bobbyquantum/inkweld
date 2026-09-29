@@ -44,10 +44,7 @@ class DocumentSnapshotService {
    * List snapshots for a project without their payloads (for the snapshots
    * dialog). Use findById to fetch one snapshot's content.
    */
-  async findByProjectId(
-    db: DatabaseInstance,
-    projectId: string
-  ): Promise<DocumentSnapshotSummary[]> {
+  findByProjectId(db: DatabaseInstance, projectId: string): Promise<DocumentSnapshotSummary[]> {
     return (db as D1DatabaseInstance)
       .select(SUMMARY_COLUMNS)
       .from(documentSnapshots)
@@ -58,7 +55,7 @@ class DocumentSnapshotService {
   /**
    * List snapshots for a specific document in a project, without payloads.
    */
-  async findByDocumentId(
+  findByDocumentId(
     db: DatabaseInstance,
     projectId: string,
     documentId: string

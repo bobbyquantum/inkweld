@@ -1,4 +1,5 @@
 import { computed, inject, Injectable, Injector } from '@angular/core';
+import { forEachSequential } from '@inkweld/async';
 import { type Element, type Project } from '@inkweld/index';
 import { trimHyphens } from '@utils/string-utils';
 
@@ -88,13 +89,14 @@ export class UnifiedProjectService {
     return this.projectService.error();
   });
 
-  async loadProjects(): Promise<void> {
+  loadProjects(): Promise<void> {
     const mode = this.setupService.getMode();
     if (isLocalOrCloudMode(mode)) {
       this.localProjectService.loadProjects();
     } else if (mode === 'server') {
       return this.projectService.loadAllProjects();
     }
+    return Promise.resolve();
   }
 
   /**
@@ -106,23 +108,26 @@ export class UnifiedProjectService {
    * does nothing at all after the first call, so a refresh gesture wired to it
    * would never pick up work done in another tab.
    */
-  async reloadProjects(): Promise<void> {
+  reloadProjects(): Promise<void> {
     const mode = this.setupService.getMode();
     if (isLocalOrCloudMode(mode)) {
       this.localProjectService.reloadProjects();
     } else if (mode === 'server') {
       return this.projectService.loadAllProjects();
     }
+    return Promise.resolve();
   }
 
-  async getProject(username: string, slug: string): Promise<Project | null> {
+  getProject(username: string, slug: string): Promise<Project | null> {
     const mode = this.setupService.getMode();
     if (isLocalOrCloudMode(mode)) {
-      return this.localProjectService.getProject(username, slug);
+      return Promise.resolve(
+        this.localProjectService.getProject(username, slug)
+      );
     } else if (mode === 'server') {
       return this.projectService.getProjectByUsernameAndSlug(username, slug);
     }
-    return null;
+    return Promise.resolve(null);
   }
 
   /**
@@ -345,20 +350,22 @@ export class UnifiedProjectService {
     }
 
     // Import documents
-    for (const doc of archive.documents) {
+    // Sequential: each write opens an IndexedDB-backed Yjs document, and the
+    // ids are reported in archive order.
+    await forEachSequential(archive.documents, async doc => {
       const documentId = `${username}:${slug}:${doc.elementId}`;
       await this.documentImport.writeDocumentContent(documentId, doc.content);
       documentIds.push(documentId);
-    }
+    });
 
     // Import worldbuilding data
-    for (const wb of archive.worldbuilding) {
+    await forEachSequential(archive.worldbuilding, async wb => {
       await this.documentImport.writeWorldbuildingData(wb, username, slug);
       // Track the bare worldbuilding ID for syncing (worldbuilding:username:slug:elementId);
       // the sync resolves the profile-scoped database name from it
       const worldbuildingId = `worldbuilding:${username}:${slug}:${wb.elementId}`;
       worldbuildingIds.push(worldbuildingId);
-    }
+    });
 
     // Import schemas
     if (archive.schemas.length > 0) {
@@ -436,15 +443,16 @@ export class UnifiedProjectService {
   ): Promise<void> {
     if (media.length === 0) return;
     const projectKey = `${username}/${slug}`;
-    for (const entry of media) {
-      if (!entry.blob) continue;
+    // Sequential: one IndexedDB write at a time for large blobs.
+    await forEachSequential(media, async entry => {
+      if (!entry.blob) return;
       await this.localStorage.saveMedia(
         projectKey,
         entry.mediaId,
         entry.blob,
         entry.filename
       );
-    }
+    });
   }
 
   async updateProject(
@@ -471,13 +479,15 @@ export class UnifiedProjectService {
     throw new Error('No mode configured');
   }
 
-  async deleteProject(username: string, slug: string): Promise<void> {
+  deleteProject(username: string, slug: string): Promise<void> {
     const mode = this.setupService.getMode();
     if (isLocalOrCloudMode(mode)) {
-      return this.localProjectService.deleteProject(username, slug);
+      this.localProjectService.deleteProject(username, slug);
+      return Promise.resolve();
     } else if (mode === 'server') {
       return this.projectService.deleteProject(username, slug);
     }
+    return Promise.resolve();
   }
 
   getProjectsByUsername(username: string): Project[] {

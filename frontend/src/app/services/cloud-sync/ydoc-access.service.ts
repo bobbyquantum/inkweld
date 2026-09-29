@@ -81,20 +81,20 @@ export class YDocAccessService {
     return this.headless(this.elementsDocId(username, slug));
   }
 
-  async acquireDocument(docId: string): Promise<AcquiredDoc> {
+  acquireDocument(docId: string): Promise<AcquiredDoc> {
     const live = this.liveDocs.getConnectedYDoc(docId);
-    if (live) return this.liveDoc(live);
+    if (live) return Promise.resolve(this.liveDoc(live));
     return this.headless(this.storageContext.prefixDocumentId(docId));
   }
 
-  async acquireWorldbuilding(
+  acquireWorldbuilding(
     username: string,
     slug: string,
     elementId: string,
     docId: string
   ): Promise<AcquiredDoc> {
     const live = this.worldbuilding.getYDoc(elementId, username, slug);
-    if (live) return this.liveDoc(live);
+    if (live) return Promise.resolve(this.liveDoc(live));
     return this.headless(this.storageContext.prefixDocumentId(docId));
   }
 

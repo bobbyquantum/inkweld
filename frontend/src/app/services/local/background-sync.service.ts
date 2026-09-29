@@ -1,4 +1,5 @@
 import { inject, Injectable, type OnDestroy } from '@angular/core';
+import { forEachSequential } from '@inkweld/async';
 import { ProjectsService } from '@inkweld/index';
 import { firstValueFrom } from 'rxjs';
 
@@ -207,7 +208,8 @@ export class BackgroundSyncService implements OnDestroy {
   private async removeTombstonedProjects(
     tombstonedProjectKeys: Set<string>
   ): Promise<void> {
-    for (const projectKey of tombstonedProjectKeys) {
+    // Sequential: each removal updates local project state and sync state.
+    await forEachSequential(tombstonedProjectKeys, async projectKey => {
       try {
         const parts = projectKey.split('/');
         const username = parts[0] ?? '';
@@ -230,7 +232,7 @@ export class BackgroundSyncService implements OnDestroy {
           error
         );
       }
-    }
+    });
   }
 
   /**
@@ -252,65 +254,70 @@ export class BackgroundSyncService implements OnDestroy {
 
       let allSuccess = true;
 
-      for (const { projectKey, creation } of pendingCreations) {
-        try {
-          this.logger.debug(
-            'BackgroundSync',
-            `Syncing pending creation: ${projectKey}`
-          );
-
-          // Create on server
-          const serverProject = await firstValueFrom(
-            this.projectsApi.createProject({
-              title: creation.projectData.title,
-              slug: creation.projectData.slug,
-              description: creation.projectData.description,
-            })
-          );
-
-          // Update local project with server data
-          const parts = projectKey.split('/');
-          const username = parts[0] ?? '';
-          const slug = parts[1] ?? '';
-          if (username && slug) {
-            await this.projectService.updateLocalProjectWithServerData(
-              username,
-              slug,
-              serverProject
-            );
-          }
-
-          // Clear the pending creation flag
-          await this.projectSync.clearPendingCreation(projectKey);
-
-          // Auto-activate newly synced project on this device
+      // Sequential: projects are created on the server one at a time, and each
+      // failure is recorded against its own project.
+      await forEachSequential(
+        pendingCreations,
+        async ({ projectKey, creation }) => {
           try {
-            await this.activationService.activate(projectKey);
-          } catch (activationError) {
-            this.logger.warn(
+            this.logger.debug(
               'BackgroundSync',
-              `Project synced but activation failed: ${projectKey}`,
-              activationError
+              `Syncing pending creation: ${projectKey}`
             );
-          }
 
-          this.logger.info(
-            'BackgroundSync',
-            `Successfully synced project creation: ${projectKey}`
-          );
-        } catch (error: unknown) {
-          this.logger.error(
-            'BackgroundSync',
-            `Failed to sync project creation: ${projectKey}`,
-            error
-          );
-          await this.projectSync.markSyncError(
-            projectKey,
-            error instanceof Error ? error.message : 'Unknown sync error'
-          );
-          allSuccess = false;
+            // Create on server
+            const serverProject = await firstValueFrom(
+              this.projectsApi.createProject({
+                title: creation.projectData.title,
+                slug: creation.projectData.slug,
+                description: creation.projectData.description,
+              })
+            );
+
+            // Update local project with server data
+            const parts = projectKey.split('/');
+            const username = parts[0] ?? '';
+            const slug = parts[1] ?? '';
+            if (username && slug) {
+              await this.projectService.updateLocalProjectWithServerData(
+                username,
+                slug,
+                serverProject
+              );
+            }
+
+            // Clear the pending creation flag
+            await this.projectSync.clearPendingCreation(projectKey);
+
+            // Auto-activate newly synced project on this device
+            try {
+              await this.activationService.activate(projectKey);
+            } catch (activationError) {
+              this.logger.warn(
+                'BackgroundSync',
+                `Project synced but activation failed: ${projectKey}`,
+                activationError
+              );
+            }
+
+            this.logger.info(
+              'BackgroundSync',
+              `Successfully synced project creation: ${projectKey}`
+            );
+          } catch (error: unknown) {
+            this.logger.error(
+              'BackgroundSync',
+              `Failed to sync project creation: ${projectKey}`,
+              error
+            );
+            await this.projectSync.markSyncError(
+              projectKey,
+              error instanceof Error ? error.message : 'Unknown sync error'
+            );
+            allSuccess = false;
+          }
         }
-      }
+      );
 
       return allSuccess;
     } catch (error) {
@@ -351,15 +358,16 @@ export class BackgroundSyncService implements OnDestroy {
 
       let allSuccess = true;
 
-      for (const projectKey of projectsWithMetadata) {
+      // Sequential: metadata updates are sent to the server one at a time.
+      await forEachSequential(projectsWithMetadata, async projectKey => {
         const state = this.projectSync.getSyncState(projectKey)();
-        if (!state.pendingMetadata) continue;
+        if (!state.pendingMetadata) return;
 
         try {
           const parts = projectKey.split('/');
           const username = parts[0] ?? '';
           const slug = parts[1] ?? '';
-          if (!username || !slug) continue;
+          if (!username || !slug) return;
 
           // Get current project to get all fields
           const existingProject =
@@ -400,7 +408,7 @@ export class BackgroundSyncService implements OnDestroy {
           );
           allSuccess = false;
         }
-      }
+      });
 
       return allSuccess;
     } catch (error) {
@@ -435,7 +443,8 @@ export class BackgroundSyncService implements OnDestroy {
       );
 
       let allSuccess = true;
-      for (const projectKey of withCovers) {
+      // Sequential: covers are uploaded to the server one at a time.
+      await forEachSequential(withCovers, async projectKey => {
         try {
           const filename =
             await this.projectService.syncPendingCoverUpload(projectKey);
@@ -453,7 +462,7 @@ export class BackgroundSyncService implements OnDestroy {
           );
           allSuccess = false;
         }
-      }
+      });
       return allSuccess;
     } catch (error) {
       this.logger.error(

@@ -132,24 +132,26 @@ export class MediaSelectorDialogComponent implements OnInit, OnDestroy {
       }
 
       // Load thumbnails for images
-      const mediaItems: MediaItem[] = [];
-      for (const item of filtered) {
-        const mediaItem: MediaItem = { ...item };
-        try {
-          const blob = await this.localStorage.getMedia(
-            this.projectKey,
-            item.mediaId
-          );
-          if (blob) {
-            const url = URL.createObjectURL(blob);
-            this.objectUrls.push(url);
-            mediaItem.url = url;
+      // Independent reads; Promise.all keeps the original item order.
+      const mediaItems: MediaItem[] = await Promise.all(
+        filtered.map(async item => {
+          const mediaItem: MediaItem = { ...item };
+          try {
+            const blob = await this.localStorage.getMedia(
+              this.projectKey,
+              item.mediaId
+            );
+            if (blob) {
+              const url = URL.createObjectURL(blob);
+              this.objectUrls.push(url);
+              mediaItem.url = url;
+            }
+          } catch {
+            // Skip items we can't load
           }
-        } catch {
-          // Skip items we can't load
-        }
-        mediaItems.push(mediaItem);
-      }
+          return mediaItem;
+        })
+      );
 
       this.mediaItems.set(mediaItems);
 

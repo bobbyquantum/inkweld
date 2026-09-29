@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { firstResultSequential } from '@inkweld/async';
 import { resolveIconName } from '@models/worldbuilding-icons';
 
 /** Where the app serves the staged Material Symbols SVGs (see scripts/copy-icon-svgs.mjs). */
@@ -38,12 +39,16 @@ export class IconSvgService {
   }
 
   private async load(name: string): Promise<string | null> {
-    for (const base of [LOCAL_ICON_BASE, CDN_ICON_BASE]) {
-      const text = await this.fetchText(`${base}${name}.svg`);
-      const svg = text ? IconSvgService.sanitize(text) : null;
-      if (svg) return svg;
-    }
-    return null;
+    // Sequential: the local copy is preferred, and the CDN is only asked when
+    // it is missing.
+    const svg = await firstResultSequential(
+      [LOCAL_ICON_BASE, CDN_ICON_BASE],
+      async base => {
+        const text = await this.fetchText(`${base}${name}.svg`);
+        return (text ? IconSvgService.sanitize(text) : null) ?? undefined;
+      }
+    );
+    return svg ?? null;
   }
 
   private async fetchText(url: string): Promise<string | null> {

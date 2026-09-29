@@ -1,5 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, signal } from '@angular/core';
+import { forEachConcurrent, forEachSequential } from '@inkweld/async';
 import { StorageContextService } from '@services/core/storage-context.service';
 import { firstValueFrom } from 'rxjs';
 
@@ -343,29 +344,19 @@ export class MediaSyncService {
       let downloaded = 0;
       let settled = 0;
       const errors: unknown[] = [];
-      let next = 0;
-      const worker = async (): Promise<void> => {
-        while (next < toDownload.length) {
-          const item = toDownload[next++];
-          try {
-            await this.downloadFromServer(projectKey, item.filename);
-            downloaded++;
-          } catch (error) {
-            errors.push(error);
-          }
-          settled++;
-          state.update(s => ({
-            ...s,
-            downloadProgress: Math.round((settled / toDownload.length) * 100),
-          }));
+      await forEachConcurrent(toDownload, DOWNLOAD_CONCURRENCY, async item => {
+        try {
+          await this.downloadFromServer(projectKey, item.filename);
+          downloaded++;
+        } catch (error) {
+          errors.push(error);
         }
-      };
-      await Promise.all(
-        Array.from(
-          { length: Math.min(DOWNLOAD_CONCURRENCY, toDownload.length) },
-          worker
-        )
-      );
+        settled++;
+        state.update(s => ({
+          ...s,
+          downloadProgress: Math.round((settled / toDownload.length) * 100),
+        }));
+      });
 
       // Increment version to trigger UI refreshes (e.g., project covers),
       // including after a partial failure — what did arrive should show.
@@ -460,9 +451,11 @@ export class MediaSyncService {
         item => item.status === 'local-only'
       );
 
-      for (const item of toUpload) {
-        await this.uploadToServer(projectKey, item.mediaId);
-      }
+      // Sequential: uploads go out one at a time and the first failure stops
+      // the rest.
+      await forEachSequential(toUpload, item =>
+        this.uploadToServer(projectKey, item.mediaId)
+      );
 
       // Mark the project as synced
       await this.projectSync.markSynced(projectKey);

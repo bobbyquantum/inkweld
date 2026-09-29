@@ -1,0 +1,20 @@
+{
+  "name": "@inkweld/async",
+  "version": "0.1.0",
+  "description": "Promise helpers shared by the Inkweld frontend and backend: explicit sequential chains, cursor pagination and bounded concurrency.",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^5.0.0",
+    "vitest": "^5.0.0"
+  }
+}
