@@ -14,21 +14,21 @@
 /** Run `fn` for each item in order, waiting for each call before starting the next. */
 export function forEachSequential<T>(
   items: Iterable<T>,
-  fn: (item: T, index: number) => unknown
+  fn: (item: T, index: number) => unknown,
 ): Promise<void> {
   return Array.from(items).reduce<Promise<void>>(
     (chain, item, index) =>
       chain.then(async () => {
         await fn(item, index);
       }),
-    Promise.resolve()
+    Promise.resolve(),
   );
 }
 
 /** Like `Array.map`, but each async call starts only after the previous one resolved. */
 export async function mapSequential<T, R>(
   items: Iterable<T>,
-  fn: (item: T, index: number) => Promise<R> | R
+  fn: (item: T, index: number) => Promise<R> | R,
 ): Promise<R[]> {
   const results: R[] = [];
   await forEachSequential(items, async (item, index) => {
@@ -44,13 +44,13 @@ export async function mapSequential<T, R>(
  */
 export async function firstResultSequential<T, R>(
   items: Iterable<T>,
-  fn: (item: T, index: number) => Promise<R | undefined> | R | undefined
+  fn: (item: T, index: number) => Promise<R | undefined> | R | undefined,
 ): Promise<R | undefined> {
   let found: R | undefined;
   await forEachSequential(items, async (item, index) => {
-    if (found === undefined) {
-      found = await fn(item, index);
-    }
+    // A `null` result counts as found; only `undefined` moves on.
+    if (found !== undefined) return;
+    found = await fn(item, index);
   });
   return found;
 }
@@ -64,9 +64,9 @@ export async function firstResultSequential<T, R>(
  */
 export async function forEachPage<P, C>(
   fetchPage: (
-    cursor: C | undefined
+    cursor: C | undefined,
   ) => Promise<{ page: P; next: C | undefined }>,
-  onPage: (page: P) => Promise<void> | void
+  onPage: (page: P) => Promise<void> | void,
 ): Promise<void> {
   const step = async (cursor: C | undefined): Promise<void> => {
     const { page, next } = await fetchPage(cursor);
@@ -88,7 +88,7 @@ export async function forEachPage<P, C>(
 export async function forEachConcurrent<T>(
   items: readonly T[],
   limit: number,
-  fn: (item: T, index: number) => unknown
+  fn: (item: T, index: number) => unknown,
 ): Promise<void> {
   let next = 0;
   const worker = async (): Promise<void> => {
@@ -98,7 +98,7 @@ export async function forEachConcurrent<T>(
     return worker();
   };
   await Promise.all(
-    Array.from({ length: Math.min(limit, items.length) }, worker)
+    Array.from({ length: Math.min(limit, items.length) }, worker),
   );
 }
 

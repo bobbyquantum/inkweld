@@ -1467,15 +1467,11 @@ export class EpubGeneratorService {
   ): Promise<string> {
     const entries = await this.worldbuildingRenderer.renderItem(item, elements);
     if (entries.length === 0) return '';
-    const parts: string[] = [`<div class="ink-wb-section">`];
     // Sequential: entries render in order and package their images as they go.
-    parts.push(
-      ...(await mapSequential(entries, entry =>
-        this.renderWorldbuildingEntry(entry)
-      ))
+    const rendered = await mapSequential(entries, entry =>
+      this.renderWorldbuildingEntry(entry)
     );
-    parts.push('</div>');
-    return parts.join('\n');
+    return [`<div class="ink-wb-section">`, ...rendered, '</div>'].join('\n');
   }
 
   /**
@@ -1489,20 +1485,18 @@ export class EpubGeneratorService {
     const entries = await this.worldbuildingRenderer.renderItem(item, elements);
     if (entries.length === 0) return [];
     const title = item.title || 'Worldbuilding';
-    const parts: string[] = [];
-    parts.push(`<div class="ink-wb-section">`);
-    if (item.title) {
-      parts.push(
-        `<h2 class="ink-wb-section-title">${escapeXml(item.title)}</h2>`
-      );
-    }
     // Sequential: entries render in order and package their images as they go.
-    parts.push(
-      ...(await mapSequential(entries, entry =>
-        this.renderWorldbuildingEntry(entry)
-      ))
+    const rendered = await mapSequential(entries, entry =>
+      this.renderWorldbuildingEntry(entry)
     );
-    parts.push('</div>');
+    const parts = [
+      `<div class="ink-wb-section">`,
+      ...(item.title
+        ? [`<h2 class="ink-wb-section-title">${escapeXml(item.title)}</h2>`]
+        : []),
+      ...rendered,
+      '</div>',
+    ];
     return [
       {
         id: `worldbuilding-${item.id}`,
