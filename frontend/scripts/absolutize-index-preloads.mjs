@@ -36,9 +36,9 @@
  * Runs after `ng build` for the Cloudflare targets only — a build served from a
  * non-root base (Electron's `file://`, for one) keeps its relative hrefs. Pass
  * the build output base as the first argument (default `dist`); rewrites
- * `<base>/browser/index.html`. Fails if index.html is absent or if it contains
- * no preload hints, so a build that stops emitting them is caught in CI rather
- * than silently losing the fix.
+ * `<base>/browser/index.html`. Fails if index.html is absent. An index.html
+ * with no preload hints (Angular 22.2 stopped emitting them) has nothing for
+ * Cloudflare to promote into Early Hints, so it is left untouched.
  */
 
 import { readFile, writeFile } from 'node:fs/promises';
@@ -100,14 +100,12 @@ const updated = html.replace(
     })
 );
 
-// Nothing to rewrite is fine (the script is idempotent); nothing to *find* is
-// not — it means Angular changed its output and this fix silently stopped
-// applying.
+// No hints means no Early Hints header to fix; leave the file untouched.
 if (seen === 0) {
-  throw new Error(
-    `${indexPath}: found no ${PRELOAD_RELS.map(rel => `rel="${rel}"`).join('/')} hints. ` +
-      'Angular stopped emitting them, so either drop this script or the Early Hints fix is no longer being applied.'
+  console.log(
+    `absolutize-index-preloads: no ${PRELOAD_RELS.map(rel => `rel="${rel}"`).join('/')} hints in ${path.relative(frontendRoot, indexPath)}; nothing to rewrite`
   );
+  process.exit(0);
 }
 
 await writeFile(indexPath, updated);
