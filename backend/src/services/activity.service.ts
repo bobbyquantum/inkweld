@@ -194,7 +194,7 @@ class ActivityService {
   }
 
   /** Recent events for a single project, newest first. */
-  async listForProject(
+  listForProject(
     db: DatabaseInstance,
     projectId: string,
     limit = 50,
@@ -212,13 +212,13 @@ class ActivityService {
   }
 
   /** Recent events across an arbitrary set of project IDs (for the home dashboard). */
-  async listForProjects(
+  listForProjects(
     db: DatabaseInstance,
     projectIds: string[],
     limit = 50,
     beforeTs?: number
   ): Promise<ActivityEvent[]> {
-    if (projectIds.length === 0) return [];
+    if (projectIds.length === 0) return Promise.resolve([]);
     const filter =
       beforeTs === undefined
         ? sql`${activityEvents.projectId} IN ${projectIds}`

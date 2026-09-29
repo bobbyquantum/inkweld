@@ -127,36 +127,36 @@ export class ElectronService {
   /**
    * Get the application version
    */
-  async getAppVersion(): Promise<string | null> {
-    if (!this.api) return null;
+  getAppVersion(): Promise<string | null> {
+    if (!this.api) return Promise.resolve(null);
     return this.api.getAppVersion();
   }
 
   /**
    * Get the platform (win32, darwin, linux)
    */
-  async getPlatform(): Promise<string | null> {
-    if (!this.api) return null;
+  getPlatform(): Promise<string | null> {
+    if (!this.api) return Promise.resolve(null);
     return this.api.getPlatform();
   }
 
   /**
    * Show a native save file dialog
    */
-  async showSaveDialog(
+  showSaveDialog(
     options: SaveDialogOptions
   ): Promise<SaveDialogReturnValue | null> {
-    if (!this.api) return null;
+    if (!this.api) return Promise.resolve(null);
     return this.api.showSaveDialog(options);
   }
 
   /**
    * Show a native open file dialog
    */
-  async showOpenDialog(
+  showOpenDialog(
     options: OpenDialogOptions
   ): Promise<OpenDialogReturnValue | null> {
-    if (!this.api) return null;
+    if (!this.api) return Promise.resolve(null);
     return this.api.showOpenDialog(options);
   }
 

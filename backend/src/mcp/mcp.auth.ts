@@ -96,7 +96,7 @@ export async function mintDoJwt(
     exp: now + 86400, // 24-hour TTL
   };
 
-  return sign(payload, secret, 'HS256');
+  return await sign(payload, secret, 'HS256');
 }
 
 /**

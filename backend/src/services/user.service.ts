@@ -212,9 +212,9 @@ class UserService {
   /**
    * Validate user password
    */
-  async validatePassword(user: User, password: string): Promise<boolean> {
+  validatePassword(user: User, password: string): Promise<boolean> {
     if (!user.password) {
-      return false;
+      return Promise.resolve(false);
     }
     return bcrypt.compare(password, user.password);
   }
@@ -438,7 +438,7 @@ class UserService {
   /**
    * List pending users awaiting approval (admin only)
    */
-  async listPending(db: DatabaseInstance): Promise<User[]> {
+  listPending(db: DatabaseInstance): Promise<User[]> {
     return db.select().from(users).where(eq(users.approved, false)).orderBy(users.username);
   }
 
@@ -446,7 +446,7 @@ class UserService {
    * Count total users in the database
    * Used to determine if this is the first user (for first-user-is-admin feature)
    */
-  async countUsers(db: DatabaseInstance): Promise<number> {
+  countUsers(db: DatabaseInstance): Promise<number> {
     return db.$count(users);
   }
 

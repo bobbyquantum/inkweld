@@ -58,7 +58,7 @@ export class ProjectActivationService {
     };
   }
 
-  private async ensureDb(): Promise<IDBDatabase> {
+  private ensureDb(): Promise<IDBDatabase> {
     const expectedDbName = this.dbConfig.dbName;
 
     if (this.db && this.currentDbName !== expectedDbName) {
@@ -71,7 +71,7 @@ export class ProjectActivationService {
     }
 
     if (this.db) {
-      return this.db;
+      return Promise.resolve(this.db);
     }
 
     if (this.initPromise) {

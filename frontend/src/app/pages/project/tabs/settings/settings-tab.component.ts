@@ -571,9 +571,8 @@ export class SettingsTabComponent implements OnDestroy {
       const databases = await this.getProjectDatabases(username, slug);
 
       // Delete each database
-      for (const dbName of databases) {
-        await this.deleteDatabase(dbName);
-      }
+      // Separate databases, so the deletions are independent.
+      await Promise.all(databases.map(dbName => this.deleteDatabase(dbName)));
 
       // Also clear media for this project
       // The media service stores in 'inkweld-media' with keys like 'projectKey:mediaId'

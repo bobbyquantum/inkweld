@@ -36,6 +36,7 @@ import {
   type TagPickerDialogData,
   type TagPickerDialogResult,
 } from '@dialogs/tag-picker-dialog/tag-picker-dialog.component';
+import { forEachSequential } from '@inkweld/async';
 import { ElementType } from '@inkweld/index';
 import { TranslocoModule } from '@jsverse/transloco';
 import type { CanvasConfig } from '@models/canvas.model';
@@ -847,17 +848,22 @@ export class MediaTabComponent implements OnInit, OnDestroy {
     mediaId: string,
     usages: string[]
   ): Promise<void> {
-    for (const el of elements.filter(e => e.type === ElementType.Item)) {
-      const docId = `${username}:${slug}:${el.id}`;
-      try {
-        const content = await this.documentService.getDocumentContent(docId);
-        if (content && this.prosemirrorContainsMedia(content, mediaId)) {
-          usages.push(`Embedded in document "${el.name}"`);
+    // Sequential: each read opens a document, and usages are reported in
+    // element order.
+    await forEachSequential(
+      elements.filter(e => e.type === ElementType.Item),
+      async el => {
+        const docId = `${username}:${slug}:${el.id}`;
+        try {
+          const content = await this.documentService.getDocumentContent(docId);
+          if (content && this.prosemirrorContainsMedia(content, mediaId)) {
+            usages.push(`Embedded in document "${el.name}"`);
+          }
+        } catch {
+          /* skip unreadable docs */
         }
-      } catch {
-        /* skip unreadable docs */
       }
-    }
+    );
   }
 
   /**

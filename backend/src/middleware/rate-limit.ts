@@ -64,7 +64,7 @@ export function rateLimit(options: RateLimitOptions): MiddlewareHandler {
   let lastCleanup = Date.now();
   const CLEANUP_INTERVAL_MS = 5 * 60 * 1000;
 
-  return async (c: Context, next) => {
+  return (c: Context, next) => {
     const now = Date.now();
 
     // Lazy cleanup of expired entries roughly every 5 minutes (triggered by requests)
@@ -92,7 +92,7 @@ export function rateLimit(options: RateLimitOptions): MiddlewareHandler {
       const retryAfter = Math.ceil((oldest + windowMs - now) / 1000);
 
       c.header('Retry-After', String(retryAfter));
-      return c.json({ error: message }, 429);
+      return Promise.resolve(c.json({ error: message }, 429));
     }
 
     entry.timestamps.push(now);

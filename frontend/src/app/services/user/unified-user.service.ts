@@ -76,7 +76,7 @@ export class UnifiedUserService {
   async login(username: string, password: string): Promise<void> {
     const mode = this.setupService.getMode();
     if (mode === 'server') {
-      return this.userService.login(username, password);
+      return await this.userService.login(username, password);
     }
     throw new Error('Login not available in offline mode');
   }
@@ -102,14 +102,14 @@ export class UnifiedUserService {
     }
   }
 
-  async hasCachedUser(): Promise<boolean> {
+  hasCachedUser(): Promise<boolean> {
     const mode = this.setupService.getMode();
     if (isLocalOrCloudMode(mode)) {
-      return this.localUserService.hasCachedUser();
+      return Promise.resolve(this.localUserService.hasCachedUser());
     } else if (mode === 'server') {
       return this.userService.hasCachedUser();
     }
-    return false;
+    return Promise.resolve(false);
   }
 
   getMode(): StorageConfigType | null {

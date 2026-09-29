@@ -181,7 +181,7 @@ export class AdminService {
   /**
    * Internal method to fetch users without managing loading state.
    */
-  private async fetchUsers(
+  private fetchUsers(
     options?: ListUsersOptions
   ): Promise<PaginatedUsersResponse> {
     const params = new URLSearchParams();
@@ -203,7 +203,7 @@ export class AdminService {
   /**
    * Internal method to fetch pending users without managing loading state.
    */
-  private async fetchPendingUsers(): Promise<AdminUser[]> {
+  private fetchPendingUsers(): Promise<AdminUser[]> {
     return firstValueFrom(
       this.apiService
         .adminListPendingUsers()
@@ -373,7 +373,7 @@ export class AdminService {
   /**
    * List all projects owned by a user with approximate storage sizes (admin).
    */
-  async listUserProjects(userId: string): Promise<AdminUserProjects> {
+  listUserProjects(userId: string): Promise<AdminUserProjects> {
     return firstValueFrom(
       this.apiService
         .adminListUserProjects(userId)

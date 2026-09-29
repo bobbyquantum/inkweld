@@ -23,7 +23,7 @@ imageRoutes.use(
 // POST/DELETE routes require authentication
 
 // Apply auth middleware to POST and DELETE routes only
-imageRoutes.use('/:username/:slug/cover', async (c, next) => {
+imageRoutes.use('/:username/:slug/cover', (c, next) => {
   const method = c.req.method;
   if (method === 'POST' || method === 'DELETE') {
     return requireAuth(c, next);

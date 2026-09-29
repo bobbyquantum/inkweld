@@ -244,7 +244,7 @@ export function installWebSocketResilience(
  * @param options - WebsocketProvider options
  * @returns Promise resolving to the WebsocketProvider after successful auth
  */
-export async function createAuthenticatedWebsocketProvider(
+export function createAuthenticatedWebsocketProvider(
   wsUrl: string,
   roomName: string,
   doc: Y.Doc,

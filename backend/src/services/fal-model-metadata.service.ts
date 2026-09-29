@@ -8,6 +8,8 @@
  * API Documentation: https://docs.fal.ai/platform-apis/v1/models
  */
 
+import { forEachPage } from '@inkweld/async';
+
 const FAL_MODELS_API = 'https://api.fal.ai/v1/models';
 
 /**
@@ -267,54 +269,45 @@ export async function getFalModelInfo(
   return parseModelSchema(model);
 }
 
-/**
- * List all text-to-image models from Fal.ai
- */
-export async function listFalTextToImageModels(apiKey?: string): Promise<ParsedFalModelInfo[]> {
+/** List every Fal.ai model in one category, following the page cursor. */
+async function listFalModelsInCategory(
+  category: 'text-to-image' | 'image-to-image',
+  apiKey?: string
+): Promise<ParsedFalModelInfo[]> {
   const models: ParsedFalModelInfo[] = [];
-  let cursor: string | undefined;
 
-  do {
-    const response = await fetchFalModels({
-      apiKey,
-      category: 'text-to-image',
-      expand: ['openapi-3.0'],
-      limit: 50,
-      cursor,
-    });
-
-    for (const model of response.models) {
-      models.push(parseModelSchema(model));
+  // Each page needs the previous page's cursor, so pages load one at a time.
+  await forEachPage(
+    async (cursor: string | undefined) => {
+      const response = await fetchFalModels({
+        apiKey,
+        category,
+        expand: ['openapi-3.0'],
+        limit: 50,
+        cursor,
+      });
+      return { page: response.models, next: response.next_cursor ?? undefined };
+    },
+    (page) => {
+      for (const model of page) {
+        models.push(parseModelSchema(model));
+      }
     }
-
-    cursor = response.next_cursor ?? undefined;
-  } while (cursor);
+  );
 
   return models;
 }
 
 /**
+ * List all text-to-image models from Fal.ai
+ */
+export function listFalTextToImageModels(apiKey?: string): Promise<ParsedFalModelInfo[]> {
+  return listFalModelsInCategory('text-to-image', apiKey);
+}
+
+/**
  * List all image-to-image models from Fal.ai
  */
-export async function listFalImageToImageModels(apiKey?: string): Promise<ParsedFalModelInfo[]> {
-  const models: ParsedFalModelInfo[] = [];
-  let cursor: string | undefined;
-
-  do {
-    const response = await fetchFalModels({
-      apiKey,
-      category: 'image-to-image',
-      expand: ['openapi-3.0'],
-      limit: 50,
-      cursor,
-    });
-
-    for (const model of response.models) {
-      models.push(parseModelSchema(model));
-    }
-
-    cursor = response.next_cursor ?? undefined;
-  } while (cursor);
-
-  return models;
+export function listFalImageToImageModels(apiKey?: string): Promise<ParsedFalModelInfo[]> {
+  return listFalModelsInCategory('image-to-image', apiKey);
 }

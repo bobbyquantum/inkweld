@@ -260,7 +260,7 @@ class PasskeyService {
   // Management
   // ─────────────────────────────────────────────────────────────────────────
 
-  async listForUser(db: DatabaseInstance, userId: string): Promise<UserPasskey[]> {
+  listForUser(db: DatabaseInstance, userId: string): Promise<UserPasskey[]> {
     return db.select().from(userPasskeys).where(eq(userPasskeys.userId, userId));
   }
 

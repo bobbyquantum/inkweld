@@ -388,8 +388,8 @@ export class EditProjectDialogComponent implements OnInit {
    * Picking an image while the cover is canvas-linked replaces the live
    * cover; make sure that is what the user wants before opening a picker.
    */
-  private async confirmReplaceLiveCover(): Promise<boolean> {
-    if (!this.liveCoverSource()) return true;
+  private confirmReplaceLiveCover(): Promise<boolean> {
+    if (!this.liveCoverSource()) return Promise.resolve(true);
     return this.dialogGateway.openConfirmationDialog({
       title: this.transloco.translate(
         'dialogs.editProject.replaceLiveCoverTitle'

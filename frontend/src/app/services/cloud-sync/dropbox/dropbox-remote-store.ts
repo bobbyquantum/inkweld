@@ -1,3 +1,4 @@
+import { forEachPage } from '@inkweld/async';
 import { stripTrailingSlashes } from '@utils/string-utils';
 
 import {
@@ -56,28 +57,37 @@ export class DropboxRemoteStore implements RemoteStore {
     const path = folderPath === '/' ? '' : stripTrailingSlashes(folderPath);
     const files: RemoteFileInfo[] = [];
     try {
-      let result = await dropboxRpc<ListFolderResult>(
-        token,
-        '/files/list_folder',
-        {
-          path,
-          recursive: options.recursive === true,
-          include_deleted: false,
+      // Each page needs the previous page's cursor, so pages load one at a time.
+      await forEachPage<ListFolderResult, string>(
+        async cursor => {
+          const result = cursor
+            ? await dropboxRpc<ListFolderResult>(
+                token,
+                '/files/list_folder/continue',
+                { cursor },
+                this.fetchFn
+              )
+            : await dropboxRpc<ListFolderResult>(
+                token,
+                '/files/list_folder',
+                {
+                  path,
+                  recursive: options.recursive === true,
+                  include_deleted: false,
+                },
+                this.fetchFn
+              );
+          return {
+            page: result,
+            next: result.has_more ? result.cursor : undefined,
+          };
         },
-        this.fetchFn
-      );
-      for (;;) {
-        for (const entry of result.entries) {
-          if (entry['.tag'] === 'file') files.push(toFileInfo(entry));
+        result => {
+          for (const entry of result.entries) {
+            if (entry['.tag'] === 'file') files.push(toFileInfo(entry));
+          }
         }
-        if (!result.has_more) break;
-        result = await dropboxRpc<ListFolderResult>(
-          token,
-          '/files/list_folder/continue',
-          { cursor: result.cursor },
-          this.fetchFn
-        );
-      }
+      );
     } catch (error) {
       this.rethrow(error, folderPath, { notFoundAsEmpty: true });
     }

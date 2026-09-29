@@ -1,4 +1,5 @@
 import { inject, Injectable } from '@angular/core';
+import { forEachSequential } from '@inkweld/async';
 import { type Element, ElementType } from '@inkweld/index';
 import { xmlToMarkdown } from '@inkweld/prosemirror/markdown';
 import { isPublishableByDefault } from '@models/scene-metadata';
@@ -162,7 +163,9 @@ export class MarkdownGeneratorService {
     // Add YAML frontmatter
     sections.push(this.generateFrontmatter(plan.metadata));
 
-    for (const item of plan.items) {
+    // Sequential: chapter numbers depend on the items before them, and output
+    // keeps the plan's order.
+    await forEachSequential(plan.items, async item => {
       const content = await this.processItem(
         item,
         elements,
@@ -175,7 +178,7 @@ export class MarkdownGeneratorService {
       if (item.type === PublishPlanItemType.Element && item.isChapter) {
         chapterNumber++;
       }
-    }
+    });
 
     return sections.join('\n\n');
   }
@@ -208,7 +211,7 @@ export class MarkdownGeneratorService {
     return JSON.stringify(value);
   }
 
-  private async processItem(
+  private processItem(
     item: PublishPlanItem,
     elements: Element[],
     options: PublishOptions,
@@ -220,19 +223,19 @@ export class MarkdownGeneratorService {
         return this.processElement(item, elements, options, chapterNumber);
 
       case PublishPlanItemType.Separator:
-        return this.processSeparator(item, options);
+        return Promise.resolve(this.processSeparator(item, options));
 
       case PublishPlanItemType.Frontmatter:
-        return this.processFrontmatter(item);
+        return Promise.resolve(this.processFrontmatter(item));
 
       case PublishPlanItemType.TableOfContents:
-        return this.buildTOC(plan, elements);
+        return Promise.resolve(this.buildTOC(plan, elements));
 
       case PublishPlanItemType.Worldbuilding:
         return this.processWorldbuilding(item, elements);
 
       default:
-        return '';
+        return Promise.resolve('');
     }
   }
 
@@ -274,7 +277,8 @@ export class MarkdownGeneratorService {
   ): Promise<string> {
     const parts: string[] = [];
     const children = this.getChildElements(element, elements);
-    for (const child of children) {
+    // Sequential: sections keep the project's reading order.
+    await forEachSequential(children, async child => {
       if (
         child.type === ElementType.Item &&
         isPublishableByDefault(child.metadata)
@@ -284,7 +288,7 @@ export class MarkdownGeneratorService {
         const md = await this.renderInlineWb(child);
         if (md) parts.push(md);
       }
-    }
+    });
     return parts.join('\n\n');
   }
 

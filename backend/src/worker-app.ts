@@ -49,7 +49,7 @@ app.use('*', d1DatabaseMiddleware);
 // In Workers, process.env doesn't have secrets — they're only available via c.env.
 // ConfigService uses this key for encrypting/decrypting sensitive config values in D1.
 let configKeyPatched = false;
-app.use('*', async (c, next) => {
+app.use('*', (c, next) => {
   if (!configKeyPatched) {
     const secret = c.env?.DATABASE_KEY || c.env?.SESSION_SECRET;
     if (secret) {
@@ -65,7 +65,7 @@ registerOpenOriginRoutes(app);
 
 // CORS configuration - reads ALLOWED_ORIGINS from wrangler.toml env bindings
 // In Workers, process.env is not available at runtime, so we read from c.env
-app.use('*', async (c, next) => {
+app.use('*', (c, next) => {
   if (isCrossOriginPath(c.req.path)) return next();
 
   // Get allowed origins from wrangler.toml bindings, fallback to static config
@@ -103,7 +103,7 @@ app.use('*', async (c, next) => {
 
 // CSRF protection (origin-based, matches Node and Bun runtimes)
 if (config.nodeEnv !== 'test') {
-  app.use('*', async (c, next) => {
+  app.use('*', (c, next) => {
     if (isCrossOriginPath(c.req.path)) return next();
 
     const envOrigins = c.env?.ALLOWED_ORIGINS;

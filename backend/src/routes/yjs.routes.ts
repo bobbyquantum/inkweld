@@ -176,7 +176,7 @@ function startPingInterval(ws: WsHandle, documentId: string, onClear: () => void
 // WebSocket upgrade handler for Yjs collaboration
 app.get(
   '/yjs',
-  upgradeWebSocket(async (c) => {
+  upgradeWebSocket((c) => {
     const documentId = c.req.query('documentId');
 
     if (!documentId) {
