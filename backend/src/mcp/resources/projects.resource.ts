@@ -17,6 +17,7 @@ import {
 import { registerResourceHandler } from '../mcp.handler';
 import { getElements, getWorldbuildingDoc } from '../tools/yjs-runtime';
 import { logger } from '../../services/logger.service';
+import { mapWithConcurrency } from '../../utils/concurrency';
 
 const _mcpResourceLog = logger.child('MCP-Resources');
 
@@ -33,11 +34,11 @@ const SUB_RESOURCE_PERMISSIONS: Record<'elements' | 'worldbuilding' | 'schemas',
  * Projects resource handler
  */
 const projectsResourceHandler = {
-  async getResources(ctx: McpContext): Promise<McpResource[]> {
+  getResources(ctx: McpContext): Promise<McpResource[]> {
     const projects = getAllProjects(ctx);
 
     if (projects.length === 0) {
-      return [];
+      return Promise.resolve([]);
     }
 
     const resources: McpResource[] = [];
@@ -67,7 +68,7 @@ const projectsResourceHandler = {
       });
     }
 
-    return resources;
+    return Promise.resolve(resources);
   },
 
   async readResource(
@@ -160,7 +161,7 @@ const projectsResourceHandler = {
         );
       }
 
-      return readSubResource(ctx, uri, username, slug, subResource);
+      return await readSubResource(ctx, uri, username, slug, subResource);
     }
 
     return null;
@@ -238,27 +239,22 @@ async function readWorldbuilding(
   const elements = await getElements(ctx, username, slug);
   const worldbuilding: Record<string, unknown> = {};
   const sample = elements.slice(0, MAX_ELEMENTS);
-  let index = 0;
-  const worker = async () => {
-    while (index < sample.length) {
-      const el = sample[index++];
-      try {
-        const doc = await getWorldbuildingDoc(ctx, username, slug, el.id);
-        const data = doc.toJSON();
-        if (Object.keys(data).length > 0) {
-          worldbuilding[el.id] = { name: el.name, data };
-        }
-      } catch (err) {
-        // No worldbuilding doc for this element is expected; log real
-        // failures at debug level so they are not silently hidden.
-        _mcpResourceLog.debug(
-          `[resources/read] No worldbuilding doc for element ${el.id} in ${username}/${slug}`,
-          { error: err }
-        );
+  await mapWithConcurrency(sample, CONCURRENCY, async (el) => {
+    try {
+      const doc = await getWorldbuildingDoc(ctx, username, slug, el.id);
+      const data = doc.toJSON();
+      if (Object.keys(data).length > 0) {
+        worldbuilding[el.id] = { name: el.name, data };
       }
+    } catch (err) {
+      // No worldbuilding doc for this element is expected; log real
+      // failures at debug level so they are not silently hidden.
+      _mcpResourceLog.debug(
+        `[resources/read] No worldbuilding doc for element ${el.id} in ${username}/${slug}`,
+        { error: err }
+      );
     }
-  };
-  await Promise.all(Array.from({ length: CONCURRENCY }, worker));
+  });
   return {
     uri,
     mimeType: 'application/json',

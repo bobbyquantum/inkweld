@@ -366,7 +366,7 @@ const logoutRoute = createRoute({
   },
 });
 
-authRoutes.openapi(logoutRoute, async (c) => {
+authRoutes.openapi(logoutRoute, (c) => {
   authService.destroySession(c);
   return c.json({ message: 'Logged out successfully' });
 });

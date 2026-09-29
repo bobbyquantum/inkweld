@@ -317,17 +317,17 @@ export class PublishService {
    * @param options - Optional configuration
    * @returns Result of the publishing operation
    */
-  async quickPublish(
+  quickPublish(
     projectTitle: string,
     authorName: string,
     elementIds: string[],
     options: PublishOptions = {}
   ): Promise<PublishingResult> {
     if (this.isPublishing) {
-      return {
+      return Promise.resolve({
         success: false,
         error: 'Another publish operation is already in progress',
-      };
+      });
     }
 
     try {
@@ -359,10 +359,10 @@ export class PublishService {
         cancellable: false,
       });
 
-      return {
+      return Promise.resolve({
         success: false,
         error: errorMessage,
-      };
+      });
     }
   }
 

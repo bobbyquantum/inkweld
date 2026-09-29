@@ -1,4 +1,5 @@
 import { inject, Injectable } from '@angular/core';
+import { chunk, forEachSequential } from '@inkweld/async';
 import { type Element, ElementType } from '@inkweld/index';
 import { BehaviorSubject, type Observable, Subject } from 'rxjs';
 
@@ -255,16 +256,18 @@ export class ProjectSyncService {
     const project = this.projectStateService.project();
     const elements = this.projectStateService.elements();
     const documentsToCheck = this.getDocumentsToSync(elements, elementIds);
-    const missing: string[] = [];
 
-    for (const doc of documentsToCheck) {
-      const isAvailable =
-        !!project &&
-        (await this.hasLocalCopy(this.fullDocumentId(project, doc.id)));
-      if (!isAvailable) {
-        missing.push(doc.id);
-      }
-    }
+    // Independent read-only checks; Promise.all keeps the document order.
+    const availability = await Promise.all(
+      documentsToCheck.map(
+        async doc =>
+          !!project &&
+          (await this.hasLocalCopy(this.fullDocumentId(project, doc.id)))
+      )
+    );
+    const missing = documentsToCheck
+      .filter((_, index) => !availability[index])
+      .map(doc => doc.id);
 
     return {
       available: missing.length === 0,
@@ -402,32 +405,36 @@ export class ProjectSyncService {
     this.reportDocumentProgress(done(), documents.length);
 
     const digests = new Map<string, string>();
-    for (let i = 0; i < plan.toSync.length; i += DOCUMENT_SYNC_CONCURRENCY) {
-      if (this.isCancelled) break;
-      const batch = plan.toSync.slice(i, i + DOCUMENT_SYNC_CONCURRENCY);
-      this.updateProgress({
-        currentItem: byDocId.get(batch[0])!.name,
-        detail: `Syncing "${byDocId.get(batch[0])!.name}"...`,
-      });
+    // Sequential batches: each batch syncs concurrently, and the next one only
+    // starts once it has finished (and the publish was not cancelled).
+    await forEachSequential(
+      chunk(plan.toSync, DOCUMENT_SYNC_CONCURRENCY),
+      async batch => {
+        if (this.isCancelled) return;
+        this.updateProgress({
+          currentItem: byDocId.get(batch[0])!.name,
+          detail: `Syncing "${byDocId.get(batch[0])!.name}"...`,
+        });
 
-      await Promise.all(
-        batch.map(async docId => {
-          const doc = byDocId.get(docId)!;
-          try {
-            const digest =
-              await this.documentService.syncDocumentToServer(docId);
-            if (digest === null) {
-              throw new Error('Server connection unavailable');
+        await Promise.all(
+          batch.map(async docId => {
+            const doc = byDocId.get(docId)!;
+            try {
+              const digest =
+                await this.documentService.syncDocumentToServer(docId);
+              if (digest === null) {
+                throw new Error('Server connection unavailable');
+              }
+              digests.set(docId, digest);
+              this.markSynced(doc, result);
+            } catch (error) {
+              await this.handleSyncFailure(docId, doc, error, result);
             }
-            digests.set(docId, digest);
-            this.markSynced(doc, result);
-          } catch (error) {
-            await this.handleSyncFailure(docId, doc, error, result);
-          }
-        })
-      );
-      this.reportDocumentProgress(done(), documents.length);
-    }
+          })
+        );
+        this.reportDocumentProgress(done(), documents.length);
+      }
+    );
 
     await this.syncPlanner.record(username, slug, plan.before, digests);
   }
@@ -474,7 +481,8 @@ export class ProjectSyncService {
     result: SyncResult,
     missingIsFailure: boolean
   ): Promise<void> {
-    for (const [index, doc] of documents.entries()) {
+    // Sequential: progress is reported per document, in order.
+    await forEachSequential(documents, async (doc, index) => {
       if (this.isCancelled) return;
       this.updateProgress({
         currentItem: doc.name,
@@ -491,7 +499,7 @@ export class ProjectSyncService {
         result.warnings.push(`"${doc.name}" has no content`);
       }
       this.reportDocumentProgress(index + 1, documents.length);
-    }
+    });
   }
 
   private markSynced(doc: DocumentSyncStatus, result: SyncResult): void {

@@ -25,6 +25,7 @@ import {
   toCompleteResult,
 } from './mcp.types';
 import { logger } from '../services/logger.service';
+import { firstResultSequential, forEachSequential } from '@inkweld/async';
 
 const mcpLog = logger.child('MCP');
 
@@ -191,14 +192,13 @@ async function handleResourcesList(c: Context<AppContext>): Promise<Record<strin
   const allResources: McpResource[] = [];
 
   // Collect resources from all handlers
-  let handlerIndex = 0;
-  for (const handler of resourceHandlers) {
+  // Sequential: resources are listed in handler order.
+  await forEachSequential(resourceHandlers, async (handler, handlerIndex) => {
     mcpLog.info(`[resources/list] Handler ${handlerIndex} starting...`);
     const resources = await handler.getResources(mcpContext, db);
     mcpLog.info(`[resources/list] Handler ${handlerIndex} returned ${resources.length} resources`);
     allResources.push(...resources);
-    handlerIndex++;
-  }
+  });
 
   mcpLog.info(`[resources/list] Done, total ${allResources.length} resources`);
   return toCompleteResult({ resources: allResources });
@@ -221,11 +221,12 @@ async function handleResourcesRead(
   const { uri } = params;
 
   // Try resource handlers
-  for (const handler of resourceHandlers) {
-    const content = await handler.readResource(mcpContext, db, uri);
-    if (content) {
-      return toCompleteResult({ contents: [content] });
-    }
+  // Sequential: the first handler that recognises the URI wins.
+  const content = await firstResultSequential(resourceHandlers, async (handler) => {
+    return (await handler.readResource(mcpContext, db, uri)) || undefined;
+  });
+  if (content) {
+    return toCompleteResult({ contents: [content] });
   }
 
   throw new McpRpcError(JSON_RPC_ERRORS.RESOURCE_NOT_FOUND, `Resource not found: ${uri}`);
@@ -234,11 +235,11 @@ async function handleResourcesRead(
 /**
  * Handle tools/list request
  */
-async function handleToolsList(c: Context<AppContext>): Promise<Record<string, unknown>> {
+function handleToolsList(c: Context<AppContext>): Promise<Record<string, unknown>> {
   const mcpContext = c.get('mcpContext');
 
   if (!mcpContext) {
-    throw new Error('MCP context not available');
+    return Promise.reject(new Error('MCP context not available'));
   }
 
   // Return tools that the user has permission to use
@@ -253,7 +254,7 @@ async function handleToolsList(c: Context<AppContext>): Promise<Record<string, u
     }
   }
 
-  return toCompleteResult({ tools });
+  return Promise.resolve(toCompleteResult({ tools }));
 }
 
 /**

@@ -92,6 +92,7 @@ import {
 } from '@inkweld/presence';
 import { ProjectPresenceService, type PresenceSocket } from '../services/presence.service';
 import type { DocumentRevisionEntry } from '../types/document-revision.types';
+import { forEachPage, forEachSequential } from '@inkweld/async';
 
 const projDOLog = logger.child('YjsProjectDO');
 
@@ -392,7 +393,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
   /**
    * Handle incoming requests - routes to WebSocket or HTTP API
    */
-  async fetch(request: Request): Promise<Response> {
+  fetch(request: Request): Promise<Response> {
     try {
       const url = new URL(request.url);
       const upgradeHeader = request.headers.get('Upgrade');
@@ -534,7 +535,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     }
   }
 
-  private async dispatchHttpRoute(
+  private dispatchHttpRoute(
     path: string,
     method: string,
     request: Request,
@@ -955,14 +956,15 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     });
 
     const documents: DocumentRevisionEntry[] = [];
-    for (const docId of documentIds) {
+    // Sequential: keeps storage reads bounded for projects with many documents.
+    await forEachSequential(documentIds, async (docId) => {
       try {
         documents.push({ documentId: docId, ...(await this.docStorage.readRevision(docId)) });
       } catch (error) {
         projDOLog.warn(`Failed to read revision for ${docId}`, { error: String(error) });
         documents.push({ documentId: docId, revision: null, unknown: true });
       }
-    }
+    });
 
     return jsonResponse({ documents }, 200);
   }
@@ -982,19 +984,26 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     const hasSnapshot = (await this.state.storage.get(snapKey)) !== undefined;
 
     let incrementalRows = 0;
-    let startAfter: string | undefined;
-    for (;;) {
-      const page = await this.state.storage.list({
-        prefix: updatePrefix,
-        limit: 1000,
-        ...(startAfter ? { startAfter } : {}),
-      });
-      incrementalRows += page.size;
-      if (page.size < 1000) break;
-      let lastKey = '';
-      for (const key of page.keys()) lastKey = key;
-      startAfter = lastKey;
-    }
+    // Each page starts after the previous one's last key: one page at a time.
+    await forEachPage<number, string>(
+      async (startAfter) => {
+        const page = await this.state.storage.list({
+          prefix: updatePrefix,
+          limit: 1000,
+          ...(startAfter ? { startAfter } : {}),
+        });
+        let next: string | undefined;
+        if (page.size >= 1000) {
+          let lastKey = '';
+          for (const key of page.keys()) lastKey = key;
+          next = lastKey;
+        }
+        return { page: page.size, next };
+      },
+      (size) => {
+        incrementalRows += size;
+      }
+    );
 
     return new Response(
       JSON.stringify({
@@ -1458,7 +1467,9 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
   ): Promise<void> {
     if (!db) return;
     try {
-      for (const [id, nextElem] of next) {
+      // Sequential: activity rows are written in a stable order, and the first
+      // failure stops the remaining writes (best-effort, logged below).
+      await forEachSequential(next, async ([id, nextElem]) => {
         if (prev.has(id)) {
           const prevElem = prev.get(id)!;
           if (prevElem.name !== nextElem.name) {
@@ -1481,8 +1492,8 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
             metadata: { elementType: nextElem.type },
           });
         }
-      }
-      for (const [id, prevElem] of prev) {
+      });
+      await forEachSequential(prev, async ([id, prevElem]) => {
         if (!next.has(id)) {
           await activityService.record(db, {
             projectId,
@@ -1493,7 +1504,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
             metadata: { elementType: prevElem.type },
           });
         }
-      }
+      });
     } catch (err) {
       projDOLog.error('emitElementDiffEventsDO failed', err, { projectId, userId });
     }

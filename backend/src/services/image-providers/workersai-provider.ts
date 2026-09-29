@@ -202,7 +202,7 @@ export class WorkersAIImageProvider extends BaseImageProvider {
 
     // FLUX.2 models require multipart wrapper even with binding
     if (requiresMultipart) {
-      return this.aiBinding.run(model, {
+      return await this.aiBinding.run(model, {
         multipart: {
           body: innerBody,
           contentType: 'application/json',
@@ -210,7 +210,7 @@ export class WorkersAIImageProvider extends BaseImageProvider {
       });
     }
 
-    return this.aiBinding.run(model, innerBody);
+    return await this.aiBinding.run(model, innerBody);
   }
 
   /**
@@ -320,7 +320,7 @@ export class WorkersAIImageProvider extends BaseImageProvider {
   /**
    * Generate using standard JSON format (most Workers AI models)
    */
-  private async generateWithJson(
+  private generateWithJson(
     url: string,
     prompt: string,
     width: number,
@@ -373,7 +373,7 @@ export class WorkersAIImageProvider extends BaseImageProvider {
    *
    * @see https://developers.cloudflare.com/workers-ai/models/flux-2-klein-4b/
    */
-  private async generateWithMultipart(
+  private generateWithMultipart(
     url: string,
     model: string,
     prompt: string,

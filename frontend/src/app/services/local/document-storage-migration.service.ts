@@ -1,4 +1,5 @@
 import { inject, Injectable } from '@angular/core';
+import { forEachSequential } from '@inkweld/async';
 import { yjsStateDigest } from '@utils/yjs-state-digest';
 import * as Y from 'yjs';
 
@@ -145,7 +146,10 @@ export class DocumentStorageMigrationService {
       }
       return await this.withLock(async () => {
         const results: StorageMigrationResults = {};
-        for (const kind of pending) results[kind] = await this.migrate(kind);
+        // Sequential: the passes share IndexedDB and each has its own flag.
+        await forEachSequential(pending, async kind => {
+          results[kind] = await this.migrate(kind);
+        });
         return results;
       });
     } catch (error) {
@@ -177,9 +181,11 @@ export class DocumentStorageMigrationService {
     const existing = new Set(names);
     const configs = this.storageContext.getConfigurations();
 
-    for (const name of names) {
+    // Sequential: one database is copied, verified and deleted at a time, so a
+    // failure never leaves several originals half migrated.
+    await forEachSequential(names, async name => {
       const legacy = pass.parse(name);
-      if (!legacy) continue;
+      if (!legacy) return;
       const prefixes = configs
         .filter(config => this.claims(config, legacy, existing))
         .map(config => this.storageContext.getPrefixForConfig(config.id));
@@ -189,7 +195,7 @@ export class DocumentStorageMigrationService {
           'DocumentStorageMigration',
           `No profile has project ${legacy.username}/${legacy.slug}; leaving ${name} in place`
         );
-        continue;
+        return;
       }
       try {
         await this.migrateDatabase(name, prefixes);
@@ -202,7 +208,7 @@ export class DocumentStorageMigrationService {
           error
         );
       }
-    }
+    });
 
     // Unclaimed databases do not hold the flag back on purpose. One no
     // profile claims now most likely belonged to a profile since removed;
@@ -235,13 +241,14 @@ export class DocumentStorageMigrationService {
    */
   async migrateDatabase(name: string, prefixes: string[]): Promise<void> {
     const update = await this.readUpdate(name);
-    for (const prefix of prefixes) {
+    // Sequential: every copy is verified before the original is deleted.
+    await forEachSequential(prefixes, async prefix => {
       const target = `${prefix}${name}`;
       await this.mergeInto(target, update);
       if (!(await this.contains(target, update))) {
         throw new Error(`Copy of ${name} into ${target} did not verify`);
       }
-    }
+    });
     if (!(await deleteDatabase(name))) {
       throw new Error(
         `Deleting ${name} is blocked by another tab; retrying next start`

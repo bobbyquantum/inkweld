@@ -1,5 +1,6 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
+import { forEachSequential } from '@inkweld/async';
 import { ImagesService, type Project, ProjectsService } from '@inkweld/index';
 import { catchError, firstValueFrom, retry, throwError } from 'rxjs';
 
@@ -922,11 +923,12 @@ export class ProjectService {
 
   private async clearPendingCoverUploads(projectKey: string): Promise<void> {
     const state = this.projectSync.getSyncState(projectKey)();
-    for (const id of state.pendingUploads) {
+    // Sequential: each call read-modifies-writes the same sync state.
+    await forEachSequential(state.pendingUploads, async id => {
       if (id.startsWith('cover')) {
         await this.projectSync.clearPendingUpload(projectKey, id);
       }
-    }
+    });
   }
 
   async clearCache(): Promise<void> {
@@ -939,7 +941,8 @@ export class ProjectService {
         // This is a simplification - in a real app you might want to implement a more
         // sophisticated approach to clear all keys from the store
         const currentProjects = this.projects();
-        for (const project of currentProjects) {
+        // Sequential: one IndexedDB transaction at a time on the same database.
+        await forEachSequential(currentProjects, async project => {
           if (project.username && project.slug) {
             await this.storage.delete(
               db,
@@ -947,7 +950,7 @@ export class ProjectService {
               `${project.username}/${project.slug}`
             );
           }
-        }
+        });
       } catch (error: unknown) {
         // Keep type annotation
         console.warn('Failed to clear project cache:', error);
@@ -969,14 +972,15 @@ export class ProjectService {
         );
 
         // Also cache individual projects for faster access
-        for (const project of projects) {
+        // Sequential: one IndexedDB transaction at a time on the same database.
+        await forEachSequential(projects, async project => {
           if (project.username && project.slug) {
             await this.setCachedProject(
               `${project.username}/${project.slug}`,
               project
             );
           }
-        }
+        });
       } catch (error) {
         console.warn('Failed to cache projects:', error);
       }

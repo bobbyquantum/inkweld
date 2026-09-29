@@ -1,4 +1,5 @@
 import { inject, Injectable, type OnDestroy } from '@angular/core';
+import { forEachSequential } from '@inkweld/async';
 import { type Subscription } from 'rxjs';
 
 import { LoggerService } from '../core/logger.service';
@@ -206,7 +207,9 @@ export class AutoSnapshotService implements OnDestroy {
     let created = 0;
     let skipped = 0;
 
-    for (const elementId of dirtyIds) {
+    // Sequential: snapshots are created one document at a time, since each
+    // opens the document.
+    await forEachSequential(dirtyIds, async elementId => {
       try {
         // Throttle: skip if we auto-snapshotted this doc recently
         const lastTime = this.lastAutoSnapshotTime.get(elementId);
@@ -216,7 +219,7 @@ export class AutoSnapshotService implements OnDestroy {
             `Throttled auto-snapshot for ${elementId} (last: ${Math.round((now - lastTime) / 1000)}s ago)`
           );
           skipped++;
-          continue;
+          return;
         }
 
         // Find the element name for a descriptive snapshot name
@@ -252,7 +255,7 @@ export class AutoSnapshotService implements OnDestroy {
           err
         );
       }
-    }
+    });
 
     // Clear dirty state after processing
     this.dirtyDocuments.clear();
@@ -374,7 +377,8 @@ export class AutoSnapshotService implements OnDestroy {
 
       let pruned = 0;
 
-      for (const [docId, snapshots] of byDocument) {
+      // Sequential: one IndexedDB delete at a time.
+      await forEachSequential(byDocument, async ([docId, snapshots]) => {
         // Sort newest first
         snapshots.sort(
           (a, b) =>
@@ -384,7 +388,7 @@ export class AutoSnapshotService implements OnDestroy {
         // Delete excess snapshots (beyond the limit)
         if (snapshots.length > MAX_AUTO_SNAPSHOTS_PER_DOC) {
           const toDelete = snapshots.slice(MAX_AUTO_SNAPSHOTS_PER_DOC);
-          for (const snap of toDelete) {
+          await forEachSequential(toDelete, async snap => {
             try {
               await this.localSnapshots.deleteSnapshotById(snap.id);
               pruned++;
@@ -395,9 +399,9 @@ export class AutoSnapshotService implements OnDestroy {
                 err
               );
             }
-          }
+          });
         }
-      }
+      });
 
       if (pruned > 0) {
         this.logger.info(
