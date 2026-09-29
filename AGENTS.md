@@ -750,20 +750,18 @@ Key facts:
 ### Project Archives
 
 - **Archive Format**: Projects can be exported as `.inkweld.zip` files
-- **Version Control**: Archives have `ARCHIVE_VERSION` (currently 1) for format compatibility
-- **Migration System**: When the archive format changes, migrations upgrade older archives during import
+- **Version Control**: Archives have `ARCHIVE_VERSION` (currently 1); import accepts only that version
 - **Key Files**:
   - `frontend/src/app/models/project-archive.ts` - Archive types and version constants
-  - `frontend/src/app/services/project/archive-migrations.ts` - Migration registry
-  - `frontend/src/app/services/project/project-import.service.ts` - Import logic with migration pipeline
+  - `frontend/src/app/services/project/project-import.service.ts` - Import logic and version check
   - `frontend/src/app/services/project/project-export.service.ts` - Export logic
   - `docs/site/docs/developer/project-archives.md` - Technical documentation
 
 **When Changing Archive Format**:
 1. Increment `ARCHIVE_VERSION` in `project-archive.ts`
-2. Add a migration function to `ARCHIVE_MIGRATIONS` in `archive-migrations.ts`
-3. Document the change in the version history JSDoc comment
-4. Add tests for the migration in `project-import.service.spec.ts`
+2. Document the change in the version history JSDoc comment
+3. Make the import upgrade archives at the previous version (and test it in
+   `project-import.service.spec.ts`), or accept that they can no longer be imported
 
 **Important**: The `PROTOCOL_VERSION` (backend) and `ARCHIVE_VERSION` (frontend) are separate concerns:
 - `PROTOCOL_VERSION` handles live Yjs sync compatibility between client/server

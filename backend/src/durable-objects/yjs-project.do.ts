@@ -494,40 +494,9 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
         headers: { 'Content-Type': 'application/json' },
       });
     }
-    const db = this.getDb();
-    if (!db) {
-      return new Response(JSON.stringify({ error: 'Database unavailable' }), {
-        status: 503,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-    // A site admin deleting another user's account wipes that user's
-    // projects; the project-level check below only admits the owner.
-    if (method === 'POST' && path === '/api/destroy' && (await isActiveSiteAdmin(db, session))) {
-      return this.handleDestroyProject();
-    }
-    const accessResult = await resolveProjectAccess(db, parsed.projectOwner, parsed.slug, session);
-    if (!accessResult.ok) {
-      const deniedMessage =
-        accessResult.reason === 'project-not-found' ? 'Project not found' : 'Access denied';
-      projDOLog.warn(
-        `User ${session.username} denied HTTP access to ${parsed.projectOwner}/${parsed.slug}: ${accessResult.reason}`
-      );
-      return new Response(JSON.stringify({ error: deniedMessage }), {
-        status: accessResult.reason === 'project-not-found' ? 404 : 403,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-    const { canWrite, role } = accessResult.access;
-    if (method === 'POST' && !canWrite) {
-      projDOLog.warn(
-        `User ${session.username} denied write access to ${parsed.projectOwner}/${parsed.slug}`
-      );
-      return new Response(JSON.stringify({ error: 'Access denied' }), {
-        status: 403,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
+    const access = await this.authorizeHttpAccess(method, path, session, parsed);
+    if (access instanceof Response) return access;
+    const { role } = access;
 
     try {
       return await this.dispatchHttpRoute(path, method, request, documentId, role);
@@ -538,6 +507,45 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
         headers: { 'Content-Type': 'application/json' },
       });
     }
+  }
+
+  /**
+   * Resolve a DO HTTP request's project access. Returns the collaborator role
+   * when the request may proceed, or the response that ends it (denied,
+   * database unavailable, or a site admin's destroy).
+   */
+  private async authorizeHttpAccess(
+    method: string,
+    path: string,
+    session: SessionData,
+    parsed: { projectOwner: string; slug: string }
+  ): Promise<Response | { role: string | null }> {
+    const db = this.getDb();
+    if (!db) {
+      return jsonResponse({ error: 'Database unavailable' }, 503);
+    }
+    // A site admin deleting another user's account wipes that user's
+    // projects; the project-level check below only admits the owner.
+    if (method === 'POST' && path === '/api/destroy' && (await isActiveSiteAdmin(db, session))) {
+      return this.handleDestroyProject();
+    }
+    const accessResult = await resolveProjectAccess(db, parsed.projectOwner, parsed.slug, session);
+    if (!accessResult.ok) {
+      projDOLog.warn(
+        `User ${session.username} denied HTTP access to ${parsed.projectOwner}/${parsed.slug}: ${accessResult.reason}`
+      );
+      return accessResult.reason === 'project-not-found'
+        ? jsonResponse({ error: 'Project not found' }, 404)
+        : jsonResponse({ error: 'Access denied' }, 403);
+    }
+    const { canWrite, role } = accessResult.access;
+    if (method === 'POST' && !canWrite) {
+      projDOLog.warn(
+        `User ${session.username} denied write access to ${parsed.projectOwner}/${parsed.slug}`
+      );
+      return jsonResponse({ error: 'Access denied' }, 403);
+    }
+    return { role };
   }
 
   private async dispatchHttpRoute(

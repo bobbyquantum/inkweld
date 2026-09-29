@@ -895,6 +895,51 @@ describe('ProjectService', () => {
       service.error.set(undefined);
     });
 
+    it('returns the cached cover for a media id', async () => {
+      const cached = new Blob(['cached'], { type: 'image/jpeg' });
+      localStorage.getMedia.mockResolvedValue(cached);
+      imagesApi.getProjectCover.mockReturnValue(apiOk(cached));
+
+      const result = await service.getProjectCover(
+        'alice',
+        'project-1',
+        'cover-1'
+      );
+
+      expect(result).toBe(cached);
+      expect(localStorage.getMedia).toHaveBeenCalledWith(
+        'alice/project-1',
+        'cover-1'
+      );
+    });
+
+    it('caches a fetched cover under its media id', async () => {
+      const coverBlob = new Blob(['test'], { type: 'image/jpeg' });
+      localStorage.getMedia.mockResolvedValue(null);
+      localStorage.saveMedia.mockClear();
+      imagesApi.getProjectCover.mockReturnValue(apiOk(coverBlob));
+
+      await service.getProjectCover('alice', 'project-1', 'cover-1');
+
+      expect(localStorage.saveMedia).toHaveBeenCalledWith(
+        'alice/project-1',
+        'cover-1',
+        coverBlob
+      );
+    });
+
+    it('neither reads nor writes the cache without a media id', async () => {
+      const coverBlob = new Blob(['test'], { type: 'image/jpeg' });
+      localStorage.getMedia.mockClear();
+      localStorage.saveMedia.mockClear();
+      imagesApi.getProjectCover.mockReturnValue(apiOk(coverBlob));
+
+      await service.getProjectCover('alice', 'project-1');
+
+      expect(localStorage.getMedia).not.toHaveBeenCalled();
+      expect(localStorage.saveMedia).not.toHaveBeenCalled();
+    });
+
     it('retrieves project cover blob from API', async () => {
       const coverBlob = new Blob(['test'], { type: 'image/jpeg' });
       imagesApi.getProjectCover.mockReturnValue(apiOk(coverBlob));

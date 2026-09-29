@@ -13,12 +13,11 @@ import { type ElementTypeSchema } from './schema-types';
 import { type TimeSystem } from './time-system';
 
 /**
- * Current archive format version.
- * Increment when making breaking changes to the archive structure.
+ * Current archive format version. Import accepts only this version.
  *
- * When incrementing, you MUST:
- * 1. Add a migration in `archive-migrations.ts` that upgrades v(N-1) to vN
- * 2. Document the changes in the version history below
+ * When making a breaking change to the archive structure, increment it,
+ * document the change below, and add an upgrade step to the import for
+ * archives at the previous version.
  *
  * ## Version History
  *
@@ -41,14 +40,6 @@ import { type TimeSystem } from './time-system';
  * - media/: Cover and inline images
  */
 export const ARCHIVE_VERSION = 1;
-
-/**
- * Minimum supported archive version for import.
- * Archives older than this version cannot be imported.
- *
- * Increase this when dropping support for old migration paths.
- */
-export const MIN_SUPPORTED_VERSION = 1;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Archive Structure
