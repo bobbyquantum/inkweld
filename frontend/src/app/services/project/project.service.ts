@@ -1,7 +1,7 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
-import { ImagesService, type Project, ProjectsService } from '@inkweld/index';
 import { forEachSequential } from '@inkweld/async';
+import { ImagesService, type Project, ProjectsService } from '@inkweld/index';
 import { catchError, firstValueFrom, retry, throwError } from 'rxjs';
 
 import { SetupService } from '../core/setup.service';

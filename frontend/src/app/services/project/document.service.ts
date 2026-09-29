@@ -23,6 +23,7 @@ import {
   isMediaUrl,
   MAX_PASTE_BYTES,
 } from '@editor';
+import { chunk, forEachSequential } from '@inkweld/async';
 import { DocumentsService } from '@inkweld/index';
 import { type PresenceSession } from '@inkweld/presence';
 import {
@@ -32,7 +33,6 @@ import {
   rateLimitBackoff,
   withJitter,
 } from '@services/sync/access-denial';
-import { chunk, forEachSequential } from '@inkweld/async';
 import { yjsStateDigest } from '@utils/yjs-state-digest';
 import { keymap } from 'prosemirror-keymap';
 import { type Node as ProseMirrorModelNode } from 'prosemirror-model';

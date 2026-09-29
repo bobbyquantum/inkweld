@@ -1,6 +1,6 @@
 import { inject, Injectable, type OnDestroy } from '@angular/core';
-import { ProjectsService } from '@inkweld/index';
 import { forEachSequential } from '@inkweld/async';
+import { ProjectsService } from '@inkweld/index';
 import { firstValueFrom } from 'rxjs';
 
 import { LoggerService } from '../core/logger.service';

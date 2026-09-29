@@ -36,6 +36,7 @@ import {
   type TagPickerDialogData,
   type TagPickerDialogResult,
 } from '@dialogs/tag-picker-dialog/tag-picker-dialog.component';
+import { forEachSequential } from '@inkweld/async';
 import { ElementType } from '@inkweld/index';
 import { TranslocoModule } from '@jsverse/transloco';
 import type { CanvasConfig } from '@models/canvas.model';
@@ -58,7 +59,6 @@ import { MediaProjectTagService } from '@services/project/media-project-tag.serv
 import { ProjectStateService } from '@services/project/project-state.service';
 import { MediaAutoSyncService } from '@services/sync/media-auto-sync.service';
 import { TagService } from '@services/tag/tag.service';
-import { forEachSequential } from '@inkweld/async';
 import { firstValueFrom } from 'rxjs';
 
 import { FileSizePipe } from '../../../../pipes/file-size.pipe';

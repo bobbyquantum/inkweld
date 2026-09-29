@@ -1,4 +1,5 @@
 import { inject, Injectable } from '@angular/core';
+import { forEachSequential } from '@inkweld/async';
 import { type Element, ElementType, type Project } from '@inkweld/index';
 import { LoggerService } from '@services/core/logger.service';
 import { LocalProjectService } from '@services/local/local-project.service';
@@ -11,7 +12,6 @@ import {
   type MediaInfo,
 } from '@services/local/local-storage.service';
 import { MediaSyncService } from '@services/local/media-sync.service';
-import { forEachSequential } from '@inkweld/async';
 import * as Y from 'yjs';
 
 import {

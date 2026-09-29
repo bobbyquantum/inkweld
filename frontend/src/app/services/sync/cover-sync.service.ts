@@ -1,11 +1,11 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, signal } from '@angular/core';
+import { forEachConcurrent } from '@inkweld/async';
 import { type Project } from '@inkweld/index';
 import {
   isLocalOrCloudMode,
   StorageContextService,
 } from '@services/core/storage-context.service';
-import { forEachConcurrent } from '@inkweld/async';
 import { firstValueFrom } from 'rxjs';
 
 import { LoggerService } from '../core/logger.service';

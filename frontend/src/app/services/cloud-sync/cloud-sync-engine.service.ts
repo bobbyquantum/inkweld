@@ -7,6 +7,7 @@ import {
   Injector,
   signal,
 } from '@angular/core';
+import { firstResultSequential, forEachSequential } from '@inkweld/async';
 import { type Project } from '@inkweld/index';
 import {
   CLOUD_MANIFEST_PATH,
@@ -32,7 +33,6 @@ import { ProjectSyncService } from '@services/local/project-sync.service';
 import { LiveDocumentRegistryService } from '@services/project/live-document-registry.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
-import { firstResultSequential, forEachSequential } from '@inkweld/async';
 import type * as Y from 'yjs';
 
 import {

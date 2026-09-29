@@ -1,11 +1,11 @@
 import { inject, Injectable, signal } from '@angular/core';
+import { forEachSequential } from '@inkweld/async';
 import {
   type CreateSnapshotRequest,
   type DocumentSnapshot,
   SnapshotsService,
   type SnapshotWithContent,
 } from '@inkweld/index';
-import { forEachSequential } from '@inkweld/async';
 import {
   applyJsonToYjsMap,
   applyXmlToFragment,

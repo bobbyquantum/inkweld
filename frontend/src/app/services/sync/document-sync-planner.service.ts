@@ -1,4 +1,5 @@
 import { inject, Injectable } from '@angular/core';
+import { chunk, forEachSequential } from '@inkweld/async';
 import { LoggerService } from '@services/core/logger.service';
 import { DocumentService } from '@services/project/document.service';
 import {
@@ -9,7 +10,6 @@ import {
   type DocumentSyncRecord,
   DocumentSyncStateService,
 } from '@services/sync/document-sync-state.service';
-import { chunk, forEachSequential } from '@inkweld/async';
 
 /**
  * Concurrent local IndexedDB digest reads while planning. Matches the bulk

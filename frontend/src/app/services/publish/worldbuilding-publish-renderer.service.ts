@@ -1,4 +1,5 @@
 import { inject, Injectable } from '@angular/core';
+import { forEachSequential } from '@inkweld/async';
 import { type Element } from '@inkweld/index';
 import { type ElementAppearance } from '@models/element-appearance';
 import { type WorldbuildingItem } from '@models/publish-plan';
@@ -13,7 +14,6 @@ import { LoggerService } from '@services/core/logger.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { RelationshipService } from '@services/relationship/relationship.service';
 import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
-import { forEachSequential } from '@inkweld/async';
 import { isWorldbuildingType } from '@utils/worldbuilding.utils';
 
 /**

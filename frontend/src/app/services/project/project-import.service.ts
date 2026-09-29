@@ -1,5 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, signal } from '@angular/core';
+import { forEachSequential } from '@inkweld/async';
 import { type Element, type Project, ProjectsService } from '@inkweld/index';
 import {
   type ElementRelationship,
@@ -9,7 +10,6 @@ import { type Generator } from '@models/generator';
 import { type MediaTag } from '@models/media-tag.model';
 import { type ElementTag, type TagDefinition } from '@models/tag.model';
 import JSZip from '@progress/jszip-esm';
-import { forEachSequential } from '@inkweld/async';
 import { trimHyphens } from '@utils/string-utils';
 import { firstValueFrom } from 'rxjs';
 

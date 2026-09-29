@@ -1,5 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { inject, Injectable, signal } from '@angular/core';
+import { forEachSequential } from '@inkweld/async';
 import {
   AuthenticationService,
   type Element,
@@ -7,7 +8,6 @@ import {
   type Project,
   ProjectsService,
 } from '@inkweld/index';
-import { forEachSequential } from '@inkweld/async';
 import { firstValueFrom } from 'rxjs';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import * as Y from 'yjs';

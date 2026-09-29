@@ -1,4 +1,5 @@
 import { inject, Injectable } from '@angular/core';
+import { firstResultSequential } from '@inkweld/async';
 import {
   CLOUD_MANIFEST_PATH,
   type CloudManifest,
@@ -17,7 +18,6 @@ import {
   getCloudProviderDisplayName,
   type ServerConfig,
 } from '@services/core/storage-context.service';
-import { firstResultSequential } from '@inkweld/async';
 
 import { CloudSyncConfigService } from './cloud-sync-config.service';
 import {

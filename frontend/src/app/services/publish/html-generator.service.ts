@@ -3,6 +3,7 @@ import {
   extractMediaId,
   isMediaUrl,
 } from '@components/image-paste/image-paste-plugin';
+import { firstResultSequential, forEachSequential } from '@inkweld/async';
 import { type Element, ElementType } from '@inkweld/index';
 import {
   type BackgroundSetting,
@@ -14,7 +15,6 @@ import {
 } from '@models/publish-style';
 import { isPublishableByDefault } from '@models/scene-metadata';
 import { mediaIdFromReference } from '@utils/media-reference';
-import { firstResultSequential, forEachSequential } from '@inkweld/async';
 import { trimHyphens } from '@utils/string-utils';
 import { isWorldbuildingType } from '@utils/worldbuilding.utils';
 import { BehaviorSubject, type Observable, Subject } from 'rxjs';

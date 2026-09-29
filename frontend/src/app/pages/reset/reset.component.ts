@@ -9,8 +9,8 @@ import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Router } from '@angular/router';
-import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { forEachSequential } from '@inkweld/async';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 
 /**
  * Component for resetting all browser storage and logging the user out.

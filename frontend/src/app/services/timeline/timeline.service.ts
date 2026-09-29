@@ -9,6 +9,7 @@
 
 import { effect, inject, Injectable, signal, untracked } from '@angular/core';
 import { type AutoBuildCandidate } from '@dialogs/timeline-auto-build-dialog/timeline-auto-build-dialog.models';
+import { forEachSequential } from '@inkweld/async';
 import { type Element, ElementType } from '@inkweld/index';
 import { type ElementTypeSchema, type FieldSchema } from '@models/schema-types';
 import {
@@ -29,7 +30,6 @@ import { LoggerService } from '@services/core/logger.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { TimeSystemLibraryService } from '@services/timeline/time-system-library.service';
 import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
-import { forEachSequential } from '@inkweld/async';
 import { nanoid } from 'nanoid';
 
 /** Key used to store the serialized timeline config in element metadata */
