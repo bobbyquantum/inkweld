@@ -1,1 +1,0 @@
-ALTER TABLE `users` ADD `hasAvatar` integer DEFAULT false NOT NULL;

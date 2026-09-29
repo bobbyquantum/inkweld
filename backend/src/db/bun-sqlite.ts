@@ -37,7 +37,6 @@ export async function setupBunDatabase(dbPath: string): Promise<BunSQLiteDatabas
   db = drizzle(sqlite, { schema });
 
   await runMigrations(db);
-  applySchemaPatches(sqlite);
 
   // Seed default admin if configured
   await seedDefaultAdmin(db);
@@ -53,54 +52,6 @@ export function getBunDatabase(): BunSQLiteDatabase<typeof schema> {
 }
 
 export type BunDatabaseInstance = BunSQLiteDatabase<typeof schema>;
-
-/**
- * Apply schema patches that Drizzle migrations may not have applied due to
- * transaction rollback or version differences. These are idempotent checks.
- */
-function applySchemaPatches(database: BunDatabase): void {
-  // Ensure actor_label column exists on activity_events (added in migration 0026).
-  // We check and add directly via the raw SQLite connection to guarantee it
-  // runs outside of any Drizzle transaction.
-  const cols: { name: string }[] = database.query('PRAGMA table_info(activity_events)').all() as {
-    name: string;
-  }[];
-  const hasActorLabel = cols.some((c) => c.name === 'actor_label');
-  if (!hasActorLabel) {
-    dbLogger.info('Applying schema patch: adding actor_label column to activity_events');
-    database.exec('ALTER TABLE activity_events ADD COLUMN actor_label TEXT');
-  }
-
-  // Ensure the appearance columns exist on users (added in migration 0030).
-  // Every authenticated request selects the user row, so a missing column here
-  // breaks the whole app rather than one feature.
-  const userCols: { name: string }[] = database.query('PRAGMA table_info(users)').all() as {
-    name: string;
-  }[];
-  if (!userCols.some((c) => c.name === 'hasBackground')) {
-    dbLogger.info('Applying schema patch: adding hasBackground column to users');
-    database.exec('ALTER TABLE users ADD COLUMN hasBackground INTEGER DEFAULT 0 NOT NULL');
-  }
-  if (!userCols.some((c) => c.name === 'preferences')) {
-    dbLogger.info('Applying schema patch: adding preferences column to users');
-    database.exec('ALTER TABLE users ADD COLUMN preferences TEXT');
-  }
-
-  // Profile visibility columns (added in migration 0031). Same reasoning as
-  // above: the user row is selected on every authenticated request.
-  const profileColumns: Array<[name: string, ddl: string]> = [
-    ['bio', 'TEXT'],
-    ['profileVisibility', "TEXT DEFAULT 'private' NOT NULL"],
-    ['activityVisibility', "TEXT DEFAULT 'public' NOT NULL"],
-    ['projectsVisibility', "TEXT DEFAULT 'private' NOT NULL"],
-  ];
-  for (const [name, ddl] of profileColumns) {
-    if (!userCols.some((c) => c.name === name)) {
-      dbLogger.info(`Applying schema patch: adding ${name} column to users`);
-      database.exec(`ALTER TABLE users ADD COLUMN ${name} ${ddl}`);
-    }
-  }
-}
 
 async function runMigrations(database: BunDatabaseInstance): Promise<void> {
   if (migrationsApplied) {

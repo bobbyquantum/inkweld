@@ -12,7 +12,7 @@ export const autoReviewRejections = sqliteTable(
       .notNull()
       .references(() => projects.id, { onDelete: 'cascade' }),
     /** Yjs document ID, e.g. "username:slug:docName/" */
-    documentId: text('document_id', { length: 500 }).notNull(),
+    documentId: text('document_id').notNull(),
     /** Bare element ID (without username:slug prefix) */
     elementId: text('element_id').notNull(),
     originalText: text('original_text').notNull(),

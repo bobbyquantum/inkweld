@@ -33,8 +33,8 @@
 #    npx wrangler secret put SESSION_SECRET --env production
 #
 # 7. Run migrations (from backend directory):
-#    npx wrangler d1 execute inkweld_preview --file=./drizzle/0000_safe_mysterio.sql
-#    npx wrangler d1 execute inkweld_prod --file=./drizzle/0000_safe_mysterio.sql
+#    npx wrangler d1 migrations apply inkweld_preview --env preview --remote
+#    npx wrangler d1 migrations apply inkweld_prod --env production --remote
 #
 # 8. Deploy (from project root):
 #    npm run cloudflare:preview:deploy   # Preview

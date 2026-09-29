@@ -1,1 +1,0 @@
-ALTER TABLE `projects` ADD `cover_image` text;

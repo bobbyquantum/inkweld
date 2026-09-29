@@ -148,10 +148,7 @@ Passkeys are stored in two tables:
 | `webauthnChallenges`    | Single-use challenges (5-minute expiry). Cleaned up automatically.                             |
 | `passkeyRecoveryTokens` | Hashed magic-link tokens used by the passwordless recovery flow. Single-use, 60-minute expiry. |
 
-Migrations:
-
-- `backend/drizzle/0023_add-passkeys.sql`
-- `backend/drizzle/0024_add-passkey-recovery-tokens.sql`
+The tables are created by the schema migrations in `backend/drizzle/`.
 
 ---
 

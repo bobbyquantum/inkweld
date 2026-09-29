@@ -149,6 +149,11 @@ src/app/
 - **Type Imports**: Import Request/Response types using `import type`, not regular import
 - **Per-Project LevelDB**: Each project has its own LevelDB instance for document storage
 - **Session Management**: Uses signed cookies for session authentication
+- **Migrations**: `backend/drizzle/` starts from a single `0000_baseline.sql`
+  generated from `src/db/schema/`. Its statements use `IF NOT EXISTS` so a
+  database created by the pre-squash migrations (the preview D1) records it as
+  a no-op. Add new migrations with `bunx drizzle-kit generate` on top of it;
+  never hand-patch columns at startup.
 
 ### Directory Structure
 
@@ -431,8 +436,6 @@ Passkeys use the W3C WebAuthn API for passwordless, discoverable-credential (use
 - `backend/src/db/schema/user-passkeys.ts` — credential storage schema
 - `backend/src/db/schema/webauthn-challenges.ts` — challenge storage schema
 - `backend/src/db/schema/passkey-recovery-tokens.ts` — magic-link token storage (hashed)
-- `backend/drizzle/0023_add-passkeys.sql` — migration
-- `backend/drizzle/0024_add-passkey-recovery-tokens.sql` — recovery migration
 - `backend/src/services/passkey.service.ts` — WebAuthn ceremony logic
 - `backend/src/services/passkey-recovery.service.ts` — magic-link request + redeem ceremonies
 - `backend/src/routes/passkey.routes.ts` — Hono routes (all start/finish endpoints are POST)

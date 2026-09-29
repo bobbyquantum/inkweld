@@ -77,6 +77,7 @@ export const publishedFiles = sqliteTable(
     index('published_files_project_id_idx').on(table.projectId, table.createdAt),
     // Public share links resolve by token on every anonymous hit.
     index('published_files_share_token_idx').on(table.shareToken),
+    index('idx_published_files_plan_id').on(table.planId),
   ]
 );
 
