@@ -50,7 +50,7 @@ describe('MediaTabComponent', () => {
 
   const mockMediaList: MediaInfo[] = [
     {
-      mediaId: 'cover',
+      mediaId: 'cover-1700000000000',
       mimeType: 'image/jpeg',
       size: 102400,
       createdAt: '2025-01-15T10:00:00.000Z',
@@ -179,7 +179,9 @@ describe('MediaTabComponent', () => {
     fixture.detectChanges();
 
     const items = component.mediaItems();
-    expect(items.find(i => i.mediaId === 'cover')?.category).toBe('cover');
+    expect(items.find(i => i.mediaId === 'cover-1700000000000')?.category).toBe(
+      'cover'
+    );
     expect(items.find(i => i.mediaId === 'img-abc123')?.category).toBe(
       'inline'
     );
@@ -213,14 +215,16 @@ describe('MediaTabComponent', () => {
     await component.loadMedia();
     fixture.detectChanges();
 
-    const coverItem = component.mediaItems().find(i => i.mediaId === 'cover');
+    const coverItem = component
+      .mediaItems()
+      .find(i => i.mediaId === 'cover-1700000000000');
     if (coverItem) {
       await component.viewImage(coverItem);
       expect(dialogGateway.openImageViewerDialog).toHaveBeenCalledWith({
         imageUrl: expect.any(String),
         fileName: 'cover.jpg',
         canEdit: true,
-        mediaId: 'cover',
+        mediaId: 'cover-1700000000000',
         metadata: {
           category: coverItem.categoryLabel,
           size: expect.any(String),
@@ -448,7 +452,7 @@ describe('MediaTabComponent', () => {
 
       const filtered = component.filteredItems();
       expect(filtered).toHaveLength(1);
-      expect(filtered[0].mediaId).toBe('cover');
+      expect(filtered[0].mediaId).toBe('cover-1700000000000');
     });
 
     it('should clear all filters', async () => {

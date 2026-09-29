@@ -22,8 +22,6 @@ describe('ProjectCoverComponent', () => {
     getServerUrl: ReturnType<typeof vi.fn>;
   };
   let mockOfflineStorage: {
-    getProjectCoverUrl: ReturnType<typeof vi.fn>;
-    saveProjectCover: ReturnType<typeof vi.fn>;
     getMediaUrl: ReturnType<typeof vi.fn>;
     saveMedia: ReturnType<typeof vi.fn>;
   };
@@ -67,8 +65,6 @@ describe('ProjectCoverComponent', () => {
       getServerUrl: vi.fn().mockReturnValue('http://localhost:8333'),
     };
     mockOfflineStorage = {
-      getProjectCoverUrl: vi.fn().mockResolvedValue(null),
-      saveProjectCover: vi.fn().mockResolvedValue(undefined),
       getMediaUrl: vi.fn().mockResolvedValue(null),
       saveMedia: vi.fn().mockResolvedValue(undefined),
     };
@@ -107,7 +103,7 @@ describe('ProjectCoverComponent', () => {
 
     it('should return true when cover blob URL is loaded', async () => {
       const mockBlobUrl = 'blob:http://localhost/abc123';
-      mockOfflineStorage.getProjectCoverUrl.mockResolvedValue(mockBlobUrl);
+      mockOfflineStorage.getMediaUrl.mockResolvedValue(mockBlobUrl);
 
       setProjectAndTriggerChanges(mockProject);
       await fixture.whenStable();
@@ -136,7 +132,7 @@ describe('ProjectCoverComponent', () => {
 
     it('should return blob URL when cover is loaded from cache', async () => {
       const mockBlobUrl = 'blob:http://localhost/abc123';
-      mockOfflineStorage.getProjectCoverUrl.mockResolvedValue(mockBlobUrl);
+      mockOfflineStorage.getMediaUrl.mockResolvedValue(mockBlobUrl);
 
       setProjectAndTriggerChanges(mockProject);
       await fixture.whenStable();
@@ -158,22 +154,6 @@ describe('ProjectCoverComponent', () => {
       expect(mockOfflineStorage.getMediaUrl).toHaveBeenCalledWith(
         'testuser/test-project',
         'cover'
-      );
-      expect(component.coverUrl).toBe(mockBlobUrl);
-      expect(component.hasCover).toBe(true);
-    });
-
-    it('should fall back to legacy getProjectCoverUrl', async () => {
-      // getMediaUrl returns null, but legacy getProjectCoverUrl has it
-      mockOfflineStorage.getMediaUrl.mockResolvedValue(null);
-      mockOfflineStorage.getProjectCoverUrl.mockResolvedValue(mockBlobUrl);
-
-      setProjectAndTriggerChanges(mockProject);
-      await fixture.whenStable();
-
-      expect(mockOfflineStorage.getProjectCoverUrl).toHaveBeenCalledWith(
-        'testuser',
-        'test-project'
       );
       expect(component.coverUrl).toBe(mockBlobUrl);
       expect(component.hasCover).toBe(true);
@@ -205,7 +185,6 @@ describe('ProjectCoverComponent', () => {
       mockOfflineStorage.getMediaUrl
         .mockResolvedValueOnce(null)
         .mockResolvedValueOnce(mockBlobUrl);
-      mockOfflineStorage.getProjectCoverUrl.mockResolvedValueOnce(null);
 
       setProjectAndTriggerChanges(mockProject);
 
@@ -237,7 +216,7 @@ describe('ProjectCoverComponent', () => {
     });
 
     it('should handle server 404 gracefully', async () => {
-      mockOfflineStorage.getProjectCoverUrl.mockResolvedValue(null);
+      mockOfflineStorage.getMediaUrl.mockResolvedValue(null);
 
       setProjectAndTriggerChanges(mockProject);
 
@@ -268,12 +247,12 @@ describe('ProjectCoverComponent', () => {
     });
 
     it('should only use IndexedDB in offline mode', async () => {
-      mockOfflineStorage.getProjectCoverUrl.mockResolvedValue(mockBlobUrl);
+      mockOfflineStorage.getMediaUrl.mockResolvedValue(mockBlobUrl);
 
       setProjectAndTriggerChanges(mockProject);
       await fixture.whenStable();
 
-      expect(mockOfflineStorage.getProjectCoverUrl).toHaveBeenCalled();
+      expect(mockOfflineStorage.getMediaUrl).toHaveBeenCalled();
       expect(component.coverUrl).toBe(mockBlobUrl);
 
       // No HTTP requests should be made in offline mode
@@ -281,7 +260,7 @@ describe('ProjectCoverComponent', () => {
     });
 
     it('should return null if not in cache and offline', async () => {
-      mockOfflineStorage.getProjectCoverUrl.mockResolvedValue(null);
+      mockOfflineStorage.getMediaUrl.mockResolvedValue(null);
 
       setProjectAndTriggerChanges(mockProject);
       await fixture.whenStable();
@@ -296,14 +275,13 @@ describe('ProjectCoverComponent', () => {
 
   describe('project without coverImage', () => {
     it('should not fetch from server when coverImage is null', async () => {
-      mockOfflineStorage.getProjectCoverUrl.mockResolvedValue(null);
       mockSetupService.getMode.mockReturnValue('server');
 
       setProjectAndTriggerChanges(mockProjectNoCover);
       await fixture.whenStable();
 
-      // Should still check IndexedDB cache
-      expect(mockOfflineStorage.getProjectCoverUrl).toHaveBeenCalled();
+      // No cover id, so there is nothing to look up in IndexedDB either
+      expect(mockOfflineStorage.getMediaUrl).not.toHaveBeenCalled();
 
       // But should NOT make HTTP request since coverImage is null
       httpTestingController.expectNone(() => true);
@@ -334,7 +312,7 @@ describe('ProjectCoverComponent', () => {
       // for reuse across components. The component should NOT revoke URLs
       // as this would invalidate cached URLs used by other components.
       const mockBlobUrl = 'blob:http://localhost/abc123';
-      mockOfflineStorage.getProjectCoverUrl.mockResolvedValue(mockBlobUrl);
+      mockOfflineStorage.getMediaUrl.mockResolvedValue(mockBlobUrl);
 
       const revokeObjectURLSpy = vi.spyOn(URL, 'revokeObjectURL');
       revokeObjectURLSpy.mockClear();
@@ -361,7 +339,7 @@ describe('ProjectCoverComponent', () => {
       revokeObjectURLSpy.mockClear();
 
       // Load first project
-      mockOfflineStorage.getProjectCoverUrl.mockResolvedValue(mockBlobUrl1);
+      mockOfflineStorage.getMediaUrl.mockResolvedValue(mockBlobUrl1);
       setProjectAndTriggerChanges(mockProject);
       await fixture.whenStable();
 
@@ -373,7 +351,7 @@ describe('ProjectCoverComponent', () => {
         id: '3',
         slug: 'other-project',
       };
-      mockOfflineStorage.getProjectCoverUrl.mockResolvedValue(mockBlobUrl2);
+      mockOfflineStorage.getMediaUrl.mockResolvedValue(mockBlobUrl2);
       setProjectAndTriggerChanges(otherProject);
       await fixture.whenStable();
 
@@ -384,7 +362,7 @@ describe('ProjectCoverComponent', () => {
     });
 
     it('should reset loading state on destroy', async () => {
-      mockOfflineStorage.getProjectCoverUrl.mockResolvedValue(
+      mockOfflineStorage.getMediaUrl.mockResolvedValue(
         'blob:http://localhost/abc123'
       );
 

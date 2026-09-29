@@ -1176,7 +1176,7 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
     }
 
     // Pass through only schemes the browser can load. A raw `media:img-...`
-    // (single-colon legacy form) or any other scheme would otherwise be handed
+    // (the prose-image form) or any other scheme would otherwise be handed
     // to Cytoscape as a node background and blocked by the deployed CSP.
     return Promise.resolve(
       /^(https?:|blob:|data:)/i.test(imageUrl) ? imageUrl : null

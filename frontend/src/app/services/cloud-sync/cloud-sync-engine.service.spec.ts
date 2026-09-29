@@ -269,7 +269,7 @@ describe('CloudSyncEngineService', () => {
     );
     const manifest = remoteManifest();
     expect(manifest).not.toBeNull();
-    expect(manifest!.profile).toEqual({ name: 'Bobby', username: 'bobby' });
+    expect(manifest!.profiles).toEqual([{ name: 'Bobby', username: 'bobby' }]);
     expect(manifest!.projects).toHaveLength(1);
     expect(manifest!.projects[0]).toMatchObject({
       key: 'bobby/novel',

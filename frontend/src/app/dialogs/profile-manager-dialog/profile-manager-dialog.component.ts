@@ -1027,7 +1027,6 @@ export class ProfileManagerDialogComponent {
   private async runMigrationAndSync(selectedSlugs: string[]): Promise<void> {
     const renames = this.projectRenames();
     await this.migrationService.migrateToServer(
-      this.pendingServerUrl,
       selectedSlugs,
       renames.size > 0 ? renames : undefined
     );

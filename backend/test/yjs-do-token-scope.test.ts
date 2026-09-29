@@ -86,6 +86,7 @@ let closeCodes: typeof import('../src/utils/ws-close-codes');
 let mintDoJwt: typeof import('../src/mcp/mcp.auth').mintDoJwt;
 let projectService: { findByUsernameAndSlug: (...args: unknown[]) => Promise<unknown> };
 let collaborationService: { checkAccess: (...args: unknown[]) => Promise<unknown> };
+let userService: { findById: (...args: unknown[]) => Promise<unknown> };
 
 interface DoInternals {
   handleAuthMessage(ws: unknown, connInfo: unknown, token: string): Promise<void>;
@@ -103,6 +104,7 @@ describe('YjsProject DO token scope', () => {
     ({ mintDoJwt } = await import('../src/mcp/mcp.auth'));
     ({ projectService } = await import('../src/services/project.service'));
     ({ collaborationService } = await import('../src/services/collaboration.service'));
+    ({ userService } = await import('../src/services/user.service'));
     ({ YjsProject } = (await import('../src/durable-objects/yjs-project.do')) as unknown as {
       YjsProject: new (state: unknown, env: unknown) => unknown;
     });
@@ -112,6 +114,7 @@ describe('YjsProject DO token scope', () => {
     try {
       (projectService.findByUsernameAndSlug as ReturnType<typeof spyOn>).mockRestore?.();
       (collaborationService.checkAccess as ReturnType<typeof spyOn>).mockRestore?.();
+      (userService.findById as ReturnType<typeof spyOn>).mockRestore?.();
     } catch {
       // Not spied in every test.
     }
@@ -172,8 +175,18 @@ describe('YjsProject DO token scope', () => {
   });
 
   it('accepts a first-party session token', async () => {
-    const doInstance = makeDO();
+    const doInstance = makeDO({ DB: {} });
     const ws = makeWs();
+    spyOn(projectService, 'findByUsernameAndSlug').mockResolvedValue({
+      id: 'project-1',
+      userId: 'user-1',
+    });
+    spyOn(userService, 'findById').mockResolvedValue({
+      id: 'user-1',
+      enabled: true,
+      approved: true,
+      sessionsValidFrom: 0,
+    });
     const token = await signJwt({
       userId: 'user-1',
       username: 'alice',
@@ -184,7 +197,7 @@ describe('YjsProject DO token scope', () => {
 
     await doInstance.handleAuthMessage(ws, makeConnInfo('alice:proj:elements'), token);
 
-    // Legacy owner-only path (no D1): auth succeeds before any doc setup.
+    // The owner is admitted: auth succeeds before any doc setup.
     expect(ws.sent[0]).toBe('authenticated');
   });
 

@@ -108,7 +108,7 @@ test.describe('Media Tab', () => {
     await storeRealMediaInIndexedDB(
       page,
       projectKey,
-      'cover',
+      'cover-1700000000000',
       DEMO_ASSETS.covers.demo1,
       'cover.png'
     );

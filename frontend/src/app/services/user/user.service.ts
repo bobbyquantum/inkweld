@@ -320,8 +320,6 @@ export class UserService {
   async clearCurrentUser(): Promise<void> {
     // Clear JWT token using AuthTokenService (handles prefixed key)
     this.authTokenService.clearToken();
-    // Also clear legacy unprefixed key for backwards compatibility
-    localStorage.removeItem('auth_token');
 
     // Clear the cached user profile from the active server config so the
     // "Switch Server" panel reverts to "Not logged in".

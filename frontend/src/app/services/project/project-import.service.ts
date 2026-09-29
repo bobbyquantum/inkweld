@@ -23,7 +23,6 @@ import {
   type ArchiveSnapshot,
   type ArchiveWorldbuildingData,
   ImportPhase,
-  MIN_SUPPORTED_VERSION,
   type ProjectArchive,
   ProjectArchiveError,
   ProjectArchiveErrorType,
@@ -37,7 +36,6 @@ import { LocalProjectElementsService } from '../local/local-project-elements.ser
 import { LocalSnapshotService } from '../local/local-snapshot.service';
 import { LocalStorageService } from '../local/local-storage.service';
 import { ElementSyncProviderFactory } from '../sync/element-sync-provider.factory';
-import { findMigration, hasMigrationPath } from './archive-migrations';
 import { DocumentImportService } from './document-import.service';
 
 /**
@@ -122,17 +120,9 @@ export class ProjectImportService {
     try {
       // Phase 1: Load archive
       this.updateProgress(ImportPhase.LoadingArchive, 5, 'Loading archive...');
-      let archive = await this.loadArchive(file);
+      const archive = await this.loadArchive(file);
 
-      // Phase 2: Migrate archive if needed (before validation)
-      this.updateProgress(
-        ImportPhase.ValidatingArchive,
-        8,
-        'Checking archive version...'
-      );
-      archive = this.migrateArchive(archive);
-
-      // Phase 3: Validate archive structure
+      // Phase 2: Validate archive version and structure
       this.updateProgress(
         ImportPhase.ValidatingArchive,
         10,
@@ -493,81 +483,22 @@ export class ProjectImportService {
   }
 
   /**
-   * Migrate archive to current version if needed.
-   *
-   * Applies sequential migrations from the archive's version to ARCHIVE_VERSION.
-   * Each migration transforms the archive from version N to N+1.
-   *
-   * @param archive - The loaded archive
-   * @returns The migrated archive (or original if no migration needed)
-   * @throws ProjectArchiveError if migration fails or no migration path exists
+   * Validate archive structure and version.
    */
-  private migrateArchive(archive: ProjectArchive): ProjectArchive {
+  private validateArchive(archive: ProjectArchive): void {
     const archiveVersion = archive.manifest.version;
-
-    // No migration needed if already at current version
-    if (archiveVersion === ARCHIVE_VERSION) {
-      return archive;
-    }
-
-    // Reject archives newer than we support
     if (archiveVersion > ARCHIVE_VERSION) {
       throw new ProjectArchiveError(
         ProjectArchiveErrorType.UnsupportedVersion,
         `Archive version ${archiveVersion} is newer than supported version ${ARCHIVE_VERSION}. Please update Inkweld.`
       );
     }
-
-    // Reject archives older than minimum supported
-    if (archiveVersion < MIN_SUPPORTED_VERSION) {
+    if (archiveVersion !== ARCHIVE_VERSION) {
       throw new ProjectArchiveError(
         ProjectArchiveErrorType.VersionMismatch,
-        `Archive version ${archiveVersion} is too old. Minimum supported version is ${MIN_SUPPORTED_VERSION}.`
+        `Archive version ${archiveVersion} is not supported. Expected version ${ARCHIVE_VERSION}.`
       );
     }
-
-    // Check if migration path exists
-    if (!hasMigrationPath(archiveVersion, ARCHIVE_VERSION)) {
-      throw new ProjectArchiveError(
-        ProjectArchiveErrorType.VersionMismatch,
-        `No migration path from archive version ${archiveVersion} to ${ARCHIVE_VERSION}`
-      );
-    }
-
-    // Apply migrations sequentially
-    let current = archive;
-    for (let v = archiveVersion; v < ARCHIVE_VERSION; v++) {
-      const migration = findMigration(v);
-      if (!migration) {
-        // This shouldn't happen if hasMigrationPath returned true
-        throw new ProjectArchiveError(
-          ProjectArchiveErrorType.VersionMismatch,
-          `Missing migration from version ${v} to ${v + 1}`
-        );
-      }
-
-      this.logger.info(
-        'ProjectImport',
-        `Migrating archive from v${v} to v${v + 1}: ${migration.description}`
-      );
-
-      current = migration.migrate(current);
-    }
-
-    this.logger.info(
-      'ProjectImport',
-      `Archive migrated from v${archiveVersion} to v${ARCHIVE_VERSION}`
-    );
-
-    return current;
-  }
-
-  /**
-   * Validate archive structure and version.
-   */
-  private validateArchive(archive: ProjectArchive): void {
-    // Version check is now handled by migrateArchive()
-    // Here we just validate the structure
 
     // Validate required project fields
     if (!archive.project.title) {
@@ -899,8 +830,8 @@ export class ProjectImportService {
         media.filename
       );
 
-      // In server mode, upload cover image (matches both legacy 'cover' and new 'cover-*' IDs)
-      if (!isOffline && media.mediaId.startsWith('cover')) {
+      // In server mode, upload the cover image
+      if (!isOffline && media.mediaId.startsWith('cover-')) {
         try {
           await this.uploadCoverImage(username, slug, blob);
         } catch (err) {

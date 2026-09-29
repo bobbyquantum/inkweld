@@ -23,9 +23,8 @@ export interface MigrationResult {
  * someone else, noticed while loading.
  *
  * The work is {@link StorageContextService.renameProjectInContext}: Yjs
- * databases are merged into their new names and the originals deleted
- * (legacy shared worldbuilding databases once no other profile has the old
- * slug), and media, snapshots, activations, the cached project and the
+ * databases are merged into their new names and the originals deleted,
+ * and media, snapshots, activations, the cached project and the
  * project list are rekeyed. A database that fails to copy keeps its original;
  * the server holds the project under the new slug either way.
  */

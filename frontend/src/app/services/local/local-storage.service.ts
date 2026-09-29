@@ -70,7 +70,7 @@ const STORE_NAME = 'media';
  * await localStorage.saveMedia('alice/my-novel', 'cover', coverBlob);
  *
  * // Get a blob URL for display
- * const url = await localStorage.getMediaUrl('alice/my-novel', 'cover');
+ * const url = await localStorage.getMediaUrl('alice/my-novel', 'cover-1700000000000');
  *
  * // Save an inline image
  * await localStorage.saveMedia('alice/my-novel', `img-${uuid}`, imageBlob);
@@ -446,38 +446,6 @@ export class LocalStorageService {
   // ============================================
   // CONVENIENCE METHODS
   // ============================================
-
-  /**
-   * Save a project cover image
-   */
-  async saveProjectCover(
-    username: string,
-    slug: string,
-    blob: Blob
-  ): Promise<void> {
-    await this.saveMedia(`${username}/${slug}`, 'cover', blob);
-  }
-
-  /**
-   * Get a project cover image
-   */
-  getProjectCover(username: string, slug: string): Promise<Blob | null> {
-    return this.getMedia(`${username}/${slug}`, 'cover');
-  }
-
-  /**
-   * Get URL for a project cover image
-   */
-  getProjectCoverUrl(username: string, slug: string): Promise<string | null> {
-    return this.getMediaUrl(`${username}/${slug}`, 'cover');
-  }
-
-  /**
-   * Delete a project cover image
-   */
-  async deleteProjectCover(username: string, slug: string): Promise<void> {
-    await this.deleteMedia(`${username}/${slug}`, 'cover');
-  }
 
   /**
    * Save a user avatar

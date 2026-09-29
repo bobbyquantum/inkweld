@@ -74,7 +74,6 @@ import { type AppTab, TabManagerService } from './tab-manager.service';
 // Constants for document cache configuration
 const DOCUMENT_CACHE_DB_BASE_NAME = 'documentCache';
 
-// Re-export for backward compatibility
 export type { ValidDropLevels } from './element-tree.service';
 export type { AppTab } from './tab-manager.service';
 
@@ -1845,13 +1844,6 @@ export class ProjectStateService implements OnDestroy {
       await this.storageService.put(
         db,
         'openedDocuments',
-        this.openDocuments(),
-        cacheKey
-      );
-
-      await this.storageService.put(
-        db,
-        'openedDocuments',
         tabsToSave,
         tabsCacheKey
       );
@@ -1997,30 +1989,8 @@ export class ProjectStateService implements OnDestroy {
         }
       }
 
-      // Fallback to legacy document loading
-      const documents = await this.storageService.get<Element[]>(
-        db,
-        'openedDocuments',
-        cacheKey
-      );
-
-      if (documents && documents.length > 0) {
-        const currentElements = this.elements();
-        const validDocuments = documents.filter(doc =>
-          currentElements.some(el => el.id === doc.id)
-        );
-
-        // Open home tab first, then restored documents
-        this.tabManager.openSystemTab('home');
-        for (const doc of validDocuments) {
-          this.tabManager.openDocument(doc);
-        }
-        // Select home tab
-        this.tabManager.selectTab(0);
-      } else {
-        // No cached tabs or documents - open home tab by default
-        this.tabManager.openSystemTab('home');
-      }
+      // No cached tabs - open home tab by default
+      this.tabManager.openSystemTab('home');
     } catch (error) {
       this.logger.error(
         'ProjectState',

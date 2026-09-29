@@ -28,11 +28,9 @@ export interface AppConfig {
 /**
  * Service for managing app configuration and setup.
  *
- * This service acts as a higher-level interface over StorageContextService,
- * providing backward-compatible methods for configuring server/local mode
- * and accessing configuration state.
- *
- * For new code requiring multi-server support, use StorageContextService directly.
+ * A higher-level interface over StorageContextService for configuring
+ * server/local mode and reading the active configuration. For multi-profile
+ * work, use StorageContextService directly.
  */
 @Injectable({
   providedIn: 'root',
@@ -44,7 +42,7 @@ export class SetupService {
   /** Whether the app is configured (has at least one config) */
   readonly isConfigured = computed(() => this.storageContext.isConfigured());
 
-  /** Current app config (derived from active config for backward compatibility) */
+  /** Current app config, derived from the active profile */
   readonly appConfig = computed<AppConfig | null>(() => {
     const config = this.storageContext.getActiveConfig();
     if (!config) return null;

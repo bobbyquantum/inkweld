@@ -306,21 +306,6 @@ describe('ProjectService – findTombstonesByProjectKeys', () => {
   });
 });
 
-describe('ProjectService – findTombstones (deprecated)', () => {
-  it('returns empty array for empty slugs', async () => {
-    const result = await projectService.findTombstones(db, USER_ID, []);
-    expect(result).toEqual([]);
-  });
-
-  it('returns tombstone records matching slugs', async () => {
-    await projectService.createTombstone(db, USER_ID, 'dep-1');
-    await projectService.createTombstone(db, USER_ID, 'dep-2');
-    const result = await projectService.findTombstones(db, USER_ID, ['dep-1']);
-    expect(result).toHaveLength(1);
-    expect(result[0].slug).toBe('dep-1');
-  });
-});
-
 describe('ProjectService – delete', () => {
   it('creates tombstone and removes project', async () => {
     const created = await projectService.create(db, {

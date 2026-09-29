@@ -27,7 +27,7 @@ export interface CanvasCoverSource {
 
 export type CoverSource = CanvasCoverSource;
 
-/** Parse a persisted cover source, tolerating garbage from older clients. */
+/** Parse a persisted cover source, returning undefined for anything invalid. */
 export function parseCoverSource(raw: unknown): CoverSource | undefined {
   let value = raw;
   if (typeof raw === 'string') {

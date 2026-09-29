@@ -22,12 +22,6 @@ import { ElementTreeService } from '../project/element-tree.service';
 import { BroadcastSyncProvider } from '../sync/broadcast-sync.provider';
 import { type ProjectMeta } from '../sync/element-sync-provider.interface';
 
-const LOCAL_ELEMENTS_BASE_KEY = 'inkweld-local-elements';
-
-interface StoredProjectElements {
-  [projectKey: string]: Element[];
-}
-
 /**
  * Connection to a single Yjs document for a project.
  *
@@ -742,11 +736,6 @@ export class LocalProjectElementsService {
       this.projectMeta.set(this.extractProjectMeta(projectMetaMap));
     });
 
-    // Check if we need to migrate from localStorage (elements only)
-    if (elementsArray.length === 0) {
-      this.migrateFromLocalStorage(projectKey, elementsArray, doc);
-    }
-
     const connection: YjsProjectConnection = {
       doc,
       provider,
@@ -772,51 +761,6 @@ export class LocalProjectElementsService {
     );
 
     return connection;
-  }
-
-  /**
-   * Migrate elements from localStorage to Yjs (one-time migration)
-   */
-  /**
-   * Migrate elements from localStorage to Yjs (one-time migration)
-   */
-  private migrateFromLocalStorage(
-    projectKey: string,
-    elementsArray: Y.Array<Element>,
-    doc: Y.Doc
-  ): void {
-    try {
-      const storedElements = this.getStoredElementsFromLocalStorage();
-      const elements = storedElements[projectKey];
-
-      if (elements && elements.length > 0) {
-        this.logger.info(
-          'LocalProjectElements',
-          `Migrating ${elements.length} elements from localStorage to Yjs for ${projectKey}`
-        );
-
-        // Insert elements into Yjs array
-        doc.transact(() => {
-          elementsArray.insert(0, elements);
-        });
-
-        // Clean up localStorage entry for this project after successful migration
-        delete storedElements[projectKey];
-        this.saveStoredElementsToLocalStorage(storedElements);
-
-        this.logger.info(
-          'LocalProjectElements',
-          `Successfully migrated elements for ${projectKey}`
-        );
-      }
-    } catch (error) {
-      this.logger.error(
-        'LocalProjectElements',
-        'Failed to migrate from localStorage',
-        error
-      );
-      // Continue anyway - empty elements is acceptable
-    }
   }
 
   /**
@@ -1020,38 +964,6 @@ export class LocalProjectElementsService {
   async getYjsDocument(username: string, slug: string): Promise<Y.Doc> {
     const connection = await this.getOrCreateConnection(username, slug);
     return connection.doc;
-  }
-
-  // Legacy localStorage methods for migration
-  private getStoredElementsFromLocalStorage(): StoredProjectElements {
-    try {
-      const storageKey = this.storageContext.prefixKey(LOCAL_ELEMENTS_BASE_KEY);
-      const stored = localStorage.getItem(storageKey);
-      return stored ? (JSON.parse(stored) as StoredProjectElements) : {};
-    } catch (error) {
-      this.logger.error(
-        'LocalProjectElements',
-        'Failed to load offline elements from localStorage',
-        error
-      );
-      return {};
-    }
-  }
-
-  private saveStoredElementsToLocalStorage(
-    elements: StoredProjectElements
-  ): void {
-    try {
-      const storageKey = this.storageContext.prefixKey(LOCAL_ELEMENTS_BASE_KEY);
-      localStorage.setItem(storageKey, JSON.stringify(elements));
-    } catch (error) {
-      this.logger.error(
-        'LocalProjectElements',
-        'Failed to save offline elements to localStorage',
-        error
-      );
-      throw error;
-    }
   }
 
   private getSubtree(elements: Element[], startIndex: number): Element[] {

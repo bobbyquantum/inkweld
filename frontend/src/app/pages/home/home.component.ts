@@ -322,23 +322,6 @@ export class HomeComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Keep filteredProjects for side-nav compatibility (owned projects only)
-  protected filteredProjects = computed(() => {
-    const term = this.searchTerm().toLowerCase();
-    if (!term) {
-      return this.projectService.projects();
-    }
-
-    return this.projectService.projects().filter(project => {
-      return (
-        project.title.toLowerCase().includes(term) ||
-        project.slug.toLowerCase().includes(term) ||
-        project.description?.toLowerCase().includes(term) ||
-        project.username.toLowerCase().includes(term)
-      );
-    });
-  });
-
   // Private state - debounced search term derived from the signal form field
   private readonly searchTerm = computed(() =>
     this.searchForm.search().value()
@@ -845,8 +828,6 @@ export class HomeComponent implements OnInit, OnDestroy {
     //  - elements/metadata:  {prefix}username:slug:elements
     //  - prose documents:    {prefix}username:slug:{elementId}
     //  - worldbuilding:      {prefix}worldbuilding:username:slug:{id}
-    // Bare (unprefixed) legacy databases are left to
-    // DocumentStorageMigrationService: they may belong to another profile.
     if ('databases' in indexedDB) {
       try {
         const allDbs = await indexedDB.databases();

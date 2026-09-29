@@ -251,8 +251,8 @@ export class CanvasService {
 
   /**
    * Read the canvas from the sync provider, seeding it the first time from the
-   * legacy metadata blob so canvases created before per-object sync — or
-   * restored from an archive — open with their contents intact.
+   * element's `canvasConfig` metadata so a canvas restored from an archive or
+   * template opens with its contents intact.
    */
   private readOrSeedContents(elementId: string): CanvasContents {
     const synced = this.projectState.getCanvasContents(elementId);
@@ -262,18 +262,18 @@ export class CanvasService {
 
     const element = this.projectState.elements().find(e => e.id === elementId);
     const serialized = element?.metadata?.[CANVAS_CONFIG_META_KEY];
-    const legacy = parseCanvasContents(serialized);
-    if (serialized && !legacy) {
+    const seed = parseCanvasContents(serialized);
+    if (serialized && !seed) {
       this.logger.warn('Canvas', 'Failed to parse canvas config from metadata');
     }
     const defaults = createDefaultCanvasConfig(elementId);
     const contents: CanvasContents = {
-      layers: legacy?.layers.length ? legacy.layers : defaults.layers,
-      objects: legacy?.objects ?? [],
-      background: legacy?.background ?? defaults.background,
-      inkColor: legacy?.inkColor ?? defaults.inkColor,
+      layers: seed?.layers.length ? seed.layers : defaults.layers,
+      objects: seed?.objects ?? [],
+      background: seed?.background ?? defaults.background,
+      inkColor: seed?.inkColor ?? defaults.inkColor,
     };
-    if (legacy?.frames) contents.frames = legacy.frames;
+    if (seed?.frames) contents.frames = seed.frames;
 
     this.projectState.seedCanvasContents(elementId, contents);
     return contents;
