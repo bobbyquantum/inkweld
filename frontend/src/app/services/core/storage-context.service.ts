@@ -1,4 +1,5 @@
 import { computed, Injectable, signal } from '@angular/core';
+import { forEachSequential } from '@inkweld/async';
 import { djb2Hex } from '@utils/schema-hash';
 import { stripTrailingSlashes } from '@utils/string-utils';
 
@@ -201,7 +202,7 @@ interface StoreShape {
 }
 
 /** Open `name` only if it already exists; never creates an empty shell */
-async function openExistingDatabase(name: string): Promise<IDBDatabase | null> {
+function openExistingDatabase(name: string): Promise<IDBDatabase | null> {
   return new Promise((resolve, reject) => {
     let created = false;
     const request = indexedDB.open(name);
@@ -291,9 +292,10 @@ export async function cloneDatabase(
     openTarget.onupgradeneeded = () => createStores(openTarget.result, shapes);
     const target = await requestToPromise(openTarget);
     try {
-      for (const shape of shapes) {
+      // Sequential: one readwrite transaction per store on the target database.
+      await forEachSequential(shapes, async shape => {
         const records = await readAll(source, shape.name);
-        if (records.length === 0) continue;
+        if (records.length === 0) return;
         await new Promise<void>((resolve, reject) => {
           const tx = target.transaction(shape.name, 'readwrite');
           const store = tx.objectStore(shape.name);
@@ -321,7 +323,7 @@ export async function cloneDatabase(
           tx.onabort = () =>
             reject(tx.error ?? new Error('IndexedDB write aborted'));
         });
-      }
+      });
     } finally {
       target.close();
     }
@@ -351,40 +353,44 @@ async function rekeyProjectRecords(
   if (!names.includes(dbName)) return;
   const db = await requestToPromise(indexedDB.open(dbName));
   try {
-    for (const storeName of Array.from(db.objectStoreNames)) {
-      const records = await readAll(db, storeName);
-      const moves = records.filter(
-        r =>
-          typeof r.key === 'string' &&
-          (r.key === oldKey || r.key.startsWith(`${oldKey}:`))
-      );
-      if (moves.length === 0) continue;
-      const keyPath = db
-        .transaction(storeName, 'readonly')
-        .objectStore(storeName).keyPath;
-      await new Promise<void>((resolve, reject) => {
-        const tx = db.transaction(storeName, 'readwrite');
-        const store = tx.objectStore(storeName);
-        for (const { key, value } of moves) {
-          const nextKey = `${newKey}${(key as string).slice(oldKey.length)}`;
-          const nextValue = rewriteKeyFields(
-            value,
-            oldKey,
-            newKey,
-            keyPath,
-            nextKey
-          );
-          store.delete(key);
-          if (keyPath) store.put(nextValue);
-          else store.put(nextValue, nextKey);
-        }
-        tx.oncomplete = () => resolve();
-        tx.onerror = () =>
-          reject(tx.error ?? new Error('IndexedDB rekey failed'));
-        tx.onabort = () =>
-          reject(tx.error ?? new Error('IndexedDB rekey aborted'));
-      });
-    }
+    // Sequential: one transaction per store on the same database.
+    await forEachSequential(
+      Array.from(db.objectStoreNames),
+      async storeName => {
+        const records = await readAll(db, storeName);
+        const moves = records.filter(
+          r =>
+            typeof r.key === 'string' &&
+            (r.key === oldKey || r.key.startsWith(`${oldKey}:`))
+        );
+        if (moves.length === 0) return;
+        const keyPath = db
+          .transaction(storeName, 'readonly')
+          .objectStore(storeName).keyPath;
+        await new Promise<void>((resolve, reject) => {
+          const tx = db.transaction(storeName, 'readwrite');
+          const store = tx.objectStore(storeName);
+          for (const { key, value } of moves) {
+            const nextKey = `${newKey}${(key as string).slice(oldKey.length)}`;
+            const nextValue = rewriteKeyFields(
+              value,
+              oldKey,
+              newKey,
+              keyPath,
+              nextKey
+            );
+            store.delete(key);
+            if (keyPath) store.put(nextValue);
+            else store.put(nextValue, nextKey);
+          }
+          tx.oncomplete = () => resolve();
+          tx.onerror = () =>
+            reject(tx.error ?? new Error('IndexedDB rekey failed'));
+          tx.onabort = () =>
+            reject(tx.error ?? new Error('IndexedDB rekey aborted'));
+        });
+      }
+    );
   } finally {
     db.close();
   }
@@ -1373,7 +1379,8 @@ export class StorageContextService {
       if (kind === 'db') entry.databases.push(name);
       else entry.localStorageKeys.push(name);
     };
-    for (const name of await this.listAllDatabaseNames()) collect(name, 'db');
+    const databaseNames = await this.listAllDatabaseNames();
+    for (const name of databaseNames) collect(name, 'db');
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
       if (key) collect(key, 'key');
@@ -1420,13 +1427,14 @@ export class StorageContextService {
 
     const existing = new Set(await this.listAllDatabaseNames());
     let databases = 0;
-    for (const name of existing) {
-      if (!name.startsWith(from)) continue;
+    // Sequential: databases are copied one at a time to bound memory use.
+    await forEachSequential(existing, async name => {
+      if (!name.startsWith(from)) return;
       const target = `${to}${name.slice(from.length)}`;
-      if (existing.has(target)) continue;
+      if (existing.has(target)) return;
       await cloneDatabase(name, target);
       databases++;
-    }
+    });
 
     return {
       databases,
@@ -1497,29 +1505,29 @@ export class StorageContextService {
     ];
     const oldMarkers = docMarkers(oldSlug);
     const newMarkers = docMarkers(newSlug);
-    for (const name of await this.listAllDatabaseNames()) {
+    // Sequential: each database is copied and then removed before the next,
+    // so a failure leaves at most one database half moved.
+    await forEachSequential(await this.listAllDatabaseNames(), async name => {
       const index = oldMarkers.findIndex(m => name.startsWith(m));
-      if (index < 0) continue;
+      if (index < 0) return;
       const target = newMarkers[index] + name.slice(oldMarkers[index].length);
       try {
         await cloneDatabase(name, target);
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         result.errors.push(`Failed to copy ${name} to ${target}: ${message}`);
-        continue;
+        return;
       }
       result.databasesMoved++;
       await deleteDatabase(name);
-    }
+    });
 
     // 2. Composite-key stores: media, snapshots, activations
-    for (const base of [
-      'inkweld-media',
-      'inkweld-snapshots',
-      'inkweld-activations',
-    ]) {
-      await rekeyProjectRecords(`${prefix}${base}`, oldKey, newKey);
-    }
+    // Sequential: separate stores, but one rename step at a time.
+    await forEachSequential(
+      ['inkweld-media', 'inkweld-snapshots', 'inkweld-activations'],
+      base => rekeyProjectRecords(`${prefix}${base}`, oldKey, newKey)
+    );
 
     // 3. The cached project and the project list itself
     await moveCachedProject(`${prefix}projectCache`, oldKey, newKey, newSlug);
@@ -1597,9 +1605,13 @@ export class StorageContextService {
 
   /** Delete all IndexedDB databases and localStorage keys under a prefix */
   async clearPrefixedData(prefix: string): Promise<void> {
-    for (const name of await this.listAllDatabaseNames()) {
-      if (name.startsWith(prefix)) await deleteDatabase(name);
-    }
+    // Sequential: one database deletion at a time.
+    await forEachSequential(
+      (await this.listAllDatabaseNames()).filter(name =>
+        name.startsWith(prefix)
+      ),
+      name => deleteDatabase(name)
+    );
     const keys: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);

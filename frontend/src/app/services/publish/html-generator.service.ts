@@ -3,6 +3,7 @@ import {
   extractMediaId,
   isMediaUrl,
 } from '@components/image-paste/image-paste-plugin';
+import { firstResultSequential, forEachSequential } from '@inkweld/async';
 import { type Element, ElementType } from '@inkweld/index';
 import {
   type BackgroundSetting,
@@ -393,14 +394,15 @@ export class HtmlGeneratorService {
     const stem = project.coverImage?.replace(/\.[^.]+$/, '');
     if (stem && !idsToTry.includes(stem)) idsToTry.push(stem);
 
-    for (const id of idsToTry) {
+    // Sequential: candidates are tried in priority order; first hit wins.
+    const found = await firstResultSequential(idsToTry, async id => {
       const blob = await this.localStorage.getMedia(projectKey, id);
-      if (blob) return blob;
-    }
-    return null;
+      return blob ?? undefined;
+    });
+    return found ?? null;
   }
 
-  private async blobToBase64(blob: Blob): Promise<string> {
+  private blobToBase64(blob: Blob): Promise<string> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onloadend = () => resolve(reader.result as string);
@@ -417,7 +419,9 @@ export class HtmlGeneratorService {
     const sections: string[] = [];
     let chapterNumber = 0;
 
-    for (const item of plan.items) {
+    // Sequential: chapter numbers depend on the items before them, and images
+    // are resolved into a shared cache in document order.
+    await forEachSequential(plan.items, async item => {
       const content = await this.processItem(
         item,
         elements,
@@ -430,7 +434,7 @@ export class HtmlGeneratorService {
       if (item.type === PublishPlanItemType.Element && item.isChapter) {
         chapterNumber++;
       }
-    }
+    });
 
     return this.wrapInHtmlDocument(
       sections.join('\n'),
@@ -440,7 +444,7 @@ export class HtmlGeneratorService {
     );
   }
 
-  private async processItem(
+  private processItem(
     item: PublishPlanItem,
     elements: Element[],
     plan: PublishPlan,
@@ -452,22 +456,24 @@ export class HtmlGeneratorService {
         return this.processElement(item, elements, plan, chapterNumber);
 
       case PublishPlanItemType.Separator:
-        return this.processSeparator(item, plan.options);
+        return Promise.resolve(this.processSeparator(item, plan.options));
 
       case PublishPlanItemType.Frontmatter:
-        return this.processFrontmatter(item, plan.metadata);
+        return Promise.resolve(this.processFrontmatter(item, plan.metadata));
 
       case PublishPlanItemType.TableOfContents:
-        return this.buildTOC(plan, elements, item.title || 'Table of Contents');
+        return Promise.resolve(
+          this.buildTOC(plan, elements, item.title || 'Table of Contents')
+        );
 
       case PublishPlanItemType.Worldbuilding:
         return this.processWorldbuilding(item, elements);
 
       case PublishPlanItemType.Backmatter:
-        return this.processBackmatter(item, plan.metadata);
+        return Promise.resolve(this.processBackmatter(item, plan.metadata));
 
       default:
-        return '';
+        return Promise.resolve('');
     }
   }
 
@@ -558,13 +564,14 @@ export class HtmlGeneratorService {
       );
     }
     await this.resolveIcons(entries);
-    for (const entry of entries) {
+    // Sequential: entries render in order and resolve images into a shared cache.
+    await forEachSequential(entries, async entry => {
       const imageHref = await this.resolveImageHref(entry.imageRef);
       const background = await this.resolveEntryBackground(
         entry.appearance?.content
       );
       parts.push(this.renderWorldbuildingEntry(entry, imageHref, background));
-    }
+    });
     parts.push('</section>');
     return parts.join('\n');
   }
@@ -731,10 +738,11 @@ export class HtmlGeneratorService {
       if (entry.icon) names.add(entry.icon);
       for (const tab of entry.tabs) if (tab.icon) names.add(tab.icon);
     }
-    for (const name of names) {
-      if (this.resolvedIcons.has(name)) continue;
+    // Sequential: icons are fetched one at a time into the per-run cache.
+    await forEachSequential(names, async name => {
+      if (this.resolvedIcons.has(name)) return;
       this.resolvedIcons.set(name, await this.iconSvg.getSvg(name));
-    }
+    });
   }
 
   /**
@@ -817,7 +825,8 @@ export class HtmlGeneratorService {
   ): Promise<string> {
     const parts: string[] = [];
     const children = this.getChildElements(element, elements);
-    for (const child of children) {
+    // Sequential: sections keep the project's reading order.
+    await forEachSequential(children, async child => {
       if (
         child.type === ElementType.Item &&
         isPublishableByDefault(child.metadata)
@@ -833,7 +842,7 @@ export class HtmlGeneratorService {
         const html = await this.renderInlineWbHtml(child);
         if (html) parts.push(html);
       }
-    }
+    });
     return parts.join('\n');
   }
 
@@ -963,9 +972,10 @@ export class HtmlGeneratorService {
   private async resolveDocumentImages(content: unknown): Promise<void> {
     const ids = new Set<string>();
     this.collectMediaIds(content as ProseMirrorNode, ids);
-    for (const id of ids) {
+    // Sequential: images are loaded one at a time into the per-run cache.
+    await forEachSequential(ids, async id => {
       if (!this.resolvedImages.has(id)) await this.resolveMediaId(id);
-    }
+    });
   }
 
   /** Resolve one media id into the per-run cache, warning when it fails. */

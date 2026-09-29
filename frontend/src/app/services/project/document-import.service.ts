@@ -226,12 +226,12 @@ export class DocumentImportService {
    * @param provider - The IndexedDB provider
    * @param timeoutMs - Timeout in milliseconds
    */
-  private async waitForSync(
+  private waitForSync(
     provider: IndexeddbPersistence,
     timeoutMs: number
   ): Promise<void> {
     if (provider.synced) {
-      return;
+      return Promise.resolve();
     }
 
     return new Promise<void>(resolve => {

@@ -9,10 +9,10 @@ import * as schema from './schema';
 let db: BetterSQLite3Database<typeof schema> | null = null;
 let sqlite: Database.Database | null = null;
 
-export async function setupBetterSqliteDatabase(
+export function setupBetterSqliteDatabase(
   dbPath: string
 ): Promise<BetterSQLite3Database<typeof schema>> {
-  if (db) return db;
+  if (db) return Promise.resolve(db);
 
   sqlite = new Database(dbPath);
   // SQLite does not enforce foreign keys by default — required so
@@ -21,7 +21,7 @@ export async function setupBetterSqliteDatabase(
   sqlite.pragma('foreign_keys = ON');
   db = drizzle(sqlite, { schema });
 
-  return db;
+  return Promise.resolve(db);
 }
 
 export function getBetterSqliteDatabase(): BetterSQLite3Database<typeof schema> {

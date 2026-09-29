@@ -17,12 +17,12 @@ export async function mapWithConcurrency<T, R>(
   const results: R[] = new Array(items.length);
   let nextIndex = 0;
 
+  // Each worker claims the next unclaimed index, then continues with another.
   const worker = async (): Promise<void> => {
-    for (;;) {
-      const index = nextIndex++;
-      if (index >= items.length) return;
-      results[index] = await mapper(items[index]);
-    }
+    const index = nextIndex++;
+    if (index >= items.length) return;
+    results[index] = await mapper(items[index]);
+    return worker();
   };
 
   const workers: Promise<void>[] = [];

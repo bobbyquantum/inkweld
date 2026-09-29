@@ -2109,7 +2109,7 @@ registerTool({
 /**
  * Extract document content for a snapshot, handling Cloudflare vs Bun differences.
  */
-async function extractSnapshotContent(
+function extractSnapshotContent(
   ctx: McpContext,
   username: string,
   slug: string,

@@ -229,7 +229,7 @@ export class PasskeyService {
   }
 
   /** List passkeys registered for the current user. */
-  async list(): Promise<PasskeyListResponse> {
+  list(): Promise<PasskeyListResponse> {
     return firstValueFrom(this.api.listPasskeys());
   }
 

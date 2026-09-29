@@ -1,4 +1,5 @@
 import { inject, Injectable, signal } from '@angular/core';
+import { forEachSequential } from '@inkweld/async';
 import {
   type CreateSnapshotRequest,
   type DocumentSnapshot,
@@ -190,7 +191,9 @@ export class UnifiedSnapshotService {
     const snapshots: StoredSnapshot[] = [];
     const timestamp = new Date().toISOString().replaceAll(/[:.]/g, '-');
 
-    for (const docId of documentIds) {
+    // Sequential: each snapshot opens its document; keeps memory bounded and
+    // the snapshots in document order.
+    await forEachSequential(documentIds, async docId => {
       try {
         const element = this.projectState.elements().find(e => e.id === docId);
         const name = `${namePrefix} - ${element?.name ?? docId} (${timestamp})`;
@@ -203,7 +206,7 @@ export class UnifiedSnapshotService {
           err
         );
       }
-    }
+    });
 
     return snapshots;
   }
@@ -652,9 +655,10 @@ export class UnifiedSnapshotService {
         s.id.startsWith(`${projectKey}:`)
       );
 
-      for (const snapshot of projectUnsynced) {
-        await this.syncSnapshotToServer(snapshot);
-      }
+      // Sequential: snapshots are sent to the server one at a time, in order.
+      await forEachSequential(projectUnsynced, snapshot =>
+        this.syncSnapshotToServer(snapshot)
+      );
 
       await this.updatePendingCount();
       this.logger.info(
@@ -719,10 +723,10 @@ export class UnifiedSnapshotService {
    *
    * @returns Array of snapshots with full data for archiving
    */
-  async getSnapshotsForExport(): Promise<StoredSnapshot[]> {
+  getSnapshotsForExport(): Promise<StoredSnapshot[]> {
     const project = this.projectState.project();
     if (!project) {
-      throw new Error('No active project');
+      return Promise.reject(new Error('No active project'));
     }
 
     const projectKey = `${project.username}/${project.slug}`;
@@ -754,13 +758,14 @@ export class UnifiedSnapshotService {
     const projectKey = `${project.username}/${project.slug}`;
     const imported: StoredSnapshot[] = [];
 
-    for (const snapshot of snapshots) {
+    // Sequential: imports are ordered and write to the same IndexedDB store.
+    await forEachSequential(snapshots, async snapshot => {
       const stored = await this.localSnapshots.importSnapshot(
         projectKey,
         snapshot
       );
       imported.push(stored);
-    }
+    });
 
     // Try to sync to server if online
     if (!this.syncFactory.isLocalMode()) {

@@ -818,15 +818,18 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
   ): Promise<{ resolved: Map<string, string>; missed: boolean }> {
     const resolved = new Map<string, string>();
     let missed = false;
-    for (const [eraId, mediaId] of needed) {
-      try {
-        const url = await this.localStorage.getMediaUrl(projectKey, mediaId);
-        if (url) resolved.set(eraId, url);
-        else missed = true;
-      } catch {
-        missed = true;
-      }
-    }
+    // Independent cache lookups.
+    await Promise.all(
+      Array.from(needed, async ([eraId, mediaId]) => {
+        try {
+          const url = await this.localStorage.getMediaUrl(projectKey, mediaId);
+          if (url) resolved.set(eraId, url);
+          else missed = true;
+        } catch {
+          missed = true;
+        }
+      })
+    );
     return { resolved, missed };
   }
 
@@ -838,11 +841,17 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
   ): Promise<void> {
     try {
       await this.mediaSync.downloadAllFromServer(projectKey);
-      for (const [eraId, mediaId] of needed) {
-        if (resolved.has(eraId)) continue;
-        const url = await this.localStorage.getMediaUrl(projectKey, mediaId);
-        if (url) resolved.set(eraId, url);
-      }
+      await Promise.all(
+        Array.from(needed)
+          .filter(([eraId]) => !resolved.has(eraId))
+          .map(async ([eraId, mediaId]) => {
+            const url = await this.localStorage.getMediaUrl(
+              projectKey,
+              mediaId
+            );
+            if (url) resolved.set(eraId, url);
+          })
+      );
     } catch (err) {
       this.logger.warn(
         'Timeline',

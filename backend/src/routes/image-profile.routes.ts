@@ -257,7 +257,7 @@ const listProvidersRoute = createRoute({
   },
 });
 
-imageProfileAdminRoutes.openapi(listProvidersRoute, async (c) => {
+imageProfileAdminRoutes.openapi(listProvidersRoute, (c) => {
   const providers = IMAGE_PROVIDERS.map((id) => ({
     id,
     name: {

@@ -375,7 +375,7 @@ const getPermissionsRoute = createRoute({
   },
 });
 
-mcpKeyRoutes.openapi(getPermissionsRoute, async (c) => {
+mcpKeyRoutes.openapi(getPermissionsRoute, (c) => {
   return c.json({
     permissions: [
       {

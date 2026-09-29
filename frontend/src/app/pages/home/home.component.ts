@@ -835,16 +835,20 @@ export class HomeComponent implements OnInit, OnDestroy {
           name.startsWith(`${prefix}${username}:${slug}:`) ||
           name.startsWith(`${prefix}worldbuilding:${username}:${slug}:`);
 
-        for (const db of allDbs) {
-          if (db.name && matches(db.name)) {
-            await new Promise<void>(resolve => {
-              const req = indexedDB.deleteDatabase(db.name!);
-              req.onsuccess = () => resolve();
-              req.onerror = () => resolve();
-              req.onblocked = () => resolve();
-            });
-          }
-        }
+        // Separate databases, so the deletions are independent.
+        await Promise.all(
+          allDbs
+            .filter(db => db.name && matches(db.name))
+            .map(
+              db =>
+                new Promise<void>(resolve => {
+                  const req = indexedDB.deleteDatabase(db.name!);
+                  req.onsuccess = () => resolve();
+                  req.onerror = () => resolve();
+                  req.onblocked = () => resolve();
+                })
+            )
+        );
       } catch {
         // Best effort
       }
