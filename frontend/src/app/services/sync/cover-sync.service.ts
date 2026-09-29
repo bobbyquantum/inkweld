@@ -5,7 +5,7 @@ import {
   isLocalOrCloudMode,
   StorageContextService,
 } from '@services/core/storage-context.service';
-import { forEachConcurrent } from '@utils/sequential';
+import { forEachConcurrent } from '@inkweld/async';
 import { firstValueFrom } from 'rxjs';
 
 import { LoggerService } from '../core/logger.service';

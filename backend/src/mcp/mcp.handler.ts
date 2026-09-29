@@ -25,7 +25,7 @@ import {
   toCompleteResult,
 } from './mcp.types';
 import { logger } from '../services/logger.service';
-import { firstResultSequential, forEachSequential } from '../utils/sequential';
+import { firstResultSequential, forEachSequential } from '@inkweld/async';
 
 const mcpLog = logger.child('MCP');
 

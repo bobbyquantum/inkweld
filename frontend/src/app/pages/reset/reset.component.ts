@@ -10,7 +10,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Router } from '@angular/router';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
-import { forEachSequential } from '@utils/sequential';
+import { forEachSequential } from '@inkweld/async';
 
 /**
  * Component for resetting all browser storage and logging the user out.

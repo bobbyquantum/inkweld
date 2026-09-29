@@ -17,7 +17,7 @@ import {
   getCloudProviderDisplayName,
   type ServerConfig,
 } from '@services/core/storage-context.service';
-import { firstResultSequential } from '@utils/sequential';
+import { firstResultSequential } from '@inkweld/async';
 
 import { CloudSyncConfigService } from './cloud-sync-config.service';
 import {

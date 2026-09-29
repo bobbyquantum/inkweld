@@ -1,6 +1,6 @@
 import { computed, Injectable, signal } from '@angular/core';
 import { djb2Hex } from '@utils/schema-hash';
-import { forEachSequential } from '@utils/sequential';
+import { forEachSequential } from '@inkweld/async';
 import { stripTrailingSlashes } from '@utils/string-utils';
 
 import { environment } from '../../../environments/environment';

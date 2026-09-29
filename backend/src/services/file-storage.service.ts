@@ -5,7 +5,7 @@ import { config } from '../config/env';
 import { BadRequestError } from '../errors';
 import { logger } from './logger.service';
 import type { SlotNamespace } from './storage.service';
-import { firstResultSequential } from '../utils/sequential';
+import { firstResultSequential } from '@inkweld/async';
 
 export class FileStorageService {
   private readonly basePath: string;

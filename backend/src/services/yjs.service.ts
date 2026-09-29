@@ -12,7 +12,7 @@ import { logger } from './logger.service';
 import { activityService } from './activity.service';
 import type { DatabaseInstance } from '../types/context';
 import type { DocumentRevisionEntry } from '../types/document-revision.types';
-import { forEachSequential } from '../utils/sequential';
+import { forEachSequential } from '@inkweld/async';
 
 const yjsLog = logger.child('Yjs');
 

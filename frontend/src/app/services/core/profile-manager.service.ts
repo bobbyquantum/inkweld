@@ -1,7 +1,7 @@
 import { computed, inject, Injectable } from '@angular/core';
 import { AuthTokenService } from '@services/auth/auth-token.service';
 import { CloudTokenStoreService } from '@services/cloud-sync/cloud-token-store.service';
-import { forEachSequential, mapSequential } from '@utils/sequential';
+import { forEachSequential, mapSequential } from '@inkweld/async';
 
 import { LoggerService } from './logger.service';
 import { SetupService } from './setup.service';

@@ -303,11 +303,12 @@ SonarCloud flags `await` inside a loop (S9382) and `async` functions with no
 
 - Independent iterations: `await Promise.all(items.map(...))` (or
   `mapWithConcurrency` in `backend/src/utils/concurrency.ts` /
-  `forEachConcurrent` in `frontend/src/app/utils/sequential.ts` when the
-  fan-out must be bounded).
+  `forEachConcurrent` from `@inkweld/async` when the fan-out must be
+  bounded).
 - Work that must run one item at a time (ordered writes, IndexedDB
   transactions on one database, rate-limited remote calls, progress reporting,
-  early exit): use the helpers in `utils/sequential.ts` (`forEachSequential`,
+  early exit): use the helpers in `@inkweld/async` (`packages/inkweld-async`,
+  shared by frontend and backend: `forEachSequential`,
   `mapSequential`, `firstResultSequential`, `forEachPage` for cursor
   pagination, `chunk` for batches). Say in a one-line comment why it is
   sequential.

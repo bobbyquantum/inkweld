@@ -3,7 +3,7 @@ import { type Element, ElementType } from '@inkweld/index';
 import { type PublishStyles } from '@models/publish-style';
 import { isPublishableByDefault } from '@models/scene-metadata';
 import { $typst, TypstSnippet } from '@myriaddreamin/typst.ts/contrib/snippet';
-import { firstResultSequential, forEachSequential } from '@utils/sequential';
+import { firstResultSequential, forEachSequential } from '@inkweld/async';
 import { trimHyphens } from '@utils/string-utils';
 import { isWorldbuildingType } from '@utils/worldbuilding.utils';
 import { BehaviorSubject, type Observable, Subject } from 'rxjs';

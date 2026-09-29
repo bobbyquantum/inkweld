@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core';
-import { forEachSequential } from '@utils/sequential';
+import { forEachSequential } from '@inkweld/async';
 
 import { StorageContextService } from '../core/storage-context.service';
 import { type StorageConfig, StorageService } from './storage.service';

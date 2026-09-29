@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, signal } from '@angular/core';
 import { StorageContextService } from '@services/core/storage-context.service';
-import { forEachConcurrent, forEachSequential } from '@utils/sequential';
+import { forEachConcurrent, forEachSequential } from '@inkweld/async';
 import { firstValueFrom } from 'rxjs';
 
 import { LocalStorageService, type MediaInfo } from './local-storage.service';

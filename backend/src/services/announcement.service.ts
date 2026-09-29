@@ -7,7 +7,7 @@ import {
   type Announcement,
   type InsertAnnouncement,
 } from '../db/schema';
-import { forEachSequential } from '../utils/sequential';
+import { forEachSequential } from '@inkweld/async';
 
 export interface AnnouncementWithReadStatus extends Announcement {
   isRead: boolean;

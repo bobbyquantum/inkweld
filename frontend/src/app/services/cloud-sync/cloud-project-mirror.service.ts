@@ -11,7 +11,7 @@ import {
   type MediaInfo,
 } from '@services/local/local-storage.service';
 import { MediaSyncService } from '@services/local/media-sync.service';
-import { forEachSequential } from '@utils/sequential';
+import { forEachSequential } from '@inkweld/async';
 import * as Y from 'yjs';
 
 import {

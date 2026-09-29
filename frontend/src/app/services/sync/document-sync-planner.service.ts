@@ -9,7 +9,7 @@ import {
   type DocumentSyncRecord,
   DocumentSyncStateService,
 } from '@services/sync/document-sync-state.service';
-import { chunk, forEachSequential } from '@utils/sequential';
+import { chunk, forEachSequential } from '@inkweld/async';
 
 /**
  * Concurrent local IndexedDB digest reads while planning. Matches the bulk

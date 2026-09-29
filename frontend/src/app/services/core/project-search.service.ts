@@ -2,7 +2,7 @@ import { inject, Injectable, signal } from '@angular/core';
 import { MatDialog, type MatDialogRef } from '@angular/material/dialog';
 import { type Element, ElementType, type Project } from '@inkweld/index';
 import { flattenToPlainText } from '@utils/prosemirror-text';
-import { forEachSequential } from '@utils/sequential';
+import { forEachSequential } from '@inkweld/async';
 
 import { ProjectSearchDialogComponent } from '../../dialogs/project-search-dialog/project-search-dialog.component';
 import { DocumentService } from '../project/document.service';

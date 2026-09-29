@@ -6,7 +6,7 @@ import {
   type WritingSession,
   type InsertWritingSession,
 } from '../db/schema/writing-sessions';
-import { forEachSequential } from '../utils/sequential';
+import { forEachSequential } from '@inkweld/async';
 
 /**
  * Tracks per-user, per-document writing sessions derived from the Yjs

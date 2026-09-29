@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { resolveIconName } from '@models/worldbuilding-icons';
-import { firstResultSequential } from '@utils/sequential';
+import { firstResultSequential } from '@inkweld/async';
 
 /** Where the app serves the staged Material Symbols SVGs (see scripts/copy-icon-svgs.mjs). */
 const LOCAL_ICON_BASE = '/assets/icons/outlined/';

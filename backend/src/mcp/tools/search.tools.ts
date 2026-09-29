@@ -26,7 +26,7 @@ import { getRelationships as runtimeGetRelationships } from './yjs-runtime';
 import { xmlToMarkdown } from '@inkweld/prosemirror/markdown';
 import { encodeInkweldUri } from '@inkweld/prosemirror/uri';
 import { logger } from '../../services/logger.service';
-import { firstResultSequential } from '../../utils/sequential';
+import { firstResultSequential } from '@inkweld/async';
 import { mapWithConcurrency } from '../../utils/concurrency';
 
 const mcpSearchLog = logger.child('MCP-Search');

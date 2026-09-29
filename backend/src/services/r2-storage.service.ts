@@ -1,6 +1,6 @@
 import type { R2Bucket } from '@cloudflare/workers-types';
 import type { SlotNamespace } from './storage.service';
-import { forEachPage, forEachSequential } from '../utils/sequential';
+import { forEachPage, forEachSequential } from '@inkweld/async';
 
 /** Maximum number of keys R2 accepts in a single `delete` call. */
 const R2_DELETE_BATCH_SIZE = 1000;

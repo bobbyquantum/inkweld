@@ -16,7 +16,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslocoModule } from '@jsverse/transloco';
-import { forEachSequential } from '@utils/sequential';
+import { forEachSequential } from '@inkweld/async';
 
 import { type Element, ElementType } from '../../../api-client/model/models';
 import { DialogGatewayService } from '../../services/core/dialog-gateway.service';

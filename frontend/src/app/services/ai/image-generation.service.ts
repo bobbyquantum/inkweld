@@ -1,5 +1,5 @@
 import { inject, Injectable, signal } from '@angular/core';
-import { firstResultSequential, forEachSequential } from '@utils/sequential';
+import { firstResultSequential, forEachSequential } from '@inkweld/async';
 import { firstValueFrom, timeout, TimeoutError } from 'rxjs';
 
 import { AIImageGenerationService } from '../../../api-client/api/ai-image-generation.service';

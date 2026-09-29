@@ -1,5 +1,5 @@
 import { inject, Injectable, type OnDestroy } from '@angular/core';
-import { forEachSequential } from '@utils/sequential';
+import { forEachSequential } from '@inkweld/async';
 import { type Subscription } from 'rxjs';
 
 import { LoggerService } from '../core/logger.service';

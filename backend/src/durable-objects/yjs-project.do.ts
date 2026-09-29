@@ -92,7 +92,7 @@ import {
 } from '@inkweld/presence';
 import { ProjectPresenceService, type PresenceSocket } from '../services/presence.service';
 import type { DocumentRevisionEntry } from '../types/document-revision.types';
-import { forEachPage, forEachSequential } from '../utils/sequential';
+import { forEachPage, forEachSequential } from '@inkweld/async';
 
 const projDOLog = logger.child('YjsProjectDO');
 

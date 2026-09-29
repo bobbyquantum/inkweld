@@ -10,7 +10,7 @@ import {
   firstResultSequential,
   forEachSequential,
   mapSequential,
-} from '@utils/sequential';
+} from '@inkweld/async';
 import { isWorldbuildingType } from '@utils/worldbuilding.utils';
 import { BehaviorSubject, type Observable, Subject } from 'rxjs';
 

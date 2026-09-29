@@ -21,7 +21,7 @@ import { projectService } from './project.service';
 import { getStorageService } from './storage.service';
 import { userService } from './user.service';
 import { yjsService } from './yjs.service';
-import { forEachSequential } from '../utils/sequential';
+import { forEachSequential } from '@inkweld/async';
 
 export type DeleteAccountResult = 'deleted' | 'last-admin';
 

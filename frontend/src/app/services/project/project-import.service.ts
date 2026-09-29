@@ -9,7 +9,7 @@ import { type Generator } from '@models/generator';
 import { type MediaTag } from '@models/media-tag.model';
 import { type ElementTag, type TagDefinition } from '@models/tag.model';
 import JSZip from '@progress/jszip-esm';
-import { forEachSequential } from '@utils/sequential';
+import { forEachSequential } from '@inkweld/async';
 import { trimHyphens } from '@utils/string-utils';
 import { firstValueFrom } from 'rxjs';
 

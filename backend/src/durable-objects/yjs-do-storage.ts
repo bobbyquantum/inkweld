@@ -10,8 +10,8 @@
 
 import { isSyncFrame, isSyncUpdateFrame } from '../utils/yjs-document-utils';
 import { stripTrailingSlashes } from '../utils/string-utils';
-import { forEachPage, forEachSequential } from '../utils/sequential';
-import { forEachPage } from '../utils/sequential';
+import { forEachPage, forEachSequential } from '@inkweld/async';
+import { forEachPage } from '@inkweld/async';
 
 /**
  * Bytes as persisted by `put`. New writes store a `Uint8Array` (compact BLOB);

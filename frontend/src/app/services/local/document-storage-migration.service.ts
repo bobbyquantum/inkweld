@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core';
-import { forEachSequential } from '@utils/sequential';
+import { forEachSequential } from '@inkweld/async';
 import { yjsStateDigest } from '@utils/yjs-state-digest';
 import * as Y from 'yjs';
 

@@ -1,4 +1,4 @@
-import { forEachPage } from '@utils/sequential';
+import { forEachPage } from '@inkweld/async';
 import { stripTrailingSlashes } from '@utils/string-utils';
 
 import {

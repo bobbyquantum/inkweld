@@ -29,7 +29,7 @@ import { LoggerService } from '@services/core/logger.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { TimeSystemLibraryService } from '@services/timeline/time-system-library.service';
 import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
-import { forEachSequential } from '@utils/sequential';
+import { forEachSequential } from '@inkweld/async';
 import { nanoid } from 'nanoid';
 
 /** Key used to store the serialized timeline config in element metadata */

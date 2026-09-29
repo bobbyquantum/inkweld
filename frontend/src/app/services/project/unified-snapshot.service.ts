@@ -5,7 +5,7 @@ import {
   SnapshotsService,
   type SnapshotWithContent,
 } from '@inkweld/index';
-import { forEachSequential } from '@utils/sequential';
+import { forEachSequential } from '@inkweld/async';
 import {
   applyJsonToYjsMap,
   applyXmlToFragment,

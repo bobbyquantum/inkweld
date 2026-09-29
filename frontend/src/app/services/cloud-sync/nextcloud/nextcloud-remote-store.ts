@@ -1,4 +1,4 @@
-import { forEachSequential } from '@utils/sequential';
+import { forEachSequential } from '@inkweld/async';
 import { stripTrailingSlashes } from '@utils/string-utils';
 
 import {

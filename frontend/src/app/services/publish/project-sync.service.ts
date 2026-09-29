@@ -1,6 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import { type Element, ElementType } from '@inkweld/index';
-import { chunk, forEachSequential } from '@utils/sequential';
+import { chunk, forEachSequential } from '@inkweld/async';
 import { BehaviorSubject, type Observable, Subject } from 'rxjs';
 
 import { LoggerService } from '../core/logger.service';

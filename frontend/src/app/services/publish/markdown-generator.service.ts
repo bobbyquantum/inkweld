@@ -2,7 +2,7 @@ import { inject, Injectable } from '@angular/core';
 import { type Element, ElementType } from '@inkweld/index';
 import { xmlToMarkdown } from '@inkweld/prosemirror/markdown';
 import { isPublishableByDefault } from '@models/scene-metadata';
-import { forEachSequential } from '@utils/sequential';
+import { forEachSequential } from '@inkweld/async';
 import { trimHyphens } from '@utils/string-utils';
 import { isWorldbuildingType } from '@utils/worldbuilding.utils';
 import { BehaviorSubject, type Observable, Subject } from 'rxjs';

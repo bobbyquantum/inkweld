@@ -32,7 +32,7 @@ import {
   rateLimitBackoff,
   withJitter,
 } from '@services/sync/access-denial';
-import { chunk, forEachSequential } from '@utils/sequential';
+import { chunk, forEachSequential } from '@inkweld/async';
 import { yjsStateDigest } from '@utils/yjs-state-digest';
 import { keymap } from 'prosemirror-keymap';
 import { type Node as ProseMirrorModelNode } from 'prosemirror-model';

@@ -1,5 +1,5 @@
 import { inject, Injectable, signal } from '@angular/core';
-import { forEachSequential } from '@utils/sequential';
+import { forEachSequential } from '@inkweld/async';
 import { nanoid } from 'nanoid';
 import { BehaviorSubject } from 'rxjs';
 

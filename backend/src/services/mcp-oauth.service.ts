@@ -43,7 +43,7 @@ import { users } from '../db/schema/users';
 import { logger } from './logger.service';
 import { projectService } from './project.service';
 import { config } from '../config/env';
-import { forEachSequential } from '../utils/sequential';
+import { forEachSequential } from '@inkweld/async';
 
 const oauthLog = logger.child('OAuth');
 

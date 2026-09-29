@@ -12,7 +12,7 @@
  * - On render: Use resolveMediaUrl() to get a blob URL for display
  */
 
-import { forEachSequential } from '@utils/sequential';
+import { forEachSequential } from '@inkweld/async';
 import { type Node as ProseMirrorNode } from 'prosemirror-model';
 import { Plugin, PluginKey } from 'prosemirror-state';
 import { type EditorView } from 'prosemirror-view';
