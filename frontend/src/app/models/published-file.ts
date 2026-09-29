@@ -49,7 +49,7 @@ export interface PublishedFile {
   /** Name of the publish plan used */
   planName: string;
 
-  /** ID of the publish plan used (nullable for legacy records) */
+  /** ID of the publish plan used, if any */
   planId?: string | null;
 
   /** Sharing permission level */

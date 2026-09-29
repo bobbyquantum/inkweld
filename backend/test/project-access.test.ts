@@ -182,39 +182,6 @@ describe('resolveProjectAccess', () => {
     );
     expect(result).toEqual({ ok: false, reason: 'forbidden' });
   });
-
-  describe('legacy no-D1 mode', () => {
-    it('allows the owner (username match)', async () => {
-      const result = await resolveProjectAccess(
-        null,
-        'alice',
-        'my-novel',
-        {
-          userId: 'owner-1',
-          username: 'alice',
-        },
-        fakeDeps
-      );
-      expect(result).toEqual({
-        ok: true,
-        access: { canWrite: true, projectDbId: null, role: null },
-      });
-    });
-
-    it('denies a non-owner username', async () => {
-      const result = await resolveProjectAccess(
-        null,
-        'alice',
-        'my-novel',
-        {
-          userId: 'owner-1',
-          username: 'mallory',
-        },
-        fakeDeps
-      );
-      expect(result).toEqual({ ok: false, reason: 'forbidden' });
-    });
-  });
 });
 
 describe('resolveProjectAccess — account state and session revocation', () => {

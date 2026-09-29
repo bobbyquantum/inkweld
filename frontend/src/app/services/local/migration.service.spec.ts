@@ -442,11 +442,11 @@ describe('MigrationService', () => {
     });
   });
 
-  describe('migrateToServer (deprecated wrapper)', () => {
+  describe('migrateToServer', () => {
     it('should call migrateToServerMode with current config', async () => {
       setMockProjects([mockProjects[0]]);
 
-      await service.migrateToServer('http://localhost:8333');
+      await service.migrateToServer();
 
       // markProjectAsMigrated(slug, targetSlug, serverUrl, targetUsername)
       expect(localProjectService.markProjectAsMigrated).toHaveBeenCalledWith(
@@ -460,9 +460,9 @@ describe('MigrationService', () => {
     it('should throw error when no current config exists', async () => {
       storageContextServiceMock.getActiveConfig.mockReturnValue(null);
 
-      await expect(
-        service.migrateToServer('http://localhost:8333')
-      ).rejects.toThrow('No server configuration found');
+      await expect(service.migrateToServer()).rejects.toThrow(
+        'No server configuration found'
+      );
     });
 
     it('should throw error when no current user exists', async () => {
@@ -473,9 +473,9 @@ describe('MigrationService', () => {
         userProfile: undefined, // No user profile
       });
 
-      await expect(
-        service.migrateToServer('http://localhost:8333')
-      ).rejects.toThrow('No current user found');
+      await expect(service.migrateToServer()).rejects.toThrow(
+        'No current user found'
+      );
     });
   });
 
@@ -691,12 +691,10 @@ describe('MigrationService', () => {
     });
 
     it('should clear offline localStorage items', () => {
-      localStorage.setItem('inkweld-local-elements', 'test-elements');
       localStorage.setItem('inkweld-local-user', 'test-user');
 
       service.cleanupLocalData();
 
-      expect(localStorage.getItem('inkweld-local-elements')).toBeNull();
       expect(localStorage.getItem('inkweld-local-user')).toBeNull();
     });
 
@@ -739,17 +737,13 @@ describe('MigrationService', () => {
       );
     });
 
-    it('should not clear local elements or user when cleaning up specific projects', () => {
-      localStorage.setItem('inkweld-local-elements', 'test-elements');
+    it('should not clear the local user when cleaning up specific projects', () => {
       localStorage.setItem('inkweld-local-user', 'test-user');
       setMockProjects(mockProjects);
 
       service.cleanupLocalData(['test-project-1']);
 
-      // These should still exist after selective cleanup
-      expect(localStorage.getItem('inkweld-local-elements')).toBe(
-        'test-elements'
-      );
+      // The local user should still exist after selective cleanup
       expect(localStorage.getItem('inkweld-local-user')).toBe('test-user');
     });
 

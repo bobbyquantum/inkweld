@@ -42,9 +42,8 @@ export class ProjectCoverComponent implements OnChanges, OnDestroy {
   @Input() variant: ProjectCoverVariant = 'card';
 
   /**
-   * Optional cover media ID (from Yjs sync).
-   * When provided, uses the new offline-first approach to load cover.
-   * Falls back to legacy approach if not provided.
+   * Optional cover media ID (from Yjs sync). When absent, the id is derived
+   * from `project.coverImage`.
    */
   @Input() coverMediaId?: string;
 
@@ -115,7 +114,7 @@ export class ProjectCoverComponent implements OnChanges, OnDestroy {
   }
 
   /**
-   * Load cover - first try IndexedDB (with coverMediaId or legacy key), then fetch from server if online
+   * Load cover - first try IndexedDB (by coverMediaId), then fetch from server if online
    */
   private async loadCover(project: Project): Promise<void> {
     const projectKey = `${project.username}/${project.slug}`;
@@ -144,7 +143,7 @@ export class ProjectCoverComponent implements OnChanges, OnDestroy {
       let url: string | null = null;
 
       // Determine the effective media ID: prefer coverMediaId (from Yjs),
-      // then derive from project.coverImage filename, fall back to legacy 'cover'
+      // then derive from project.coverImage filename
       const effectiveMediaId =
         this.coverMediaId ||
         (project.coverImage
@@ -154,14 +153,6 @@ export class ProjectCoverComponent implements OnChanges, OnDestroy {
       // Try loading from IndexedDB using the effective media ID
       if (effectiveMediaId) {
         url = await this.localStorage.getMediaUrl(projectKey, effectiveMediaId);
-      }
-
-      // Fall back to legacy approach (fixed 'cover' key) for backward compatibility
-      if (!url) {
-        url = await this.localStorage.getProjectCoverUrl(
-          project.username,
-          project.slug
-        );
       }
 
       // If not in cache and we're online, try to fetch from server

@@ -47,7 +47,7 @@ describe('ProfileManagerDialogComponent', () => {
   const mockLocalConfig: ServerConfig = {
     id: 'local',
     type: 'local',
-    displayName: 'Local Mode',
+    displayName: 'Browser',
     addedAt: new Date().toISOString(),
     lastUsedAt: new Date().toISOString(),
     userProfile: { name: 'Test User', username: 'testuser' },
@@ -1546,7 +1546,6 @@ describe('ProfileManagerDialogComponent', () => {
       await component.migrateProjects();
 
       expect(migrationServiceMock.migrateToServer).toHaveBeenCalledWith(
-        'https://server.example.com',
         ['project-1'],
         renames
       );

@@ -28,7 +28,7 @@ describe('AuthTokenService', () => {
           {
             id: 'local',
             type: 'local',
-            displayName: 'Local Mode',
+            displayName: 'Browser',
             addedAt: new Date().toISOString(),
             lastUsedAt: new Date().toISOString(),
           },

@@ -102,20 +102,6 @@ export function computeCurrentStreak(activeDays: Iterable<string>, today: string
   return current;
 }
 
-/** @deprecated kept for callers that want both numbers from one series. */
-export function computeStreaks(
-  days: ActivityDay[],
-  today: string
-): { longest: number; current: number } {
-  return {
-    longest: computeLongestStreak(days),
-    current: computeCurrentStreak(
-      days.filter((d) => d.words > 0).map((d) => d.day),
-      today
-    ),
-  };
-}
-
 class ProfileActivityService {
   async yearForUser(
     db: DatabaseInstance,

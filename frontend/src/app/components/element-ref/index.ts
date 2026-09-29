@@ -18,7 +18,7 @@ export {
 
 // Extended schema for ngx-editor
 export {
-  createExtendedSchema,
+  buildInkweldSchema,
   extendedSchema,
   ngxEditorSchema,
 } from './extended-schema';

@@ -343,7 +343,7 @@ import { Context } from 'hono';
 - LevelDB stores per-project document state
 - Offline editing capability with automatic sync
 
-**Canvas contents** live in their own `canvases` shared type (element id → `{ layers, objects: Map<id, json>, order: Array<id>, frames }` — `frames` is a JSON array of canvas-size/crop frames, written only when present so older documents read back unchanged) rather than as a JSON blob on the owning element. Each object is its own entry, so two people drawing at once keep both sets of strokes and a stroke costs a small delta instead of a rewrite of the whole element array. The element's `canvasConfig` metadata is still written, but only after drawing pauses — it is the interchange format for archives, templates and the media-usage scan, not the live editing surface. `IElementSyncProvider` also exposes `listCanvasElementIds()` and `deleteCanvas(elementId)` so that deleting an element can unlink the pins/regions that point at it and drop its canvas map.
+**Canvas contents** live in their own `canvases` shared type (element id → `{ layers, objects: Map<id, json>, order: Array<id>, frames }` — `frames` is a JSON array of canvas-size/crop frames, written only when present) rather than as a JSON blob on the owning element. Each object is its own entry, so two people drawing at once keep both sets of strokes and a stroke costs a small delta instead of a rewrite of the whole element array. The element's `canvasConfig` metadata is still written, but only after drawing pauses — it is the interchange format for archives, templates and the media-usage scan, not the live editing surface. `IElementSyncProvider` also exposes `listCanvasElementIds()` and `deleteCanvas(elementId)` so that deleting an element can unlink the pins/regions that point at it and drop its canvas map.
 
 **IMPORTANT - Yjs Document ID Trailing Slash:**
 The frontend uses `username:slug:elements` while the backend/MCP uses `username:slug:elements/` with a trailing slash. **THIS IS NOT A BUG - DO NOT "FIX" IT.** The y-websocket library automatically normalizes these, and both refer to the same document. If you see this difference while debugging sync issues, look elsewhere for the actual problem.
@@ -378,20 +378,6 @@ media/snapshots/activations/project cache and the project list.
 `cloneDatabase` never overwrites an existing target: y-indexeddb `updates`
 records are appended under fresh keys, other records only fill free keys.
 Don't add a second copy step in front of it.
-
-Older builds stored these under the bare id, shared by every profile with
-the same username and slug. `DocumentStorageMigrationService` runs at startup
-(an app initializer, before the router can open a document) in two passes —
-prose (bare `username:slug:elementId`) and worldbuilding (bare
-`worldbuilding:username:slug:elementId`) — and copies each legacy database
-into **every** profile that has that project on the device (its elements
-database exists, or the project is in its project list), verifies each copy
-by re-reading it, and only then deletes the original. Databases no profile
-claims are left in place, and code that deletes a project's databases never
-touches bare names (they may belong to another profile). Each pass has its own
-localStorage flag (`inkweld-document-storage-migrated`,
-`inkweld-worldbuilding-storage-migrated`); a failed copy leaves that pass's
-flag unset so it retries next start.
 
 ### Bulk Sync Fast Path (Document Revision Manifest)
 
@@ -631,9 +617,9 @@ Every worldbuilding element owns a copy of its schema in a third Yjs map on
 the element doc, `schema` (alongside `worldbuilding` and `identity`), with keys
 `snapshot` (the `ElementTypeSchema`), `baseHash`, and `baseSchemaId`.
 `WorldbuildingService.getSchemaForElement` returns that copy, never the shared
-library object. Elements without a copy (pre-feature, or after "Revert to shared
-schema") get the shared schema copied in on first open by
-`getElementSchemaState` — that one recovery path is the migration.
+library object. Elements without a copy (imported without one, or after "Revert
+to shared schema") get the shared schema copied in on first open by
+`getElementSchemaState`.
 
 - **Drift detection**: `schemaContentHash` (`frontend/src/app/utils/schema-hash.ts`)
   hashes only `name/icon/description/tabs/defaultValues/defaultAppearance/defaultImage`,
@@ -788,20 +774,18 @@ Key facts:
 ### Project Archives
 
 - **Archive Format**: Projects can be exported as `.inkweld.zip` files
-- **Version Control**: Archives have `ARCHIVE_VERSION` (currently 1) for format compatibility
-- **Migration System**: When the archive format changes, migrations upgrade older archives during import
+- **Version Control**: Archives have `ARCHIVE_VERSION` (currently 1); import accepts only that version
 - **Key Files**:
   - `frontend/src/app/models/project-archive.ts` - Archive types and version constants
-  - `frontend/src/app/services/project/archive-migrations.ts` - Migration registry
-  - `frontend/src/app/services/project/project-import.service.ts` - Import logic with migration pipeline
+  - `frontend/src/app/services/project/project-import.service.ts` - Import logic and version check
   - `frontend/src/app/services/project/project-export.service.ts` - Export logic
   - `docs/site/docs/developer/project-archives.md` - Technical documentation
 
 **When Changing Archive Format**:
 1. Increment `ARCHIVE_VERSION` in `project-archive.ts`
-2. Add a migration function to `ARCHIVE_MIGRATIONS` in `archive-migrations.ts`
-3. Document the change in the version history JSDoc comment
-4. Add tests for the migration in `project-import.service.spec.ts`
+2. Document the change in the version history JSDoc comment
+3. Make the import upgrade archives at the previous version (and test it in
+   `project-import.service.spec.ts`), or accept that they can no longer be imported
 
 **Important**: The `PROTOCOL_VERSION` (backend) and `ARCHIVE_VERSION` (frontend) are separate concerns:
 - `PROTOCOL_VERSION` handles live Yjs sync compatibility between client/server

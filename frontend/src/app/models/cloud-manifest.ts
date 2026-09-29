@@ -38,11 +38,6 @@ export interface CloudManifest {
     accountId: string;
   };
   /**
-   * First author profile in this folder. Kept for older clients; the full
-   * list, including this one, is `profiles`.
-   */
-  profile: CloudManifestProfile;
-  /**
    * Every author profile that syncs through this account. One cloud account
    * can hold several authors; each owns the projects under its username.
    */
@@ -69,7 +64,6 @@ export function createCloudManifest(
   return {
     version: CLOUD_MANIFEST_VERSION,
     owner,
-    profile,
     profiles: [profile],
     projects: [],
     createdAt: now,
@@ -99,30 +93,24 @@ export function parseCloudManifest(text: string): CloudManifest | null {
   ) {
     return null;
   }
-  if (
-    typeof candidate.profile?.name !== 'string' ||
-    typeof candidate.profile?.username !== 'string'
-  ) {
-    return null;
-  }
-  const profile: CloudManifestProfile = {
-    name: candidate.profile.name,
-    username: candidate.profile.username,
-  };
-  const extra = Array.isArray(candidate.profiles)
-    ? candidate.profiles.filter(
-        (p): p is CloudManifestProfile =>
-          typeof p?.name === 'string' && typeof p.username === 'string'
+  const profiles = Array.isArray(candidate.profiles)
+    ? dedupeProfiles(
+        candidate.profiles
+          .filter(
+            (p): p is CloudManifestProfile =>
+              typeof p?.name === 'string' && typeof p.username === 'string'
+          )
+          .map(p => ({ name: p.name, username: p.username }))
       )
     : [];
+  if (profiles.length === 0) return null;
   return {
     version: CLOUD_MANIFEST_VERSION,
     owner: {
       provider: candidate.owner.provider,
       accountId: candidate.owner.accountId,
     },
-    profile,
-    profiles: dedupeProfiles([profile, ...extra]),
+    profiles,
     projects: Array.isArray(candidate.projects) ? candidate.projects : [],
     createdAt:
       typeof candidate.createdAt === 'string'
@@ -194,7 +182,6 @@ export function mergeCloudManifests(
   return {
     version: CLOUD_MANIFEST_VERSION,
     owner: newer.owner,
-    profile: { ...(profiles[0] ?? newer.profile) },
     profiles,
     projects: mergeManifestProjects(remote.projects, local.projects),
     createdAt:
@@ -222,8 +209,6 @@ export function manifestsEquivalent(
   a: CloudManifest,
   b: CloudManifest
 ): boolean {
-  if (a.profile.name !== b.profile.name) return false;
-  if (a.profile.username !== b.profile.username) return false;
   if (!sameProfiles(a.profiles, b.profiles)) return false;
   if (a.projects.length !== b.projects.length) return false;
   const sortedA = mergeManifestProjects(a.projects, []);
@@ -270,7 +255,6 @@ export function findManifestProfile(
 /**
  * Return a manifest that lists `profile`. An existing entry with the same
  * username is updated (display name may change); otherwise it is appended.
- * `profile` (the legacy single field) is left pointing at the first author.
  */
 export function withManifestProfile(
   manifest: CloudManifest,
@@ -283,10 +267,8 @@ export function withManifestProfile(
         sameUsername(p.username, profile.username) ? { ...p, ...profile } : p
       )
     : [...manifest.profiles, profile];
-  const first = profiles[0];
   return {
     ...manifest,
-    profile: first,
     profiles,
     updatedAt: new Date().toISOString(),
     revision: manifest.revision + 1,

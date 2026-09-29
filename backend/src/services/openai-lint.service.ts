@@ -68,7 +68,7 @@ export class OpenAILintService {
 
   /**
    * Read the lint configuration (API key, endpoint, model, custom prompt)
-   * from the database, falling back to env vars for legacy setups.
+   * from the database, falling back to env vars.
    */
   private async getConfig(db: DatabaseInstance): Promise<LintConfig> {
     const [providerCfg, modelCfg, promptCfg] = await Promise.all([

@@ -89,7 +89,7 @@ export const test = base.extend<LocalTestFixtures>({
             {
               id: 'local',
               type: 'local',
-              displayName: 'Local Mode',
+              displayName: 'Browser',
               userProfile: {
                 name: userProfile.name,
                 username: userProfile.username,
@@ -176,7 +176,7 @@ export const test = base.extend<LocalTestFixtures>({
             {
               id: 'local',
               type: 'local',
-              displayName: 'Local Mode',
+              displayName: 'Browser',
               userProfile: {
                 name: userProfile.name,
                 username: userProfile.username,
@@ -282,7 +282,7 @@ export const test = base.extend<LocalTestFixtures>({
             {
               id: 'local',
               type: 'local',
-              displayName: 'Local Mode',
+              displayName: 'Browser',
               userProfile: {
                 name: userProfile.name,
                 username: userProfile.username,

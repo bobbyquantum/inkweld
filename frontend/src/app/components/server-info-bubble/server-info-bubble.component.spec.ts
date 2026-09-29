@@ -34,7 +34,7 @@ describe('ServerInfoBubbleComponent', () => {
   const mockLocalConfig: ServerConfig = {
     id: 'local',
     type: 'local',
-    displayName: 'Local Mode',
+    displayName: 'Browser',
     addedAt: new Date().toISOString(),
     lastUsedAt: new Date().toISOString(),
   };

@@ -670,12 +670,7 @@ export class UnifiedSnapshotService {
     }
   }
 
-  /**
-   * Sync a single snapshot to server.
-   *
-   * Note: Server API still uses yDocState format. For new-format snapshots
-   * (with xmlContent), we skip syncing until the backend is updated.
-   */
+  /** Sync a single snapshot to server. */
   private async syncSnapshotToServer(snapshot: StoredSnapshot): Promise<void> {
     const project = this.projectState.project();
     if (!project || this.syncFactory.isLocalMode()) {
@@ -1012,16 +1007,7 @@ export class UnifiedSnapshotService {
     );
   }
 
-  /**
-   * Convert server snapshot to local format.
-   *
-   * Server snapshots use the legacy yDocState format. We convert them
-   * to StoredSnapshot with empty xmlContent for now, since restore
-   * will fall back to using yDocState if xmlContent is empty.
-   */
-  /**
-   * Convert server snapshot to local format.
-   */
+  /** Convert server snapshot to local format. */
   private serverSnapshotToLocal(
     server: SnapshotWithContent
   ): StoredSnapshot | undefined {

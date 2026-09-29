@@ -206,13 +206,6 @@ export class TimelineEventDialogComponent {
     });
   }
 
-  protected combinedStart(): string {
-    return this.model().startUnits.join(this.data.system.parseSeparator || '-');
-  }
-  protected combinedEnd(): string {
-    return this.model().endUnits.join(this.data.system.parseSeparator || '-');
-  }
-
   protected onStartDateChange(value: string): void {
     this.applyIsoDateTo(value, 'start');
     this.startDateSignal.set(value);

@@ -895,6 +895,51 @@ describe('ProjectService', () => {
       service.error.set(undefined);
     });
 
+    it('returns the cached cover for a media id', async () => {
+      const cached = new Blob(['cached'], { type: 'image/jpeg' });
+      localStorage.getMedia.mockResolvedValue(cached);
+      imagesApi.getProjectCover.mockReturnValue(apiOk(cached));
+
+      const result = await service.getProjectCover(
+        'alice',
+        'project-1',
+        'cover-1'
+      );
+
+      expect(result).toBe(cached);
+      expect(localStorage.getMedia).toHaveBeenCalledWith(
+        'alice/project-1',
+        'cover-1'
+      );
+    });
+
+    it('caches a fetched cover under its media id', async () => {
+      const coverBlob = new Blob(['test'], { type: 'image/jpeg' });
+      localStorage.getMedia.mockResolvedValue(null);
+      localStorage.saveMedia.mockClear();
+      imagesApi.getProjectCover.mockReturnValue(apiOk(coverBlob));
+
+      await service.getProjectCover('alice', 'project-1', 'cover-1');
+
+      expect(localStorage.saveMedia).toHaveBeenCalledWith(
+        'alice/project-1',
+        'cover-1',
+        coverBlob
+      );
+    });
+
+    it('neither reads nor writes the cache without a media id', async () => {
+      const coverBlob = new Blob(['test'], { type: 'image/jpeg' });
+      localStorage.getMedia.mockClear();
+      localStorage.saveMedia.mockClear();
+      imagesApi.getProjectCover.mockReturnValue(apiOk(coverBlob));
+
+      await service.getProjectCover('alice', 'project-1');
+
+      expect(localStorage.getMedia).not.toHaveBeenCalled();
+      expect(localStorage.saveMedia).not.toHaveBeenCalled();
+    });
+
     it('retrieves project cover blob from API', async () => {
       const coverBlob = new Blob(['test'], { type: 'image/jpeg' });
       imagesApi.getProjectCover.mockReturnValue(apiOk(coverBlob));
@@ -992,45 +1037,6 @@ describe('ProjectService', () => {
 
       // Verify error was set with correct code
       expect(service.error()?.code).toBe('NETWORK_ERROR');
-    });
-
-    it('clears the IndexedDB cache after successful delete', async () => {
-      // Set up API to succeed
-      imagesApi.deleteProjectCover.mockReturnValue(
-        apiOk({ message: 'Cover deleted' })
-      );
-      api.listUserProjects.mockReturnValue(apiOk(BASE));
-      localStorage.deleteProjectCover.mockResolvedValue(undefined);
-
-      await service.deleteProjectCover('alice', 'project-1');
-
-      // Should clear the cached cover
-      expect(localStorage.deleteProjectCover).toHaveBeenCalledWith(
-        'alice',
-        'project-1'
-      );
-    });
-
-    it('continues even if IndexedDB cache clear fails', async () => {
-      // Set up API to succeed
-      imagesApi.deleteProjectCover.mockReturnValue(
-        apiOk({ message: 'Cover deleted' })
-      );
-      api.listUserProjects.mockReturnValue(apiOk(BASE));
-      localStorage.deleteProjectCover.mockRejectedValue(
-        new Error('IndexedDB error')
-      );
-
-      // Should not throw - cache clear failure is non-fatal
-      await expect(
-        service.deleteProjectCover('alice', 'project-1')
-      ).resolves.not.toThrow();
-
-      // Should still have called the cache clear
-      expect(localStorage.deleteProjectCover).toHaveBeenCalledWith(
-        'alice',
-        'project-1'
-      );
     });
   });
 

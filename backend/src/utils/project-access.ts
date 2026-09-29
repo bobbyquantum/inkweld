@@ -56,7 +56,7 @@ const defaultDeps: ProjectAccessDeps = {
 export interface ProjectAccessResolution {
   canWrite: boolean;
   projectDbId: string | null;
-  /** Collaboration role ('editor' | 'commenter' | 'viewer'), or null for the owner / legacy mode. */
+  /** Collaboration role ('editor' | 'commenter' | 'viewer'), or null for the owner. */
   role: string | null;
 }
 
@@ -77,31 +77,21 @@ export type ProjectAccessResult =
 /**
  * Resolve a session's access to a project by owner + slug.
  *
- * - With a D1 binding: owner check via `project.userId`, then a real
- *   collaboration lookup so editors/commenters/viewers are honoured.
- * - Without a D1 binding (legacy deployments): owner-only check, matching
- *   the historical WS behaviour.
+ * Owner check via `project.userId`, then a collaboration lookup so
+ * editors/commenters/viewers are honoured.
  *
  * Returns `{ ok: true, access }` on success or `{ ok: false, reason }` on
  * denial. The caller maps the result to its transport (WS messages or HTTP
  * responses).
  */
 export async function resolveProjectAccess(
-  db: D1DatabaseInstance | null,
+  db: D1DatabaseInstance,
   projectOwner: string,
   slug: string,
   session: SessionClaims,
   deps: ProjectAccessDeps = defaultDeps
 ): Promise<ProjectAccessResult> {
   const jwtUserId = session.userId ?? session.sub;
-
-  // Legacy owner-only check for deployments without a D1 binding.
-  if (!db) {
-    if (session.username !== projectOwner) {
-      return { ok: false, reason: 'forbidden' };
-    }
-    return { ok: true, access: { canWrite: true, projectDbId: null, role: null } };
-  }
 
   const project = await deps.findByUsernameAndSlug(db, projectOwner, slug);
   if (!project) {

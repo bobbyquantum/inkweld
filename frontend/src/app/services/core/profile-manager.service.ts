@@ -401,8 +401,7 @@ function countProjects(record: MigrationRecord): string {
 }
 
 function nameOf(record: MigrationRecord): string {
-  const name = record.displayName?.trim();
-  return !name || name === 'Local Mode' ? 'Browser' : name;
+  return record.displayName?.trim() || 'Browser';
 }
 
 function asUser(record: MigrationRecord): string {

@@ -73,15 +73,6 @@ app.get('/', (c) => {
   });
 });
 
-// Legacy OAuth providers endpoint
-app.get('/providers', (c) => {
-  return c.json({
-    providers: {
-      github: config.github.enabled,
-    },
-  });
-});
-
 // API documentation
 app.get('/api', (c) => {
   return c.json({
