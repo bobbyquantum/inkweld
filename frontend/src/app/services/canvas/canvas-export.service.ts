@@ -108,7 +108,7 @@ export class CanvasExportService {
   ): Promise<Blob> {
     const dataUrl = this.regionDataUrl(rect, { ...options, pixelRatio });
     if (!dataUrl) throw new Error('Canvas stage is not ready');
-    return dataUrlToBlob(dataUrl);
+    return await dataUrlToBlob(dataUrl);
   }
 
   /** The visible viewport in world coordinates (an empty canvas export). */

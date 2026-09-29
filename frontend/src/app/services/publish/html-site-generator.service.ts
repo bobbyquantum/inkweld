@@ -17,6 +17,7 @@ import JSZip from '@progress/jszip-esm';
 import { LoggerService } from '@services/core/logger.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
 import { ProjectStateService } from '@services/project/project-state.service';
+import { forEachSequential } from '@utils/sequential';
 import { trimHyphens } from '@utils/string-utils';
 import { isWorldbuildingType } from '@utils/worldbuilding.utils';
 import { BehaviorSubject, type Observable } from 'rxjs';
@@ -221,7 +222,9 @@ export class HtmlSiteGeneratorService {
       });
       this.html.setImageHrefResolver(id => this.resolveMedia(id, mediaAssets));
       try {
-        for (const [index, page] of pages.entries()) {
+        // Sequential: rendering shares the generator's heading-id and image
+        // caches, so pages render one at a time in order.
+        await forEachSequential(pages, async (page, index) => {
           this.throwIfCancelled();
           this.updateProgress({
             phase: HtmlSitePhase.Rendering,
@@ -233,7 +236,7 @@ export class HtmlSiteGeneratorService {
           this.html.resetHeadingIds();
           page.body = await page.render();
           page.headings = this.html.takeRenderedHeadings();
-        }
+        });
       } finally {
         this.html.setElementRefResolver(null);
         this.html.setImageHrefResolver(null);

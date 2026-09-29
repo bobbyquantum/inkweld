@@ -32,6 +32,7 @@ import { ProjectSyncService } from '@services/local/project-sync.service';
 import { LiveDocumentRegistryService } from '@services/project/live-document-registry.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
+import { firstResultSequential, forEachSequential } from '@utils/sequential';
 import type * as Y from 'yjs';
 
 import {
@@ -211,9 +212,8 @@ export class CloudSyncEngineService {
     const pending = [...this.pendingProjects()];
     if (pending.length === 0) return;
     this.pendingProjects.set(new Set());
-    for (const key of pending) {
-      await this.syncProject(key);
-    }
+    // Sequential: one remote project sync at a time.
+    await forEachSequential(pending, key => this.syncProject(key));
   }
 
   // ───────────────────────────────────────────────────────────────────────────
@@ -361,20 +361,29 @@ export class CloudSyncEngineService {
     manifest: CloudManifest
   ): Promise<CloudManifest> {
     let next = manifest;
-    for (const tombstone of await this.projectSync.getAllTombstones()) {
-      const parts = splitProjectKey(tombstone.projectKey);
-      if (!parts) continue;
-      await this.mirror.deleteRemoteProject(store, parts.username, parts.slug);
-      next = upsertManifestProject(next, {
-        key: tombstone.projectKey,
-        slug: parts.slug,
-        title: '',
-        createdAt: tombstone.deletedAt,
-        updatedAt: tombstone.deletedAt,
-        deletedAt: tombstone.deletedAt,
-      });
-      await this.projectSync.removeTombstone(tombstone.projectKey);
-    }
+    // Sequential: the manifest is threaded through each step, and a tombstone
+    // is only removed once its remote folder is gone.
+    await forEachSequential(
+      await this.projectSync.getAllTombstones(),
+      async tombstone => {
+        const parts = splitProjectKey(tombstone.projectKey);
+        if (!parts) return;
+        await this.mirror.deleteRemoteProject(
+          store,
+          parts.username,
+          parts.slug
+        );
+        next = upsertManifestProject(next, {
+          key: tombstone.projectKey,
+          slug: parts.slug,
+          title: '',
+          createdAt: tombstone.deletedAt,
+          updatedAt: tombstone.deletedAt,
+          deletedAt: tombstone.deletedAt,
+        });
+        await this.projectSync.removeTombstone(tombstone.projectKey);
+      }
+    );
     return next;
   }
 
@@ -385,18 +394,20 @@ export class CloudSyncEngineService {
   ): Promise<void> {
     const localProjects = this.localProjects.projects();
     const me = this.storageContext.getActiveConfig()?.userProfile?.username;
-    for (const entry of manifest.projects) {
+    // Sequential: remote requests are rate limited and local state changes
+    // as entries are adopted.
+    await forEachSequential(manifest.projects, async entry => {
       const parts = splitProjectKey(entry.key);
-      if (!parts) continue;
+      if (!parts) return;
       const local = localProjects.find(
         p => p.username === parts.username && p.slug === parts.slug
       );
       // Several authors can share one account. New remote projects are only
       // adopted for this profile's own author; projects already on this
       // device keep following remote changes whoever wrote them.
-      if (!local && me && !sameUsername(parts.username, me)) continue;
+      if (!local && me && !sameUsername(parts.username, me)) return;
       await this.adoptRemoteEntry(store, entry, parts, local);
-    }
+    });
   }
 
   /** One manifest entry: delete, adopt, and/or fetch its cover */
@@ -448,9 +459,10 @@ export class CloudSyncEngineService {
     files: Map<string, RemoteFileInfo>
   ): Promise<ProjectSyncSummary[]> {
     const summaries: ProjectSyncSummary[] = [];
-    for (const project of this.localProjects.projects()) {
+    // Sequential: projects share the remote file listing and rate limit.
+    await forEachSequential(this.localProjects.projects(), async project => {
       const key = projectKeyOf(project.username, project.slug);
-      if (!this.activation.isActivated(key)) continue;
+      if (!this.activation.isActivated(key)) return;
       summaries.push(
         await this.mirror.syncProject(
           store,
@@ -459,7 +471,7 @@ export class CloudSyncEngineService {
           files
         )
       );
-    }
+    });
     return summaries;
   }
 
@@ -572,14 +584,18 @@ export class CloudSyncEngineService {
     store: RemoteStore,
     manifest: CloudManifest
   ): Promise<void> {
-    for (let attempt = 0; attempt < 3; attempt++) {
+    // Sequential: each retry re-reads the manifest after the previous conflict.
+    const written = await firstResultSequential([0, 1, 2], async () => {
       const remote = await this.fetchManifestForWrite(store);
       const next = remote ? mergeCloudManifests(manifest, remote) : manifest;
-      if (remote && manifestsEquivalent(remote, next)) return;
-      if (await this.tryPutManifest(store, next)) return;
+      if (remote && manifestsEquivalent(remote, next)) return true;
+      if (await this.tryPutManifest(store, next)) return true;
       this.logger.debug('CloudSync', 'Manifest changed concurrently; retrying');
+      return undefined;
+    });
+    if (!written) {
+      throw new Error('Could not update the cloud manifest after retries');
     }
-    throw new Error('Could not update the cloud manifest after retries');
   }
 
   /** Current remote manifest (null if absent), remembering its version tag */

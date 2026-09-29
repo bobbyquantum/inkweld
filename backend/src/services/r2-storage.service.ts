@@ -1,5 +1,6 @@
 import type { R2Bucket } from '@cloudflare/workers-types';
 import type { SlotNamespace } from './storage.service';
+import { forEachPage, forEachSequential } from '../utils/sequential';
 
 /** Maximum number of keys R2 accepts in a single `delete` call. */
 const R2_DELETE_BATCH_SIZE = 1000;
@@ -113,12 +114,16 @@ export class R2StorageService {
    */
   private async listAll(prefix: string): Promise<R2Object[]> {
     const objects: R2Object[] = [];
-    let cursor: string | undefined;
-    do {
-      const page = await this.bucket.list({ prefix, cursor });
-      objects.push(...page.objects);
-      cursor = page.truncated ? page.cursor : undefined;
-    } while (cursor);
+    // Each page needs the previous page's cursor, so pages load one at a time.
+    await forEachPage(
+      async (cursor: string | undefined) => {
+        const page = await this.bucket.list({ prefix, cursor });
+        return { page: page.objects, next: page.truncated ? page.cursor || undefined : undefined };
+      },
+      (pageObjects) => {
+        objects.push(...pageObjects);
+      }
+    );
     return objects;
   }
 
@@ -133,10 +138,12 @@ export class R2StorageService {
     // counts against the Worker's subrequest limit (1000 to Cloudflare
     // services on the Free plan), so a per-key delete fails partway through
     // on large projects.
+    const batches: string[][] = [];
     for (let i = 0; i < objects.length; i += R2_DELETE_BATCH_SIZE) {
-      const keys = objects.slice(i, i + R2_DELETE_BATCH_SIZE).map((obj) => obj.key);
-      await this.bucket.delete(keys);
+      batches.push(objects.slice(i, i + R2_DELETE_BATCH_SIZE).map((obj) => obj.key));
     }
+    // Sequential: keeps the number of in-flight subrequests low.
+    await forEachSequential(batches, (keys) => this.bucket.delete(keys));
   }
 
   /**

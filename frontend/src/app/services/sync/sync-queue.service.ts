@@ -259,7 +259,10 @@ export class SyncQueueService {
    * Process the sync queue one project at a time
    */
   private async processQueue(): Promise<void> {
-    while (this.queue.length > 0 && this.queueState().isActive) {
+    // The queue can grow or be cancelled while a project syncs, so it is
+    // re-checked before each project; projects are strictly one at a time.
+    const processNext = async (): Promise<void> => {
+      if (this.queue.length === 0 || !this.queueState().isActive) return;
       const projectKey = this.queue.shift()!;
 
       this.queueState.update(s => ({
@@ -271,7 +274,9 @@ export class SyncQueueService {
 
       // Small delay between projects to avoid overwhelming the server
       await new Promise(resolve => setTimeout(resolve, 100));
-    }
+      return processNext();
+    };
+    await processNext();
 
     // Queue complete
     this.queueState.update(s => ({

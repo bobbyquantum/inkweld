@@ -1,3 +1,4 @@
+import { forEachSequential } from '@utils/sequential';
 import { stripTrailingSlashes } from '@utils/string-utils';
 
 import {
@@ -85,14 +86,19 @@ export class NextcloudRemoteStore implements RemoteStore {
     const root = appFolderPathname(creds);
     const files: RemoteFileInfo[] = [];
     const pending = [folderPath];
-    while (pending.length > 0) {
+    // Breadth-first walk: listing a folder is what discovers its subfolders,
+    // so each request depends on the previous one.
+    const walk = async (): Promise<void> => {
+      if (pending.length === 0) return;
       const current = pending.shift()!;
       const entries = await this.listFolder(creds, current);
       const selfPath = normalizeFolder(current);
       for (const entry of entries) {
         this.collectEntry(entry, root, selfPath, files, pending, options);
       }
-    }
+      return walk();
+    };
+    await walk();
     return files;
   }
 
@@ -267,11 +273,12 @@ export class NextcloudRemoteStore implements RemoteStore {
       current += `/${segment}`;
       folders.push(current);
     }
-    for (const folder of folders) {
-      if (this.knownFolders.has(folder)) continue;
+    // Sequential: a folder can only be created once its parent exists.
+    await forEachSequential(folders, async folder => {
+      if (this.knownFolders.has(folder)) return;
       await davMkcol(creds, buildDavUrl(creds, folder), this.fetchFn);
       this.knownFolders.add(folder);
-    }
+    });
   }
 
   /** Map WebDAV errors onto the provider-neutral error types */

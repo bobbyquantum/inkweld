@@ -315,14 +315,14 @@ class ConfigService {
   /**
    * Get all config values
    */
-  async getAll(db: DatabaseInstance): Promise<ConfigValues> {
+  getAll(db: DatabaseInstance): Promise<ConfigValues> {
     return this.getMany(db, Object.keys(CONFIG_KEYS) as ConfigKey[]);
   }
 
   /**
    * Get all config values for a category
    */
-  async getByCategory(db: DatabaseInstance, category: ConfigCategory): Promise<ConfigValues> {
+  getByCategory(db: DatabaseInstance, category: ConfigCategory): Promise<ConfigValues> {
     const keys = (Object.entries(CONFIG_KEYS) as [ConfigKey, (typeof CONFIG_KEYS)[ConfigKey]][])
       .filter(([, keyConfig]) => keyConfig.category === category)
       .map(([key]) => key);
@@ -371,7 +371,7 @@ class ConfigService {
   /**
    * Check if a feature is enabled (helper for common checks)
    */
-  async isFeatureEnabled(
+  isFeatureEnabled(
     db: DatabaseInstance,
     feature: 'userApproval' | 'localUsers' | 'github' | 'aiLint' | 'aiImage'
   ): Promise<boolean> {

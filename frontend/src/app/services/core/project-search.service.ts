@@ -2,6 +2,7 @@ import { inject, Injectable, signal } from '@angular/core';
 import { MatDialog, type MatDialogRef } from '@angular/material/dialog';
 import { type Element, ElementType, type Project } from '@inkweld/index';
 import { flattenToPlainText } from '@utils/prosemirror-text';
+import { forEachSequential } from '@utils/sequential';
 
 import { ProjectSearchDialogComponent } from '../../dialogs/project-search-dialog/project-search-dialog.component';
 import { DocumentService } from '../project/document.service';
@@ -361,8 +362,10 @@ export class ProjectSearchService {
     const results: ProjectSearchResult[] = [];
     let scanned = 0;
 
-    for (const element of searchableElements) {
-      if (abortSignal.aborted) return results;
+    // Sequential: documents are opened one at a time, with a UI yield and a
+    // progress update between each, and the search stops once aborted.
+    await forEachSequential(searchableElements, async element => {
+      if (abortSignal.aborted) return;
 
       const result = await this.searchElementDocument(
         project,
@@ -383,7 +386,7 @@ export class ProjectSearchService {
         [...results],
         false
       );
-    }
+    });
 
     return results;
   }

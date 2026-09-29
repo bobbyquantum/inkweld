@@ -21,6 +21,7 @@ import { projectService } from './project.service';
 import { getStorageService } from './storage.service';
 import { userService } from './user.service';
 import { yjsService } from './yjs.service';
+import { forEachSequential } from '../utils/sequential';
 
 export type DeleteAccountResult = 'deleted' | 'last-admin';
 
@@ -68,12 +69,12 @@ class AccountDeletionService {
     const db = c.get('db');
     const storage = getStorageService(c.get('storage'));
     const owned = await projectService.findByUserId(db, userId);
-    for (const project of owned) {
+    await forEachSequential(owned, async (project) => {
       await yjsService.destroyProject(username, project.slug);
       await storage.deleteProjectDirectory(username, project.slug);
       await destroyProjectDurableObject(c, username, project.slug);
       await projectService.delete(db, project.id, userId, project.slug);
-    }
+    });
   }
 
   /**
@@ -95,15 +96,19 @@ class AccountDeletionService {
     if (hasAvatar) {
       cleanups.unshift(['avatar', () => storage.deleteUserAvatar(username)]);
     }
-    for (const [what, cleanup] of cleanups) {
-      try {
-        await cleanup();
-      } catch (error) {
-        logger.warn('AccountDeletion', `Failed to delete user ${what}`, {
-          reason: error instanceof Error ? error.message : String(error),
-        });
-      }
-    }
+    // The images are separate files, so the cleanups are independent and each
+    // one handles its own failure.
+    await Promise.all(
+      cleanups.map(async ([what, cleanup]) => {
+        try {
+          await cleanup();
+        } catch (error) {
+          logger.warn('AccountDeletion', `Failed to delete user ${what}`, {
+            reason: error instanceof Error ? error.message : String(error),
+          });
+        }
+      })
+    );
   }
 }
 

@@ -9,6 +9,7 @@ import { type Generator } from '@models/generator';
 import { type MediaTag } from '@models/media-tag.model';
 import { type ElementTag, type TagDefinition } from '@models/tag.model';
 import JSZip from '@progress/jszip-esm';
+import { forEachSequential } from '@utils/sequential';
 import { trimHyphens } from '@utils/string-utils';
 import { firstValueFrom } from 'rxjs';
 
@@ -594,7 +595,7 @@ export class ProjectImportService {
   /**
    * Create a new project (offline or server mode).
    */
-  private async createProject(
+  private createProject(
     archive: ProjectArchive,
     slug: string
   ): Promise<Project> {
@@ -660,8 +661,9 @@ export class ProjectImportService {
     username: string,
     slug: string
   ): Promise<void> {
-    for (let i = 0; i < documents.length; i++) {
-      const doc = documents[i];
+    // Sequential: progress is reported per document and each write opens an
+    // IndexedDB-backed Yjs document.
+    await forEachSequential(documents, async (doc, i) => {
       this.updateProgress(
         ImportPhase.ImportingDocuments,
         40 + (15 * i) / documents.length,
@@ -673,7 +675,7 @@ export class ProjectImportService {
 
       const documentId = `${username}:${slug}:${doc.elementId}`;
       await this.documentImport.writeDocumentContent(documentId, doc.content);
-    }
+    });
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -688,8 +690,9 @@ export class ProjectImportService {
     username: string,
     slug: string
   ): Promise<void> {
-    for (let i = 0; i < worldbuilding.length; i++) {
-      const wb = worldbuilding[i];
+    // Sequential: progress is reported per element and each write opens an
+    // IndexedDB-backed Yjs document.
+    await forEachSequential(worldbuilding, async (wb, i) => {
       this.updateProgress(
         ImportPhase.ImportingWorldbuilding,
         55 + (15 * i) / worldbuilding.length,
@@ -700,7 +703,7 @@ export class ProjectImportService {
       );
 
       await this.documentImport.writeWorldbuildingData(wb, username, slug);
-    }
+    });
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -796,9 +799,8 @@ export class ProjectImportService {
     snapshots: ArchiveSnapshot[],
     projectKey: string
   ): Promise<void> {
-    for (let i = 0; i < snapshots.length; i++) {
-      const snapshot = snapshots[i];
-
+    // Sequential: progress is reported per snapshot and imports are ordered.
+    await forEachSequential(snapshots, async (snapshot, i) => {
       this.updateProgress(
         ImportPhase.ImportingSnapshots,
         78 + (5 * i) / snapshots.length,
@@ -828,7 +830,7 @@ export class ProjectImportService {
         );
         // Continue with other snapshots
       }
-    }
+    });
 
     this.logger.info('ProjectImport', `Imported ${snapshots.length} snapshots`);
   }
@@ -866,8 +868,9 @@ export class ProjectImportService {
     const zip = await new JSZip().loadAsync(file);
     const isOffline = this.syncFactory.isLocalMode();
 
-    for (let i = 0; i < archive.media.length; i++) {
-      const media = archive.media[i];
+    // Sequential: progress is reported per file; blobs are large, and cover
+    // uploads must not overlap.
+    await forEachSequential(archive.media, async (media, i) => {
       this.updateProgress(
         ImportPhase.ImportingMedia,
         85 + (10 * i) / archive.media.length,
@@ -883,7 +886,7 @@ export class ProjectImportService {
           'ProjectImport',
           `Media file not found in archive: ${media.archivePath}`
         );
-        continue;
+        return;
       }
 
       const blob = await mediaFile.async('blob');
@@ -909,7 +912,7 @@ export class ProjectImportService {
           // Don't fail the entire import for cover upload failure
         }
       }
-    }
+    });
   }
 
   /**

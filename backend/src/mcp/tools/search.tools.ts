@@ -26,6 +26,8 @@ import { getRelationships as runtimeGetRelationships } from './yjs-runtime';
 import { xmlToMarkdown } from '@inkweld/prosemirror/markdown';
 import { encodeInkweldUri } from '@inkweld/prosemirror/uri';
 import { logger } from '../../services/logger.service';
+import { firstResultSequential } from '../../utils/sequential';
+import { mapWithConcurrency } from '../../utils/concurrency';
 
 const mcpSearchLog = logger.child('MCP-Search');
 
@@ -146,7 +148,7 @@ interface SearchResult {
  * Get elements from Yjs (uses appropriate service based on runtime).
  * Throws on read failure so callers can distinguish "empty project" from "read error".
  */
-async function getElements(ctx: McpContext, username: string, slug: string): Promise<Element[]> {
+function getElements(ctx: McpContext, username: string, slug: string): Promise<Element[]> {
   const service = getYjsService(ctx);
   return service.getElements(username, slug);
 }
@@ -582,8 +584,14 @@ registerTool({
     const results: EnrichedResult[] = [];
     const elementDataCache = new Map<string, Record<string, unknown>>();
 
-    for (const elem of wbElements) {
-      const data = await getWorldbuildingData(ctx, username, slug, elem.id);
+    // Load with bounded concurrency, then process in element order (ties in
+    // score are resolved by first-seen order below).
+    const wbData = await mapWithConcurrency(wbElements, 8, (elem) =>
+      getWorldbuildingData(ctx, username, slug, elem.id)
+    );
+
+    for (const [index, elem] of wbElements.entries()) {
+      const data = wbData[index];
       if (!data) continue;
 
       if (includeFullContent) {
@@ -756,14 +764,16 @@ async function probeElementImage(
   try {
     const storageBinding = ctx.env?.STORAGE as Parameters<typeof getStorageService>[0] | undefined;
     const storageService = getStorageService(storageBinding);
-    for (const ext of ['png', 'jpg']) {
-      const imageFilename = `element-${elementId}.${ext}`;
-      const exists = await storageService.projectFileExists(username, slug, imageFilename);
-      if (exists) {
-        identityData ??= {};
-        identityData.image = `media://${imageFilename}`;
-        break;
-      }
+    // Sequential: probe png before jpg and stop at the first hit.
+    const imageFilename = await firstResultSequential(['png', 'jpg'], async (ext) => {
+      const candidate = `element-${elementId}.${ext}`;
+      return (await storageService.projectFileExists(username, slug, candidate))
+        ? candidate
+        : undefined;
+    });
+    if (imageFilename) {
+      identityData ??= {};
+      identityData.image = `media://${imageFilename}`;
     }
   } catch {
     // Storage probe failed, skip — not critical

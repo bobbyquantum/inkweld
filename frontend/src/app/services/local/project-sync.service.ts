@@ -110,7 +110,7 @@ export class ProjectSyncService {
    * Initialize the sync database.
    * Automatically resets connection if storage context has changed (different config ID).
    */
-  private async ensureDb(): Promise<IDBDatabase> {
+  private ensureDb(): Promise<IDBDatabase> {
     const expectedDbName = this.dbConfig.dbName;
 
     // Check if storage context changed (different config ID = different database name)
@@ -124,7 +124,7 @@ export class ProjectSyncService {
     }
 
     if (this.db) {
-      return this.db;
+      return Promise.resolve(this.db);
     }
 
     if (this.initPromise) {

@@ -1,4 +1,5 @@
 import { inject, Injectable, signal } from '@angular/core';
+import { forEachSequential } from '@utils/sequential';
 import { nanoid } from 'nanoid';
 import { BehaviorSubject } from 'rxjs';
 
@@ -335,12 +336,13 @@ export class PublishedFilesService {
     const files = this.filesSubject.value;
 
     // Delete all blobs
-    for (const file of files) {
-      await this.localStorage.deleteMedia(
+    // Sequential: one IndexedDB delete at a time.
+    await forEachSequential(files, file =>
+      this.localStorage.deleteMedia(
         projectKey,
         `${PUBLISHED_BLOB_PREFIX}${file.id}`
-      );
-    }
+      )
+    );
 
     // Clear metadata
     this.saveOfflineMetadata(projectKey, []);

@@ -43,6 +43,7 @@ import { users } from '../db/schema/users';
 import { logger } from './logger.service';
 import { projectService } from './project.service';
 import { config } from '../config/env';
+import { forEachSequential } from '../utils/sequential';
 
 const oauthLog = logger.child('OAuth');
 
@@ -689,16 +690,16 @@ class McpOAuthService {
         )
       );
 
-    for (const existing of existingSessions) {
-      await this.revokeSession(db, existing.id, 'Superseded by new session');
-    }
+    await forEachSequential(existingSessions, (existing) =>
+      this.revokeSession(db, existing.id, 'Superseded by new session')
+    );
 
     // Create collaborator entries for each explicitly granted project.
     // These rows are honoured as per-project overrides even when the session
     // also has accessAllProjects set (the default role applies to every other
     // project the user owns, and explicit grants take precedence).
-    for (const grant of data.grants) {
-      await db.insert(projectCollaborators).values({
+    await forEachSequential(data.grants, (grant) =>
+      db.insert(projectCollaborators).values({
         projectId: grant.projectId,
         userId: data.userId,
         mcpSessionId: sessionId,
@@ -708,8 +709,8 @@ class McpOAuthService {
         invitedBy: data.userId,
         invitedAt: now,
         acceptedAt: now,
-      });
-    }
+      })
+    );
 
     // Generate access token
     const tokens = await this.generateTokens(db, sessionId, refreshToken, data.issuer, env);
@@ -1348,11 +1349,9 @@ class McpOAuthService {
       .where(and(isNull(mcpOAuthSessions.revokedAt), lt(mcpOAuthSessions.expiresAt, now)));
 
     // Remove collaborator entries
-    for (const session of expiredSessions) {
-      await db
-        .delete(projectCollaborators)
-        .where(eq(projectCollaborators.mcpSessionId, session.id));
-    }
+    await forEachSequential(expiredSessions, (session) =>
+      db.delete(projectCollaborators).where(eq(projectCollaborators.mcpSessionId, session.id))
+    );
 
     // Delete sessions
     const result = await db

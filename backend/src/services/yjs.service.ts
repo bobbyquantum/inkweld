@@ -12,6 +12,7 @@ import { logger } from './logger.service';
 import { activityService } from './activity.service';
 import type { DatabaseInstance } from '../types/context';
 import type { DocumentRevisionEntry } from '../types/document-revision.types';
+import { forEachSequential } from '../utils/sequential';
 
 const yjsLog = logger.child('Yjs');
 
@@ -528,7 +529,8 @@ export class YjsService {
       };
 
       const entries: DocumentRevisionEntry[] = [];
-      for (const documentId of documentIds) {
+      // Sequential: LevelDB transactions on one persistence handle run in order.
+      await forEachSequential(documentIds, async (documentId) => {
         try {
           // Browser clients join y-websocket with an empty room name, so a
           // document edited over the WebSocket is persisted as `<id>/` (see
@@ -547,7 +549,7 @@ export class YjsService {
           });
           entries.push({ documentId, revision: null, unknown: true });
         }
-      }
+      });
       return entries;
     } finally {
       // Close a handle we opened ourselves unless a document from this project
@@ -824,7 +826,9 @@ export class YjsService {
     db: DatabaseInstance
   ): Promise<void> {
     try {
-      for (const [id, nextElem] of next) {
+      // Sequential: activity rows are written in a stable order, and the first
+      // failure stops the remaining writes (best-effort, logged below).
+      await forEachSequential(next, async ([id, nextElem]) => {
         if (prev.has(id)) {
           const prevElem = prev.get(id)!;
           if (prevElem.name !== nextElem.name) {
@@ -847,8 +851,8 @@ export class YjsService {
             metadata: { elementType: nextElem.type },
           });
         }
-      }
-      for (const [id, prevElem] of prev) {
+      });
+      await forEachSequential(prev, async ([id, prevElem]) => {
         if (!next.has(id)) {
           await activityService.record(db, {
             projectId,
@@ -859,7 +863,7 @@ export class YjsService {
             metadata: { elementType: prevElem.type },
           });
         }
-      }
+      });
     } catch (err) {
       yjsLog.error('Failed to emit element diff activity events', err, { projectId, userId });
     }

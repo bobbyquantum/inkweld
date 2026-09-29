@@ -6,6 +6,11 @@ import {
 } from '@models/publish-style';
 import { isPublishableByDefault } from '@models/scene-metadata';
 import JSZip from '@progress/jszip-esm';
+import {
+  firstResultSequential,
+  forEachSequential,
+  mapSequential,
+} from '@utils/sequential';
 import { isWorldbuildingType } from '@utils/worldbuilding.utils';
 import { BehaviorSubject, type Observable, Subject } from 'rxjs';
 
@@ -482,8 +487,10 @@ export class EpubGeneratorService {
       message: `Processing content (0/${plan.items.length})...`,
     });
 
-    for (const item of plan.items) {
-      if (this.isCancelled) break;
+    // Sequential: chapter numbers and reading order depend on the items before
+    // them, and images are packaged (and named) in document order.
+    await forEachSequential(plan.items, async item => {
+      if (this.isCancelled) return;
 
       this.updateProgress({
         detail: `Processing item ${processedCount + 1}...`,
@@ -510,7 +517,7 @@ export class EpubGeneratorService {
         overallProgress: Math.round(progress),
         message: `Processing content (${processedCount}/${plan.items.length})...`,
       });
-    }
+    });
 
     return slots;
   }
@@ -705,7 +712,8 @@ export class EpubGeneratorService {
   ): Promise<Slot[]> {
     const slots: Slot[] = [{ type: 'group', title, level: 0 }];
     const children = this.getChildElements(element, elements);
-    for (const child of children) {
+    // Sequential: slots keep the project's reading order.
+    await forEachSequential(children, async child => {
       const level = Math.max(1, child.level - element.level);
       if (
         child.type === ElementType.Item &&
@@ -720,7 +728,7 @@ export class EpubGeneratorService {
         const chapter = await this.inlineWbChapter(child, undefined, level);
         if (chapter) slots.push(this.chapterSlot(chapter));
       }
-    }
+    });
     return slots;
   }
 
@@ -803,11 +811,12 @@ export class EpubGeneratorService {
 
     if (!idsToTry.includes('cover')) idsToTry.push('cover');
 
-    for (const id of idsToTry) {
+    // Sequential: candidates are tried in priority order; first hit wins.
+    const found = await firstResultSequential(idsToTry, async id => {
       const blob = await this.localStorage.getMedia(projectKey, id);
-      if (blob) return blob;
-    }
-    return null;
+      return blob ?? undefined;
+    });
+    return found ?? null;
   }
 
   /**
@@ -873,7 +882,8 @@ export class EpubGeneratorService {
   private async resolveDocumentImages(content: ProseMirrorNode): Promise<void> {
     const sources = new Set<string>();
     this.collectImageSources(content, sources);
-    for (const src of sources) await this.resolveImage(src);
+    // Sequential: images are packaged (and named) one at a time in document order.
+    await forEachSequential(sources, src => this.resolveImage(src));
   }
 
   private collectImageSources(node: ProseMirrorNode, out: Set<string>): void {
@@ -1458,9 +1468,12 @@ export class EpubGeneratorService {
     const entries = await this.worldbuildingRenderer.renderItem(item, elements);
     if (entries.length === 0) return '';
     const parts: string[] = [`<div class="ink-wb-section">`];
-    for (const entry of entries) {
-      parts.push(await this.renderWorldbuildingEntry(entry));
-    }
+    // Sequential: entries render in order and package their images as they go.
+    parts.push(
+      ...(await mapSequential(entries, entry =>
+        this.renderWorldbuildingEntry(entry)
+      ))
+    );
     parts.push('</div>');
     return parts.join('\n');
   }
@@ -1483,9 +1496,12 @@ export class EpubGeneratorService {
         `<h2 class="ink-wb-section-title">${escapeXml(item.title)}</h2>`
       );
     }
-    for (const entry of entries) {
-      parts.push(await this.renderWorldbuildingEntry(entry));
-    }
+    // Sequential: entries render in order and package their images as they go.
+    parts.push(
+      ...(await mapSequential(entries, entry =>
+        this.renderWorldbuildingEntry(entry)
+      ))
+    );
     parts.push('</div>');
     return [
       {

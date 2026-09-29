@@ -57,7 +57,7 @@ const listConfigKeysRoute = createRoute({
   },
 });
 
-adminConfigRoutes.openapi(listConfigKeysRoute, async (c) => {
+adminConfigRoutes.openapi(listConfigKeysRoute, (c) => {
   const keys = Object.entries(CONFIG_KEYS).map(([key, config]) => ({
     key,
     category: config.category,

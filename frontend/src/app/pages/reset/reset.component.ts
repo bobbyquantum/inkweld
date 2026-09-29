@@ -10,6 +10,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Router } from '@angular/router';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
+import { forEachSequential } from '@utils/sequential';
 
 /**
  * Component for resetting all browser storage and logging the user out.
@@ -75,11 +76,13 @@ export class ResetComponent {
     if ('databases' in indexedDB) {
       try {
         const databases = await indexedDB.databases();
-        for (const db of databases) {
+        // Sequential: one database deletion at a time; a failure falls back to
+        // the known databases below.
+        await forEachSequential(databases, async db => {
           if (db.name) {
             await this.deleteDatabase(db.name);
           }
-        }
+        });
         return;
       } catch {
         // Fall through to known databases
@@ -87,9 +90,7 @@ export class ResetComponent {
     }
 
     // Fallback: delete known databases
-    for (const dbName of knownDatabases) {
-      await this.deleteDatabase(dbName);
-    }
+    await forEachSequential(knownDatabases, name => this.deleteDatabase(name));
   }
 
   /**

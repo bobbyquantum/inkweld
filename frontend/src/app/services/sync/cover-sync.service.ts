@@ -5,6 +5,7 @@ import {
   isLocalOrCloudMode,
   StorageContextService,
 } from '@services/core/storage-context.service';
+import { forEachConcurrent } from '@utils/sequential';
 import { firstValueFrom } from 'rxjs';
 
 import { LoggerService } from '../core/logger.service';
@@ -106,31 +107,34 @@ export class CoverSyncService {
   private async findUncachedCovers(
     projects: Project[]
   ): Promise<CoverDownloadTask[]> {
-    const tasks: CoverDownloadTask[] = [];
+    // Independent read-only lookups; Promise.all keeps the project order.
+    const candidates = await Promise.all(
+      projects.map(async (project): Promise<CoverDownloadTask | undefined> => {
+        if (!project.coverImage) {
+          return undefined;
+        }
 
-    for (const project of projects) {
-      if (!project.coverImage) {
-        continue;
-      }
+        const projectKey = `${project.username}/${project.slug}`;
+        const mediaId = this.filenameToMediaId(project.coverImage);
 
-      const projectKey = `${project.username}/${project.slug}`;
-      const mediaId = this.filenameToMediaId(project.coverImage);
+        const hasCached = await this.localStorage.hasMedia(projectKey, mediaId);
+        if (hasCached) {
+          return undefined;
+        }
 
-      const hasCached = await this.localStorage.hasMedia(projectKey, mediaId);
-      if (hasCached) {
-        continue;
-      }
+        return {
+          projectKey,
+          username: project.username,
+          slug: project.slug,
+          filename: project.coverImage,
+          mediaId,
+        };
+      })
+    );
 
-      tasks.push({
-        projectKey,
-        username: project.username,
-        slug: project.slug,
-        filename: project.coverImage,
-        mediaId,
-      });
-    }
-
-    return tasks;
+    return candidates.filter(
+      (task): task is CoverDownloadTask => task !== undefined
+    );
   }
 
   /**
@@ -139,30 +143,19 @@ export class CoverSyncService {
    */
   private async downloadCovers(tasks: CoverDownloadTask[]): Promise<number> {
     let downloaded = 0;
-    let index = 0;
 
-    const runNext = async (): Promise<void> => {
-      while (index < tasks.length) {
-        const task = tasks[index++];
-        try {
-          await this.downloadCover(task);
-          downloaded++;
-        } catch (error: unknown) {
-          const message =
-            error instanceof Error ? error.message : String(error);
-          this.logger.warn(
-            'CoverSync',
-            `Failed to download cover for ${task.projectKey}: ${message}`
-          );
-        }
+    await forEachConcurrent(tasks, MAX_CONCURRENCY, async task => {
+      try {
+        await this.downloadCover(task);
+        downloaded++;
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        this.logger.warn(
+          'CoverSync',
+          `Failed to download cover for ${task.projectKey}: ${message}`
+        );
       }
-    };
-
-    const workers = Array.from(
-      { length: Math.min(MAX_CONCURRENCY, tasks.length) },
-      () => runNext()
-    );
-    await Promise.all(workers);
+    });
 
     return downloaded;
   }

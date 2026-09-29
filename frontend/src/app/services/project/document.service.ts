@@ -32,6 +32,7 @@ import {
   rateLimitBackoff,
   withJitter,
 } from '@services/sync/access-denial';
+import { chunk, forEachSequential } from '@utils/sequential';
 import { yjsStateDigest } from '@utils/yjs-state-digest';
 import { keymap } from 'prosemirror-keymap';
 import { type Node as ProseMirrorModelNode } from 'prosemirror-model';
@@ -565,7 +566,7 @@ export class DocumentService {
       'DocumentService',
       `Loading content from IndexedDB: ${documentId}`
     );
-    return this.loadContentFromIndexedDB(documentId);
+    return await this.loadContentFromIndexedDB(documentId);
   }
 
   /**
@@ -2646,35 +2647,40 @@ export class DocumentService {
     const digests = new Map<string, string>();
 
     // Process in batches for controlled concurrency
-    for (let i = 0; i < documentIds.length; i += concurrency) {
-      const batch = documentIds.slice(i, i + concurrency);
-      const sourceBatch = sourceDocumentIds?.slice(i, i + concurrency);
-      const results = await Promise.allSettled(
-        batch.map((id, idx) =>
-          this.syncDocumentToServer(
-            id,
-            30000,
-            sourceBatch ? sourceBatch[idx] : undefined,
-            sourceConfigId
+    // Sequential batches: each batch runs concurrently, the next one starts
+    // once it has settled.
+    await forEachSequential(
+      chunk(documentIds, concurrency),
+      async (batch, batchIndex) => {
+        const i = batchIndex * concurrency;
+        const sourceBatch = sourceDocumentIds?.slice(i, i + concurrency);
+        const results = await Promise.allSettled(
+          batch.map((id, idx) =>
+            this.syncDocumentToServer(
+              id,
+              30000,
+              sourceBatch ? sourceBatch[idx] : undefined,
+              sourceConfigId
+            )
           )
-        )
-      );
+        );
 
-      results.forEach((result, idx) => {
-        const docId = batch[idx];
-        if (result.status === 'fulfilled') {
-          success.push(docId);
-          if (result.value) digests.set(docId, result.value);
-        } else {
-          this.logger.error(
-            'DocumentService',
-            `syncDocumentsToServer: Failed to sync ${docId}`,
-            result.reason
-          );
-          failed.push(docId);
-        }
-      });
-    }
+        results.forEach((result, idx) => {
+          const docId = batch[idx];
+          if (result.status === 'fulfilled') {
+            success.push(docId);
+            if (result.value) digests.set(docId, result.value);
+          } else {
+            this.logger.error(
+              'DocumentService',
+              `syncDocumentsToServer: Failed to sync ${docId}`,
+              result.reason
+            );
+            failed.push(docId);
+          }
+        });
+      }
+    );
 
     this.logger.info(
       'DocumentService',
@@ -2798,34 +2804,39 @@ export class DocumentService {
     const failed: string[] = [];
 
     // Process in batches for controlled concurrency
-    for (let i = 0; i < worldbuildingIds.length; i += concurrency) {
-      const batch = worldbuildingIds.slice(i, i + concurrency);
-      const sourceBatch = sourceWorldbuildingIds?.slice(i, i + concurrency);
-      const results = await Promise.allSettled(
-        batch.map((id, idx) =>
-          this.syncWorldbuildingToServer(
-            id,
-            30000,
-            sourceBatch ? sourceBatch[idx] : undefined,
-            sourceConfigId
+    // Sequential batches: each batch runs concurrently, the next one starts
+    // once it has settled.
+    await forEachSequential(
+      chunk(worldbuildingIds, concurrency),
+      async (batch, batchIndex) => {
+        const i = batchIndex * concurrency;
+        const sourceBatch = sourceWorldbuildingIds?.slice(i, i + concurrency);
+        const results = await Promise.allSettled(
+          batch.map((id, idx) =>
+            this.syncWorldbuildingToServer(
+              id,
+              30000,
+              sourceBatch ? sourceBatch[idx] : undefined,
+              sourceConfigId
+            )
           )
-        )
-      );
+        );
 
-      results.forEach((result, idx) => {
-        const wbId = batch[idx];
-        if (result.status === 'fulfilled') {
-          success.push(wbId);
-        } else {
-          this.logger.error(
-            'DocumentService',
-            `syncWorldbuildingToServerBatch: Failed to sync ${wbId}`,
-            result.reason
-          );
-          failed.push(wbId);
-        }
-      });
-    }
+        results.forEach((result, idx) => {
+          const wbId = batch[idx];
+          if (result.status === 'fulfilled') {
+            success.push(wbId);
+          } else {
+            this.logger.error(
+              'DocumentService',
+              `syncWorldbuildingToServerBatch: Failed to sync ${wbId}`,
+              result.reason
+            );
+            failed.push(wbId);
+          }
+        });
+      }
+    );
 
     this.logger.info(
       'DocumentService',

@@ -5,6 +5,7 @@ import { config } from '../config/env';
 import { BadRequestError } from '../errors';
 import { logger } from './logger.service';
 import type { SlotNamespace } from './storage.service';
+import { firstResultSequential } from '../utils/sequential';
 
 export class FileStorageService {
   private readonly basePath: string;
@@ -147,19 +148,22 @@ export class FileStorageService {
       } catch {
         return; // Directory (or parent) doesn't exist yet
       }
-      for (const entry of entries) {
-        const full = path.join(dir, entry.name);
-        if (entry.isDirectory()) {
-          await walk(full);
-        } else if (entry.isFile()) {
-          try {
-            const stats = await fs.stat(full);
-            total += stats.size;
-          } catch {
-            // Best-effort — skip unreadable files
+      // Sizes are summed, so entries can be walked concurrently.
+      await Promise.all(
+        entries.map(async (entry) => {
+          const full = path.join(dir, entry.name);
+          if (entry.isDirectory()) {
+            await walk(full);
+          } else if (entry.isFile()) {
+            try {
+              const stats = await fs.stat(full);
+              total += stats.size;
+            } catch {
+              // Best-effort — skip unreadable files
+            }
           }
-        }
-      }
+        })
+      );
     };
 
     await walk(projectPath);
@@ -264,32 +268,33 @@ export class FileStorageService {
     try {
       const entries = await fs.readdir(projectPath, { withFileTypes: true });
 
-      for (const entry of entries) {
-        if (entry.isFile()) {
-          // Skip non-media files and internal files
-          if (entry.name.startsWith('.') || entry.name.endsWith('.level')) {
-            continue;
-          }
+      // Skip non-media files and internal files, and apply the prefix filter
+      const files = entries.filter(
+        (entry) =>
+          entry.isFile() &&
+          !entry.name.startsWith('.') &&
+          !entry.name.endsWith('.level') &&
+          (!prefix || entry.name.startsWith(prefix))
+      );
 
-          // Apply prefix filter if provided
-          if (prefix && !entry.name.startsWith(prefix)) {
-            continue;
-          }
-
+      // Each stat is independent; Promise.all keeps the directory order.
+      const listed = await Promise.all(
+        files.map(async (entry) => {
           const filePath = path.join(projectPath, entry.name);
           const stats = await fs.stat(filePath);
 
           // Determine mime type from extension
           const mimeType = lookup(entry.name) || undefined;
 
-          results.push({
+          return {
             filename: entry.name,
             size: stats.size,
             mimeType: typeof mimeType === 'string' ? mimeType : undefined,
             uploadedAt: stats.mtime,
-          });
-        }
-      }
+          };
+        })
+      );
+      results.push(...listed);
     } catch {
       // Directory might not exist yet, return empty array
       return [];
@@ -362,7 +367,8 @@ export class FileStorageService {
     namespace: SlotNamespace,
     key: string
   ): Promise<{ data: Buffer; contentType: string } | null> {
-    for (const ext of FileStorageService.SLOT_EXTENSIONS) {
+    // Sequential: probe extensions in order and stop at the first stored variant.
+    const found = await firstResultSequential(FileStorageService.SLOT_EXTENSIONS, async (ext) => {
       const slotPath = this.slotPath(namespace, key, ext);
       try {
         const data = await fs.readFile(slotPath);
@@ -375,34 +381,40 @@ export class FileStorageService {
         if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
           throw error;
         }
+        return undefined;
       }
-    }
-    return null;
+    });
+    return found ?? null;
   }
 
   async hasSlotImage(namespace: SlotNamespace, key: string): Promise<boolean> {
-    for (const ext of FileStorageService.SLOT_EXTENSIONS) {
+    // Sequential: stop at the first extension that exists.
+    const found = await firstResultSequential(FileStorageService.SLOT_EXTENSIONS, async (ext) => {
       try {
         await fs.access(this.slotPath(namespace, key, ext));
         return true;
       } catch {
         // Try the next extension.
+        return undefined;
       }
-    }
-    return false;
+    });
+    return found === true;
   }
 
   /** Delete every stored variant for a slot. Missing files are not an error. */
   async deleteSlotImage(namespace: SlotNamespace, key: string): Promise<void> {
-    for (const ext of FileStorageService.SLOT_EXTENSIONS) {
-      try {
-        await fs.unlink(this.slotPath(namespace, key, ext));
-      } catch (error) {
-        if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
-          throw error;
+    // Each variant is a separate file, so they can be removed concurrently.
+    await Promise.all(
+      FileStorageService.SLOT_EXTENSIONS.map(async (ext) => {
+        try {
+          await fs.unlink(this.slotPath(namespace, key, ext));
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+            throw error;
+          }
         }
-      }
-    }
+      })
+    );
   }
 }
 

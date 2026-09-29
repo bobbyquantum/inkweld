@@ -12,6 +12,7 @@
  * - On render: Use resolveMediaUrl() to get a blob URL for display
  */
 
+import { forEachSequential } from '@utils/sequential';
 import { type Node as ProseMirrorNode } from 'prosemirror-model';
 import { Plugin, PluginKey } from 'prosemirror-state';
 import { type EditorView } from 'prosemirror-view';
@@ -157,8 +158,9 @@ async function handlePaste(
   if (imageFiles.length > 0) {
     event.preventDefault();
 
-    // Process each image file
-    for (const file of imageFiles) {
+    // Sequential: each image is inserted at the current selection, so the
+    // images must land in the order they were pasted.
+    await forEachSequential(imageFiles, async file => {
       try {
         const mediaId = await callbacks.saveImage(file, file.type);
 
@@ -173,7 +175,7 @@ async function handlePaste(
       } catch (error) {
         console.error('[ImagePaste] Failed to paste image file:', error);
       }
-    }
+    });
 
     return true;
   }
@@ -211,8 +213,9 @@ async function handleDrop(
 
     if (!dropPos) return false;
 
-    // Process each image file
-    for (const file of imageFiles) {
+    // Sequential: every image is inserted at the same drop position, so the
+    // insertion order decides the final order.
+    await forEachSequential(imageFiles, async file => {
       try {
         const mediaId = await callbacks.saveImage(file, file.type);
 
@@ -226,7 +229,7 @@ async function handleDrop(
       } catch (error) {
         console.error('[ImagePaste] Failed to drop image file:', error);
       }
-    }
+    });
 
     return true;
   }

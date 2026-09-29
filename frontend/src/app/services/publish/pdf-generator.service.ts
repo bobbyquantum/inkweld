@@ -3,6 +3,7 @@ import { type Element, ElementType } from '@inkweld/index';
 import { type PublishStyles } from '@models/publish-style';
 import { isPublishableByDefault } from '@models/scene-metadata';
 import { $typst, TypstSnippet } from '@myriaddreamin/typst.ts/contrib/snippet';
+import { firstResultSequential, forEachSequential } from '@utils/sequential';
 import { trimHyphens } from '@utils/string-utils';
 import { isWorldbuildingType } from '@utils/worldbuilding.utils';
 import { BehaviorSubject, type Observable, Subject } from 'rxjs';
@@ -394,14 +395,15 @@ export class PdfGeneratorService {
 
     if (!idsToTry.includes('cover')) idsToTry.push('cover');
 
-    for (const id of idsToTry) {
+    // Sequential: candidates are tried in priority order; first hit wins.
+    const found = await firstResultSequential(idsToTry, async id => {
       const blob = await this.localStorage.getMedia(projectKey, id);
-      if (blob) return blob;
-    }
-    return null;
+      return blob ?? undefined;
+    });
+    return found ?? null;
   }
 
-  private async blobToBase64(blob: Blob): Promise<string> {
+  private blobToBase64(blob: Blob): Promise<string> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -427,8 +429,10 @@ export class PdfGeneratorService {
       message: `Processing content (0/${plan.items.length})...`,
     });
 
-    for (const item of plan.items) {
-      if (this.isCancelled) break;
+    // Sequential: the Typst markup is built in plan order and chapter numbers
+    // depend on the items before them.
+    await forEachSequential(plan.items, async item => {
+      if (this.isCancelled) return;
 
       this.updateProgress({
         detail: `Processing item ${processedCount + 1}...`,
@@ -455,7 +459,7 @@ export class PdfGeneratorService {
         overallProgress: Math.round(progress),
         message: `Processing content (${processedCount}/${plan.items.length})...`,
       });
-    }
+    });
   }
 
   private async processItem(
@@ -582,7 +586,8 @@ export class PdfGeneratorService {
     } else if (element.type === ElementType.Folder && item.includeChildren) {
       const children = this.getChildElements(element, elements);
 
-      for (const child of children) {
+      // Sequential: markup is appended in reading order.
+      await forEachSequential(children, async child => {
         if (
           child.type === ElementType.Item &&
           isPublishableByDefault(child.metadata)
@@ -592,7 +597,7 @@ export class PdfGeneratorService {
           const synthetic = this.singleEntryWbItem(child.id);
           await this.processWorldbuilding(synthetic, [child], ctx);
         }
-      }
+      });
     }
   }
 

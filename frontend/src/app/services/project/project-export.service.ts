@@ -9,6 +9,7 @@ import { type ElementAppearance } from '@models/element-appearance';
 import { type ElementRelationship } from '@models/element-ref.model';
 import { type Generator } from '@models/generator';
 import JSZip from '@progress/jszip-esm';
+import { forEachSequential } from '@utils/sequential';
 import { firstValueFrom } from 'rxjs';
 
 import {
@@ -380,8 +381,9 @@ export class ProjectExportService {
     const documents: ArchiveDocumentContent[] = [];
     const itemElements = elements.filter(e => e.type === ElementType.Item);
 
-    for (let i = 0; i < itemElements.length; i++) {
-      const elem = itemElements[i];
+    // Sequential: progress is reported per document and each read opens the
+    // document, so they are read one at a time in element order.
+    await forEachSequential(itemElements, async (elem, i) => {
       this.updateProgress(
         ExportPhase.PackagingDocuments,
         35 + (15 * i) / itemElements.length,
@@ -407,7 +409,7 @@ export class ProjectExportService {
           err
         );
       }
-    }
+    });
 
     return documents;
   }
@@ -423,8 +425,9 @@ export class ProjectExportService {
     const worldbuilding: ArchiveWorldbuildingData[] = [];
     const wbElements = elements.filter(e => isWorldbuildingType(e.type));
 
-    for (let i = 0; i < wbElements.length; i++) {
-      const elem = wbElements[i];
+    // Sequential: progress is reported per element and each read opens the
+    // element's document, so they are read one at a time in element order.
+    await forEachSequential(wbElements, async (elem, i) => {
       this.updateProgress(
         ExportPhase.PackagingWorldbuilding,
         50 + (10 * i) / wbElements.length,
@@ -478,7 +481,7 @@ export class ProjectExportService {
           err
         );
       }
-    }
+    });
 
     return worldbuilding;
   }
@@ -725,8 +728,10 @@ export class ProjectExportService {
       const serverList = await firstValueFrom(
         this.snapshotsApi.listProjectSnapshots(username, slug)
       );
-      for (const summary of serverList) {
-        if (knownServerIds.has(summary.id)) continue;
+      // Sequential: one server request at a time; the first failure stops the
+      // remaining requests (handled below).
+      await forEachSequential(serverList, async summary => {
+        if (knownServerIds.has(summary.id)) return;
         const full = await firstValueFrom(
           this.snapshotsApi.getProjectSnapshot(username, slug, summary.id)
         );
@@ -741,7 +746,7 @@ export class ProjectExportService {
           metadata: full.metadata as Record<string, unknown> | undefined,
           createdAt: full.createdAt,
         });
-      }
+      });
     } catch (error) {
       this.logger.warn(
         'ProjectExport',
@@ -767,8 +772,9 @@ export class ProjectExportService {
     // List all media for this project
     const mediaList = await this.localStorage.listMedia(projectKey);
 
-    for (let i = 0; i < mediaList.length; i++) {
-      const info = mediaList[i];
+    // Sequential: progress is reported per file, and blobs are large, so they
+    // are read one at a time to bound memory use.
+    await forEachSequential(mediaList, async (info, i) => {
       this.updateProgress(
         ExportPhase.PackagingMedia,
         65 + (15 * i) / mediaList.length,
@@ -793,7 +799,7 @@ export class ProjectExportService {
 
         mediaBlobs.set(archivePath, blob);
       }
-    }
+    });
 
     return { mediaManifest, mediaBlobs };
   }

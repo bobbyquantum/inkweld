@@ -10,6 +10,8 @@
 
 import { isSyncFrame, isSyncUpdateFrame } from '../utils/yjs-document-utils';
 import { stripTrailingSlashes } from '../utils/string-utils';
+import { forEachPage, forEachSequential } from '../utils/sequential';
+import { forEachPage } from '../utils/sequential';
 
 /**
  * Bytes as persisted by `put`. New writes store a `Uint8Array` (compact BLOB);
@@ -248,23 +250,30 @@ async function pagePrefix(
   onPage: (page: Map<string, StoredBytes>) => Promise<void> | void
 ): Promise<number> {
   let total = 0;
-  let startAfter: string | undefined;
-  for (;;) {
-    const page = await storage.list<StoredBytes>({
-      prefix,
-      limit: LIST_PAGE_SIZE,
-      ...(startAfter ? { startAfter } : {}),
-    });
-    if (page.size === 0) break;
-    total += page.size;
-
-    await onPage(page);
-    if (page.size < LIST_PAGE_SIZE) break;
-    // `list` returns keys in ascending order; the last key is the page max.
-    let lastKey = '';
-    for (const key of page.keys()) lastKey = key;
-    startAfter = lastKey;
-  }
+  // Each page starts after the previous one's last key, so pages are
+  // necessarily fetched one at a time.
+  await forEachPage<Map<string, StoredBytes>, string>(
+    async (startAfter) => {
+      const page = await storage.list<StoredBytes>({
+        prefix,
+        limit: LIST_PAGE_SIZE,
+        ...(startAfter ? { startAfter } : {}),
+      });
+      let next: string | undefined;
+      if (page.size >= LIST_PAGE_SIZE) {
+        // `list` returns keys in ascending order; the last key is the page max.
+        let lastKey = '';
+        for (const key of page.keys()) lastKey = key;
+        next = lastKey;
+      }
+      return { page, next };
+    },
+    async (page) => {
+      if (page.size === 0) return;
+      total += page.size;
+      await onPage(page);
+    }
+  );
   return total;
 }
 
@@ -474,9 +483,10 @@ export class YjsDocStorage {
       }
 
       const purgeKeys = [...staleKeys, ...pageCorrupted];
-      for (const batch of chunkKeysForDelete(purgeKeys)) {
-        await this.deleteBatch(batch, documentId, purgeKeys.length);
-      }
+      // Sequential: bounded DO storage delete batches, one at a time.
+      await forEachSequential(chunkKeysForDelete(purgeKeys), (batch) =>
+        this.deleteBatch(batch, documentId, purgeKeys.length)
+      );
     });
     totalRowsRead += rowsRead;
 
@@ -664,9 +674,10 @@ export class YjsDocStorage {
     }
 
     let rowsDeleted = 0;
-    for (const batch of chunkKeysForDelete(keys)) {
+    // Sequential: bounded DO storage delete batches, one at a time.
+    await forEachSequential(chunkKeysForDelete(keys), async (batch) => {
       rowsDeleted += await this.deleteBatch(batch, documentId, keys.length);
-    }
+    });
 
     this.log.debug(
       `Compacted document ${documentId}: ${rowsDeleted}/${keys.length} update rows merged into snapshot`

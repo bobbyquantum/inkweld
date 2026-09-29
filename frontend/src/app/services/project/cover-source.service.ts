@@ -207,8 +207,8 @@ export class CoverSourceService {
    * canvas-linked (callers fall back to the stored image). Also refreshes the
    * stored raster when it was stale.
    */
-  async freshCoverBlob(): Promise<Blob | null> {
-    if (!this.source()) return null;
+  freshCoverBlob(): Promise<Blob | null> {
+    if (!this.source()) return Promise.resolve(null);
     return this.renderCurrent({ force: true });
   }
 

@@ -29,6 +29,7 @@ import { LoggerService } from '@services/core/logger.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { TimeSystemLibraryService } from '@services/timeline/time-system-library.service';
 import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
+import { forEachSequential } from '@utils/sequential';
 import { nanoid } from 'nanoid';
 
 /** Key used to store the serialized timeline config in element metadata */
@@ -390,22 +391,24 @@ export class TimelineService {
 
       const candidates: AutoBuildCandidate[] = [];
 
-      for (const element of worldbuildingElements) {
+      // Sequential: each element opens its Yjs document, and candidates are
+      // collected in element order.
+      await forEachSequential(worldbuildingElements, async element => {
         const schema = await this.worldbuilding.getSchemaForElement(
           element.id,
           username,
           slug
         );
-        if (!schema) continue;
+        if (!schema) return;
         const dateFields = collectDateFields(schema);
-        if (dateFields.length === 0) continue;
+        if (dateFields.length === 0) return;
 
         const data = await this.worldbuilding.getWorldbuildingData(
           element.id,
           username,
           slug
         );
-        if (!data) continue;
+        if (!data) return;
 
         this.collectCandidatesForElement(
           element,
@@ -415,7 +418,7 @@ export class TimelineService {
           existingKeys,
           candidates
         );
-      }
+      });
 
       return candidates;
     } catch (err) {

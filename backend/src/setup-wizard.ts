@@ -117,13 +117,17 @@ async function promptAdminCredentials(answers: SetupAnswers): Promise<void> {
 
   if (createAdmin) {
     answers.adminUsername = await prompt('Admin username', 'admin');
-    answers.adminPassword = await prompt('Admin password (min 6 characters)');
-
-    // Validate password length
-    while (answers.adminPassword && answers.adminPassword.length < 6) {
-      console.log('⚠️  Password must be at least 6 characters');
-      answers.adminPassword = await prompt('Admin password (min 6 characters)');
-    }
+    // Keep asking until the password is long enough; each answer depends on the
+    // previous prompt finishing, so this is inherently sequential.
+    const askPassword = async (): Promise<string> => {
+      const password = await prompt('Admin password (min 6 characters)');
+      if (password && password.length < 6) {
+        console.log('⚠️  Password must be at least 6 characters');
+        return askPassword();
+      }
+      return password;
+    };
+    answers.adminPassword = await askPassword();
   }
 }
 

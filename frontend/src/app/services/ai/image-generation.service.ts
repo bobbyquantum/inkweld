@@ -1,4 +1,5 @@
 import { inject, Injectable, signal } from '@angular/core';
+import { firstResultSequential, forEachSequential } from '@utils/sequential';
 import { firstValueFrom, timeout, TimeoutError } from 'rxjs';
 
 import { AIImageGenerationService } from '../../../api-client/api/ai-image-generation.service';
@@ -242,7 +243,7 @@ export class ImageGenerationService {
     this.updateActiveJobs();
   }
 
-  private async requestImageGeneration(
+  private requestImageGeneration(
     request: ImageGenerateRequest
   ): Promise<ImageGenerateResponse> {
     return firstValueFrom(
@@ -452,14 +453,16 @@ export class ImageGenerationService {
     return errorBody?.error || `Server error: ${response.status}`;
   }
 
-  private async processStream(
+  private processStream(
     jobId: string,
     reader: ReadableStreamDefaultReader<Uint8Array>
   ): Promise<boolean> {
     const decoder = new TextDecoder();
     let buffer = '';
 
-    while (true) {
+    // Reading a stream is inherently sequential: each chunk is only available
+    // after the previous one, and event order must be preserved.
+    const readNext = async (): Promise<boolean> => {
       const { done, value } = await reader.read();
 
       if (done) {
@@ -475,15 +478,17 @@ export class ImageGenerationService {
       if (terminated) {
         return true;
       }
-    }
+      return readNext();
+    };
+    return readNext();
   }
 
-  private async processRemainingBuffer(
+  private processRemainingBuffer(
     jobId: string,
     buffer: string
   ): Promise<boolean> {
     if (!buffer.trim()) {
-      return false;
+      return Promise.resolve(false);
     }
     const { eventBlocks } = this.extractEventBlocks(buffer);
     return this.processEventBlocks(jobId, eventBlocks);
@@ -493,16 +498,11 @@ export class ImageGenerationService {
     jobId: string,
     eventBlocks: string[]
   ): Promise<boolean> {
-    for (const eventBlock of eventBlocks) {
-      const handledTerminalEvent = await this.handleStreamEventBlock(
-        jobId,
-        eventBlock
-      );
-      if (handledTerminalEvent) {
-        return true;
-      }
-    }
-    return false;
+    // Sequential: events are handled in order, up to the first terminal one.
+    const terminal = await firstResultSequential(eventBlocks, async block =>
+      (await this.handleStreamEventBlock(jobId, block)) ? true : undefined
+    );
+    return terminal === true;
   }
 
   private extractEventBlocks(buffer: string): {
@@ -515,23 +515,23 @@ export class ImageGenerationService {
     return { eventBlocks, remainingBuffer };
   }
 
-  private async handleStreamEventBlock(
+  private handleStreamEventBlock(
     jobId: string,
     eventBlock: string
   ): Promise<boolean> {
     if (!eventBlock.trim()) {
-      return false;
+      return Promise.resolve(false);
     }
 
     try {
       const parsedEvent = this.parseStreamEventBlock(eventBlock);
       if (!parsedEvent) {
-        return false;
+        return Promise.resolve(false);
       }
 
       return this.handleParsedStreamEvent(jobId, parsedEvent);
     } catch {
-      return false;
+      return Promise.resolve(false);
     }
   }
 
@@ -673,8 +673,8 @@ export class ImageGenerationService {
     const savedMediaIds: string[] = [];
     const generatedAt = new Date().toISOString();
 
-    for (let i = 0; i < response.data.length; i++) {
-      const image = response.data[i];
+    // Sequential: each image gets an index-based id and is saved in order.
+    await forEachSequential(response.data, async (image, i) => {
       try {
         // Convert image to blob
         let blob: Blob;
@@ -692,7 +692,7 @@ export class ImageGenerationService {
           mimeType = blob.type || mimeType;
         } else {
           console.warn(`Image ${i} has no data, skipping`);
-          continue;
+          return;
         }
 
         // Generate unique ID
@@ -722,7 +722,7 @@ export class ImageGenerationService {
       } catch (err) {
         console.error(`Failed to save image ${i}:`, err);
       }
-    }
+    });
 
     return savedMediaIds;
   }

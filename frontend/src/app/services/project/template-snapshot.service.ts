@@ -68,7 +68,7 @@ export class TemplateSnapshotService {
     if (!schema) {
       throw new Error(`Template not found: ${schemaId}`);
     }
-    return this.localSnapshots.createSnapshot(
+    return await this.localSnapshots.createSnapshot(
       this.projectKey(),
       templateSnapshotDocumentId(schemaId),
       this.buildOptions(schema, name, description)
@@ -76,7 +76,7 @@ export class TemplateSnapshotService {
   }
 
   /** List snapshots for a template. */
-  async listTemplateSnapshots(schemaId: string): Promise<SnapshotInfo[]> {
+  listTemplateSnapshots(schemaId: string): Promise<SnapshotInfo[]> {
     return this.localSnapshots.listSnapshotsForDocument(
       this.projectKey(),
       templateSnapshotDocumentId(schemaId)

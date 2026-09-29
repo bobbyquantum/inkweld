@@ -58,6 +58,7 @@ import { MediaProjectTagService } from '@services/project/media-project-tag.serv
 import { ProjectStateService } from '@services/project/project-state.service';
 import { MediaAutoSyncService } from '@services/sync/media-auto-sync.service';
 import { TagService } from '@services/tag/tag.service';
+import { forEachSequential } from '@utils/sequential';
 import { firstValueFrom } from 'rxjs';
 
 import { FileSizePipe } from '../../../../pipes/file-size.pipe';
@@ -847,17 +848,22 @@ export class MediaTabComponent implements OnInit, OnDestroy {
     mediaId: string,
     usages: string[]
   ): Promise<void> {
-    for (const el of elements.filter(e => e.type === ElementType.Item)) {
-      const docId = `${username}:${slug}:${el.id}`;
-      try {
-        const content = await this.documentService.getDocumentContent(docId);
-        if (content && this.prosemirrorContainsMedia(content, mediaId)) {
-          usages.push(`Embedded in document "${el.name}"`);
+    // Sequential: each read opens a document, and usages are reported in
+    // element order.
+    await forEachSequential(
+      elements.filter(e => e.type === ElementType.Item),
+      async el => {
+        const docId = `${username}:${slug}:${el.id}`;
+        try {
+          const content = await this.documentService.getDocumentContent(docId);
+          if (content && this.prosemirrorContainsMedia(content, mediaId)) {
+            usages.push(`Embedded in document "${el.name}"`);
+          }
+        } catch {
+          /* skip unreadable docs */
         }
-      } catch {
-        /* skip unreadable docs */
       }
-    }
+    );
   }
 
   /**

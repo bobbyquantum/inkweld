@@ -6,6 +6,7 @@ import {
   type WritingSession,
   type InsertWritingSession,
 } from '../db/schema/writing-sessions';
+import { forEachSequential } from '../utils/sequential';
 
 /**
  * Tracks per-user, per-document writing sessions derived from the Yjs
@@ -103,16 +104,17 @@ class WritingSessionService {
         and(isNull(writingSessions.sessionEnd), sql`${writingSessions.sessionStart} < ${cutoff}`)
       );
 
-    for (const s of stale) {
-      await db
+    // Sequential: one row update at a time.
+    await forEachSequential(stale, (s) =>
+      db
         .update(writingSessions)
         .set({
           sessionEnd: s.sessionStart, // attribute to start time so it doesn't pollute future windows
           endWordCount: s.startWordCount,
           wordsDelta: 0,
         })
-        .where(eq(writingSessions.id, s.id));
-    }
+        .where(eq(writingSessions.id, s.id))
+    );
     return stale.length;
   }
 
@@ -281,7 +283,7 @@ class WritingSessionService {
   }
 
   /** Most recent N sessions for a project (for an "active editors" indicator). */
-  async recentSessionsForProject(
+  recentSessionsForProject(
     db: DatabaseInstance,
     projectId: string,
     limit = 20

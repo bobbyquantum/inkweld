@@ -123,7 +123,7 @@ class AuthService {
    * passkeys, cannot read /me, cannot do anything except enrol exactly one
    * credential and then wait.
    */
-  async createEnrolmentSession(c: Context, user: User): Promise<string> {
+  createEnrolmentSession(c: Context, user: User): Promise<string> {
     const now = Math.floor(Date.now() / 1000);
     const sessionData: SessionData = {
       userId: user.id,

@@ -173,7 +173,7 @@ const defaultModelsRoute = createRoute({
   },
 });
 
-aiTextRoutes.openapi(defaultModelsRoute, async (c) => {
+aiTextRoutes.openapi(defaultModelsRoute, (c) => {
   return c.json(
     {
       providers: {

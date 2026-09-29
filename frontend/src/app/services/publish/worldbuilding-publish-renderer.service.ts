@@ -13,6 +13,7 @@ import { LoggerService } from '@services/core/logger.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { RelationshipService } from '@services/relationship/relationship.service';
 import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
+import { forEachSequential } from '@utils/sequential';
 import { isWorldbuildingType } from '@utils/worldbuilding.utils';
 
 /**
@@ -114,8 +115,10 @@ export class WorldbuildingPublishRendererService {
     const entries: RenderedWorldbuildingEntry[] = [];
     const schemas = this.worldbuilding.getAllSchemas();
 
-    for (const element of elements) {
-      if (!isWorldbuildingType(element.type)) continue;
+    // Sequential: each entry opens the element's Yjs document, and entries are
+    // returned in element order.
+    await forEachSequential(elements, async element => {
+      if (!isWorldbuildingType(element.type)) return;
       const rendered = await this.renderEntry(
         element,
         project.username,
@@ -124,10 +127,10 @@ export class WorldbuildingPublishRendererService {
         schemas,
         item
       );
-      if (!rendered) continue;
-      if (!matchesCategoryFilter(rendered, item.categories)) continue;
+      if (!rendered) return;
+      if (!matchesCategoryFilter(rendered, item.categories)) return;
       entries.push(rendered);
-    }
+    });
 
     return entries;
   }

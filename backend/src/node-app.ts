@@ -36,7 +36,7 @@ registerOpenOriginRoutes(app);
 
 // CORS configuration
 const allowedOrigins = config.allowedOrigins;
-app.use('*', async (c, next) => {
+app.use('*', (c, next) => {
   if (isCrossOriginPath(c.req.path)) return next();
   return cors({
     origin: (origin) => {
@@ -53,7 +53,7 @@ app.use('*', async (c, next) => {
 
 // CSRF protection
 if (config.nodeEnv !== 'test') {
-  app.use('*', async (c, next) => {
+  app.use('*', (c, next) => {
     if (isCrossOriginPath(c.req.path)) return next();
     return csrf({
       origin: allowedOrigins.length > 0 ? allowedOrigins : undefined,
