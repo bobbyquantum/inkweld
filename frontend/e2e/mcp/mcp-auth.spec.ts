@@ -13,15 +13,15 @@ import {
 /**
  * MCP Authentication E2E Tests
  *
- * Tests API key auth, full OAuth PKCE flow, and token refresh
+ * Tests access-token auth, the full OAuth PKCE flow, and token refresh
  * against the real MCP server (stateless protocol 2026-07-28).
  */
-test.describe('API Key Authentication', () => {
-  test('should discover MCP server with valid API key', async ({
+test.describe('Access Token Authentication', () => {
+  test('should discover MCP server with a valid access token', async ({
     mcpContext,
     apiRequest,
   }) => {
-    const result = await mcpDiscover(apiRequest, mcpContext.mcpApiKey);
+    const result = await mcpDiscover(apiRequest, mcpContext.mcpToken);
 
     expect(result.error).toBeUndefined();
     expect(result.result).toBeDefined();
@@ -52,7 +52,7 @@ test.describe('API Key Authentication', () => {
   }) => {
     const response = await apiRequest.post(`${API_BASE}/api/v1/ai/mcp`, {
       headers: {
-        Authorization: `Bearer ${mcpContext.mcpApiKey}`,
+        Authorization: `Bearer ${mcpContext.mcpToken}`,
         'Content-Type': 'application/json',
         'MCP-Protocol-Version': MCP_PROTOCOL_VERSION,
         'Mcp-Method': 'server/discover',
@@ -85,7 +85,7 @@ test.describe('API Key Authentication', () => {
   }) => {
     const result = await mcpRequest(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'tools/list',
       {},
       1,
@@ -107,7 +107,7 @@ test.describe('API Key Authentication', () => {
     // notification POST with 202.
     const response = await apiRequest.post(`${API_BASE}/api/v1/ai/mcp`, {
       headers: {
-        Authorization: `Bearer ${mcpContext.mcpApiKey}`,
+        Authorization: `Bearer ${mcpContext.mcpToken}`,
         'Content-Type': 'application/json',
         'MCP-Protocol-Version': MCP_PROTOCOL_VERSION,
       },
@@ -129,47 +129,12 @@ test.describe('API Key Authentication', () => {
   test('should reject unknown methods', async ({ mcpContext, apiRequest }) => {
     const result = await mcpRequest(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'nonexistent/method'
     );
 
     expect(result.error).toBeDefined();
     expect(result.error!.code).toBe(-32601); // METHOD_NOT_FOUND
-  });
-
-  test('should support X-API-Key header', async ({
-    mcpContext,
-    apiRequest,
-  }) => {
-    const response = await apiRequest.post(`${API_BASE}/api/v1/ai/mcp`, {
-      headers: {
-        'X-API-Key': mcpContext.mcpApiKey,
-        'Content-Type': 'application/json',
-        'MCP-Protocol-Version': MCP_PROTOCOL_VERSION,
-        'Mcp-Method': 'server/discover',
-      },
-      data: {
-        jsonrpc: '2.0',
-        method: 'server/discover',
-        params: {
-          _meta: {
-            'io.modelcontextprotocol/protocolVersion': MCP_PROTOCOL_VERSION,
-            'io.modelcontextprotocol/clientCapabilities': {},
-          },
-        },
-        id: 1,
-      },
-    });
-
-    expect(response.ok()).toBeTruthy();
-    const body = (await response.json()) as {
-      result?: unknown;
-      error?: unknown;
-    };
-    expect(body.error).toBeUndefined();
-    expect(
-      (body.result as { supportedVersions: string[] }).supportedVersions
-    ).toContain(MCP_PROTOCOL_VERSION);
   });
 });
 
@@ -249,8 +214,8 @@ test.describe('OAuth PKCE Authorization Flow', () => {
   });
 });
 
-test.describe('Read-Only API Key Permissions', () => {
-  test('should deny write operations with read-only key', async ({
+test.describe('Read-Only Grant Permissions', () => {
+  test('should deny write operations with a viewer grant', async ({
     apiRequest,
   }) => {
     // Register user and create project
@@ -266,25 +231,25 @@ test.describe('Read-Only API Key Permissions', () => {
       data: { title: 'Read-Only Test', slug },
     });
 
-    // Create read-only API key
-    const keyResp = await apiRequest.post(
-      `${API_BASE}/api/v1/mcp-keys/${testId}/${slug}/keys`,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-        data: {
-          name: 'Read-Only Key',
-          permissions: ['read:project', 'read:elements'],
-        },
-      }
+    // Authorize a client with read-only (viewer) access
+    const { accessToken } = await performOAuthFlow(
+      apiRequest,
+      token,
+      slug,
+      'viewer'
     );
-    const { fullKey } = (await keyResp.json()) as { fullKey: string };
 
     // Try a write operation - should fail
-    const result = await mcpCallTool(apiRequest, fullKey, 'create_element', {
-      project: `${testId}/${slug}`,
-      name: 'Test Element',
-      type: 'FOLDER',
-    });
+    const result = await mcpCallTool(
+      apiRequest,
+      accessToken,
+      'create_element',
+      {
+        project: `${testId}/${slug}`,
+        name: 'Test Element',
+        type: 'FOLDER',
+      }
+    );
 
     expect(result.error).toBeDefined();
     expect(result.error!.message).toContain('Permission denied');

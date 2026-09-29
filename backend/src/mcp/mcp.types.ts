@@ -10,7 +10,6 @@
  * server identifies itself in each result's `_meta`.
  */
 
-import type { McpAccessKey, McpPermission } from '../services/mcp-key.service';
 import type { DurableObjectNamespace } from '../types/cloudflare';
 
 /**
@@ -353,24 +352,6 @@ interface McpContextBase {
 }
 
 /**
- * Context for legacy API key authentication (single project)
- */
-export interface McpLegacyContext extends McpContextBase {
-  /** Auth type discriminator */
-  type: 'legacy';
-  /** Validated API key */
-  key: McpAccessKey;
-  /** Project ID the key grants access to */
-  projectId: string;
-  /** Parsed permissions from the key */
-  permissions: McpPermission[];
-  /** Project owner username */
-  username: string;
-  /** Project slug */
-  slug: string;
-}
-
-/**
  * OAuth project grant with permissions
  */
 export interface McpOAuthGrant {
@@ -405,14 +386,12 @@ export interface McpOAuthContext extends McpContextBase {
 }
 
 /**
- * Unified MCP context type (discriminated union)
+ * MCP request context
  */
-export type McpContext = McpLegacyContext | McpOAuthContext;
+export type McpContext = McpOAuthContext;
 
 /**
  * Active project context - used by handlers that operate on a single project
- * For legacy auth: uses the single project from the context
- * For OAuth auth: uses the first grant (handlers that need multi-project should check context.type)
  */
 export interface ActiveProjectContext {
   projectId: string;
@@ -423,97 +402,44 @@ export interface ActiveProjectContext {
 }
 
 /**
- * Get the active project context from an MCP context
- * For legacy auth, returns the single project
- * For OAuth auth, returns the first grant (or null if no grants)
- *
- * Note: Handlers that need multi-project access should check context.type === 'oauth'
- * and iterate through context.grants
+ * Get the active project context from an MCP context: the first grant, or
+ * null if there are none. Handlers that need multi-project access should
+ * iterate through `context.grants`.
  */
 export function getActiveProject(ctx: McpContext): ActiveProjectContext | null {
-  if (ctx.type === 'legacy') {
-    return {
-      projectId: ctx.projectId,
-      username: ctx.username,
-      slug: ctx.slug,
-      role: 'legacy',
-      permissions: ctx.permissions,
-    };
-  } else {
-    // OAuth: return first grant or null
-    const firstGrant = ctx.grants[0];
-    if (!firstGrant) return null;
-    return {
-      projectId: firstGrant.projectId,
-      username: firstGrant.username,
-      slug: firstGrant.slug,
-      role: firstGrant.role,
-      permissions: firstGrant.permissions,
-    };
-  }
+  const firstGrant = ctx.grants[0];
+  if (!firstGrant) return null;
+  return {
+    projectId: firstGrant.projectId,
+    username: firstGrant.username,
+    slug: firstGrant.slug,
+    role: firstGrant.role,
+    permissions: firstGrant.permissions,
+  };
 }
 
 /**
  * Check if context has a specific permission (for the active project)
  */
 export function hasPermission(ctx: McpContext, ...permissions: string[]): boolean {
-  if (ctx.type === 'legacy') {
-    return permissions.some((p) => ctx.permissions.includes(p as never));
-  } else {
-    // OAuth: check first grant
-    const firstGrant = ctx.grants[0];
-    if (!firstGrant) return false;
-    return permissions.some((p) => firstGrant.permissions.includes(p));
-  }
+  const firstGrant = ctx.grants[0];
+  if (!firstGrant) return false;
+  return permissions.some((p) => firstGrant.permissions.includes(p));
 }
 
 /**
  * Get project-specific context from an MCP context for a specific project ID
- * For legacy auth: returns context only if projectId matches
- * For OAuth auth: finds the matching grant
  */
 export function getProjectById(ctx: McpContext, projectId: string): ActiveProjectContext | null {
-  if (ctx.type === 'legacy') {
-    if (ctx.projectId !== projectId) return null;
-    return {
-      projectId: ctx.projectId,
-      username: ctx.username,
-      slug: ctx.slug,
-      role: 'legacy',
-      permissions: ctx.permissions,
-    };
-  } else {
-    const grant = ctx.grants.find((g) => g.projectId === projectId);
-    if (!grant) return null;
-    return {
-      projectId: grant.projectId,
-      username: grant.username,
-      slug: grant.slug,
-      role: grant.role,
-      permissions: grant.permissions,
-    };
-  }
-}
-
-/**
- * Legacy context type for backward compatibility
- * @deprecated Use McpContext with type discriminator instead
- */
-export interface LegacyMcpContext {
-  /** Validated API key */
-  key: McpAccessKey;
-  /** Project ID the key grants access to */
-  projectId: string;
-  /** Parsed permissions from the key */
-  permissions: McpPermission[];
-  /** Project username (parsed from URL) */
-  username: string;
-  /** Project slug (parsed from URL) */
-  slug: string;
-  /** Client IP address */
-  clientIp?: string;
-  /** Client info from the request `_meta` (stateless protocol) */
-  clientInfo?: McpClientInfo;
+  const grant = ctx.grants.find((g) => g.projectId === projectId);
+  if (!grant) return null;
+  return {
+    projectId: grant.projectId,
+    username: grant.username,
+    slug: grant.slug,
+    role: grant.role,
+    permissions: grant.permissions,
+  };
 }
 
 // ============================================
@@ -522,67 +448,38 @@ export interface LegacyMcpContext {
 
 /**
  * Get all projects the context has access to
- * For legacy auth: returns single project as array
- * For OAuth auth: returns all grants as array
  */
 export function getAllProjects(ctx: McpContext): ActiveProjectContext[] {
-  if (ctx.type === 'legacy') {
-    return [
-      {
-        projectId: ctx.projectId,
-        username: ctx.username,
-        slug: ctx.slug,
-        role: 'legacy',
-        permissions: ctx.permissions,
-      },
-    ];
-  } else {
-    return ctx.grants.map((grant) => ({
-      projectId: grant.projectId,
-      username: grant.username,
-      slug: grant.slug,
-      role: grant.role,
-      permissions: grant.permissions,
-    }));
-  }
+  return ctx.grants.map((grant) => ({
+    projectId: grant.projectId,
+    username: grant.username,
+    slug: grant.slug,
+    role: grant.role,
+    permissions: grant.permissions,
+  }));
 }
 
 /**
  * Get project context by username and slug
- * For legacy auth: returns context only if username/slug matches
- * For OAuth auth: finds the matching grant
  */
 export function getProjectByKey(
   ctx: McpContext,
   username: string,
   slug: string
 ): ActiveProjectContext | null {
-  if (ctx.type === 'legacy') {
-    if (ctx.username !== username || ctx.slug !== slug) return null;
-    return {
-      projectId: ctx.projectId,
-      username: ctx.username,
-      slug: ctx.slug,
-      role: 'legacy',
-      permissions: ctx.permissions,
-    };
-  } else {
-    const grant = ctx.grants.find((g) => g.username === username && g.slug === slug);
-    if (!grant) return null;
-    return {
-      projectId: grant.projectId,
-      username: grant.username,
-      slug: grant.slug,
-      role: grant.role,
-      permissions: grant.permissions,
-    };
-  }
+  const grant = ctx.grants.find((g) => g.username === username && g.slug === slug);
+  if (!grant) return null;
+  return {
+    projectId: grant.projectId,
+    username: grant.username,
+    slug: grant.slug,
+    role: grant.role,
+    permissions: grant.permissions,
+  };
 }
 
 /**
  * Check if context has a specific permission for a given project
- * For legacy auth: checks against the single project
- * For OAuth auth: checks against the grants for the specified project
  */
 export function hasProjectPermission(
   ctx: McpContext,

@@ -47,8 +47,7 @@ System-wide switches:
 - **Passkeys**, **password login** and **email recovery** — which sign-in and
   recovery methods are offered. See [Passkeys](./passkeys.md).
 - **MCP access** — whether external tools can connect to projects over the
-  Model Context Protocol, and whether the legacy API-key section is shown in
-  project settings for tools that don't support OAuth
+  Model Context Protocol
 - **Require email** at registration
 - **Password policy** — minimum length and required character classes
 - **Site URL** — the public URL used in email links

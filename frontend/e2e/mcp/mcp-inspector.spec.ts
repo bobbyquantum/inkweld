@@ -30,13 +30,13 @@ test.describe('Inspector connection', () => {
     await expect(urlInput).toHaveValue(MCP_ENDPOINT);
   });
 
-  test('should connect to MCP server with API key auth', async ({
+  test('should connect to MCP server with a bearer token', async ({
     page,
     mcpContext,
   }) => {
     await page.goto(INSPECTOR_WITH_PARAMS);
 
-    // Open the Authentication section and configure an API key header.
+    // Open the Authentication section and configure the bearer token header.
     // Inspector 0.22.0 auth UI: "Header Name"/"Header Value" inputs + "Add".
     await page.getByRole('button', { name: 'Authentication' }).click();
 
@@ -44,7 +44,7 @@ test.describe('Inspector connection', () => {
     await headerNameInput.fill('Authorization');
 
     const headerValueInput = page.getByPlaceholder('Header Value');
-    await headerValueInput.fill(`Bearer ${mcpContext.mcpApiKey}`);
+    await headerValueInput.fill(`Bearer ${mcpContext.mcpToken}`);
 
     await page.getByRole('button', { name: 'Add' }).click();
 
@@ -87,7 +87,7 @@ test.describe('Inspector connection', () => {
 test.describe('Inspector tool browsing', () => {
   test('should list tools after connecting', async ({ page, mcpContext }) => {
     // Connect to MCP server
-    await connectInspector(page, mcpContext.mcpApiKey);
+    await connectInspector(page, mcpContext.mcpToken);
 
     // Navigate to Tools tab and click "List Tools" (Inspector 0.22.0 loads
     // the tool list on demand).
@@ -103,7 +103,7 @@ test.describe('Inspector tool browsing', () => {
     page,
     mcpContext,
   }) => {
-    await connectInspector(page, mcpContext.mcpApiKey);
+    await connectInspector(page, mcpContext.mcpToken);
     await page.goto(`${INSPECTOR_WITH_PARAMS}#tools`);
 
     // Click "List Tools" to populate the tool list.
@@ -128,7 +128,7 @@ test.describe('Inspector tool browsing', () => {
     page,
     mcpContext,
   }) => {
-    await connectInspector(page, mcpContext.mcpApiKey);
+    await connectInspector(page, mcpContext.mcpToken);
     await page.goto(`${INSPECTOR_WITH_PARAMS}#tools`);
 
     // Click "List Tools" to populate the tool list.
@@ -196,7 +196,7 @@ test.describe('Inspector resource browsing', () => {
     page,
     mcpContext,
   }) => {
-    await connectInspector(page, mcpContext.mcpApiKey);
+    await connectInspector(page, mcpContext.mcpToken);
 
     // Navigate to Resources tab and click "List Resources".
     await page.goto(`${INSPECTOR_WITH_PARAMS}#resources`);
@@ -207,7 +207,7 @@ test.describe('Inspector resource browsing', () => {
   });
 
   test('should read a resource', async ({ page, mcpContext }) => {
-    await connectInspector(page, mcpContext.mcpApiKey);
+    await connectInspector(page, mcpContext.mcpToken);
     await page.goto(`${INSPECTOR_WITH_PARAMS}#resources`);
 
     // Click "List Resources" and select the projects resource.
@@ -233,7 +233,7 @@ test.describe('Inspector prompts tab', () => {
     page,
     mcpContext,
   }) => {
-    await connectInspector(page, mcpContext.mcpApiKey);
+    await connectInspector(page, mcpContext.mcpToken);
 
     // Navigate to Prompts tab
     await page.goto(`${INSPECTOR_WITH_PARAMS}#prompts`);
@@ -250,7 +250,7 @@ test.describe('Inspector ping', () => {
     page,
     mcpContext,
   }) => {
-    await connectInspector(page, mcpContext.mcpApiKey);
+    await connectInspector(page, mcpContext.mcpToken);
 
     // Navigate to Ping tab
     await page.goto(`${INSPECTOR_WITH_PARAMS}#ping`);
@@ -269,7 +269,7 @@ test.describe('Inspector ping', () => {
 
 test.describe('Inspector disconnect', () => {
   test('should disconnect and clear state', async ({ page, mcpContext }) => {
-    await connectInspector(page, mcpContext.mcpApiKey);
+    await connectInspector(page, mcpContext.mcpToken);
 
     // Click Disconnect
     const disconnectButton = page.getByRole('button', {
@@ -291,7 +291,7 @@ test.describe('Inspector disconnect', () => {
  */
 async function connectInspector(
   page: import('@playwright/test').Page,
-  apiKey: string
+  accessToken: string
 ) {
   await page.goto(INSPECTOR_WITH_PARAMS);
 
@@ -300,7 +300,7 @@ async function connectInspector(
 
   // Set Authorization header
   await page.getByPlaceholder('Header Name').fill('Authorization');
-  await page.getByPlaceholder('Header Value').fill(`Bearer ${apiKey}`);
+  await page.getByPlaceholder('Header Value').fill(`Bearer ${accessToken}`);
   await page.getByRole('button', { name: 'Add' }).click();
 
   // Enable the added header via its toggle switch.

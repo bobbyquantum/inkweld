@@ -88,7 +88,7 @@ const mcpJsonRpcRoute = createRoute({
       Authorization: z
         .string()
         .optional()
-        .openapi({ description: 'Bearer token (OAuth JWT or legacy API key)' }),
+        .openapi({ description: 'Bearer token (OAuth access token)' }),
     }),
     body: {
       content: {

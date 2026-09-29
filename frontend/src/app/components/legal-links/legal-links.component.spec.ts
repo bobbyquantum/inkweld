@@ -34,7 +34,6 @@ function baseFeatures(overrides: Record<string, unknown> = {}): SystemFeatures {
     passkeysEnabled: true,
     passwordLoginEnabled: true,
     emailRecoveryEnabled: false,
-    legacyMcpEnabled: false,
     mcpEnabled: true,
     hasPrivacyPolicy: false,
     hasTerms: false,

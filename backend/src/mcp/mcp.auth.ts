@@ -1,22 +1,17 @@
 /**
  * MCP Authentication Middleware
  *
- * Validates API keys or OAuth JWT tokens and sets up MCP context for handlers.
- * Supports both:
- * - Legacy API keys (iw_proj_...) for single-project access
- * - OAuth JWT tokens (eyJ...) for multi-project access
+ * Validates OAuth access tokens and sets up MCP context for handlers.
  */
 
 import type { Context, Next } from 'hono';
 import { sign } from 'hono/jwt';
 import type { AppContext } from '../types/context';
 import type { DurableObjectNamespace } from '../types/cloudflare';
-import { mcpKeyService, parsePermissions, type McpPermission } from '../services/mcp-key.service';
 import { mcpOAuthService, type CloudflareEnv } from '../services/mcp-oauth.service';
-import { projectService } from '../services/project.service';
 import { config } from '../config/env';
 import { getClientIp } from '../utils/client-ip';
-import type { McpContext, McpLegacyContext, McpOAuthContext, McpOAuthGrant } from './mcp.types';
+import type { McpContext, McpOAuthContext, McpOAuthGrant } from './mcp.types';
 import { createErrorResponse, JSON_RPC_ERRORS } from './mcp.types';
 import { logger } from '../services/logger.service';
 
@@ -52,39 +47,19 @@ declare module 'hono' {
   }
 }
 
-/**
- * Extract bearer token from request
- * Supports:
- * - Authorization: Bearer <token>
- * - X-API-Key: <token>
- */
+/** Extract the bearer token from the Authorization header */
 function extractToken(c: Context): string | null {
-  // Check Authorization header
   const authHeader = c.req.header('Authorization');
-  if (authHeader?.startsWith('Bearer ')) {
-    return authHeader.substring(7);
-  }
-
-  // Check X-API-Key header (legacy support)
-  const apiKeyHeader = c.req.header('X-API-Key');
-  if (apiKeyHeader) {
-    return apiKeyHeader;
-  }
-
-  return null;
+  return authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
 }
 
 /**
- * Get client IP from request
- */
-/**
  * Mint a short-lived JWT compatible with the Durable Object's verifyToken().
  *
- * Neither MCP credential is accepted by the DO directly: legacy API keys
- * (iw_proj_...) are not JWTs, and OAuth access tokens are deliberately
- * rejected because they are scoped to per-project consent grants the DO
- * cannot see (it resolves access from a user id alone, so it would treat the
- * client as the user). Both paths therefore mint this DO JWT, signed with the
+ * OAuth access tokens are deliberately rejected by the DO because they are
+ * scoped to per-project consent grants the DO cannot see (it resolves access
+ * from a user id alone, so it would treat the client as the user). The MCP
+ * layer therefore mints this DO JWT, signed with the
  * same DATABASE_KEY / SESSION_SECRET the DO uses. Per-project grant
  * enforcement for OAuth stays in the MCP tool layer (getProjectContext /
  * requirePermission), which runs before any DO call; the minted token never
@@ -122,69 +97,6 @@ export async function mintDoJwt(
   };
 
   return await sign(payload, secret, 'HS256');
-}
-
-/**
- * Handle legacy API key authentication (iw_proj_...)
- */
-async function handleLegacyApiKey(
-  c: Context<AppContext>,
-  token: string,
-  clientIp: string | undefined
-): Promise<Response | McpLegacyContext> {
-  const db = c.get('db');
-
-  // Validate key
-  const validation = await mcpKeyService.validateKey(db, token, clientIp);
-
-  if (!validation.valid || !validation.key) {
-    c.header('WWW-Authenticate', getWwwAuthenticateHeader(c));
-    return c.json(
-      createErrorResponse(
-        0,
-        JSON_RPC_ERRORS.INVALID_REQUEST,
-        validation.error || 'Invalid API key'
-      ),
-      401
-    );
-  }
-
-  // Get project info
-  const project = await projectService.findById(db, validation.key.projectId);
-  if (!project) {
-    return c.json(createErrorResponse(0, JSON_RPC_ERRORS.INTERNAL_ERROR, 'Project not found'), 404);
-  }
-
-  // Get the user to find the username
-  const { users } = await import('../db/schema');
-  const { eq } = await import('drizzle-orm');
-  const [user] = await db.select().from(users).where(eq(users.id, project.userId)).limit(1);
-
-  if (!user?.username) {
-    return c.json(
-      createErrorResponse(0, JSON_RPC_ERRORS.INTERNAL_ERROR, 'Project owner not found'),
-      500
-    );
-  }
-
-  // Return legacy context
-  const env = c.env as { YJS_PROJECTS?: DurableObjectNamespace; [key: string]: unknown };
-
-  // Mint a DO-compatible JWT so the Durable Object HTTP API accepts write operations.
-  // The raw legacy key (iw_proj_...) is not a JWT and is rejected by the DO's verifyToken().
-  const doAuthToken = await mintDoJwt(user.username, String(user.id), env);
-
-  return {
-    type: 'legacy',
-    key: validation.key,
-    projectId: validation.key.projectId,
-    permissions: parsePermissions(validation.key.permissions),
-    username: user.username,
-    slug: project.slug,
-    clientIp,
-    authToken: doAuthToken,
-    env,
-  };
 }
 
 /**
@@ -233,8 +145,7 @@ async function handleOAuthJwt(
   const env = c.env as { YJS_PROJECTS?: DurableObjectNamespace; [key: string]: unknown };
 
   // The OAuth access token itself must never reach the Durable Object: the DO
-  // rejects it (see mintDoJwt). Mint the same DO-scoped JWT the legacy path
-  // uses; grant enforcement has already happened / happens in the tool layer.
+  // rejects it (see mintDoJwt). Mint a DO-scoped JWT instead; grant enforcement has already happened / happens in the tool layer.
   const doAuthToken = await mintDoJwt(payload.username, payload.sub, env);
 
   // Return OAuth context
@@ -254,8 +165,7 @@ async function handleOAuthJwt(
 /**
  * MCP authentication middleware
  *
- * Validates the token (API key or JWT) and sets up the MCP context.
- * Supports both legacy API keys and OAuth JWT tokens.
+ * Validates the OAuth access token and sets up the MCP context.
  */
 export async function mcpAuth(c: Context<AppContext>, next: Next): Promise<Response | void> {
   mcpLog.info('[AUTH] Starting auth middleware');
@@ -269,7 +179,7 @@ export async function mcpAuth(c: Context<AppContext>, next: Next): Promise<Respo
       createErrorResponse(
         0,
         JSON_RPC_ERRORS.INVALID_REQUEST,
-        'Missing authorization. Use Authorization: Bearer <token> or X-API-Key header.'
+        'Missing authorization. Use Authorization: Bearer <token>.'
       ),
       401
     );
@@ -279,28 +189,20 @@ export async function mcpAuth(c: Context<AppContext>, next: Next): Promise<Respo
 
   const clientIp = getClientIp(c);
 
-  let mcpContext: McpContext | Response;
-
-  // Determine auth type by token prefix
-  if (token.startsWith('iw_proj_')) {
-    // Legacy API key
-    mcpLog.debug('Using legacy API key authentication');
-    mcpContext = await handleLegacyApiKey(c, token, clientIp);
-  } else if (token.startsWith('eyJ')) {
-    // JWT (base64-encoded JSON starts with eyJ)
-    mcpLog.debug('Using OAuth JWT authentication');
-    mcpContext = await handleOAuthJwt(c, token, clientIp);
-  } else {
+  // JWTs are base64-encoded JSON, so they start with eyJ
+  if (!token.startsWith('eyJ')) {
     c.header('WWW-Authenticate', getWwwAuthenticateHeader(c));
     return c.json(
       createErrorResponse(
         0,
         JSON_RPC_ERRORS.INVALID_REQUEST,
-        'Invalid token format. Expected API key (iw_proj_...) or JWT.'
+        'Invalid token format. Expected an OAuth access token.'
       ),
       401
     );
   }
+
+  const mcpContext: McpContext | Response = await handleOAuthJwt(c, token, clientIp);
 
   // Check if we got an error response
   if (mcpContext instanceof Response) {
@@ -308,7 +210,7 @@ export async function mcpAuth(c: Context<AppContext>, next: Next): Promise<Respo
     return mcpContext;
   }
 
-  mcpLog.info(`[AUTH] Auth successful, type: ${mcpContext.type}`);
+  mcpLog.info('[AUTH] Auth successful');
 
   c.set('mcpContext', mcpContext);
 
@@ -316,51 +218,31 @@ export async function mcpAuth(c: Context<AppContext>, next: Next): Promise<Respo
 }
 
 /**
- * Check if MCP context has a specific permission (for legacy compatibility)
- * For OAuth: checks if ANY grant has the permission (use hasProjectPermission for specific project)
+ * Check whether ANY grant in the MCP context has one of the permissions
+ * (use hasProjectPermission for a specific project).
  */
 export function requirePermission(c: Context<AppContext>, ...permissions: string[]): boolean {
   const mcpContext = c.get('mcpContext');
   if (!mcpContext) return false;
-
-  if (mcpContext.type === 'legacy') {
-    return permissions.some((p) => mcpContext.permissions.includes(p as McpPermission));
-  } else {
-    // OAuth: check if any grant has the permission
-    return mcpContext.grants.some((grant) =>
-      permissions.some((p) => grant.permissions.includes(p))
-    );
-  }
+  return mcpContext.grants.some((grant) => permissions.some((p) => grant.permissions.includes(p)));
 }
 
 /**
- * Get the project context for the current request
- * For legacy auth: returns the single project
- * For OAuth auth: requires projectId to be specified or inferred from request
+ * Get the project context for the current request. Requires the project id.
  */
 export function getProjectContext(
   ctx: McpContext,
   projectId?: string
 ): { projectId: string; username: string; slug: string; permissions: string[] } | null {
-  if (ctx.type === 'legacy') {
-    return {
-      projectId: ctx.projectId,
-      username: ctx.username,
-      slug: ctx.slug,
-      permissions: ctx.permissions,
-    };
-  } else {
-    // OAuth: find grant for the specified project
-    if (!projectId) return null;
-    const grant = ctx.grants.find((g) => g.projectId === projectId);
-    if (!grant) return null;
-    return {
-      projectId: grant.projectId,
-      username: grant.username,
-      slug: grant.slug,
-      permissions: grant.permissions,
-    };
-  }
+  if (!projectId) return null;
+  const grant = ctx.grants.find((g) => g.projectId === projectId);
+  if (!grant) return null;
+  return {
+    projectId: grant.projectId,
+    username: grant.username,
+    slug: grant.slug,
+    permissions: grant.permissions,
+  };
 }
 
 /**
@@ -369,23 +251,12 @@ export function getProjectContext(
 export function getAccessibleProjects(
   ctx: McpContext
 ): Array<{ projectId: string; username: string; slug: string; permissions: string[] }> {
-  if (ctx.type === 'legacy') {
-    return [
-      {
-        projectId: ctx.projectId,
-        username: ctx.username,
-        slug: ctx.slug,
-        permissions: ctx.permissions,
-      },
-    ];
-  } else {
-    return ctx.grants.map((g) => ({
-      projectId: g.projectId,
-      username: g.username,
-      slug: g.slug,
-      permissions: g.permissions,
-    }));
-  }
+  return ctx.grants.map((g) => ({
+    projectId: g.projectId,
+    username: g.username,
+    slug: g.slug,
+    permissions: g.permissions,
+  }));
 }
 
 /**

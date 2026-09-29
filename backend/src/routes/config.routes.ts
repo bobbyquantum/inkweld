@@ -103,13 +103,6 @@ const SystemFeaturesSchema = z
         'magic-link passkey-enrolment recovery flow. When passwords are on, this gates the ' +
         'forgot-password reset email.',
     }),
-    legacyMcpEnabled: z.boolean().openapi({
-      example: false,
-      description:
-        'Whether legacy MCP API keys (long-lived project-scoped tokens) are enabled. When ' +
-        'false (default) the "Legacy API Keys" section in project settings is hidden and only ' +
-        'OAuth-based MCP connections are offered.',
-    }),
     mcpEnabled: z.boolean().openapi({
       example: true,
       description:
@@ -225,7 +218,6 @@ configRoutes.openapi(getFeaturesRoute, async (c) => {
       'PASSKEYS_ENABLED',
       'PASSWORD_LOGIN_ENABLED',
       'EMAIL_RECOVERY_ENABLED',
-      'LEGACY_MCP_ENABLED',
       'MCP_ENABLED',
     ] as const),
     getPasswordPolicy(db),
@@ -290,8 +282,6 @@ configRoutes.openapi(getFeaturesRoute, async (c) => {
     // flags drive the "passwordless mode" UX in the frontend.
     passwordLoginEnabled: isTruthy(cfg.PASSWORD_LOGIN_ENABLED.value),
     emailRecoveryEnabled: isTruthy(cfg.EMAIL_RECOVERY_ENABLED.value),
-    // Legacy MCP API keys (default OFF — OAuth is the recommended method).
-    legacyMcpEnabled: isTruthy(cfg.LEGACY_MCP_ENABLED.value),
     // MCP access as a whole (default ON). The AI kill switch takes precedence.
     mcpEnabled: isTruthy(cfg.MCP_ENABLED.value),
     // Legal documents. The URLs are only present for externally-hosted

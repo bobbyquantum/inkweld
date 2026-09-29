@@ -15,7 +15,7 @@
 import type { McpContext, McpToolResult, ActiveProjectContext } from '../mcp.types';
 import { getProjectByKey, hasProjectPermission } from '../mcp.types';
 import { registerTool } from '../mcp.handler';
-import { MCP_PERMISSIONS } from '../../services/mcp-key.service';
+import { MCP_PERMISSIONS } from '../mcp-permissions';
 import { yjsService } from '../../services/yjs.service';
 import { YjsWorkerService } from '../../services/yjs-worker.service';
 import { getStorageService } from '../../services/storage.service';
@@ -940,9 +940,9 @@ registerTool({
         },
         format: {
           type: 'string',
-          enum: ['prosemirror_xml', 'markdown', 'text', 'xml'],
+          enum: ['prosemirror_xml', 'markdown', 'text'],
           description:
-            'Output format: "prosemirror_xml" (default) for the canonical XML representation, "markdown" for round-trippable Markdown, "text" for plain text. "xml" is accepted as a deprecated alias for "prosemirror_xml".',
+            'Output format: "prosemirror_xml" (default) for the canonical XML representation, "markdown" for round-trippable Markdown, "text" for plain text.',
         },
       },
       required: ['project', 'elementId'],
@@ -959,28 +959,25 @@ registerTool({
     const { username, slug } = result.project;
 
     const elementId = typeof args.elementId === 'string' ? args.elementId : '';
-    // Normalize format: accept legacy 'xml' as alias for 'prosemirror_xml'.
-    // Default has changed from 'text' to 'prosemirror_xml' so callers that omit
-    // the parameter receive the canonical, lossless representation.
+    // Callers that omit the format receive the canonical, lossless XML.
     // MCP runtimes don't always enforce input schemas, so we validate here too.
     const rawFormat =
       typeof args.format === 'string' && args.format ? args.format : 'prosemirror_xml';
-    const normalisedFormat = rawFormat === 'xml' ? 'prosemirror_xml' : rawFormat;
     const allowedFormats = ['prosemirror_xml', 'markdown', 'text'] as const;
-    if (!(allowedFormats as readonly string[]).includes(normalisedFormat)) {
+    if (!(allowedFormats as readonly string[]).includes(rawFormat)) {
       return {
         content: [
           {
             type: 'text',
             text: `Error: invalid format "${rawFormat}". Expected one of ${allowedFormats.join(
               ', '
-            )} (or deprecated alias 'xml').`,
+            )}.`,
           },
         ],
         isError: true,
       };
     }
-    const format = normalisedFormat as (typeof allowedFormats)[number];
+    const format = rawFormat as (typeof allowedFormats)[number];
 
     if (!elementId) {
       return {
