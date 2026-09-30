@@ -83,7 +83,7 @@ describe('SetupService', () => {
           {
             id: LOCAL_CONFIG_ID,
             type: 'local',
-            displayName: 'Local Mode',
+            displayName: 'Browser',
             userProfile: { name: 'Preloaded', username: 'preloaded' },
             addedAt: '2025-01-01T00:00:00Z',
             lastUsedAt: '2025-01-01T00:00:00Z',

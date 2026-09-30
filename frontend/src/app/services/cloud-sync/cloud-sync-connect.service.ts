@@ -1,4 +1,5 @@
 import { inject, Injectable } from '@angular/core';
+import { firstResultSequential } from '@inkweld/async';
 import {
   CLOUD_MANIFEST_PATH,
   type CloudManifest,
@@ -407,7 +408,8 @@ export class CloudSyncConnectService {
     pending: PendingCloudConnection,
     profile: CloudManifestProfile
   ): Promise<void> {
-    for (let attempt = 0; attempt < 3; attempt++) {
+    // Sequential: each retry re-reads the manifest after the previous conflict.
+    const written = await firstResultSequential([0, 1, 2], async () => {
       const { manifest, version } = await this.manifestWithProfile(
         store,
         pending,
@@ -419,12 +421,15 @@ export class CloudSyncConnectService {
           JSON.stringify(manifest, null, 2),
           version ? { ifVersion: version } : undefined
         );
-        return;
+        return true;
       } catch (error) {
         if (!(error instanceof RemoteConflictError)) throw error;
+        return undefined;
       }
+    });
+    if (!written) {
+      throw new Error('Could not update the cloud manifest; please try again');
     }
-    throw new Error('Could not update the cloud manifest; please try again');
   }
 
   /**

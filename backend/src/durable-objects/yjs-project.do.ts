@@ -92,6 +92,7 @@ import {
 } from '@inkweld/presence';
 import { ProjectPresenceService, type PresenceSocket } from '../services/presence.service';
 import type { DocumentRevisionEntry } from '../types/document-revision.types';
+import { forEachPage, forEachSequential } from '@inkweld/async';
 
 const projDOLog = logger.child('YjsProjectDO');
 
@@ -297,7 +298,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
    * Get the JWT secret from environment
    */
   private getSecret(): string {
-    // Support both DATABASE_KEY (new) and SESSION_SECRET (legacy)
+    // DATABASE_KEY overrides SESSION_SECRET when set
     const secret = this.env.DATABASE_KEY || this.env.SESSION_SECRET;
     projDOLog.debug('getSecret check', {
       hasDatabaseKey: !!this.env.DATABASE_KEY,
@@ -392,7 +393,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
   /**
    * Handle incoming requests - routes to WebSocket or HTTP API
    */
-  async fetch(request: Request): Promise<Response> {
+  fetch(request: Request): Promise<Response> {
     try {
       const url = new URL(request.url);
       const upgradeHeader = request.headers.get('Upgrade');
@@ -479,8 +480,8 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     console.log('[DO-HTTP] projectId:', this.projectId);
 
     // Enforce project-level access (owner or collaborator with read access).
-    // The WebSocket path has always checked this (checkAccessWithDb /
-    // checkAccessLegacy); the HTTP API previously only verified the JWT,
+    // The WebSocket path has always checked this (checkAccessWithDb); the
+    // HTTP API previously only verified the JWT,
     // letting any authenticated user read or mutate ANY project's documents
     // with a predictable username:slug:docId (cross-tenant IDOR). Route both
     // transports through the same resolveProjectAccess helper so they can't
@@ -494,34 +495,9 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
         headers: { 'Content-Type': 'application/json' },
       });
     }
-    const db = this.getDb();
-    // A site admin deleting another user's account wipes that user's
-    // projects; the project-level check below only admits the owner.
-    if (method === 'POST' && path === '/api/destroy' && (await isActiveSiteAdmin(db, session))) {
-      return this.handleDestroyProject();
-    }
-    const accessResult = await resolveProjectAccess(db, parsed.projectOwner, parsed.slug, session);
-    if (!accessResult.ok) {
-      const deniedMessage =
-        accessResult.reason === 'project-not-found' ? 'Project not found' : 'Access denied';
-      projDOLog.warn(
-        `User ${session.username} denied HTTP access to ${parsed.projectOwner}/${parsed.slug}: ${accessResult.reason}`
-      );
-      return new Response(JSON.stringify({ error: deniedMessage }), {
-        status: accessResult.reason === 'project-not-found' ? 404 : 403,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-    const { canWrite, role } = accessResult.access;
-    if (method === 'POST' && !canWrite) {
-      projDOLog.warn(
-        `User ${session.username} denied write access to ${parsed.projectOwner}/${parsed.slug}`
-      );
-      return new Response(JSON.stringify({ error: 'Access denied' }), {
-        status: 403,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
+    const access = await this.authorizeHttpAccess(method, path, session, parsed);
+    if (access instanceof Response) return access;
+    const { role } = access;
 
     try {
       return await this.dispatchHttpRoute(path, method, request, documentId, role);
@@ -534,7 +510,46 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     }
   }
 
-  private async dispatchHttpRoute(
+  /**
+   * Resolve a DO HTTP request's project access. Returns the collaborator role
+   * when the request may proceed, or the response that ends it (denied,
+   * database unavailable, or a site admin's destroy).
+   */
+  private async authorizeHttpAccess(
+    method: string,
+    path: string,
+    session: SessionData,
+    parsed: { projectOwner: string; slug: string }
+  ): Promise<Response | { role: string | null }> {
+    const db = this.getDb();
+    if (!db) {
+      return jsonResponse({ error: 'Database unavailable' }, 503);
+    }
+    // A site admin deleting another user's account wipes that user's
+    // projects; the project-level check below only admits the owner.
+    if (method === 'POST' && path === '/api/destroy' && (await isActiveSiteAdmin(db, session))) {
+      return this.handleDestroyProject();
+    }
+    const accessResult = await resolveProjectAccess(db, parsed.projectOwner, parsed.slug, session);
+    if (!accessResult.ok) {
+      projDOLog.warn(
+        `User ${session.username} denied HTTP access to ${parsed.projectOwner}/${parsed.slug}: ${accessResult.reason}`
+      );
+      return accessResult.reason === 'project-not-found'
+        ? jsonResponse({ error: 'Project not found' }, 404)
+        : jsonResponse({ error: 'Access denied' }, 403);
+    }
+    const { canWrite, role } = accessResult.access;
+    if (method === 'POST' && !canWrite) {
+      projDOLog.warn(
+        `User ${session.username} denied write access to ${parsed.projectOwner}/${parsed.slug}`
+      );
+      return jsonResponse({ error: 'Access denied' }, 403);
+    }
+    return { role };
+  }
+
+  private dispatchHttpRoute(
     path: string,
     method: string,
     request: Request,
@@ -955,14 +970,15 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     });
 
     const documents: DocumentRevisionEntry[] = [];
-    for (const docId of documentIds) {
+    // Sequential: keeps storage reads bounded for projects with many documents.
+    await forEachSequential(documentIds, async (docId) => {
       try {
         documents.push({ documentId: docId, ...(await this.docStorage.readRevision(docId)) });
       } catch (error) {
         projDOLog.warn(`Failed to read revision for ${docId}`, { error: String(error) });
         documents.push({ documentId: docId, revision: null, unknown: true });
       }
-    }
+    });
 
     return jsonResponse({ documents }, 200);
   }
@@ -982,19 +998,26 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     const hasSnapshot = (await this.state.storage.get(snapKey)) !== undefined;
 
     let incrementalRows = 0;
-    let startAfter: string | undefined;
-    for (;;) {
-      const page = await this.state.storage.list({
-        prefix: updatePrefix,
-        limit: 1000,
-        ...(startAfter ? { startAfter } : {}),
-      });
-      incrementalRows += page.size;
-      if (page.size < 1000) break;
-      let lastKey = '';
-      for (const key of page.keys()) lastKey = key;
-      startAfter = lastKey;
-    }
+    // Each page starts after the previous one's last key: one page at a time.
+    await forEachPage<number, string>(
+      async (startAfter) => {
+        const page = await this.state.storage.list({
+          prefix: updatePrefix,
+          limit: 1000,
+          ...(startAfter ? { startAfter } : {}),
+        });
+        let next: string | undefined;
+        if (page.size >= 1000) {
+          let lastKey = '';
+          for (const key of page.keys()) lastKey = key;
+          next = lastKey;
+        }
+        return { page: page.size, next };
+      },
+      (size) => {
+        incrementalRows += size;
+      }
+    );
 
     return new Response(
       JSON.stringify({
@@ -1458,7 +1481,9 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
   ): Promise<void> {
     if (!db) return;
     try {
-      for (const [id, nextElem] of next) {
+      // Sequential: activity rows are written in a stable order, and the first
+      // failure stops the remaining writes (best-effort, logged below).
+      await forEachSequential(next, async ([id, nextElem]) => {
         if (prev.has(id)) {
           const prevElem = prev.get(id)!;
           if (prevElem.name !== nextElem.name) {
@@ -1481,8 +1506,8 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
             metadata: { elementType: nextElem.type },
           });
         }
-      }
-      for (const [id, prevElem] of prev) {
+      });
+      await forEachSequential(prev, async ([id, prevElem]) => {
         if (!next.has(id)) {
           await activityService.record(db, {
             projectId,
@@ -1493,7 +1518,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
             metadata: { elementType: prevElem.type },
           });
         }
-      }
+      });
     } catch (err) {
       projDOLog.error('emitElementDiffEventsDO failed', err, { projectId, userId });
     }
@@ -2472,26 +2497,6 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
   }
 
   /**
-   * Legacy owner-only access check for deployments without a D1 binding.
-   * Returns `{ canWrite, projectDbId }` or null if access was denied (response already sent).
-   */
-  private checkAccessLegacy(
-    parsed: { projectOwner: string },
-    sessionData: SessionData,
-    ws: WebSocket
-  ): { canWrite: boolean; projectDbId: null } | null {
-    if (sessionData.username !== parsed.projectOwner) {
-      projDOLog.error(
-        `User ${sessionData.username} attempted to access project owned by ${parsed.projectOwner}`
-      );
-      safeSend(ws, 'access-denied:forbidden');
-      safeClose(ws, WS_CLOSE_FORBIDDEN, 'Access denied');
-      return null;
-    }
-    return { canWrite: true, projectDbId: null };
-  }
-
-  /**
    * Verify the JWT token from a connection's first text message and, if
    * valid, transition the connection to authenticated and start Yjs sync.
    *
@@ -2511,10 +2516,9 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
         return;
       }
 
-      // Validate project access. Replaces the legacy owner-only check with a
-      // real collaboration lookup so collaborators (editor/commenter/viewer)
-      // can sync via the Cloudflare Durable Object runtime. Mirrors
-      // routes/yjs.routes.ts (Bun reference impl).
+      // Validate project access with a collaboration lookup so collaborators
+      // (editor/commenter/viewer) can sync via the Cloudflare Durable Object
+      // runtime. Mirrors routes/yjs.routes.ts (Bun reference impl).
       const parsed = this.parseDocumentOwner(connInfo.documentId);
       if (!parsed) {
         projDOLog.error(`Invalid documentId format: ${connInfo.documentId}`);
@@ -2524,9 +2528,12 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       }
 
       const db = this.getDb();
-      const accessResult = db
-        ? await this.checkAccessWithDb(db, parsed, sessionData, ws)
-        : this.checkAccessLegacy(parsed, sessionData, ws);
+      if (!db) {
+        safeSend(ws, 'access-denied:forbidden');
+        safeClose(ws, WS_CLOSE_FORBIDDEN, 'Access denied');
+        return;
+      }
+      const accessResult = await this.checkAccessWithDb(db, parsed, sessionData, ws);
       if (!accessResult) return;
       const { canWrite, projectDbId } = accessResult;
 

@@ -154,9 +154,9 @@ export class LocalSnapshotService {
   /**
    * Initialize the snapshot database. Called automatically on first use.
    */
-  private async ensureDb(): Promise<IDBDatabase> {
+  private ensureDb(): Promise<IDBDatabase> {
     if (this.db) {
-      return this.db;
+      return Promise.resolve(this.db);
     }
 
     if (this.initPromise) {

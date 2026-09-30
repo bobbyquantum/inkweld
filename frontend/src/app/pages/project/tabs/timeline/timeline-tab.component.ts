@@ -249,8 +249,6 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
   private readonly labelMinGap = 8;
   /** Vertical padding below event area, before the divider line. */
   private readonly eventAreaPadding = 4;
-  /** @deprecated retained for backward-compat with older tests. */
-  protected readonly trackHeight = 52;
   /**
    * Dedicated strip above the top axis showing era names. Tall enough for
    * two centred rows: the era name and its formatted time range.
@@ -502,9 +500,6 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
 
   /** Local Y within the bottom fixed SVG where the axis line is rendered. */
   protected readonly bottomAxisY = 1;
-
-  /** Backward-compat alias used by older tests. */
-  protected readonly axisY = computed(() => this.topAxisY);
 
   protected readonly tickMarks = computed<TickMark[]>(() => {
     const system = this.activeSystem();
@@ -823,15 +818,18 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
   ): Promise<{ resolved: Map<string, string>; missed: boolean }> {
     const resolved = new Map<string, string>();
     let missed = false;
-    for (const [eraId, mediaId] of needed) {
-      try {
-        const url = await this.localStorage.getMediaUrl(projectKey, mediaId);
-        if (url) resolved.set(eraId, url);
-        else missed = true;
-      } catch {
-        missed = true;
-      }
-    }
+    // Independent cache lookups.
+    await Promise.all(
+      Array.from(needed, async ([eraId, mediaId]) => {
+        try {
+          const url = await this.localStorage.getMediaUrl(projectKey, mediaId);
+          if (url) resolved.set(eraId, url);
+          else missed = true;
+        } catch {
+          missed = true;
+        }
+      })
+    );
     return { resolved, missed };
   }
 
@@ -843,11 +841,17 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
   ): Promise<void> {
     try {
       await this.mediaSync.downloadAllFromServer(projectKey);
-      for (const [eraId, mediaId] of needed) {
-        if (resolved.has(eraId)) continue;
-        const url = await this.localStorage.getMediaUrl(projectKey, mediaId);
-        if (url) resolved.set(eraId, url);
-      }
+      await Promise.all(
+        Array.from(needed)
+          .filter(([eraId]) => !resolved.has(eraId))
+          .map(async ([eraId, mediaId]) => {
+            const url = await this.localStorage.getMediaUrl(
+              projectKey,
+              mediaId
+            );
+            if (url) resolved.set(eraId, url);
+          })
+      );
     } catch (err) {
       this.logger.warn(
         'Timeline',
@@ -1379,8 +1383,8 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
         timePointToAbsolute(end, system)
       );
     } catch {
-      // Existing tests and imported legacy data can contain mismatched time
-      // points; presence must never block the core timeline interaction.
+      // Imported data can contain mismatched time points; presence must
+      // never block the core timeline interaction.
     }
   }
 

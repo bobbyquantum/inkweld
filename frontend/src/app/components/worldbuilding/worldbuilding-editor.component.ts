@@ -447,8 +447,8 @@ export class WorldbuildingEditorComponent implements OnDestroy {
     const ref = this.extractImageRef(bg.background);
     const resolved = ref ? this.resolvedImageUrls()[ref] : undefined;
     if (resolved) return `url('${resolved}')`;
-    // An unresolved `media:` reference (either `media://` or the legacy
-    // single-colon form) must not reach CSS: the browser would try to load it
+    // An unresolved `media:` reference (either `media://` or the prose-image
+    // `media:` form) must not reach CSS: the browser would try to load it
     // and the deployed CSP blocks it, logging a console error. Return nothing
     // until the async resolve lands and re-renders.
     if (ref?.startsWith('media:')) return null;

@@ -37,7 +37,7 @@ AI Client (Claude, etc.)
 | **URL**              | `/api/v1/ai/mcp`                               |
 | **Transport**        | Streamable HTTP (stateless, POST for JSON-RPC) |
 | **Protocol Version** | `2026-07-28`                                   |
-| **Auth**             | Bearer token (OAuth JWT or legacy API key)     |
+| **Auth**             | Bearer token (OAuth JWT)                       |
 
 The server implements the **stateless** MCP protocol (`2026-07-28`): modern
 clients have no `initialize` handshake and no `Mcp-Session-Id` header. Every
@@ -190,7 +190,3 @@ The OAuth consent page and the Authorized Apps management tab both use the share
 | Access Token       | 1 hour    |
 | Refresh Token      | 30 days   |
 | Authorization Code | 5 minutes |
-
-## Legacy API Key Auth
-
-The MCP endpoint also supports legacy API key authentication (`iw_proj_*` prefix) for backward compatibility. These keys provide direct access to a single project without the OAuth flow.

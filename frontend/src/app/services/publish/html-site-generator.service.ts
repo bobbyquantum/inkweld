@@ -1,4 +1,5 @@
 import { inject, Injectable } from '@angular/core';
+import { forEachSequential } from '@inkweld/async';
 import { type Element, ElementType } from '@inkweld/index';
 import {
   type BackmatterItem,
@@ -221,7 +222,9 @@ export class HtmlSiteGeneratorService {
       });
       this.html.setImageHrefResolver(id => this.resolveMedia(id, mediaAssets));
       try {
-        for (const [index, page] of pages.entries()) {
+        // Sequential: rendering shares the generator's heading-id and image
+        // caches, so pages render one at a time in order.
+        await forEachSequential(pages, async (page, index) => {
           this.throwIfCancelled();
           this.updateProgress({
             phase: HtmlSitePhase.Rendering,
@@ -233,7 +236,7 @@ export class HtmlSiteGeneratorService {
           this.html.resetHeadingIds();
           page.body = await page.render();
           page.headings = this.html.takeRenderedHeadings();
-        }
+        });
       } finally {
         this.html.setElementRefResolver(null);
         this.html.setImageHrefResolver(null);

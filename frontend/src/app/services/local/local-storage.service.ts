@@ -1,4 +1,5 @@
 import { inject, Injectable } from '@angular/core';
+import { forEachSequential } from '@inkweld/async';
 
 import { StorageContextService } from '../core/storage-context.service';
 import { type StorageConfig, StorageService } from './storage.service';
@@ -69,7 +70,7 @@ const STORE_NAME = 'media';
  * await localStorage.saveMedia('alice/my-novel', 'cover', coverBlob);
  *
  * // Get a blob URL for display
- * const url = await localStorage.getMediaUrl('alice/my-novel', 'cover');
+ * const url = await localStorage.getMediaUrl('alice/my-novel', 'cover-1700000000000');
  *
  * // Save an inline image
  * await localStorage.saveMedia('alice/my-novel', `img-${uuid}`, imageBlob);
@@ -109,9 +110,9 @@ export class LocalStorageService {
   /**
    * Initialize the media database. Called automatically on first use.
    */
-  private async ensureDb(): Promise<IDBDatabase> {
+  private ensureDb(): Promise<IDBDatabase> {
     if (this.db) {
-      return this.db;
+      return Promise.resolve(this.db);
     }
 
     if (this.initPromise) {
@@ -389,9 +390,10 @@ export class LocalStorageService {
   async deleteProjectMedia(projectKey: string): Promise<void> {
     const mediaList = await this.listMedia(projectKey);
 
-    for (const media of mediaList) {
-      await this.deleteMedia(projectKey, media.mediaId);
-    }
+    // Sequential: one IndexedDB delete transaction at a time.
+    await forEachSequential(mediaList, media =>
+      this.deleteMedia(projectKey, media.mediaId)
+    );
 
     // Revoke any remaining URLs
     this.revokeProjectUrls(projectKey);
@@ -446,41 +448,6 @@ export class LocalStorageService {
   // ============================================
 
   /**
-   * Save a project cover image
-   */
-  async saveProjectCover(
-    username: string,
-    slug: string,
-    blob: Blob
-  ): Promise<void> {
-    await this.saveMedia(`${username}/${slug}`, 'cover', blob);
-  }
-
-  /**
-   * Get a project cover image
-   */
-  async getProjectCover(username: string, slug: string): Promise<Blob | null> {
-    return this.getMedia(`${username}/${slug}`, 'cover');
-  }
-
-  /**
-   * Get URL for a project cover image
-   */
-  async getProjectCoverUrl(
-    username: string,
-    slug: string
-  ): Promise<string | null> {
-    return this.getMediaUrl(`${username}/${slug}`, 'cover');
-  }
-
-  /**
-   * Delete a project cover image
-   */
-  async deleteProjectCover(username: string, slug: string): Promise<void> {
-    await this.deleteMedia(`${username}/${slug}`, 'cover');
-  }
-
-  /**
    * Save a user avatar
    */
   async saveUserAvatar(username: string, blob: Blob): Promise<void> {
@@ -490,14 +457,14 @@ export class LocalStorageService {
   /**
    * Get a user avatar
    */
-  async getUserAvatar(username: string): Promise<Blob | null> {
+  getUserAvatar(username: string): Promise<Blob | null> {
     return this.getMedia(`${username}/_user`, 'avatar');
   }
 
   /**
    * Get URL for a user avatar
    */
-  async getUserAvatarUrl(username: string): Promise<string | null> {
+  getUserAvatarUrl(username: string): Promise<string | null> {
     return this.getMediaUrl(`${username}/_user`, 'avatar');
   }
 }

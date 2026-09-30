@@ -145,7 +145,7 @@ export class DocumentImportService {
         }
 
         // Restore the element's own schema copy when the archive carries one.
-        // Older archives fall back to copying the shared schema on first open.
+        // Without one, the shared schema is copied in on first open.
         if (wb.schema) {
           const schemaMap = ydoc.getMap<unknown>('schema');
           schemaMap.set('snapshot', wb.schema);
@@ -226,12 +226,12 @@ export class DocumentImportService {
    * @param provider - The IndexedDB provider
    * @param timeoutMs - Timeout in milliseconds
    */
-  private async waitForSync(
+  private waitForSync(
     provider: IndexeddbPersistence,
     timeoutMs: number
   ): Promise<void> {
     if (provider.synced) {
-      return;
+      return Promise.resolve();
     }
 
     return new Promise<void>(resolve => {

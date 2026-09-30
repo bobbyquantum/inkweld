@@ -1,5 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { inject, Injectable, signal } from '@angular/core';
+import { forEachSequential } from '@inkweld/async';
 import {
   AuthenticationService,
   type Element,
@@ -199,15 +200,16 @@ export class MigrationService {
     });
 
     // Migrate each project (copies data to server-mode storage)
-    for (const project of localProjects) {
-      const newSlug = slugRenames?.get(project.slug);
-      await this.migrateProject(
+    // Sequential: each project updates the shared migration state and copies
+    // IndexedDB databases; one at a time keeps progress reporting accurate.
+    await forEachSequential(localProjects, project =>
+      this.migrateProject(
         project,
         targetConfigId,
         targetUsername,
-        newSlug
-      );
-    }
+        slugRenames?.get(project.slug)
+      )
+    );
 
     // Update final state
     const finalState = this.migrationState();
@@ -604,20 +606,22 @@ export class MigrationService {
       this.storageContextService.getPrefixForConfig(LOCAL_CONFIG_ID);
     const targetPrefix =
       this.storageContextService.getPrefixForConfig(targetConfigId);
-    for (const element of itemElements) {
-      await this.copySingleDocument(
+    // Sequential: each copy opens and closes IndexedDB-backed Yjs documents,
+    // and the first failure must stop the migration.
+    await forEachSequential(itemElements, element =>
+      this.copySingleDocument(
         `${sourcePrefix}${sourceUsername}:${sourceSlug}:${element.id}`,
         `${targetPrefix}${targetUsername}:${targetSlug}:${element.id}`
-      );
-    }
+      )
+    );
 
     // Copy WORLDBUILDING documents between profile prefixes
-    for (const element of worldbuildingElements) {
-      await this.copySingleDocument(
+    await forEachSequential(worldbuildingElements, element =>
+      this.copySingleDocument(
         `${sourcePrefix}worldbuilding:${sourceUsername}:${sourceSlug}:${element.id}`,
         `${targetPrefix}worldbuilding:${targetUsername}:${targetSlug}:${element.id}`
-      );
-    }
+      )
+    );
 
     this.logger.debug('MigrationService', `Document files copied successfully`);
   }
@@ -716,7 +720,8 @@ export class MigrationService {
     );
 
     // Copy each media file
-    for (const mediaInfo of localMedia) {
+    // Sequential: media blobs are large; copy one at a time to bound memory.
+    await forEachSequential(localMedia, async mediaInfo => {
       try {
         const blob = await this.localStorage.getMedia(
           sourceProjectKey,
@@ -727,7 +732,7 @@ export class MigrationService {
             'MigrationService',
             `Media not found: ${sourceProjectKey}:${mediaInfo.mediaId}`
           );
-          continue;
+          return;
         }
 
         // Save to target database
@@ -746,7 +751,7 @@ export class MigrationService {
           `Failed to copy media ${mediaInfo.mediaId}: ${error instanceof Error ? error.message : String(error)}`
         );
       }
-    }
+    });
 
     this.logger.debug('MigrationService', `Media files copied successfully`);
   }
@@ -808,9 +813,6 @@ export class MigrationService {
 
     // Only clear all elements and user data if cleaning up everything
     if (!projectSlugs) {
-      // Clear elements storage (will clear all project elements)
-      localStorage.removeItem('inkweld-local-elements');
-
       // Clear local user (no longer needed in server mode)
       localStorage.removeItem('inkweld-local-user');
     }
@@ -819,17 +821,14 @@ export class MigrationService {
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // LEGACY API COMPATIBILITY
-  // These methods are provided for backward compatibility with existing code
-  // that calls the old server-syncing migration API.
+  // SERVER ACCOUNT HELPERS (used by the profile manager's migration flow)
   // ═══════════════════════════════════════════════════════════════════════════
 
   /**
-   * @deprecated Use migrateToServerMode instead. This method is kept for
-   * backward compatibility but now performs local-only migration.
+   * Migrate into the active server profile, resolving its config id and
+   * signed-in username.
    */
   async migrateToServer(
-    _serverUrl: string,
     projectSlugs?: string[],
     slugRenames?: Map<string, string>
   ): Promise<void> {
@@ -845,7 +844,7 @@ export class MigrationService {
       throw new Error('No current user found');
     }
 
-    return this.migrateToServerMode(
+    return await this.migrateToServerMode(
       config.id,
       currentUser,
       projectSlugs,
@@ -855,8 +854,6 @@ export class MigrationService {
 
   /**
    * Register a new user on the server.
-   * This is an authentication operation, not a migration operation.
-   * Kept here for backward compatibility with existing UI code.
    *
    * @param username - Username to register
    * @param password - Password for the new account
@@ -927,8 +924,6 @@ export class MigrationService {
 
   /**
    * Log in to the server.
-   * This is an authentication operation, not a migration operation.
-   * Kept here for backward compatibility with existing UI code.
    *
    * @param username - Username
    * @param password - Password

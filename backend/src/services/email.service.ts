@@ -110,7 +110,7 @@ class EmailService {
   /**
    * Check if email is enabled in the current configuration.
    */
-  async isEnabled(db: DatabaseInstance): Promise<boolean> {
+  isEnabled(db: DatabaseInstance): Promise<boolean> {
     return configService.getBoolean(db, 'EMAIL_ENABLED');
   }
 

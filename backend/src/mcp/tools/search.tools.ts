@@ -15,7 +15,7 @@
 import type { McpContext, McpToolResult, ActiveProjectContext } from '../mcp.types';
 import { getProjectByKey, hasProjectPermission } from '../mcp.types';
 import { registerTool } from '../mcp.handler';
-import { MCP_PERMISSIONS } from '../../services/mcp-key.service';
+import { MCP_PERMISSIONS } from '../mcp-permissions';
 import { yjsService } from '../../services/yjs.service';
 import { YjsWorkerService } from '../../services/yjs-worker.service';
 import { getStorageService } from '../../services/storage.service';
@@ -26,6 +26,8 @@ import { getRelationships as runtimeGetRelationships } from './yjs-runtime';
 import { xmlToMarkdown } from '@inkweld/prosemirror/markdown';
 import { encodeInkweldUri } from '@inkweld/prosemirror/uri';
 import { logger } from '../../services/logger.service';
+import { firstResultSequential } from '@inkweld/async';
+import { mapWithConcurrency } from '../../utils/concurrency';
 
 const mcpSearchLog = logger.child('MCP-Search');
 
@@ -146,7 +148,7 @@ interface SearchResult {
  * Get elements from Yjs (uses appropriate service based on runtime).
  * Throws on read failure so callers can distinguish "empty project" from "read error".
  */
-async function getElements(ctx: McpContext, username: string, slug: string): Promise<Element[]> {
+function getElements(ctx: McpContext, username: string, slug: string): Promise<Element[]> {
   const service = getYjsService(ctx);
   return service.getElements(username, slug);
 }
@@ -582,8 +584,14 @@ registerTool({
     const results: EnrichedResult[] = [];
     const elementDataCache = new Map<string, Record<string, unknown>>();
 
-    for (const elem of wbElements) {
-      const data = await getWorldbuildingData(ctx, username, slug, elem.id);
+    // Load with bounded concurrency, then process in element order (ties in
+    // score are resolved by first-seen order below).
+    const wbData = await mapWithConcurrency(wbElements, 8, (elem) =>
+      getWorldbuildingData(ctx, username, slug, elem.id)
+    );
+
+    for (const [index, elem] of wbElements.entries()) {
+      const data = wbData[index];
       if (!data) continue;
 
       if (includeFullContent) {
@@ -756,14 +764,16 @@ async function probeElementImage(
   try {
     const storageBinding = ctx.env?.STORAGE as Parameters<typeof getStorageService>[0] | undefined;
     const storageService = getStorageService(storageBinding);
-    for (const ext of ['png', 'jpg']) {
-      const imageFilename = `element-${elementId}.${ext}`;
-      const exists = await storageService.projectFileExists(username, slug, imageFilename);
-      if (exists) {
-        identityData ??= {};
-        identityData.image = `media://${imageFilename}`;
-        break;
-      }
+    // Sequential: probe png before jpg and stop at the first hit.
+    const imageFilename = await firstResultSequential(['png', 'jpg'], async (ext) => {
+      const candidate = `element-${elementId}.${ext}`;
+      return (await storageService.projectFileExists(username, slug, candidate))
+        ? candidate
+        : undefined;
+    });
+    if (imageFilename) {
+      identityData ??= {};
+      identityData.image = `media://${imageFilename}`;
     }
   } catch {
     // Storage probe failed, skip — not critical
@@ -930,9 +940,9 @@ registerTool({
         },
         format: {
           type: 'string',
-          enum: ['prosemirror_xml', 'markdown', 'text', 'xml'],
+          enum: ['prosemirror_xml', 'markdown', 'text'],
           description:
-            'Output format: "prosemirror_xml" (default) for the canonical XML representation, "markdown" for round-trippable Markdown, "text" for plain text. "xml" is accepted as a deprecated alias for "prosemirror_xml".',
+            'Output format: "prosemirror_xml" (default) for the canonical XML representation, "markdown" for round-trippable Markdown, "text" for plain text.',
         },
       },
       required: ['project', 'elementId'],
@@ -949,28 +959,25 @@ registerTool({
     const { username, slug } = result.project;
 
     const elementId = typeof args.elementId === 'string' ? args.elementId : '';
-    // Normalize format: accept legacy 'xml' as alias for 'prosemirror_xml'.
-    // Default has changed from 'text' to 'prosemirror_xml' so callers that omit
-    // the parameter receive the canonical, lossless representation.
+    // Callers that omit the format receive the canonical, lossless XML.
     // MCP runtimes don't always enforce input schemas, so we validate here too.
     const rawFormat =
       typeof args.format === 'string' && args.format ? args.format : 'prosemirror_xml';
-    const normalisedFormat = rawFormat === 'xml' ? 'prosemirror_xml' : rawFormat;
     const allowedFormats = ['prosemirror_xml', 'markdown', 'text'] as const;
-    if (!(allowedFormats as readonly string[]).includes(normalisedFormat)) {
+    if (!(allowedFormats as readonly string[]).includes(rawFormat)) {
       return {
         content: [
           {
             type: 'text',
             text: `Error: invalid format "${rawFormat}". Expected one of ${allowedFormats.join(
               ', '
-            )} (or deprecated alias 'xml').`,
+            )}.`,
           },
         ],
         isError: true,
       };
     }
-    const format = normalisedFormat as (typeof allowedFormats)[number];
+    const format = rawFormat as (typeof allowedFormats)[number];
 
     if (!elementId) {
       return {

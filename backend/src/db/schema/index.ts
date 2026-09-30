@@ -7,7 +7,6 @@ export * from './project-tombstones';
 export * from './document-snapshots';
 export * from './published-files';
 export * from './config';
-export * from './mcp-access-keys';
 export * from './mcp-oauth-clients';
 export * from './mcp-oauth-sessions';
 export * from './mcp-oauth-codes';

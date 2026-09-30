@@ -1268,9 +1268,9 @@ describe('StorageContextService', () => {
         displayName: 'Browser',
         projectCount: 2,
       });
-      expect(
-        getLocalConfigDisplayName({ ...local!, displayName: 'Local Mode' })
-      ).toBe('Browser');
+      expect(getLocalConfigDisplayName({ ...local!, displayName: '' })).toBe(
+        'Browser'
+      );
     });
 
     it('ignores unknown connections', () => {

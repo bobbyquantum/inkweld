@@ -15,6 +15,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { forEachSequential } from '@inkweld/async';
 import { TranslocoModule } from '@jsverse/transloco';
 
 import { type Element, ElementType } from '../../../api-client/model/models';
@@ -148,18 +149,24 @@ export class WorldbuildingElementSelectorComponent implements OnInit {
     const maxWaitMs = 5000;
     const startTime = Date.now();
 
-    while (Date.now() - startTime < maxWaitMs) {
+    // Polling is inherently sequential: check, wait, check again.
+    const poll = async (): Promise<void> => {
+      if (Date.now() - startTime >= maxWaitMs) return;
       const available = this.availableElements();
       if (available.length > 0) {
         const toSelect = available.filter(e => preSelected.includes(e.id));
-        for (const el of toSelect.slice(0, this.maxElements())) {
-          await this.addElement(el);
-        }
+        // Sequential: elements are appended in order and each add checks the
+        // remaining capacity.
+        await forEachSequential(toSelect.slice(0, this.maxElements()), el =>
+          this.addElement(el)
+        );
         return;
       }
       // Wait a bit before checking again
       await new Promise(resolve => setTimeout(resolve, 100));
-    }
+      return poll();
+    };
+    await poll();
   }
 
   /**
@@ -248,9 +255,11 @@ export class WorldbuildingElementSelectorComponent implements OnInit {
     });
 
     if (result?.elements.length) {
-      for (const element of result.elements) {
-        await this.addElement(element);
-      }
+      // Sequential: elements are appended in order and each add checks the
+      // remaining capacity.
+      await forEachSequential(result.elements, element =>
+        this.addElement(element)
+      );
     }
   }
 

@@ -236,7 +236,7 @@ const isAllowedOrigin = (requestOrigin: string): boolean =>
     return false;
   });
 
-app.use('*', async (c, next) => {
+app.use('*', (c, next) => {
   if (isCrossOriginPath(c.req.path)) return next();
 
   const corsMiddleware = cors({
@@ -256,7 +256,7 @@ app.use('*', async (c, next) => {
 
 // CSRF protection (origin-based, matches Node runtime)
 if (config.nodeEnv !== 'test') {
-  app.use('*', async (c, next) => {
+  app.use('*', (c, next) => {
     if (isCrossOriginPath(c.req.path)) return next();
     return csrf({
       origin:
@@ -585,7 +585,7 @@ function createEmbeddedSpaHandler(
     logger.warn('SPA', 'No index.html found in embedded files', {
       available: Array.from(embeddedFiles.keys()).slice(0, 10),
     });
-    return async (c, next) => next();
+    return (c, next) => next();
   }
 
   /** Resolve the embedded index.html document to its text content. */
@@ -666,7 +666,7 @@ function createEmbeddedSpaHandler(
   };
 }
 
-async function serveEmbeddedAsset(
+function serveEmbeddedAsset(
   embeddedFiles: Map<string, string | Blob>,
   pathname: string,
   acceptEncoding?: string

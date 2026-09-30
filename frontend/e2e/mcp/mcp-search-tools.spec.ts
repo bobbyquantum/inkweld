@@ -14,7 +14,7 @@ test.describe('tools/list', () => {
   }) => {
     const result = await mcpRequest(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'tools/list'
     );
 
@@ -59,7 +59,7 @@ test.describe('get_project_tree', () => {
   }) => {
     const result = await mcpCallTool(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'get_project_tree',
       { project: mcpContext.projectKey }
     );
@@ -82,7 +82,7 @@ test.describe('get_project_tree', () => {
     // Create a folder first
     const createResult = await mcpCallTool(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'create_element',
       {
         project: mcpContext.projectKey,
@@ -95,7 +95,7 @@ test.describe('get_project_tree', () => {
     // Now get the tree
     const result = await mcpCallTool(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'get_project_tree',
       { project: mcpContext.projectKey }
     );
@@ -114,12 +114,12 @@ test.describe('get_project_tree', () => {
 test.describe('search_elements', () => {
   test('should search elements by name', async ({ mcpContext, apiRequest }) => {
     // Create elements to search
-    await mcpCallTool(apiRequest, mcpContext.mcpApiKey, 'create_element', {
+    await mcpCallTool(apiRequest, mcpContext.mcpToken, 'create_element', {
       project: mcpContext.projectKey,
       name: 'Prologue',
       type: 'ITEM',
     });
-    await mcpCallTool(apiRequest, mcpContext.mcpApiKey, 'create_element', {
+    await mcpCallTool(apiRequest, mcpContext.mcpToken, 'create_element', {
       project: mcpContext.projectKey,
       name: 'Epilogue',
       type: 'ITEM',
@@ -128,7 +128,7 @@ test.describe('search_elements', () => {
     // Search for prologue
     const result = await mcpCallTool(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'search_elements',
       {
         project: mcpContext.projectKey,
@@ -145,12 +145,12 @@ test.describe('search_elements', () => {
   });
 
   test('should filter by element type', async ({ mcpContext, apiRequest }) => {
-    await mcpCallTool(apiRequest, mcpContext.mcpApiKey, 'create_element', {
+    await mcpCallTool(apiRequest, mcpContext.mcpToken, 'create_element', {
       project: mcpContext.projectKey,
       name: 'TypeTestFolder',
       type: 'FOLDER',
     });
-    await mcpCallTool(apiRequest, mcpContext.mcpApiKey, 'create_element', {
+    await mcpCallTool(apiRequest, mcpContext.mcpToken, 'create_element', {
       project: mcpContext.projectKey,
       name: 'TypeTestItem',
       type: 'ITEM',
@@ -158,7 +158,7 @@ test.describe('search_elements', () => {
 
     const result = await mcpCallTool(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'search_elements',
       {
         project: mcpContext.projectKey,
@@ -184,7 +184,7 @@ test.describe('search_worldbuilding', () => {
     // Create a worldbuilding element
     const createElement = await mcpCallTool(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'create_element',
       {
         project: mcpContext.projectKey,
@@ -197,7 +197,7 @@ test.describe('search_worldbuilding', () => {
     // Search for it
     const result = await mcpCallTool(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'search_worldbuilding',
       {
         project: mcpContext.projectKey,
@@ -214,7 +214,7 @@ test.describe('get_project_metadata', () => {
   test('should return project metadata', async ({ mcpContext, apiRequest }) => {
     const result = await mcpCallTool(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'get_project_metadata',
       { project: mcpContext.projectKey }
     );
@@ -238,7 +238,7 @@ test.describe('get_relationships_graph', () => {
   }) => {
     const result = await mcpCallTool(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'get_relationships_graph',
       { project: mcpContext.projectKey }
     );
@@ -255,7 +255,7 @@ test.describe('get_publish_plans', () => {
   }) => {
     const result = await mcpCallTool(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'get_publish_plans',
       { project: mcpContext.projectKey }
     );
@@ -273,7 +273,7 @@ test.describe('get_element_full', () => {
     // Create an element
     const createResult = await mcpCallTool(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'create_element',
       {
         project: mcpContext.projectKey,
@@ -299,7 +299,7 @@ test.describe('get_element_full', () => {
       // Try to get it from the tree instead
       const treeResult = await mcpCallTool(
         apiRequest,
-        mcpContext.mcpApiKey,
+        mcpContext.mcpToken,
         'search_elements',
         {
           project: mcpContext.projectKey,
@@ -313,7 +313,7 @@ test.describe('get_element_full', () => {
     const elementId = idMatch[1];
     const result = await mcpCallTool(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'get_element_full',
       {
         project: mcpContext.projectKey,
@@ -339,7 +339,7 @@ test.describe('search_relationships', () => {
     // Create an element
     const createResult = await mcpCallTool(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'create_element',
       {
         project: mcpContext.projectKey,
@@ -365,7 +365,7 @@ test.describe('search_relationships', () => {
     const elementId = idMatch[1];
     const result = await mcpCallTool(
       apiRequest,
-      mcpContext.mcpApiKey,
+      mcpContext.mcpToken,
       'search_relationships',
       {
         project: mcpContext.projectKey,

@@ -13,46 +13,33 @@ import { type ElementTypeSchema } from './schema-types';
 import { type TimeSystem } from './time-system';
 
 /**
- * Current archive format version.
- * Increment when making breaking changes to the archive structure.
+ * Current archive format version. Import accepts only this version.
  *
- * When incrementing, you MUST:
- * 1. Add a migration in `archive-migrations.ts` that upgrades v(N-1) to vN
- * 2. Document the changes in the version history below
+ * When making a breaking change to the archive structure, increment it,
+ * document the change below, and add an upgrade step to the import for
+ * archives at the previous version.
  *
  * ## Version History
  *
- * ### Version 1 (January 2026) - Initial Format
- * Initial archive format with full project structure:
+ * ### Version 1 - Initial Format
  * - manifest.json: Archive metadata (version, timestamp, appVersion)
  * - project.json: Project settings (title, description, slug, cover flag)
  * - elements.json: Element tree structure (folders, documents, worldbuilding)
  * - documents.json: ProseMirror JSON content for ITEM elements
- * - worldbuilding.json: Flattened Yjs data for WORLDBUILDING elements
+ * - worldbuilding.json: Flattened Yjs data for WORLDBUILDING elements, each
+ *   with its per-element schema copy (`schema`, `schemaBaseHash`)
  * - schemas.json: Worldbuilding schema/template definitions
  * - relationships.json: Element-to-element connections
  * - relationship-types.json: Custom relationship type definitions
  * - tags.json: Tag definitions
  * - element-tags.json: Element-to-tag assignments
  * - publish-plans.json: Export configuration plans
+ * - time-systems.json: Project-owned calendars for the Timeline feature
  * - snapshots.json: Document version history (optional)
  * - media-index.json: Media file manifest
  * - media/: Cover and inline images
- *
- * ### Version 2 (April 2026) - Time Systems
- * Adds project-owned time-system library used by the Timeline feature.
- * - time-systems.json: Installed TimeSystem definitions for the project
- *   (empty array for v1 archives imported into v2; no destructive changes).
  */
-export const ARCHIVE_VERSION = 3;
-
-/**
- * Minimum supported archive version for import.
- * Archives older than this version cannot be imported.
- *
- * Increase this when dropping support for old migration paths.
- */
-export const MIN_SUPPORTED_VERSION = 1;
+export const ARCHIVE_VERSION = 1;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Archive Structure
@@ -177,9 +164,6 @@ export interface ArchiveMediaFile {
 /**
  * Document snapshot in the archive.
  * Snapshots preserve document history and can be used for restore.
- *
- * Archives now prefer storing `xmlContent` (for CRDT-correct restore)
- * but also support legacy `yDocState` format for backward compatibility.
  */
 export interface ArchiveSnapshot {
   /** Document element ID this snapshot belongs to */
@@ -188,14 +172,9 @@ export interface ArchiveSnapshot {
   name: string;
   /** Optional description */
   description?: string;
-  /**
-   * Document content as XML string (new format).
-   * This is preferred for CRDT-correct restore operations.
-   */
+  /** Document content as XML string (used for CRDT-correct restore) */
   xmlContent?: string;
-  /**
-   * Worldbuilding data as JSON (new format).
-   */
+  /** Worldbuilding data as JSON */
   worldbuildingData?: Record<string, unknown>;
   /** Word count at time of snapshot */
   wordCount?: number;

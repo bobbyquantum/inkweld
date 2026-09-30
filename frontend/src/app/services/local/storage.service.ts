@@ -32,7 +32,7 @@ export class StorageService {
     }
 
     if (this.dbConnections.has(config.dbName)) {
-      return this.dbConnections.get(config.dbName)!;
+      return await this.dbConnections.get(config.dbName)!;
     }
 
     const dbPromise = new Promise<IDBDatabase>((resolve, reject) => {
@@ -60,10 +60,10 @@ export class StorageService {
     });
 
     this.dbConnections.set(config.dbName, dbPromise);
-    return dbPromise;
+    return await dbPromise;
   }
 
-  async get<T>(
+  get<T>(
     db: IDBDatabase,
     storeName: string,
     key: IDBValidKey
@@ -92,7 +92,7 @@ export class StorageService {
     });
   }
 
-  async put<T>(
+  put<T>(
     db: IDBDatabase,
     storeName: string,
     value: T,
@@ -122,11 +122,7 @@ export class StorageService {
     });
   }
 
-  async delete(
-    db: IDBDatabase,
-    storeName: string,
-    key: IDBValidKey
-  ): Promise<void> {
+  delete(db: IDBDatabase, storeName: string, key: IDBValidKey): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       const transaction = db.transaction(storeName, 'readwrite');
       const store = transaction.objectStore(storeName);
@@ -151,7 +147,7 @@ export class StorageService {
     });
   }
 
-  async getAll<T>(db: IDBDatabase, storeName: string): Promise<T[]> {
+  getAll<T>(db: IDBDatabase, storeName: string): Promise<T[]> {
     return new Promise<T[]>((resolve, reject) => {
       const transaction = db.transaction(storeName, 'readonly');
       const store = transaction.objectStore(storeName);
@@ -176,7 +172,7 @@ export class StorageService {
     });
   }
 
-  async clear(db: IDBDatabase, storeName: string): Promise<void> {
+  clear(db: IDBDatabase, storeName: string): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       const transaction = db.transaction(storeName, 'readwrite');
       const store = transaction.objectStore(storeName);

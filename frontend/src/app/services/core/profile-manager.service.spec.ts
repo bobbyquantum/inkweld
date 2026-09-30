@@ -174,7 +174,7 @@ describe('ProfileManagerService', () => {
     it('summarises migration history in one line', () => {
       const info = service.describe({
         ...local,
-        displayName: 'Local Mode',
+        displayName: 'Browser',
         migratedTo: {
           configId: server.id,
           displayName: 'Ink',
@@ -190,7 +190,7 @@ describe('ProfileManagerService', () => {
         ...server,
         migratedFrom: {
           configId: local.id,
-          displayName: 'Local Mode',
+          displayName: 'Browser',
           projectCount: 1,
           at: '2026-09-08T10:00:00Z',
         },

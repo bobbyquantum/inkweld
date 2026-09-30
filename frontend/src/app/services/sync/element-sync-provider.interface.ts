@@ -434,8 +434,8 @@ export interface IElementSyncProvider {
    * Read a canvas's synced contents.
    *
    * Returns `null` when the provider holds no state for that canvas yet —
-   * a brand-new canvas, or one whose contents still only exist in the legacy
-   * element-metadata blob and need seeding.
+   * a brand-new canvas, or one whose contents still only exist in the
+   * element's `canvasConfig` metadata (after an import) and need seeding.
    */
   getCanvasContents(elementId: string): CanvasContents | null;
 
@@ -455,8 +455,8 @@ export interface IElementSyncProvider {
   applyCanvasEdit(elementId: string, edit: CanvasEdit): void;
 
   /**
-   * Populate a canvas that has no synced contents yet, e.g. from the legacy
-   * metadata blob when it is first opened. Does nothing when contents exist.
+   * Populate a canvas that has no synced contents yet, e.g. from its
+   * `canvasConfig` metadata when it is first opened. Does nothing when contents exist.
    */
   seedCanvasContents(elementId: string, contents: CanvasContents): void;
 

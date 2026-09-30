@@ -1,4 +1,5 @@
 import { computed, Injectable, signal } from '@angular/core';
+import { forEachSequential } from '@inkweld/async';
 import { djb2Hex } from '@utils/schema-hash';
 import { stripTrailingSlashes } from '@utils/string-utils';
 
@@ -121,13 +122,9 @@ export function isLocalOrCloudMode(
   return mode === 'local' || mode === 'cloud';
 }
 
-/**
- * Display name for a Browser-mode connection. Older builds saved it as
- * "Local Mode"; the app now calls that mode Browser everywhere.
- */
+/** Display name for a Browser-mode connection */
 export function getLocalConfigDisplayName(config: ServerConfig): string {
-  const name = config.displayName?.trim();
-  return !name || name === 'Local Mode' ? 'Browser' : name;
+  return config.displayName?.trim() || 'Browser';
 }
 
 /** Human-readable provider names for display */
@@ -205,7 +202,7 @@ interface StoreShape {
 }
 
 /** Open `name` only if it already exists; never creates an empty shell */
-async function openExistingDatabase(name: string): Promise<IDBDatabase | null> {
+function openExistingDatabase(name: string): Promise<IDBDatabase | null> {
   return new Promise((resolve, reject) => {
     let created = false;
     const request = indexedDB.open(name);
@@ -295,9 +292,10 @@ export async function cloneDatabase(
     openTarget.onupgradeneeded = () => createStores(openTarget.result, shapes);
     const target = await requestToPromise(openTarget);
     try {
-      for (const shape of shapes) {
+      // Sequential: one readwrite transaction per store on the target database.
+      await forEachSequential(shapes, async shape => {
         const records = await readAll(source, shape.name);
-        if (records.length === 0) continue;
+        if (records.length === 0) return;
         await new Promise<void>((resolve, reject) => {
           const tx = target.transaction(shape.name, 'readwrite');
           const store = tx.objectStore(shape.name);
@@ -325,7 +323,7 @@ export async function cloneDatabase(
           tx.onabort = () =>
             reject(tx.error ?? new Error('IndexedDB write aborted'));
         });
-      }
+      });
     } finally {
       target.close();
     }
@@ -356,42 +354,46 @@ async function rekeyProjectRecords(
   if (!names.includes(dbName)) return;
   const db = await requestToPromise(indexedDB.open(dbName));
   try {
-    for (const storeName of Array.from(db.objectStoreNames)) {
-      const records = await readAll(db, storeName);
-      const moves = records.filter(
-        r =>
-          typeof r.key === 'string' &&
-          (r.key === oldKey ||
-            r.key.startsWith(`${oldKey}:`) ||
-            r.key.startsWith(`${oldKey}/`))
-      );
-      if (moves.length === 0) continue;
-      const keyPath = db
-        .transaction(storeName, 'readonly')
-        .objectStore(storeName).keyPath;
-      await new Promise<void>((resolve, reject) => {
-        const tx = db.transaction(storeName, 'readwrite');
-        const store = tx.objectStore(storeName);
-        for (const { key, value } of moves) {
-          const nextKey = `${newKey}${(key as string).slice(oldKey.length)}`;
-          const nextValue = rewriteKeyFields(
-            value,
-            oldKey,
-            newKey,
-            keyPath,
-            nextKey
-          );
-          store.delete(key);
-          if (keyPath) store.put(nextValue);
-          else store.put(nextValue, nextKey);
-        }
-        tx.oncomplete = () => resolve();
-        tx.onerror = () =>
-          reject(tx.error ?? new Error('IndexedDB rekey failed'));
-        tx.onabort = () =>
-          reject(tx.error ?? new Error('IndexedDB rekey aborted'));
-      });
-    }
+    // Sequential: one transaction per store on the same database.
+    await forEachSequential(
+      Array.from(db.objectStoreNames),
+      async storeName => {
+        const records = await readAll(db, storeName);
+        const moves = records.filter(
+          r =>
+            typeof r.key === 'string' &&
+            (r.key === oldKey ||
+              r.key.startsWith(`${oldKey}:`) ||
+              r.key.startsWith(`${oldKey}/`))
+        );
+        if (moves.length === 0) return;
+        const keyPath = db
+          .transaction(storeName, 'readonly')
+          .objectStore(storeName).keyPath;
+        await new Promise<void>((resolve, reject) => {
+          const tx = db.transaction(storeName, 'readwrite');
+          const store = tx.objectStore(storeName);
+          for (const { key, value } of moves) {
+            const nextKey = `${newKey}${(key as string).slice(oldKey.length)}`;
+            const nextValue = rewriteKeyFields(
+              value,
+              oldKey,
+              newKey,
+              keyPath,
+              nextKey
+            );
+            store.delete(key);
+            if (keyPath) store.put(nextValue);
+            else store.put(nextValue, nextKey);
+          }
+          tx.oncomplete = () => resolve();
+          tx.onerror = () =>
+            reject(tx.error ?? new Error('IndexedDB rekey failed'));
+          tx.onabort = () =>
+            reject(tx.error ?? new Error('IndexedDB rekey aborted'));
+        });
+      }
+    );
   } finally {
     db.close();
   }
@@ -514,8 +516,7 @@ export function projectTreeStateKey(username: string, slug: string): string {
 }
 
 /**
- * Id of the first Browser profile. Kept as plain "local" so data written by
- * older builds stays attached; further Browser profiles use
+ * Id of the first Browser profile. Further Browser profiles use
  * `local-<usernameHash>` (see {@link buildLocalConfigId}).
  */
 export const LOCAL_CONFIG_ID = 'local';
@@ -529,7 +530,7 @@ export function buildLocalConfigId(username: string): string {
 }
 
 /**
- * Id for a server profile. The first profile on a server keeps the legacy
+ * Id for a server profile. The first profile on a server uses the
  * `hash(serverUrl)` id; further author profiles on the same server append a
  * hash of the username so each gets its own storage prefix and login token.
  */
@@ -829,7 +830,7 @@ export class StorageContextService {
       locals.find(
         c => wanted && c.userProfile?.username.trim().toLowerCase() === wanted
       ) ??
-      // A profile with no user yet can be claimed; the legacy single id too
+      // A profile with no user yet can be claimed; the first Browser id too
       locals.find(c => !c.userProfile) ??
       (locals.length === 0 || !userProfile
         ? locals.find(c => c.id === LOCAL_CONFIG_ID)
@@ -948,7 +949,7 @@ export class StorageContextService {
 
   /**
    * Pick the config id for a server profile. Without a username this is the
-   * legacy per-server id. With one: reuse the profile already bound to that
+   * per-server id. With one: reuse the profile already bound to that
    * user, else claim a profile on that server that has no user yet, else mint
    * a user-specific id so a second author gets separate storage.
    */
@@ -974,7 +975,7 @@ export class StorageContextService {
 
   /**
    * Pick the config id for a cloud profile. The first author on an account
-   * keeps the legacy per-account id; a further author on the same account
+   * uses the per-account id; a further author on the same account
    * gets a username-specific id so each has its own storage and sync state.
    */
   private resolveCloudConfigId(
@@ -1375,8 +1376,8 @@ export class StorageContextService {
   }
 
   /**
-   * Find data left behind by connections that were removed without cleanup
-   * (or written by older builds). Returns one entry per orphaned prefix.
+   * Find data left behind by connections that were removed without cleanup.
+   * Returns one entry per orphaned prefix.
    */
   async findOrphanedData(): Promise<ContextDataSummary[]> {
     const known = new Set(this.getKnownPrefixes());
@@ -1392,7 +1393,8 @@ export class StorageContextService {
       if (kind === 'db') entry.databases.push(name);
       else entry.localStorageKeys.push(name);
     };
-    for (const name of await this.listAllDatabaseNames()) collect(name, 'db');
+    const databaseNames = await this.listAllDatabaseNames();
+    for (const name of databaseNames) collect(name, 'db');
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
       if (key) collect(key, 'key');
@@ -1439,13 +1441,14 @@ export class StorageContextService {
 
     const existing = new Set(await this.listAllDatabaseNames());
     let databases = 0;
-    for (const name of existing) {
-      if (!name.startsWith(from)) continue;
+    // Sequential: databases are copied one at a time to bound memory use.
+    await forEachSequential(existing, async name => {
+      if (!name.startsWith(from)) return;
       const target = `${to}${name.slice(from.length)}`;
-      if (existing.has(target)) continue;
+      if (existing.has(target)) return;
       await cloneDatabase(name, target);
       databases++;
-    }
+    });
 
     return {
       databases,
@@ -1487,9 +1490,7 @@ export class StorageContextService {
    *
    * 1. Yjs databases: elements and prose docs (`<prefix>user:slug:id`) and
    *    worldbuilding docs (`<prefix>worldbuilding:user:slug:id`) are merged
-   *    into their new name and the original deleted. Bare legacy names are
-   *    never touched here; `DocumentStorageMigrationService` moves them under
-   *    a prefix at startup, before any rename can run.
+   *    into their new name and the original deleted.
    * 2. Composite keys in the media, snapshot and activation stores, and the
    *    saved tabs in the document cache.
    * 3. The cached project record, the project list entry and the project
@@ -1520,30 +1521,34 @@ export class StorageContextService {
     ];
     const oldMarkers = docMarkers(oldSlug);
     const newMarkers = docMarkers(newSlug);
-    for (const name of await this.listAllDatabaseNames()) {
+    // Sequential: each database is copied and then removed before the next,
+    // so a failure leaves at most one database half moved.
+    await forEachSequential(await this.listAllDatabaseNames(), async name => {
       const index = oldMarkers.findIndex(m => name.startsWith(m));
-      if (index < 0) continue;
+      if (index < 0) return;
       const target = newMarkers[index] + name.slice(oldMarkers[index].length);
       try {
         await cloneDatabase(name, target);
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         result.errors.push(`Failed to copy ${name} to ${target}: ${message}`);
-        continue;
+        return;
       }
       result.databasesMoved++;
       await deleteDatabase(name);
-    }
+    });
 
     // 2. Composite-key stores: media, snapshots, activations, saved tabs
-    for (const base of [
-      'inkweld-media',
-      'inkweld-snapshots',
-      'inkweld-activations',
-      'documentCache',
-    ]) {
-      await rekeyProjectRecords(`${prefix}${base}`, oldKey, newKey);
-    }
+    // Sequential: separate stores, but one rename step at a time.
+    await forEachSequential(
+      [
+        'inkweld-media',
+        'inkweld-snapshots',
+        'inkweld-activations',
+        'documentCache',
+      ],
+      base => rekeyProjectRecords(`${prefix}${base}`, oldKey, newKey)
+    );
 
     // 3. The cached project and the project list itself
     await moveCachedProject(`${prefix}projectCache`, oldKey, newKey, newSlug);
@@ -1634,9 +1639,13 @@ export class StorageContextService {
 
   /** Delete all IndexedDB databases and localStorage keys under a prefix */
   async clearPrefixedData(prefix: string): Promise<void> {
-    for (const name of await this.listAllDatabaseNames()) {
-      if (name.startsWith(prefix)) await deleteDatabase(name);
-    }
+    // Sequential: one database deletion at a time.
+    await forEachSequential(
+      (await this.listAllDatabaseNames()).filter(name =>
+        name.startsWith(prefix)
+      ),
+      name => deleteDatabase(name)
+    );
     const keys: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);

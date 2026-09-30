@@ -320,7 +320,7 @@ export class CommentService {
   // REST API Operations (Server Mode)
   // ─────────────────────────────────────────────────────────────────────────
 
-  async createThread(
+  createThread(
     username: string,
     slug: string,
     data: { id: string; documentId: string; text: string }
@@ -333,7 +333,7 @@ export class CommentService {
     );
   }
 
-  async getThread(
+  getThread(
     username: string,
     slug: string,
     threadId: string
@@ -346,7 +346,7 @@ export class CommentService {
     );
   }
 
-  async listDocumentComments(
+  listDocumentComments(
     username: string,
     slug: string,
     documentName: string
@@ -359,7 +359,7 @@ export class CommentService {
     );
   }
 
-  async listProjectComments(
+  listProjectComments(
     username: string,
     slug: string
   ): Promise<CommentThreadSummary[]> {
@@ -371,7 +371,7 @@ export class CommentService {
     );
   }
 
-  async addMessage(
+  addMessage(
     username: string,
     slug: string,
     threadId: string,
@@ -424,7 +424,7 @@ export class CommentService {
     );
   }
 
-  async deleteMessage(
+  deleteMessage(
     username: string,
     slug: string,
     threadId: string,

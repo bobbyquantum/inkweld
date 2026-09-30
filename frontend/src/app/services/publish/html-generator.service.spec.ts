@@ -115,7 +115,7 @@ describe('HtmlGeneratorService', () => {
     projectStateMock = {
       project: signal(mockProject),
       elements: signal(mockElements),
-      coverMediaId: signal<string | undefined>(undefined),
+      coverMediaId: signal<string | undefined>('cover-1'),
     };
 
     localStorageMock = {

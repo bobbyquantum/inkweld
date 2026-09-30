@@ -1,6 +1,6 @@
 /**
  * Integration tests for route handlers with 0% function coverage.
- * Tests robots, admin, admin-config, announcement, snapshot, and mcp-keys routes.
+ * Tests robots, admin, admin-config, announcement and snapshot routes.
  */
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'bun:test';
 import { getDatabase } from '../src/db/index';
@@ -510,74 +510,6 @@ describe('Snapshot Routes', () => {
   it('should delete a snapshot', async () => {
     const { response, json } = await client.request(
       `/api/v1/snapshots/routeuser/snap-test-project/${snapshotId}`,
-      { method: 'DELETE' }
-    );
-    expect(response.status).toBe(200);
-    const data = await json();
-    expect(data.message).toContain('deleted');
-  });
-});
-
-// ============================================
-// MCP KEY ROUTES
-// ============================================
-describe('MCP Key Routes', () => {
-  let projectId: string;
-  let keyId: string;
-
-  beforeAll(async () => {
-    await db.delete(projects).where(eq(projects.slug, 'mcp-key-test'));
-    projectId = crypto.randomUUID();
-    await db.insert(projects).values({
-      id: projectId,
-      name: 'MCP Key Test',
-      title: 'MCP Key Test',
-      slug: 'mcp-key-test',
-      userId: USER_ID,
-      createdDate: Date.now(),
-      updatedDate: Date.now(),
-    });
-  });
-
-  afterAll(async () => {
-    await db.delete(projects).where(eq(projects.slug, 'mcp-key-test'));
-  });
-
-  it('should reject unauthenticated access', async () => {
-    const unauthClient = new TestClient(testServer.baseUrl);
-    const { response } = await unauthClient.request(`/api/v1/mcp-keys/routeuser/mcp-key-test/keys`);
-    expect(response.status).toBe(401);
-  });
-
-  it('should list keys (empty)', async () => {
-    const { response, json } = await client.request(`/api/v1/mcp-keys/routeuser/mcp-key-test/keys`);
-    expect(response.status).toBe(200);
-    const data = await json();
-    expect(Array.isArray(data)).toBe(true);
-  });
-
-  it('should create an MCP key', async () => {
-    const { response, json } = await client.request(
-      `/api/v1/mcp-keys/routeuser/mcp-key-test/keys`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: 'Test Key',
-          permissions: ['read:project', 'read:elements'],
-        }),
-      }
-    );
-    expect(response.status).toBe(201);
-    const data = await json();
-    expect(data.key.name).toBe('Test Key');
-    expect(data).toHaveProperty('fullKey');
-    keyId = data.key.id;
-  });
-
-  it('should delete an MCP key', async () => {
-    const { response, json } = await client.request(
-      `/api/v1/mcp-keys/routeuser/mcp-key-test/keys/${keyId}`,
       { method: 'DELETE' }
     );
     expect(response.status).toBe(200);

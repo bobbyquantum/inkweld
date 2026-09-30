@@ -27,19 +27,13 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { RelationshipsTabComponent } from '@components/relationships-tab/relationships-tab.component';
 import { TagsTabComponent } from '@components/tags-tab/tags-tab.component';
 import { TemplatesTabComponent } from '@components/templates-tab/templates-tab.component';
-import {
-  CreateMcpKeyDialogComponent,
-  type CreateMcpKeyDialogResult,
-} from '@dialogs/create-mcp-key-dialog/create-mcp-key-dialog.component';
 import { CollaborationService as CollaborationApiService } from '@inkweld/api/collaboration.service';
-import { MCPKeysService } from '@inkweld/api/mcp-keys.service';
 import { ProjectsService } from '@inkweld/api/projects.service';
 import {
   type Collaborator,
   CollaboratorCollaboratorType,
   CollaboratorRole,
   InvitationStatus,
-  type McpPublicKey,
 } from '@inkweld/index';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
@@ -62,7 +56,7 @@ import { TimeSystemsSettingsComponent } from './time-systems-settings/time-syste
  * Project Settings Tab Component
  *
  * Provides project-specific settings including:
- * - MCP API key management for external tool access
+ * - MCP connection instructions for external tools
  * - Media sync status (moved from user settings)
  * - Future: Collaboration settings
  */
@@ -144,7 +138,6 @@ export class SettingsTabComponent implements OnDestroy {
   protected mcpExpanded = signal(false);
   protected dangerExpanded = signal(false);
   protected readonly projectState = inject(ProjectStateService);
-  private readonly mcpKeysService = inject(MCPKeysService);
   private readonly collaborationService = inject(CollaborationApiService);
   private readonly projectsService = inject(ProjectsService);
   private readonly projectService = inject(UnifiedProjectService);
@@ -161,23 +154,15 @@ export class SettingsTabComponent implements OnDestroy {
   private readonly projectActivation = inject(ProjectActivationService);
   private readonly renameMigration = inject(ProjectRenameMigrationService);
 
-  // MCP Keys should only be visible when AI kill switch is OFF
+  // MCP settings are only visible when the AI kill switch is OFF
   protected readonly isAiKillSwitchEnabled =
     this.systemConfigService.isAiKillSwitchEnabled;
-  // Legacy MCP API keys are hidden unless the admin has enabled them.
-  protected readonly isLegacyMcpEnabled =
-    this.systemConfigService.isLegacyMcpEnabled;
   // MCP access as a whole (the AI kill switch still takes precedence).
   protected readonly isMcpEnabled = this.systemConfigService.isMcpEnabled;
   private readonly dialog = inject(MatDialog);
 
   // Current mode (server or offline)
   protected readonly currentMode = this.setupService.getMode();
-
-  // MCP Keys state
-  protected readonly mcpKeys = signal<McpPublicKey[]>([]);
-  protected readonly isLoadingKeys = signal(true);
-  protected readonly keysError = signal<string | null>(null);
 
   // Reset local data state
   protected readonly isResettingLocalData = signal(false);
@@ -245,12 +230,6 @@ export class SettingsTabComponent implements OnDestroy {
     },
   ];
 
-  // Helper for template date comparisons
-  protected readonly currentTime = () => Date.now();
-
-  // Newly created key (shown once)
-  protected readonly newlyCreatedKey = signal<string | null>(null);
-
   // Media sync state
   protected readonly projectKey = computed(() => {
     const project = this.projectState.project();
@@ -285,7 +264,6 @@ export class SettingsTabComponent implements OnDestroy {
       const key = this.projectKey();
       if (key && this.currentMode === 'server') {
         void this.checkMediaSyncStatus();
-        void this.loadMcpKeys();
         void this.loadCollaborators();
         void this.loadServerStorageSize();
       }
@@ -351,128 +329,8 @@ export class SettingsTabComponent implements OnDestroy {
   }
 
   // =====================
-  // MCP Keys Management
+  // MCP
   // =====================
-
-  async loadMcpKeys(): Promise<void> {
-    const project = this.projectState.project();
-    // MCP keys are owner-only (not available to editors or viewers) and the
-    // whole legacy-key section is hidden unless the admin has enabled it.
-    if (
-      !project ||
-      this.currentMode !== 'server' ||
-      !this.projectState.isOwner() ||
-      !this.isLegacyMcpEnabled()
-    ) {
-      this.mcpKeys.set([]);
-      this.isLoadingKeys.set(false);
-      return;
-    }
-
-    this.isLoadingKeys.set(true);
-    this.keysError.set(null);
-
-    try {
-      const keys = await firstValueFrom(
-        this.mcpKeysService.listMcpKeys(project.username, project.slug)
-      );
-      this.mcpKeys.set(keys);
-    } catch (error) {
-      console.error('Failed to load MCP keys:', error);
-      this.keysError.set(this.transloco.translate('settings.mcp.loadFailed'));
-    } finally {
-      this.isLoadingKeys.set(false);
-    }
-  }
-
-  openCreateKeyDialog(): void {
-    const dialogRef = this.dialog.open(CreateMcpKeyDialogComponent, {
-      panelClass: 'create-mcp-key-dialog',
-      width: '520px',
-    });
-
-    dialogRef.afterClosed().subscribe((result: CreateMcpKeyDialogResult) => {
-      if (result) {
-        this.newlyCreatedKey.set(result.fullKey);
-        this.mcpKeys.update(keys => [...keys, result.key]);
-      }
-    });
-  }
-
-  async revokeKey(key: McpPublicKey): Promise<void> {
-    const project = this.projectState.project();
-    if (!project) return;
-
-    const confirmed = await this.dialogGateway.openConfirmationDialog({
-      title: 'Revoke API key',
-      message: `Revoke this API key? It will no longer be usable for authentication.`,
-      confirmText: 'Revoke',
-      cancelText: 'Cancel',
-    });
-    if (!confirmed) return;
-
-    try {
-      await firstValueFrom(
-        this.mcpKeysService.revokeMcpKey(project.username, project.slug, key.id)
-      );
-
-      // Update the key in the list
-      this.mcpKeys.update(keys =>
-        keys.map(k => (k.id === key.id ? { ...k, revoked: true } : k))
-      );
-
-      this.snackBar.open('API key revoked', 'Close', { duration: 3000 });
-    } catch (error) {
-      console.error('Failed to revoke API key:', error);
-      this.snackBar.open('Failed to revoke API key', 'Close', {
-        duration: 3000,
-      });
-    }
-  }
-
-  async deleteKey(key: McpPublicKey): Promise<void> {
-    const project = this.projectState.project();
-    if (!project) return;
-
-    const confirmed = await this.dialogGateway.openConfirmationDialog({
-      title: 'Delete API key',
-      message: `Permanently delete this API key? This action cannot be undone.`,
-      confirmText: 'Delete',
-      cancelText: 'Cancel',
-    });
-    if (!confirmed) return;
-
-    try {
-      await firstValueFrom(
-        this.mcpKeysService.deleteMcpKey(project.username, project.slug, key.id)
-      );
-
-      // Remove from list
-      this.mcpKeys.update(keys => keys.filter(k => k.id !== key.id));
-
-      this.snackBar.open('API key deleted', 'Close', { duration: 3000 });
-    } catch (error) {
-      console.error('Failed to delete API key:', error);
-      this.snackBar.open('Failed to delete API key', 'Close', {
-        duration: 3000,
-      });
-    }
-  }
-
-  copyKeyToClipboard(key: string): void {
-    navigator.clipboard.writeText(key).then(
-      () => {
-        this.snackBar.open('API key copied to clipboard', 'Close', {
-          duration: 2000,
-        });
-      },
-      () => {
-        this.snackBar.open('Failed to copy to clipboard', 'Close', {
-          duration: 2000,
-        });
-      }
-    );
-  }
 
   getMcpEndpointUrl(): string {
     const serverUrl = this.setupService.getServerUrl() || '';
@@ -493,19 +351,6 @@ export class SettingsTabComponent implements OnDestroy {
         });
       }
     );
-  }
-
-  dismissNewKey(): void {
-    this.newlyCreatedKey.set(null);
-  }
-
-  formatDate(timestamp: number | null): string {
-    if (!timestamp) return 'Never';
-    return new Date(timestamp).toLocaleDateString();
-  }
-
-  getActiveKeysCount(): number {
-    return this.mcpKeys().filter(k => !k.revoked).length;
   }
 
   // =====================
@@ -726,9 +571,8 @@ export class SettingsTabComponent implements OnDestroy {
       const databases = await this.getProjectDatabases(username, slug);
 
       // Delete each database
-      for (const dbName of databases) {
-        await this.deleteDatabase(dbName);
-      }
+      // Separate databases, so the deletions are independent.
+      await Promise.all(databases.map(dbName => this.deleteDatabase(dbName)));
 
       // Also clear media for this project
       // The media service stores in 'inkweld-media' with keys like 'projectKey:mediaId'

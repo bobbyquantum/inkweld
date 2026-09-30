@@ -53,8 +53,8 @@ export class RelationshipFieldService {
   }
 
   /**
-   * Deterministic relationshipTypeId for relationship fields that predate id
-   * stamping (legacy/imported schemas). Unlike {@link stampRelationshipTypeId}
+   * Deterministic relationshipTypeId for relationship fields that arrive
+   * without one (imported schemas). Unlike {@link stampRelationshipTypeId}
    * the id is derived from schema + field key, so an un-persisted stamp still
    * resolves to the same backing type on the next session instead of leaking
    * a new one per open.

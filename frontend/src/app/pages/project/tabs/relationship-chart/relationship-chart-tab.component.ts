@@ -1166,7 +1166,7 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
    * Handles data: URLs (pass-through), media:// URLs (local IndexedDB), and HTTP URLs.
    * On local miss, triggers a media sync and retries once.
    */
-  private async resolveImageUrl(
+  private resolveImageUrl(
     imageUrl: string,
     username: string,
     slug: string
@@ -1176,9 +1176,11 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
     }
 
     // Pass through only schemes the browser can load. A raw `media:img-...`
-    // (single-colon legacy form) or any other scheme would otherwise be handed
+    // (the prose-image form) or any other scheme would otherwise be handed
     // to Cytoscape as a node background and blocked by the deployed CSP.
-    return /^(https?:|blob:|data:)/i.test(imageUrl) ? imageUrl : null;
+    return Promise.resolve(
+      /^(https?:|blob:|data:)/i.test(imageUrl) ? imageUrl : null
+    );
   }
 
   /**

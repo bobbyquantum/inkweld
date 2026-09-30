@@ -19,10 +19,8 @@ interface McpTestContext {
   projectSlug: string;
   /** Project identifier for MCP tools (username/slug) */
   projectKey: string;
-  /** MCP API key (full key, iw_proj_...) */
-  mcpApiKey: string;
-  /** OAuth access token (if obtained) */
-  oauthAccessToken?: string;
+  /** OAuth access token with admin access to the project */
+  mcpToken: string;
 }
 
 interface JsonRpcResponse {
@@ -78,45 +76,6 @@ async function createProject(
     );
   }
   return (await response.json()) as { id: string; slug: string };
-}
-
-/**
- * Create an MCP API key for a project
- */
-async function createMcpKey(
-  request: APIRequestContext,
-  authToken: string,
-  username: string,
-  slug: string,
-  permissions: string[] = [
-    'read:project',
-    'read:elements',
-    'read:worldbuilding',
-    'read:schemas',
-    'write:elements',
-    'write:worldbuilding',
-  ]
-): Promise<string> {
-  const response = await request.post(
-    `${API_BASE}/api/v1/mcp-keys/${username}/${slug}/keys`,
-    {
-      headers: { Authorization: `Bearer ${authToken}` },
-      data: {
-        name: `E2E Test Key ${Date.now()}`,
-        permissions,
-      },
-    }
-  );
-  if (!response.ok()) {
-    throw new Error(
-      `Create MCP key failed: ${response.status()} ${await response.text()}`
-    );
-  }
-  const data = (await response.json()) as { fullKey: string };
-  if (!data.fullKey) {
-    throw new Error('MCP key created but fullKey not returned');
-  }
-  return data.fullKey;
 }
 
 /**
@@ -206,7 +165,8 @@ export async function mcpCallTool(
 export async function performOAuthFlow(
   request: APIRequestContext,
   authToken: string,
-  projectSlug: string
+  projectSlug: string,
+  role: 'viewer' | 'editor' | 'admin' = 'admin'
 ): Promise<{ accessToken: string; refreshToken: string; clientId: string }> {
   // Step 1: Register OAuth client
   const dcrResponse = await request.post(`${API_BASE}/oauth/register`, {
@@ -277,7 +237,7 @@ export async function performOAuthFlow(
         grants: [
           {
             projectId: grantProjectId,
-            role: 'admin',
+            role,
           },
         ],
       },
@@ -340,8 +300,7 @@ export async function performOAuthFlow(
 
 export type McpFixtures = {
   /**
-   * Full MCP test context: user, project, API key.
-   * Uses API key for MCP authentication.
+   * Full MCP test context: user, project and an OAuth access token.
    */
   mcpContext: McpTestContext;
 
@@ -367,16 +326,15 @@ export const test = base.extend<McpFixtures>({
     // Create project
     await createProject(request, authToken, 'MCP Test Project', projectSlug);
 
-    // Create MCP API key with full permissions
-    const mcpApiKey = await createMcpKey(
+    // Authorize an MCP client with full access to the project
+    const { accessToken: mcpToken } = await performOAuthFlow(
       request,
       authToken,
-      username,
       projectSlug
     );
 
     // Discover the MCP server (stateless protocol has no initialize handshake)
-    const discoverResult = await mcpDiscover(request, mcpApiKey);
+    const discoverResult = await mcpDiscover(request, mcpToken);
     expect(discoverResult.error).toBeUndefined();
 
     const context: McpTestContext = {
@@ -384,7 +342,7 @@ export const test = base.extend<McpFixtures>({
       username,
       projectSlug,
       projectKey: `${username}/${projectSlug}`,
-      mcpApiKey,
+      mcpToken,
     };
 
     await use(context);

@@ -843,7 +843,7 @@ const defaultModelsRoute = createRoute({
   },
 });
 
-aiImageRoutes.openapi(defaultModelsRoute, async (c) => {
+aiImageRoutes.openapi(defaultModelsRoute, (c) => {
   // Return the default models from each provider
   // These are the built-in defaults that can be overridden via admin config
   return c.json(

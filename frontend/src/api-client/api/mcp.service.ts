@@ -150,7 +150,7 @@ export class MCPService extends BaseService {
    * @param mCPProtocolVersion MCP protocol version, must match _meta.io.modelcontextprotocol/protocolVersion
    * @param mcpMethod The JSON-RPC method, must match the request body method
    * @param mcpName The tool/prompt name or resource URI (required for tools/call, resources/read, prompts/get)
-   * @param authorization Bearer token (OAuth JWT or legacy API key)
+   * @param authorization Bearer token (OAuth access token)
    * @param jsonRpcRequest
    * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
    * @param reportProgress flag to report request and response progress.

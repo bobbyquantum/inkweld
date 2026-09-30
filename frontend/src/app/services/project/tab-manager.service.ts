@@ -537,7 +537,7 @@ export class TabManagerService {
   setTabs(tabs: AppTab[], selectedIndex = 0): void {
     this.openTabs.set(tabs);
 
-    // Also update openDocuments for backward compatibility
+    // Keep openDocuments in step with the element tabs
     const documents = tabs
       .filter(tab => tab.element)
       .map(tab => tab.element as Element);

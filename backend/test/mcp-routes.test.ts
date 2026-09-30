@@ -13,11 +13,12 @@ import { users, projects } from '../src/db/schema/index';
 import { eq } from 'drizzle-orm';
 import * as bcrypt from 'bcryptjs';
 import { configService } from '../src/services/config.service';
+import { mcpOAuthService } from '../src/services/mcp-oauth.service';
 import { startTestServer, stopTestServer, enablePasswordLoginForTests } from './server-test-helper';
 
 let testServer: { port: number; baseUrl: string };
 let db: ReturnType<typeof getDatabase>;
-let apiKey: string;
+let accessToken: string;
 
 const USER_ID = crypto.randomUUID();
 const USERNAME = 'mcpintuser';
@@ -48,7 +49,7 @@ function standardHeaders(method: string, name?: string): Record<string, string> 
     'MCP-Protocol-Version': VERSION,
     'Mcp-Method': method,
     ...(name ? { 'Mcp-Name': name } : {}),
-    Authorization: `Bearer ${apiKey}`,
+    Authorization: `Bearer ${accessToken}`,
   };
 }
 
@@ -71,7 +72,7 @@ beforeAll(async () => {
     isAdmin: false,
   });
 
-  // Create a project and an MCP key so header-validation tests can authenticate.
+  // Create a project and an OAuth session so header-validation tests can authenticate.
   const login = await fetch(`${testServer.baseUrl}/api/v1/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -88,16 +89,19 @@ beforeAll(async () => {
     throw new Error(`project creation failed: ${projectRes.status} ${await projectRes.text()}`);
   }
 
-  const keyRes = await fetch(`${testServer.baseUrl}/api/v1/mcp-keys/${USERNAME}/${SLUG}/keys`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: 'test', permissions: ['read:project', 'read:elements'] }),
+  const project = (await projectRes.json()) as { id: string };
+
+  const client = await mcpOAuthService.registerClient(db, {
+    clientName: 'MCP route test',
+    redirectUris: ['http://localhost:3000/callback'],
   });
-  if (!keyRes.ok) {
-    throw new Error(`key creation failed: ${keyRes.status} ${await keyRes.text()}`);
-  }
-  const { fullKey } = (await keyRes.json()) as { fullKey: string };
-  apiKey = fullKey;
+  const { tokens } = await mcpOAuthService.createSession(db, {
+    userId: USER_ID,
+    clientId: client.clientId,
+    grants: [{ projectId: project.id, role: 'viewer' }],
+    issuer: testServer.baseUrl,
+  });
+  accessToken = tokens.accessToken;
 
   // Ensure MCP is available for these tests (the AI kill switch defaults to ON
   // and would otherwise 403 every request).
@@ -147,7 +151,7 @@ describe('MCP stateless endpoint (2026-07-28)', () => {
     const res = await postMcp(rpcBody('server/discover'), {
       'Content-Type': 'application/json',
       'Mcp-Method': 'server/discover',
-      Authorization: `Bearer ${apiKey}`,
+      Authorization: `Bearer ${accessToken}`,
     });
     expect(res.status).toBe(400);
     const json = (await res.json()) as { error: { code: number } };
@@ -158,7 +162,7 @@ describe('MCP stateless endpoint (2026-07-28)', () => {
     const res = await postMcp(rpcBody('tools/list'), {
       'Content-Type': 'application/json',
       'MCP-Protocol-Version': VERSION,
-      Authorization: `Bearer ${apiKey}`,
+      Authorization: `Bearer ${accessToken}`,
     });
     expect(res.status).toBe(400);
     const json = (await res.json()) as { error: { code: number } };
@@ -177,7 +181,7 @@ describe('MCP stateless endpoint (2026-07-28)', () => {
       'Content-Type': 'application/json',
       'MCP-Protocol-Version': '2025-11-25',
       'Mcp-Method': 'tools/list',
-      Authorization: `Bearer ${apiKey}`,
+      Authorization: `Bearer ${accessToken}`,
     });
     expect(res.status).toBe(400);
     const json = (await res.json()) as { error: { code: number } };

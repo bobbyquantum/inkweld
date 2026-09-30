@@ -188,29 +188,29 @@ export async function getElementImageUrls(
     return [];
   }
 
-  const urls: string[] = [];
+  // Each element's document is loaded independently; results stay in input order.
+  const found = await Promise.all(
+    referenceElements.map(async (ctx): Promise<string | undefined> => {
+      try {
+        const wbDocId = getWorldbuildingDocId(username, slug, ctx.elementId);
+        const sharedDoc = await yjsService.getDocument(wbDocId);
+        const identityMap = sharedDoc.doc.getMap('identity');
+        const imageUrl = identityMap.get('image') as string | undefined;
 
-  for (const ctx of referenceElements) {
-    try {
-      const wbDocId = getWorldbuildingDocId(username, slug, ctx.elementId);
-      const sharedDoc = await yjsService.getDocument(wbDocId);
-      const identityMap = sharedDoc.doc.getMap('identity');
-      const imageUrl = identityMap.get('image') as string | undefined;
-
-      if (imageUrl) {
+        if (!imageUrl) return undefined;
         // For data URLs, just store the MIME type and truncated marker for brevity
         if (imageUrl.startsWith('data:')) {
           const mimeMatch = /^data:([^;]+);/.exec(imageUrl);
           const mimeType = mimeMatch ? mimeMatch[1] : 'image/*';
-          urls.push(`data:${mimeType};base64,[inline-image]`);
-        } else {
-          urls.push(imageUrl);
+          return `data:${mimeType};base64,[inline-image]`;
         }
+        return imageUrl;
+      } catch {
+        refImgLog.debug(`Could not get image URL for element ${ctx.elementId}`);
+        return undefined;
       }
-    } catch {
-      refImgLog.debug(`Could not get image URL for element ${ctx.elementId}`);
-    }
-  }
+    })
+  );
 
-  return urls;
+  return found.filter((url): url is string => url !== undefined);
 }

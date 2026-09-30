@@ -1,4 +1,9 @@
 import { inject, Injectable } from '@angular/core';
+import {
+  firstResultSequential,
+  forEachSequential,
+  mapSequential,
+} from '@inkweld/async';
 import { type Element, ElementType } from '@inkweld/index';
 import {
   createDefaultPublishStyles,
@@ -482,8 +487,10 @@ export class EpubGeneratorService {
       message: `Processing content (0/${plan.items.length})...`,
     });
 
-    for (const item of plan.items) {
-      if (this.isCancelled) break;
+    // Sequential: chapter numbers and reading order depend on the items before
+    // them, and images are packaged (and named) in document order.
+    await forEachSequential(plan.items, async item => {
+      if (this.isCancelled) return;
 
       this.updateProgress({
         detail: `Processing item ${processedCount + 1}...`,
@@ -510,7 +517,7 @@ export class EpubGeneratorService {
         overallProgress: Math.round(progress),
         message: `Processing content (${processedCount}/${plan.items.length})...`,
       });
-    }
+    });
 
     return slots;
   }
@@ -705,7 +712,8 @@ export class EpubGeneratorService {
   ): Promise<Slot[]> {
     const slots: Slot[] = [{ type: 'group', title, level: 0 }];
     const children = this.getChildElements(element, elements);
-    for (const child of children) {
+    // Sequential: slots keep the project's reading order.
+    await forEachSequential(children, async child => {
       const level = Math.max(1, child.level - element.level);
       if (
         child.type === ElementType.Item &&
@@ -720,7 +728,7 @@ export class EpubGeneratorService {
         const chapter = await this.inlineWbChapter(child, undefined, level);
         if (chapter) slots.push(this.chapterSlot(chapter));
       }
-    }
+    });
     return slots;
   }
 
@@ -778,9 +786,8 @@ export class EpubGeneratorService {
 
   /**
    * Try multiple media IDs to find the cover blob:
-   * 1. coverMediaId from Yjs (new system)
+   * 1. coverMediaId from Yjs
    * 2. project.coverImage filename stem (DB value)
-   * 3. Legacy 'cover' key (backward compat)
    */
   private async loadCoverBlob(project: {
     username: string;
@@ -801,13 +808,12 @@ export class EpubGeneratorService {
     const stem = project.coverImage?.replace(/\.[^.]+$/, '');
     if (stem && !idsToTry.includes(stem)) idsToTry.push(stem);
 
-    if (!idsToTry.includes('cover')) idsToTry.push('cover');
-
-    for (const id of idsToTry) {
+    // Sequential: candidates are tried in priority order; first hit wins.
+    const found = await firstResultSequential(idsToTry, async id => {
       const blob = await this.localStorage.getMedia(projectKey, id);
-      if (blob) return blob;
-    }
-    return null;
+      return blob ?? undefined;
+    });
+    return found ?? null;
   }
 
   /**
@@ -873,7 +879,8 @@ export class EpubGeneratorService {
   private async resolveDocumentImages(content: ProseMirrorNode): Promise<void> {
     const sources = new Set<string>();
     this.collectImageSources(content, sources);
-    for (const src of sources) await this.resolveImage(src);
+    // Sequential: images are packaged (and named) one at a time in document order.
+    await forEachSequential(sources, src => this.resolveImage(src));
   }
 
   private collectImageSources(node: ProseMirrorNode, out: Set<string>): void {
@@ -1457,12 +1464,11 @@ export class EpubGeneratorService {
   ): Promise<string> {
     const entries = await this.worldbuildingRenderer.renderItem(item, elements);
     if (entries.length === 0) return '';
-    const parts: string[] = [`<div class="ink-wb-section">`];
-    for (const entry of entries) {
-      parts.push(await this.renderWorldbuildingEntry(entry));
-    }
-    parts.push('</div>');
-    return parts.join('\n');
+    // Sequential: entries render in order and package their images as they go.
+    const rendered = await mapSequential(entries, entry =>
+      this.renderWorldbuildingEntry(entry)
+    );
+    return [`<div class="ink-wb-section">`, ...rendered, '</div>'].join('\n');
   }
 
   /**
@@ -1476,17 +1482,18 @@ export class EpubGeneratorService {
     const entries = await this.worldbuildingRenderer.renderItem(item, elements);
     if (entries.length === 0) return [];
     const title = item.title || 'Worldbuilding';
-    const parts: string[] = [];
-    parts.push(`<div class="ink-wb-section">`);
-    if (item.title) {
-      parts.push(
-        `<h2 class="ink-wb-section-title">${escapeXml(item.title)}</h2>`
-      );
-    }
-    for (const entry of entries) {
-      parts.push(await this.renderWorldbuildingEntry(entry));
-    }
-    parts.push('</div>');
+    // Sequential: entries render in order and package their images as they go.
+    const rendered = await mapSequential(entries, entry =>
+      this.renderWorldbuildingEntry(entry)
+    );
+    const parts = [
+      `<div class="ink-wb-section">`,
+      ...(item.title
+        ? [`<h2 class="ink-wb-section-title">${escapeXml(item.title)}</h2>`]
+        : []),
+      ...rendered,
+      '</div>',
+    ];
     return [
       {
         id: `worldbuilding-${item.id}`,

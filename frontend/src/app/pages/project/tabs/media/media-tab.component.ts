@@ -36,6 +36,7 @@ import {
   type TagPickerDialogData,
   type TagPickerDialogResult,
 } from '@dialogs/tag-picker-dialog/tag-picker-dialog.component';
+import { forEachSequential } from '@inkweld/async';
 import { ElementType } from '@inkweld/index';
 import { TranslocoModule } from '@jsverse/transloco';
 import type { CanvasConfig } from '@models/canvas.model';
@@ -185,7 +186,7 @@ export class MediaTabComponent implements OnInit, OnDestroy {
     }
   });
 
-  // Legacy compatibility — keep these as computed from filterState
+  // Single-value views of filterState for the template
   selectedCategory = computed(() => this.filterState().category);
   elementFilter = computed(() =>
     this.filterState().elementIds.length === 1
@@ -847,17 +848,22 @@ export class MediaTabComponent implements OnInit, OnDestroy {
     mediaId: string,
     usages: string[]
   ): Promise<void> {
-    for (const el of elements.filter(e => e.type === ElementType.Item)) {
-      const docId = `${username}:${slug}:${el.id}`;
-      try {
-        const content = await this.documentService.getDocumentContent(docId);
-        if (content && this.prosemirrorContainsMedia(content, mediaId)) {
-          usages.push(`Embedded in document "${el.name}"`);
+    // Sequential: each read opens a document, and usages are reported in
+    // element order.
+    await forEachSequential(
+      elements.filter(e => e.type === ElementType.Item),
+      async el => {
+        const docId = `${username}:${slug}:${el.id}`;
+        try {
+          const content = await this.documentService.getDocumentContent(docId);
+          if (content && this.prosemirrorContainsMedia(content, mediaId)) {
+            usages.push(`Embedded in document "${el.name}"`);
+          }
+        } catch {
+          /* skip unreadable docs */
         }
-      } catch {
-        /* skip unreadable docs */
       }
-    }
+    );
   }
 
   /**
@@ -1088,7 +1094,7 @@ export class MediaTabComponent implements OnInit, OnDestroy {
   }
 
   private categorizeMedia(mediaId: string): MediaCategory {
-    if (mediaId === 'cover' || mediaId.startsWith('cover-')) return 'cover';
+    if (mediaId.startsWith('cover-')) return 'cover';
     if (mediaId.startsWith('generated-')) return 'generated';
     if (mediaId.startsWith('img-')) return 'inline';
     if (mediaId.startsWith('published-')) return 'published';

@@ -207,8 +207,8 @@ export class CoverSourceService {
    * canvas-linked (callers fall back to the stored image). Also refreshes the
    * stored raster when it was stale.
    */
-  async freshCoverBlob(): Promise<Blob | null> {
-    if (!this.source()) return null;
+  freshCoverBlob(): Promise<Blob | null> {
+    if (!this.source()) return Promise.resolve(null);
     return this.renderCurrent({ force: true });
   }
 
@@ -342,8 +342,9 @@ export class CoverSourceService {
   }
 
   /**
-   * A canvas's contents from the sync provider, falling back to the legacy
-   * metadata snapshot for canvases that have never been opened since import.
+   * A canvas's contents from the sync provider, falling back to the
+   * `canvasConfig` metadata for canvases that have never been opened since
+   * import.
    */
   private readContents(elementId: string): CanvasContents | null {
     const synced = this.projectState.getCanvasContents(elementId);

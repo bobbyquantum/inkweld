@@ -6,6 +6,7 @@ import { projects, type Project, type InsertProject } from '../db/schema/project
 import { users } from '../db/schema/users';
 import { projectSlugAliases, type ProjectSlugAlias } from '../db/schema/project-slug-aliases';
 import { projectTombstones, type ProjectTombstone } from '../db/schema/project-tombstones';
+import { mapWithConcurrency } from '../utils/concurrency';
 
 /**
  * Map a violation of the (user_id, slug) unique index — the race the route's
@@ -359,48 +360,27 @@ class ProjectService {
     // own tombstones are reported: a deleted project has no collaborator rows
     // left to authorise anyone else, and answering for arbitrary keys made
     // this an oracle for other users' private slugs and deletion times.
-    for (const { username, slug } of parsedKeys) {
-      const userId = usernameToId.get(username);
-      if (!userId || userId !== requesterId) {
-        continue; // Unknown user, or not the requester's own project
-      }
+    const ownKeys = parsedKeys.filter(
+      ({ username }) => usernameToId.get(username) && usernameToId.get(username) === requesterId
+    );
 
+    // Independent lookups; bounded concurrency, results stay in key order.
+    const found = await mapWithConcurrency(ownKeys, 8, async ({ username, slug }) => {
       const tombstoneResult = await db
         .select()
         .from(projectTombstones)
-        .where(and(eq(projectTombstones.userId, userId), eq(projectTombstones.slug, slug)))
+        .where(and(eq(projectTombstones.userId, requesterId), eq(projectTombstones.slug, slug)))
         .limit(1);
 
-      if (tombstoneResult.length > 0) {
-        results.push({
-          username,
-          slug,
-          deletedAt: tombstoneResult[0].deletedAt,
-        });
-      }
+      return tombstoneResult.length > 0
+        ? { username, slug, deletedAt: tombstoneResult[0].deletedAt }
+        : null;
+    });
+    for (const tombstone of found) {
+      if (tombstone) results.push(tombstone);
     }
 
     return results;
-  }
-
-  /**
-   * @deprecated Use findTombstonesByProjectKeys instead for proper username-scoped lookups
-   */
-  async findTombstones(
-    db: DatabaseInstance,
-    userId: string,
-    slugs: string[]
-  ): Promise<ProjectTombstone[]> {
-    if (slugs.length === 0) {
-      return [];
-    }
-
-    const result = await db
-      .select()
-      .from(projectTombstones)
-      .where(and(eq(projectTombstones.userId, userId), inArray(projectTombstones.slug, slugs)));
-
-    return result;
   }
 
   /**

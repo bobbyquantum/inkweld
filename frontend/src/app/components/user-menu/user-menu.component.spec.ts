@@ -56,7 +56,7 @@ describe('UserMenuComponent', () => {
   const mockLocalConfig: ServerConfig = {
     id: 'local',
     type: 'local',
-    displayName: 'Local Mode',
+    displayName: 'Browser',
     addedAt: new Date().toISOString(),
     lastUsedAt: new Date().toISOString(),
     userProfile: { name: 'Test User', username: 'testuser' },
@@ -335,7 +335,7 @@ describe('UserMenuComponent', () => {
       expect(name).toBe('Not configured');
     });
 
-    it('should return "Browser" for a local profile, even one saved as Local Mode', () => {
+    it('should return "Browser" for a local profile', () => {
       activeConfigSignal.set(mockLocalConfig);
       const name = component.getCurrentServerName();
       expect(name).toBe('Browser');

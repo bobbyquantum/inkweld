@@ -42,8 +42,6 @@ export * from './linting.service';
 import { LintingService } from './linting.service';
 export * from './mcp.service';
 import { MCPService } from './mcp.service';
-export * from './mcp-keys.service';
-import { MCPKeysService } from './mcp-keys.service';
 export * from './media.service';
 import { MediaService } from './media.service';
 export * from './o-auth.service';
@@ -83,7 +81,6 @@ export const APIS = [
   ImagesService,
   LintingService,
   MCPService,
-  MCPKeysService,
   MediaService,
   OAuthService,
   PasskeysService,

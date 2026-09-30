@@ -7,6 +7,7 @@ import {
   type Announcement,
   type InsertAnnouncement,
 } from '../db/schema';
+import { forEachSequential } from '@inkweld/async';
 
 export interface AnnouncementWithReadStatus extends Announcement {
   isRead: boolean;
@@ -45,7 +46,7 @@ class AnnouncementService {
   /**
    * List all announcements (for admin)
    */
-  async listAll(db: DatabaseInstance): Promise<Announcement[]> {
+  listAll(db: DatabaseInstance): Promise<Announcement[]> {
     return db.select().from(announcements).orderBy(desc(announcements.createdAt));
   }
 
@@ -54,7 +55,7 @@ class AnnouncementService {
    * For unauthenticated users: only isPublic=true and published
    * For authenticated users: all published announcements
    */
-  async listPublished(
+  listPublished(
     db: DatabaseInstance,
     options: { publicOnly?: boolean } = {}
   ): Promise<Announcement[]> {
@@ -210,14 +211,14 @@ class AnnouncementService {
   /**
    * Publish an announcement (set publishedAt to now)
    */
-  async publish(db: DatabaseInstance, id: string): Promise<Announcement> {
+  publish(db: DatabaseInstance, id: string): Promise<Announcement> {
     return this.update(db, id, { publishedAt: new Date() });
   }
 
   /**
    * Unpublish an announcement (set publishedAt to null)
    */
-  async unpublish(db: DatabaseInstance, id: string): Promise<Announcement> {
+  unpublish(db: DatabaseInstance, id: string): Promise<Announcement> {
     return this.update(db, id, { publishedAt: null });
   }
 
@@ -289,9 +290,12 @@ class AnnouncementService {
       }));
 
       const BATCH_SIZE = 20;
+      const batches: (typeof readRecords)[] = [];
       for (let i = 0; i < readRecords.length; i += BATCH_SIZE) {
-        await db.insert(announcementReads).values(readRecords.slice(i, i + BATCH_SIZE));
+        batches.push(readRecords.slice(i, i + BATCH_SIZE));
       }
+      // Sequential: one bounded insert at a time.
+      await forEachSequential(batches, (batch) => db.insert(announcementReads).values(batch));
     }
   }
 }

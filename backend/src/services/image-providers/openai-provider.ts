@@ -136,7 +136,7 @@ export class OpenAIImageProvider extends BaseImageProvider {
     // Add quality parameter if provided
     // GPT image models use: 'low', 'medium', 'high', 'auto'
     if (request.quality) {
-      // Map legacy quality values to GPT image model values
+      // Map DALL-E style quality values to GPT image model values
       const qualityMap: Record<string, string> = {
         standard: 'medium',
         hd: 'high',

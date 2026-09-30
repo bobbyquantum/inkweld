@@ -1109,7 +1109,7 @@ describe('TimelineTabComponent', () => {
     const rows = component['trackRows']();
     expect(rows).toHaveLength(defaultConfig.tracks.length);
     rows.forEach((row, idx) => {
-      expect(row.y).toBe(idx * component['trackHeight']);
+      expect(row.y).toBe(idx * 52);
     });
   });
 

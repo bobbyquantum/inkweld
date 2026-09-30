@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, primaryKey } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer, primaryKey, index } from 'drizzle-orm/sqlite-core';
 import { users } from './users';
 
 /**
@@ -26,6 +26,7 @@ export const projectSlugAliases = sqliteTable(
   },
   (table) => ({
     pk: primaryKey({ columns: [table.oldSlug, table.userId] }),
+    userIdIdx: index('idx_project_slug_aliases_user_id').on(table.userId),
   })
 );
 

@@ -4,7 +4,6 @@ import {
   type ArchiveElement,
   type ArchiveManifest,
   type ArchiveProject,
-  MIN_SUPPORTED_VERSION,
   type ProjectArchive,
   ProjectArchiveError,
   ProjectArchiveErrorType,
@@ -13,11 +12,7 @@ import {
 describe('project-archive models', () => {
   describe('Constants', () => {
     it('should export ARCHIVE_VERSION', () => {
-      expect(ARCHIVE_VERSION).toBe(3);
-    });
-
-    it('should export MIN_SUPPORTED_VERSION', () => {
-      expect(MIN_SUPPORTED_VERSION).toBe(1);
+      expect(ARCHIVE_VERSION).toBe(1);
     });
   });
 

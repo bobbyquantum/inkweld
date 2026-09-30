@@ -226,7 +226,7 @@ describe('HtmlSiteGeneratorService', () => {
     projectStateMock = {
       project: signal<Project | null>(mockProject),
       elements: signal<Element[]>(mockElements),
-      coverMediaId: signal<string | undefined>(undefined),
+      coverMediaId: signal<string | undefined>('cover-1'),
     };
 
     TestBed.configureTestingModule({
@@ -507,7 +507,7 @@ describe('HtmlSiteGeneratorService', () => {
     it('should include the cover image when enabled and available', async () => {
       localStorageMock.getMedia.mockImplementation((_key: string, id: string) =>
         Promise.resolve(
-          id === 'cover' ? new Blob(['png'], { type: 'image/png' }) : null
+          id === 'cover-1' ? new Blob(['png'], { type: 'image/png' }) : null
         )
       );
       const plan = buildPlan([elementItem('doc-1')], {

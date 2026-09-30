@@ -10,9 +10,8 @@
  *    front matter, to-do lists. Same editor, no manuscript metadata, and
  *    excluded from publish plans by default.
  *
- * A document with no role is a legacy document created before roles existed.
- * It behaves like a note in the UI but still publishes, so nothing changes
- * for existing projects.
+ * A document with no role (e.g. one created through an import or MCP) behaves
+ * like a note in the UI but still publishes.
  *
  * All values live in the element's `metadata` string map, which already
  * syncs via Yjs, round-trips through project archives and needs no API
@@ -84,7 +83,7 @@ function isSceneStatus(value: unknown): value is SceneStatus {
   return (SCENE_STATUSES as readonly unknown[]).includes(value);
 }
 
-/** Role of a document, or undefined for legacy documents without one. */
+/** Role of a document, or undefined when none has been set. */
 export function getDocumentRole(
   metadata: MetadataMap
 ): DocumentRole | undefined {
@@ -104,7 +103,7 @@ export function isNote(metadata: MetadataMap): boolean {
 
 /**
  * Whether a document should be included in publishing by default.
- * Scenes and legacy role-less documents publish; notes do not.
+ * Scenes and role-less documents publish; notes do not.
  */
 export function isPublishableByDefault(metadata: MetadataMap): boolean {
   return !isNote(metadata);

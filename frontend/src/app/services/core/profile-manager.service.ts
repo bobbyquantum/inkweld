@@ -1,4 +1,5 @@
 import { computed, inject, Injectable } from '@angular/core';
+import { forEachSequential, mapSequential } from '@inkweld/async';
 import { AuthTokenService } from '@services/auth/auth-token.service';
 import { CloudTokenStoreService } from '@services/cloud-sync/cloud-token-store.service';
 
@@ -273,12 +274,15 @@ export class ProfileManagerService {
       this.authTokens.clearTokenForConfig(config.id);
       this.cloudTokens.clear(config.id);
     }
-    for (const orphan of await this.storageContext.findOrphanedData()) {
-      await this.storageContext.clearPrefixedData(orphan.prefix);
-    }
-    for (const config of this.storageContext.getConfigurations()) {
-      await this.storageContext.clearContextData(config.id);
-    }
+    // Sequential: each wipe deletes IndexedDB databases and localStorage keys;
+    // one at a time keeps a failure attributable and the device consistent.
+    await forEachSequential(
+      await this.storageContext.findOrphanedData(),
+      orphan => this.storageContext.clearPrefixedData(orphan.prefix)
+    );
+    await forEachSequential(this.storageContext.getConfigurations(), config =>
+      this.storageContext.clearContextData(config.id)
+    );
     this.storageContext.clearConfig();
     try {
       localStorage.clear();
@@ -314,15 +318,16 @@ export class ProfileManagerService {
     // Projects whose address already exists in the destination were given a
     // new slug by the user; apply it to the copy only, never to the source
     const author = username ?? target.userProfile?.username;
-    for (const rename of renames) {
-      if (!author || rename.oldSlug === rename.newSlug) continue;
+    // Sequential: renames rewrite the same profile's databases and project list.
+    await forEachSequential(renames, async rename => {
+      if (!author || rename.oldSlug === rename.newSlug) return;
       await this.storageContext.renameProjectInContext(
         targetConfigId,
         author,
         rename.oldSlug,
         rename.newSlug
       );
-    }
+    });
     // A Browser profile never records activations; the copies must be live
     // in the destination or the cards would ask to be downloaded
     await this.storageContext.activateProjectsInContext(targetConfigId);
@@ -341,13 +346,14 @@ export class ProfileManagerService {
 
   /** What every profile, and any leftover prefix, holds on this device */
   async scanStorage(): Promise<StorageScan> {
-    const connections: StorageScan['connections'] = [];
-    for (const info of this.connections()) {
-      connections.push({
+    // Sequential: each scan opens IndexedDB databases; results stay in order.
+    const connections: StorageScan['connections'] = await mapSequential(
+      this.connections(),
+      async info => ({
         info,
         data: await this.storageContext.describeContextData(info.config.id),
-      });
-    }
+      })
+    );
     const orphans = await this.storageContext.findOrphanedData();
     let estimate: StorageScan['estimate'];
     try {
@@ -395,8 +401,7 @@ function countProjects(record: MigrationRecord): string {
 }
 
 function nameOf(record: MigrationRecord): string {
-  const name = record.displayName?.trim();
-  return !name || name === 'Local Mode' ? 'Browser' : name;
+  return record.displayName?.trim() || 'Browser';
 }
 
 function asUser(record: MigrationRecord): string {

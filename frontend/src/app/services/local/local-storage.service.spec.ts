@@ -27,7 +27,6 @@ describe('LocalStorageService', () => {
 
   const TEST_PROJECT_KEY = 'alice/my-novel';
   const TEST_USERNAME = 'alice';
-  const TEST_SLUG = 'my-novel';
 
   // Helper to create a test blob
   function createTestBlob(content = 'test content', type = 'image/jpeg'): Blob {
@@ -304,44 +303,6 @@ describe('LocalStorageService', () => {
       const totalSize = await service.getTotalMediaSize();
 
       expect(totalSize).toBe(blob1.size + blob2.size);
-    });
-  });
-
-  describe('convenience methods - project covers', () => {
-    it('should save and get project cover', async () => {
-      const blob = createTestBlob();
-
-      await service.saveProjectCover(TEST_USERNAME, TEST_SLUG, blob);
-      const retrieved = await service.getProjectCover(TEST_USERNAME, TEST_SLUG);
-
-      expect(retrieved).not.toBeNull();
-      // Blob was stored and retrieved (exact properties may vary in fake-indexeddb)
-      expect(retrieved).toBeDefined();
-    });
-
-    it('should get project cover URL', async () => {
-      await service.saveProjectCover(
-        TEST_USERNAME,
-        TEST_SLUG,
-        createTestBlob()
-      );
-
-      const url = await service.getProjectCoverUrl(TEST_USERNAME, TEST_SLUG);
-
-      expect(url).not.toBeNull();
-      expect(url).toMatch(/^blob:/);
-    });
-
-    it('should delete project cover', async () => {
-      await service.saveProjectCover(
-        TEST_USERNAME,
-        TEST_SLUG,
-        createTestBlob()
-      );
-      await service.deleteProjectCover(TEST_USERNAME, TEST_SLUG);
-
-      const retrieved = await service.getProjectCover(TEST_USERNAME, TEST_SLUG);
-      expect(retrieved).toBeNull();
     });
   });
 

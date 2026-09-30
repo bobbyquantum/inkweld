@@ -88,7 +88,7 @@ const mcpJsonRpcRoute = createRoute({
       Authorization: z
         .string()
         .optional()
-        .openapi({ description: 'Bearer token (OAuth JWT or legacy API key)' }),
+        .openapi({ description: 'Bearer token (OAuth access token)' }),
     }),
     body: {
       content: {
@@ -296,7 +296,7 @@ mcpRoutes.use('/', async (c, next) => {
 // Apply MCP auth middleware only to POST requests. Auth runs first so that
 // unauthenticated callers receive 401 (not header-validation 400s) and the
 // untrusted body is not parsed before identity is established.
-mcpRoutes.use('/', async (c, next) => {
+mcpRoutes.use('/', (c, next) => {
   // Only apply auth to POST requests
   if (c.req.method === 'POST') {
     return mcpAuth(c, next);

@@ -22,7 +22,7 @@ import { nanoid } from 'nanoid';
 import { registerTool } from '../mcp.handler';
 import type { McpContext, McpToolResult, ActiveProjectContext } from '../mcp.types';
 import { getProjectByKey, hasProjectPermission } from '../mcp.types';
-import { MCP_PERMISSIONS } from '../../services/mcp-key.service';
+import { MCP_PERMISSIONS } from '../mcp-permissions';
 import { type Element, type ElementType, ELEMENT_TYPES } from '../../schemas/element.schemas';
 import { logger } from '../../services/logger.service';
 import type { DatabaseInstance } from '../../types/context';
@@ -44,13 +44,9 @@ import {
 
 const mcpMutLog = logger.child('MCP-Mutation');
 
-/**
- * Returns the activity actor fields for the current MCP context.
- * OAuth sessions supply a `userId`; legacy API-key sessions supply an
- * `actorLabel` (the key's display name, or "MCP" as a fallback).
- */
-function mcpActor(ctx: McpContext): { userId: string } | { actorLabel: string } {
-  return ctx.type === 'oauth' ? { userId: ctx.userId } : { actorLabel: ctx.key.name || 'MCP' };
+/** Returns the activity actor fields for the current MCP context. */
+function mcpActor(ctx: McpContext): { userId: string } {
+  return { userId: ctx.userId };
 }
 
 /**
@@ -1434,9 +1430,9 @@ The content replaces the entire document. Use get_document_content first to read
         },
         format: {
           type: 'string',
-          enum: ['prosemirror_xml', 'markdown', 'xml'],
+          enum: ['prosemirror_xml', 'markdown'],
           description:
-            'Input format: "prosemirror_xml" (default) for canonical Inkweld XML, "markdown" for Markdown. "xml" is accepted as a deprecated alias for "prosemirror_xml".',
+            'Input format: "prosemirror_xml" (default) for canonical Inkweld XML, "markdown" for Markdown.',
         },
       },
       required: ['project', 'elementId', 'content'],
@@ -1460,13 +1456,10 @@ The content replaces the entire document. Use get_document_content first to read
       };
     }
     const content = args.content;
-    // Normalize format: accept legacy 'xml' as alias for 'prosemirror_xml'.
-    // 'text' is no longer supported on the write side: callers can trivially
+    // 'text' is not supported on the write side: callers can trivially
     // produce a single-paragraph XML / Markdown payload themselves, and
     // accepting plain text encouraged silent loss of structure.
-    const rawFormat = (args.format as string) ?? 'prosemirror_xml';
-    const format: 'prosemirror_xml' | 'markdown' =
-      rawFormat === 'xml' ? 'prosemirror_xml' : (rawFormat as 'prosemirror_xml' | 'markdown');
+    const format = ((args.format as string) ?? 'prosemirror_xml') as 'prosemirror_xml' | 'markdown';
 
     if (!elementId) {
       return {
@@ -1480,7 +1473,7 @@ The content replaces the entire document. Use get_document_content first to read
         content: [
           {
             type: 'text',
-            text: `Error: invalid format "${rawFormat}". Use "prosemirror_xml" or "markdown".`,
+            text: `Error: invalid format "${String(format)}". Use "prosemirror_xml" or "markdown".`,
           },
         ],
         isError: true,
@@ -1597,12 +1590,6 @@ The content replaces the entire document. Use get_document_content first to read
     }
   },
 });
-
-/**
- * NOTE: `textToProseMirrorXml` has been removed alongside the deprecated
- * `text` write format. Callers should pass either canonical
- * `prosemirror_xml` or `markdown` to `update_document_content` instead.
- */
 
 // ============================================
 // create_relationship tool
@@ -2109,7 +2096,7 @@ registerTool({
 /**
  * Extract document content for a snapshot, handling Cloudflare vs Bun differences.
  */
-async function extractSnapshotContent(
+function extractSnapshotContent(
   ctx: McpContext,
   username: string,
   slug: string,

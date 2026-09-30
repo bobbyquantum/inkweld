@@ -1,1 +1,0 @@
-ALTER TABLE `image_model_profiles` ADD `supports_custom_resolutions` integer DEFAULT false NOT NULL;
