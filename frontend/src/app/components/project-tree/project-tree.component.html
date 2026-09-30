@@ -85,8 +85,10 @@
 
   <!-- Project Tree with ARIA attributes for accessibility -->
   <div
+    #treeScroll
     role="tree"
     class="aria-tree"
+    (scroll)="onTreeScroll($event)"
     cdkDropList
     [cdkDropListData]="treeElements()"
     [cdkDropListConnectedTo]="connectedDropLists()"

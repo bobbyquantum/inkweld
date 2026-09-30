@@ -19,6 +19,7 @@ import { join } from 'path';
 import {
   createProjectWithTwoSteps,
   dismissToastIfPresent,
+  expandTreeFolder,
 } from '../common/test-helpers';
 import { expect, test } from './fixtures';
 import {
@@ -92,7 +93,7 @@ test.describe('Worldbuilding Editor Custom Background Screenshots', () => {
     await page.getByTestId('project-tree').waitFor({ state: 'visible' });
     await dismissToastIfPresent(page);
 
-    await page.getByTestId('element-Characters').click();
+    await expandTreeFolder(page, 'Characters');
 
     await page.getByTestId('element-Elara Nightwhisper').waitFor({
       state: 'visible',

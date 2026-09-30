@@ -156,3 +156,49 @@ test.describe('Tab restore after reopening the app', () => {
     });
   }
 });
+
+/**
+ * Which folders are open in the project tree is remembered per device, so
+ * coming back to the project (in-app or after a reload) doesn't collapse
+ * everything.
+ */
+test.describe('Project tree state restore', () => {
+  async function createFolder(page: Page, name: string): Promise<void> {
+    await page.getByTestId('create-new-element').click();
+    await page.getByTestId('element-type-folder').click();
+    const dialogInput = page.getByTestId('element-name-input');
+    await dialogInput.waitFor({ state: 'visible' });
+    await dialogInput.fill(name);
+    await page.getByTestId('create-element-button').click();
+    await expect(page.getByTestId(`element-${name}`)).toBeVisible();
+  }
+
+  test('keeps expanded folders after leaving and after a reload', async ({
+    localPageWithProject: page,
+  }) => {
+    await openProject(page);
+    await createFolder(page, 'Open Folder');
+    await createFolder(page, 'Closed Folder');
+
+    const openFolder = page.getByTestId('element-Open Folder');
+    const closedFolder = page.getByTestId('element-Closed Folder');
+
+    await page.locator('[data-expand-folder="Open Folder"]').click();
+    await expect(openFolder).toHaveAttribute('aria-expanded', 'true');
+    await expect(closedFolder).toHaveAttribute('aria-expanded', 'false');
+
+    await test.step('survives exit and re-entry', async () => {
+      await exitAndReenter(page);
+      await expect(openFolder).toHaveAttribute('aria-expanded', 'true');
+      await expect(closedFolder).toHaveAttribute('aria-expanded', 'false');
+    });
+
+    await test.step('survives a full reload', async () => {
+      await page.goto('/');
+      await expect(page.getByTestId('project-card').first()).toBeVisible();
+      await openProjectFromGrid(page);
+      await expect(openFolder).toHaveAttribute('aria-expanded', 'true');
+      await expect(closedFolder).toHaveAttribute('aria-expanded', 'false');
+    });
+  });
+});

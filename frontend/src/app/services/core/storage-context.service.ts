@@ -334,8 +334,9 @@ export async function cloneDatabase(
 
 /**
  * In every object store of `dbName`, move records whose string primary key is
- * `oldKey` or starts with `oldKey:` to the corresponding `newKey` form, and
- * rewrite any string field equal to `oldKey`. A missing database is skipped.
+ * `oldKey` or starts with `oldKey:` or `oldKey/` to the corresponding `newKey`
+ * form, and rewrite any string field equal to `oldKey`. A missing database is
+ * skipped.
  */
 async function rekeyProjectRecords(
   dbName: string,
@@ -361,7 +362,9 @@ async function rekeyProjectRecords(
         const moves = records.filter(
           r =>
             typeof r.key === 'string' &&
-            (r.key === oldKey || r.key.startsWith(`${oldKey}:`))
+            (r.key === oldKey ||
+              r.key.startsWith(`${oldKey}:`) ||
+              r.key.startsWith(`${oldKey}/`))
         );
         if (moves.length === 0) return;
         const keyPath = db
@@ -444,7 +447,10 @@ function rewriteKeyFields(
   keyPath: string | string[] | null,
   nextKey: string
 ): unknown {
-  if (typeof value !== 'object' || value === null) return value;
+  // Arrays (e.g. the saved tab list) hold no project key fields; spreading
+  // one into an object would turn it into {0: …, 1: …}.
+  if (typeof value !== 'object' || value === null || Array.isArray(value))
+    return value;
   const out: Record<string, unknown> = {
     ...(value as Record<string, unknown>),
   };
@@ -500,6 +506,14 @@ function deleteDatabase(name: string): Promise<void> {
 
 /** Storage key for app configuration */
 export const APP_CONFIG_STORAGE_KEY = 'inkweld-app-config';
+
+/**
+ * Base localStorage key (before the profile prefix) for a project's tree UI
+ * state on this device: expanded folders and scroll position.
+ */
+export function projectTreeStateKey(username: string, slug: string): string {
+  return `inkweld-tree-state:${username}/${slug}`;
+}
 
 /**
  * Id of the first Browser profile. Further Browser profiles use
@@ -1477,8 +1491,10 @@ export class StorageContextService {
    * 1. Yjs databases: elements and prose docs (`<prefix>user:slug:id`) and
    *    worldbuilding docs (`<prefix>worldbuilding:user:slug:id`) are merged
    *    into their new name and the original deleted.
-   * 2. Composite keys in the media, snapshot and activation stores.
-   * 3. The cached project record and the project list entry.
+   * 2. Composite keys in the media, snapshot and activation stores, and the
+   *    saved tabs in the document cache.
+   * 3. The cached project record, the project list entry and the project
+   *    tree's saved state.
    *
    * A database that fails to copy keeps its original and is reported in
    * `errors`; the other steps still run. Used for a rename on the server
@@ -1522,10 +1538,15 @@ export class StorageContextService {
       await deleteDatabase(name);
     });
 
-    // 2. Composite-key stores: media, snapshots, activations
+    // 2. Composite-key stores: media, snapshots, activations, saved tabs
     // Sequential: separate stores, but one rename step at a time.
     await forEachSequential(
-      ['inkweld-media', 'inkweld-snapshots', 'inkweld-activations'],
+      [
+        'inkweld-media',
+        'inkweld-snapshots',
+        'inkweld-activations',
+        'documentCache',
+      ],
       base => rekeyProjectRecords(`${prefix}${base}`, oldKey, newKey)
     );
 
@@ -1548,6 +1569,19 @@ export class StorageContextService {
       }
     } catch {
       // Unparseable list: nothing to rename
+    }
+    try {
+      const oldTreeKey = prefix + projectTreeStateKey(username, oldSlug);
+      const treeState = localStorage.getItem(oldTreeKey);
+      if (treeState !== null) {
+        localStorage.setItem(
+          prefix + projectTreeStateKey(username, newSlug),
+          treeState
+        );
+        localStorage.removeItem(oldTreeKey);
+      }
+    } catch {
+      // Storage unavailable: the tree just starts collapsed
     }
 
     return result;

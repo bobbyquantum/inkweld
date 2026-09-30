@@ -910,3 +910,20 @@ export async function openProjectFromGrid(
   await target.click();
   await page.getByTestId('cover-open-begin').click();
 }
+
+/**
+ * Expand a project-tree folder by name. Open folders are remembered per
+ * device, so after a reload or on re-entering a project a folder may already
+ * be open, and clicking it again would collapse it.
+ */
+export async function expandTreeFolder(
+  page: Page,
+  name: string
+): Promise<void> {
+  const folder = page.getByTestId(`element-${name}`);
+  await expect(folder).toBeVisible();
+  if ((await folder.getAttribute('aria-expanded')) !== 'true') {
+    await page.locator(`[data-expand-folder="${name}"]`).click();
+  }
+  await expect(folder).toHaveAttribute('aria-expanded', 'true');
+}

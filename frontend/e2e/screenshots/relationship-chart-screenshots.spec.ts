@@ -12,6 +12,7 @@ import { join } from 'path';
 import {
   createProjectWithTwoSteps,
   dismissToastIfPresent,
+  expandTreeFolder,
 } from '../common/test-helpers';
 import { expect, test } from './fixtures';
 import {
@@ -55,11 +56,7 @@ test.describe('Relationship Chart Screenshots', () => {
     await dismissToastIfPresent(page);
 
     // The Character Web chart lives inside the Characters folder.
-    const charactersExpand = page.locator(
-      '[data-testid="expand-folder-button"][data-expand-folder="Characters"]'
-    );
-    await expect(charactersExpand).toBeVisible();
-    await charactersExpand.click();
+    await expandTreeFolder(page, 'Characters');
 
     await page.locator('[data-testid="element-Character Web"]').click();
 
