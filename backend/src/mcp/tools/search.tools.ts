@@ -1315,10 +1315,10 @@ registerTool({
     // Get relationship types
     let relationshipTypes: Array<{ id: string; name: string; description?: string }> = [];
     try {
-      const schemaDocId = `${username}:${slug}:schema-library/`;
+      // Custom relationship types live in the project elements doc
       const service = getYjsService(ctx);
-      const schemaDoc = await service.getDocument(schemaDocId);
-      const typesArray = schemaDoc.doc.getArray('relationshipTypes');
+      const elementsDoc = await service.getDocument(`${username}:${slug}:elements/`);
+      const typesArray = elementsDoc.doc.getArray('customRelationshipTypes');
       const rawTypes: unknown[] = [];
       typesArray.forEach((value) => {
         if (value && typeof value === 'object') {
@@ -1420,18 +1420,27 @@ registerTool({
     if ('error' in result) return result.error;
     const { username, slug, projectId } = result.project;
 
-    // Get project metadata from Yjs
-    const docId = `${username}:${slug}:metadata/`;
+    // Project metadata (name, description, cover, pinned elements) lives in
+    // the `projectMeta` map of the project elements doc
+    const docId = `${username}:${slug}:elements/`;
     const service = getYjsService(ctx);
 
     const metadata: Record<string, unknown> = {};
     try {
       const sharedDoc = await service.getDocument(docId);
-      const metadataMap = sharedDoc.doc.getMap('metadata');
+      const metadataMap = sharedDoc.doc.getMap('projectMeta');
 
       metadataMap.forEach((value, key) => {
         metadata[key] = convertYjsValue(value);
       });
+      // Stored as a JSON string by the frontend
+      if (typeof metadata.pinnedElementIds === 'string') {
+        try {
+          metadata.pinnedElementIds = JSON.parse(metadata.pinnedElementIds) as unknown;
+        } catch {
+          delete metadata.pinnedElementIds;
+        }
+      }
     } catch {
       // No metadata document, return basic info
     }
@@ -1517,14 +1526,18 @@ registerTool({
 
     const planId = args.planId as string | undefined;
 
-    // Get publish plans from Yjs
-    const docId = `${username}:${slug}:publish-plans/`;
+    // Publish plans live in the `publishPlans` array of the project elements doc
+    const docId = `${username}:${slug}:elements/`;
     const service = getYjsService(ctx);
 
     try {
       const sharedDoc = await service.getDocument(docId);
-      const plansArray = sharedDoc.doc.getArray('plans');
-      const allPlans = (plansArray as unknown as { toJSON: () => unknown[] }).toJSON?.() ?? [];
+      const plansArray = sharedDoc.doc.getArray('publishPlans');
+      // forEach (not toJSON) so the Workers document wrapper works too
+      const allPlans: unknown[] = [];
+      plansArray.forEach((value) => {
+        allPlans.push(convertYjsValue(value));
+      });
 
       if (planId) {
         const plan = (allPlans as Array<Record<string, unknown>>).find((p) => p.id === planId);

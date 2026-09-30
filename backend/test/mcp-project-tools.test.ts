@@ -188,3 +188,98 @@ describe('MCP project tools', () => {
     expect((JSON.parse(textOf(call)) as { total: number }).total).toBe(1);
   });
 });
+
+/** Make yjsService.getDocument return one elements doc built by `build`. */
+function seedElementsDoc(build: (doc: Y.Doc) => void) {
+  const doc = new Y.Doc();
+  build(doc);
+  return spyOn(yjsService, 'getDocument').mockResolvedValue({ doc } as never);
+}
+
+// These tools read the project elements doc, where the frontend stores this
+// data; they used to read documents nothing ever wrote.
+describe('MCP tools reading the elements doc', () => {
+  const grants = [grant('novel', ['read:project', 'read:elements'])];
+
+  afterEach(() => {
+    (yjsService.getDocument as unknown as { mockRestore?: () => void }).mockRestore?.();
+  });
+
+  it('get_publish_plans returns the publishPlans array', async () => {
+    const spy = seedElementsDoc((doc) => {
+      doc.getArray('publishPlans').push([
+        { id: 'plan-1', name: 'EPUB' },
+        { id: 'plan-2', name: 'PDF' },
+      ]);
+    });
+    const json = await rpc(grants, 'tools/call', {
+      name: 'get_publish_plans',
+      arguments: { project: 'alice/novel' },
+    });
+    const structured = (json.result as { structuredContent?: { total: number; plans: unknown[] } })
+      .structuredContent;
+    expect(structured?.total).toBe(2);
+    expect(structured?.plans).toEqual([
+      { id: 'plan-1', name: 'EPUB' },
+      { id: 'plan-2', name: 'PDF' },
+    ]);
+    expect(spy).toHaveBeenCalledWith('alice:novel:elements/');
+
+    const one = await rpc(grants, 'tools/call', {
+      name: 'get_publish_plans',
+      arguments: { project: 'alice/novel', planId: 'plan-2' },
+    });
+    expect(JSON.parse(textOf(one))).toEqual({ id: 'plan-2', name: 'PDF' });
+  });
+
+  it('get_project_metadata returns projectMeta with pinned ids parsed', async () => {
+    seedElementsDoc((doc) => {
+      const meta = doc.getMap('projectMeta');
+      meta.set('name', 'Novel');
+      meta.set('coverMediaId', 'cover-1');
+      meta.set('pinnedElementIds', '["el-1","el-2"]');
+    });
+    const json = await rpc(grants, 'tools/call', {
+      name: 'get_project_metadata',
+      arguments: { project: 'alice/novel' },
+    });
+    const data = JSON.parse(textOf(json)) as Record<string, unknown>;
+    expect(data.projectKey).toBe('alice/novel');
+    expect(data.name).toBe('Novel');
+    expect(data.coverMediaId).toBe('cover-1');
+    expect(data.pinnedElementIds).toEqual(['el-1', 'el-2']);
+  });
+
+  it('get_project_metadata drops an unparseable pinnedElementIds value', async () => {
+    seedElementsDoc((doc) => {
+      doc.getMap('projectMeta').set('pinnedElementIds', 'not json');
+    });
+    const json = await rpc(grants, 'tools/call', {
+      name: 'get_project_metadata',
+      arguments: { project: 'alice/novel' },
+    });
+    const data = JSON.parse(textOf(json)) as Record<string, unknown>;
+    expect(data).not.toHaveProperty('pinnedElementIds');
+  });
+
+  it('get_relationships_graph names edges from customRelationshipTypes', async () => {
+    seedElementsDoc((doc) => {
+      doc.getArray('elements').push([
+        { id: 'a', name: 'Ann', type: 'WORLDBUILDING', level: 0, order: 0 },
+        { id: 'b', name: 'Bob', type: 'WORLDBUILDING', level: 0, order: 1 },
+      ]);
+      doc
+        .getArray('relationships')
+        .push([
+          { id: 'r1', sourceElementId: 'a', targetElementId: 'b', relationshipTypeId: 'rival' },
+        ]);
+      doc.getArray('customRelationshipTypes').push([{ id: 'rival', name: 'Rival' }]);
+    });
+    const json = await rpc(grants, 'tools/call', {
+      name: 'get_relationships_graph',
+      arguments: { project: 'alice/novel' },
+    });
+    expect(json.result?.isError).toBeUndefined();
+    expect(JSON.stringify(json.result)).toContain('Rival');
+  });
+});

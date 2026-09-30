@@ -16,10 +16,12 @@ import { parseProjectParam } from './search.tools';
 
 const mcpProjectLog = logger.child('MCP-Projects');
 
+/** Wrap a JSON-serializable payload as a text tool result. */
 function textResult(payload: unknown): McpToolResult {
   return { content: [{ type: 'text', text: JSON.stringify(payload, null, 2) }] };
 }
 
+/** Build an `isError` tool result with an `Error:`-prefixed message. */
 function errorResult(message: string): McpToolResult {
   return { content: [{ type: 'text', text: `Error: ${message}` }], isError: true };
 }
