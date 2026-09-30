@@ -323,10 +323,9 @@ test.describe('Worldbuilding Templates', () => {
         .getByTestId('template-card')
         .filter({ hasText: 'Hero Template' });
       await heroCard.getByTestId('delete-template-button').click();
-      await page.getByRole('button', { name: 'Delete' }).click();
-      await expect(
-        page.getByRole('button', { name: 'Delete' })
-      ).not.toBeVisible();
+      const confirmDialog = page.getByRole('dialog');
+      await confirmDialog.getByRole('button', { name: 'Delete' }).click();
+      await expect(confirmDialog).not.toBeVisible();
 
       await expect(
         page.getByTestId('template-card').filter({ hasText: 'Hero Template' })
