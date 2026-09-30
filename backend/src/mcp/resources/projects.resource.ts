@@ -14,7 +14,8 @@ import {
   getAllProjects,
 } from '../mcp.types';
 import { registerResourceHandler } from '../mcp.handler';
-import { getElements, getWorldbuildingDoc } from '../tools/yjs-runtime';
+import { getElements, getSchemas, getWorldbuildingDoc } from '../tools/yjs-runtime';
+import type { SchemaLike } from '../../utils/schema-hash';
 import { logger } from '../../services/logger.service';
 import { mapWithConcurrency } from '../../utils/concurrency';
 
@@ -168,6 +169,20 @@ const projectsResourceHandler = {
 };
 
 /**
+ * Load a project's worldbuilding schemas (element types / templates) from the
+ * `schemas` array of the project elements doc. Shared by the `schemas`
+ * sub-resource and the `get_project_schemas` tool so both return the same data.
+ */
+export async function loadProjectSchemas(
+  ctx: McpContext,
+  username: string,
+  slug: string
+): Promise<{ total: number; schemas: SchemaLike[] }> {
+  const schemas = await getSchemas(ctx, username, slug);
+  return { total: schemas.length, schemas };
+}
+
+/**
  * Read a project sub-resource (elements / worldbuilding / schemas).
  */
 async function readSubResource(
@@ -203,12 +218,10 @@ async function readSubResource(
       return readWorldbuilding(ctx, uri, username, slug);
     }
 
-    // schemas: no dedicated Yjs doc in the unified runtime; return a stable
-    // empty listing so the advertised sub-resource resolves.
     return {
       uri,
       mimeType: 'application/json',
-      text: JSON.stringify({ total: 0, schemas: [] }, null, 2),
+      text: JSON.stringify(await loadProjectSchemas(ctx, username, slug), null, 2),
     };
   } catch (err) {
     _mcpResourceLog.error(`[resources/read] Failed to read ${subResource} for ${uri}`, {
@@ -272,7 +285,7 @@ async function readWorldbuilding(
 /**
  * Summarize permissions into human-readable form
  */
-function summarizePermissions(permissions: string[]): string {
+export function summarizePermissions(permissions: string[]): string {
   const categories: string[] = [];
 
   if (permissions.includes('read:elements') || permissions.includes('write:elements')) {

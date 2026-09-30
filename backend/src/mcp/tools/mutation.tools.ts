@@ -92,7 +92,7 @@ import { decodeInkweldUri } from '@inkweld/prosemirror/uri';
 const projectPropertySchema = {
   type: 'string',
   description:
-    'Project identifier in "username/slug" format. Use inkweld://projects resource to list available projects.',
+    'Project identifier in "username/slug" format. Use the list_projects tool to discover available projects.',
 } as const;
 
 /**
@@ -251,7 +251,7 @@ Use move_elements or reorder_element to reposition after creation.`,
         schemaId: {
           type: 'string',
           description:
-            'Optional template schema ID for WORLDBUILDING elements (e.g., "character-v1", "location-v1"). Use inkweld://project/{username}/{slug}/schemas to discover available IDs.',
+            'Optional template schema ID for WORLDBUILDING elements (e.g., "character-v1", "location-v1"). Use the get_project_schemas tool to discover available IDs.',
         },
         parentId: {
           type: 'string',

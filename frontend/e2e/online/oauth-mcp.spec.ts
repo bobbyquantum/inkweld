@@ -449,6 +449,57 @@ test.describe('Full OAuth Token Exchange', () => {
     expect(mcpResult.result?.supportedVersions).toContain('2026-07-28');
     expect(mcpResult.id).toBe(1);
 
+    // Step 7b: Discover the granted project with list_projects, then read its
+    // schemas with the returned key. Clients that only surface tools (not
+    // resources) rely on these two to find anything at all.
+    const callTool = async (name: string, args: Record<string, unknown>) => {
+      const response = await page.request.post(`${API_BASE}/api/v1/ai/mcp`, {
+        headers: {
+          Authorization: `Bearer ${tokens.access_token}`,
+          'Content-Type': 'application/json',
+          'MCP-Protocol-Version': '2026-07-28',
+          'Mcp-Method': 'tools/call',
+          'Mcp-Name': name,
+        },
+        data: {
+          jsonrpc: '2.0',
+          method: 'tools/call',
+          params: {
+            name,
+            arguments: args,
+            _meta: {
+              'io.modelcontextprotocol/protocolVersion': '2026-07-28',
+              'io.modelcontextprotocol/clientInfo': {
+                name: 'e2e-test',
+                version: '1.0.0',
+              },
+              'io.modelcontextprotocol/clientCapabilities': {},
+            },
+          },
+          id: 2,
+        },
+      });
+      expect(response.ok()).toBeTruthy();
+      const body = (await response.json()) as {
+        result?: { content: { text: string }[]; isError?: boolean };
+      };
+      expect(body.result?.isError).toBeFalsy();
+      return JSON.parse(body.result?.content[0]?.text ?? '{}') as unknown;
+    };
+
+    const listed = (await callTool('list_projects', {})) as {
+      projects: { projectKey: string }[];
+    };
+    const projectKey = listed.projects
+      .map(p => p.projectKey)
+      .find(key => key.endsWith(`/${projectSlug}`));
+    expect(projectKey).toBeDefined();
+
+    const schemas = (await callTool('get_project_schemas', {
+      project: projectKey,
+    })) as { total: number; schemas: unknown[] };
+    expect(schemas.schemas).toHaveLength(schemas.total);
+
     // Step 8: Refresh the token
     const refreshResponse = await page.request.post(`${API_BASE}/oauth/token`, {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },

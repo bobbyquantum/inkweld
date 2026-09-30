@@ -59,6 +59,8 @@ statelessly.
 
 | Tool                      | Description                                                |
 | ------------------------- | ---------------------------------------------------------- |
+| `list_projects`           | List authorized projects (call first to find project keys) |
+| `get_project_schemas`     | Get a project's element schemas                            |
 | `get_project_tree`        | Get the element tree structure for a project               |
 | `search_elements`         | Full-text search across project elements                   |
 | `search_worldbuilding`    | Search worldbuilding content with optional full data       |

@@ -63,7 +63,7 @@ const projectPropertySchema = {
  * Parse and validate the project parameter.
  * Returns the project context or an error result.
  */
-function parseProjectParam(
+export function parseProjectParam(
   ctx: McpContext,
   projectArg: unknown,
   permission: string
@@ -109,7 +109,7 @@ function parseProjectParam(
         content: [
           {
             type: 'text',
-            text: `Error: project "${projectStr}" not found in authorized projects`,
+            text: `Error: project "${projectStr}" not found in authorized projects. Call list_projects to see available project keys.`,
           },
         ],
         isError: true,

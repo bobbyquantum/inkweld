@@ -419,12 +419,12 @@ export function getActiveProject(ctx: McpContext): ActiveProjectContext | null {
 }
 
 /**
- * Check if context has a specific permission (for the active project)
+ * Check if any authorized project grants one of the permissions. Gates which
+ * tools are listed/callable; tools still check the permission for the project
+ * they operate on (`hasProjectPermission`).
  */
 export function hasPermission(ctx: McpContext, ...permissions: string[]): boolean {
-  const firstGrant = ctx.grants[0];
-  if (!firstGrant) return false;
-  return permissions.some((p) => firstGrant.permissions.includes(p));
+  return ctx.grants.some((grant) => permissions.some((p) => grant.permissions.includes(p)));
 }
 
 /**
