@@ -1053,6 +1053,53 @@ describe('StorageContextService', () => {
       await drop('local:m:new:doc1');
     });
 
+    it('moves saved tabs to the new slug', async () => {
+      service.addLocalConfig({ name: 'T', username: 't' });
+      const tabs = [{ id: 'doc-1', type: 'document' }];
+      const cache = await open('local:documentCache', db => {
+        db.createObjectStore('openedDocuments');
+      });
+      await write(cache, 'openedDocuments', tabs, 't/old/documents/tabs');
+      await write(
+        cache,
+        'openedDocuments',
+        'doc-1',
+        't/old/documents/selected'
+      );
+      await write(cache, 'openedDocuments', [], 't/older/documents/tabs');
+      cache.close();
+
+      await service.renameProjectInContext(LOCAL_CONFIG_ID, 't', 'old', 'new');
+
+      expect(
+        (await keysOf('local:documentCache', 'openedDocuments')).sort()
+      ).toEqual([
+        't/new/documents/selected',
+        't/new/documents/tabs',
+        't/older/documents/tabs',
+      ]);
+      const movedTabs = await new Promise<unknown>((resolve, reject) => {
+        const req = indexedDB.open('local:documentCache');
+        req.onsuccess = () => {
+          const db = req.result;
+          const get = db
+            .transaction('openedDocuments', 'readonly')
+            .objectStore('openedDocuments')
+            .get('t/new/documents/tabs');
+          get.onsuccess = () => {
+            db.close();
+            resolve(get.result);
+          };
+          get.onerror = () => reject(get.error ?? new Error('get failed'));
+        };
+        req.onerror = () => reject(req.error ?? new Error('open failed'));
+      });
+      // Arrays stay arrays rather than being spread into {0: …}
+      expect(movedTabs).toEqual(tabs);
+
+      await drop('local:documentCache');
+    });
+
     it('moves the cached project to the new slug', async () => {
       service.addLocalConfig({ name: 'C', username: 'c' });
       const cache = await open('local:projectCache', db => {

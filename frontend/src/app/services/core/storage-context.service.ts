@@ -336,8 +336,9 @@ export async function cloneDatabase(
 
 /**
  * In every object store of `dbName`, move records whose string primary key is
- * `oldKey` or starts with `oldKey:` to the corresponding `newKey` form, and
- * rewrite any string field equal to `oldKey`. A missing database is skipped.
+ * `oldKey` or starts with `oldKey:` or `oldKey/` to the corresponding `newKey`
+ * form, and rewrite any string field equal to `oldKey`. A missing database is
+ * skipped.
  */
 async function rekeyProjectRecords(
   dbName: string,
@@ -360,7 +361,9 @@ async function rekeyProjectRecords(
       const moves = records.filter(
         r =>
           typeof r.key === 'string' &&
-          (r.key === oldKey || r.key.startsWith(`${oldKey}:`))
+          (r.key === oldKey ||
+            r.key.startsWith(`${oldKey}:`) ||
+            r.key.startsWith(`${oldKey}/`))
       );
       if (moves.length === 0) continue;
       const keyPath = db
@@ -442,7 +445,10 @@ function rewriteKeyFields(
   keyPath: string | string[] | null,
   nextKey: string
 ): unknown {
-  if (typeof value !== 'object' || value === null) return value;
+  // Arrays (e.g. the saved tab list) hold no project key fields; spreading
+  // one into an object would turn it into {0: …, 1: …}.
+  if (typeof value !== 'object' || value === null || Array.isArray(value))
+    return value;
   const out: Record<string, unknown> = {
     ...(value as Record<string, unknown>),
   };
@@ -1476,7 +1482,8 @@ export class StorageContextService {
    *    into their new name and the original deleted. Bare legacy names are
    *    never touched here; `DocumentStorageMigrationService` moves them under
    *    a prefix at startup, before any rename can run.
-   * 2. Composite keys in the media, snapshot and activation stores.
+   * 2. Composite keys in the media, snapshot and activation stores, and the
+   *    saved tabs in the document cache.
    * 3. The cached project record and the project list entry.
    *
    * A database that fails to copy keeps its original and is reported in
@@ -1519,11 +1526,12 @@ export class StorageContextService {
       await deleteDatabase(name);
     }
 
-    // 2. Composite-key stores: media, snapshots, activations
+    // 2. Composite-key stores: media, snapshots, activations, saved tabs
     for (const base of [
       'inkweld-media',
       'inkweld-snapshots',
       'inkweld-activations',
+      'documentCache',
     ]) {
       await rekeyProjectRecords(`${prefix}${base}`, oldKey, newKey);
     }
