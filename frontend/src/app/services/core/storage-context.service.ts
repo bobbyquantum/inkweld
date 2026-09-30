@@ -506,6 +506,14 @@ function deleteDatabase(name: string): Promise<void> {
 export const APP_CONFIG_STORAGE_KEY = 'inkweld-app-config';
 
 /**
+ * Base localStorage key (before the profile prefix) for a project's tree UI
+ * state on this device: expanded folders and scroll position.
+ */
+export function projectTreeStateKey(username: string, slug: string): string {
+  return `inkweld-tree-state:${username}/${slug}`;
+}
+
+/**
  * Id of the first Browser profile. Kept as plain "local" so data written by
  * older builds stays attached; further Browser profiles use
  * `local-<usernameHash>` (see {@link buildLocalConfigId}).
@@ -1484,7 +1492,8 @@ export class StorageContextService {
    *    a prefix at startup, before any rename can run.
    * 2. Composite keys in the media, snapshot and activation stores, and the
    *    saved tabs in the document cache.
-   * 3. The cached project record and the project list entry.
+   * 3. The cached project record, the project list entry and the project
+   *    tree's saved state.
    *
    * A database that fails to copy keeps its original and is reported in
    * `errors`; the other steps still run. Used for a rename on the server
@@ -1555,6 +1564,19 @@ export class StorageContextService {
       }
     } catch {
       // Unparseable list: nothing to rename
+    }
+    try {
+      const oldTreeKey = prefix + projectTreeStateKey(username, oldSlug);
+      const treeState = localStorage.getItem(oldTreeKey);
+      if (treeState !== null) {
+        localStorage.setItem(
+          prefix + projectTreeStateKey(username, newSlug),
+          treeState
+        );
+        localStorage.removeItem(oldTreeKey);
+      }
+    } catch {
+      // Storage unavailable: the tree just starts collapsed
     }
 
     return result;

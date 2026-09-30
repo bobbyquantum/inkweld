@@ -125,6 +125,8 @@ describe('ProjectTreeComponent', () => {
       getDropInsertIndex: vi.fn().mockReturnValue(1),
       isValidDrop: vi.fn().mockReturnValue(true),
       setExpanded: vi.fn(),
+      getTreeScrollTop: vi.fn().mockReturnValue(0),
+      setTreeScrollTop: vi.fn(),
       selectTab: vi.fn(),
       openSystemTab: vi.fn(),
     } as unknown as MockedObject<ProjectStateService>;
@@ -192,6 +194,62 @@ describe('ProjectTreeComponent', () => {
       expect(
         fixture.nativeElement.querySelector('.project-tree-container.dense')
       ).not.toBeNull();
+    });
+  });
+
+  describe('Scroll position', () => {
+    const recreate = async () => {
+      fixture.destroy();
+      fixture = TestBed.createComponent(ProjectTreeComponent);
+      component = fixture.componentInstance;
+      fixture.detectChanges();
+      await fixture.whenStable();
+    };
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it('restores the saved scroll position once rows have rendered', async () => {
+      projectStateService.getTreeScrollTop.mockReturnValue(120);
+      const setScrollTop = vi.spyOn(Element.prototype, 'scrollTop', 'set');
+
+      await recreate();
+
+      expect(setScrollTop).toHaveBeenCalledWith(120);
+    });
+
+    it('waits for the first rows before restoring', async () => {
+      projectStateService.getTreeScrollTop.mockReturnValue(120);
+      visibleElementsSignal.set([]);
+      const setScrollTop = vi.spyOn(Element.prototype, 'scrollTop', 'set');
+
+      await recreate();
+      expect(setScrollTop).not.toHaveBeenCalled();
+
+      visibleElementsSignal.set([mockDto]);
+      fixture.detectChanges();
+      await fixture.whenStable();
+      expect(setScrollTop).toHaveBeenCalledWith(120);
+    });
+
+    it('does not scroll when nothing was saved', async () => {
+      const setScrollTop = vi.spyOn(Element.prototype, 'scrollTop', 'set');
+
+      await recreate();
+
+      expect(setScrollTop).not.toHaveBeenCalled();
+    });
+
+    it('records the scroll position as the tree scrolls', () => {
+      const tree = fixture.nativeElement.querySelector(
+        '.aria-tree'
+      ) as HTMLElement;
+      vi.spyOn(tree, 'scrollTop', 'get').mockReturnValue(64);
+
+      tree.dispatchEvent(new Event('scroll'));
+
+      expect(projectStateService.setTreeScrollTop).toHaveBeenCalledWith(64);
     });
   });
 

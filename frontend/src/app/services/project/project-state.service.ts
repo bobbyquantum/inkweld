@@ -47,6 +47,7 @@ import { PopoutService } from '../core/popout.service';
 import { SetupService } from '../core/setup.service';
 import {
   isLocalOrCloudMode,
+  projectTreeStateKey,
   StorageContextService,
 } from '../core/storage-context.service';
 import { BackgroundSyncService } from '../local/background-sync.service';
@@ -73,6 +74,15 @@ import { type AppTab, TabManagerService } from './tab-manager.service';
 
 // Constants for document cache configuration
 const DOCUMENT_CACHE_DB_BASE_NAME = 'documentCache';
+
+/** Delay before a tree scroll position is written to storage */
+const TREE_SCROLL_SAVE_DELAY_MS = 250;
+
+/** A project tree's UI state as saved on this device */
+interface SavedTreeState {
+  expanded: string[];
+  scrollTop: number;
+}
 
 // Re-export for backward compatibility
 export type { ValidDropLevels } from './element-tree.service';
@@ -292,8 +302,18 @@ export class ProjectStateService implements OnDestroy {
   private readonly lastConnectionError = signal<string | null>(null);
   readonly getLastConnectionError = computed(() => this.lastConnectionError());
 
-  // Local-only expanded nodes state
+  // Local-only tree UI state. Saved per device (profile-scoped localStorage)
+  // so the tree looks the same when the user comes back to the project.
   private readonly expandedNodeIds = signal<Set<string>>(new Set());
+  private treeScrollTop = 0;
+  private treeScrollSaveTimer: ReturnType<typeof setTimeout> | null = null;
+
+  /**
+   * Profile-scoped storage key of the project whose tree state was restored
+   * and may now be saved. Null between projects, so leaving one can't write
+   * its (cleared) state over what the next visit will restore.
+   */
+  private treeStateStorageKey: string | null = null;
 
   // Tab state - delegate to TabManagerService
   readonly openDocuments = computed(() => this.tabManager.openDocuments());
@@ -373,6 +393,7 @@ export class ProjectStateService implements OnDestroy {
     try {
       // Clear previous project state
       this.clearProjectState();
+      this.restoreTreeState(username, slug);
 
       // Capture a load generation AFTER clearing (clearProjectState bumps it
       // via disconnectSync). Any disconnectSync() that runs during the awaits
@@ -667,6 +688,7 @@ export class ProjectStateService implements OnDestroy {
       this.syncProvider.elements$.subscribe(elements => {
         this.ngZone.run(() => {
           this.elements.set(elements);
+          this.pruneExpandedNodeIds(elements);
           // Enrich custom type elements with icons
           void this.enrichElementsWithIcons(elements);
           // Update any open tabs whose element names may have changed
@@ -800,6 +822,8 @@ export class ProjectStateService implements OnDestroy {
     this.loadGeneration++;
     // Leaving the project: stop saving its tabs until a load restores them.
     this.tabCacheProjectKey.set(null);
+    this.flushTreeScrollSave();
+    this.treeStateStorageKey = null;
     this.worldbuildingService.setSyncProvider(null);
     this.timeSystemLibrary.setSyncProvider(null);
     this.generatorLibrary.setSyncProvider(null);
@@ -846,6 +870,7 @@ export class ProjectStateService implements OnDestroy {
     this.elements.set([]);
     this.publishPlans.set([]);
     this.expandedNodeIds.set(new Set());
+    this.treeScrollTop = 0;
     this.pinnedElementIds.set([]);
     this.coverSource.set(undefined);
 
@@ -1013,7 +1038,7 @@ export class ProjectStateService implements OnDestroy {
     const expanded = this.expandedNodeIds();
     const newExpanded = new Set(expanded);
     subtree.forEach(e => newExpanded.delete(e.id));
-    this.expandedNodeIds.set(newExpanded);
+    this.setExpandedNodeIds(newExpanded);
 
     const recomputedElements =
       this.elementTreeService.recomputeOrder(newElements);
@@ -1263,7 +1288,7 @@ export class ProjectStateService implements OnDestroy {
       newExpanded.add(elementId);
     }
 
-    this.expandedNodeIds.set(newExpanded);
+    this.setExpandedNodeIds(newExpanded);
   }
 
   setExpanded(elementId: string, expanded: boolean): void {
@@ -1276,11 +1301,94 @@ export class ProjectStateService implements OnDestroy {
       newExpanded.delete(elementId);
     }
 
-    this.expandedNodeIds.set(newExpanded);
+    this.setExpandedNodeIds(newExpanded);
   }
 
   isExpanded(elementId: string): boolean {
     return this.expandedNodeIds().has(elementId);
+  }
+
+  /** The project tree's last scroll position on this device */
+  getTreeScrollTop(): number {
+    return this.treeScrollTop;
+  }
+
+  /**
+   * Record the project tree's scroll position. Written to storage after a
+   * short pause, since scroll events arrive every frame.
+   */
+  setTreeScrollTop(scrollTop: number): void {
+    this.treeScrollTop = Math.max(0, Math.round(scrollTop));
+    if (!this.treeStateStorageKey || this.treeScrollSaveTimer) return;
+    this.treeScrollSaveTimer = setTimeout(() => {
+      this.treeScrollSaveTimer = null;
+      this.saveTreeState();
+    }, TREE_SCROLL_SAVE_DELAY_MS);
+  }
+
+  private setExpandedNodeIds(expanded: Set<string>): void {
+    this.expandedNodeIds.set(expanded);
+    this.saveTreeState();
+  }
+
+  /**
+   * Drop expanded ids whose element no longer exists (e.g. a folder a
+   * collaborator deleted), so the saved state doesn't collect dead ids. An
+   * empty list is skipped: it's what a provider emits before it has loaded.
+   */
+  private pruneExpandedNodeIds(elements: Element[]): void {
+    if (elements.length === 0) return;
+    const expanded = this.expandedNodeIds();
+    const ids = new Set(elements.map(e => e.id));
+    const kept = new Set([...expanded].filter(id => ids.has(id)));
+    if (kept.size !== expanded.size) this.setExpandedNodeIds(kept);
+  }
+
+  private restoreTreeState(username: string, slug: string): void {
+    const key = this.storageContext.prefixKey(
+      projectTreeStateKey(username, slug)
+    );
+    this.treeStateStorageKey = key;
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) return;
+      const saved = JSON.parse(raw) as Partial<SavedTreeState> | null;
+      if (Array.isArray(saved?.expanded)) {
+        this.expandedNodeIds.set(
+          new Set(saved.expanded.filter(id => typeof id === 'string'))
+        );
+      }
+      if (typeof saved?.scrollTop === 'number' && saved.scrollTop > 0) {
+        this.treeScrollTop = saved.scrollTop;
+      }
+    } catch (error) {
+      this.logger.warn('ProjectState', 'Failed to restore tree state', error);
+    }
+  }
+
+  private saveTreeState(): void {
+    const key = this.treeStateStorageKey;
+    if (!key) return;
+    const state: SavedTreeState = {
+      expanded: [...this.expandedNodeIds()],
+      scrollTop: this.treeScrollTop,
+    };
+    try {
+      if (state.expanded.length === 0 && state.scrollTop === 0) {
+        localStorage.removeItem(key);
+      } else {
+        localStorage.setItem(key, JSON.stringify(state));
+      }
+    } catch (error) {
+      this.logger.warn('ProjectState', 'Failed to save tree state', error);
+    }
+  }
+
+  private flushTreeScrollSave(): void {
+    if (!this.treeScrollSaveTimer) return;
+    clearTimeout(this.treeScrollSaveTimer);
+    this.treeScrollSaveTimer = null;
+    this.saveTreeState();
   }
 
   // ─────────────────────────────────────────────────────────────────────────────

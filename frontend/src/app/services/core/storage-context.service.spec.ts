@@ -16,6 +16,7 @@ import {
   getLocalConfigDisplayName,
   isLocalOrCloudMode,
   LOCAL_CONFIG_ID,
+  projectTreeStateKey,
   StorageContextService,
 } from './storage-context.service';
 
@@ -1053,7 +1054,7 @@ describe('StorageContextService', () => {
       await drop('local:m:new:doc1');
     });
 
-    it('moves saved tabs to the new slug', async () => {
+    it('moves saved tabs and tree state to the new slug', async () => {
       service.addLocalConfig({ name: 'T', username: 't' });
       const tabs = [{ id: 'doc-1', type: 'document' }];
       const cache = await open('local:documentCache', db => {
@@ -1068,6 +1069,8 @@ describe('StorageContextService', () => {
       );
       await write(cache, 'openedDocuments', [], 't/older/documents/tabs');
       cache.close();
+      const treeState = JSON.stringify({ expanded: ['f1'], scrollTop: 40 });
+      mockStorage[`local:${projectTreeStateKey('t', 'old')}`] = treeState;
 
       await service.renameProjectInContext(LOCAL_CONFIG_ID, 't', 'old', 'new');
 
@@ -1096,6 +1099,12 @@ describe('StorageContextService', () => {
       });
       // Arrays stay arrays rather than being spread into {0: …}
       expect(movedTabs).toEqual(tabs);
+      expect(mockStorage[`local:${projectTreeStateKey('t', 'new')}`]).toBe(
+        treeState
+      );
+      expect(
+        mockStorage[`local:${projectTreeStateKey('t', 'old')}`]
+      ).toBeUndefined();
 
       await drop('local:documentCache');
     });

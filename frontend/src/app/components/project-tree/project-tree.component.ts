@@ -10,6 +10,7 @@ import {
 } from '@angular/cdk/drag-drop';
 import { CdkContextMenuTrigger, CdkMenu, CdkMenuItem } from '@angular/cdk/menu';
 import {
+  afterNextRender,
   ChangeDetectionStrategy,
   Component,
   computed,
@@ -17,6 +18,7 @@ import {
   type ElementRef,
   EventEmitter,
   inject,
+  Injector,
   input,
   type OnDestroy,
   Output,
@@ -77,8 +79,11 @@ export class ProjectTreeComponent implements OnDestroy {
   private readonly logger = inject(LoggerService);
   private readonly projectSearchService = inject(ProjectSearchService);
   private readonly elementNavigation = inject(ElementNavigationService);
+  private readonly injector = inject(Injector);
   @ViewChild('treeContainer', { static: true })
   treeContainer!: ElementRef<HTMLElement>;
+  @ViewChild('treeScroll', { static: true })
+  treeScroll?: ElementRef<HTMLElement>;
   @ViewChild(CdkDropList) dropList!: CdkDropList<ProjectElement>;
 
   readonly projectStateService = inject(ProjectStateService);
@@ -239,6 +244,29 @@ export class ProjectTreeComponent implements OnDestroy {
         }
       }
     });
+
+    // Put the tree back where the user left it once its rows exist. The tree
+    // is created late (@defer) and recreated when the sidebar collapses, and
+    // elements arrive after the project loads, so wait for the first rows.
+    let scrollRestored = false;
+    effect(() => {
+      if (scrollRestored || this.treeElements().length === 0) return;
+      scrollRestored = true;
+      afterNextRender(
+        () => {
+          const el = this.treeScroll?.nativeElement;
+          const scrollTop = this.projectStateService.getTreeScrollTop();
+          if (el && scrollTop > 0) el.scrollTop = scrollTop;
+        },
+        { injector: this.injector }
+      );
+    });
+  }
+
+  /** Records the tree's scroll position so it can be restored later. */
+  onTreeScroll(event: Event): void {
+    const target = event.target as HTMLElement | null;
+    if (target) this.projectStateService.setTreeScrollTop(target.scrollTop);
   }
 
   /**

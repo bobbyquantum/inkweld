@@ -348,8 +348,8 @@ touching another profile's copy of the same `username:slug`, and
 `ProfileManagerService.upgradeInto` for a copied profile). It merges each
 old-slug Yjs database — `<prefix>u:s:*` and `<prefix>worldbuilding:u:s:*` —
 into its new name with `cloneDatabase` and deletes the original, then rekeys
-media/snapshots/activations/saved tabs (`documentCache`)/project cache and
-the project list.
+media/snapshots/activations/saved tabs (`documentCache`)/project cache, the
+project list and the project tree's saved state (`projectTreeStateKey`).
 `cloneDatabase` never overwrites an existing target: y-indexeddb `updates`
 records are appended under fresh keys, other records only fill free keys.
 Don't add a second copy step in front of it.

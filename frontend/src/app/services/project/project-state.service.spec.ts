@@ -30,6 +30,10 @@ import { DialogGatewayService } from '../core/dialog-gateway.service';
 import { LoggerService } from '../core/logger.service';
 import { PopoutService } from '../core/popout.service';
 import { SetupService } from '../core/setup.service';
+import {
+  projectTreeStateKey,
+  StorageContextService,
+} from '../core/storage-context.service';
 import { BackgroundSyncService } from '../local/background-sync.service';
 import { LocalProjectElementsService } from '../local/local-project-elements.service';
 import { ProjectSyncService } from '../local/project-sync.service';
@@ -237,6 +241,8 @@ describe('ProjectStateService', () => {
 
   beforeEach(() => {
     TestBed.resetTestingModule();
+    // Tree state is saved to localStorage; don't let it leak between tests
+    localStorage.clear();
 
     // Create mock sync provider
     mockSyncProvider = createMockSyncProvider();
@@ -1135,6 +1141,130 @@ describe('ProjectStateService', () => {
 
       service.setExpanded(folderId, false);
       expect(service.isExpanded(folderId)).toBe(false);
+    });
+  });
+
+  describe('Saved tree state', () => {
+    const folder = (id: string): Element => ({
+      ...mockElementDto,
+      id,
+      name: id,
+    });
+    const storageKey = (slug = 'test-project') =>
+      TestBed.inject(StorageContextService).prefixKey(
+        projectTreeStateKey('testuser', slug)
+      );
+    const saved = (slug?: string) =>
+      JSON.parse(localStorage.getItem(storageKey(slug)) ?? 'null') as {
+        expanded: string[];
+        scrollTop: number;
+      } | null;
+
+    afterEach(() => {
+      vi.useRealTimers();
+      vi.setSystemTime(mockDate);
+    });
+
+    it('saves expanded folders and restores them when the project is reopened', async () => {
+      await service.loadProject('testuser', 'test-project');
+      mockSyncProvider._elementsSubject.next([folder('a'), folder('b')]);
+      service.setExpanded('a', true);
+      service.toggleExpanded('b');
+      service.toggleExpanded('b');
+
+      expect(saved()?.expanded).toEqual(['a']);
+
+      service.disconnectSync();
+      await service.loadProject('testuser', 'test-project');
+
+      expect(service.isExpanded('a')).toBe(true);
+      expect(service.isExpanded('b')).toBe(false);
+    });
+
+    it('keeps each project separate', async () => {
+      await service.loadProject('testuser', 'test-project');
+      mockSyncProvider._elementsSubject.next([folder('a')]);
+      service.setExpanded('a', true);
+
+      await service.loadProject('testuser', 'other-project');
+      expect(service.isExpanded('a')).toBe(false);
+      expect(saved('other-project')).toBeNull();
+      expect(saved()?.expanded).toEqual(['a']);
+    });
+
+    it('does not save while no project is loaded', () => {
+      service.setExpanded('a', true);
+      service.setTreeScrollTop(120);
+      expect(localStorage.length).toBe(0);
+    });
+
+    it('drops expanded ids whose element no longer exists', async () => {
+      await service.loadProject('testuser', 'test-project');
+      mockSyncProvider._elementsSubject.next([folder('a'), folder('b')]);
+      service.setExpanded('a', true);
+      service.setExpanded('b', true);
+
+      // A collaborator deletes folder b
+      mockSyncProvider._elementsSubject.next([folder('a')]);
+
+      expect(service.isExpanded('b')).toBe(false);
+      expect(saved()?.expanded).toEqual(['a']);
+    });
+
+    it('does not prune against the empty list emitted before loading', async () => {
+      localStorage.setItem(
+        storageKey(),
+        JSON.stringify({ expanded: ['a'], scrollTop: 0 })
+      );
+      await service.loadProject('testuser', 'test-project');
+      mockSyncProvider._elementsSubject.next([]);
+
+      expect(service.isExpanded('a')).toBe(true);
+    });
+
+    it('removes a deleted folder from the saved state', async () => {
+      await service.loadProject('testuser', 'test-project');
+      mockSyncProvider._elementsSubject.next([folder('a')]);
+      service.setExpanded('a', true);
+
+      service.deleteElement('a');
+
+      expect(saved()).toBeNull();
+    });
+
+    it('saves the scroll position after a pause and restores it', async () => {
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+      await service.loadProject('testuser', 'test-project');
+
+      service.setTreeScrollTop(80);
+      service.setTreeScrollTop(240.4);
+      expect(saved()).toBeNull();
+      vi.advanceTimersByTime(250);
+      expect(saved()).toEqual({ expanded: [], scrollTop: 240 });
+
+      service.disconnectSync();
+      await service.loadProject('testuser', 'test-project');
+      expect(service.getTreeScrollTop()).toBe(240);
+    });
+
+    it('writes a pending scroll position when leaving the project', async () => {
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+      await service.loadProject('testuser', 'test-project');
+
+      service.setTreeScrollTop(300);
+      service.disconnectSync();
+
+      expect(saved()?.scrollTop).toBe(300);
+      await service.loadProject('testuser', 'other-project');
+      expect(service.getTreeScrollTop()).toBe(0);
+    });
+
+    it('ignores unreadable saved state', async () => {
+      localStorage.setItem(storageKey(), '{not json');
+      await service.loadProject('testuser', 'test-project');
+
+      expect(service.isExpanded('a')).toBe(false);
+      expect(service.getTreeScrollTop()).toBe(0);
     });
   });
 
