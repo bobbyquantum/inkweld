@@ -16,6 +16,7 @@ import { type Page } from '@playwright/test';
 import {
   countIndexedDBUpdates,
   createProjectWithTwoSteps,
+  expandTreeFolder,
   waitForIndexedDBFlush,
   waitForIndexedDBPersisted,
   waitForIndexedDBStable,
@@ -32,7 +33,7 @@ let menuChosenColour = '#4fd8eb';
 
 async function openCharacter(page: Page): Promise<void> {
   await page.getByTestId('project-tree').waitFor({ state: 'visible' });
-  await page.getByTestId('element-Characters').click();
+  await expandTreeFolder(page, 'Characters');
   await page.getByTestId('element-Elara Nightwhisper').waitFor({
     state: 'visible',
   });

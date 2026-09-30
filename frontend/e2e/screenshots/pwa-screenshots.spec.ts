@@ -5,6 +5,7 @@ import { join } from 'path';
 import {
   createProjectWithTwoSteps,
   DEMO_ASSETS,
+  expandTreeFolder,
   storeRealEpubInIndexedDB,
   storeRealMediaInIndexedDB,
 } from '../common/test-helpers';
@@ -385,10 +386,7 @@ test.describe('PWA Screenshots', () => {
     await expect(page.getByTestId('project-tree')).toBeVisible();
 
     // Expand Chronicles folder and open document to create a tab
-    const expandButton = page
-      .locator('[data-testid="expand-folder-button"]')
-      .first();
-    await expandButton.click();
+    await expandTreeFolder(page, 'Chronicles');
     await page.click('text="The Moonveil Accord"');
     await expect(
       page.locator('[data-testid="tab-The Moonveil Accord"]')
@@ -443,10 +441,7 @@ test.describe('PWA Screenshots', () => {
 
     const openMoonveilDoc = async () => {
       // Expand Chronicles folder and open the document
-      const expandButton = page
-        .locator('[data-testid="expand-folder-button"]')
-        .first();
-      await expandButton.click();
+      await expandTreeFolder(page, 'Chronicles');
       await page.click('text="The Moonveil Accord"');
       await expect(page.locator('.ProseMirror').first()).toBeVisible();
     };
@@ -515,10 +510,7 @@ test.describe('PWA Screenshots', () => {
       // click to the project tree so we don't accidentally hit the
       // breadcrumb (which also reads "The Moonveil Accord" once the
       // document has been opened previously in this session).
-      const expandButton = page
-        .locator('[data-testid="expand-folder-button"]')
-        .first();
-      await expandButton.click();
+      await expandTreeFolder(page, 'Chronicles');
       await tree.locator('text="The Moonveil Accord"').first().click();
 
       const editor = page.locator('.ProseMirror').first();
