@@ -67,6 +67,7 @@
             <div class="grid-item-actions">
               <button
                 mat-icon-button
+                appTooltipAriaLabel
                 [matTooltip]="'keyboard.open' | transloco"
                 (click)="openElement(element)">
                 <mat-icon>open_in_new</mat-icon>
@@ -120,7 +121,8 @@
                 <td class="actions-cell">
                   <button
                     mat-icon-button
-                    matTooltip="Open"
+                    appTooltipAriaLabel
+                    [matTooltip]="'keyboard.open' | transloco"
                     (click)="openElement(element)">
                     <mat-icon>open_in_new</mat-icon>
                   </button>
@@ -144,6 +146,7 @@
     <div class="folder-actions">
       <button
         mat-fab
+        appTooltipAriaLabel
         color="primary"
         class="add-button"
         [matTooltip]="'project.tree.newElement' | transloco"

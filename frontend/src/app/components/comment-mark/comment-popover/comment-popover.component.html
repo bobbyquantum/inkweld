@@ -21,6 +21,7 @@
       @if (!attrs().resolved) {
         <button
           mat-icon-button
+          appTooltipAriaLabel
           class="comment-popover__action"
           [attr.aria-label]="'editor.comments.resolveThread' | transloco"
           [matTooltip]="'editor.comments.resolve' | transloco"
@@ -31,6 +32,7 @@
       } @else {
         <button
           mat-icon-button
+          appTooltipAriaLabel
           class="comment-popover__action"
           [attr.aria-label]="'editor.comments.unresolveThread' | transloco"
           [matTooltip]="'editor.comments.unresolve' | transloco"
@@ -41,6 +43,7 @@
       }
       <button
         mat-icon-button
+        appTooltipAriaLabel
         class="comment-popover__action"
         [attr.aria-label]="'editor.comments.deleteThreadAria' | transloco"
         [matTooltip]="'editor.comments.deleteThread' | transloco"
@@ -50,6 +53,7 @@
       </button>
       <button
         mat-icon-button
+        appTooltipAriaLabel
         class="comment-popover__action"
         [attr.aria-label]="'editor.comments.closePopover' | transloco"
         [matTooltip]="'editor.comments.close' | transloco"
@@ -96,11 +100,12 @@
         data-testid="comment-reply-input" />
       <button
         mat-icon-button
+        appTooltipAriaLabel
         class="comment-popover__reply-btn"
         aria-label="Send reply"
         [disabled]="!model().replyText.trim()"
         (click)="onReply()"
-        matTooltip="Send reply"
+        [matTooltip]="'editor.comments.sendReply' | transloco"
         data-testid="comment-reply-btn">
         <mat-icon>send</mat-icon>
       </button>

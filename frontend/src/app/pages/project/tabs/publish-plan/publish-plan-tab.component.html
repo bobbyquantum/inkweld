@@ -406,6 +406,7 @@
           }
           <button
             mat-icon-button
+            appTooltipAriaLabel
             class="stats-refresh"
             (click)="refreshStats()"
             [matTooltip]="'publish.planEditor.stats.refresh' | transloco"
@@ -573,6 +574,7 @@
           <div class="item-actions">
             <button
               mat-icon-button
+              appTooltipAriaLabel
               (click)="moveItemUp(i)"
               [disabled]="i === 0"
               [matTooltip]="'publish.planEditor.moveUp' | transloco"
@@ -581,6 +583,7 @@
             </button>
             <button
               mat-icon-button
+              appTooltipAriaLabel
               (click)="moveItemDown(i)"
               [disabled]="i === plan.items.length - 1"
               [matTooltip]="'publish.planEditor.moveDown' | transloco"
@@ -589,6 +592,7 @@
             </button>
             <button
               mat-icon-button
+              appTooltipAriaLabel
               color="warn"
               (click)="removeItem(item.id)"
               [matTooltip]="'publish.planEditor.removeItem' | transloco"
@@ -720,6 +724,7 @@
               <div class="published-actions">
                 <button
                   mat-icon-button
+                  appTooltipAriaLabel
                   (click)="downloadPublishedFile(file.id)"
                   [matTooltip]="'publish.planEditor.download' | transloco"
                   data-testid="download-published-button">
@@ -727,6 +732,7 @@
                 </button>
                 <button
                   mat-icon-button
+                  appTooltipAriaLabel
                   color="warn"
                   (click)="deletePublishedFile(file.id)"
                   [matTooltip]="'delete' | transloco"

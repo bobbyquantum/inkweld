@@ -79,6 +79,7 @@
           <div class="snapshot-actions">
             <button
               mat-icon-button
+              appTooltipAriaLabel
               [matMenuTriggerFor]="snapshotMenu"
               [attr.data-testid]="'snapshot-menu-' + snapshot.id"
               [matTooltip]="'dialogs.snapshots.actions' | transloco">

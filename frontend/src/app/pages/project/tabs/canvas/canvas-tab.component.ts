@@ -27,6 +27,7 @@ import { ActivatedRoute } from '@angular/router';
 import { ColorSwatchesComponent } from '@components/color-swatches/color-swatches.component';
 import { DocumentBreadcrumbsComponent } from '@components/document-breadcrumbs/document-breadcrumbs.component';
 import { TabPresenceIndicatorComponent } from '@components/tab-presence-indicator/tab-presence-indicator.component';
+import { TooltipAriaLabelDirective } from '@directives/tooltip-aria-label.directive';
 import { ElementType } from '@inkweld/index';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import {
@@ -169,6 +170,7 @@ function sameFrames(a: CanvasFrame[], b: CanvasFrame[]): boolean {
   styleUrls: ['./canvas-tab.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    TooltipAriaLabelDirective,
     MatButtonModule,
     MatDividerModule,
     MatIconModule,

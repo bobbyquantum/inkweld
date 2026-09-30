@@ -67,6 +67,7 @@
           <div class="system-actions">
             <button
               mat-icon-button
+              appTooltipAriaLabel
               [matTooltip]="'timeline.timeSystemSettings.edit' | transloco"
               [attr.aria-label]="'timeline.timeSystemSettings.edit' | transloco"
               (click)="onEdit(system)"
@@ -75,6 +76,7 @@
             </button>
             <button
               mat-icon-button
+              appTooltipAriaLabel
               [matTooltip]="'timeline.timeSystemSettings.remove' | transloco"
               [attr.aria-label]="
                 'timeline.timeSystemSettings.remove' | transloco

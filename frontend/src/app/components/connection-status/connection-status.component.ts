@@ -14,6 +14,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TooltipAriaLabelDirective } from '@directives/tooltip-aria-label.directive';
 import { TranslocoService } from '@jsverse/transloco';
 
 import { DocumentSyncState } from '../../models/document-sync-state';
@@ -45,6 +46,7 @@ const OFFLINE_DISPLAY_DEBOUNCE_MS = 4000;
 @Component({
   selector: 'app-connection-status',
   imports: [
+    TooltipAriaLabelDirective,
     MatIconModule,
     MatButtonModule,
     MatTooltipModule,

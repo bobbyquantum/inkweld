@@ -51,6 +51,7 @@
           <div class="generator-actions">
             <button
               mat-icon-button
+              appTooltipAriaLabel
               [matTooltip]="'worldbuilding.generators.edit' | transloco"
               [attr.aria-label]="'worldbuilding.generators.edit' | transloco"
               (click)="onEdit(generator)"
@@ -59,6 +60,7 @@
             </button>
             <button
               mat-icon-button
+              appTooltipAriaLabel
               [matTooltip]="'worldbuilding.generators.remove' | transloco"
               [attr.aria-label]="'worldbuilding.generators.remove' | transloco"
               (click)="onRemove(generator)"

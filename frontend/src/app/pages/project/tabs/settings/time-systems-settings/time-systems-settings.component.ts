@@ -10,6 +10,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TimeSystemEditPageComponent } from '@components/time-system-edit/time-system-edit-page.component';
+import { TooltipAriaLabelDirective } from '@directives/tooltip-aria-label.directive';
 import { TranslocoModule } from '@jsverse/transloco';
 import type { TimeSystem } from '@models/time-system';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
@@ -39,6 +40,7 @@ type EditingState =
   selector: 'app-time-systems-settings',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    TooltipAriaLabelDirective,
     MatButtonModule,
     MatIconModule,
     MatMenuModule,

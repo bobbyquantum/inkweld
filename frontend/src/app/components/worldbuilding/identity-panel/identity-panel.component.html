@@ -6,6 +6,7 @@
   <button
     class="collapse-toggle"
     mat-icon-button
+    appTooltipAriaLabel
     (click)="toggleExpanded()"
     [matTooltip]="
       isExpanded()
@@ -38,6 +39,7 @@
             @if (canWrite()) {
               <button
                 mat-icon-button
+                appTooltipAriaLabel
                 class="rename-button"
                 (click)="onRenameClick()"
                 [matTooltip]="'worldbuilding.identityPanel.rename' | transloco">
@@ -94,6 +96,7 @@
             @if (resolvedImageUrl()) {
               <button
                 mat-icon-button
+                appTooltipAriaLabel
                 class="view-image-button"
                 (click)="viewImage(); $event.stopPropagation()"
                 [matTooltip]="
@@ -105,6 +108,7 @@
             @if (resolvedImageUrl() && canWrite()) {
               <button
                 mat-icon-button
+                appTooltipAriaLabel
                 class="change-image-button"
                 (click)="onImageClick(); $event.stopPropagation()"
                 [matTooltip]="

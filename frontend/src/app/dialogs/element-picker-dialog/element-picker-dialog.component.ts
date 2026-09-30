@@ -23,6 +23,7 @@ import {
   type NewElementDialogData,
   type NewElementDialogResult,
 } from '@dialogs/new-element-dialog/new-element-dialog.component';
+import { TooltipAriaLabelDirective } from '@directives/tooltip-aria-label.directive';
 import { type Element } from '@inkweld/model/element';
 import { ElementType } from '@inkweld/model/element-type';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
@@ -69,6 +70,7 @@ export interface ElementPickerDialogResult {
   selector: 'app-element-picker-dialog',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    TooltipAriaLabelDirective,
     CommonModule,
     MatDialogModule,
     MatButtonModule,

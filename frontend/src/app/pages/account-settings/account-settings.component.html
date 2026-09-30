@@ -1,6 +1,10 @@
 <div class="account-settings-container">
   <mat-toolbar color="primary" class="settings-toolbar">
-    <button mat-icon-button routerLink="/" data-testid="account-settings-back">
+    <button
+      [attr.aria-label]="'back' | transloco"
+      mat-icon-button
+      routerLink="/"
+      data-testid="account-settings-back">
       <mat-icon>arrow_back</mat-icon>
     </button>
     <span class="toolbar-title">{{

@@ -39,6 +39,7 @@ import {
   type TimelineEventDialogData,
   type TimelineEventDialogResult,
 } from '@dialogs/timeline-event-dialog/timeline-event-dialog.component';
+import { TooltipAriaLabelDirective } from '@directives/tooltip-aria-label.directive';
 import { TranslocoModule } from '@jsverse/transloco';
 import {
   absoluteToTimePoint,
@@ -178,6 +179,7 @@ type EventDragPreview = {
   styleUrls: ['./timeline-tab.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    TooltipAriaLabelDirective,
     MatButtonModule,
     MatFormFieldModule,
     MatIconModule,

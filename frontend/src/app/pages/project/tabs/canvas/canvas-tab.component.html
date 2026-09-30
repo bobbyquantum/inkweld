@@ -13,6 +13,7 @@
       <div class="collapsed-sidebar" data-testid="canvas-collapsed-sidebar">
         <button
           mat-icon-button
+          appTooltipAriaLabel
           data-testid="sidebar-expand-button"
           [matTooltip]="'canvas.sidebar.expand' | transloco"
           [attr.aria-label]="'canvas.sidebar.expand' | transloco"
@@ -23,6 +24,7 @@
         </button>
         <button
           mat-icon-button
+          appTooltipAriaLabel
           data-testid="export-menu-button"
           [matMenuTriggerFor]="exportMenu"
           [matTooltip]="'canvas.sidebar.exportCanvas' | transloco"
@@ -31,6 +33,7 @@
         </button>
         <button
           mat-icon-button
+          appTooltipAriaLabel
           data-testid="canvas-tour-button"
           [matTooltip]="'canvas.toolbar.tour' | transloco"
           [attr.aria-label]="'canvas.toolbar.tour' | transloco"
@@ -59,6 +62,7 @@
           <span class="header-title">{{ elementName() }}</span>
           <button
             mat-icon-button
+            appTooltipAriaLabel
             data-testid="canvas-tour-button"
             [matTooltip]="'canvas.toolbar.tour' | transloco"
             [attr.aria-label]="'canvas.toolbar.tour' | transloco"
@@ -68,6 +72,7 @@
           </button>
           <button
             mat-icon-button
+            appTooltipAriaLabel
             data-testid="export-menu-button"
             [matMenuTriggerFor]="exportMenu"
             [matTooltip]="'canvas.sidebar.exportCanvas' | transloco"
@@ -77,6 +82,7 @@
           </button>
           <button
             mat-icon-button
+            appTooltipAriaLabel
             data-testid="sidebar-collapse-button"
             [matTooltip]="'canvas.sidebar.collapse' | transloco"
             [attr.aria-label]="'canvas.sidebar.collapse' | transloco"
@@ -112,6 +118,7 @@
             }}</span>
             <button
               mat-icon-button
+              appTooltipAriaLabel
               [matTooltip]="'canvas.sidebar.addLayer' | transloco"
               [attr.aria-label]="'canvas.sidebar.addLayer' | transloco"
               data-testid="add-layer-button"
@@ -140,6 +147,7 @@
                 <div class="layer-item-row">
                   <button
                     mat-icon-button
+                    appTooltipAriaLabel
                     class="layer-visibility"
                     data-testid="layer-visibility"
                     (click)="onToggleLayerVisibility(layer.id, $event)"
@@ -154,6 +162,7 @@
                   </button>
                   <button
                     mat-icon-button
+                    appTooltipAriaLabel
                     class="layer-lock"
                     data-testid="layer-lock"
                     (click)="onToggleLayerLock(layer.id, $event)"
@@ -255,6 +264,7 @@
                 @if (obj.type === 'image') {
                   <button
                     mat-icon-button
+                    appTooltipAriaLabel
                     class="object-action"
                     data-testid="object-background-toggle"
                     [matTooltip]="
@@ -271,6 +281,7 @@
                 }
                 <button
                   mat-icon-button
+                  appTooltipAriaLabel
                   class="object-action"
                   data-testid="object-delete-button"
                   [matTooltip]="'delete' | transloco"
@@ -344,6 +355,7 @@
                 </button>
                 <button
                   mat-icon-button
+                  appTooltipAriaLabel
                   class="object-action"
                   data-testid="pin-delete-button"
                   [matTooltip]="'delete' | transloco"
@@ -386,6 +398,7 @@
             }}</span>
             <button
               mat-icon-button
+              appTooltipAriaLabel
               data-testid="page-settings-button"
               class="section-action"
               [matTooltip]="'canvas.page.settings' | transloco"
@@ -397,6 +410,7 @@
             </button>
             <button
               mat-icon-button
+              appTooltipAriaLabel
               data-testid="frames-toggle-all"
               class="section-action"
               [matTooltip]="
@@ -418,6 +432,7 @@
             </button>
             <button
               mat-icon-button
+              appTooltipAriaLabel
               data-testid="add-frame-button"
               class="section-action"
               [matTooltip]="'canvas.frames.addFrame' | transloco"
@@ -438,6 +453,7 @@
                 <div class="layer-item-row">
                   <button
                     mat-icon-button
+                    appTooltipAriaLabel
                     class="layer-visibility"
                     data-testid="frame-visibility"
                     (click)="onToggleFrameVisibility(frame.id, $event)"
@@ -529,6 +545,7 @@
           [attr.aria-hidden]="isOverflowed('navigation') ? 'true' : null">
           <button
             mat-icon-button
+            appTooltipAriaLabel
             data-testid="select-tool"
             [class.active]="activeTool() === 'select'"
             [matTooltip]="'canvas.toolbar.select' | transloco"
@@ -538,6 +555,7 @@
           </button>
           <button
             mat-icon-button
+            appTooltipAriaLabel
             data-testid="rect-select-tool"
             [class.active]="activeTool() === 'rectSelect'"
             [matTooltip]="'canvas.toolbar.rectangleSelect' | transloco"
@@ -547,6 +565,7 @@
           </button>
           <button
             mat-icon-button
+            appTooltipAriaLabel
             data-testid="pan-tool"
             [class.active]="activeTool() === 'pan'"
             [matTooltip]="'canvas.toolbar.pan' | transloco"
@@ -568,6 +587,7 @@
           [attr.aria-hidden]="isOverflowed('creation') ? 'true' : null">
           <button
             mat-icon-button
+            appTooltipAriaLabel
             data-testid="pin-tool"
             [class.active]="activeTool() === 'pin'"
             [disabled]="!hasActiveLayer()"
@@ -578,6 +598,7 @@
           </button>
           <button
             mat-icon-button
+            appTooltipAriaLabel
             data-testid="add-image-button"
             [matTooltip]="'canvas.toolbar.addImage' | transloco"
             [attr.aria-label]="'canvas.toolbar.addImage' | transloco"
@@ -587,6 +608,7 @@
           </button>
           <button
             mat-icon-button
+            appTooltipAriaLabel
             data-testid="text-tool"
             [class.active]="activeTool() === 'text'"
             [disabled]="!hasActiveLayer()"
@@ -609,6 +631,7 @@
           [attr.aria-hidden]="isOverflowed('drawing') ? 'true' : null">
           <button
             mat-icon-button
+            appTooltipAriaLabel
             data-testid="draw-tool"
             [class.active]="activeTool() === 'draw'"
             [disabled]="!hasActiveLayer()"
@@ -619,6 +642,7 @@
           </button>
           <button
             mat-icon-button
+            appTooltipAriaLabel
             data-testid="eraser-tool"
             [class.active]="activeTool() === 'eraser'"
             [disabled]="!hasActiveLayer()"
@@ -629,6 +653,7 @@
           </button>
           <button
             mat-icon-button
+            appTooltipAriaLabel
             data-testid="line-tool"
             [class.active]="activeTool() === 'line'"
             [disabled]="!hasActiveLayer()"
@@ -639,6 +664,7 @@
           </button>
           <button
             mat-icon-button
+            appTooltipAriaLabel
             data-testid="shape-tool"
             [class.active]="activeTool() === 'shape'"
             [disabled]="!hasActiveLayer()"
@@ -650,6 +676,7 @@
           </button>
           <button
             mat-icon-button
+            appTooltipAriaLabel
             data-testid="polygon-tool"
             [class.active]="activeTool() === 'polygon'"
             [disabled]="!hasActiveLayer()"
@@ -672,6 +699,7 @@
           [attr.aria-hidden]="isOverflowed('style') ? 'true' : null">
           <button
             mat-icon-button
+            appTooltipAriaLabel
             class="swatch-button"
             data-testid="stroke-color-button"
             [matMenuTriggerFor]="strokeColorMenu"
@@ -683,6 +711,7 @@
           </button>
           <button
             mat-icon-button
+            appTooltipAriaLabel
             class="swatch-button"
             data-testid="fill-color-button"
             [matMenuTriggerFor]="fillColorMenu"
@@ -697,6 +726,7 @@
           </button>
           <button
             mat-icon-button
+            appTooltipAriaLabel
             data-testid="stroke-width-button"
             [matMenuTriggerFor]="strokeWidthMenu"
             [matTooltip]="'canvas.toolbar.strokeWidth' | transloco"
@@ -705,6 +735,7 @@
           </button>
           <button
             mat-icon-button
+            appTooltipAriaLabel
             data-testid="brush-options-button"
             [matMenuTriggerFor]="brushOptionsMenu"
             [matTooltip]="'canvas.toolbar.brushOptions' | transloco"
@@ -713,6 +744,7 @@
           </button>
           <button
             mat-icon-button
+            appTooltipAriaLabel
             data-testid="edit-colors-button"
             [matTooltip]="'canvas.toolbar.editColors' | transloco"
             [attr.aria-label]="'canvas.toolbar.editColors' | transloco"
@@ -734,6 +766,7 @@
           [attr.aria-hidden]="isOverflowed('history') ? 'true' : null">
           <button
             mat-icon-button
+            appTooltipAriaLabel
             data-testid="undo-button"
             [disabled]="!canUndo()"
             [matTooltip]="'canvas.toolbar.undo' | transloco"
@@ -743,6 +776,7 @@
           </button>
           <button
             mat-icon-button
+            appTooltipAriaLabel
             data-testid="redo-button"
             [disabled]="!canRedo()"
             [matTooltip]="'canvas.toolbar.redo' | transloco"
@@ -764,6 +798,7 @@
           [attr.aria-hidden]="isOverflowed('zoom') ? 'true' : null">
           <button
             mat-icon-button
+            appTooltipAriaLabel
             data-testid="zoom-in-button"
             [matTooltip]="'canvas.toolbar.zoomIn' | transloco"
             [attr.aria-label]="'canvas.toolbar.zoomInAria' | transloco"
@@ -772,6 +807,7 @@
           </button>
           <button
             mat-icon-button
+            appTooltipAriaLabel
             data-testid="zoom-out-button"
             [matTooltip]="'canvas.toolbar.zoomOut' | transloco"
             [attr.aria-label]="'canvas.toolbar.zoomOutAria' | transloco"
@@ -780,6 +816,7 @@
           </button>
           <button
             mat-icon-button
+            appTooltipAriaLabel
             data-testid="fit-all-button"
             [matTooltip]="'canvas.toolbar.fitAll' | transloco"
             (click)="onFitAll()">
@@ -799,6 +836,7 @@
           <div class="toolbar-group" data-toolbar-fixed="overflow">
             <button
               mat-icon-button
+              appTooltipAriaLabel
               data-testid="toolbar-overflow-button"
               [matMenuTriggerFor]="toolbarOverflowMenu"
               [matTooltip]="'canvas.toolbar.moreTools' | transloco"

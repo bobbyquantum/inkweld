@@ -105,6 +105,7 @@
               <mat-icon matPrefix>search</mat-icon>
               @if (searchQuery()) {
                 <button
+                  [attr.aria-label]="'clearSearch' | transloco"
                   matSuffix
                   mat-icon-button
                   (click)="clearSearch()"
@@ -177,6 +178,7 @@
                     <div class="user-actions">
                       <button
                         mat-icon-button
+                        appTooltipAriaLabel
                         [matMenuTriggerFor]="userMenu"
                         [attr.data-testid]="'user-menu-' + user.username"
                         [matTooltip]="

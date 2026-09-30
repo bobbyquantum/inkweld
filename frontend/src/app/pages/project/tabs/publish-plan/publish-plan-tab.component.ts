@@ -37,6 +37,7 @@ import {
   type PublishCompleteDialogData,
   type PublishCompleteDialogResult,
 } from '@dialogs/publish-complete-dialog/publish-complete-dialog.component';
+import { TooltipAriaLabelDirective } from '@directives/tooltip-aria-label.directive';
 import { ElementType } from '@inkweld/index';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import {
@@ -91,6 +92,7 @@ type PlanSection =
   styleUrls: ['./publish-plan-tab.component.scss'],
   changeDetection: ChangeDetectionStrategy.Eager,
   imports: [
+    TooltipAriaLabelDirective,
     CommonModule,
     DragDropModule,
     MatButtonModule,

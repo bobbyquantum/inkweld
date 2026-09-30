@@ -37,6 +37,7 @@
 
   <button
     mat-icon-button
+    appTooltipAriaLabel
     [matTooltip]="'timeline.tab.zoomOut' | transloco"
     (click)="onZoom(1.25)"
     [disabled]="!hasActiveSystem()"
@@ -45,6 +46,7 @@
   </button>
   <button
     mat-icon-button
+    appTooltipAriaLabel
     [matTooltip]="'timeline.tab.zoomIn' | transloco"
     (click)="onZoom(0.8)"
     [disabled]="!hasActiveSystem()"
@@ -53,6 +55,7 @@
   </button>
   <button
     mat-icon-button
+    appTooltipAriaLabel
     [matTooltip]="'timeline.tab.fitContents' | transloco"
     (click)="onFit()"
     [disabled]="!hasActiveSystem()"

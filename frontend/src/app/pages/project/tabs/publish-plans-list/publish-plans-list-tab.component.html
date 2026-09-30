@@ -79,6 +79,7 @@
           <div class="plan-card-actions">
             <button
               mat-icon-button
+              appTooltipAriaLabel
               (click)="toggleHistory(plan.id)"
               [matTooltip]="'publish.plansList.publishHistory' | transloco"
               [attr.aria-label]="
@@ -94,6 +95,7 @@
             </button>
             <button
               mat-icon-button
+              appTooltipAriaLabel
               (click)="deletePublishPlan($event, plan)"
               [matTooltip]="'publish.plansList.deletePlan' | transloco"
               [attr.aria-label]="

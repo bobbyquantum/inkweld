@@ -23,6 +23,7 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterModule } from '@angular/router';
+import { TooltipAriaLabelDirective } from '@directives/tooltip-aria-label.directive';
 import { TranslocoModule } from '@jsverse/transloco';
 import { AdminConfigService } from '@services/admin/admin-config.service';
 import { SystemConfigService } from '@services/core/system-config.service';
@@ -77,6 +78,7 @@ interface UnifiedModel {
 @Component({
   selector: 'app-admin-ai-settings',
   imports: [
+    TooltipAriaLabelDirective,
     MatButtonModule,
     MatCardModule,
     MatCheckboxModule,

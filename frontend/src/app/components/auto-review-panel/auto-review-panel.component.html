@@ -8,6 +8,7 @@
       @if ((hasReviewed() || totalCount() > 0) && canWrite()) {
         <button
           mat-icon-button
+          appTooltipAriaLabel
           [matTooltip]="'editor.autoReview.reReview' | transloco"
           [disabled]="reviewing()"
           (click)="onRereview()"
@@ -20,6 +21,7 @@
         </button>
         <button
           mat-icon-button
+          appTooltipAriaLabel
           [matTooltip]="'editor.autoReview.dismissReview' | transloco"
           [disabled]="reviewing()"
           (click)="onClearAll()"
@@ -29,6 +31,7 @@
       }
       <button
         mat-icon-button
+        appTooltipAriaLabel
         [matTooltip]="'editor.autoReview.close' | transloco"
         (click)="onClose()"
         data-testid="auto-review-panel-close">

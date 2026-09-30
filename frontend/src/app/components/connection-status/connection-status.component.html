@@ -13,6 +13,7 @@
       @if (showRetryButton()) {
         <button
           mat-icon-button
+          appTooltipAriaLabel
           class="sync-button"
           [attr.aria-label]="retryButtonTooltip()"
           [class.spinning]="isConnecting()"
@@ -29,6 +30,7 @@
   <!-- Collapsed mode: icon-only button -->
   <button
     mat-icon-button
+    appTooltipAriaLabel
     class="collapsed-sync-button"
     [attr.aria-label]="syncTooltip()"
     [class.synced]="syncState() === DocumentSyncState.Synced"
@@ -57,6 +59,7 @@
       @if (showRetryButton()) {
         <button
           mat-icon-button
+          appTooltipAriaLabel
           class="sync-button"
           [attr.aria-label]="retryButtonTooltip()"
           [class.spinning]="isConnecting()"

@@ -9,6 +9,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { GeneratorEditPageComponent } from '@components/generator-edit/generator-edit-page.component';
+import { TooltipAriaLabelDirective } from '@directives/tooltip-aria-label.directive';
 import { TranslocoModule } from '@jsverse/transloco';
 import { type Generator } from '@models/generator';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
@@ -37,6 +38,7 @@ type EditingState =
   selector: 'app-generators-settings',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    TooltipAriaLabelDirective,
     GeneratorEditPageComponent,
     MatButtonModule,
     MatIconModule,

@@ -58,6 +58,7 @@
             <div class="session-actions">
               <button
                 mat-icon-button
+                appTooltipAriaLabel
                 (click)="loadSessionDetails(session.id)"
                 [matTooltip]="
                   expandedSession()?.session?.id === session.id
@@ -73,6 +74,7 @@
               </button>
               <button
                 mat-icon-button
+                appTooltipAriaLabel
                 color="warn"
                 (click)="revokeSession(session)"
                 [disabled]="revokingSessionId() === session.id"
@@ -148,6 +150,7 @@
                     </mat-select>
                     <button
                       mat-icon-button
+                      appTooltipAriaLabel
                       color="primary"
                       (click)="addProjectGrant(session.id)"
                       [disabled]="!selectedProjectId() || addingProject()"
@@ -163,6 +166,7 @@
                     </button>
                     <button
                       mat-icon-button
+                      appTooltipAriaLabel
                       (click)="cancelAddProject()"
                       [matTooltip]="'cancel' | transloco"
                       data-testid="authorized-app-cancel-add">

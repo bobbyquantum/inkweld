@@ -76,6 +76,7 @@
             @for (preset of devicePresets; track preset.value) {
               <button
                 mat-icon-button
+                appTooltipAriaLabel
                 [class.active]="devicePreset() === preset.value"
                 (click)="setDevicePreset(preset.value)"
                 [matTooltip]="preset.labelKey | transloco"

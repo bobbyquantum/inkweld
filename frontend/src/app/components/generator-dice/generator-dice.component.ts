@@ -12,6 +12,7 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TooltipAriaLabelDirective } from '@directives/tooltip-aria-label.directive';
 import { TranslocoModule } from '@jsverse/transloco';
 import { type Generator } from '@models/generator';
 import { GeneratorLibraryService } from '@services/generator/generator-library.service';
@@ -38,6 +39,7 @@ const SUGGESTION_COUNT = 8;
   selector: 'app-generator-dice',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    TooltipAriaLabelDirective,
     MatButtonModule,
     MatDividerModule,
     MatIconModule,

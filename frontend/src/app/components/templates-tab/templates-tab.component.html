@@ -103,21 +103,24 @@
           <div class="template-actions" data-testid="template-actions">
             <button
               mat-icon-button
-              matTooltip="Edit"
+              appTooltipAriaLabel
+              [matTooltip]="'edit' | transloco"
               data-testid="edit-template-button"
               (click)="editTemplate(template)">
               <mat-icon>edit</mat-icon>
             </button>
             <button
               mat-icon-button
-              matTooltip="Clone"
+              appTooltipAriaLabel
+              [matTooltip]="'templates.tab.clone' | transloco"
               (click)="cloneTemplate(template)"
               data-testid="clone-template-button">
               <mat-icon>content_copy</mat-icon>
             </button>
             <button
               mat-icon-button
-              matTooltip="Delete"
+              appTooltipAriaLabel
+              [matTooltip]="'delete' | transloco"
               (click)="deleteTemplate(template)"
               data-testid="delete-template-button">
               <mat-icon>delete_outline</mat-icon>

@@ -18,6 +18,7 @@ import {
   type GrantRole,
   ProjectGrantListComponent,
 } from '@components/project-grant-list/project-grant-list.component';
+import { TooltipAriaLabelDirective } from '@directives/tooltip-aria-label.directive';
 import {
   AddOAuthGrantRequestRole,
   OAuthService as OAuthApiService,
@@ -38,6 +39,7 @@ import { firstValueFrom } from 'rxjs';
 @Component({
   selector: 'app-authorized-apps',
   imports: [
+    TooltipAriaLabelDirective,
     TitleCasePipe,
     MatButtonModule,
     MatIconModule,

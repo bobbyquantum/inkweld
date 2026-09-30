@@ -19,6 +19,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterModule } from '@angular/router';
+import { TooltipAriaLabelDirective } from '@directives/tooltip-aria-label.directive';
 import { type Project } from '@inkweld/index';
 import { TranslocoModule } from '@jsverse/transloco';
 import { SyncQueueService, SyncStage } from '@services/sync/sync-queue.service';
@@ -33,6 +34,7 @@ const MOVE_THRESHOLD = 10;
 @Component({
   selector: 'app-project-card',
   imports: [
+    TooltipAriaLabelDirective,
     MatCardModule,
     MatButtonModule,
     MatIconModule,

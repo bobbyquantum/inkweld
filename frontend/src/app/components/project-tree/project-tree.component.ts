@@ -29,6 +29,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router } from '@angular/router';
+import { TooltipAriaLabelDirective } from '@directives/tooltip-aria-label.directive';
 import { type Element, ElementType } from '@inkweld/index';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import {
@@ -51,6 +52,7 @@ import { TreeNodeIconComponent } from './components/tree-node-icon/tree-node-ico
  */
 @Component({
   imports: [
+    TooltipAriaLabelDirective,
     MatIconModule,
     MatButtonModule,
     MatProgressSpinnerModule,

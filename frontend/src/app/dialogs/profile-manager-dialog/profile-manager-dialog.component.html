@@ -115,6 +115,7 @@
               }
               <button
                 mat-icon-button
+                appTooltipAriaLabel
                 [matMenuTriggerFor]="itemMenu"
                 [matMenuTriggerData]="{ profile: profile, info: info }"
                 [disabled]="isBusy()"
@@ -263,6 +264,7 @@
                   </span>
                   <button
                     mat-icon-button
+                    appTooltipAriaLabel
                     (click)="deleteOrphan(orphan.prefix)"
                     [matTooltip]="'delete' | transloco">
                     <mat-icon>delete</mat-icon>

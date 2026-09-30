@@ -27,6 +27,7 @@
   <div class="header-actions">
     <button
       mat-icon-button
+      appTooltipAriaLabel
       [attr.aria-label]="'media.tab.addMedia' | transloco"
       (click)="openAddMedia()"
       [matTooltip]="'media.tab.addMedia' | transloco"
@@ -35,6 +36,7 @@
     </button>
     <button
       mat-icon-button
+      appTooltipAriaLabel
       class="filter-toggle-button"
       [attr.aria-label]="'media.tab.openFilters' | transloco"
       (click)="openFilters()"
@@ -203,6 +205,7 @@
               <div cardTopLeft>
                 <button
                   mat-icon-button
+                  appTooltipAriaLabel
                   [matTooltip]="'media.tab.addTag' | transloco"
                   [attr.aria-label]="
                     'Add tag to ' + (item.filename || item.mediaId)
@@ -216,6 +219,7 @@
                 @if (item.isImage) {
                   <button
                     mat-icon-button
+                    appTooltipAriaLabel
                     [matTooltip]="'media.tab.view' | transloco"
                     [attr.aria-label]="
                       'View ' + (item.filename || item.mediaId)
@@ -226,6 +230,7 @@
                 }
                 <button
                   mat-icon-button
+                  appTooltipAriaLabel
                   [matTooltip]="'media.tab.download' | transloco"
                   [attr.aria-label]="
                     'Download ' + (item.filename || item.mediaId)
@@ -235,6 +240,7 @@
                 </button>
                 <button
                   mat-icon-button
+                  appTooltipAriaLabel
                   [matTooltip]="'media.tab.delete' | transloco"
                   [attr.aria-label]="
                     'Delete ' + (item.filename || item.mediaId)
@@ -296,6 +302,10 @@
                           {{ getElementName(elId) }}
                           <button
                             matChipRemove
+                            [attr.aria-label]="
+                              'removeNamed'
+                                | transloco: { name: getElementName(elId) }
+                            "
                             (click)="$event.stopPropagation()">
                             <mat-icon>cancel</mat-icon>
                           </button>
@@ -320,6 +330,9 @@
                           {{ tag.name }}
                           <button
                             matChipRemove
+                            [attr.aria-label]="
+                              'removeNamed' | transloco: { name: tag.name }
+                            "
                             (click)="$event.stopPropagation()">
                             <mat-icon>cancel</mat-icon>
                           </button>

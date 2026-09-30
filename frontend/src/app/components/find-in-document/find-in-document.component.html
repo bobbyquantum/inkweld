@@ -3,6 +3,7 @@
   <div class="find-bar">
     <button
       mat-icon-button
+      appTooltipAriaLabel
       (click)="findService.toggleReplaceMode()"
       [class.active]="findService.isReplaceMode()"
       [matTooltip]="'editor.find.toggleReplace' | transloco"
@@ -28,7 +29,10 @@
         data-testid="find-input"
         autocomplete="off"
         spellcheck="false" />
-      <span class="match-counter" data-testid="find-match-counter">
+      <span
+        class="match-counter"
+        role="status"
+        data-testid="find-match-counter">
         @if (findService.matchCount() > 0) {
           {{ findService.currentMatchNumber() }} of
           {{ findService.matchCount() }}
@@ -41,6 +45,7 @@
     <div class="find-actions">
       <button
         mat-icon-button
+        appTooltipAriaLabel
         (click)="findService.toggleCaseSensitive()"
         [class.active]="findService.caseSensitive()"
         [matTooltip]="'editor.find.matchCase' | transloco"
@@ -51,6 +56,7 @@
 
       <button
         mat-icon-button
+        appTooltipAriaLabel
         (click)="findService.previousMatch()"
         [disabled]="findService.matchCount() === 0"
         [matTooltip]="'editor.find.previousMatch' | transloco"
@@ -61,6 +67,7 @@
 
       <button
         mat-icon-button
+        appTooltipAriaLabel
         (click)="findService.nextMatch()"
         [disabled]="findService.matchCount() === 0"
         [matTooltip]="'editor.find.nextMatch' | transloco"
@@ -71,6 +78,7 @@
 
       <button
         mat-icon-button
+        appTooltipAriaLabel
         (click)="close()"
         [matTooltip]="'editor.find.close' | transloco"
         data-testid="find-close"
@@ -103,6 +111,7 @@
       <div class="replace-actions">
         <button
           mat-icon-button
+          appTooltipAriaLabel
           (click)="onReplace()"
           [disabled]="findService.matchCount() === 0"
           [matTooltip]="'editor.find.replace' | transloco"
@@ -113,6 +122,7 @@
 
         <button
           mat-icon-button
+          appTooltipAriaLabel
           (click)="onReplaceAll()"
           [disabled]="findService.matchCount() === 0"
           [matTooltip]="'editor.find.replaceAll' | transloco"

@@ -22,6 +22,7 @@ import {
   type TagPickerDialogData,
   type TagPickerDialogResult,
 } from '@dialogs/tag-picker-dialog/tag-picker-dialog.component';
+import { TooltipAriaLabelDirective } from '@directives/tooltip-aria-label.directive';
 import { type Element } from '@inkweld/index';
 import { TranslocoModule } from '@jsverse/transloco';
 import { type TagDefinition } from '@models/tag.model';
@@ -55,6 +56,7 @@ const MAX_ZOOM = 5;
 @Component({
   selector: 'app-image-viewer-dialog',
   imports: [
+    TooltipAriaLabelDirective,
     MatButtonModule,
     MatChipsModule,
     MatDialogModule,

@@ -10,7 +10,9 @@
     "collapseSidebar": "Collapse Sidebar",
     "searchInProject": "Search in Project (Ctrl+Shift+F)",
     "searchInProjectAria": "Search in Project",
-    "browseElements": "Browse Documents"
+    "browseElements": "Browse Documents",
+    "toggleSidebar": "Toggle sidebar",
+    "exitZenMode": "Exit zen mode"
   },
   "tree": {
     "home": "Home",
@@ -31,7 +33,9 @@
     "convertToScene": "Convert to Scene",
     "convertToNote": "Convert to Note",
     "confirmDelete": "Confirm Delete",
-    "confirmDeleteMessage": "Are you sure you want to delete \"{{name}}\"? This action cannot be undone."
+    "confirmDeleteMessage": "Are you sure you want to delete \"{{name}}\"? This action cannot be undone.",
+    "expandFolder": "Expand folder",
+    "collapseFolder": "Collapse folder"
   },
   "tabs": {
     "scrollLeft": "Scroll tabs left",

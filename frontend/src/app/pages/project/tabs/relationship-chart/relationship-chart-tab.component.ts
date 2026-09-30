@@ -32,6 +32,7 @@ cytoscape.use(fcose);
 cytoscape.use(dagre);
 
 import { DocumentBreadcrumbsComponent } from '@components/document-breadcrumbs/document-breadcrumbs.component';
+import { TooltipAriaLabelDirective } from '@directives/tooltip-aria-label.directive';
 import { type RelationshipTypeDefinition } from '@models/element-ref.model';
 
 import { type Element, ElementType } from '../../../../../api-client';
@@ -78,6 +79,7 @@ const SIDEBAR_RESIZE_DELAY_MS = 250;
   styleUrls: ['./relationship-chart-tab.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    TooltipAriaLabelDirective,
     MatButtonModule,
     MatButtonToggleModule,
     MatChipsModule,

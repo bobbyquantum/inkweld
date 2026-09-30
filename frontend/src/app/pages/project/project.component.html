@@ -9,6 +9,7 @@
   <div class="zen-mode-overlay">
     <div class="zen-mode-editor-container">
       <button
+        [attr.aria-label]="'project.nav.exitZenMode' | transloco"
         mat-icon-button
         class="zen-mode-close-button"
         (click)="toggleZenMode()">
@@ -148,7 +149,10 @@
          Never in a pop-out, which shows the document and nothing else. -->
     @if (!isPopout() && (isMobile() || !useTabsDesktop())) {
       <mat-toolbar class="mobile-toolbar">
-        <button mat-icon-button (click)="toggleSidebar()">
+        <button
+          [attr.aria-label]="'project.nav.toggleSidebar' | transloco"
+          mat-icon-button
+          (click)="toggleSidebar()">
           <mat-icon>menu</mat-icon>
         </button>
         <span class="project-title">{{ projectState.project()?.title }}</span>
@@ -180,6 +184,7 @@
               <div class="collapsed-sidebar-top">
                 <button
                   mat-icon-button
+                  appTooltipAriaLabel
                   (click)="toggleSidebarCollapsed()"
                   [matTooltip]="'project.nav.expandSidebar' | transloco"
                   data-testid="sidebar-expand-button"
@@ -190,6 +195,7 @@
                 </button>
                 <button
                   mat-icon-button
+                  appTooltipAriaLabel
                   (click)="goHome()"
                   [class.active]="projectState.selectedTabIndex() === 0"
                   [matTooltip]="'project.nav.home' | transloco"
@@ -199,6 +205,7 @@
                 </button>
                 <button
                   mat-icon-button
+                  appTooltipAriaLabel
                   (click)="openProjectSearch()"
                   [matTooltip]="'project.nav.searchInProject' | transloco"
                   data-testid="collapsed-project-search-button"
@@ -209,6 +216,7 @@
                 </button>
                 <button
                   mat-icon-button
+                  appTooltipAriaLabel
                   [matMenuTriggerFor]="browseMenu.menu"
                   [matTooltip]="'project.nav.browseElements' | transloco"
                   data-testid="collapsed-browse-button"
@@ -227,6 +235,7 @@
                   @for (element of pinnedElements(); track element.id) {
                     <button
                       mat-icon-button
+                      appTooltipAriaLabel
                       (click)="onDocumentOpened(element)"
                       [matTooltip]="element.name"
                       matTooltipPosition="right"
@@ -255,6 +264,7 @@
                 }
                 <button
                   mat-icon-button
+                  appTooltipAriaLabel
                   (click)="onShowMediaLibrary()"
                   [class.active]="isSystemTabSelected('media')"
                   [matTooltip]="'project.nav.mediaLibrary' | transloco"
@@ -264,6 +274,7 @@
                 </button>
                 <button
                   mat-icon-button
+                  appTooltipAriaLabel
                   (click)="onShowPublishPlans()"
                   [class.active]="isSystemTabSelected('publish-plans')"
                   [matTooltip]="'project.nav.publishing' | transloco"
@@ -274,6 +285,7 @@
                 @if (!isLocalMode()) {
                   <button
                     mat-icon-button
+                    appTooltipAriaLabel
                     (click)="onShowActivity()"
                     [class.active]="isSystemTabSelected('activity')"
                     [matTooltip]="'project.nav.activity' | transloco"
@@ -284,6 +296,7 @@
                 }
                 <button
                   mat-icon-button
+                  appTooltipAriaLabel
                   (click)="onShowSettings()"
                   [class.active]="isSystemTabSelected('settings')"
                   [matTooltip]="'project.nav.projectSettings' | transloco"
@@ -293,6 +306,7 @@
                 </button>
                 <button
                   mat-icon-button
+                  appTooltipAriaLabel
                   (click)="exitProject()"
                   [matTooltip]="'project.nav.exitProject' | transloco"
                   data-testid="collapsed-exit-button"

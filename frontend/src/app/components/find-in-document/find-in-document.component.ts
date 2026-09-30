@@ -25,12 +25,14 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TooltipAriaLabelDirective } from '@directives/tooltip-aria-label.directive';
 import { TranslocoModule } from '@jsverse/transloco';
 import { FindInDocumentService } from '@services/core/find-in-document.service';
 
 @Component({
   selector: 'app-find-in-document',
   imports: [
+    TooltipAriaLabelDirective,
     MatButtonModule,
     MatIconModule,
     MatInputModule,

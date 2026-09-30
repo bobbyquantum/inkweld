@@ -96,6 +96,7 @@
           <div class="tag-actions">
             <button
               mat-icon-button
+              appTooltipAriaLabel
               [matTooltip]="'tags.tab.edit' | transloco"
               [attr.aria-label]="
                 'tags.tab.editTag' | transloco: { name: tag.name }
@@ -106,6 +107,7 @@
             </button>
             <button
               mat-icon-button
+              appTooltipAriaLabel
               [matTooltip]="'tags.tab.delete' | transloco"
               [attr.aria-label]="
                 'tags.tab.deleteTag' | transloco: { name: tag.name }

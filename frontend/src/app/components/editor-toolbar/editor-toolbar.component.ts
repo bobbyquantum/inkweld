@@ -25,6 +25,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { type Editor } from '@bobbyquantum/ngx-editor';
+import { TooltipAriaLabelDirective } from '@directives/tooltip-aria-label.directive';
 import { TranslocoModule } from '@jsverse/transloco';
 import { SystemConfigService } from '@services/core/system-config.service';
 import { toggleMark } from 'prosemirror-commands';
@@ -86,6 +87,7 @@ export type ToolbarGroupName =
 @Component({
   selector: 'app-editor-toolbar',
   imports: [
+    TooltipAriaLabelDirective,
     MatButtonModule,
     MatIconModule,
     MatMenuModule,

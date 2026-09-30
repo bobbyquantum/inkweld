@@ -20,6 +20,7 @@ import {
   type SafeHtml,
   type SafeResourceUrl,
 } from '@angular/platform-browser';
+import { TooltipAriaLabelDirective } from '@directives/tooltip-aria-label.directive';
 import { TranslocoModule } from '@jsverse/transloco';
 import {
   PublishFormat,
@@ -45,6 +46,7 @@ export interface PreviewStats {
   styleUrls: ['./publish-preview.component.scss'],
   changeDetection: ChangeDetectionStrategy.Eager,
   imports: [
+    TooltipAriaLabelDirective,
     MatButtonModule,
     MatIconModule,
     MatProgressBarModule,

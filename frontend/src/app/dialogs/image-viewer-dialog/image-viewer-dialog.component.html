@@ -3,6 +3,7 @@
     @if (data.metadata) {
       <button
         mat-icon-button
+        appTooltipAriaLabel
         (click)="showInfo.set(!showInfo())"
         [attr.aria-label]="
           (showInfo()
@@ -22,6 +23,7 @@
     @if (data.canEdit) {
       <button
         mat-icon-button
+        appTooltipAriaLabel
         (click)="changeImage()"
         [attr.aria-label]="'media.imageViewer.changeImage' | transloco"
         [matTooltip]="'media.imageViewer.changeImage' | transloco">
@@ -31,6 +33,7 @@
     @if (data.mediaId) {
       <button
         mat-icon-button
+        appTooltipAriaLabel
         (click)="downloadImage()"
         [attr.aria-label]="'media.imageViewer.downloadImage' | transloco"
         [matTooltip]="'media.imageViewer.download' | transloco">
@@ -39,6 +42,7 @@
       @if (data.canEdit) {
         <button
           mat-icon-button
+          appTooltipAriaLabel
           (click)="deleteImage()"
           [attr.aria-label]="'media.imageViewer.deleteImage' | transloco"
           [matTooltip]="'media.imageViewer.delete' | transloco"
@@ -121,6 +125,7 @@
     <div class="tag-buttons">
       <button
         mat-icon-button
+        appTooltipAriaLabel
         (click)="addTags()"
         [attr.aria-label]="'media.imageViewer.addTags' | transloco"
         [matTooltip]="'media.imageViewer.addTags' | transloco">

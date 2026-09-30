@@ -20,6 +20,7 @@ import {
   type EditRelationshipTypeDialogData,
   type EditRelationshipTypeDialogResult,
 } from '@dialogs/edit-relationship-type-dialog/edit-relationship-type-dialog.component';
+import { TooltipAriaLabelDirective } from '@directives/tooltip-aria-label.directive';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { DocumentSyncState } from '@models/document-sync-state';
 import {
@@ -61,6 +62,7 @@ interface RelationshipTypeView {
   styleUrls: ['./relationships-tab.component.scss'],
   changeDetection: ChangeDetectionStrategy.Eager,
   imports: [
+    TooltipAriaLabelDirective,
     MatButtonModule,
     MatFormFieldModule,
     MatIconModule,

@@ -23,6 +23,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatListModule } from '@angular/material/list';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TooltipAriaLabelDirective } from '@directives/tooltip-aria-label.directive';
 import { TranslocoModule } from '@jsverse/transloco';
 import { type RelationshipTypeDefinition } from '@models/element-ref.model';
 import { ProjectStateService } from '@services/project/project-state.service';
@@ -71,6 +72,7 @@ interface AddRelationshipFormValue {
 @Component({
   selector: 'app-add-relationship-dialog',
   imports: [
+    TooltipAriaLabelDirective,
     FormField,
     MatAutocompleteModule,
     MatButtonModule,

@@ -21,6 +21,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TooltipAriaLabelDirective } from '@directives/tooltip-aria-label.directive';
 import { TranslocoModule } from '@jsverse/transloco';
 
 import { type ProjectElement } from '../../models/project-element';
@@ -32,6 +33,7 @@ type ViewMode = 'grid' | 'list';
 @Component({
   selector: 'app-folder-element-editor',
   imports: [
+    TooltipAriaLabelDirective,
     MatButtonModule,
     MatButtonToggleModule,
     MatCardModule,

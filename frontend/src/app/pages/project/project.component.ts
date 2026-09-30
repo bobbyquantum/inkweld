@@ -34,6 +34,7 @@ import { ElementTreeMenuComponent } from '@components/element-tree-menu/element-
 import { PresenceIndicatorComponent } from '@components/presence-indicator/presence-indicator.component';
 import { ProjectTreeComponent } from '@components/project-tree/project-tree.component';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
+import { TooltipAriaLabelDirective } from '@directives/tooltip-aria-label.directive';
 import { type Element, ElementType } from '@inkweld/index';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { LoggerService } from '@services/core/logger.service';
@@ -71,6 +72,7 @@ import { TabInterfaceComponent } from './tabs/tab-interface.component';
   styleUrls: ['./project.component.scss'],
   changeDetection: ChangeDetectionStrategy.Eager,
   imports: [
+    TooltipAriaLabelDirective,
     MatButtonModule,
     MatSidenavModule,
     MatTabsModule,

@@ -10,6 +10,7 @@
     <span class="comment-panel__spacer"></span>
     <button
       mat-icon-button
+      appTooltipAriaLabel
       [matTooltip]="'editor.comments.closePanel' | transloco"
       (click)="closed.emit()"
       data-testid="comment-panel-close">
@@ -75,6 +76,7 @@
                 @if (!thread.resolved) {
                   <button
                     mat-icon-button
+                    appTooltipAriaLabel
                     [matTooltip]="'editor.comments.resolve' | transloco"
                     (click)="onResolve(thread, $event)"
                     data-testid="panel-resolve-btn">
@@ -83,6 +85,7 @@
                 } @else {
                   <button
                     mat-icon-button
+                    appTooltipAriaLabel
                     [matTooltip]="'editor.comments.unresolve' | transloco"
                     (click)="onUnresolve(thread, $event)"
                     data-testid="panel-unresolve-btn">
@@ -91,6 +94,7 @@
                 }
                 <button
                   mat-icon-button
+                  appTooltipAriaLabel
                   [matTooltip]="'editor.comments.deleteThread' | transloco"
                   (click)="onDelete(thread, $event)"
                   data-testid="panel-delete-btn">
@@ -138,6 +142,7 @@
                     data-testid="panel-reply-input" />
                   <button
                     mat-icon-button
+                    appTooltipAriaLabel
                     [disabled]="!replyInput.value.trim()"
                     (click)="
                       onReply(thread, replyInput); $event.stopPropagation()

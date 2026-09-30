@@ -47,7 +47,11 @@
         (input)="searchQuery.set($any($event.target).value)"
         [attr.aria-label]="'media.mediaSelector.searchAria' | transloco" />
       @if (searchQuery()) {
-        <button matSuffix mat-icon-button (click)="clearSearch()">
+        <button
+          [attr.aria-label]="'clearSearch' | transloco"
+          matSuffix
+          mat-icon-button
+          (click)="clearSearch()">
           <mat-icon>close</mat-icon>
         </button>
       }
