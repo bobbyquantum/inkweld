@@ -29,17 +29,14 @@
         data-testid="find-input"
         autocomplete="off"
         spellcheck="false" />
-      <span
-        class="match-counter"
-        role="status"
-        data-testid="find-match-counter">
+      <output class="match-counter" data-testid="find-match-counter">
         @if (findService.matchCount() > 0) {
           {{ findService.currentMatchNumber() }} of
           {{ findService.matchCount() }}
         } @else if (findService.query().length > 0) {
           {{ 'editor.find.noResults' | transloco }}
         }
-      </span>
+      </output>
     </div>
 
     <div class="find-actions">
