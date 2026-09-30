@@ -15,6 +15,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { SettingsTabStatusComponent } from '@components/settings-tab-status/settings-tab-status.component';
+import { TooltipAriaLabelDirective } from '@directives/tooltip-aria-label.directive';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { type ElementTypeSchema, type TabSchema } from '@models/schema-types';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
@@ -53,6 +54,7 @@ interface TemplateSchema {
   styleUrls: ['./templates-tab.component.scss'],
   changeDetection: ChangeDetectionStrategy.Eager,
   imports: [
+    TooltipAriaLabelDirective,
     MatButtonModule,
     MatFormFieldModule,
     MatIconModule,

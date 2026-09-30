@@ -99,6 +99,7 @@
             @if (!type.isFieldManaged) {
               <button
                 mat-icon-button
+                appTooltipAriaLabel
                 [matTooltip]="'relationships.tab.edit' | transloco"
                 (click)="editType(type)"
                 data-testid="edit-type-button">
@@ -106,6 +107,7 @@
               </button>
               <button
                 mat-icon-button
+                appTooltipAriaLabel
                 [matTooltip]="'relationships.tab.duplicate' | transloco"
                 (click)="cloneType(type)"
                 data-testid="clone-type-button">
@@ -113,6 +115,7 @@
               </button>
               <button
                 mat-icon-button
+                appTooltipAriaLabel
                 [matTooltip]="'relationships.tab.delete' | transloco"
                 (click)="deleteType(type)"
                 data-testid="delete-type-button">

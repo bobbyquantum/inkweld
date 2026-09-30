@@ -100,5 +100,9 @@
   "presenceStatusEditing": "editing",
   "presenceStatusActive": "active",
   "presenceStatusIdle": "idle",
-  "presenceStatusOffline": "offline"
+  "presenceStatusOffline": "offline",
+  "clearSearch": "Clear search",
+  "moreOptions": "More options",
+  "removeNamed": "Remove {{name}}",
+  "copyUrl": "Copy URL to clipboard"
 }

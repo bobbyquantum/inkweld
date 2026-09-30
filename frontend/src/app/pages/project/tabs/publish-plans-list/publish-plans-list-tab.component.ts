@@ -12,6 +12,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router } from '@angular/router';
+import { TooltipAriaLabelDirective } from '@directives/tooltip-aria-label.directive';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import {
   createDefaultPublishPlan,
@@ -31,6 +32,7 @@ import { FileSizePipe } from '../../../../pipes/file-size.pipe';
   styleUrls: ['./publish-plans-list-tab.component.scss'],
   changeDetection: ChangeDetectionStrategy.Eager,
   imports: [
+    TooltipAriaLabelDirective,
     MatButtonModule,
     MatIconModule,
     MatMenuModule,

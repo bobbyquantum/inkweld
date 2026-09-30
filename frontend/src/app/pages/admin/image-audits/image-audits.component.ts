@@ -26,6 +26,7 @@ import {
   ImageViewerDialogComponent,
   type ImageViewerDialogData,
 } from '@dialogs/image-viewer-dialog/image-viewer-dialog.component';
+import { TooltipAriaLabelDirective } from '@directives/tooltip-aria-label.directive';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import {
   AdminImageAuditsService,
@@ -38,6 +39,7 @@ import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 @Component({
   selector: 'app-admin-image-audits',
   imports: [
+    TooltipAriaLabelDirective,
     DatePipe,
     NgClass,
     MatButtonModule,

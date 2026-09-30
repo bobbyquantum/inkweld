@@ -13,6 +13,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ProjectStatsSummaryComponent } from '@components/project-stats-summary/project-stats-summary.component';
+import { TooltipAriaLabelDirective } from '@directives/tooltip-aria-label.directive';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import type {
   ActivityEventType,
@@ -47,6 +48,7 @@ import { firstValueFrom } from 'rxjs';
   styleUrls: ['./activity-tab.component.scss'],
   changeDetection: ChangeDetectionStrategy.Eager,
   imports: [
+    TooltipAriaLabelDirective,
     DatePipe,
     MatButtonModule,
     MatIconModule,

@@ -17,6 +17,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TooltipAriaLabelDirective } from '@directives/tooltip-aria-label.directive';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import {
   type UnifiedSnapshot,
@@ -55,6 +56,7 @@ export interface SnapshotsDialogData {
 @Component({
   selector: 'app-snapshots-dialog',
   imports: [
+    TooltipAriaLabelDirective,
     MatDialogModule,
     MatButtonModule,
     MatIconModule,

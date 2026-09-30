@@ -14,6 +14,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router, RouterModule } from '@angular/router';
+import { TooltipAriaLabelDirective } from '@directives/tooltip-aria-label.directive';
 import { type User } from '@inkweld/index';
 import { TranslocoModule } from '@jsverse/transloco';
 import { type TutorialTourId } from '@models/tutorial';
@@ -37,6 +38,7 @@ import { UserAvatarComponent } from '../user-avatar/user-avatar.component';
 @Component({
   selector: 'app-user-menu',
   imports: [
+    TooltipAriaLabelDirective,
     MatBadgeModule,
     MatButtonModule,
     MatMenuModule,

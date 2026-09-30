@@ -10,7 +10,10 @@
     color="primary"
     class="profile-toolbar"
     data-testid="profile-toolbar">
-    <button mat-icon-button (click)="navigateHome()">
+    <button
+      [attr.aria-label]="'back' | transloco"
+      mat-icon-button
+      (click)="navigateHome()">
       <mat-icon>arrow_back</mat-icon>
     </button>
     <span class="toolbar-spacer"></span>

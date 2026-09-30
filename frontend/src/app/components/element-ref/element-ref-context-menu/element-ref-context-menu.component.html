@@ -53,7 +53,10 @@
           <span>{{
             'editor.elementRef.contextMenu.editDisplayText' | transloco
           }}</span>
-          <button mat-icon-button (click)="cancelEditing()">
+          <button
+            [attr.aria-label]="'cancel' | transloco"
+            mat-icon-button
+            (click)="cancelEditing()">
             <mat-icon>close</mat-icon>
           </button>
         </div>

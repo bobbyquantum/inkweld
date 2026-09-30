@@ -657,3 +657,15 @@ body.dark-theme .mat-mdc-snack-bar-container .mat-mdc-button {
     overflow: visible;
   }
 }
+
+// Users who ask for less motion get instant state changes. Animations are
+// left alone so indeterminate spinners keep spinning.
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    transition-delay: 0s !important;
+    scroll-behavior: auto !important;
+  }
+}

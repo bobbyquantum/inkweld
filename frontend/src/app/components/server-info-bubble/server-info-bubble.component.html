@@ -2,6 +2,7 @@
   @if (isConfigured()) {
     <button
       mat-mini-fab
+      appTooltipAriaLabel
       [matMenuTriggerFor]="profileMenu"
       [matTooltip]="getShortDisplayName()"
       matTooltipPosition="above"
@@ -42,6 +43,7 @@
     <!-- Not configured yet - just show an info icon -->
     <button
       mat-mini-fab
+      appTooltipAriaLabel
       [matTooltip]="'settings.connectionTab.offlineInfo' | transloco"
       matTooltipPosition="above"
       class="bubble-button disconnected"

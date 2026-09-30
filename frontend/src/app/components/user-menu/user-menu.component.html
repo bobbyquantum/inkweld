@@ -121,6 +121,7 @@
             </button>
             <button
               mat-icon-button
+              appTooltipAriaLabel
               class="switcher-toggle"
               (click)="toggleSwitcher($event)"
               [matTooltip]="
@@ -145,6 +146,7 @@
             @if (setupService.getMode() === 'cloud') {
               <button
                 mat-icon-button
+                appTooltipAriaLabel
                 class="status-icon-action"
                 (click)="onSyncNow($event)"
                 [disabled]="cloudSync.status() === 'syncing'"
@@ -201,6 +203,7 @@
             <span class="theme-label">{{ 'settings.theme' | transloco }}:</span>
             <button
               mat-icon-button
+              appTooltipAriaLabel
               (click)="onThemeChange('light-theme')"
               [matTooltip]="'settings.light' | transloco"
               data-testid="theme-light-button">
@@ -208,6 +211,7 @@
             </button>
             <button
               mat-icon-button
+              appTooltipAriaLabel
               (click)="onThemeChange('dark-theme')"
               [matTooltip]="'settings.dark' | transloco"
               data-testid="theme-dark-button">
@@ -215,6 +219,7 @@
             </button>
             <button
               mat-icon-button
+              appTooltipAriaLabel
               (click)="onThemeChange('system')"
               [matTooltip]="'settings.followSystem' | transloco"
               data-testid="theme-system-button">

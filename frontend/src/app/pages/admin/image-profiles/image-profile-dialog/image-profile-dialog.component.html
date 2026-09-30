@@ -157,6 +157,7 @@
           </mat-autocomplete>
           <button
             mat-icon-button
+            appTooltipAriaLabel
             matSuffix
             type="button"
             (click)="loadModelsForProvider()"
@@ -241,6 +242,7 @@
           }}</span>
           <button
             mat-icon-button
+            appTooltipAriaLabel
             type="button"
             (click)="addSize()"
             [matTooltip]="'admin.imageProfile.addSize' | transloco">
@@ -271,6 +273,7 @@
               }
             </mat-form-field>
             <button
+              [attr.aria-label]="'admin.aiSettings.removeSize' | transloco"
               mat-icon-button
               type="button"
               color="warn"

@@ -216,6 +216,7 @@
         </button>
       </div>
       <button
+        [attr.aria-label]="'editor.autoReview.close' | transloco"
         mat-icon-button
         class="auto-review-popover__close"
         (click)="closeAutoReviewPopover()"

@@ -19,6 +19,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { type AddRelationshipDialogData } from '@dialogs/add-relationship-dialog/add-relationship-dialog.component';
+import { TooltipAriaLabelDirective } from '@directives/tooltip-aria-label.directive';
 import { TranslocoModule } from '@jsverse/transloco';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { ProjectStateService } from '@services/project/project-state.service';
@@ -55,6 +56,7 @@ interface RelationshipGroup {
 @Component({
   selector: 'app-meta-panel',
   imports: [
+    TooltipAriaLabelDirective,
     AccordionGroup,
     AccordionTrigger,
     AccordionPanel,

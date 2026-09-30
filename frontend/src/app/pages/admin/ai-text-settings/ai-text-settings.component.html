@@ -150,6 +150,7 @@
                     " />
                   @if (lintModelSearch()) {
                     <button
+                      [attr.aria-label]="'clearSearch' | transloco"
                       type="button"
                       class="clear-search-btn"
                       (click)="lintModelSearch.set('')">
@@ -262,6 +263,7 @@
                     " />
                   @if (imagePromptModelSearch()) {
                     <button
+                      [attr.aria-label]="'clearSearch' | transloco"
                       type="button"
                       class="clear-search-btn"
                       (click)="imagePromptModelSearch.set('')">

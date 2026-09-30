@@ -3,6 +3,7 @@
     <h1>{{ 'admin.imageAudits.title' | transloco }}</h1>
     <button
       mat-icon-button
+      appTooltipAriaLabel
       (click)="refresh()"
       [matTooltip]="'admin.imageAudits.refresh' | transloco">
       <mat-icon>refresh</mat-icon>
@@ -60,7 +61,11 @@
         data-testid="audit-search-input"
         [attr.aria-label]="'admin.imageAudits.searchAria' | transloco" />
       @if (searchQuery()) {
-        <button matSuffix mat-icon-button (click)="clearSearch()">
+        <button
+          [attr.aria-label]="'clearSearch' | transloco"
+          matSuffix
+          mat-icon-button
+          (click)="clearSearch()">
           <mat-icon>close</mat-icon>
         </button>
       }
@@ -175,6 +180,7 @@
             @if (audit.outputImageUrls && audit.outputImageUrls.length > 0) {
               <button
                 mat-icon-button
+                appTooltipAriaLabel
                 (click)="viewOutputImages(audit)"
                 [matTooltip]="'admin.imageAudits.viewImage' | transloco">
                 <mat-icon>image</mat-icon>

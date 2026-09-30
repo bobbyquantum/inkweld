@@ -1,6 +1,7 @@
 <div class="theme-toggle">
   <button
     mat-icon-button
+    appTooltipAriaLabel
     (click)="onThemeChange('light-theme')"
     [matTooltip]="'settings.light' | transloco"
     data-testid="theme-light-button"
@@ -9,6 +10,7 @@
   </button>
   <button
     mat-icon-button
+    appTooltipAriaLabel
     (click)="onThemeChange('dark-theme')"
     [matTooltip]="'settings.dark' | transloco"
     data-testid="theme-dark-button"
@@ -17,6 +19,7 @@
   </button>
   <button
     mat-icon-button
+    appTooltipAriaLabel
     (click)="onThemeChange('system')"
     [matTooltip]="'settings.followSystem' | transloco"
     data-testid="theme-system-button"

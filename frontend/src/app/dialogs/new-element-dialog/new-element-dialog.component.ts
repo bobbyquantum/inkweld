@@ -18,6 +18,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { GeneratorDiceComponent } from '@components/generator-dice/generator-dice.component';
+import { TooltipAriaLabelDirective } from '@directives/tooltip-aria-label.directive';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { DOCUMENT_ROLE_ICONS } from '@models/scene-metadata';
 
@@ -91,6 +92,7 @@ interface NewElementFormValue {
   styleUrls: ['./new-element-dialog.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    TooltipAriaLabelDirective,
     FormField,
     GeneratorDiceComponent,
     MatDialogModule,

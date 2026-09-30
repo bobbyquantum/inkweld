@@ -30,6 +30,7 @@
           <div class="snapshot-actions">
             <button
               mat-icon-button
+              appTooltipAriaLabel
               [matTooltip]="'dialogs.snapshots.restore' | transloco"
               (click)="restoreSnapshot(snapshot)"
               data-testid="snapshot-restore">
@@ -37,6 +38,7 @@
             </button>
             <button
               mat-icon-button
+              appTooltipAriaLabel
               [matTooltip]="'delete' | transloco"
               (click)="deleteSnapshot(snapshot)"
               data-testid="snapshot-delete">

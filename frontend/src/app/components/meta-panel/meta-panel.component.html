@@ -8,6 +8,7 @@
     <div class="collapsed-panel">
       <button
         mat-icon-button
+        appTooltipAriaLabel
         class="expand-toggle"
         (click)="toggleExpanded()"
         [matTooltip]="'relationships.metaPanel.expandPanel' | transloco"
@@ -25,6 +26,7 @@
         ) {
           <button
             mat-icon-button
+            appTooltipAriaLabel
             class="collapsed-icon-button"
             [class.incoming]="group.isIncoming"
             (click)="toggleExpanded()"
@@ -47,6 +49,7 @@
           <!-- Show placeholder when no relationships -->
           <button
             mat-icon-button
+            appTooltipAriaLabel
             class="collapsed-icon-button placeholder"
             (click)="toggleExpanded()"
             [matTooltip]="'relationships.metaPanel.noRelationships' | transloco"
@@ -58,6 +61,7 @@
         <!-- Add relationship button in collapsed mode -->
         <button
           mat-icon-button
+          appTooltipAriaLabel
           class="collapsed-icon-button add-btn"
           (click)="openAddRelationshipDialog()"
           [matTooltip]="'relationships.metaPanel.addRelationship' | transloco"
@@ -77,6 +81,7 @@
         }}</span>
         <button
           mat-icon-button
+          appTooltipAriaLabel
           class="collapse-toggle"
           (click)="toggleExpanded()"
           [matTooltip]="'relationships.metaPanel.collapsePanel' | transloco"
@@ -172,6 +177,7 @@
                           }}</span>
                         </button>
                         <button
+                          [attr.aria-label]="'moreOptions' | transloco"
                           mat-icon-button
                           [matMenuTriggerFor]="relationshipMenu"
                           class="menu-button"

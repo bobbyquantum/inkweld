@@ -15,6 +15,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router, RouterModule } from '@angular/router';
+import { TooltipAriaLabelDirective } from '@directives/tooltip-aria-label.directive';
 import { type Project } from '@inkweld/index';
 import { TranslocoModule } from '@jsverse/transloco';
 import { SyncQueueService, SyncStage } from '@services/sync/sync-queue.service';
@@ -39,6 +40,7 @@ export interface UnifiedProjectItem {
 @Component({
   selector: 'app-side-nav',
   imports: [
+    TooltipAriaLabelDirective,
     MatSidenavModule,
     MatListModule,
     MatIconModule,

@@ -29,6 +29,7 @@ import {
   ConfirmationDialogComponent,
   type ConfirmationDialogData,
 } from '@dialogs/confirmation-dialog/confirmation-dialog.component';
+import { TooltipAriaLabelDirective } from '@directives/tooltip-aria-label.directive';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { AdminService, type AdminUser } from '@services/admin/admin.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
@@ -40,6 +41,7 @@ const PAGE_SIZE = 20;
 @Component({
   selector: 'app-admin-users',
   imports: [
+    TooltipAriaLabelDirective,
     NgClass,
     MatButtonModule,
     MatCardModule,

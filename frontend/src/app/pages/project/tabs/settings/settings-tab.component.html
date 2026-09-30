@@ -678,8 +678,11 @@
                       </mat-form-field>
                       <button
                         mat-icon-button
+                        appTooltipAriaLabel
                         color="warn"
-                        [matTooltip]="'Remove ' + collab.username"
+                        [matTooltip]="
+                          'removeNamed' | transloco: { name: collab.username }
+                        "
                         (click)="removeCollaborator(collab)"
                         data-testid="remove-collaborator-button">
                         <mat-icon>person_remove</mat-icon>
@@ -881,7 +884,8 @@
                 <code class="mcp-url">{{ getMcpEndpointUrl() }}</code>
                 <button
                   mat-icon-button
-                  matTooltip="Copy URL to clipboard"
+                  appTooltipAriaLabel
+                  [matTooltip]="'copyUrl' | transloco"
                   (click)="copyMcpUrl()"
                   data-testid="copy-mcp-url-button">
                   <mat-icon>content_copy</mat-icon>

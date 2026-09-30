@@ -17,6 +17,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TooltipAriaLabelDirective } from '@directives/tooltip-aria-label.directive';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import {
   getFormatDisplayName,
@@ -59,6 +60,7 @@ export interface PublishCompleteDialogResult {
 @Component({
   selector: 'app-publish-complete-dialog',
   imports: [
+    TooltipAriaLabelDirective,
     CommonModule,
     MatButtonModule,
     MatDialogModule,

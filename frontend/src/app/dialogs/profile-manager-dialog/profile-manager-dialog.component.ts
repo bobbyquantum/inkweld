@@ -27,6 +27,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router } from '@angular/router';
 import { RegistrationFormComponent } from '@components/registration-form/registration-form.component';
+import { TooltipAriaLabelDirective } from '@directives/tooltip-aria-label.directive';
 import { type Project, ProjectsService } from '@inkweld/index';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { AuthTokenService } from '@services/auth/auth-token.service';
@@ -80,6 +81,7 @@ export interface ProfileManagerDialogData {
 @Component({
   selector: 'app-profile-manager-dialog',
   imports: [
+    TooltipAriaLabelDirective,
     MatDialogModule,
     MatButtonModule,
     MatIconModule,

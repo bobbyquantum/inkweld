@@ -16,6 +16,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TooltipAriaLabelDirective } from '@directives/tooltip-aria-label.directive';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { type SnapshotInfo } from '@services/local/local-snapshot.service';
 import { TemplateSnapshotService } from '@services/project/template-snapshot.service';
@@ -47,6 +48,7 @@ export interface TemplateSnapshotsDialogData {
 @Component({
   selector: 'app-template-snapshots-dialog',
   imports: [
+    TooltipAriaLabelDirective,
     MatDialogModule,
     MatButtonModule,
     MatIconModule,

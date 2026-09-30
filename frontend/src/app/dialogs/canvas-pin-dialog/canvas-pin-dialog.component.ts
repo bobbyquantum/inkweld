@@ -17,6 +17,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ColorSwatchesComponent } from '@components/color-swatches/color-swatches.component';
+import { TooltipAriaLabelDirective } from '@directives/tooltip-aria-label.directive';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 
 import { ElementType } from '../../../api-client/model/element-type';
@@ -58,6 +59,7 @@ interface CanvasPinFormValue {
   styleUrls: ['./canvas-pin-dialog.component.scss'],
   changeDetection: ChangeDetectionStrategy.Eager,
   imports: [
+    TooltipAriaLabelDirective,
     FormField,
     MatDialogModule,
     MatButtonModule,

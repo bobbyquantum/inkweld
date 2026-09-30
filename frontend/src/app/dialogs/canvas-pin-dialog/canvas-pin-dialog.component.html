@@ -40,6 +40,7 @@
         <span class="linked-name">{{ linkedElementName() }}</span>
         <button
           mat-icon-button
+          appTooltipAriaLabel
           [attr.aria-label]="'canvas.pinDialog.removeLink' | transloco"
           [matTooltip]="'canvas.pinDialog.removeLinkTooltip' | transloco"
           (click)="clearLink()"

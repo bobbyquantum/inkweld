@@ -21,6 +21,7 @@
   <div class="tree-toolbar">
     <button
       mat-icon-button
+      appTooltipAriaLabel
       class="home-button"
       [class.active]="isHomeSelected()"
       (click)="goHome()"
@@ -30,6 +31,7 @@
     </button>
     <button
       mat-icon-button
+      appTooltipAriaLabel
       class="search-button"
       (click)="openProjectSearch()"
       [matTooltip]="'project.tree.searchInProject' | transloco"
@@ -40,6 +42,7 @@
     @if (showCollapseButton()) {
       <button
         mat-icon-button
+        appTooltipAriaLabel
         class="collapse-button"
         (click)="collapseRequested.emit()"
         [matTooltip]="'project.tree.collapseSidebar' | transloco"
@@ -141,6 +144,13 @@
         <!-- Expand/collapse button for folders -->
         @if (node.expandable) {
           <button
+            [attr.aria-label]="
+              (node.expanded
+                ? 'project.tree.collapseFolder'
+                : 'project.tree.expandFolder'
+              ) | transloco
+            "
+            [attr.aria-expanded]="node.expanded ?? false"
             mat-icon-button
             type="button"
             data-testid="expand-folder-button"
@@ -175,7 +185,11 @@
           [class.folder-node]="node.expandable"
           [class.dense]="dense()">
           @if (node.expandable) {
-            <button mat-icon-button type="button">
+            <button
+              mat-icon-button
+              type="button"
+              aria-hidden="true"
+              tabindex="-1">
               <mat-icon>{{
                 node.expanded ? 'expand_more' : 'chevron_right'
               }}</mat-icon>

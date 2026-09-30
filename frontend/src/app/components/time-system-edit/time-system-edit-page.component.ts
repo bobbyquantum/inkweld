@@ -20,6 +20,7 @@ import {
   UnitEditorDialogComponent,
   type UnitEditorResult,
 } from '@dialogs/unit-editor-dialog/unit-editor-dialog.component';
+import { TooltipAriaLabelDirective } from '@directives/tooltip-aria-label.directive';
 import { TranslocoModule } from '@jsverse/transloco';
 import { TIME_SYSTEM_TEMPLATES, type TimeSystem } from '@models/time-system';
 import { TimeSystemLibraryService } from '@services/timeline/time-system-library.service';
@@ -58,6 +59,7 @@ interface TimeSystemFormValue {
   selector: 'app-time-system-edit-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    TooltipAriaLabelDirective,
     FormField,
     MatButtonModule,
     MatFormFieldModule,

@@ -2,6 +2,7 @@
   <header class="header">
     <button
       mat-icon-button
+      appTooltipAriaLabel
       [matTooltip]="'timeline.timeSystemEdit.backToSettings' | transloco"
       (click)="onCancel()"
       data-testid="time-system-edit-back">
@@ -97,6 +98,7 @@
                 <button
                   type="button"
                   mat-icon-button
+                  appTooltipAriaLabel
                   [matTooltip]="'timeline.timeSystemEdit.moveUp' | transloco"
                   [attr.aria-label]="
                     'timeline.timeSystemEdit.moveUpAria' | transloco
@@ -109,6 +111,7 @@
                 <button
                   type="button"
                   mat-icon-button
+                  appTooltipAriaLabel
                   [matTooltip]="'timeline.timeSystemEdit.moveDown' | transloco"
                   [attr.aria-label]="
                     'timeline.timeSystemEdit.moveDownAria' | transloco
@@ -121,6 +124,7 @@
                 <button
                   type="button"
                   mat-icon-button
+                  appTooltipAriaLabel
                   [matTooltip]="'timeline.timeSystemEdit.editUnit' | transloco"
                   [attr.aria-label]="
                     'timeline.timeSystemEdit.editUnitAria' | transloco
@@ -132,6 +136,7 @@
                 <button
                   type="button"
                   mat-icon-button
+                  appTooltipAriaLabel
                   [matTooltip]="
                     'timeline.timeSystemEdit.removeUnit' | transloco
                   "

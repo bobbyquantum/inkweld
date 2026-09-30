@@ -19,6 +19,7 @@ import {
   TagEditDialogComponent,
   type TagEditDialogResult,
 } from '@dialogs/tag-edit-dialog/tag-edit-dialog.component';
+import { TooltipAriaLabelDirective } from '@directives/tooltip-aria-label.directive';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { type TagIndexEntry } from '@models/tag.model';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
@@ -49,6 +50,7 @@ interface TagView {
   styleUrls: ['./tags-tab.component.scss'],
   changeDetection: ChangeDetectionStrategy.Eager,
   imports: [
+    TooltipAriaLabelDirective,
     MatButtonModule,
     MatFormFieldModule,
     MatIconModule,

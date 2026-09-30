@@ -22,6 +22,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TooltipAriaLabelDirective } from '@directives/tooltip-aria-label.directive';
 import { TranslocoModule } from '@jsverse/transloco';
 import {
   type AdminImageModelProfile,
@@ -68,6 +69,7 @@ interface ImageProfileFormValue {
 @Component({
   selector: 'app-image-profile-dialog',
   imports: [
+    TooltipAriaLabelDirective,
     FormField,
     MatAutocompleteModule,
     MatButtonModule,

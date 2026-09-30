@@ -83,7 +83,9 @@ test.describe('Template Worldbuilding Import', () => {
       await openTreeElement(page, 'Silverhollow');
       await page.getByTestId('nav-basic').click();
 
-      await expect(page.getByLabel('Name')).toHaveValue('Silverhollow');
+      await expect(
+        page.getByRole('textbox', { name: 'Location Name' })
+      ).toHaveValue('Silverhollow');
       await expect(page.getByLabel('Population')).toHaveValue('~3,000');
     });
 

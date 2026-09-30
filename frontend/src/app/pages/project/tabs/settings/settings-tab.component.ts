@@ -27,6 +27,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { RelationshipsTabComponent } from '@components/relationships-tab/relationships-tab.component';
 import { TagsTabComponent } from '@components/tags-tab/tags-tab.component';
 import { TemplatesTabComponent } from '@components/templates-tab/templates-tab.component';
+import { TooltipAriaLabelDirective } from '@directives/tooltip-aria-label.directive';
 import { CollaborationService as CollaborationApiService } from '@inkweld/api/collaboration.service';
 import { ProjectsService } from '@inkweld/api/projects.service';
 import {
@@ -66,6 +67,7 @@ import { TimeSystemsSettingsComponent } from './time-systems-settings/time-syste
   styleUrls: ['./settings-tab.component.scss'],
   changeDetection: ChangeDetectionStrategy.Eager,
   imports: [
+    TooltipAriaLabelDirective,
     DatePipe,
     FormField,
     MatButtonModule,

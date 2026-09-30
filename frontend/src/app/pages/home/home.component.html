@@ -154,6 +154,7 @@
               @if (isAuthenticated()) {
                 <button
                   mat-icon-button
+                  appTooltipAriaLabel
                   [matMenuTriggerFor]="sortMenu"
                   [matTooltip]="'home.sort.tooltip' | transloco"
                   [attr.aria-label]="'home.sort.tooltip' | transloco"

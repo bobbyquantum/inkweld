@@ -3,6 +3,7 @@
     <h3>{{ 'media.filterPanel.title' | transloco }}</h3>
     <button
       mat-icon-button
+      appTooltipAriaLabel
       (click)="onClose()"
       [matTooltip]="'media.filterPanel.closeFilters' | transloco">
       <mat-icon>close</mat-icon>
@@ -37,6 +38,7 @@
         </h4>
         <button
           mat-icon-button
+          appTooltipAriaLabel
           class="add-filter-button"
           (click)="onAddElement()"
           [matTooltip]="'media.filterPanel.addElementFilter' | transloco"
@@ -56,6 +58,7 @@
               }}</span>
               <button
                 mat-icon-button
+                appTooltipAriaLabel
                 class="filter-chip-remove"
                 (click)="removeElement(el.id)"
                 [matTooltip]="'media.filterPanel.remove' | transloco">
@@ -81,6 +84,7 @@
         </h4>
         <button
           mat-icon-button
+          appTooltipAriaLabel
           class="add-filter-button"
           (click)="onAddTag()"
           [matTooltip]="'media.filterPanel.addTagFilter' | transloco"
@@ -102,6 +106,7 @@
               }}</span>
               <button
                 mat-icon-button
+                appTooltipAriaLabel
                 class="filter-chip-remove"
                 (click)="removeTag(tag.id)"
                 [matTooltip]="'media.filterPanel.remove' | transloco">

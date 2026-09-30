@@ -1,6 +1,7 @@
 @if (visible()) {
   <button
     mat-icon-button
+    appTooltipAriaLabel
     type="button"
     class="dice-trigger"
     [matMenuTriggerFor]="rollMenu"
@@ -18,6 +19,7 @@
           <span class="menu-title">{{ generator.name }}</span>
           <button
             mat-icon-button
+            appTooltipAriaLabel
             type="button"
             (click)="onReroll($event)"
             [matTooltip]="'worldbuilding.generators.rollAgain' | transloco"

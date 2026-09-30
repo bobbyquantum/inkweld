@@ -15,6 +15,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { TooltipAriaLabelDirective } from '@directives/tooltip-aria-label.directive';
 import { TranslocoModule } from '@jsverse/transloco';
 import { formatRelativeDate } from '@utils/date-format';
 
@@ -34,6 +35,7 @@ interface CommentReplyFormValue {
   selector: 'app-comment-popover',
   standalone: true,
   imports: [
+    TooltipAriaLabelDirective,
     FormField,
     MatButtonModule,
     MatIconModule,

@@ -36,6 +36,7 @@ import {
 import { LoginDialogComponent } from '@dialogs/login-dialog/login-dialog.component';
 import { RegisterDialogComponent } from '@dialogs/register-dialog/register-dialog.component';
 import { PullToRefreshDirective } from '@directives/pull-to-refresh.directive';
+import { TooltipAriaLabelDirective } from '@directives/tooltip-aria-label.directive';
 import { CollaborationService as CollaborationApiService } from '@inkweld/api/collaboration.service';
 import { ProjectsService } from '@inkweld/api/projects.service';
 import { type Project } from '@inkweld/index';
@@ -89,6 +90,7 @@ export const PINNED_PROJECTS_STORAGE_KEY = 'inkweld-home-pinned-projects';
 @Component({
   selector: 'app-home',
   imports: [
+    TooltipAriaLabelDirective,
     LegalLinksComponent,
     FormField,
     MatButtonModule,

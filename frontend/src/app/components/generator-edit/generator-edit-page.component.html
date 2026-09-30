@@ -2,6 +2,7 @@
   <header class="header">
     <button
       mat-icon-button
+      appTooltipAriaLabel
       type="button"
       [matTooltip]="'worldbuilding.generatorEdit.back' | transloco"
       [attr.aria-label]="'worldbuilding.generatorEdit.back' | transloco"
@@ -133,6 +134,7 @@
             </span>
             <button
               mat-icon-button
+              appTooltipAriaLabel
               type="button"
               color="warn"
               (click)="onRemoveRule(rule._id)"

@@ -36,6 +36,7 @@ import {
   type TagPickerDialogData,
   type TagPickerDialogResult,
 } from '@dialogs/tag-picker-dialog/tag-picker-dialog.component';
+import { TooltipAriaLabelDirective } from '@directives/tooltip-aria-label.directive';
 import { forEachSequential } from '@inkweld/async';
 import { ElementType } from '@inkweld/index';
 import { TranslocoModule } from '@jsverse/transloco';
@@ -93,6 +94,7 @@ export interface MediaItem extends MediaInfo {
   styleUrls: ['./media-tab.component.scss'],
   changeDetection: ChangeDetectionStrategy.Eager,
   imports: [
+    TooltipAriaLabelDirective,
     MatBadgeModule,
     MatButtonModule,
     MatIconModule,
