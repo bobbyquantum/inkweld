@@ -351,10 +351,7 @@ export class UserService {
     this.error.set(undefined);
 
     try {
-      await firstValueFrom(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        this.authenticationService.logout() as Observable<any>
-      );
+      await firstValueFrom(this.authenticationService.logout());
       await this.clearCurrentUser();
       await this.router.navigate(['/']);
     } catch (err) {

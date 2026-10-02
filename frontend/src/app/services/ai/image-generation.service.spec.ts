@@ -1,7 +1,6 @@
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { of } from 'rxjs';
+import { type Observable, of } from 'rxjs';
 import { type MockedObject, vi } from 'vitest';
 
 import { AIImageGenerationService } from '../../../api-client/api/ai-image-generation.service';
@@ -201,7 +200,7 @@ describe('ImageGenerationService', () => {
       // Make the API call wait so we can observe the status
 
       mockAiImageService.generateImage.mockReturnValue(
-        of(createMockResponse()) as any
+        of(createMockResponse()) as unknown as Observable<never>
       );
 
       const projectKey = 'user/project';
@@ -267,7 +266,7 @@ describe('ImageGenerationService', () => {
         of({
           ...createMockResponse(0),
           textContent: 'Sorry, I cannot generate that image.',
-        } as ImageGenerateResponse) as any
+        } as ImageGenerateResponse) as unknown as Observable<never>
       );
 
       const jobId = service.startGeneration(
@@ -291,7 +290,7 @@ describe('ImageGenerationService', () => {
         of({
           ...createMockResponse(0),
           textContent: 'Generated prompt guidance instead of an image.',
-        } as ImageGenerateResponse) as any
+        } as ImageGenerateResponse) as unknown as Observable<never>
       );
 
       const jobId = service.startGeneration(
@@ -453,7 +452,7 @@ describe('ImageGenerationService', () => {
       mockAiImageService.generateImage.mockReturnValue(
         new (await import('rxjs')).Observable(() => {
           // Never complete
-        }) as any
+        }) as unknown as Observable<never>
       );
 
       const jobId = service.startGeneration(
@@ -475,7 +474,7 @@ describe('ImageGenerationService', () => {
   describe('Multiple Images', () => {
     it('should save multiple generated images', async () => {
       mockAiImageService.generateImage.mockReturnValue(
-        of(createMockResponse(3)) as any
+        of(createMockResponse(3)) as unknown as Observable<never>
       );
 
       service.startGeneration('user/project', createMockRequest());
@@ -489,7 +488,7 @@ describe('ImageGenerationService', () => {
 
     it('should update message with correct image count', async () => {
       mockAiImageService.generateImage.mockReturnValue(
-        of(createMockResponse(2)) as any
+        of(createMockResponse(2)) as unknown as Observable<never>
       );
 
       service.startGeneration('user/project', createMockRequest());
@@ -502,7 +501,7 @@ describe('ImageGenerationService', () => {
 
     it('should use singular for single image', async () => {
       mockAiImageService.generateImage.mockReturnValue(
-        of(createMockResponse(1)) as any
+        of(createMockResponse(1)) as unknown as Observable<never>
       );
 
       service.startGeneration('user/project', createMockRequest());
@@ -529,7 +528,7 @@ describe('ImageGenerationService', () => {
           provider: 'openai' as ImageProviderType,
           created: Date.now(),
           request: { prompt: 'test' },
-        } as ImageGenerateResponse) as any
+        } as ImageGenerateResponse) as unknown as Observable<never>
       );
 
       service.startGeneration('user/project', createMockRequest());
@@ -550,7 +549,7 @@ describe('ImageGenerationService', () => {
           provider: 'openai' as ImageProviderType,
           created: Date.now(),
           request: { prompt: 'test' },
-        } as ImageGenerateResponse) as any
+        } as ImageGenerateResponse) as unknown as Observable<never>
       );
 
       service.startGeneration('user/project', createMockRequest());
@@ -891,7 +890,9 @@ describe('ImageGenerationService', () => {
     it('should save with default png extension when mimeType is absent', async () => {
       const response = createMockResponse();
       // Default createMockImage has no mimeType
-      mockAiImageService.generateImage.mockReturnValue(of(response) as any);
+      mockAiImageService.generateImage.mockReturnValue(
+        of(response) as unknown as Observable<never>
+      );
 
       service.startGeneration('user/project', createMockRequest());
       await flushPromises();
@@ -916,7 +917,9 @@ describe('ImageGenerationService', () => {
         created: Date.now(),
         request: { prompt: 'A test image' },
       };
-      mockAiImageService.generateImage.mockReturnValue(of(response) as any);
+      mockAiImageService.generateImage.mockReturnValue(
+        of(response) as unknown as Observable<never>
+      );
 
       service.startGeneration('user/project', createMockRequest());
       await flushPromises();
@@ -941,7 +944,9 @@ describe('ImageGenerationService', () => {
         created: Date.now(),
         request: { prompt: 'A test image' },
       };
-      mockAiImageService.generateImage.mockReturnValue(of(response) as any);
+      mockAiImageService.generateImage.mockReturnValue(
+        of(response) as unknown as Observable<never>
+      );
 
       service.startGeneration('user/project', createMockRequest());
       await flushPromises();
@@ -966,7 +971,9 @@ describe('ImageGenerationService', () => {
         created: Date.now(),
         request: { prompt: 'A test image' },
       };
-      mockAiImageService.generateImage.mockReturnValue(of(response) as any);
+      mockAiImageService.generateImage.mockReturnValue(
+        of(response) as unknown as Observable<never>
+      );
 
       service.startGeneration('user/project', createMockRequest());
       await flushPromises();
@@ -990,7 +997,9 @@ describe('ImageGenerationService', () => {
         created: Date.now(),
         request: { prompt: 'A test image' },
       };
-      mockAiImageService.generateImage.mockReturnValue(of(response) as any);
+      mockAiImageService.generateImage.mockReturnValue(
+        of(response) as unknown as Observable<never>
+      );
 
       service.startGeneration('user/project', createMockRequest());
       await flushPromises();

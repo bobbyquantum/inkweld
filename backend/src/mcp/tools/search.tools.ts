@@ -1103,13 +1103,20 @@ registerTool({
 /**
  * Extract plain text from a Yjs XmlFragment (ProseMirror content)
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function extractTextFromXmlFragment(fragment: any): string {
+interface XmlNodeLike {
+  nodeType?: number;
+  toString?: () => string;
+  _content?: unknown;
+  content?: unknown;
+  toArray?: () => unknown[];
+}
+
+function extractTextFromXmlFragment(fragment: unknown): string {
   const parts: string[] = [];
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  function traverse(node: any) {
-    if (!node) return;
+  function traverse(value: unknown) {
+    if (!value) return;
+    const node = value as XmlNodeLike;
 
     // Handle text nodes
     if (node.nodeType === 3 || typeof node.toString === 'function') {

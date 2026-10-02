@@ -1,6 +1,5 @@
 // Lazy-loaded sharp - only works in Node/Bun, not in Workers
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let sharpInstance: any = null;
+let sharpInstance: typeof import('sharp').default | null = null;
 let sharpLoadAttempted = false;
 
 import { logger } from './logger.service';

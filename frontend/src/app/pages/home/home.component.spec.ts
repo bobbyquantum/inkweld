@@ -984,8 +984,9 @@ describe('HomeComponent', () => {
         const dialogRef = {
           afterClosed: vi.fn().mockReturnValue(of(true)),
         };
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-        matDialog.open.mockReturnValue(dialogRef as any);
+        matDialog.open.mockReturnValue(
+          dialogRef as unknown as MatDialogRef<unknown>
+        );
 
         component.openLoginDialog();
 
@@ -1004,10 +1005,12 @@ describe('HomeComponent', () => {
         };
 
         matDialog.open
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-          .mockReturnValueOnce(loginDialogRef as any)
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-          .mockReturnValueOnce(registerDialogRef as any);
+          .mockReturnValueOnce(
+            loginDialogRef as unknown as MatDialogRef<unknown>
+          )
+          .mockReturnValueOnce(
+            registerDialogRef as unknown as MatDialogRef<unknown>
+          );
 
         component.openLoginDialog();
 
@@ -1025,8 +1028,9 @@ describe('HomeComponent', () => {
         const dialogRef = {
           afterClosed: vi.fn().mockReturnValue(of(true)),
         };
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-        matDialog.open.mockReturnValue(dialogRef as any);
+        matDialog.open.mockReturnValue(
+          dialogRef as unknown as MatDialogRef<unknown>
+        );
 
         component.openRegisterDialog();
 
@@ -1045,10 +1049,12 @@ describe('HomeComponent', () => {
         };
 
         matDialog.open
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-          .mockReturnValueOnce(registerDialogRef as any)
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-          .mockReturnValueOnce(loginDialogRef as any);
+          .mockReturnValueOnce(
+            registerDialogRef as unknown as MatDialogRef<unknown>
+          )
+          .mockReturnValueOnce(
+            loginDialogRef as unknown as MatDialogRef<unknown>
+          );
 
         component.openRegisterDialog();
 
@@ -1066,8 +1072,9 @@ describe('HomeComponent', () => {
         const dialogRef = {
           afterClosed: vi.fn().mockReturnValue(of(true)),
         };
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-        matDialog.open.mockReturnValue(dialogRef as any);
+        matDialog.open.mockReturnValue(
+          dialogRef as unknown as MatDialogRef<unknown>
+        );
 
         const openLoginSpy = vi.spyOn(component, 'openLoginDialog');
         const openRegisterSpy = vi.spyOn(component, 'openRegisterDialog');

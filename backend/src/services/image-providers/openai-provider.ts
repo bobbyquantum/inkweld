@@ -124,8 +124,7 @@ export class OpenAIImageProvider extends BaseImageProvider {
     oaiLog.info(`Generating image`, { model, size, n });
 
     // Build request parameters for GPT image models
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- OpenAI SDK has complex types
-    const params: any = {
+    const params: OpenAI.Images.ImageGenerateParamsNonStreaming = {
       prompt,
       model,
       n,
@@ -141,7 +140,8 @@ export class OpenAIImageProvider extends BaseImageProvider {
         standard: 'medium',
         hd: 'high',
       };
-      params.quality = qualityMap[request.quality] || request.quality;
+      params.quality = (qualityMap[request.quality] ||
+        request.quality) as OpenAI.Images.ImageGenerateParams['quality'];
     }
 
     // Note: GPT image models do not support the 'style' parameter
@@ -177,8 +177,7 @@ export class OpenAIImageProvider extends BaseImageProvider {
         },
       };
     } catch (error: unknown) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Error handling
-      const err = error as any;
+      const err = error as { name?: string; message?: string };
       if (err.name === 'AbortError') {
         throw new Error('OpenAI image generation timed out', { cause: error });
       }
@@ -209,8 +208,7 @@ export class OpenAIImageProvider extends BaseImageProvider {
     oaiLog.info(`Streaming image generation`, { model, size });
 
     // Build request parameters — same as non-streaming but with stream + partial_images
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- OpenAI SDK has complex types
-    const params: any = {
+    const params: OpenAI.Images.ImageGenerateParamsStreaming = {
       prompt,
       model,
       n: 1, // Streaming only supports n=1
@@ -225,7 +223,8 @@ export class OpenAIImageProvider extends BaseImageProvider {
         standard: 'medium',
         hd: 'high',
       };
-      params.quality = qualityMap[request.quality] || request.quality;
+      params.quality = (qualityMap[request.quality] ||
+        request.quality) as OpenAI.Images.ImageGenerateParams['quality'];
     }
 
     try {
@@ -237,8 +236,7 @@ export class OpenAIImageProvider extends BaseImageProvider {
       });
 
       // The SDK returns a Stream<ImageGenStreamEvent> when stream: true
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Stream event types
-      for await (const event of stream as any) {
+      for await (const event of stream) {
         if (event.type === 'image_generation.partial_image') {
           yield {
             type: 'partial_image',
@@ -275,8 +273,7 @@ export class OpenAIImageProvider extends BaseImageProvider {
 
       clearTimeout(timeoutId);
     } catch (error: unknown) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Error handling
-      const err = error as any;
+      const err = error as { name?: string; message?: string };
       if (err.name === 'AbortError') {
         yield { type: 'error', error: 'OpenAI streaming image generation timed out' };
       } else {

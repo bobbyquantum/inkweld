@@ -434,23 +434,23 @@ export class WorkersAIImageProvider extends BaseImageProvider {
     request: ResolvedImageRequest
   ): ImageGenerateResponse {
     // Workers AI returns different formats depending on the model
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const data = result as any;
+    const data = result as
+      string | Buffer | { image?: string; result?: { image?: string } } | null | undefined;
 
     let b64Json: string | undefined;
 
-    if (data.image) {
-      // Direct image in result
-      b64Json = data.image;
-    } else if (data.result?.image) {
-      // Nested result format
-      b64Json = data.result.image;
-    } else if (typeof data === 'string') {
+    if (typeof data === 'string') {
       // Raw base64 string
       b64Json = data;
     } else if (Buffer.isBuffer(data)) {
       // Raw buffer
       b64Json = data.toString('base64');
+    } else if (data?.image) {
+      // Direct image in result
+      b64Json = data.image;
+    } else if (data?.result?.image) {
+      // Nested result format
+      b64Json = data.result.image;
     }
 
     if (!b64Json) {

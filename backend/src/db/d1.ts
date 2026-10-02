@@ -3,6 +3,7 @@
  * This file must NOT import bun:sqlite or better-sqlite3
  * to avoid Wrangler bundling errors
  */
+import type { D1Database } from '@cloudflare/workers-types';
 import { drizzle, type DrizzleD1Database } from 'drizzle-orm/d1';
 import * as schema from './schema';
 
@@ -13,8 +14,7 @@ import * as schema from './schema';
  * @param d1 - D1Database binding from env
  * @returns Drizzle database instance
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function makeD1Database(d1: any): DrizzleD1Database<typeof schema> {
+export function makeD1Database(d1: D1Database): DrizzleD1Database<typeof schema> {
   return drizzle(d1, { schema });
 }
 

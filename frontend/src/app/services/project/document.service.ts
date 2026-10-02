@@ -804,8 +804,10 @@ export class DocumentService {
         } else if (typeof value === 'string') {
           strValue = value;
         } else {
-          // eslint-disable-next-line @typescript-eslint/no-base-to-string
-          strValue = String(value);
+          strValue =
+            typeof value === 'symbol'
+              ? value.toString()
+              : `${value as number | boolean | bigint}`;
         }
         attrParts.push(`${key}="${this.escapeXml(strValue)}"`);
       }
@@ -1032,8 +1034,7 @@ export class DocumentService {
 
       // Start WebSocket connection in BACKGROUND (fire-and-forget, non-blocking)
       // This allows the function to return immediately so the editor shows content
-      // eslint-disable-next-line @typescript-eslint/no-floating-promises
-      this.connectWebSocketInBackground(
+      void this.connectWebSocketInBackground(
         websocketUrl,
         documentId,
         ydoc,
@@ -1068,10 +1069,10 @@ export class DocumentService {
     }
 
     // Build core plugins - presence is added later once the live editor is connected.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
-    const plugins: Plugin<any>[] = [
-      ySyncPlugin(connection.type),
-      yUndoPlugin(),
+    // ySyncPlugin is typed as `any` by y-prosemirror, so narrow it here.
+    const plugins: Plugin[] = [
+      ySyncPlugin(connection.type) as Plugin,
+      yUndoPlugin() as Plugin,
     ];
 
     // Note: presence is NOT added here - it will be added dynamically when

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import { provideHttpClient, withXhr } from '@angular/common/http';
 import { HttpErrorResponse } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
@@ -31,11 +30,11 @@ import {
 
 // Helpers to return observables without fighting TypeScript's strict
 // HttpEvent<T> wrapping that the generated Angular API client uses.
-function obs<T>(value: T): Observable<any> {
-  return of(value);
+function obs<T>(value: T): Observable<never> {
+  return of(value) as unknown as Observable<never>;
 }
 
-function errObs(err: unknown): Observable<any> {
+function errObs(err: unknown): Observable<never> {
   return throwError(() => err);
 }
 

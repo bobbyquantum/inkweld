@@ -1,9 +1,8 @@
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { of } from 'rxjs';
+import { type Observable, of } from 'rxjs';
 import { type MockedObject, vi } from 'vitest';
 
 import { AIImageGenerationService } from '../../../api-client/api/ai-image-generation.service';
@@ -659,7 +658,7 @@ describe('ImageGenerationDialogComponent', () => {
 
     it('should handle empty custom sizes response gracefully', async () => {
       aiImageService.getCustomImageSizes.mockReturnValue(
-        of({ sizes: [] }) as any
+        of({ sizes: [] }) as unknown as Observable<never>
       );
       await component['loadCustomSizes']();
       expect(component.customSizes()).toEqual([]);

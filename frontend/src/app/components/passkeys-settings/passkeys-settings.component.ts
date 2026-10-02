@@ -153,10 +153,9 @@ export class PasskeysSettingsComponent implements OnInit {
       title: this.transloco.translate('auth.passkeys.deleteTitle'),
 
       message: this.transloco.translate('auth.passkeys.deleteMessage', {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         name:
           passkey.name ??
-          this.transloco.translate('auth.passkeys.unnamedPasskey'),
+          this.transloco.translate<string>('auth.passkeys.unnamedPasskey'),
       }),
       confirmText: this.transloco.translate('delete'),
     });

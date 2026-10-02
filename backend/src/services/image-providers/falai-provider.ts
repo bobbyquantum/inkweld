@@ -408,8 +408,7 @@ export class FalAiImageProvider extends BaseImageProvider {
       }
 
       // Build the input parameters
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Fal.ai models have varying input schemas
-      const input: Record<string, any> = {
+      const input: Record<string, unknown> = {
         prompt,
         ...sizeParams,
       };
@@ -496,8 +495,7 @@ export class FalAiImageProvider extends BaseImageProvider {
         },
       };
     } catch (error: unknown) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Error handling
-      const err = error as any;
+      const err = error as { name?: string; message?: string };
       falLog.error(`Error generating image: ${err.message || 'Unknown error'}`);
       throw new Error(`Failed to generate image with Fal.ai: ${err.message || 'Unknown error'}`, {
         cause: error,

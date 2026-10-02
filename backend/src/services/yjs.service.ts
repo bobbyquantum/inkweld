@@ -4,7 +4,6 @@ import * as syncProtocol from 'y-protocols/sync';
 import * as awarenessProtocol from 'y-protocols/awareness';
 import * as encoding from 'lib0/encoding';
 import * as decoding from 'lib0/decoding';
-import { type WebSocket } from 'ws';
 import { fileStorageService } from './file-storage.service';
 import * as path from 'node:path';
 import { type Element, type ElementType } from '../types/element.types';
@@ -135,6 +134,15 @@ export function coerceToString(value: NonNullable<unknown>): string {
   return JSON.stringify(value) ?? '';
 }
 
+/**
+ * The slice of a WebSocket the service uses. Bun's ServerWebSocket, the `ws`
+ * package's WebSocket and Workers' WebSocket all satisfy it.
+ */
+export interface YjsSocket {
+  send(data: string | Uint8Array): unknown;
+  close(code?: number, reason?: string): unknown;
+}
+
 interface WSSharedDoc {
   name: string;
   doc: Y.Doc;
@@ -146,7 +154,7 @@ interface WSSharedDoc {
    * remove exactly the stale client IDs for that socket — otherwise remote
    * peers keep seeing the ghost user until the doc is garbage-collected.
    */
-  conns: Map<WebSocket, Set<number>>;
+  conns: Map<YjsSocket, Set<number>>;
   /** Change listener registered on `doc.awareness` — kept here so cleanup can unregister it. */
   awarenessChangeListener?: (
     changes: { added: number[]; updated: number[]; removed: number[] },
@@ -157,7 +165,7 @@ interface WSSharedDoc {
    * after a successful auth handshake so the update listener can attribute
    * element-CRUD activity events to the correct user.
    */
-  wsUserIds: Map<WebSocket, string>;
+  wsUserIds: Map<YjsSocket, string>;
   /**
    * Last-known snapshot of the elements array (only populated for `elements/`
    * documents). Keyed by element id; used to diff creates/renames/deletes.
@@ -334,7 +342,7 @@ export class YjsService {
       { added, updated, removed }: { added: number[]; updated: number[]; removed: number[] },
       origin: unknown
     ) => {
-      const controlledIds = sharedDoc.conns.get(origin as WebSocket);
+      const controlledIds = sharedDoc.conns.get(origin as YjsSocket);
       if (controlledIds) {
         for (const clientId of [...added, ...updated]) {
           // Transfer ownership to the current socket so an older connection
@@ -655,8 +663,11 @@ export class YjsService {
   /**
    * Handle WebSocket connection for a document - returns the doc for message handling
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- WebSocket type varies by runtime (Bun vs Node)
-  async handleConnection(ws: any, documentId: string, _userId?: string): Promise<WSSharedDoc> {
+  async handleConnection(
+    ws: YjsSocket,
+    documentId: string,
+    _userId?: string
+  ): Promise<WSSharedDoc> {
     const doc = await this.getDocument(documentId);
 
     // Add connection (and cancel any idle-eviction timer armed while headless)
@@ -691,8 +702,7 @@ export class YjsService {
    * Called after a successful auth handshake so update listeners can attribute
    * element-CRUD mutations to the correct user.
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- WebSocket type varies by runtime (Bun vs Node)
-  registerUserConnection(ws: any, documentId: string, userId: string): void {
+  registerUserConnection(ws: YjsSocket, documentId: string, userId: string): void {
     const doc = this.docs.get(documentId);
     if (doc) doc.wsUserIds.set(ws, userId);
   }
@@ -737,8 +747,7 @@ export class YjsService {
    * access-changed code so the client reconnects with its new permissions.
    * Returns false if the close itself threw.
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- WebSocket type varies by runtime (Bun vs Node)
-  private closeRevokedSocket(ws: any, reason: 'removed' | 'changed', label: string): boolean {
+  private closeRevokedSocket(ws: YjsSocket, reason: 'removed' | 'changed', label: string): boolean {
     try {
       if (reason === 'removed') {
         ws.send('access-denied:forbidden');
@@ -756,8 +765,7 @@ export class YjsService {
   /**
    * Remove the WebSocket→userId association for a disconnecting connection.
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- WebSocket type varies by runtime (Bun vs Node)
-  unregisterUserConnection(ws: any, documentId: string): void {
+  unregisterUserConnection(ws: YjsSocket, documentId: string): void {
     const doc = this.docs.get(documentId);
     if (doc) doc.wsUserIds.delete(ws);
   }
@@ -782,7 +790,7 @@ export class YjsService {
 
     sharedDoc.doc.on('update', (_update: Uint8Array, origin: unknown) => {
       const snapshot = sharedDoc.elementSnapshot!;
-      const userId = sharedDoc.wsUserIds.get(origin as WebSocket) ?? null;
+      const userId = sharedDoc.wsUserIds.get(origin as YjsSocket) ?? null;
       if (!userId) return; // Ignore server-originated updates (persistence replay etc.)
 
       const newSnapshot = this.buildElementSnapshot(sharedDoc.doc);
@@ -868,8 +876,7 @@ export class YjsService {
       yjsLog.error('Failed to emit element diff activity events', err, { projectId, userId });
     }
   }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- WebSocket type varies by runtime (Bun vs Node)
-  handleMessage(ws: any, doc: WSSharedDoc, message: Buffer) {
+  handleMessage(ws: YjsSocket, doc: WSSharedDoc, message: Buffer) {
     try {
       const decoder = decoding.createDecoder(message);
       const messageType = decoding.readVarUint(decoder);
@@ -907,8 +914,7 @@ export class YjsService {
   /**
    * Handle disconnection - call this from WebSocket onClose handler
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- WebSocket type varies by runtime (Bun vs Node)
-  handleDisconnect(ws: any, doc: WSSharedDoc) {
+  handleDisconnect(ws: YjsSocket, doc: WSSharedDoc) {
     // Remove awareness states controlled by this socket so other peers stop
     // seeing the disconnected user. Without this, refreshing a tab stacks up
     // ghost presence indicators for each previous connection.

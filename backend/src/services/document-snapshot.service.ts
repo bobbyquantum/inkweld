@@ -86,8 +86,7 @@ class DocumentSnapshotService {
       xmlContent?: string;
       worldbuildingData?: Record<string, unknown>;
       wordCount?: number;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Metadata can contain arbitrary JSON
-      metadata?: Record<string, any>;
+      metadata?: Record<string, unknown>;
     }
   ): Promise<DocumentSnapshot> {
     const id = crypto.randomUUID();

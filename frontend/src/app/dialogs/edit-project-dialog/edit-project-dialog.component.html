@@ -24,7 +24,7 @@
           [cropperMinHeight]="640"
           [onlyScaleDown]="true"
           (imageCropped)="imageCropped($event)"
-          (imageLoaded)="onImageLoaded($event)"
+          (imageLoaded)="onImageLoaded()"
           (cropperReady)="onCropperReady()"
           (loadImageFailed)="onLoadImageFailed()">
         </image-cropper>

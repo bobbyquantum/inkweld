@@ -19,6 +19,17 @@ import {
 
 const orLog = logger.child('OpenRouter');
 
+type OpenRouterContentPart =
+  | { type: 'text'; text: string }
+  | { type: 'image_url'; image_url: { url: string; detail: string } };
+
+interface OpenRouterRequestBody {
+  model: string;
+  modalities: string[];
+  messages: { role: string; content: OpenRouterContentPart[] }[];
+  image_config?: { aspect_ratio: string };
+}
+
 interface OpenRouterImageResponse {
   choices?: Array<{
     message?: OpenRouterMessage;
@@ -178,10 +189,8 @@ export class OpenRouterImageProvider extends BaseImageProvider {
     prompt: string,
     imageResult: ReturnType<typeof validateReferenceImages>,
     aspectRatio: string
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  ): any {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const messageContent: any[] = [{ type: 'text', text: prompt }];
+  ): OpenRouterRequestBody {
+    const messageContent: OpenRouterContentPart[] = [{ type: 'text', text: prompt }];
     for (const img of imageResult.images) {
       messageContent.push({
         type: 'image_url',
@@ -192,8 +201,7 @@ export class OpenRouterImageProvider extends BaseImageProvider {
       });
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const body: any = {
+    const body: OpenRouterRequestBody = {
       model,
       modalities: ['text', 'image'],
       messages: [{ role: 'user', content: messageContent }],
@@ -350,8 +358,7 @@ export class OpenRouterImageProvider extends BaseImageProvider {
   }
 
   private wrapError(error: unknown): Error {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const err = error as any;
+    const err = error instanceof Error ? error : new Error('Unknown error', { cause: error });
     const errorMessage = err.message || 'Unknown error';
 
     if (errorMessage.startsWith('MODERATION_BLOCKED:')) {

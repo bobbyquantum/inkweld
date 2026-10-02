@@ -331,8 +331,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
       // Trigger on tab changes - access to watch for changes
       this.projectState.selectedTabIndex();
       // Trigger on tab count changes - access to watch for changes
-      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-      this.projectState.openTabs().length;
+      this.projectState.openTabs();
     });
   }
 

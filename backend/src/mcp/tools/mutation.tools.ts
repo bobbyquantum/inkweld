@@ -2233,13 +2233,17 @@ export function countWords(text: string): number {
 /**
  * Extract plain text from a Yjs XmlFragment
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function extractTextContent(fragment: any): string {
+interface XmlNodeLike {
+  toString?: () => string;
+  toArray?: () => unknown[];
+}
+
+export function extractTextContent(fragment: unknown): string {
   const parts: string[] = [];
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  function traverse(node: any) {
-    if (!node) return;
+  function traverse(value: unknown) {
+    if (!value) return;
+    const node = value as XmlNodeLike;
     if (typeof node.toString === 'function') {
       const text = node.toString();
       if (text && !text.startsWith('<')) {
