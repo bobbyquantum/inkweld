@@ -31,7 +31,7 @@ import {
   isCloudflareWorkers,
   getElements as runtimeGetElements,
   replaceAllElements as runtimeReplaceAllElements,
-  getWorldbuildingDoc,
+  getWorkerWorldbuildingData,
   updateWorldbuilding,
   updateDocumentContent as runtimeUpdateDocumentContent,
   getDocumentContent as runtimeGetDocumentContent,
@@ -2184,18 +2184,15 @@ async function readWorldbuildingDataFromWorkers(
   elementId: string,
   elementType: string
 ): Promise<Record<string, unknown> | null> {
+  if (elementType !== 'WORLDBUILDING') return null;
+
   try {
-    const wbDoc = await getWorldbuildingDoc(ctx, username, slug, elementId);
-    const docData = wbDoc.toJSON();
-    if (elementType === 'WORLDBUILDING' && Object.keys(docData).length > 0) {
-      return docData;
-    }
+    // A failed read throws, so an empty map here is an element with no data.
+    return await getWorkerWorldbuildingData(ctx, username, slug, elementId);
   } catch (err: unknown) {
     mcpMutLog.warn('Could not get document content for snapshot', { error: String(err) });
     throw err;
   }
-
-  return null;
 }
 
 async function extractSnapshotContentOnBun(

@@ -17,7 +17,7 @@ import { getProjectByKey, hasProjectPermission } from '../mcp.types';
 import { registerTool } from '../mcp.handler';
 import { MCP_PERMISSIONS } from '../mcp-permissions';
 import { yjsService } from '../../services/yjs.service';
-import { YjsWorkerService } from '../../services/yjs-worker.service';
+import { YjsWorkerService, rethrowDocumentReadError } from '../../services/yjs-worker.service';
 import { getStorageService } from '../../services/storage.service';
 import { projectService } from '../../services/project.service';
 import { type Element } from '../../schemas/element.schemas';
@@ -183,7 +183,8 @@ async function getWorldbuildingData(
     });
 
     return { worldbuilding, identity };
-  } catch {
+  } catch (err) {
+    rethrowDocumentReadError(err);
     return null;
   }
 }
@@ -792,7 +793,8 @@ async function fetchElementRelationships(
     return allRelationships
       .filter((r) => r.sourceElementId === elementId || r.targetElementId === elementId)
       .map((r) => ({ ...r }));
-  } catch {
+  } catch (err) {
+    rethrowDocumentReadError(err);
     return [];
   }
 }
@@ -1091,6 +1093,7 @@ registerTool({
         },
       };
     } catch (err) {
+      rethrowDocumentReadError(err);
       mcpSearchLog.error('Error getting document content', err);
       return {
         content: [{ type: 'text', text: 'Error: could not retrieve document content' }],
@@ -1308,25 +1311,27 @@ registerTool({
 
     try {
       allRelationships = await runtimeGetRelationships(ctx, username, slug);
-    } catch {
+    } catch (err) {
+      rethrowDocumentReadError(err);
       // No relationships
     }
 
-    // Get relationship types
+    // Get the project's custom relationship types. They live in the elements
+    // doc; built-in types are defined in the frontend and resolve to their id.
     let relationshipTypes: Array<{ id: string; name: string; description?: string }> = [];
     try {
-      const schemaDocId = `${username}:${slug}:schema-library/`;
       const service = getYjsService(ctx);
-      const schemaDoc = await service.getDocument(schemaDocId);
-      const typesArray = schemaDoc.doc.getArray('relationshipTypes');
+      const elementsDoc = await service.getDocument(`${username}:${slug}:elements/`);
+      const typesArray = elementsDoc.doc.getArray('customRelationshipTypes');
       const rawTypes: unknown[] = [];
       typesArray.forEach((value) => {
         if (value && typeof value === 'object') {
-          rawTypes.push(value);
+          rawTypes.push(convertYjsValue(value));
         }
       });
       relationshipTypes = rawTypes as typeof relationshipTypes;
-    } catch {
+    } catch (err) {
+      rethrowDocumentReadError(err);
       // No relationship types defined
     }
 
@@ -1420,19 +1425,20 @@ registerTool({
     if ('error' in result) return result.error;
     const { username, slug, projectId } = result.project;
 
-    // Get project metadata from Yjs
-    const docId = `${username}:${slug}:metadata/`;
+    // Get project metadata from Yjs: the `projectMeta` map of the elements doc
+    const docId = `${username}:${slug}:elements/`;
     const service = getYjsService(ctx);
 
     const metadata: Record<string, unknown> = {};
     try {
       const sharedDoc = await service.getDocument(docId);
-      const metadataMap = sharedDoc.doc.getMap('metadata');
+      const metadataMap = sharedDoc.doc.getMap('projectMeta');
 
       metadataMap.forEach((value, key) => {
         metadata[key] = convertYjsValue(value);
       });
-    } catch {
+    } catch (err) {
+      rethrowDocumentReadError(err);
       // No metadata document, return basic info
     }
 
@@ -1517,14 +1523,16 @@ registerTool({
 
     const planId = args.planId as string | undefined;
 
-    // Get publish plans from Yjs
-    const docId = `${username}:${slug}:publish-plans/`;
+    // Get publish plans from Yjs: the `publishPlans` array of the elements doc
+    const docId = `${username}:${slug}:elements/`;
     const service = getYjsService(ctx);
 
     try {
       const sharedDoc = await service.getDocument(docId);
-      const plansArray = sharedDoc.doc.getArray('plans');
-      const allPlans = (plansArray as unknown as { toJSON: () => unknown[] }).toJSON?.() ?? [];
+      const allPlans: unknown[] = [];
+      sharedDoc.doc.getArray('publishPlans').forEach((plan) => {
+        allPlans.push(convertYjsValue(plan));
+      });
 
       if (planId) {
         const plan = (allPlans as Array<Record<string, unknown>>).find((p) => p.id === planId);
@@ -1557,7 +1565,8 @@ registerTool({
           plans: allPlans,
         },
       };
-    } catch {
+    } catch (err) {
+      rethrowDocumentReadError(err);
       return {
         content: [
           {

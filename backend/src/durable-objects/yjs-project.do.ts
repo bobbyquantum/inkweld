@@ -922,6 +922,21 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       data.worldbuilding = this.yMapToJson(worldbuildingMap);
     }
 
+    // Project-level shared types the frontend keeps in the elements doc, and
+    // the per-element schema copy held in each worldbuilding doc.
+    for (const name of ['schemas', 'publishPlans', 'customRelationshipTypes']) {
+      const array = sharedDoc.getArray(name);
+      if (array.length > 0) {
+        data[name] = array.toJSON();
+      }
+    }
+    for (const name of ['projectMeta', 'schema']) {
+      const map = sharedDoc.getMap(name);
+      if (map.size > 0) {
+        data[name] = this.yMapToJson(map);
+      }
+    }
+
     return new Response(JSON.stringify(data), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },

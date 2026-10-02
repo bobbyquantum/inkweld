@@ -16,6 +16,7 @@ import {
 import { registerResourceHandler } from '../mcp.handler';
 import { getElements, getWorldbuildingDoc } from '../tools/yjs-runtime';
 import { logger } from '../../services/logger.service';
+import { rethrowDocumentReadError } from '../../services/yjs-worker.service';
 import { mapWithConcurrency } from '../../utils/concurrency';
 
 const _mcpResourceLog = logger.child('MCP-Resources');
@@ -246,6 +247,9 @@ async function readWorldbuilding(
         worldbuilding[el.id] = { name: el.name, data };
       }
     } catch (err) {
+      // A failed Durable Object read fails the whole resource rather than
+      // silently dropping the element from the listing.
+      rethrowDocumentReadError(err);
       // No worldbuilding doc for this element is expected; log real
       // failures at debug level so they are not silently hidden.
       _mcpResourceLog.debug(
