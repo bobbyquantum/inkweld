@@ -141,15 +141,7 @@ export class SceneOverviewService {
         sceneCount: 0,
       };
 
-      if (kind === 'folder') {
-        this.rollUpFolder(row, elements, i, counts);
-      } else if (kind !== 'other') {
-        const entry = counts.get(element.id);
-        row.wordsState = stateOf(entry);
-        row.words = entry?.status === 'ready' ? entry.words : 0;
-        row.wordTarget = kind === 'scene' ? (scene.wordTarget ?? 0) : 0;
-      }
-      row.progress = progressOf(row.words, row.wordTarget);
+      this.fillWords(row, elements, i, counts);
       rows.push(row);
     }
     return rows;
@@ -270,6 +262,24 @@ export class SceneOverviewService {
     const others = children.filter(index => index !== moved);
     const target = others[toIndex] ?? end;
     this.projectState.moveElement(elements[moved].id, target, childLevel);
+  }
+
+  /** Set the word count, target and progress of a row. */
+  private fillWords(
+    row: SceneOverviewRow,
+    elements: readonly Element[],
+    index: number,
+    counts: ReadonlyMap<string, WordCountEntry>
+  ): void {
+    if (row.kind === 'folder') {
+      this.rollUpFolder(row, elements, index, counts);
+    } else if (row.kind !== 'other') {
+      const entry = counts.get(row.element.id);
+      row.wordsState = stateOf(entry);
+      row.words = entry?.status === 'ready' ? entry.words : 0;
+      row.wordTarget = row.kind === 'scene' ? (row.scene.wordTarget ?? 0) : 0;
+    }
+    row.progress = progressOf(row.words, row.wordTarget);
   }
 
   private rollUpFolder(
