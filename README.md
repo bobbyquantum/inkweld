@@ -131,7 +131,8 @@ Then open `http://localhost:8333` in your browser.
 | ✅ | 🟡 | Document snapshots | Version history for documents |
 | ✅ | 🟡 | Comments/Annotations | Inline feedback with threaded replies and resolution |
 | ✅ | 🟢 | Writing statistics | Daily word counts and session stats across projects, shown on your profile |
-| 🔨 | 🔥 | Scenes & notes | Prose documents are created as Scenes (manuscript, with synopsis/status/word target/story date) or Notes (research, front matter); POV and location as relationships. Corkboard and outline views to follow |
+| ✅ | 🔥 | Scenes & notes | Prose documents are created as Scenes (manuscript, with synopsis/status/word target/story date) or Notes (research, front matter); POV and location as relationships |
+| ✅ | 🔥 | Corkboard & outline | Open a folder to see its scenes as index cards (drag to reorder, edit synopsis and status in place) or as an outline table with word counts and totals |
 
 ### Worldbuilding
 | Status | Priority | Feature | Notes |

@@ -15,17 +15,49 @@
     <h2 class="folder-name">{{ folderElement()?.name }}</h2>
 
     <div class="view-controls">
+      @if (viewMode() === 'corkboard' || viewMode() === 'outline') {
+        <button
+          mat-icon-button
+          appTooltipAriaLabel
+          type="button"
+          (click)="refreshWordCounts()"
+          [matTooltip]="'project.folder.refreshWordCounts' | transloco"
+          data-testid="folder-refresh-word-counts">
+          <mat-icon>refresh</mat-icon>
+        </button>
+      }
       <mat-button-toggle-group
+        hideSingleSelectionIndicator
         [value]="viewMode()"
-        (change)="setViewMode($event.value)">
+        (change)="setViewMode($event.value)"
+        [attr.aria-label]="'project.folder.viewMode' | transloco"
+        data-testid="folder-view-mode">
+        <mat-button-toggle
+          value="corkboard"
+          [matTooltip]="'project.folder.viewCorkboard' | transloco"
+          [attr.aria-label]="'project.folder.viewCorkboard' | transloco"
+          data-testid="folder-view-corkboard">
+          <mat-icon>dashboard</mat-icon>
+        </mat-button-toggle>
+        <mat-button-toggle
+          value="outline"
+          [matTooltip]="'project.folder.viewOutline' | transloco"
+          [attr.aria-label]="'project.folder.viewOutline' | transloco"
+          data-testid="folder-view-outline">
+          <mat-icon>table_rows</mat-icon>
+        </mat-button-toggle>
         <mat-button-toggle
           value="grid"
-          [matTooltip]="'canvas.sidebar.layers' | transloco">
+          [matTooltip]="'project.folder.viewGrid' | transloco"
+          [attr.aria-label]="'project.folder.viewGrid' | transloco"
+          data-testid="folder-view-grid">
           <mat-icon>grid_view</mat-icon>
         </mat-button-toggle>
         <mat-button-toggle
           value="list"
-          [matTooltip]="'canvas.sidebar.objects' | transloco">
+          [matTooltip]="'project.folder.viewList' | transloco"
+          [attr.aria-label]="'project.folder.viewList' | transloco"
+          data-testid="folder-view-list">
           <mat-icon>view_list</mat-icon>
         </mat-button-toggle>
       </mat-button-toggle-group>
@@ -33,126 +65,141 @@
   </div>
 
   @if (!hasElements()) {
-    <div class="empty-folder">
+    <div class="empty-folder" data-testid="folder-empty">
       <mat-icon>folder_open</mat-icon>
-      <p>{{ 'project.homeTab.noPinned' | transloco }}</p>
-      <button mat-raised-button color="primary" (click)="createNewElement()">
-        <mat-icon>add</mat-icon>
-        {{ 'project.tree.newElement' | transloco }}
-      </button>
+      <p>{{ 'project.folder.empty' | transloco }}</p>
+      @if (canWrite()) {
+        <button mat-raised-button color="primary" (click)="createNewElement()">
+          <mat-icon>add</mat-icon>
+          {{ 'project.tree.newElement' | transloco }}
+        </button>
+      }
     </div>
   } @else {
-    <!-- Grid View -->
-    @if (viewMode() === 'grid') {
-      <div
-        class="grid-container"
-        cdkDropList
-        [cdkDropListData]="childElements()"
-        (cdkDropListDropped)="onDrop($event)">
-        @for (element of childElements(); track element.id) {
-          <div
-            class="grid-item"
-            cdkDrag
-            [cdkDragData]="element"
-            (dblclick)="openElement(element)"
-            (contextmenu)="showContextMenu(element, $event)">
-            <div class="grid-item-content">
-              <app-tree-node-icon
-                [isExpandable]="element.expandable"
-                [isExpanded]="false"
-                [type]="element.type">
-              </app-tree-node-icon>
-              <div class="element-name">{{ element.name }}</div>
+    @switch (viewMode()) {
+      @case ('corkboard') {
+        <app-scene-corkboard [folderId]="folderId()" />
+      }
+      @case ('outline') {
+        <app-scene-outline [folderId]="folderId()" />
+      }
+      @case ('grid') {
+        <div
+          class="grid-container"
+          cdkDropList
+          cdkDropListOrientation="mixed"
+          [cdkDropListDisabled]="!canWrite()"
+          (cdkDropListDropped)="onDrop($event)">
+          @for (element of childElements(); track element.id) {
+            <div
+              class="grid-item"
+              cdkDrag
+              [cdkDragData]="element"
+              (dblclick)="openElement(element)">
+              <div class="grid-item-content">
+                <app-tree-node-icon
+                  [isExpandable]="element.expandable"
+                  [isExpanded]="false"
+                  [type]="element.type"
+                  [schemaId]="element.schemaId"
+                  [metadata]="element.metadata">
+                </app-tree-node-icon>
+                <div class="element-name">{{ element.name }}</div>
+              </div>
+              <div class="grid-item-actions">
+                <button
+                  mat-icon-button
+                  appTooltipAriaLabel
+                  [matTooltip]="'keyboard.open' | transloco"
+                  (click)="openElement(element)">
+                  <mat-icon>open_in_new</mat-icon>
+                </button>
+              </div>
+              <div *cdkDragPreview class="grid-item-preview">
+                <app-tree-node-icon
+                  [isExpandable]="element.expandable"
+                  [isExpanded]="false"
+                  [type]="element.type"
+                  [schemaId]="element.schemaId"
+                  [metadata]="element.metadata">
+                </app-tree-node-icon>
+                <div class="element-name">{{ element.name }}</div>
+              </div>
             </div>
-            <div class="grid-item-actions">
-              <button
-                mat-icon-button
-                appTooltipAriaLabel
-                [matTooltip]="'keyboard.open' | transloco"
-                (click)="openElement(element)">
-                <mat-icon>open_in_new</mat-icon>
-              </button>
-            </div>
-            <!-- Drag Preview -->
-            <div *cdkDragPreview class="grid-item-preview">
-              <app-tree-node-icon
-                [isExpandable]="element.expandable"
-                [isExpanded]="false"
-                [type]="element.type">
-              </app-tree-node-icon>
-              <div class="element-name">{{ element.name }}</div>
-            </div>
-          </div>
-        }
-      </div>
-    }
-
-    <!-- List View -->
-    @if (viewMode() === 'list') {
-      <div
-        class="list-container"
-        cdkDropList
-        [cdkDropListData]="childElements()"
-        (cdkDropListDropped)="onDrop($event)">
-        <table class="element-table">
-          <thead>
-            <tr>
-              <th>{{ 'name' | transloco }}</th>
-              <th>{{ 'type' | transloco }}</th>
-              <th>{{ 'actions' | transloco }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (element of childElements(); track element.id) {
-              <tr
-                cdkDrag
-                [cdkDragData]="element"
-                (dblclick)="openElement(element)"
-                (contextmenu)="showContextMenu(element, $event)">
-                <td class="element-name-cell">
-                  <app-tree-node-icon
-                    [isExpandable]="element.expandable"
-                    [isExpanded]="false"
-                    [type]="element.type">
-                  </app-tree-node-icon>
-                  <span class="element-name">{{ element.name }}</span>
-                </td>
-                <td>{{ element.type }}</td>
-                <td class="actions-cell">
-                  <button
-                    mat-icon-button
-                    appTooltipAriaLabel
-                    [matTooltip]="'keyboard.open' | transloco"
-                    (click)="openElement(element)">
-                    <mat-icon>open_in_new</mat-icon>
-                  </button>
-                </td>
-                <!-- Drag Preview -->
-                <div *cdkDragPreview class="list-item-preview">
-                  <app-tree-node-icon
-                    [isExpandable]="element.expandable"
-                    [isExpanded]="false"
-                    [type]="element.type">
-                  </app-tree-node-icon>
-                  <span class="element-name">{{ element.name }}</span>
-                </div>
+          }
+        </div>
+      }
+      @case ('list') {
+        <div
+          class="list-container"
+          cdkDropList
+          [cdkDropListDisabled]="!canWrite()"
+          (cdkDropListDropped)="onDrop($event)">
+          <table class="element-table">
+            <thead>
+              <tr>
+                <th>{{ 'name' | transloco }}</th>
+                <th>{{ 'type' | transloco }}</th>
+                <th>{{ 'actions' | transloco }}</th>
               </tr>
-            }
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              @for (element of childElements(); track element.id) {
+                <tr
+                  cdkDrag
+                  [cdkDragData]="element"
+                  (dblclick)="openElement(element)">
+                  <td class="element-name-cell">
+                    <app-tree-node-icon
+                      [isExpandable]="element.expandable"
+                      [isExpanded]="false"
+                      [type]="element.type"
+                      [schemaId]="element.schemaId"
+                      [metadata]="element.metadata">
+                    </app-tree-node-icon>
+                    <span class="element-name">{{ element.name }}</span>
+                  </td>
+                  <td>{{ element.type }}</td>
+                  <td class="actions-cell">
+                    <button
+                      mat-icon-button
+                      appTooltipAriaLabel
+                      [matTooltip]="'keyboard.open' | transloco"
+                      (click)="openElement(element)">
+                      <mat-icon>open_in_new</mat-icon>
+                    </button>
+                  </td>
+                  <div *cdkDragPreview class="list-item-preview">
+                    <app-tree-node-icon
+                      [isExpandable]="element.expandable"
+                      [isExpanded]="false"
+                      [type]="element.type"
+                      [schemaId]="element.schemaId"
+                      [metadata]="element.metadata">
+                    </app-tree-node-icon>
+                    <span class="element-name">{{ element.name }}</span>
+                  </div>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
     }
 
-    <div class="folder-actions">
-      <button
-        mat-fab
-        appTooltipAriaLabel
-        color="primary"
-        class="add-button"
-        [matTooltip]="'project.tree.newElement' | transloco"
-        (click)="createNewElement()">
-        <mat-icon>add</mat-icon>
-      </button>
-    </div>
+    @if (canWrite()) {
+      <div class="folder-actions">
+        <button
+          mat-fab
+          appTooltipAriaLabel
+          color="primary"
+          class="add-button"
+          [matTooltip]="'project.tree.newElement' | transloco"
+          (click)="createNewElement()"
+          data-testid="folder-add-element">
+          <mat-icon>add</mat-icon>
+        </button>
+      </div>
+    }
   }
 </div>

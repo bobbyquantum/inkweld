@@ -112,6 +112,32 @@ export class PublishPlanStatsService {
   }
 
   /**
+   * Re-read the documents under `elementIds`, whether or not they were
+   * counted before. Unlike {@link invalidate} followed by
+   * {@link ensureCounted}, a document that already has a count keeps
+   * showing it until the fresh one arrives.
+   */
+  recount(elementIds: Iterable<string>): void {
+    const elements = this.projectState.elements();
+    const docIds = new Set<string>();
+    for (const id of elementIds) {
+      for (const doc of this.documentsUnder(id, elements)) docIds.add(doc.id);
+    }
+    if (docIds.size === 0) return;
+
+    this.counts.update(map => {
+      const next = new Map(map);
+      for (const id of docIds) {
+        if (!next.has(id)) next.set(id, { status: 'loading' });
+      }
+      return next;
+    });
+    for (const id of docIds) {
+      void this.countDocument(id);
+    }
+  }
+
+  /**
    * Drop cached counts (all, or for the given element ids). Folder ids are
    * expanded to their descendant documents, mirroring {@link ensureCounted}.
    */

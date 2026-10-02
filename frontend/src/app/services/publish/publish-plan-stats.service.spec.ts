@@ -176,6 +176,39 @@ describe('PublishPlanStatsService', () => {
     });
   });
 
+  describe('recount', () => {
+    it('re-reads counted documents and keeps the old count meanwhile', async () => {
+      service.ensureCounted(['folder']);
+      await flush();
+
+      contents['user:proj:doc-a'] = [paragraph('one two three four five')];
+      service.recount(['folder']);
+      expect(service.wordCounts().get('doc-a')).toEqual({
+        status: 'ready',
+        words: 3,
+      });
+
+      await flush();
+      expect(service.wordCounts().get('doc-a')).toEqual({
+        status: 'ready',
+        words: 5,
+      });
+      contents['user:proj:doc-a'] = [paragraph('one two three')];
+    });
+
+    it('counts documents that were never counted', async () => {
+      service.recount(['doc-c', 'wb']);
+      expect(service.wordCounts().get('doc-c')).toEqual({ status: 'loading' });
+      expect(service.wordCounts().has('wb')).toBe(false);
+
+      await flush();
+      expect(service.wordCounts().get('doc-c')).toEqual({
+        status: 'ready',
+        words: 4,
+      });
+    });
+  });
+
   describe('invalidate', () => {
     it('drops all cached counts so they are re-read', async () => {
       service.ensureCounted(['doc-c']);
