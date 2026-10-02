@@ -12,6 +12,7 @@ import {
   type McpResource,
   type McpResourceContents,
   type McpTool,
+  type McpToolResult,
   type McpContext,
   createErrorResponse,
   createSuccessResponse,
@@ -25,6 +26,7 @@ import {
   toCompleteResult,
 } from './mcp.types';
 import { logger } from '../services/logger.service';
+import { YjsDocumentReadError } from '../services/yjs-worker.service';
 import { firstResultSequential, forEachSequential } from '@inkweld/async';
 
 const mcpLog = logger.child('MCP');
@@ -258,6 +260,23 @@ function handleToolsList(c: Context<AppContext>): Promise<Record<string, unknown
 }
 
 /**
+ * Tool result for a failed document read. States that the read failed (as
+ * opposed to the data being empty) and whether retrying can help.
+ */
+function documentReadErrorResult(err: YjsDocumentReadError): McpToolResult {
+  const status = err.status;
+  const denied = status === 401 || status === 403;
+  const reason = status === undefined ? 'storage request failed' : `storage responded ${status}`;
+  const advice = denied
+    ? 'Access to the project storage was denied; retrying will not help.'
+    : 'This is a read failure, not an empty result; retry the call.';
+  return {
+    content: [{ type: 'text', text: `Error: could not read project data (${reason}). ${advice}` }],
+    isError: true,
+  };
+}
+
+/**
  * Handle tools/call request
  */
 async function handleToolsCall(
@@ -288,8 +307,16 @@ async function handleToolsCall(
     );
   }
 
-  // Execute tool
-  const toolResult = await handler.execute(mcpContext, db, args);
+  // Execute tool. A failed document read becomes a tool error the caller can
+  // see and retry, never an empty payload or an opaque internal error.
+  let toolResult: unknown;
+  try {
+    toolResult = await handler.execute(mcpContext, db, args);
+  } catch (err) {
+    if (!(err instanceof YjsDocumentReadError)) throw err;
+    mcpLog.error(`Tool ${name} could not read project data`, { error: err.message });
+    toolResult = documentReadErrorResult(err);
+  }
   // Wrap tool results in the required `resultType: 'complete'` envelope.
   if (toolResult && typeof toolResult === 'object') {
     return toCompleteResult(toolResult as Record<string, unknown>);

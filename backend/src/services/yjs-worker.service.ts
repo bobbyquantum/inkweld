@@ -16,6 +16,34 @@ import { stripTrailingSlashes } from '../utils/string-utils';
 const log = logger.child('YjsWorkerService');
 
 /**
+ * Thrown when a document could not be read from the project Durable Object
+ * (rejected auth, non-2xx response, transport failure or an unparseable body).
+ * A document that exists but holds no data is NOT an error: the DO answers 200
+ * with an empty object and the caller gets an empty wrapper.
+ */
+export class YjsDocumentReadError extends Error {
+  readonly docId: string;
+  /** HTTP status of the DO response, when one was received. */
+  readonly status?: number;
+
+  constructor(docId: string, detail: string, options?: { status?: number; cause?: unknown }) {
+    super(`Failed to read document ${docId}: ${detail}`, { cause: options?.cause });
+    this.name = 'YjsDocumentReadError';
+    this.docId = docId;
+    this.status = options?.status;
+  }
+}
+
+/**
+ * Rethrow `err` when it is a failed Durable Object read. Call it first in a
+ * catch block that otherwise falls back to "no data", so a failed read is
+ * never reported as an empty result.
+ */
+export function rethrowDocumentReadError(err: unknown): void {
+  if (err instanceof YjsDocumentReadError) throw err;
+}
+
+/**
  * Minimal interface matching what MCP tools need from a Yjs document
  */
 export interface WorkerYjsDocument {
@@ -102,7 +130,9 @@ export class YjsWorkerService {
   }
 
   /**
-   * Get a document - returns a wrapper that mimics the yjsService interface
+   * Get a document - returns a wrapper that mimics the yjsService interface.
+   * Throws {@link YjsDocumentReadError} when the read fails, so callers can
+   * tell a failed read from a document that is legitimately empty.
    */
   async getDocument(docId: string): Promise<WorkerYjsDocument> {
     // Parse docId to get project
@@ -115,8 +145,9 @@ export class YjsWorkerService {
     const slug = parts[1];
     const stub = getDoStub(this.ctx.env, username, slug);
 
+    let response: Response;
     try {
-      const response = await stub.fetch(
+      response = await stub.fetch(
         new Request(`https://yjs-do/api/document?documentId=${encodeURIComponent(docId)}`, {
           method: 'GET',
           headers: {
@@ -124,21 +155,37 @@ export class YjsWorkerService {
           },
         })
       );
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to get document: ${response.status} ${errorText}`);
-      }
-
-      const data = (await response.json()) as Record<string, unknown>;
-
-      // Create a wrapper that mimics the Y.Doc interface
-      return this.createDocumentWrapper(data);
     } catch (err) {
       log.error('Error getting document from DO', err);
-      // Return empty document wrapper
-      return this.createDocumentWrapper({});
+      throw new YjsDocumentReadError(docId, 'the Durable Object request failed', { cause: err });
     }
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '');
+      log.error(`DO returned ${response.status} for document ${docId}`, { errorText });
+      throw new YjsDocumentReadError(docId, `Durable Object responded ${response.status}`, {
+        status: response.status,
+      });
+    }
+
+    let data: unknown;
+    try {
+      data = await response.json();
+    } catch (err) {
+      log.error('Could not parse document response from DO', err);
+      throw new YjsDocumentReadError(docId, 'the response was not valid JSON', {
+        status: response.status,
+        cause: err,
+      });
+    }
+    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+      throw new YjsDocumentReadError(docId, 'the response was not a JSON object', {
+        status: response.status,
+      });
+    }
+
+    // Create a wrapper that mimics the Y.Doc interface
+    return this.createDocumentWrapper(data as Record<string, unknown>);
   }
 
   /**

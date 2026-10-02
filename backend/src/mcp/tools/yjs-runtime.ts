@@ -119,16 +119,13 @@ export async function getWorldbuildingDoc(
     // The worker service returns a read-only wrapper, but we need write capability
     // For now, throw an error for write operations on Workers (not yet implemented)
     const data: Record<string, unknown> = {};
-    const rootMap = wrapperDoc.doc.getMap('root');
-    const identityMap = wrapperDoc.doc.getMap('identity');
 
-    // Merge root and identity maps
-    rootMap.forEach((value, key) => {
-      data[key] = value;
-    });
-    identityMap.forEach((value, key) => {
-      data[key] = value;
-    });
+    // Merge the root, worldbuilding and identity maps (identity wins)
+    for (const name of ['root', 'worldbuilding', 'identity']) {
+      wrapperDoc.doc.getMap(name).forEach((value, key) => {
+        data[key] = value;
+      });
+    }
 
     return {
       get: (key: string) => data[key],
@@ -143,31 +140,50 @@ export async function getWorldbuildingDoc(
     const { yjsService } = await import('../../services/yjs.service');
     const sharedDoc = await yjsService.getDocument(docId);
     const rootMap = sharedDoc.doc.getMap('root');
+    const worldbuildingMap = sharedDoc.doc.getMap('worldbuilding');
     const identityMap = sharedDoc.doc.getMap('identity');
 
     return {
       get: (key: string) => {
-        // Check identity first, then root
+        // Check identity first, then worldbuilding, then root
         if (identityMap.has(key)) return identityMap.get(key);
+        if (worldbuildingMap.has(key)) return worldbuildingMap.get(key);
         return rootMap.get(key);
       },
       set: (key: string, value: unknown) => {
         // Set in identity map (standard location for worldbuilding)
         identityMap.set(key, value);
       },
-      has: (key: string) => identityMap.has(key) || rootMap.has(key),
-      toJSON: () => {
-        const data: Record<string, unknown> = {};
-        rootMap.forEach((v, k) => {
-          data[k] = v;
-        });
-        identityMap.forEach((v, k) => {
-          data[k] = v;
-        });
-        return data;
-      },
+      has: (key: string) => identityMap.has(key) || worldbuildingMap.has(key) || rootMap.has(key),
+      toJSON: () => ({
+        ...rootMap.toJSON(),
+        ...worldbuildingMap.toJSON(),
+        ...identityMap.toJSON(),
+      }),
     };
   }
+}
+
+/**
+ * Read an element's `worldbuilding` map as plain JSON on Cloudflare Workers.
+ * This is the same data the Bun snapshot path reads straight from the Y.Doc.
+ */
+export async function getWorkerWorldbuildingData(
+  ctx: McpContext,
+  username: string,
+  slug: string,
+  elementId: string
+): Promise<Record<string, unknown>> {
+  const workerService = new YjsWorkerService({
+    env: ctx.env as { YJS_PROJECTS: NonNullable<NonNullable<typeof ctx.env>['YJS_PROJECTS']> },
+    authToken: ctx.authToken ?? '',
+  });
+  const doc = await workerService.getDocument(`${username}:${slug}:${elementId}/`);
+  const data: Record<string, unknown> = {};
+  doc.doc.getMap('worldbuilding').forEach((value, key) => {
+    data[key] = value;
+  });
+  return data;
 }
 
 /**

@@ -17,7 +17,7 @@ import { getProjectByKey, hasProjectPermission } from '../mcp.types';
 import { registerTool } from '../mcp.handler';
 import { MCP_PERMISSIONS } from '../mcp-permissions';
 import { yjsService } from '../../services/yjs.service';
-import { YjsWorkerService } from '../../services/yjs-worker.service';
+import { YjsWorkerService, rethrowDocumentReadError } from '../../services/yjs-worker.service';
 import { getStorageService } from '../../services/storage.service';
 import { projectService } from '../../services/project.service';
 import { type Element } from '../../schemas/element.schemas';
@@ -183,7 +183,8 @@ async function getWorldbuildingData(
     });
 
     return { worldbuilding, identity };
-  } catch {
+  } catch (err) {
+    rethrowDocumentReadError(err);
     return null;
   }
 }
@@ -792,7 +793,8 @@ async function fetchElementRelationships(
     return allRelationships
       .filter((r) => r.sourceElementId === elementId || r.targetElementId === elementId)
       .map((r) => ({ ...r }));
-  } catch {
+  } catch (err) {
+    rethrowDocumentReadError(err);
     return [];
   }
 }
@@ -1091,6 +1093,7 @@ registerTool({
         },
       };
     } catch (err) {
+      rethrowDocumentReadError(err);
       mcpSearchLog.error('Error getting document content', err);
       return {
         content: [{ type: 'text', text: 'Error: could not retrieve document content' }],
@@ -1308,25 +1311,27 @@ registerTool({
 
     try {
       allRelationships = await runtimeGetRelationships(ctx, username, slug);
-    } catch {
+    } catch (err) {
+      rethrowDocumentReadError(err);
       // No relationships
     }
 
-    // Get relationship types
+    // Get the project's custom relationship types. They live in the elements
+    // doc; built-in types are defined in the frontend and resolve to their id.
     let relationshipTypes: Array<{ id: string; name: string; description?: string }> = [];
     try {
-      // Custom relationship types live in the project elements doc
       const service = getYjsService(ctx);
       const elementsDoc = await service.getDocument(`${username}:${slug}:elements/`);
       const typesArray = elementsDoc.doc.getArray('customRelationshipTypes');
       const rawTypes: unknown[] = [];
       typesArray.forEach((value) => {
         if (value && typeof value === 'object') {
-          rawTypes.push(value);
+          rawTypes.push(convertYjsValue(value));
         }
       });
       relationshipTypes = rawTypes as typeof relationshipTypes;
-    } catch {
+    } catch (err) {
+      rethrowDocumentReadError(err);
       // No relationship types defined
     }
 
@@ -1441,7 +1446,8 @@ registerTool({
           delete metadata.pinnedElementIds;
         }
       }
-    } catch {
+    } catch (err) {
+      rethrowDocumentReadError(err);
       // No metadata document, return basic info
     }
 
@@ -1570,7 +1576,8 @@ registerTool({
           plans: allPlans,
         },
       };
-    } catch {
+    } catch (err) {
+      rethrowDocumentReadError(err);
       return {
         content: [
           {
