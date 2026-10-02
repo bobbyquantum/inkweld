@@ -41,6 +41,9 @@
     "created": "Recently created",
     "title": "Title (A–Z)"
   },
+  "announcements": {
+    "title": "Announcements"
+  },
   "tooltips": {
     "onlineOnly": "Only available in online mode",
     "offline": "Cannot sync while offline",
