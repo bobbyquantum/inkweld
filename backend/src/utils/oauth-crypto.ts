@@ -8,10 +8,19 @@
  */
 export function generateSecureRandom(length: number): string {
   const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  const randomBytes = crypto.getRandomValues(new Uint8Array(length));
-  return Array.from(randomBytes)
-    .map((byte) => chars[byte % chars.length])
-    .join('');
+  // Reject bytes at or above the largest multiple of chars.length so every
+  // character is equally likely (a plain modulo would favour the first few).
+  const limit = 256 - (256 % chars.length);
+  let result = '';
+  while (result.length < length) {
+    const randomBytes = crypto.getRandomValues(new Uint8Array(length - result.length));
+    for (const byte of randomBytes) {
+      if (byte < limit) {
+        result += chars[byte % chars.length];
+      }
+    }
+  }
+  return result;
 }
 
 /**
