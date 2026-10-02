@@ -101,15 +101,53 @@ When creating a worldbuilding entry via `create_element`, pass `schemaId` along 
 
 Call `list_image_profiles` first and pass `profileId` when using `source: "generate"`.
 
+#### Discovering Projects
+
+Every other tool takes a `project` argument in `username/slug` form, so start with project discovery. Some MCP clients (for example Claude's connector) only surface tools, not resources, which is why discovery and schema access are available as tools too.
+
+| Tool                  | Arguments            | Required permission | Returns                                                                                                                                             |
+| --------------------- | -------------------- | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `list_projects`       | none                 | none                | `totalProjects` and, per project: `username`, `slug`, `projectKey`, `role`, `permissions`, `permissionSummary`                                      |
+| `get_project_schemas` | `project` (required) | `read:schemas`      | `total` and `schemas`: the worldbuilding element types (for example Character, Location) with id, name, icon, description, tabs/fields and defaults |
+
+`list_projects` only reports the caller's own grants, so it is always available to an authorized session. Example call and result:
+
+```json
+{ "name": "list_projects", "arguments": {} }
+```
+
+```json
+{
+  "totalProjects": 1,
+  "projects": [
+    {
+      "username": "alice",
+      "slug": "my-novel",
+      "projectKey": "alice/my-novel",
+      "role": "editor",
+      "permissions": ["read:project", "read:elements", "write:elements"],
+      "permissionSummary": "..."
+    }
+  ]
+}
+```
+
+Call `get_project_schemas` before `create_element` or `update_worldbuilding` to learn the valid schema ids and field keys:
+
+```json
+{ "name": "get_project_schemas", "arguments": { "project": "alice/my-novel" } }
+```
+
 ### Available Resources
 
 Resources list the projects the user has authorized access to:
 
-- **Project List** — `inkweld://projects` lists all authorized projects
+- **Project List** — `inkweld://projects` lists all authorized projects (same data as `list_projects`)
 - **Individual Projects** — `inkweld://project/{user}/{slug}` provides project details and available permissions
+- **Sub-resources** — `elements`, `worldbuilding` and `schemas` under each project; `schemas` returns the same data as `get_project_schemas`
 
 :::tip
-Use tools like `search_elements`, `add_element`, and `update_element` to work with project content. Pass the project key (e.g., `alice/my-novel`) as a parameter to specify which project to operate on.
+Call `list_projects` first, then use tools like `search_elements`, `create_element` and `update_element` to work with project content. Pass the project key (e.g., `alice/my-novel`) as the `project` parameter to specify which project to operate on.
 :::
 
 ## OAuth 2.1 Flow
