@@ -131,4 +131,50 @@ describe('OpenRouterImageProvider', () => {
       expect(status.error).toBeDefined();
     });
   });
+
+  describe('wrapError and buildRequestBody', () => {
+    type Internals = {
+      wrapError: (e: unknown) => Error;
+      buildRequestBody: (
+        model: string,
+        prompt: string,
+        imageResult: { images: { data: string; mimeType: string }[] },
+        aspectRatio: string
+      ) => { image_config?: unknown; messages: { content: unknown[] }[] };
+    };
+    const internals = () => provider as unknown as Internals;
+
+    it('wraps an Error with the provider message', () => {
+      expect(internals().wrapError(new Error('boom')).message).toContain('boom');
+    });
+
+    it('handles non-Error throwables', () => {
+      const wrapped = internals().wrapError('string failure');
+      expect(wrapped.message).toContain('Unknown error');
+    });
+
+    it('reports timeouts for AbortError', () => {
+      const abort = Object.assign(new Error('aborted'), { name: 'AbortError' });
+      expect(internals().wrapError(abort).message).toContain('timed out');
+    });
+
+    it('passes moderation errors through unchanged', () => {
+      const err = new Error('MODERATION_BLOCKED: nope');
+      expect(internals().wrapError(err)).toBe(err);
+    });
+
+    it('adds image parts and aspect ratio to the request body', () => {
+      const body = internals().buildRequestBody(
+        'm',
+        'p',
+        { images: [{ data: 'AAAA', mimeType: 'image/png' }] },
+        '16:9'
+      );
+      expect(body.messages[0].content).toHaveLength(2);
+      expect(body.image_config).toEqual({ aspect_ratio: '16:9' });
+      expect(
+        internals().buildRequestBody('m', 'p', { images: [] }, '1:1').image_config
+      ).toBeUndefined();
+    });
+  });
 });
