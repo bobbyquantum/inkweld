@@ -10,6 +10,22 @@ import { configService } from '../services/config.service';
 import { imageGenerationService } from '../services/image-generation.service';
 import { logger } from '../services/logger.service';
 import { stripTrailingSlashes } from '../utils/string-utils';
+import {
+  ErrorSchema,
+  FalaiModelMetadataSchema,
+  type ImageModelSchema,
+  ImageModelsResponseSchema,
+  type OpenRouterModelSchema,
+  OpenRouterModelsResponseSchema,
+  ProvidersStatusResponseSchema,
+  SetImageEnabledRequestSchema,
+  SetProviderAccountIdRequestSchema,
+  SetProviderEndpointRequestSchema,
+  SetProviderKeyRequestSchema,
+  SuccessResponseSchema,
+  WorkersAiModelsResponseSchema,
+} from '../schemas/ai-providers.schemas';
+import { PROVIDER_DEFINITIONS, getAppName, getAppUrl } from '../services/ai-provider-definitions';
 import type { AppContext } from '../types/context';
 
 const providerLog = logger.child('AIProviders');
@@ -20,158 +36,8 @@ const aiProvidersRoutes = new OpenAPIHono<AppContext>();
 aiProvidersRoutes.use('*', requireAuth);
 
 // ============================================================================
-// Schemas
-// ============================================================================
-
-const ProviderStatusSchema = z
-  .object({
-    id: z.string().openapi({ description: 'Provider identifier' }),
-    name: z.string().openapi({ description: 'Provider display name' }),
-    hasApiKey: z.boolean().openapi({ description: 'Whether an API key is configured' }),
-    description: z.string().openapi({ description: 'Provider description' }),
-    supportsImages: z
-      .boolean()
-      .openapi({ description: 'Whether provider supports image generation' }),
-    supportsText: z.boolean().openapi({ description: 'Whether provider supports text generation' }),
-    requiresEndpoint: z
-      .boolean()
-      .optional()
-      .openapi({ description: 'Whether provider requires a custom endpoint' }),
-    hasEndpoint: z
-      .boolean()
-      .optional()
-      .openapi({ description: 'Whether a custom endpoint is configured' }),
-    requiresAccountId: z
-      .boolean()
-      .optional()
-      .openapi({ description: 'Whether provider requires an account ID (e.g., Workers AI)' }),
-    hasAccountId: z
-      .boolean()
-      .optional()
-      .openapi({ description: 'Whether an account ID is configured' }),
-    imageEnabled: z
-      .boolean()
-      .optional()
-      .openapi({ description: 'Whether image generation is enabled for this provider' }),
-    imageEnabledExplicit: z.boolean().optional().openapi({
-      description: 'Whether the enabled state was explicitly set (vs auto-detected from API key)',
-    }),
-  })
-  .openapi('ProviderStatus');
-
-const ProvidersStatusResponseSchema = z
-  .object({
-    providers: z.array(ProviderStatusSchema).openapi({ description: 'All AI providers' }),
-  })
-  .openapi('ProvidersStatusResponse');
-
-const SetProviderKeyRequestSchema = z
-  .object({
-    apiKey: z.string().min(1).openapi({ description: 'API key to set (or empty to clear)' }),
-  })
-  .openapi('SetProviderKeyRequest');
-
-const SetProviderEndpointRequestSchema = z
-  .object({
-    endpoint: z.string().openapi({ description: 'Custom endpoint URL (or empty to clear)' }),
-  })
-  .openapi('SetProviderEndpointRequest');
-
-const SetProviderAccountIdRequestSchema = z
-  .object({
-    accountId: z.string().openapi({ description: 'Account ID (or empty to clear)' }),
-  })
-  .openapi('SetProviderAccountIdRequest');
-
-const SuccessResponseSchema = z
-  .object({
-    success: z.boolean().openapi({ description: 'Whether the operation succeeded' }),
-  })
-  .openapi('ProviderSuccessResponse');
-
-const ErrorSchema = z
-  .object({
-    error: z.string().openapi({ description: 'Error message' }),
-  })
-  .openapi('ProviderError');
-
-// ============================================================================
 // Provider Definitions
 // ============================================================================
-
-interface ProviderDef {
-  id: string;
-  name: string;
-  description: string;
-  supportsImages: boolean;
-  supportsText: boolean;
-  apiKeyConfigKey: string;
-  endpointConfigKey?: string;
-  accountIdConfigKey?: string; // Config key for account ID (e.g., Workers AI)
-  imageEnabledConfigKey?: string; // Config key for image generation enabled state
-  textEnabledConfigKey?: string; // Config key for text generation enabled state
-}
-
-const PROVIDER_DEFINITIONS: ProviderDef[] = [
-  {
-    id: 'openai',
-    name: 'OpenAI Compatible',
-    description:
-      'GPT models for text and image generation, or any OpenAI-compatible API (Ollama, LM Studio, etc.)',
-    supportsImages: true,
-    supportsText: true,
-    apiKeyConfigKey: 'AI_OPENAI_API_KEY',
-    endpointConfigKey: 'AI_OPENAI_ENDPOINT',
-    imageEnabledConfigKey: 'AI_IMAGE_OPENAI_ENABLED',
-  },
-  {
-    id: 'openrouter',
-    name: 'OpenRouter',
-    description: 'Access to many models including Claude, Gemini, Flux',
-    supportsImages: true,
-    supportsText: true,
-    apiKeyConfigKey: 'AI_OPENROUTER_API_KEY',
-    imageEnabledConfigKey: 'AI_IMAGE_OPENROUTER_ENABLED',
-  },
-  {
-    id: 'anthropic',
-    name: 'Anthropic',
-    description: 'Claude models for text generation',
-    supportsImages: false,
-    supportsText: true,
-    apiKeyConfigKey: 'AI_ANTHROPIC_API_KEY',
-  },
-  {
-    id: 'stable-diffusion',
-    name: 'Stable Diffusion',
-    description: 'Self-hosted Stable Diffusion API (Automatic1111, ComfyUI)',
-    supportsImages: true,
-    supportsText: false,
-    apiKeyConfigKey: 'AI_SD_API_KEY',
-    endpointConfigKey: 'AI_SD_ENDPOINT',
-    imageEnabledConfigKey: 'AI_IMAGE_SD_ENABLED',
-  },
-  {
-    id: 'falai',
-    name: 'Fal.ai',
-    description: 'Fal.ai image generation (Flux, SDXL)',
-    supportsImages: true,
-    supportsText: false,
-    apiKeyConfigKey: 'AI_FALAI_API_KEY',
-    imageEnabledConfigKey: 'AI_IMAGE_FALAI_ENABLED',
-  },
-  {
-    id: 'workersai',
-    name: 'Cloudflare Workers AI',
-    description: 'Cloudflare AI models (Llama, Mistral, FLUX). Free tier: 10K neurons/day.',
-    supportsImages: true,
-    supportsText: true,
-    apiKeyConfigKey: 'AI_WORKERSAI_API_TOKEN',
-    accountIdConfigKey: 'AI_WORKERSAI_ACCOUNT_ID',
-    imageEnabledConfigKey: 'AI_IMAGE_WORKERSAI_ENABLED',
-    textEnabledConfigKey: 'AI_TEXT_WORKERSAI_ENABLED',
-  },
-];
 
 // ============================================================================
 // Routes
@@ -519,12 +385,6 @@ aiProvidersRoutes.openapi(setAccountIdRoute, async (c) => {
 });
 
 // Set provider image enabled state (admin only)
-const SetImageEnabledRequestSchema = z
-  .object({
-    enabled: z.boolean().openapi({ description: 'Whether image generation is enabled' }),
-  })
-  .openapi('SetImageEnabledRequest');
-
 const setImageEnabledRoute = createRoute({
   method: 'put',
   path: '/:providerId/image-enabled',
@@ -593,56 +453,6 @@ aiProvidersRoutes.openapi(setImageEnabledRoute, async (c) => {
 // OpenRouter Models Fetching
 // ============================================================================
 
-const OpenRouterModelSchema = z
-  .object({
-    id: z.string().openapi({ description: 'Model ID' }),
-    name: z.string().openapi({ description: 'Model display name' }),
-    description: z.string().optional().openapi({ description: 'Model description' }),
-    contextLength: z.number().optional().openapi({ description: 'Context length in tokens' }),
-    pricing: z
-      .object({
-        prompt: z.string().optional().openapi({ description: 'Price per 1M prompt tokens' }),
-        completion: z
-          .string()
-          .optional()
-          .openapi({ description: 'Price per 1M completion tokens' }),
-      })
-      .optional()
-      .openapi({ description: 'Pricing information' }),
-  })
-  .openapi('OpenRouterModel');
-
-const OpenRouterModelsResponseSchema = z
-  .object({
-    models: z.array(OpenRouterModelSchema).openapi({ description: 'Available models' }),
-    cached: z.boolean().openapi({ description: 'Whether the response was from cache' }),
-    lastUpdated: z.string().optional().openapi({ description: 'ISO timestamp of last update' }),
-  })
-  .openapi('OpenRouterModelsResponse');
-
-// Image model schema (simplified for image generation)
-const ImageModelSchema = z
-  .object({
-    id: z.string().openapi({ description: 'Model ID' }),
-    name: z.string().openapi({ description: 'Model display name' }),
-    description: z.string().optional().openapi({ description: 'Model description' }),
-    category: z.string().optional().openapi({ description: 'Model category' }),
-    provider: z.string().openapi({ description: 'Provider identifier' }),
-    supportsImageInput: z
-      .boolean()
-      .optional()
-      .openapi({ description: 'Whether model supports image input (for image-to-image)' }),
-  })
-  .openapi('ImageModel');
-
-const ImageModelsResponseSchema = z
-  .object({
-    models: z.array(ImageModelSchema).openapi({ description: 'Available image models' }),
-    cached: z.boolean().openapi({ description: 'Whether the response was from cache' }),
-    lastUpdated: z.string().optional().openapi({ description: 'ISO timestamp of last update' }),
-  })
-  .openapi('ImageModelsResponse');
-
 // Simple in-memory cache for OpenRouter models
 let openRouterModelsCache: {
   models: z.infer<typeof OpenRouterModelSchema>[];
@@ -665,20 +475,6 @@ const falaiModelsCacheByCategory: Record<
 > = {};
 
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
-
-function getAppUrl(c: { env: unknown }): string {
-  return (
-    (c.env as Record<string, string>)?.['FRONTEND_URL'] ||
-    process.env.FRONTEND_URL ||
-    (c.env as Record<string, string>)?.['BASE_URL'] ||
-    process.env.BASE_URL ||
-    'https://inkweld.app'
-  );
-}
-
-function getAppName(c: { env: unknown }): string {
-  return (c.env as Record<string, string>)?.['APP_NAME'] || process.env.APP_NAME || 'Inkweld';
-}
 
 // Get OpenRouter models
 const getOpenRouterModelsRoute = createRoute({
@@ -1091,11 +887,6 @@ aiProvidersRoutes.openapi(getOpenRouterImageModelsRoute, async (c) => {
 // Fal.ai Models Fetching
 // ============================================================================
 
-// Fal.ai model category type (used in OpenAPI schema generation)
-const _FalaiCategorySchema = z
-  .enum(['text-to-image', 'image-to-image', 'image-to-video', 'text-to-video'])
-  .openapi('FalaiCategory');
-
 // Get Fal.ai image models
 const getFalaiModelsRoute = createRoute({
   method: 'get',
@@ -1252,22 +1043,6 @@ import {
   type ParsedFalModelInfo,
 } from '../services/fal-model-metadata.service';
 
-const FalaiModelMetadataSchema = z
-  .object({
-    id: z.string(),
-    name: z.string(),
-    description: z.string(),
-    category: z.string(),
-    status: z.enum(['active', 'deprecated']),
-    supportsImageInput: z.boolean(),
-    supportsCustomResolutions: z.boolean(),
-    supportedSizes: z.array(z.string()),
-    supportedAspectRatios: z.array(z.string()),
-    supportedResolutions: z.array(z.string()),
-    sizeMode: z.enum(['dimensions', 'aspect_ratio', 'unknown']),
-  })
-  .openapi('FalaiModelMetadata');
-
 // Get detailed Fal.ai model metadata
 const getFalaiModelMetadataRoute = createRoute({
   method: 'get',
@@ -1377,22 +1152,6 @@ const workersAiModelsCacheByTask: Record<
     timestamp: number;
   }
 > = {};
-
-const WorkersAiModelsResponseSchema = z
-  .object({
-    models: z.array(
-      z.object({
-        id: z.string(),
-        name: z.string(),
-        description: z.string().optional(),
-        task: z.string().optional(),
-        provider: z.literal('workersai'),
-      })
-    ),
-    cached: z.boolean(),
-    lastUpdated: z.string(),
-  })
-  .openapi('WorkersAiModelsResponse');
 
 // Get Workers AI models
 const getWorkersAiModelsRoute = createRoute({

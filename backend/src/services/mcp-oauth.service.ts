@@ -13,7 +13,6 @@
 
 import { eq, and, not, isNull, or, lt, gt, inArray, notInArray, isNotNull, sql } from 'drizzle-orm';
 import { sign, verify } from 'hono/jwt';
-import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import type { DatabaseInstance } from '../types/context';
 import type { D1DatabaseInstance } from '../db/d1';
 import {
@@ -43,6 +42,15 @@ import { users } from '../db/schema/users';
 import { logger } from './logger.service';
 import { projectService } from './project.service';
 import { config } from '../config/env';
+import { generateSecureRandom, hashString, verifyPkce } from '../utils/oauth-crypto';
+import {
+  OAuthError,
+  type ClientRegistrationResult,
+  type CloudflareEnv,
+  type McpAccessTokenPayload,
+  type TokenResult,
+  type ValidatedAuthRequest,
+} from './mcp-oauth.types';
 import { forEachSequential } from '@inkweld/async';
 
 const oauthLog = logger.child('OAuth');
@@ -62,145 +70,6 @@ function maxDynamicClients(): number {
   const raw = typeof process !== 'undefined' ? process.env['MCP_MAX_DYNAMIC_CLIENTS'] : undefined;
   const parsed = raw ? Number.parseInt(raw, 10) : Number.NaN;
   return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_MAX_DYNAMIC_CLIENTS;
-}
-
-/**
- * Generate a cryptographically secure random string
- */
-function generateSecureRandom(length: number): string {
-  const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  const randomBytes = crypto.getRandomValues(new Uint8Array(length));
-  return Array.from(randomBytes)
-    .map((byte) => chars[byte % chars.length])
-    .join('');
-}
-
-/**
- * Hash a string using SHA-256
- */
-async function hashString(input: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(input);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
-}
-
-/**
- * Base64URL encode (for PKCE)
- */
-function base64UrlEncode(buffer: ArrayBuffer): string {
-  const bytes = new Uint8Array(buffer);
-  let binary = '';
-  for (const byte of bytes) {
-    binary += String.fromCodePoint(byte);
-  }
-  return btoa(binary).replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', '');
-}
-
-/**
- * Verify PKCE code_verifier against code_challenge
- */
-async function verifyPkce(codeVerifier: string, codeChallenge: string): Promise<boolean> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(codeVerifier);
-  const digest = await crypto.subtle.digest('SHA-256', data);
-  const computed = base64UrlEncode(digest);
-  return computed === codeChallenge;
-}
-
-/**
- * JWT payload for MCP access tokens
- */
-export interface McpAccessTokenPayload {
-  /** Issuer */
-  iss: string;
-  /** Subject (user ID) */
-  sub: string;
-  /** Audience (MCP server URI) */
-  aud: string;
-  /** Expiration time */
-  exp: number;
-  /** Issued at */
-  iat: number;
-  /** JWT ID (unique token identifier) */
-  jti: string;
-  /** OAuth session ID */
-  session_id: string;
-  /** Client ID */
-  client_id: string;
-  /** Username */
-  username: string;
-  /** Project grants with permissions */
-  grants: Array<{
-    /** Project ID */
-    p: string;
-    /** Project slug */
-    s: string;
-    /** Owner username */
-    o: string;
-    /** Permissions array */
-    r: string[];
-  }>;
-}
-
-/**
- * Result of token generation
- */
-export interface TokenResult {
-  accessToken: string;
-  refreshToken: string;
-  expiresIn: number;
-  tokenType: 'Bearer';
-  scope?: string;
-}
-
-/**
- * Result of client registration
- * Note: Optional URI fields are only included if they were provided in the request.
- * Returning null/empty strings for these fields can cause Claude's Zod validation to fail.
- */
-export interface ClientRegistrationResult {
-  clientId: string;
-  clientSecret?: string;
-  clientSecretExpiresAt: number;
-  clientName: string;
-  redirectUris: string[];
-  // Only included if provided in registration request (avoid empty strings/nulls)
-  clientUri?: string;
-  logoUri?: string;
-  policyUri?: string;
-  tosUri?: string;
-  tokenEndpointAuthMethod: 'none' | 'client_secret_basic' | 'client_secret_post';
-}
-
-/**
- * Authorization request parameters
- */
-export interface AuthorizationRequest {
-  clientId: string;
-  redirectUri: string;
-  responseType: string;
-  scope?: string;
-  state?: string;
-  codeChallenge: string;
-  codeChallengeMethod: string;
-}
-
-/**
- * Parsed and validated authorization request
- */
-export interface ValidatedAuthRequest extends AuthorizationRequest {
-  client: McpOAuthClient;
-}
-
-/**
- * Environment bindings type for Cloudflare Workers
- */
-export interface CloudflareEnv {
-  DATABASE_KEY?: string;
-  SESSION_SECRET?: string;
-  [key: string]: unknown;
 }
 
 /**
@@ -1362,25 +1231,14 @@ class McpOAuthService {
   }
 }
 
-/**
- * OAuth Error class for standard error responses
- */
-export class OAuthError extends Error {
-  constructor(
-    public readonly code: string,
-    message: string,
-    public readonly statusCode: ContentfulStatusCode = 400
-  ) {
-    super(message);
-    this.name = 'OAuthError';
-  }
-
-  toJSON() {
-    return {
-      error: this.code,
-      error_description: this.message,
-    };
-  }
-}
+export { OAuthError } from './mcp-oauth.types';
+export type {
+  AuthorizationRequest,
+  ClientRegistrationResult,
+  CloudflareEnv,
+  McpAccessTokenPayload,
+  TokenResult,
+  ValidatedAuthRequest,
+} from './mcp-oauth.types';
 
 export const mcpOAuthService = new McpOAuthService();
