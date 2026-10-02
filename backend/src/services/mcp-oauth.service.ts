@@ -45,7 +45,6 @@ import { config } from '../config/env';
 import { generateSecureRandom, hashString, verifyPkce } from '../utils/oauth-crypto';
 import {
   OAuthError,
-  type AuthorizationRequest,
   type ClientRegistrationResult,
   type CloudflareEnv,
   type McpAccessTokenPayload,
@@ -1232,7 +1231,7 @@ class McpOAuthService {
   }
 }
 
-export { OAuthError };
+export { OAuthError } from './mcp-oauth.types';
 export type {
   AuthorizationRequest,
   ClientRegistrationResult,
@@ -1240,6 +1239,6 @@ export type {
   McpAccessTokenPayload,
   TokenResult,
   ValidatedAuthRequest,
-};
+} from './mcp-oauth.types';
 
 export const mcpOAuthService = new McpOAuthService();
