@@ -777,6 +777,14 @@ export class DocumentService {
     return parts.join('');
   }
 
+  /** Serialize objects as JSON, primitives as strings. */
+  private serializeXmlAttrValue(value: unknown): string {
+    if (typeof value === 'object') return JSON.stringify(value);
+    if (typeof value === 'string') return value;
+    if (typeof value === 'symbol') return value.toString();
+    return `${value as number | boolean | bigint}`;
+  }
+
   /**
    * Recursively converts a ProseMirror node to XML.
    */
@@ -797,18 +805,7 @@ export class DocumentService {
     const attrParts: string[] = [];
     for (const [key, value] of Object.entries(attrs)) {
       if (value !== null && value !== undefined) {
-        // Serialize objects as JSON, primitives as strings
-        let strValue: string;
-        if (typeof value === 'object') {
-          strValue = JSON.stringify(value);
-        } else if (typeof value === 'string') {
-          strValue = value;
-        } else {
-          strValue =
-            typeof value === 'symbol'
-              ? value.toString()
-              : `${value as number | boolean | bigint}`;
-        }
+        const strValue = this.serializeXmlAttrValue(value);
         attrParts.push(`${key}="${this.escapeXml(strValue)}"`);
       }
     }
