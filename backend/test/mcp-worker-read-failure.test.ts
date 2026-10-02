@@ -129,7 +129,7 @@ describe('YjsWorkerService.getDocument', () => {
 
   it('returns an empty wrapper for an empty-but-OK document', async () => {
     const doc = await service(() => json({})).getDocument(docId);
-    expect(doc.doc.getArray('relationships').length).toBe(0);
+    expect(doc.doc.getArray('relationships')).toHaveLength(0);
     expect(doc.doc.getMap('worldbuilding').has('anything')).toBe(false);
     expect(doc.doc.getXmlFragment('prosemirror')).toBeUndefined();
   });
