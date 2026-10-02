@@ -169,6 +169,49 @@ describe('YjsProject DO GET /api/revisions', () => {
     expect(entries.has('doc:alice:proj:doc-a:revision')).toBe(true);
   });
 
+  // GET /api/document shares this harness: it is how the MCP runtime reads an
+  // elements doc on Workers, so every top-level type MCP reads must be present.
+  it('GET /api/document serializes the elements doc types MCP reads', async () => {
+    const doc = new Y.Doc();
+    doc.getArray('elements').push([{ id: 'doc-a', type: 'ITEM', name: 'A' }]);
+    doc.getArray('schemas').push([{ id: 'character-v1', name: 'Character', tabs: [] }]);
+    doc.getArray('customRelationshipTypes').push([{ id: 'rival', name: 'Rival' }]);
+    doc.getArray('publishPlans').push([{ id: 'plan-1', name: 'EPUB' }]);
+    const meta = doc.getMap('projectMeta');
+    meta.set('name', 'Novel');
+    meta.set('pinnedElementIds', '["doc-a"]');
+    const entries = new Map<string, unknown>([
+      ['doc:alice:proj:elements:snapshot', Y.encodeStateAsUpdate(doc)],
+    ]);
+
+    spyOn(projectService, 'findByUsernameAndSlug').mockResolvedValue({
+      id: 'project-1',
+      userId: 'owner-1',
+    });
+    const token = await signJwt({ userId: 'owner-1', username: 'alice', exp: exp() });
+    const state = {
+      storage: makeStorage(entries),
+      getWebSockets: () => [],
+      setWebSocketAutoResponse: () => {},
+    };
+    const doInstance = new YjsProject(state, { DATABASE_KEY: SECRET, DB: {} });
+    const response = await doInstance.fetch(
+      new Request('https://yjs-do/api/document?documentId=alice:proj:elements/', {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+    );
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as Record<string, unknown>;
+    expect(body.elements).toEqual([{ id: 'doc-a', type: 'ITEM', name: 'A' }]);
+    expect(body.schemas).toEqual([{ id: 'character-v1', name: 'Character', tabs: [] }]);
+    expect(body.customRelationshipTypes).toEqual([{ id: 'rival', name: 'Rival' }]);
+    expect(body.publishPlans).toEqual([{ id: 'plan-1', name: 'EPUB' }]);
+    expect(body.projectMeta).toEqual({ name: 'Novel', pinnedElementIds: '["doc-a"]' });
+    // Types that are absent or empty are omitted rather than sent as empty values
+    expect(body.relationships).toBeUndefined();
+  });
+
   it('refuses without a token', async () => {
     const state = {
       storage: makeStorage(new Map()),

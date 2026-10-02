@@ -96,6 +96,26 @@ import { forEachPage, forEachSequential } from '@inkweld/async';
 
 const projDOLog = logger.child('YjsProjectDO');
 
+/**
+ * Top-level Y.Maps returned by `GET /api/document`: worldbuilding element data
+ * (`root`, `identity`, `worldbuilding`, the per-element `schema` copy) and the
+ * elements doc's `projectMeta`.
+ */
+const HTTP_DOCUMENT_MAPS = ['root', 'identity', 'worldbuilding', 'schema', 'projectMeta'] as const;
+
+/**
+ * Top-level Y.Arrays of records returned by `GET /api/document`, all from the
+ * project elements doc: the tree, relationships, the schema library, custom
+ * relationship types and publish plans.
+ */
+const HTTP_DOCUMENT_ARRAYS = [
+  'elements',
+  'relationships',
+  'schemas',
+  'customRelationshipTypes',
+  'publishPlans',
+] as const;
+
 declare const WebSocketPair: any;
 
 interface ConnectionInfo {
@@ -860,81 +880,30 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
   private async handleGetDocument(documentId: string): Promise<Response> {
     const sharedDoc = await this.getOrCreateDocument(documentId);
 
-    // Convert all shared types to JSON
+    // Convert the shared types the MCP runtime reads to JSON. Every name that
+    // `YjsWorkerService.getDocument` callers read must be listed here, or it
+    // silently comes back empty on Workers.
+    // WSSharedDoc extends Y.Doc, so sharedDoc IS the doc
     const data: Record<string, unknown> = {};
 
-    // Get common Y.Maps - worldbuilding uses these
-    // WSSharedDoc extends Y.Doc, so sharedDoc IS the doc
-    const rootMap = sharedDoc.getMap('root');
-    if (rootMap.size > 0) {
-      data.root = this.yMapToJson(rootMap);
-    }
-
-    // Also check for identity map (used by worldbuilding)
-    const identityMap = sharedDoc.getMap('identity');
-    if (identityMap.size > 0) {
-      data.identity = this.yMapToJson(identityMap);
-    }
-
-    // Get elements array if present
-    const elementsArray = sharedDoc.getArray('elements');
-    if (elementsArray.length > 0) {
-      const elements: Record<string, unknown>[] = [];
-      elementsArray.forEach((value) => {
-        if (value && typeof value === 'object') {
-          const jsonValue = this.yValueToJson(value);
-          if (jsonValue && typeof jsonValue === 'object' && !Array.isArray(jsonValue)) {
-            elements.push(jsonValue as Record<string, unknown>);
-          }
-        }
-      });
-      data.elements = elements;
-    }
-
-    // Get prosemirror XmlFragment if present (for document content)
-    try {
-      const xmlFragment = sharedDoc.getXmlFragment('prosemirror');
-      if (xmlFragment && xmlFragment.length > 0) {
-        data.prosemirror = xmlFragment.toString();
-      }
-    } catch {
-      // XmlFragment doesn't exist yet, that's fine
-    }
-
-    // Get relationships array if present
-    const relationshipsArray = sharedDoc.getArray('relationships');
-    if (relationshipsArray.length > 0) {
-      const relationships: Record<string, unknown>[] = [];
-      relationshipsArray.forEach((value) => {
-        if (value && typeof value === 'object') {
-          const jsonValue = this.yValueToJson(value);
-          if (jsonValue && typeof jsonValue === 'object' && !Array.isArray(jsonValue)) {
-            relationships.push(jsonValue as Record<string, unknown>);
-          }
-        }
-      });
-      data.relationships = relationships;
-    }
-
-    // Also get worldbuilding map directly for completeness
-    const worldbuildingMap = sharedDoc.getMap('worldbuilding');
-    if (worldbuildingMap.size > 0) {
-      data.worldbuilding = this.yMapToJson(worldbuildingMap);
-    }
-
-    // Project-level shared types the frontend keeps in the elements doc, and
-    // the per-element schema copy held in each worldbuilding doc.
-    for (const name of ['schemas', 'publishPlans', 'customRelationshipTypes']) {
-      const array = sharedDoc.getArray(name);
-      if (array.length > 0) {
-        data[name] = array.toJSON();
-      }
-    }
-    for (const name of ['projectMeta', 'schema']) {
-      const map = sharedDoc.getMap(name);
-      if (map.size > 0) {
+    for (const name of HTTP_DOCUMENT_MAPS) {
+      const map = this.tryGetShared(() => sharedDoc.getMap(name));
+      if (map && map.size > 0) {
         data[name] = this.yMapToJson(map);
       }
+    }
+
+    for (const name of HTTP_DOCUMENT_ARRAYS) {
+      const array = this.tryGetShared(() => sharedDoc.getArray(name));
+      if (array && array.length > 0) {
+        data[name] = this.yArrayToJsonObjects(array);
+      }
+    }
+
+    // Prosemirror XmlFragment (document content), serialized as XML
+    const xmlFragment = this.tryGetShared(() => sharedDoc.getXmlFragment('prosemirror'));
+    if (xmlFragment && xmlFragment.length > 0) {
+      data.prosemirror = xmlFragment.toString();
     }
 
     return new Response(JSON.stringify(data), {
@@ -1222,6 +1191,34 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
         container.set(k, v);
       }
     }
+  }
+
+  /**
+   * Resolve a top-level shared type, or null when the name is already defined
+   * with a different type in this document (Yjs throws in that case).
+   */
+  private tryGetShared<T>(get: () => T): T | null {
+    try {
+      return get();
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Convert a Y.Array of records to plain JSON, dropping non-object entries.
+   */
+  private yArrayToJsonObjects(yArray: Y.Array<unknown>): Record<string, unknown>[] {
+    const result: Record<string, unknown>[] = [];
+    yArray.forEach((value) => {
+      if (value && typeof value === 'object') {
+        const jsonValue = this.yValueToJson(value);
+        if (jsonValue && typeof jsonValue === 'object' && !Array.isArray(jsonValue)) {
+          result.push(jsonValue as Record<string, unknown>);
+        }
+      }
+    });
+    return result;
   }
 
   /**
