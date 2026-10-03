@@ -106,7 +106,13 @@ export function uncoveredPlanItems(
   const visit = (from: number, to: number): void => {
     for (let i = from; i < to; i = subtreeEnd(elements, i)) {
       const element = elements[i];
-      if (covered.has(element.id)) continue;
+      if (covered.has(element.id)) {
+        // A folder listed without its contents still leaves them to add.
+        if (element.type === ElementType.Folder) {
+          visit(i + 1, subtreeEnd(elements, i));
+        }
+        continue;
+      }
 
       if (element.type !== ElementType.Folder) {
         if (publishesOnItsOwn(element)) {
@@ -128,4 +134,46 @@ export function uncoveredPlanItems(
 
   visit(0, elements.length);
   return items;
+}
+
+/**
+ * True when adding `elementId` would publish something twice: it is already
+ * covered by the plan, or it is a folder with some of its contents already
+ * covered.
+ */
+export function overlapsPlan(
+  plan: PublishPlan,
+  elements: readonly Element[],
+  elementId: string
+): boolean {
+  const covered = coveredElementIds(plan, elements);
+  if (covered.has(elementId)) return true;
+
+  const index = elements.findIndex(e => e.id === elementId);
+  if (index === -1 || elements[index].type !== ElementType.Folder) {
+    return false;
+  }
+  for (let i = index + 1; i < subtreeEnd(elements, index); i++) {
+    if (covered.has(elements[i].id)) return true;
+  }
+  return false;
+}
+
+/**
+ * Plan items for `candidates`, in order, leaving out any that would publish
+ * something already in the plan or already picked earlier in the list.
+ */
+export function addablePlanItems(
+  plan: PublishPlan,
+  elements: readonly Element[],
+  candidates: readonly Pick<Element, 'id' | 'type'>[]
+): ElementItem[] {
+  const added: ElementItem[] = [];
+  for (const candidate of candidates) {
+    if (!isPlannableType(candidate.type)) continue;
+    const sofar = { ...plan, items: [...plan.items, ...added] };
+    if (overlapsPlan(sofar, elements, candidate.id)) continue;
+    added.push(elementPlanItem(candidate.id, candidate.type));
+  }
+  return added;
 }

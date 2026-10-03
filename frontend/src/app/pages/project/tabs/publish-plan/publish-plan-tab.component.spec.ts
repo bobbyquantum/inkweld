@@ -389,6 +389,34 @@ describe('PublishPlanTabComponent', () => {
       expect(doc.includeChildren).toBe(false);
     });
 
+    it('should refuse an element its folder already publishes', () => {
+      mockProjectState.elements.set([
+        { id: 'book', name: 'Book', type: ElementType.Folder, level: 0 },
+        { id: 's1', name: 'One', type: ElementType.Item, level: 1 },
+      ]);
+      component.addElement('book');
+      component.addElement('s1');
+
+      expect(currentPlan()!.items).toHaveLength(1);
+      expect(mockSnackBar.open).toHaveBeenCalledWith(
+        expect.stringContaining('One'),
+        undefined,
+        expect.anything()
+      );
+    });
+
+    it('should refuse a folder whose contents are already listed', () => {
+      mockProjectState.elements.set([
+        { id: 'book', name: 'Book', type: ElementType.Folder, level: 0 },
+        { id: 's1', name: 'One', type: ElementType.Item, level: 1 },
+      ]);
+      component.addElement('s1');
+      component.addElement('book');
+
+      const ids = (currentPlan()!.items as ElementItem[]).map(i => i.elementId);
+      expect(ids).toEqual(['s1']);
+    });
+
     it('should append when index is undefined', () => {
       component.addElement('elem-1');
       component.addElement('elem-2');

@@ -86,6 +86,13 @@ export class PublishPlanStatsService {
   readonly wordCounts = this.counts.asReadonly();
 
   /**
+   * Latest count request per element. A result is applied only if it
+   * answers the latest request, so a slow earlier read cannot overwrite a
+   * recount.
+   */
+  private readonly requests = new Map<string, number>();
+
+  /**
    * Start counting any element in `elementIds` that has not been counted yet.
    * Folders are expanded to their document descendants; worldbuilding and
    * other non-document elements are ignored.
@@ -296,6 +303,8 @@ export class PublishPlanStatsService {
   }
 
   private async countDocument(elementId: string): Promise<void> {
+    const request = (this.requests.get(elementId) ?? 0) + 1;
+    this.requests.set(elementId, request);
     const docId = this.fullDocumentId(elementId);
     let entry: WordCountEntry;
     try {
@@ -309,6 +318,7 @@ export class PublishPlanStatsService {
     } catch {
       entry = { status: 'unavailable' };
     }
+    if (this.requests.get(elementId) !== request) return;
     this.counts.update(map => {
       // A concurrent invalidate() may have dropped this id; don't resurrect it.
       if (!map.has(elementId)) return map;

@@ -41,6 +41,7 @@
     "noItems": "No items added yet",
     "noItemsHint": "Drag folders and documents from the project tree, or add everything at once",
     "addEverything": "Add everything",
+    "alreadyIncluded": "“{{name}}” is already included in this plan",
     "moveUp": "Move up",
     "moveDown": "Move down",
     "removeItem": "Remove item",

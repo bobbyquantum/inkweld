@@ -196,6 +196,32 @@ describe('PublishPlanStatsService', () => {
       contents['user:proj:doc-a'] = [paragraph('one two three')];
     });
 
+    it('keeps the newest count when an older read finishes last', async () => {
+      let releaseFirst!: () => void;
+      getDocumentContent.mockImplementationOnce(
+        () =>
+          new Promise(resolve => {
+            releaseFirst = () => resolve([paragraph('stale')]);
+          })
+      );
+      service.ensureCounted(['doc-c']);
+      await flush();
+
+      service.recount(['doc-c']);
+      await flush();
+      expect(service.wordCounts().get('doc-c')).toEqual({
+        status: 'ready',
+        words: 4,
+      });
+
+      releaseFirst();
+      await flush();
+      expect(service.wordCounts().get('doc-c')).toEqual({
+        status: 'ready',
+        words: 4,
+      });
+    });
+
     it('counts documents that were never counted', async () => {
       service.recount(['doc-c', 'wb']);
       expect(service.wordCounts().get('doc-c')).toEqual({ status: 'loading' });

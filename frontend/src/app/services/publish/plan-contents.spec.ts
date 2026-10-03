@@ -7,9 +7,11 @@ import {
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import {
+  addablePlanItems,
   coveredElementIds,
   elementPlanItem,
   isPlannableType,
+  overlapsPlan,
   uncoveredPlanItems,
 } from './plan-contents';
 
@@ -153,12 +155,55 @@ describe('plan contents', () => {
       expect(uncoveredPlanItems(withItems(...first), elements)).toEqual([]);
     });
 
+    it('still adds the contents of a folder listed without them', () => {
+      const legacy = elementPlanItem('manuscript', Folder);
+      legacy.includeChildren = false;
+      const items = uncoveredPlanItems(withItems(legacy), elements);
+      expect(ids(items)).toEqual(['part-1', 'characters', 'epilogue']);
+    });
+
     it('treats elements without a level as top level', () => {
       const flat = [
         { ...el('a', Item, 0), level: undefined as unknown as number },
         { ...el('b', Item, 0), level: undefined as unknown as number },
       ];
       expect(ids(uncoveredPlanItems(plan, flat))).toEqual(['a', 'b']);
+    });
+  });
+
+  describe('overlapsPlan', () => {
+    it('flags an element inside a listed folder', () => {
+      const p = withItems(elementPlanItem('part-1', Folder));
+      expect(overlapsPlan(p, elements, 'scene-a')).toBe(true);
+      expect(overlapsPlan(p, elements, 'part-1')).toBe(true);
+      expect(overlapsPlan(p, elements, 'epilogue')).toBe(false);
+    });
+
+    it('flags a folder whose contents are partly listed', () => {
+      const p = withItems(elementPlanItem('scene-b', Item));
+      expect(overlapsPlan(p, elements, 'manuscript')).toBe(true);
+      expect(overlapsPlan(p, elements, 'part-1')).toBe(true);
+      expect(overlapsPlan(p, elements, 'characters')).toBe(false);
+    });
+
+    it('does not flag unknown elements', () => {
+      expect(overlapsPlan(plan, elements, 'missing')).toBe(false);
+    });
+  });
+
+  describe('addablePlanItems', () => {
+    it('skips candidates already in the plan or picked earlier', () => {
+      const p = withItems(elementPlanItem('epilogue', Item));
+      const items = addablePlanItems(p, elements, [
+        { id: 'part-1', type: Folder },
+        { id: 'scene-a', type: Item },
+        { id: 'manuscript', type: Folder },
+        { id: 'epilogue', type: Item },
+        { id: 'board', type: Canvas },
+        { id: 'hero', type: Worldbuilding },
+      ]);
+      expect(ids(items)).toEqual(['part-1', 'hero']);
+      expect(items[0].includeChildren).toBe(true);
     });
   });
 });

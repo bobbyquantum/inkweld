@@ -59,7 +59,8 @@ import { type PublishedFile } from '@models/published-file';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import {
-  elementPlanItem,
+  addablePlanItems,
+  coveredElementIds,
   isPlannableType,
   NON_TEXT_TYPES,
   uncoveredPlanItems,
@@ -505,7 +506,20 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
     if (!plan) return;
 
     const element = this.elements().find(e => e.id === elementId);
-    const newItem = elementPlanItem(elementId, element?.type);
+    const [newItem] = addablePlanItems(plan, this.elements(), [
+      { id: elementId, type: element?.type ?? ElementType.Item },
+    ]);
+    if (!newItem) {
+      // Already published by the plan, or a folder whose contents partly are.
+      this.snackBar.open(
+        this.transloco.translate('publish.planEditor.alreadyIncluded', {
+          name: element?.name ?? '',
+        }),
+        undefined,
+        { duration: 3000 }
+      );
+      return;
+    }
 
     const items = [...plan.items];
     if (index !== undefined && index >= 0 && index <= items.length) {
@@ -580,7 +594,7 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
     const plan = this.plan();
     if (!plan) return;
 
-    const alreadyAdded = this.planElementIds(plan);
+    const alreadyAdded = [...coveredElementIds(plan, this.elements())];
     const result = await this.dialogGateway.openElementPickerDialog({
       title: this.transloco.translate('publish.planEditor.addDocumentsTitle'),
       subtitle: this.transloco.translate(
@@ -595,13 +609,11 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
     // open; append to the current plan rather than the captured snapshot.
     const current = this.plan();
     if (!current || current.id !== plan.id) return;
-    const currentIds = new Set(this.planElementIds(current));
-
-    const newItems: PublishPlanItem[] = result.elements
-      .filter(
-        element => !currentIds.has(element.id) && isPlannableType(element.type)
-      )
-      .map(element => elementPlanItem(element.id, element.type));
+    const newItems = addablePlanItems(
+      current,
+      this.elements(),
+      result.elements
+    );
     if (newItems.length === 0) return;
     this.updatePlan({ items: [...current.items, ...newItems] });
   }
