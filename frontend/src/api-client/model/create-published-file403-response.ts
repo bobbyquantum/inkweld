@@ -7,20 +7,22 @@
  * https://openapi-generator.tech
  * Do not edit the class manually.
  */
+import { PublishedFileError } from './published-file-error';
+import { QuotaExceededError } from './quota-exceeded-error';
 
-export interface QuotaExceededError {
+export interface CreatePublishedFile403Response {
   error: string;
   message?: string;
-  code: QuotaExceededErrorCode;
+  code: CreatePublishedFile403ResponseCode;
   usedBytes: number;
   quotaBytes: number;
   requiredBytes?: number;
-  reason: QuotaExceededErrorReason;
+  reason: CreatePublishedFile403ResponseReason;
 }
-export enum QuotaExceededErrorCode {
+export enum CreatePublishedFile403ResponseCode {
   QuotaExceeded = 'QUOTA_EXCEEDED',
 }
-export enum QuotaExceededErrorReason {
+export enum CreatePublishedFile403ResponseReason {
   MediaUpload = 'media_upload',
   ProjectCreate = 'project_create',
   PublishedFile = 'published_file',

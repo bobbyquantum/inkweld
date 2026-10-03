@@ -11,7 +11,8 @@ import * as schema from '../db/schema';
 import { projects, users } from '../db/schema';
 import { config as configTable } from '../db/schema/config';
 import { config as envConfig } from '../config/env';
-import { quotaService, SOFT_QUOTA_FRACTION } from './quota.service';
+import { quotaService, RECONCILE_COOLDOWN_MS, SOFT_QUOTA_FRACTION } from './quota.service';
+import { QuotaExceededError } from '../errors';
 
 /**
  * These exercise the real filesystem + real SQLite so the accounting is
@@ -90,6 +91,7 @@ beforeEach(async () => {
   await db.delete(projects);
   await db.delete(users);
   await seedUser();
+  quotaService.clearReconcileCooldown();
 });
 
 afterEach(async () => {
@@ -436,5 +438,139 @@ describe('quotaService.toQuotaUsage', () => {
     expect(usage.usedBytes).toBe(0);
     expect(usage.quotaBytes).toBe(0);
     expect(usage.overQuota).toBe(true);
+  });
+});
+
+async function enableEnforcement(): Promise<void> {
+  await db
+    .insert(configTable)
+    .values({ key: 'SYNC_QUOTA_ENABLED', value: 'true', category: 'general' })
+    .onConflictDoUpdate({ target: configTable.key, set: { value: 'true' } });
+}
+
+async function counter(): Promise<number> {
+  const row = (await db.select().from(users).where(eq(users.id, USER_ID)))[0];
+  return row.storageUsedBytes;
+}
+
+describe('quotaService reconcile cooldown', () => {
+  it('trusts a freshly reconciled counter instead of recomputing on every refusal', async () => {
+    await seedProject('one');
+    await seedData(USERNAME, 'one', 5000);
+    await db
+      .update(users)
+      .set({ syncQuotaBytes: 4000, storageUsedBytes: 3900 })
+      .where(eq(users.id, USER_ID));
+
+    const user = (await db.select().from(users).where(eq(users.id, USER_ID)))[0];
+    const first = await quotaService.checkEnforcement(db, user, 200);
+    expect(first.usedBytes).toBe(5000);
+
+    // Grow reality behind the counter's back; inside the cooldown the next
+    // refusal must not walk storage again, so it still reports the counter.
+    await seedData(USERNAME, 'one', 9000);
+    const fresh = (await db.select().from(users).where(eq(users.id, USER_ID)))[0];
+    const second = await quotaService.checkEnforcement(db, fresh, 200);
+    expect(second.usedBytes).toBe(5000);
+    expect(second.overQuota).toBe(true);
+  });
+
+  it('recomputes again once the cooldown has expired', async () => {
+    await seedProject('one');
+    await seedData(USERNAME, 'one', 5000);
+    await db
+      .update(users)
+      .set({ syncQuotaBytes: 4000, storageUsedBytes: 3900 })
+      .where(eq(users.id, USER_ID));
+    const user = (await db.select().from(users).where(eq(users.id, USER_ID)))[0];
+    await quotaService.checkEnforcement(db, user, 200);
+
+    await seedData(USERNAME, 'one', 9000);
+    const realNow = Date.now;
+    Date.now = () => realNow() + RECONCILE_COOLDOWN_MS + 1;
+    try {
+      const fresh = (await db.select().from(users).where(eq(users.id, USER_ID)))[0];
+      const usage = await quotaService.checkEnforcement(db, fresh, 200);
+      expect(usage.usedBytes).toBe(9000);
+    } finally {
+      Date.now = realNow;
+    }
+  });
+});
+
+describe('quotaService.assertCanStore', () => {
+  it('never refuses or counts while enforcement is disabled (the default)', async () => {
+    await db.update(users).set({ syncQuotaBytes: 0 }).where(eq(users.id, USER_ID));
+
+    await quotaService.assertCanStore(db, USER_ID, 10_000, 'media_upload');
+
+    expect(await quotaService.isEnabled(db)).toBe(false);
+    expect(await counter()).toBe(0);
+  });
+
+  it('counts an accepted write against the counter', async () => {
+    await enableEnforcement();
+    await db.update(users).set({ syncQuotaBytes: 10_000 }).where(eq(users.id, USER_ID));
+
+    await quotaService.assertCanStore(db, USER_ID, 1234, 'media_upload');
+
+    expect(await counter()).toBe(1234);
+  });
+
+  it('charges only the growth when a write replaces an existing file', async () => {
+    await enableEnforcement();
+    await db
+      .update(users)
+      .set({ syncQuotaBytes: 10_000, storageUsedBytes: 1000 })
+      .where(eq(users.id, USER_ID));
+
+    await quotaService.assertCanStore(db, USER_ID, 1500, 'media_upload', {}, 1000);
+    expect(await counter()).toBe(1500);
+
+    // Replacing with something smaller charges nothing (deletions credit space).
+    await quotaService.assertCanStore(db, USER_ID, 200, 'media_upload', {}, 1500);
+    expect(await counter()).toBe(1500);
+  });
+
+  it('refuses with a QuotaExceededError carrying the reason and figures', async () => {
+    await enableEnforcement();
+    await db.update(users).set({ syncQuotaBytes: 100 }).where(eq(users.id, USER_ID));
+
+    const error = await quotaService
+      .assertCanStore(db, USER_ID, 500, 'published_file')
+      .catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(QuotaExceededError);
+    const quotaError = error as QuotaExceededError;
+    expect(quotaError.reason).toBe('published_file');
+    expect(quotaError.quotaBytes).toBe(100);
+    expect(quotaError.requiredBytes).toBe(500);
+    // A refused write is not counted.
+    expect(await counter()).toBe(0);
+  });
+
+  it('is a no-op for an owner that no longer exists', async () => {
+    await enableEnforcement();
+    await quotaService.assertCanStore(db, 'missing-user', 500, 'media_upload');
+  });
+});
+
+describe('quotaService.assertCanCreateProject', () => {
+  it('allows creation while disabled even at a zero allowance', async () => {
+    await db.update(users).set({ syncQuotaBytes: 0 }).where(eq(users.id, USER_ID));
+    const user = (await db.select().from(users).where(eq(users.id, USER_ID)))[0];
+
+    await quotaService.assertCanCreateProject(db, user);
+  });
+
+  it('refuses creation once enabled and the owner is at the allowance', async () => {
+    await enableEnforcement();
+    await db.update(users).set({ syncQuotaBytes: 0 }).where(eq(users.id, USER_ID));
+    const user = (await db.select().from(users).where(eq(users.id, USER_ID)))[0];
+
+    const error = await quotaService.assertCanCreateProject(db, user).catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(QuotaExceededError);
+    expect((error as QuotaExceededError).reason).toBe('project_create');
   });
 });

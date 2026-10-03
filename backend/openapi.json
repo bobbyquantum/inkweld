@@ -278,6 +278,10 @@
       "StorageUsage": {
         "type": "object",
         "properties": {
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether this server enforces sync capacity. When false, usage is informational and nothing is refused."
+          },
           "usedBytes": {
             "type": "number",
             "description": "Authoritative storage usage in bytes"
@@ -335,6 +339,7 @@
           }
         },
         "required": [
+          "enabled",
           "usedBytes",
           "quotaBytes",
           "fraction",
@@ -804,6 +809,10 @@
           "instanceDefaultQuotaBytes": {
             "type": "number",
             "description": "Instance-wide default when no override is set"
+          },
+          "quotaEnforced": {
+            "type": "boolean",
+            "description": "Whether the server enforces sync capacity (SYNC_QUOTA_ENABLED)"
           }
         },
         "required": [
@@ -815,7 +824,8 @@
           "totalBytes",
           "syncQuotaBytes",
           "effectiveQuotaBytes",
-          "instanceDefaultQuotaBytes"
+          "instanceDefaultQuotaBytes",
+          "quotaEnforced"
         ]
       },
       "AdminProjectStorage": {
@@ -1057,7 +1067,8 @@
             "type": "string",
             "enum": [
               "media_upload",
-              "project_create"
+              "project_create",
+              "published_file"
             ]
           }
         },
@@ -5608,6 +5619,38 @@
         }
       }
     },
+    "/api/v1/users/me/storage": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Get sync-capacity usage for the current user",
+        "description": "Authoritative storage usage across the caller’s projects plus their effective allowance. Used by the account settings and dashboard meters.",
+        "operationId": "getMyStorageUsage",
+        "responses": {
+          "200": {
+            "description": "Storage usage and allowance",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageUsage"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/users/me/policy-acceptance": {
       "get": {
         "tags": [
@@ -5668,38 +5711,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/users/me/storage": {
-      "get": {
-        "tags": [
-          "Users"
-        ],
-        "summary": "Get sync-capacity usage for the current user",
-        "description": "Authoritative storage usage across the caller’s projects plus their effective allowance. Used by the account settings and dashboard meters.",
-        "operationId": "getMyStorageUsage",
-        "responses": {
-          "200": {
-            "description": "Storage usage and allowance",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/StorageUsage"
                 }
               }
             }
@@ -9526,11 +9537,18 @@
             }
           },
           "403": {
-            "description": "Access denied",
+            "description": "Access denied, or sync capacity exceeded (QUOTA_EXCEEDED)",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ImageError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/ImageError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/QuotaExceededError"
+                    }
+                  ]
                 }
               }
             }
@@ -14645,6 +14663,114 @@
             }
           }
         }
+      },
+      "delete": {
+        "operationId": "deleteProjectMediaFile",
+        "tags": [
+          "Media"
+        ],
+        "summary": "Delete a media file",
+        "description": "Removes a media file from the project storage and credits its size back to the owner's sync capacity. Deleting a file that is already gone succeeds, so a client can retry safely.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "example": "johndoe",
+              "description": "Username"
+            },
+            "required": true,
+            "description": "Username",
+            "name": "username",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "example": "my-novel",
+              "description": "Project slug"
+            },
+            "required": true,
+            "description": "Project slug",
+            "name": "slug",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "example": "cover.jpg",
+              "description": "File name to delete"
+            },
+            "required": true,
+            "description": "File name to delete",
+            "name": "filename",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "File deleted (or already absent)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "freedBytes": {
+                      "type": "number",
+                      "description": "Bytes released by the deletion"
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "freedBytes"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid filename",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaError"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/projects/{username}/{slug}/published": {
@@ -14807,11 +14933,18 @@
             }
           },
           "403": {
-            "description": "Access denied",
+            "description": "Access denied, or sync capacity exceeded (QUOTA_EXCEEDED)",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PublishedFileError"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/PublishedFileError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/QuotaExceededError"
+                    }
+                  ]
                 }
               }
             }

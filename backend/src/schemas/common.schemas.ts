@@ -36,7 +36,7 @@ export const QuotaExceededSchema = z
     usedBytes: z.number(),
     quotaBytes: z.number(),
     requiredBytes: z.number().optional(),
-    reason: z.enum(['media_upload', 'project_create']),
+    reason: z.enum(['media_upload', 'project_create', 'published_file']),
   })
   .openapi('QuotaExceededError');
 

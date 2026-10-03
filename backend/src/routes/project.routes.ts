@@ -9,13 +9,13 @@ import { destroyProjectDurableObject } from '../utils/project-durable-object';
 import { yjsService } from '../services/yjs.service';
 import { getProjectStorageSize } from '../services/storage-size.service';
 import { quotaService } from '../services/quota.service';
+import { quotaStorageContext } from '../utils/quota-context';
 import {
   UnauthorizedError,
   ForbiddenError,
   NotFoundError,
   BadRequestError,
   InternalError,
-  QuotaExceededError,
 } from '../errors';
 import type { AppContext } from '../types/context';
 import {
@@ -231,28 +231,7 @@ projectRoutes.openapi(createProjectRoute, async (c) => {
   // Sync-capacity check. A new project starts empty but its container counts
   // against the owner, so an account already at (or over) its allowance cannot
   // open more. Yjs editing of existing projects is deliberately never blocked.
-  // `checkEnforcement` reconciles first if the cached counter looks over, so a
-  // stale reading cannot wrongly refuse.
-  {
-    const authHeader = c.req.header('Authorization') ?? '';
-    const quotaToken = authHeader.startsWith('Bearer ') ? authHeader.substring(7) : '';
-    const usage = await quotaService.checkEnforcement(
-      db,
-      user,
-      0,
-      c.get('storage'),
-      c.env as never,
-      quotaToken
-    );
-    if (usage.overQuota) {
-      throw new QuotaExceededError({
-        usedBytes: usage.usedBytes,
-        quotaBytes: usage.quotaBytes,
-        reason: 'project_create',
-        message: 'This account has reached its sync capacity and cannot create more projects.',
-      });
-    }
-  }
+  await quotaService.assertCanCreateProject(db, user, quotaStorageContext(c));
 
   // Remove any tombstone for this slug (user is recreating a project)
   await projectService.removeTombstone(db, userId, slug);
@@ -452,11 +431,20 @@ projectRoutes.openapi(deleteProjectRoute, async (c) => {
   // in R2 / in the Durable Object, and creating a project with the same slug
   // adopted them all. Order matters on Bun/Node: the LevelDB handle must be
   // closed before the directory that contains it is removed.
+  // Measure first so the owner's sync capacity is credited with exactly what
+  // the deletion frees. A failed measurement must not block the deletion; the
+  // next reconcile corrects the counter.
+  const ctx = quotaStorageContext(c);
+  const freedBytes = await getProjectStorageSize(username, slug, ctx.r2, ctx.env, ctx.authToken)
+    .then((size) => size.dataBytes + size.mediaBytes)
+    .catch(() => 0);
+
   await yjsService.destroyProject(username, slug);
   await getStorageService(c.get('storage')).deleteProjectDirectory(username, slug);
   await destroyProjectDurableObject(c, username, slug);
 
   await projectService.delete(db, project.id, project.userId, project.slug);
+  await quotaService.recordDeletion(db, project.userId, freedBytes);
 
   return c.json({ message: 'Project deleted successfully' }, 200);
 });

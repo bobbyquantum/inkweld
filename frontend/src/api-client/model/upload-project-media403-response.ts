@@ -25,4 +25,5 @@ export enum UploadProjectMedia403ResponseCode {
 export enum UploadProjectMedia403ResponseReason {
   MediaUpload = 'media_upload',
   ProjectCreate = 'project_create',
+  PublishedFile = 'published_file',
 }

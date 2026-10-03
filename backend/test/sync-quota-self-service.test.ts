@@ -107,4 +107,43 @@ describe('Self-service storage usage (route)', () => {
     const { response } = await anon.request('/api/v1/users/me/storage');
     expect(response.status).toBe(401);
   });
+
+  it('reports whether enforcement is on, and keeps the counter in step', async () => {
+    const db = getDatabase();
+    const off = await client.request('/api/v1/users/me/storage');
+    const offBody = (await off.json()) as { enabled: boolean; usedBytes: number };
+    expect(offBody.enabled).toBe(false);
+
+    // The endpoint ran an authoritative recompute, so it persisted the figure.
+    const row = (await db.select().from(users).where(eq(users.username, username)))[0];
+    expect(row.storageUsedBytes).toBe(offBody.usedBytes);
+
+    await db
+      .insert(config)
+      .values({ key: 'SYNC_QUOTA_ENABLED', value: 'true', category: 'general' })
+      .onConflictDoUpdate({ target: config.key, set: { value: 'true' } });
+    try {
+      const on = await client.request('/api/v1/users/me/storage');
+      expect(((await on.json()) as { enabled: boolean }).enabled).toBe(true);
+    } finally {
+      await db.delete(config).where(eq(config.key, 'SYNC_QUOTA_ENABLED'));
+    }
+  });
+
+  it('credits a deleted project back to the counter', async () => {
+    const db = getDatabase();
+    const formData = new FormData();
+    formData.append('file', new Blob([new Uint8Array(3000)], { type: 'image/png' }), 'p.png');
+    await client.request(`/api/v1/media/${username}/${slug}`, { method: 'POST', body: formData });
+    // Sync the counter with reality first.
+    await client.request('/api/v1/users/me/storage');
+    const before = (await db.select().from(users).where(eq(users.username, username)))[0];
+    expect(before.storageUsedBytes).toBeGreaterThanOrEqual(3000);
+
+    const del = await client.request(`/api/v1/projects/${username}/${slug}`, { method: 'DELETE' });
+    expect(del.response.status).toBe(200);
+
+    const after = (await db.select().from(users).where(eq(users.username, username)))[0];
+    expect(after.storageUsedBytes).toBe(0);
+  });
 });

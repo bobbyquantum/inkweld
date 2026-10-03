@@ -1,16 +1,12 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { requireAdmin } from '../middleware/auth';
 import { userService } from '../services/user.service';
-import { projectService } from '../services/project.service';
-import { getProjectStorageSize } from '../services/storage-size.service';
 import { accountDeletionService } from '../services/account-deletion.service';
 import { quotaService } from '../services/quota.service';
-import { getStorageService } from '../services/storage.service';
-import { logger } from '../services/logger.service';
+import { quotaStorageContext } from '../utils/quota-context';
 import { emailService } from '../services/email.service';
 import { accountApprovedEmail, accountRejectedEmail } from '../services/email-templates';
 import { getBaseUrl } from '../services/url.service';
-import { mapWithConcurrency } from '../utils/concurrency';
 import type { AppContext } from '../types/context';
 import type { User } from '../db/schema';
 import { errorResponse, errorResponses, MessageResponseSchema } from '../schemas/common.schemas';
@@ -482,6 +478,9 @@ const AdminUserProjectsSchema = z
     instanceDefaultQuotaBytes: z
       .number()
       .openapi({ description: 'Instance-wide default when no override is set' }),
+    quotaEnforced: z
+      .boolean()
+      .openapi({ description: 'Whether the server enforces sync capacity (SYNC_QUOTA_ENABLED)' }),
   })
   .openapi('AdminUserProjects');
 
@@ -518,41 +517,22 @@ adminRoutes.openapi(listUserProjectsRoute, async (c) => {
   }
 
   const username = user.username ?? '';
-  const projects = await projectService.findByUserId(db, userId);
-
-  const authHeader = c.req.header('Authorization') ?? '';
-  const token = authHeader.startsWith('Bearer ') ? authHeader.substring(7) : '';
-
-  // Bound concurrency so a user with many projects doesn't fan out an
-  // unbounded number of storage calculations (each lists media and may page
-  // Durable Object storage) at once.
-  const sized = await mapWithConcurrency(projects, 5, async (p) => {
-    const size = await getProjectStorageSize(
-      username,
-      p.slug,
-      c.get('storage'),
-      c.env as never,
-      token
-    );
-    return {
-      id: p.id,
-      slug: p.slug,
-      title: p.title,
-      dataBytes: size.dataBytes,
-      mediaBytes: size.mediaBytes,
-      totalBytes: size.dataBytes + size.mediaBytes,
-    };
-  });
-
-  const totalDataBytes = sized.reduce((sum, p) => sum + p.dataBytes, 0);
-  const totalMediaBytes = sized.reduce((sum, p) => sum + p.mediaBytes, 0);
+  const ctx = quotaStorageContext(c);
 
   // Quota context so the admin dialog can show usage against the allowance and
   // offer to change it, rather than presenting raw totals with no scale.
-  const [instanceDefaultQuotaBytes, effectiveQuotaBytes] = await Promise.all([
-    quotaService.getInstanceDefaultQuota(db),
-    quotaService.getEffectiveQuota(db, user),
-  ]);
+  const [{ usedBytes, projects: sized }, instanceDefaultQuotaBytes, effectiveQuotaBytes, enabled] =
+    await Promise.all([
+      quotaService.computeUsage(db, user, ctx.r2, ctx.env, ctx.authToken),
+      quotaService.getInstanceDefaultQuota(db),
+      quotaService.getEffectiveQuota(db, user),
+      quotaService.isEnabled(db),
+    ]);
+  // A full recompute: keep the write-path counter in step with it.
+  await quotaService.persistUsage(db, userId, usedBytes);
+
+  const totalDataBytes = sized.reduce((sum, p) => sum + p.dataBytes, 0);
+  const totalMediaBytes = sized.reduce((sum, p) => sum + p.mediaBytes, 0);
 
   return c.json(
     {
@@ -565,6 +545,7 @@ adminRoutes.openapi(listUserProjectsRoute, async (c) => {
       syncQuotaBytes: user.syncQuotaBytes ?? null,
       effectiveQuotaBytes,
       instanceDefaultQuotaBytes,
+      quotaEnforced: enabled,
     },
     200
   );

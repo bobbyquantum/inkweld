@@ -18,6 +18,7 @@ import { authService } from '../services/auth.service';
 import { legalService } from '../services/legal.service';
 import { accountDeletionService } from '../services/account-deletion.service';
 import { quotaService } from '../services/quota.service';
+import { quotaStorageContext } from '../utils/quota-context';
 import { UnauthorizedError } from '../errors';
 
 const userRoutes = new OpenAPIHono<AppContext>();
@@ -156,6 +157,10 @@ userRoutes.openapi(getCurrentUserRoute, async (c) => {
 // ---------------------------------------------------------------------------
 const StorageUsageSchema = z
   .object({
+    enabled: z.boolean().openapi({
+      description:
+        'Whether this server enforces sync capacity. When false, usage is informational and nothing is refused.',
+    }),
     usedBytes: z.number().openapi({ description: 'Authoritative storage usage in bytes' }),
     quotaBytes: z.number().openapi({ description: 'Effective allowance in bytes' }),
     fraction: z
@@ -204,19 +209,18 @@ userRoutes.openapi(getMyStorageRoute, async (c) => {
     throw new UnauthorizedError();
   }
 
-  const authHeader = c.req.header('Authorization') ?? '';
-  const token = authHeader.startsWith('Bearer ') ? authHeader.substring(7) : '';
-
-  const { usage, projects } = await quotaService.getUsage(
-    db,
-    user,
-    c.get('storage'),
-    c.env as never,
-    token
-  );
+  const ctx = quotaStorageContext(c);
+  const [{ usage, projects }, enabled] = await Promise.all([
+    quotaService.getUsage(db, user, ctx.r2, ctx.env, ctx.authToken),
+    quotaService.isEnabled(db),
+  ]);
+  // This is a full authoritative recompute — keep the write-path counter in
+  // step with it so the next upload check starts from the true figure.
+  await quotaService.persistUsage(db, user.id, usage.usedBytes);
 
   return c.json(
     {
+      enabled,
       usedBytes: usage.usedBytes,
       quotaBytes: usage.quotaBytes,
       // Infinity cannot be represented in JSON; the client renders "0 of 0".

@@ -188,6 +188,10 @@ class ConfigService {
         return 'false';
       case 'BACKGROUND_BLUR':
         return '0';
+      case 'SYNC_QUOTA_ENABLED':
+        // Default OFF — an existing instance must not start refusing uploads
+        // on upgrade; an admin opts in deliberately.
+        return 'false';
       case 'SYNC_QUOTA_DEFAULT_BYTES':
         // 100 MB. Generous enough that ordinary writing never notices, small
         // enough that an instance cannot be filled by one account silently.

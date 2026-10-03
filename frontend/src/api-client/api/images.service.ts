@@ -26,6 +26,8 @@ import { Observable } from 'rxjs';
 import { ImageError } from '../model/image-error';
 // @ts-ignore
 import { ImageMessage } from '../model/image-message';
+// @ts-ignore
+import { UploadProjectCover403Response } from '../model/upload-project-cover403-response';
 
 // @ts-ignore
 import { BASE_PATH, COLLECTION_FORMATS } from '../variables';

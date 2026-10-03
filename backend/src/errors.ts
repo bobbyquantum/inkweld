@@ -51,18 +51,21 @@ export class InternalError extends Error {
  * and Yjs sync are never blocked: stranding a user's work is worse than
  * temporarily exceeding an allowance.
  */
+/** Which write was refused for lack of sync capacity. */
+export type QuotaExceededReason = 'media_upload' | 'project_create' | 'published_file';
+
 export class QuotaExceededError extends Error {
   readonly usedBytes: number;
   readonly quotaBytes: number;
   /** Bytes the rejected operation would have added, when known. */
   readonly requiredBytes?: number;
-  readonly reason: 'media_upload' | 'project_create';
+  readonly reason: QuotaExceededReason;
 
   constructor(details: {
     usedBytes: number;
     quotaBytes: number;
     requiredBytes?: number;
-    reason: 'media_upload' | 'project_create';
+    reason: QuotaExceededReason;
     message?: string;
   }) {
     super(details.message ?? 'Sync capacity exceeded');

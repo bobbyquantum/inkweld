@@ -23,6 +23,8 @@ import { CustomHttpParameterCodec } from '../encoder';
 import { Observable } from 'rxjs';
 
 // @ts-ignore
+import { DeleteProjectMediaFile200Response } from '../model/delete-project-media-file200-response';
+// @ts-ignore
 import { MediaError } from '../model/media-error';
 // @ts-ignore
 import { MediaListResponse } from '../model/media-list-response';
@@ -46,6 +48,137 @@ export class MediaService extends BaseService {
     @Optional() configuration?: Configuration
   ) {
     super(basePath, configuration);
+  }
+
+  /**
+   * Delete a media file
+   * Removes a media file from the project storage and credits its size back to the owner\&#39;s sync capacity. Deleting a file that is already gone succeeds, so a client can retry safely.
+   * @endpoint delete /api/v1/media/{username}/{slug}/{filename}
+   * @param username Username
+   * @param slug Project slug
+   * @param filename File name to delete
+   * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
+   * @param reportProgress flag to report request and response progress.
+   */
+  public deleteProjectMediaFile(
+    username: string,
+    slug: string,
+    filename: string,
+    observe?: 'body',
+    reportProgress?: boolean,
+    options?: {
+      httpHeaderAccept?: 'application/json';
+      context?: HttpContext;
+      transferCache?: boolean;
+    }
+  ): Observable<DeleteProjectMediaFile200Response>;
+  public deleteProjectMediaFile(
+    username: string,
+    slug: string,
+    filename: string,
+    observe?: 'response',
+    reportProgress?: boolean,
+    options?: {
+      httpHeaderAccept?: 'application/json';
+      context?: HttpContext;
+      transferCache?: boolean;
+    }
+  ): Observable<HttpResponse<DeleteProjectMediaFile200Response>>;
+  public deleteProjectMediaFile(
+    username: string,
+    slug: string,
+    filename: string,
+    observe?: 'events',
+    reportProgress?: boolean,
+    options?: {
+      httpHeaderAccept?: 'application/json';
+      context?: HttpContext;
+      transferCache?: boolean;
+    }
+  ): Observable<HttpEvent<DeleteProjectMediaFile200Response>>;
+  public deleteProjectMediaFile(
+    username: string,
+    slug: string,
+    filename: string,
+    observe: any = 'body',
+    reportProgress: boolean = false,
+    options?: {
+      httpHeaderAccept?: 'application/json';
+      context?: HttpContext;
+      transferCache?: boolean;
+    }
+  ): Observable<any> {
+    if (username === null || username === undefined) {
+      throw new Error(
+        'Required parameter username was null or undefined when calling deleteProjectMediaFile.'
+      );
+    }
+    if (slug === null || slug === undefined) {
+      throw new Error(
+        'Required parameter slug was null or undefined when calling deleteProjectMediaFile.'
+      );
+    }
+    if (filename === null || filename === undefined) {
+      throw new Error(
+        'Required parameter filename was null or undefined when calling deleteProjectMediaFile.'
+      );
+    }
+
+    let localVarHeaders = this.defaultHeaders;
+
+    // authentication (bearerAuth) required
+    localVarHeaders = this.configuration.addCredentialToHeaders(
+      'bearerAuth',
+      'Authorization',
+      localVarHeaders,
+      'Bearer '
+    );
+
+    const localVarHttpHeaderAcceptSelected: string | undefined =
+      options?.httpHeaderAccept ??
+      this.configuration.selectHeaderAccept(['application/json']);
+    if (localVarHttpHeaderAcceptSelected !== undefined) {
+      localVarHeaders = localVarHeaders.set(
+        'Accept',
+        localVarHttpHeaderAcceptSelected
+      );
+    }
+
+    const localVarHttpContext: HttpContext =
+      options?.context ?? new HttpContext();
+
+    const localVarTransferCache: boolean = options?.transferCache ?? true;
+
+    let responseType_: 'text' | 'json' | 'blob' = 'json';
+    if (localVarHttpHeaderAcceptSelected) {
+      if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
+        responseType_ = 'text';
+      } else if (
+        this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)
+      ) {
+        responseType_ = 'json';
+      } else {
+        responseType_ = 'blob';
+      }
+    }
+
+    let localVarPath = `/api/v1/media/${this.configuration.encodeParam({ name: 'username', value: username, in: 'path', style: 'simple', explode: false, dataType: 'string', dataFormat: undefined })}/${this.configuration.encodeParam({ name: 'slug', value: slug, in: 'path', style: 'simple', explode: false, dataType: 'string', dataFormat: undefined })}/${this.configuration.encodeParam({ name: 'filename', value: filename, in: 'path', style: 'simple', explode: false, dataType: 'string', dataFormat: undefined })}`;
+    const { basePath, withCredentials } = this.configuration;
+    return this.httpClient.request<DeleteProjectMediaFile200Response>(
+      'delete',
+      `${basePath}${localVarPath}`,
+      {
+        context: localVarHttpContext,
+        responseType: <any>responseType_,
+        ...(withCredentials ? { withCredentials } : {}),
+        headers: localVarHeaders,
+        observe: observe,
+        ...(localVarTransferCache !== undefined
+          ? { transferCache: localVarTransferCache }
+          : {}),
+        reportProgress: reportProgress,
+      }
+    );
   }
 
   /**

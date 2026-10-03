@@ -85,6 +85,7 @@ model/correction.ts
 model/create-comment-thread-request.ts
 model/create-image-model-profile-request.ts
 model/create-project-request.ts
+model/create-published-file403-response.ts
 model/create-snapshot-request.ts
 model/custom-image-size.ts
 model/custom-sizes-response.ts
@@ -100,6 +101,7 @@ model/default-text-to-image-models-response-providers.ts
 model/default-text-to-image-models-response.ts
 model/delete-account-request.ts
 model/delete-comment-message200-response.ts
+model/delete-project-media-file200-response.ts
 model/delete-published-file200-response.ts
 model/document-error.ts
 model/document-snapshot.ts
@@ -250,6 +252,7 @@ model/update-o-auth-session-settings-request.ts
 model/update-profile-request.ts
 model/update-project-request.ts
 model/update-published-file-request.ts
+model/upload-project-cover403-response.ts
 model/upload-project-media200-response.ts
 model/upload-project-media403-response.ts
 model/user-profile-sections.ts

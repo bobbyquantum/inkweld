@@ -43,4 +43,8 @@ export interface AdminUserProjects {
    * Instance-wide default when no override is set
    */
   instanceDefaultQuotaBytes: number;
+  /**
+   * Whether the server enforces sync capacity (SYNC_QUOTA_ENABLED)
+   */
+  quotaEnforced: boolean;
 }

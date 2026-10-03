@@ -11,6 +11,10 @@ import { StorageUsageProjectsInner } from './storage-usage-projects-inner';
 
 export interface StorageUsage {
   /**
+   * Whether this server enforces sync capacity. When false, usage is informational and nothing is refused.
+   */
+  enabled: boolean;
+  /**
    * Authoritative storage usage in bytes
    */
   usedBytes: number;
