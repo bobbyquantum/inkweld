@@ -187,4 +187,37 @@ describe('WorkersAIImageProvider', () => {
       expect(provider.isAvailable()).toBe(true);
     });
   });
+
+  describe('transformResult', () => {
+    type Transform = (
+      result: unknown,
+      model: string,
+      request: unknown
+    ) => { data: { b64Json?: string }[] };
+    const run = (result: unknown) =>
+      (provider as unknown as { transformResult: Transform }).transformResult(result, 'm', {
+        prompt: 'p',
+      });
+
+    it('reads a direct image field', () => {
+      expect(run({ image: 'abc' }).data[0].b64Json).toBe('abc');
+    });
+
+    it('reads a nested result.image field', () => {
+      expect(run({ result: { image: 'nested' } }).data[0].b64Json).toBe('nested');
+    });
+
+    it('accepts a raw base64 string', () => {
+      expect(run('rawb64').data[0].b64Json).toBe('rawb64');
+    });
+
+    it('base64-encodes a raw buffer', () => {
+      expect(run(Buffer.from('hi')).data[0].b64Json).toBe(Buffer.from('hi').toString('base64'));
+    });
+
+    it('throws on an unexpected format', () => {
+      expect(() => run({})).toThrow('unexpected response format');
+      expect(() => run(null)).toThrow('unexpected response format');
+    });
+  });
 });

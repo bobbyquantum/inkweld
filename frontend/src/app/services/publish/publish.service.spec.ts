@@ -2,7 +2,7 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { createDefaultPublishStyles } from '@models/publish-style';
 import { BehaviorSubject, Subject } from 'rxjs';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import {
@@ -56,7 +56,7 @@ describe('PublishService', () => {
   };
   let projectSyncServiceMock: {
     progress$: BehaviorSubject<SyncProgress>;
-    syncDocuments: ReturnType<typeof vi.fn>;
+    syncDocuments: Mock<(ids: string[]) => Promise<unknown>>;
     verifyLocalAvailability: ReturnType<typeof vi.fn>;
     cancel: ReturnType<typeof vi.fn>;
   };
@@ -674,7 +674,6 @@ describe('PublishService', () => {
     });
 
     it('should handle sync failure', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-misused-promises
       projectSyncServiceMock.syncDocuments.mockImplementation(() => {
         window.setTimeout(() => {
           projectSyncServiceMock.progress$.next({

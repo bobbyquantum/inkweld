@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { upgradeWebSocket } from 'hono/bun';
-import { yjsService } from '../services/yjs.service';
+import { yjsService, type YjsSocket } from '../services/yjs.service';
 import { authService } from '../services/auth.service';
 import { projectService } from '../services/project.service';
 import { collaborationService } from '../services/collaboration.service';
@@ -129,7 +129,7 @@ async function resolveWriteAccess(
 interface WsHandle {
   send(data: string): void;
   close(code?: number, reason?: string): void;
-  raw?: { ping(): void };
+  raw?: YjsSocket & { ping(): void };
 }
 
 function startPingInterval(ws: WsHandle, documentId: string, onClear: () => void): Timer {
@@ -467,6 +467,7 @@ app.get(
 
       const buffer = Buffer.from(data);
       if (!canWrite && isBlockedForViewer(buffer, documentId)) return;
+      if (!ws.raw) return;
       yjsService.handleMessage(ws.raw, doc, buffer);
     };
 

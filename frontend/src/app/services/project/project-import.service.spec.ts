@@ -6,7 +6,7 @@ import { TestBed } from '@angular/core/testing';
 import { ElementType, type Project, ProjectsService } from '@inkweld/index';
 import { createDefaultPublishStyles } from '@models/publish-style';
 import JSZip from '@progress/jszip-esm';
-import { of } from 'rxjs';
+import { type Observable, of } from 'rxjs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { type DeepMockProxy, mockDeep } from 'vitest-mock-extended';
 
@@ -191,11 +191,11 @@ describe('ProjectImportService', () => {
     documentImport.writeDocumentContent.mockResolvedValue(undefined);
     documentImport.writeWorldbuildingData.mockResolvedValue(undefined);
     projectsService.createProject.mockReturnValue(
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-      of(mockCreatedProject) as any
+      of(mockCreatedProject) as unknown as Observable<never>
     );
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-    projectsService.deleteProject.mockReturnValue(of({}) as any);
+    projectsService.deleteProject.mockReturnValue(
+      of({}) as unknown as Observable<never>
+    );
 
     http.post.mockReturnValue(of({}));
 

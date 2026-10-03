@@ -37,7 +37,6 @@ import { ProjectStateService } from '@services/project/project-state.service';
 import {
   type ImageCroppedEvent,
   ImageCropperComponent,
-  type LoadedImage,
 } from 'ngx-image-cropper';
 
 interface EditProjectFormValue {
@@ -252,8 +251,7 @@ export class EditProjectDialogComponent implements OnInit {
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  onImageLoaded(image: LoadedImage): void {
+  onImageLoaded(): void {
     this.hasImageLoaded = true;
   }
 

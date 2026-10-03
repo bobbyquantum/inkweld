@@ -80,17 +80,17 @@ describe('AuthInterceptor', () => {
 
     return new Promise<void>((resolve, reject) => {
       interceptor.intercept(request, mockHandler).subscribe({
-        // eslint-disable-next-line @typescript-eslint/no-misused-promises
-        error: async err => {
-          try {
-            expect(err).toBe(error);
-            // Wait for the navigate promise to resolve
-            await Promise.resolve();
-            expect(router.navigate).toHaveBeenCalledWith(['/']);
-            resolve();
-          } catch (e) {
-            reject(e instanceof Error ? e : new Error(String(e)));
-          }
+        error: (err: unknown) => {
+          // Wait for the navigate promise to resolve
+          void Promise.resolve()
+            .then(() => {
+              expect(err).toBe(error);
+              expect(router.navigate).toHaveBeenCalledWith(['/']);
+              resolve();
+            })
+            .catch((e: unknown) => {
+              reject(e instanceof Error ? e : new Error(String(e)));
+            });
         },
       });
     });

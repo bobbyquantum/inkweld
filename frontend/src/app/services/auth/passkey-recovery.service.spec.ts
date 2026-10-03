@@ -2,7 +2,6 @@
 // helper returns Observable<any> for ergonomic mocking. The cast is safe in
 // tests because we control both sides — disable the rule file-wide rather
 // than annotating every call site.
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import { provideHttpClient, withXhr } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
@@ -28,10 +27,10 @@ import {
 } from './passkey.service';
 import { PasskeyRecoveryService } from './passkey-recovery.service';
 
-function obs<T>(value: T): Observable<any> {
-  return of(value);
+function obs<T>(value: T): Observable<never> {
+  return of(value) as unknown as Observable<never>;
 }
-function errObs(err: unknown): Observable<any> {
+function errObs(err: unknown): Observable<never> {
   return throwError(() => err);
 }
 

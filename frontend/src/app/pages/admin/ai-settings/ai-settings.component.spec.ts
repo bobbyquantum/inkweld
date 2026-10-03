@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { MatButtonModule } from '@angular/material/button';
@@ -27,7 +26,7 @@ import {
   AIImageGenerationService,
   AIProvidersService,
 } from 'api-client';
-import { of, Subject } from 'rxjs';
+import { type Observable, of, Subject } from 'rxjs';
 import { type MockedObject, vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../../testing/transloco-test-provider';
@@ -1050,7 +1049,7 @@ describe('AdminAiSettingsComponent', () => {
         of({
           sizes: [{ id: 'size-1', name: 'Test', width: 1024, height: 1024 }],
           total: 1,
-        }) as any
+        }) as unknown as Observable<never>
       );
 
       await component.saveCustomSizes();

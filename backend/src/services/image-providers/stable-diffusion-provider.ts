@@ -207,8 +207,7 @@ export class StableDiffusionProvider extends BaseImageProvider {
         },
       };
     } catch (error: unknown) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Error handling
-      const err = error as any;
+      const err = error as { name?: string; message?: string };
       if (err.name === 'AbortError') {
         throw new Error('Stable Diffusion image generation timed out', { cause: error });
       }

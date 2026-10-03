@@ -9,7 +9,6 @@ import { type Project, type User } from '@inkweld/index';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { CoverSourceService } from '@services/project/cover-source.service';
 import { ElementNavigationService } from '@services/project/element-navigation.service';
-import { type LoadedImage } from 'ngx-image-cropper';
 import { of } from 'rxjs';
 import {
   afterAll,
@@ -419,7 +418,7 @@ describe('EditProjectDialogComponent', () => {
     });
 
     it('should set hasImageLoaded when image loads', () => {
-      component.onImageLoaded({} as LoadedImage);
+      component.onImageLoaded();
       expect(component.hasImageLoaded).toBe(true);
     });
 

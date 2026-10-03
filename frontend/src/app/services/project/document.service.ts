@@ -777,6 +777,14 @@ export class DocumentService {
     return parts.join('');
   }
 
+  /** Serialize objects as JSON, primitives as strings. */
+  private serializeXmlAttrValue(value: unknown): string {
+    if (typeof value === 'object') return JSON.stringify(value);
+    if (typeof value === 'string') return value;
+    if (typeof value === 'symbol') return value.toString();
+    return `${value as number | boolean | bigint}`;
+  }
+
   /**
    * Recursively converts a ProseMirror node to XML.
    */
@@ -797,16 +805,7 @@ export class DocumentService {
     const attrParts: string[] = [];
     for (const [key, value] of Object.entries(attrs)) {
       if (value !== null && value !== undefined) {
-        // Serialize objects as JSON, primitives as strings
-        let strValue: string;
-        if (typeof value === 'object') {
-          strValue = JSON.stringify(value);
-        } else if (typeof value === 'string') {
-          strValue = value;
-        } else {
-          // eslint-disable-next-line @typescript-eslint/no-base-to-string
-          strValue = String(value);
-        }
+        const strValue = this.serializeXmlAttrValue(value);
         attrParts.push(`${key}="${this.escapeXml(strValue)}"`);
       }
     }
@@ -1032,8 +1031,7 @@ export class DocumentService {
 
       // Start WebSocket connection in BACKGROUND (fire-and-forget, non-blocking)
       // This allows the function to return immediately so the editor shows content
-      // eslint-disable-next-line @typescript-eslint/no-floating-promises
-      this.connectWebSocketInBackground(
+      void this.connectWebSocketInBackground(
         websocketUrl,
         documentId,
         ydoc,
@@ -1068,10 +1066,10 @@ export class DocumentService {
     }
 
     // Build core plugins - presence is added later once the live editor is connected.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
-    const plugins: Plugin<any>[] = [
-      ySyncPlugin(connection.type),
-      yUndoPlugin(),
+    // ySyncPlugin is typed as `any` by y-prosemirror, so narrow it here.
+    const plugins: Plugin[] = [
+      ySyncPlugin(connection.type) as Plugin,
+      yUndoPlugin() as Plugin,
     ];
 
     // Note: presence is NOT added here - it will be added dynamically when
