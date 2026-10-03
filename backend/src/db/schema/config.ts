@@ -683,6 +683,17 @@ export const CONFIG_KEYS = {
   // string (config values are text); parsed with parseSyncQuotaBytes so a
   // malformed or negative value falls back to the hard default rather than
   // silently disabling enforcement.
+  // Sync capacity (per-user storage quotas). Off by default so upgrading a
+  // self-hosted instance never starts refusing uploads; usage is still
+  // measured and shown either way.
+  SYNC_QUOTA_ENABLED: {
+    category: 'general' as ConfigCategory,
+    description:
+      'Enforce per-user sync capacity. When enabled, media uploads, published files and new projects are refused once an account reaches its allowance. Editing and syncing are never blocked.',
+    encrypted: false,
+    envVar: 'SYNC_QUOTA_ENABLED',
+    type: 'boolean' as const,
+  },
   SYNC_QUOTA_DEFAULT_BYTES: {
     category: 'general' as ConfigCategory,
     description:

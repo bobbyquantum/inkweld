@@ -1,6 +1,7 @@
 /**
  * Tests for Publish Complete Dialog Component
  */
+import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -26,6 +27,7 @@ describe('PublishCompleteDialogComponent', () => {
   let mockPublishedFilesService: {
     getShareUrl: Mock;
     updateSharePermission: Mock;
+    lastUploadRefusedForQuota: ReturnType<typeof signal<boolean>>;
   };
   let mockSetupService: { getMode: Mock };
 
@@ -60,6 +62,7 @@ describe('PublishCompleteDialogComponent', () => {
     mockPublishedFilesService = {
       getShareUrl: vi.fn().mockReturnValue('https://example.com/share/abc123'),
       updateSharePermission: vi.fn(),
+      lastUploadRefusedForQuota: signal(false),
     };
     mockSetupService = {
       getMode: vi.fn().mockReturnValue('server'),
@@ -79,6 +82,14 @@ describe('PublishCompleteDialogComponent', () => {
     component = TestBed.runInInjectionContext(
       () => new PublishCompleteDialogComponent()
     );
+  });
+
+  describe('sync capacity', () => {
+    it('exposes the quota refusal from the last upload', () => {
+      expect(component.quotaRefused()).toBe(false);
+      mockPublishedFilesService.lastUploadRefusedForQuota.set(true);
+      expect(component.quotaRefused()).toBe(true);
+    });
   });
 
   describe('Component Initialization', () => {

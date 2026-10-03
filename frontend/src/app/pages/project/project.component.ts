@@ -64,6 +64,8 @@ import { QuickOpenService } from '../../services/core/quick-open.service';
 import { StorageContextService } from '../../services/core/storage-context.service';
 import { RecentFilesService } from '../../services/project/recent-files.service';
 import { MediaAutoSyncService } from '../../services/sync/media-auto-sync.service';
+import { StorageUsageService } from '../../services/user/storage-usage.service';
+import { UnifiedUserService } from '../../services/user/unified-user.service';
 import { TabInterfaceComponent } from './tabs/tab-interface.component';
 
 @Component({
@@ -97,6 +99,8 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   protected readonly projectState = inject(ProjectStateService);
   protected readonly documentService = inject(DocumentService);
   protected readonly recentFilesService = inject(RecentFilesService);
+  protected readonly storageUsage = inject(StorageUsageService);
+  private readonly userService = inject(UnifiedUserService);
   protected readonly breakpointObserver = inject(BreakpointObserver);
   protected readonly snackBar = inject(MatSnackBar);
   protected readonly route = inject(ActivatedRoute);
@@ -176,6 +180,13 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
       ? this.cloudSync.lastError()
       : this.lastConnectionError()
   );
+
+  /**
+   * Last-known over-capacity state, surfaced on the sync strap. Only true on a
+   * server that enforces sync capacity. Loaded once per account (see
+   * `loadProjectIfActivated`), then kept fresh by quota refusals and meters.
+   */
+  protected readonly overQuota = this.storageUsage.overQuota;
 
   /** Elements document ID for storage stats hover */
   protected readonly elementsDocId = computed(() => {
@@ -397,6 +408,11 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
 
     // Start automated media sync for this project
     void this.mediaAutoSync.startAutoSync(`${username}/${slug}`);
+
+    // Sync-capacity state for the strap — once per account, not per project.
+    if (!this.isLocalMode() && !this.storageContext.isCloudMode()) {
+      void this.storageUsage.ensureLoaded(this.userService.currentUser()?.id);
+    }
 
     // No selectTab(0) here: loadProject already resets the selection, and
     // selectTab saves the (now empty) tab list over the cached tabs before

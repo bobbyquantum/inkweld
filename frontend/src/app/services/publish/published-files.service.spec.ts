@@ -15,6 +15,7 @@ import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
 import { StorageContextService } from '../core/storage-context.service';
 import { LocalStorageService } from '../local/local-storage.service';
+import { StorageUsageService } from '../user/storage-usage.service';
 import { PublishedFilesService } from './published-files.service';
 
 describe('PublishedFilesService', () => {
@@ -22,6 +23,7 @@ describe('PublishedFilesService', () => {
   let localStorageService: DeepMockProxy<LocalStorageService>;
   let logger: DeepMockProxy<LoggerService>;
   let setupService: DeepMockProxy<SetupService>;
+  let storageUsage: { load: ReturnType<typeof vi.fn> };
 
   const mockProjectKey = 'testuser/test-project';
 
@@ -57,6 +59,7 @@ describe('PublishedFilesService', () => {
     localStorageService = mockDeep<LocalStorageService>();
     logger = mockDeep<LoggerService>();
     setupService = mockDeep<SetupService>();
+    storageUsage = { load: vi.fn().mockResolvedValue(undefined) };
 
     // Default to offline mode
     setupService.getMode.mockReturnValue('local');
@@ -70,6 +73,7 @@ describe('PublishedFilesService', () => {
         { provide: LocalStorageService, useValue: localStorageService },
         { provide: LoggerService, useValue: logger },
         { provide: SetupService, useValue: setupService },
+        { provide: StorageUsageService, useValue: storageUsage },
         {
           provide: StorageContextService,
           useValue: {
@@ -309,6 +313,62 @@ describe('PublishedFilesService', () => {
       expect(result.format).toBe(PublishFormat.EPUB);
       // No shareToken since server upload failed
       expect(result.shareToken).toBeUndefined();
+    });
+  });
+
+  describe('sync capacity refusals', () => {
+    const request = {
+      filename: 'new-book.epub',
+      format: PublishFormat.EPUB,
+      mimeType: 'application/epub+zip',
+      planName: 'Default Export',
+      metadata: mockMetadata,
+    };
+
+    beforeEach(() => {
+      setupService.getMode.mockReturnValue('server');
+      localStorageService.saveMedia.mockResolvedValue(undefined);
+    });
+
+    it('flags a quota refusal and keeps the file locally', async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue({
+          ok: false,
+          status: 403,
+          json: () =>
+            Promise.resolve({
+              code: 'QUOTA_EXCEEDED',
+              reason: 'published_file',
+            }),
+        })
+      );
+
+      const result = await service.savePublishedFile(
+        mockProjectKey,
+        mockBlob,
+        request
+      );
+
+      expect(result.filename).toBe('new-book.epub');
+      expect(service.lastUploadRefusedForQuota()).toBe(true);
+      expect(storageUsage.load).toHaveBeenCalled();
+    });
+
+    it('does not flag an access-denied 403', async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue({
+          ok: false,
+          status: 403,
+          json: () => Promise.resolve({ error: 'Forbidden' }),
+        })
+      );
+
+      await service.savePublishedFile(mockProjectKey, mockBlob, request);
+
+      expect(service.lastUploadRefusedForQuota()).toBe(false);
+      expect(storageUsage.load).not.toHaveBeenCalled();
     });
   });
 

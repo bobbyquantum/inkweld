@@ -133,3 +133,18 @@ mat-dialog-actions {
     margin-right: 4px;
   }
 }
+
+.quota-refused {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 16px 0 0;
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--mat-sys-error-container);
+  color: var(--mat-sys-on-error-container);
+
+  mat-icon {
+    flex: 0 0 auto;
+  }
+}

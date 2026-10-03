@@ -27,6 +27,12 @@ import { firstValueFrom } from 'rxjs';
 
 import { AiKillSwitchDialogComponent } from './ai-kill-switch-dialog/ai-kill-switch-dialog.component';
 
+const BYTES_PER_MB = 1024 * 1024;
+/** Matches the server's 100 MB fallback (`DEFAULT_SYNC_QUOTA_BYTES`). */
+const DEFAULT_SYNC_QUOTA_MB = 100;
+/** Matches the server's 1 TiB ceiling (`MAX_SYNC_QUOTA_BYTES`). */
+const MAX_SYNC_QUOTA_MB = 1024 * 1024;
+
 @Component({
   selector: 'app-admin-settings',
   imports: [
@@ -72,6 +78,11 @@ export class AdminSettingsComponent implements OnInit {
 
   // Site URL state
   readonly siteUrl = signal('');
+
+  // Sync capacity (per-user storage quotas). Off by default on the server;
+  // the default allowance is stored in bytes but edited in MB.
+  readonly syncQuotaEnabled = signal(false);
+  readonly syncQuotaDefaultMb = signal(DEFAULT_SYNC_QUOTA_MB);
 
   // Branding / legal links state
   readonly privacyPolicyUrl = signal('');
@@ -147,6 +158,8 @@ export class AdminSettingsComponent implements OnInit {
         privacyPolicyContent,
         termsContent,
         requirePolicyAcceptance,
+        syncQuotaEnabled,
+        syncQuotaDefaultBytes,
       ] = await Promise.all([
         this.configService.getConfig('USER_APPROVAL_REQUIRED'),
         this.configService.getConfig('AI_KILL_SWITCH'),
@@ -168,6 +181,8 @@ export class AdminSettingsComponent implements OnInit {
         this.configService.getConfig('PRIVACY_POLICY_CONTENT'),
         this.configService.getConfig('TERMS_OF_SERVICE_CONTENT'),
         this.configService.getConfig('REQUIRE_POLICY_ACCEPTANCE'),
+        this.configService.getConfig('SYNC_QUOTA_ENABLED'),
+        this.configService.getConfig('SYNC_QUOTA_DEFAULT_BYTES'),
       ]);
 
       this.userApprovalRequired.set(userApproval?.value === 'true');
@@ -188,6 +203,15 @@ export class AdminSettingsComponent implements OnInit {
 
       // Site URL
       this.siteUrl.set(siteUrl?.value || '');
+
+      // Sync capacity
+      this.syncQuotaEnabled.set(syncQuotaEnabled?.value === 'true');
+      const defaultBytes = Number(syncQuotaDefaultBytes?.value);
+      this.syncQuotaDefaultMb.set(
+        Number.isFinite(defaultBytes) && defaultBytes >= 0
+          ? Math.round(defaultBytes / BYTES_PER_MB)
+          : DEFAULT_SYNC_QUOTA_MB
+      );
 
       // Branding / legal links
       this.privacyPolicyUrl.set(privacyPolicyUrl?.value || '');
@@ -392,6 +416,48 @@ export class AdminSettingsComponent implements OnInit {
       this.termsContent.set(trimmed);
     }
     this.systemConfigService.refreshSystemFeatures();
+  }
+
+  /** Turn sync-capacity enforcement on. */
+  async enableSyncQuota(): Promise<void> {
+    if (await this.saveStringConfig('SYNC_QUOTA_ENABLED', 'true')) {
+      this.syncQuotaEnabled.set(true);
+    }
+  }
+
+  /** Turn sync-capacity enforcement off (usage is still measured). */
+  async disableSyncQuota(): Promise<void> {
+    if (await this.saveStringConfig('SYNC_QUOTA_ENABLED', 'false')) {
+      this.syncQuotaEnabled.set(false);
+    }
+  }
+
+  /**
+   * Save the default per-user allowance. Entered in MB, stored in bytes. A
+   * blank, zero or out-of-range entry is rejected and the field restored: a
+   * zero default would lock every user without an override out of uploads.
+   */
+  async saveSyncQuotaDefaultMb(input: { value: string }): Promise<void> {
+    const mb = Number.parseInt(input.value, 10);
+    if (!Number.isFinite(mb) || mb <= 0 || mb > MAX_SYNC_QUOTA_MB) {
+      input.value = String(this.syncQuotaDefaultMb());
+      this.snackBar.open(
+        this.transloco.translate('admin.settings.syncQuotaDefaultInvalid'),
+        this.transloco.translate('close'),
+        { duration: 4000 }
+      );
+      return;
+    }
+    if (
+      await this.saveStringConfig(
+        'SYNC_QUOTA_DEFAULT_BYTES',
+        String(mb * BYTES_PER_MB)
+      )
+    ) {
+      this.syncQuotaDefaultMb.set(mb);
+    } else {
+      input.value = String(this.syncQuotaDefaultMb());
+    }
   }
 
   async toggleRequirePolicyAcceptance(enabled: boolean): Promise<void> {

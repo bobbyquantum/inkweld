@@ -59,7 +59,23 @@
     "deleteMessage": "Are you sure you want to permanently delete {{name}}? This action cannot be undone.",
     "deleted": "{{name}} has been deleted",
     "deleteFailed": "Failed to delete user",
-    "projectsAndStorage": "Projects & storage"
+    "projectsAndStorage": "Projects & storage",
+    "quota": "Sync capacity",
+    "quotaDefault": "Instance default",
+    "quotaUnlimitedOverride": "No override",
+    "setQuota": "Set capacity",
+    "quotaDialogTitle": "Sync capacity for {{username}}",
+    "quotaDialogMessage": "Grant this user a storage allowance. Leave blank (or use \"Use instance default\") to fall back to the instance-wide default.",
+    "quotaBytesLabel": "Allowance (MB)",
+    "quotaUseDefault": "Use instance default",
+    "quotaUpdated": "Sync capacity updated",
+    "quotaUpdateFailed": "Failed to update sync capacity",
+    "quotaUsed": "{{used}} used",
+    "storage": "Storage",
+    "storageUsed": "Used",
+    "storageQuota": "Allowance",
+    "quotaNotEnforced": "Sync capacity limits are off on this server, so this allowance is not enforced. Turn them on in Settings.",
+    "quotaInvalid": "Enter an allowance in MB, or use the instance default."
   },
   "projects": {
     "title": "{{username}} — Projects",
@@ -138,7 +154,13 @@
     "termsContent": "Terms of service text (Markdown)",
     "legalContentHint": "Shown at {{path}}. Takes precedence over the URL above.",
     "requirePolicyAcceptance": "Require acceptance",
-    "requirePolicyAcceptanceDesc": "New users must agree to these documents to register, and everyone is asked again whenever you change them (text or URL). Has no effect until at least one document is set."
+    "requirePolicyAcceptanceDesc": "New users must agree to these documents to register, and everyone is asked again whenever you change them (text or URL). Has no effect until at least one document is set.",
+    "syncQuota": "Sync capacity limits",
+    "syncQuotaDesc": "Limit how much server storage each account can use. When the limit is reached, new media uploads, published files and new projects are refused; editing and syncing existing work is never blocked.",
+    "syncQuotaDefault": "Default allowance per user",
+    "syncQuotaDefaultAria": "Default sync capacity per user in megabytes",
+    "syncQuotaHint": "Give individual users a different allowance from Users → Storage. Usage is measured and shown to users even while limits are off.",
+    "syncQuotaDefaultInvalid": "Enter a default allowance of at least 1 MB."
   },
   "killSwitchDialog": {
     "title": "Enable AI Features?",

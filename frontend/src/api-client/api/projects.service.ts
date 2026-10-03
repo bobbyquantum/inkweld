@@ -39,6 +39,8 @@ import { ProjectRenameRedirect } from '../model/project-rename-redirect';
 // @ts-ignore
 import { ProjectStorageSize } from '../model/project-storage-size';
 // @ts-ignore
+import { QuotaExceededError } from '../model/quota-exceeded-error';
+// @ts-ignore
 import { UpdateProjectRequest } from '../model/update-project-request';
 
 // @ts-ignore

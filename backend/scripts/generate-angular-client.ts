@@ -4,11 +4,13 @@
  * This script:
  * 1. Reads the openapi.json file
  * 2. Generates TypeScript Angular client code
- * 3. Outputs to frontend/src/api-client directory
+ * 3. Formats it with the frontend's prettier config
+ * 4. Outputs to frontend/src/api-client directory
  *
  * Prerequisites:
  * - openapi.json must exist (run `bun run generate:openapi` first)
  * - @openapitools/openapi-generator-cli must be installed
+ * - a Java runtime must be available (the generator is a JVM tool)
  *
  * Run with: bun run generate:angular-client
  */
@@ -21,6 +23,7 @@ function generateAngularClient() {
   const projectRoot = process.cwd();
   const openapiJsonPath = path.resolve(projectRoot, 'openapi.json');
   const outputDir = path.resolve(projectRoot, '../frontend/src/api-client');
+  const frontendDir = path.resolve(projectRoot, '../frontend');
 
   // Check if openapi.json exists
   if (!fs.existsSync(openapiJsonPath)) {
@@ -48,6 +51,18 @@ function generateAngularClient() {
     // Generate Angular client using config from openapitools.json
     // Use the generator config named 'angular-client' from openapitools.json
     execSync('npx @openapitools/openapi-generator-cli generate --generator-key angular-client', {
+      stdio: 'inherit',
+    });
+
+    // The generator emits its own formatting (4-space indent, trailing spaces)
+    // while the repository commits prettier-formatted output. Formatting here
+    // keeps every regeneration to just the real API changes — without it the
+    // diff is a whole-client reformat (~40k lines), which buries the actual
+    // change and makes the CI freshness check fail on an otherwise clean tree.
+    console.log('');
+    console.log('🎨 Formatting generated client with prettier...');
+    execSync('npx --no-install prettier --write "src/api-client/**/*.ts"', {
+      cwd: frontendDir,
       stdio: 'inherit',
     });
 

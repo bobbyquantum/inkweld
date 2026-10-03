@@ -148,7 +148,7 @@ export class MediaAutoSyncService implements OnDestroy {
         `Running ${trigger} sync for ${projectKey}`
       );
 
-      await this.mediaSyncService.fullSync(projectKey);
+      await this.mediaSyncService.fullSync(projectKey, { background: true });
 
       this.lastSyncTime.set(new Date().toISOString());
 

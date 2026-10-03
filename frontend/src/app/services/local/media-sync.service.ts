@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, signal } from '@angular/core';
 import { forEachConcurrent, forEachSequential } from '@inkweld/async';
 import { StorageContextService } from '@services/core/storage-context.service';
+import { StorageUsageService } from '@services/user/storage-usage.service';
 import { firstValueFrom } from 'rxjs';
 
 import { LocalStorageService, type MediaInfo } from './local-storage.service';
@@ -73,6 +74,22 @@ export interface MediaSyncState {
   error?: string;
   /** Download progress (0-100) */
   downloadProgress: number;
+  /**
+   * Uploads were refused because the owner's sync capacity is full. Pending
+   * files stay local (nothing is lost) until space is freed.
+   */
+  quotaExceeded?: boolean;
+}
+
+/**
+ * An upload refused for lack of sync capacity. Distinct from a network or
+ * server failure: retrying will not help until the owner frees space.
+ */
+export class MediaQuotaExceededError extends Error {
+  constructor(mediaId: string) {
+    super(`Sync capacity is full; ${mediaId} was not uploaded`);
+    this.name = 'MediaQuotaExceededError';
+  }
 }
 
 /**
@@ -81,6 +98,14 @@ export interface MediaSyncState {
  * and ordinary API calls responsive while a large library downloads.
  */
 const DOWNLOAD_CONCURRENCY = 4;
+
+/**
+ * After a quota refusal, background syncs stop re-trying uploads for this long.
+ * Each refused attempt can cost the server an authoritative usage recompute,
+ * so the minute-by-minute auto-sync must not keep knocking. A manual upload
+ * (or freeing space via this client) retries immediately.
+ */
+export const QUOTA_UPLOAD_PAUSE_MS = 15 * 60_000;
 
 const DEFAULT_STATE: MediaSyncState = {
   isSyncing: false,
@@ -121,6 +146,10 @@ export class MediaSyncService {
   private readonly localStorage = inject(LocalStorageService);
   private readonly projectSync = inject(ProjectSyncService);
   private readonly storageContext = inject(StorageContextService);
+  private readonly storageUsage = inject(StorageUsageService);
+
+  /** projectKey → time until which background uploads are paused (quota). */
+  private readonly uploadsPausedUntil = new Map<string, number>();
 
   /** Cache of sync states per project */
   private readonly syncStates = new Map<
@@ -249,6 +278,8 @@ export class MediaSyncService {
         needsUpload,
         items,
         downloadProgress: 0,
+        // A quota pause outlives a status refresh.
+        quotaExceeded: this.isUploadPaused(projectKey),
       };
 
       state.set(newState);
@@ -412,7 +443,14 @@ export class MediaSyncService {
       );
 
       const uploadUrl = `${this.storageContext.getApiBaseUrl()}/api/v1/media/${username}/${slug}`;
-      await firstValueFrom(this.http.post(uploadUrl, formData));
+      try {
+        await firstValueFrom(this.http.post(uploadUrl, formData));
+      } catch (error) {
+        if (this.storageUsage.noteQuotaError(error)) {
+          throw new MediaQuotaExceededError(mediaId);
+        }
+        throw error;
+      }
 
       // Clear from pending uploads
       await this.projectSync.clearPendingUpload(projectKey, mediaId);
@@ -426,24 +464,106 @@ export class MediaSyncService {
         ),
       }));
     } catch (error) {
+      const quotaExceeded = error instanceof MediaQuotaExceededError;
+      if (quotaExceeded) {
+        this.uploadsPausedUntil.set(
+          projectKey,
+          Date.now() + QUOTA_UPLOAD_PAUSE_MS
+        );
+      }
       // Revert status
       state.update(s => ({
         ...s,
         items: s.items.map(item =>
           item.mediaId === mediaId ? { ...item, status: 'local-only' } : item
         ),
-        error: `Failed to upload ${mediaId}`,
+        quotaExceeded: quotaExceeded || s.quotaExceeded,
+        error: quotaExceeded
+          ? `Sync capacity is full; ${mediaId} was not uploaded`
+          : `Failed to upload ${mediaId}`,
       }));
       throw error;
     }
   }
 
   /**
-   * Upload all pending local media to the server
+   * Whether background syncs should skip uploads for this project because the
+   * server recently refused one for lack of sync capacity.
    */
-  async uploadAllToServer(projectKey: string): Promise<void> {
+  isUploadPaused(projectKey: string): boolean {
+    const until = this.uploadsPausedUntil.get(projectKey);
+    if (until === undefined) return false;
+    if (Date.now() >= until) {
+      this.uploadsPausedUntil.delete(projectKey);
+      return false;
+    }
+    return true;
+  }
+
+  /** Lift a quota pause (space was freed, or the user retries manually). */
+  resumeUploads(projectKey: string): void {
+    this.uploadsPausedUntil.delete(projectKey);
+    this.getSyncState(projectKey).update(s => ({
+      ...s,
+      quotaExceeded: false,
+    }));
+  }
+
+  /**
+   * Delete a media file from the server, freeing its share of the owner's
+   * sync capacity. Resolves quietly when the server has no such file. Lifts a
+   * quota pause, since there may now be room for pending uploads.
+   */
+  async deleteFromServer(projectKey: string, mediaId: string): Promise<void> {
+    const response = await firstValueFrom(
+      this.http.get<ServerMediaListResponse>(this.getMediaUrl(projectKey))
+    );
+    const matches = response.items.filter(
+      item => this.filenameToMediaId(item.filename) === mediaId
+    );
+    // Sequential: a handful of variants at most, and each delete must finish
+    // before the item is dropped from local state.
+    await forEachSequential(matches, item =>
+      firstValueFrom(
+        this.http.delete(
+          `${this.getMediaUrl(projectKey)}/${encodeURIComponent(item.filename)}`
+        )
+      )
+    );
+
+    if (matches.length > 0) {
+      this.getSyncState(projectKey).update(s => ({
+        ...s,
+        items: s.items.filter(item => item.mediaId !== mediaId),
+      }));
+      this.resumeUploads(projectKey);
+    }
+  }
+
+  /**
+   * Upload all pending local media to the server.
+   *
+   * Background callers pass `{ background: true }`: while uploads are paused
+   * after a quota refusal they skip uploading entirely (downloads elsewhere
+   * still run). A manual upload always tries, and lifts the pause.
+   */
+  async uploadAllToServer(
+    projectKey: string,
+    options: { background?: boolean } = {}
+  ): Promise<void> {
+    if (options.background && this.isUploadPaused(projectKey)) {
+      return;
+    }
+    if (!options.background) {
+      this.uploadsPausedUntil.delete(projectKey);
+    }
     const state = this.getSyncState(projectKey);
-    state.update(s => ({ ...s, isSyncing: true, error: undefined }));
+    state.update(s => ({
+      ...s,
+      isSyncing: true,
+      error: undefined,
+      quotaExceeded: false,
+    }));
 
     try {
       const currentState = state();
@@ -474,9 +594,13 @@ export class MediaSyncService {
   }
 
   /**
-   * Full bidirectional sync: download missing from server, upload local changes
+   * Full bidirectional sync: download missing from server, upload local changes.
+   * `background` honours a quota pause (see {@link uploadAllToServer}).
    */
-  async fullSync(projectKey: string): Promise<void> {
+  async fullSync(
+    projectKey: string,
+    options: { background?: boolean } = {}
+  ): Promise<void> {
     // First check status
     await this.checkSyncStatus(projectKey);
 
@@ -484,7 +608,7 @@ export class MediaSyncService {
     await this.downloadAllFromServer(projectKey);
 
     // Then upload local changes
-    await this.uploadAllToServer(projectKey);
+    await this.uploadAllToServer(projectKey, options);
   }
 
   /**

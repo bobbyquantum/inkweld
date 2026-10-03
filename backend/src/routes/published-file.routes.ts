@@ -9,8 +9,10 @@ import { requireAuth } from '../middleware/auth';
 import { projectService } from '../services/project.service';
 import { activityService } from '../services/activity.service';
 import { getStorageService } from '../services/storage.service';
+import { quotaService } from '../services/quota.service';
+import { quotaStorageContext } from '../utils/quota-context';
 import { publishedFiles, type SharePermission } from '../db/schema';
-import { ProjectPathParamsSchema } from '../schemas/common.schemas';
+import { ProjectPathParamsSchema, QuotaExceededSchema } from '../schemas/common.schemas';
 import {
   PublishedFileSchema,
   CreatePublishedFileRequestSchema,
@@ -157,8 +159,10 @@ const createPublishedFileRoute = createRoute({
       description: 'Not authenticated',
     },
     403: {
-      content: { 'application/json': { schema: PublishedFileErrorSchema } },
-      description: 'Access denied',
+      content: {
+        'application/json': { schema: z.union([PublishedFileErrorSchema, QuotaExceededSchema]) },
+      },
+      description: 'Access denied, or sync capacity exceeded (QUOTA_EXCEEDED)',
     },
     404: {
       content: { 'application/json': { schema: PublishedFileErrorSchema } },
@@ -219,6 +223,15 @@ publishedFileRoutes.openapi(createPublishedFileRoute, async (c) => {
   // Store the file blob in published subdirectory
   const storageFilename = `published/${fileId}`;
   const arrayBuffer = await file.arrayBuffer();
+
+  // Published output counts against the owner's sync capacity like media does.
+  await quotaService.assertCanStore(
+    db,
+    project.userId,
+    arrayBuffer.byteLength,
+    'published_file',
+    quotaStorageContext(c)
+  );
   await storage.saveProjectFile(
     username,
     slug,
@@ -568,6 +581,7 @@ publishedFileRoutes.openapi(deletePublishedFileRoute, async (c) => {
 
   // Delete from database
   await db.delete(publishedFiles).where(eq(publishedFiles.id, fileId));
+  await quotaService.recordDeletion(db, project.userId, file.size);
 
   return c.json({ message: 'File deleted successfully' }, 200);
 });

@@ -16,6 +16,9 @@ import { imageProfileService } from '../../services/image-profile.service';
 import { imageService } from '../../services/image.service';
 import { projectService } from '../../services/project.service';
 import { getStorageService } from '../../services/storage.service';
+import { quotaService } from '../../services/quota.service';
+import { QuotaExceededError } from '../../errors';
+import { storedProjectFileSize } from '../../utils/quota-context';
 import { updateWorldbuilding, updateProjectMetaCoverMediaId } from './yjs-runtime';
 import type {
   ImageProviderType,
@@ -216,6 +219,34 @@ interface ImageContext {
   storageService: ReturnType<typeof getStorageService>;
   username: string;
   slug: string;
+  projectId: string;
+}
+
+/**
+ * Charge an image write to the project owner's sync capacity before saving
+ * it. `replacing` names a file the write overwrites or supersedes, so only the
+ * growth counts. Throws {@link QuotaExceededError}, which the tool handler
+ * turns into a readable tool error.
+ */
+async function chargeImageWrite(
+  ic: ImageContext,
+  bytes: number,
+  replacing?: string | null
+): Promise<void> {
+  const db = ic.db as DatabaseInstance;
+  const project = await projectService.findById(db, ic.projectId);
+  if (!project) return;
+  const replacedBytes = replacing
+    ? await storedProjectFileSize(ic.storageService, ic.username, ic.slug, replacing)
+    : 0;
+  await quotaService.assertCanStore(
+    db,
+    project.userId,
+    bytes,
+    'media_upload',
+    { r2: ic.ctx.env?.STORAGE as never, env: ic.ctx.env as never, authToken: ic.ctx.authToken },
+    replacedBytes
+  );
 }
 
 type AcquireResult = { image: AcquiredImage } | { error: McpToolResult };
@@ -419,12 +450,14 @@ async function applyToProjectCover(
   const savedFilename = `cover-${Date.now()}.jpg`;
   const savedMediaUrl = `media://${savedFilename}`;
 
-  // Delete old cover file if it exists
   const project = await projectService.findByUsernameAndSlug(
     ic.db as DatabaseInstance,
     ic.username,
     ic.slug
   );
+  await chargeImageWrite(ic, processedImage.length, project?.coverImage);
+
+  // Delete old cover file if it exists
   if (project?.coverImage && project.coverImage !== savedFilename) {
     try {
       await ic.storageService.deleteProjectFile(ic.username, ic.slug, project.coverImage);
@@ -481,6 +514,8 @@ async function applyToElementImage(
   const savedFilename = `element-${elementId}.${extension}`;
   const savedMediaUrl = `media://${savedFilename}`;
 
+  await chargeImageWrite(ic, imageBuffer.length, savedFilename);
+
   await ic.storageService.saveProjectFile(
     ic.username,
     ic.slug,
@@ -527,6 +562,8 @@ async function saveAndReturnImage(
   const extension = imageMimeType === 'image/jpeg' ? 'jpg' : 'png';
   const savedFilename = `generated-${Date.now()}.${extension}`;
   const savedMediaUrl = `media://${savedFilename}`;
+
+  await chargeImageWrite(ic, imageBuffer.length);
 
   await ic.storageService.saveProjectFile(
     ic.username,
@@ -1025,7 +1062,7 @@ registerTool({
     try {
       const storageService = getStorageServiceForContext(ctx);
 
-      const ic: ImageContext = { db, ctx, storageService, username, slug };
+      const ic: ImageContext = { db, ctx, storageService, username, slug, projectId };
 
       // Step 1: Acquire image buffer
       let acquireResult: AcquireResult;
@@ -1046,11 +1083,11 @@ registerTool({
 
       // Step 2: Apply to target
       if (target === 'projectCover') {
-        return applyToProjectCover(ic, projectId, imageBuffer, source, generationMeta);
+        return await applyToProjectCover(ic, projectId, imageBuffer, source, generationMeta);
       }
 
       if (target === 'elementImage') {
-        return applyToElementImage(
+        return await applyToElementImage(
           ic,
           elementId as string,
           imageBuffer,
@@ -1062,7 +1099,7 @@ registerTool({
 
       // target === 'none'
       if (source === 'upload' || source === 'generate') {
-        return saveAndReturnImage(ic, imageBuffer, imageMimeType, source, generationMeta);
+        return await saveAndReturnImage(ic, imageBuffer, imageMimeType, source, generationMeta);
       }
 
       // source === 'media' + target === 'none': just confirm the media exists
@@ -1083,6 +1120,20 @@ registerTool({
         },
       };
     } catch (err) {
+      if (err instanceof QuotaExceededError) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text:
+                `Error: the project owner's sync capacity is full ` +
+                `(${err.usedBytes} of ${err.quotaBytes} bytes used). ` +
+                'Free up space by deleting media or projects, or ask an administrator for more.',
+            },
+          ],
+          isError: true,
+        };
+      }
       mcpImageLog.error('Error in apply_image', err);
       return { content: [{ type: 'text', text: `Error in apply_image: ${err}` }], isError: true };
     }

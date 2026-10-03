@@ -4,10 +4,12 @@ import { MAX_IMAGE_UPLOAD_BYTES, MULTIPART_OVERHEAD_BYTES } from '../utils/uploa
 import { requireAuth } from '../middleware/auth';
 import { imageService } from '../services/image.service';
 import { getStorageService } from '../services/storage.service';
+import { quotaService } from '../services/quota.service';
+import { quotaStorageContext, storedProjectFileSize } from '../utils/quota-context';
 import { projectService } from '../services/project.service';
 import { UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError } from '../errors';
 import { type AppContext } from '../types/context';
-import { ProjectPathParamsSchema } from '../schemas/common.schemas';
+import { ProjectPathParamsSchema, QuotaExceededSchema } from '../schemas/common.schemas';
 
 const imageRoutes = new OpenAPIHono<AppContext>();
 
@@ -81,10 +83,10 @@ const uploadCoverRoute = createRoute({
     403: {
       content: {
         'application/json': {
-          schema: ErrorSchema,
+          schema: z.union([ErrorSchema, QuotaExceededSchema]),
         },
       },
-      description: 'Access denied',
+      description: 'Access denied, or sync capacity exceeded (QUOTA_EXCEEDED)',
     },
     404: {
       content: {
@@ -141,6 +143,19 @@ imageRoutes.openapi(uploadCoverRoute, async (c) => {
 
   // Generate unique cover filename
   const coverFilename = `cover-${Date.now()}.jpg`;
+
+  // Sync capacity: a cover replaces the previous one, so only the growth counts.
+  const previousCoverBytes = project.coverImage
+    ? await storedProjectFileSize(storage, username, slug, project.coverImage)
+    : 0;
+  await quotaService.assertCanStore(
+    db,
+    project.userId,
+    processedImage.byteLength,
+    'media_upload',
+    quotaStorageContext(c),
+    previousCoverBytes
+  );
 
   // Delete old cover file if it exists (different filename)
   if (project.coverImage && project.coverImage !== coverFilename) {
@@ -298,10 +313,11 @@ imageRoutes.openapi(deleteCoverRoute, async (c) => {
     throw new NotFoundError('Cover image not found');
   }
 
-  const exists = await storage.projectFileExists(username, slug, coverFilename);
+  const coverBytes = await storedProjectFileSize(storage, username, slug, coverFilename);
 
-  if (exists) {
+  if (coverBytes > 0) {
     await storage.deleteProjectFile(username, slug, coverFilename);
+    await quotaService.recordDeletion(db, project.userId, coverBytes);
   }
 
   // Update project to clear coverImage field

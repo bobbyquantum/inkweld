@@ -14,6 +14,7 @@ import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
 import { StorageContextService } from '../core/storage-context.service';
 import { LocalStorageService } from '../local/local-storage.service';
+import { StorageUsageService } from '../user/storage-usage.service';
 
 /**
  * Storage key prefix for published file metadata in IndexedDB
@@ -47,6 +48,14 @@ export class PublishedFilesService {
   private readonly logger = inject(LoggerService);
   private readonly setupService = inject(SetupService);
   private readonly storageContext = inject(StorageContextService);
+  private readonly storageUsage = inject(StorageUsageService);
+
+  /**
+   * Whether the most recent server upload was refused because the owner's
+   * sync capacity is full. The file is still saved on this device; only
+   * sharing it from the server is unavailable.
+   */
+  readonly lastUploadRefusedForQuota = signal(false);
 
   /** Current project's published files (reactive) */
   private readonly filesSubject = new BehaviorSubject<PublishedFile[]>([]);
@@ -170,6 +179,7 @@ export class PublishedFilesService {
     this.filesSubject.next(files);
 
     // Upload to server if online
+    this.lastUploadRefusedForQuota.set(false);
     if (this.isOnline()) {
       try {
         const serverFile = await this.uploadToServer(projectKey, blob, request);
@@ -415,6 +425,17 @@ export class PublishedFilesService {
     }
   }
 
+  /** Flag a sync-capacity refusal (403 with `code: 'QUOTA_EXCEEDED'`). */
+  private async noteQuotaRefusal(response: Response): Promise<void> {
+    const body = (await response.json().catch(() => null)) as {
+      code?: string;
+    } | null;
+    if (body?.code === 'QUOTA_EXCEEDED') {
+      this.lastUploadRefusedForQuota.set(true);
+      void this.storageUsage.load();
+    }
+  }
+
   private async uploadToServer(
     projectKey: string,
     blob: Blob,
@@ -437,6 +458,9 @@ export class PublishedFilesService {
       );
 
       if (!response.ok) {
+        if (response.status === 403) {
+          await this.noteQuotaRefusal(response);
+        }
         return null;
       }
 

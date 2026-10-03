@@ -7,9 +7,13 @@ import {
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
+import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
+import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import type { AdminUserProjects } from '@inkweld/model/admin-user-projects';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
@@ -20,14 +24,23 @@ export interface AdminUserProjectsDialogData {
   username: string;
 }
 
+/** 1 MiB, used to present the byte allowance as an editable MB field. */
+const MEBIBYTE = 1024 * 1024;
+/** The server's ceiling (`MAX_SYNC_QUOTA_BYTES`, 1 TiB); larger values get a 400. */
+const MAX_QUOTA_BYTES = 1024 * 1024 * MEBIBYTE;
+
 @Component({
   selector: 'app-admin-user-projects-dialog',
   imports: [
     MatButtonModule,
     MatCardModule,
+    MatCheckboxModule,
     MatDialogModule,
+    MatFormFieldModule,
     MatIconModule,
+    MatInputModule,
     MatProgressSpinnerModule,
+    MatSnackBarModule,
     MatTooltipModule,
     TranslocoModule,
   ],
@@ -38,6 +51,7 @@ export interface AdminUserProjectsDialogData {
 export class AdminUserProjectsDialogComponent implements OnInit {
   private readonly adminService = inject(AdminService);
   private readonly transloco = inject(TranslocoService);
+  private readonly snackBar = inject(MatSnackBar);
 
   readonly userId: string;
   readonly username: string;
@@ -45,6 +59,11 @@ export class AdminUserProjectsDialogComponent implements OnInit {
   readonly data = signal<AdminUserProjects | null>(null);
   readonly isLoading = signal(true);
   readonly error = signal<string | null>(null);
+
+  /** Editable allowance (in MB); `null` means "use the instance default". */
+  readonly quotaMb = signal<number | null>(null);
+  readonly useDefaultQuota = signal(true);
+  readonly isSavingQuota = signal(false);
 
   constructor() {
     const injected = inject<AdminUserProjectsDialogData>(MAT_DIALOG_DATA);
@@ -63,6 +82,7 @@ export class AdminUserProjectsDialogComponent implements OnInit {
       .listUserProjects(this.userId)
       .then(result => {
         this.data.set(result);
+        this.syncQuotaForm(result);
         this.isLoading.set(false);
       })
       .catch(err => {
@@ -70,6 +90,70 @@ export class AdminUserProjectsDialogComponent implements OnInit {
         this.error.set(this.transloco.translate('admin.projects.loadFailed'));
         this.isLoading.set(false);
       });
+  }
+
+  /** Track the MB field; an empty or non-numeric entry clears it. */
+  onQuotaMbInput(value: string): void {
+    const parsed = Number.parseFloat(value);
+    this.quotaMb.set(Number.isFinite(parsed) ? parsed : null);
+  }
+
+  /** Seed the quota editor from the loaded override (null = instance default). */
+  private syncQuotaForm(result: AdminUserProjects): void {
+    const override = result.syncQuotaBytes;
+    this.useDefaultQuota.set(override === null);
+    this.quotaMb.set(
+      override === null ? null : Math.round(override / MEBIBYTE)
+    );
+  }
+
+  /** Toggle between the instance default and an explicit override. */
+  onUseDefaultChange(useDefault: boolean): void {
+    this.useDefaultQuota.set(useDefault);
+    if (!useDefault && this.quotaMb() === null) {
+      // Seed the field with the current effective allowance so the admin edits
+      // a sensible starting point rather than a blank.
+      const current = this.data()?.effectiveQuotaBytes ?? 0;
+      this.quotaMb.set(Math.round(current / MEBIBYTE));
+    }
+  }
+
+  async saveQuota(): Promise<void> {
+    const mb = this.quotaMb();
+    // An empty field in override mode is not "zero": a 0-byte override would
+    // block every upload for this user. Ask for a value instead.
+    if (!this.useDefaultQuota() && mb === null) {
+      this.snackBar.open(
+        this.transloco.translate('admin.users.quotaInvalid'),
+        this.transloco.translate('close'),
+        { duration: 4000 }
+      );
+      return;
+    }
+    const bytes =
+      mb === null || this.useDefaultQuota()
+        ? null
+        : Math.min(MAX_QUOTA_BYTES, Math.max(0, Math.round(mb * MEBIBYTE)));
+
+    this.isSavingQuota.set(true);
+    try {
+      await this.adminService.setUserQuota(this.userId, bytes);
+      this.snackBar.open(
+        this.transloco.translate('admin.users.quotaUpdated'),
+        this.transloco.translate('close'),
+        { duration: 3000 }
+      );
+      this.refresh();
+    } catch (err) {
+      console.error('Failed to set quota:', err);
+      this.snackBar.open(
+        this.transloco.translate('admin.users.quotaUpdateFailed'),
+        this.transloco.translate('close'),
+        { duration: 3000 }
+      );
+    } finally {
+      this.isSavingQuota.set(false);
+    }
   }
 
   formatBytes(bytes: number): string {

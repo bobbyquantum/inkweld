@@ -1,13 +1,19 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Observable, of, throwError } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import {
+  getQuotaExceeded,
+  StorageUsageService,
+} from '../user/storage-usage.service';
 import { LocalStorageService } from './local-storage.service';
 import {
+  MediaQuotaExceededError,
   MediaSyncService,
+  QUOTA_UPLOAD_PAUSE_MS,
   type ServerMediaListResponse,
 } from './media-sync.service';
 import { ProjectSyncService } from './project-sync.service';
@@ -17,7 +23,9 @@ describe('MediaSyncService', () => {
   let httpMock: {
     get: ReturnType<typeof vi.fn>;
     post: ReturnType<typeof vi.fn>;
+    delete: ReturnType<typeof vi.fn>;
   };
+  let storageUsageMock: { noteQuotaError: ReturnType<typeof vi.fn> };
   let localStorageMock: {
     listMedia: ReturnType<typeof vi.fn>;
     getMedia: ReturnType<typeof vi.fn>;
@@ -36,6 +44,10 @@ describe('MediaSyncService', () => {
     httpMock = {
       get: vi.fn(),
       post: vi.fn(),
+      delete: vi.fn().mockReturnValue(of({})),
+    };
+    storageUsageMock = {
+      noteQuotaError: vi.fn((error: unknown) => getQuotaExceeded(error)),
     };
 
     localStorageMock = {
@@ -56,6 +68,7 @@ describe('MediaSyncService', () => {
         { provide: HttpClient, useValue: httpMock },
         { provide: LocalStorageService, useValue: localStorageMock },
         { provide: ProjectSyncService, useValue: projectSyncMock },
+        { provide: StorageUsageService, useValue: storageUsageMock },
       ],
     });
 
@@ -999,6 +1012,167 @@ describe('MediaSyncService', () => {
       const result = await service.checkSyncStatus(TEST_PROJECT_KEY);
 
       expect(result.items[0].size).toBe(0);
+    });
+  });
+
+  describe('sync capacity', () => {
+    const quotaError = () =>
+      new HttpErrorResponse({
+        status: 403,
+        error: {
+          code: 'QUOTA_EXCEEDED',
+          usedBytes: 100,
+          quotaBytes: 100,
+          reason: 'media_upload',
+        },
+      });
+
+    function seedLocalOnly(...ids: string[]): void {
+      service.getSyncState(TEST_PROJECT_KEY).update(s => ({
+        ...s,
+        needsUpload: ids.length,
+        items: ids.map(mediaId => ({
+          mediaId,
+          size: 10,
+          mimeType: 'image/png',
+          status: 'local-only' as const,
+        })),
+      }));
+    }
+
+    beforeEach(() => {
+      localStorageMock.getMedia.mockResolvedValue(
+        new Blob(['x'], { type: 'image/png' })
+      );
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('turns a quota refusal into MediaQuotaExceededError and flags the state', async () => {
+      seedLocalOnly('a');
+      httpMock.post.mockReturnValue(throwError(quotaError));
+
+      await expect(
+        service.uploadToServer(TEST_PROJECT_KEY, 'a')
+      ).rejects.toBeInstanceOf(MediaQuotaExceededError);
+
+      const state = service.getSyncState(TEST_PROJECT_KEY)();
+      expect(state.quotaExceeded).toBe(true);
+      expect(state.items[0].status).toBe('local-only');
+      expect(storageUsageMock.noteQuotaError).toHaveBeenCalled();
+      expect(service.isUploadPaused(TEST_PROJECT_KEY)).toBe(true);
+    });
+
+    it('does not treat an access-denied 403 as a quota refusal', async () => {
+      seedLocalOnly('a');
+      httpMock.post.mockReturnValue(
+        throwError(
+          () => new HttpErrorResponse({ status: 403, error: { message: 'no' } })
+        )
+      );
+
+      await expect(
+        service.uploadToServer(TEST_PROJECT_KEY, 'a')
+      ).rejects.toBeInstanceOf(HttpErrorResponse);
+      expect(service.isUploadPaused(TEST_PROJECT_KEY)).toBe(false);
+    });
+
+    it('stops the batch at the first quota refusal', async () => {
+      seedLocalOnly('a', 'b', 'c');
+      httpMock.post.mockReturnValue(throwError(quotaError));
+
+      await expect(
+        service.uploadAllToServer(TEST_PROJECT_KEY)
+      ).rejects.toBeInstanceOf(MediaQuotaExceededError);
+      expect(httpMock.post).toHaveBeenCalledTimes(1);
+    });
+
+    it('skips background uploads while paused, but a manual upload retries', async () => {
+      seedLocalOnly('a');
+      httpMock.post.mockReturnValueOnce(throwError(quotaError));
+      await expect(
+        service.uploadAllToServer(TEST_PROJECT_KEY, { background: true })
+      ).rejects.toBeInstanceOf(MediaQuotaExceededError);
+
+      httpMock.post.mockReturnValue(of({}));
+      await service.uploadAllToServer(TEST_PROJECT_KEY, { background: true });
+      expect(httpMock.post).toHaveBeenCalledTimes(1);
+
+      await service.uploadAllToServer(TEST_PROJECT_KEY);
+      expect(httpMock.post).toHaveBeenCalledTimes(2);
+      expect(service.isUploadPaused(TEST_PROJECT_KEY)).toBe(false);
+    });
+
+    it('lifts the pause once it expires', async () => {
+      vi.useFakeTimers();
+      seedLocalOnly('a');
+      httpMock.post.mockReturnValue(throwError(quotaError));
+      await expect(
+        service.uploadToServer(TEST_PROJECT_KEY, 'a')
+      ).rejects.toBeInstanceOf(MediaQuotaExceededError);
+
+      vi.advanceTimersByTime(QUOTA_UPLOAD_PAUSE_MS + 1);
+
+      expect(service.isUploadPaused(TEST_PROJECT_KEY)).toBe(false);
+    });
+
+    it('keeps the quota flag across a status refresh while paused', async () => {
+      seedLocalOnly('a');
+      httpMock.post.mockReturnValue(throwError(quotaError));
+      await expect(
+        service.uploadToServer(TEST_PROJECT_KEY, 'a')
+      ).rejects.toBeInstanceOf(MediaQuotaExceededError);
+
+      httpMock.get.mockReturnValue(of({ items: [], total: 0 }));
+      await service.checkSyncStatus(TEST_PROJECT_KEY);
+
+      expect(service.getSyncState(TEST_PROJECT_KEY)().quotaExceeded).toBe(true);
+    });
+
+    it('deletes every server copy of a media id and lifts the pause', async () => {
+      seedLocalOnly('a');
+      httpMock.post.mockReturnValue(throwError(quotaError));
+      await expect(
+        service.uploadToServer(TEST_PROJECT_KEY, 'a')
+      ).rejects.toBeInstanceOf(MediaQuotaExceededError);
+
+      httpMock.get.mockReturnValue(
+        of({
+          items: [
+            { filename: 'img-1.png', size: 10 },
+            { filename: 'other.png', size: 10 },
+          ],
+          total: 2,
+        })
+      );
+      await service.deleteFromServer(TEST_PROJECT_KEY, 'img-1');
+
+      expect(httpMock.delete).toHaveBeenCalledTimes(1);
+      expect(httpMock.delete.mock.calls[0][0]).toContain(
+        '/api/v1/media/alice/my-novel/img-1.png'
+      );
+      expect(service.isUploadPaused(TEST_PROJECT_KEY)).toBe(false);
+    });
+
+    it('does nothing when the server has no copy', async () => {
+      httpMock.get.mockReturnValue(of({ items: [], total: 0 }));
+
+      await service.deleteFromServer(TEST_PROJECT_KEY, 'missing');
+
+      expect(httpMock.delete).not.toHaveBeenCalled();
+    });
+
+    it('propagates a failed delete so the caller keeps the local copy', async () => {
+      httpMock.get.mockReturnValue(
+        of({ items: [{ filename: 'a.png', size: 1 }], total: 1 })
+      );
+      httpMock.delete.mockReturnValue(throwError(() => new Error('offline')));
+
+      await expect(
+        service.deleteFromServer(TEST_PROJECT_KEY, 'a')
+      ).rejects.toThrow('offline');
     });
   });
 });

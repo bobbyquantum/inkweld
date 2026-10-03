@@ -15,8 +15,10 @@
  * the reconciled value as truth; the counter exists to avoid recomputing on
  * every request, not to replace the recompute.
  *
- * Nothing here blocks a request — Phase 3 enforcement decides what to do with
- * these numbers.
+ * Enforcement is opt-in per instance (`SYNC_QUOTA_ENABLED`, default off) so an
+ * upgrade never starts refusing uploads on a self-hosted server. While it is
+ * off, usage is still measured and reported, but {@link QuotaService.assertCanStore}
+ * never refuses.
  */
 
 import { eq, sql } from 'drizzle-orm';
@@ -33,6 +35,7 @@ import {
   resolveSyncQuotaBytes,
 } from '../utils/sync-quota';
 import { logger } from './logger.service';
+import { QuotaExceededError, type QuotaExceededReason } from '../errors';
 
 const quotaLog = logger.child('Quota');
 
@@ -44,6 +47,24 @@ export const SOFT_QUOTA_FRACTION = 0.8;
 
 /** Bound on simultaneous per-project size calculations. */
 const SIZE_CONCURRENCY = 5;
+
+/**
+ * How long a reconciled counter is trusted before a refusal pays for another
+ * authoritative recompute. Without this, a client retrying a refused upload
+ * (media auto-sync runs every minute) would walk every project's storage — or
+ * page every Durable Object — on each attempt. Deletions update the counter
+ * directly, so a user who frees space is not held to the stale figure.
+ */
+export const RECONCILE_COOLDOWN_MS = 60_000;
+
+/**
+ * How long a reconciled counter may drive the *accepting* fast path. The
+ * counter only tracks writes the server sees (uploads, deletions); Yjs
+ * document growth never reaches it, so a counter that is never re-measured
+ * drifts low and would let an account keep uploading past its real allowance.
+ * Past this age the next gated write pays for a recompute first.
+ */
+export const RECONCILE_MAX_AGE_MS = 10 * 60_000;
 
 /** Storage bindings needed to compute authoritative usage on both runtimes. */
 export type QuotaStorageEnv = Partial<CloudflareSizeEnv>;
@@ -70,7 +91,29 @@ export interface ProjectUsage {
   totalBytes: number;
 }
 
+/** Storage context needed to reconcile on the write path. */
+export interface QuotaStorageContext {
+  r2?: R2Bucket;
+  env?: QuotaStorageEnv;
+  authToken?: string;
+}
+
+type EnforcementUser = {
+  id: string;
+  username?: string | null;
+  storageUsedBytes?: number | null;
+  syncQuotaBytes?: number | null;
+};
+
 class QuotaService {
+  /** userId → time of the last authoritative reconcile (per isolate/process). */
+  private readonly lastReconciledAt = new Map<string, number>();
+
+  /** Whether the instance refuses writes past the allowance. */
+  async isEnabled(db: DatabaseInstance): Promise<boolean> {
+    return configService.getBoolean(db, 'SYNC_QUOTA_ENABLED');
+  }
+
   /**
    * The allowance that applies to a user: their override when set, otherwise
    * the instance-wide `SYNC_QUOTA_DEFAULT_BYTES` config (100 MB fallback).
@@ -166,12 +209,27 @@ class QuotaService {
     authToken = ''
   ): Promise<number> {
     const { usedBytes } = await this.computeUsage(db, user, r2, env, authToken);
-    try {
-      await db.update(users).set({ storageUsedBytes: usedBytes }).where(eq(users.id, user.id));
-    } catch (error) {
-      quotaLog.warn(`Failed to persist reconciled usage for user ${user.id}`, { error });
-    }
+    await this.persistUsage(db, user.id, usedBytes);
     return usedBytes;
+  }
+
+  /**
+   * Store an authoritative figure (from {@link reconcile} or a caller that
+   * already ran {@link computeUsage}) and start the refusal cooldown.
+   */
+  async persistUsage(db: DatabaseInstance, userId: string, usedBytes: number): Promise<void> {
+    this.lastReconciledAt.set(userId, Date.now());
+    try {
+      await db.update(users).set({ storageUsedBytes: usedBytes }).where(eq(users.id, userId));
+    } catch (error) {
+      quotaLog.warn(`Failed to persist reconciled usage for user ${userId}`, { error });
+    }
+  }
+
+  /** Forget the cooldown (tests, and after an admin changes an allowance). */
+  clearReconcileCooldown(userId?: string): void {
+    if (userId === undefined) this.lastReconciledAt.clear();
+    else this.lastReconciledAt.delete(userId);
   }
 
   /**
@@ -236,6 +294,132 @@ class QuotaService {
       overQuota,
       overSoftLimit: safeQuota === 0 ? true : safeUsed >= safeQuota * SOFT_QUOTA_FRACTION,
     };
+  }
+
+  /**
+   * Decide whether a write of `additionalBytes` must be refused, reconciling
+   * first when the cheap counter suggests it would cross the line.
+   *
+   * The cached counter can drift high (a deletion never counted) or low (Yjs
+   * document growth is never counted). So the counter only decides on its own
+   * while it is fresh: it may accept a write for {@link RECONCILE_MAX_AGE_MS}
+   * after a recompute, and refuse one for {@link RECONCILE_COOLDOWN_MS}.
+   * Otherwise the authoritative usage is recomputed first. A burst of uploads
+   * pays for one recompute, not one each.
+   */
+  async checkEnforcement(
+    db: DatabaseInstance,
+    user: {
+      id: string;
+      username?: string | null;
+      storageUsedBytes?: number | null;
+      syncQuotaBytes?: number | null;
+    },
+    additionalBytes: number,
+    r2?: R2Bucket,
+    env?: QuotaStorageEnv,
+    authToken = ''
+  ): Promise<QuotaUsage> {
+    const quotaBytes = await this.getEffectiveQuota(db, user);
+    const cached = Math.max(0, user.storageUsedBytes ?? 0);
+    const needed = Math.max(0, additionalBytes);
+
+    const reconciledAt = this.lastReconciledAt.get(user.id);
+    const age = reconciledAt === undefined ? Infinity : Date.now() - reconciledAt;
+
+    // Fast path: a recently measured counter that says the write fits.
+    if (age < RECONCILE_MAX_AGE_MS && cached + needed <= quotaBytes) {
+      return this.toQuotaUsage(cached, quotaBytes);
+    }
+
+    // The counter was reconciled moments ago (and deletions since then were
+    // recorded on it), so it is as good as a recompute — trust it to refuse.
+    if (age < RECONCILE_COOLDOWN_MS) {
+      return this.toQuotaUsage(cached, quotaBytes);
+    }
+
+    // Stale, or the counter says "over": measure reality before deciding.
+    const authoritative = await this.reconcile(db, user, r2, env, authToken);
+    return this.toQuotaUsage(authoritative, quotaBytes);
+  }
+
+  /**
+   * Gate a write that adds `bytes` to the account that owns it: refuse with a
+   * {@link QuotaExceededError} when it would not fit, otherwise count it.
+   *
+   * Every route that grows a project's stored footprint (media upload, cover
+   * image, published file, MCP-generated image) goes through here, so the
+   * refusal body and the accounting stay identical. A no-op when enforcement
+   * is disabled or the owner row is missing.
+   *
+   * `replacedBytes` is the size of a file this write overwrites, so replacing
+   * an image with one of the same size is not counted twice.
+   */
+  async assertCanStore(
+    db: DatabaseInstance,
+    ownerId: string,
+    bytes: number,
+    reason: Exclude<QuotaExceededReason, 'project_create'>,
+    storage: QuotaStorageContext = {},
+    replacedBytes = 0
+  ): Promise<void> {
+    if (!(await this.isEnabled(db))) return;
+    const owner = await this.loadOwner(db, ownerId);
+    if (!owner) return;
+
+    const growth = Math.max(0, bytes - Math.max(0, replacedBytes));
+    const usage = await this.checkEnforcement(
+      db,
+      owner,
+      growth,
+      storage.r2,
+      storage.env,
+      storage.authToken ?? ''
+    );
+    if (usage.usedBytes + growth > usage.quotaBytes) {
+      throw new QuotaExceededError({
+        usedBytes: usage.usedBytes,
+        quotaBytes: usage.quotaBytes,
+        requiredBytes: growth,
+        reason,
+        message: 'This would exceed the account’s sync capacity.',
+      });
+    }
+    // Count the accepted write optimistically; reconcile corrects any drift.
+    await this.adjustUsage(db, ownerId, growth);
+  }
+
+  /**
+   * Gate creating a new project: refused once the owner is at or over their
+   * allowance. A no-op when enforcement is disabled.
+   */
+  async assertCanCreateProject(
+    db: DatabaseInstance,
+    owner: EnforcementUser,
+    storage: QuotaStorageContext = {}
+  ): Promise<void> {
+    if (!(await this.isEnabled(db))) return;
+    const usage = await this.checkEnforcement(
+      db,
+      owner,
+      0,
+      storage.r2,
+      storage.env,
+      storage.authToken ?? ''
+    );
+    if (usage.overQuota) {
+      throw new QuotaExceededError({
+        usedBytes: usage.usedBytes,
+        quotaBytes: usage.quotaBytes,
+        reason: 'project_create',
+        message: 'This account has reached its sync capacity and cannot create more projects.',
+      });
+    }
+  }
+
+  private async loadOwner(db: DatabaseInstance, ownerId: string): Promise<EnforcementUser | null> {
+    const [row] = await db.select().from(users).where(eq(users.id, ownerId)).limit(1);
+    return row ?? null;
   }
 }
 

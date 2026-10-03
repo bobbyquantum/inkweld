@@ -8,6 +8,8 @@ import { getStorageService } from '../services/storage.service';
 import { destroyProjectDurableObject } from '../utils/project-durable-object';
 import { yjsService } from '../services/yjs.service';
 import { getProjectStorageSize } from '../services/storage-size.service';
+import { quotaService } from '../services/quota.service';
+import { quotaStorageContext } from '../utils/quota-context';
 import {
   UnauthorizedError,
   ForbiddenError,
@@ -201,6 +203,7 @@ const createProjectRoute = createRoute({
     400: errorResponse('Invalid input or project already exists'),
     ...errorResponses.notAuthenticated,
     404: errorResponse('User not found'),
+    ...errorResponses.quotaExceeded,
   },
 });
 
@@ -224,6 +227,11 @@ projectRoutes.openapi(createProjectRoute, async (c) => {
   if (existing) {
     throw new BadRequestError('Project with this slug already exists');
   }
+
+  // Sync-capacity check. A new project starts empty but its container counts
+  // against the owner, so an account already at (or over) its allowance cannot
+  // open more. Yjs editing of existing projects is deliberately never blocked.
+  await quotaService.assertCanCreateProject(db, user, quotaStorageContext(c));
 
   // Remove any tombstone for this slug (user is recreating a project)
   await projectService.removeTombstone(db, userId, slug);
@@ -423,11 +431,20 @@ projectRoutes.openapi(deleteProjectRoute, async (c) => {
   // in R2 / in the Durable Object, and creating a project with the same slug
   // adopted them all. Order matters on Bun/Node: the LevelDB handle must be
   // closed before the directory that contains it is removed.
+  // Measure first so the owner's sync capacity is credited with exactly what
+  // the deletion frees. A failed measurement must not block the deletion; the
+  // next reconcile corrects the counter.
+  const ctx = quotaStorageContext(c);
+  const freedBytes = await getProjectStorageSize(username, slug, ctx.r2, ctx.env, ctx.authToken)
+    .then((size) => size.dataBytes + size.mediaBytes)
+    .catch(() => 0);
+
   await yjsService.destroyProject(username, slug);
   await getStorageService(c.get('storage')).deleteProjectDirectory(username, slug);
   await destroyProjectDurableObject(c, username, slug);
 
   await projectService.delete(db, project.id, project.userId, project.slug);
+  await quotaService.recordDeletion(db, project.userId, freedBytes);
 
   return c.json({ message: 'Project deleted successfully' }, 200);
 });

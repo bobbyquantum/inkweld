@@ -469,7 +469,11 @@
               </p>
             }
 
-            @if (state.error) {
+            @if (state.quotaExceeded) {
+              <p class="error-text" data-testid="media-sync-quota-exceeded">
+                {{ 'settings.storage.uploadsPaused' | transloco }}
+              </p>
+            } @else if (state.error) {
               <p class="error-text">{{ state.error }}</p>
             }
 

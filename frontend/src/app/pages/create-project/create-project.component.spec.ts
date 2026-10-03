@@ -28,6 +28,8 @@ import { of } from 'rxjs';
 import { type MockedObject, vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { ProjectServiceError } from '../../services/project/project.service';
+import { StorageUsageService } from '../../services/user/storage-usage.service';
 import { CreateProjectComponent } from './create-project.component';
 
 describe('CreateProjectComponent', () => {
@@ -37,6 +39,7 @@ describe('CreateProjectComponent', () => {
   let projectService: MockedObject<UnifiedProjectService>;
   let templateService: MockedObject<ProjectTemplateService>;
   let snackBar: MockedObject<MatSnackBar>;
+  let storageUsage: { load: ReturnType<typeof vi.fn> };
   let router: MockedObject<Router>;
 
   const mockUser = {
@@ -93,6 +96,7 @@ describe('CreateProjectComponent', () => {
     snackBar = {
       open: vi.fn(),
     } as unknown as MockedObject<MatSnackBar>;
+    storageUsage = { load: vi.fn().mockResolvedValue(undefined) };
 
     router = {
       navigate: vi.fn().mockResolvedValue(true),
@@ -120,6 +124,7 @@ describe('CreateProjectComponent', () => {
         { provide: ProjectTemplateService, useValue: templateService },
         { provide: MatSnackBar, useValue: snackBar },
         { provide: Router, useValue: router },
+        { provide: StorageUsageService, useValue: storageUsage },
         {
           provide: TutorialService,
           useValue: { start: vi.fn().mockReturnValue(true) },
@@ -274,6 +279,28 @@ describe('CreateProjectComponent', () => {
       { duration: 3000 }
     );
     expect(component.isSaving()).toBeFalsy();
+  });
+
+  it('explains a sync-capacity refusal instead of a generic error', async () => {
+    component.model.set({
+      title: 'Test Project',
+      slug: 'test-project',
+      description: 'Test Description',
+    });
+    projectService.createProject.mockRejectedValue(
+      new ProjectServiceError('QUOTA_EXCEEDED', 'full')
+    );
+
+    await component.onSubmit();
+
+    const [message, , options] = snackBar.open.mock.calls[0] as [
+      string,
+      string,
+      { duration: number },
+    ];
+    expect(message).toContain('sync capacity is full');
+    expect(options.duration).toBe(8000);
+    expect(storageUsage.load).toHaveBeenCalled();
   });
 
   it('should redirect to home if project response is incomplete', async () => {

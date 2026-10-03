@@ -38,7 +38,8 @@
     "deleteConfirmMessage": "Are you sure you want to delete \"{{name}}\"?",
     "deleteMediaTitle": "Delete Media",
     "addTagsTitle": "Add Tags",
-    "addTagsDesc": "Tag \"{{name}}\" with elements or project tags."
+    "addTagsDesc": "Tag \"{{name}}\" with elements or project tags.",
+    "deleteServerFailed": "Couldn't delete this file from the server. Check your connection and try again."
   },
   "filterPanel": {
     "title": "Filters",

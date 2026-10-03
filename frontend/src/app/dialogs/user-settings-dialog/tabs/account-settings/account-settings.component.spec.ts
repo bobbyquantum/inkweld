@@ -4,6 +4,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { provideRouter } from '@angular/router';
 import { ProfileVisibility } from '@inkweld/model/profile-visibility';
 import { SystemConfigService } from '@services/core/system-config.service';
+import { StorageUsageService } from '@services/user/storage-usage.service';
 import { UserService } from '@services/user/user.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -26,6 +27,13 @@ describe('AccountSettingsComponent (dialog tab)', () => {
   };
   let mockSnackBar: {
     open: ReturnType<typeof vi.fn>;
+  };
+  let mockStorageUsage: {
+    usage: ReturnType<typeof vi.fn>;
+    enforced: ReturnType<typeof vi.fn>;
+    overQuota: ReturnType<typeof vi.fn>;
+    isLoading: ReturnType<typeof vi.fn>;
+    load: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(async () => {
@@ -58,6 +66,14 @@ describe('AccountSettingsComponent (dialog tab)', () => {
       open: vi.fn(),
     };
 
+    mockStorageUsage = {
+      usage: vi.fn().mockReturnValue(undefined),
+      enforced: vi.fn().mockReturnValue(true),
+      overQuota: vi.fn().mockReturnValue(false),
+      isLoading: vi.fn().mockReturnValue(false),
+      load: vi.fn().mockResolvedValue(undefined),
+    };
+
     await TestBed.configureTestingModule({
       imports: [translocoTestProvider(), AccountSettingsComponent],
       providers: [
@@ -65,6 +81,7 @@ describe('AccountSettingsComponent (dialog tab)', () => {
         provideRouter([]),
         { provide: UserService, useValue: mockUserService },
         { provide: SystemConfigService, useValue: mockSystemConfig },
+        { provide: StorageUsageService, useValue: mockStorageUsage },
       ],
     })
       .overrideComponent(AccountSettingsComponent, {

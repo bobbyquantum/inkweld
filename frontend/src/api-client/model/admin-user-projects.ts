@@ -31,4 +31,20 @@ export interface AdminUserProjects {
    * Sum of totalBytes across projects
    */
   totalBytes: number;
+  /**
+   * Per-user override in bytes (null = instance default)
+   */
+  syncQuotaBytes: number | null;
+  /**
+   * Allowance actually in force
+   */
+  effectiveQuotaBytes: number;
+  /**
+   * Instance-wide default when no override is set
+   */
+  instanceDefaultQuotaBytes: number;
+  /**
+   * Whether the server enforces sync capacity (SYNC_QUOTA_ENABLED)
+   */
+  quotaEnforced: boolean;
 }

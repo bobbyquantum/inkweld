@@ -10,9 +10,11 @@ import {
 import { getStorageService } from '../services/storage.service';
 import { projectService } from '../services/project.service';
 import { collaborationService } from '../services/collaboration.service';
+import { quotaService } from '../services/quota.service';
 import { BadRequestError, ForbiddenError, NotFoundError } from '../errors';
+import { quotaStorageContext, storedProjectFileSize } from '../utils/quota-context';
 import { type AppContext } from '../types/context';
-import { ProjectPathParamsSchema } from '../schemas/common.schemas';
+import { ProjectPathParamsSchema, QuotaExceededSchema } from '../schemas/common.schemas';
 const mediaRoutes = new OpenAPIHono<AppContext>();
 
 // Apply auth to all routes - media is project-specific
@@ -48,6 +50,13 @@ const ErrorSchema = z
     message: z.string().openapi({ example: 'Error occurred', description: 'Error message' }),
   })
   .openapi('MediaError');
+
+/**
+ * Media upload can answer 403 for two unrelated reasons: an access-control
+ * denial, or the sync-capacity refusal (which carries usage details). Both are
+ * documented under the single 403 status as a union.
+ */
+const MediaUploadForbiddenSchema = z.union([ErrorSchema, QuotaExceededSchema]);
 
 // List project media files
 const listMediaRoute = createRoute({
@@ -191,8 +200,8 @@ const uploadMediaRoute = createRoute({
       description: 'Not authenticated',
     },
     403: {
-      content: { 'application/json': { schema: ErrorSchema } },
-      description: 'Access denied',
+      content: { 'application/json': { schema: MediaUploadForbiddenSchema } },
+      description: 'Access denied, or sync capacity exceeded (QUOTA_EXCEEDED)',
     },
     404: {
       content: { 'application/json': { schema: ErrorSchema } },
@@ -266,6 +275,18 @@ mediaRoutes.openapi(uploadMediaRoute, async (c) => {
 
   // Read file data (one copy — Uint8Array over the buffer, no second clone)
   const data = new Uint8Array(await file.arrayBuffer());
+
+  // Sync-capacity check, against the real byte length and before anything is
+  // written. Re-uploading a file that already exists only counts the growth.
+  const existing = await storedProjectFileSize(storage, username, slug, filename);
+  await quotaService.assertCanStore(
+    db,
+    project.userId,
+    data.byteLength,
+    'media_upload',
+    quotaStorageContext(c),
+    existing
+  );
 
   // Save to storage
   await storage.saveProjectFile(username, slug, filename, data, file.type);
@@ -366,6 +387,87 @@ mediaRoutes.openapi(getMediaRoute, async (c) => {
     'Content-Disposition': `${disposition}; filename="${safeFilename}"`,
     'X-Content-Type-Options': 'nosniff',
   });
+});
+
+// Delete a media file
+const deleteMediaRoute = createRoute({
+  method: 'delete',
+  path: '/:username/:slug/:filename',
+  operationId: 'deleteProjectMediaFile',
+  tags: ['Media'],
+  summary: 'Delete a media file',
+  description:
+    'Removes a media file from the project storage and credits its size back to the ' +
+    "owner's sync capacity. Deleting a file that is already gone succeeds, so a client " +
+    'can retry safely.',
+  request: {
+    params: ProjectPathParamsSchema.extend({
+      filename: z.string().openapi({ example: 'cover.jpg', description: 'File name to delete' }),
+    }),
+  },
+  responses: {
+    200: {
+      content: {
+        'application/json': {
+          schema: z.object({
+            message: z.string(),
+            freedBytes: z.number().openapi({ description: 'Bytes released by the deletion' }),
+          }),
+        },
+      },
+      description: 'File deleted (or already absent)',
+    },
+    400: {
+      content: { 'application/json': { schema: ErrorSchema } },
+      description: 'Invalid filename',
+    },
+    401: {
+      content: { 'application/json': { schema: ErrorSchema } },
+      description: 'Not authenticated',
+    },
+    403: {
+      content: { 'application/json': { schema: ErrorSchema } },
+      description: 'Access denied',
+    },
+    404: {
+      content: { 'application/json': { schema: ErrorSchema } },
+      description: 'Project not found',
+    },
+  },
+});
+
+mediaRoutes.openapi(deleteMediaRoute, async (c) => {
+  const db = c.get('db');
+  const storage = getStorageService(c.get('storage'));
+  const username = c.req.param('username');
+  const slug = c.req.param('slug');
+  const userId = c.get('user')?.id;
+
+  // Same single-segment rule as uploads: never let a name reach outside the
+  // project's media area (published files and Yjs data live beside it).
+  const filename = sanitizeUploadFilename(c.req.param('filename'));
+  if (!filename || filename !== c.req.param('filename')) {
+    throw new BadRequestError('Invalid filename');
+  }
+
+  const project = await projectService.findByUsernameAndSlug(db, username, slug);
+  if (!project) {
+    throw new NotFoundError('Project not found');
+  }
+
+  // Deleting media is a write: owner or collaborator with write access.
+  const access = await collaborationService.checkAccess(db, project.id, userId);
+  if (!access.canWrite) {
+    throw new ForbiddenError('Access denied');
+  }
+
+  const freedBytes = await storedProjectFileSize(storage, username, slug, filename);
+  if (freedBytes > 0) {
+    await storage.deleteProjectFile(username, slug, filename);
+    await quotaService.recordDeletion(db, project.userId, freedBytes);
+  }
+
+  return c.json({ message: 'File deleted', freedBytes }, 200);
 });
 
 export default mediaRoutes;

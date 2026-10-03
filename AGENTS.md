@@ -589,6 +589,44 @@ sign-up, so users can delete their own server account:
 - `/delete-account` is exempt from the policy-acceptance gate, so someone who
   won't accept new terms can still delete their account.
 
+### Sync Capacity (Per-User Storage Quotas)
+
+Each account has an allowance for the server storage of the projects it owns
+(Yjs data + media + covers + published files). `users.syncQuotaBytes` is the
+per-user override (`NULL` = instance default `SYNC_QUOTA_DEFAULT_BYTES`, 100 MB)
+and `users.storageUsedBytes` a fast running counter. Admin guide:
+`docs/site/docs/admin-guide/sync-capacity.md`.
+
+- **Off by default** (`SYNC_QUOTA_ENABLED=false`) so an upgrade never starts
+  refusing uploads. Usage is measured and shown either way; the
+  `GET /users/me/storage` response carries `enabled`, and the UI only warns
+  when it is true (`StorageUsageService.enforced` / `.overQuota`).
+- **Every write that adds project storage goes through
+  `quotaService.assertCanStore()`** (media upload, cover upload, published
+  file, MCP `apply_image`), and project creation through
+  `assertCanCreateProject()`. A new storage write path must do the same, and
+  pass `replacedBytes` when it overwrites a file so only the growth is charged.
+  Deletions credit the counter (`recordDeletion`): media `DELETE`, cover
+  delete, published-file delete, project delete (measured before teardown).
+- **Yjs editing/sync is never blocked**, nor reads/exports/deletes. Don't add a
+  quota check to the WebSocket or document paths.
+- The counter drifts both ways (high: an uncounted deletion; low: Yjs growth
+  is never counted), so `checkEnforcement` only trusts it while fresh: it may
+  accept a write for `RECONCILE_MAX_AGE_MS` (10 min) after a recompute and
+  refuse one for `RECONCILE_COOLDOWN_MS` (1 min); otherwise it reconciles
+  against real storage first. Specs that need the fast path stamp the counter
+  with `quotaService.persistUsage()`, and reset with
+  `quotaService.clearReconcileCooldown()`.
+- A refusal is **403 with `code: 'QUOTA_EXCEEDED'`** (and `reason`). Use
+  `getQuotaExceeded()` / `StorageUsageService.noteQuotaError()` on the client
+  to tell it apart from an access-control 403.
+- Media sync: a refused upload throws `MediaQuotaExceededError`, stops the batch,
+  and pauses *background* uploads for `QUOTA_UPLOAD_PAUSE_MS`; files stay local.
+  Manual "Upload all" and a server-side media delete lift the pause.
+- Deleting media in the Media tab (server mode) deletes the server copy first;
+  if that fails the local copy is kept, otherwise the next sync would download
+  it again.
+
 ### Template Editor (Unified Schema Designer)
 
 Element schemas ("templates") are edited through the **unified interactive schema
@@ -805,9 +843,16 @@ cd backend && bun run generate:openapi && bun run generate:angular-client
 ```
 
 > **Note**: `bun run generate:angular-client` requires a Java runtime (the
-> OpenAPI generator is a JVM tool). Generate the client in a Java-enabled
-> environment. The generated `frontend/src/api-client/**` must not be edited by
-> hand — always regenerate from the OpenAPI spec.
+> OpenAPI generator is a JVM tool) — install a JRE if `java -version` fails
+> (e.g. `apt-get install openjdk-21-jre-headless`). The script also runs the
+> frontend's prettier config over its output, so regenerating produces only the
+> real API changes rather than a whole-client reformat. The generated
+> `frontend/src/api-client/**` must not be edited by hand — always regenerate
+> from the OpenAPI spec.
+>
+> CI enforces this: the **OpenAPI Spec + Client Freshness** job regenerates both
+> `backend/openapi.json` and the client, then fails if the committed artifacts
+> differ. If it fails, run the command above and commit the result.
 
 ### Wrangler Version Pin (backend)
 

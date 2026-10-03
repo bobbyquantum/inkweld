@@ -23,6 +23,8 @@ import { CustomHttpParameterCodec } from '../encoder';
 import { Observable } from 'rxjs';
 
 // @ts-ignore
+import { CreatePublishedFile403Response } from '../model/create-published-file403-response';
+// @ts-ignore
 import { DeletePublishedFile200Response } from '../model/delete-published-file200-response';
 // @ts-ignore
 import { PublishedFile } from '../model/published-file';
