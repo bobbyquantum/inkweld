@@ -97,6 +97,27 @@ To link an event, open the event editor dialog and select an element from the li
 
 The demo project's _Moonveil Chronicle_ timeline links events to characters like Elara and locations like Cloudspire Academy — open it to see linked events in action.
 
+## Auto-Building from Elements
+
+If your worldbuilding templates have **date** fields (a character's birth date, the founding of a city, the day a battle was fought), the timeline can turn them into events for you.
+
+1. Click **Auto-build from elements** in the timeline toolbar
+2. Inkweld lists every element with a date field that is filled in, showing the element, the field and its value
+3. Tick the ones you want, or use **Select all** / **Select none**
+4. Click **Add events**
+
+Each selected date becomes an event titled _Element: Field_ (for example _Elara: Born_), linked to its element and placed on the first track. Drag it to another track or edit it like any other event.
+
+A date only appears in the list if it is written in the format of the timeline's active time system, with every unit filled in (for the Gregorian system, year, month and day). Dates in another system, or missing a unit, are skipped. If nothing qualifies the dialog says so: add a date field to a template and fill it in on some elements first.
+
+### Running it again
+
+Run auto-build again after you change a date or add more elements. Dates that are already on the timeline are marked **Already on timeline**, and the dialog starts with them unticked.
+
+:::warning[Untick means remove]
+After you click **Add events**, the auto-built events on the timeline are exactly the ones that were ticked. An auto-built event whose row was left unticked is **removed**, so when you run auto-build again, tick the existing rows too (or use **Select all**) to keep them. Ticked existing events are updated to the element's current date and name and keep their track. Events you added by hand are never affected.
+:::
+
 ## Eras
 
 Eras are coloured bands spanning a range of time across all tracks. Use them to mark off big chunks of history ("The First Age", "Pre‑war era", "Dreamtime") so a reader can see context at a glance.

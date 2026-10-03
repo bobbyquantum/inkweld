@@ -51,12 +51,12 @@ The formatting toolbar provides quick access to styling options.
 
 ### Text Formatting
 
-| Button | Shortcut | Effect |
-|--------|----------|--------|
-| **B** | `Ctrl/Cmd + B` | **Bold** |
-| *I* | `Ctrl/Cmd + I` | *Italic* |
-| <u>U</u> | `Ctrl/Cmd + U` | Underline |
-| ~~S~~ | — | ~~Strikethrough~~ |
+| Button   | Shortcut       | Effect            |
+| -------- | -------------- | ----------------- |
+| **B**    | `Ctrl/Cmd + B` | **Bold**          |
+| _I_      | `Ctrl/Cmd + I` | _Italic_          |
+| <u>U</u> | `Ctrl/Cmd + U` | Underline         |
+| ~~S~~    | —              | ~~Strikethrough~~ |
 
 ### Paragraph Styles
 
@@ -67,38 +67,39 @@ Click the paragraph style dropdown to choose:
 
 ### Text Alignment
 
-| Button | Effect |
-|--------|--------|
-| Left align | Align text left (default) |
-| Center | Center text |
-| Right align | Align text right |
-| Justify | Justify text |
+| Button      | Effect                    |
+| ----------- | ------------------------- |
+| Left align  | Align text left (default) |
+| Center      | Center text               |
+| Right align | Align text right          |
+| Justify     | Justify text              |
 
 ### Lists and Quotes
 
-| Button | Effect |
-|--------|--------|
-| Bullet list | Create a bulleted list |
+| Button        | Effect                 |
+| ------------- | ---------------------- |
+| Bullet list   | Create a bulleted list |
 | Numbered list | Create a numbered list |
-| Quote | Create a block quote |
+| Quote         | Create a block quote   |
 
 ### Insert and Editing
 
-| Button | Effect |
-|--------|--------|
-| Link | Insert or edit a hyperlink |
-| Table | Insert a table, or edit the rows and columns of the one you are in |
-| Horizontal rule | Insert a scene break line |
-| Clear formatting | Remove all formatting from selection |
-| Undo | Undo last action (`Ctrl/Cmd + Z`) |
-| Redo | Redo undone action (`Ctrl/Cmd + Y`) |
+| Button           | Effect                                                             |
+| ---------------- | ------------------------------------------------------------------ |
+| Link             | Insert or edit a hyperlink                                         |
+| Table            | Insert a table, or edit the rows and columns of the one you are in |
+| Horizontal rule  | Insert a scene break line                                          |
+| Clear formatting | Remove all formatting from selection                               |
+| Undo             | Undo last action (`Ctrl/Cmd + Z`)                                  |
+| Redo             | Redo undone action (`Ctrl/Cmd + Y`)                                |
 
 ### Document Tools
 
-| Button | Effect |
-|--------|--------|
-| Tags | Manage tags for this document |
-| Snapshots | View and create document snapshots |
+| Button    | Effect                                                                                                   |
+| --------- | -------------------------------------------------------------------------------------------------------- |
+| Comments  | Show the comments panel (`Ctrl/Cmd + Alt + M` adds a comment). See [Comments](../collaboration/comments) |
+| Tags      | Manage tags for this document                                                                            |
+| Snapshots | View and create document snapshots                                                                       |
 
 ## Markdown Shortcuts
 
@@ -108,24 +109,24 @@ The editor supports Markdown-style shortcuts for fast formatting.
 
 Type these at the beginning of a line:
 
-| Type | Result |
-|------|--------|
-| `# ` | Heading 1 |
-| `## ` | Heading 2 |
-| `### ` | Heading 3 |
-| `- ` or `* ` | Bullet list item |
-| `1. ` | Numbered list item |
-| `> ` | Block quote |
-| `---` | Horizontal rule |
+| Type         | Result             |
+| ------------ | ------------------ |
+| `# `         | Heading 1          |
+| `## `        | Heading 2          |
+| `### `       | Heading 3          |
+| `- ` or `* ` | Bullet list item   |
+| `1. `        | Numbered list item |
+| `> `         | Block quote        |
+| `---`        | Horizontal rule    |
 
 ### Inline Formatting
 
 Wrap text with these characters:
 
-| Type | Result |
-|------|--------|
+| Type       | Result   |
+| ---------- | -------- |
 | `**text**` | **Bold** |
-| `*text*` | *Italic* |
+| `*text*`   | _Italic_ |
 
 ## Text Selection
 
@@ -153,11 +154,11 @@ The editor maintains full edit history:
 
 Standard clipboard operations:
 
-| Action | Shortcut |
-|--------|----------|
-| Copy | `Ctrl/Cmd + C` |
-| Cut | `Ctrl/Cmd + X` |
-| Paste | `Ctrl/Cmd + V` |
+| Action                   | Shortcut               |
+| ------------------------ | ---------------------- |
+| Copy                     | `Ctrl/Cmd + C`         |
+| Cut                      | `Ctrl/Cmd + X`         |
+| Paste                    | `Ctrl/Cmd + V`         |
 | Paste without formatting | `Ctrl/Cmd + Shift + V` |
 
 ## Find and Replace
@@ -177,11 +178,11 @@ Press `Ctrl/Cmd + F` to open the find bar at the top of the editor.
 
 ### Navigating Matches
 
-| Action | Shortcut / Button |
-|--------|-------------------|
-| Next match | `Enter` or click ↓ button |
+| Action         | Shortcut / Button                 |
+| -------------- | --------------------------------- |
+| Next match     | `Enter` or click ↓ button         |
 | Previous match | `Shift + Enter` or click ↑ button |
-| Close find bar | `Escape` or click × button |
+| Close find bar | `Escape` or click × button        |
 
 ### Case Sensitivity
 
@@ -194,10 +195,10 @@ Click the **Aa** button to toggle case-sensitive matching. When enabled, "Hello"
 3. Click the **replace** button to replace the current match and advance to the next
 4. Click the **replace all** button to replace every match at once
 
-| Action | Shortcut |
-|--------|----------|
-| Replace current match | `Enter` in replace input |
-| Replace all matches | `Shift + Enter` in replace input |
+| Action                | Shortcut                         |
+| --------------------- | -------------------------------- |
+| Replace current match | `Enter` in replace input         |
+| Replace all matches   | `Shift + Enter` in replace input |
 
 ## Zen Mode
 
