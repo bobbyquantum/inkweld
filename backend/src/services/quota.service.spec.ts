@@ -11,7 +11,12 @@ import * as schema from '../db/schema';
 import { projects, users } from '../db/schema';
 import { config as configTable } from '../db/schema/config';
 import { config as envConfig } from '../config/env';
-import { quotaService, RECONCILE_COOLDOWN_MS, SOFT_QUOTA_FRACTION } from './quota.service';
+import {
+  quotaService,
+  RECONCILE_COOLDOWN_MS,
+  RECONCILE_MAX_AGE_MS,
+  SOFT_QUOTA_FRACTION,
+} from './quota.service';
 import { QuotaExceededError } from '../errors';
 
 /**
@@ -352,19 +357,17 @@ describe('quotaService.wouldExceedQuota', () => {
 });
 
 describe('quotaService.checkEnforcement', () => {
-  it('allows a write that clearly fits without reconciling', async () => {
+  it('allows a write that clearly fits without reconciling while the counter is fresh', async () => {
     await seedProject('one');
     await seedData(USERNAME, 'one', 500);
-    await db
-      .update(users)
-      .set({ syncQuotaBytes: 10_000, storageUsedBytes: 100 })
-      .where(eq(users.id, USER_ID));
+    await db.update(users).set({ syncQuotaBytes: 10_000 }).where(eq(users.id, USER_ID));
+    // A recent recompute recorded 100 bytes (deliberately below reality).
+    await quotaService.persistUsage(db, USER_ID, 100);
 
     const user = (await db.select().from(users).where(eq(users.id, USER_ID)))[0];
     const usage = await quotaService.checkEnforcement(db, user, 200);
 
-    // Fast path: reads the cached counter, so the deliberate drift (real=500,
-    // cached=100) is still present in the returned figure.
+    // Fast path: reads the cached counter, so the drift is still present.
     expect(usage.usedBytes).toBe(100);
     expect(usage.overQuota).toBe(false);
   });
@@ -405,12 +408,9 @@ describe('quotaService.checkEnforcement', () => {
     expect(usage.overQuota).toBe(true);
   });
 
-  it('docs the accepted tradeoff: a counter that drifted LOW is only caught on the next crossing', async () => {
-    // This is the deliberate consequence of the fast path. `recordUpload` keeps
-    // the counter accurate as usage grows, so the realistic low-drift sources
-    // are deletions and out-of-band edits; those are corrected by the next
-    // crossing check and by periodic reconcile. Recorded here so the behaviour
-    // is intentional rather than an accident.
+  it('re-measures a stale counter even when the write appears to fit', async () => {
+    // Yjs document growth never reaches the counter, so a counter nobody has
+    // re-measured can sit far below reality. It must not wave writes through.
     await seedProject('one');
     await seedData(USERNAME, 'one', 5000);
     await db
@@ -419,16 +419,27 @@ describe('quotaService.checkEnforcement', () => {
       .where(eq(users.id, USER_ID));
 
     const user = (await db.select().from(users).where(eq(users.id, USER_ID)))[0];
-    const small = await quotaService.checkEnforcement(db, user, 100);
+    const usage = await quotaService.checkEnforcement(db, user, 100);
 
-    // Stale-low counter + small write stays on the fast path and is allowed.
-    expect(small.overQuota).toBe(false);
-    expect(small.usedBytes).toBe(0);
+    expect(usage.usedBytes).toBe(5000);
+    expect(usage.overQuota).toBe(true);
+  });
 
-    // A write that crosses the quota on the fast path reconciles and catches it.
-    const large = await quotaService.checkEnforcement(db, user, 10_000);
-    expect(large.usedBytes).toBe(5000);
-    expect(large.overQuota).toBe(true);
+  it('re-measures a counter older than the max age before accepting', async () => {
+    await seedProject('one');
+    await seedData(USERNAME, 'one', 5000);
+    await db.update(users).set({ syncQuotaBytes: 4000 }).where(eq(users.id, USER_ID));
+    await quotaService.persistUsage(db, USER_ID, 0);
+
+    const realNow = Date.now;
+    Date.now = () => realNow() + RECONCILE_MAX_AGE_MS + 1;
+    try {
+      const user = (await db.select().from(users).where(eq(users.id, USER_ID)))[0];
+      const usage = await quotaService.checkEnforcement(db, user, 100);
+      expect(usage.usedBytes).toBe(5000);
+    } finally {
+      Date.now = realNow;
+    }
   });
 });
 
@@ -519,10 +530,9 @@ describe('quotaService.assertCanStore', () => {
 
   it('charges only the growth when a write replaces an existing file', async () => {
     await enableEnforcement();
-    await db
-      .update(users)
-      .set({ syncQuotaBytes: 10_000, storageUsedBytes: 1000 })
-      .where(eq(users.id, USER_ID));
+    await db.update(users).set({ syncQuotaBytes: 10_000 }).where(eq(users.id, USER_ID));
+    // A fresh measurement of 1000 bytes, so the fast path applies.
+    await quotaService.persistUsage(db, USER_ID, 1000);
 
     await quotaService.assertCanStore(db, USER_ID, 1500, 'media_upload', {}, 1000);
     expect(await counter()).toBe(1500);

@@ -82,6 +82,13 @@ export class StorageUsageService {
   private cachedForUserId: string | undefined;
 
   /**
+   * Bumped by every load and reset, so a response that arrives after a newer
+   * load (or after the account changed) is dropped instead of overwriting the
+   * newer user's usage.
+   */
+  private requestSeq = 0;
+
+  /**
    * Fetch fresh usage. Never throws — failures are recorded in `error` so a UI
    * meter can degrade quietly rather than break the page it sits on.
    */
@@ -99,6 +106,7 @@ export class StorageUsageService {
       this.cachedForUserId = userId;
     }
 
+    const requestId = ++this.requestSeq;
     this.isLoading.set(true);
     this.error.set(undefined);
     try {
@@ -107,15 +115,22 @@ export class StorageUsageService {
           .getMyStorageUsage()
           .pipe(catchError(this.handleError.bind(this)))
       );
+      if (requestId !== this.requestSeq) {
+        return undefined;
+      }
       this.usage.set(usage);
       return usage;
     } catch (error) {
       // Already logged in handleError; keep the previous value so the meter
       // does not blink to zero on a transient failure.
-      this.error.set(error as StorageUsageError);
+      if (requestId === this.requestSeq) {
+        this.error.set(error as StorageUsageError);
+      }
       return undefined;
     } finally {
-      this.isLoading.set(false);
+      if (requestId === this.requestSeq) {
+        this.isLoading.set(false);
+      }
     }
   }
 
@@ -148,6 +163,8 @@ export class StorageUsageService {
 
   /** Clear cached state (e.g. on sign-out). */
   reset(): void {
+    this.requestSeq++;
+    this.isLoading.set(false);
     this.usage.set(undefined);
     this.error.set(undefined);
     this.cachedForUserId = undefined;

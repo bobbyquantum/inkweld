@@ -183,6 +183,28 @@ describe('AdminUserProjectsDialogComponent', () => {
       ).toBeTruthy();
     });
 
+    it('refuses to save an empty override instead of saving zero', async () => {
+      await fixture.whenStable();
+      component.onUseDefaultChange(false);
+      component.onQuotaMbInput('');
+      await component.saveQuota();
+
+      expect(adminService.setUserQuota).not.toHaveBeenCalled();
+      expect(snackBar.open).toHaveBeenCalled();
+    });
+
+    it('clamps an override to the server maximum of 1 TiB', async () => {
+      await fixture.whenStable();
+      component.onUseDefaultChange(false);
+      component.quotaMb.set(5 * 1024 * 1024);
+      await component.saveQuota();
+
+      expect(adminService.setUserQuota).toHaveBeenCalledWith(
+        'u1',
+        1024 * 1024 * 1024 * 1024
+      );
+    });
+
     it('reports a failed save without throwing', async () => {
       adminService.setUserQuota.mockRejectedValue(new Error('nope'));
       await fixture.whenStable();

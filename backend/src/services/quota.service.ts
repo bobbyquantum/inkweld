@@ -57,6 +57,15 @@ const SIZE_CONCURRENCY = 5;
  */
 export const RECONCILE_COOLDOWN_MS = 60_000;
 
+/**
+ * How long a reconciled counter may drive the *accepting* fast path. The
+ * counter only tracks writes the server sees (uploads, deletions); Yjs
+ * document growth never reaches it, so a counter that is never re-measured
+ * drifts low and would let an account keep uploading past its real allowance.
+ * Past this age the next gated write pays for a recompute first.
+ */
+export const RECONCILE_MAX_AGE_MS = 10 * 60_000;
+
 /** Storage bindings needed to compute authoritative usage on both runtimes. */
 export type QuotaStorageEnv = Partial<CloudflareSizeEnv>;
 
@@ -291,12 +300,12 @@ class QuotaService {
    * Decide whether a write of `additionalBytes` must be refused, reconciling
    * first when the cheap counter suggests it would cross the line.
    *
-   * The cached counter can drift low (a failed upload never counted) or high
-   * (a deletion never counted). Refusing purely on a stale high reading would
-   * wrongly reject someone who actually has room — the worst failure mode for
-   * a quota — so when the fast path says "would exceed", the authoritative
-   * usage is recomputed before refusing. The common path (comfortably under
-   * the limit) stays a single cheap read.
+   * The cached counter can drift high (a deletion never counted) or low (Yjs
+   * document growth is never counted). So the counter only decides on its own
+   * while it is fresh: it may accept a write for {@link RECONCILE_MAX_AGE_MS}
+   * after a recompute, and refuse one for {@link RECONCILE_COOLDOWN_MS}.
+   * Otherwise the authoritative usage is recomputed first. A burst of uploads
+   * pays for one recompute, not one each.
    */
   async checkEnforcement(
     db: DatabaseInstance,
@@ -315,19 +324,21 @@ class QuotaService {
     const cached = Math.max(0, user.storageUsedBytes ?? 0);
     const needed = Math.max(0, additionalBytes);
 
-    // Fast path: clearly within budget, no recompute needed.
-    if (cached + needed <= quotaBytes) {
+    const reconciledAt = this.lastReconciledAt.get(user.id);
+    const age = reconciledAt === undefined ? Infinity : Date.now() - reconciledAt;
+
+    // Fast path: a recently measured counter that says the write fits.
+    if (age < RECONCILE_MAX_AGE_MS && cached + needed <= quotaBytes) {
       return this.toQuotaUsage(cached, quotaBytes);
     }
 
     // The counter was reconciled moments ago (and deletions since then were
-    // recorded on it), so it is as good as a recompute — trust it.
-    const reconciledAt = this.lastReconciledAt.get(user.id);
-    if (reconciledAt !== undefined && Date.now() - reconciledAt < RECONCILE_COOLDOWN_MS) {
+    // recorded on it), so it is as good as a recompute — trust it to refuse.
+    if (age < RECONCILE_COOLDOWN_MS) {
       return this.toQuotaUsage(cached, quotaBytes);
     }
 
-    // The counter says "over" — verify against reality before refusing.
+    // Stale, or the counter says "over": measure reality before deciding.
     const authoritative = await this.reconcile(db, user, r2, env, authToken);
     return this.toQuotaUsage(authoritative, quotaBytes);
   }

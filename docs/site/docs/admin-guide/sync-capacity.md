@@ -115,11 +115,14 @@ Content-Type: application/json
 ## How usage is measured
 
 Each account keeps a fast running counter, updated on every accepted upload and
-every deletion. Before a write is refused, the server recomputes the account's
-real usage from storage, so a counter that has drifted high can never wrongly
-block someone with room to spare. To keep a client that retries from making
-the server rescan storage over and over, a fresh recompute is trusted for one
-minute.
+every deletion. Document (Yjs) growth never reaches that counter, so it is only
+trusted while it is fresh: for 10 minutes after the server last measured the
+account's real usage it may accept a write, and for 1 minute it may refuse one.
+Otherwise the server measures real usage from storage first. This means a
+counter that has drifted high can never wrongly block someone with room to
+spare, a counter that has drifted low can't wave uploads through for long, and
+a burst of uploads (or a client retrying a refused one) costs one measurement
+rather than one each.
 
 Opening the account settings meter or an admin storage view also recomputes
 and saves the true figure.

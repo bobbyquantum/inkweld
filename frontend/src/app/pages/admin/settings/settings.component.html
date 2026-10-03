@@ -348,10 +348,10 @@
             <input
               matInput
               type="number"
-              min="0"
+              min="1"
               step="1"
               [value]="syncQuotaDefaultMb()"
-              (change)="saveSyncQuotaDefaultMb($any($event.target).value)"
+              (change)="saveSyncQuotaDefaultMb($any($event.target))"
               [disabled]="isSaving()"
               id="admin-sync-quota-default-input"
               data-testid="sync-quota-default-input"

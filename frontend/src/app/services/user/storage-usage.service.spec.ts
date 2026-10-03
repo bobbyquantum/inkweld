@@ -2,7 +2,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { type StorageUsage, UsersService } from '@inkweld/index';
-import { of, throwError } from 'rxjs';
+import { of, Subject, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { LoggerService } from '../core/logger.service';
@@ -182,6 +182,37 @@ describe('StorageUsageService', () => {
     it('leaves usage alone for any other error', () => {
       expect(service.noteQuotaError(new Error('x'))).toBeUndefined();
       expect(getMyStorageUsage).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('overlapping loads', () => {
+    it('drops a response that arrives after the account changed', async () => {
+      const slow = new Subject<StorageUsage>();
+      getMyStorageUsage.mockReturnValueOnce(slow);
+      const first = service.load('user-a');
+
+      const userB = { ...USAGE, usedBytes: 1 };
+      getMyStorageUsage.mockReturnValueOnce(of(userB));
+      await service.load('user-b');
+
+      slow.next({ ...USAGE, usedBytes: 999 });
+      slow.complete();
+      expect(await first).toBeUndefined();
+      expect(service.usage()).toEqual(userB);
+    });
+
+    it('drops a response that arrives after a reset', async () => {
+      const slow = new Subject<StorageUsage>();
+      getMyStorageUsage.mockReturnValueOnce(slow);
+      const pending = service.load('user-a');
+
+      service.reset();
+      slow.next(USAGE);
+      slow.complete();
+      await pending;
+
+      expect(service.usage()).toBeUndefined();
+      expect(service.isLoading()).toBe(false);
     });
   });
 });

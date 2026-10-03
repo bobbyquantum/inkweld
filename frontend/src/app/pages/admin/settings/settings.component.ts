@@ -433,13 +433,19 @@ export class AdminSettingsComponent implements OnInit {
   }
 
   /**
-   * Save the default per-user allowance. Entered in MB, stored in bytes; a
-   * blank or invalid entry is ignored rather than saved as zero, since a zero
-   * default would lock every user without an override out of uploads.
+   * Save the default per-user allowance. Entered in MB, stored in bytes. A
+   * blank, zero or out-of-range entry is rejected and the field restored: a
+   * zero default would lock every user without an override out of uploads.
    */
-  async saveSyncQuotaDefaultMb(value: string): Promise<void> {
-    const mb = Number.parseInt(value, 10);
-    if (!Number.isFinite(mb) || mb < 0 || mb > MAX_SYNC_QUOTA_MB) {
+  async saveSyncQuotaDefaultMb(input: { value: string }): Promise<void> {
+    const mb = Number.parseInt(input.value, 10);
+    if (!Number.isFinite(mb) || mb <= 0 || mb > MAX_SYNC_QUOTA_MB) {
+      input.value = String(this.syncQuotaDefaultMb());
+      this.snackBar.open(
+        this.transloco.translate('admin.settings.syncQuotaDefaultInvalid'),
+        this.transloco.translate('close'),
+        { duration: 4000 }
+      );
       return;
     }
     if (
@@ -449,6 +455,8 @@ export class AdminSettingsComponent implements OnInit {
       )
     ) {
       this.syncQuotaDefaultMb.set(mb);
+    } else {
+      input.value = String(this.syncQuotaDefaultMb());
     }
   }
 

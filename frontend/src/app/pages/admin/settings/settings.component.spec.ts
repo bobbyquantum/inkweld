@@ -991,7 +991,7 @@ describe('AdminSettingsComponent', () => {
         flushAllConfigRequests(httpMock);
         await flushMicrotasks();
 
-        const promise = component.saveSyncQuotaDefaultMb('500');
+        const promise = component.saveSyncQuotaDefaultMb({ value: '500' });
         const putReq = httpMock.expectOne(
           '/api/v1/admin/config/SYNC_QUOTA_DEFAULT_BYTES'
         );
@@ -1003,13 +1003,16 @@ describe('AdminSettingsComponent', () => {
         expect(component.syncQuotaDefaultMb()).toBe(500);
       });
 
-      it('ignores a blank or negative default instead of saving zero', async () => {
+      it('rejects a blank, zero or negative default and restores the field', async () => {
         fixture.detectChanges();
         flushAllConfigRequests(httpMock);
         await flushMicrotasks();
 
-        await component.saveSyncQuotaDefaultMb('');
-        await component.saveSyncQuotaDefaultMb('-5');
+        for (const value of ['', '0', '-5']) {
+          const input = { value };
+          await component.saveSyncQuotaDefaultMb(input);
+          expect(input.value).toBe('100');
+        }
         httpMock.expectNone('/api/v1/admin/config/SYNC_QUOTA_DEFAULT_BYTES');
         expect(component.syncQuotaDefaultMb()).toBe(100);
       });

@@ -610,10 +610,13 @@ and `users.storageUsedBytes` a fast running counter. Admin guide:
   delete, published-file delete, project delete (measured before teardown).
 - **Yjs editing/sync is never blocked**, nor reads/exports/deletes. Don't add a
   quota check to the WebSocket or document paths.
-- `checkEnforcement` reconciles against real storage before refusing (the
-  counter may drift high), then trusts that figure for `RECONCILE_COOLDOWN_MS`
-  so retried refusals don't rescan storage. Tests that reconcile the same user
-  repeatedly call `quotaService.clearReconcileCooldown()`.
+- The counter drifts both ways (high: an uncounted deletion; low: Yjs growth
+  is never counted), so `checkEnforcement` only trusts it while fresh: it may
+  accept a write for `RECONCILE_MAX_AGE_MS` (10 min) after a recompute and
+  refuse one for `RECONCILE_COOLDOWN_MS` (1 min); otherwise it reconciles
+  against real storage first. Specs that need the fast path stamp the counter
+  with `quotaService.persistUsage()`, and reset with
+  `quotaService.clearReconcileCooldown()`.
 - A refusal is **403 with `code: 'QUOTA_EXCEEDED'`** (and `reason`). Use
   `getQuotaExceeded()` / `StorageUsageService.noteQuotaError()` on the client
   to tell it apart from an access-control 403.

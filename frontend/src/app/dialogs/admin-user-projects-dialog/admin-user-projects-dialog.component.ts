@@ -26,6 +26,8 @@ export interface AdminUserProjectsDialogData {
 
 /** 1 MiB, used to present the byte allowance as an editable MB field. */
 const MEBIBYTE = 1024 * 1024;
+/** The server's ceiling (`MAX_SYNC_QUOTA_BYTES`, 1 TiB); larger values get a 400. */
+const MAX_QUOTA_BYTES = 1024 * 1024 * MEBIBYTE;
 
 @Component({
   selector: 'app-admin-user-projects-dialog',
@@ -90,13 +92,13 @@ export class AdminUserProjectsDialogComponent implements OnInit {
       });
   }
 
-  /** Seed the quota editor from the loaded override (null = instance default). */
   /** Track the MB field; an empty or non-numeric entry clears it. */
   onQuotaMbInput(value: string): void {
     const parsed = Number.parseFloat(value);
     this.quotaMb.set(Number.isFinite(parsed) ? parsed : null);
   }
 
+  /** Seed the quota editor from the loaded override (null = instance default). */
   private syncQuotaForm(result: AdminUserProjects): void {
     const override = result.syncQuotaBytes;
     this.useDefaultQuota.set(override === null);
@@ -117,9 +119,21 @@ export class AdminUserProjectsDialogComponent implements OnInit {
   }
 
   async saveQuota(): Promise<void> {
-    const bytes = this.useDefaultQuota()
-      ? null
-      : Math.max(0, Math.round((this.quotaMb() ?? 0) * MEBIBYTE));
+    const mb = this.quotaMb();
+    // An empty field in override mode is not "zero": a 0-byte override would
+    // block every upload for this user. Ask for a value instead.
+    if (!this.useDefaultQuota() && mb === null) {
+      this.snackBar.open(
+        this.transloco.translate('admin.users.quotaInvalid'),
+        this.transloco.translate('close'),
+        { duration: 4000 }
+      );
+      return;
+    }
+    const bytes =
+      mb === null || this.useDefaultQuota()
+        ? null
+        : Math.min(MAX_QUOTA_BYTES, Math.max(0, Math.round(mb * MEBIBYTE)));
 
     this.isSavingQuota.set(true);
     try {
