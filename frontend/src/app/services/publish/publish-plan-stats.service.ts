@@ -5,6 +5,7 @@ import {
   type PublishPlanItem,
   PublishPlanItemType,
 } from '@models/publish-plan';
+import { isPublishableByDefault } from '@models/scene-metadata';
 import { flattenToPlainText } from '@utils/prosemirror-text';
 import { isWorldbuildingType } from '@utils/worldbuilding.utils';
 
@@ -85,6 +86,13 @@ export class PublishPlanStatsService {
   readonly wordCounts = this.counts.asReadonly();
 
   /**
+   * Latest count request per element. A result is applied only if it
+   * answers the latest request, so a slow earlier read cannot overwrite a
+   * recount.
+   */
+  private readonly requests = new Map<string, number>();
+
+  /**
    * Start counting any element in `elementIds` that has not been counted yet.
    * Folders are expanded to their document descendants; worldbuilding and
    * other non-document elements are ignored.
@@ -107,6 +115,32 @@ export class PublishPlanStatsService {
       return next;
     });
     for (const id of pending) {
+      void this.countDocument(id);
+    }
+  }
+
+  /**
+   * Re-read the documents under `elementIds`, whether or not they were
+   * counted before. Unlike {@link invalidate} followed by
+   * {@link ensureCounted}, a document that already has a count keeps
+   * showing it until the fresh one arrives.
+   */
+  recount(elementIds: Iterable<string>): void {
+    const elements = this.projectState.elements();
+    const docIds = new Set<string>();
+    for (const id of elementIds) {
+      for (const doc of this.documentsUnder(id, elements)) docIds.add(doc.id);
+    }
+    if (docIds.size === 0) return;
+
+    this.counts.update(map => {
+      const next = new Map(map);
+      for (const id of docIds) {
+        if (!next.has(id)) next.set(id, { status: 'loading' });
+      }
+      return next;
+    });
+    for (const id of docIds) {
       void this.countDocument(id);
     }
   }
@@ -162,7 +196,10 @@ export class PublishPlanStatsService {
     if (element.type === ElementType.Item) {
       docs = [element];
     } else if (element.type === ElementType.Folder && item.includeChildren) {
-      docs = this.documentsUnder(element.id, elements);
+      // Notes inside a folder are not published, so they do not count.
+      docs = this.documentsUnder(element.id, elements).filter(doc =>
+        isPublishableByDefault(doc.metadata)
+      );
       stats.entries = this.entriesUnder(element.id, elements);
     }
     // Canvases, timelines and relationship charts carry no countable text.
@@ -266,6 +303,8 @@ export class PublishPlanStatsService {
   }
 
   private async countDocument(elementId: string): Promise<void> {
+    const request = (this.requests.get(elementId) ?? 0) + 1;
+    this.requests.set(elementId, request);
     const docId = this.fullDocumentId(elementId);
     let entry: WordCountEntry;
     try {
@@ -279,6 +318,7 @@ export class PublishPlanStatsService {
     } catch {
       entry = { status: 'unavailable' };
     }
+    if (this.requests.get(elementId) !== request) return;
     this.counts.update(map => {
       // A concurrent invalidate() may have dropped this id; don't resurrect it.
       if (!map.has(elementId)) return map;

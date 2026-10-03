@@ -196,7 +196,8 @@
   },
   "projectTreeTab": {
     "confirmMoves": "Confirm element moves",
-    "showBreadcrumbs": "Show breadcrumbs above editors"
+    "showBreadcrumbs": "Show breadcrumbs above editors",
+    "folderClickOpens": "Clicking a folder opens its corkboard as well as expanding it"
   },
   "storageSize": {
     "title": "Server Storage",

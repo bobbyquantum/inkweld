@@ -21,6 +21,7 @@
     "pinned": "Pinned",
     "create": "Create",
     "openDocument": "Open Document",
+    "openFolder": "Open Folder",
     "newElement": "New Element",
     "rename": "Rename",
     "delete": "Delete",
@@ -73,6 +74,36 @@
     "storyDateTooltip": "Story date — click to edit",
     "wordsTooltip": "Words written / target — click to edit target",
     "details": "Scene details"
+  },
+  "folder": {
+    "empty": "This folder is empty.",
+    "viewMode": "Folder view",
+    "viewCorkboard": "Corkboard",
+    "viewOutline": "Outline",
+    "viewGrid": "Grid",
+    "viewList": "List",
+    "refreshWordCounts": "Refresh word counts"
+  },
+  "corkboard": {
+    "open": "Open",
+    "synopsisPlaceholder": "Add a synopsis…",
+    "synopsisLabel": "Synopsis of {{name}}",
+    "note": "Note",
+    "document": "Document",
+    "sceneCountOne": "1 scene",
+    "sceneCount": "{{count}} scenes",
+    "words": "words",
+    "notSynced": "Not synced to this device yet"
+  },
+  "outline": {
+    "title": "Title",
+    "synopsis": "Synopsis",
+    "status": "Status",
+    "pov": "POV",
+    "location": "Location",
+    "storyDate": "Story date",
+    "words": "Words",
+    "empty": "No scenes or notes in this folder yet."
   },
   "homeTab": {
     "editDetails": "Edit project details",

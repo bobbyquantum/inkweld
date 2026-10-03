@@ -285,21 +285,22 @@ export class ProjectTreeComponent implements OnDestroy {
    * @param event The touch event.
    */
   toggleExpandedTouch(node: ProjectElement, event: TouchEvent) {
+    this.markRecentTouch(node, event);
+    this.projectStateService.toggleExpanded(node.id);
+  }
+
+  /**
+   * Swallow a touch on a folder row and remember it briefly, so the click
+   * the browser synthesises afterwards is not handled a second time.
+   */
+  private markRecentTouch(node: ProjectElement, event: TouchEvent) {
     event.preventDefault();
     event.stopPropagation();
 
-    // Clear any existing timeout
     if (this.touchTimeout) {
       clearTimeout(this.touchTimeout);
     }
-
-    // Set the recent touch node to prevent click event
     this.recentTouchNodeId = node.id;
-
-    // Toggle the node
-    this.projectStateService.toggleExpanded(node.id);
-
-    // Clear the recent touch flag after a short delay
     this.touchTimeout = globalThis.setTimeout(() => {
       this.recentTouchNodeId = null;
       this.touchTimeout = null;
@@ -320,6 +321,38 @@ export class ProjectTreeComponent implements OnDestroy {
     }
 
     this.projectStateService.toggleExpanded(node.id);
+  }
+
+  /**
+   * Click on a folder row (not its chevron). Expands or collapses it, or,
+   * with the "clicking a folder opens it" preference on, expands it and
+   * opens its folder view.
+   */
+  onFolderRowClick(node: ProjectElement, event: MouseEvent) {
+    if (!this.settingsService.folderClickOpens()) {
+      this.toggleExpandedClick(node, event);
+      return;
+    }
+    event.stopPropagation();
+    if (this.recentTouchNodeId === node.id) return;
+    this.expandAndOpenFolder(node);
+  }
+
+  /** Touch counterpart of {@link onFolderRowClick}. */
+  onFolderRowTouch(node: ProjectElement, event: TouchEvent) {
+    if (!this.settingsService.folderClickOpens()) {
+      this.toggleExpandedTouch(node, event);
+      return;
+    }
+    this.markRecentTouch(node, event);
+    this.expandAndOpenFolder(node, event);
+  }
+
+  private expandAndOpenFolder(node: ProjectElement, event?: Event) {
+    if (!node.expanded) {
+      this.projectStateService.setExpanded(node.id, true);
+    }
+    this.onOpenDocument(node, event);
   }
 
   /**

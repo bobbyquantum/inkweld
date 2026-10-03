@@ -1,0 +1,52 @@
+// Draft-status colours shared by the corkboard and outline views. Each
+// `.status-*` class sets `--scene-status-color`; consumers decide where the
+// colour goes (a dot, a card edge, a chip border).
+@mixin colors() {
+  .status-none,
+  .status-idea {
+    --scene-status-color: var(--sys-outline);
+  }
+  .status-draft {
+    --scene-status-color: var(--sys-tertiary);
+  }
+  .status-revised {
+    --scene-status-color: var(--sys-primary);
+  }
+  .status-final {
+    --scene-status-color: #2e7d32;
+  }
+
+  .status-dot {
+    display: inline-block;
+    flex-shrink: 0;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--scene-status-color, var(--sys-outline));
+
+    &.status-none {
+      background: transparent;
+      border: 1px dashed var(--sys-outline);
+      box-sizing: border-box;
+    }
+  }
+}
+
+// Thin words-against-target bar.
+@mixin progress() {
+  .progress {
+    display: inline-block;
+    flex-shrink: 0;
+    width: 48px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--sys-surface-container-highest);
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    display: block;
+    height: 100%;
+    background: var(--sys-primary);
+  }
+}

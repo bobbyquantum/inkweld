@@ -2,7 +2,7 @@
 id: tags
 title: Using Tags
 description: Categorize your elements with customizable colored tags.
-sidebar_position: 3
+sidebar_position: 4
 ---
 
 import ThemedImage from '@site/src/components/ThemedImage';
@@ -23,12 +23,12 @@ Tags are colored labels you create and apply to elements:
 
 Each tag has:
 
-| Property        | Description                                    |
-| --------------- | ---------------------------------------------- |
-| **Name**        | Short descriptive label (e.g., "Protagonist")  |
-| **Icon**        | Material icon from a preset selection          |
-| **Color**       | One of 16 preset colors                        |
-| **Description** | Optional explanation of the tag's purpose      |
+| Property        | Description                                   |
+| --------------- | --------------------------------------------- |
+| **Name**        | Short descriptive label (e.g., "Protagonist") |
+| **Icon**        | Material icon from a preset selection         |
+| **Color**       | One of 16 preset colors                       |
+| **Description** | Optional explanation of the tag's purpose     |
 
 ## Managing Tags
 

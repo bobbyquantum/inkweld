@@ -2,7 +2,7 @@
 id: quick-open
 title: Quick Open
 description: Quickly navigate to any file in your project using the Quick Open dialog.
-sidebar_position: 5
+sidebar_position: 6
 ---
 
 import ThemedImage from '@site/src/components/ThemedImage';

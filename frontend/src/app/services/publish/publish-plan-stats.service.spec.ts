@@ -176,6 +176,65 @@ describe('PublishPlanStatsService', () => {
     });
   });
 
+  describe('recount', () => {
+    it('re-reads counted documents and keeps the old count meanwhile', async () => {
+      service.ensureCounted(['folder']);
+      await flush();
+
+      contents['user:proj:doc-a'] = [paragraph('one two three four five')];
+      service.recount(['folder']);
+      expect(service.wordCounts().get('doc-a')).toEqual({
+        status: 'ready',
+        words: 3,
+      });
+
+      await flush();
+      expect(service.wordCounts().get('doc-a')).toEqual({
+        status: 'ready',
+        words: 5,
+      });
+      contents['user:proj:doc-a'] = [paragraph('one two three')];
+    });
+
+    it('keeps the newest count when an older read finishes last', async () => {
+      let releaseFirst!: () => void;
+      getDocumentContent.mockImplementationOnce(
+        () =>
+          new Promise(resolve => {
+            releaseFirst = () => resolve([paragraph('stale')]);
+          })
+      );
+      service.ensureCounted(['doc-c']);
+      await flush();
+
+      service.recount(['doc-c']);
+      await flush();
+      expect(service.wordCounts().get('doc-c')).toEqual({
+        status: 'ready',
+        words: 4,
+      });
+
+      releaseFirst();
+      await flush();
+      expect(service.wordCounts().get('doc-c')).toEqual({
+        status: 'ready',
+        words: 4,
+      });
+    });
+
+    it('counts documents that were never counted', async () => {
+      service.recount(['doc-c', 'wb']);
+      expect(service.wordCounts().get('doc-c')).toEqual({ status: 'loading' });
+      expect(service.wordCounts().has('wb')).toBe(false);
+
+      await flush();
+      expect(service.wordCounts().get('doc-c')).toEqual({
+        status: 'ready',
+        words: 4,
+      });
+    });
+  });
+
   describe('invalidate', () => {
     it('drops all cached counts so they are re-read', async () => {
       service.ensureCounted(['doc-c']);
@@ -251,6 +310,28 @@ describe('PublishPlanStatsService', () => {
         loadingDocuments: 0,
         unavailableDocuments: 0,
       });
+    });
+
+    it('leaves notes inside a folder out of its totals', () => {
+      const withNote = [
+        ...elements.slice(0, 3),
+        {
+          ...element('note', ElementType.Item, 'folder'),
+          metadata: { role: 'note' },
+        },
+        ...elements.slice(3),
+      ];
+      const stats = service.itemStats(
+        elementItem('folder', { includeChildren: true }),
+        withNote,
+        new Map([
+          ['doc-a', { status: 'ready', words: 3 }],
+          ['doc-b', { status: 'ready', words: 2 }],
+          ['note', { status: 'ready', words: 100 }],
+        ])
+      );
+      expect(stats.words).toBe(5);
+      expect(stats.documents).toBe(2);
     });
 
     it('reports nothing for a folder without children included', () => {

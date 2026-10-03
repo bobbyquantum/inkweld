@@ -2,7 +2,7 @@
 id: project-search
 title: Project Search
 description: Search for text across all documents in your project at once.
-sidebar_position: 6
+sidebar_position: 7
 ---
 
 import ThemedImage from '@site/src/components/ThemedImage';

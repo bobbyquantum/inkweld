@@ -10,4 +10,10 @@
     data-testid="show-breadcrumbs-toggle">
     {{ 'settings.projectTreeTab.showBreadcrumbs' | transloco }}
   </mat-slide-toggle>
+  <mat-slide-toggle
+    [checked]="folderClickOpens"
+    (change)="setFolderClickOpens($any($event).checked)"
+    data-testid="folder-click-opens-toggle">
+    {{ 'settings.projectTreeTab.folderClickOpens' | transloco }}
+  </mat-slide-toggle>
 </section>

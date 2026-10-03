@@ -56,9 +56,15 @@ import {
   type PublishStyles,
 } from '@models/publish-style';
 import { type PublishedFile } from '@models/published-file';
-import { isPublishableByDefault } from '@models/scene-metadata';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { ProjectStateService } from '@services/project/project-state.service';
+import {
+  addablePlanItems,
+  coveredElementIds,
+  isPlannableType,
+  NON_TEXT_TYPES,
+  uncoveredPlanItems,
+} from '@services/publish/plan-contents';
 import {
   type PublishingResult,
   PublishService,
@@ -74,14 +80,6 @@ import { isWorldbuildingType } from '@utils/worldbuilding.utils';
 import { firstValueFrom, type Subscription } from 'rxjs';
 
 import { FileSizePipe } from '../../../../pipes/file-size.pipe';
-
-/** Element types that never produce publishable text output. */
-const NON_PUBLISHABLE_TYPES: ElementType[] = [
-  ElementType.Folder,
-  ElementType.Canvas,
-  ElementType.Timeline,
-  ElementType.RelationshipChart,
-];
 
 type PlanSection =
   'metadata' | 'contents' | 'formatting' | 'publish' | 'preview';
@@ -437,10 +435,13 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
     this.updatePlan({ items });
   }
 
-  /** Predicate: only allow non-folder elements to be dropped into the list */
+  /**
+   * Predicate: folders, documents and worldbuilding entries can be dropped
+   * into the list; canvases, timelines and charts have nothing to publish.
+   */
   canEnterPublishList = (drag: CdkDrag): boolean => {
     const data = drag.data as { type?: ElementType } | undefined;
-    return data?.type !== undefined && data.type !== ElementType.Folder;
+    return isPlannableType(data?.type);
   };
 
   /** Handle element selection from dropdown */
@@ -504,13 +505,21 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
     const plan = this.plan();
     if (!plan) return;
 
-    const newItem: ElementItem = {
-      id: crypto.randomUUID(),
-      type: PublishPlanItemType.Element,
-      elementId,
-      includeChildren: false,
-      isChapter: true,
-    };
+    const element = this.elements().find(e => e.id === elementId);
+    const [newItem] = addablePlanItems(plan, this.elements(), [
+      { id: elementId, type: element?.type ?? ElementType.Item },
+    ]);
+    if (!newItem) {
+      // Already published by the plan, or a folder whose contents partly are.
+      this.snackBar.open(
+        this.transloco.translate('publish.planEditor.alreadyIncluded', {
+          name: element?.name ?? '',
+        }),
+        undefined,
+        { duration: 3000 }
+      );
+      return;
+    }
 
     const items = [...plan.items];
     if (index !== undefined && index >= 0 && index <= items.length) {
@@ -585,14 +594,14 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
     const plan = this.plan();
     if (!plan) return;
 
-    const alreadyAdded = this.planElementIds(plan);
+    const alreadyAdded = [...coveredElementIds(plan, this.elements())];
     const result = await this.dialogGateway.openElementPickerDialog({
       title: this.transloco.translate('publish.planEditor.addDocumentsTitle'),
       subtitle: this.transloco.translate(
         'publish.planEditor.addDocumentsSubtitle'
       ),
       excludeIds: alreadyAdded,
-      excludeTypes: NON_PUBLISHABLE_TYPES,
+      excludeTypes: [...NON_TEXT_TYPES],
     });
     if (!result || result.elements.length === 0) return;
 
@@ -600,48 +609,25 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
     // open; append to the current plan rather than the captured snapshot.
     const current = this.plan();
     if (!current || current.id !== plan.id) return;
-    const currentIds = new Set(this.planElementIds(current));
-
-    const newItems: PublishPlanItem[] = result.elements
-      .filter(
-        element =>
-          !currentIds.has(element.id) &&
-          (element.type === ElementType.Item ||
-            isWorldbuildingType(element.type))
-      )
-      .map(element => ({
-        id: crypto.randomUUID(),
-        type: PublishPlanItemType.Element,
-        elementId: element.id,
-        includeChildren: false,
-        isChapter: true,
-      }));
+    const newItems = addablePlanItems(
+      current,
+      this.elements(),
+      result.elements
+    );
     if (newItems.length === 0) return;
     this.updatePlan({ items: [...current.items, ...newItems] });
   }
 
-  /** Walk the element tree in order, adding all non-folder elements */
+  /**
+   * Add everything the plan does not publish yet. Top-level folders are
+   * added whole, so the publication follows the tree (and the corkboard)
+   * as scenes are reordered; see {@link uncoveredPlanItems}.
+   */
   addEverything(): void {
     const plan = this.plan();
     if (!plan) return;
 
-    // Notes are research / front matter, not manuscript: leave them out of
-    // the bulk add. They can still be added individually.
-    const alreadyAdded = new Set(this.planElementIds(plan));
-    const newItems: PublishPlanItem[] = this.documentElements()
-      .filter(
-        element =>
-          !alreadyAdded.has(element.id) &&
-          isPublishableByDefault(element.metadata)
-      )
-      .map(element => ({
-        id: crypto.randomUUID(),
-        type: PublishPlanItemType.Element,
-        elementId: element.id,
-        includeChildren: false,
-        isChapter: true,
-      }));
-
+    const newItems = uncoveredPlanItems(plan, this.elements());
     if (newItems.length > 0) {
       this.updatePlan({ items: [...plan.items, ...newItems] });
     }

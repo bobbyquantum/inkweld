@@ -129,17 +129,18 @@
         [cdkContextMenuTriggerData]="{ node: node }"
         (click)="
           node.expandable
-            ? toggleExpandedClick(node, $event)
+            ? onFolderRowClick(node, $event)
             : onOpenDocument(node)
         "
         (touchend)="
           node.expandable
-            ? toggleExpandedTouch(node, $event)
+            ? onFolderRowTouch(node, $event)
             : onOpenDocument(node, $event)
         "
         (keyup.enter)="
           node.expandable ? toggleExpanded(node) : onOpenDocument(node)
         "
+        (dblclick)="node.expandable && onOpenDocument(node)"
         tabindex="0">
         <!-- Expand/collapse button for folders -->
         @if (node.expandable) {
@@ -248,6 +249,20 @@
         <mat-icon>open_in_new</mat-icon>
         <span class="context-menu-item-title">{{
           'project.tree.openDocument' | transloco
+        }}</span>
+      </button>
+    }
+    @if (node.expandable) {
+      <button
+        type="button"
+        class="context-menu-item"
+        cdkMenuItem
+        data-testid="context-menu-open-folder"
+        [disabled]="isLoading()"
+        (click)="onOpenDocument(node)">
+        <mat-icon>dashboard</mat-icon>
+        <span class="context-menu-item-title">{{
+          'project.tree.openFolder' | transloco
         }}</span>
       </button>
     }

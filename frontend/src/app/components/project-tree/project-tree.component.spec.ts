@@ -39,6 +39,7 @@ describe('ProjectTreeComponent', () => {
   let fixture: ComponentFixture<ProjectTreeComponent>;
   let projectStateService: MockedObject<ProjectStateService>;
   let settingsService: MockedObject<SettingsService>;
+  let folderClickOpens: ReturnType<typeof signal<boolean>>;
   let quickOpenService: MockedObject<QuickOpenService>;
   let elementsSignal: WritableSignal<ProjectElement[]>;
   let visibleElementsSignal: WritableSignal<ProjectElement[]>;
@@ -84,9 +85,11 @@ describe('ProjectTreeComponent', () => {
       { systemType: 'home' },
     ]);
 
+    folderClickOpens = signal(false);
     settingsService = {
       getSetting: vi.fn().mockReturnValue(false),
       setSetting: vi.fn(),
+      folderClickOpens,
     } as unknown as MockedObject<SettingsService>;
 
     projectStateService = {
@@ -805,6 +808,57 @@ describe('ProjectTreeComponent', () => {
       expect(mockClickEvent.stopPropagation).toHaveBeenCalled();
       expect(projectStateService.toggleExpanded).toHaveBeenCalledWith(
         'test-touch-id'
+      );
+    });
+
+    it('only toggles a folder row by default', () => {
+      vi.spyOn(component, 'onOpenDocument');
+      component.onFolderRowClick(node, mockClickEvent);
+      component.onFolderRowTouch(
+        { ...node, id: 'other-folder' },
+        mockTouchEvent
+      );
+      expect(projectStateService.toggleExpanded).toHaveBeenCalledTimes(2);
+      expect(component.onOpenDocument).not.toHaveBeenCalled();
+    });
+
+    it('expands and opens a folder row when the preference is on', () => {
+      folderClickOpens.set(true);
+      const open = vi
+        .spyOn(component, 'onOpenDocument')
+        .mockImplementation(() => undefined);
+
+      component.onFolderRowClick({ ...node, expanded: false }, mockClickEvent);
+      expect(projectStateService.setExpanded).toHaveBeenCalledWith(
+        'test-touch-id',
+        true
+      );
+      expect(open).toHaveBeenCalledTimes(1);
+
+      // An expanded folder is opened but never collapsed by the click.
+      component.onFolderRowClick(
+        { ...node, id: 'open-folder', expanded: true },
+        mockClickEvent
+      );
+      expect(projectStateService.setExpanded).toHaveBeenCalledTimes(1);
+      expect(projectStateService.toggleExpanded).not.toHaveBeenCalled();
+      expect(open).toHaveBeenCalledTimes(2);
+    });
+
+    it('opens a folder once for a touch and its follow-up click', () => {
+      folderClickOpens.set(true);
+      const open = vi
+        .spyOn(component, 'onOpenDocument')
+        .mockImplementation(() => undefined);
+
+      component.onFolderRowTouch(node, mockTouchEvent);
+      component.onFolderRowClick(node, mockClickEvent);
+
+      expect(mockTouchEvent.preventDefault).toHaveBeenCalled();
+      expect(open).toHaveBeenCalledTimes(1);
+      expect(open).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'test-touch-id' }),
+        mockTouchEvent
       );
     });
 

@@ -1,0 +1,268 @@
+<div class="outline-scroll">
+  <table class="outline" data-testid="scene-outline">
+    <thead>
+      <tr>
+        <th scope="col" class="col-title">
+          {{ 'project.outline.title' | transloco }}
+        </th>
+        <th scope="col" class="col-synopsis">
+          {{ 'project.outline.synopsis' | transloco }}
+        </th>
+        <th scope="col" class="col-status">
+          {{ 'project.outline.status' | transloco }}
+        </th>
+        <th scope="col" class="col-link">
+          {{ 'project.outline.pov' | transloco }}
+        </th>
+        <th scope="col" class="col-link">
+          {{ 'project.outline.location' | transloco }}
+        </th>
+        <th scope="col" class="col-date">
+          {{ 'project.outline.storyDate' | transloco }}
+        </th>
+        <th scope="col" class="col-words">
+          {{ 'project.outline.words' | transloco }}
+        </th>
+        <th scope="col" class="col-actions"></th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (row of rows(); track row.element.id) {
+        <tr
+          [class]="'row kind-' + row.kind"
+          [attr.data-testid]="'outline-row-' + row.element.id">
+          <td class="col-title">
+            <div class="title-cell" [style.padding-left.px]="row.depth * 20">
+              @if (row.sceneNumber !== null) {
+                <span class="scene-number" aria-hidden="true">{{
+                  row.sceneNumber
+                }}</span>
+              } @else {
+                <app-tree-node-icon
+                  [type]="row.element.type"
+                  [isExpandable]="row.kind === 'folder'"
+                  [isExpanded]="row.kind === 'folder'"
+                  [metadata]="row.element.metadata" />
+              }
+              <button
+                type="button"
+                class="title-button"
+                (click)="overview.open(row.element)"
+                [attr.data-testid]="'outline-open-' + row.element.id">
+                {{ row.element.name }}
+              </button>
+            </div>
+          </td>
+
+          <td class="col-synopsis">
+            @if (hasSynopsis(row)) {
+              <input
+                type="text"
+                class="synopsis"
+                [value]="row.scene.synopsis"
+                [readOnly]="!canWrite()"
+                [placeholder]="
+                  canWrite()
+                    ? ('project.corkboard.synopsisPlaceholder' | transloco)
+                    : ''
+                "
+                [attr.aria-label]="
+                  'project.corkboard.synopsisLabel'
+                    | transloco: { name: row.element.name }
+                "
+                (change)="onSynopsisChange(row, $event)"
+                [attr.data-testid]="'outline-synopsis-' + row.element.id" />
+            }
+          </td>
+
+          <td class="col-status">
+            @if (row.kind === 'scene') {
+              <button
+                type="button"
+                class="status-button"
+                [matMenuTriggerFor]="statusMenu"
+                [disabled]="!canWrite()"
+                [attr.data-testid]="'outline-status-' + row.element.id">
+                <span
+                  [class]="
+                    'status-dot status-' + (row.scene.status ?? 'none')
+                  "></span>
+                <span>{{
+                  row.scene.status
+                    ? ('project.sceneStatus.' + row.scene.status | transloco)
+                    : ('project.sceneStrip.noStatus' | transloco)
+                }}</span>
+              </button>
+              <mat-menu #statusMenu="matMenu">
+                @for (s of statuses; track s) {
+                  <button
+                    mat-menu-item
+                    type="button"
+                    (click)="overview.setStatus(row.element.id, s)"
+                    [attr.data-testid]="'outline-status-' + s">
+                    <span [class]="'status-dot menu-dot status-' + s"></span>
+                    {{ 'project.sceneStatus.' + s | transloco }}
+                  </button>
+                }
+                <button
+                  mat-menu-item
+                  type="button"
+                  (click)="overview.setStatus(row.element.id, null)"
+                  data-testid="outline-status-clear">
+                  <span class="status-dot menu-dot status-none"></span>
+                  {{ 'project.sceneStrip.noStatus' | transloco }}
+                </button>
+              </mat-menu>
+            } @else if (row.kind === 'folder') {
+              <span class="muted">{{
+                (row.sceneCount === 1
+                  ? 'project.corkboard.sceneCountOne'
+                  : 'project.corkboard.sceneCount'
+                ) | transloco: { count: row.sceneCount }
+              }}</span>
+            } @else {
+              <span class="muted">{{
+                (row.kind === 'note'
+                  ? 'project.corkboard.note'
+                  : 'project.corkboard.document'
+                ) | transloco
+              }}</span>
+            }
+          </td>
+
+          <td class="col-link">
+            @for (el of row.pov; track el.id) {
+              <button
+                type="button"
+                class="link-button"
+                (click)="overview.open(el)">
+                {{ el.name }}
+              </button>
+            }
+          </td>
+
+          <td class="col-link">
+            @for (el of row.location; track el.id) {
+              <button
+                type="button"
+                class="link-button"
+                (click)="overview.open(el)">
+                {{ el.name }}
+              </button>
+            }
+          </td>
+
+          <td class="col-date">{{ row.storyDateLabel }}</td>
+
+          <td
+            class="col-words"
+            [attr.data-testid]="'outline-words-' + row.element.id">
+            <ng-container
+              [ngTemplateOutlet]="words"
+              [ngTemplateOutletContext]="{
+                state: row.wordsState,
+                words: row.words,
+                target: row.wordTarget,
+                progress: row.progress,
+              }" />
+          </td>
+
+          <td class="col-actions">
+            @if (row.kind === 'scene' && canWrite()) {
+              <button
+                mat-icon-button
+                appTooltipAriaLabel
+                type="button"
+                class="row-action"
+                (click)="overview.openDetails(row.element)"
+                [matTooltip]="'project.sceneStrip.details' | transloco"
+                [attr.data-testid]="'outline-details-' + row.element.id">
+                <mat-icon>tune</mat-icon>
+              </button>
+            }
+          </td>
+        </tr>
+      } @empty {
+        <tr>
+          <td colspan="8" class="empty">
+            {{ 'project.outline.empty' | transloco }}
+          </td>
+        </tr>
+      }
+    </tbody>
+    @if (totals().scenes > 0) {
+      <tfoot>
+        <tr data-testid="outline-totals">
+          <th scope="row" class="col-title">
+            {{
+              (totals().scenes === 1
+                ? 'project.corkboard.sceneCountOne'
+                : 'project.corkboard.sceneCount'
+              ) | transloco: { count: totals().scenes }
+            }}
+          </th>
+          <td colspan="5" class="status-summary">
+            @for (s of statuses; track s) {
+              @if (totals().byStatus[s] > 0) {
+                <span class="summary-item">
+                  <span [class]="'status-dot status-' + s"></span>
+                  {{ totals().byStatus[s] }}
+                  {{ 'project.sceneStatus.' + s | transloco }}
+                </span>
+              }
+            }
+            @if (totals().byStatus.none > 0) {
+              <span class="summary-item">
+                <span class="status-dot status-none"></span>
+                {{ totals().byStatus.none }}
+                {{ 'project.sceneStrip.noStatus' | transloco }}
+              </span>
+            }
+          </td>
+          <td class="col-words">
+            <ng-container
+              [ngTemplateOutlet]="words"
+              [ngTemplateOutletContext]="{
+                state: totals().wordsState,
+                words: totals().words,
+                target: totals().wordTarget,
+                progress: null,
+              }" />
+          </td>
+          <td class="col-actions"></td>
+        </tr>
+      </tfoot>
+    }
+  </table>
+</div>
+
+<ng-template
+  #words
+  let-state="state"
+  let-count="words"
+  let-target="target"
+  let-progress="progress">
+  @switch (state) {
+    @case ('loading') {
+      <span>…</span>
+    }
+    @case ('unavailable') {
+      <span [matTooltip]="'project.corkboard.notSynced' | transloco">—</span>
+    }
+    @case ('ready') {
+      <span class="words">
+        <span>
+          {{ count.toLocaleString() }}
+          @if (target > 0) {
+            / {{ target.toLocaleString() }}
+          }
+        </span>
+        @if (progress !== null) {
+          <span class="progress" aria-hidden="true">
+            <span class="progress-fill" [style.width.%]="progress"></span>
+          </span>
+        }
+      </span>
+    }
+  }
+</ng-template>

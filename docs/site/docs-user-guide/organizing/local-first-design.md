@@ -2,7 +2,7 @@
 id: local-first-design
 title: Local-First Design
 description: Understanding how Inkweld stores and syncs your data using a local-first architecture.
-sidebar_position: 5
+sidebar_position: 6
 ---
 
 # Local-First Design

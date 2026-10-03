@@ -1,0 +1,210 @@
+<div
+  class="corkboard"
+  cdkDropList
+  cdkDropListOrientation="mixed"
+  [cdkDropListDisabled]="!canWrite()"
+  (cdkDropListDropped)="onDrop($event)"
+  data-testid="scene-corkboard">
+  @for (card of cards(); track card.element.id) {
+    <article
+      cdkDrag
+      [class]="
+        'card kind-' + card.kind + ' status-' + (card.scene.status ?? 'none')
+      "
+      [attr.data-testid]="'corkboard-card-' + card.element.id">
+      <div *cdkDragPlaceholder class="card-placeholder"></div>
+
+      <header class="card-header" cdkDragHandle>
+        @if (card.sceneNumber !== null) {
+          <span class="scene-number" aria-hidden="true">{{
+            card.sceneNumber
+          }}</span>
+        } @else {
+          <app-tree-node-icon
+            [type]="card.element.type"
+            [schemaId]="card.element.schemaId"
+            [isExpandable]="card.kind === 'folder'"
+            [metadata]="card.element.metadata" />
+        }
+        <button
+          type="button"
+          class="card-title"
+          (click)="overview.open(card.element)"
+          [matTooltip]="'project.corkboard.open' | transloco"
+          [attr.data-testid]="'corkboard-open-' + card.element.id">
+          {{ card.element.name }}
+        </button>
+
+        @if (card.kind === 'scene') {
+          <button
+            mat-icon-button
+            appTooltipAriaLabel
+            type="button"
+            class="card-action"
+            [matMenuTriggerFor]="statusMenu"
+            [disabled]="!canWrite()"
+            [matTooltip]="
+              card.scene.status
+                ? ('project.sceneStatus.' + card.scene.status | transloco)
+                : ('project.sceneStrip.noStatus' | transloco)
+            "
+            [attr.data-testid]="'corkboard-status-' + card.element.id">
+            <span
+              [class]="
+                'status-dot status-' + (card.scene.status ?? 'none')
+              "></span>
+          </button>
+          <mat-menu #statusMenu="matMenu">
+            @for (s of statuses; track s) {
+              <button
+                mat-menu-item
+                type="button"
+                (click)="overview.setStatus(card.element.id, s)"
+                [attr.data-testid]="'corkboard-status-' + s">
+                <span [class]="'status-dot menu-dot status-' + s"></span>
+                {{ 'project.sceneStatus.' + s | transloco }}
+              </button>
+            }
+            <button
+              mat-menu-item
+              type="button"
+              (click)="overview.setStatus(card.element.id, null)"
+              data-testid="corkboard-status-clear">
+              <span class="status-dot menu-dot status-none"></span>
+              {{ 'project.sceneStrip.noStatus' | transloco }}
+            </button>
+          </mat-menu>
+          <button
+            mat-icon-button
+            appTooltipAriaLabel
+            type="button"
+            class="card-action"
+            (click)="overview.openDetails(card.element)"
+            [disabled]="!canWrite()"
+            [matTooltip]="'project.sceneStrip.details' | transloco"
+            [attr.data-testid]="'corkboard-details-' + card.element.id">
+            <mat-icon>tune</mat-icon>
+          </button>
+        }
+      </header>
+
+      <div class="card-body">
+        @if (hasSynopsis(card)) {
+          <textarea
+            class="synopsis"
+            rows="4"
+            [value]="card.scene.synopsis"
+            [readOnly]="!canWrite()"
+            [placeholder]="
+              canWrite()
+                ? ('project.corkboard.synopsisPlaceholder' | transloco)
+                : ''
+            "
+            [attr.aria-label]="
+              'project.corkboard.synopsisLabel'
+                | transloco: { name: card.element.name }
+            "
+            (change)="onSynopsisChange(card, $event)"
+            [attr.data-testid]="
+              'corkboard-synopsis-' + card.element.id
+            "></textarea>
+        } @else if (card.kind === 'note' || card.kind === 'document') {
+          <p class="card-kind">
+            {{
+              (card.kind === 'note'
+                ? 'project.corkboard.note'
+                : 'project.corkboard.document'
+              ) | transloco
+            }}
+          </p>
+          @if (canWrite()) {
+            <button
+              mat-button
+              type="button"
+              class="make-scene"
+              (click)="overview.makeScene(card.element.id)"
+              [attr.data-testid]="'corkboard-make-scene-' + card.element.id">
+              <mat-icon>auto_stories</mat-icon>
+              {{ 'project.tree.convertToScene' | transloco }}
+            </button>
+          }
+        }
+      </div>
+
+      @if (card.kind !== 'other') {
+        <footer class="card-footer">
+          @for (el of card.pov; track el.id) {
+            <button
+              type="button"
+              class="chip"
+              (click)="overview.open(el)"
+              [matTooltip]="'project.sceneStrip.povTooltip' | transloco">
+              <mat-icon aria-hidden="true">visibility</mat-icon>
+              <span>{{ el.name }}</span>
+            </button>
+          }
+          @for (el of card.location; track el.id) {
+            <button
+              type="button"
+              class="chip"
+              (click)="overview.open(el)"
+              [matTooltip]="'project.sceneStrip.locationTooltip' | transloco">
+              <mat-icon aria-hidden="true">location_on</mat-icon>
+              <span>{{ el.name }}</span>
+            </button>
+          }
+          @if (card.storyDateLabel; as date) {
+            <span class="chip chip-static">
+              <mat-icon aria-hidden="true">event</mat-icon>
+              <span>{{ date }}</span>
+            </span>
+          }
+          @if (card.kind === 'folder') {
+            <span class="chip chip-static">
+              <mat-icon aria-hidden="true">auto_stories</mat-icon>
+              <span>{{
+                (card.sceneCount === 1
+                  ? 'project.corkboard.sceneCountOne'
+                  : 'project.corkboard.sceneCount'
+                ) | transloco: { count: card.sceneCount }
+              }}</span>
+            </span>
+          }
+
+          <span class="spacer"></span>
+
+          <span
+            class="words"
+            [attr.data-testid]="'corkboard-words-' + card.element.id">
+            @if (card.progress !== null) {
+              <span class="progress" aria-hidden="true">
+                <span
+                  class="progress-fill"
+                  [style.width.%]="card.progress"></span>
+              </span>
+            }
+            @switch (card.wordsState) {
+              @case ('loading') {
+                <span>…</span>
+              }
+              @case ('unavailable') {
+                <span [matTooltip]="'project.corkboard.notSynced' | transloco"
+                  >—</span
+                >
+              }
+              @case ('ready') {
+                <span>
+                  {{ card.words.toLocaleString() }}
+                  @if (card.wordTarget > 0) {
+                    / {{ card.wordTarget.toLocaleString() }}
+                  }
+                  {{ 'project.corkboard.words' | transloco }}
+                </span>
+              }
+            }
+          </span>
+        </footer>
+      }
+    </article>
+  }
+</div>

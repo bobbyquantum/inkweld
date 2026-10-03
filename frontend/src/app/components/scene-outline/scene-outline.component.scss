@@ -1,0 +1,244 @@
+@use '../../../themes/scene-status' as sceneStatus;
+
+@include sceneStatus.colors();
+@include sceneStatus.progress();
+
+.outline-scroll {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.outline {
+  width: 100%;
+  min-width: 860px;
+  border-collapse: collapse;
+  font-size: 14px;
+
+  th,
+  td {
+    padding: 4px 10px;
+    border-bottom: 1px solid var(--sys-outline-variant);
+    text-align: left;
+    vertical-align: middle;
+  }
+
+  thead th {
+    padding: 10px;
+    background: var(--sys-surface-container);
+    color: var(--sys-on-surface-variant);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  tfoot th,
+  tfoot td {
+    padding: 10px;
+    border-bottom: none;
+    background: var(--sys-surface-container);
+    font-weight: 600;
+  }
+}
+
+.col-title {
+  width: 24%;
+}
+
+.col-synopsis {
+  width: 32%;
+}
+
+.col-status,
+.col-date,
+.col-link {
+  white-space: nowrap;
+}
+
+.outline .col-words {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.outline .col-actions {
+  width: 32px;
+  padding: 0 4px;
+}
+
+.row {
+  height: 40px;
+
+  &:hover {
+    background: var(--sys-surface-container-low);
+  }
+
+  &.kind-folder {
+    background: var(--sys-surface-container-low);
+    font-weight: 600;
+  }
+
+  &.kind-note,
+  &.kind-document {
+    color: var(--sys-on-surface-variant);
+  }
+}
+
+.title-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+
+  app-tree-node-icon {
+    display: inline-flex;
+    flex-shrink: 0;
+    color: var(--sys-on-surface-variant);
+  }
+}
+
+.scene-number {
+  flex-shrink: 0;
+  min-width: 24px;
+  padding: 0 4px;
+  box-sizing: border-box;
+  border-radius: 11px;
+  background: var(--sys-surface-container-highest);
+  color: var(--sys-on-surface-variant);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  line-height: 22px;
+  text-align: center;
+}
+
+.title-button,
+.link-button {
+  min-width: 0;
+  padding: 2px 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    color: var(--sys-primary);
+    text-decoration: underline;
+    outline: none;
+  }
+}
+
+.link-button {
+  display: block;
+  max-width: 160px;
+}
+
+.synopsis {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 6px 8px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 400;
+  text-overflow: ellipsis;
+
+  &::placeholder {
+    color: var(--sys-on-surface-variant);
+    opacity: 0.6;
+  }
+
+  &:hover:not(:read-only) {
+    border-color: var(--sys-outline-variant);
+  }
+
+  &:focus {
+    outline: none;
+    border-color: var(--sys-primary);
+    background: var(--sys-surface);
+  }
+}
+
+.status-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+
+  &:hover:not(:disabled),
+  &:focus-visible {
+    border-color: var(--sys-outline-variant);
+    background: var(--sys-surface-container-high);
+    outline: none;
+  }
+
+  &:disabled {
+    cursor: default;
+  }
+}
+
+.menu-dot {
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+.muted {
+  color: var(--sys-on-surface-variant);
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.words {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.row-action {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.status-summary {
+  font-weight: 400;
+}
+
+.summary-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 16px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.outline .empty {
+  padding: 32px 10px;
+  color: var(--sys-on-surface-variant);
+  text-align: center;
+}

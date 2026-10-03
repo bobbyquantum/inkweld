@@ -133,4 +133,25 @@ describe('ProjectTreeSettingsComponent', () => {
       expect(settingsService.showBreadcrumbs()).toBe(false);
     });
   });
+
+  describe('folderClickOpens', () => {
+    it('should default to false', () => {
+      expect(component.folderClickOpens).toBe(false);
+    });
+
+    it('should persist and update the signal when toggled', () => {
+      component.setFolderClickOpens(true);
+      expect(settingsService.folderClickOpens()).toBe(true);
+      expect(component.folderClickOpens).toBe(true);
+      expect(
+        JSON.parse(localStorageMock['userSettings']).folderClickOpens
+      ).toBe(true);
+    });
+
+    it('should treat non-boolean values as false', () => {
+      // @ts-expect-error Testing invalid type
+      component.setFolderClickOpens('invalid');
+      expect(settingsService.folderClickOpens()).toBe(false);
+    });
+  });
 });

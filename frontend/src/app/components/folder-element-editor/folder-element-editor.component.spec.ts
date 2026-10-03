@@ -1,201 +1,170 @@
 import { type CdkDragDrop } from '@angular/cdk/drag-drop';
-import {
-  ChangeDetectionStrategy,
-  Component,
-  provideZonelessChangeDetection,
-} from '@angular/core';
-import { signal } from '@angular/core';
+import { provideZonelessChangeDetection } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
-import { By } from '@angular/platform-browser';
-import { ElementType } from '@inkweld/index';
-import { vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
+import {
+  type SceneOverviewHarness,
+  sceneOverviewHarness,
+} from '../../../testing/scene-overview-testing';
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { type ProjectElement } from '../../models/project-element';
-import { ProjectStateService } from '../../services/project/project-state.service';
 import { FolderElementEditorComponent } from './folder-element-editor.component';
 
-// Mock component for TreeNodeIcon
-@Component({
-  selector: 'app-tree-node-icon',
-  changeDetection: ChangeDetectionStrategy.Eager,
-  template: '<div class="mock-icon"></div>',
-})
-class MockTreeNodeIconComponent {
-  isExpandable: boolean = false;
-  isExpanded: boolean = false;
-  type: string = '';
-}
-
 describe('FolderElementEditorComponent', () => {
-  let component: FolderElementEditorComponent;
   let fixture: ComponentFixture<FolderElementEditorComponent>;
-  let mockProjectStateService: any;
+  let component: FolderElementEditorComponent;
+  let h: SceneOverviewHarness;
 
-  const mockElements: ProjectElement[] = [
-    {
-      id: 'folder1',
-      name: 'Test Folder',
-      type: ElementType.Folder,
-      level: 0,
-      order: 0,
-      parentId: null,
-      expandable: true,
-      expanded: true,
-      visible: true,
-      version: 1,
-      metadata: { viewMode: 'grid' },
-    },
-    {
-      id: 'item1',
-      name: 'Test Item 1',
-      type: ElementType.Item,
-      level: 1,
-      order: 1,
-      parentId: 'folder1',
-      expandable: false,
-      expanded: false,
-      visible: true,
-      version: 1,
-      metadata: {},
-    },
-    {
-      id: 'item2',
-      name: 'Test Item 2',
-      type: ElementType.Item,
-      level: 1,
-      order: 2,
-      parentId: 'folder1',
-      expandable: false,
-      expanded: false,
-      visible: true,
-      version: 1,
-      metadata: {},
-    },
-  ];
+  const query = (selector: string): HTMLElement | null =>
+    (fixture.nativeElement as HTMLElement).querySelector(selector);
 
-  beforeEach(async () => {
-    mockProjectStateService = {
-      elements: vi.fn().mockReturnValue(mockElements),
-      isLoading: signal(false),
-      error: signal(undefined),
-      openDocument: vi.fn(),
-      updateElements: vi.fn(),
-      showNewElementDialog: vi.fn(),
-    };
+  const setFolderMetadata = (id: string, metadata: Record<string, string>) =>
+    h.elements.update(list =>
+      list.map(e => (e.id === id ? { ...e, metadata } : e))
+    );
 
-    await TestBed.configureTestingModule({
-      imports: [
-        translocoTestProvider(),
-        FolderElementEditorComponent,
-        MockTreeNodeIconComponent,
-      ],
-      declarations: [],
-      providers: [
-        provideZonelessChangeDetection(),
-        { provide: ProjectStateService, useValue: mockProjectStateService },
-      ],
-    }).compileComponents();
-
+  const create = (elementId: string) => {
     fixture = TestBed.createComponent(FolderElementEditorComponent);
     component = fixture.componentInstance;
-    component.elementId = 'folder1';
+    fixture.componentRef.setInput('elementId', elementId);
     fixture.detectChanges();
+  };
+
+  beforeEach(async () => {
+    h = sceneOverviewHarness();
+    await TestBed.configureTestingModule({
+      imports: [FolderElementEditorComponent, translocoTestProvider()],
+      providers: [provideZonelessChangeDetection(), ...h.providers],
+    }).compileComponents();
   });
 
-  it('should create', () => {
-    expect(component).toBeTruthy();
+  it('resolves the folder from a full document id', () => {
+    create('alice:novel:book');
+    expect(component.folderId()).toBe('book');
+    expect(component.folderElement()?.id).toBe('book');
+    expect(component.childElements().map(e => e.id)).toEqual([
+      'opening',
+      'chapter',
+      'loose',
+      'map',
+    ]);
   });
 
-  it('should load child elements on initialization', () => {
-    expect(component.childElements()).toHaveLength(2);
-    expect(component.childElements()[0].id).toBe('item1');
-    expect(component.childElements()[1].id).toBe('item2');
+  it('accepts a bare id too', () => {
+    create('chapter');
+    expect(component.childElements().map(e => e.id)).toEqual([
+      'storm',
+      'research',
+    ]);
   });
 
-  it('should load view mode from metadata', () => {
+  it('opens a folder with scenes on the corkboard', () => {
+    create('book');
+    expect(component.viewMode()).toBe('corkboard');
+    expect(query('app-scene-corkboard')).toBeTruthy();
+    expect(query('[data-testid="folder-refresh-word-counts"]')).toBeTruthy();
+  });
+
+  it('opens a folder without scenes on the grid', () => {
+    h.elements.update(list => list.filter(e => e.id !== 'storm'));
+    create('chapter');
     expect(component.viewMode()).toBe('grid');
+    expect(query('.grid-container')).toBeTruthy();
+    expect(query('[data-testid="folder-refresh-word-counts"]')).toBeNull();
   });
 
-  it('should change view mode and save to metadata', () => {
-    // Spy on the private method
-    vi.spyOn<any, any>(component, 'saveViewModeToMetadata');
+  it('honours the view saved on the folder and ignores garbage', () => {
+    setFolderMetadata('book', { viewMode: 'outline' });
+    create('book');
+    expect(component.viewMode()).toBe('outline');
+    expect(query('app-scene-outline')).toBeTruthy();
 
+    setFolderMetadata('book', { viewMode: 'nonsense' });
+    fixture.detectChanges();
+    expect(component.viewMode()).toBe('corkboard');
+  });
+
+  it('saves the chosen view on the folder', () => {
+    create('book');
     component.setViewMode('list');
+    expect(h.projectState.updateElementMetadata).toHaveBeenCalledWith('book', {
+      viewMode: 'list',
+    });
+  });
 
+  it('keeps a viewer’s choice local', () => {
+    h.canWrite.set(false);
+    create('book');
+    component.setViewMode('list');
+    fixture.detectChanges();
+    expect(h.projectState.updateElementMetadata).not.toHaveBeenCalled();
     expect(component.viewMode()).toBe('list');
-    expect(component['saveViewModeToMetadata']).toHaveBeenCalledWith('list');
+    expect(query('.list-container')).toBeTruthy();
+    expect(query('[data-testid="folder-add-element"]')).toBeNull();
   });
 
-  it('should open an element when clicked', () => {
-    const element = mockElements[1]; // Test Item 1
+  it('renders the list view', () => {
+    setFolderMetadata('book', { viewMode: 'list' });
+    create('book');
+    expect(query('.list-container')).toBeTruthy();
+    expect(query('.grid-container')).toBeNull();
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelectorAll('tbody tr')
+    ).toHaveLength(4);
+  });
+
+  it('opens an element', () => {
+    create('book');
+    const element = component.childElements()[0];
     component.openElement(element);
-
-    expect(mockProjectStateService.openDocument).toHaveBeenCalledWith(element);
+    expect(h.projectState.openDocument).toHaveBeenCalledWith(element);
   });
 
-  it('should handle drop events for reordering', () => {
-    const dropEvent = {
+  it('reorders the folder on drop without touching other elements', () => {
+    create('book');
+    const before = h.elements().length;
+    component.onDrop({
       previousIndex: 0,
       currentIndex: 1,
-      container: {
-        data: component.childElements(),
-      },
-    } as unknown as CdkDragDrop<ProjectElement[]>;
-
-    component.onDrop(dropEvent);
-
-    expect(mockProjectStateService.updateElements).toHaveBeenCalled();
+    } as CdkDragDrop<ProjectElement[]>);
+    expect(component.childElements().map(e => e.id)).toEqual([
+      'chapter',
+      'opening',
+      'loose',
+      'map',
+    ]);
+    expect(h.elements()).toHaveLength(before);
   });
 
-  it('should not update elements when dropped in same position', () => {
-    const dropEvent = {
-      previousIndex: 0,
-      currentIndex: 0,
-      container: {
-        data: component.childElements(),
-      },
-    } as unknown as CdkDragDrop<ProjectElement[]>;
-
-    component.onDrop(dropEvent);
-
-    expect(mockProjectStateService.updateElements).not.toHaveBeenCalled();
+  it('does not move anything when dropped in place', () => {
+    create('book');
+    component.onDrop({
+      previousIndex: 1,
+      currentIndex: 1,
+    } as CdkDragDrop<ProjectElement[]>);
+    expect(h.projectState.moveElement).not.toHaveBeenCalled();
   });
 
-  it('should create a new element', () => {
+  it('creates a new element inside the folder', () => {
+    create('book');
     component.createNewElement();
-
-    expect(mockProjectStateService.showNewElementDialog).toHaveBeenCalled();
+    expect(h.projectState.showNewElementDialog).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'book' })
+    );
   });
 
-  it('should display grid view when viewMode is grid', () => {
-    component.setViewMode('grid');
-    fixture.detectChanges();
-
-    const gridContainer = fixture.debugElement.query(By.css('.grid-container'));
-    expect(gridContainer).toBeTruthy();
-
-    const listContainer = fixture.debugElement.query(By.css('.list-container'));
-    expect(listContainer).toBeFalsy();
+  it('recounts words on request', () => {
+    create('book');
+    h.stats.recount.mockClear();
+    query('[data-testid="folder-refresh-word-counts"]')!.click();
+    expect(h.stats.recount).toHaveBeenCalledWith(['book']);
   });
 
-  it('should display list view when viewMode is list', () => {
-    component.setViewMode('list');
-    fixture.detectChanges();
-
-    const gridContainer = fixture.debugElement.query(By.css('.grid-container'));
-    expect(gridContainer).toBeFalsy();
-
-    const listContainer = fixture.debugElement.query(By.css('.list-container'));
-    expect(listContainer).toBeTruthy();
-  });
-
-  it('should show empty state when there are no child elements', () => {
-    // Override the childElements signal
-    component.childElements.set([]);
-    fixture.detectChanges();
-
-    const emptyFolder = fixture.debugElement.query(By.css('.empty-folder'));
-    expect(emptyFolder).toBeTruthy();
+  it('shows the empty state for a folder with no children', () => {
+    h.elements.update(list => list.filter(e => e.parentId !== 'chapter'));
+    create('chapter');
+    expect(query('[data-testid="folder-empty"]')).toBeTruthy();
+    expect(query('app-scene-corkboard')).toBeNull();
   });
 });

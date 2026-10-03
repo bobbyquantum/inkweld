@@ -60,16 +60,14 @@ Right-click on a folder to create elements inside it:
 
 ## Document Types
 
-### Text Documents
+### Scenes and Notes
 
-Standard documents for prose writing:
+Prose documents are created as one of two kinds:
 
-- Chapters and scenes
-- Notes and planning
-- Research and references
-- Any freeform text
+- **Scenes** — your manuscript, with a synopsis, draft status, word target and story date
+- **Notes** — research, planning, front matter and anything else that is not part of the book
 
-These use the rich text editor. See [The Editor](../writing/editor) for details.
+Both use the rich text editor. See [Scenes, Corkboard & Outline](./scenes-corkboard-outline) for how they differ and [The Editor](../writing/editor) for writing.
 
 ### Worldbuilding Elements
 
@@ -85,6 +83,8 @@ See [Worldbuilding Elements](../worldbuilding/elements) for details on creating 
 ## Opening Documents
 
 Click any document in the project navigator to open it in a new tab. If the document is already open, clicking it will switch to that tab.
+
+Folders open too: double-click one, or right-click it and choose **Open Folder**, to see its contents as a corkboard, outline, grid or list. See [Scenes, Corkboard & Outline](./scenes-corkboard-outline#opening-a-folder).
 
 See [Project Interface](./project-structure) for more on working with tabs.
 
@@ -137,7 +137,7 @@ The only way to move documents is drag and drop:
 2. Drag to the target folder
 3. Release to drop
 
-You can also drag documents to reorder them within a folder.
+You can also drag documents to reorder them within a folder, or rearrange a folder's cards on its [corkboard](./scenes-corkboard-outline#corkboard).
 
 :::tip[Drag Indicator]
 When dragging, the target folder highlights to show where the document will be placed.
@@ -189,4 +189,4 @@ Create snapshots:
 
 ---
 
-**Next:** [Using Tags](./tags) - Categorize and filter your story elements.
+**Next:** [Scenes, Corkboard & Outline](./scenes-corkboard-outline) - Plan and rearrange your manuscript.
