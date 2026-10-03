@@ -2,7 +2,7 @@
 id: activity-and-stats
 title: Activity & Writing Statistics
 description: Track per-project activity and view your writing statistics across all your projects.
-sidebar_position: 3
+sidebar_position: 4
 ---
 
 # Activity & Writing Statistics
@@ -62,20 +62,20 @@ The summary reloads together with the feed when you press the refresh button, an
 
 The feed records:
 
-| Event                     | Description                                 |
-| ------------------------- | ------------------------------------------- |
-| Document edit             | Any net-positive edit to a document         |
-| Snapshot created          | A versioned snapshot was saved              |
-| Comment thread            | A new comment thread was opened             |
-| Comment reply             | A reply was added to an existing thread     |
-| File published            | A document was exported / published         |
-| Element created           | A new worldbuilding element was added       |
-| Element renamed           | An existing element was renamed             |
-| Element deleted           | An element was removed                      |
-| Collaborator invited      | An invitation was sent                      |
-| Collaborator joined       | An invitation was accepted                  |
-| Collaborator role changed | A collaborator's permissions changed        |
-| Collaborator removed      | A collaborator was removed from the project |
+| Event                     | Description                                   |
+| ------------------------- | --------------------------------------------- |
+| Document edit             | Any net-positive edit to a document           |
+| Snapshot created          | A versioned snapshot was saved                |
+| Comment thread            | A new [comment](./comments) thread was opened |
+| Comment reply             | A reply was added to an existing thread       |
+| File published            | A document was exported / published           |
+| Element created           | A new worldbuilding element was added         |
+| Element renamed           | An existing element was renamed               |
+| Element deleted           | An element was removed                        |
+| Collaborator invited      | An invitation was sent                        |
+| Collaborator joined       | An invitation was accepted                    |
+| Collaborator role changed | A collaborator's permissions changed          |
+| Collaborator removed      | A collaborator was removed from the project   |
 
 Each entry shows the actor, the affected entity, and a human-readable timestamp (with the exact time in a tooltip). Older entries can be loaded on demand via the **Load more** button at the bottom of the feed.
 

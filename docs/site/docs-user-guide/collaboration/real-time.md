@@ -34,24 +34,26 @@ Each collaborator's cursor appears in the document with their assigned color. Na
 
 The sync indicator in the toolbar shows your current state:
 
-| Status | Meaning |
-|--------|---------|
-| **Connected** | Full real-time sync active |
-| **Offline** | No connection; changes saved locally |
+| Status        | Meaning                              |
+| ------------- | ------------------------------------ |
+| **Connected** | Full real-time sync active           |
+| **Offline**   | No connection; changes saved locally |
 
 When the connection is interrupted, Inkweld shows "Offline" and continues working with local data while attempting to reconnect in the background. When you reconnect, local and remote changes merge automatically.
 
 ## Troubleshooting
 
 **Changes not appearing?**
+
 - Check the sync indicator for connection issues
 - Ask collaborators to check their connection
 - Try refreshing the page
 
 **Text looks garbled after simultaneous edits?**
+
 - This can happen briefly when two people type at the exact same position
 - Pause for a moment to let sync complete, then clean up as needed
 
 ---
 
-**Next:** [Sharing Projects](./sharing) - Invite collaborators and manage access.
+**Next:** [Comments](./comments) - Leave notes on passages for yourself and your co-authors.

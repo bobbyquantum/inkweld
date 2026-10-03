@@ -35,6 +35,7 @@ The first tab (with a home icon) takes you to the **Project Home** page, which d
 
 - **Project header** — Cover image, title, and description (click to edit)
 - **Start actions** — Quick buttons for common tasks like creating files or exporting
+- **Pinned** — Elements the owner has [pinned](#pinning) (only shown when something is pinned)
 - **Recent elements** — Documents you've opened recently for quick access
 - **Publish plans** — Manage your EPUB/PDF export configurations
 
@@ -61,6 +62,7 @@ Right-click any tab to access the context menu:
 - **Close to Right** — Close all tabs to the right of this one
 - **Close Others** — Close all other tabs except this one
 - **Close All** — Close all open tabs
+- **Pin / Unpin** — Pin the element shown in this tab (project owner only; see [Pinning](#pinning))
 
 ### Toolbar Actions
 
@@ -91,6 +93,17 @@ All worldbuilding entries—characters, locations, items, and more—are built f
 - **Drag and drop** to reorganize elements
 - **Right-click** for context menu (rename, delete)
 - **Click the chevron** to expand/collapse folders
+
+### Pinning
+
+Pin the elements you go back to all the time, such as an outline, a style sheet or a main character, so they are one click away.
+
+- **To pin**, right-click an element in the project tree (or its tab) and choose **Pin**.
+- **To unpin**, do the same and choose **Unpin**.
+
+Pinned elements appear in a **Pinned** section above the project tree and in a **Pinned** column on the Home tab, in the order they were pinned. Click one to open it.
+
+Pins belong to the project, not to you: every collaborator sees the same list, and it is kept when you reload or come back later. Only the project owner can pin and unpin. Neither section is shown while nothing is pinned.
 
 ### Navigator Toolbar
 

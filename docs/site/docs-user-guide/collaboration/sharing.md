@@ -2,7 +2,7 @@
 id: sharing
 title: Sharing Projects
 description: Invite collaborators and manage access to your writing projects.
-sidebar_position: 2
+sidebar_position: 3
 ---
 
 # Sharing Projects

@@ -67,7 +67,21 @@ Prose documents are created as one of two kinds:
 - **Scenes** — your manuscript, with a synopsis, draft status, word target and story date
 - **Notes** — research, planning, front matter and anything else that is not part of the book
 
-Both use the rich text editor. See [Scenes, Corkboard & Outline](./scenes-corkboard-outline) for how they differ and [The Editor](../writing/editor) for writing.
+Both use the rich text editor. A scene also carries:
+
+| Detail        | What it holds                                                     |
+| ------------- | ----------------------------------------------------------------- |
+| Status        | **Idea**, **Draft**, **Revised** or **Final**                     |
+| Synopsis      | A short summary, shown on the corkboard and in the outline        |
+| Word target   | How long the scene should be; the word count shows progress to it |
+| Story date    | When the scene happens, in any calendar installed in the project  |
+| POV, location | The character and place the scene is linked to                    |
+
+Edit these from the chips above the scene's text, or click the tune button to open **Scene details**.
+
+The role also decides publishing. When a folder in a [publish plan](../publishing/publish-plans) is exported, the scenes inside it are included and the notes are skipped, and adding everything to a plan leaves notes out. To publish a note, add it to the plan by itself. Documents with no role (created before scenes existed, or by an import) are treated like scenes. To switch a document between the two, right-click it in the project tree and choose **Convert to Scene** or **Convert to Note**.
+
+See [Scenes, Corkboard & Outline](./scenes-corkboard-outline) for more, and [The Editor](../writing/editor) for writing.
 
 ### Worldbuilding Elements
 

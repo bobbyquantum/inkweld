@@ -85,6 +85,7 @@ const sidebars: SidebarsConfig = {
       },
       items: [
         'collaboration/real-time',
+        'collaboration/comments',
         'collaboration/sharing',
         'collaboration/activity-and-stats',
       ],

@@ -41,6 +41,7 @@ Set a visual cover for your project. The cover appears on the dashboard and can 
 ### Select from Library
 
 Choose an existing image from your project's media library:
+
 1. Click **Select from Library**
 2. Pick an image from the media library dialog
 3. The selected image becomes your project cover
@@ -48,6 +49,7 @@ Choose an existing image from your project's media library:
 ### Generate with AI
 
 If AI image generation is enabled on your server:
+
 1. Click **Generate with AI**
 2. Follow the prompts to create a cover
 3. The generated image becomes your project cover
@@ -58,16 +60,74 @@ See [AI Image Generation](/user-guide/media/ai-generation) for details.
 
 Click the remove button (×) on the cover image to remove it.
 
+## The Settings Tab
+
+Click **Project Settings** at the bottom of the project sidebar to open the settings tab. Its sections are listed down the left (on a narrow screen, as expandable panels). Which ones you see depends on your access:
+
+| Section                                                  | Who sees it                  |
+| -------------------------------------------------------- | ---------------------------- |
+| Actions (export / import)                                | Everyone                     |
+| Templates, Relationships, Tags, Time Systems, Generators | Owner and writers            |
+| [Sync](#sync)                                            | Everyone                     |
+| Collaboration                                            | Owner                        |
+| [MCP](#mcp)                                              | Owner, unless AI is disabled |
+| Danger Zone                                              | Owner                        |
+
+## Sync
+
+The Sync section shows how much of the project is stored where, and lets you repair this device's copy. Server storage and media sync only work in **Realtime Sync** mode; in Browser or Cloud Sync mode a note at the top says so.
+
+### Server Storage
+
+How much space the project takes up on the server: **Documents & data**, **Media**, and the **Total**.
+
+### Media Library Sync
+
+Images and other media are downloaded to each device separately from the text. This card compares the two copies:
+
+| Row            | Meaning                                                 |
+| -------------- | ------------------------------------------------------- |
+| Server         | Files and total size stored on the server               |
+| Local Cache    | Files and total size stored in this browser             |
+| Needs Download | Files on the server that this browser does not have yet |
+| Needs Upload   | Files in this browser that never reached the server     |
+| Last Checked   | When the comparison was last made                       |
+
+- **Refresh Status** compares again.
+- **Download All** fetches every missing file, so the media library and covers work offline. A progress bar shows how far it has got.
+- **Upload All** sends files that were added while offline. It is only offered to people with write access.
+
+### Local Data
+
+Documents and worldbuilding entries are cached in your browser so the project works offline. If a document will not sync or looks corrupted, **Reset Local Data** deletes this project's cached copy on this device and reloads it from the server. Other projects, other devices and other profiles on this device are not touched.
+
+:::warning
+Anything you changed on this device that has not reached the server yet is lost. Only reset when the server holds the copy you want, and never in Browser mode, where this device's copy is the only one.
+:::
+
+## MCP
+
+The MCP section connects AI assistants and other tools to your project through the [Model Context Protocol](../ai-mcp/mcp-clients). It shows the server's **MCP Endpoint URL** with a copy button.
+
+1. Copy the URL
+2. Add it to your tool as a **Streamable HTTP** MCP server (Claude Code, Claude Desktop, Cursor, Windsurf, VS Code and others)
+3. The first time the tool connects, it opens your browser so you can sign in and choose which projects it may use
+
+No API key is needed. See [Connecting AI Tools](../ai-mcp/mcp-clients) for step-by-step instructions for each tool.
+
+MCP needs **Realtime Sync**: in Browser or Cloud Sync mode the section explains that a server connection is required. If the server administrator has turned AI features off, the section is hidden.
+
 ## Renaming a Project (Changing the URL)
 
 You can change your project's URL slug (the part that appears in the browser address bar). This is useful if you want to give your project a new, more descriptive URL.
 
 :::warning
 Changing the project URL has important consequences:
+
 - **Existing bookmarks and links will break** — anyone who saved a link to the old URL will need the new one
 - **Collaborators with offline copies will need to re-sync** — their local data will be migrated to the new project URL
 - The old URL will temporarily redirect to the new one, but this is not permanent
-:::
+  :::
 
 ### To Rename Your Project
 
@@ -93,8 +153,9 @@ After renaming, you'll be automatically redirected to the new project URL. All y
 ### What Gets Migrated
 
 When you rename a project:
+
 - ✅ All documents and their content
-- ✅ All worldbuilding elements and relationships  
+- ✅ All worldbuilding elements and relationships
 - ✅ All media files (images, covers)
 - ✅ All publish plans and exported files
 - ✅ All snapshots and version history
@@ -124,5 +185,6 @@ The Delete Project option is located in the Danger Zone tab:
 ---
 
 You've completed the Inkweld User Guide! For additional help:
+
 - Visit the main [Documentation](/docs/intro)
 - Check [Troubleshooting](/docs/troubleshooting/logging)
