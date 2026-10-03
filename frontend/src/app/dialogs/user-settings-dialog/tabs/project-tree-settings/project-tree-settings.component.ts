@@ -38,4 +38,14 @@ export class ProjectTreeSettingsComponent {
       typeof value === 'boolean' && value
     );
   }
+
+  get folderClickOpens(): boolean {
+    return this.settingsService.folderClickOpens();
+  }
+
+  setFolderClickOpens(value: boolean): void {
+    this.settingsService.setFolderClickOpens(
+      typeof value === 'boolean' && value
+    );
+  }
 }

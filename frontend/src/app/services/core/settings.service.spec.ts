@@ -169,6 +169,44 @@ describe('SettingsService', () => {
     });
   });
 
+  describe('setFolderClickOpens', () => {
+    it('defaults the signal to false when nothing is stored', () => {
+      expect(service.folderClickOpens()).toBe(false);
+    });
+
+    it('honours a stored opt-in', () => {
+      localStorageMock['userSettings'] = JSON.stringify({
+        folderClickOpens: true,
+      });
+      expect(createService().folderClickOpens()).toBe(true);
+    });
+
+    it('persists the value and updates the reactive signal', () => {
+      service.setFolderClickOpens(true);
+      expect(service.folderClickOpens()).toBe(true);
+      expect(
+        JSON.parse(localStorageMock['userSettings']).folderClickOpens
+      ).toBe(true);
+    });
+
+    it('still updates the signal when localStorage write throws', () => {
+      Object.defineProperty(window, 'localStorage', {
+        value: {
+          getItem: () => null,
+          setItem: () => {
+            throw new Error('quota exceeded');
+          },
+          removeItem: () => undefined,
+          clear: () => undefined,
+        },
+        writable: true,
+      });
+
+      expect(() => service.setFolderClickOpens(true)).not.toThrow();
+      expect(service.folderClickOpens()).toBe(true);
+    });
+  });
+
   describe('setDenseLayout', () => {
     it('defaults the signal to true (dense) when nothing is stored', () => {
       expect(service.denseLayout()).toBe(true);

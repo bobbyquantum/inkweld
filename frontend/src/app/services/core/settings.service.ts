@@ -53,6 +53,21 @@ export class SettingsService {
    */
   readonly denseLayout = this._denseLayout.asReadonly();
 
+  /**
+   * Internal writable signal backing the "clicking a folder opens it"
+   * preference. Updates must go through {@link setFolderClickOpens}.
+   */
+  private readonly _folderClickOpens = signal<boolean>(
+    this.getSetting<boolean>('folderClickOpens', false)
+  );
+
+  /**
+   * Whether clicking a folder in the project tree also opens its folder view
+   * (corkboard / outline) in a tab, rather than only expanding it. Defaults
+   * to `false`: browsing the tree should not replace the open editor.
+   */
+  readonly folderClickOpens = this._folderClickOpens.asReadonly();
+
   getSetting<T>(key: string, defaultValue: T): T {
     const settings = this.getSettings();
     const value = settings[key];
@@ -86,6 +101,19 @@ export class SettingsService {
     this._denseLayout.set(value);
     try {
       this.setSetting<boolean>('denseLayout', value);
+    } catch {
+      // Storage can be unavailable (private mode/quota); keep UI reactive.
+    }
+  }
+
+  /**
+   * Update the "clicking a folder opens it" preference. Persists to storage
+   * and updates the reactive signal.
+   */
+  setFolderClickOpens(value: boolean): void {
+    this._folderClickOpens.set(value);
+    try {
+      this.setSetting<boolean>('folderClickOpens', value);
     } catch {
       // Storage can be unavailable (private mode/quota); keep UI reactive.
     }

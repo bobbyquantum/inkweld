@@ -129,12 +129,12 @@
         [cdkContextMenuTriggerData]="{ node: node }"
         (click)="
           node.expandable
-            ? toggleExpandedClick(node, $event)
+            ? onFolderRowClick(node, $event)
             : onOpenDocument(node)
         "
         (touchend)="
           node.expandable
-            ? toggleExpandedTouch(node, $event)
+            ? onFolderRowTouch(node, $event)
             : onOpenDocument(node, $event)
         "
         (keyup.enter)="
