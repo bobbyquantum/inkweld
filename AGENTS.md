@@ -589,6 +589,41 @@ sign-up, so users can delete their own server account:
 - `/delete-account` is exempt from the policy-acceptance gate, so someone who
   won't accept new terms can still delete their account.
 
+### Sync Capacity (Per-User Storage Quotas)
+
+Each account has an allowance for the server storage of the projects it owns
+(Yjs data + media + covers + published files). `users.syncQuotaBytes` is the
+per-user override (`NULL` = instance default `SYNC_QUOTA_DEFAULT_BYTES`, 100 MB)
+and `users.storageUsedBytes` a fast running counter. Admin guide:
+`docs/site/docs/admin-guide/sync-capacity.md`.
+
+- **Off by default** (`SYNC_QUOTA_ENABLED=false`) so an upgrade never starts
+  refusing uploads. Usage is measured and shown either way; the
+  `GET /users/me/storage` response carries `enabled`, and the UI only warns
+  when it is true (`StorageUsageService.enforced` / `.overQuota`).
+- **Every write that adds project storage goes through
+  `quotaService.assertCanStore()`** (media upload, cover upload, published
+  file, MCP `apply_image`), and project creation through
+  `assertCanCreateProject()`. A new storage write path must do the same, and
+  pass `replacedBytes` when it overwrites a file so only the growth is charged.
+  Deletions credit the counter (`recordDeletion`): media `DELETE`, cover
+  delete, published-file delete, project delete (measured before teardown).
+- **Yjs editing/sync is never blocked**, nor reads/exports/deletes. Don't add a
+  quota check to the WebSocket or document paths.
+- `checkEnforcement` reconciles against real storage before refusing (the
+  counter may drift high), then trusts that figure for `RECONCILE_COOLDOWN_MS`
+  so retried refusals don't rescan storage. Tests that reconcile the same user
+  repeatedly call `quotaService.clearReconcileCooldown()`.
+- A refusal is **403 with `code: 'QUOTA_EXCEEDED'`** (and `reason`). Use
+  `getQuotaExceeded()` / `StorageUsageService.noteQuotaError()` on the client
+  to tell it apart from an access-control 403.
+- Media sync: a refused upload throws `MediaQuotaExceededError`, stops the batch,
+  and pauses *background* uploads for `QUOTA_UPLOAD_PAUSE_MS`; files stay local.
+  Manual "Upload all" and a server-side media delete lift the pause.
+- Deleting media in the Media tab (server mode) deletes the server copy first;
+  if that fails the local copy is kept, otherwise the next sync would download
+  it again.
+
 ### Template Editor (Unified Schema Designer)
 
 Element schemas ("templates") are edited through the **unified interactive schema

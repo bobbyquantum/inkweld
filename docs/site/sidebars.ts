@@ -39,6 +39,7 @@ const sidebars: SidebarsConfig = {
         'admin-guide/overview',
         'admin-guide/appearance',
         'admin-guide/custom-html',
+        'admin-guide/sync-capacity',
         'admin-guide/ai-kill-switch',
         'admin-guide/ai-image-generation',
         'admin-guide/passkeys',

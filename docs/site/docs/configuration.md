@@ -296,6 +296,32 @@ See the [Passkeys admin guide](./admin-guide/passkeys) for full setup instructio
 
 ---
 
+## Sync Capacity
+
+Per-user limits on server storage. See the [Sync Capacity admin guide](./admin-guide/sync-capacity) for what counts and what is blocked. Both values can also be changed in **Admin → Settings**.
+
+### SYNC_QUOTA_ENABLED
+
+**Default:** `false` | Boolean
+
+Enforce per-user sync capacity. When `true`, media uploads, published files and new projects are refused once an account reaches its allowance. Editing and syncing existing work are never blocked. When `false`, usage is still measured and shown to users.
+
+```bash
+SYNC_QUOTA_ENABLED=true
+```
+
+### SYNC_QUOTA_DEFAULT_BYTES
+
+**Default:** `104857600` (100 MB) | Integer (bytes)
+
+Allowance for every account without its own. Admins can give individual users a different allowance. Values above 1 TiB, negative or non-numeric values fall back to the default.
+
+```bash
+SYNC_QUOTA_DEFAULT_BYTES=524288000
+```
+
+---
+
 ## GitHub OAuth
 
 Enable users to sign in with their GitHub accounts.
