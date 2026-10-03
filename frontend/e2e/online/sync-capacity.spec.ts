@@ -106,6 +106,8 @@ async function openSignedIn(browser: Browser, username: string): Promise<Page> {
 }
 
 test.describe('Sync capacity (SYNC_QUOTA_ENABLED)', () => {
+  // Skipped outside the online config: the instance-wide flag needs a private
+  // Bun backend, which only that config can start.
   test.skip(
     !canStartIsolatedBackend(),
     'Needs a private Bun backend; only the online config can start one'

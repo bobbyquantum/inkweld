@@ -335,7 +335,7 @@
           </div>
           <mat-slide-toggle
             [checked]="syncQuotaEnabled()"
-            (change)="toggleSyncQuota($event.checked)"
+            (change)="$event.checked ? enableSyncQuota() : disableSyncQuota()"
             [disabled]="isSaving()"
             color="primary"
             data-testid="setting-toggle-sync-quota"></mat-slide-toggle>

@@ -418,16 +418,17 @@ export class AdminSettingsComponent implements OnInit {
     this.systemConfigService.refreshSystemFeatures();
   }
 
-  async toggleSyncQuota(enabled: boolean): Promise<void> {
-    if (
-      await this.saveStringConfig(
-        'SYNC_QUOTA_ENABLED',
-        enabled ? 'true' : 'false'
-      )
-    ) {
-      this.syncQuotaEnabled.set(enabled);
-    } else {
-      this.syncQuotaEnabled.set(!enabled);
+  /** Turn sync-capacity enforcement on. */
+  async enableSyncQuota(): Promise<void> {
+    if (await this.saveStringConfig('SYNC_QUOTA_ENABLED', 'true')) {
+      this.syncQuotaEnabled.set(true);
+    }
+  }
+
+  /** Turn sync-capacity enforcement off (usage is still measured). */
+  async disableSyncQuota(): Promise<void> {
+    if (await this.saveStringConfig('SYNC_QUOTA_ENABLED', 'false')) {
+      this.syncQuotaEnabled.set(false);
     }
   }
 

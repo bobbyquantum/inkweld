@@ -969,7 +969,7 @@ describe('AdminSettingsComponent', () => {
         flushAllConfigRequests(httpMock);
         await flushMicrotasks();
 
-        let promise = component.toggleSyncQuota(true);
+        let promise = component.enableSyncQuota();
         let putReq = httpMock.expectOne(
           '/api/v1/admin/config/SYNC_QUOTA_ENABLED'
         );
@@ -978,7 +978,7 @@ describe('AdminSettingsComponent', () => {
         await promise;
         expect(component.syncQuotaEnabled()).toBe(true);
 
-        promise = component.toggleSyncQuota(false);
+        promise = component.disableSyncQuota();
         putReq = httpMock.expectOne('/api/v1/admin/config/SYNC_QUOTA_ENABLED');
         putReq.error(new ProgressEvent('error'), { status: 500 });
         await promise;

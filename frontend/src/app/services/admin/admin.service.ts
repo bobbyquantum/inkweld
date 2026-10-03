@@ -379,7 +379,7 @@ export class AdminService {
    * Includes the user's sync-capacity override, effective allowance and the
    * instance default.
    */
-  async listUserProjects(userId: string): Promise<AdminUserProjects> {
+  listUserProjects(userId: string): Promise<AdminUserProjects> {
     return firstValueFrom(
       this.apiService
         .adminListUserProjects(userId)
