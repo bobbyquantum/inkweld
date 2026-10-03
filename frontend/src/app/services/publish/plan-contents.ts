@@ -90,6 +90,25 @@ function publishesOnItsOwn(element: Element): boolean {
 }
 
 /**
+ * What "add everything" does with one element: add it as an item, open it
+ * up and look at its contents instead, or leave it out.
+ */
+function planAction(
+  element: Element,
+  contents: readonly Element[],
+  covered: ReadonlySet<string>
+): 'add' | 'open' | 'skip' {
+  const isFolder = element.type === ElementType.Folder;
+  if (covered.has(element.id)) {
+    // A folder listed without its contents still leaves them to add.
+    return isFolder ? 'open' : 'skip';
+  }
+  if (!isFolder) return publishesOnItsOwn(element) ? 'add' : 'skip';
+  if (!contents.some(publishesOnItsOwn)) return 'skip';
+  return contents.some(e => covered.has(e.id)) ? 'open' : 'add';
+}
+
+/**
  * Items that add everything the plan does not publish yet, as high up the
  * tree as possible: each top-level folder becomes one item. A folder that
  * already has some of its contents listed individually is opened up
@@ -106,28 +125,12 @@ export function uncoveredPlanItems(
   const visit = (from: number, to: number): void => {
     for (let i = from; i < to; i = subtreeEnd(elements, i)) {
       const element = elements[i];
-      if (covered.has(element.id)) {
-        // A folder listed without its contents still leaves them to add.
-        if (element.type === ElementType.Folder) {
-          visit(i + 1, subtreeEnd(elements, i));
-        }
-        continue;
-      }
-
-      if (element.type !== ElementType.Folder) {
-        if (publishesOnItsOwn(element)) {
-          items.push(elementPlanItem(element.id, element.type));
-        }
-        continue;
-      }
-
       const end = subtreeEnd(elements, i);
-      const contents = elements.slice(i + 1, end);
-      if (!contents.some(publishesOnItsOwn)) continue;
-      if (contents.some(e => covered.has(e.id))) {
-        visit(i + 1, end);
-      } else {
+      const action = planAction(element, elements.slice(i + 1, end), covered);
+      if (action === 'add') {
         items.push(elementPlanItem(element.id, element.type));
+      } else if (action === 'open') {
+        visit(i + 1, end);
       }
     }
   };
