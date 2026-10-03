@@ -380,6 +380,15 @@ describe('PublishPlanTabComponent', () => {
       );
     });
 
+    it('should add a folder together with its contents', () => {
+      component.addElement('folder-1');
+      component.addElement('elem-1');
+
+      const [folder, doc] = currentPlan()!.items as ElementItem[];
+      expect(folder.includeChildren).toBe(true);
+      expect(doc.includeChildren).toBe(false);
+    });
+
     it('should append when index is undefined', () => {
       component.addElement('elem-1');
       component.addElement('elem-2');
@@ -490,6 +499,23 @@ describe('PublishPlanTabComponent', () => {
 
       const added = currentPlan()!.items.slice(initialLength) as ElementItem[];
       expect(added.map(i => i.elementId)).toEqual(['scene-1', 'legacy-1']);
+    });
+
+    it('should add a top-level folder whole instead of its contents', () => {
+      mockProjectState.elements.set([
+        { id: 'book', name: 'Book', type: ElementType.Folder, level: 0 },
+        { id: 's1', name: 'One', type: ElementType.Item, level: 1 },
+        { id: 's2', name: 'Two', type: ElementType.Item, level: 1 },
+        { id: 'end', name: 'End', type: ElementType.Item, level: 0 },
+      ]);
+
+      component.addEverything();
+
+      const added = currentPlan()!.items as ElementItem[];
+      expect(added.map(i => [i.elementId, i.includeChildren])).toEqual([
+        ['book', true],
+        ['end', false],
+      ]);
     });
 
     it('should not add items when no document elements exist', () => {
@@ -1160,9 +1186,16 @@ describe('PublishPlanTabComponent', () => {
       expect(component.canEnterPublishList(drag)).toBe(true);
     });
 
-    it('should reject folders', () => {
+    it('should allow folders', () => {
       const drag = {
         data: { type: ElementType.Folder },
+      } as unknown as CdkDrag;
+      expect(component.canEnterPublishList(drag)).toBe(true);
+    });
+
+    it('should reject canvases', () => {
+      const drag = {
+        data: { type: ElementType.Canvas },
       } as unknown as CdkDrag;
       expect(component.canEnterPublishList(drag)).toBe(false);
     });
@@ -1378,7 +1411,6 @@ describe('PublishPlanTabComponent', () => {
         expect.objectContaining({
           excludeIds: ['elem-1'],
           excludeTypes: expect.arrayContaining([
-            ElementType.Folder,
             ElementType.Canvas,
             ElementType.Timeline,
           ]),

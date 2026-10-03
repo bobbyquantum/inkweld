@@ -286,6 +286,28 @@ describe('PublishPlanStatsService', () => {
       });
     });
 
+    it('leaves notes inside a folder out of its totals', () => {
+      const withNote = [
+        ...elements.slice(0, 3),
+        {
+          ...element('note', ElementType.Item, 'folder'),
+          metadata: { role: 'note' },
+        },
+        ...elements.slice(3),
+      ];
+      const stats = service.itemStats(
+        elementItem('folder', { includeChildren: true }),
+        withNote,
+        new Map([
+          ['doc-a', { status: 'ready', words: 3 }],
+          ['doc-b', { status: 'ready', words: 2 }],
+          ['note', { status: 'ready', words: 100 }],
+        ])
+      );
+      expect(stats.words).toBe(5);
+      expect(stats.documents).toBe(2);
+    });
+
     it('reports nothing for a folder without children included', () => {
       const stats = service.itemStats(elementItem('folder'), elements);
       expect(stats.documents).toBe(0);

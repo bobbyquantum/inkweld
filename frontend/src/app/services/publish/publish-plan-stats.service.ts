@@ -5,6 +5,7 @@ import {
   type PublishPlanItem,
   PublishPlanItemType,
 } from '@models/publish-plan';
+import { isPublishableByDefault } from '@models/scene-metadata';
 import { flattenToPlainText } from '@utils/prosemirror-text';
 import { isWorldbuildingType } from '@utils/worldbuilding.utils';
 
@@ -188,7 +189,10 @@ export class PublishPlanStatsService {
     if (element.type === ElementType.Item) {
       docs = [element];
     } else if (element.type === ElementType.Folder && item.includeChildren) {
-      docs = this.documentsUnder(element.id, elements);
+      // Notes inside a folder are not published, so they do not count.
+      docs = this.documentsUnder(element.id, elements).filter(doc =>
+        isPublishableByDefault(doc.metadata)
+      );
       stats.entries = this.entriesUnder(element.id, elements);
     }
     // Canvases, timelines and relationship charts carry no countable text.

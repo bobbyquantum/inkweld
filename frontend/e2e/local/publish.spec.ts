@@ -79,7 +79,7 @@ test.describe('Local Publishing Workflow', () => {
    * Each phase synchronizes on CDK's observable DOM state instead of a fixed
    * delay: the drag preview appearing, the target list's
    * `cdk-drop-list-receiving` class (CDK only sets it when the enter
-   * predicate accepts the item, so a refused folder never gets it), and the
+   * predicate accepts the item, so a refused canvas never gets it), and the
    * preview being removed once the drop has been processed.
    */
   async function cdkDragTo(
@@ -119,13 +119,13 @@ test.describe('Local Publishing Workflow', () => {
     await page.mouse.move(tgtX, tgtY, { steps: 30 });
 
     // `cdk-drop-list-receiving` appears only once CDK has chosen the list as
-    // the active drop target; the enter predicate refuses folders, so for a
+    // the active drop target; the enter predicate refuses canvases, so for a
     // rejected drag it never shows — bound this wait so a rejection doesn't
     // burn the full expect timeout, and just proceed to the release.
     await expect(target)
       .toHaveClass(/cdk-drop-list-receiving/, { timeout: 1_000 })
       .catch(() => {
-        // Item not accepted (e.g. folder) — nothing to wait for.
+        // Item not accepted (e.g. canvas) — nothing to wait for.
       });
 
     await page.mouse.up();
@@ -329,10 +329,10 @@ test.describe('Local Publishing Workflow', () => {
   });
 
   // ───────────────────────────────────────────────────────────────────────────
-  // Test C: drag-and-drop from project tree (folder reject + two docs)
+  // Test C: drag-and-drop from project tree (a folder + two docs)
   // ───────────────────────────────────────────────────────────────────────────
 
-  test('drag from project tree: folders rejected, multiple documents accepted', async ({
+  test('drag from project tree: folders and documents are added', async ({
     localPageWithProject: page,
   }) => {
     // Open project and create a folder + two documents
@@ -353,26 +353,29 @@ test.describe('Local Publishing Workflow', () => {
     const dropTarget = page.getByTestId('content-items-list');
     await expect(dropTarget).toBeVisible();
 
-    await test.step('dragging a folder is rejected (plan stays empty)', async () => {
+    await test.step('dragging a folder adds it as one item', async () => {
       const folderItem = page.getByTestId('element-TestFolder');
       await cdkDragTo(page, folderItem, dropTarget);
 
-      await expect(page.getByTestId('empty-content-state')).toBeVisible();
-    });
-
-    await test.step('drag Chapter1 onto plan adds first content item', async () => {
-      await cdkDragTo(page, page.getByTestId('element-Chapter1'), dropTarget);
-
-      await expect(page.getByTestId('content-item-0')).toBeVisible();
       await expect(
         page.getByTestId('content-item-0').getByTestId('item-name')
-      ).toContainText('Chapter1');
+      ).toContainText('TestFolder');
     });
 
-    await test.step('drag Chapter2 onto plan adds a second content item', async () => {
-      await cdkDragTo(page, page.getByTestId('element-Chapter2'), dropTarget);
+    await test.step('drag Chapter1 onto plan adds another content item', async () => {
+      await cdkDragTo(page, page.getByTestId('element-Chapter1'), dropTarget);
 
       await expect(page.getByTestId('content-item-1')).toBeVisible();
+      const names = await page
+        .locator('[data-testid="item-name"]')
+        .allTextContents();
+      expect(names.map(n => n.trim())).toContain('Chapter1');
+    });
+
+    await test.step('drag Chapter2 onto plan adds a third content item', async () => {
+      await cdkDragTo(page, page.getByTestId('element-Chapter2'), dropTarget);
+
+      await expect(page.getByTestId('content-item-2')).toBeVisible();
 
       const names = await page
         .locator('[data-testid="item-name"]')
