@@ -11,20 +11,21 @@ Project owners can invite other users to collaborate. Access the Collaboration t
 
 ## Access Levels
 
-| Role | Permissions |
-|------|-------------|
-| **Owner** | Full control—edit content, manage settings, invite/remove collaborators, delete the project |
-| **Editor** | Create, edit, and delete documents and worldbuilding entries |
-| **Viewer** | Browse and read all content (no editing) |
+| Role       | Permissions                                                                                 |
+| ---------- | ------------------------------------------------------------------------------------------- |
+| **Owner**  | Full control—edit content, manage settings, invite/remove collaborators, delete the project |
+| **Admin**  | Full access including project settings                                                      |
+| **Editor** | Create, edit, and delete documents and worldbuilding entries                                |
+| **Viewer** | Browse and read all content (no editing)                                                    |
 
 ## Inviting Collaborators
 
 1. Open your project and go to **Settings → Collaboration**
 2. Click **Invite Collaborator**
-3. Enter their username and select a role (Editor or Viewer)
+3. Enter their username and select a role (Admin, Editor or Viewer)
 4. Click **Invite**
 
-The invited user receives a pending invitation. Once they accept, they can access the project according to their role.
+The invited user sees the invitation under **Pending Invitations** on their home screen. Once they accept it, they can access the project according to their role.
 
 ## Managing Collaborators
 
@@ -33,6 +34,8 @@ In the Collaboration tab you can:
 - **View current collaborators** with their roles and invitation status
 - **Change roles** using the dropdown next to each collaborator
 - **Remove collaborators** to revoke their access immediately
+
+AI apps that a user has connected through OAuth/MCP also appear in the Collaboration list, so you can see (and revoke) what has access to the project.
 
 ## Requirements
 

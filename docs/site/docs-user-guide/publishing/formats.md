@@ -1,22 +1,23 @@
 ---
 id: formats
 title: Export Formats
-description: Export your writing in EPUB, PDF, HTML, and Markdown formats.
+description: Export your writing as EPUB, PDF, HTML, an HTML website, or Markdown.
 sidebar_position: 1
 ---
 
 # Export Formats
 
-Inkweld can export your writing in four formats: EPUB, PDF, HTML, and Markdown.
+Inkweld can export your writing in five formats: EPUB, PDF, HTML, HTML Site, and Markdown.
 
 ## Available Formats
 
-| Format | Best For |
-|--------|----------|
-| **EPUB** | E-readers, digital distribution |
-| **PDF** | Print, manuscripts, archival |
-| **HTML** | Web publishing, previewing |
-| **Markdown** | Backup, version control, migration |
+| Format        | Best For                               |
+| ------------- | -------------------------------------- |
+| **EPUB**      | E-readers, digital distribution        |
+| **PDF**       | Print, manuscripts, archival           |
+| **HTML**      | Web publishing, previewing             |
+| **HTML Site** | Hosting a book as a multi-page website |
+| **Markdown**  | Backup, version control, migration     |
 
 ### EPUB
 
@@ -24,11 +25,15 @@ The industry-standard e-book format. Compatible with most e-readers (Kindle via 
 
 ### PDF
 
-Basic print-ready document. Uses jsPDF for client-side generation. Suitable for printing or digital reading.
+Print-ready document typeset with Typst, running in your browser. Suitable for printing or digital reading.
 
 ### HTML
 
 Single-file web output. Viewable in any browser. Includes embedded styling.
+
+### HTML Site
+
+A multi-page static website packaged as a ZIP, with one page per chapter and links between them. Unzip it and upload it to any web host.
 
 ### Markdown
 
@@ -39,7 +44,7 @@ Plain text with formatting. Maximum portability and version-control friendly.
 Exports are created through publish plans:
 
 1. Open your project
-2. Click **Create Publish Plan** on the project home
+2. Open the **Publishing** tab and click **New Plan** (or **Create Your First Plan** if you have none yet)
 3. Select a format
 4. Add content items (documents, TOC)
 5. Fill in metadata (title, author)
@@ -51,7 +56,7 @@ The file downloads to your browser.
 
 Each export includes:
 
-- **Cover image** — Your project cover (if enabled)
+- **Cover image** — Your project cover (if enabled; EPUB, PDF, HTML and HTML Site only — Markdown has no cover)
 - **Table of contents** — Generated from your content items
 - **Document content** — The documents you added to the plan
 - **Metadata** — Title, author, language, description
@@ -61,7 +66,7 @@ Each export includes:
 Tables export to every format. Merged cells are the one thing that does not
 survive everywhere: PDF keeps them, while Markdown, HTML, and EPUB flatten a
 merge into the cell plus empty columns so the grid keeps its shape. Column
-alignment is preserved in all four.
+alignment is preserved in every format.
 
 ## Client-Side Generation
 
