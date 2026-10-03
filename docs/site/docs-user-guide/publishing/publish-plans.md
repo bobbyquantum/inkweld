@@ -11,7 +11,7 @@ A publish plan saves your export configuration so you can generate consistent ou
 
 ## What a Plan Contains
 
-- **Format** — EPUB, PDF, HTML, or Markdown
+- **Format** — EPUB, PDF, HTML, HTML Site, or Markdown
 - **Metadata** — Title, author, language, description
 - **Content items** — Which documents to include, in what order
 - **Options** — Include TOC, include cover
@@ -19,7 +19,7 @@ A publish plan saves your export configuration so you can generate consistent ou
 ## Creating a Plan
 
 1. Open your project
-2. Click **Create Publish Plan** in the Publish Plans section
+2. Open the **Publishing** tab and click **New Plan** (or **Create Your First Plan** if you have no plans yet)
 3. A new plan opens with default settings
 
 ## Configuring a Plan

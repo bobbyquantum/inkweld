@@ -82,7 +82,7 @@ Inkweld uses secure session-based authentication:
 
 ### Logging Out
 
-1. Click your username in the top navigation bar
+1. Open the account menu in the top navigation bar
 2. Select **Log Out**
 
 Always log out when using a shared or public computer.

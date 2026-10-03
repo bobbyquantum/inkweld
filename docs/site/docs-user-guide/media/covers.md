@@ -7,7 +7,7 @@ sidebar_position: 2
 
 # Project Covers
 
-Each project can have a cover image that appears on the dashboard and in EPUB exports.
+Each project can have a cover image that appears on the dashboard and in exports.
 
 ## Setting a Cover
 
@@ -44,7 +44,7 @@ Click the delete button on the cover image in the edit dialog. The project will 
 
 ## Covers in Exports
 
-Your project cover is embedded as the book cover when exporting to **EPUB** format. Other export formats (PDF, HTML, Markdown) do not currently include the cover.
+Your project cover is included when **Include Cover Page** is enabled in a publish plan. EPUB, PDF, HTML and HTML Site exports all carry it; Markdown exports do not.
 
 ## Worldbuilding Images
 

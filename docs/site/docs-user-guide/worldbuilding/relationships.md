@@ -29,19 +29,9 @@ Relationships define meaningful connections between your story elements—family
 5. Search and select the target element
 6. Click **Create**
 
-<ThemedImage
-  src="/img/features/add-relationship-dialog"
-  alt="The Add Relationship dialog"
-/>
-
 ## The Relationships Section
 
 When you open a worldbuilding element, the Relationships section shows all connections for that element.
-
-<ThemedImage
-  src="/img/features/character-relationships-overview"
-  alt="Character with relationships shown in the panel"
-/>
 
 ### Panel Structure
 
@@ -70,19 +60,8 @@ When you create a relationship, it appears on **both** elements:
 
 **Example**: If you mark "Marcus" as the **Parent** of "Elena":
 
-On Marcus's page, you see the outgoing relationship:
-
-<ThemedImage
-  src="/img/features/character-parent-relationship"
-  alt="Parent relationship shown on the parent character"
-/>
-
-On Elena's page, you see the incoming backlink:
-
-<ThemedImage
-  src="/img/features/character-child-relationship"
-  alt="Child of relationship shown on the child character"
-/>
+- On Marcus's page, you see the outgoing relationship, labelled **Parent**.
+- On Elena's page, you see the incoming backlink, labelled **Child of**.
 
 ## Relationship Types
 
@@ -147,12 +126,7 @@ Click the **Delete** button and confirm. Deleting a type does not remove existin
 
 ## Multiple Relationships
 
-An element can have many relationships of different types:
-
-<ThemedImage
-  src="/img/features/character-multiple-relationships"
-  alt="Character with multiple relationship types"
-/>
+An element can have many relationships of different types. Each type gets its own collapsible section in the Relationships panel.
 
 ## Managing Relationships
 
