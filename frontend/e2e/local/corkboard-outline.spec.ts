@@ -8,7 +8,7 @@
 import { type Page } from '@playwright/test';
 
 import { openProjectFromGrid } from '../common/test-helpers';
-import { expect, test } from './fixtures';
+import { expect, openUserSettings, test } from './fixtures';
 
 const FOLDER = 'Manuscript';
 
@@ -109,6 +109,53 @@ test.describe('Corkboard and outline', () => {
       await expect(page.locator('ngx-editor .ProseMirror')).toContainText(
         'The mast groaned.'
       );
+    });
+  });
+
+  test('a folder opens on click only when the preference is on', async ({
+    localPageWithProject: page,
+  }) => {
+    await openProjectFromGrid(page);
+    await page.getByTestId('project-tree').waitFor({ state: 'visible' });
+    const projectUrl = page.url();
+
+    await page.getByTestId('create-new-element').click();
+    await page.getByTestId('element-type-folder').click();
+    await page.getByTestId('element-name-input').fill(FOLDER);
+    await page.getByTestId('create-element-button').click();
+    const folder = page.getByTestId(`element-${FOLDER}`);
+    await expect(folder).toBeVisible();
+    // Creating a folder opens it; go back to the project home tab.
+    await page.getByTestId('toolbar-home-button').click();
+    await expect(page).toHaveURL(projectUrl);
+
+    await test.step('by default a click only toggles the folder', async () => {
+      const before = await folder.getAttribute('aria-expanded');
+      await folder.click();
+      await expect(folder).not.toHaveAttribute('aria-expanded', before ?? '');
+      await expect(page).toHaveURL(projectUrl);
+    });
+
+    await test.step('turn on the preference in Project Tree settings', async () => {
+      await openUserSettings(page);
+      await page.getByRole('tab', { name: /project tree/i }).click();
+      const toggle = page
+        .getByTestId('folder-click-opens-toggle')
+        .getByRole('switch');
+      await toggle.click();
+      await expect(toggle).toBeChecked();
+      await page.getByTestId('settings-close-button').click();
+    });
+
+    await test.step('now a click expands and opens the folder', async () => {
+      await folder.click();
+      await expect(page).toHaveURL(/\/folder\//);
+      await expect(page.getByTestId('folder-empty')).toBeVisible();
+      await expect(folder).toHaveAttribute('aria-expanded', 'true');
+
+      // Clicking it again keeps it open rather than collapsing it.
+      await folder.click();
+      await expect(folder).toHaveAttribute('aria-expanded', 'true');
     });
   });
 });

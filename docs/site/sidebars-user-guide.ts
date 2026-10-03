@@ -30,6 +30,7 @@ const sidebars: SidebarsConfig = {
       items: [
         'organizing/project-structure',
         'organizing/documents',
+        'organizing/scenes-corkboard-outline',
         'organizing/tags',
         'organizing/search',
         'organizing/project-search',

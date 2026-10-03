@@ -2,7 +2,7 @@
 id: import-export
 title: Backups, Export & Import
 description: Export a project as a portable .inkweld.zip archive, restore it anywhere, and move projects between modes or instances.
-sidebar_position: 7
+sidebar_position: 8
 ---
 
 # Backups, Export & Import

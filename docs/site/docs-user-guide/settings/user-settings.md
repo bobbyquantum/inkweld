@@ -83,6 +83,10 @@ When enabled, Inkweld asks for confirmation before moving documents or folders i
 
 When enabled, the folder path of the open document or element is shown above the editor.
 
+### Clicking a Folder Opens It
+
+Off by default: clicking a folder in the project tree only expands or collapses it, and you open its [corkboard and outline](../organizing/scenes-corkboard-outline#opening-a-folder) by double-clicking or with **Open Folder**. When enabled, a click also opens the folder in a tab. Clicking an expanded folder then opens it without collapsing it; use the arrow beside it to collapse.
+
 ## Project
 
 ### Enable Fullscreen in Zen Mode

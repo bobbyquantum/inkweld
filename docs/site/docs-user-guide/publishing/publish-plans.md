@@ -5,6 +5,8 @@ description: Save export configurations for consistent, repeatable publishing.
 sidebar_position: 2
 ---
 
+import ThemedImage from '@site/src/components/ThemedImage';
+
 # Publish Plans
 
 A publish plan saves your export configuration so you can generate consistent output every time.
@@ -13,7 +15,7 @@ A publish plan saves your export configuration so you can generate consistent ou
 
 - **Format** — EPUB, PDF, HTML, or Markdown
 - **Metadata** — Title, author, language, description
-- **Content items** — Which documents to include, in what order
+- **Content items** — Which folders and documents to include, in what order
 - **Options** — Include TOC, include cover
 
 ## Creating a Plan
@@ -37,19 +39,32 @@ A publish plan saves your export configuration so you can generate consistent ou
 
 ### Contents Section
 
-Add documents to your publication:
+Add content to your publication:
 
-1. Drag documents from the project tree into the list, or use the **Add** menu to pick documents, add everything at once, or insert a table of contents, frontmatter, backmatter, or separators
+1. Drag folders and documents from the project tree into the list, or use the **Add** menu to pick them, add everything at once, or insert a table of contents, frontmatter, backmatter, or separators
 2. Items appear in the content list in publication order
 3. Drag items (or use the arrow buttons) to reorder
 4. Click the trash icon to remove
+
+#### Folders
+
+A folder in the plan is published with everything inside it — its scenes, sub-folders and worldbuilding entries — in the order they have in the project tree. Notes inside it are left out. Because the folder's contents are read when you publish, reordering scenes in the tree or on the [corkboard](../organizing/scenes-corkboard-outline#corkboard), or adding new ones, changes the next export without editing the plan.
+
+<ThemedImage
+  src="/img/generated/publish-plan-folders"
+  alt="Publish plan contents listing a folder with its word and document count, and a document"
+/>
+
+**Add everything** adds each top-level folder as a single item, plus any loose scenes and documents at the top level. If some of a folder's contents are already in the plan on their own, it adds the rest one by one instead, so nothing is published twice. Notes, empty folders, canvases, timelines and charts are skipped.
+
+Inkweld will not add anything twice: dropping a document that a folder in the plan already publishes, or a folder whose contents are partly listed, shows a message and leaves the plan unchanged. The picker hides anything the plan already covers.
 
 #### Statistics
 
 The Contents section shows what you are about to publish:
 
 - **Summary chips** above the list give the number of documents and worldbuilding entries, total word count, an estimated page count (275 words per page), and an estimated reading time
-- **Per-item word counts** appear on each document row
+- **Per-item word counts** appear on each row; a folder row also shows how many documents it contributes
 - **Not synced** marks documents that have not been downloaded to this device yet; they are fetched automatically when you publish
 - Use the **Recount words** button if you have edited documents since opening the plan
 

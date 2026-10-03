@@ -383,5 +383,50 @@ test.describe('Local Publishing Workflow', () => {
       expect(names).toContain('Chapter1');
       expect(names).toContain('Chapter2');
     });
+
+    await test.step('dragging a document that is already listed is refused', async () => {
+      await cdkDragTo(page, page.getByTestId('element-Chapter1'), dropTarget);
+
+      await expect(
+        page.getByText(/already included in this plan/)
+      ).toBeVisible();
+      await expect(page.getByTestId('content-item-3')).toHaveCount(0);
+    });
+  });
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // Test D: add everything lists a top-level folder as one item
+  // ───────────────────────────────────────────────────────────────────────────
+
+  test('add everything lists top-level folders whole', async ({
+    localPageWithProject: page,
+  }) => {
+    await openProjectFromGrid(page);
+    await page.waitForURL(/\/.+\/.+/);
+
+    await createFolderElement(page, 'PartOne');
+    await page.getByTestId('element-PartOne').click({ button: 'right' });
+    await page.getByTestId('context-menu-new-element').click();
+    await page.getByTestId('element-type-item').click();
+    const nameInput = page.getByTestId('element-name-input');
+    await nameInput.waitFor({ state: 'visible' });
+    await nameInput.fill('InsideScene');
+    await page.getByTestId('create-element-button').click();
+    await expect(page.getByTestId('element-InsideScene')).toBeVisible();
+
+    await navigateToPublishingTab(page);
+    await page.getByTestId('create-publish-plan-button').click();
+    await expect(page.getByTestId('publish-plan-container')).toBeVisible();
+    await selectSection(page, 'contents');
+
+    await page.getByTestId('add-everything-button').click();
+    await expect(page.getByTestId('content-item-0')).toBeVisible();
+
+    const names = (
+      await page.locator('[data-testid="item-name"]').allTextContents()
+    ).map(n => n.trim());
+    expect(names).toContain('PartOne');
+    // The scene is published through its folder, not listed on its own.
+    expect(names).not.toContain('InsideScene');
   });
 });

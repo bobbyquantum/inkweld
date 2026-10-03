@@ -18,7 +18,7 @@ This document tracks which pages, features, and routes have e2e test coverage ac
 | `/reset-password` | Reset Password | - | `reset-password.spec.ts` | - | Covered |
 | `/:user/:slug` | Project Home | `projects.spec.ts` | `projects.spec.ts` | `pwa-screenshots` | Covered |
 | `/:user/:slug/document/:id` | Document Editor | `element-ref.spec.ts`, `find-in-document.spec.ts`, `image-insert.spec.ts` | - | `pwa-screenshots`, `element-ref-screenshots` | Covered |
-| `/:user/:slug/folder/:id` | Folder View | `folder-operations.spec.ts` | - | `pwa-screenshots` | Partial |
+| `/:user/:slug/folder/:id` | Folder View (corkboard, outline, grid, list) | `folder-operations.spec.ts`, `corkboard-outline.spec.ts` | - | `pwa-screenshots`, `corkboard-screenshots` | Covered |
 | `/:user/:slug` | Project Documents (tree flow) | `project-documents.spec.ts` | - | - | Covered |
 | `/:user/:slug/media` | Media Library | `media-tab.spec.ts`, `media-storage.spec.ts` | `media-storage.spec.ts` | `pwa-screenshots` | Covered |
 | `/:user/:slug/settings` | Project Settings | - | `relationships-tab.spec.ts`, `tags.spec.ts`, `danger-zone.spec.ts` | `tags-screenshots`, `templates-tab-screenshots`, `relationships-tab-screenshots`, `project-rename-screenshots` | Covered |
@@ -58,6 +58,8 @@ This document tracks which pages, features, and routes have e2e test coverage ac
 | Snapshots | `snapshot.spec.ts` | - | - | |
 | **Folders** | | | | |
 | Operations | `folder-operations.spec.ts` | - | `pwa-screenshots` | |
+| Corkboard & outline | `corkboard-outline.spec.ts` | - | `corkboard-screenshots` | Synopsis/status editing, view switching and memory, open from outline |
+| Folder click preference | `corkboard-outline.spec.ts` | - | - | Settings → Project Tree toggle |
 | **Worldbuilding** | | | | |
 | Elements | `worldbuilding.spec.ts` | - | - | |
 | Element Refs | `element-ref.spec.ts` | - | `element-ref-screenshots` | |
@@ -68,7 +70,7 @@ This document tracks which pages, features, and routes have e2e test coverage ac
 | Storage | `media-storage.spec.ts` | `media-storage.spec.ts` | - | |
 | Library Tab | `media-tab.spec.ts` | - | `pwa-screenshots` | |
 | **Publishing** | | | | |
-| Publish Plan | `publish.spec.ts` | `publish.spec.ts` | - | |
+| Publish Plan | `publish.spec.ts` | `publish.spec.ts` | `corkboard-screenshots` | Folders via drag and Add everything; duplicate drops refused |
 | **Settings** | | | | |
 | Tags | - | `tags.spec.ts` | `tags-screenshots` | |
 | Templates | - | - | `templates-tab-screenshots` | Screenshot only |

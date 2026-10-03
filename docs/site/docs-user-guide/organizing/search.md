@@ -2,7 +2,7 @@
 id: search
 title: Navigation
 description: Navigate your Inkweld project using the project tree.
-sidebar_position: 4
+sidebar_position: 5
 ---
 
 # Navigation
@@ -22,12 +22,12 @@ The project tree shows all your documents, folders, and worldbuilding elements i
 
 ### Keyboard Navigation
 
-| Key           | Action                          |
-| ------------- | ------------------------------- |
-| `↑` `↓`       | Move selection up/down          |
-| `←`           | Collapse folder or go to parent |
-| `→`           | Expand folder                   |
-| `Enter`       | Open selected item              |
+| Key     | Action                          |
+| ------- | ------------------------------- |
+| `↑` `↓` | Move selection up/down          |
+| `←`     | Collapse folder or go to parent |
+| `→`     | Expand folder                   |
+| `Enter` | Open selected item              |
 
 ### Toolbar Buttons
 
