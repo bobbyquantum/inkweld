@@ -46,6 +46,8 @@ function flushAllConfigRequests(
     PRIVACY_POLICY_CONTENT: '',
     TERMS_OF_SERVICE_CONTENT: '',
     REQUIRE_POLICY_ACCEPTANCE: 'false',
+    SYNC_QUOTA_ENABLED: 'false',
+    SYNC_QUOTA_DEFAULT_BYTES: '104857600',
   };
   const values = { ...defaults, ...overrides };
 
@@ -936,6 +938,81 @@ describe('AdminSettingsComponent', () => {
       await promise;
       expect(component.requirePolicyAcceptance()).toBe(true);
       consoleErrorSpy.mockRestore();
+    });
+
+    describe('sync capacity', () => {
+      it('loads the switch and shows the default allowance in MB', async () => {
+        fixture.detectChanges();
+        flushAllConfigRequests(httpMock, {
+          SYNC_QUOTA_ENABLED: 'true',
+          SYNC_QUOTA_DEFAULT_BYTES: String(250 * 1024 * 1024),
+        });
+        await flushMicrotasks();
+
+        expect(component.syncQuotaEnabled()).toBe(true);
+        expect(component.syncQuotaDefaultMb()).toBe(250);
+      });
+
+      it('falls back to 100 MB for an unusable stored default', async () => {
+        fixture.detectChanges();
+        flushAllConfigRequests(httpMock, { SYNC_QUOTA_DEFAULT_BYTES: 'junk' });
+        await flushMicrotasks();
+
+        expect(component.syncQuotaDefaultMb()).toBe(100);
+      });
+
+      it('toggles enforcement and reverts on failure', async () => {
+        const consoleErrorSpy = vi
+          .spyOn(console, 'error')
+          .mockImplementation(() => {});
+        fixture.detectChanges();
+        flushAllConfigRequests(httpMock);
+        await flushMicrotasks();
+
+        let promise = component.toggleSyncQuota(true);
+        let putReq = httpMock.expectOne(
+          '/api/v1/admin/config/SYNC_QUOTA_ENABLED'
+        );
+        expect(putReq.request.body).toEqual({ value: 'true' });
+        putReq.flush(null);
+        await promise;
+        expect(component.syncQuotaEnabled()).toBe(true);
+
+        promise = component.toggleSyncQuota(false);
+        putReq = httpMock.expectOne('/api/v1/admin/config/SYNC_QUOTA_ENABLED');
+        putReq.error(new ProgressEvent('error'), { status: 500 });
+        await promise;
+        expect(component.syncQuotaEnabled()).toBe(true);
+        consoleErrorSpy.mockRestore();
+      });
+
+      it('saves the default allowance in bytes', async () => {
+        fixture.detectChanges();
+        flushAllConfigRequests(httpMock);
+        await flushMicrotasks();
+
+        const promise = component.saveSyncQuotaDefaultMb('500');
+        const putReq = httpMock.expectOne(
+          '/api/v1/admin/config/SYNC_QUOTA_DEFAULT_BYTES'
+        );
+        expect(putReq.request.body).toEqual({
+          value: String(500 * 1024 * 1024),
+        });
+        putReq.flush(null);
+        await promise;
+        expect(component.syncQuotaDefaultMb()).toBe(500);
+      });
+
+      it('ignores a blank or negative default instead of saving zero', async () => {
+        fixture.detectChanges();
+        flushAllConfigRequests(httpMock);
+        await flushMicrotasks();
+
+        await component.saveSyncQuotaDefaultMb('');
+        await component.saveSyncQuotaDefaultMb('-5');
+        httpMock.expectNone('/api/v1/admin/config/SYNC_QUOTA_DEFAULT_BYTES');
+        expect(component.syncQuotaDefaultMb()).toBe(100);
+      });
     });
 
     it('does not update the custom HTML signal when the save fails', async () => {

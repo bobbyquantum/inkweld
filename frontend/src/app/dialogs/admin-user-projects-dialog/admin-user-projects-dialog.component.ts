@@ -5,7 +5,6 @@ import {
   type OnInit,
   signal,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -31,7 +30,6 @@ const MEBIBYTE = 1024 * 1024;
 @Component({
   selector: 'app-admin-user-projects-dialog',
   imports: [
-    FormsModule,
     MatButtonModule,
     MatCardModule,
     MatCheckboxModule,
@@ -93,6 +91,12 @@ export class AdminUserProjectsDialogComponent implements OnInit {
   }
 
   /** Seed the quota editor from the loaded override (null = instance default). */
+  /** Track the MB field; an empty or non-numeric entry clears it. */
+  onQuotaMbInput(value: string): void {
+    const parsed = Number.parseFloat(value);
+    this.quotaMb.set(Number.isFinite(parsed) ? parsed : null);
+  }
+
   private syncQuotaForm(result: AdminUserProjects): void {
     const override = result.syncQuotaBytes;
     this.useDefaultQuota.set(override === null);

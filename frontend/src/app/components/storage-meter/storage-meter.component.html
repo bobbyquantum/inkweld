@@ -2,14 +2,18 @@
   Storage meter: only renders once usage is known. In local mode the service is
   never called and `usage()` stays undefined, so this is naturally hidden.
 -->
-@if (usage(); as u) {
+@if (visible() && usage(); as u) {
   <div
     class="storage-meter"
     [class.over]="state() === 'over'"
     [class.warning]="state() === 'warning'"
+    [class.unenforced]="!enforced()"
     [matTooltip]="
-      'settings.storage.tooltip'
-        | transloco: { used: usedLabel(), quota: quotaLabel() }
+      enforced()
+        ? ('settings.storage.tooltip'
+          | transloco: { used: usedLabel(), quota: quotaLabel() })
+        : ('settings.storage.unenforcedTooltip'
+          | transloco: { used: usedLabel() })
     "
     data-testid="storage-meter">
     <mat-icon class="storage-meter__icon" [inline]="true">
@@ -26,13 +30,21 @@
         <span class="storage-meter__used" data-testid="storage-meter-used">
           {{ usedLabel() }}
         </span>
-        <span class="storage-meter__quota">/ {{ quotaLabel() }}</span>
+        @if (enforced()) {
+          <span class="storage-meter__quota">/ {{ quotaLabel() }}</span>
+        } @else {
+          <span class="storage-meter__quota">{{
+            'settings.storage.usedSuffix' | transloco
+          }}</span>
+        }
       </div>
-      <mat-progress-bar
-        mode="determinate"
-        [value]="percent()"
-        [attr.aria-label]="'settings.storage.aria' | transloco"
-        data-testid="storage-meter-bar" />
+      @if (enforced()) {
+        <mat-progress-bar
+          mode="determinate"
+          [value]="percent()"
+          [attr.aria-label]="'settings.storage.aria' | transloco"
+          data-testid="storage-meter-bar" />
+      }
     </div>
   </div>
 }

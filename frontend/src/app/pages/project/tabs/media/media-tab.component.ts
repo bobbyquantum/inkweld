@@ -22,6 +22,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { type MatSidenav, MatSidenavModule } from '@angular/material/sidenav';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { createMediaUrl, extractMediaId } from '@components/image-paste';
 import { MediaItemCardComponent } from '@components/media-item-card/media-item-card.component';
@@ -39,7 +40,7 @@ import {
 import { TooltipAriaLabelDirective } from '@directives/tooltip-aria-label.directive';
 import { forEachSequential } from '@inkweld/async';
 import { ElementType } from '@inkweld/index';
-import { TranslocoModule } from '@jsverse/transloco';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import type { CanvasConfig } from '@models/canvas.model';
 import { type TagDefinition } from '@models/tag.model';
 import {
@@ -119,6 +120,8 @@ export class MediaTabComponent implements OnInit, OnDestroy {
   private readonly generationService = inject(ImageGenerationService);
   private readonly mediaSyncService = inject(MediaSyncService);
   private readonly setupService = inject(SetupService);
+  private readonly snackBar = inject(MatSnackBar);
+  private readonly transloco = inject(TranslocoService);
   private readonly mediaAutoSync = inject(MediaAutoSyncService);
   private readonly mediaTagService = inject(MediaTagService);
   private readonly mediaProjectTagService = inject(MediaProjectTagService);
@@ -776,6 +779,27 @@ export class MediaTabComponent implements OnInit, OnDestroy {
       if (!project?.username || !project?.slug) return;
 
       const projectKey = `${project.username}/${project.slug}`;
+
+      // On a server, remove the server copy first: deleting only the local
+      // copy would free no sync capacity, and the next media sync would
+      // download the file again. If the server cannot be reached, keep the
+      // local copy too, so the two stay consistent.
+      if (this.setupService.getMode() === 'server') {
+        try {
+          await this.mediaSyncService.deleteFromServer(
+            projectKey,
+            item.mediaId
+          );
+        } catch {
+          this.snackBar.open(
+            this.transloco.translate('media.tab.deleteServerFailed'),
+            this.transloco.translate('close'),
+            { duration: 5000 }
+          );
+          return;
+        }
+      }
+
       this.mediaTagService.removeAllForMedia(item.mediaId);
       this.mediaProjectTagService.removeAllForMedia(item.mediaId);
       await this.localStorage.deleteMedia(projectKey, item.mediaId);

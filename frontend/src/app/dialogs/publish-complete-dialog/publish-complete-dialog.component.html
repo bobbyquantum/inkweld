@@ -18,7 +18,12 @@
     </div>
   </div>
 
-  @if (isOnline) {
+  @if (isOnline && quotaRefused()) {
+    <p class="quota-refused" data-testid="publish-quota-refused">
+      <mat-icon>cloud_off</mat-icon>
+      {{ 'publish.complete.quotaRefused' | transloco }}
+    </p>
+  } @else if (isOnline) {
     <div class="sharing-section">
       <h3>{{ 'publish.complete.shareSettings' | transloco }}</h3>
 

@@ -74,7 +74,10 @@ describe('MediaAutoSyncService', () => {
     it('should run initial fullSync when starting', async () => {
       await service.startAutoSync('alice/novel');
 
-      expect(mockMediaSyncService.fullSync).toHaveBeenCalledWith('alice/novel');
+      expect(mockMediaSyncService.fullSync).toHaveBeenCalledWith(
+        'alice/novel',
+        { background: true }
+      );
       expect(service.isActive()).toBe(true);
     });
 
@@ -102,7 +105,9 @@ describe('MediaAutoSyncService', () => {
 
       await service.startAutoSync('bob/story');
 
-      expect(mockMediaSyncService.fullSync).toHaveBeenCalledWith('bob/story');
+      expect(mockMediaSyncService.fullSync).toHaveBeenCalledWith('bob/story', {
+        background: true,
+      });
       expect(service.isActive()).toBe(true);
     });
 
@@ -149,7 +154,10 @@ describe('MediaAutoSyncService', () => {
 
       await service.triggerSyncAfterUpload();
 
-      expect(mockMediaSyncService.fullSync).toHaveBeenCalledWith('alice/novel');
+      expect(mockMediaSyncService.fullSync).toHaveBeenCalledWith(
+        'alice/novel',
+        { background: true }
+      );
     });
 
     it('should not sync if no project is active', async () => {
@@ -181,7 +189,10 @@ describe('MediaAutoSyncService', () => {
       // to properly handle the async callback without infinite timer loops
       await vi.advanceTimersByTimeAsync(60_000);
 
-      expect(mockMediaSyncService.fullSync).toHaveBeenCalledWith('alice/novel');
+      expect(mockMediaSyncService.fullSync).toHaveBeenCalledWith(
+        'alice/novel',
+        { background: true }
+      );
 
       vi.useRealTimers();
     });

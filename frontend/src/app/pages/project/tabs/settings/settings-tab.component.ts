@@ -41,7 +41,10 @@ import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SetupService } from '@services/core/setup.service';
 import { StorageContextService } from '@services/core/storage-context.service';
 import { SystemConfigService } from '@services/core/system-config.service';
-import { MediaSyncService } from '@services/local/media-sync.service';
+import {
+  MediaQuotaExceededError,
+  MediaSyncService,
+} from '@services/local/media-sync.service';
 import { ProjectActivationService } from '@services/local/project-activation.service';
 import { ProjectRenameMigrationService } from '@services/local/project-rename-migration.service';
 import { UnifiedProjectService } from '@services/local/unified-project.service';
@@ -760,9 +763,18 @@ export class SettingsTabComponent implements OnDestroy {
       await this.checkMediaSyncStatus();
     } catch (error) {
       console.error('Failed to upload media:', error);
-      this.snackBar.open('Failed to upload some media files', 'Close', {
-        duration: 3000,
-      });
+      if (error instanceof MediaQuotaExceededError) {
+        this.snackBar.open(
+          this.transloco.translate('settings.storage.uploadRefused'),
+          this.transloco.translate('close'),
+          { duration: 8000 }
+        );
+      } else {
+        this.snackBar.open('Failed to upload some media files', 'Close', {
+          duration: 3000,
+        });
+      }
+      await this.checkMediaSyncStatus();
     }
   }
 

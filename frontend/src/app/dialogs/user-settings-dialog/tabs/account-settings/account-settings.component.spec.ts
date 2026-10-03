@@ -30,6 +30,8 @@ describe('AccountSettingsComponent (dialog tab)', () => {
   };
   let mockStorageUsage: {
     usage: ReturnType<typeof vi.fn>;
+    enforced: ReturnType<typeof vi.fn>;
+    overQuota: ReturnType<typeof vi.fn>;
     isLoading: ReturnType<typeof vi.fn>;
     load: ReturnType<typeof vi.fn>;
   };
@@ -66,6 +68,8 @@ describe('AccountSettingsComponent (dialog tab)', () => {
 
     mockStorageUsage = {
       usage: vi.fn().mockReturnValue(undefined),
+      enforced: vi.fn().mockReturnValue(true),
+      overQuota: vi.fn().mockReturnValue(false),
       isLoading: vi.fn().mockReturnValue(false),
       load: vi.fn().mockResolvedValue(undefined),
     };

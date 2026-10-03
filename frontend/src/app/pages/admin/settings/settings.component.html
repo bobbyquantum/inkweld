@@ -321,6 +321,52 @@
       </mat-card>
     }
 
+    <!-- Sync Capacity Card -->
+    <mat-card class="setting-card" data-testid="sync-quota-card">
+      <mat-card-content>
+        <div class="setting-row">
+          <div class="setting-info">
+            <span class="setting-label">{{
+              'admin.settings.syncQuota' | transloco
+            }}</span>
+            <span class="setting-description">{{
+              'admin.settings.syncQuotaDesc' | transloco
+            }}</span>
+          </div>
+          <mat-slide-toggle
+            [checked]="syncQuotaEnabled()"
+            (change)="toggleSyncQuota($event.checked)"
+            [disabled]="isSaving()"
+            color="primary"
+            data-testid="setting-toggle-sync-quota"></mat-slide-toggle>
+        </div>
+        <div class="policy-row">
+          <div class="policy-info">
+            <span>{{ 'admin.settings.syncQuotaDefault' | transloco }}</span>
+          </div>
+          <mat-form-field appearance="outline" class="min-length-field">
+            <input
+              matInput
+              type="number"
+              min="0"
+              step="1"
+              [value]="syncQuotaDefaultMb()"
+              (change)="saveSyncQuotaDefaultMb($any($event.target).value)"
+              [disabled]="isSaving()"
+              id="admin-sync-quota-default-input"
+              data-testid="sync-quota-default-input"
+              [attr.aria-label]="
+                'admin.settings.syncQuotaDefaultAria' | transloco
+              " />
+            <span matTextSuffix>MB</span>
+          </mat-form-field>
+        </div>
+        <span class="setting-description">{{
+          'admin.settings.syncQuotaHint' | transloco
+        }}</span>
+      </mat-card-content>
+    </mat-card>
+
     <!-- Site URL Card -->
     <mat-card class="setting-card" data-testid="site-url-card">
       <mat-card-content>

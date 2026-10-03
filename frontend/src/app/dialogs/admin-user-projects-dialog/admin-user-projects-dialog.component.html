@@ -35,6 +35,12 @@
         </div>
       </div>
 
+      @if (!result.quotaEnforced) {
+        <p class="quota-unenforced" data-testid="admin-quota-unenforced">
+          {{ 'admin.users.quotaNotEnforced' | transloco }}
+        </p>
+      }
+
       <div class="quota-editor">
         <mat-checkbox
           [checked]="useDefaultQuota()"
@@ -52,8 +58,8 @@
               matInput
               type="number"
               min="0"
-              [ngModel]="quotaMb()"
-              (ngModelChange)="quotaMb.set($event)"
+              [value]="quotaMb() ?? ''"
+              (input)="onQuotaMbInput($any($event.target).value)"
               data-testid="admin-quota-input" />
             <mat-hint>MB</mat-hint>
           </mat-form-field>

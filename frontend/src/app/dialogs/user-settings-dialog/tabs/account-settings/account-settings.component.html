@@ -218,11 +218,16 @@
         {{ 'settings.storage.title' | transloco }}
       </h4>
       <p class="storage-section__description">
-        {{ 'settings.storage.description' | transloco }}
+        {{
+          (storageUsage.enforced()
+            ? 'settings.storage.description'
+            : 'settings.storage.unenforcedDescription'
+          ) | transloco
+        }}
       </p>
       <app-storage-meter
         [userId]="userService.currentUser().id"></app-storage-meter>
-      @if (storageUsage.usage()?.overQuota) {
+      @if (storageUsage.overQuota()) {
         <p class="storage-section__warning" data-testid="account-storage-over">
           {{ 'settings.storage.over' | transloco }}
         </p>

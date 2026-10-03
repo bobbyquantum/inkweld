@@ -36,6 +36,7 @@ describe('AdminUserProjectsDialogComponent', () => {
     totalBytes: 6000,
     syncQuotaBytes: null as number | null,
     effectiveQuotaBytes: 104857600,
+    quotaEnforced: true,
     instanceDefaultQuotaBytes: 104857600,
   };
 
@@ -157,6 +158,29 @@ describe('AdminUserProjectsDialogComponent', () => {
       await component.saveQuota();
 
       expect(adminService.setUserQuota).toHaveBeenCalledWith('u1', 0);
+    });
+
+    it('tracks the MB field and clears it on a non-numeric entry', () => {
+      component.onQuotaMbInput('42');
+      expect(component.quotaMb()).toBe(42);
+      component.onQuotaMbInput('');
+      expect(component.quotaMb()).toBeNull();
+    });
+
+    it('notes when the server does not enforce sync capacity', async () => {
+      adminService.listUserProjects.mockResolvedValue({
+        ...sampleResult,
+        quotaEnforced: false,
+      });
+      component.refresh();
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      expect(
+        fixture.nativeElement.querySelector(
+          '[data-testid="admin-quota-unenforced"]'
+        )
+      ).toBeTruthy();
     });
 
     it('reports a failed save without throwing', async () => {

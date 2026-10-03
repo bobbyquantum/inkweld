@@ -50,3 +50,7 @@
     color: var(--mat-sys-error);
   }
 }
+
+.storage-meter.unenforced .storage-meter__icon {
+  color: var(--mat-sys-on-surface-variant);
+}

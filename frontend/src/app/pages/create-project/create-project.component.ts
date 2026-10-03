@@ -24,10 +24,12 @@ import { ElectronService } from '@services/electron.service';
 
 import { ProjectActivationService } from '../../services/local/project-activation.service';
 import { UnifiedProjectService } from '../../services/local/unified-project.service';
+import { ProjectServiceError } from '../../services/project/project.service';
 import {
   type ProjectTemplateInfo,
   ProjectTemplateService,
 } from '../../services/project/project-template.service';
+import { StorageUsageService } from '../../services/user/storage-usage.service';
 import { UnifiedUserService } from '../../services/user/unified-user.service';
 
 interface ProjectFormValue {
@@ -65,6 +67,7 @@ export class CreateProjectComponent implements OnInit {
   private readonly snackBar = inject(MatSnackBar);
   private readonly router = inject(Router);
   private readonly transloco = inject(TranslocoService);
+  private readonly storageUsage = inject(StorageUsageService);
 
   /** Current step (1: template selection, 2: project details) */
   step = signal<1 | 2>(1);
@@ -244,10 +247,17 @@ export class CreateProjectComponent implements OnInit {
         void this.router.navigate(['/']);
       }
     } catch (error) {
+      const quotaFull =
+        error instanceof ProjectServiceError && error.code === 'QUOTA_EXCEEDED';
+      if (quotaFull) {
+        void this.storageUsage.load();
+      }
       this.snackBar.open(
-        this.transloco.translate('errors.unknown'),
+        this.transloco.translate(
+          quotaFull ? 'settings.storage.projectCreateRefused' : 'errors.unknown'
+        ),
         this.transloco.translate('close'),
-        { duration: 3000 }
+        { duration: quotaFull ? 8000 : 3000 }
       );
       console.error('Failed to create project:', error);
     } finally {

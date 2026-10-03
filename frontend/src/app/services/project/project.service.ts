@@ -13,6 +13,7 @@ import { LocalProjectService } from '../local/local-project.service';
 import { LocalStorageService } from '../local/local-storage.service';
 import { ProjectSyncService } from '../local/project-sync.service';
 import { StorageService } from '../local/storage.service';
+import { getQuotaExceeded } from '../user/storage-usage.service';
 
 export class ProjectServiceError extends Error {
   constructor(
@@ -21,7 +22,8 @@ export class ProjectServiceError extends Error {
       | 'SESSION_EXPIRED'
       | 'SERVER_ERROR'
       | 'PROJECT_NOT_FOUND'
-      | 'PROJECT_RENAMED',
+      | 'PROJECT_RENAMED'
+      | 'QUOTA_EXCEEDED',
     message: string,
     public readonly canUseCache: boolean = false
   ) {
@@ -1078,6 +1080,14 @@ export class ProjectService {
           error.error.newSlug,
           error.error.username,
           error.error.renamedAt
+        );
+      }
+
+      if (getQuotaExceeded(error)) {
+        return new ProjectServiceError(
+          'QUOTA_EXCEEDED',
+          'Your sync capacity is full, so no new projects can be created.',
+          false
         );
       }
 

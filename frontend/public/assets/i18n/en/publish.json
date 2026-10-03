@@ -181,6 +181,7 @@
     "enableSharingFirst": "Enable sharing first",
     "linkCopied": "Link copied to clipboard",
     "copyFailed": "Failed to copy link",
-    "shareUpdateFailed": "Failed to update sharing"
+    "shareUpdateFailed": "Failed to update sharing",
+    "quotaRefused": "Your sync capacity is full, so this file was saved on this device only and can't be shared yet. Free up space and publish again to share it."
   }
 }

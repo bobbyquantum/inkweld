@@ -99,6 +99,7 @@ describe('MediaTabComponent', () => {
 
     mediaSyncService = {
       downloadAllFromServer: vi.fn().mockResolvedValue(undefined),
+      deleteFromServer: vi.fn().mockResolvedValue(undefined),
       mediaSyncVersion: signal(0),
     };
 
@@ -275,10 +276,37 @@ describe('MediaTabComponent', () => {
       confirmText: 'Delete',
       cancelText: 'Cancel',
     });
+    expect(mediaSyncService.deleteFromServer).toHaveBeenCalledWith(
+      'testuser/test-project',
+      item.mediaId
+    );
     expect(localStorage.deleteMedia).toHaveBeenCalledWith(
       'testuser/test-project',
       item.mediaId
     );
+  });
+
+  it('keeps the local copy when the server delete fails', async () => {
+    (
+      mediaSyncService.deleteFromServer as ReturnType<typeof vi.fn>
+    ).mockRejectedValue(new Error('offline'));
+    await component.loadMedia();
+    fixture.detectChanges();
+
+    await component.deleteMedia(component.mediaItems()[1]);
+
+    expect(localStorage.deleteMedia).not.toHaveBeenCalled();
+  });
+
+  it('deletes only locally outside server mode', async () => {
+    (setupService.getMode as ReturnType<typeof vi.fn>).mockReturnValue('local');
+    await component.loadMedia();
+    fixture.detectChanges();
+
+    await component.deleteMedia(component.mediaItems()[1]);
+
+    expect(mediaSyncService.deleteFromServer).not.toHaveBeenCalled();
+    expect(localStorage.deleteMedia).toHaveBeenCalled();
   });
 
   it('should not delete media if confirmation cancelled', async () => {

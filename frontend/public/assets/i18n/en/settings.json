@@ -335,6 +335,12 @@
     "warning": "You are approaching your sync capacity.",
     "over": "You have reached your sync capacity. New uploads and projects are paused until you free up space.",
     "manageHint": "Delete unused media or projects to free up space, or ask an administrator for more capacity.",
-    "overShort": "Storage full"
+    "overShort": "Storage full",
+    "unenforcedDescription": "How much server storage your projects use. This server does not limit storage.",
+    "unenforcedTooltip": "{{used}} of server storage used",
+    "usedSuffix": "used",
+    "projectCreateRefused": "Your sync capacity is full, so new projects can't be created. Free up space by deleting media or projects, or ask an administrator for more.",
+    "uploadRefused": "Your sync capacity is full, so these files stay on this device for now. Free up space or ask an administrator for more.",
+    "uploadsPaused": "Sync capacity is full: new media is kept on this device and will upload once space is freed."
   }
 }

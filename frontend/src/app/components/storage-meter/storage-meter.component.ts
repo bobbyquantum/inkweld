@@ -18,7 +18,8 @@ import { formatBytes } from '@utils/format-bytes';
  *
  * Renders nothing until usage has loaded, and stays silent in local mode
  * (there is no server allowance to report). Three visual states map to the
- * service's thresholds: normal, warning (>=80%) and over (>=100%).
+ * service's thresholds: normal, warning (>=80%) and over (>=100%). On a server
+ * that does not enforce sync capacity it shows plain usage with no bar.
  */
 @Component({
   selector: 'app-storage-meter',
@@ -42,8 +43,22 @@ export class StorageMeterComponent implements OnInit {
    */
   readonly userId = input<string | undefined>(undefined);
 
+  /**
+   * Render nothing when the server does not enforce sync capacity. Compact
+   * surfaces (the home header) use this; the account settings keep showing
+   * plain usage, which is still useful information.
+   */
+  readonly hideWhenUnenforced = input(false);
+
   readonly usage = this.storageUsage.usage;
   readonly isLoading = this.storageUsage.isLoading;
+  readonly enforced = this.storageUsage.enforced;
+
+  readonly visible = computed(
+    () =>
+      this.usage() !== undefined &&
+      (this.enforced() || !this.hideWhenUnenforced())
+  );
 
   /** Rounded percentage for the bar; capped at 100 so an over-quota bar stays sane. */
   readonly percent = computed(() => {
@@ -54,7 +69,8 @@ export class StorageMeterComponent implements OnInit {
 
   readonly state = computed<'normal' | 'warning' | 'over'>(() => {
     const u = this.usage();
-    if (!u) return 'normal';
+    // Without enforcement there is no limit to warn about.
+    if (!u?.enabled) return 'normal';
     if (u.overQuota) return 'over';
     if (u.overSoftLimit) return 'warning';
     return 'normal';

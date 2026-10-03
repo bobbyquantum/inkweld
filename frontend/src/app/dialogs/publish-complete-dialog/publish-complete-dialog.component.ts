@@ -98,6 +98,9 @@ export class PublishCompleteDialogComponent {
   /** Whether we're in online mode */
   isOnline = this.setupService.getMode() === 'server';
 
+  /** The server refused the upload (sync capacity full): saved locally only. */
+  readonly quotaRefused = this.publishedFilesService.lastUploadRefusedForQuota;
+
   /** Share permission options */
   readonly shareOptions = [
     { value: SharePermission.Private, label: 'Only me', icon: 'lock' },

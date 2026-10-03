@@ -208,10 +208,11 @@
                 </mat-menu>
               }
 
-              <!-- Sync-capacity meter: hidden until usage loads, and in local mode. -->
+              <!-- Sync-capacity meter: hidden until usage loads, in local mode, and when the server does not enforce quotas. -->
               @if (!isLocalMode()) {
                 <app-storage-meter
                   class="header-storage-meter"
+                  [hideWhenUnenforced]="true"
                   [userId]="userService.currentUser().id"></app-storage-meter>
               }
 

@@ -11,6 +11,7 @@ import { StorageMeterComponent } from './storage-meter.component';
 
 function usage(overrides: Partial<StorageUsage> = {}): StorageUsage {
   return {
+    enabled: true,
     usedBytes: 500,
     quotaBytes: 1000,
     fraction: 0.5,
@@ -24,10 +25,15 @@ function usage(overrides: Partial<StorageUsage> = {}): StorageUsage {
 describe('StorageMeterComponent', () => {
   let fixture: ComponentFixture<StorageMeterComponent>;
   let load: ReturnType<typeof vi.fn>;
-  let usageSignal: ReturnType<typeof vi.fn>;
+  let usageSignal: ReturnType<typeof vi.fn<() => StorageUsage | undefined>>;
 
-  function configure(current: StorageUsage | undefined): void {
-    usageSignal = vi.fn().mockReturnValue(current);
+  function configure(
+    current: StorageUsage | undefined,
+    inputs: { hideWhenUnenforced?: boolean } = {}
+  ): void {
+    usageSignal = vi
+      .fn<() => StorageUsage | undefined>()
+      .mockReturnValue(current);
     load = vi.fn().mockResolvedValue(current);
     TestBed.configureTestingModule({
       imports: [translocoTestProvider(), StorageMeterComponent],
@@ -37,6 +43,7 @@ describe('StorageMeterComponent', () => {
           provide: StorageUsageService,
           useValue: {
             usage: usageSignal,
+            enforced: () => usageSignal()?.enabled === true,
             isLoading: vi.fn().mockReturnValue(false),
             load,
           },
@@ -44,6 +51,12 @@ describe('StorageMeterComponent', () => {
       ],
     });
     fixture = TestBed.createComponent(StorageMeterComponent);
+    if (inputs.hideWhenUnenforced !== undefined) {
+      fixture.componentRef.setInput(
+        'hideWhenUnenforced',
+        inputs.hideWhenUnenforced
+      );
+    }
     fixture.detectChanges();
   }
 
@@ -105,7 +118,9 @@ describe('StorageMeterComponent', () => {
   });
 
   it('refetches on init and passes the user id through', () => {
-    usageSignal = vi.fn().mockReturnValue(usage());
+    usageSignal = vi
+      .fn<() => StorageUsage | undefined>()
+      .mockReturnValue(usage());
     load = vi.fn().mockResolvedValue(usage());
     TestBed.configureTestingModule({
       imports: [translocoTestProvider(), StorageMeterComponent],
@@ -115,6 +130,7 @@ describe('StorageMeterComponent', () => {
           provide: StorageUsageService,
           useValue: {
             usage: usageSignal,
+            enforced: () => usageSignal()?.enabled === true,
             isLoading: vi.fn().mockReturnValue(false),
             load,
           },
@@ -128,5 +144,30 @@ describe('StorageMeterComponent', () => {
     // The service keys its cache by user id, so the meter always delegates;
     // dedupe/refresh decisions live in the service, not here.
     expect(load).toHaveBeenCalledWith('user-1');
+  });
+
+  it('shows plain usage, with no bar or warning, when not enforced', () => {
+    configure(usage({ enabled: false, usedBytes: 5000, overQuota: true }));
+    const el: HTMLElement = fixture.nativeElement;
+    const meter = el.querySelector('[data-testid="storage-meter"]');
+
+    expect(meter).toBeTruthy();
+    expect(meter?.classList.contains('over')).toBe(false);
+    expect(meter?.classList.contains('unenforced')).toBe(true);
+    expect(el.querySelector('[data-testid="storage-meter-bar"]')).toBeFalsy();
+  });
+
+  it('can hide itself entirely when not enforced', () => {
+    configure(usage({ enabled: false }), { hideWhenUnenforced: true });
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="storage-meter"]')
+    ).toBeFalsy();
+  });
+
+  it('still renders with hideWhenUnenforced when enforcement is on', () => {
+    configure(usage(), { hideWhenUnenforced: true });
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="storage-meter"]')
+    ).toBeTruthy();
   });
 });

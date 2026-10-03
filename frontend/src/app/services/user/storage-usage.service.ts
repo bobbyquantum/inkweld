@@ -1,4 +1,5 @@
-import { inject, Injectable, signal } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
+import { computed, inject, Injectable, signal } from '@angular/core';
 import { type StorageUsage, UsersService } from '@inkweld/index';
 import { catchError, firstValueFrom, throwError } from 'rxjs';
 
@@ -7,6 +8,38 @@ import { LoggerService } from '../core/logger.service';
 /** Re-export the generated model under the name the UI already imports. */
 export type { StorageUsage };
 export type StorageUsageProject = StorageUsage['projects'][number];
+
+/** Body of a sync-capacity refusal (HTTP 403, `code: 'QUOTA_EXCEEDED'`). */
+export interface QuotaExceededDetails {
+  code: 'QUOTA_EXCEEDED';
+  usedBytes: number;
+  quotaBytes: number;
+  requiredBytes?: number;
+  reason: 'media_upload' | 'project_create' | 'published_file';
+}
+
+/**
+ * The server's sync-capacity refusal, or `undefined` for any other error.
+ *
+ * Distinguishes a quota 403 from an access-control 403 by its `code`, so a
+ * caller can explain the limit instead of reporting "access denied".
+ */
+export function getQuotaExceeded(
+  error: unknown
+): QuotaExceededDetails | undefined {
+  if (!(error instanceof HttpErrorResponse) || error.status !== 403) {
+    return undefined;
+  }
+  const body: unknown = error.error;
+  if (
+    typeof body === 'object' &&
+    body !== null &&
+    (body as { code?: unknown }).code === 'QUOTA_EXCEEDED'
+  ) {
+    return body as QuotaExceededDetails;
+  }
+  return undefined;
+}
 
 export class StorageUsageError extends Error {
   constructor(
@@ -36,6 +69,14 @@ export class StorageUsageService {
   readonly usage = signal<StorageUsage | undefined>(undefined);
   readonly isLoading = signal(false);
   readonly error = signal<StorageUsageError | undefined>(undefined);
+
+  /** Whether this server enforces sync capacity at all. */
+  readonly enforced = computed(() => this.usage()?.enabled === true);
+
+  /** Over the allowance on a server that enforces it (drives warnings). */
+  readonly overQuota = computed(
+    () => this.enforced() && this.usage()?.overQuota === true
+  );
 
   /** The user the cached `usage` belongs to. */
   private cachedForUserId: string | undefined;
@@ -76,6 +117,33 @@ export class StorageUsageService {
     } finally {
       this.isLoading.set(false);
     }
+  }
+
+  /**
+   * Load usage only if nothing is cached yet for this user. For surfaces that
+   * show the last-known state without forcing a recompute on every visit.
+   */
+  async ensureLoaded(userId?: string): Promise<void> {
+    if (
+      this.usage() !== undefined &&
+      (userId === undefined || userId === this.cachedForUserId)
+    ) {
+      return;
+    }
+    await this.load(userId);
+  }
+
+  /**
+   * Record a sync-capacity refusal: refresh usage so every meter and warning
+   * reflects it. Returns the refusal details, or `undefined` when `error` is
+   * not a quota refusal (so callers can fall through to their own handling).
+   */
+  noteQuotaError(error: unknown): QuotaExceededDetails | undefined {
+    const details = getQuotaExceeded(error);
+    if (details) {
+      void this.load(this.cachedForUserId);
+    }
+    return details;
   }
 
   /** Clear cached state (e.g. on sign-out). */
