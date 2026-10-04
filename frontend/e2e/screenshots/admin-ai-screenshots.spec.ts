@@ -167,6 +167,10 @@ test.describe('Admin AI Settings Screenshots', () => {
       'dark',
       '[data-testid="settings-card"]'
     );
+    await expect(adminPage.locator('body')).toHaveClass(/dark-theme/);
+    await expect(adminPage.getByTestId('profile-model').first()).toHaveText(
+      /OpenAI/
+    );
     await adminPage.evaluate(() => document.fonts.ready);
 
     await adminPage.screenshot({
