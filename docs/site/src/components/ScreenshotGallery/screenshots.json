@@ -692,12 +692,12 @@
       {
         "file": "tags-empty-light.png",
         "dir": "features",
-        "label": "Tags empty state — light"
+        "label": "Tags tab with default tags — light"
       },
       {
         "file": "tags-empty-dark.png",
         "dir": "features",
-        "label": "Tags empty state — dark"
+        "label": "Tags tab with default tags — dark"
       },
       {
         "file": "tags-create-dialog-light.png",
@@ -1069,12 +1069,22 @@
       {
         "file": "image-generation-dialog-light.png",
         "dir": "features",
-        "label": "Image generation dialog — light"
+        "label": "Image generation context step — light"
       },
       {
         "file": "image-generation-dialog-dark.png",
         "dir": "features",
-        "label": "Image generation dialog — dark"
+        "label": "Image generation context step — dark"
+      },
+      {
+        "file": "image-generation-prompt-light.png",
+        "dir": "features",
+        "label": "Image generation prompt step — light"
+      },
+      {
+        "file": "image-generation-prompt-dark.png",
+        "dir": "features",
+        "label": "Image generation prompt step — dark"
       }
     ]
   },

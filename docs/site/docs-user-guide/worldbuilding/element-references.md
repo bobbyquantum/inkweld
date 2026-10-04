@@ -150,12 +150,12 @@ Or:
 
 ### In the Relationships Section
 
-Open a referenced worldbuilding element to see:
+Every `@` mention is also a backlink. Open the referenced worldbuilding element and select **Relationships** in its section list: the **References** group lists each document that mentions the element, with a count. Click a document to open it.
 
-**Backlinks (Incoming)**
-
-- Documents that mention this element
-- Click to navigate to those documents
+<ThemedImage
+  src="/img/features/element-ref-backlinks-worldbuilding"
+  alt="A character's Relationships section, with a References group listing the document that mentions the character"
+/>
 
 ### Reference Counts
 

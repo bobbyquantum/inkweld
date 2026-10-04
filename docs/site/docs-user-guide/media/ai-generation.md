@@ -5,17 +5,19 @@ description: Create images using AI (optional feature).
 sidebar_position: 3
 ---
 
+import ThemedImage from '@site/src/components/ThemedImage';
+
 # AI Image Generation
 
 :::caution[Admin Configuration Required]
-AI image generation is an **optional feature** that must be enabled and configured by your instance administrator. If you don't see the "Generate Image" button in the media tab or when setting images, this feature is not available on your instance.
+AI image generation is an **optional feature** that must be enabled and configured by your instance administrator. If you don't see the **Generate with AI** option in the media tab or when setting images, this feature is not available on your instance.
 :::
 
 ## Opening the Generator
 
 You can generate images from:
 
-- **Media tab** — Click "Generate Image" in the header
+- **Media tab** — Click **Add media** in the header, then **Generate with AI**
 - **Project cover** — Click "Generate with AI" in the edit project dialog
 - **Worldbuilding images** — Click "Generate with AI" in the identity panel
 
@@ -33,6 +35,11 @@ Select worldbuilding elements to include as context. For each element, toggle wh
 
 This helps the AI understand your characters, locations, etc. You can skip this step if you prefer to write your prompt from scratch.
 
+<ThemedImage
+  src="/img/features/image-generation-dialog"
+  alt="The Context step of the image generation dialog, with an Add Element button and room for up to four worldbuilding elements"
+/>
+
 ### 2. Prompt
 
 Configure your generation:
@@ -46,6 +53,11 @@ Configure your generation:
 
 Additional options like quality, style, or negative prompts appear depending on the model profile.
 
+<ThemedImage
+  src="/img/features/image-generation-prompt"
+  alt="The Prompt step, showing the model profile picker, a written prompt, and the Size and Count selectors"
+/>
+
 ### 3. Generate
 
 Click Generate. Progress is shown in the dialog. You can close the dialog and continue working — the job runs in the background and completed images appear in your media library.
@@ -58,7 +70,7 @@ Active generation jobs appear in the media tab header. Generation typically take
 
 ## If It's Not Working
 
-- **No Generate button**: AI generation isn't enabled, or you're in offline mode. Contact your administrator.
+- **No Generate with AI option**: AI generation isn't enabled, or you're in offline mode. Contact your administrator.
 - **Generation failed**: Check your connection, or the AI service may be temporarily unavailable.
 - **Poor results**: Be more specific in your prompt. Results vary each generation.
 

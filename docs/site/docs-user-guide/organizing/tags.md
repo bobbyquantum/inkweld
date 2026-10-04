@@ -63,19 +63,24 @@ The preview at the top shows how your tag will appear.
 
 ### Editing a Tag
 
-1. Find the tag in the Tags tab
-2. Click the **menu** (⋮) button on the tag card
-3. Select **Edit**
-4. Modify any properties
-5. Click **Save**
+Each row in the Tags tab shows the tag, how many elements use it, and its description, with **edit** (pencil) and **delete** (trash) buttons on the right.
+
+<ThemedImage
+  src="/img/features/tags-list"
+  alt="Tags list with a row per tag, showing its element count and description, and edit and delete buttons"
+/>
+
+1. Find the tag in the Tags tab (type in **Search tags** to filter a long list)
+2. Click the **edit** (pencil) button on its row
+3. Modify any properties
+4. Click **Save**
 
 Changes apply to all elements using this tag.
 
 ### Deleting a Tag
 
-1. Click the **menu** (⋮) button on the tag card
-2. Select **Delete**
-3. Confirm the deletion
+1. Click the **delete** (trash) button on the tag's row
+2. Confirm the deletion
 
 :::warning
 Deleting a tag removes it from all elements. This cannot be undone.

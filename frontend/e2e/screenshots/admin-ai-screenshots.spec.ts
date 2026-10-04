@@ -12,6 +12,11 @@ import type { Page } from '@playwright/test';
 import path from 'path';
 
 import { expect, test } from './fixtures';
+import {
+  applyColorScheme as applyThemeClass,
+  applyColorSchemeAndReload,
+  type ColorScheme,
+} from './theme-helpers';
 
 const SCREENSHOTS_DIR = path.join(
   __dirname,
@@ -41,18 +46,9 @@ async function navigateToAdminAiViaMenu(page: Page): Promise<void> {
 
 async function applyColorScheme(
   page: Page,
-  scheme: 'light' | 'dark'
+  scheme: ColorScheme
 ): Promise<void> {
-  await page.evaluate(mode => {
-    const html = document.documentElement;
-    if (mode === 'dark') {
-      html.classList.remove('light-mode');
-      html.classList.add('dark-mode');
-    } else {
-      html.classList.remove('dark-mode');
-      html.classList.add('light-mode');
-    }
-  }, scheme);
+  await applyThemeClass(page, scheme);
   // Give the theme swap and any web fonts a chance to settle before
   // screenshots are captured.
   await page.evaluate(() => document.fonts.ready);
@@ -165,8 +161,17 @@ test.describe('Admin AI Settings Screenshots', () => {
   });
 
   test('AI settings screenshots — dark mode', async ({ adminPage }) => {
-    await applyColorScheme(adminPage, 'dark');
-    await expect(adminPage.getByTestId('settings-card').first()).toBeVisible();
+    // The admin shell reads the theme at boot; reload so every surface is dark.
+    await applyColorSchemeAndReload(
+      adminPage,
+      'dark',
+      '[data-testid="settings-card"]'
+    );
+    await expect(adminPage.locator('body')).toHaveClass(/dark-theme/);
+    await expect(adminPage.getByTestId('profile-model').first()).toHaveText(
+      /OpenAI/
+    );
+    await adminPage.evaluate(() => document.fonts.ready);
 
     await adminPage.screenshot({
       path: path.join(SCREENSHOTS_DIR, 'admin-ai-settings-dark.png'),
@@ -218,8 +223,14 @@ test.describe('Image Model Profiles Screenshots', () => {
       if (await createButton.isVisible()) {
         await createButton.click();
 
-        await adminPage.waitForSelector('mat-dialog-container');
-        await adminPage.waitForTimeout(500);
+        await expect(
+          adminPage.getByTestId('profile-dialog-title')
+        ).toBeVisible();
+        await adminPage.getByTestId('profile-name-input').fill('Cover Art');
+        await adminPage
+          .getByTestId('profile-description-input')
+          .fill('Book covers and character portraits');
+        await adminPage.evaluate(() => document.fonts.ready);
 
         const dialog = adminPage.locator('mat-dialog-container');
         await dialog.screenshot({
@@ -254,53 +265,76 @@ test.describe('Image Model Profiles Screenshots', () => {
 });
 
 test.describe('Image Generation Dialog Screenshots', () => {
-  async function openImageGenerationDialog(page: Page): Promise<boolean> {
-    await page.goto('/testuser/worldbuilding-chronicles/media');
+  async function openImageGenerationDialog(
+    page: Page,
+    scheme: ColorScheme
+  ): Promise<void> {
+    await applyColorSchemeAndReload(page, scheme, '.project-card');
+    // Open the project from its card: a project has to be downloaded to
+    // (activated on) this device first, and a direct /media URL bounces
+    // back to the bookshelf.
+    await page
+      .getByRole('button', {
+        name: 'Open project The Worldbuilding Chronicles',
+      })
+      .first()
+      .click();
+    const begin = page.getByTestId('cover-open-begin');
+    await expect(begin).toContainText('Download to this device');
+    await begin.click();
+    await expect(begin).toContainText('Begin');
+    await begin.click();
+    await page.waitForURL('**/testuser/worldbuilding-chronicles**');
+    await page.getByText('Media Library', { exact: true }).click();
+    await page.waitForURL('**/media');
 
-    const addMediaButton = page.locator('[data-testid="add-media-button"]');
-    try {
-      // The media page can bounce to the project list while loading; a
-      // bounded click turns that race into the skip path below.
-      await addMediaButton.click({ timeout: 5_000 });
-    } catch {
-      return false;
-    }
-
-    const generateOption = page.locator('[data-testid="add-media-generate"]');
-    if (!(await generateOption.isVisible())) {
-      return false;
-    }
-
-    await generateOption.click();
-    await page.waitForSelector('mat-dialog-container');
+    await page.getByTestId('add-media-button').click();
+    await page.getByTestId('add-media-generate').click();
     // The wizard opens on its first step; the prompt input comes later.
-    await expect(page.getByTestId('image-gen-dialog-content')).toBeVisible();
-    return true;
+    await expect(page.getByTestId('image-generation-stepper')).toBeVisible();
+    await page.evaluate(() => document.fonts.ready);
+  }
+
+  async function captureImageGenerationDialog(
+    page: Page,
+    suffix: ColorScheme
+  ): Promise<void> {
+    await openImageGenerationDialog(page, suffix);
+    const dialog = page.locator('mat-dialog-container');
+
+    await test.step('context step', async () => {
+      await dialog.screenshot({
+        path: path.join(
+          SCREENSHOTS_DIR,
+          `image-generation-dialog-${suffix}.png`
+        ),
+      });
+    });
+
+    await test.step('prompt step', async () => {
+      await page.getByTestId('image-gen-next-button').click();
+      const prompt = page.getByTestId('image-gen-prompt-input');
+      await expect(prompt).toBeVisible();
+      await prompt.fill(
+        'A lighthouse on a storm-battered cliff at dusk, painted in oils'
+      );
+      await expect(page.getByTestId('image-gen-generate-button')).toBeEnabled();
+      await dialog.screenshot({
+        path: path.join(
+          SCREENSHOTS_DIR,
+          `image-generation-prompt-${suffix}.png`
+        ),
+      });
+    });
   }
 
   test('Image generation dialog - light mode', async ({
     authenticatedPage,
   }) => {
-    await applyColorScheme(authenticatedPage, 'light');
-
-    if (await openImageGenerationDialog(authenticatedPage)) {
-      const dialog = authenticatedPage.locator('mat-dialog-container');
-      await expect(dialog).toBeVisible();
-      await dialog.screenshot({
-        path: path.join(SCREENSHOTS_DIR, 'image-generation-dialog-light.png'),
-      });
-    }
+    await captureImageGenerationDialog(authenticatedPage, 'light');
   });
 
   test('Image generation dialog - dark mode', async ({ authenticatedPage }) => {
-    await applyColorScheme(authenticatedPage, 'dark');
-
-    if (await openImageGenerationDialog(authenticatedPage)) {
-      const dialog = authenticatedPage.locator('mat-dialog-container');
-      await expect(dialog).toBeVisible();
-      await dialog.screenshot({
-        path: path.join(SCREENSHOTS_DIR, 'image-generation-dialog-dark.png'),
-      });
-    }
+    await captureImageGenerationDialog(authenticatedPage, 'dark');
   });
 });

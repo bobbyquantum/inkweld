@@ -321,26 +321,38 @@ export function setupAiImageHandlers(): void {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
+      // Mirrors PublicImageModelProfile: the generation dialog drops any
+      // profile whose `provider` is not an enabled provider in /ai/image/status.
       body: JSON.stringify([
         {
           id: 'profile-1',
           name: 'GPT Image 1',
           description: 'Fast GPT-based image generation',
-          supportedSizes: ['1024x1024', '1024x1536', '1536x1024', 'auto'],
+          provider: 'openai',
+          modelId: 'gpt-image-1',
+          enabled: true,
           supportsImageInput: true,
-          supportsQuality: true,
-          supportsStyle: false,
           supportsCustomResolutions: false,
+          usesAspectRatioOnly: false,
+          supportedSizes: ['1024x1024', '1024x1536', '1536x1024', 'auto'],
+          defaultSize: '1024x1024',
+          sortOrder: 0,
+          creditCost: 1,
         },
         {
           id: 'profile-2',
           name: 'FLUX Pro',
           description: 'High quality FLUX model',
-          supportedSizes: ['1024x1024', '1024x1792', '1792x1024'],
+          provider: 'openrouter',
+          modelId: 'black-forest-labs/flux-1.1-pro',
+          enabled: true,
           supportsImageInput: false,
-          supportsQuality: false,
-          supportsStyle: false,
           supportsCustomResolutions: true,
+          usesAspectRatioOnly: false,
+          supportedSizes: ['1024x1024', '1024x1792', '1792x1024'],
+          defaultSize: '1024x1024',
+          sortOrder: 1,
+          creditCost: 1,
         },
       ]),
     });
@@ -396,71 +408,19 @@ export function setupAiImageHandlers(): void {
     }
   );
 
-  // GET /api/v1/admin/image-profiles/providers - List providers for profile creation
+  // GET /api/v1/admin/image-profiles/providers - Providers for profile creation
+  // (the real endpoint returns a bare `{ id, name }[]`)
   mockApi.addHandler(
     '**/api/v1/admin/image-profiles/providers',
     async (route: Route) => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({
-          providers: [
-            {
-              id: 'openai',
-              name: 'OpenAI',
-              available: true,
-              models: [
-                {
-                  id: 'gpt-image-1',
-                  name: 'GPT Image 1',
-                  supportedSizes: [
-                    '1024x1024',
-                    '1024x1536',
-                    '1536x1024',
-                    'auto',
-                  ],
-                  supportsQuality: true,
-                  supportsStyle: false,
-                  supportsImageInput: true,
-                },
-                {
-                  id: 'gpt-image-1-mini',
-                  name: 'GPT Image 1 Mini',
-                  supportedSizes: [
-                    '1024x1024',
-                    '1024x1536',
-                    '1536x1024',
-                    'auto',
-                  ],
-                  supportsQuality: true,
-                  supportsStyle: false,
-                  supportsImageInput: true,
-                },
-              ],
-            },
-            {
-              id: 'openrouter',
-              name: 'OpenRouter',
-              available: true,
-              models: [
-                {
-                  id: 'black-forest-labs/flux-1.1-pro',
-                  name: 'FLUX 1.1 Pro',
-                  supportedSizes: ['1024x1024', '1024x1792', '1792x1024'],
-                  supportsQuality: false,
-                  supportsStyle: false,
-                  supportsImageInput: false,
-                },
-              ],
-            },
-            {
-              id: 'falai',
-              name: 'Fal.ai',
-              available: false,
-              models: [],
-            },
-          ],
-        }),
+        body: JSON.stringify([
+          { id: 'openai', name: 'OpenAI' },
+          { id: 'openrouter', name: 'OpenRouter' },
+          { id: 'falai', name: 'Fal.ai' },
+        ]),
       });
     }
   );
