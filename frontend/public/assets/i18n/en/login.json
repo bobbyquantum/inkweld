@@ -20,5 +20,6 @@
     "networkError": "Network error. Please check your connection and try again.",
     "unsupported": "Passkeys are not supported by this browser.",
     "accountDisabled": "Your account has been disabled. Please contact an administrator."
-  }
+  },
+  "logout": "Log out"
 }

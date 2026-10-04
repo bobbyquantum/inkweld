@@ -159,10 +159,13 @@
   }
 }
 
+// Five icon-only layout buttons must fit the narrow sidebar, so let them
+// shrink below Material's default 12px side padding.
 .layout-toggle mat-button-toggle {
-  .toggle-label {
-    margin-left: 4px;
-    font-size: 12px;
+  min-width: 0;
+
+  ::ng-deep .mat-button-toggle-label-content {
+    padding: 0 4px;
   }
 }
 

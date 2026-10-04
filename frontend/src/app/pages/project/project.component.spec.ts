@@ -29,6 +29,7 @@ import { DocumentService } from '@services/project/document.service';
 import { ProjectExportService } from '@services/project/project-export.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { RecentFilesService } from '@services/project/recent-files.service';
+import { ZenModeService } from '@services/project/zen-mode.service';
 import { MediaAutoSyncService } from '@services/sync/media-auto-sync.service';
 import { BehaviorSubject, of, Subject } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -685,12 +686,28 @@ describe('ProjectComponent', () => {
     });
 
     it('should not enable zen mode when on home tab', () => {
+      openTabsSignal.set([
+        {
+          id: 'system-home',
+          name: 'Home',
+          type: 'system',
+          systemType: 'home',
+        },
+      ]);
       selectedTabIndexSignal.set(0);
       component.toggleZenMode();
       expect(component['isZenMode']()).toBe(false);
     });
 
     it('should return false for canEnableZenMode when on home tab', () => {
+      openTabsSignal.set([
+        {
+          id: 'system-home',
+          name: 'Home',
+          type: 'system',
+          systemType: 'home',
+        },
+      ]);
       selectedTabIndexSignal.set(0);
       expect(component.canEnableZenMode()).toBe(false);
     });
@@ -705,6 +722,12 @@ describe('ProjectComponent', () => {
       selectedTabIndexSignal.set(1);
       openTabsSignal.set([
         {
+          id: 'system-home',
+          name: 'Home',
+          type: 'system',
+          systemType: 'home',
+        },
+        {
           type: 'document',
           element: mockElement,
           id: mockElement.id,
@@ -712,6 +735,29 @@ describe('ProjectComponent', () => {
         },
       ]);
       expect(component.canEnableZenMode()).toBe(true);
+    });
+
+    it('should toggle zen mode when a tab requests it via ZenModeService', () => {
+      selectedTabIndexSignal.set(1);
+      openTabsSignal.set([
+        {
+          id: 'system-home',
+          name: 'Home',
+          type: 'system',
+          systemType: 'home',
+        },
+        {
+          type: 'document',
+          element: mockElement,
+          id: mockElement.id,
+          name: 'Test',
+        },
+      ]);
+      vi.mocked(settingsService.getSetting!).mockReturnValue(false);
+
+      TestBed.inject(ZenModeService).requestToggle();
+
+      expect(component['isZenMode']()).toBe(true);
     });
   });
 
@@ -723,6 +769,14 @@ describe('ProjectComponent', () => {
 
     it('should return null when on home tab', () => {
       routerUrl = '/testuser/test-project/document/elem-1';
+      openTabsSignal.set([
+        {
+          id: 'system-home',
+          name: 'Home',
+          type: 'system',
+          systemType: 'home',
+        },
+      ]);
       selectedTabIndexSignal.set(0);
       expect(component.getCurrentDocumentId()).toBeNull();
     });
@@ -731,6 +785,12 @@ describe('ProjectComponent', () => {
       routerUrl = '/testuser/test-project/document/elem-1';
       selectedTabIndexSignal.set(1);
       openTabsSignal.set([
+        {
+          id: 'system-home',
+          name: 'Home',
+          type: 'system',
+          systemType: 'home',
+        },
         {
           type: 'document',
           element: mockElement,

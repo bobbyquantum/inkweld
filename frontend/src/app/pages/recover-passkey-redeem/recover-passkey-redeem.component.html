@@ -6,27 +6,36 @@
       @if (noToken()) {
         <div class="error-container" data-testid="redeem-no-token">
           <mat-icon class="error-icon-large">link_off</mat-icon>
-          <h2>{{ 'errors.unknown' | transloco }}</h2>
-          <p>{{ 'errors.loadFailed' | transloco }}</p>
+          <h2>{{ 'auth.passkeyRecovery.invalidLinkTitle' | transloco }}</h2>
+          <p>
+            {{ 'auth.passkeyRecovery.invalidLinkMessage' | transloco }}
+            <a routerLink="/recover-passkey">{{
+              'auth.passkeyRecovery.requestNewLink' | transloco
+            }}</a
+            >.
+          </p>
         </div>
       } @else if (browserUnsupported()) {
         <div class="error-container" data-testid="redeem-unsupported">
           <mat-icon class="error-icon-large">block</mat-icon>
-          <h2>{{ 'auth.passkeys.unsupported' | transloco }}</h2>
-          <p>{{ 'auth.passkeys.unsupportedSnackbar' | transloco }}</p>
+          <h2>{{ 'auth.passkeyRecovery.unsupportedTitle' | transloco }}</h2>
+          <p>{{ 'auth.passkeyRecovery.unsupportedMessage' | transloco }}</p>
         </div>
       } @else if (success()) {
         <div class="success-container" data-testid="redeem-success">
           <mat-icon class="success-icon">check_circle</mat-icon>
-          <h2>{{ 'auth.passkeys.passkeyAdded' | transloco }}</h2>
-          <p>{{ 'auth.passkeys.description' | transloco }}</p>
+          <h2>{{ 'auth.passkeyRecovery.enrolledTitle' | transloco }}</h2>
+          <p>{{ 'auth.passkeyRecovery.enrolledMessage' | transloco }}</p>
+          <p class="hint">
+            {{ 'auth.passkeyRecovery.enrolledHint' | transloco }}
+          </p>
           <button
             mat-raised-button
             color="primary"
             (click)="goToLogin()"
             class="submit-button"
             data-testid="redeem-go-login">
-            {{ 'auth.passkeys.title' | transloco }}
+            {{ 'auth.passkeyRecovery.signInWithPasskey' | transloco }}
           </button>
         </div>
       } @else {

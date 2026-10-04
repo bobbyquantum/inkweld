@@ -3,11 +3,11 @@
     <button
       mat-icon-button
       (click)="onCancel()"
-      [attr.aria-label]="'back' | transloco">
+      [attr.aria-label]="'home.createProjectPage.backAria' | transloco">
       <mat-icon>arrow_back</mat-icon>
     </button>
     <h1 class="page-title">
-      {{ 'dialogs.newElement.createPrefix' | transloco: { label: 'Project' } }}
+      {{ 'home.createProjectPage.pageTitle' | transloco }}
     </h1>
     <app-user-menu
       [user]="unifiedUserService.currentUser()"
@@ -20,20 +20,28 @@
       @if (step() === 1) {
         <mat-card-content>
           <div class="step-header">
-            <h2>{{ 'dialogs.importProject.configureTitle' | transloco }}</h2>
+            <h2>
+              {{ 'home.createProjectPage.chooseTemplateTitle' | transloco }}
+            </h2>
             <p class="step-description">
-              {{ 'dialogs.newElement.title' | transloco }}
+              {{
+                'home.createProjectPage.chooseTemplateDescription' | transloco
+              }}
             </p>
           </div>
 
           @if (loadingTemplates()) {
-            <div class="loading-templates">{{ 'loading' | transloco }}</div>
+            <div class="loading-templates">
+              {{ 'home.createProjectPage.loadingTemplates' | transloco }}
+            </div>
           } @else {
             <div
               class="template-grid"
               data-testid="template-grid"
               role="radiogroup"
-              [attr.aria-label]="'dialogs.newElement.title' | transloco">
+              [attr.aria-label]="
+                'home.createProjectPage.chooseTemplateAria' | transloco
+              ">
               @for (template of templates(); track template.id) {
                 <label
                   class="template-card"
@@ -86,22 +94,22 @@
         <form (submit)="onSubmit($event)">
           <mat-card-content>
             <div class="step-header">
-              <h2>{{ 'dialogs.editProject.titleLabel' | transloco }}</h2>
+              <h2>{{ 'home.createProjectPage.detailsTitle' | transloco }}</h2>
               <p class="step-description">
-                {{ 'dialogs.importProject.configureTitle' | transloco }}
+                {{ 'home.createProjectPage.detailsDescription' | transloco }}
               </p>
             </div>
 
             <mat-form-field appearance="outline">
-              <mat-label>{{ 'title' | transloco }}</mat-label>
+              <mat-label>{{
+                'home.createProjectPage.titleLabel' | transloco
+              }}</mat-label>
               <input
                 matInput
                 id="project-title-input"
                 [formField]="projectForm.title"
-                title="Project Title"
                 [placeholder]="'title' | transloco"
-                data-testid="project-title-input"
-                [attr.aria-label]="'title' | transloco" />
+                data-testid="project-title-input" />
               @if (
                 projectForm.title().touched() && projectForm.title().invalid()
               ) {
@@ -112,15 +120,18 @@
             </mat-form-field>
 
             <mat-form-field appearance="outline">
-              <mat-label>{{ 'name' | transloco }}</mat-label>
+              <mat-label>{{
+                'home.createProjectPage.slugLabel' | transloco
+              }}</mat-label>
               <input
                 matInput
                 id="project-slug-input"
                 [formField]="projectForm.slug"
-                title="Project Slug"
                 placeholder="project-slug"
-                data-testid="project-slug-input"
-                [attr.aria-label]="'name' | transloco" />
+                data-testid="project-slug-input" />
+              <mat-hint>{{
+                'home.createProjectPage.slugHint' | transloco
+              }}</mat-hint>
               @if (
                 projectForm.slug().touched() && projectForm.slug().invalid()
               ) {
@@ -131,23 +142,26 @@
             </mat-form-field>
 
             <mat-form-field appearance="outline">
-              <mat-label>{{ 'description' | transloco }}</mat-label>
+              <mat-label>{{
+                'home.createProjectPage.descriptionLabel' | transloco
+              }}</mat-label>
               <textarea
                 matInput
-                title="Project Description"
                 [placeholder]="'description' | transloco"
                 [formField]="projectForm.description"
                 rows="4"
                 data-testid="project-description-input"
-                id="create-project-description-input"
-                [attr.aria-label]="'description' | transloco"></textarea>
+                id="create-project-description-input"></textarea>
             </mat-form-field>
 
             @if (projectUrl()) {
               <div
                 class="project-url-preview"
                 data-testid="project-url-preview">
-                <strong>Project URL:</strong> {{ projectUrl() }}
+                <strong>{{
+                  'home.createProjectPage.projectUrl' | transloco
+                }}</strong>
+                {{ projectUrl() }}
               </div>
             }
 
@@ -171,7 +185,7 @@
               type="submit"
               [disabled]="projectForm().invalid() || isSaving()"
               data-testid="create-project-button">
-              {{ 'create' | transloco }}
+              {{ 'home.createProjectPage.submit' | transloco }}
             </button>
           </mat-card-actions>
         </form>

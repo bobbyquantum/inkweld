@@ -2,22 +2,23 @@
   <mat-card>
     <mat-card-header>
       <mat-icon mat-card-avatar color="warn">warning</mat-icon>
-      <mat-card-title>{{ 'errors.unknown' | transloco }}</mat-card-title>
+      <mat-card-title>{{ 'app.reset.title' | transloco }}</mat-card-title>
     </mat-card-header>
     <mat-card-content>
       <p class="warning-text">
-        Are you sure you want to clear all stored data in the browser?
+        {{ 'app.reset.confirm' | transloco }}
       </p>
       <p>
-        You will be logged out and returned to the setup page. Any unsynced
-        changes will be <strong>permanently lost</strong>.
+        {{ 'app.reset.consequenceBefore' | transloco }}
+        <strong>{{ 'app.reset.consequenceStrong' | transloco }}</strong
+        >.
       </p>
-      <p class="data-list">This will delete:</p>
+      <p class="data-list">{{ 'app.reset.willDelete' | transloco }}</p>
       <ul>
-        <li>All cached project covers and images</li>
-        <li>All offline project data</li>
-        <li>Your session and login state</li>
-        <li>All app settings and preferences</li>
+        <li>{{ 'app.reset.itemCovers' | transloco }}</li>
+        <li>{{ 'app.reset.itemProjects' | transloco }}</li>
+        <li>{{ 'app.reset.itemSession' | transloco }}</li>
+        <li>{{ 'app.reset.itemSettings' | transloco }}</li>
       </ul>
       @if (error()) {
         <p class="error-text">{{ error() }}</p>
@@ -26,7 +27,9 @@
     <mat-card-actions>
       @if (isClearing()) {
         <mat-spinner diameter="24"></mat-spinner>
-        <span class="clearing-text">Clearing data...</span>
+        <span class="clearing-text">{{
+          'app.reset.clearing' | transloco
+        }}</span>
       } @else {
         <button
           mat-flat-button
@@ -34,7 +37,7 @@
           (click)="clearAllData()"
           data-testid="clear-data-button">
           <mat-icon>delete_forever</mat-icon>
-          Proceed and Clear Data
+          {{ 'app.reset.proceed' | transloco }}
         </button>
       }
     </mat-card-actions>

@@ -48,6 +48,7 @@ import { DocumentService } from '@services/project/document.service';
 import { ElementNavigationService } from '@services/project/element-navigation.service';
 import { ProjectExportService } from '@services/project/project-export.service';
 import { ProjectStateService } from '@services/project/project-state.service';
+import { ZenModeService } from '@services/project/zen-mode.service';
 import { tabRouteCommands } from '@utils/tab-route';
 import { filter, Subject, type Subscription, takeUntil } from 'rxjs';
 
@@ -121,6 +122,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   private readonly elementNavigation = inject(ElementNavigationService);
   private readonly tutorialService = inject(TutorialService);
   private readonly popoutService = inject(PopoutService);
+  private readonly zenModeService = inject(ZenModeService);
 
   @ViewChild(MatSidenav) sidenav!: MatSidenav;
 
@@ -273,12 +275,12 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
       const currentTabIndex = this.projectState.selectedTabIndex();
       let currentDocId: string | null = null;
 
-      // Get the current document ID if we're looking at a document tab
-      if (currentTabIndex > 0 && tabs.length >= currentTabIndex) {
-        const currentTab = tabs[currentTabIndex - 1]; // -1 for home tab
-        if (currentTab.type === 'document' && currentTab.element) {
-          currentDocId = currentTab.element.id;
-        }
+      // Get the current document ID if we're looking at a document tab.
+      // The home tab is an ordinary entry in openTabs, so the selected index
+      // maps straight onto it.
+      const currentTab = tabs[currentTabIndex];
+      if (currentTab?.type === 'document' && currentTab.element) {
+        currentDocId = currentTab.element.id;
       }
 
       if (currentDocId) {
@@ -454,6 +456,11 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
 
     // Initialize project-wide search (Cmd/Ctrl + Shift + F)
     this.projectSearchService.initialize();
+
+    // Zen mode requests from inside tabs (e.g. the document status bar)
+    this.zenModeService.toggleRequested$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.toggleZenMode());
   }
 
   ngAfterViewInit() {
@@ -790,11 +797,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     const currentTabIndex = this.projectState.selectedTabIndex();
     const tabs = this.projectState.openTabs();
 
-    if (currentTabIndex === 0 || tabs.length === 0) {
-      return false;
-    }
-
-    const currentTab = tabs[currentTabIndex - 1];
+    const currentTab = tabs[currentTabIndex];
 
     return currentTab?.type === 'document' && currentTab?.element != null;
   }
@@ -808,11 +811,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     const currentTabIndex = this.projectState.selectedTabIndex();
     const tabs = this.projectState.openTabs();
 
-    if (currentTabIndex === 0 || tabs.length === 0) {
-      return null;
-    }
-
-    const currentTab = tabs[currentTabIndex - 1];
+    const currentTab = tabs[currentTabIndex];
 
     if (currentTab?.type === 'document' && currentTab?.element) {
       return `${this.projectState.project()!.username}:${this.projectState.project()!.slug}:${currentTab.id}`;

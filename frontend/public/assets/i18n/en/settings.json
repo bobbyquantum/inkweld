@@ -374,5 +374,16 @@
       "deleted": "Project deleted successfully",
       "failed": "Failed to delete project"
     }
+  },
+  "avatarDialog": {
+    "title": "Edit Avatar",
+    "chooseImage": "Choose Image",
+    "chooseImageAria": "Choose avatar image",
+    "uploading": "Uploading..."
+  },
+  "serverBubble": {
+    "currentProfile": "Current Profile",
+    "loggedIn": "Logged in",
+    "notConnected": "Not connected to a server"
   }
 }

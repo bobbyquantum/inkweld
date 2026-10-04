@@ -54,6 +54,7 @@ import { LocalStorageService } from '@services/local/local-storage.service';
 import { CommentService } from '@services/project/comment.service';
 import { DocumentService } from '@services/project/document.service';
 import { ProjectStateService } from '@services/project/project-state.service';
+import { ZenModeService } from '@services/project/zen-mode.service';
 import { RelationshipService } from '@services/relationship';
 import { DocStatsService } from '@services/sync/doc-stats.service';
 import { TagService } from '@services/tag/tag.service';
@@ -215,6 +216,7 @@ export class DocumentElementEditorComponent
   private readonly docStatsService = inject(DocStatsService);
   private readonly storageContext = inject(StorageContextService);
   private readonly transloco = inject(TranslocoService);
+  private readonly zenModeService = inject(ZenModeService);
   readonly docStatsTooltip = signal('');
 
   onDocSyncHover(): void {
@@ -745,6 +747,10 @@ export class DocumentElementEditorComponent
   /**
    * Open the snapshots dialog for this document
    */
+  enterZenMode(): void {
+    this.zenModeService.requestToggle();
+  }
+
   openSnapshotsDialog(): void {
     const data: SnapshotsDialogData = {
       documentId: this.documentId,

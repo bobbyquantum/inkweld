@@ -84,6 +84,18 @@
           <span class="status-actions">
             <button
               type="button"
+              class="status-chip zen-btn"
+              (click)="enterZenMode()"
+              [matTooltip]="'editor.document.zenModeHint' | transloco"
+              matTooltipShowDelay="600"
+              data-testid="toolbar-zen-mode">
+              <mat-icon aria-hidden="true" class="chip-icon"
+                >self_improvement</mat-icon
+              >
+              <span>{{ 'editor.document.zenModeLabel' | transloco }}</span>
+            </button>
+            <button
+              type="button"
               class="status-chip snapshots-btn"
               (click)="openSnapshotsDialog()"
               [matTooltip]="'editor.document.snapshots' | transloco"

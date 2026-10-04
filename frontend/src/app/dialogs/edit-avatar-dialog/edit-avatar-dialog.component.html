@@ -1,4 +1,4 @@
-<h1 mat-dialog-title>{{ 'settings.accountTab.title' | transloco }}</h1>
+<h1 mat-dialog-title>{{ 'settings.avatarDialog.title' | transloco }}</h1>
 <div mat-dialog-content class="dialog-content">
   <div class="file-input-container">
     <button
@@ -7,7 +7,7 @@
       (click)="fileInput.click()"
       color="primary">
       <mat-icon>add_photo_alternate</mat-icon>
-      {{ 'upload' | transloco }}
+      {{ 'settings.avatarDialog.chooseImage' | transloco }}
     </button>
     @if (fileName()) {
       <span class="file-name">{{ fileName() }}</span>
@@ -19,7 +19,7 @@
       #fileInput
       (change)="fileChangeEvent($event)"
       style="display: none"
-      [attr.aria-label]="'upload' | transloco" />
+      [attr.aria-label]="'settings.avatarDialog.chooseImageAria' | transloco" />
   </div>
   @if (imageChangedEvent()) {
     <div class="cropper-container">
@@ -65,6 +65,10 @@
     color="primary"
     (click)="submit()"
     [disabled]="isSubmitting() || !croppedBlob()">
-    {{ isSubmitting() ? ('loading' | transloco) : ('save' | transloco) }}
+    {{
+      isSubmitting()
+        ? ('settings.avatarDialog.uploading' | transloco)
+        : ('save' | transloco)
+    }}
   </button>
 </div>

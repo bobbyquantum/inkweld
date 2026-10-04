@@ -83,7 +83,9 @@
     "accept": "Accept",
     "reject": "Reject",
     "readingTime": "~{{minutes}} min read",
-    "untitled": "Untitled"
+    "untitled": "Untitled",
+    "zenModeLabel": "Zen",
+    "zenModeHint": "Distraction-free writing mode"
   },
   "autoReview": {
     "title": "Auto-Review",
