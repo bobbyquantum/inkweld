@@ -860,8 +860,10 @@ export class SettingsTabComponent implements OnDestroy {
       );
 
       this.snackBar.open(
-        `Project renamed to "${newSlug}". Redirecting...`,
-        'Close',
+        this.transloco.translate('settings.dangerZone.rename.renamed', {
+          slug: newSlug,
+        }),
+        this.transloco.translate('close'),
         { duration: 3000 }
       );
 
@@ -874,7 +876,7 @@ export class SettingsTabComponent implements OnDestroy {
       const message =
         error instanceof Error
           ? error.message
-          : 'A project with this slug may already exist';
+          : this.transloco.translate('settings.dangerZone.rename.failed');
       this.renameError.set(message);
     } finally {
       this.isRenaming.set(false);
@@ -926,10 +928,13 @@ export class SettingsTabComponent implements OnDestroy {
     if (!project) return;
 
     const confirmed = await this.dialogGateway.openConfirmationDialog({
-      title: 'Delete Project',
-      message: `To confirm deletion, please type the project slug "${project.slug}" below. This action cannot be undone.`,
-      confirmText: 'Delete',
-      cancelText: 'Cancel',
+      title: this.transloco.translate('settings.dangerZone.delete.title'),
+      message: this.transloco.translate(
+        'settings.dangerZone.delete.confirmMessage',
+        { slug: project.slug }
+      ),
+      confirmText: this.transloco.translate('delete'),
+      cancelText: this.transloco.translate('cancel'),
       requireConfirmationText: project.slug,
     });
 
@@ -940,17 +945,21 @@ export class SettingsTabComponent implements OnDestroy {
     try {
       await this.projectService.deleteProject(project.username, project.slug);
 
-      this.snackBar.open('Project deleted successfully', 'Close', {
-        duration: 3000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('settings.dangerZone.delete.deleted'),
+        this.transloco.translate('close'),
+        { duration: 3000 }
+      );
 
       // Navigate to home
       void this.router.navigate(['/']);
     } catch (error) {
       console.error('Failed to delete project:', error);
-      this.snackBar.open('Failed to delete project', 'Close', {
-        duration: 5000,
-      });
+      this.snackBar.open(
+        this.transloco.translate('settings.dangerZone.delete.failed'),
+        this.transloco.translate('close'),
+        { duration: 5000 }
+      );
     } finally {
       this.isDeleting.set(false);
     }

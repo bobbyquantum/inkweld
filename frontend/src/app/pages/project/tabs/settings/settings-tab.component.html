@@ -922,11 +922,10 @@
     data-testid="danger-zone-section">
     <h3 class="danger-title">
       <mat-icon>warning</mat-icon>
-      Danger Zone
+      {{ 'settings.dangerZone.title' | transloco }}
     </h3>
     <p class="section-description danger-description">
-      These actions are destructive and may affect other users with offline
-      copies of this project.
+      {{ 'settings.dangerZone.description' | transloco }}
     </p>
 
     <!-- Rename Project Section -->
@@ -934,19 +933,24 @@
       <mat-card-header>
         <mat-card-title>
           <mat-icon>edit</mat-icon>
-          Rename Project URL
+          {{ 'settings.dangerZone.rename.title' | transloco }}
         </mat-card-title>
       </mat-card-header>
       <mat-card-content>
         <p class="warning-text">
-          <strong>Warning:</strong> Changing the project slug will change the
-          URL used to access this project. This is similar to renaming a GitHub
-          repository.
+          <strong>{{ 'settings.dangerZone.warningLabel' | transloco }}</strong>
+          {{ 'settings.dangerZone.rename.warning' | transloco }}
         </p>
         <ul class="consequence-list">
-          <li>Existing bookmarks and links will break</li>
-          <li>Other users with offline copies will need to re-sync</li>
-          <li>The old URL will redirect to the new one temporarily</li>
+          <li>
+            {{ 'settings.dangerZone.rename.consequenceBookmarks' | transloco }}
+          </li>
+          <li>
+            {{ 'settings.dangerZone.rename.consequenceResync' | transloco }}
+          </li>
+          <li>
+            {{ 'settings.dangerZone.rename.consequenceRedirect' | transloco }}
+          </li>
         </ul>
 
         @if (!showRenameForm()) {
@@ -957,22 +961,30 @@
               (click)="showRenameForm.set(true)"
               data-testid="rename-project-button">
               <mat-icon>edit</mat-icon>
-              Rename Project
+              {{ 'settings.dangerZone.rename.button' | transloco }}
             </button>
           </div>
         } @else {
           <div class="rename-form">
             <mat-form-field appearance="outline" class="full-width">
-              <mat-label>New Project Slug</mat-label>
+              <mat-label>{{
+                'settings.dangerZone.rename.slugLabel' | transloco
+              }}</mat-label>
               <input
                 matInput
                 id="settings-rename-slug-input"
                 [formField]="renameForm.newProjectSlug"
-                placeholder="my-new-project-name"
+                [placeholder]="
+                  'settings.dangerZone.rename.slugPlaceholder' | transloco
+                "
                 data-testid="new-slug-input"
                 (keyup.enter)="renameProject()"
-                aria-label="New project slug" />
-              <mat-hint>Lowercase letters, numbers, and hyphens only</mat-hint>
+                [attr.aria-label]="
+                  'settings.dangerZone.rename.slugLabel' | transloco
+                " />
+              <mat-hint>{{
+                'settings.dangerZone.rename.slugHint' | transloco
+              }}</mat-hint>
             </mat-form-field>
 
             @if (renameError()) {
@@ -989,7 +1001,7 @@
                 mat-button
                 (click)="cancelRename()"
                 data-testid="cancel-rename-button">
-                Cancel
+                {{ 'cancel' | transloco }}
               </button>
               <button
                 mat-raised-button
@@ -1003,7 +1015,7 @@
                 } @else {
                   <ng-container>
                     <mat-icon>check</mat-icon>
-                    Rename Project
+                    {{ 'settings.dangerZone.rename.button' | transloco }}
                   </ng-container>
                 }
               </button>
@@ -1018,19 +1030,30 @@
       <mat-card-header>
         <mat-card-title>
           <mat-icon>delete_forever</mat-icon>
-          Delete Project
+          {{ 'settings.dangerZone.delete.title' | transloco }}
         </mat-card-title>
       </mat-card-header>
       <mat-card-content>
         <p class="warning-text" data-testid="danger-warning">
-          <strong>Warning:</strong> This action
-          <strong>cannot be undone</strong>. All project data, documents,
-          worldbuilding elements, and media will be permanently deleted.
+          <strong>{{ 'settings.dangerZone.warningLabel' | transloco }}</strong>
+          {{ 'settings.dangerZone.delete.warningBefore' | transloco }}
+          <strong>{{
+            'settings.dangerZone.delete.warningEmphasis' | transloco
+          }}</strong
+          >{{ 'settings.dangerZone.delete.warningAfter' | transloco }}
         </p>
         <ul class="consequence-list">
-          <li>All documents and content will be permanently lost</li>
-          <li>Collaborators will lose access immediately</li>
-          <li>Offline copies will become orphaned</li>
+          <li>
+            {{ 'settings.dangerZone.delete.consequenceContent' | transloco }}
+          </li>
+          <li>
+            {{
+              'settings.dangerZone.delete.consequenceCollaborators' | transloco
+            }}
+          </li>
+          <li>
+            {{ 'settings.dangerZone.delete.consequenceOffline' | transloco }}
+          </li>
         </ul>
 
         <div class="action-buttons">
@@ -1047,7 +1070,7 @@
             } @else {
               <ng-container>
                 <mat-icon>delete_forever</mat-icon>
-                Delete This Project
+                {{ 'settings.dangerZone.delete.button' | transloco }}
               </ng-container>
             }
           </button>
