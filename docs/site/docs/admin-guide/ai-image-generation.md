@@ -4,6 +4,8 @@ description: Configure AI image generation providers for your instance.
 sidebar_position: 5
 ---
 
+import ThemedImage from '@site/src/components/ThemedImage';
+
 # AI Image Generation Setup
 
 AI image generation is an optional feature. When enabled, users can generate images for project covers, character portraits, and other visuals.
@@ -12,17 +14,22 @@ For how users interact with this feature, see the [User Guide: AI Image Generati
 
 ## Supported Providers
 
-| Provider | Requirements |
-|----------|-------------|
-| **OpenAI** | OpenAI API key |
-| **OpenRouter** | OpenRouter API key |
-| **Fal.ai** | Fal.ai API key |
-| **Stable Diffusion** | Self-hosted AUTOMATIC1111 WebUI with `--api` flag |
-| **Cloudflare Workers AI** | Cloudflare Account ID + API Token |
+| Provider                  | Requirements                                      |
+| ------------------------- | ------------------------------------------------- |
+| **OpenAI**                | OpenAI API key                                    |
+| **OpenRouter**            | OpenRouter API key                                |
+| **Fal.ai**                | Fal.ai API key                                    |
+| **Stable Diffusion**      | Self-hosted AUTOMATIC1111 WebUI with `--api` flag |
+| **Cloudflare Workers AI** | Cloudflare Account ID + API Token                 |
 
 ## Configuration
 
-Navigate to **Admin → AI Image Generation**.
+Image generation is set up on two admin pages: **Admin → AI Providers** holds the API keys, and **Admin → AI Images** holds the on/off switch and the model profiles users pick from.
+
+<ThemedImage
+  src="/img/features/admin-ai-settings"
+  alt="The AI Images admin page, with the Enable Image Generation switch above the Image Model Profiles list"
+/>
 
 ### Global Toggle
 
@@ -30,7 +37,12 @@ Navigate to **Admin → AI Image Generation**.
 
 ### Image Model Profiles
 
-Profiles define which AI models users can choose from. Each profile wraps a provider + model combination.
+Profiles define which AI models users can choose from. Each profile wraps a provider + model combination. A profile card shows its provider and model, whether it accepts an input image, and its supported sizes; use the switch to hide a profile from users without deleting it, or the pencil and trash buttons to edit or delete it.
+
+<ThemedImage
+  src="/img/features/admin-ai-image-profiles"
+  alt="Image model profile cards, each showing provider and model, image-input support, supported sizes, and an enable switch with edit and delete buttons"
+/>
 
 To create a profile:
 
@@ -42,17 +54,22 @@ To create a profile:
    - **Supported Sizes** — Available dimensions
    - **Default Size** — Pre-selected option
 
+<ThemedImage
+  src="/img/features/admin-ai-image-profile-dialog"
+  alt="The Create Image Profile dialog with name, description, provider, capability switches and supported sizes"
+/>
+
 ### Provider Setup
 
-Expand a provider card and add your API key to enable it.
+On **Admin → AI Providers**, expand a provider card and add your API key to enable it.
 
-| Provider | API Key Source |
-|----------|---------------|
-| OpenAI | [platform.openai.com/api-keys](https://platform.openai.com/api-keys) |
-| OpenRouter | [openrouter.ai/keys](https://openrouter.ai/keys) |
-| Fal.ai | [fal.ai/dashboard/keys](https://fal.ai/dashboard/keys) |
-| Stable Diffusion | Self-hosted — enter your WebUI endpoint URL |
-| Workers AI | [dash.cloudflare.com](https://dash.cloudflare.com) — Account ID + [API Token](https://dash.cloudflare.com/profile/api-tokens) |
+| Provider         | API Key Source                                                                                                                |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| OpenAI           | [platform.openai.com/api-keys](https://platform.openai.com/api-keys)                                                          |
+| OpenRouter       | [openrouter.ai/keys](https://openrouter.ai/keys)                                                                              |
+| Fal.ai           | [fal.ai/dashboard/keys](https://fal.ai/dashboard/keys)                                                                        |
+| Stable Diffusion | Self-hosted — enter your WebUI endpoint URL                                                                                   |
+| Workers AI       | [dash.cloudflare.com](https://dash.cloudflare.com) — Account ID + [API Token](https://dash.cloudflare.com/profile/api-tokens) |
 
 ## Environment Variables
 

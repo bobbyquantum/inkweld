@@ -77,10 +77,12 @@ async function captureAllTagsScreenshots(
 
   await test.step('tags list with multiple tags', async () => {
     const tags: { name: string; icon: number; color: number }[] = [
-      { name: 'Protagonist', icon: 0, color: 4 },
-      { name: 'Draft', icon: 10, color: 7 },
-      { name: 'Important', icon: 17, color: 0 },
-      { name: 'Complete', icon: 9, color: 5 },
+      // Fresh projects are seeded with default tags (Protagonist, Draft,
+      // Complete, Important, ...), so use names that don't duplicate them.
+      { name: 'Act One', icon: 0, color: 4 },
+      { name: 'Flashback', icon: 10, color: 7 },
+      { name: 'Red Herring', icon: 17, color: 0 },
+      { name: 'Needs Research', icon: 9, color: 5 },
     ];
 
     for (const t of tags) {
@@ -94,6 +96,12 @@ async function captureAllTagsScreenshots(
     for (const t of tags) {
       await expect(tagsList).toContainText(t.name);
     }
+    // Let the "Created tag" snackbar clear so it doesn't cover the list.
+    const snackBar = page.locator('mat-snack-bar-container');
+    if (await snackBar.isVisible()) {
+      await snackBar.getByRole('button').click();
+    }
+    await expect(snackBar).toBeHidden();
 
     const tagsTab = page.getByTestId('tags-tab');
     await captureElementScreenshot(

@@ -24,6 +24,7 @@ import {
   ensureDirectory,
   getScreenshotsDir,
 } from './screenshot-helpers';
+import { applyColorSchemeAndReload } from './theme-helpers';
 
 test.describe('Element Reference Screenshots', () => {
   const screenshotsDir = getScreenshotsDir();
@@ -568,10 +569,6 @@ test.describe('Element Reference Screenshots', () => {
         backlinksScenario.characterName
       );
 
-      if (backlinksScenario.mode === 'dark') {
-        await enableDarkMode(page);
-      }
-
       await editor.pressSequentially(backlinksScenario.preText, { delay: 15 });
       await insertReference(
         page,
@@ -579,6 +576,12 @@ test.describe('Element Reference Screenshots', () => {
         backlinksScenario.characterName
       );
       await editor.pressSequentially(backlinksScenario.postText, { delay: 15 });
+
+      if (backlinksScenario.mode === 'dark') {
+        // The worldbuilding editor's background is resolved at boot, so
+        // reload into dark mode rather than toggling the class in place.
+        await applyColorSchemeAndReload(page, 'dark', '[role="treeitem"]');
+      }
 
       // Navigate to character node
       const characterNode = page.getByRole('treeitem', {
@@ -590,21 +593,14 @@ test.describe('Element Reference Screenshots', () => {
         page.locator('[data-testid="worldbuilding-editor"]')
       ).toBeVisible();
 
-      const metaPanelToggle = page.locator('[data-testid="meta-panel-toggle"]');
-      if (await metaPanelToggle.isVisible().catch(() => false)) {
-        await metaPanelToggle.click();
-        await page
-          .getByTestId('meta-panel')
-          .waitFor({ state: 'visible' })
-          .catch(() => {});
-      }
-
-      const relationshipsSection = page.locator(
-        '[data-testid="relationships-section"]'
-      );
-      if (await relationshipsSection.isVisible().catch(() => false)) {
-        await relationshipsSection.click();
-      }
+      // Backlinks are listed in the worldbuilding editor's Relationships
+      // section, which embeds the meta panel.
+      await page.getByTestId('nav-relationships').click();
+      const metaPanel = page.getByTestId('meta-panel');
+      await expect(metaPanel).toBeVisible();
+      await expect(
+        metaPanel.getByTestId('relationship-item').first()
+      ).toBeVisible();
 
       await page.evaluate(() => document.fonts.ready);
 
@@ -616,33 +612,25 @@ test.describe('Element Reference Screenshots', () => {
         fullPage: false,
       });
 
-      const worldbuildingContainer = page.locator(
-        '.worldbuilding-editor-container'
+      await captureElementScreenshot(
+        page,
+        [page.getByTestId('worldbuilding-editor')],
+        join(
+          screenshotsDir,
+          `element-ref-backlinks-worldbuilding-${backlinksScenario.mode}.png`
+        ),
+        16
       );
-      if (await worldbuildingContainer.isVisible().catch(() => false)) {
-        await captureElementScreenshot(
-          page,
-          [worldbuildingContainer],
-          join(
-            screenshotsDir,
-            `element-ref-backlinks-worldbuilding-${backlinksScenario.mode}.png`
-          ),
-          16
-        );
-      }
 
-      const metaPanel = page.getByTestId('meta-panel');
-      if (await metaPanel.isVisible().catch(() => false)) {
-        await captureElementScreenshot(
-          page,
-          [metaPanel],
-          join(
-            screenshotsDir,
-            `element-ref-backlinks-panel-${backlinksScenario.mode}.png`
-          ),
-          16
-        );
-      }
+      await captureElementScreenshot(
+        page,
+        [metaPanel],
+        join(
+          screenshotsDir,
+          `element-ref-backlinks-panel-${backlinksScenario.mode}.png`
+        ),
+        16
+      );
     });
   }
 });

@@ -50,6 +50,20 @@ async function captureAllRenameScreenshots(
   const renameCard = page.locator('[data-testid="rename-project-card"]');
   const deleteCard = page.locator('[data-testid="delete-project-card"]');
 
+  // Captured first, while the rename card is still collapsed, so the
+  // overview shows both cards as a user first sees them.
+  await test.step('danger zone overview', async () => {
+    await expect(renameCard).toBeVisible();
+    await expect(deleteCard).toBeVisible();
+
+    await captureElementScreenshot(
+      page,
+      [renameCard, deleteCard],
+      join(screenshotsDir, `danger-zone-overview-${suffix}.png`),
+      16
+    );
+  });
+
   await test.step('rename card collapsed', async () => {
     await captureElementScreenshot(
       page,
@@ -87,18 +101,6 @@ async function captureAllRenameScreenshots(
       );
     });
   }
-
-  await test.step('danger zone overview', async () => {
-    await deleteCard.scrollIntoViewIfNeeded();
-    await expect(renameCard).toBeVisible();
-
-    await captureElementScreenshot(
-      page,
-      [renameCard, deleteCard],
-      join(screenshotsDir, `danger-zone-overview-${suffix}.png`),
-      16
-    );
-  });
 
   await test.step('delete card', async () => {
     await deleteCard.scrollIntoViewIfNeeded();
