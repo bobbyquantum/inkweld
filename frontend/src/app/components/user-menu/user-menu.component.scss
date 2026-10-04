@@ -32,6 +32,10 @@
     padding: 0;
     width: var(--app-user-menu-size, 44px);
     height: var(--app-user-menu-size, 44px);
+    /* Material's icon button is inline-block, which would leave the avatar
+       flush left; centre it in whatever size the density token gives. */
+    display: inline-flex;
+    align-items: center;
     justify-content: center;
     border-radius: 50%;
     min-width: unset;
