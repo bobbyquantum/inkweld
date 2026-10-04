@@ -343,5 +343,36 @@
     "projectCreateRefused": "Your sync capacity is full, so new projects can't be created. Free up space by deleting media or projects, or ask an administrator for more.",
     "uploadRefused": "Your sync capacity is full, so these files stay on this device for now. Free up space or ask an administrator for more.",
     "uploadsPaused": "Sync capacity is full: new media is kept on this device and will upload once space is freed."
+  },
+  "dangerZone": {
+    "title": "Danger Zone",
+    "description": "These actions are destructive and may affect other users with offline copies of this project.",
+    "warningLabel": "Warning:",
+    "rename": {
+      "title": "Rename Project URL",
+      "warning": "Changing the project slug will change the URL used to access this project. This is similar to renaming a GitHub repository.",
+      "consequenceBookmarks": "Existing bookmarks and links will break",
+      "consequenceResync": "Other users with offline copies will need to re-sync",
+      "consequenceRedirect": "The old URL will redirect to the new one temporarily",
+      "button": "Rename Project",
+      "slugLabel": "New Project Slug",
+      "slugPlaceholder": "my-new-project-name",
+      "slugHint": "Lowercase letters, numbers, and hyphens only",
+      "renamed": "Project renamed to \"{{slug}}\". Redirecting...",
+      "failed": "A project with this slug may already exist"
+    },
+    "delete": {
+      "title": "Delete Project",
+      "warningBefore": "This action",
+      "warningEmphasis": "cannot be undone",
+      "warningAfter": ". All project data, documents, worldbuilding elements, and media will be permanently deleted.",
+      "consequenceContent": "All documents and content will be permanently lost",
+      "consequenceCollaborators": "Collaborators will lose access immediately",
+      "consequenceOffline": "Offline copies will become orphaned",
+      "button": "Delete This Project",
+      "confirmMessage": "To confirm deletion, please type the project slug \"{{slug}}\" below. This action cannot be undone.",
+      "deleted": "Project deleted successfully",
+      "failed": "Failed to delete project"
+    }
   }
 }

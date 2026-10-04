@@ -406,19 +406,6 @@ mat-card {
   }
 }
 
-.warning-text {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--sys-error);
-  font-weight: 500;
-  margin-bottom: 16px;
-
-  mat-icon {
-    font-size: 20px;
-  }
-}
-
 .key-display {
   display: flex;
   align-items: center;
@@ -876,11 +863,9 @@ mat-card {
     padding: 16px;
   }
 
+  // Normal inline flow: as a flex container every <strong> and text run
+  // became its own item, so the sentence wrapped at each one
   .warning-text {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 4px;
     color: var(--sys-on-surface);
     margin-bottom: 16px;
     line-height: 1.5;
