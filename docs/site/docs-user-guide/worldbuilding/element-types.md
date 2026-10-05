@@ -79,7 +79,3 @@ There is no wrong answer — the types exist to give you a head start. If an ent
 - **A family or dynasty** is an Organization; each individual member is a Character.
 - **Politics** is broad: a government is an Organization, a politician is a Character, an ideology is a Tradition or Ethnicity.
 - Every built-in type can be **cloned** in Project Settings → Element Templates and renamed to fit your world's terminology.
-
----
-
-**Next:** [Element References](./element-references) - Link your elements with @mentions.

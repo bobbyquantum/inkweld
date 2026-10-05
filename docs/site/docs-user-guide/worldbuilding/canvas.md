@@ -295,8 +295,3 @@ Only visible layers are included. Visible pins are always included, and frame ou
 - **Lower the opacity** and pick a bright stroke colour for highlighter-style annotation
 - The canvas is saved automatically as you work — no explicit save step is needed
 - Two people can draw on the same canvas at once: each stroke syncs on its own, so nobody's work is overwritten by somebody else's
-
----
-
-**Previous:** [Relationship Charts](./relationship-charts) — Visualize connections as interactive graphs.
-**Next:** [Interactive Maps](./interactive-maps) — Turn a canvas into a clickable map of your world.

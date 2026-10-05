@@ -138,7 +138,3 @@ On mobile devices, the interface adapts for touch:
 - The navigator includes all navigation options in one place
 - Swipe or tap the backdrop to close the panel
 - The content area takes the full screen width
-
----
-
-**Next:** [Managing Documents](./documents) - Create, edit, and organize your writing documents.

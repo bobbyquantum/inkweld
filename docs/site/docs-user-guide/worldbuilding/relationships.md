@@ -146,8 +146,3 @@ To change a relationship's type or target:
 
 1. Delete the existing relationship
 2. Create a new one with the correct type and target
-
----
-
-**Previous:** [Element References](./element-references) — Link elements with @mentions.
-**Next:** [Relationship Charts](./relationship-charts) — Visualize connections as interactive graphs.

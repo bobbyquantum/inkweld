@@ -50,7 +50,3 @@ Verify the exact username spelling. The user must already have an account on thi
 
 **Collaborator can't access the project?**  
 Check that their invitation status is "Accepted" and their account is active. Try removing and re-inviting them.
-
----
-
-**Next:** [Media Library](../media/library) - Manage images and files in your project.

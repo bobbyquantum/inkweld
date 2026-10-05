@@ -49,7 +49,3 @@ Your project cover is included when **Include Cover Page** is enabled in a publi
 ## Worldbuilding Images
 
 Characters, locations, and other worldbuilding elements can also have images via their identity panel. See [AI Image Generation](./ai-generation) for details on generating these (if enabled).
-
----
-
-**Next:** [AI Image Generation](./ai-generation) — Create images with AI (requires admin to enable).

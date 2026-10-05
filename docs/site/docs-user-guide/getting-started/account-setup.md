@@ -86,7 +86,3 @@ Inkweld uses secure session-based authentication:
 2. Select **Log Out**
 
 Always log out when using a shared or public computer.
-
----
-
-**Next:** [The Bookshelf](./dashboard) — Explore your project library.

@@ -144,7 +144,3 @@ Like all Inkweld data, media uses a **local-first architecture**:
 - Changes sync bi-directionally when you reconnect
 
 This means your images are always accessible, even without an internet connection.
-
----
-
-**Next:** [Cover Images](./covers) — Add a cover image to your project.

@@ -15,12 +15,12 @@ Inkweld provides formatting options to structure and style your creative writing
 
 Apply these styles using the toolbar buttons:
 
-| Style | Toolbar Button | Keyboard Shortcut |
-|-------|---------------|-------------------|
-| **Bold** | Bold button | `Ctrl/Cmd + B` |
-| *Italic* | Italic button | `Ctrl/Cmd + I` |
-| <u>Underline</u> | Underline button | `Ctrl/Cmd + U` |
-| ~~Strikethrough~~ | Strikethrough button | — |
+| Style             | Toolbar Button       | Keyboard Shortcut |
+| ----------------- | -------------------- | ----------------- |
+| **Bold**          | Bold button          | `Ctrl/Cmd + B`    |
+| _Italic_          | Italic button        | `Ctrl/Cmd + I`    |
+| <u>Underline</u>  | Underline button     | `Ctrl/Cmd + U`    |
+| ~~Strikethrough~~ | Strikethrough button | —                 |
 
 ### When to Use Each
 
@@ -33,7 +33,7 @@ Apply these styles using the toolbar buttons:
 
 You can combine multiple styles:
 
-- ***Bold and italic*** for strong emphasis
+- _**Bold and italic**_ for strong emphasis
 - Apply styles in any order
 
 ## Headings
@@ -42,13 +42,13 @@ Structure your documents with headings using the paragraph style dropdown in the
 
 ### Available Heading Levels
 
-| Level | Usage |
-|-------|-------|
-| **Heading 1** | Document/chapter title |
-| **Heading 2** | Major sections |
-| **Heading 3** | Subsections |
+| Level           | Usage                          |
+| --------------- | ------------------------------ |
+| **Heading 1**   | Document/chapter title         |
+| **Heading 2**   | Major sections                 |
+| **Heading 3**   | Subsections                    |
 | **Heading 4-6** | Additional hierarchy if needed |
-| **Paragraph** | Normal body text |
+| **Paragraph**   | Normal body text               |
 
 ### Best Practices
 
@@ -104,6 +104,7 @@ Indent list items to create hierarchy:
   - Another detail
 
 Use the keyboard shortcuts:
+
 - `Ctrl/Cmd + ]` to indent
 - `Ctrl/Cmd + [` to outdent
 
@@ -153,22 +154,22 @@ row**, styled differently from the body and preserved when you export.
 Click into any cell and type. Cells hold ordinary paragraphs, so all the
 character formatting above works inside them.
 
-| Action | How |
-|--------|-----|
-| Move to the next cell | `Tab` |
-| Move to the previous cell | `Shift + Tab` |
-| Insert a row or column | Table menu → *Insert row/column* |
-| Delete a row or column | Table menu → *Delete row/column* |
-| Merge selected cells | Table menu → *Merge cells* |
-| Split a merged cell | Table menu → *Split cell* |
-| Resize a column | Drag the divider between two column headers |
-| Remove the whole table | Table menu → *Delete table* |
+| Action                    | How                                         |
+| ------------------------- | ------------------------------------------- |
+| Move to the next cell     | `Tab`                                       |
+| Move to the previous cell | `Shift + Tab`                               |
+| Insert a row or column    | Table menu → _Insert row/column_            |
+| Delete a row or column    | Table menu → _Delete row/column_            |
+| Merge selected cells      | Table menu → _Merge cells_                  |
+| Split a merged cell       | Table menu → _Split cell_                   |
+| Resize a column           | Drag the divider between two column headers |
+| Remove the whole table    | Table menu → _Delete table_                 |
 
 Select several cells by clicking one and dragging across the others — merge and
 alignment actions apply to the whole selection.
 
 :::tip
-`Tab` in the last cell does **not** create a new row. Use *Insert row below*
+`Tab` in the last cell does **not** create a new row. Use _Insert row below_
 from the table menu when you need more space.
 :::
 
@@ -243,7 +244,3 @@ Made a mistake? Use the undo/redo buttons or keyboard shortcuts:
 
 - **Undo**: `Ctrl/Cmd + Z`
 - **Redo**: `Ctrl + Y` (Windows/Linux) or `Cmd + Shift + Z` (macOS)
-
----
-
-**Next:** [Local-First Design](../organizing/local-first-design) - Your work saves locally first, then syncs when connected.

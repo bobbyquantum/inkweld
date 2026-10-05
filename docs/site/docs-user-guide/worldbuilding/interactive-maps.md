@@ -70,8 +70,3 @@ Maps export like any canvas — see [Exporting](./canvas#exporting). Two things 
 - **Use Pan mode (`H`)** whenever you're navigating rather than drawing — it prevents accidental nudges
 - **Link, don't label**: a pin linked to a location element stays correct when the location is renamed; a text label doesn't
 - **Check the Relationships tab** of an element to see every map it appears on
-
----
-
-**Previous:** [Canvas](./canvas) — Layers, drawing tools, frames, and export.
-**Next:** [Timeline](./timeline) — Plot events, eras, and arcs against flexible time systems.

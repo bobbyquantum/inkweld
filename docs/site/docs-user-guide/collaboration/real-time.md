@@ -53,7 +53,3 @@ When the connection is interrupted, Inkweld shows "Offline" and continues workin
 
 - This can happen briefly when two people type at the exact same position
 - Pause for a moment to let sync complete, then clean up as needed
-
----
-
-**Next:** [Comments](./comments) - Leave notes on passages for yourself and your co-authors.

@@ -148,8 +148,3 @@ Era labels appear in the top band, so you can always see which era contains the 
 - **Colour‑code tracks** by meaning (protagonists, antagonists, world events) so the timeline reads at a glance
 - **Pick your time system before adding many events** — switching systems on a populated timeline is allowed, but events authored in the old system won't automatically re‑anchor to the new one
 - **Refresh anytime** — your timeline is saved automatically and comes back exactly as you left it
-
----
-
-**Previous:** [Interactive Maps](./interactive-maps) — Turn a canvas into a clickable map of your world.
-**Next:** [Real-Time Collaboration](../collaboration/real-time) — Write together with co-authors simultaneously.

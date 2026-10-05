@@ -59,7 +59,3 @@ Deleting your account also deletes every comment you wrote, including comments o
 ## Comments and Editing
 
 The highlight is tied to the text, not to a position: it moves as you write above it and stretches or shrinks as you edit inside it. If you delete the whole passage, the comment disappears with it. Undo (`Ctrl/Cmd + Z`) brings the passage and its comment back.
-
----
-
-**Next:** [Sharing Projects](./sharing) - Invite collaborators and manage access.
