@@ -197,6 +197,7 @@
       "openrouter": "OpenRouter",
       "fal": "Fal.ai",
       "stableDiffusion": "Stable Diffusion"
-    }
+    },
+    "generatedResultAlt": "Generated image {{index}}"
   }
 }

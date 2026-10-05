@@ -2,5 +2,27 @@
   "updateNow": "Update Now",
   "sessionExpiredMessage": "Your session has expired. Please re-authenticate or continue offline.",
   "reAuthenticate": "Re-authenticate",
-  "continueOffline": "Continue Offline"
+  "continueOffline": "Continue Offline",
+  "notFound": {
+    "title": "404 - Page Not Found",
+    "message": "The page you are looking for does not exist.",
+    "returnHome": "Return to Home"
+  },
+  "unavailable": {
+    "title": "Service Unavailable",
+    "message": "Sorry, the service is currently unavailable. Please try again later."
+  },
+  "reset": {
+    "title": "Clear All Data",
+    "confirm": "Are you sure you want to clear all stored data in the browser?",
+    "consequenceBefore": "You will be logged out and returned to the setup page. Any unsynced changes will be",
+    "consequenceStrong": "permanently lost",
+    "willDelete": "This will delete:",
+    "itemCovers": "All cached project covers and images",
+    "itemProjects": "All offline project data",
+    "itemSession": "Your session and login state",
+    "itemSettings": "All app settings and preferences",
+    "clearing": "Clearing data...",
+    "proceed": "Proceed and Clear Data"
+  }
 }

@@ -30,7 +30,7 @@ describe('NotFoundComponent', () => {
   it('should render 404 message', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('h1')?.textContent).toContain(
-      '404 - Something went wrong. Please try again.'
+      '404 - Page Not Found'
     );
   });
 
@@ -38,6 +38,6 @@ describe('NotFoundComponent', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     const link = compiled.querySelector('a');
     expect(link?.getAttribute('routerLink')).toBe('/');
-    expect(link?.textContent).toContain('Back to home');
+    expect(link?.textContent).toContain('Return to Home');
   });
 });

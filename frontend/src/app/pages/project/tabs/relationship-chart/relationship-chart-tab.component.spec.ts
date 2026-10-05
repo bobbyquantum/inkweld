@@ -647,20 +647,20 @@ describe('RelationshipChartTabComponent', () => {
   it('should start with labels in auto mode', () => {
     fixture.detectChanges();
     expect(component['showLabelsOverride']()).toBeNull();
-    expect(component['labelsButtonLabel']).toBe('Labels: Auto');
+    expect(component['labelsButtonKey']).toBe('relationships.chart.labelsAuto');
   });
 
   it('should cycle labels: auto → on → off → auto', () => {
     fixture.detectChanges();
     component['toggleLabels']();
     expect(component['showLabelsOverride']()).toBe(true);
-    expect(component['labelsButtonLabel']).toBe('Labels: On');
+    expect(component['labelsButtonKey']).toBe('relationships.chart.labelsOn');
     component['toggleLabels']();
     expect(component['showLabelsOverride']()).toBe(false);
-    expect(component['labelsButtonLabel']).toBe('Labels: Off');
+    expect(component['labelsButtonKey']).toBe('relationships.chart.labelsOff');
     component['toggleLabels']();
     expect(component['showLabelsOverride']()).toBeNull();
-    expect(component['labelsButtonLabel']).toBe('Labels: Auto');
+    expect(component['labelsButtonKey']).toBe('relationships.chart.labelsAuto');
   });
 
   // ─────────────────────────────────────────────────────────────────────────

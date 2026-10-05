@@ -1040,10 +1040,21 @@ export class DocumentService {
       );
 
       // Connection was already set and stored, WebSocket will update it when connected
+    } else {
+      // The document is already open in another editor (e.g. the zen-mode
+      // overlay over the document tab, or an editor re-created after a
+      // reconnect). Bind this editor to the same Yjs type; without this it
+      // would render an empty document.
+      this.addCorePluginsToEditor(editor, documentId, connection);
+      if (connection.provider) {
+        this.addPresencePluginToEditor(
+          editor,
+          documentId,
+          connection.ydoc,
+          connection.type
+        );
+      }
     }
-
-    // Plugins have already been added via addCorePluginsToEditor above
-    // Nothing more to do here - return immediately so content appears
   }
 
   /**

@@ -1394,6 +1394,41 @@ describe('DocumentService', () => {
       );
     });
 
+    it('should bind a second editor to an already-open document', async () => {
+      const makeEditor = () => {
+        const reconfigure = vi.fn().mockReturnValue({});
+        const dom = document.createElement('div');
+        document.createElement('div').appendChild(dom);
+        const editor = {
+          ...mockEditor,
+          view: {
+            ...mockEditor.view,
+            dom,
+            state: {
+              ...mockEditor.view.state,
+              schema: testSchema,
+              plugins: [],
+              reconfigure,
+            },
+            updateState: vi.fn(),
+          },
+        } as unknown as DeepMockProxy<Editor>;
+        return { editor, reconfigure };
+      };
+      const first = makeEditor();
+      const second = makeEditor();
+
+      await service.setupCollaboration(first.editor, testDocumentId);
+      // e.g. the zen-mode overlay opening over the document tab
+      await service.setupCollaboration(second.editor, testDocumentId);
+
+      expect(second.reconfigure).toHaveBeenCalled();
+      const { plugins } = second.reconfigure.mock.calls[0][0] as {
+        plugins: { spec: { key?: { key: string } } }[];
+      };
+      expect(plugins.map(p => p.spec.key?.key)).toContain('y-sync$');
+    });
+
     it('should handle editor initialization errors', async () => {
       // Simulate missing editor view
       mockEditor.view = null as unknown as typeof mockEditor.view;

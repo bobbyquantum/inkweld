@@ -521,10 +521,13 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
   }
 
   /** Human-readable label for the current label-display state */
-  protected get labelsButtonLabel(): string {
+  /** Translation key for the label-visibility toggle's current state. */
+  protected get labelsButtonKey(): string {
     const override = this.showLabelsOverride();
-    if (override === null) return 'Labels: Auto';
-    return override ? 'Labels: On' : 'Labels: Off';
+    if (override === null) return 'relationships.chart.labelsAuto';
+    return override
+      ? 'relationships.chart.labelsOn'
+      : 'relationships.chart.labelsOff';
   }
 
   // ─────────────────────────────────────────────────────────────────────────

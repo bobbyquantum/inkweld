@@ -100,5 +100,21 @@
     "calculatingSize": "Checking size...",
     "downloadSize": "{{size}} to download",
     "sizeTooltip": "Approximate size of this project"
+  },
+  "createProjectPage": {
+    "pageTitle": "Create New Project",
+    "backAria": "Go back to home",
+    "chooseTemplateTitle": "Choose a Template",
+    "chooseTemplateDescription": "Select a template to start your project",
+    "chooseTemplateAria": "Choose a template",
+    "loadingTemplates": "Loading templates...",
+    "detailsTitle": "Project Details",
+    "detailsDescription": "Enter your project information",
+    "titleLabel": "Project Title",
+    "slugLabel": "URL Name",
+    "slugHint": "Used in the project link. Lowercase letters, numbers and hyphens.",
+    "descriptionLabel": "Project Description",
+    "projectUrl": "Project URL:",
+    "submit": "Create Project"
   }
 }

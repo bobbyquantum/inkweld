@@ -11,6 +11,7 @@ import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SettingsService } from '@services/core/settings.service';
 import { DocumentService } from '@services/project/document.service';
 import { ProjectStateService } from '@services/project/project-state.service';
+import { ZenModeService } from '@services/project/zen-mode.service';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
@@ -281,6 +282,17 @@ describe('DocumentElementEditorComponent', () => {
       component.ngOnDestroy();
 
       expect(documentServiceMock.disconnect).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('enterZenMode', () => {
+    it('should ask the project shell to toggle zen mode', () => {
+      const zenModeService = TestBed.inject(ZenModeService);
+      const requestSpy = vi.spyOn(zenModeService, 'requestToggle');
+
+      component.enterZenMode();
+
+      expect(requestSpy).toHaveBeenCalledOnce();
     });
   });
 

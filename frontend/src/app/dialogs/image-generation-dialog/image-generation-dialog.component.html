@@ -108,7 +108,8 @@
                           <img
                             [src]="el.imageUrl"
                             [alt]="
-                              'alt.reference' | transloco: { name: el.name }
+                              'media.imageGeneration.referenceAlt'
+                                | transloco: { name: el.name }
                             "
                             class="preview-image" />
                         </span>
@@ -446,7 +447,9 @@
                   <div class="partial-image-preview">
                     <img
                       [src]="currentJob()!.partialImageUrl!"
-                      [alt]="'alt.generatingPreview' | transloco"
+                      [alt]="
+                        'media.imageGeneration.generatingPreview' | transloco
+                      "
                       class="partial-image" />
                     <div class="partial-overlay">
                       <mat-spinner diameter="28"></mat-spinner>
@@ -512,7 +515,9 @@
                   <div class="selected-preview">
                     <img
                       [src]="getImageUrl(getSelectedImage()!)"
-                      [alt]="'alt.selectedPreview' | transloco" />
+                      [alt]="
+                        'media.imageGeneration.selectedPreview' | transloco
+                      " />
                   </div>
                 }
 
@@ -527,7 +532,7 @@
                       <img
                         [src]="getImageUrl(image)"
                         [alt]="
-                          'alt.generatedResult'
+                          'media.imageGeneration.generatedResultAlt'
                             | transloco: { index: $index + 1 }
                         " />
                       @if (selectedImageIndex() === $index) {

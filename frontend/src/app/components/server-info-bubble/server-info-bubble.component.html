@@ -14,7 +14,7 @@
     <mat-menu #profileMenu="matMenu" class="profile-menu">
       <div class="menu-header">
         <span class="header-title">{{
-          'settings.dialogTitle' | transloco
+          'settings.serverBubble.currentProfile' | transloco
         }}</span>
       </div>
 
@@ -32,7 +32,7 @@
           @if (hasTokenForProfile(profile)) {
             <mat-icon
               class="auth-indicator"
-              [matTooltip]="'login.login' | transloco">
+              [matTooltip]="'settings.serverBubble.loggedIn' | transloco">
               person
             </mat-icon>
           }
@@ -44,7 +44,7 @@
     <button
       mat-mini-fab
       appTooltipAriaLabel
-      [matTooltip]="'settings.connectionTab.offlineInfo' | transloco"
+      [matTooltip]="'settings.serverBubble.notConnected' | transloco"
       matTooltipPosition="above"
       class="bubble-button disconnected"
       data-testid="server-info-bubble-disconnected">
