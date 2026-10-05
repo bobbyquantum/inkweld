@@ -25,7 +25,7 @@ test.describe('404 Not Found Page', () => {
     await test.step('shows 404 heading and error message', async () => {
       await expect(page.locator('h1')).toContainText('404');
       await expect(page.locator('body')).toContainText(
-        /something went wrong|failed to load/i
+        /page not found/i
       );
     });
 

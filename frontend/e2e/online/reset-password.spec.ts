@@ -34,7 +34,7 @@ test.describe('Reset Password', () => {
       await page.goto('/reset-password');
 
       const requestLink = page.getByTestId('no-token-error').getByRole('link', {
-        name: /send reset link/i,
+        name: /request new link/i,
       });
       await expect(requestLink).toBeVisible();
       await requestLink.click();
