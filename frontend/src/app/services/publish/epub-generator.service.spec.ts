@@ -3,6 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { type Element, ElementType, type Project } from '@inkweld/index';
 import { createDefaultPublishStyles } from '@models/publish-style';
 import { CoverSourceService } from '@services/project/cover-source.service';
+import { DefaultCoverRendererService } from '@services/project/default-cover-renderer.service';
 import JSZip from 'jszip';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -112,7 +113,10 @@ describe('EpubGeneratorService', () => {
     updatedAt: '2024-01-01T00:00:00Z',
   };
 
+  let defaultCoverMock: { render: ReturnType<typeof vi.fn> };
+
   beforeEach(() => {
+    defaultCoverMock = { render: vi.fn().mockResolvedValue(null) };
     loggerMock = {
       debug: vi.fn(),
       info: vi.fn(),
@@ -188,6 +192,10 @@ describe('EpubGeneratorService', () => {
         { provide: DocumentService, useValue: documentServiceMock },
         { provide: ProjectStateService, useValue: projectStateMock },
         { provide: CoverSourceService, useValue: createCoverSourceMock() },
+        {
+          provide: DefaultCoverRendererService,
+          useValue: defaultCoverMock,
+        },
         { provide: LocalStorageService, useValue: localStorageMock },
       ],
     });
@@ -1258,6 +1266,9 @@ describe('EpubGeneratorService', () => {
   describe('EPUB package quality', () => {
     type Zip = Awaited<ReturnType<JSZip['loadAsync']>>;
 
+    const JPEG_BYTES = new Uint8Array([
+      0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01,
+    ]);
     const PNG_BYTES = new Uint8Array([
       0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0,
     ]);
@@ -1789,6 +1800,67 @@ describe('EpubGeneratorService', () => {
       const cover = await read('OEBPS/cover.xhtml');
       expect(cover).toContain('epub:type="cover"');
       expect(cover).toContain('alt="Cover of Test Book"');
+    });
+
+    describe('cover fallbacks', () => {
+      it('renders the default cover when the project has no stored cover', async () => {
+        defaultCoverMock.render.mockResolvedValue(
+          new Blob([JPEG_BYTES], { type: 'image/jpeg' })
+        );
+        const { zip, read } = await build(
+          planWith([chapterItem('i1', 'doc-1')], {
+            options: { ...mockPlan.options, includeCover: true },
+          })
+        );
+        expect(defaultCoverMock.render).toHaveBeenCalledWith(
+          'Test Book',
+          expect.any(String)
+        );
+        expect(zip.file('OEBPS/images/cover.jpg')).not.toBeNull();
+        const opf = await read('OEBPS/content.opf');
+        expect(opf).toContain(
+          'href="images/cover.jpg" media-type="image/jpeg" properties="cover-image"'
+        );
+        expect(opf).toContain('<meta name="cover" content="cover-image"/>');
+      });
+
+      it('does not render the default cover when a stored one exists', async () => {
+        localStorageMock.getMedia.mockResolvedValue(
+          new Blob([PNG_BYTES], { type: 'image/png' })
+        );
+        await build(
+          planWith([chapterItem('i1', 'doc-1')], {
+            options: { ...mockPlan.options, includeCover: true },
+          })
+        );
+        expect(defaultCoverMock.render).not.toHaveBeenCalled();
+      });
+
+      it('prefers the cover chosen on the plan', async () => {
+        await build(
+          planWith([chapterItem('i1', 'doc-1')], {
+            options: {
+              ...mockPlan.options,
+              includeCover: true,
+              coverImage: 'plan-cover.png',
+            },
+          })
+        );
+        expect(localStorageMock.getMedia.mock.calls[0]).toEqual([
+          'testuser/test-project',
+          'plan-cover',
+        ]);
+      });
+
+      it('omits the cover when nothing can be rendered', async () => {
+        const { zip, read } = await build(
+          planWith([chapterItem('i1', 'doc-1')], {
+            options: { ...mockPlan.options, includeCover: true },
+          })
+        );
+        expect(zip.file('OEBPS/images/cover.jpg')).toBeNull();
+        expect(await read('OEBPS/content.opf')).not.toContain('cover-image');
+      });
     });
   });
 });
