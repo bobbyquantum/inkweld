@@ -5,6 +5,7 @@ import {
   createQuickExportPlan,
   DEFAULT_PUBLISH_METADATA,
   DEFAULT_PUBLISH_OPTIONS,
+  defaultAuthorName,
   FrontmatterType,
   PublishFormat,
   PublishPhase,
@@ -109,6 +110,21 @@ describe('publish-plan models', () => {
       expect(DEFAULT_PUBLISH_METADATA.title).toBe('');
       expect(DEFAULT_PUBLISH_METADATA.author).toBe('');
       expect(DEFAULT_PUBLISH_METADATA.language).toBe('en');
+    });
+  });
+
+  describe('defaultAuthorName', () => {
+    it('prefers the display name', () => {
+      expect(
+        defaultAuthorName({ name: 'Test Novelist', username: 'novelist' }, 'x')
+      ).toBe('Test Novelist');
+    });
+
+    it('falls back to the username, then the fallback', () => {
+      expect(defaultAuthorName({ name: ' ', username: 'novelist' }, 'x')).toBe(
+        'novelist'
+      );
+      expect(defaultAuthorName(null, 'x')).toBe('x');
     });
   });
 

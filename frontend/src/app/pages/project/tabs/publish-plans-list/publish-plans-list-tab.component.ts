@@ -16,6 +16,7 @@ import { TooltipAriaLabelDirective } from '@directives/tooltip-aria-label.direct
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import {
   createDefaultPublishPlan,
+  defaultAuthorName,
   PublishFormat,
   type PublishPlan,
 } from '@models/publish-plan';
@@ -23,6 +24,7 @@ import { type PublishedFile } from '@models/published-file';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { PublishedFilesService } from '@services/publish/published-files.service';
+import { UnifiedUserService } from '@services/user/unified-user.service';
 
 import { FileSizePipe } from '../../../../pipes/file-size.pipe';
 
@@ -43,6 +45,7 @@ import { FileSizePipe } from '../../../../pipes/file-size.pipe';
 })
 export class PublishPlansListTabComponent implements OnInit {
   protected readonly projectState = inject(ProjectStateService);
+  private readonly userService = inject(UnifiedUserService);
   private readonly router = inject(Router);
   private readonly snackBar = inject(MatSnackBar);
   private readonly dialogGateway = inject(DialogGatewayService);
@@ -115,7 +118,10 @@ export class PublishPlansListTabComponent implements OnInit {
 
     const plan = createDefaultPublishPlan(
       project.title ?? 'Untitled',
-      project.username ?? 'Unknown Author'
+      defaultAuthorName(
+        this.userService.currentUser(),
+        project.username ?? 'Unknown Author'
+      )
     );
     this.projectState.createPublishPlan(plan);
     this.openPublishPlan(plan);
