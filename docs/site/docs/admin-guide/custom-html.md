@@ -89,6 +89,50 @@ effect there. The same applies if you set `SERVE_FRONTEND=false` and serve the
 frontend from your own web server.
 :::
 
+### Content Security Policy
+
+Inkweld sends a Content-Security-Policy with the app page. It stops the browser
+running any script that isn't part of Inkweld, so a bug that let someone
+inject markup into a page can't be used to run code in other users' browsers.
+
+Your custom HTML is allowed automatically:
+
+- **Inline `<script>` blocks** are allowed by their exact content (a SHA-256
+  hash). Edit the script and the policy follows.
+- **`<script src="https://…">`** tags are allowed by the script's origin.
+
+Two things need extra steps:
+
+- **Scripts loaded at runtime.** Tag managers, chat widgets and many analytics
+  snippets load further scripts, styles or frames from their own domains. Add
+  those origins to **Trusted sources**, one per line, for example
+  `https://www.googletagmanager.com`. A source can be an origin, a
+  `*.example.com` wildcard, or a URL path prefix; anything else (including
+  keywords such as `'unsafe-inline'`) is ignored.
+- **Inline event handlers** (`onclick="…"`, `onload="…"`) and `javascript:`
+  links never run. Put the code in a `<script>` block instead.
+
+To try out new custom HTML safely, set **Policy** to **Report only**: nothing
+is blocked, and anything the policy would have blocked is logged in the
+browser's developer console as a Content-Security-Policy warning. Once the
+console is clean, switch back to **Enforce**. **Off** sends no policy at all;
+use it only while diagnosing a problem.
+
+Images, media and network connections are allowed from any `https:` origin,
+because projects embed remote images and the app connects to other Inkweld
+servers and to Dropbox or Nextcloud, so trackers that only load an image or
+call an API need no trusted source.
+
+The app works offline by caching its page, so a policy change reaches people
+who already have it open the way an app update does: they see the usual
+"Update Available" prompt.
+
+:::note[Cloudflare deployments]
+On Cloudflare the policy comes from the frontend's `_headers` file instead
+and can't be changed from the admin settings — as with custom HTML, the
+Inkweld server never sees those requests.
+:::
+
 ### If you add tracking
 
 Once you add analytics or other third-party scripts, Inkweld's "strictly
@@ -104,12 +148,14 @@ above).
 All of these settings can also be set through the environment. Values saved in
 the admin UI are stored in the database and take precedence.
 
-| Variable                    | Purpose                                                        |
-| --------------------------- | -------------------------------------------------------------- |
-| `PRIVACY_POLICY_CONTENT`    | Privacy policy text (Markdown) served at `/privacy`            |
-| `PRIVACY_POLICY_URL`        | Where `/privacy` redirects when no text is set                 |
-| `TERMS_OF_SERVICE_CONTENT`  | Terms of service text (Markdown) served at `/terms`            |
-| `TERMS_OF_SERVICE_URL`      | Where `/terms` redirects when no text is set                   |
-| `REQUIRE_POLICY_ACCEPTANCE` | Require users to accept the documents, and again when they change |
-| `CUSTOM_HEAD_HTML`          | Raw HTML injected into `<head>`                                |
-| `CUSTOM_BODY_HTML`          | Raw HTML injected at the end of `<body>`                       |
+| Variable                                  | Purpose                                                           |
+| ----------------------------------------- | ----------------------------------------------------------------- |
+| `PRIVACY_POLICY_CONTENT`                  | Privacy policy text (Markdown) served at `/privacy`               |
+| `PRIVACY_POLICY_URL`                      | Where `/privacy` redirects when no text is set                    |
+| `TERMS_OF_SERVICE_CONTENT`                | Terms of service text (Markdown) served at `/terms`               |
+| `TERMS_OF_SERVICE_URL`                    | Where `/terms` redirects when no text is set                      |
+| `REQUIRE_POLICY_ACCEPTANCE`               | Require users to accept the documents, and again when they change |
+| `CUSTOM_HEAD_HTML`                        | Raw HTML injected into `<head>`                                   |
+| `CUSTOM_BODY_HTML`                        | Raw HTML injected at the end of `<body>`                          |
+| `CONTENT_SECURITY_POLICY_MODE`            | `enforce` (default), `report-only` or `off`                       |
+| `CONTENT_SECURITY_POLICY_TRUSTED_SOURCES` | Extra script, style, font and frame origins, space-separated      |

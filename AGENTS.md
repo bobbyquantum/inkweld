@@ -547,6 +547,27 @@ tooling via `general`-category config keys (editable in the admin Settings page)
 - The `$&`-style `String.replace` pattern pitfall is handled in
   `injectCustomHtml` (function replacements); keep it that way.
 
+**Content-Security-Policy** (`backend/src/utils/csp.ts`):
+- The Bun server sends it with every `index.html` response
+  (`respondWithInjectedIndex`). Inline `<script>`s in the rendered document are
+  allowed by SHA-256 hash and external `<script src>` by origin, so custom HTML
+  works without configuration; `CONTENT_SECURITY_POLICY_TRUSTED_SOURCES` adds
+  origins for scripts those snippets load later, and
+  `CONTENT_SECURITY_POLICY_MODE` is `enforce` / `report-only` / `off`.
+- **The built `index.html` must contain no inline script.** That is why
+  `angular.json` sets `inlineCritical: false` (Beasties' critical-CSS loader is
+  an inline script). Don't turn it back on; Pages can't hash at serve time.
+- `frontend/public/_headers` carries the same base policy for Cloudflare Pages;
+  `csp.spec.ts` fails if the two differ.
+- `script-src` has `'unsafe-eval'` only because typst.ts' wasm-bindgen glue
+  calls `new Function(...)`. Never add `'unsafe-inline'` to `script-src`.
+- The service worker caches `index.html` **with its headers** and refetches it
+  only when its `ngsw.json` hash changes, so non-default CSP settings add an
+  `<!-- inkweld-csp:… -->` comment (`cspSettingsComment`) to change the hash.
+- Unrelated but found alongside: `compress-wasm.js` Brotli-compresses every
+  `.wasm` in place, so the server detects compressed WASM by its missing
+  `\0asm` magic (`wasmContentEncoding`) rather than by filename.
+
 ### Account Deletion
 
 Google Play requires in-app **and** web account deletion for apps that allow

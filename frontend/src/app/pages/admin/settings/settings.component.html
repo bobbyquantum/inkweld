@@ -581,6 +581,63 @@
             }}</mat-hint>
           </mat-form-field>
         </div>
+
+        <div class="setting-section-header csp-header">
+          <mat-icon>shield</mat-icon>
+          <span class="setting-label">{{
+            'admin.settings.cspTitle' | transloco
+          }}</span>
+        </div>
+        <span class="setting-description policy-description">{{
+          'admin.settings.cspDesc' | transloco
+        }}</span>
+
+        <div class="policy-settings">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>{{
+              'admin.settings.cspModeLabel' | transloco
+            }}</mat-label>
+            <mat-select
+              [value]="cspMode()"
+              (selectionChange)="saveCspMode($event.value)"
+              [disabled]="isSaving()"
+              data-testid="csp-mode-select">
+              @for (mode of cspModes; track mode) {
+                <mat-option
+                  [value]="mode"
+                  [attr.data-testid]="'csp-mode-' + mode"
+                  >{{
+                    'admin.settings.cspModes.' + mode | transloco
+                  }}</mat-option
+                >
+              }
+            </mat-select>
+            <mat-hint>{{
+              'admin.settings.cspModeHints.' + cspMode() | transloco
+            }}</mat-hint>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>{{
+              'admin.settings.cspTrustedSourcesLabel' | transloco
+            }}</mat-label>
+            <textarea
+              matInput
+              rows="3"
+              [value]="cspTrustedSources()"
+              (change)="saveCspTrustedSources($any($event.target).value)"
+              [disabled]="isSaving()"
+              id="admin-csp-trusted-sources-input"
+              data-testid="csp-trusted-sources-input"
+              placeholder="https://www.googletagmanager.com"
+              [attr.aria-label]="
+                'admin.settings.cspTrustedSourcesLabel' | transloco
+              "></textarea>
+            <mat-hint>{{
+              'admin.settings.cspTrustedSourcesHint' | transloco
+            }}</mat-hint>
+          </mat-form-field>
+        </div>
       </mat-card-content>
     </mat-card>
   }

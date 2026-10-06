@@ -13,6 +13,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -33,6 +34,13 @@ const DEFAULT_SYNC_QUOTA_MB = 100;
 /** Matches the server's 1 TiB ceiling (`MAX_SYNC_QUOTA_BYTES`). */
 const MAX_SYNC_QUOTA_MB = 1024 * 1024;
 
+type CspMode = 'enforce' | 'report-only' | 'off';
+
+/** Mirrors parseCspMode in backend/src/utils/csp.ts: anything unknown enforces. */
+function parseCspMode(value: string | undefined): CspMode {
+  return value === 'report-only' || value === 'off' ? value : 'enforce';
+}
+
 @Component({
   selector: 'app-admin-settings',
   imports: [
@@ -43,6 +51,7 @@ const MAX_SYNC_QUOTA_MB = 1024 * 1024;
     MatIconModule,
     MatInputModule,
     MatProgressSpinnerModule,
+    MatSelectModule,
     MatSlideToggleModule,
     MatSnackBarModule,
     MatTooltipModule,
@@ -97,6 +106,13 @@ export class AdminSettingsComponent implements OnInit {
   // string means "no injection" — the SPA shell is served untouched.
   readonly customHeadHtml = signal('');
   readonly customBodyHtml = signal('');
+
+  // Content-Security-Policy sent with the app page. Scripts in the custom
+  // HTML above are allowed automatically; trusted sources cover scripts those
+  // snippets load at runtime.
+  readonly cspModes: readonly CspMode[] = ['enforce', 'report-only', 'off'];
+  readonly cspMode = signal<CspMode>('enforce');
+  readonly cspTrustedSources = signal('');
 
   // Passkeys state
   readonly passkeysEnabled = signal(true);
@@ -160,6 +176,8 @@ export class AdminSettingsComponent implements OnInit {
         requirePolicyAcceptance,
         syncQuotaEnabled,
         syncQuotaDefaultBytes,
+        cspMode,
+        cspTrustedSources,
       ] = await Promise.all([
         this.configService.getConfig('USER_APPROVAL_REQUIRED'),
         this.configService.getConfig('AI_KILL_SWITCH'),
@@ -183,6 +201,8 @@ export class AdminSettingsComponent implements OnInit {
         this.configService.getConfig('REQUIRE_POLICY_ACCEPTANCE'),
         this.configService.getConfig('SYNC_QUOTA_ENABLED'),
         this.configService.getConfig('SYNC_QUOTA_DEFAULT_BYTES'),
+        this.configService.getConfig('CONTENT_SECURITY_POLICY_MODE'),
+        this.configService.getConfig('CONTENT_SECURITY_POLICY_TRUSTED_SOURCES'),
       ]);
 
       this.userApprovalRequired.set(userApproval?.value === 'true');
@@ -223,6 +243,8 @@ export class AdminSettingsComponent implements OnInit {
       );
       this.customHeadHtml.set(customHeadHtml?.value || '');
       this.customBodyHtml.set(customBodyHtml?.value || '');
+      this.cspMode.set(parseCspMode(cspMode?.value));
+      this.cspTrustedSources.set(cspTrustedSources?.value || '');
 
       // Passkeys — default is true (enabled) when no value stored
       this.passkeysEnabled.set(passkeysEnabled?.value !== 'false');
@@ -490,6 +512,26 @@ export class AdminSettingsComponent implements OnInit {
       this.customHeadHtml.set(trimmed);
     } else {
       this.customBodyHtml.set(trimmed);
+    }
+  }
+
+  async saveCspMode(mode: CspMode): Promise<void> {
+    if (await this.saveStringConfig('CONTENT_SECURITY_POLICY_MODE', mode)) {
+      this.cspMode.set(mode);
+    }
+  }
+
+  async saveCspTrustedSources(value: string): Promise<void> {
+    // One source per line or space-separated; the server ignores anything
+    // that is not a host source, so normalise only the whitespace here.
+    const normalized = value.trim().split(/\s+/).filter(Boolean).join(' ');
+    if (
+      await this.saveStringConfig(
+        'CONTENT_SECURITY_POLICY_TRUSTED_SOURCES',
+        normalized
+      )
+    ) {
+      this.cspTrustedSources.set(normalized);
     }
   }
 

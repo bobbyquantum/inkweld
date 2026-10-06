@@ -168,6 +168,29 @@ export function guessMimeType(path: string): string {
   return mimeTypes[ext || ''] || 'application/octet-stream';
 }
 
+const WASM_MAGIC = [0x00, 0x61, 0x73, 0x6d]; // "\0asm"
+
+/** The part of Blob / BunFile this needs (the backend tsconfig's Blob type lacks slice). */
+interface SliceableFile {
+  slice(start: number, end: number): { arrayBuffer(): Promise<ArrayBuffer> };
+}
+
+/**
+ * The Content-Encoding a `.wasm` asset needs. `frontend/scripts/compress-wasm.js`
+ * replaces every WASM file with its Brotli-compressed bytes (Cloudflare Pages
+ * has a 25 MB file limit), but builds that skip the script ship plain WASM.
+ * Real WebAssembly always starts with the `\0asm` magic number, so anything
+ * else is the compressed copy.
+ */
+export async function wasmContentEncoding(file: Blob | SliceableFile): Promise<'br' | undefined> {
+  // Every Blob has slice() at runtime; the narrowing is only for the typing.
+  const sliceable = file as SliceableFile;
+  const head = new Uint8Array(await sliceable.slice(0, WASM_MAGIC.length).arrayBuffer());
+  const isPlainWasm =
+    head.length === WASM_MAGIC.length && WASM_MAGIC.every((byte, i) => head[i] === byte);
+  return isPlainWasm ? undefined : 'br';
+}
+
 /**
  * Build response headers for an asset, including content-type, optional encoding,
  * and cache-control (no-cache for index.html, immutable for everything else).

@@ -150,6 +150,21 @@
     "customBodyLabel": "Body HTML (end of <body>)",
     "customBodyHint": "Tracking pixels, chat widgets, consent-manager fallback",
     "customBodyAria": "Custom body HTML",
+    "cspTitle": "Content Security Policy",
+    "cspDesc": "Limits which scripts the web app runs, so injected code can't execute. Scripts in the custom HTML above are allowed automatically.",
+    "cspModeLabel": "Policy",
+    "cspModes": {
+      "enforce": "Enforce (recommended)",
+      "report-only": "Report only",
+      "off": "Off"
+    },
+    "cspModeHints": {
+      "enforce": "Scripts that aren't allowed are blocked.",
+      "report-only": "Nothing is blocked; violations are logged in the browser console. Use this to test new custom HTML.",
+      "off": "No policy is sent. Only use this while diagnosing a problem."
+    },
+    "cspTrustedSourcesLabel": "Trusted sources",
+    "cspTrustedSourcesHint": "Origins your custom HTML loads more scripts, styles, fonts or frames from, one per line (e.g. https://www.googletagmanager.com).",
     "privacyPolicyContent": "Privacy policy text (Markdown)",
     "termsContent": "Terms of service text (Markdown)",
     "legalContentHint": "Shown at {{path}}. Takes precedence over the URL above.",

@@ -723,6 +723,25 @@ export const CONFIG_KEYS = {
     envVar: 'CUSTOM_BODY_HTML',
     type: 'string' as const,
   },
+  // Content-Security-Policy sent with the app's index.html (see utils/csp.ts).
+  // Inline and <script src> scripts in the custom HTML above are allowed
+  // automatically; scripts they load at runtime need their origins listed.
+  CONTENT_SECURITY_POLICY_MODE: {
+    category: 'general' as ConfigCategory,
+    description:
+      'Content-Security-Policy for the web app: "enforce" (default), "report-only" (log violations in the browser console without blocking) or "off".',
+    encrypted: false,
+    envVar: 'CONTENT_SECURITY_POLICY_MODE',
+    type: 'string' as const,
+  },
+  CONTENT_SECURITY_POLICY_TRUSTED_SOURCES: {
+    category: 'general' as ConfigCategory,
+    description:
+      'Extra origins allowed to serve scripts, styles, fonts and frames, separated by spaces (e.g. https://www.googletagmanager.com). Needed when custom HTML loads further scripts at runtime.',
+    encrypted: false,
+    envVar: 'CONTENT_SECURITY_POLICY_TRUSTED_SOURCES',
+    type: 'string' as const,
+  },
 } as const;
 
 export type ConfigKey = keyof typeof CONFIG_KEYS;

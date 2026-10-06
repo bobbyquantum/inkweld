@@ -556,6 +556,27 @@ Inkweld server serves — for analytics, consent managers or verification meta
 tags. **Not sanitized.** Has no effect when the frontend is served elsewhere
 (Cloudflare Pages, or `SERVE_FRONTEND=false`).
 
+### CONTENT_SECURITY_POLICY_MODE
+
+**Default:** `enforce` | `enforce`, `report-only` or `off`
+
+The Content-Security-Policy sent with the app page. `enforce` blocks scripts
+the policy doesn't allow; `report-only` only logs them in the browser console;
+`off` sends no policy. Scripts in the custom HTML above are allowed
+automatically. See
+[Content Security Policy](./admin-guide/custom-html.md#content-security-policy).
+
+### CONTENT_SECURITY_POLICY_TRUSTED_SOURCES
+
+**Default:** - | Space-separated origins
+
+Extra origins allowed to serve scripts, styles, fonts and frames — needed when
+custom HTML loads more scripts at runtime, as tag managers and chat widgets do.
+
+```bash
+CONTENT_SECURITY_POLICY_TRUSTED_SOURCES="https://www.googletagmanager.com https://*.example-widget.com"
+```
+
 ---
 
 ## Frontend Serving
