@@ -146,8 +146,3 @@ Relationship charts shine in several scenarios:
 - Charts are **lightweight** — they read from your existing elements and relationships, so there's no data duplication
 - The sidebar collapsed/expanded state **persists** across sessions
 - **Export high-res PNGs** for sharing or including in reference documents
-
----
-
-**Previous:** [Relationships](./relationships) — Define connections between elements.
-**Next:** [Canvas](./canvas) — Freeform infinite canvas for maps and diagrams.

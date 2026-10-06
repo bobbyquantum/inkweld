@@ -188,7 +188,3 @@ Look for the sync indicator in the project sidebar. If you see:
 - **Connected**: All changes are synced
 - **Offline Mode**: Working locally (changes will sync when reconnected)
 - **Connection Failed**: Check your internet connection
-
----
-
-**Next:** [Project Structure](./project-structure) — Organize your project with folders and elements.

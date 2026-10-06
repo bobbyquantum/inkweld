@@ -87,7 +87,3 @@ Word counts are read from the copy of each document on this device and refreshed
 ## Publishing a Folder
 
 Add a folder to a [publish plan](../publishing/publish-plans.md) and it is published with everything inside it, in the order shown on the corkboard. Rearranging scenes there changes the next export without touching the plan.
-
----
-
-**Next:** [Using Tags](./tags) — Categorize and filter your story elements.

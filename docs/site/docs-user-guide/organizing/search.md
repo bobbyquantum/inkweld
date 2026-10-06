@@ -67,7 +67,3 @@ Press `Ctrl/Cmd + F` while editing a document to open the find bar. This lets yo
 ## Media Search
 
 The [Media Library](../media/library) includes a search bar to find images and files by name or AI generation prompt.
-
----
-
-**Next:** [The Editor](../writing/editor) - Learn to use the rich text editor for your writing.

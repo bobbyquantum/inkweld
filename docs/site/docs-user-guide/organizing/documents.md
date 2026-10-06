@@ -200,7 +200,3 @@ Create snapshots:
 - Before sharing for feedback
 - At project milestones
   :::
-
----
-
-**Next:** [Scenes, Corkboard & Outline](./scenes-corkboard-outline) - Plan and rearrange your manuscript.

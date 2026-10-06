@@ -109,7 +109,3 @@ These actions are available through the toolbar but do not have keyboard shortcu
 - Text alignment (left, center, right, justify)
 - Links
 - Tags and snapshots
-
----
-
-**Next:** [Formatting Text](./formatting) - Learn about all available text formatting options.

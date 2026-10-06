@@ -225,7 +225,3 @@ On mobile devices, the editor adapts to your screen:
 />
 
 The toolbar shows essential actions, and you can swipe to access the project tree.
-
----
-
-**Next:** [Keyboard Shortcuts](./keyboard-shortcuts) - Master efficient editing with keyboard commands.

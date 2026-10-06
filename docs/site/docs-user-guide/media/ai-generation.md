@@ -77,7 +77,3 @@ Active generation jobs appear in the media tab header. Generation typically take
 :::note
 AI image generation requires a server connection and is not available in offline mode.
 :::
-
----
-
-**Next:** [Export Formats](../publishing/formats) — Export your work.

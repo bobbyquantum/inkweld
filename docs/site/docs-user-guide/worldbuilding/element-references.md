@@ -176,8 +176,3 @@ Hover over a reference to see:
   src="/img/features/element-ref-character-tooltip"
   alt="Tooltip showing element details on hover"
 />
-
----
-
-**Previous:** [Elements & Templates](./elements) — Create structured worldbuilding entries.
-**Next:** [Relationships](./relationships) - Define semantic connections between elements.

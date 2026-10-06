@@ -56,14 +56,14 @@ There are two ways to create a new template:
 
 1. Open your project
 2. Go to **Project Settings** → **Element Templates**
-3. Click the **"Create Template"** button
+3. Click the **New Template** button
 4. The template editor opens with a blank starter template
 5. Define your fields and tabs
 6. Changes save automatically as you go
 
 <ThemedImage
   src="/img/features/templates-create-button"
-  alt="Create Template button in the Templates tab"
+  alt="New Template button and search box in the Templates tab"
 />
 
 #### Option 2: Clone an Existing Template
@@ -72,17 +72,16 @@ If you want to start from an existing template (like the built-in Character or L
 
 1. Go to **Project Settings** → **Element Templates**
 2. Find the template you want to base yours on
-3. Click the **three-dot menu** (⋮) on that template's card
-4. Select **"Clone"**
-5. A copy is created that you can rename and customize
+3. Click the **Clone** button (copy icon) on that template's row
+4. A copy is created that you can rename and customize
 
 <ThemedImage
   src="/img/features/templates-clone-menu"
-  alt="Clone option in template card menu"
+  alt="Template row with its Clone button highlighted"
 />
 
 :::tip
-Cloning is great when you want to create a variation of an existing template. For completely new element types, use **Create Template**.
+Cloning is great when you want to create a variation of an existing template. For completely new element types, use **New Template**.
 :::
 
 ## Understanding Templates
@@ -92,8 +91,8 @@ Cloning is great when you want to create a variation of an existing template. Fo
 The Element Templates tab in Project Settings shows all your templates at a glance. Each template card displays:
 
 - **Name** and **icon** (visual identifier)
-- **Type badge**: Built-in (ships with Inkweld) or Custom (your creations)
-- **Action menu** (⋮) for editing, cloning, or deleting
+- **Tab and field counts**, plus the template's description
+- **Edit**, **Clone** and **Delete** buttons
 
 <ThemedImage
   src="/img/features/templates-overview"
@@ -263,14 +262,13 @@ Track objects and artifacts:
 ### Editing Templates
 
 1. Go to **Project Settings** → **Element Templates**
-2. Click the **three-dot menu** (⋮) on the template card
-3. Select **"Edit"** to open the Template Editor
-4. Add, remove, or reorder fields within each tab
-5. Changes save automatically — just close the editor when you're done
+2. Click the **Edit** button (pencil icon) on the template's row to open the Template Editor
+3. Add, remove, or reorder fields within each tab
+4. Changes save automatically — just close the editor when you're done
 
 <ThemedImage
   src="/img/features/templates-card-menu"
-  alt="Template card with action menu"
+  alt="Template row with its Edit, Clone and Delete buttons"
 />
 
 :::note
@@ -286,16 +284,14 @@ field simply stops being shown once the element is updated.
 To create a variation of an existing template:
 
 1. Find the template in the **Element Templates** tab
-2. Click the **three-dot menu** (⋮)
-3. Select **"Clone"**
-4. A copy is created with "(Copy)" appended to the name
-5. Edit the cloned template to customize it
+2. Click its **Clone** button (copy icon)
+3. A copy is created with "(Copy)" appended to the name
+4. Edit the cloned template to customize it
 
 ### Deleting Templates
 
-1. Click the **three-dot menu** (⋮) on the template card
-2. Select **"Delete"**
-3. Confirm the deletion
+1. Click the **Delete** button (bin icon) on the template's row
+2. Confirm the deletion
 
 :::warning
 Deleting a template **does not** delete elements that use it. Each element keeps
@@ -489,7 +485,3 @@ On screens narrower than 760px, the sidenav is replaced with an **accordion layo
 ![The worldbuilding editor in mobile accordion mode showing collapsible sections](/img/features/mobile/worldbuilding-accordion-iPhone14Pro.png)
 
 The Identity & Details panel is expanded by default. Tap any panel header to expand or collapse it. The accordion layout provides the same editing capabilities as the desktop sidenav, optimized for touch interaction.
-
----
-
-**Next:** [Element Types](./element-types) - Explore the 29 built-in element types and what each one is for.

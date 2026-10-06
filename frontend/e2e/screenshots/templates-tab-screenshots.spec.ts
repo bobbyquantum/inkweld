@@ -5,7 +5,7 @@
  * Project Settings → Element Templates). Consolidated 10 → 2 tests (one
  * per color scheme); each captures overview, list, header/create button,
  * template editor page, an editor tab (fields + tab label/icon editor),
- * template row actions, and card details via test.step.
+ * the Clone button with its tooltip, and card details via test.step.
  *
  * Uses the worldbuilding-demo project template which ships with pre-built
  * schemas (Character, Location) so the templates tab has content to display
@@ -82,17 +82,17 @@ async function captureAllTemplateScreenshots(
         16
       );
     });
-
-    await test.step('header / create button', async () => {
-      const controls = page.getByTestId('templates-controls');
-      await captureElementScreenshot(
-        page,
-        [controls],
-        join(screenshotsDir, 'templates-create-button-light.png'),
-        16
-      );
-    });
   }
+
+  await test.step('header / create button', async () => {
+    const controls = page.getByTestId('templates-controls');
+    await captureElementScreenshot(
+      page,
+      [controls],
+      join(screenshotsDir, `templates-create-button-${suffix}.png`),
+      16
+    );
+  });
 
   await test.step('template card', async () => {
     const card = page.locator('[data-testid="template-card"]').first();
@@ -104,16 +104,21 @@ async function captureAllTemplateScreenshots(
     );
   });
 
-  await test.step('template actions', async () => {
+  await test.step('clone button with tooltip', async () => {
     const card = page.locator('[data-testid="template-card"]').first();
-    const actions = card.getByTestId('template-actions');
-    await expect(actions).toBeVisible();
+    await card.getByTestId('clone-template-button').hover();
+    const tooltip = page.locator('.mat-mdc-tooltip');
+    await expect(tooltip).toBeVisible();
+    // Capture the whole row so the Clone button is shown in context, with
+    // its tooltip naming the action.
     await captureElementScreenshot(
       page,
-      [actions],
+      [card, tooltip],
       join(screenshotsDir, `templates-clone-menu-${suffix}.png`),
       16
     );
+    await page.mouse.move(0, 0);
+    await expect(tooltip).toBeHidden();
   });
 
   await test.step('create template dialog', async () => {

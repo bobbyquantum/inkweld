@@ -146,7 +146,3 @@ A few things still aren't exposed in the Style editor:
 - **Page size & margins** — PDF currently uses sensible defaults per preset
 
 These may be added in future versions.
-
----
-
-**Next:** [User Settings](/user-guide/settings/user-settings) — Configure your personal preferences.

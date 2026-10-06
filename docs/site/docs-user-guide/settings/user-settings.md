@@ -104,7 +104,3 @@ When enabled (the default), Inkweld saves a snapshot of each document you edited
 ## Server Connections
 
 Switching servers, adding a new connection and moving a browser-only project to a server are done from the **account menu** rather than this dialog: use **Switch profile**, **Add profile…** or **Manage profiles…**. See [Profiles: Switching, Adding and Upgrading](../getting-started/client-mode.md#profiles-switching-adding-and-upgrading).
-
----
-
-**Next:** [Project Settings](./project-settings) - Configure project-level options.

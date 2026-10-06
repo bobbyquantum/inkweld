@@ -80,7 +80,3 @@ Exports are generated entirely in your browser:
 ## Stored Exports
 
 After generation, the file is stored in your Media Library under the "Published" category. You can re-download it later without regenerating.
-
----
-
-**Next:** [Publish Plans](./publish-plans) — Save export configurations for reuse.

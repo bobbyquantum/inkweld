@@ -104,7 +104,3 @@ Changes to a plan are saved automatically as you edit.
 - "Manuscript PDF" for editors
 - "Beta EPUB" for early readers
 - "Archive Markdown" for backup
-
----
-
-**Next:** [Customizing Output](./customization) — Metadata and options.

@@ -159,4 +159,6 @@ Logging in to a server profile as a different author automatically gives that au
 
 **Manage profiles… → Storage on this device → Reset this device** wipes everything and returns you here. Type `RESET` to confirm.
 
-**Next:** [Account Setup](./account-setup) — Create your account on a server, or skip to [The Bookshelf](./dashboard) if using Browser or Cloud Sync mode.
+## Next Steps
+
+If you chose a server, continue with [Account Setup](./account-setup) to create your account. In Browser or Cloud Sync mode there is no account to set up — go straight to [The Bookshelf](./dashboard).

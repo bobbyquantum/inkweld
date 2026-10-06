@@ -132,7 +132,3 @@ Tags are flexible—use them however helps your workflow:
 - **Status**: Draft, Complete, Needs Review
 - **Factions**: Kingdom A, Kingdom B, Neutral
 - **Importance**: Key, Background, Referenced
-
----
-
-**Next:** [Search & Navigation](./search) - Find content quickly in your project.

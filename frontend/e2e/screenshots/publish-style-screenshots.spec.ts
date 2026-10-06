@@ -116,9 +116,20 @@ async function captureStyleScreenshots(
   });
 
   await test.step('worldbuilding section', async () => {
+    // The accordion is `multi`, so the body text and chapter panels opened
+    // above are still expanded and push this panel below the fold, where the
+    // clipped capture only gets its header. Collapse them first.
+    for (const key of ['section-base-text', 'section-chapter']) {
+      const open = page.getByTestId(key);
+      await open.locator('mat-expansion-panel-header').click();
+      await expect(open).not.toHaveClass(/mat-expanded/);
+    }
+
     const section = page.getByTestId('section-worldbuilding');
-    await section.click();
+    await section.locator('mat-expansion-panel-header').click();
+    await expect(section).toHaveClass(/mat-expanded/);
     await expect(page.getByTestId('worldbuilding-layout-select')).toBeVisible();
+    await section.scrollIntoViewIfNeeded();
     await captureElementScreenshot(
       page,
       [section],
