@@ -183,6 +183,9 @@
     "linkCopied": "Link copied to clipboard",
     "copyFailed": "Failed to copy link",
     "shareUpdateFailed": "Failed to update sharing",
+    "savedLocallyTitle": "Saved on this device only",
+    "uploadFailed": "The file was generated and saved on this device, but uploading it to the server failed ({{reason}}). It isn't published or shareable yet.",
+    "retryUpload": "Retry upload",
     "quotaRefused": "Your sync capacity is full, so this file was saved on this device only and can't be shared yet. Free up space and publish again to share it."
   }
 }
