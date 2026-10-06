@@ -97,6 +97,26 @@ const PROVIDER_OPTIONS: Record<
 export const NEXTCLOUD_SETUP_GUIDE_URL =
   'https://preview.inkweld.org/user-guide/getting-started/nextcloud-sync';
 
+/**
+ * Server URL input default.
+ *
+ * - A build with an apiUrl (dev, or a hosted preview with autoConfigure
+ *   disabled) pre-fills that server so the user only has to confirm.
+ * - A production build has no apiUrl because the Inkweld server serves it
+ *   (Docker, native binary), so the page's own origin is that server.
+ * - Anything else (Electron's app:// page) falls back to the default port.
+ */
+export function defaultServerUrl(
+  apiUrl: string,
+  location: Pick<Location, 'protocol' | 'origin'> | undefined
+): string {
+  if (apiUrl) return apiUrl;
+  if (location?.protocol === 'http:' || location?.protocol === 'https:') {
+    return location.origin;
+  }
+  return 'http://localhost:8333';
+}
+
 @Component({
   selector: 'app-setup',
   imports: [
@@ -167,12 +187,10 @@ export class SetupComponent implements OnInit {
       .map(id => ({ id, ...PROVIDER_OPTIONS[id] }))
   );
 
-  /**
-   * Server URL input default. A build with a hosted apiUrl (e.g. a preview
-   * deployment with autoConfigure disabled) pre-fills its own server so the
-   * user only has to confirm; other builds fall back to localhost.
-   */
-  protected serverUrl = environment.apiUrl || 'http://localhost:8333';
+  protected serverUrl = defaultServerUrl(
+    environment.apiUrl,
+    globalThis.location
+  );
   protected userName = '';
   protected displayName = '';
   protected nextcloudUrl = '';
