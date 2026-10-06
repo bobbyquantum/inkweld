@@ -48,6 +48,8 @@ function flushAllConfigRequests(
     REQUIRE_POLICY_ACCEPTANCE: 'false',
     SYNC_QUOTA_ENABLED: 'false',
     SYNC_QUOTA_DEFAULT_BYTES: '104857600',
+    CONTENT_SECURITY_POLICY_MODE: 'enforce',
+    CONTENT_SECURITY_POLICY_TRUSTED_SOURCES: '',
   };
   const values = { ...defaults, ...overrides };
 
@@ -1055,6 +1057,86 @@ describe('AdminSettingsComponent', () => {
 
       await savePromise;
       expect(component.customBodyHtml()).toBe('');
+    });
+  });
+
+  describe('content security policy settings', () => {
+    it('loads the mode and trusted sources on init', async () => {
+      fixture.detectChanges();
+      flushAllConfigRequests(httpMock, {
+        CONTENT_SECURITY_POLICY_MODE: 'report-only',
+        CONTENT_SECURITY_POLICY_TRUSTED_SOURCES: 'https://a.example.com',
+      });
+      await flushMicrotasks();
+
+      expect(component.cspMode()).toBe('report-only');
+      expect(component.cspTrustedSources()).toBe('https://a.example.com');
+    });
+
+    it('treats an unknown stored mode as enforce, like the server', async () => {
+      fixture.detectChanges();
+      flushAllConfigRequests(httpMock, {
+        CONTENT_SECURITY_POLICY_MODE: 'something-else',
+      });
+      await flushMicrotasks();
+
+      expect(component.cspMode()).toBe('enforce');
+    });
+
+    it('saves a new mode', async () => {
+      fixture.detectChanges();
+      flushAllConfigRequests(httpMock);
+      await flushMicrotasks();
+
+      const savePromise = component.saveCspMode('off');
+      const putReq = httpMock.expectOne(
+        '/api/v1/admin/config/CONTENT_SECURITY_POLICY_MODE'
+      );
+      expect(putReq.request.body).toEqual({ value: 'off' });
+      putReq.flush(null);
+
+      await savePromise;
+      expect(component.cspMode()).toBe('off');
+    });
+
+    it('saves trusted sources with whitespace normalised', async () => {
+      fixture.detectChanges();
+      flushAllConfigRequests(httpMock);
+      await flushMicrotasks();
+
+      const savePromise = component.saveCspTrustedSources(
+        '  https://a.example.com\n\n  https://b.example.com  '
+      );
+      const putReq = httpMock.expectOne(
+        '/api/v1/admin/config/CONTENT_SECURITY_POLICY_TRUSTED_SOURCES'
+      );
+      expect(putReq.request.body).toEqual({
+        value: 'https://a.example.com https://b.example.com',
+      });
+      putReq.flush(null);
+
+      await savePromise;
+      expect(component.cspTrustedSources()).toBe(
+        'https://a.example.com https://b.example.com'
+      );
+    });
+
+    it('keeps the previous mode when the save fails', async () => {
+      const consoleErrorSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+      fixture.detectChanges();
+      flushAllConfigRequests(httpMock);
+      await flushMicrotasks();
+
+      const savePromise = component.saveCspMode('report-only');
+      httpMock
+        .expectOne('/api/v1/admin/config/CONTENT_SECURITY_POLICY_MODE')
+        .error(new ProgressEvent('error'), { status: 500 });
+
+      await savePromise;
+      expect(component.cspMode()).toBe('enforce');
+      consoleErrorSpy.mockRestore();
     });
   });
 });

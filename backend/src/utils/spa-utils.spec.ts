@@ -1,11 +1,16 @@
-import { describe, expect, it } from 'bun:test';
+import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
 import { createHash } from 'node:crypto';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { brotliCompressSync } from 'node:zlib';
 
 import {
   CUSTOM_BODY_MARKER,
   CUSTOM_HEAD_MARKER,
   injectCustomHtml,
   patchNgswIndexHash,
+  wasmContentEncoding,
 } from './spa-utils';
 
 const makeDocument = () => `<!doctype html>
@@ -100,5 +105,40 @@ describe('patchNgswIndexHash', () => {
     expect(patchNgswIndexHash('not json', 'x')).toBe('not json');
     const noIndex = JSON.stringify({ hashTable: { '/main.js': 'abc' } });
     expect(patchNgswIndexHash(noIndex, 'x')).toBe(noIndex);
+  });
+});
+
+describe('wasmContentEncoding', () => {
+  // Magic number + version 1: the smallest valid WebAssembly module.
+  const plainWasm = new Uint8Array([0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00]);
+  let dir: string;
+
+  beforeAll(() => {
+    dir = mkdtempSync(join(tmpdir(), 'inkweld-wasm-'));
+  });
+
+  afterAll(() => {
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  // Served assets are BunFiles, so test through one.
+  async function fileWith(name: string, bytes: Uint8Array) {
+    const path = join(dir, name);
+    await Bun.write(path, bytes);
+    return Bun.file(path);
+  }
+
+  it('serves plain WebAssembly without an encoding', async () => {
+    expect(await wasmContentEncoding(await fileWith('plain.wasm', plainWasm))).toBeUndefined();
+  });
+
+  it('marks a Brotli-compressed module as br', async () => {
+    const compressed = new Uint8Array(brotliCompressSync(plainWasm));
+    expect(await wasmContentEncoding(await fileWith('br.wasm', compressed))).toBe('br');
+  });
+
+  it('treats a file too short to be WebAssembly as compressed', async () => {
+    const short = new Uint8Array([0x00, 0x61]);
+    expect(await wasmContentEncoding(await fileWith('short.wasm', short))).toBe('br');
   });
 });

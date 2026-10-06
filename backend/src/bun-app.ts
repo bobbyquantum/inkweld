@@ -23,7 +23,15 @@ import {
   buildAssetHeaders,
   injectCustomHtml,
   patchNgswIndexHash,
+  wasmContentEncoding,
 } from './utils/spa-utils';
+import {
+  buildContentSecurityPolicy,
+  cspHeaderName,
+  cspSettingsComment,
+  parseCspMode,
+  type CspMode,
+} from './utils/csp';
 import {
   bunSqliteDatabaseMiddleware,
   type BunSqliteAppContext,
@@ -138,28 +146,36 @@ const SPA_BYPASS_PREFIXES = ['/api', '/health', '/lint', '/image', '/mcp'];
 // not hit SQLite on every request; admin edits appear within TTL seconds.
 
 const CUSTOM_HTML_CACHE_TTL_MS = 5_000;
-let customHtmlCache: { head: string; body: string; fetchedAt: number } | null = null;
 
-type CustomHtml = { head: string; body: string };
+type CustomHtml = {
+  head: string;
+  body: string;
+  cspMode: CspMode;
+  cspTrustedSources: string;
+};
+let customHtmlCache: (CustomHtml & { fetchedAt: number }) | null = null;
 
 async function getCustomHtml(db: BunSqliteAppContext['Variables']['db']): Promise<CustomHtml> {
   const now = Date.now();
   if (customHtmlCache && now - customHtmlCache.fetchedAt < CUSTOM_HTML_CACHE_TTL_MS) {
-    return { head: customHtmlCache.head, body: customHtmlCache.body };
+    return customHtmlCache;
   }
 
-  const [headValue, bodyValue] = await Promise.all([
-    configService.get(db, 'CUSTOM_HEAD_HTML'),
-    configService.get(db, 'CUSTOM_BODY_HTML'),
+  const values = await configService.getMany(db, [
+    'CUSTOM_HEAD_HTML',
+    'CUSTOM_BODY_HTML',
+    'CONTENT_SECURITY_POLICY_MODE',
+    'CONTENT_SECURITY_POLICY_TRUSTED_SOURCES',
   ]);
 
-  const fetched: CustomHtml & { fetchedAt: number } = {
-    head: headValue.value || '',
-    body: bodyValue.value || '',
+  customHtmlCache = {
+    head: values.CUSTOM_HEAD_HTML.value || '',
+    body: values.CUSTOM_BODY_HTML.value || '',
+    cspMode: parseCspMode(values.CONTENT_SECURITY_POLICY_MODE.value),
+    cspTrustedSources: values.CONTENT_SECURITY_POLICY_TRUSTED_SOURCES.value || '',
     fetchedAt: now,
   };
-  customHtmlCache = fetched;
-  return { head: fetched.head, body: fetched.body };
+  return customHtmlCache;
 }
 
 /**
@@ -170,15 +186,22 @@ async function getCustomHtml(db: BunSqliteAppContext['Variables']['db']): Promis
 async function renderIndex(
   html: string,
   db: BunSqliteAppContext['Variables']['db']
-): Promise<string> {
+): Promise<{ html: string; cspMode: CspMode; cspTrustedSources: string }> {
   try {
-    const { head, body } = await getCustomHtml(db);
-    return injectCustomHtml(html, head, body);
+    const custom = await getCustomHtml(db);
+    // The CSP comment makes a settings change reach service-worker clients
+    // (see cspSettingsComment); it rides in the head slot after the admin HTML.
+    const head = custom.head + cspSettingsComment(custom.cspMode, custom.cspTrustedSources);
+    return {
+      html: injectCustomHtml(html, head, custom.body),
+      cspMode: custom.cspMode,
+      cspTrustedSources: custom.cspTrustedSources,
+    };
   } catch (err) {
     logger.warn('SPA', 'Failed to load custom HTML config, serving without injection', {
       err: String(err),
     });
-    return html;
+    return { html, cspMode: 'enforce', cspTrustedSources: '' };
   }
 }
 
@@ -186,12 +209,19 @@ async function respondWithInjectedIndex(
   html: string,
   db: BunSqliteAppContext['Variables']['db']
 ): Promise<Response> {
-  return new Response(await renderIndex(html, db), {
-    headers: {
-      'Content-Type': 'text/html; charset=utf-8',
-      'Cache-Control': 'no-cache',
-    },
-  });
+  const rendered = await renderIndex(html, db);
+  const headers: Record<string, string> = {
+    'Content-Type': 'text/html; charset=utf-8',
+    'Cache-Control': 'no-cache',
+  };
+  const cspHeader = cspHeaderName(rendered.cspMode);
+  if (cspHeader) {
+    headers[cspHeader] = buildContentSecurityPolicy({
+      html: rendered.html,
+      trustedSources: rendered.cspTrustedSources,
+    });
+  }
+  return new Response(rendered.html, { headers });
 }
 
 /**
@@ -205,7 +235,7 @@ async function respondWithPatchedNgsw(
   indexHtml: string,
   db: BunSqliteAppContext['Variables']['db']
 ): Promise<Response> {
-  const served = patchNgswIndexHash(ngswJson, await renderIndex(indexHtml, db));
+  const served = patchNgswIndexHash(ngswJson, (await renderIndex(indexHtml, db)).html);
   return new Response(served, {
     headers: {
       'Content-Type': 'application/json',
@@ -544,23 +574,12 @@ async function serveSpaAsset(
     return null;
   }
 
-  const headers = new Headers();
-  headers.set('Content-Type', file.type || 'application/octet-stream');
-
-  // If the file itself is already compressed (like our large WASM files),
-  // we need to tell the browser even if it didn't ask for a .br file
-  if (relativePath.endsWith('.wasm')) {
-    // Check if it's one of our known large WASM files that we compress in-place
-    if (relativePath.includes('typst_ts_web_compiler_bg.wasm')) {
-      headers.set('Content-Encoding', 'br');
-    }
-  }
-
-  headers.set(
-    'Cache-Control',
-    relativePath === 'index.html' ? 'no-cache' : 'public, max-age=31536000, immutable'
+  const encoding = relativePath.endsWith('.wasm') ? await wasmContentEncoding(file) : undefined;
+  const headers = buildAssetHeaders(
+    file.type || 'application/octet-stream',
+    relativePath,
+    encoding
   );
-
   return new Response(file, { headers });
 }
 
@@ -666,7 +685,7 @@ function createEmbeddedSpaHandler(
   };
 }
 
-function serveEmbeddedAsset(
+async function serveEmbeddedAsset(
   embeddedFiles: Map<string, string | Blob>,
   pathname: string,
   acceptEncoding?: string
@@ -697,8 +716,15 @@ function serveEmbeddedAsset(
     logger.debug('SPA', `Found by basename: "${result.matchedPath}"`);
   }
 
-  const headers = buildAssetHeaders(guessMimeType(result.matchedPath), result.matchedPath);
   const content = typeof result.file === 'string' ? Bun.file(result.file) : result.file;
+  const encoding = result.matchedPath.endsWith('.wasm')
+    ? await wasmContentEncoding(content)
+    : undefined;
+  const headers = buildAssetHeaders(
+    guessMimeType(result.matchedPath),
+    result.matchedPath,
+    encoding
+  );
   return new Response(content, { headers });
 }
 

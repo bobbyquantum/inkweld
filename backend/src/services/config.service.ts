@@ -196,6 +196,8 @@ class ConfigService {
         // 100 MB. Generous enough that ordinary writing never notices, small
         // enough that an instance cannot be filled by one account silently.
         return String(DEFAULT_SYNC_QUOTA_BYTES);
+      case 'CONTENT_SECURITY_POLICY_MODE':
+        return 'enforce';
       default:
         return undefined;
     }

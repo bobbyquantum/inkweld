@@ -135,6 +135,11 @@
   }
 }
 
+// The CSP section shares the custom HTML card; space it from the fields above.
+.csp-header {
+  margin-top: 16px;
+}
+
 .policy-description {
   display: block;
   margin-bottom: 16px;
