@@ -132,8 +132,11 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
    */
   protected readonly isPopout = this.popoutService.isPopout;
 
-  /** Element id in the URL while this window is a pop-out, else null. */
-  private readonly popoutElementId = signal<string | null>(null);
+  /** Document element id in the current URL, else null. */
+  private readonly urlDocumentId = signal<string | null>(null);
+
+  /** Document id the URL has already been turned into an open tab for. */
+  private urlDocumentOpenedFor: string | null = null;
 
   public readonly isMobile = signal(false);
   public readonly isZenMode = signal(false);
@@ -293,25 +296,47 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
       }
     });
 
-    // A pop-out window has no tab interface, so nothing else turns its URL
-    // into an open tab. Wait for the elements to arrive, then open the one
-    // document this window exists to show. Re-runs on navigation so following
-    // a breadcrumb inside the pop-out still lands on the right document.
+    // The tab bar turns a document URL into an open tab
+    // (TabInterfaceComponent.updateSelectedTabFromUrl). A pop-out window, a
+    // phone, or a desktop with tabs turned off has no tab bar, so nothing
+    // else would: a deep link to a document that was not already open sat on
+    // "Loading document..." forever. Wait for the project to finish loading,
+    // then open the document the URL names. Re-runs on navigation so following a
+    // breadcrumb (or the browser's Back button) lands on the right document.
     effect(() => {
-      if (!this.isPopout()) return;
+      const elementId = this.urlDocumentId();
+      if (!elementId) {
+        this.urlDocumentOpenedFor = null;
+        return;
+      }
+      if (
+        !this.isPopout() &&
+        !this.isMobile() &&
+        untracked(() => this.useTabsDesktop())
+      ) {
+        return;
+      }
 
-      const elementId = this.popoutElementId();
+      // The elements arrive before loading ends, and the end of the load
+      // replaces the open tabs with the cached ones, so a tab opened earlier
+      // would be dropped again.
+      if (this.projectState.isLoading()) return;
       const elements = this.projectState.elements();
-      if (!elementId || elements.length === 0) return;
+      // Opened once per arrival at the URL: later element edits (renames,
+      // moves) must not reopen a tab the user has since closed.
+      if (elementId === this.urlDocumentOpenedFor || elements.length === 0) {
+        return;
+      }
 
       const element = elements.find(e => e.id === elementId);
       if (!element) return;
 
+      this.urlDocumentOpenedFor = elementId;
       // Untracked, and it must stay that way: openDocument reaches into the
       // recent-files list, which reads its own signal and then writes a fresh
       // array stamped with the current time. Tracked, that read becomes a
       // dependency of this effect and the write re-triggers it, spinning the
-      // window forever. Only the three signals read above should wake it.
+      // window forever. Only the signals read above should wake it.
       // Idempotent: selects the tab when the document is already open.
       untracked(() => this.projectState.openDocument(element));
     });
@@ -424,15 +449,13 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   ngOnInit() {
     this.logger.debug('ProjectComponent', 'ProjectComponent init');
 
-    if (this.isPopout()) {
-      this.trackPopoutElementId();
-      this.router.events
-        .pipe(
-          filter(event => event instanceof NavigationEnd),
-          takeUntil(this.destroy$)
-        )
-        .subscribe(() => this.trackPopoutElementId());
-    }
+    this.trackUrlDocumentId();
+    this.router.events
+      .pipe(
+        filter(event => event instanceof NavigationEnd),
+        takeUntil(this.destroy$)
+      )
+      .subscribe(() => this.trackUrlDocumentId());
 
     this.paramsSubscription = this.route.params.subscribe(params => {
       const username = params['username'] as string;
@@ -517,13 +540,13 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
 
   /**
    * Reads the document element id out of the current URL
-   * (`/:username/:slug/document/:elementId`), or null when the pop-out is
-   * pointed at anything else.
+   * (`/:username/:slug/document/:elementId`), or null when the URL points at
+   * anything else.
    */
-  private trackPopoutElementId(): void {
+  private trackUrlDocumentId(): void {
     const segments = this.router.url.split('?')[0].split('/').filter(Boolean);
     const isDocumentUrl = segments.length === 4 && segments[2] === 'document';
-    this.popoutElementId.set(
+    this.urlDocumentId.set(
       isDocumentUrl ? decodeURIComponent(segments[3]) : null
     );
   }
