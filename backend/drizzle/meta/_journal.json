@@ -8,13 +8,6 @@
       "when": 1790639838338,
       "tag": "0000_baseline",
       "breakpoints": true
-    },
-    {
-      "idx": 38,
-      "version": "6",
-      "when": 1789689600000,
-      "tag": "0039_drop-mcp-access-keys",
-      "breakpoints": true
     }
   ]
 }

@@ -85,7 +85,7 @@ Then open `http://localhost:8333` in your browser.
 
 - Can be deployed and used now, however, until numbered releases are started, there are no guarantees that data migration paths will be available.  
 - Not recommended for production use.   If you do use it in this way, always back up your work before upgrading, and be aware, manual fixing of exports might be needed to move to newer versions.  
-- At some point closer to the first numbered release, the drizzle migrations will be squashed into a single V1 migration, meaning existing databases will need to be reset or manually fixed.  
+- The database migrations have been squashed into a single baseline for v1. A database that was fully migrated before the squash (commit `a49deaef`) upgrades cleanly; an older one must first be started on a build from just before the squash so its remaining migrations run, or be reset.  
 
 
 ---
