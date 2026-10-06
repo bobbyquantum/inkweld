@@ -20,7 +20,7 @@ import { environment } from '../../../environments/environment';
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { SetupService } from '../../services/core/setup.service';
 import { UnifiedUserService } from '../../services/user/unified-user.service';
-import { SetupComponent } from './setup.component';
+import { defaultServerUrl, SetupComponent } from './setup.component';
 
 describe('SetupComponent', () => {
   let component: SetupComponent;
@@ -280,14 +280,48 @@ describe('SetupComponent', () => {
       );
     });
 
-    it('falls back to localhost when the build has no apiUrl', () => {
+    it('uses the page origin when the build has no apiUrl', () => {
+      // Production builds are served by the Inkweld server itself.
       (environment as { apiUrl: string }).apiUrl = '';
 
       const fresh = TestBed.createComponent(SetupComponent);
 
       expect(fresh.componentInstance['serverUrl']).toBe(
+        globalThis.location.origin
+      );
+    });
+  });
+
+  describe('defaultServerUrl', () => {
+    it('prefers the build apiUrl', () => {
+      expect(
+        defaultServerUrl('https://api.inkweld.test', {
+          protocol: 'https:',
+          origin: 'https://app.inkweld.test',
+        })
+      ).toBe('https://api.inkweld.test');
+    });
+
+    it('uses an http(s) page origin', () => {
+      expect(
+        defaultServerUrl('', {
+          protocol: 'https:',
+          origin: 'https://writing.example.com',
+        })
+      ).toBe('https://writing.example.com');
+      expect(
+        defaultServerUrl('', {
+          protocol: 'http:',
+          origin: 'http://192.168.1.20:8333',
+        })
+      ).toBe('http://192.168.1.20:8333');
+    });
+
+    it('falls back to localhost for non-web origins such as Electron', () => {
+      expect(defaultServerUrl('', { protocol: 'app:', origin: 'null' })).toBe(
         'http://localhost:8333'
       );
+      expect(defaultServerUrl('', undefined)).toBe('http://localhost:8333');
     });
   });
 
