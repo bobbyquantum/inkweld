@@ -35,10 +35,15 @@ describe('countHtmlWords edge cases', () => {
     expect(countHtmlWords('<p>a b</p><style>c d e')).toBe(2);
   });
 
+  it('keeps a stray < that has no closing >', () => {
+    expect(countHtmlWords('<p>a</p> 1 < 2 b')).toBe(5);
+  });
+
   it('handles many unclosed openers in linear time', () => {
     const start = Date.now();
     countHtmlWords('<!--'.repeat(20000) + 'x');
     countHtmlWords('<style>'.repeat(20000));
+    countHtmlWords('<'.repeat(50000));
     expect(Date.now() - start).toBeLessThan(1000);
   });
 });

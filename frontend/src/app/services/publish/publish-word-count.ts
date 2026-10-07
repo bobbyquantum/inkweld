@@ -60,8 +60,25 @@ function nextNonVisible(
 
 /** Count whitespace-separated words in an HTML (or XHTML) string. */
 export function countHtmlWords(html: string): number {
-  const text = stripNonVisible(html).replaceAll(/<[^>]*>/g, ' ');
-  return countTextWords(text);
+  return countTextWords(stripTags(stripNonVisible(html)));
+}
+
+/**
+ * Replace every `<...>` tag with a space. A `<` with no later `>` is plain
+ * text and is kept. Scans with indexOf so it stays linear-time.
+ */
+function stripTags(html: string): string {
+  let out = '';
+  let pos = 0;
+  while (pos < html.length) {
+    const open = html.indexOf('<', pos);
+    if (open === -1) break;
+    const close = html.indexOf('>', open + 1);
+    if (close === -1) break;
+    out += html.slice(pos, open) + ' ';
+    pos = close + 1;
+  }
+  return out + html.slice(pos);
 }
 
 /** Count whitespace-separated words in plain text. */
