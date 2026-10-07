@@ -1,4 +1,8 @@
-import { ChapterHeadingStyle } from '../../models/publish-plan';
+import {
+  ChapterHeadingStyle,
+  ChapterNumbering,
+  type PublishOptions,
+} from '../../models/publish-plan';
 
 /** True when rendered document HTML already opens with a heading. */
 export const LEADING_HEADING_RE = /^\s*<h[1-6][\s>]/i;
@@ -39,4 +43,34 @@ export function withChapterHeading(
 ): string {
   if (!heading || LEADING_HEADING_RE.test(body)) return body;
   return `<h1 class="ink-chapter-title">${escape(heading)}</h1>\n${body}`;
+}
+
+/** True when Markdown already opens with an ATX heading. */
+export const LEADING_MARKDOWN_HEADING_RE = /^\s*#{1,6}\s/;
+
+/**
+ * {@link chapterHeadingText} for a plan item: renders the chapter's number in
+ * the plan's numeral format using the caller's converters.
+ */
+export function chapterHeadingFor(
+  title: string,
+  chapterNumber: number,
+  isChapter: boolean,
+  options: PublishOptions,
+  toRoman: (n: number) => string,
+  toWritten: (n: number) => string
+): string | null {
+  const n = chapterNumber + 1;
+  let numeral = String(n);
+  if (options.chapterNumbering === ChapterNumbering.Roman) {
+    numeral = toRoman(n);
+  } else if (options.chapterNumbering === ChapterNumbering.Written) {
+    numeral = toWritten(n);
+  }
+  return chapterHeadingText(
+    title,
+    numeral,
+    isChapter,
+    options.chapterHeadingStyle
+  );
 }

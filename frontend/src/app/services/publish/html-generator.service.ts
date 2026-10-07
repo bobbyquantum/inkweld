@@ -41,7 +41,7 @@ import { LocalStorageService } from '../local/local-storage.service';
 import { CoverSourceService } from '../project/cover-source.service';
 import { DocumentService } from '../project/document.service';
 import { ProjectStateService } from '../project/project-state.service';
-import { chapterHeadingText, withChapterHeading } from './chapter-heading';
+import { chapterHeadingFor, withChapterHeading } from './chapter-heading';
 import { IconSvgService } from './icon-svg.service';
 import { PublishCssEmitterService } from './publish-css-emitter.service';
 import { countHtmlWords } from './publish-word-count';
@@ -1547,24 +1547,20 @@ ${content}
     lines.push(`</ul>`);
   }
 
-  private chapterHeading(
+  /** Shared with {@link HtmlSiteGeneratorService}. */
+  chapterHeading(
     title: string,
     chapterNumber: number,
     isChapter: boolean,
     options: PublishOptions
   ): string | null {
-    const n = chapterNumber + 1;
-    let numeral = String(n);
-    if (options.chapterNumbering === ChapterNumbering.Roman) {
-      numeral = this.toRoman(n);
-    } else if (options.chapterNumbering === ChapterNumbering.Written) {
-      numeral = this.toWritten(n);
-    }
-    return chapterHeadingText(
+    return chapterHeadingFor(
       title,
-      numeral,
+      chapterNumber,
       isChapter,
-      options.chapterHeadingStyle
+      options,
+      n => this.toRoman(n),
+      n => this.toWritten(n)
     );
   }
 

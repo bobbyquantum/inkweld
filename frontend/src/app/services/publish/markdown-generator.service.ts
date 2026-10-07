@@ -27,6 +27,10 @@ import { DocumentService } from '../project/document.service';
 import { ProjectStateService } from '../project/project-state.service';
 import { countTextWords } from './publish-word-count';
 import {
+  chapterHeadingFor,
+  LEADING_MARKDOWN_HEADING_RE,
+} from './chapter-heading';
+import {
   type RenderedWorldbuildingEntry,
   WorldbuildingPublishRendererService,
 } from './worldbuilding-publish-renderer.service';
@@ -245,8 +249,8 @@ export class MarkdownGeneratorService {
   private async processElement(
     item: ElementItem,
     elements: Element[],
-    _options: PublishOptions,
-    _chapterNumber: number
+    options: PublishOptions,
+    chapterNumber: number
   ): Promise<string> {
     const element = elements.find(e => e.id === item.elementId);
     if (!element) return '';
@@ -255,13 +259,22 @@ export class MarkdownGeneratorService {
       return await this.renderInlineWb(element);
     }
     if (element.type === ElementType.Item) {
-      // We deliberately do NOT emit the element name as a heading here.
-      // The user's document is responsible for its own title (or none).
-      // Chapter numbering (if enabled) is reflected in the TOC only.
-      return await this.getDocumentContent(element.id);
+      // The element name is emitted as a heading only when the plan picks a
+      // `chapterHeadingStyle`; otherwise the user's document is responsible
+      // for its own title (or none). Chapter numbering is reflected in the
+      // TOC either way.
+      return this.withHeading(
+        await this.getDocumentContent(element.id),
+        this.chapterHeading(
+          item.titleOverride || element.name,
+          chapterNumber,
+          item.isChapter ?? false,
+          options
+        )
+      );
     }
     if (element.type === ElementType.Folder && item.includeChildren) {
-      return await this.renderFolderChildren(element, elements);
+      return await this.renderFolderChildren(element, elements, options);
     }
     return '';
   }
@@ -274,9 +287,32 @@ export class MarkdownGeneratorService {
     return await this.processWorldbuilding(synthetic, [element]);
   }
 
+  /** Prepend a `#` heading unless the Markdown already opens with one. */
+  private withHeading(body: string, heading: string | null): string {
+    if (!heading || LEADING_MARKDOWN_HEADING_RE.test(body)) return body;
+    return `# ${heading}\n\n${body}`;
+  }
+
+  private chapterHeading(
+    title: string,
+    chapterNumber: number,
+    isChapter: boolean,
+    options: PublishOptions
+  ): string | null {
+    return chapterHeadingFor(
+      title,
+      chapterNumber,
+      isChapter,
+      options,
+      n => this.toRoman(n),
+      n => this.toWritten(n)
+    );
+  }
+
   private async renderFolderChildren(
     element: Element,
-    elements: Element[]
+    elements: Element[],
+    options: PublishOptions
   ): Promise<string> {
     const parts: string[] = [];
     const children = this.getChildElements(element, elements);
@@ -286,7 +322,13 @@ export class MarkdownGeneratorService {
         child.type === ElementType.Item &&
         isPublishableByDefault(child.metadata)
       ) {
-        parts.push(await this.getDocumentContent(child.id));
+        // Folder children aren't numbered, so number styles reduce to the name.
+        parts.push(
+          this.withHeading(
+            await this.getDocumentContent(child.id),
+            this.chapterHeading(child.name, 0, false, options)
+          )
+        );
       } else if (isWorldbuildingType(child.type)) {
         const md = await this.renderInlineWb(child);
         if (md) parts.push(md);

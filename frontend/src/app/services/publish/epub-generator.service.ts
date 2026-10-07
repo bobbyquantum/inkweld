@@ -38,7 +38,7 @@ import { CoverSourceService } from '../project/cover-source.service';
 import { DefaultCoverRendererService } from '../project/default-cover-renderer.service';
 import { DocumentService } from '../project/document.service';
 import { ProjectStateService } from '../project/project-state.service';
-import { chapterHeadingText, withChapterHeading } from './chapter-heading';
+import { chapterHeadingFor, withChapterHeading } from './chapter-heading';
 import {
   buildNavTree,
   coreImageExtension,
@@ -2261,18 +2261,13 @@ ${chapter.body}
     isChapter: boolean,
     options: PublishOptions
   ): string | null {
-    const n = chapterNumber + 1;
-    let numeral = String(n);
-    if (options.chapterNumbering === ChapterNumbering.Roman) {
-      numeral = this.toRoman(n);
-    } else if (options.chapterNumbering === ChapterNumbering.Written) {
-      numeral = this.toWritten(n);
-    }
-    return chapterHeadingText(
+    return chapterHeadingFor(
       title,
-      numeral,
+      chapterNumber,
       isChapter,
-      options.chapterHeadingStyle
+      options,
+      n => this.toRoman(n),
+      n => this.toWritten(n)
     );
   }
 

@@ -248,7 +248,8 @@ export interface PublishOptions {
   includeCover: boolean;
   /**
    * Heading added above documents that don't already start with one.
-   * Currently honoured by EPUB only. Defaults to `None` when absent.
+   * Honoured by every generator (EPUB, HTML, HTML site, PDF, Markdown).
+   * Defaults to `None` when absent.
    */
   chapterHeadingStyle?: ChapterHeadingStyle;
   /** Cover image reference */
