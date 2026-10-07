@@ -24,7 +24,6 @@ describe('PublishPlansListTabComponent', () => {
 
   const mockProjectState = {
     publishPlans: signal<PublishPlan[]>([]),
-    elements: signal<unknown[]>([]),
     project: signal({
       title: 'Test',
       username: 'user',
