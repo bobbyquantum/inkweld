@@ -10,8 +10,10 @@
   &.compact {
     gap: 4px;
 
+    // Do not pull the next field up with a negative margin: it slid the
+    // "Confirm Password" label over the previous field's error text.
     mat-form-field {
-      margin-bottom: -4px;
+      margin-bottom: 0;
     }
   }
 }

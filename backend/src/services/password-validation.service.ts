@@ -58,8 +58,8 @@ export function validatePassword(password: string, policy: PasswordPolicy): stri
   if (policy.requireNumber && !/\d/.test(password)) {
     errors.push('Password must contain at least one number');
   }
-  if (policy.requireSymbol && !/[@$!%*?&]/.test(password)) {
-    errors.push('Password must contain at least one special character (@$!%*?&)');
+  if (policy.requireSymbol && !/[^\p{L}\p{N}\s]/u.test(password)) {
+    errors.push('Password must contain at least one special character (e.g. ! @ # $ % - _ .)');
   }
 
   return errors;

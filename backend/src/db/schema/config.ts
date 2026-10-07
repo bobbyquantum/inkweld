@@ -117,7 +117,7 @@ export const CONFIG_KEYS = {
   },
   PASSWORD_REQUIRE_SYMBOL: {
     category: 'auth' as ConfigCategory,
-    description: 'Require at least one special character (@$!%*?&) in passwords',
+    description: 'Require at least one special character (e.g. ! @ # $ % - _ .) in passwords',
     encrypted: false,
     envVar: 'PASSWORD_REQUIRE_SYMBOL',
     type: 'boolean' as const,

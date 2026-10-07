@@ -148,7 +148,7 @@ authRoutes.openapi(registerRoute, async (c) => {
       {
         username,
         password: passwordLoginEnabled ? password : undefined,
-        email: email || username + '@local',
+        email: email || null,
         name: name || username,
         policyAcceptedVersion,
       },

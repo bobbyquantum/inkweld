@@ -120,6 +120,10 @@
         [attr.data-testid]="testIdPrefix + 'password-input'" />
       @if (form.password().touched() && form.password().invalid()) {
         <mat-error>{{ getPasswordErrorMessage() }}</mat-error>
+      } @else {
+        <mat-hint data-testid="password-requirements-hint">{{
+          passwordRequirementsHint()
+        }}</mat-hint>
       }
     </mat-form-field>
 
