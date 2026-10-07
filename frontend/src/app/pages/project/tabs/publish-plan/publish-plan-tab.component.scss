@@ -528,14 +528,12 @@ mat-expansion-panel {
       padding: 4px;
     }
 
-    pointer-events: none;
     opacity: 0;
     transition: opacity 0.2s ease;
   }
 
   &:hover .item-actions,
   &:focus-within .item-actions {
-    pointer-events: auto;
     opacity: 1;
   }
 }
