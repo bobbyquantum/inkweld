@@ -233,14 +233,12 @@ export class ElementPickerDialogComponent {
   /** Secondary label: the template name, or the plain element kind. */
   getTypeLabel(element: Element): string {
     if (element.schemaId) return element.schemaId.replace(/-v\d+$/, '');
-    const key =
-      element.type === ElementType.Folder
-        ? 'typeFolder'
-        : element.type === ElementType.Item
-          ? isNote(element.metadata)
-            ? 'typeNote'
-            : 'typeDocument'
-          : null;
+    let key: string | null = null;
+    if (element.type === ElementType.Folder) {
+      key = 'typeFolder';
+    } else if (element.type === ElementType.Item) {
+      key = isNote(element.metadata) ? 'typeNote' : 'typeDocument';
+    }
     return key ? this.transloco.translate(`dialogs.elementPicker.${key}`) : '';
   }
 
