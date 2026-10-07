@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import {
   getPublishStylePreset,
-  presetsForMedium,
   PUBLISH_STYLE_PRESETS,
+  reflowablePresets,
 } from './publish-style-presets';
 
 describe('publish-style-presets', () => {
@@ -168,9 +168,9 @@ describe('publish-style-presets', () => {
     });
   });
 
-  describe('presetsForMedium', () => {
+  describe('reflowablePresets', () => {
     it('drops print presets for reflowable output', () => {
-      const ids = presetsForMedium(true).map(p => p.id);
+      const ids = reflowablePresets().map(p => p.id);
       expect(ids).toEqual([
         'ebook',
         'ebookModern',
@@ -180,12 +180,8 @@ describe('publish-style-presets', () => {
       ]);
     });
 
-    it('keeps every preset for non-reflowable formats', () => {
-      expect(presetsForMedium(false)).toEqual(PUBLISH_STYLE_PRESETS);
-    });
-
     it('does not name print terms in reflowable preset labels', () => {
-      for (const p of presetsForMedium(true).filter(
+      for (const p of reflowablePresets().filter(
         p => p.medium === 'reflowable'
       )) {
         expect(p.label).not.toMatch(/paperback|6x9|letter|a4/i);

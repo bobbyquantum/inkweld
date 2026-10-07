@@ -33,8 +33,9 @@ import {
 } from '@models/publish-style';
 import {
   getPublishStylePreset,
-  presetsForMedium,
+  PUBLISH_STYLE_PRESETS,
   type PublishStylePreset,
+  reflowablePresets,
 } from '@models/publish-style-presets';
 
 interface NodeSection {
@@ -82,7 +83,7 @@ export class PublishStyleEditorComponent {
 
   /** Presets for the current output kind, plus the one already applied. */
   protected get visiblePresets(): PublishStylePreset[] {
-    const list = presetsForMedium(this.reflowable);
+    const list = this.reflowable ? reflowablePresets() : PUBLISH_STYLE_PRESETS;
     const current = this.styles?.preset
       ? getPublishStylePreset(this.styles.preset)
       : undefined;

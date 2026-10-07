@@ -766,7 +766,7 @@ EPUBCheck-clean EPUB 3.3 with EPUB 2 fallbacks (NCX, `<guide>`,
   whole-paragraph context when changing them.
 - **EPUB is reflowable.** The style editor gets `[reflowable]="true"` for it,
   which hides page setup and swaps the print presets for the `ebook*` ones
-  (`presetsForMedium`). The EPUB generator ignores `styles.page`.
+  (`reflowablePresets`). The EPUB generator ignores `styles.page`.
 - Element references are written with an `inkweld-element:` sentinel href and
   rewritten to the target chapter file (or unlinked) in `resolveElementRefs`.
 

@@ -837,7 +837,7 @@ export class EpubGeneratorService {
    * (artwork + title + author). That is not a media file, so draw the same
    * thing into an image the package can carry.
    */
-  private async renderDefaultCover(plan: PublishPlan): Promise<Blob | null> {
+  private renderDefaultCover(plan: PublishPlan): Promise<Blob | null> {
     const project = this.projectStateService.project();
     const title =
       plan.metadata.title || project?.title || project?.slug || 'Untitled';

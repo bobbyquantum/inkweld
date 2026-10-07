@@ -162,13 +162,94 @@ export function quoteStyleFor(language: string | undefined): QuoteStyle {
 const ELISIONS = /^(?:tis|twas|twere|twill|em|cause|cos|til|round|n|im|ere)\b/i;
 
 const OPENING_CONTEXT = new RegExp(
-  `[\\s([{<${EM_DASH}${EN_DASH}\\u00A0${OBJECT}]`
+  String.raw`[\s([{${EM_DASH}${EN_DASH}\u00A0${OBJECT}]`
 );
+const WORD_CHAR = /[\p{L}\p{N}]/u;
 const isOpeningContext = (prev: string | undefined, quotes: QuoteStyle) =>
   prev === undefined ||
   OPENING_CONTEXT.test(prev) ||
   prev === quotes.open ||
   prev === quotes.openInner;
+
+/** Working state while converting one run of text. */
+interface RunContext {
+  quotes: QuoteStyle;
+  dash: string;
+  /** The input, one entry per character. */
+  chars: string[];
+  /** What each input character becomes ('' when merged into a neighbour). */
+  out: string[];
+}
+
+/** The last character already written before position `i`. */
+function prevWritten(ctx: RunContext, i: number): string | undefined {
+  for (let j = i - 1; j >= 0; j--) {
+    if (ctx.out[j]) return ctx.out[j].slice(-1);
+  }
+  return undefined;
+}
+
+const isSpace = (ch: string | undefined): boolean =>
+  ch !== undefined && /\s/.test(ch);
+
+/**
+ * `--` and `---` become a dash; a lone hyphen between spaced words becomes
+ * an en dash. Returns how many extra characters were consumed, or -1 when
+ * position `i` is not a dash.
+ */
+function convertDash(ctx: RunContext, i: number): number {
+  const { chars, out } = ctx;
+  if (chars[i] !== '-') return -1;
+  if (chars[i + 1] === '-') {
+    const long = chars[i + 2] === '-';
+    out[i] = long ? EM_DASH : ctx.dash;
+    out[i + 1] = '';
+    if (long) out[i + 2] = '';
+    return long ? 2 : 1;
+  }
+  const spaced = isSpace(chars[i - 1]) && isSpace(chars[i + 1]);
+  if (spaced && i > 1 && !isSpace(chars[i - 2])) {
+    out[i] = EN_DASH;
+    return 0;
+  }
+  return -1;
+}
+
+function convertDoubleQuote(ctx: RunContext, i: number): void {
+  const { quotes, chars } = ctx;
+  const next = chars[i + 1];
+  const pad = quotes.pad ?? '';
+  if (next !== undefined && isOpeningContext(prevWritten(ctx, i), quotes)) {
+    ctx.out[i] = quotes.open + (isSpace(next) ? '' : pad);
+    return;
+  }
+  const before = chars[i - 1];
+  const needsPad = before !== undefined && !isSpace(before);
+  ctx.out[i] = (needsPad ? pad : '') + quotes.close;
+}
+
+function convertSingleQuote(ctx: RunContext, text: string, i: number): void {
+  const { quotes, chars } = ctx;
+  const prev = prevWritten(ctx, i);
+  const next = chars[i + 1];
+  const rest = text.slice(i + 1);
+  const wordBefore = prev !== undefined && WORD_CHAR.test(prev);
+  const wordAfter = next !== undefined && WORD_CHAR.test(next);
+  const opening = isOpeningContext(prev, quotes);
+
+  if (wordBefore && wordAfter) {
+    ctx.out[i] = APOSTROPHE;
+  } else if (opening && wordAfter) {
+    // 'tis, 'em, '90s: an apostrophe standing in for dropped letters.
+    const elided = ELISIONS.test(rest) || /^\d\d(?!\d)/.test(rest);
+    ctx.out[i] = elided ? APOSTROPHE : quotes.openInner;
+  } else if (opening && next && /\S/.test(next)) {
+    ctx.out[i] = quotes.openInner;
+  } else {
+    // After a word or closing punctuation: closing quote or apostrophe (dogs').
+    ctx.out[i] = quotes.closeInner;
+  }
+}
 
 /**
  * Convert a run of text. The run may be a whole paragraph assembled from
@@ -178,84 +259,25 @@ const isOpeningContext = (prev: string | undefined, quotes: QuoteStyle) =>
  * caller split the result back into its pieces.
  */
 function convertRun(text: string, language: string | undefined): string[] {
-  const quotes = quoteStyleFor(language);
-  const dash = SPACED_EN_DASH.has(primaryLanguage(language))
-    ? EN_DASH
-    : EM_DASH;
-  const out: string[] = Array.from(text, ch => ch);
-  const chars = out.slice();
-  // The last character already written before position i.
-  const prevOf = (i: number): string | undefined => {
-    for (let j = i - 1; j >= 0; j--) {
-      if (out[j]) return out[j].slice(-1);
-    }
-    return undefined;
+  const chars = Array.from(text);
+  const ctx: RunContext = {
+    quotes: quoteStyleFor(language),
+    dash: SPACED_EN_DASH.has(primaryLanguage(language)) ? EN_DASH : EM_DASH,
+    chars,
+    out: chars.slice(),
   };
 
   for (let i = 0; i < chars.length; i++) {
-    const ch = chars[i];
-    const next = chars[i + 1];
-
-    if (ch === '-' && next === '-') {
-      if (chars[i + 2] === '-') {
-        out[i] = EM_DASH;
-        out[i + 1] = '';
-        out[i + 2] = '';
-        i += 2;
-      } else {
-        out[i] = dash;
-        out[i + 1] = '';
-        i += 1;
-      }
-      continue;
-    }
-    if (
-      ch === '-' &&
-      /\s/.test(chars[i - 1] ?? '') &&
-      /\s/.test(next ?? '') &&
-      i > 1 &&
-      !/\s/.test(chars[i - 2])
-    ) {
-      out[i] = EN_DASH;
-      continue;
-    }
-
-    if (ch === '"') {
-      const opening = isOpeningContext(prevOf(i), quotes) && next !== undefined;
-      const pad = quotes.pad ?? '';
-      if (opening) {
-        out[i] = quotes.open + (/\s/.test(next) ? '' : pad);
-      } else {
-        const before = chars[i - 1];
-        out[i] = (before && !/\s/.test(before) ? pad : '') + quotes.close;
-      }
-      continue;
-    }
-
-    if (ch === "'") {
-      const prev = prevOf(i);
-      const rest = text.slice(i + 1);
-      const wordBefore = prev !== undefined && /[\p{L}\p{N}]/u.test(prev);
-      const wordAfter = next !== undefined && /[\p{L}\p{N}]/u.test(next);
-      if (wordBefore && wordAfter) {
-        out[i] = APOSTROPHE;
-      } else if (
-        isOpeningContext(prev, quotes) &&
-        wordAfter &&
-        !ELISIONS.test(rest) &&
-        !/^\d\d(?!\d)/.test(rest)
-      ) {
-        out[i] = quotes.openInner;
-      } else if (isOpeningContext(prev, quotes) && next && /\S/.test(next)) {
-        // 'tis, 'em, '90s: an apostrophe standing in for dropped letters.
-        out[i] = /[\p{L}\p{N}]/u.test(next) ? APOSTROPHE : quotes.openInner;
-      } else {
-        // After a word or closing punctuation: closing quote or apostrophe (dogs').
-        out[i] = quotes.closeInner;
-      }
+    const consumed = convertDash(ctx, i);
+    if (consumed >= 0) {
+      i += consumed;
+    } else if (chars[i] === '"') {
+      convertDoubleQuote(ctx, i);
+    } else if (chars[i] === "'") {
+      convertSingleQuote(ctx, text, i);
     }
   }
-  return out;
+  return ctx.out;
 }
 
 /** Convert one stand-alone string. */
@@ -291,10 +313,9 @@ export function smartenSegments(
 
 // ── Document tree ────────────────────────────────────────────────────────
 
-type Json = unknown;
 type Rec = Record<string, unknown>;
 
-const isRec = (v: Json): v is Rec =>
+const isRec = (v: unknown): v is Rec =>
   typeof v === 'object' && v !== null && !Array.isArray(v);
 
 /** Block nodes whose text is literal and must stay as typed. */
@@ -310,13 +331,13 @@ function nodeName(node: Rec): string {
 function hasCodeMark(node: Rec): boolean {
   const marks = node['marks'];
   if (!Array.isArray(marks)) return false;
-  return marks.some(m => {
-    const type = typeof m === 'string' ? m : isRec(m) ? m['type'] : undefined;
+  return (marks as unknown[]).some(m => {
+    const type = isRec(m) ? m['type'] : m;
     return typeof type === 'string' && type.toLowerCase() === 'code';
   });
 }
 
-const isTextLeaf = (child: Json): boolean =>
+const isTextLeaf = (child: unknown): boolean =>
   typeof child === 'string' ||
   (isRec(child) && typeof child['text'] === 'string');
 
@@ -326,31 +347,33 @@ const isTextLeaf = (child: Json): boolean =>
  * Yjs shape (`nodeName`/`children`, string leaves). Code blocks and
  * code-marked text are left alone; the input is not modified.
  */
-export function smartenDocument<T extends Json>(doc: T, language?: string): T {
+export function smartenDocument<T>(doc: T, language?: string): T {
   return smartenNode(doc, language) as T;
 }
 
-function smartenNode(node: Json, language: string | undefined): Json {
+function childKey(node: Rec): 'content' | 'children' | null {
+  if (Array.isArray(node['content'])) return 'content';
+  if (Array.isArray(node['children'])) return 'children';
+  return null;
+}
+
+function smartenNode(node: unknown, language: string | undefined): unknown {
   if (Array.isArray(node)) return smartenChildren(node, language);
   if (!isRec(node)) return node;
   if (LITERAL_NODES.has(nodeName(node))) return node;
 
-  const key = Array.isArray(node['content'])
-    ? 'content'
-    : Array.isArray(node['children'])
-      ? 'children'
-      : null;
+  const key = childKey(node);
   if (!key) return node;
   return {
     ...node,
-    [key]: smartenChildren(node[key] as Json[], language),
+    [key]: smartenChildren(node[key] as unknown[], language),
   };
 }
 
 function smartenChildren(
-  children: Json[],
+  children: unknown[],
   language: string | undefined
-): Json[] {
+): unknown[] {
   if (!children.some(isTextLeaf)) {
     return children.map(c => smartenNode(c, language));
   }
