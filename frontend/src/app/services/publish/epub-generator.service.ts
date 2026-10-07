@@ -58,6 +58,7 @@ import {
 import { mediaIdFromSrc, sanitizeCssColor } from './html-generator.service';
 import { PublishCssEmitterService } from './publish-css-emitter.service';
 import { canonicalMarkName } from './publish-marks-helper';
+import { smartenDocument, typographyLanguageFor } from './typography';
 import {
   type RenderedWorldbuildingEntry,
   WorldbuildingPublishRendererService,
@@ -294,6 +295,8 @@ export class EpubGeneratorService {
   );
 
   // Per-run state, reset at the start of each generation.
+  /** Language to typeset quotes/dashes for, or null to leave text as typed. */
+  private typography: string | null = null;
   private coverImageData: { blob: Blob; mimeType: string } | null = null;
   private images: EpubImage[] = [];
   /** Image source string → packaged href (null when it could not load). */
@@ -342,6 +345,7 @@ export class EpubGeneratorService {
   async generateEpub(plan: PublishPlan): Promise<EpubResult> {
     this.isCancelled = false;
     this.resetRunState();
+    this.typography = typographyLanguageFor(plan);
     const startTime = Date.now();
     const result: EpubResult = {
       success: false,
@@ -884,8 +888,11 @@ export class EpubGeneratorService {
         );
         return '<p>Document is empty</p>';
       }
-      await this.resolveDocumentImages(content);
-      return this.prosemirrorToHtml(content);
+      const typeset = this.typography
+        ? smartenDocument(content, this.typography)
+        : content;
+      await this.resolveDocumentImages(typeset);
+      return this.prosemirrorToHtml(typeset);
     } catch (error) {
       this.logger.warn(
         'EpubGenerator',

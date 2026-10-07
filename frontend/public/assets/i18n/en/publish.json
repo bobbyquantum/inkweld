@@ -47,6 +47,8 @@
     "removeItem": "Remove item",
     "includeToc": "Include Table of Contents",
     "includeCover": "Include Cover Page",
+    "typographicQuotes": "Typographic quotes and dashes",
+    "typographicQuotesHint": "Curls straight quotes and apostrophes and turns -- into a dash for the book's language. Your documents are not changed. On by default except for Markdown.",
     "coverImageLabel": "Cover Image",
     "coverImagePlaceholder": "Uses project cover by default",
     "coverImageAria": "Cover image URL",

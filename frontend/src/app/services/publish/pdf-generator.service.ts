@@ -29,6 +29,7 @@ import { DocumentService } from '../project/document.service';
 import { ProjectStateService } from '../project/project-state.service';
 import { applyMarks, TYPST_MARK_TAGS } from './publish-marks-helper';
 import { PublishTypstEmitterService } from './publish-typst-emitter.service';
+import { smartenDocument, typographyLanguageFor } from './typography';
 import {
   type RenderedWorldbuildingEntry,
   WorldbuildingPublishRendererService,
@@ -216,9 +217,13 @@ export class PdfGeneratorService {
     });
   }
 
+  /** Language to typeset quotes/dashes for, or null to leave text as typed. */
+  private typography: string | null = null;
+
   async generatePdf(plan: PublishPlan): Promise<PdfResult> {
     this.isCancelled = false;
     this.coverImageData = null;
+    this.typography = typographyLanguageFor(plan);
     const startTime = Date.now();
     const result: PdfResult = {
       success: false,
@@ -739,7 +744,10 @@ export class PdfGeneratorService {
         ctx.markup += '#emph[Document is empty]\n\n';
         return;
       }
-      this.processProseMirrorNode(content, ctx);
+      this.processProseMirrorNode(
+        this.typography ? smartenDocument(content, this.typography) : content,
+        ctx
+      );
     } catch (error) {
       this.logger.warn(
         'PdfGenerator',

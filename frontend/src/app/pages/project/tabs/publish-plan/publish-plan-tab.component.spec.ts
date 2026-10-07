@@ -355,6 +355,42 @@ describe('PublishPlanTabComponent', () => {
     });
   });
 
+  describe('typographicQuotesOn', () => {
+    it('follows the format default until the option is set', () => {
+      const plan = currentPlan()!;
+      expect(
+        component.typographicQuotesOn({
+          ...plan,
+          format: PublishFormat.EPUB,
+          options: { ...plan.options, typographicQuotes: undefined },
+        })
+      ).toBe(true);
+      expect(
+        component.typographicQuotesOn({
+          ...plan,
+          format: PublishFormat.MARKDOWN,
+          options: { ...plan.options, typographicQuotes: undefined },
+        })
+      ).toBe(false);
+      expect(
+        component.typographicQuotesOn({
+          ...plan,
+          format: PublishFormat.EPUB,
+          options: { ...plan.options, typographicQuotes: false },
+        })
+      ).toBe(false);
+    });
+
+    it('saves the checkbox as a plan option', () => {
+      component.updateOptionCheckbox('typographicQuotes', { checked: false });
+      expect(mockProjectState.updatePublishPlan).toHaveBeenCalledWith(
+        expect.objectContaining({
+          options: expect.objectContaining({ typographicQuotes: false }),
+        })
+      );
+    });
+  });
+
   describe('addElement', () => {
     it('should add element item to plan', () => {
       const initialLength = currentPlan()?.items.length ?? 0;

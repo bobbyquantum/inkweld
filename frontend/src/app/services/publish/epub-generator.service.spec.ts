@@ -1862,5 +1862,51 @@ describe('EpubGeneratorService', () => {
         expect(await read('OEBPS/content.opf')).not.toContain('cover-image');
       });
     });
+
+    describe('typographic quotes', () => {
+      const quoted = para('"It\'s fine," she said -- "really."');
+      const plan = (options = {}) =>
+        planWith([chapterItem('i1', 'doc-1')], {
+          options: { ...mockPlan.options, ...options },
+        });
+
+      it('curls quotes and dashes by default', async () => {
+        contentByDoc({ 'doc-1': [quoted] });
+        const { read } = await build(plan());
+        const html = await read('OEBPS/chapter_001.xhtml');
+        expect(html).toContain(
+          '\u201CIt\u2019s fine,\u201D she said \u2014 \u201Creally.\u201D'
+        );
+      });
+
+      it('leaves text as typed when switched off', async () => {
+        contentByDoc({ 'doc-1': [quoted] });
+        const { read } = await build(plan({ typographicQuotes: false }));
+        const html = await read('OEBPS/chapter_001.xhtml');
+        expect(html).toContain('&quot;It&#39;s fine,&quot;');
+      });
+
+      it('uses the plan language and skips code', async () => {
+        contentByDoc({
+          'doc-1': [
+            {
+              type: 'paragraph',
+              content: [
+                { type: 'text', text: '"Oui" ' },
+                { type: 'text', text: 'f("x")', marks: [{ type: 'code' }] },
+              ],
+            },
+          ],
+        });
+        const { read } = await build(
+          planWith([chapterItem('i1', 'doc-1')], {
+            metadata: { ...mockPlan.metadata, language: 'fr' },
+          })
+        );
+        const html = await read('OEBPS/chapter_001.xhtml');
+        expect(html).toContain('\u00AB\u00A0Oui\u00A0\u00BB');
+        expect(html).toContain('f(&quot;x&quot;)');
+      });
+    });
   });
 });

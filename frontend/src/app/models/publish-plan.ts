@@ -231,6 +231,12 @@ export interface PublishOptions {
   includeCover: boolean;
   /** Cover image reference */
   coverImage?: string;
+  /**
+   * Convert straight quotes, apostrophes and hyphen runs to their
+   * typographic forms in the output (stored documents are untouched).
+   * Unset means the format's default: on, except for Markdown.
+   */
+  typographicQuotes?: boolean;
 }
 
 /**
