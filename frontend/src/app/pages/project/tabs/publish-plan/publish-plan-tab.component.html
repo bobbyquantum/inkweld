@@ -623,6 +623,51 @@
         {{ 'publish.planEditor.includeToc' | transloco }}
       </mat-checkbox>
 
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>{{
+          'publish.planEditor.chapterHeadingLabel' | transloco
+        }}</mat-label>
+        <mat-select
+          [value]="plan.options.chapterHeadingStyle ?? 'none'"
+          (selectionChange)="updateOptionSelect('chapterHeadingStyle', $event)"
+          data-testid="chapter-heading-style-select">
+          @for (style of chapterHeadingStyles; track style) {
+            <mat-option
+              [value]="style"
+              [attr.data-testid]="'chapter-heading-option-' + style"
+              >{{
+                'publish.planEditor.chapterHeading.' + style | transloco
+              }}</mat-option
+            >
+          }
+        </mat-select>
+        <mat-hint>{{
+          'publish.planEditor.chapterHeadingHint' | transloco
+        }}</mat-hint>
+      </mat-form-field>
+
+      @if (usesChapterNumbers(plan.options.chapterHeadingStyle)) {
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>{{
+            'publish.planEditor.chapterNumeralLabel' | transloco
+          }}</mat-label>
+          <mat-select
+            [value]="
+              plan.options.chapterNumbering === 'none'
+                ? 'numeric'
+                : plan.options.chapterNumbering
+            "
+            (selectionChange)="updateOptionSelect('chapterNumbering', $event)"
+            data-testid="chapter-numeral-select">
+            @for (numbering of chapterNumerals; track numbering) {
+              <mat-option [value]="numbering">{{
+                'publish.planEditor.chapterNumeral.' + numbering | transloco
+              }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      }
+
       <mat-checkbox
         [checked]="plan.options.includeCover"
         [matTooltip]="'publish.planEditor.includeCoverHint' | transloco"

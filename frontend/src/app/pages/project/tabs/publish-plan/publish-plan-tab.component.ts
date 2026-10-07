@@ -42,6 +42,7 @@ import { ElementType } from '@inkweld/index';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import {
   BackmatterType,
+  ChapterHeadingStyle,
   ChapterNumbering,
   type ElementItem,
   FrontmatterType,
@@ -205,6 +206,24 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
   /** Available formats */
   protected readonly formats = Object.values(PublishFormat);
   protected readonly chapterNumberings = Object.values(ChapterNumbering);
+  protected readonly chapterHeadingStyles = Object.values(ChapterHeadingStyle);
+  /** Numeral formats offered for number-based chapter headings. */
+  protected readonly chapterNumerals = [
+    ChapterNumbering.Numeric,
+    ChapterNumbering.Roman,
+    ChapterNumbering.Written,
+  ];
+
+  /** Whether a heading style prints a chapter number. */
+  protected usesChapterNumbers(
+    style: ChapterHeadingStyle | undefined
+  ): boolean {
+    return (
+      style === ChapterHeadingStyle.Number ||
+      style === ChapterHeadingStyle.ChapterNumber ||
+      style === ChapterHeadingStyle.ChapterNumberAndName
+    );
+  }
   protected readonly frontmatterTypes = Object.values(FrontmatterType);
   protected readonly backmatterTypes = Object.values(BackmatterType);
   protected readonly separatorStyles = Object.values(SeparatorStyle);
@@ -386,6 +405,15 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
     const value = target.type === 'checkbox' ? target.checked : target.value;
     this.updatePlan({
       options: { ...plan.options, [option]: value },
+    });
+  }
+
+  /** Handle mat-select change for a plan option */
+  updateOptionSelect(option: string, event: { value: string }): void {
+    const plan = this.plan();
+    if (!plan) return;
+    this.updatePlan({
+      options: { ...plan.options, [option]: event.value },
     });
   }
 

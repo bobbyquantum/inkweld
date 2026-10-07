@@ -17,6 +17,7 @@ import { BehaviorSubject, type Observable, Subject } from 'rxjs';
 import {
   type BackmatterItem,
   BackmatterType,
+  ChapterHeadingStyle,
   ChapterNumbering,
   type ElementItem,
   type FrontmatterItem,
@@ -185,6 +186,9 @@ const TABLE_CELL_NAMES = new Set([
 
 /** Block nodes that honour ngx-editor's `align` / `indent` attributes. */
 const ALIGNABLE_TAGS = new Set(['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']);
+
+/** True when rendered document HTML already opens with a heading. */
+const LEADING_HEADING_RE = /^\s*<h[1-6][\s>]/i;
 
 /** Maximum indent level honoured from paragraph/heading `indent` attrs. */
 const MAX_INDENT = 8;
@@ -638,12 +642,23 @@ export class EpubGeneratorService {
         item.isChapter ?? false,
         options
       );
-      // The element name is used for the navigation title only. Do NOT
-      // inject an <h1> into the body — the user's document is responsible
-      // for any visible heading.
+      // The nav title is always the (numbered) element name. A body <h1> is
+      // injected only when the plan picks a `chapterHeadingStyle`; otherwise
+      // the user's document is responsible for any visible heading.
       return [
         this.chapterSlot(
-          await this.documentChapter(element, formattedTitle, 0, title)
+          await this.documentChapter(
+            element,
+            formattedTitle,
+            0,
+            title,
+            this.chapterHeading(
+              title,
+              chapterNumber,
+              item.isChapter ?? false,
+              options
+            )
+          )
         ),
       ];
     }
@@ -652,7 +667,8 @@ export class EpubGeneratorService {
       return this.folderChildrenSlots(
         element,
         elements,
-        item.titleOverride || element.name
+        item.titleOverride || element.name,
+        options
       );
     }
 
@@ -663,10 +679,16 @@ export class EpubGeneratorService {
     element: Element,
     title: string,
     level: number,
-    rawTitle: string = title
+    rawTitle: string = title,
+    heading: string | null = null
   ): Promise<Chapter> {
     this.currentHeadings = [];
-    const body = await this.getDocumentContent(element.id);
+    let body = await this.getDocumentContent(element.id);
+    // Not recorded in `currentHeadings`: the chapter's own nav entry already
+    // carries this title, so it must not repeat as a sub-entry.
+    if (heading && !LEADING_HEADING_RE.test(body)) {
+      body = `<h1 class="ink-chapter-title">${escapeXml(heading)}</h1>\n${body}`;
+    }
     return {
       id: element.id,
       title,
@@ -715,7 +737,8 @@ export class EpubGeneratorService {
   private async folderChildrenSlots(
     element: Element,
     elements: Element[],
-    title: string
+    title: string,
+    options: PublishOptions
   ): Promise<Slot[]> {
     const slots: Slot[] = [{ type: 'group', title, level: 0 }];
     const children = this.getChildElements(element, elements);
@@ -727,7 +750,17 @@ export class EpubGeneratorService {
         isPublishableByDefault(child.metadata)
       ) {
         slots.push(
-          this.chapterSlot(await this.documentChapter(child, child.name, level))
+          this.chapterSlot(
+            await this.documentChapter(
+              child,
+              child.name,
+              level,
+              child.name,
+              // Folder children aren't numbered, so number styles reduce to
+              // the document name.
+              this.chapterHeading(child.name, 0, false, options)
+            )
+          )
         );
       } else if (child.type === ElementType.Folder) {
         slots.push({ type: 'group', title: child.name, level });
@@ -2219,6 +2252,37 @@ ${chapter.body}
         return 'doc-appendix';
       default:
         return null;
+    }
+  }
+
+  /**
+   * The heading to inject above a document's body, or null for none. Number
+   * styles apply to chapters only; other documents get their name.
+   */
+  private chapterHeading(
+    title: string,
+    chapterNumber: number,
+    isChapter: boolean,
+    options: PublishOptions
+  ): string | null {
+    const style = options.chapterHeadingStyle ?? ChapterHeadingStyle.None;
+    if (style === ChapterHeadingStyle.None) return null;
+    if (style === ChapterHeadingStyle.DocumentName || !isChapter) {
+      return title || null;
+    }
+    const n = chapterNumber + 1;
+    const numbering = options.chapterNumbering;
+    let numeral = String(n);
+    if (numbering === ChapterNumbering.Roman) numeral = this.toRoman(n);
+    else if (numbering === ChapterNumbering.Written)
+      numeral = this.toWritten(n);
+    switch (style) {
+      case ChapterHeadingStyle.Number:
+        return numeral;
+      case ChapterHeadingStyle.ChapterNumber:
+        return `Chapter ${numeral}`;
+      default:
+        return title ? `Chapter ${numeral}: ${title}` : `Chapter ${numeral}`;
     }
   }
 

@@ -50,6 +50,21 @@
     "includeTocHint": "Untick to hide the Table of contents item in Contents without removing it. Reader navigation is unaffected.",
     "includeCover": "Include cover image",
     "includeCoverHint": "The cover image only. For a title page with the title and author, add Frontmatter > Title Page in Contents.",
+    "chapterHeadingLabel": "Chapter headings",
+    "chapterHeadingHint": "EPUB only. Adds a heading above any document that doesn't already start with one.",
+    "chapterHeading": {
+      "none": "No chapter heading",
+      "document-name": "Use document name",
+      "number": "Number only (1)",
+      "chapter-number": "Chapter number (Chapter 1)",
+      "chapter-number-name": "Chapter number and name (Chapter 1: Name)"
+    },
+    "chapterNumeralLabel": "Number format",
+    "chapterNumeral": {
+      "numeric": "Numerals (1, 2, 3)",
+      "roman": "Roman (I, II, III)",
+      "written": "Words (One, Two, Three)"
+    },
     "typographicQuotes": "Typographic quotes and dashes",
     "typographicQuotesHint": "Curls straight quotes and apostrophes and turns -- into a dash for the book's language. Your documents are not changed. On by default except for Markdown.",
     "coverImageLabel": "Cover Image",

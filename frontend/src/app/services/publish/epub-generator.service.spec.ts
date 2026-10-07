@@ -11,6 +11,7 @@ import { createCoverSourceMock } from '../../../testing/cover-source.mock';
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import {
   BackmatterType,
+  ChapterHeadingStyle,
   ChapterNumbering,
   FrontmatterType,
   PublishFormat,
@@ -1601,6 +1602,158 @@ describe('EpubGeneratorService', () => {
       expect(chapter).not.toContain('https://example.com');
       expect(chapter).toContain('Image unavailable');
       expect(result.warnings.some(w => w.includes('/missing'))).toBe(true);
+    });
+
+    describe('chapterHeadingStyle option', () => {
+      const withOptions = (opts: Partial<PublishPlan['options']>) =>
+        planWith([chapterItem('i1', 'doc-1'), chapterItem('i2', 'doc-2')], {
+          options: { ...mockPlan.options, ...opts },
+        });
+      const docs = () =>
+        contentByDoc({ 'doc-1': [para('Body')], 'doc-2': [para('More')] });
+      const h1 = (text: string) => `<h1 class="ink-chapter-title">${text}</h1>`;
+
+      it('adds no heading by default', async () => {
+        docs();
+        const { read } = await build(withOptions({}));
+        expect(await read('OEBPS/chapter_001.xhtml')).not.toContain(
+          'ink-chapter-title'
+        );
+      });
+
+      it('uses the document name', async () => {
+        docs();
+        const { read } = await build(
+          withOptions({ chapterHeadingStyle: ChapterHeadingStyle.DocumentName })
+        );
+        expect(await read('OEBPS/chapter_001.xhtml')).toMatch(
+          /<h1 class="ink-chapter-title">Chapter 1<\/h1>\s*<p/
+        );
+      });
+
+      it('prints just the number', async () => {
+        docs();
+        const { read } = await build(
+          withOptions({ chapterHeadingStyle: ChapterHeadingStyle.Number })
+        );
+        expect(await read('OEBPS/chapter_001.xhtml')).toContain(h1('1'));
+        expect(await read('OEBPS/chapter_002.xhtml')).toContain(h1('2'));
+      });
+
+      it('prints "Chapter N" and "Chapter N: Name"', async () => {
+        docs();
+        const a = await build(
+          withOptions({
+            chapterHeadingStyle: ChapterHeadingStyle.ChapterNumber,
+          })
+        );
+        expect(await a.read('OEBPS/chapter_002.xhtml')).toContain(
+          h1('Chapter 2')
+        );
+        const b = await build(
+          withOptions({
+            chapterHeadingStyle: ChapterHeadingStyle.ChapterNumberAndName,
+          })
+        );
+        expect(await b.read('OEBPS/chapter_002.xhtml')).toContain(
+          h1('Chapter 2: Chapter 2')
+        );
+      });
+
+      it('honours the roman and written numeral formats', async () => {
+        docs();
+        const roman = await build(
+          withOptions({
+            chapterHeadingStyle: ChapterHeadingStyle.ChapterNumber,
+            chapterNumbering: ChapterNumbering.Roman,
+          })
+        );
+        expect(await roman.read('OEBPS/chapter_002.xhtml')).toContain(
+          h1('Chapter II')
+        );
+        const written = await build(
+          withOptions({
+            chapterHeadingStyle: ChapterHeadingStyle.Number,
+            chapterNumbering: ChapterNumbering.Written,
+          })
+        );
+        expect(await written.read('OEBPS/chapter_002.xhtml')).toContain(
+          h1('Two')
+        );
+      });
+
+      it('falls back to the name for non-chapter documents', async () => {
+        docs();
+        const { read } = await build(
+          planWith([{ ...chapterItem('i1', 'doc-1'), isChapter: false }], {
+            options: {
+              ...mockPlan.options,
+              chapterHeadingStyle: ChapterHeadingStyle.Number,
+            },
+          })
+        );
+        expect(await read('OEBPS/chapter_001.xhtml')).toContain(
+          h1('Chapter 1')
+        );
+      });
+
+      it('leaves documents that already start with a heading alone', async () => {
+        contentByDoc({
+          'doc-1': [
+            {
+              type: 'heading',
+              attrs: { level: 2 },
+              content: [{ type: 'text', text: 'My Own Title' }],
+            },
+            para('Body'),
+          ],
+          'doc-2': [para('More')],
+        });
+        const { read } = await build(
+          withOptions({ chapterHeadingStyle: ChapterHeadingStyle.Number })
+        );
+        const chapter = await read('OEBPS/chapter_001.xhtml');
+        expect(chapter).not.toContain('ink-chapter-title');
+        expect(chapter).toContain('My Own Title');
+      });
+
+      it('does not duplicate the heading as a nav sub-entry', async () => {
+        docs();
+        const { read } = await build(
+          withOptions({ chapterHeadingStyle: ChapterHeadingStyle.DocumentName })
+        );
+        const nav = await read('OEBPS/nav.xhtml');
+        expect(nav).not.toContain('chapter_001.xhtml#');
+        expect(nav.match(/>Chapter 1</g)).toHaveLength(1);
+      });
+
+      it('names documents inside a published folder', async () => {
+        projectStateMock.elements.set([
+          { id: 'f1', name: 'Part One', type: ElementType.Folder, level: 0 },
+          { id: 'c1', name: 'Arrival', type: ElementType.Item, level: 1 },
+        ] as Element[]);
+        contentByDoc({ c1: [para('text')] });
+        const { read } = await build(
+          planWith(
+            [
+              {
+                id: 'i1',
+                type: PublishPlanItemType.Element,
+                elementId: 'f1',
+                includeChildren: true,
+                isChapter: false,
+              },
+            ],
+            {
+              options: {
+                ...mockPlan.options,
+                chapterHeadingStyle: ChapterHeadingStyle.Number,
+              },
+            }
+          )
+        );
+        expect(await read('OEBPS/chapter_001.xhtml')).toContain(h1('Arrival'));
+      });
     });
 
     it('nests folder children and headings in the navigation', async () => {
