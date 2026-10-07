@@ -25,6 +25,7 @@ import {
 import { LoggerService } from '../core/logger.service';
 import { DocumentService } from '../project/document.service';
 import { ProjectStateService } from '../project/project-state.service';
+import { countTextWords } from './publish-word-count';
 import {
   type RenderedWorldbuildingEntry,
   WorldbuildingPublishRendererService,
@@ -116,7 +117,7 @@ export class MarkdownGeneratorService {
       result.file = blob;
       result.filename = this.generateFilename(plan.metadata.title);
       result.stats = {
-        wordCount: mdContent.split(/\s+/).filter(Boolean).length,
+        wordCount: countTextWords(mdContent),
         chapterCount: plan.items.filter(
           i => i.type === PublishPlanItemType.Element && i.isChapter
         ).length,

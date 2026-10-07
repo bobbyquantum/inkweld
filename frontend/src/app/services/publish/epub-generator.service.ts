@@ -57,6 +57,7 @@ import {
 import { mediaIdFromSrc, sanitizeCssColor } from './html-generator.service';
 import { PublishCssEmitterService } from './publish-css-emitter.service';
 import { canonicalMarkName } from './publish-marks-helper';
+import { countHtmlWords } from './publish-word-count';
 import {
   type RenderedWorldbuildingEntry,
   WorldbuildingPublishRendererService,
@@ -407,7 +408,7 @@ export class EpubGeneratorService {
 
       // Calculate stats
       const wordCount = chapters.reduce(
-        (sum, ch) => sum + this.countWords(ch.body),
+        (sum, ch) => sum + countHtmlWords(ch.body),
         0
       );
 
@@ -2344,12 +2345,6 @@ ${chapter.body}
   /**
    * Count words in XHTML body content
    */
-  private countWords(html: string): number {
-    const text = html.replaceAll(/<[^<>]*>/g, ' ');
-    const words = text.split(/\s+/).filter(w => w.length > 0);
-    return words.length;
-  }
-
   /**
    * Format file size for display
    */

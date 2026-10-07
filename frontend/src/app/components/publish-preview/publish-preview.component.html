@@ -58,6 +58,8 @@
           <span class="toolbar-stats" data-testid="preview-stats">
             @if (s.words !== null) {
               <span
+                data-testid="preview-word-count"
+                [attr.title]="'publish.preview.wordsHint' | transloco"
                 >{{ s.words.toLocaleString() }} {{ 'words' | transloco }}</span
               >
             }

@@ -90,10 +90,11 @@
       "refresh": "Recount words",
       "documentsOne": "1 document",
       "entriesOne": "1 entry",
-      "wordsHint": "Words in the plan's documents. Worldbuilding entries are listed separately and not included in the count."
+      "wordsHint": "Words in the plan's documents. The title page, table of contents and worldbuilding entries are not included, so the Preview tab total can be slightly higher."
     }
   },
   "preview": {
+    "wordsHint": "Words in the rendered output: the documents plus the title page, table of contents and any other items in the plan. Styles and markup are not counted.",
     "emptyState": "Generate a preview of your publication",
     "generatePreview": "Generate Preview",
     "generating": "Generating preview…",
