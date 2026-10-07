@@ -94,6 +94,10 @@
     "noneSelected": "No elements selected",
     "oneSelected": "1 element selected",
     "manySelected": "{{count}} elements selected",
+    "typeFolder": "Folder",
+    "typeDocument": "Document",
+    "typeNote": "Note",
+    "includesChildren": "includes everything inside",
     "createNew": "Create new…",
     "createNewTooltip": "Create a new worldbuilding element and select it"
   },

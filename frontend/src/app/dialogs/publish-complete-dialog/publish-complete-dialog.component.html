@@ -1,6 +1,11 @@
 <h2 mat-dialog-title data-testid="publish-complete-dialog-title">
-  <mat-icon class="success-icon">check_circle</mat-icon>
-  {{ 'publish.complete.title' | transloco }}
+  @if (isOnline && uploadError() && !quotaRefused()) {
+    <mat-icon class="warning-icon">warning</mat-icon>
+    {{ 'publish.complete.savedLocallyTitle' | transloco }}
+  } @else {
+    <mat-icon class="success-icon">check_circle</mat-icon>
+    {{ 'publish.complete.title' | transloco }}
+  }
 </h2>
 
 <mat-dialog-content>
@@ -23,6 +28,23 @@
       <mat-icon>cloud_off</mat-icon>
       {{ 'publish.complete.quotaRefused' | transloco }}
     </p>
+  } @else if (isOnline && uploadError()) {
+    <div class="upload-failed" data-testid="publish-upload-failed">
+      <p>
+        <mat-icon>cloud_off</mat-icon>
+        {{
+          'publish.complete.uploadFailed' | transloco: { reason: uploadError() }
+        }}
+      </p>
+      <button
+        mat-stroked-button
+        type="button"
+        data-testid="publish-retry-upload"
+        [disabled]="retrying()"
+        (click)="retryUpload()">
+        {{ 'publish.complete.retryUpload' | transloco }}
+      </button>
+    </div>
   } @else if (isOnline) {
     <div class="sharing-section">
       <h3>{{ 'publish.complete.shareSettings' | transloco }}</h3>

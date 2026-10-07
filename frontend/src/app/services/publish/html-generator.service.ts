@@ -468,7 +468,9 @@ export class HtmlGeneratorService {
 
       case PublishPlanItemType.TableOfContents:
         return Promise.resolve(
-          this.buildTOC(plan, elements, item.title || 'Table of Contents')
+          plan.options.includeToc === false
+            ? ''
+            : this.buildTOC(plan, elements, item.title || 'Table of Contents')
         );
 
       case PublishPlanItemType.Worldbuilding:

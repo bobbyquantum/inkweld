@@ -101,6 +101,12 @@ export class PublishCompleteDialogComponent {
   /** The server refused the upload (sync capacity full): saved locally only. */
   readonly quotaRefused = this.publishedFilesService.lastUploadRefusedForQuota;
 
+  /** Why the server upload failed (the file is saved on this device only). */
+  readonly uploadError = this.publishedFilesService.lastUploadError;
+
+  /** A retry of the failed upload is in flight. */
+  readonly retrying = signal(false);
+
   /** Share permission options */
   readonly shareOptions = [
     { value: SharePermission.Private, label: 'Only me', icon: 'lock' },
@@ -231,6 +237,26 @@ export class PublishCompleteDialogComponent {
       );
     } finally {
       this.updating.set(false);
+    }
+  }
+
+  /**
+   * Retry uploading a file that was only saved on this device.
+   */
+  async retryUpload(): Promise<void> {
+    this.retrying.set(true);
+    try {
+      const updated = await this.publishedFilesService.retryUpload(
+        this.data.projectKey,
+        this.file(),
+        this.data.blob
+      );
+      if (updated) {
+        this.file.set(updated);
+        this.sharePermission.set(updated.sharePermission);
+      }
+    } finally {
+      this.retrying.set(false);
     }
   }
 

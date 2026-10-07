@@ -229,7 +229,9 @@ export class MarkdownGeneratorService {
         return Promise.resolve(this.processFrontmatter(item));
 
       case PublishPlanItemType.TableOfContents:
-        return Promise.resolve(this.buildTOC(plan, elements));
+        return Promise.resolve(
+          plan.options.includeToc === false ? '' : this.buildTOC(plan, elements)
+        );
 
       case PublishPlanItemType.Worldbuilding:
         return this.processWorldbuilding(item, elements);

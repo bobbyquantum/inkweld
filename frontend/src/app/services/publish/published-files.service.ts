@@ -27,6 +27,37 @@ const PUBLISHED_FILES_KEY = 'published-files';
 const PUBLISHED_BLOB_PREFIX = 'published-';
 
 /**
+ * The server requires every metadata key (`subtitle`, `language` and
+ * `wordCount` are nullable, not optional), and JSON.stringify drops
+ * `undefined`, so absent values must be sent as explicit nulls.
+ */
+export function toWireRequest(request: CreatePublishedFileRequest): unknown {
+  const { metadata } = request;
+  return {
+    ...request,
+    metadata: {
+      ...metadata,
+      subtitle: metadata.subtitle ?? null,
+      language: metadata.language ?? null,
+      wordCount: metadata.wordCount ?? null,
+    },
+  };
+}
+
+/** Rebuild the create request from a stored record (for upload retries). */
+function toCreateRequest(file: PublishedFile): CreatePublishedFileRequest {
+  return {
+    filename: file.filename,
+    format: file.format,
+    mimeType: file.mimeType,
+    planName: file.planName,
+    planId: file.planId ?? undefined,
+    sharePermission: file.sharePermission,
+    metadata: file.metadata,
+  };
+}
+
+/**
  * Service for managing published files (EPUB, PDF, HTML, Markdown exports).
  *
  * Features:
@@ -56,6 +87,12 @@ export class PublishedFilesService {
    * sharing it from the server is unavailable.
    */
   readonly lastUploadRefusedForQuota = signal(false);
+
+  /**
+   * Why the last server upload failed (null when it succeeded or none was
+   * attempted). The file is still saved on this device in that case.
+   */
+  readonly lastUploadError = signal<string | null>(null);
 
   /** Current project's published files (reactive) */
   private readonly filesSubject = new BehaviorSubject<PublishedFile[]>([]);
@@ -180,6 +217,7 @@ export class PublishedFilesService {
 
     // Upload to server if online
     this.lastUploadRefusedForQuota.set(false);
+    this.lastUploadError.set(null);
     if (this.isOnline()) {
       try {
         const serverFile = await this.uploadToServer(projectKey, blob, request);
@@ -197,11 +235,46 @@ export class PublishedFilesService {
           'Failed to upload published file to server',
           String(err)
         );
+        this.lastUploadError.set(
+          err instanceof Error ? err.message : String(err)
+        );
         // Continue with offline-only file
       }
     }
 
     return file;
+  }
+
+  /**
+   * Retry the server upload of a file that was saved locally only.
+   *
+   * @returns The server record, or null if the upload failed again
+   *   (see `lastUploadError`).
+   */
+  async retryUpload(
+    projectKey: string,
+    file: PublishedFile,
+    blob: Blob
+  ): Promise<PublishedFile | null> {
+    if (!this.isOnline()) {
+      return null;
+    }
+    this.lastUploadRefusedForQuota.set(false);
+    this.lastUploadError.set(null);
+    const serverFile = await this.uploadToServer(
+      projectKey,
+      blob,
+      toCreateRequest(file)
+    );
+    if (!serverFile) {
+      return null;
+    }
+    const updated = this.filesSubject.value.map(f =>
+      f.id === file.id ? { ...serverFile, id: file.id } : f
+    );
+    this.saveOfflineMetadata(projectKey, updated);
+    this.filesSubject.next(updated);
+    return updated.find(f => f.id === file.id) ?? null;
   }
 
   /**
@@ -445,7 +518,7 @@ export class PublishedFilesService {
       const [username, slug] = projectKey.split('/');
       const formData = new FormData();
       formData.append('file', blob, request.filename);
-      formData.append('metadata', JSON.stringify(request));
+      formData.append('metadata', JSON.stringify(toWireRequest(request)));
 
       const response = await fetch(
         `${this.getServerUrl()}/api/v1/projects/${username}/${slug}/published`,
@@ -461,13 +534,26 @@ export class PublishedFilesService {
         if (response.status === 403) {
           await this.noteQuotaRefusal(response);
         }
+        this.lastUploadError.set(await this.describeFailure(response));
         return null;
       }
 
       return (await response.json()) as PublishedFile;
-    } catch {
+    } catch (err) {
+      this.lastUploadError.set(
+        err instanceof Error ? err.message : 'Network error'
+      );
       return null;
     }
+  }
+
+  private async describeFailure(response: Response): Promise<string> {
+    const body = (await response.json().catch(() => null)) as {
+      error?: string;
+      message?: string;
+    } | null;
+    const detail = body?.error ?? body?.message ?? response.statusText;
+    return detail ? `${response.status} ${detail}` : `${response.status}`;
   }
 
   private async downloadFromServer(

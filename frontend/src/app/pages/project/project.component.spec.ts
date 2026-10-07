@@ -1511,4 +1511,87 @@ describe('ProjectComponent', () => {
       expect(root.querySelector('.content-area')).not.toBeNull();
     });
   });
+
+  describe('deep link to a document without a tab bar', () => {
+    /** Point the router at a URL and let the shell react to it. */
+    function navigateTo(url: string): void {
+      routerUrl = url;
+      routerEvents.next(new NavigationEnd(1, url, url));
+      TestBed.tick();
+    }
+
+    it('opens the document named in the URL on a phone once the elements arrive', () => {
+      component.isMobile.set(true);
+      navigateTo('/testuser/test-project/document/elem-1');
+      expect(projectStateService.openDocument).not.toHaveBeenCalled();
+
+      elementsSignal.set([mockElement]);
+      TestBed.tick();
+
+      expect(projectStateService.openDocument).toHaveBeenCalledWith(
+        mockElement
+      );
+    });
+
+    it('opens the document on a desktop with tabs turned off', () => {
+      // The template reads the setting too, so build the shell with it off
+      // from the outset rather than flipping it under a rendered view.
+      fixture.destroy();
+      vi.mocked(settingsService.getSetting!).mockReturnValue(false);
+      fixture = TestBed.createComponent(ProjectComponent);
+      fixture.detectChanges();
+      elementsSignal.set([mockElement]);
+
+      navigateTo('/testuser/test-project/document/elem-1');
+
+      expect(projectStateService.openDocument).toHaveBeenCalledWith(
+        mockElement
+      );
+    });
+
+    it('leaves the URL to the tab bar on a desktop with tabs', () => {
+      elementsSignal.set([mockElement]);
+
+      navigateTo('/testuser/test-project/document/elem-1');
+
+      expect(projectStateService.openDocument).not.toHaveBeenCalled();
+    });
+
+    it('waits for the project load to finish, which replaces the open tabs', () => {
+      component.isMobile.set(true);
+      isLoadingSignal.set(true);
+      elementsSignal.set([mockElement]);
+      navigateTo('/testuser/test-project/document/elem-1');
+      expect(projectStateService.openDocument).not.toHaveBeenCalled();
+
+      isLoadingSignal.set(false);
+      TestBed.tick();
+
+      expect(projectStateService.openDocument).toHaveBeenCalledWith(
+        mockElement
+      );
+    });
+
+    it('does not reopen the document when the elements change later', () => {
+      component.isMobile.set(true);
+      elementsSignal.set([mockElement]);
+      navigateTo('/testuser/test-project/document/elem-1');
+      expect(projectStateService.openDocument).toHaveBeenCalledTimes(1);
+
+      elementsSignal.set([{ ...mockElement, name: 'Renamed' }]);
+      TestBed.tick();
+
+      expect(projectStateService.openDocument).toHaveBeenCalledTimes(1);
+    });
+
+    it('opens the document again after leaving and returning to its URL', () => {
+      component.isMobile.set(true);
+      elementsSignal.set([mockElement]);
+      navigateTo('/testuser/test-project/document/elem-1');
+      navigateTo('/testuser/test-project');
+      navigateTo('/testuser/test-project/document/elem-1');
+
+      expect(projectStateService.openDocument).toHaveBeenCalledTimes(2);
+    });
+  });
 });

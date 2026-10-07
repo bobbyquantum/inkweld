@@ -148,3 +148,22 @@ mat-dialog-actions {
     flex: 0 0 auto;
   }
 }
+
+.warning-icon {
+  color: var(--mat-sys-error);
+}
+
+.upload-failed {
+  margin: 16px 0 0;
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--mat-sys-error-container);
+  color: var(--mat-sys-on-error-container);
+
+  p {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 0 0 12px;
+  }
+}

@@ -328,6 +328,27 @@ describe('MarkdownGeneratorService', () => {
       expect(text).toContain('## Table of Contents');
     });
 
+    it('should omit the Table of Contents item when includeToc is off', async () => {
+      const plan: PublishPlan = {
+        ...mockPlan,
+        options: { ...mockPlan.options, includeToc: false },
+        items: [
+          {
+            id: 'toc-1',
+            type: PublishPlanItemType.TableOfContents,
+            title: 'Contents',
+            depth: 2,
+            includePageNumbers: false,
+          },
+        ],
+      };
+
+      const result = await service.generateMarkdown(plan);
+
+      expect(result.success).toBe(true);
+      expect(await result.file!.text()).not.toContain('Table of Contents');
+    });
+
     it('should generate real TOC with element links', async () => {
       const planWithTocAndElement: PublishPlan = {
         ...mockPlan,
