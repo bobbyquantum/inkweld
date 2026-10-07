@@ -288,9 +288,20 @@ export class LocalProjectService {
   }
 
   /**
-   * Create a new project
+   * Create a new project. It starts with no elements; the caller applies a
+   * template (the 'empty' one adds a README) or imports an archive.
    */
-  async createProject(projectData: Partial<Project>): Promise<Project> {
+  createProject(projectData: Partial<Project>): Promise<Project> {
+    try {
+      return Promise.resolve(this.addProject(projectData));
+    } catch (error) {
+      return Promise.reject(
+        error instanceof Error ? error : new Error(String(error))
+      );
+    }
+  }
+
+  private addProject(projectData: Partial<Project>): Project {
     this.isLoading.set(true);
 
     const userProfile = this.setupService.getLocalUserProfile();
@@ -328,12 +339,6 @@ export class LocalProjectService {
       const updatedProjects = [...projects, project];
       this.projects.set(updatedProjects);
       this.saveProjects(updatedProjects);
-
-      // Create default project structure (now async)
-      await this.localElementsService.createDefaultStructure(
-        project.username,
-        project.slug
-      );
 
       return project;
     } finally {

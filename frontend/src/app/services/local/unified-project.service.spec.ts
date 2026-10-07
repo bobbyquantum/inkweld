@@ -560,6 +560,61 @@ describe('UnifiedProjectService', () => {
     });
   });
 
+  describe('empty template', () => {
+    it('should apply the empty template so the project starts with its README', async () => {
+      setupService.getMode.mockReturnValue('local');
+
+      const mockTemplateService = TestBed.inject(
+        ProjectTemplateService
+      ) as unknown as MockedObject<ProjectTemplateService>;
+      const readme = {
+        id: 'readme-001',
+        name: 'README',
+        type: 'ITEM',
+        order: 0,
+        level: 0,
+        parentId: null,
+        expandable: false,
+        version: 0,
+        metadata: {},
+      };
+      (
+        mockTemplateService.loadTemplate as ReturnType<typeof vi.fn>
+      ).mockResolvedValue({
+        manifest: {},
+        project: {},
+        elements: [readme],
+        documents: [],
+        worldbuilding: [],
+        schemas: [],
+        relationships: [],
+        customRelationshipTypes: [],
+        tags: [],
+        elementTags: [],
+        publishPlans: [],
+        timeSystems: [],
+        snapshots: [],
+        media: [],
+      });
+
+      const mockLocalElements = TestBed.inject(
+        LocalProjectElementsService
+      ) as unknown as MockedObject<LocalProjectElementsService>;
+
+      await service.createProject(
+        { title: 'New Project', slug: 'new-project' },
+        'empty'
+      );
+
+      expect(mockTemplateService.loadTemplate).toHaveBeenCalledWith('empty');
+      expect(mockLocalElements.saveElements).toHaveBeenCalledWith(
+        'offlineuser',
+        'offline-project',
+        [expect.objectContaining({ id: 'readme-001', name: 'README' })]
+      );
+    });
+  });
+
   describe('applyTemplate with time systems', () => {
     it('should save time systems from the template archive', async () => {
       setupService.getMode.mockReturnValue('local');
