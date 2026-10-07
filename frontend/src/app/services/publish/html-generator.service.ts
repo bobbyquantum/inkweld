@@ -43,6 +43,7 @@ import { DocumentService } from '../project/document.service';
 import { ProjectStateService } from '../project/project-state.service';
 import { IconSvgService } from './icon-svg.service';
 import { PublishCssEmitterService } from './publish-css-emitter.service';
+import { countHtmlWords } from './publish-word-count';
 import {
   type RenderedWorldbuildingEntry,
   type RenderedWorldbuildingField,
@@ -269,7 +270,7 @@ export class HtmlGeneratorService {
       result.file = blob;
       result.filename = this.generateFilename(plan.metadata.title);
       result.stats = {
-        wordCount: this.countWords(htmlContent),
+        wordCount: countHtmlWords(htmlContent),
         chapterCount: plan.items.filter(
           i => i.type === PublishPlanItemType.Element && i.isChapter
         ).length,
@@ -1616,11 +1617,6 @@ ${content}
     if (/^(?:#|\/|\.{1,2}\/)/.test(trimmed)) return trimmed;
     if (/^(?:https?|mailto|tel):/i.test(trimmed)) return trimmed;
     return '';
-  }
-
-  private countWords(html: string): number {
-    const text = html.replaceAll(/<[^<>]+>/g, ' ');
-    return text.split(/\s+/).filter(Boolean).length;
   }
 
   private generateFilename(title: string): string {
