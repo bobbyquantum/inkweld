@@ -149,36 +149,6 @@ describe('LocalProjectElementsService', () => {
     });
   });
 
-  describe('createDefaultStructure', () => {
-    beforeEach(() => {
-      mockLocalStorage.getItem.mockReturnValue('{}');
-    });
-
-    it('should create default project structure', async () => {
-      const result = await service.createDefaultStructure(
-        TEST_USERNAME,
-        TEST_SLUG
-      );
-
-      expect(result).toHaveLength(4);
-      expect(result[0]).toMatchObject({
-        name: 'Chapters',
-        type: ElementType.Folder,
-        level: 0,
-        expandable: true,
-        order: 0,
-      });
-      expect(result[0].id).toBeTypeOf('string');
-      expect(result[0].id.length).toBeGreaterThan(0);
-      expect(result[1].id).toBeTypeOf('string');
-      expect(result[2].id).toBeTypeOf('string');
-      expect(result[3].id).toBeTypeOf('string');
-
-      // Elements should be saved (using Yjs/IndexedDB, not localStorage)
-      expect(service.elements()).toEqual(result);
-    });
-  });
-
   describe('addElement', () => {
     beforeEach(async () => {
       const initialElements: Element[] = [

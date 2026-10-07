@@ -159,8 +159,9 @@ export class UnifiedProjectService {
       throw new Error('No mode configured');
     }
 
-    // Apply template if specified (skip for 'empty' template as it has no data)
-    if (templateId && templateId !== 'empty') {
+    // Apply template if specified. Local projects start with no elements, so
+    // this is also where the 'empty' template's README comes from.
+    if (templateId) {
       try {
         const { documentIds, worldbuildingIds } = await this.applyTemplate(
           project.username,

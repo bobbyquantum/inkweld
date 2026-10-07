@@ -764,64 +764,6 @@ export class LocalProjectElementsService {
   }
 
   /**
-   * Create default project structure
-   */
-  async createDefaultStructure(
-    username: string,
-    slug: string
-  ): Promise<Element[]> {
-    const defaultElements: Element[] = [
-      {
-        id: nanoid(),
-        name: 'Chapters',
-        type: ElementType.Folder,
-        level: 0,
-        expandable: true,
-        order: 0,
-        parentId: null,
-        version: 0,
-        metadata: {},
-      },
-      {
-        id: nanoid(),
-        name: 'Chapter 1',
-        type: ElementType.Item,
-        level: 1,
-        expandable: false,
-        order: 1,
-        parentId: null,
-        version: 0,
-        metadata: {},
-      },
-      {
-        id: nanoid(),
-        name: 'Notes',
-        type: ElementType.Folder,
-        level: 0,
-        expandable: true,
-        order: 2,
-        parentId: null,
-        version: 0,
-        metadata: {},
-      },
-      {
-        id: nanoid(),
-        name: 'Research',
-        type: ElementType.Item,
-        level: 1,
-        expandable: false,
-        order: 3,
-        parentId: null,
-        version: 0,
-        metadata: {},
-      },
-    ];
-
-    await this.saveElements(username, slug, defaultElements);
-    return defaultElements;
-  }
-
-  /**
    * Update elements
    */
   async updateElements(

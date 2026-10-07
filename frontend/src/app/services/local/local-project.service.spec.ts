@@ -56,9 +56,7 @@ describe('LocalProjectService', () => {
       getLocalUserProfile: vi.fn().mockReturnValue(mockUserProfile),
     } as any;
 
-    mockElementsService = {
-      createDefaultStructure: vi.fn().mockReturnValue([]),
-    } as any;
+    mockElementsService = {} as any;
 
     // Mock StorageContextService to return predictable prefixed keys.
     // `prefix` is a real writable signal so tests can drive context switches
@@ -84,7 +82,6 @@ describe('LocalProjectService', () => {
     mockLocalStorage.getItem.mockReset();
     mockLocalStorage.setItem.mockReset();
     mockSetupService.getLocalUserProfile.mockReset();
-    mockElementsService.createDefaultStructure.mockReset();
 
     // Set default localStorage return value
     mockLocalStorage.getItem.mockReturnValue('[]');
@@ -211,12 +208,6 @@ describe('LocalProjectService', () => {
       expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
         PREFIXED_PROJECTS_KEY,
         expect.stringContaining('Test Project')
-      );
-
-      // Should create default project structure
-      expect(mockElementsService.createDefaultStructure).toHaveBeenCalledWith(
-        'testuser',
-        'test-project'
       );
     });
 
