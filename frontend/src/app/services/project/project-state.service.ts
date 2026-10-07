@@ -966,7 +966,8 @@ export class ProjectStateService implements OnDestroy {
     type: Element['type'],
     name: string,
     parentId?: string,
-    schemaId?: string
+    schemaId?: string,
+    afterElementId?: string
   ): string | undefined {
     const project = this.project();
     if (!project) return undefined;
@@ -980,18 +981,30 @@ export class ProjectStateService implements OnDestroy {
 
     // Calculate position
     const elements = this.elements();
-    const parentIndex = parentId
-      ? elements.findIndex(e => e.id === parentId)
+    // With `afterElementId` the new element becomes that element's next
+    // sibling (after its subtree) and shares its parent; otherwise it becomes
+    // the first child of `parentId`, or the first root element.
+    const afterIndex = afterElementId
+      ? elements.findIndex(e => e.id === afterElementId)
+      : -1;
+    const after = afterIndex >= 0 ? elements[afterIndex] : undefined;
+    const effectiveParentId = after ? after.parentId : parentId;
+    const parentIndex = effectiveParentId
+      ? elements.findIndex(e => e.id === effectiveParentId)
       : -1;
     const parentLevel = parentIndex >= 0 ? elements[parentIndex].level : -1;
+    const insertIndex = after
+      ? afterIndex +
+        this.elementTreeService.getSubtree(elements, afterIndex).length
+      : parentIndex + 1;
 
     const newElement: Element = {
       id: nanoid(),
       name,
       type,
       schemaId: schemaId || undefined,
-      parentId: parentId || null,
-      level: parentLevel + 1,
+      parentId: effectiveParentId || null,
+      level: after ? after.level : parentLevel + 1,
       expandable: type === ElementType.Folder,
       order: elements.length,
       version: 0,
@@ -1003,7 +1016,7 @@ export class ProjectStateService implements OnDestroy {
     this.locallyCreatedElementIds.add(newElement.id);
 
     const updatedElements = [...elements];
-    updatedElements.splice(parentIndex + 1, 0, newElement);
+    updatedElements.splice(insertIndex, 0, newElement);
 
     const recomputedElements =
       this.elementTreeService.recomputeOrder(updatedElements);
@@ -1011,8 +1024,8 @@ export class ProjectStateService implements OnDestroy {
     this.updateElements(recomputedElements);
 
     // Auto-expand parent
-    if (parentId) {
-      this.setExpanded(parentId, true);
+    if (effectiveParentId) {
+      this.setExpanded(effectiveParentId, true);
     }
 
     // Initialize worldbuilding data
@@ -1721,7 +1734,12 @@ export class ProjectStateService implements OnDestroy {
   // Dialog Handlers
   // ─────────────────────────────────────────────────────────────────────────────
 
-  showNewElementDialog(parentElement?: Element): void {
+  /**
+   * Opens the new-element dialog. `parentElement` makes the result its first
+   * child; `afterElement` instead places it right after that element, as a
+   * sibling in the same parent.
+   */
+  showNewElementDialog(parentElement?: Element, afterElement?: Element): void {
     void this.dialogGateway.openNewElementDialog().then(async result => {
       if (!result) return;
 
@@ -1740,7 +1758,8 @@ export class ProjectStateService implements OnDestroy {
         result.type,
         result.name,
         parentElement?.id,
-        result.schemaId
+        result.schemaId,
+        afterElement?.id
       );
       if (!newElementId) return;
 

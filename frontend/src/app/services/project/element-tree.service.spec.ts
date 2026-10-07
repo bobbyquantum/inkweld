@@ -215,9 +215,20 @@ describe('ElementTreeService', () => {
       expect(service.getDropInsertIndex(elements, unknown, 0)).toBe(4);
     });
 
-    it('should return index after nodeAbove when dropping deeper', () => {
-      // Dropping inside the folder at level 1
-      expect(service.getDropInsertIndex(elements, elements[0], 1)).toBe(1);
+    it('should append to the folder when dropping into it', () => {
+      // Dropping inside the folder at level 1 lands after its last child
+      // (indices 0-2 are the folder's subtree), not before its first child.
+      expect(service.getDropInsertIndex(elements, elements[0], 1)).toBe(3);
+    });
+
+    it('should keep order fields consistent after dropping into a folder', () => {
+      const loose = createElement('5', 'Loose', 0, ElementType.Item, 4);
+      const all = [...elements, loose];
+      const index = service.getDropInsertIndex(all, all[0], 1);
+      const moved = service.moveElement(all, '5', index, 1);
+      expect(moved.map(e => e.id)).toEqual(['1', '2', '3', '5', '4']);
+      expect(moved.map(e => e.order)).toEqual([0, 1, 2, 3, 4]);
+      expect(moved[3]).toMatchObject({ parentId: '1', level: 1 });
     });
 
     it('should return index after subtree when dropping at same level', () => {

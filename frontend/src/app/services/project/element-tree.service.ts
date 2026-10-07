@@ -153,18 +153,22 @@ export class ElementTreeService {
   /**
    * Calculates the insertion index for a drop operation.
    *
-   * When dropping at a deeper level than the node above, inserts right after it.
-   * When dropping at the same or higher level, inserts after the entire subtree.
+   * The element always lands after the entire subtree of the node above. When
+   * dropping at a deeper level (into a folder), that makes the dropped element
+   * the folder's last child; when dropping at the same or a shallower level it
+   * becomes the next sibling after the subtree.
    *
    * @param elements - The current array of elements
    * @param nodeAbove - The element above the drop position, or null if dropping at top
-   * @param targetLevel - The level at which the item is being dropped
+   * @param _targetLevel - The level at which the item is being dropped. It does
+   *   not change the index (it decides the new level and parent in
+   *   {@link moveElement}).
    * @returns The index where the new element should be inserted
    */
   getDropInsertIndex(
     elements: Element[],
     nodeAbove: Element | null,
-    targetLevel: number
+    _targetLevel: number
   ): number {
     if (!nodeAbove) {
       return 0;
@@ -175,12 +179,6 @@ export class ElementTreeService {
       return elements.length;
     }
 
-    // If dropping at a deeper level than the node above, insert right after it
-    if (targetLevel > nodeAbove.level) {
-      return nodeAboveIndex + 1;
-    }
-
-    // If dropping at the same or higher level, insert after the entire subtree
     const subtree = this.getSubtree(elements, nodeAboveIndex);
     return nodeAboveIndex + subtree.length;
   }
