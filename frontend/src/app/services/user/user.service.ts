@@ -42,6 +42,12 @@ const USER_CACHE_DB_BASE_NAME = 'userCache';
 
 const CACHE_KEY = 'currentUser';
 const MAX_RETRIES = 3;
+/**
+ * Set when someone signs out behind Home Assistant ingress, so the next load
+ * doesn't sign them straight back in. Per tab (sessionStorage): opening
+ * Inkweld from the HA sidebar again starts a fresh sign-in.
+ */
+const INGRESS_SIGNED_OUT_KEY = 'inkweld.ingressSignedOut';
 @Injectable({
   providedIn: 'root',
 })
@@ -249,6 +255,10 @@ export class UserService {
   }
 
   async setCurrentUser(user: User): Promise<void> {
+    // Any sign-in (password, passkey, OAuth, ingress) ends a sign-out.
+    if (user.username !== 'anonymous') {
+      this.setIngressSignedOut(false);
+    }
     if (this.storage.isAvailable()) {
       try {
         const db = await this.db;
@@ -316,7 +326,7 @@ export class UserService {
    * is not served through ingress or the server refuses.
    */
   private async signInThroughIngress(): Promise<boolean> {
-    if (!isHomeAssistantIngress()) return false;
+    if (!isHomeAssistantIngress() || this.isIngressSignedOut()) return false;
     try {
       const response = await firstValueFrom(
         this.authenticationService.ingressLogin()
@@ -335,6 +345,26 @@ export class UserService {
         err
       );
       return false;
+    }
+  }
+
+  private isIngressSignedOut(): boolean {
+    try {
+      return globalThis.sessionStorage?.getItem(INGRESS_SIGNED_OUT_KEY) === '1';
+    } catch {
+      return false;
+    }
+  }
+
+  private setIngressSignedOut(signedOut: boolean): void {
+    try {
+      if (signedOut) {
+        globalThis.sessionStorage?.setItem(INGRESS_SIGNED_OUT_KEY, '1');
+      } else {
+        globalThis.sessionStorage?.removeItem(INGRESS_SIGNED_OUT_KEY);
+      }
+    } catch {
+      // Storage unavailable (private mode etc.): sign-out lasts until reload.
     }
   }
 
@@ -394,6 +424,9 @@ export class UserService {
     try {
       await firstValueFrom(this.authenticationService.logout());
       await this.clearCurrentUser();
+      if (isHomeAssistantIngress()) {
+        this.setIngressSignedOut(true);
+      }
       await this.router.navigate(['/']);
     } catch (err) {
       const error = this.formatError(err);

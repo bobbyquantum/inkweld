@@ -327,6 +327,27 @@ describe('UserService', () => {
 
       afterEach(() => {
         meta.remove();
+        sessionStorage.removeItem('inkweld.ingressSignedOut');
+      });
+
+      it('does not sign straight back in after signing out', async () => {
+        authServiceMock.logout.mockReturnValue(of({}));
+        await service.logout();
+        expect(sessionStorage.getItem('inkweld.ingressSignedOut')).toBe('1');
+
+        userServiceMock.getCurrentUser.mockReturnValue(of(anonymousUser));
+        await service.loadCurrentUser();
+
+        expect(authServiceMock.ingressLogin).not.toHaveBeenCalled();
+        expect(service.isAuthenticated()).toBe(false);
+      });
+
+      it('clears the sign-out once someone signs in', async () => {
+        sessionStorage.setItem('inkweld.ingressSignedOut', '1');
+
+        await service.setCurrentUser(TEST_USER);
+
+        expect(sessionStorage.getItem('inkweld.ingressSignedOut')).toBeNull();
       });
 
       it('signs in through ingress instead of staying anonymous', async () => {
