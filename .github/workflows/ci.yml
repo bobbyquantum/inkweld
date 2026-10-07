@@ -443,16 +443,10 @@ jobs:
         run: cd frontend && ./node_modules/.bin/playwright install --with-deps chromium
       - name: Install Playwright system deps
         if: steps.playwright-cache.outputs.cache-hit == 'true'
-        # apt occasionally hangs on a stuck mirror; give each attempt 4 minutes
-        # and retry once so a hung download fails over instead of eating the job.
+        # Each attempt gets 4 minutes and the script retries once, so a stuck
+        # apt mirror fails over instead of eating the job.
         timeout-minutes: 10
-        run: |
-          cd frontend
-          for attempt in 1 2; do
-            timeout --kill-after=30s 4m ./node_modules/.bin/playwright install-deps chromium && exit 0
-            echo "::warning::playwright install-deps attempt $attempt failed or timed out"
-          done
-          exit 1
+        run: ./scripts/ci-install-playwright-deps.sh
       - name: Build frontend
         run: cd frontend && npm run build
       - name: Run local e2e tests
@@ -527,16 +521,10 @@ jobs:
         run: cd frontend && ./node_modules/.bin/playwright install --with-deps chromium
       - name: Install Playwright system deps
         if: steps.playwright-cache.outputs.cache-hit == 'true'
-        # apt occasionally hangs on a stuck mirror; give each attempt 4 minutes
-        # and retry once so a hung download fails over instead of eating the job.
+        # Each attempt gets 4 minutes and the script retries once, so a stuck
+        # apt mirror fails over instead of eating the job.
         timeout-minutes: 10
-        run: |
-          cd frontend
-          for attempt in 1 2; do
-            timeout --kill-after=30s 4m ./node_modules/.bin/playwright install-deps chromium && exit 0
-            echo "::warning::playwright install-deps attempt $attempt failed or timed out"
-          done
-          exit 1
+        run: ./scripts/ci-install-playwright-deps.sh
       - name: Build frontend
         run: cd frontend && npm run build
       - name: Run online e2e tests (shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }})
@@ -619,16 +607,10 @@ jobs:
 
       - name: Install Playwright system deps
         if: steps.playwright-cache.outputs.cache-hit == 'true'
-        # apt occasionally hangs on a stuck mirror; give each attempt 4 minutes
-        # and retry once so a hung download fails over instead of eating the job.
+        # Each attempt gets 4 minutes and the script retries once, so a stuck
+        # apt mirror fails over instead of eating the job.
         timeout-minutes: 10
-        run: |
-          cd frontend
-          for attempt in 1 2; do
-            timeout --kill-after=30s 4m ./node_modules/.bin/playwright install-deps chromium && exit 0
-            echo "::warning::playwright install-deps attempt $attempt failed or timed out"
-          done
-          exit 1
+        run: ./scripts/ci-install-playwright-deps.sh
 
       - name: Copy wrangler.toml for CI
         run: cp backend/wrangler.toml.example backend/wrangler.toml
@@ -761,16 +743,10 @@ jobs:
 
       - name: Install Playwright system deps
         if: steps.playwright-cache.outputs.cache-hit == 'true'
-        # apt occasionally hangs on a stuck mirror; give each attempt 4 minutes
-        # and retry once so a hung download fails over instead of eating the job.
+        # Each attempt gets 4 minutes and the script retries once, so a stuck
+        # apt mirror fails over instead of eating the job.
         timeout-minutes: 10
-        run: |
-          cd frontend
-          for attempt in 1 2; do
-            timeout --kill-after=30s 4m ./node_modules/.bin/playwright install-deps chromium && exit 0
-            echo "::warning::playwright install-deps attempt $attempt failed or timed out"
-          done
-          exit 1
+        run: ./scripts/ci-install-playwright-deps.sh
 
       - name: Run Docker e2e tests (shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }})
         run: cd frontend && npm run e2e:docker:ci -- --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
@@ -851,16 +827,10 @@ jobs:
 
       - name: Install Playwright system deps
         if: steps.playwright-cache.outputs.cache-hit == 'true'
-        # apt occasionally hangs on a stuck mirror; give each attempt 4 minutes
-        # and retry once so a hung download fails over instead of eating the job.
+        # Each attempt gets 4 minutes and the script retries once, so a stuck
+        # apt mirror fails over instead of eating the job.
         timeout-minutes: 10
-        run: |
-          cd frontend
-          for attempt in 1 2; do
-            timeout --kill-after=30s 4m ./node_modules/.bin/playwright install-deps chromium && exit 0
-            echo "::warning::playwright install-deps attempt $attempt failed or timed out"
-          done
-          exit 1
+        run: ./scripts/ci-install-playwright-deps.sh
 
       - name: Build docs (runs screenshot e2e tests)
         run: cd docs/site && bun run build
