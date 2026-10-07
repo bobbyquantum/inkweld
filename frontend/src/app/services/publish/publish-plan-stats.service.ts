@@ -15,13 +15,17 @@ import { ProjectStateService } from '../project/project-state.service';
 /** Words per printed page used for the page estimate (trade paperback). */
 export const WORDS_PER_PAGE = 275;
 
+/** How long a count waits for a missing document to download. */
+const PULL_TIMEOUT_MS = 10000;
+
 /** Average adult silent reading speed in words per minute. */
 export const WORDS_PER_MINUTE = 238;
 
 /**
  * Word count status for a single document element.
  *
- * - `loading`: content is being read from local storage
+ * - `loading`: content is being read from local storage (or downloaded first,
+ *   when the document has no local copy yet)
  * - `ready`: `words` holds the counted value
  * - `unavailable`: the document has not been synced to this device yet, so
  *   its length is unknown until the plan is published (which syncs first)
@@ -302,13 +306,33 @@ export class PublishPlanStatsService {
     return `${project.username}:${project.slug}:${elementId}`;
   }
 
+  /**
+   * Try to download a document that is not stored locally. Returns whether
+   * it now has local content; failures (offline, local mode, timeout) mean
+   * the document stays unavailable.
+   */
+  private async pullDocument(docId: string): Promise<boolean> {
+    try {
+      await this.documentService.syncDocumentToServer(docId, PULL_TIMEOUT_MS);
+      return await this.documentService.hasLocalContent(docId);
+    } catch {
+      return false;
+    }
+  }
+
   private async countDocument(elementId: string): Promise<void> {
     const request = (this.requests.get(elementId) ?? 0) + 1;
     this.requests.set(elementId, request);
     const docId = this.fullDocumentId(elementId);
     let entry: WordCountEntry;
     try {
-      const available = await this.documentService.hasLocalContent(docId);
+      let available = await this.documentService.hasLocalContent(docId);
+      if (!available) {
+        // A document that was just added (or never opened on this device)
+        // has no local copy yet. Pull it rather than report a count that
+        // silently leaves it out; the row stays "loading" meanwhile.
+        available = await this.pullDocument(docId);
+      }
       if (!available) {
         entry = { status: 'unavailable' };
       } else {
@@ -329,7 +353,15 @@ export class PublishPlanStatsService {
   }
 }
 
-/** Count whitespace-separated words in ProseMirror JSON content. */
+/**
+ * Count whitespace-separated words in ProseMirror JSON content.
+ *
+ * This is the single definition of "words" for publish plans: the text a
+ * reader sees. The generators' output counts use the same rule on their
+ * rendered text (`countHtmlWords` in `publish-word-count.ts`), so the plan
+ * stat (documents only) and the preview header (rendered output, which also
+ * has the title page and table of contents) differ only by that front matter.
+ */
 export function countWords(content: unknown): number {
   if (!content) return 0;
   const text = flattenToPlainText(contentNodes(content));

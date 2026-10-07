@@ -27,6 +27,7 @@ import {
   type RenderedHeading,
 } from './html-generator.service';
 import { PublishCssEmitterService } from './publish-css-emitter.service';
+import { countHtmlWords } from './publish-word-count';
 import { typographyLanguageFor } from './typography';
 
 export enum HtmlSitePhase {
@@ -271,7 +272,7 @@ export class HtmlSiteGeneratorService {
       let wordCount = 0;
       for (const page of pages) {
         const body = page.body ?? '';
-        wordCount += this.countWords(body);
+        wordCount += countHtmlWords(body);
         zip.file(`${page.slug}.html`, this.wrapPage(plan, pages, page, body));
       }
 
@@ -909,11 +910,6 @@ ${pager.join('\n')}
       plan.styles ?? createDefaultPublishStyles()
     );
     return `${base}\n\n${SITE_CHROME_CSS}`;
-  }
-
-  private countWords(html: string): number {
-    const text = html.replaceAll(/<[^<>]+>/g, ' ');
-    return text.split(/\s+/).filter(Boolean).length;
   }
 
   private generateFilename(title: string): string {

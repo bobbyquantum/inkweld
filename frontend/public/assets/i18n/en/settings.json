@@ -187,7 +187,10 @@
   "generalTab": {
     "toursTitle": "Guided tours",
     "showTours": "Offer guided tours on new screens",
-    "showToursHint": "When this is off, no tour is offered automatically — you can still start one from the account menu."
+    "showToursHint": "When this is off, no tour is offered automatically — you can still start one from the account menu.",
+    "writingTitle": "Writing",
+    "markdownShortcuts": "Convert Markdown as I type",
+    "markdownShortcutsHint": "Typing \"# \", \"> \", \"- \" or \"1. \" at the start of a line becomes a heading, quote or list, and **bold** or _italic_ is formatted as you close it. Also turns straight quotes into curly ones. Off by default; applies to documents you open afterwards."
   },
   "projectSettingsTab": {
     "fullscreenZen": "Enable fullscreen in Zen mode",

@@ -68,6 +68,23 @@ export class SettingsService {
    */
   readonly folderClickOpens = this._folderClickOpens.asReadonly();
 
+  /**
+   * Internal writable signal backing the "Markdown shortcuts while typing"
+   * preference. Updates must go through {@link setMarkdownShortcuts}.
+   */
+  private readonly _markdownShortcuts = signal<boolean>(
+    this.getSetting<boolean>('markdownShortcuts', false)
+  );
+
+  /**
+   * Whether typing Markdown at the start of a paragraph ("# ", "> ", "- ",
+   * "1. ", "**bold**", smart quotes…) converts it as you type. Defaults to
+   * `false`: prose often starts a line with "#" or "-" and should stay as typed.
+   * Read when an editor is created, so a change applies to documents opened
+   * afterwards.
+   */
+  readonly markdownShortcuts = this._markdownShortcuts.asReadonly();
+
   getSetting<T>(key: string, defaultValue: T): T {
     const settings = this.getSettings();
     const value = settings[key];
@@ -88,6 +105,19 @@ export class SettingsService {
     this._showBreadcrumbs.set(value);
     try {
       this.setSetting<boolean>('showBreadcrumbs', value);
+    } catch {
+      // Storage can be unavailable (private mode/quota); keep UI reactive.
+    }
+  }
+
+  /**
+   * Update the "Markdown shortcuts while typing" preference. Persists to
+   * storage and updates the reactive signal.
+   */
+  setMarkdownShortcuts(value: boolean): void {
+    this._markdownShortcuts.set(value);
+    try {
+      this.setSetting<boolean>('markdownShortcuts', value);
     } catch {
       // Storage can be unavailable (private mode/quota); keep UI reactive.
     }

@@ -63,6 +63,9 @@ describe('PublishPlanStatsService', () => {
   let service: PublishPlanStatsService;
   let hasLocalContent: Mock<(id: string) => Promise<boolean>>;
   let getDocumentContent: Mock<(id: string) => Promise<unknown>>;
+  let syncDocumentToServer: Mock<
+    (id: string, timeoutMs?: number) => Promise<string | null>
+  >;
 
   const elements: Element[] = [
     element('folder', ElementType.Folder),
@@ -86,12 +89,20 @@ describe('PublishPlanStatsService', () => {
       Promise.resolve(contents[id])
     );
 
+    syncDocumentToServer = vi.fn<
+      (id: string, timeoutMs?: number) => Promise<string | null>
+    >(() => Promise.resolve(null));
+
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
         {
           provide: DocumentService,
-          useValue: { hasLocalContent, getDocumentContent },
+          useValue: {
+            hasLocalContent,
+            getDocumentContent,
+            syncDocumentToServer,
+          },
         },
         {
           provide: ProjectStateService,
@@ -164,6 +175,39 @@ describe('PublishPlanStatsService', () => {
         status: 'unavailable',
       });
       expect(getDocumentContent).not.toHaveBeenCalled();
+    });
+
+    it('downloads a document with no local copy and then counts it', async () => {
+      let pulled = false;
+      hasLocalContent.mockImplementation(() => Promise.resolve(pulled));
+      syncDocumentToServer.mockImplementation(() => {
+        pulled = true;
+        return Promise.resolve('digest');
+      });
+
+      service.ensureCounted(['doc-c']);
+      // Still loading, not a wrong number or a "not synced" badge
+      expect(service.wordCounts().get('doc-c')).toEqual({ status: 'loading' });
+      await flush();
+
+      expect(syncDocumentToServer).toHaveBeenCalledWith(
+        'user:proj:doc-c',
+        expect.any(Number)
+      );
+      expect(service.wordCounts().get('doc-c')).toEqual({
+        status: 'ready',
+        words: 4,
+      });
+    });
+
+    it('stays unavailable when the download fails', async () => {
+      hasLocalContent.mockResolvedValue(false);
+      syncDocumentToServer.mockRejectedValue(new Error('offline'));
+      service.ensureCounted(['doc-c']);
+      await flush();
+      expect(service.wordCounts().get('doc-c')).toEqual({
+        status: 'unavailable',
+      });
     });
 
     it('marks documents unavailable when reading fails', async () => {

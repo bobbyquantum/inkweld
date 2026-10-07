@@ -437,11 +437,7 @@ export class DocumentElementEditorComponent
         'ngOnInit - creating editor for',
         this.documentId
       );
-      this.editor = new Editor({
-        history: true,
-        schema: extendedSchema,
-        features: { resizeImage: true },
-      });
+      this.editor = this.createEditor();
       this.editorKey++; // Force template refresh
     } else {
       this.logger.debug(
@@ -558,11 +554,7 @@ export class DocumentElementEditorComponent
           'DocumentEditor',
           'ngOnChanges - creating new editor for tab'
         );
-        this.editor = new Editor({
-          history: true,
-          schema: extendedSchema,
-          features: { resizeImage: true },
-        });
+        this.editor = this.createEditor();
         this.editorKey++; // Force template refresh
 
         this.ensureProperDocumentId();
@@ -573,6 +565,20 @@ export class DocumentElementEditorComponent
         // when the view is actually ready.
       }
     }
+  }
+
+  /**
+   * Create the ngx-editor instance. Its Markdown input rules (headings, quotes,
+   * lists, bold/italic, smart quotes) are opt-in via Settings → General, since
+   * prose commonly starts a line with "#" or "-".
+   */
+  private createEditor(): Editor {
+    return new Editor({
+      history: true,
+      inputRules: this.settingsService.markdownShortcuts(),
+      schema: extendedSchema,
+      features: { resizeImage: true },
+    });
   }
 
   ngOnDestroy(): void {

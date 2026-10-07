@@ -727,6 +727,17 @@ weight. Only the schema and plugins are used.
 - `markdown-to-xml.ts` / `xml-to-markdown.ts` — GFM table parsing and emission
 - `markdown-`, `html-`, `epub-`, `pdf-generator.service.ts` — publish output
 
+### Markdown Input Rules
+
+ngx-editor registers Markdown input rules (`# `, `> `, `- `, `1. `, bold/italic,
+smart quotes) behind its `inputRules` option. Inkweld makes them **opt-in**
+(`SettingsService.markdownShortcuts`, default off, Settings → General) because
+prose often starts a line with `#` or `-`; `DocumentElementEditorComponent.createEditor()`
+reads it when the editor is created, so a change applies to documents opened
+afterwards. `createUndoInputRulePlugin()` (Backspace reverts a conversion) is
+always installed ahead of ngx-editor's `baseKeymap` in `document.service.ts`
+and is a no-op when the rules are off.
+
 ### EPUB Output
 
 `frontend/src/app/services/publish/epub-generator.service.ts` targets

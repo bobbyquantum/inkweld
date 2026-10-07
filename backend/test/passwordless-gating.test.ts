@@ -190,6 +190,18 @@ describe('Passwordless-first gating', () => {
 
       expect(response.status).toBe(200);
     });
+
+    it('stores NULL, not a placeholder address, when no email is given', async () => {
+      const { response } = await client.request('/api/v1/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: NEW_USERNAME }),
+      });
+
+      expect(response.status).toBe(200);
+      const row = await db.select().from(users).where(eq(users.username, NEW_USERNAME)).get();
+      expect(row?.email).toBeNull();
+    });
   });
 
   // ─── /register with USER_APPROVAL_REQUIRED — enrolment-token issuance ────

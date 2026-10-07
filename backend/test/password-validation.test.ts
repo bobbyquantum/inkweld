@@ -40,6 +40,25 @@ describe('validatePassword', () => {
     expect(errors).toContainEqual(expect.stringContaining('special'));
   });
 
+  it.each(['#', '-', '_', '.', '~', '^', '+', '=', '('])(
+    'should accept %s as the special character',
+    (ch) => {
+      expect(validatePassword(`TestPass12${ch}`, fullPolicy)).toHaveLength(0);
+    }
+  );
+
+  it('should not treat letters or digits from other scripts as special characters', () => {
+    for (const pw of ['TestPäss12', 'Пароль12Ab', 'パスワード１２３Ab']) {
+      expect(validatePassword(pw, fullPolicy)).toContainEqual(expect.stringContaining('special'));
+    }
+  });
+
+  it('should not treat letters, digits or whitespace as special characters', () => {
+    expect(validatePassword('TestPass12 ', fullPolicy)).toContainEqual(
+      expect.stringContaining('special')
+    );
+  });
+
   it('should return multiple errors for multiple violations', () => {
     const errors = validatePassword('test', fullPolicy);
     expect(errors.length).toBeGreaterThan(1);

@@ -54,6 +54,12 @@ import { SystemConfigService } from '@services/core/system-config.service';
 import { UserService } from '@services/user/user.service';
 import { firstValueFrom } from 'rxjs';
 
+import {
+  hasSpecialCharacter,
+  SPECIAL_CHARACTER_ERROR,
+  SPECIAL_CHARACTER_REQUIREMENT,
+} from '../../utils/password-rules';
+
 /**
  * Result of a successful registration
  */
@@ -347,7 +353,7 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
     },
     special: {
       met: false,
-      message: 'At least one special character (@$!%*?&)',
+      message: SPECIAL_CHARACTER_REQUIREMENT,
       enabled: this.policy().requireSymbol,
     },
   };
@@ -633,6 +639,14 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
     return '';
   }
 
+  /** One-line summary of the enabled password rules, shown before any error. */
+  passwordRequirementsHint(): string {
+    return Object.values(this.passwordRequirements)
+      .filter(r => r.enabled)
+      .map(r => r.message.replace(/^At least /, ''))
+      .join(', ');
+  }
+
   getPasswordErrorMessage(): string {
     const errors = this.form.password().errors();
     if (errors.some(e => e.kind === 'required')) {
@@ -651,7 +665,7 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
       return 'Password must contain at least one number';
     }
     if (errors.some(e => e.kind === 'special')) {
-      return 'Password must contain at least one special character (@$!%*?&)';
+      return SPECIAL_CHARACTER_ERROR;
     }
     // Return server validation error if flag is set
     if (this.passwordServerInvalid()) {
@@ -910,11 +924,10 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
         message: 'Password must contain at least one number',
       };
     }
-    if (p.requireSymbol && !/[@$!%*?&]/.test(password)) {
+    if (p.requireSymbol && !hasSpecialCharacter(password)) {
       return {
         kind: 'special',
-        message:
-          'Password must contain at least one special character (@$!%*?&)',
+        message: SPECIAL_CHARACTER_ERROR,
       };
     }
 
@@ -927,7 +940,7 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
     this.passwordRequirements['uppercase'].met = /[A-Z]/.test(password);
     this.passwordRequirements['lowercase'].met = /[a-z]/.test(password);
     this.passwordRequirements['number'].met = /\d/.test(password);
-    this.passwordRequirements['special'].met = /[@$!%*?&]/.test(password);
+    this.passwordRequirements['special'].met = hasSpecialCharacter(password);
     // Sync enabled flags from current policy
     this.passwordRequirements['uppercase'].enabled = p.requireUppercase;
     this.passwordRequirements['lowercase'].enabled = p.requireLowercase;

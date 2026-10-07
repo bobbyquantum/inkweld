@@ -70,7 +70,8 @@ class UserService {
     db: DatabaseInstance,
     data: {
       username: string;
-      email: string;
+      /** Optional: accounts registered without an email store NULL, not a placeholder. */
+      email?: string | null;
       /**
        * Plaintext password to hash. Optional: passwordless registrations
        * (PASSWORD_LOGIN_ENABLED=false) create a user with a NULL password
@@ -97,7 +98,7 @@ class UserService {
     const newUser: InsertUser = {
       id,
       username: data.username,
-      email: data.email,
+      email: data.email || null,
       password: hashedPassword,
       name: data.name || null,
       enabled: true,

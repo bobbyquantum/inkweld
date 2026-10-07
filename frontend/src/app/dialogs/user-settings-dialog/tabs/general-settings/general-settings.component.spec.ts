@@ -1,4 +1,4 @@
-import { provideZonelessChangeDetection } from '@angular/core';
+import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { TutorialService } from '@services/core/tutorial.service';
@@ -12,9 +12,11 @@ describe('GeneralSettingsComponent', () => {
   let fixture: ComponentFixture<GeneralSettingsComponent>;
   let tutorial: TutorialService;
   let stored: Record<string, unknown>;
+  const markdownShortcuts = signal(false);
 
   beforeEach(async () => {
     stored = {};
+    markdownShortcuts.set(false);
 
     await TestBed.configureTestingModule({
       imports: [GeneralSettingsComponent, translocoTestProvider()],
@@ -26,6 +28,10 @@ describe('GeneralSettingsComponent', () => {
           useValue: {
             getSetting: (key: string, defaultValue: unknown) =>
               stored[key] ?? defaultValue,
+            markdownShortcuts,
+            setMarkdownShortcuts: vi.fn((value: boolean) => {
+              markdownShortcuts.set(value);
+            }),
             setSetting: vi.fn((key: string, value: unknown) => {
               stored[key] = value;
             }),
@@ -84,5 +90,25 @@ describe('GeneralSettingsComponent', () => {
 
     expect(tutorial.toursEnabled()).toBe(true);
     expect(stored['tutorialsEnabled']).toBe(true);
+  });
+
+  describe('Markdown shortcuts', () => {
+    function shortcutsSwitch(): HTMLButtonElement {
+      return fixture.nativeElement.querySelector(
+        '[data-testid="markdown-shortcuts-toggle"] button[role="switch"]'
+      );
+    }
+
+    it('is off by default', () => {
+      expect(shortcutsSwitch().getAttribute('aria-checked')).toBe('false');
+    });
+
+    it('turns on from the toggle', async () => {
+      shortcutsSwitch().click();
+      await settle();
+
+      expect(markdownShortcuts()).toBe(true);
+      expect(shortcutsSwitch().getAttribute('aria-checked')).toBe('true');
+    });
   });
 });

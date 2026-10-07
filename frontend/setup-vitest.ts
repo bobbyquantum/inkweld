@@ -317,6 +317,7 @@ vi.mock('@bobbyquantum/ngx-editor', () => {
   };
 
   class MockEditor {
+    constructor(public options?: unknown) {}
     view = {
       state: {
         plugins: [],

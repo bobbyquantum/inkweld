@@ -172,6 +172,16 @@ describe('CreateProjectComponent', () => {
     expect(component.projectForm.slug().value()).toBe('my-test-project');
   });
 
+  it('should always float the slug label so a generated value does not overlap it', () => {
+    component.step.set(2);
+    component.projectForm.title().value.set('My Test Project');
+    fixture.detectChanges();
+    const field = fixture.nativeElement
+      .querySelector('[data-testid="project-slug-input"]')
+      .closest('mat-form-field');
+    expect(field.classList).toContain('mat-mdc-form-field-label-always-float');
+  });
+
   it('should update project URL when slug changes', () => {
     const baseUrl = window.location.origin;
     const username = 'testuser';

@@ -207,6 +207,27 @@ describe('SettingsService', () => {
     });
   });
 
+  describe('setMarkdownShortcuts', () => {
+    it('defaults the signal to false when nothing is stored', () => {
+      expect(service.markdownShortcuts()).toBe(false);
+    });
+
+    it('honours a stored opt-in', () => {
+      localStorageMock['userSettings'] = JSON.stringify({
+        markdownShortcuts: true,
+      });
+      expect(createService().markdownShortcuts()).toBe(true);
+    });
+
+    it('persists the value and updates the reactive signal', () => {
+      service.setMarkdownShortcuts(true);
+      expect(service.markdownShortcuts()).toBe(true);
+      expect(
+        JSON.parse(localStorageMock['userSettings']).markdownShortcuts
+      ).toBe(true);
+    });
+  });
+
   describe('setDenseLayout', () => {
     it('defaults the signal to true (dense) when nothing is stored', () => {
       expect(service.denseLayout()).toBe(true);
