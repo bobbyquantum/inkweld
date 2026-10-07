@@ -602,6 +602,7 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
       ),
       excludeIds: alreadyAdded,
       excludeTypes: [...NON_TEXT_TYPES],
+      foldersIncludeChildren: true,
     });
     if (!result || result.elements.length === 0) return;
 

@@ -480,6 +480,7 @@ export class PdfGeneratorService {
         break;
 
       case PublishPlanItemType.TableOfContents:
+        if (plan.options.includeToc === false) break;
         ctx.markup += '#pagebreak(weak: true)\n';
         ctx.markup += '= Table of Contents\n\n';
         ctx.markup += '#outline(title: none, indent: auto)\n\n';

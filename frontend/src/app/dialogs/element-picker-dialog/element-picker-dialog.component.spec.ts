@@ -485,23 +485,44 @@ describe('ElementPickerDialogComponent', () => {
     expect(mockDialogRef.close).toHaveBeenCalledWith(null);
   });
 
+  const wb = (schemaId?: string) =>
+    ({ type: 'WORLDBUILDING', schemaId, name: 'x' }) as never;
+
   it('should return correct type icons from the schema library', () => {
-    expect(component.getTypeIcon('character-v1')).toBe('person');
-    expect(component.getTypeIcon('location-v1')).toBe('place');
-    expect(component.getTypeIcon('wb-item-v1')).toBe('inventory_2');
-    expect(component.getTypeIcon('species-v1')).toBe('pets');
-    expect(component.getTypeIcon('deity-v1')).toBe('ac_unit');
-    expect(component.getTypeIcon('faction-v1')).toBe('groups');
-    expect(component.getTypeIcon('event-v1')).toBe('event');
-    expect(component.getTypeIcon('concept-v1')).toBe('lightbulb');
-    expect(component.getTypeIcon('unknown-v1')).toBe('category');
-    expect(component.getTypeIcon(undefined)).toBe('category');
+    expect(component.getTypeIcon(wb('character-v1'))).toBe('person');
+    expect(component.getTypeIcon(wb('location-v1'))).toBe('place');
+    expect(component.getTypeIcon(wb('unknown-v1'))).toBe('category');
+    expect(component.getTypeIcon(wb(undefined))).toBe('category');
+  });
+
+  it('should use real element-type icons for folders, documents and notes', () => {
+    const el = (type: string, metadata = {}) =>
+      ({ type, name: 'x', metadata }) as never;
+    expect(component.getTypeIcon(el('FOLDER'))).toBe('folder');
+    expect(component.getTypeIcon(el('ITEM'))).toBe('description');
+    expect(component.getTypeIcon(el('ITEM', { role: 'note' }))).toBe(
+      'sticky_note_2'
+    );
   });
 
   it('should return correct type labels', () => {
-    expect(component.getTypeLabel('character-v1')).toBe('character');
-    expect(component.getTypeLabel('location-v1')).toBe('location');
-    expect(component.getTypeLabel(undefined)).toBe('');
+    expect(component.getTypeLabel(wb('character-v1'))).toBe('character');
+    expect(component.getTypeLabel(wb(undefined))).toBe('');
+    expect(component.getTypeLabel({ type: 'FOLDER', name: 'x' } as never)).toBe(
+      'Folder'
+    );
+  });
+
+  it('should indent by depth unless searching', () => {
+    const nested = { type: 'ITEM', name: 'x', level: 2 } as never;
+    expect(component.indentFor(nested)).toBe(40);
+    component.searchText.set('x');
+    expect(component.indentFor(nested)).toBe(0);
+  });
+
+  it('should only hint at folder children when asked', () => {
+    const folder = { type: 'FOLDER', name: 'x' } as never;
+    expect(component.showsChildrenHint(folder)).toBe(false);
   });
 
   it('should have hasSelection computed correctly', () => {

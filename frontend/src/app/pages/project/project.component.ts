@@ -56,6 +56,7 @@ import { DocumentElementEditorComponent } from '../../components/document-elemen
 import { DocumentSyncState } from '../../models/document-sync-state';
 import {
   createDefaultPublishPlan,
+  defaultAuthorName,
   type PublishPlan,
 } from '../../models/publish-plan';
 import { CloudSyncEngineService } from '../../services/cloud-sync/cloud-sync-engine.service';
@@ -721,7 +722,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
       // Create a default publish plan
       plan = createDefaultPublishPlan(
         project.title,
-        project.username // Author name defaults to username
+        defaultAuthorName(this.userService.currentUser(), project.username)
       );
       this.projectState.createPublishPlan(plan);
     }

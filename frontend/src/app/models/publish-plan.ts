@@ -370,6 +370,17 @@ export interface PublishStats {
 /**
  * Creates a default publish plan
  */
+/**
+ * Default author for a new plan: the user's display name when set,
+ * otherwise their username.
+ */
+export function defaultAuthorName(
+  user: { name?: string | null; username?: string | null } | null | undefined,
+  fallback: string
+): string {
+  return user?.name?.trim() || user?.username?.trim() || fallback;
+}
+
 export function createDefaultPublishPlan(
   projectTitle: string,
   authorName: string

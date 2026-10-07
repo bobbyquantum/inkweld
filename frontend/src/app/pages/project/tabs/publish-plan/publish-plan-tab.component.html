@@ -435,6 +435,7 @@
           mat-menu-item
           (click)="addEverything()"
           [disabled]="documentElements().length === 0"
+          [matTooltip]="'publish.planEditor.addEverythingHint' | transloco"
           data-testid="menu-add-everything">
           <mat-icon>playlist_add</mat-icon>
           <span>{{ 'publish.planEditor.addEverything' | transloco }}</span>
@@ -515,6 +516,7 @@
               color="primary"
               class="add-everything-button"
               (click)="addEverything()"
+              [matTooltip]="'publish.planEditor.addEverythingHint' | transloco"
               data-testid="add-everything-button">
               <mat-icon>playlist_add</mat-icon>
               {{ 'publish.planEditor.addEverything' | transloco }}
@@ -612,12 +614,14 @@
     <div class="options-grid">
       <mat-checkbox
         [checked]="plan.options.includeToc"
+        [matTooltip]="'publish.planEditor.includeTocHint' | transloco"
         (change)="updateOptionCheckbox('includeToc', $event)">
         {{ 'publish.planEditor.includeToc' | transloco }}
       </mat-checkbox>
 
       <mat-checkbox
         [checked]="plan.options.includeCover"
+        [matTooltip]="'publish.planEditor.includeCoverHint' | transloco"
         (change)="updateOptionCheckbox('includeCover', $event)">
         {{ 'publish.planEditor.includeCover' | transloco }}
       </mat-checkbox>
