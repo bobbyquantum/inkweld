@@ -456,26 +456,17 @@ describe('StorageContextService', () => {
         expect(service.getWebSocketUrl()).toBeUndefined();
       });
 
-      it('should return wss URL for https server', () => {
-        const config = service.addServerConfig('https://example.com');
+      it.each([
+        ['https://example.com', 'wss://example.com'],
+        ['http://localhost:8333', 'ws://localhost:8333'],
+        [
+          'https://ha.local:8123/api/hassio_ingress/abc/',
+          'wss://ha.local:8123/api/hassio_ingress/abc',
+        ],
+      ])('maps server %s to %s', (serverUrl, expected) => {
+        const config = service.addServerConfig(serverUrl);
         service.switchToConfig(config.id);
-        expect(service.getWebSocketUrl()).toBe('wss://example.com');
-      });
-
-      it('should return ws URL for http server', () => {
-        const config = service.addServerConfig('http://localhost:8333');
-        service.switchToConfig(config.id);
-        expect(service.getWebSocketUrl()).toBe('ws://localhost:8333');
-      });
-
-      it('should keep a path prefix', () => {
-        const config = service.addServerConfig(
-          'https://ha.local:8123/api/hassio_ingress/abc/'
-        );
-        service.switchToConfig(config.id);
-        expect(service.getWebSocketUrl()).toBe(
-          'wss://ha.local:8123/api/hassio_ingress/abc'
-        );
+        expect(service.getWebSocketUrl()).toBe(expected);
       });
     });
   });

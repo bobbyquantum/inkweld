@@ -9,6 +9,8 @@
  * anything built from a root-absolute path has to go through {@link appUrl}.
  */
 
+import { stripTrailingSlashes } from '@utils/string-utils';
+
 /** Selects the meta tag the server adds for Home Assistant ingress. */
 const INGRESS_META_SELECTOR = 'meta[name="inkweld-ingress"]';
 
@@ -24,7 +26,7 @@ export function appBasePath(
   const baseURI = doc?.querySelector('base[href]') ? doc.baseURI : '';
   if (!baseURI) return '';
   try {
-    return new URL(baseURI).pathname.replace(/\/+$/, '');
+    return stripTrailingSlashes(new URL(baseURI).pathname);
   } catch {
     return '';
   }

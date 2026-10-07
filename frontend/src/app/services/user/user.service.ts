@@ -211,30 +211,35 @@ export class UserService {
           'Using cached user due to network error'
         );
       } else if (!canRecover) {
-        // The server rejected the session (401) or the account itself (403
-        // disabled). The cached user was already pushed into the signal for
-        // fast paint, so without this the app kept treating a dead session
-        // as signed in: isAuthenticated() stayed true and the auth guard let
-        // the navigation through. Clear token and cache so the next check
-        // sees an anonymous user.
-        if (
-          refreshErr instanceof UserServiceError &&
-          (refreshErr.code === 'SESSION_EXPIRED' ||
-            refreshErr.code === 'ACCESS_DENIED')
-        ) {
-          await this.clearCurrentUser();
-          // Behind HA ingress an expired token is replaced, not a sign-out.
-          if (
-            refreshErr.code === 'SESSION_EXPIRED' &&
-            (await this.signInThroughIngress())
-          ) {
-            this.error.set(undefined);
-            return;
-          }
-        }
+        if (await this.recoverFromRejectedSession(refreshErr)) return;
         throw refreshErr;
       }
     }
+  }
+
+  /**
+   * The server rejected the session (401) or the account itself (403
+   * disabled). The cached user was already pushed into the signal for fast
+   * paint, so without this the app kept treating a dead session as signed
+   * in: isAuthenticated() stayed true and the auth guard let the navigation
+   * through. Clear token and cache so the next check sees an anonymous user.
+   *
+   * Returns true when the session was replaced: behind HA ingress an expired
+   * token is swapped for a new one rather than ending in a sign-out.
+   */
+  private async recoverFromRejectedSession(err: unknown): Promise<boolean> {
+    if (
+      !(err instanceof UserServiceError) ||
+      (err.code !== 'SESSION_EXPIRED' && err.code !== 'ACCESS_DENIED')
+    ) {
+      return false;
+    }
+    await this.clearCurrentUser();
+    if (err.code === 'SESSION_EXPIRED' && (await this.signInThroughIngress())) {
+      this.error.set(undefined);
+      return true;
+    }
+    return false;
   }
 
   private async processUserResult(user: User): Promise<void> {

@@ -21,6 +21,7 @@ import type { User } from '../db/schema';
 import type { DatabaseInstance } from '../types/context';
 import { RESERVED_USERNAMES } from '../schemas/auth.schemas';
 import { ingressAdmins, type IngressUser } from '../utils/ingress';
+import { trimHyphens } from '../utils/string-utils';
 import { logger } from './logger.service';
 import { userService } from './user.service';
 
@@ -36,12 +37,12 @@ export type IngressSignInResult =
  */
 export function baseUsernameFor(haUser: IngressUser): string {
   const source = haUser.username ?? haUser.displayName ?? '';
-  const cleaned = source
-    .toLowerCase()
-    .replaceAll(/[^a-z0-9_-]+/g, '-')
-    .replaceAll(/-{2,}/g, '-')
-    .replaceAll(/^-+|-+$/g, '')
-    .slice(0, 32);
+  const cleaned = trimHyphens(
+    source
+      .toLowerCase()
+      .replaceAll(/[^a-z0-9_-]+/g, '-')
+      .replaceAll(/-{2,}/g, '-')
+  ).slice(0, 32);
   if (cleaned.length < 3) return FALLBACK_USERNAME;
   const reserved = (RESERVED_USERNAMES as readonly string[]).includes(cleaned);
   return reserved ? `${cleaned}-ha` : cleaned;

@@ -1340,7 +1340,7 @@ export class StorageContextService {
       const url = new URL(serverUrl);
       const protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
       // Keep a path prefix (reverse proxy, Home Assistant ingress).
-      const path = url.pathname.replace(/\/+$/, '');
+      const path = stripTrailingSlashes(url.pathname);
       return `${protocol}//${url.host}${path}`;
     } catch {
       return undefined;
