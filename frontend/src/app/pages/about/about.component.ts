@@ -98,7 +98,7 @@ export class AboutComponent {
   readonly currentYear = new Date().getFullYear();
 
   constructor() {
-    this.http.get('/assets/version.txt', { responseType: 'text' }).subscribe({
+    this.http.get('assets/version.txt', { responseType: 'text' }).subscribe({
       next: text => {
         const hash = text.trim();
         if (/^[0-9a-f]{7,40}$/i.test(hash)) {
@@ -116,7 +116,7 @@ export class AboutComponent {
   }
 
   openLicenses(): void {
-    globalThis.open('/3rdpartylicenses.txt', '_blank');
+    globalThis.open('3rdpartylicenses.txt', '_blank');
   }
 
   /**
@@ -127,7 +127,7 @@ export class AboutComponent {
    * alongside the font files instead.
    */
   openFontLicenses(): void {
-    globalThis.open('/assets/fonts/LICENSE.txt', '_blank');
+    globalThis.open('assets/fonts/LICENSE.txt', '_blank');
   }
 
   openExternalLink(url: string): void {

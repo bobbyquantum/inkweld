@@ -8,6 +8,7 @@ import {
   type User,
   UsersService,
 } from '@inkweld/index';
+import { appUrl, isHomeAssistantIngress } from '@utils/app-base';
 import {
   catchError,
   firstValueFrom,
@@ -216,6 +217,14 @@ export class UserService {
             refreshErr.code === 'ACCESS_DENIED')
         ) {
           await this.clearCurrentUser();
+          // Behind HA ingress an expired token is replaced, not a sign-out.
+          if (
+            refreshErr.code === 'SESSION_EXPIRED' &&
+            (await this.signInThroughIngress())
+          ) {
+            this.error.set(undefined);
+            return;
+          }
         }
         throw refreshErr;
       }
@@ -223,6 +232,9 @@ export class UserService {
   }
 
   private async processUserResult(user: User): Promise<void> {
+    if (user.username === 'anonymous' && (await this.signInThroughIngress())) {
+      return;
+    }
     if (user.username === 'anonymous') {
       this.logger.debug(
         'UserService',
@@ -283,7 +295,7 @@ export class UserService {
         // this profile belongs to gets their own profile, so the app reloads
         // into that storage context instead of a soft navigation.
         if (this.bindLoginToProfile(response.user)) {
-          globalThis.location.assign('/');
+          globalThis.location.assign(appUrl('/'));
           return;
         }
       }
@@ -294,6 +306,35 @@ export class UserService {
       throw error;
     } finally {
       this.isLoading.set(false);
+    }
+  }
+
+  /**
+   * Behind Home Assistant ingress, HA has already signed the person in: trade
+   * that for an Inkweld session instead of showing the login page. Returns
+   * false (leaving the caller to treat the user as signed out) when the page
+   * is not served through ingress or the server refuses.
+   */
+  private async signInThroughIngress(): Promise<boolean> {
+    if (!isHomeAssistantIngress()) return false;
+    try {
+      const response = await firstValueFrom(
+        this.authenticationService.ingressLogin()
+      );
+      this.authTokenService.setToken(response.token);
+      await this.setCurrentUser(response.user);
+      // Another HA user on this browser gets their own profile (see login()).
+      if (this.bindLoginToProfile(response.user)) {
+        globalThis.location.assign(appUrl('/'));
+      }
+      return true;
+    } catch (err) {
+      this.logger.warn(
+        'UserService',
+        'Home Assistant ingress sign-in failed',
+        err
+      );
+      return false;
     }
   }
 

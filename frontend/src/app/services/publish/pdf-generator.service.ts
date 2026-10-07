@@ -111,35 +111,35 @@ type ProseMirrorNode =
  */
 export const BUNDLED_TYPST_FONT_URLS: readonly string[] = [
   // EB Garamond (serifBook)
-  '/assets/fonts/eb-garamond-latin-400-normal.ttf',
-  '/assets/fonts/eb-garamond-latin-400-italic.ttf',
-  '/assets/fonts/eb-garamond-latin-700-normal.ttf',
-  '/assets/fonts/eb-garamond-latin-700-italic.ttf',
+  'assets/fonts/eb-garamond-latin-400-normal.ttf',
+  'assets/fonts/eb-garamond-latin-400-italic.ttf',
+  'assets/fonts/eb-garamond-latin-700-normal.ttf',
+  'assets/fonts/eb-garamond-latin-700-italic.ttf',
   // Source Serif 4 (serifClassic)
-  '/assets/fonts/source-serif-4-latin-400-normal.ttf',
-  '/assets/fonts/source-serif-4-latin-400-italic.ttf',
-  '/assets/fonts/source-serif-4-latin-700-normal.ttf',
-  '/assets/fonts/source-serif-4-latin-700-italic.ttf',
+  'assets/fonts/source-serif-4-latin-400-normal.ttf',
+  'assets/fonts/source-serif-4-latin-400-italic.ttf',
+  'assets/fonts/source-serif-4-latin-700-normal.ttf',
+  'assets/fonts/source-serif-4-latin-700-italic.ttf',
   // Source Sans 3 (sansClean)
-  '/assets/fonts/source-sans-3-latin-400-normal.ttf',
-  '/assets/fonts/source-sans-3-latin-400-italic.ttf',
-  '/assets/fonts/source-sans-3-latin-700-normal.ttf',
-  '/assets/fonts/source-sans-3-latin-700-italic.ttf',
+  'assets/fonts/source-sans-3-latin-400-normal.ttf',
+  'assets/fonts/source-sans-3-latin-400-italic.ttf',
+  'assets/fonts/source-sans-3-latin-700-normal.ttf',
+  'assets/fonts/source-sans-3-latin-700-italic.ttf',
   // Lato (sansHumanist)
-  '/assets/fonts/lato-latin-400-normal.ttf',
-  '/assets/fonts/lato-latin-400-italic.ttf',
-  '/assets/fonts/lato-latin-700-normal.ttf',
-  '/assets/fonts/lato-latin-700-italic.ttf',
+  'assets/fonts/lato-latin-400-normal.ttf',
+  'assets/fonts/lato-latin-400-italic.ttf',
+  'assets/fonts/lato-latin-700-normal.ttf',
+  'assets/fonts/lato-latin-700-italic.ttf',
   // Source Code Pro (mono)
-  '/assets/fonts/source-code-pro-latin-400-normal.ttf',
-  '/assets/fonts/source-code-pro-latin-400-italic.ttf',
-  '/assets/fonts/source-code-pro-latin-700-normal.ttf',
-  '/assets/fonts/source-code-pro-latin-700-italic.ttf',
+  'assets/fonts/source-code-pro-latin-400-normal.ttf',
+  'assets/fonts/source-code-pro-latin-400-italic.ttf',
+  'assets/fonts/source-code-pro-latin-700-normal.ttf',
+  'assets/fonts/source-code-pro-latin-700-italic.ttf',
   // Courier Prime (serifManuscript)
-  '/assets/fonts/courier-prime-latin-400-normal.ttf',
-  '/assets/fonts/courier-prime-latin-400-italic.ttf',
-  '/assets/fonts/courier-prime-latin-700-normal.ttf',
-  '/assets/fonts/courier-prime-latin-700-italic.ttf',
+  'assets/fonts/courier-prime-latin-400-normal.ttf',
+  'assets/fonts/courier-prime-latin-400-italic.ttf',
+  'assets/fonts/courier-prime-latin-700-normal.ttf',
+  'assets/fonts/courier-prime-latin-700-italic.ttf',
 ];
 
 /**
@@ -185,10 +185,10 @@ export class PdfGeneratorService {
     try {
       // Use local WASM modules for offline capability
       $typst.setCompilerInitOptions({
-        getModule: () => '/assets/wasm/typst_ts_web_compiler_bg.wasm',
+        getModule: () => 'assets/wasm/typst_ts_web_compiler_bg.wasm',
       });
       $typst.setRendererInitOptions({
-        getModule: () => '/assets/wasm/typst_ts_renderer_bg.wasm',
+        getModule: () => 'assets/wasm/typst_ts_renderer_bg.wasm',
       });
       // Preload bundled fonts so the PDF compiler can resolve every family
       // listed in PUBLISH_FONT_TOKENS without requiring network access.

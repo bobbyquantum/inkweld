@@ -1,4 +1,5 @@
 import { Injectable, signal } from '@angular/core';
+import { appUrl } from '@utils/app-base';
 
 /** Query parameter that marks a window as a popped-out document. */
 export const POPOUT_QUERY_PARAM = 'popout';
@@ -62,7 +63,7 @@ export class PopoutService {
       'status=no',
     ].join(',');
 
-    const opened = globalThis.open(url, name, features);
+    const opened = globalThis.open(appUrl(url), name, features);
     if (!opened) return false;
 
     // Re-requesting a document that is already popped out should surface that

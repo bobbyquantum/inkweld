@@ -467,6 +467,16 @@ describe('StorageContextService', () => {
         service.switchToConfig(config.id);
         expect(service.getWebSocketUrl()).toBe('ws://localhost:8333');
       });
+
+      it('should keep a path prefix', () => {
+        const config = service.addServerConfig(
+          'https://ha.local:8123/api/hassio_ingress/abc/'
+        );
+        service.switchToConfig(config.id);
+        expect(service.getWebSocketUrl()).toBe(
+          'wss://ha.local:8123/api/hassio_ingress/abc'
+        );
+      });
     });
   });
 

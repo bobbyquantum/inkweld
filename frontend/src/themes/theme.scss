@@ -214,7 +214,7 @@ $dark-theme: mat.define-theme(
   // Consume them through the mixins in `_app-background.scss` rather than
   // referencing them directly.
   // ───────────────────────────────────────────────────────────────────────────
-  --app-bg-image: url('/home_background.png');
+  --app-bg-image: url('home_background.png');
   --app-bg-size: cover;
   --app-bg-position: center;
   --app-bg-repeat: no-repeat;

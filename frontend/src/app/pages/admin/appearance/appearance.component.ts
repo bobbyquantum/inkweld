@@ -292,7 +292,7 @@ export class AdminAppearanceComponent implements OnInit {
       return this.previewFor('home', this.hasHomeAsset(), this.homeUrl());
     }
 
-    return "url('/home_background.png')";
+    return "url('home_background.png')";
   }
 
   private notify(key: string): void {

@@ -22,6 +22,7 @@ import {
   profileRemovalMessageKey,
 } from '@services/core/profile-manager.service';
 import { StorageContextService } from '@services/core/storage-context.service';
+import { appUrl } from '@utils/app-base';
 import { firstValueFrom } from 'rxjs';
 
 import {
@@ -155,6 +156,8 @@ export class ConnectionSettingsComponent {
   }
 
   private leaveTo(destination: ProfileDestination): void {
-    globalThis.location.href = destination === 'welcome' ? '/setup' : '/';
+    globalThis.location.href = appUrl(
+      destination === 'welcome' ? '/setup' : '/'
+    );
   }
 }

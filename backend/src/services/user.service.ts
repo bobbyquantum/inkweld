@@ -60,6 +60,19 @@ class UserService {
     return result[0];
   }
 
+  /** Find the account linked to a Home Assistant user id (ingress sign-in). */
+  async findByHomeAssistantUserId(
+    db: DatabaseInstance,
+    homeAssistantUserId: string
+  ): Promise<User | undefined> {
+    const result = await db
+      .select()
+      .from(users)
+      .where(eq(users.homeAssistantUserId, homeAssistantUserId))
+      .limit(1);
+    return result[0];
+  }
+
   /**
    * Create a new user with username/password
    * @param db Database instance
@@ -81,6 +94,8 @@ class UserService {
       name?: string;
       /** Legal-document version accepted at registration, if any. */
       policyAcceptedVersion?: string;
+      /** Home Assistant user id for accounts created by ingress sign-in. */
+      homeAssistantUserId?: string;
     },
     options?: {
       /** Override the default approval behavior. If true, user is auto-approved. */
@@ -103,6 +118,7 @@ class UserService {
       name: data.name || null,
       enabled: true,
       approved: shouldAutoApprove,
+      homeAssistantUserId: data.homeAssistantUserId ?? null,
       ...(data.policyAcceptedVersion && {
         policyAcceptedVersion: data.policyAcceptedVersion,
         policyAcceptedAt: Math.floor(Date.now() / 1000),
@@ -478,7 +494,16 @@ class UserService {
    * enabled, because the owner's own token must still be accepted while its
    * project Durable Objects are wiped.
    */
-  async reserveForDeletion(db: DatabaseInstance, userId: string): Promise<boolean> {
+  reserveForDeletion(db: DatabaseInstance, userId: string): Promise<boolean> {
+    return this.revokeAdminUnlessLast(db, userId);
+  }
+
+  /**
+   * Drop a user's admin flag unless they are the last enabled, approved
+   * admin. Returns false (and changes nothing) in that case; a non-admin
+   * always succeeds and is left unchanged. See {@link reserveForDeletion}.
+   */
+  async revokeAdminUnlessLast(db: DatabaseInstance, userId: string): Promise<boolean> {
     const otherActiveAdmins = sql`(
       select count(*) from ${users} as other
       where other."isAdmin" = 1 and other."enabled" = 1 and other."approved" = 1

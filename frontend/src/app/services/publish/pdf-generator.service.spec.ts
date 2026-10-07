@@ -1207,9 +1207,9 @@ describe('BUNDLED_TYPST_FONT_URLS', () => {
     expect(BUNDLED_TYPST_FONT_URLS).toHaveLength(24);
   });
 
-  it('every URL targets /assets/fonts/ as a TTF file', () => {
+  it('every URL targets assets/fonts/ as a TTF file', () => {
     for (const url of BUNDLED_TYPST_FONT_URLS) {
-      expect(url).toMatch(/^\/assets\/fonts\/[a-z0-9-]+\.ttf$/);
+      expect(url).toMatch(/^assets\/fonts\/[a-z0-9-]+\.ttf$/);
     }
   });
 
@@ -1222,10 +1222,10 @@ describe('BUNDLED_TYPST_FONT_URLS', () => {
         variants,
         `Family ${slug} should have 4 variants in BUNDLED_TYPST_FONT_URLS`
       ).toHaveLength(4);
-      expect(variants).toContain(`/assets/fonts/${slug}-latin-400-normal.ttf`);
-      expect(variants).toContain(`/assets/fonts/${slug}-latin-400-italic.ttf`);
-      expect(variants).toContain(`/assets/fonts/${slug}-latin-700-normal.ttf`);
-      expect(variants).toContain(`/assets/fonts/${slug}-latin-700-italic.ttf`);
+      expect(variants).toContain(`assets/fonts/${slug}-latin-400-normal.ttf`);
+      expect(variants).toContain(`assets/fonts/${slug}-latin-400-italic.ttf`);
+      expect(variants).toContain(`assets/fonts/${slug}-latin-700-normal.ttf`);
+      expect(variants).toContain(`assets/fonts/${slug}-latin-700-italic.ttf`);
     }
   });
 });

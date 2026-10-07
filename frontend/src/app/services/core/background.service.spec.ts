@@ -16,7 +16,7 @@ const SERVER = 'http://inkweld.example.com';
 const CONFIG_URL = `${SERVER}/api/v1/appearance/config`;
 const PREFERENCE_URL = `${SERVER}/api/v1/appearance/preference`;
 const USER_BACKGROUND_URL = `${SERVER}/api/v1/appearance/user-background`;
-const BUNDLED = "url('/home_background.png')";
+const BUNDLED = "url('home_background.png')";
 
 /**
  * Let a settled `firstValueFrom` promise run its continuation, so the next

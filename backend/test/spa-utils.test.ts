@@ -5,6 +5,8 @@ import {
   findEmbeddedFile,
   guessMimeType,
   buildAssetHeaders,
+  injectIngressBase,
+  INGRESS_META,
 } from '../src/utils/spa-utils';
 
 describe('spa-utils', () => {
@@ -180,6 +182,31 @@ describe('spa-utils', () => {
     it('should not set Content-Encoding when encoding is undefined', () => {
       const headers = buildAssetHeaders('text/css', 'style.css');
       expect(headers.get('Content-Encoding')).toBeNull();
+    });
+  });
+
+  describe('injectIngressBase', () => {
+    const html = '<head>\n    <base href="/" />\n  </head>';
+
+    it('re-roots the base element under the ingress prefix and marks the page', () => {
+      const out = injectIngressBase(html, '/api/hassio_ingress/abc_DEF-123');
+      expect(out).toContain('<base href="/api/hassio_ingress/abc_DEF-123/" />');
+      expect(out).toContain(INGRESS_META);
+      expect(out).not.toContain('<base href="/" />');
+    });
+
+    it('leaves the document unchanged without a prefix', () => {
+      expect(injectIngressBase(html, null)).toBe(html);
+    });
+
+    it('leaves documents without a root base element unchanged', () => {
+      const other = '<head><base href="/elsewhere/" /></head>';
+      expect(injectIngressBase(other, '/api/hassio_ingress/abc')).toBe(other);
+    });
+
+    it('matches the base element written without a self-closing slash', () => {
+      const out = injectIngressBase('<base href="/">', '/api/hassio_ingress/abc');
+      expect(out).toContain('<base href="/api/hassio_ingress/abc/" />');
     });
   });
 });

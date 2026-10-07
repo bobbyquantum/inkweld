@@ -15,6 +15,7 @@ import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { StorageContextService } from '@services/core/storage-context.service';
 import { SystemConfigService } from '@services/core/system-config.service';
 import { UserService } from '@services/user/user.service';
+import { appUrl } from '@utils/app-base';
 
 /** Where the app lands after the account is gone (a full page load). */
 export const ACCOUNT_DELETED_URL = '/delete-account?deleted=1';
@@ -98,7 +99,7 @@ export class DeleteAccountComponent {
       // Full reload: every service holds handles into this profile's storage,
       // and the database deletes queued by deleteAccount only finish once
       // they are released.
-      globalThis.location.assign(ACCOUNT_DELETED_URL);
+      globalThis.location.assign(appUrl(ACCOUNT_DELETED_URL));
     } catch (err) {
       console.error('Failed to delete account:', err);
       this.snackBar.open(

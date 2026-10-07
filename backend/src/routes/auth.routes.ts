@@ -6,6 +6,9 @@ import { emailService } from '../services/email.service';
 import { welcomeEmail, awaitingApprovalEmail } from '../services/email-templates';
 import { getBaseUrl } from '../services/url.service';
 import { legalService } from '../services/legal.service';
+import { ingressAuthService } from '../services/ingress-auth.service';
+import { getIngressUser } from '../utils/ingress';
+import type { User } from '../db/schema';
 import { getPasswordPolicy, validatePassword } from '../services/password-validation.service';
 import { type AppContext, type DatabaseInstance } from '../types/context';
 import {
@@ -18,6 +21,24 @@ import {
 import { errorResponse, MessageResponseSchema } from '../schemas/common.schemas';
 
 const authRoutes = new OpenAPIHono<AppContext>();
+
+/** The user object returned alongside a session token. */
+function loginUser(user: User) {
+  return {
+    id: user.id,
+    username: user.username || '',
+    name: user.name,
+    email: user.email || undefined,
+    approved: user.approved,
+    enabled: user.enabled,
+    isAdmin: user.isAdmin,
+    hasAvatar: user.hasAvatar,
+    bio: user.bio ?? null,
+    profileVisibility: user.profileVisibility,
+    activityVisibility: user.activityVisibility,
+    projectsVisibility: user.projectsVisibility,
+  };
+}
 
 // Registration endpoint
 const registerRoute = createRoute({
@@ -325,27 +346,47 @@ authRoutes.openapi(loginRoute, async (c) => {
   // Create session and get JWT token
   const token = await authService.createSession(c, user);
 
-  // Return user object with JWT token
-  return c.json(
-    {
-      user: {
-        id: user.id,
-        username: user.username || '',
-        name: user.name,
-        email: user.email || undefined,
-        approved: user.approved,
-        enabled: user.enabled,
-        isAdmin: user.isAdmin,
-        hasAvatar: user.hasAvatar,
-        bio: user.bio ?? null,
-        profileVisibility: user.profileVisibility,
-        activityVisibility: user.activityVisibility,
-        projectsVisibility: user.projectsVisibility,
+  // Return user object with JWT token for client to store
+  return c.json({ user: loginUser(user), token }, 200);
+});
+
+// Home Assistant ingress sign-in
+const ingressLoginRoute = createRoute({
+  method: 'post',
+  path: '/ingress',
+  tags: ['Authentication'],
+  operationId: 'ingressLogin',
+  description:
+    'Sign in as the Home Assistant user that HA ingress authenticated. Only ' +
+    'available when the server runs as a Home Assistant app (INGRESS_ENABLED) ' +
+    'and the request came through the ingress proxy; otherwise 404.',
+  responses: {
+    200: {
+      content: {
+        'application/json': {
+          schema: LoginResponseSchema,
+        },
       },
-      token, // Return JWT token for client to store
+      description: 'Login successful',
     },
-    200
-  );
+    403: errorResponse('The linked account is disabled or pending approval'),
+    404: errorResponse('Not an ingress request'),
+  },
+});
+
+authRoutes.openapi(ingressLoginRoute, async (c) => {
+  const haUser = getIngressUser(c);
+  if (!haUser) {
+    return c.json({ error: 'Not Found' }, 404);
+  }
+
+  const result = await ingressAuthService.signIn(c.get('db'), haUser);
+  if (!result.ok) {
+    return c.json({ error: result.error }, result.status);
+  }
+
+  const token = await authService.createSession(c, result.user);
+  return c.json({ user: loginUser(result.user), token }, 200);
 });
 
 // Logout endpoint

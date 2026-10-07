@@ -568,6 +568,35 @@ tooling via `general`-category config keys (editable in the admin Settings page)
   `.wasm` in place, so the server detects compressed WASM by its missing
   `\0asm` magic (`wasmContentEncoding`) rather than by filename.
 
+### Home Assistant Ingress
+
+Inkweld can run as a Home Assistant app (repo `bobbyquantum/addon-inkweld`,
+a thin layer over the published image). HA serves the UI at
+`/api/hassio_ingress/<token>/…`, strips the prefix, and sends it as
+`X-Ingress-Path` along with the signed-in HA user (`X-Remote-User-Id`,
+`-Name`, `-Display-Name`).
+
+- **Trust is by TCP peer, never by header.** `utils/ingress.ts` honours those
+  headers only with `INGRESS_ENABLED=true` and when the socket address is
+  `INGRESS_TRUSTED_PROXY` (default `172.30.32.2`). Don't switch it to
+  `getClientIp()` / `X-Forwarded-For`; a direct-port client controls those.
+- The served `index.html` gets `<base href="<prefix>/">` and an
+  `inkweld-ingress` meta tag (`injectIngressBase`, applied inside
+  `renderIndex` so the ngsw.json hash patch sees the same document).
+- `POST /api/v1/auth/ingress` (`ingress-auth.service.ts`) links the HA user id
+  to `users.homeAssistantUserId`, creating an approved account on first visit,
+  applies `INGRESS_ADMINS`, and returns a normal session JWT. The frontend
+  calls it from `UserService` when it would otherwise be anonymous or its
+  token expired, and `SetupService` points the app at `appOrigin()` instead of
+  showing setup.
+- CSRF's origin check is skipped for ingress requests (HA's origin isn't
+  predictable; its `ingress_session` cookie is `SameSite=Strict`).
+- **The frontend must work under a path prefix.** Use relative asset URLs
+  (`assets/…`, not `/assets/…`) and `appUrl()` / `appOrigin()` from
+  `utils/app-base.ts` for full-page navigations, new windows and server URLs.
+  Stylesheet URLs to `public/` files stay relative and are listed in
+  `externalDependencies` in `angular.json` so the build leaves them alone.
+
 ### Account Deletion
 
 Google Play requires in-app **and** web account deletion for apps that allow

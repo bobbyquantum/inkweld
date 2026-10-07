@@ -41,7 +41,7 @@ describe('IconSvgService', () => {
 
     const svg = await service.getSvg('badge');
 
-    expect(fetchMock).toHaveBeenCalledWith('/assets/icons/outlined/badge.svg');
+    expect(fetchMock).toHaveBeenCalledWith('assets/icons/outlined/badge.svg');
     expect(svg).toBe(
       '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" focusable="false" aria-hidden="true"><path d="M140-80q-24 0-42-18Z"/></svg>'
     );
@@ -69,7 +69,7 @@ describe('IconSvgService', () => {
     await service.getSvg('place');
 
     expect(fetchMock).toHaveBeenCalledWith(
-      '/assets/icons/outlined/location_on.svg'
+      'assets/icons/outlined/location_on.svg'
     );
   });
 

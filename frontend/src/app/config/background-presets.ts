@@ -28,7 +28,7 @@ export const BACKGROUND_PRESETS: readonly BackgroundPreset[] = [
   {
     id: 'bundled',
     labelKey: 'settings.background.presets.bundled',
-    image: "url('/home_background.png')",
+    image: "url('home_background.png')",
     color: 'transparent',
   },
   {

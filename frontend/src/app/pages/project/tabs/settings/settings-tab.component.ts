@@ -50,6 +50,7 @@ import { ProjectRenameMigrationService } from '@services/local/project-rename-mi
 import { UnifiedProjectService } from '@services/local/unified-project.service';
 import { ProjectExportService } from '@services/project/project-export.service';
 import { ProjectStateService } from '@services/project/project-state.service';
+import { appUrl } from '@utils/app-base';
 import { formatBytes } from '@utils/format-bytes';
 import { firstValueFrom } from 'rxjs';
 
@@ -870,7 +871,9 @@ export class SettingsTabComponent implements OnDestroy {
       await this.carryLocalStateToNewSlug(project.username, oldSlug, newSlug);
 
       // Full reload so every service starts over on the new slug
-      globalThis.location.href = `/${project.username}/${newSlug}/settings`;
+      globalThis.location.href = appUrl(
+        `/${project.username}/${newSlug}/settings`
+      );
     } catch (error) {
       console.error('Failed to rename project:', error);
       const message =

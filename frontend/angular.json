@@ -22,6 +22,11 @@
             "browser": "src/main.ts",
             "tsConfig": "tsconfig.app.json",
             "inlineStyleLanguage": "scss",
+            "externalDependencies": [
+              "assets/fonts/*",
+              "default_cover.webp",
+              "home_background.png"
+            ],
             "assets": [
               {
                 "glob": "**/*",
