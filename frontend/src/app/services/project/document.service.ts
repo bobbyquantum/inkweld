@@ -17,6 +17,7 @@ import {
   createFindPlugin,
   createImagePastePlugin,
   createKeyboardShortcutsPlugin,
+  createUndoInputRulePlugin,
   ElementRefService,
   extractMediaId,
   generateMediaId,
@@ -1231,8 +1232,10 @@ export class DocumentService {
 
     // Reconfigure state with new plugins - this triggers ySyncPlugin's init()
     // which binds Yjs content to ProseMirror
+    // The undo-input-rule keymap goes first so it beats ngx-editor's baseKeymap
+    // Backspace (see createUndoInputRulePlugin).
     const newState = view.state.reconfigure({
-      plugins: [...view.state.plugins, ...plugins],
+      plugins: [createUndoInputRulePlugin(), ...view.state.plugins, ...plugins],
     });
 
     // Check if view DOM is still attached before updating state

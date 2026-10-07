@@ -1,11 +1,12 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { TranslocoModule } from '@jsverse/transloco';
+import { SettingsService } from '@services/core/settings.service';
 import { TutorialService } from '@services/core/tutorial.service';
 
 /**
- * App-wide preferences that belong to no single screen. Currently the way
- * back from the "Don't show tutorials" opt-out on the first tour card.
+ * App-wide preferences that belong to no single screen: the way back from the
+ * "Don't show tutorials" opt-out on the first tour card, and typing behaviour.
  */
 @Component({
   selector: 'app-general-settings',
@@ -16,6 +17,17 @@ import { TutorialService } from '@services/core/tutorial.service';
 })
 export class GeneralSettingsComponent {
   private readonly tutorialService = inject(TutorialService);
+  private readonly settingsService = inject(SettingsService);
+
+  get markdownShortcuts(): boolean {
+    return this.settingsService.markdownShortcuts();
+  }
+
+  setMarkdownShortcuts(value: boolean): void {
+    this.settingsService.setMarkdownShortcuts(
+      typeof value === 'boolean' && value
+    );
+  }
 
   get toursEnabled(): boolean {
     return this.tutorialService.toursEnabled();
