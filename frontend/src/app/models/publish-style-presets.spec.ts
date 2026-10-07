@@ -169,7 +169,7 @@ describe('publish-style-presets', () => {
   });
 
   describe('presetsForMedium', () => {
-    it('offers only e-book and universal presets for reflowable output', () => {
+    it('drops print presets for reflowable output', () => {
       const ids = presetsForMedium(true).map(p => p.id);
       expect(ids).toEqual([
         'ebook',
@@ -180,15 +180,8 @@ describe('publish-style-presets', () => {
       ]);
     });
 
-    it('keeps e-book presets out of print', () => {
-      const ids = presetsForMedium(false).map(p => p.id);
-      expect(ids).toEqual([
-        'manuscript',
-        'paperback',
-        'webSerial',
-        'largePrint',
-        'reference',
-      ]);
+    it('keeps every preset for non-reflowable formats', () => {
+      expect(presetsForMedium(false)).toEqual(PUBLISH_STYLE_PRESETS);
     });
 
     it('does not name print terms in reflowable preset labels', () => {

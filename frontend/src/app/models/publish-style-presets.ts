@@ -288,10 +288,13 @@ export function getPublishStylePreset(
   return PUBLISH_STYLE_PRESETS.find(p => p.id === id);
 }
 
-/** Presets worth offering for an output kind (`any` presets suit both). */
+/**
+ * Presets worth offering for an output kind. Reflowable output (EPUB) drops
+ * the print presets, whose page setup it ignores; every other format keeps
+ * the full list, since HTML and PDF can all use an e-book's text styling.
+ */
 export function presetsForMedium(reflowable: boolean): PublishStylePreset[] {
-  const wanted: PresetMedium = reflowable ? 'reflowable' : 'print';
-  return PUBLISH_STYLE_PRESETS.filter(
-    p => p.medium === 'any' || p.medium === wanted
-  );
+  return reflowable
+    ? PUBLISH_STYLE_PRESETS.filter(p => p.medium !== 'print')
+    : PUBLISH_STYLE_PRESETS;
 }

@@ -124,16 +124,18 @@ test.describe('Online Publish Style Editor', () => {
       await expect(page.getByTestId('current-preset-label')).toBeVisible();
     });
 
-    await test.step('Default preset is paperback', async () => {
+    await test.step('Default preset is the e-book preset (new plans are EPUB)', async () => {
       await expect(page.getByTestId('current-preset-label')).toHaveText(
-        /paperback/i
+        /e-book/i
       );
+      // EPUB reflows, so the print-only page setup is not offered.
+      await expect(page.getByTestId('section-page')).toHaveCount(0);
     });
 
-    await test.step('Selecting Manuscript preset updates label', async () => {
-      await selectPreset(page, 'manuscript');
+    await test.step('Selecting an e-book preset updates label', async () => {
+      await selectPreset(page, 'ebookModern');
       await expect(page.getByTestId('current-preset-label')).toHaveText(
-        /manuscript/i
+        /modern/i
       );
     });
 
@@ -274,12 +276,13 @@ test.describe('Online Publish Style Editor', () => {
 
     // ---------- Bug #2: paperback PDF compiles ----------------------------
     await test.step('bug #2: paperback PDF compiles without Typst page error', async () => {
-      await openStyleEditor(page);
-      await selectPreset(page, 'paperback');
-
+      // Print presets are only offered for print formats, so switch first.
       await selectSection(page, 'metadata');
       await page.getByTestId('format-select').click();
       await page.getByTestId('format-option-PDF_SIMPLE').click();
+
+      await openStyleEditor(page);
+      await selectPreset(page, 'paperback');
 
       await selectSection(page, 'publish');
       await page.getByTestId('generate-button').click();

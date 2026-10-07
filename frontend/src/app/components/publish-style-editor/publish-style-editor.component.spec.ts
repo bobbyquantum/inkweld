@@ -315,9 +315,11 @@ describe('PublishStyleEditorComponent', () => {
       expect(el(fixture, 'print-preset-note')).not.toBeNull();
     });
 
-    it('does not offer e-book presets for print', () => {
+    it('offers every preset for non-reflowable output', () => {
       const { component } = setupComponent();
-      expect(component['visiblePresets'].map(p => p.id)).not.toContain('ebook');
+      const ids = component['visiblePresets'].map(p => p.id);
+      expect(ids).toContain('ebook');
+      expect(ids).toContain('paperback');
     });
 
     it('resets to the e-book preset', () => {
