@@ -26,6 +26,8 @@ import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { PasswordResetService } from '@services/auth/password-reset.service';
 import { SystemConfigService } from '@services/core/system-config.service';
 
+import { hasSpecialCharacter } from '../../utils/password-rules';
+
 interface PasswordRequirement {
   met: boolean;
   /** Translation key rendered reactively in the template via the transloco pipe. */
@@ -255,7 +257,7 @@ export class ResetPasswordComponent implements OnInit {
     if (p.requireNumber && !/\d/.test(password)) {
       return { kind: 'number' };
     }
-    if (p.requireSymbol && !/[^A-Za-z0-9\s]/.test(password)) {
+    if (p.requireSymbol && !hasSpecialCharacter(password)) {
       return { kind: 'special' };
     }
 
@@ -268,7 +270,7 @@ export class ResetPasswordComponent implements OnInit {
     this.passwordRequirements['uppercase'].met = /[A-Z]/.test(password);
     this.passwordRequirements['lowercase'].met = /[a-z]/.test(password);
     this.passwordRequirements['number'].met = /\d/.test(password);
-    this.passwordRequirements['special'].met = /[^A-Za-z0-9\s]/.test(password);
+    this.passwordRequirements['special'].met = hasSpecialCharacter(password);
     // Sync enabled flags from current policy
     this.passwordRequirements['uppercase'].enabled = p.requireUppercase;
     this.passwordRequirements['lowercase'].enabled = p.requireLowercase;
