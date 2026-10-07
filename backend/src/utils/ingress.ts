@@ -17,15 +17,14 @@
  * Settings (read at call time with bracket notation, like client-ip.ts,
  * because `bun build --compile --minify` constant-folds dotted env reads):
  *   - `INGRESS_ENABLED=true` turns the feature on.
- *   - `INGRESS_TRUSTED_PROXY` is the proxy address (default `172.30.32.2`).
+ *   - `INGRESS_TRUSTED_PROXY` is the proxy's address. Required: the Home
+ *     Assistant app sets it to the Supervisor's fixed address on the hassio
+ *     network. Without it no request is treated as ingress.
  *   - `INGRESS_ADMINS` is a comma-separated list of HA usernames that are
  *     Inkweld admins (see ingress-auth.service.ts).
  */
 import type { Context } from 'hono';
 import { getSocketAddress } from './client-ip';
-
-/** The Supervisor's fixed address on the hassio network. */
-export const DEFAULT_INGRESS_PROXY = '172.30.32.2';
 
 /** `/api/hassio_ingress/<token>`; the token is URL-safe base64. */
 const INGRESS_PATH_PATTERN = /^\/api\/hassio_ingress\/[A-Za-z0-9_-]{1,128}$/;
@@ -40,8 +39,8 @@ export function isIngressEnabled(): boolean {
   return value === 'true' || value === '1';
 }
 
-function trustedProxy(): string {
-  return env('INGRESS_TRUSTED_PROXY')?.trim() || DEFAULT_INGRESS_PROXY;
+function trustedProxy(): string | undefined {
+  return env('INGRESS_TRUSTED_PROXY')?.trim() || undefined;
 }
 
 /** Lower-cased HA usernames listed in `INGRESS_ADMINS`. */
@@ -60,8 +59,9 @@ function normalizeAddress(address: string): string {
 /** True when this request came through the Home Assistant ingress proxy. */
 export function isIngressRequest(c: Context): boolean {
   if (!isIngressEnabled()) return false;
+  const proxy = trustedProxy();
   const peer = getSocketAddress(c);
-  return !!peer && normalizeAddress(peer) === normalizeAddress(trustedProxy());
+  return !!proxy && !!peer && normalizeAddress(peer) === normalizeAddress(proxy);
 }
 
 /**

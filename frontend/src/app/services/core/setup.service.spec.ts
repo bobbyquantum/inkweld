@@ -564,11 +564,14 @@ describe('SetupService', () => {
         meta.remove();
       });
 
+      // The app resolves its server from <base href>, i.e. document.baseURI.
+      const pageOrigin = () => new URL(document.baseURI).origin;
+
       it('connects to the server that served the page', () => {
         (service as any)['autoConfigureIfNeeded']();
 
         expect(service.getMode()).toBe('server');
-        expect(service.getServerUrl()).toBe(globalThis.location.origin);
+        expect(service.getServerUrl()).toBe(pageOrigin());
         expect(service.getActiveConfig()?.displayName).toBe('Home Assistant');
       });
 
@@ -576,7 +579,7 @@ describe('SetupService', () => {
         environment.apiUrl = 'https://production.example.com';
         (service as any)['autoConfigureIfNeeded']();
 
-        expect(service.getServerUrl()).toBe(globalThis.location.origin);
+        expect(service.getServerUrl()).toBe(pageOrigin());
       });
 
       it('leaves a matching server profile active', () => {

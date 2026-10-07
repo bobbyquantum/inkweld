@@ -392,9 +392,10 @@ else are treated normally, so a direct port can stay open alongside ingress.
 
 ### INGRESS_TRUSTED_PROXY
 
-**Default:** `172.30.32.2` | IP address
+**Required with `INGRESS_ENABLED`** | IP address
 
-The Supervisor's ingress proxy. Only change this for testing.
+The Supervisor's ingress proxy. The Home Assistant app sets it to
+`172.30.32.2`; without it, no request is treated as ingress.
 
 ### INGRESS_ADMINS
 

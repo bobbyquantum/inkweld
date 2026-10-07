@@ -1,7 +1,6 @@
-import { afterEach, describe, expect, it } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
 import type { Context } from 'hono';
 import {
-  DEFAULT_INGRESS_PROXY,
   getIngressPath,
   getIngressUser,
   ingressAdmins,
@@ -39,6 +38,13 @@ afterEach(() => {
   restore('INGRESS_ADMINS', saved.admins);
 });
 
+/** The Supervisor's address, which the HA app passes as INGRESS_TRUSTED_PROXY. */
+const PROXY = '172.30.32.2';
+
+beforeEach(() => {
+  process.env['INGRESS_TRUSTED_PROXY'] = PROXY;
+});
+
 const userHeaders = {
   'X-Ingress-Path': '/api/hassio_ingress/Tok3n_-x',
   'X-Remote-User-Id': 'ha-user-1',
@@ -50,13 +56,19 @@ describe('ingress detection', () => {
   it('is off unless INGRESS_ENABLED is set', () => {
     delete process.env['INGRESS_ENABLED'];
     expect(isIngressEnabled()).toBe(false);
-    expect(isIngressRequest(ctx(userHeaders, DEFAULT_INGRESS_PROXY))).toBe(false);
-    expect(getIngressUser(ctx(userHeaders, DEFAULT_INGRESS_PROXY))).toBeNull();
+    expect(isIngressRequest(ctx(userHeaders, PROXY))).toBe(false);
+    expect(getIngressUser(ctx(userHeaders, PROXY))).toBeNull();
   });
 
-  it('trusts only the Supervisor proxy address', () => {
+  it('is off without INGRESS_TRUSTED_PROXY', () => {
     process.env['INGRESS_ENABLED'] = 'true';
     delete process.env['INGRESS_TRUSTED_PROXY'];
+    expect(isIngressRequest(ctx(userHeaders, PROXY))).toBe(false);
+    expect(getIngressUser(ctx(userHeaders, PROXY))).toBeNull();
+  });
+
+  it('trusts only the configured proxy address', () => {
+    process.env['INGRESS_ENABLED'] = 'true';
     expect(isIngressRequest(ctx(userHeaders, '172.30.32.2'))).toBe(true);
     expect(isIngressRequest(ctx(userHeaders, '::ffff:172.30.32.2'))).toBe(true);
     expect(isIngressRequest(ctx(userHeaders, '172.30.32.1'))).toBe(false);
@@ -75,16 +87,14 @@ describe('ingress detection', () => {
     process.env['INGRESS_ENABLED'] = 'true';
     process.env['INGRESS_TRUSTED_PROXY'] = '10.0.0.5';
     expect(isIngressRequest(ctx(userHeaders, '10.0.0.5'))).toBe(true);
-    expect(isIngressRequest(ctx(userHeaders, DEFAULT_INGRESS_PROXY))).toBe(false);
+    expect(isIngressRequest(ctx(userHeaders, PROXY))).toBe(false);
   });
 });
 
 describe('getIngressPath', () => {
   it('returns a well-formed prefix', () => {
     process.env['INGRESS_ENABLED'] = 'true';
-    expect(getIngressPath(ctx(userHeaders, DEFAULT_INGRESS_PROXY))).toBe(
-      '/api/hassio_ingress/Tok3n_-x'
-    );
+    expect(getIngressPath(ctx(userHeaders, PROXY))).toBe('/api/hassio_ingress/Tok3n_-x');
   });
 
   it.each([
@@ -94,14 +104,14 @@ describe('getIngressPath', () => {
     '/api/hassio_ingress/',
   ])('rejects %p', (path) => {
     process.env['INGRESS_ENABLED'] = 'true';
-    expect(getIngressPath(ctx({ 'X-Ingress-Path': path }, DEFAULT_INGRESS_PROXY))).toBeNull();
+    expect(getIngressPath(ctx({ 'X-Ingress-Path': path }, PROXY))).toBeNull();
   });
 });
 
 describe('getIngressUser', () => {
   it('reads the HA user headers', () => {
     process.env['INGRESS_ENABLED'] = 'true';
-    expect(getIngressUser(ctx(userHeaders, DEFAULT_INGRESS_PROXY))).toEqual({
+    expect(getIngressUser(ctx(userHeaders, PROXY))).toEqual({
       id: 'ha-user-1',
       username: 'alice',
       displayName: 'Alice Liddell',
@@ -110,13 +120,13 @@ describe('getIngressUser', () => {
 
   it('requires a user id', () => {
     process.env['INGRESS_ENABLED'] = 'true';
-    const c = ctx({ 'X-Remote-User-Name': 'alice' }, DEFAULT_INGRESS_PROXY);
+    const c = ctx({ 'X-Remote-User-Name': 'alice' }, PROXY);
     expect(getIngressUser(c)).toBeNull();
   });
 
   it('treats missing name headers as null', () => {
     process.env['INGRESS_ENABLED'] = 'true';
-    const c = ctx({ 'X-Remote-User-Id': 'x' }, DEFAULT_INGRESS_PROXY);
+    const c = ctx({ 'X-Remote-User-Id': 'x' }, PROXY);
     expect(getIngressUser(c)).toEqual({ id: 'x', username: null, displayName: null });
   });
 });

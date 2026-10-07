@@ -578,7 +578,8 @@ a thin layer over the published image). HA serves the UI at
 
 - **Trust is by TCP peer, never by header.** `utils/ingress.ts` honours those
   headers only with `INGRESS_ENABLED=true` and when the socket address is
-  `INGRESS_TRUSTED_PROXY` (default `172.30.32.2`). Don't switch it to
+  `INGRESS_TRUSTED_PROXY` (no default; the HA app sets the Supervisor's
+  `172.30.32.2`). Don't switch it to
   `getClientIp()` / `X-Forwarded-For`; a direct-port client controls those.
 - The served `index.html` gets `<base href="<prefix>/">` and an
   `inkweld-ingress` meta tag (`injectIngressBase`, applied inside
