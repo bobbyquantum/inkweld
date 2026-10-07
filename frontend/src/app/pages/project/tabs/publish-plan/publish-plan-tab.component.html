@@ -532,9 +532,13 @@
           <mat-icon class="drag-handle" cdkDragHandle>drag_indicator</mat-icon>
           <span class="item-order">{{ i + 1 }}</span>
           <mat-icon class="item-icon">{{ getItemIcon(item) }}</mat-icon>
-          <span class="item-name" data-testid="item-name">{{
-            getItemLabel(item)
-          }}</span>
+          <span
+            class="item-name"
+            data-testid="item-name"
+            [matTooltip]="getItemLabel(item)"
+            matTooltipShowDelay="500"
+            >{{ getItemLabel(item) }}</span
+          >
           @if (itemStats(item); as stats) {
             @if (stats.loading) {
               <span

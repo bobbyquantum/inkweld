@@ -647,7 +647,39 @@ describe('PublishPlanTabComponent', () => {
         type: PublishPlanItemType.Frontmatter,
         contentType: FrontmatterType.TitlePage,
       };
-      expect(component.getItemLabel(item)).toContain('Frontmatter');
+      expect(component.getItemLabel(item)).toBe('Title Page');
+    });
+
+    it('should prefer a custom title for custom frontmatter', () => {
+      const item: FrontmatterItem = {
+        id: 'test',
+        type: PublishPlanItemType.Frontmatter,
+        contentType: FrontmatterType.Custom,
+        customTitle: 'Map of the Realm',
+      };
+      expect(component.getItemLabel(item)).toBe('Map of the Realm');
+    });
+
+    it('should prefer titleOverride for element items', () => {
+      const item: ElementItem = {
+        id: 'test',
+        type: PublishPlanItemType.Element,
+        elementId: 'elem-1',
+        includeChildren: true,
+        titleOverride: 'Part One',
+      };
+      expect(component.getItemLabel(item)).toBe('Part One');
+    });
+
+    it('should use a custom TOC title', () => {
+      const item: TableOfContentsItem = {
+        id: 'test',
+        type: PublishPlanItemType.TableOfContents,
+        title: 'Chapters',
+        depth: 2,
+        includePageNumbers: false,
+      };
+      expect(component.getItemLabel(item)).toBe('Chapters');
     });
 
     it('should return formatted label for backmatter', () => {
@@ -656,7 +688,7 @@ describe('PublishPlanTabComponent', () => {
         type: PublishPlanItemType.Backmatter,
         contentType: BackmatterType.AboutAuthor,
       };
-      expect(component.getItemLabel(item)).toContain('Backmatter');
+      expect(component.getItemLabel(item)).toBe('About Author');
     });
 
     it('should return formatted label for separator', () => {
