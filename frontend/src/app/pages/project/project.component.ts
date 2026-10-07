@@ -65,9 +65,9 @@ import { ProjectSearchService } from '../../services/core/project-search.service
 import { QuickOpenService } from '../../services/core/quick-open.service';
 import { StorageContextService } from '../../services/core/storage-context.service';
 import { RecentFilesService } from '../../services/project/recent-files.service';
+import { manuscriptPlanItems } from '../../services/publish/plan-contents';
 import { MediaAutoSyncService } from '../../services/sync/media-auto-sync.service';
 import { StorageUsageService } from '../../services/user/storage-usage.service';
-import { manuscriptPlanItems } from '../../services/publish/plan-contents';
 import { UnifiedUserService } from '../../services/user/unified-user.service';
 import { TabInterfaceComponent } from './tabs/tab-interface.component';
 
