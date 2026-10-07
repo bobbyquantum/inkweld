@@ -871,10 +871,26 @@ export class ProjectTreeComponent implements OnDestroy {
   }
 
   /**
-   * Opens the new element dialog to create a new element at the root level.
+   * Opens the new element dialog from the sidebar Create button. The new
+   * element goes right after the selected (open) element, in the same parent;
+   * with nothing selected it is created at the root.
    */
   public onCreateNewElement(): void {
-    this.projectStateService.showNewElementDialog();
+    const selected = this.selectedItem
+      ? this.projectStateService
+          .elements()
+          .find(e => e.id === this.selectedItem?.id)
+      : undefined;
+    if (!selected) {
+      this.projectStateService.showNewElementDialog();
+      return;
+    }
+    const parent = selected.parentId
+      ? this.projectStateService
+          .elements()
+          .find(e => e.id === selected.parentId)
+      : undefined;
+    this.projectStateService.showNewElementDialog(parent, selected);
   }
 
   /**

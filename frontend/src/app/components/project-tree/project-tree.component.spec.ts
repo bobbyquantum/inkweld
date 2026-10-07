@@ -919,6 +919,57 @@ describe('ProjectTreeComponent', () => {
     expect(projectStateService.showNewElementDialog).toHaveBeenCalled();
   });
 
+  describe('Create button placement', () => {
+    const scene: ProjectElement = {
+      ...mockDto,
+      id: 'scene-1',
+      name: 'Scene',
+      parentId: 'folder-1',
+      level: 1,
+    };
+    const folder: ProjectElement = {
+      ...mockDto,
+      id: 'folder-1',
+      name: 'Manuscript',
+      type: ElementType.Folder,
+      parentId: null,
+      level: 0,
+      expandable: true,
+    };
+
+    it('creates after the selected element, in its parent folder', () => {
+      elementsSignal.set([folder, scene]);
+      component.selectedItem = scene;
+
+      component.onCreateNewElement();
+
+      expect(projectStateService.showNewElementDialog).toHaveBeenCalledWith(
+        folder,
+        scene
+      );
+    });
+
+    it('creates after a selected root element with no parent', () => {
+      elementsSignal.set([folder, scene]);
+      component.selectedItem = folder;
+
+      component.onCreateNewElement();
+
+      expect(projectStateService.showNewElementDialog).toHaveBeenCalledWith(
+        undefined,
+        folder
+      );
+    });
+
+    it('falls back to the root when nothing is selected', () => {
+      component.selectedItem = null;
+
+      component.onCreateNewElement();
+
+      expect(projectStateService.showNewElementDialog).toHaveBeenCalledWith();
+    });
+  });
+
   it('should render the create footer button when user can write', () => {
     fixture.detectChanges();
     const createButton = fixture.nativeElement.querySelector(

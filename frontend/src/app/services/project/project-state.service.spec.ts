@@ -798,6 +798,79 @@ describe('ProjectStateService', () => {
     });
   });
 
+  describe('addElement placement', () => {
+    const el = (
+      id: string,
+      level: number,
+      parentId: string | null,
+      type: ElementType = ElementType.Item
+    ): Element => ({
+      ...mockElementDto,
+      id,
+      name: id,
+      type,
+      level,
+      parentId,
+      expandable: type === ElementType.Folder,
+    });
+
+    beforeEach(async () => {
+      await service.loadProject('testuser', 'test-project');
+      service.elements.set([
+        el('manuscript', 0, null, ElementType.Folder),
+        el('scene1', 1, 'manuscript'),
+        el('scene2', 1, 'manuscript'),
+        el('notes', 0, null),
+      ]);
+    });
+
+    it('places the new element after the given sibling in the same parent', () => {
+      const id = service.addElement(
+        ElementType.Item,
+        'Scene',
+        'manuscript',
+        undefined,
+        'scene1'
+      );
+
+      const elements = service.elements();
+      expect(elements.map(e => e.id)).toEqual([
+        'manuscript',
+        'scene1',
+        id,
+        'scene2',
+        'notes',
+      ]);
+      expect(elements.map(e => e.order)).toEqual([0, 1, 2, 3, 4]);
+      expect(elements[2]).toMatchObject({ parentId: 'manuscript', level: 1 });
+    });
+
+    it('places a root-level element after the end of the given subtree', () => {
+      const id = service.addElement(
+        ElementType.Item,
+        'Scene',
+        undefined,
+        undefined,
+        'manuscript'
+      );
+
+      const elements = service.elements();
+      expect(elements.map(e => e.id)).toEqual([
+        'manuscript',
+        'scene1',
+        'scene2',
+        id,
+        'notes',
+      ]);
+      expect(elements[3]).toMatchObject({ parentId: null, level: 0 });
+    });
+
+    it('still prepends as first child when no sibling is given', () => {
+      const id = service.addElement(ElementType.Item, 'Scene', 'manuscript');
+      expect(service.elements()[1].id).toBe(id);
+    });
+  });
+
   describe('Locally Created Element Tracking', () => {
     beforeEach(async () => {
       await service.loadProject('testuser', 'test-project');
