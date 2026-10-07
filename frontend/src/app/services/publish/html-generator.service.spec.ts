@@ -9,6 +9,7 @@ import { createCoverSourceMock } from '../../../testing/cover-source.mock';
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import {
   BackmatterType,
+  ChapterHeadingStyle,
   ChapterNumbering,
   FrontmatterType,
   PublishFormat,
@@ -454,6 +455,71 @@ describe('HtmlGeneratorService', () => {
       expect(result.success).toBe(true);
       const text = await result.file!.text();
       expect(text).toContain('Chapter 1:');
+    });
+
+    describe('chapterHeadingStyle option', () => {
+      const planWithStyle = (
+        style: ChapterHeadingStyle | undefined,
+        extra: Partial<PublishPlan['options']> = {}
+      ): PublishPlan => ({
+        ...mockPlan,
+        options: {
+          ...mockPlan.options,
+          chapterHeadingStyle: style,
+          ...extra,
+        },
+        styles: createDefaultPublishStyles(),
+        items: [
+          {
+            id: 'item-1',
+            type: PublishPlanItemType.Element,
+            elementId: 'doc-1',
+            includeChildren: false,
+            isChapter: true,
+          },
+        ],
+      });
+      const html = async (plan: PublishPlan) => {
+        const result = await service.generateHtml(plan);
+        expect(result.success).toBe(true);
+        return result.file!.text();
+      };
+
+      it('adds no heading by default', async () => {
+        expect(await html(planWithStyle(undefined))).not.toContain(
+          'ink-chapter-title">'
+        );
+      });
+
+      it('adds the document name', async () => {
+        expect(
+          await html(planWithStyle(ChapterHeadingStyle.DocumentName))
+        ).toContain('<h1 class="ink-chapter-title">Chapter 1</h1>');
+      });
+
+      it('adds a number in the chosen format', async () => {
+        const text = await html(
+          planWithStyle(ChapterHeadingStyle.ChapterNumberAndName, {
+            chapterNumbering: ChapterNumbering.Roman,
+          })
+        );
+        expect(text).toContain(
+          '<h1 class="ink-chapter-title">Chapter I: Chapter 1</h1>'
+        );
+      });
+
+      it('leaves documents that already open with a heading alone', async () => {
+        documentServiceMock.getDocumentContent.mockResolvedValue([
+          {
+            type: 'heading',
+            attrs: { level: 1 },
+            content: [{ type: 'text', text: 'Own Title' }],
+          },
+        ]);
+        const text = await html(planWithStyle(ChapterHeadingStyle.Number));
+        expect(text).toContain('Own Title');
+        expect(text).not.toContain('ink-chapter-title">');
+      });
     });
 
     it('should format chapters with Roman numeral numbering', async () => {

@@ -51,7 +51,7 @@
     "includeCover": "Include cover image",
     "includeCoverHint": "The cover image only. For a title page with the title and author, add Frontmatter > Title Page in Contents.",
     "chapterHeadingLabel": "Chapter headings",
-    "chapterHeadingHint": "EPUB only. Adds a heading above any document that doesn't already start with one.",
+    "chapterHeadingHint": "EPUB and HTML only (PDF and Markdown are unchanged). Adds a heading above any document that doesn't already start with one.",
     "chapterHeading": {
       "none": "No chapter heading",
       "document-name": "Use document name",

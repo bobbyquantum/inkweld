@@ -17,7 +17,6 @@ import { BehaviorSubject, type Observable, Subject } from 'rxjs';
 import {
   type BackmatterItem,
   BackmatterType,
-  ChapterHeadingStyle,
   ChapterNumbering,
   type ElementItem,
   type FrontmatterItem,
@@ -39,6 +38,7 @@ import { CoverSourceService } from '../project/cover-source.service';
 import { DefaultCoverRendererService } from '../project/default-cover-renderer.service';
 import { DocumentService } from '../project/document.service';
 import { ProjectStateService } from '../project/project-state.service';
+import { chapterHeadingText, withChapterHeading } from './chapter-heading';
 import {
   buildNavTree,
   coreImageExtension,
@@ -186,9 +186,6 @@ const TABLE_CELL_NAMES = new Set([
 
 /** Block nodes that honour ngx-editor's `align` / `indent` attributes. */
 const ALIGNABLE_TAGS = new Set(['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']);
-
-/** True when rendered document HTML already opens with a heading. */
-const LEADING_HEADING_RE = /^\s*<h[1-6][\s>]/i;
 
 /** Maximum indent level honoured from paragraph/heading `indent` attrs. */
 const MAX_INDENT = 8;
@@ -683,12 +680,14 @@ export class EpubGeneratorService {
     heading: string | null = null
   ): Promise<Chapter> {
     this.currentHeadings = [];
-    let body = await this.getDocumentContent(element.id);
-    // Not recorded in `currentHeadings`: the chapter's own nav entry already
-    // carries this title, so it must not repeat as a sub-entry.
-    if (heading && !LEADING_HEADING_RE.test(body)) {
-      body = `<h1 class="ink-chapter-title">${escapeXml(heading)}</h1>\n${body}`;
-    }
+    // The injected heading is not recorded in `currentHeadings`: the chapter's
+    // own nav entry already carries this title, so it must not repeat as a
+    // sub-entry.
+    const body = withChapterHeading(
+      await this.getDocumentContent(element.id),
+      heading,
+      escapeXml
+    );
     return {
       id: element.id,
       title,
@@ -2255,35 +2254,26 @@ ${chapter.body}
     }
   }
 
-  /**
-   * The heading to inject above a document's body, or null for none. Number
-   * styles apply to chapters only; other documents get their name.
-   */
+  /** The heading to inject above a document's body, or null for none. */
   private chapterHeading(
     title: string,
     chapterNumber: number,
     isChapter: boolean,
     options: PublishOptions
   ): string | null {
-    const style = options.chapterHeadingStyle ?? ChapterHeadingStyle.None;
-    if (style === ChapterHeadingStyle.None) return null;
-    if (style === ChapterHeadingStyle.DocumentName || !isChapter) {
-      return title || null;
-    }
     const n = chapterNumber + 1;
-    const numbering = options.chapterNumbering;
     let numeral = String(n);
-    if (numbering === ChapterNumbering.Roman) numeral = this.toRoman(n);
-    else if (numbering === ChapterNumbering.Written)
+    if (options.chapterNumbering === ChapterNumbering.Roman) {
+      numeral = this.toRoman(n);
+    } else if (options.chapterNumbering === ChapterNumbering.Written) {
       numeral = this.toWritten(n);
-    switch (style) {
-      case ChapterHeadingStyle.Number:
-        return numeral;
-      case ChapterHeadingStyle.ChapterNumber:
-        return `Chapter ${numeral}`;
-      default:
-        return title ? `Chapter ${numeral}: ${title}` : `Chapter ${numeral}`;
     }
+    return chapterHeadingText(
+      title,
+      numeral,
+      isChapter,
+      options.chapterHeadingStyle
+    );
   }
 
   /**

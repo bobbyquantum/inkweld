@@ -41,6 +41,7 @@ import { LocalStorageService } from '../local/local-storage.service';
 import { CoverSourceService } from '../project/cover-source.service';
 import { DocumentService } from '../project/document.service';
 import { ProjectStateService } from '../project/project-state.service';
+import { chapterHeadingText, withChapterHeading } from './chapter-heading';
 import { IconSvgService } from './icon-svg.service';
 import { PublishCssEmitterService } from './publish-css-emitter.service';
 import { countHtmlWords } from './publish-word-count';
@@ -787,7 +788,11 @@ export class HtmlGeneratorService {
       return await this.renderItemSection(item, element, plan, chapterNumber);
     }
     if (element.type === ElementType.Folder && item.includeChildren) {
-      return await this.renderFolderChildrenHtml(element, elements);
+      return await this.renderFolderChildrenHtml(
+        element,
+        elements,
+        plan.options
+      );
     }
     return '';
   }
@@ -807,12 +812,22 @@ export class HtmlGeneratorService {
     plan: PublishPlan,
     chapterNumber: number
   ): Promise<string> {
-    const content = await this.getDocumentContent(element.id);
-    // The user's document supplies its own heading (if any). We only wrap
-    // it in a <section> so chapter-level styling (page breaks, margins)
-    // can still target it. The id matches the anchor produced by buildTOC
-    // so TOC links resolve to a real target in the rendered document.
+    // The user's document supplies its own heading unless the plan picks a
+    // `chapterHeadingStyle`. We wrap it in a <section> so chapter-level
+    // styling (page breaks, margins) can still target it. The id matches the
+    // anchor produced by buildTOC so TOC links resolve to a real target in
+    // the rendered document.
     const elemTitle = item.titleOverride || element.name;
+    const content = withChapterHeading(
+      await this.getDocumentContent(element.id),
+      this.chapterHeading(
+        elemTitle,
+        chapterNumber,
+        item.isChapter ?? false,
+        plan.options
+      ),
+      text => this.escapeHtml(text)
+    );
     const formattedTitle = this.formatChapterTitle(
       elemTitle,
       chapterNumber,
@@ -829,7 +844,8 @@ export class HtmlGeneratorService {
 
   private async renderFolderChildrenHtml(
     element: Element,
-    elements: Element[]
+    elements: Element[],
+    options: PublishOptions
   ): Promise<string> {
     const parts: string[] = [];
     const children = this.getChildElements(element, elements);
@@ -839,7 +855,12 @@ export class HtmlGeneratorService {
         child.type === ElementType.Item &&
         isPublishableByDefault(child.metadata)
       ) {
-        const content = await this.getDocumentContent(child.id);
+        // Folder children aren't numbered, so number styles reduce to the name.
+        const content = withChapterHeading(
+          await this.getDocumentContent(child.id),
+          this.chapterHeading(child.name, 0, false, options),
+          text => this.escapeHtml(text)
+        );
         const childAnchor = this.cssSafe(child.name);
         parts.push(
           `<section class="ink-section" id="${childAnchor}">`,
@@ -1524,6 +1545,27 @@ ${content}
       }
     }
     lines.push(`</ul>`);
+  }
+
+  private chapterHeading(
+    title: string,
+    chapterNumber: number,
+    isChapter: boolean,
+    options: PublishOptions
+  ): string | null {
+    const n = chapterNumber + 1;
+    let numeral = String(n);
+    if (options.chapterNumbering === ChapterNumbering.Roman) {
+      numeral = this.toRoman(n);
+    } else if (options.chapterNumbering === ChapterNumbering.Written) {
+      numeral = this.toWritten(n);
+    }
+    return chapterHeadingText(
+      title,
+      numeral,
+      isChapter,
+      options.chapterHeadingStyle
+    );
   }
 
   /** Shared with {@link HtmlSiteGeneratorService}. */
