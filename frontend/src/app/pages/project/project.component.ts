@@ -67,6 +67,7 @@ import { StorageContextService } from '../../services/core/storage-context.servi
 import { RecentFilesService } from '../../services/project/recent-files.service';
 import { MediaAutoSyncService } from '../../services/sync/media-auto-sync.service';
 import { StorageUsageService } from '../../services/user/storage-usage.service';
+import { manuscriptPlanItems } from '../../services/publish/plan-contents';
 import { UnifiedUserService } from '../../services/user/unified-user.service';
 import { TabInterfaceComponent } from './tabs/tab-interface.component';
 
@@ -701,6 +702,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
         project.title,
         defaultAuthorName(this.userService.currentUser(), project.username)
       );
+      plan.items = manuscriptPlanItems(this.projectState.elements());
       this.projectState.createPublishPlan(plan);
     }
 

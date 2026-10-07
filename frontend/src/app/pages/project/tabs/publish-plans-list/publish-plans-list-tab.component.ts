@@ -23,6 +23,7 @@ import {
 import { type PublishedFile } from '@models/published-file';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { ProjectStateService } from '@services/project/project-state.service';
+import { manuscriptPlanItems } from '@services/publish/plan-contents';
 import { PublishedFilesService } from '@services/publish/published-files.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
 
@@ -123,6 +124,7 @@ export class PublishPlansListTabComponent implements OnInit {
         project.username ?? 'Unknown Author'
       )
     );
+    plan.items = manuscriptPlanItems(this.projectState.elements());
     this.projectState.createPublishPlan(plan);
     this.openPublishPlan(plan);
   }

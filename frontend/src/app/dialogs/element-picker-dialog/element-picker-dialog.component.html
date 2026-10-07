@@ -42,6 +42,8 @@
         tabindex="0"
         role="option"
         [attr.aria-selected]="isSelected(element)"
+        [style.padding-left.px]="16 + indentFor(element)"
+        [attr.data-level]="element.level ?? 0"
         data-testid="element-picker-item">
         <mat-checkbox
           [checked]="isSelected(element)"
@@ -51,11 +53,17 @@
           (change)="toggleSelection(element)">
         </mat-checkbox>
         <span class="material-symbols-outlined type-icon">
-          {{ getTypeIcon(element.schemaId) }}
+          {{ getTypeIcon(element) }}
         </span>
         <div class="element-info">
           <span class="element-name">{{ element.name }}</span>
-          <span class="element-type">{{ getTypeLabel(element.schemaId) }}</span>
+          <span class="element-type">
+            {{ getTypeLabel(element) }}
+            @if (showsChildrenHint(element)) {
+              ·
+              {{ 'dialogs.elementPicker.includesChildren' | transloco }}
+            }
+          </span>
         </div>
       </div>
     } @empty {

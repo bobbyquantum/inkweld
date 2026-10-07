@@ -11,6 +11,7 @@ import {
   coveredElementIds,
   elementPlanItem,
   isPlannableType,
+  manuscriptPlanItems,
   overlapsPlan,
   uncoveredPlanItems,
 } from './plan-contents';
@@ -205,5 +206,33 @@ describe('plan contents', () => {
       expect(ids(items)).toEqual(['part-1', 'hero']);
       expect(items[0].includeChildren).toBe(true);
     });
+  });
+});
+
+describe('manuscriptPlanItems', () => {
+  it('lists prose folders and documents, skipping notes, worldbuilding and the README', () => {
+    const tree: Element[] = [
+      { ...el('readme', Item, 0), name: 'README' },
+      el('book', Folder, 0),
+      el('ch1', Item, 1, { role: 'scene' }),
+      el('ch2', Item, 1, { role: 'scene' }),
+      el('lore', Folder, 0),
+      el('hero', Worldbuilding, 1),
+      el('mixed', Folder, 0),
+      el('m1', Item, 1),
+      el('npc', Worldbuilding, 1),
+      el('notes', Item, 0, { role: 'note' }),
+      el('epilogue', Item, 0),
+    ];
+    const items = manuscriptPlanItems(tree);
+    expect(items.map(i => [i.elementId, i.includeChildren])).toEqual([
+      ['book', true],
+      ['m1', false],
+      ['epilogue', false],
+    ]);
+  });
+
+  it('is empty when the project has no prose', () => {
+    expect(manuscriptPlanItems([])).toEqual([]);
   });
 });

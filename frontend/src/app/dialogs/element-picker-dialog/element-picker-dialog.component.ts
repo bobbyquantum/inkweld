@@ -27,6 +27,7 @@ import { TooltipAriaLabelDirective } from '@directives/tooltip-aria-label.direct
 import { type Element } from '@inkweld/model/element';
 import { ElementType } from '@inkweld/model/element-type';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
+import { isNote } from '@models/scene-metadata';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
 import { firstValueFrom } from 'rxjs';
@@ -56,6 +57,11 @@ export interface ElementPickerDialogData {
    * `ElementType.Worldbuilding`).
    */
   allowCreate?: boolean;
+  /**
+   * Show "includes everything inside" on folders, for callers that treat a
+   * selected folder as its whole subtree (e.g. publish plans).
+   */
+  foldersIncludeChildren?: boolean;
 }
 
 /**
@@ -212,19 +218,43 @@ export class ElementPickerDialogComponent {
     this.selectedIds.set(newSet);
   }
 
-  /**
-   * Get icon for element type based on schemaId
-   */
-  getTypeIcon(schemaId: string | undefined): string {
-    return this.worldbuildingService.getSchemaIcon(schemaId);
+  /** Icon for an element: its own type, or its template's icon. */
+  getTypeIcon(element: Element): string {
+    switch (element.type) {
+      case ElementType.Folder:
+        return 'folder';
+      case ElementType.Item:
+        return isNote(element.metadata) ? 'sticky_note_2' : 'description';
+      default:
+        return this.worldbuildingService.getSchemaIcon(element.schemaId);
+    }
   }
 
-  /**
-   * Get type label from schemaId
-   */
-  getTypeLabel(schemaId: string | undefined): string {
-    if (!schemaId) return '';
-    return schemaId.replace(/-v\d+$/, '');
+  /** Secondary label: the template name, or the plain element kind. */
+  getTypeLabel(element: Element): string {
+    if (element.schemaId) return element.schemaId.replace(/-v\d+$/, '');
+    const key =
+      element.type === ElementType.Folder
+        ? 'typeFolder'
+        : element.type === ElementType.Item
+          ? isNote(element.metadata)
+            ? 'typeNote'
+            : 'typeDocument'
+          : null;
+    return key ? this.transloco.translate(`dialogs.elementPicker.${key}`) : '';
+  }
+
+  /** Whether to hint that a folder brings its contents along. */
+  showsChildrenHint(element: Element): boolean {
+    return (
+      !!this.data.foldersIncludeChildren && element.type === ElementType.Folder
+    );
+  }
+
+  /** Left indent (px) showing tree depth; flat while searching. */
+  indentFor(element: Element): number {
+    if (this.searchText().trim()) return 0;
+    return (element.level ?? 0) * 20;
   }
 
   /**
