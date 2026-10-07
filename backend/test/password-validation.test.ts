@@ -47,6 +47,12 @@ describe('validatePassword', () => {
     }
   );
 
+  it('should not treat letters or digits from other scripts as special characters', () => {
+    for (const pw of ['TestPäss12', 'Пароль12Ab', 'パスワード１２３Ab']) {
+      expect(validatePassword(pw, fullPolicy)).toContainEqual(expect.stringContaining('special'));
+    }
+  });
+
   it('should not treat letters, digits or whitespace as special characters', () => {
     expect(validatePassword('TestPass12 ', fullPolicy)).toContainEqual(
       expect.stringContaining('special')

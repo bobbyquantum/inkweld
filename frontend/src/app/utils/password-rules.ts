@@ -1,5 +1,5 @@
-/** Any printable character that is not a letter, digit or whitespace. */
-export const SPECIAL_CHARACTER_PATTERN = /[^A-Za-z0-9\s]/;
+/** Any character that is not a letter or digit (in any script) or whitespace. */
+export const SPECIAL_CHARACTER_PATTERN = /[^\p{L}\p{N}\s]/u;
 
 export const SPECIAL_CHARACTER_ERROR =
   'Password must contain at least one special character (e.g. ! @ # $ % - _ .)';
