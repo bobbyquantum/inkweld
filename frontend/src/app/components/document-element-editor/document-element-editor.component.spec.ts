@@ -64,6 +64,7 @@ describe('DocumentElementEditorComponent', () => {
 
     settingsServiceMock = {
       getSetting: vi.fn().mockReturnValue(true),
+      markdownShortcuts: vi.fn().mockReturnValue(false) as never,
     };
 
     dialogGatewayMock = {
@@ -111,6 +112,28 @@ describe('DocumentElementEditorComponent', () => {
     it('should have color presets', () => {
       expect(component.colorPresets).toBeDefined();
       expect(component.colorPresets).toHaveLength(20);
+    });
+  });
+
+  describe('Markdown input rules', () => {
+    const createEditor = (): { options: { inputRules: boolean } } =>
+      (
+        component as unknown as {
+          createEditor: () => { options: { inputRules: boolean } };
+        }
+      ).createEditor();
+
+    it('are off unless the user opted in', () => {
+      expect(createEditor().options.inputRules).toBe(false);
+    });
+
+    it('are on when the setting is enabled', () => {
+      (
+        settingsServiceMock.markdownShortcuts as unknown as ReturnType<
+          typeof vi.fn
+        >
+      ).mockReturnValue(true);
+      expect(createEditor().options.inputRules).toBe(true);
     });
   });
 

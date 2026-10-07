@@ -12,3 +12,18 @@
     {{ 'settings.generalTab.showToursHint' | transloco }}
   </p>
 </section>
+
+<section class="settings-section">
+  <h3 class="settings-section-title">
+    {{ 'settings.generalTab.writingTitle' | transloco }}
+  </h3>
+  <mat-slide-toggle
+    [checked]="markdownShortcuts"
+    (change)="setMarkdownShortcuts($any($event).checked)"
+    data-testid="markdown-shortcuts-toggle">
+    {{ 'settings.generalTab.markdownShortcuts' | transloco }}
+  </mat-slide-toggle>
+  <p class="settings-section-hint">
+    {{ 'settings.generalTab.markdownShortcutsHint' | transloco }}
+  </p>
+</section>
