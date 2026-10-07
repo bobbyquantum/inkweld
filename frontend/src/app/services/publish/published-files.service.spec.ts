@@ -372,6 +372,115 @@ describe('PublishedFilesService', () => {
     });
   });
 
+  describe('upload failures', () => {
+    const mockServerFile = {
+      id: 'server-id',
+      projectId: 'proj-1',
+      filename: 'new-book.epub',
+      format: PublishFormat.EPUB,
+      mimeType: 'application/epub+zip',
+      size: 1,
+      planName: 'Default Export',
+      planId: null,
+      sharePermission: 'private',
+      shareToken: 'server-token',
+      createdAt: '2024-01-01T00:00:00Z',
+      updatedAt: '2024-01-01T00:00:00Z',
+      metadata: { title: 'T', author: 'A', itemCount: 1 },
+    };
+
+    const request = {
+      filename: 'new-book.epub',
+      format: PublishFormat.EPUB,
+      mimeType: 'application/epub+zip',
+      planName: 'Default Export',
+      metadata: { title: 'T', author: 'A', itemCount: 1 },
+    };
+
+    beforeEach(() => {
+      setupService.getMode.mockReturnValue('server');
+      localStorageService.saveMedia.mockResolvedValue(undefined);
+    });
+
+    it('sends every metadata key, using null for absent values', async () => {
+      const fetchMock = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ ...mockServerFile }),
+      });
+      vi.stubGlobal('fetch', fetchMock);
+
+      await service.savePublishedFile(mockProjectKey, mockBlob, request);
+
+      const body = fetchMock.mock.calls[0][1].body as FormData;
+      const sent = JSON.parse(body.get('metadata') as string);
+      expect(sent.metadata).toEqual({
+        title: 'T',
+        author: 'A',
+        itemCount: 1,
+        subtitle: null,
+        language: null,
+        wordCount: null,
+      });
+    });
+
+    it('records the server reason when the upload is rejected', async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue({
+          ok: false,
+          status: 400,
+          statusText: 'Bad Request',
+          json: () => Promise.resolve({ error: 'Invalid metadata format' }),
+        })
+      );
+
+      await service.savePublishedFile(mockProjectKey, mockBlob, request);
+
+      expect(service.lastUploadError()).toBe('400 Invalid metadata format');
+    });
+
+    it('records network failures and clears the error on success', async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockRejectedValue(new Error('Network error'))
+      );
+      const saved = await service.savePublishedFile(
+        mockProjectKey,
+        mockBlob,
+        request
+      );
+      expect(service.lastUploadError()).toBe('Network error');
+
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue({
+          ok: true,
+          json: () => Promise.resolve({ ...mockServerFile }),
+        })
+      );
+      const retried = await service.retryUpload(
+        mockProjectKey,
+        saved,
+        mockBlob
+      );
+
+      expect(service.lastUploadError()).toBeNull();
+      expect(retried?.shareToken).toBe('server-token');
+      expect(retried?.id).toBe(saved.id);
+    });
+
+    it('stays silent when no server is used', async () => {
+      setupService.getMode.mockReturnValue('local');
+      const fetchMock = vi.fn();
+      vi.stubGlobal('fetch', fetchMock);
+
+      await service.savePublishedFile(mockProjectKey, mockBlob, request);
+
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(service.lastUploadError()).toBeNull();
+    });
+  });
+
   describe('getFileBlob', () => {
     it('should return blob from offline storage', async () => {
       localStorageService.getMedia.mockResolvedValue(mockBlob);

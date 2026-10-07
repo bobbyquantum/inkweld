@@ -28,6 +28,8 @@ describe('PublishCompleteDialogComponent', () => {
     getShareUrl: Mock;
     updateSharePermission: Mock;
     lastUploadRefusedForQuota: ReturnType<typeof signal<boolean>>;
+    lastUploadError: ReturnType<typeof signal<string | null>>;
+    retryUpload: Mock;
   };
   let mockSetupService: { getMode: Mock };
 
@@ -63,6 +65,8 @@ describe('PublishCompleteDialogComponent', () => {
       getShareUrl: vi.fn().mockReturnValue('https://example.com/share/abc123'),
       updateSharePermission: vi.fn(),
       lastUploadRefusedForQuota: signal(false),
+      lastUploadError: signal<string | null>(null),
+      retryUpload: vi.fn(),
     };
     mockSetupService = {
       getMode: vi.fn().mockReturnValue('server'),
@@ -89,6 +93,38 @@ describe('PublishCompleteDialogComponent', () => {
       expect(component.quotaRefused()).toBe(false);
       mockPublishedFilesService.lastUploadRefusedForQuota.set(true);
       expect(component.quotaRefused()).toBe(true);
+    });
+  });
+
+  describe('upload failure', () => {
+    it('exposes the failure reason from the last upload', () => {
+      expect(component.uploadError()).toBeNull();
+      mockPublishedFilesService.lastUploadError.set('400 Bad Request');
+      expect(component.uploadError()).toBe('400 Bad Request');
+    });
+
+    it('retries the upload and adopts the server record', async () => {
+      const serverFile = { ...mockFile, shareToken: 'tok' };
+      mockPublishedFilesService.retryUpload.mockResolvedValue(serverFile);
+
+      await component.retryUpload();
+
+      expect(mockPublishedFilesService.retryUpload).toHaveBeenCalledWith(
+        'testuser/my-novel',
+        mockFile,
+        mockDialogData.blob
+      );
+      expect(component.file()).toBe(serverFile);
+      expect(component.retrying()).toBe(false);
+    });
+
+    it('keeps the local file when the retry fails', async () => {
+      mockPublishedFilesService.retryUpload.mockResolvedValue(null);
+
+      await component.retryUpload();
+
+      expect(component.file()).toBe(mockFile);
+      expect(component.retrying()).toBe(false);
     });
   });
 
