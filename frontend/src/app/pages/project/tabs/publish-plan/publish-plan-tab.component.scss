@@ -434,7 +434,9 @@ mat-expansion-panel {
 }
 
 .content-item {
+  position: relative;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
@@ -467,13 +469,18 @@ mat-expansion-panel {
     color: var(--sys-outline);
   }
 
+  // Long labels wrap onto a second line (then ellipsize); the full text is
+  // also in the tooltip.
   .item-name {
-    flex: 1;
+    flex: 1 1 6ch;
     font-weight: 500;
-    min-width: 0;
+    min-width: 6ch;
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    overflow-wrap: anywhere;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
   }
 
   .item-stats {
@@ -501,15 +508,34 @@ mat-expansion-panel {
     }
   }
 
+  // Overlaid on the row's right edge so the (hidden) buttons never take
+  // width away from the label.
   .item-actions {
+    position: absolute;
+    top: 4px;
+    right: 4px;
     display: flex;
-    gap: 4px;
+    gap: 0;
+    padding: 0 4px;
+    background: var(--sys-surface-container-high, var(--sys-surface));
+    border: 1px solid var(--sys-outline-variant);
+    border-radius: 8px;
+    --mat-icon-button-state-layer-size: 32px;
+
+    button {
+      width: 32px;
+      height: 32px;
+      padding: 4px;
+    }
+
+    pointer-events: none;
     opacity: 0;
     transition: opacity 0.2s ease;
   }
 
   &:hover .item-actions,
   &:focus-within .item-actions {
+    pointer-events: auto;
     opacity: 1;
   }
 }

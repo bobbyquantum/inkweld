@@ -649,16 +649,20 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
     switch (item.type) {
       case PublishPlanItemType.Element: {
         const element = this.elements().find(e => e.id === item.elementId);
-        return element?.name ?? 'Unknown Element';
+        return item.titleOverride?.trim() || element?.name || 'Unknown Element';
       }
       case PublishPlanItemType.Frontmatter:
-        return `Frontmatter: ${this.formatEnumLabel(item.contentType)}`;
       case PublishPlanItemType.Backmatter:
-        return `Backmatter: ${this.formatEnumLabel(item.contentType)}`;
+        return (
+          item.customTitle?.trim() || this.formatEnumLabel(item.contentType)
+        );
       case PublishPlanItemType.Separator:
         return `Separator: ${this.formatEnumLabel(item.style)}`;
-      case PublishPlanItemType.TableOfContents:
-        return `Table of Contents`;
+      case PublishPlanItemType.TableOfContents: {
+        const title = item.title?.trim();
+        // 'Contents' is the default title a new TOC item is created with.
+        return title && title !== 'Contents' ? title : 'Table of Contents';
+      }
       case PublishPlanItemType.Worldbuilding:
         return `Worldbuilding: ${item.title}`;
       default:
