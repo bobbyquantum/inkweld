@@ -187,6 +187,28 @@ describe('RegistrationFormComponent', () => {
       expect(component.passwordRequirements['special'].met).toBe(true);
     });
 
+    it.each(['#', '-', '_', '.', '~', '^'])(
+      'should accept %s as a special character',
+      async ch => {
+        component.form.password().value.set(`Test123${ch}x`);
+        await fixture.whenStable();
+        expect(component.passwordRequirements['special'].met).toBe(true);
+        expect(
+          component.form
+            .password()
+            .errors()
+            .some(e => e.kind === 'special')
+        ).toBe(false);
+      }
+    );
+
+    it('should list the enabled requirements as a hint before any error', () => {
+      const hint = component.passwordRequirementsHint();
+      expect(hint).toContain('special character');
+      expect(hint).toContain('uppercase');
+      expect(hint).not.toMatch(/^At least/);
+    });
+
     it('should not meet requirements for weak password', () => {
       component.form.password().value.set('weak');
       expect(component.passwordRequirements['minLength'].met).toBe(false);

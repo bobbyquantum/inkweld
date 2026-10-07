@@ -255,7 +255,7 @@ export class ResetPasswordComponent implements OnInit {
     if (p.requireNumber && !/\d/.test(password)) {
       return { kind: 'number' };
     }
-    if (p.requireSymbol && !/[@$!%*?&]/.test(password)) {
+    if (p.requireSymbol && !/[^A-Za-z0-9\s]/.test(password)) {
       return { kind: 'special' };
     }
 
@@ -268,7 +268,7 @@ export class ResetPasswordComponent implements OnInit {
     this.passwordRequirements['uppercase'].met = /[A-Z]/.test(password);
     this.passwordRequirements['lowercase'].met = /[a-z]/.test(password);
     this.passwordRequirements['number'].met = /\d/.test(password);
-    this.passwordRequirements['special'].met = /[@$!%*?&]/.test(password);
+    this.passwordRequirements['special'].met = /[^A-Za-z0-9\s]/.test(password);
     // Sync enabled flags from current policy
     this.passwordRequirements['uppercase'].enabled = p.requireUppercase;
     this.passwordRequirements['lowercase'].enabled = p.requireLowercase;
