@@ -10,6 +10,7 @@ import { createCoverSourceMock } from '../../../testing/cover-source.mock';
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import {
   BackmatterType,
+  ChapterHeadingStyle,
   ChapterNumbering,
   FrontmatterType,
   PublishFormat,
@@ -429,6 +430,27 @@ describe('HtmlSiteGeneratorService', () => {
         '<title>Chapter 1: Introduction · My Handbook</title>'
       );
       expect(result.stats?.chapterCount).toBe(1);
+    });
+
+    it('should add the chosen chapter heading to a document page', async () => {
+      const plan = buildPlan([elementItem('doc-1', { isChapter: true })], {
+        options: {
+          includeToc: true,
+          includeCover: false,
+          chapterNumbering: ChapterNumbering.Roman,
+          chapterHeadingStyle: ChapterHeadingStyle.ChapterNumber,
+          sceneBreakText: '* * *',
+          includeWordCounts: false,
+        },
+      });
+
+      const result = await service.generateSite(plan);
+      const { names, read } = await unzip(result.file!);
+      const page = names.find(n => n.endsWith('introduction.html'))!;
+
+      expect(await read(page)).toContain(
+        '<h1 class="ink-chapter-title">Chapter I</h1>'
+      );
     });
 
     it('should turn copyright and custom front matter into pages and skip separators and TOC items', async () => {

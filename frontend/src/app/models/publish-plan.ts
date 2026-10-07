@@ -86,6 +86,25 @@ export enum ChapterNumbering {
 }
 
 /**
+ * What heading (if any) to add above each document that doesn't already open
+ * with one. Numbers use the plan's `chapterNumbering` format (numeric when it
+ * is `None`). Styles that need a number fall back to the document name for
+ * documents that aren't chapters.
+ */
+export enum ChapterHeadingStyle {
+  /** The document is responsible for its own heading. */
+  None = 'none',
+  /** The document's name. */
+  DocumentName = 'document-name',
+  /** Just the number: "1", "II", "Three". */
+  Number = 'number',
+  /** "Chapter 1" */
+  ChapterNumber = 'chapter-number',
+  /** "Chapter 1: Document name" */
+  ChapterNumberAndName = 'chapter-number-name',
+}
+
+/**
  * Base interface for all publish plan items
  */
 interface PublishPlanItemBase {
@@ -227,6 +246,12 @@ export interface PublishOptions {
   includeToc: boolean;
   /** Include cover page */
   includeCover: boolean;
+  /**
+   * Heading added above documents that don't already start with one.
+   * Honoured by every generator (EPUB, HTML, HTML site, PDF, Markdown).
+   * Defaults to `None` when absent.
+   */
+  chapterHeadingStyle?: ChapterHeadingStyle;
   /** Cover image reference */
   coverImage?: string;
   /**

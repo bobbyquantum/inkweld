@@ -22,6 +22,7 @@ import { trimHyphens } from '@utils/string-utils';
 import { isWorldbuildingType } from '@utils/worldbuilding.utils';
 import { BehaviorSubject, type Observable } from 'rxjs';
 
+import { withChapterHeading } from './chapter-heading';
 import {
   HtmlGeneratorService,
   type RenderedHeading,
@@ -445,7 +446,16 @@ export class HtmlSiteGeneratorService {
         kind: 'document',
         elementId: element.id,
         group,
-        render: () => this.renderDocumentPage(element.id),
+        render: () =>
+          this.renderDocumentPage(
+            element.id,
+            this.html.chapterHeading(
+              item.titleOverride || element.name,
+              chapterNumber,
+              item.isChapter ?? false,
+              plan.options
+            )
+          ),
       });
       return;
     }
@@ -462,7 +472,13 @@ export class HtmlSiteGeneratorService {
             kind: 'document',
             elementId: child.id,
             group: title,
-            render: () => this.renderDocumentPage(child.id),
+            render: () =>
+              this.renderDocumentPage(
+                child.id,
+                // Folder children aren't numbered, so number styles reduce
+                // to the document name.
+                this.html.chapterHeading(child.name, 0, false, plan.options)
+              ),
           });
         } else if (isWorldbuildingType(child.type)) {
           add({
@@ -553,8 +569,15 @@ export class HtmlSiteGeneratorService {
     });
   }
 
-  private async renderDocumentPage(elementId: string): Promise<string> {
-    const content = await this.html.getDocumentContent(elementId);
+  private async renderDocumentPage(
+    elementId: string,
+    heading: string | null
+  ): Promise<string> {
+    const content = withChapterHeading(
+      await this.html.getDocumentContent(elementId),
+      heading,
+      text => this.html.escapeHtml(text)
+    );
     return `<section class="ink-chapter">\n${content}\n</section>`;
   }
 

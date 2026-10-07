@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import {
+  ChapterHeadingStyle,
   ChapterNumbering,
   FrontmatterType,
   PublishFormat,
@@ -533,6 +534,71 @@ describe('MarkdownGeneratorService', () => {
       expect(result.success).toBe(true);
       const text = await result.file!.text();
       expect(text).toContain('Chapter 1:');
+    });
+
+    describe('chapterHeadingStyle option', () => {
+      const planWithStyle = (
+        style: ChapterHeadingStyle | undefined,
+        numbering = ChapterNumbering.None
+      ): PublishPlan => ({
+        ...mockPlan,
+        options: {
+          ...mockPlan.options,
+          chapterNumbering: numbering,
+          chapterHeadingStyle: style,
+        },
+        styles: createDefaultPublishStyles(),
+        items: [
+          {
+            id: 'item-1',
+            type: PublishPlanItemType.Element,
+            elementId: 'doc-1',
+            includeChildren: false,
+            isChapter: true,
+          },
+        ],
+      });
+      const md = async (plan: PublishPlan) => {
+        const result = await service.generateMarkdown(plan);
+        expect(result.success).toBe(true);
+        return result.file!.text();
+      };
+
+      it('adds no heading by default', async () => {
+        expect(await md(planWithStyle(undefined))).not.toMatch(
+          /^# Chapter 1$/m
+        );
+      });
+
+      it('adds the document name as a # heading', async () => {
+        expect(
+          await md(planWithStyle(ChapterHeadingStyle.DocumentName))
+        ).toMatch(/^# Chapter 1$/m);
+      });
+
+      it('adds a number in the chosen format', async () => {
+        expect(
+          await md(
+            planWithStyle(
+              ChapterHeadingStyle.ChapterNumber,
+              ChapterNumbering.Roman
+            )
+          )
+        ).toMatch(/^# Chapter I$/m);
+      });
+
+      it('leaves documents that already open with a heading alone', async () => {
+        documentServiceMock.getDocumentContent.mockResolvedValue([
+          {
+            type: 'heading',
+            attrs: { level: 1 },
+            content: [{ type: 'text', text: 'Own Title' }],
+          },
+        ]);
+        const text = await md(planWithStyle(ChapterHeadingStyle.Number));
+        expect(text).toContain('Own Title');
+        expect(text).not.toMatch(/^# 1$/m);
+      });
     });
 
     it('should format chapters with Roman numeral numbering', async () => {
