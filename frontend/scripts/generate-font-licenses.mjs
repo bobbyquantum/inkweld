@@ -114,7 +114,7 @@ async function assertPublishFontsAttributed() {
   const slugs = new Set(
     [
       ...source.matchAll(
-        /\/assets\/fonts\/([a-z0-9-]+)-latin-\d+-(?:normal|italic)\.ttf/g
+        /assets\/fonts\/([a-z0-9-]+)-latin-\d+-(?:normal|italic)\.ttf/g
       ),
     ].map(m => m[1])
   );

@@ -12,7 +12,7 @@
  * Fonts (via the gwfh.mranftl.com mirror) on `bun install` and writes them
  * to `frontend/public/assets/fonts/` (gitignored). Angular's `public/`
  * folder is served as static assets, so the files are available at
- * `/assets/fonts/<family>-latin-<weight>-<style>.ttf` at runtime.
+ * `assets/fonts/<family>-latin-<weight>-<style>.ttf` at runtime.
  *
  * The naming convention matches the woff2 files copied by the Angular
  * asset glob, so `BUNDLED_TYPST_FONT_URLS` and `_bundled-fonts.scss` can
