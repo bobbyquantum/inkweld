@@ -26,6 +26,23 @@ describe('countHtmlWords', () => {
   });
 });
 
+describe('countHtmlWords edge cases', () => {
+  it('does not treat longer tag names as non-visible elements', () => {
+    expect(countHtmlWords('<headline>big news</headline> <p>ok</p>')).toBe(3);
+  });
+
+  it('drops an element that is never closed through the end', () => {
+    expect(countHtmlWords('<p>a b</p><style>c d e')).toBe(2);
+  });
+
+  it('handles many unclosed openers in linear time', () => {
+    const start = Date.now();
+    countHtmlWords('<!--'.repeat(20000) + 'x');
+    countHtmlWords('<style>'.repeat(20000));
+    expect(Date.now() - start).toBeLessThan(1000);
+  });
+});
+
 describe('countTextWords', () => {
   it('splits on any whitespace', () => {
     expect(countTextWords('  a\tb\n\nc  ')).toBe(3);
