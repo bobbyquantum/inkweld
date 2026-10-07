@@ -72,7 +72,7 @@ test.describe('Editor input rules', () => {
     await expect(editor).not.toContainText('# ');
   });
 
-  test('Ctrl/Cmd+Z straight after a conversion restores the typed text', async ({
+  test('Ctrl/Cmd+Z straight after a conversion removes the heading', async ({
     localPageWithProject: page,
   }) => {
     await createDocumentAndFocus(page, 'Heading Undo');
@@ -81,7 +81,22 @@ test.describe('Editor input rules', () => {
     await page.keyboard.type('## ');
     await expect(editor.locator('h2')).toHaveCount(1);
 
+    // The Yjs undo manager groups the typed characters and the conversion
+    // into one step, so this clears the line rather than leaving "##".
     await page.keyboard.press('ControlOrMeta+z');
+    await expect(editor.locator('h2')).toHaveCount(0);
+  });
+
+  test('Backspace straight after a conversion restores the typed text', async ({
+    localPageWithProject: page,
+  }) => {
+    await createDocumentAndFocus(page, 'Heading Backspace');
+    const editor = page.locator('ngx-editor .ProseMirror');
+
+    await page.keyboard.type('## ');
+    await expect(editor.locator('h2')).toHaveCount(1);
+
+    await page.keyboard.press('Backspace');
     await expect(editor.locator('h2')).toHaveCount(0);
     await expect(editor.locator('p').first()).toHaveText('##');
   });
