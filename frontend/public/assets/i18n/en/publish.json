@@ -115,6 +115,8 @@
     "stylePreset": "Style preset",
     "resetToDefaults": "Reset to defaults",
     "pageSetup": "Page setup",
+    "reflowableNote": "E-books reflow to each reader's screen, so page size, margins and page numbers are left to the reading device.",
+    "printPresetInEbook": "This is a print preset. Its page setup is ignored in an EPUB; pick an e-book preset to tune the text for e-readers.",
     "pageSize": "Page size",
     "pageNumbers": "Page numbers",
     "marginTop": "Margin top (in)",

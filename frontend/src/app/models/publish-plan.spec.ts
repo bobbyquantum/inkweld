@@ -113,6 +113,13 @@ describe('publish-plan models', () => {
   });
 
   describe('createDefaultPublishPlan', () => {
+    it('starts an EPUB plan from the e-book preset, not a print one', () => {
+      const plan = createDefaultPublishPlan('My Novel', 'John Doe');
+
+      expect(plan.format).toBe(PublishFormat.EPUB);
+      expect(plan.styles?.preset).toBe('ebook');
+    });
+
     it('should create a plan with the provided title and author', () => {
       const plan = createDefaultPublishPlan('My Novel', 'John Doe');
 

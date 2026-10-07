@@ -33,7 +33,8 @@ import {
 } from '@models/publish-style';
 import {
   getPublishStylePreset,
-  PUBLISH_STYLE_PRESETS,
+  presetsForMedium,
+  type PublishStylePreset,
 } from '@models/publish-style-presets';
 
 interface NodeSection {
@@ -71,9 +72,28 @@ export class PublishStyleEditorComponent {
   private readonly transloco = inject(TranslocoService);
 
   @Input({ required: true }) styles!: PublishStyles;
+  /**
+   * The output reflows on the reader's device (EPUB), so page size, margins
+   * and page numbers mean nothing: the page-setup panel is hidden and the
+   * preset list offers e-book presets instead of print ones.
+   */
+  @Input() reflowable = false;
   @Output() readonly stylesChange = new EventEmitter<PublishStyles>();
 
-  protected readonly presets = PUBLISH_STYLE_PRESETS;
+  /** Presets for the current output kind, plus the one already applied. */
+  protected get visiblePresets(): PublishStylePreset[] {
+    const list = presetsForMedium(this.reflowable);
+    const current = this.styles?.preset
+      ? getPublishStylePreset(this.styles.preset)
+      : undefined;
+    return current && !list.includes(current) ? [...list, current] : list;
+  }
+
+  /** True when the applied preset is a print one shown for an e-book. */
+  protected get printPresetInEbook(): boolean {
+    if (!this.reflowable || !this.styles?.preset) return false;
+    return getPublishStylePreset(this.styles.preset)?.medium === 'print';
+  }
   protected readonly fontTokens = Object.entries(PUBLISH_FONT_TOKENS).map(
     ([id, mapping]) => ({
       id: id as PublishFontToken,
@@ -152,7 +172,11 @@ export class PublishStyleEditorComponent {
 
   /** Reset to the default styles. */
   resetToDefaults(): void {
-    this.emit(createDefaultPublishStyles());
+    this.emit(
+      this.reflowable
+        ? getPublishStylePreset('ebook')!.build()
+        : createDefaultPublishStyles()
+    );
   }
 
   // ---- Page ----

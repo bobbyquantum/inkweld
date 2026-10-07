@@ -120,6 +120,28 @@ from the library:
   Tables are not yet part of the user-configurable publish-styles system and
   currently get fixed built-in styling.
 
+### Publish output
+
+The publish generators (`frontend/src/app/services/publish/`) read documents,
+convert them for a format and never write back to the stored content.
+
+- **Typographic quotes** — a plan option (`typographicQuotes`). Unset, it is
+  on for EPUB, PDF, HTML and website output and off for Markdown, whose output
+  is source text. `typography.ts` curls straight quotes and apostrophes and
+  turns `--` / `---` into dashes, using the quote style and dash convention of
+  the plan's language (`metadata.language`; unknown languages use English).
+  A paragraph is converted as one run, so a quote after an emphasised word
+  still opens correctly, and code blocks and code-marked text are left alone.
+- **EPUB cover** — the stored project cover (or the cover chosen on the plan)
+  is packaged as the `cover-image`. A project with no stored cover shows a CSS
+  placeholder on its home page, which is not a file, so the EPUB generator
+  renders that placeholder (artwork, title, author) to a JPEG with
+  `DefaultCoverRendererService` and packages it instead.
+- **E-book presets** — EPUB is reflowable, so the style editor hides the
+  page-setup panel (size, margins, page numbers, running header) for it and
+  offers the e-book presets (`medium: 'reflowable'`) alongside the universal
+  ones, rather than the print presets. New plans start from the e-book preset.
+
 ## Backend (Bun + Hono)
 
 ### Technology Stack

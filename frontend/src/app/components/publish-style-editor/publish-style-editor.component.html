@@ -16,7 +16,7 @@
           [value]="styles.preset ?? ''"
           (selectionChange)="selectPreset($event.value)"
           data-testid="preset-select">
-          @for (preset of presets; track preset.id) {
+          @for (preset of visiblePresets; track preset.id) {
             <mat-option
               [value]="preset.id"
               [attr.data-testid]="'preset-option-' + preset.id"
@@ -34,139 +34,153 @@
       </button>
     </div>
     @if (styles.preset; as id) {
-      @for (preset of presets; track preset.id) {
+      @for (preset of visiblePresets; track preset.id) {
         @if (preset.id === id) {
           <p class="preset-description">{{ preset.description }}</p>
         }
       }
     }
+    @if (reflowable) {
+      <p class="preset-description" data-testid="reflowable-note">
+        {{ 'publish.styleEditor.reflowableNote' | transloco }}
+      </p>
+      @if (printPresetInEbook) {
+        <p class="preset-description" data-testid="print-preset-note">
+          {{ 'publish.styleEditor.printPresetInEbook' | transloco }}
+        </p>
+      }
+    }
   </section>
 
   <mat-accordion class="style-sections" multi>
-    <!-- Page setup -->
-    <mat-expansion-panel data-testid="section-page">
-      <mat-expansion-panel-header>
-        <mat-panel-title>{{
-          'publish.styleEditor.pageSetup' | transloco
-        }}</mat-panel-title>
-      </mat-expansion-panel-header>
-      <div class="grid two-col">
-        <mat-form-field appearance="outline">
-          <mat-label>{{
-            'publish.styleEditor.pageSize' | transloco
-          }}</mat-label>
-          <mat-select
-            [value]="styles.page.size"
-            (selectionChange)="updatePage('size', $event.value)"
-            data-testid="page-size-select">
-            @for (size of pageSizes; track size.id) {
-              <mat-option [value]="size.id">{{ size.label }}</mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
-        <mat-form-field appearance="outline">
-          <mat-label>{{
-            'publish.styleEditor.pageNumbers' | transloco
-          }}</mat-label>
-          <mat-select
-            [value]="styles.page.pageNumbers"
-            (selectionChange)="updatePage('pageNumbers', $event.value)"
-            data-testid="page-numbers-select">
-            @for (fmt of pageNumberFormats; track fmt.id) {
-              <mat-option [value]="fmt.id">{{ fmt.label }}</mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
-        <mat-form-field appearance="outline">
-          <mat-label>{{
-            'publish.styleEditor.marginTop' | transloco
-          }}</mat-label>
-          <input
-            matInput
-            id="page-margin-top"
-            [attr.aria-label]="'publish.styleEditor.marginTopAria' | transloco"
-            type="number"
-            min="0"
-            step="0.05"
-            [value]="styles.page.marginTop"
-            (change)="
-              updatePage(
-                'marginTop',
-                parsePositiveNumber($event) ?? styles.page.marginTop
-              )
-            " />
-        </mat-form-field>
-        <mat-form-field appearance="outline">
-          <mat-label>{{
-            'publish.styleEditor.marginBottom' | transloco
-          }}</mat-label>
-          <input
-            matInput
-            id="page-margin-bottom"
-            [attr.aria-label]="
-              'publish.styleEditor.marginBottomAria' | transloco
-            "
-            type="number"
-            min="0"
-            step="0.05"
-            [value]="styles.page.marginBottom"
-            (change)="
-              updatePage(
-                'marginBottom',
-                parsePositiveNumber($event) ?? styles.page.marginBottom
-              )
-            " />
-        </mat-form-field>
-        <mat-form-field appearance="outline">
-          <mat-label>{{
-            'publish.styleEditor.marginInside' | transloco
-          }}</mat-label>
-          <input
-            matInput
-            id="page-margin-inside"
-            [attr.aria-label]="
-              'publish.styleEditor.marginInsideAria' | transloco
-            "
-            type="number"
-            min="0"
-            step="0.05"
-            [value]="styles.page.marginInside"
-            (change)="
-              updatePage(
-                'marginInside',
-                parsePositiveNumber($event) ?? styles.page.marginInside
-              )
-            " />
-        </mat-form-field>
-        <mat-form-field appearance="outline">
-          <mat-label>{{
-            'publish.styleEditor.marginOutside' | transloco
-          }}</mat-label>
-          <input
-            matInput
-            id="page-margin-outside"
-            [attr.aria-label]="
-              'publish.styleEditor.marginOutsideAria' | transloco
-            "
-            type="number"
-            min="0"
-            step="0.05"
-            [value]="styles.page.marginOutside"
-            (change)="
-              updatePage(
-                'marginOutside',
-                parsePositiveNumber($event) ?? styles.page.marginOutside
-              )
-            " />
-        </mat-form-field>
-      </div>
-      <mat-checkbox
-        [checked]="styles.page.runningHeader"
-        (change)="updatePage('runningHeader', $event.checked)"
-        data-testid="page-running-header">
-        {{ 'publish.styleEditor.runningHeader' | transloco }}
-      </mat-checkbox>
-    </mat-expansion-panel>
+    @if (!reflowable) {
+      <!-- Page setup (print only) -->
+      <mat-expansion-panel data-testid="section-page">
+        <mat-expansion-panel-header>
+          <mat-panel-title>{{
+            'publish.styleEditor.pageSetup' | transloco
+          }}</mat-panel-title>
+        </mat-expansion-panel-header>
+        <div class="grid two-col">
+          <mat-form-field appearance="outline">
+            <mat-label>{{
+              'publish.styleEditor.pageSize' | transloco
+            }}</mat-label>
+            <mat-select
+              [value]="styles.page.size"
+              (selectionChange)="updatePage('size', $event.value)"
+              data-testid="page-size-select">
+              @for (size of pageSizes; track size.id) {
+                <mat-option [value]="size.id">{{ size.label }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>{{
+              'publish.styleEditor.pageNumbers' | transloco
+            }}</mat-label>
+            <mat-select
+              [value]="styles.page.pageNumbers"
+              (selectionChange)="updatePage('pageNumbers', $event.value)"
+              data-testid="page-numbers-select">
+              @for (fmt of pageNumberFormats; track fmt.id) {
+                <mat-option [value]="fmt.id">{{ fmt.label }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>{{
+              'publish.styleEditor.marginTop' | transloco
+            }}</mat-label>
+            <input
+              matInput
+              id="page-margin-top"
+              [attr.aria-label]="
+                'publish.styleEditor.marginTopAria' | transloco
+              "
+              type="number"
+              min="0"
+              step="0.05"
+              [value]="styles.page.marginTop"
+              (change)="
+                updatePage(
+                  'marginTop',
+                  parsePositiveNumber($event) ?? styles.page.marginTop
+                )
+              " />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>{{
+              'publish.styleEditor.marginBottom' | transloco
+            }}</mat-label>
+            <input
+              matInput
+              id="page-margin-bottom"
+              [attr.aria-label]="
+                'publish.styleEditor.marginBottomAria' | transloco
+              "
+              type="number"
+              min="0"
+              step="0.05"
+              [value]="styles.page.marginBottom"
+              (change)="
+                updatePage(
+                  'marginBottom',
+                  parsePositiveNumber($event) ?? styles.page.marginBottom
+                )
+              " />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>{{
+              'publish.styleEditor.marginInside' | transloco
+            }}</mat-label>
+            <input
+              matInput
+              id="page-margin-inside"
+              [attr.aria-label]="
+                'publish.styleEditor.marginInsideAria' | transloco
+              "
+              type="number"
+              min="0"
+              step="0.05"
+              [value]="styles.page.marginInside"
+              (change)="
+                updatePage(
+                  'marginInside',
+                  parsePositiveNumber($event) ?? styles.page.marginInside
+                )
+              " />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>{{
+              'publish.styleEditor.marginOutside' | transloco
+            }}</mat-label>
+            <input
+              matInput
+              id="page-margin-outside"
+              [attr.aria-label]="
+                'publish.styleEditor.marginOutsideAria' | transloco
+              "
+              type="number"
+              min="0"
+              step="0.05"
+              [value]="styles.page.marginOutside"
+              (change)="
+                updatePage(
+                  'marginOutside',
+                  parsePositiveNumber($event) ?? styles.page.marginOutside
+                )
+              " />
+          </mat-form-field>
+        </div>
+        <mat-checkbox
+          [checked]="styles.page.runningHeader"
+          (change)="updatePage('runningHeader', $event.checked)"
+          data-testid="page-running-header">
+          {{ 'publish.styleEditor.runningHeader' | transloco }}
+        </mat-checkbox>
+      </mat-expansion-panel>
+    }
 
     <!-- Base text -->
     <mat-expansion-panel data-testid="section-base-text">

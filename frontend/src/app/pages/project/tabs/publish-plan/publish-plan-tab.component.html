@@ -669,6 +669,7 @@
 
     <app-publish-style-editor
       [styles]="effectiveStyles(plan)"
+      [reflowable]="plan.format === 'EPUB'"
       (stylesChange)="updateStyles($event)"
       data-testid="plan-style-editor">
     </app-publish-style-editor>
