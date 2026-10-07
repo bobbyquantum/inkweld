@@ -44,6 +44,7 @@ import { ProjectStateService } from '../project/project-state.service';
 import { IconSvgService } from './icon-svg.service';
 import { PublishCssEmitterService } from './publish-css-emitter.service';
 import { countHtmlWords } from './publish-word-count';
+import { smartenDocument, typographyLanguageFor } from './typography';
 import {
   type RenderedWorldbuildingEntry,
   type RenderedWorldbuildingField,
@@ -254,6 +255,7 @@ export class HtmlGeneratorService {
       });
 
       this.resetRenderState();
+      this.typography = typographyLanguageFor(plan);
 
       // Load cover if enabled
       if (plan.options.includeCover) {
@@ -321,6 +323,9 @@ export class HtmlGeneratorService {
    * Clear per-run render state: resolved image cache, heading ids, collected
    * headings, and warnings. Called at the start of every export.
    */
+  /** Language to typeset quotes/dashes for, or null to leave text as typed. */
+  typography: string | null = null;
+
   resetRenderState(): void {
     this.resolvedImages.clear();
     this.resolvedIcons.clear();
@@ -960,8 +965,11 @@ export class HtmlGeneratorService {
     try {
       const content = await this.documentService.getDocumentContent(fullDocId);
       if (!content) return '<p>Document is empty</p>';
-      await this.resolveDocumentImages(content);
-      return this.prosemirrorToHtml(content);
+      const typeset = this.typography
+        ? smartenDocument(content, this.typography)
+        : content;
+      await this.resolveDocumentImages(typeset);
+      return this.prosemirrorToHtml(typeset);
     } catch {
       return '<p>Content unavailable</p>';
     }

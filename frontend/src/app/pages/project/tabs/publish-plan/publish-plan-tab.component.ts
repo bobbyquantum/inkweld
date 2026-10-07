@@ -75,6 +75,7 @@ import {
   PublishPlanStatsService,
 } from '@services/publish/publish-plan-stats.service';
 import { PublishedFilesService } from '@services/publish/published-files.service';
+import { typographyLanguageFor } from '@services/publish/typography';
 import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
 import { isWorldbuildingType } from '@utils/worldbuilding.utils';
 import { firstValueFrom, type Subscription } from 'rxjs';
@@ -395,6 +396,11 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
     this.updatePlan({
       options: { ...plan.options, [option]: event.checked },
     });
+  }
+
+  /** Whether curly quotes/dashes apply, falling back to the format default. */
+  typographicQuotesOn(plan: PublishPlan): boolean {
+    return typographyLanguageFor(plan) !== null;
   }
 
   /** Replace the plan's PublishStyles object. */

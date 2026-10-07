@@ -3,15 +3,18 @@ import { describe, expect, it } from 'vitest';
 import {
   getPublishStylePreset,
   PUBLISH_STYLE_PRESETS,
+  reflowablePresets,
 } from './publish-style-presets';
 
 describe('publish-style-presets', () => {
-  it('exposes 6 presets with unique ids and stable required fields', () => {
+  it('exposes 8 presets with unique ids and stable required fields', () => {
     const ids = PUBLISH_STYLE_PRESETS.map(p => p.id);
     expect(ids).toEqual([
       'manuscript',
       'paperback',
       'ebook',
+      'ebookModern',
+      'ebookLarge',
       'webSerial',
       'largePrint',
       'reference',
@@ -162,6 +165,41 @@ describe('publish-style-presets', () => {
       expect(getPublishStylePreset('nope')).toBeUndefined();
       expect(getPublishStylePreset('')).toBeUndefined();
       expect(getPublishStylePreset('PAPERBACK')).toBeUndefined();
+    });
+  });
+
+  describe('reflowablePresets', () => {
+    it('drops print presets for reflowable output', () => {
+      const ids = reflowablePresets().map(p => p.id);
+      expect(ids).toEqual([
+        'ebook',
+        'ebookModern',
+        'ebookLarge',
+        'webSerial',
+        'reference',
+      ]);
+    });
+
+    it('does not name print terms in reflowable preset labels', () => {
+      for (const p of reflowablePresets().filter(
+        p => p.medium === 'reflowable'
+      )) {
+        expect(p.label).not.toMatch(/paperback|6x9|letter|a4/i);
+      }
+    });
+  });
+
+  describe('e-book presets', () => {
+    it('modern drops the indent and spaces paragraphs', () => {
+      const styles = getPublishStylePreset('ebookModern')!.build();
+      expect(styles.baseText.firstLineIndent).toBe(0);
+      expect(styles.nodes.paragraph?.box?.marginBottom).toBe(10);
+    });
+
+    it('large text raises size and leading', () => {
+      const styles = getPublishStylePreset('ebookLarge')!.build();
+      expect(styles.baseText.fontSize).toBe(14);
+      expect(styles.baseText.lineHeight).toBe(1.7);
     });
   });
 });

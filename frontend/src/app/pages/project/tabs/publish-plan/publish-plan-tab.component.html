@@ -630,6 +630,16 @@
         {{ 'publish.planEditor.includeCover' | transloco }}
       </mat-checkbox>
 
+      <mat-checkbox
+        [checked]="typographicQuotesOn(plan)"
+        (change)="updateOptionCheckbox('typographicQuotes', $event)"
+        data-testid="typographic-quotes-checkbox">
+        {{ 'publish.planEditor.typographicQuotes' | transloco }}
+      </mat-checkbox>
+      <p class="option-hint">
+        {{ 'publish.planEditor.typographicQuotesHint' | transloco }}
+      </p>
+
       @if (plan.options.includeCover) {
         <div class="cover-image-section">
           <mat-form-field appearance="outline" class="full-width">
@@ -667,6 +677,7 @@
 
     <app-publish-style-editor
       [styles]="effectiveStyles(plan)"
+      [reflowable]="plan.format === 'EPUB'"
       (stylesChange)="updateStyles($event)"
       data-testid="plan-style-editor">
     </app-publish-style-editor>

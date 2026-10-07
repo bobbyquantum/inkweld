@@ -271,4 +271,61 @@ describe('PublishStyleEditorComponent', () => {
       expect(emissions[0].nodes.heading4?.text?.fontSize).toBe(14);
     });
   });
+
+  describe('reflowable output (EPUB)', () => {
+    function reflowableSetup(preset?: string) {
+      const styles = createDefaultPublishStyles();
+      styles.preset = preset;
+      const fixture = TestBed.createComponent(PublishStyleEditorComponent);
+      const component = fixture.componentInstance;
+      component.styles = styles;
+      component.reflowable = true;
+      const emissions: PublishStyles[] = [];
+      component.stylesChange.subscribe(s => emissions.push(s));
+      fixture.detectChanges();
+      return { fixture, component, emissions };
+    }
+
+    const el = (f: ComponentFixture<unknown>, id: string) =>
+      (f.nativeElement as HTMLElement).querySelector(`[data-testid="${id}"]`);
+
+    it('hides the print-only page setup panel', () => {
+      const { fixture } = reflowableSetup('ebook');
+      expect(el(fixture, 'section-page')).toBeNull();
+      expect(el(fixture, 'reflowable-note')).not.toBeNull();
+    });
+
+    it('keeps page setup for print output', () => {
+      const { fixture } = setupComponent();
+      expect(el(fixture, 'section-page')).not.toBeNull();
+      expect(el(fixture, 'reflowable-note')).toBeNull();
+    });
+
+    it('offers e-book presets and no print ones', () => {
+      const { component } = reflowableSetup('ebook');
+      const ids = component['visiblePresets'].map(p => p.id);
+      expect(ids).toContain('ebookModern');
+      expect(ids).not.toContain('paperback');
+      expect(ids).not.toContain('manuscript');
+    });
+
+    it('still lists an applied print preset, with a note', () => {
+      const { component, fixture } = reflowableSetup('paperback');
+      expect(component['visiblePresets'].map(p => p.id)).toContain('paperback');
+      expect(el(fixture, 'print-preset-note')).not.toBeNull();
+    });
+
+    it('offers every preset for non-reflowable output', () => {
+      const { component } = setupComponent();
+      const ids = component['visiblePresets'].map(p => p.id);
+      expect(ids).toContain('ebook');
+      expect(ids).toContain('paperback');
+    });
+
+    it('resets to the e-book preset', () => {
+      const { component, emissions } = reflowableSetup('paperback');
+      component.resetToDefaults();
+      expect(emissions[0].preset).toBe('ebook');
+    });
+  });
 });

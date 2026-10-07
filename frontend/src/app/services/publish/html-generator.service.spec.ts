@@ -709,6 +709,45 @@ describe('HtmlGeneratorService', () => {
     });
   });
 
+  describe('typographic quotes', () => {
+    const planFor = (options = {}): PublishPlan => ({
+      ...mockPlan,
+      options: { ...mockPlan.options, ...options },
+      items: [
+        {
+          id: 'item-1',
+          type: PublishPlanItemType.Element,
+          elementId: 'doc-1',
+          includeChildren: false,
+          isChapter: true,
+        },
+      ],
+    });
+
+    beforeEach(() => {
+      documentServiceMock.getDocumentContent.mockResolvedValue([
+        {
+          type: 'paragraph',
+          content: [{ type: 'text', text: '"It\'s here" -- ok' }],
+        },
+      ]);
+    });
+
+    it('curls quotes by default', async () => {
+      const result = await service.generateHtml(planFor());
+      const text = await result.file!.text();
+      expect(text).toContain('\u201CIt\u2019s here\u201D \u2014 ok');
+    });
+
+    it('keeps straight quotes when switched off', async () => {
+      const result = await service.generateHtml(
+        planFor({ typographicQuotes: false })
+      );
+      const text = await result.file!.text();
+      expect(text).not.toContain('\u201C');
+    });
+  });
+
   describe('ProseMirror conversion', () => {
     it('should convert heading nodes', async () => {
       documentServiceMock.getDocumentContent.mockResolvedValue([

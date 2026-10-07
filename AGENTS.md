@@ -765,6 +765,19 @@ EPUBCheck-clean EPUB 3.3 with EPUB 2 fallbacks (NCX, `<guide>`,
   breaks are no-ops (each content document starts a page). A plan TOC item
   puts `nav.xhtml` in the spine at that position; its `depth` hides deeper
   levels on the page (`hidden`) while keeping them in reader navigation.
+- **Cover is always embedded.** `loadCoverBlob` tries the plan's
+  `options.coverImage`, then the project's stored cover; when neither exists
+  `DefaultCoverRendererService` draws the home-page placeholder (the
+  `default_cover.webp` artwork plus title and author) to a JPEG. The
+  placeholder is CSS only, so it is not a media file anywhere else.
+- **Typographic quotes** (`typography.ts`, `smartenDocument`) run on the
+  content tree before rendering in the EPUB, PDF, HTML and website generators,
+  per `plan.options.typographicQuotes` (unset = on except Markdown) and the
+  plan language. They never touch stored documents; keep code skipping and
+  whole-paragraph context when changing them.
+- **EPUB is reflowable.** The style editor gets `[reflowable]="true"` for it,
+  which hides page setup and swaps the print presets for the `ebook*` ones
+  (`reflowablePresets`). The EPUB generator ignores `styles.page`.
 - Element references are written with an `inkweld-element:` sentinel href and
   rewritten to the target chapter file (or unlinked) in `resolveElementRefs`.
 

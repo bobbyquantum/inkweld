@@ -28,6 +28,7 @@ import {
 } from './html-generator.service';
 import { PublishCssEmitterService } from './publish-css-emitter.service';
 import { countHtmlWords } from './publish-word-count';
+import { typographyLanguageFor } from './typography';
 
 export enum HtmlSitePhase {
   Idle = 'idle',
@@ -202,6 +203,7 @@ export class HtmlSiteGeneratorService {
       // Reset shared renderer state first: page collection may already
       // raise warnings (e.g. empty back matter) that must not be discarded.
       this.html.resetRenderState();
+      this.html.typography = typographyLanguageFor(plan);
       const elements = this.projectStateService.elements();
       const pages = this.collectPages(plan, elements, result);
       const pageByElement = new Map<string, SitePage>();

@@ -8,10 +8,8 @@
  * - Configure output format and styling
  * - Save multiple plans for different audiences
  */
-import {
-  createDefaultPublishStyles,
-  type PublishStyles,
-} from './publish-style';
+import { type PublishStyles } from './publish-style';
+import { getPublishStylePreset } from './publish-style-presets';
 export type { PublishStyles } from './publish-style';
 
 /**
@@ -231,6 +229,12 @@ export interface PublishOptions {
   includeCover: boolean;
   /** Cover image reference */
   coverImage?: string;
+  /**
+   * Convert straight quotes, apostrophes and hyphen runs to their
+   * typographic forms in the output (stored documents are untouched).
+   * Unset means the format's default: on, except for Markdown.
+   */
+  typographicQuotes?: boolean;
 }
 
 /**
@@ -398,7 +402,9 @@ export function createDefaultPublishPlan(
     },
     items: [],
     options: { ...DEFAULT_PUBLISH_OPTIONS },
-    styles: createDefaultPublishStyles(),
+    // The default plan is an EPUB, which is reflowable: start from the
+    // e-book preset rather than the print (Paperback 6x9) default.
+    styles: getPublishStylePreset('ebook')!.build(),
   };
 }
 

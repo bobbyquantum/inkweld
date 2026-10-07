@@ -35,6 +35,7 @@ import {
 import { LoggerService } from '../core/logger.service';
 import { LocalStorageService } from '../local/local-storage.service';
 import { CoverSourceService } from '../project/cover-source.service';
+import { DefaultCoverRendererService } from '../project/default-cover-renderer.service';
 import { DocumentService } from '../project/document.service';
 import { ProjectStateService } from '../project/project-state.service';
 import {
@@ -58,6 +59,7 @@ import { mediaIdFromSrc, sanitizeCssColor } from './html-generator.service';
 import { PublishCssEmitterService } from './publish-css-emitter.service';
 import { canonicalMarkName } from './publish-marks-helper';
 import { countHtmlWords } from './publish-word-count';
+import { smartenDocument, typographyLanguageFor } from './typography';
 import {
   type RenderedWorldbuildingEntry,
   WorldbuildingPublishRendererService,
@@ -286,6 +288,7 @@ export class EpubGeneratorService {
   private readonly documentService = inject(DocumentService);
   private readonly projectStateService = inject(ProjectStateService);
   private readonly coverSourceService = inject(CoverSourceService);
+  private readonly defaultCover = inject(DefaultCoverRendererService);
   private readonly localStorage = inject(LocalStorageService);
   private readonly cssEmitter = inject(PublishCssEmitterService);
   private readonly worldbuildingRenderer = inject(
@@ -293,6 +296,8 @@ export class EpubGeneratorService {
   );
 
   // Per-run state, reset at the start of each generation.
+  /** Language to typeset quotes/dashes for, or null to leave text as typed. */
+  private typography: string | null = null;
   private coverImageData: { blob: Blob; mimeType: string } | null = null;
   private images: EpubImage[] = [];
   /** Image source string → packaged href (null when it could not load). */
@@ -341,6 +346,7 @@ export class EpubGeneratorService {
   async generateEpub(plan: PublishPlan): Promise<EpubResult> {
     this.isCancelled = false;
     this.resetRunState();
+    this.typography = typographyLanguageFor(plan);
     const startTime = Date.now();
     const result: EpubResult = {
       success: false,
@@ -367,7 +373,7 @@ export class EpubGeneratorService {
 
       // Load cover image if enabled
       if (plan.options.includeCover) {
-        await this.loadCoverImage();
+        await this.loadCoverImage(plan);
       }
 
       // Phase 2: Process content
@@ -753,7 +759,7 @@ export class EpubGeneratorService {
   /**
    * Load cover image from offline storage or project state
    */
-  private async loadCoverImage(): Promise<void> {
+  private async loadCoverImage(plan: PublishPlan): Promise<void> {
     const project = this.projectStateService.project();
     if (!project) {
       this.logger.warn('EpubGenerator', 'No project context for cover image');
@@ -761,7 +767,9 @@ export class EpubGeneratorService {
     }
 
     try {
-      const coverBlob = await this.loadCoverBlob(project);
+      const coverBlob =
+        (await this.loadCoverBlob(project, plan.options.coverImage)) ??
+        (await this.renderDefaultCover(plan));
 
       if (!coverBlob) {
         this.logger.debug('EpubGenerator', 'No cover image found');
@@ -790,11 +798,14 @@ export class EpubGeneratorService {
    * 1. coverMediaId from Yjs
    * 2. project.coverImage filename stem (DB value)
    */
-  private async loadCoverBlob(project: {
-    username: string;
-    slug: string;
-    coverImage?: string | null;
-  }): Promise<Blob | null> {
+  private async loadCoverBlob(
+    project: {
+      username: string;
+      slug: string;
+      coverImage?: string | null;
+    },
+    planCoverImage?: string
+  ): Promise<Blob | null> {
     // A live canvas cover renders fresh so the export never ships a stale
     // raster; falls through to the stored image when not canvas-linked.
     const live = await this.coverSourceService.freshCoverBlob();
@@ -803,8 +814,13 @@ export class EpubGeneratorService {
     const projectKey = `${project.username}/${project.slug}`;
     const idsToTry: string[] = [];
 
+    // A cover chosen on the plan wins over the project's own.
+    const planStem = planCoverImage?.replace(/\.[^.]+$/, '');
+    if (planStem) idsToTry.push(planStem);
+
     const coverMediaId = this.projectStateService.coverMediaId();
-    if (coverMediaId) idsToTry.push(coverMediaId);
+    if (coverMediaId && !idsToTry.includes(coverMediaId))
+      idsToTry.push(coverMediaId);
 
     const stem = project.coverImage?.replace(/\.[^.]+$/, '');
     if (stem && !idsToTry.includes(stem)) idsToTry.push(stem);
@@ -815,6 +831,19 @@ export class EpubGeneratorService {
       return blob ?? undefined;
     });
     return found ?? null;
+  }
+
+  /**
+   * The project has no stored cover, so the home page shows a CSS placeholder
+   * (artwork + title + author). That is not a media file, so draw the same
+   * thing into an image the package can carry.
+   */
+  private renderDefaultCover(plan: PublishPlan): Promise<Blob | null> {
+    const project = this.projectStateService.project();
+    const title =
+      plan.metadata.title || project?.title || project?.slug || 'Untitled';
+    const author = plan.metadata.author || project?.username || '';
+    return this.defaultCover.render(title, author);
   }
 
   /**
@@ -860,8 +889,11 @@ export class EpubGeneratorService {
         );
         return '<p>Document is empty</p>';
       }
-      await this.resolveDocumentImages(content);
-      return this.prosemirrorToHtml(content);
+      const typeset = this.typography
+        ? smartenDocument(content, this.typography)
+        : content;
+      await this.resolveDocumentImages(typeset);
+      return this.prosemirrorToHtml(typeset);
     } catch (error) {
       this.logger.warn(
         'EpubGenerator',

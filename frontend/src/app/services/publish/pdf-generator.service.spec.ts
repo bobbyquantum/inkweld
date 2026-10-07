@@ -421,6 +421,16 @@ describe('PdfGeneratorService', () => {
       return logged!.slice(prefix.length);
     }
 
+    it('typesets quotes and dashes in the markup', async () => {
+      const markup = await markupFor([
+        {
+          type: 'paragraph',
+          content: [{ type: 'text', text: '"It\'s" -- ok' }],
+        },
+      ]);
+      expect(markup).toContain('\u201CIt\u2019s\u201D \u2014 ok');
+    });
+
     const cell = (text: string, type = 'table_cell', attrs = {}) => ({
       type,
       attrs: { colspan: 1, ...attrs },
