@@ -27,6 +27,7 @@ import { LoggerService } from '../core/logger.service';
 import { LocalStorageService } from '../local/local-storage.service';
 import { DocumentService } from '../project/document.service';
 import { ProjectStateService } from '../project/project-state.service';
+import { chapterHeadingFor } from './chapter-heading';
 import { applyMarks, TYPST_MARK_TAGS } from './publish-marks-helper';
 import { PublishTypstEmitterService } from './publish-typst-emitter.service';
 import { smartenDocument, typographyLanguageFor } from './typography';
@@ -563,7 +564,7 @@ export class PdfGeneratorService {
     item: ElementItem,
     elements: Element[],
     ctx: PdfContext,
-    _chapterNumber: number
+    chapterNumber: number
   ): Promise<void> {
     const element = elements.find(e => e.id === item.elementId);
     if (!element) {
@@ -578,14 +579,23 @@ export class PdfGeneratorService {
       await this.processWorldbuilding(synthetic, [element], ctx);
     } else if (element.type === ElementType.Item) {
       // The publish style chapter-title page break (if enabled) is still
-      // emitted so chapters start on a new page. The element name itself
-      // is NOT auto-rendered as a heading — the user's document supplies
-      // its own title (or none).
+      // emitted so chapters start on a new page. A heading is rendered only
+      // when the plan picks a `chapterHeadingStyle`; otherwise the user's
+      // document supplies its own title (or none).
       if (item.isChapter && this.shouldPageBreakBeforeChapter(ctx)) {
         ctx.markup += '#pagebreak(weak: true)\n\n';
       }
       // Add document content
-      await this.addDocumentContent(element.id, ctx);
+      await this.addDocumentContent(
+        element.id,
+        ctx,
+        this.chapterHeading(
+          item.titleOverride || element.name,
+          chapterNumber,
+          item.isChapter ?? false,
+          ctx.options
+        )
+      );
     } else if (element.type === ElementType.Folder && item.includeChildren) {
       const children = this.getChildElements(element, elements);
 
@@ -595,7 +605,13 @@ export class PdfGeneratorService {
           child.type === ElementType.Item &&
           isPublishableByDefault(child.metadata)
         ) {
-          await this.addDocumentContent(child.id, ctx);
+          // Folder children aren't numbered, so number styles reduce to the
+          // document name.
+          await this.addDocumentContent(
+            child.id,
+            ctx,
+            this.chapterHeading(child.name, 0, false, ctx.options)
+          );
         } else if (isWorldbuildingType(child.type)) {
           const synthetic = this.singleEntryWbItem(child.id);
           await this.processWorldbuilding(synthetic, [child], ctx);
@@ -735,7 +751,8 @@ export class PdfGeneratorService {
 
   private async addDocumentContent(
     elementId: string,
-    ctx: PdfContext
+    ctx: PdfContext,
+    heading: string | null = null
   ): Promise<void> {
     const fullDocId = this.getFullDocumentId(elementId);
 
@@ -744,6 +761,9 @@ export class PdfGeneratorService {
       if (!content) {
         ctx.markup += '#emph[Document is empty]\n\n';
         return;
+      }
+      if (heading && !this.startsWithHeading(content)) {
+        ctx.markup += `#chapter-title[${this.escapeTypst(heading)}]\n\n`;
       }
       this.processProseMirrorNode(
         this.typography ? smartenDocument(content, this.typography) : content,
@@ -757,6 +777,38 @@ export class PdfGeneratorService {
       );
       ctx.markup += '#emph[Content unavailable]\n\n';
     }
+  }
+
+  private chapterHeading(
+    title: string,
+    chapterNumber: number,
+    isChapter: boolean,
+    options: PublishOptions
+  ): string | null {
+    return chapterHeadingFor(
+      title,
+      chapterNumber,
+      isChapter,
+      options,
+      n => this.toRoman(n),
+      n => this.toWritten(n)
+    );
+  }
+
+  /** Whether a document's first block is a heading (skipping the doc wrapper). */
+  private startsWithHeading(content: unknown): boolean {
+    let node: unknown = Array.isArray(content) ? content[0] : content;
+    if (node && typeof node === 'object' && !Array.isArray(node)) {
+      const name = this.getNodeName(node as ProseMirrorNode);
+      if (name === 'doc') {
+        node = this.getChildren(node as ProseMirrorNode)[0];
+      }
+    }
+    return (
+      !!node &&
+      typeof node === 'object' &&
+      this.getNodeName(node as ProseMirrorNode) === 'heading'
+    );
   }
 
   /**

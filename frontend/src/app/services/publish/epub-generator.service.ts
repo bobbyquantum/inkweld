@@ -38,6 +38,7 @@ import { CoverSourceService } from '../project/cover-source.service';
 import { DefaultCoverRendererService } from '../project/default-cover-renderer.service';
 import { DocumentService } from '../project/document.service';
 import { ProjectStateService } from '../project/project-state.service';
+import { chapterHeadingFor, withChapterHeading } from './chapter-heading';
 import {
   buildNavTree,
   coreImageExtension,
@@ -638,12 +639,23 @@ export class EpubGeneratorService {
         item.isChapter ?? false,
         options
       );
-      // The element name is used for the navigation title only. Do NOT
-      // inject an <h1> into the body — the user's document is responsible
-      // for any visible heading.
+      // The nav title is always the (numbered) element name. A body <h1> is
+      // injected only when the plan picks a `chapterHeadingStyle`; otherwise
+      // the user's document is responsible for any visible heading.
       return [
         this.chapterSlot(
-          await this.documentChapter(element, formattedTitle, 0, title)
+          await this.documentChapter(
+            element,
+            formattedTitle,
+            0,
+            title,
+            this.chapterHeading(
+              title,
+              chapterNumber,
+              item.isChapter ?? false,
+              options
+            )
+          )
         ),
       ];
     }
@@ -652,7 +664,8 @@ export class EpubGeneratorService {
       return this.folderChildrenSlots(
         element,
         elements,
-        item.titleOverride || element.name
+        item.titleOverride || element.name,
+        options
       );
     }
 
@@ -663,10 +676,18 @@ export class EpubGeneratorService {
     element: Element,
     title: string,
     level: number,
-    rawTitle: string = title
+    rawTitle: string = title,
+    heading: string | null = null
   ): Promise<Chapter> {
     this.currentHeadings = [];
-    const body = await this.getDocumentContent(element.id);
+    // The injected heading is not recorded in `currentHeadings`: the chapter's
+    // own nav entry already carries this title, so it must not repeat as a
+    // sub-entry.
+    const body = withChapterHeading(
+      await this.getDocumentContent(element.id),
+      heading,
+      escapeXml
+    );
     return {
       id: element.id,
       title,
@@ -715,7 +736,8 @@ export class EpubGeneratorService {
   private async folderChildrenSlots(
     element: Element,
     elements: Element[],
-    title: string
+    title: string,
+    options: PublishOptions
   ): Promise<Slot[]> {
     const slots: Slot[] = [{ type: 'group', title, level: 0 }];
     const children = this.getChildElements(element, elements);
@@ -727,7 +749,17 @@ export class EpubGeneratorService {
         isPublishableByDefault(child.metadata)
       ) {
         slots.push(
-          this.chapterSlot(await this.documentChapter(child, child.name, level))
+          this.chapterSlot(
+            await this.documentChapter(
+              child,
+              child.name,
+              level,
+              child.name,
+              // Folder children aren't numbered, so number styles reduce to
+              // the document name.
+              this.chapterHeading(child.name, 0, false, options)
+            )
+          )
         );
       } else if (child.type === ElementType.Folder) {
         slots.push({ type: 'group', title: child.name, level });
@@ -2220,6 +2252,23 @@ ${chapter.body}
       default:
         return null;
     }
+  }
+
+  /** The heading to inject above a document's body, or null for none. */
+  private chapterHeading(
+    title: string,
+    chapterNumber: number,
+    isChapter: boolean,
+    options: PublishOptions
+  ): string | null {
+    return chapterHeadingFor(
+      title,
+      chapterNumber,
+      isChapter,
+      options,
+      n => this.toRoman(n),
+      n => this.toWritten(n)
+    );
   }
 
   /**

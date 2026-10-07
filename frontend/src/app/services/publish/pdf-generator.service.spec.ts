@@ -18,6 +18,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import {
+  ChapterHeadingStyle,
   ChapterNumbering,
   FrontmatterType,
   PublishFormat,
@@ -382,6 +383,70 @@ describe('PdfGeneratorService', () => {
       });
 
       expect(progress!.phase).toBe(PdfPhase.Error);
+    });
+  });
+
+  describe('chapterHeadingStyle option', () => {
+    async function markupWith(
+      style: ChapterHeadingStyle | undefined,
+      content: unknown[]
+    ): Promise<string> {
+      documentServiceMock.getDocumentContent.mockResolvedValue(content);
+      const result = await service.generatePdf({
+        ...mockPlan,
+        options: {
+          ...mockPlan.options,
+          chapterNumbering: ChapterNumbering.Roman,
+          chapterHeadingStyle: style,
+        },
+        items: [
+          {
+            id: 'item-1',
+            type: PublishPlanItemType.Element,
+            elementId: 'doc-1',
+            includeChildren: false,
+            isChapter: true,
+          },
+        ],
+      });
+      expect(result.success).toBe(true);
+      const prefix = 'Compiling Typst markup:\n';
+      const logged = (loggerMock.debug.mock.calls as unknown[][])
+        .map(args => args[1])
+        .filter(
+          (msg): msg is string =>
+            typeof msg === 'string' && msg.startsWith(prefix)
+        )
+        .at(-1);
+      expect(logged).toBeDefined();
+      return logged!;
+    }
+    const para = [
+      { type: 'paragraph', content: [{ type: 'text', text: 'Body' }] },
+    ];
+
+    it('adds no heading by default', async () => {
+      expect(await markupWith(undefined, para)).not.toContain(
+        '#chapter-title['
+      );
+    });
+
+    it('adds a numbered chapter heading', async () => {
+      expect(
+        await markupWith(ChapterHeadingStyle.ChapterNumberAndName, para)
+      ).toContain('#chapter-title[Chapter I: Chapter 1]');
+    });
+
+    it('skips documents that already open with a heading', async () => {
+      const markup = await markupWith(ChapterHeadingStyle.Number, [
+        {
+          type: 'heading',
+          attrs: { level: 1 },
+          content: [{ type: 'text', text: 'Own' }],
+        },
+        ...para,
+      ]);
+      expect(markup).not.toContain('#chapter-title[');
     });
   });
 
