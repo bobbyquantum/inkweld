@@ -590,6 +590,18 @@ a thin layer over the published image). HA serves the UI at
   calls it from `UserService` when it would otherwise be anonymous or its
   token expired, and `SetupService` points the app at `appOrigin()` instead of
   showing setup.
+- **A session is only valid for the HA user making the request.**
+  `ingressSessionMatches` (checked in `getUserFromSession`, `GET /users/me`
+  and the Yjs WebSocket handshake) rejects a token whose account isn't
+  linked to the request's `X-Remote-User-Id`, so a browser shared by two HA
+  users never keeps the first one's session. The client answers that 401 by
+  signing in again and switching to the HA user's own server profile
+  (`switchToIngressProfile`); it drops only the token, never the profile's
+  user binding.
+- Sign-out, the account/server switcher and the server-info bubble are hidden
+  under ingress: HA decides who is signed in. The sign-out marker
+  (`inkweld.ingressSignedOut`, sessionStorage) still covers sign-outs the app
+  makes itself (declining a policy, deleting the account).
 - CSRF's origin check is skipped for ingress requests (HA's origin isn't
   predictable; its `ingress_session` cookie is `SameSite=Strict`).
 - **The frontend must work under a path prefix.** Use relative asset URLs

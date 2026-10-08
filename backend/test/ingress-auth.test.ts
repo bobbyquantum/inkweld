@@ -162,6 +162,44 @@ describe('POST /api/v1/auth/ingress', () => {
     expect(((await response.json()) as SignInBody).user.isAdmin).toBe(false);
   });
 
+  it("rejects another HA user's session on a shared browser", async () => {
+    const kate = (await (
+      await signIn({ 'X-Remote-User-Id': haId('kate'), 'X-Remote-User-Name': `kate${run}` })
+    ).json()) as SignInBody;
+    await signIn({ 'X-Remote-User-Id': haId('leo'), 'X-Remote-User-Name': `leo${run}` });
+    const auth = { Authorization: `Bearer ${kate.token}` };
+
+    // Kate's own HA session: accepted.
+    const asKate = await fetch(`${baseUrl}/api/v1/users/me`, {
+      headers: { ...auth, 'X-Remote-User-Id': haId('kate') },
+    });
+    expect(asKate.status).toBe(200);
+
+    // Leo signed in to HA, but the browser still holds Kate's token.
+    const asLeo = await fetch(`${baseUrl}/api/v1/users/me`, {
+      headers: { ...auth, 'X-Remote-User-Id': haId('leo') },
+    });
+    expect(asLeo.status).toBe(401);
+
+    // The same applies to routes behind requireAuth.
+    const projects = await fetch(`${baseUrl}/api/v1/projects`, {
+      headers: { ...auth, 'X-Remote-User-Id': haId('leo') },
+    });
+    expect(projects.status).toBe(401);
+  });
+
+  it('accepts any session outside ingress', async () => {
+    const mia = (await (
+      await signIn({ 'X-Remote-User-Id': haId('mia'), 'X-Remote-User-Name': `mia${run}` })
+    ).json()) as SignInBody;
+    process.env['INGRESS_TRUSTED_PROXY'] = '172.30.32.2';
+
+    const me = await fetch(`${baseUrl}/api/v1/users/me`, {
+      headers: { Authorization: `Bearer ${mia.token}`, 'X-Remote-User-Id': haId('someone') },
+    });
+    expect(me.status).toBe(200);
+  });
+
   it('returns 404 when ingress is disabled', async () => {
     delete process.env['INGRESS_ENABLED'];
     const response = await signIn({ 'X-Remote-User-Id': haId('judy') });

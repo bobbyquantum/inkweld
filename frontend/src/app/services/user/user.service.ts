@@ -224,8 +224,9 @@ export class UserService {
    * in: isAuthenticated() stayed true and the auth guard let the navigation
    * through. Clear token and cache so the next check sees an anonymous user.
    *
-   * Returns true when the session was replaced: behind HA ingress an expired
-   * token is swapped for a new one rather than ending in a sign-out.
+   * Returns true when the session was replaced: behind HA ingress a rejected
+   * token (expired, or another HA user's on a shared browser) is swapped for
+   * the current HA user's rather than ending in a sign-out.
    */
   private async recoverFromRejectedSession(err: unknown): Promise<boolean> {
     if (
@@ -234,11 +235,16 @@ export class UserService {
     ) {
       return false;
     }
-    await this.clearCurrentUser();
-    if (err.code === 'SESSION_EXPIRED' && (await this.signInThroughIngress())) {
-      this.error.set(undefined);
-      return true;
+    if (err.code === 'SESSION_EXPIRED' && isHomeAssistantIngress()) {
+      // Drop only the token: the profile stays bound to its user, so the
+      // sign-in below can move a different HA user to their own profile.
+      this.authTokenService.clearToken();
+      if (await this.signInThroughIngress()) {
+        this.error.set(undefined);
+        return true;
+      }
     }
+    await this.clearCurrentUser();
     return false;
   }
 
@@ -336,12 +342,14 @@ export class UserService {
       const response = await firstValueFrom(
         this.authenticationService.ingressLogin()
       );
+      if (this.switchToIngressProfile(response.user)) {
+        // The token belongs to the new profile; the reload picks it up.
+        this.authTokenService.setToken(response.token);
+        globalThis.location.assign(appUrl('/'));
+        return true;
+      }
       this.authTokenService.setToken(response.token);
       await this.setCurrentUser(response.user);
-      // Another HA user on this browser gets their own profile (see login()).
-      if (this.bindLoginToProfile(response.user)) {
-        globalThis.location.assign(appUrl('/'));
-      }
       return true;
     } catch (err) {
       this.logger.warn(
@@ -351,6 +359,29 @@ export class UserService {
       );
       return false;
     }
+  }
+
+  /**
+   * Each HA user on this browser keeps their own server profile (and so their
+   * own local cache): reuse the one bound to this user, claim an unbound one,
+   * or create one. Returns true when that meant switching profile, which
+   * needs a reload into the new storage context.
+   */
+  private switchToIngressProfile(user: {
+    name?: string | null;
+    username: string;
+  }): boolean {
+    const active = this.storageContext.getActiveConfig();
+    if (active?.type !== 'server' || !active.serverUrl) return false;
+    const target = this.storageContext.addServerConfig(
+      active.serverUrl,
+      active.displayName,
+      { name: user.name ?? user.username, username: user.username },
+      { username: user.username }
+    );
+    if (target.id === active.id) return false;
+    this.storageContext.switchToConfig(target.id);
+    return true;
   }
 
   private isIngressSignedOut(): boolean {

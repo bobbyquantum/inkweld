@@ -16,7 +16,7 @@ import {
   type ServerConfig,
   StorageContextService,
 } from '@services/core/storage-context.service';
-import { appUrl } from '@utils/app-base';
+import { appUrl, isHomeAssistantIngress } from '@utils/app-base';
 
 /**
  * Floating bubble that shows current server connection status.
@@ -40,6 +40,9 @@ import { appUrl } from '@utils/app-base';
 export class ServerInfoBubbleComponent {
   private readonly storageContext = inject(StorageContextService);
   private readonly authTokenService = inject(AuthTokenService);
+
+  /** Served through Home Assistant ingress, where the bubble has no use. */
+  protected readonly ingress = isHomeAssistantIngress();
 
   /** All available profiles/configurations */
   readonly profiles = computed(() => this.storageContext.getConfigurations());

@@ -20,6 +20,7 @@ import { accountDeletionService } from '../services/account-deletion.service';
 import { quotaService } from '../services/quota.service';
 import { quotaStorageContext } from '../utils/quota-context';
 import { UnauthorizedError } from '../errors';
+import { ingressSessionMatches } from '../utils/ingress';
 
 const userRoutes = new OpenAPIHono<AppContext>();
 
@@ -111,9 +112,10 @@ userRoutes.openapi(getCurrentUserRoute, async (c) => {
     return c.json({ error: 'User not found' }, 401);
   }
 
-  if (isSessionRevoked(user, sessionResult.session)) {
-    // Issued before a password reset / recovery / admin disable: the client
-    // should drop the token exactly as for an expired one.
+  if (isSessionRevoked(user, sessionResult.session) || !ingressSessionMatches(c, user)) {
+    // Issued before a password reset / recovery / admin disable, or another
+    // Home Assistant user's session: the client should drop the token exactly
+    // as for an expired one.
     return c.json({ error: 'Invalid or expired token' }, 401);
   }
 

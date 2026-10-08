@@ -119,23 +119,26 @@
                 </div>
               </div>
             </button>
-            <button
-              mat-icon-button
-              appTooltipAriaLabel
-              class="switcher-toggle"
-              (click)="toggleSwitcher($event)"
-              [matTooltip]="
-                'settings.connectionTab.switchConnection' | transloco
-              "
-              [attr.aria-label]="
-                'settings.connectionTab.switchConnection' | transloco
-              "
-              data-testid="switch-server-button">
-              <mat-icon>sync_alt</mat-icon>
-              @if (profiles().length > 1) {
-                <span class="switcher-count">{{ profiles().length }}</span>
-              }
-            </button>
+            <!-- Behind HA ingress, HA decides who is signed in -->
+            @if (!ingress) {
+              <button
+                mat-icon-button
+                appTooltipAriaLabel
+                class="switcher-toggle"
+                (click)="toggleSwitcher($event)"
+                [matTooltip]="
+                  'settings.connectionTab.switchConnection' | transloco
+                "
+                [attr.aria-label]="
+                  'settings.connectionTab.switchConnection' | transloco
+                "
+                data-testid="switch-server-button">
+                <mat-icon>sync_alt</mat-icon>
+                @if (profiles().length > 1) {
+                  <span class="switcher-count">{{ profiles().length }}</span>
+                }
+              </button>
+            }
           </div>
           <div
             class="connection-status"
@@ -156,7 +159,7 @@
                 <mat-icon>sync</mat-icon>
               </button>
             }
-            @if (canUpgrade()) {
+            @if (canUpgrade() && !ingress) {
               <button
                 mat-stroked-button
                 class="status-action"
@@ -247,8 +250,11 @@
               <span>{{ 'tutorial.menuItem' | transloco }}</span>
             </button>
           }
-          @if (setupService.getMode() === 'server') {
-            <button mat-menu-item (click)="onLogout()">
+          @if (setupService.getMode() === 'server' && !ingress) {
+            <button
+              mat-menu-item
+              (click)="onLogout()"
+              data-testid="logout-menu-item">
               <mat-icon>exit_to_app</mat-icon>
               <span>{{ 'login.logout' | transloco }}</span>
             </button>

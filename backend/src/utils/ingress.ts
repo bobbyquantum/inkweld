@@ -94,3 +94,17 @@ export function getIngressUser(c: Context): IngressUser | null {
     displayName: c.req.header('x-remote-user-display-name')?.trim() || null,
   };
 }
+
+/**
+ * Behind ingress, the HA user making the request is the person at the
+ * keyboard, so a session is only valid for that user's linked account.
+ * Otherwise a browser shared by two HA users would keep using whichever of
+ * them signed in to Inkweld first. Always true outside ingress.
+ */
+export function ingressSessionMatches(
+  c: Context,
+  user: { homeAssistantUserId: string | null }
+): boolean {
+  const haUser = getIngressUser(c);
+  return !haUser || user.homeAssistantUserId === haUser.id;
+}

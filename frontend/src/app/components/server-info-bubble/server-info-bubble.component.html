@@ -1,54 +1,59 @@
-<div class="server-info-bubble">
-  @if (isConfigured()) {
-    <button
-      mat-mini-fab
-      appTooltipAriaLabel
-      [matMenuTriggerFor]="profileMenu"
-      [matTooltip]="getShortDisplayName()"
-      matTooltipPosition="above"
-      class="bubble-button"
-      data-testid="server-info-bubble">
-      <mat-icon>{{ getStatusIcon() }}</mat-icon>
-    </button>
+<!-- Behind HA ingress there is one server and HA picks the profile -->
+@if (!ingress) {
+  <div class="server-info-bubble">
+    @if (isConfigured()) {
+      <button
+        mat-mini-fab
+        appTooltipAriaLabel
+        [matMenuTriggerFor]="profileMenu"
+        [matTooltip]="getShortDisplayName()"
+        matTooltipPosition="above"
+        class="bubble-button"
+        data-testid="server-info-bubble">
+        <mat-icon>{{ getStatusIcon() }}</mat-icon>
+      </button>
 
-    <mat-menu #profileMenu="matMenu" class="profile-menu">
-      <div class="menu-header">
-        <span class="header-title">{{
-          'settings.serverBubble.currentProfile' | transloco
-        }}</span>
-      </div>
+      <mat-menu #profileMenu="matMenu" class="profile-menu">
+        <div class="menu-header">
+          <span class="header-title">{{
+            'settings.serverBubble.currentProfile' | transloco
+          }}</span>
+        </div>
 
-      @for (profile of profiles(); track profile.id) {
-        <button
-          mat-menu-item
-          (click)="switchToProfile(profile)"
-          [class.active-profile]="profile.id === activeProfile()?.id"
-          [attr.data-testid]="'profile-option-' + profile.id">
-          <mat-icon>{{ getProfileIcon(profile) }}</mat-icon>
-          <span class="profile-name">{{ getProfileDisplayName(profile) }}</span>
-          @if (profile.id === activeProfile()?.id) {
-            <mat-icon class="check-icon">check</mat-icon>
-          }
-          @if (hasTokenForProfile(profile)) {
-            <mat-icon
-              class="auth-indicator"
-              [matTooltip]="'settings.serverBubble.loggedIn' | transloco">
-              person
-            </mat-icon>
-          }
-        </button>
-      }
-    </mat-menu>
-  } @else {
-    <!-- Not configured yet - just show an info icon -->
-    <button
-      mat-mini-fab
-      appTooltipAriaLabel
-      [matTooltip]="'settings.serverBubble.notConnected' | transloco"
-      matTooltipPosition="above"
-      class="bubble-button disconnected"
-      data-testid="server-info-bubble-disconnected">
-      <mat-icon>cloud_off</mat-icon>
-    </button>
-  }
-</div>
+        @for (profile of profiles(); track profile.id) {
+          <button
+            mat-menu-item
+            (click)="switchToProfile(profile)"
+            [class.active-profile]="profile.id === activeProfile()?.id"
+            [attr.data-testid]="'profile-option-' + profile.id">
+            <mat-icon>{{ getProfileIcon(profile) }}</mat-icon>
+            <span class="profile-name">{{
+              getProfileDisplayName(profile)
+            }}</span>
+            @if (profile.id === activeProfile()?.id) {
+              <mat-icon class="check-icon">check</mat-icon>
+            }
+            @if (hasTokenForProfile(profile)) {
+              <mat-icon
+                class="auth-indicator"
+                [matTooltip]="'settings.serverBubble.loggedIn' | transloco">
+                person
+              </mat-icon>
+            }
+          </button>
+        }
+      </mat-menu>
+    } @else {
+      <!-- Not configured yet - just show an info icon -->
+      <button
+        mat-mini-fab
+        appTooltipAriaLabel
+        [matTooltip]="'settings.serverBubble.notConnected' | transloco"
+        matTooltipPosition="above"
+        class="bubble-button disconnected"
+        data-testid="server-info-bubble-disconnected">
+        <mat-icon>cloud_off</mat-icon>
+      </button>
+    }
+  </div>
+}

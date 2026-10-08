@@ -56,6 +56,8 @@ describe('UserService', () => {
     getActiveConfig: Mock;
     updateConfigUserProfile: Mock;
     adoptServerLogin: Mock;
+    addServerConfig: Mock;
+    switchToConfig: Mock;
     clearConfigUserProfile: Mock;
     clearContextData: Mock;
     getConfigurations: Mock;
@@ -87,6 +89,8 @@ describe('UserService', () => {
         config: { id: 'test-config-id' },
         forkedFrom: null,
       }),
+      addServerConfig: vi.fn().mockReturnValue({ id: 'test-config-id' }),
+      switchToConfig: vi.fn(),
       clearConfigUserProfile: vi.fn(),
       clearContextData: vi.fn().mockResolvedValue(undefined),
       getConfigurations: vi
@@ -323,6 +327,12 @@ describe('UserService', () => {
         authServiceMock.ingressLogin.mockReturnValue(
           of({ token: 'ingress-token', user: TEST_USER })
         );
+        storageContextMock.getActiveConfig.mockReturnValue({
+          id: 'test-config-id',
+          type: 'server',
+          serverUrl: 'https://ha.local/api/hassio_ingress/abc',
+          displayName: 'Home Assistant',
+        });
       });
 
       afterEach(() => {
@@ -360,7 +370,45 @@ describe('UserService', () => {
         expect(setToken).toHaveBeenCalledWith('ingress-token');
         expect(service.currentUser()).toEqual(TEST_USER);
         expect(service.isAuthenticated()).toBe(true);
-        expect(storageContextMock.adoptServerLogin).toHaveBeenCalled();
+        // Binds the active profile to this HA user without switching.
+        expect(storageContextMock.addServerConfig).toHaveBeenCalledWith(
+          'https://ha.local/api/hassio_ingress/abc',
+          'Home Assistant',
+          { name: TEST_USER.name, username: TEST_USER.username },
+          { username: TEST_USER.username }
+        );
+        expect(storageContextMock.switchToConfig).not.toHaveBeenCalled();
+      });
+
+      it('moves a different HA user to their own profile', async () => {
+        userServiceMock.getCurrentUser.mockReturnValue(of(anonymousUser));
+        storageContextMock.addServerConfig.mockReturnValue({
+          id: 'other-user-config',
+        });
+        const setToken = vi.spyOn(TestBed.inject(AuthTokenService), 'setToken');
+        const originalLocation = globalThis.location;
+        const assign = vi.fn();
+        Object.defineProperty(globalThis, 'location', {
+          value: { assign },
+          writable: true,
+          configurable: true,
+        });
+
+        try {
+          await service.loadCurrentUser();
+        } finally {
+          Object.defineProperty(globalThis, 'location', {
+            value: originalLocation,
+            writable: true,
+            configurable: true,
+          });
+        }
+
+        expect(storageContextMock.switchToConfig).toHaveBeenCalledWith(
+          'other-user-config'
+        );
+        expect(setToken).toHaveBeenCalledWith('ingress-token');
+        expect(assign).toHaveBeenCalled();
       });
 
       it('replaces an expired session', async () => {
@@ -379,6 +427,10 @@ describe('UserService', () => {
 
         expect(service.isAuthenticated()).toBe(true);
         expect(service.error()).toBeUndefined();
+        // The profile keeps its user, so another HA user gets their own.
+        expect(
+          storageContextMock.clearConfigUserProfile
+        ).not.toHaveBeenCalled();
       });
 
       it('stays signed out when the server refuses', async () => {

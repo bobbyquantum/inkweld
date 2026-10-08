@@ -6,6 +6,7 @@ import { isSessionRevoked } from '../utils/session-validity';
 import type { User } from '../db/schema/users';
 import type { DatabaseInstance } from '../types/context';
 import { logger } from './logger.service';
+import { ingressSessionMatches } from '../utils/ingress';
 
 const authLog = logger.child('Auth');
 
@@ -279,6 +280,10 @@ class AuthService {
       if (user && isSessionRevoked(user, session)) {
         // Issued before the user's revocation watermark (password reset,
         // passkey recovery, admin disable) — treat exactly like no session.
+        return null;
+      }
+      if (user && !ingressSessionMatches(c, user)) {
+        // Another Home Assistant user's session on a shared browser.
         return null;
       }
       return user;
