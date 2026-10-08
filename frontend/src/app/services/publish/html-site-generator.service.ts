@@ -909,14 +909,17 @@ ${pager.join('\n')}
 
   /** Strip tags and entities, collapse whitespace. */
   private plainText(html: string): string {
-    return html
-      .replaceAll(/<[^<>]+>/g, ' ')
-      .replaceAll('&amp;', '&')
-      .replaceAll('&lt;', '<')
-      .replaceAll('&gt;', '>')
-      .replaceAll('&quot;', '"')
-      .replaceAll(/\s+/g, ' ')
-      .trim();
+    return (
+      html
+        .replaceAll(/<[^<>]+>/g, ' ')
+        .replaceAll('&lt;', '<')
+        .replaceAll('&gt;', '>')
+        .replaceAll('&quot;', '"')
+        // Last, so an escaped entity such as `&amp;lt;` stays `&lt;`.
+        .replaceAll('&amp;', '&')
+        .replaceAll(/\s+/g, ' ')
+        .trim()
+    );
   }
 
   // ───────────────────────────────────────────────────────────────────────────

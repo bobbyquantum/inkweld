@@ -78,7 +78,7 @@ for (const file of migrationFiles) {
 console.log('\n👤 Seeding e2e admin user...');
 try {
   const passwordHash = await hash(E2E_ADMIN.password, 10);
-  const userId = `usr_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+  const userId = `usr_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;
 
   // Check if admin already exists
   const checkResult =
