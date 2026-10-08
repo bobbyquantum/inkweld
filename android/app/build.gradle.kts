@@ -12,7 +12,7 @@ android {
 
     defaultConfig {
         applicationId = "app.inkweld"
-        minSdk = 23
+        minSdk = 24
         targetSdk = 36
         versionCode = 4
         versionName = "0.1.2"
