@@ -34,6 +34,7 @@ import {
   WS_CLOSE_PREAUTH_OVERFLOW,
 } from '../utils/ws-close-codes';
 import { PREAUTH_TIMEOUT_MS, preAuthQueueAccepts } from '../utils/ws-preauth';
+import { ingressSessionMatches } from '../utils/ingress';
 
 const wsLog = logger.child('WebSocket');
 const app = new Hono<AppContext>();
@@ -344,9 +345,15 @@ app.get(
         }
 
         // Mirror requireAuth: the account must still be enabled and approved,
-        // and the token must not predate the user's revocation watermark.
+        // the token must not predate the user's revocation watermark, and
+        // behind HA ingress it must belong to the HA user who connected.
         const account = await userService.findById(db, sessionData.userId);
-        if (!account || !userService.canLogin(account) || isSessionRevoked(account, sessionData)) {
+        if (
+          !account ||
+          !userService.canLogin(account) ||
+          isSessionRevoked(account, sessionData) ||
+          !ingressSessionMatches(c, account)
+        ) {
           wsLog.warn(`Account not permitted to sync ${documentId}: ${sessionData.username}`);
           ws.send('access-denied:forbidden');
           ws.close(WS_CLOSE_FORBIDDEN, 'Access denied');

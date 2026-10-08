@@ -4,6 +4,7 @@ import {
   getIngressPath,
   getIngressUser,
   ingressAdmins,
+  ingressSessionMatches,
   isIngressEnabled,
   isIngressRequest,
 } from '../src/utils/ingress';
@@ -165,5 +166,22 @@ describe('baseUsernameFor', () => {
 
   it('avoids reserved route names', () => {
     expect(baseUsernameFor(user('admin'))).toBe('admin-ha');
+  });
+});
+
+describe('ingressSessionMatches', () => {
+  it("accepts only the connecting HA user's account behind ingress", () => {
+    process.env['INGRESS_ENABLED'] = 'true';
+    const c = ctx(userHeaders, PROXY);
+    expect(ingressSessionMatches(c, { homeAssistantUserId: 'ha-user-1' })).toBe(true);
+    expect(ingressSessionMatches(c, { homeAssistantUserId: 'ha-user-2' })).toBe(false);
+    expect(ingressSessionMatches(c, { homeAssistantUserId: null })).toBe(false);
+  });
+
+  it('accepts any account outside ingress', () => {
+    delete process.env['INGRESS_ENABLED'];
+    expect(ingressSessionMatches(ctx(userHeaders, PROXY), { homeAssistantUserId: null })).toBe(
+      true
+    );
   });
 });

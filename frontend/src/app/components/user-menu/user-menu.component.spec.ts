@@ -388,6 +388,40 @@ describe('UserMenuComponent', () => {
     });
   });
 
+  describe('behind Home Assistant ingress', () => {
+    let meta: HTMLMetaElement;
+
+    beforeEach(async () => {
+      meta = document.createElement('meta');
+      meta.name = 'inkweld-ingress';
+      meta.content = 'home-assistant';
+      document.head.appendChild(meta);
+      createFixtureWithMode('server');
+
+      fixture.nativeElement
+        .querySelector('[data-testid="user-menu-button"]')
+        ?.click();
+      await fixture.whenStable();
+      fixture.detectChanges();
+    });
+
+    afterEach(() => {
+      meta.remove();
+    });
+
+    it('hides sign-out and the account switcher', () => {
+      expect(
+        document.querySelector('[data-testid="about-menu-link"]')
+      ).toBeTruthy();
+      expect(
+        document.querySelector('[data-testid="logout-menu-item"]')
+      ).toBeNull();
+      expect(
+        document.querySelector('[data-testid="switch-server-button"]')
+      ).toBeNull();
+    });
+  });
+
   describe('profile switching', () => {
     it('should always show switch server button in menu', async () => {
       // Open the menu first

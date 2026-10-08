@@ -32,7 +32,7 @@ import {
 import { TutorialService } from '@services/core/tutorial.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
 import { type ThemeOption, ThemeService } from '@themes/theme.service';
-import { appUrl } from '@utils/app-base';
+import { appUrl, isHomeAssistantIngress } from '@utils/app-base';
 
 import { UserAvatarComponent } from '../user-avatar/user-avatar.component';
 
@@ -104,6 +104,12 @@ export class UserMenuComponent implements OnInit {
 
   /** Whether the menu is showing the account list instead of the actions */
   protected readonly switcherOpen = signal(false);
+  /**
+   * Served through Home Assistant ingress: HA signs people in and each HA
+   * user gets their own profile, so sign-out and profile switching are
+   * hidden.
+   */
+  protected readonly ingress = isHomeAssistantIngress();
 
   /** Browser and cloud profiles can move up to cloud storage or a server */
   protected canUpgrade = computed(() => {

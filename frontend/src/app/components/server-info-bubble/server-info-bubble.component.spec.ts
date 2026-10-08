@@ -76,6 +76,29 @@ describe('ServerInfoBubbleComponent', () => {
     expect(component).toBeTruthy();
   });
 
+  describe('behind Home Assistant ingress', () => {
+    let meta: HTMLMetaElement;
+
+    beforeEach(() => {
+      meta = document.createElement('meta');
+      meta.name = 'inkweld-ingress';
+      meta.content = 'home-assistant';
+      document.head.appendChild(meta);
+      fixture = TestBed.createComponent(ServerInfoBubbleComponent);
+      fixture.detectChanges();
+    });
+
+    afterEach(() => {
+      meta.remove();
+    });
+
+    it('renders nothing', () => {
+      expect(
+        fixture.nativeElement.querySelector('.server-info-bubble')
+      ).toBeNull();
+    });
+  });
+
   describe('when not configured', () => {
     beforeEach(() => {
       isConfiguredSignal.set(false);
