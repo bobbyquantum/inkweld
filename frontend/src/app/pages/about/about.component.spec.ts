@@ -10,7 +10,7 @@ import { UnifiedUserService } from '@services/user/unified-user.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
-import { APP_PRIVACY_POLICY_URL } from '../../config/app-links';
+import { APP_PRIVACY_POLICY_PATH, docsUrl } from '../../config/docs-links';
 import { AboutComponent } from './about.component';
 
 describe('AboutComponent', () => {
@@ -148,7 +148,7 @@ describe('AboutComponent', () => {
     flushVersionRequest();
 
     expect(fixture.componentInstance.appPrivacyPolicyUrl).toBe(
-      APP_PRIVACY_POLICY_URL
+      docsUrl(APP_PRIVACY_POLICY_PATH)
     );
   });
 });

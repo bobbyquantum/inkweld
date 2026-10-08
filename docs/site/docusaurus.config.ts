@@ -15,7 +15,8 @@ const siteUrl = 'https://preview.inkweld.org';
  * Set INKWELD_APP_URL at build time to point somewhere specific. Otherwise it
  * follows the docs domain: the docs at `<sub>.inkweld.org` link to the app at
  * `<sub>.inkweld.app` (preview.inkweld.org → preview.inkweld.app, and
- * inkweld.org → inkweld.app once the production docs launch).
+ * inkweld.org → inkweld.app once the production docs launch). The app links
+ * back the same way (`frontend/src/app/config/docs-links.ts`).
  */
 function resolveAppUrl(docsUrl: string): string {
   let override = process.env.INKWELD_APP_URL?.trim() ?? '';

@@ -18,7 +18,7 @@ import { TranslocoModule } from '@jsverse/transloco';
 import packageJson from '@package';
 import { UnifiedUserService } from '@services/user/unified-user.service';
 
-import { APP_PRIVACY_POLICY_URL } from '../../config/app-links';
+import { APP_PRIVACY_POLICY_PATH, docsUrl } from '../../config/docs-links';
 
 interface LibraryInfo {
   name: string;
@@ -58,7 +58,7 @@ export class AboutComponent {
   readonly commitHash = signal<string | null>(null);
   readonly appName = 'Inkweld';
   readonly appDescription = packageJson.description;
-  readonly appPrivacyPolicyUrl = APP_PRIVACY_POLICY_URL;
+  readonly appPrivacyPolicyUrl = docsUrl(APP_PRIVACY_POLICY_PATH);
 
   readonly keyLibraries: LibraryInfo[] = [
     {

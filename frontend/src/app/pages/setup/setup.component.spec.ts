@@ -18,7 +18,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { environment } from '../../../environments/environment';
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
-import { APP_PRIVACY_POLICY_URL } from '../../config/app-links';
+import { APP_PRIVACY_POLICY_PATH, docsUrl } from '../../config/docs-links';
 import { SetupService } from '../../services/core/setup.service';
 import { UnifiedUserService } from '../../services/user/unified-user.service';
 import { defaultServerUrl, SetupComponent } from './setup.component';
@@ -146,7 +146,7 @@ describe('SetupComponent', () => {
     const link: HTMLAnchorElement = fixture.nativeElement.querySelector(
       '[data-testid="app-privacy-policy-link"]'
     );
-    expect(link.getAttribute('href')).toBe(APP_PRIVACY_POLICY_URL);
+    expect(link.getAttribute('href')).toBe(docsUrl(APP_PRIVACY_POLICY_PATH));
     expect(link.getAttribute('target')).toBe('_blank');
     expect(link.textContent?.trim()).toBe('Privacy Policy');
   });
