@@ -16,6 +16,7 @@ import {
   type ServerConfig,
   StorageContextService,
 } from '@services/core/storage-context.service';
+import { appUrl } from '@utils/app-base';
 
 /**
  * Floating bubble that shows current server connection status.
@@ -103,7 +104,7 @@ export class ServerInfoBubbleComponent {
     this.storageContext.switchToConfig(profile.id);
     // Navigate to home before reloading - the current project URL
     // won't exist in the new profile context
-    globalThis.location.href = '/';
+    globalThis.location.href = appUrl('/');
   }
 
   /**

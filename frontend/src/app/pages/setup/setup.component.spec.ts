@@ -317,6 +317,16 @@ describe('SetupComponent', () => {
       ).toBe('http://192.168.1.20:8333');
     });
 
+    it('keeps the path prefix the page is served under', () => {
+      expect(
+        defaultServerUrl(
+          '',
+          { protocol: 'https:', origin: 'https://ha.local:8123' },
+          '/api/hassio_ingress/abc'
+        )
+      ).toBe('https://ha.local:8123/api/hassio_ingress/abc');
+    });
+
     it('falls back to localhost for non-web origins such as Electron', () => {
       expect(defaultServerUrl('', { protocol: 'app:', origin: 'null' })).toBe(
         'http://localhost:8333'

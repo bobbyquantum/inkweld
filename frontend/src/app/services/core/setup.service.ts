@@ -1,5 +1,6 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { type User } from '@inkweld/index';
+import { appOrigin, isHomeAssistantIngress } from '@utils/app-base';
 import { stripTrailingSlashes } from '@utils/string-utils';
 
 import { environment } from '../../../environments/environment';
@@ -104,6 +105,11 @@ export class SetupService {
    * This allows Cloudflare/hosted deployments to skip manual setup
    */
   private autoConfigureIfNeeded(): void {
+    if (isHomeAssistantIngress()) {
+      this.autoConfigureForIngress();
+      return;
+    }
+
     // Builds can opt out (environment.autoConfigure === false) so the setup
     // screen offers a choice of modes even with a hosted apiUrl baked in.
     // Read with a cast like cloudSync: the base environment does not declare
@@ -144,6 +150,37 @@ export class SetupService {
       );
       this.storageContext.switchToConfig(serverConfig.id);
     }
+  }
+
+  /**
+   * Behind Home Assistant ingress the page is always served by the Inkweld
+   * server it should talk to, at the ingress prefix, and HA has already
+   * signed the person in. Point the app at that server and skip setup. A
+   * profile forked for another HA user on the same browser has the same URL,
+   * so it is left active.
+   */
+  private autoConfigureForIngress(): void {
+    const serverUrl = appOrigin();
+    if (!serverUrl) return;
+
+    const activeConfig = this.storageContext.getActiveConfig();
+    if (
+      activeConfig?.type === 'server' &&
+      stripTrailingSlashes(activeConfig.serverUrl ?? '') === serverUrl
+    ) {
+      return;
+    }
+
+    this.logger.debug(
+      'SetupService',
+      'Auto-configuring for Home Assistant ingress:',
+      serverUrl
+    );
+    const serverConfig = this.storageContext.addServerConfig(
+      serverUrl,
+      'Home Assistant'
+    );
+    this.storageContext.switchToConfig(serverConfig.id);
   }
 
   /**

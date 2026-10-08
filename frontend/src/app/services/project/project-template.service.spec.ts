@@ -84,7 +84,7 @@ describe('ProjectTemplateService', () => {
     it('should load and return templates from index.json', async () => {
       const promise = service.getTemplates();
 
-      const req = httpMock.expectOne('/assets/project-templates/index.json');
+      const req = httpMock.expectOne('assets/project-templates/index.json');
       expect(req.request.method).toBe('GET');
       req.flush(mockTemplateIndex);
 
@@ -97,13 +97,13 @@ describe('ProjectTemplateService', () => {
     it('should cache templates after first load', async () => {
       // First call
       const promise1 = service.getTemplates();
-      const req = httpMock.expectOne('/assets/project-templates/index.json');
+      const req = httpMock.expectOne('assets/project-templates/index.json');
       req.flush(mockTemplateIndex);
       await promise1;
 
       // Second call should use cache (no HTTP request)
       const promise2 = service.getTemplates();
-      httpMock.expectNone('/assets/project-templates/index.json');
+      httpMock.expectNone('assets/project-templates/index.json');
       const templates = await promise2;
 
       expect(templates).toHaveLength(2);
@@ -112,7 +112,7 @@ describe('ProjectTemplateService', () => {
     it('should throw error when loading fails', async () => {
       const promise = service.getTemplates();
 
-      const req = httpMock.expectOne('/assets/project-templates/index.json');
+      const req = httpMock.expectOne('assets/project-templates/index.json');
       req.error(new ProgressEvent('error'));
 
       await expect(promise).rejects.toThrow();
@@ -126,7 +126,7 @@ describe('ProjectTemplateService', () => {
 
       // Index request - cache will be empty so this happens first
       const indexReq = httpMock.expectOne(
-        '/assets/project-templates/index.json'
+        'assets/project-templates/index.json'
       );
       indexReq.flush(mockTemplateIndex);
 
@@ -134,7 +134,7 @@ describe('ProjectTemplateService', () => {
       await new Promise(resolve => setTimeout(resolve, 0));
 
       // Then all template files are loaded in parallel
-      const _basePath = '/assets/project-templates/empty/';
+      const _basePath = 'assets/project-templates/empty/';
       const pending = httpMock.match(() => true);
 
       // Flush all pending requests with appropriate responses
@@ -163,7 +163,7 @@ describe('ProjectTemplateService', () => {
       const promise = service.loadTemplate('nonexistent');
 
       const indexReq = httpMock.expectOne(
-        '/assets/project-templates/index.json'
+        'assets/project-templates/index.json'
       );
       indexReq.flush(mockTemplateIndex);
 
@@ -183,7 +183,7 @@ describe('ProjectTemplateService', () => {
       const promise = service.loadTemplate('empty');
 
       const indexReq = httpMock.expectOne(
-        '/assets/project-templates/index.json'
+        'assets/project-templates/index.json'
       );
       indexReq.flush(mockTemplateIndex);
 
@@ -226,7 +226,7 @@ describe('ProjectTemplateService', () => {
       const promise = service.loadTemplate('empty');
 
       const indexReq = httpMock.expectOne(
-        '/assets/project-templates/index.json'
+        'assets/project-templates/index.json'
       );
       indexReq.flush(mockTemplateIndex);
 
@@ -257,7 +257,7 @@ describe('ProjectTemplateService', () => {
       const promise = service.loadTemplate('empty');
 
       const indexReq = httpMock.expectOne(
-        '/assets/project-templates/index.json'
+        'assets/project-templates/index.json'
       );
       indexReq.flush(mockTemplateIndex);
 
@@ -289,7 +289,7 @@ describe('ProjectTemplateService', () => {
       const promise = service.loadTemplate('empty');
 
       const indexReq = httpMock.expectOne(
-        '/assets/project-templates/index.json'
+        'assets/project-templates/index.json'
       );
       indexReq.flush(mockTemplateIndex);
 
@@ -322,7 +322,7 @@ describe('ProjectTemplateService', () => {
     it('should return template info by ID', async () => {
       const promise = service.getTemplateInfo('empty');
 
-      const req = httpMock.expectOne('/assets/project-templates/index.json');
+      const req = httpMock.expectOne('assets/project-templates/index.json');
       req.flush(mockTemplateIndex);
 
       const info = await promise;
@@ -333,7 +333,7 @@ describe('ProjectTemplateService', () => {
     it('should return undefined for unknown template', async () => {
       const promise = service.getTemplateInfo('nonexistent');
 
-      const req = httpMock.expectOne('/assets/project-templates/index.json');
+      const req = httpMock.expectOne('assets/project-templates/index.json');
       req.flush(mockTemplateIndex);
 
       const info = await promise;
@@ -345,7 +345,7 @@ describe('ProjectTemplateService', () => {
     it('should clear cached templates', async () => {
       // Load templates
       const promise1 = service.getTemplates();
-      const req1 = httpMock.expectOne('/assets/project-templates/index.json');
+      const req1 = httpMock.expectOne('assets/project-templates/index.json');
       req1.flush(mockTemplateIndex);
       const templates1 = await promise1;
 
@@ -354,7 +354,7 @@ describe('ProjectTemplateService', () => {
 
       // Next call should make HTTP request again
       const promise2 = service.getTemplates();
-      const req2 = httpMock.expectOne('/assets/project-templates/index.json');
+      const req2 = httpMock.expectOne('assets/project-templates/index.json');
       req2.flush(mockTemplateIndex);
       const templates2 = await promise2;
 
@@ -401,7 +401,7 @@ describe('ProjectTemplateService', () => {
       const promise = service.loadTemplate('with-media');
 
       const indexReq = httpMock.expectOne(
-        '/assets/project-templates/index.json'
+        'assets/project-templates/index.json'
       );
       indexReq.flush(worldbuildingTemplate);
 
@@ -448,7 +448,7 @@ describe('ProjectTemplateService', () => {
       const promise = service.loadTemplate('empty');
 
       const indexReq = httpMock.expectOne(
-        '/assets/project-templates/index.json'
+        'assets/project-templates/index.json'
       );
       indexReq.flush(mockTemplateIndex);
 
@@ -504,7 +504,7 @@ describe('ProjectTemplateService', () => {
       const promise = service.loadTemplate('broken-media');
 
       const indexReq = httpMock.expectOne(
-        '/assets/project-templates/index.json'
+        'assets/project-templates/index.json'
       );
       indexReq.flush(indexWithMedia);
 
@@ -579,7 +579,7 @@ describe('ProjectTemplateService', () => {
       const promise = service.loadTemplate('dupe-media');
 
       const indexReq = httpMock.expectOne(
-        '/assets/project-templates/index.json'
+        'assets/project-templates/index.json'
       );
       indexReq.flush(indexWithDupes);
 

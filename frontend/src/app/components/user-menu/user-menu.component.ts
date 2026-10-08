@@ -32,6 +32,7 @@ import {
 import { TutorialService } from '@services/core/tutorial.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
 import { type ThemeOption, ThemeService } from '@themes/theme.service';
+import { appUrl } from '@utils/app-base';
 
 import { UserAvatarComponent } from '../user-avatar/user-avatar.component';
 
@@ -323,6 +324,6 @@ export class UserMenuComponent implements OnInit {
     this.storageContext.switchToConfig(profile.id);
 
     // Navigate to home - the current project URL won't exist in the new profile context
-    globalThis.location.href = '/';
+    globalThis.location.href = appUrl('/');
   }
 }

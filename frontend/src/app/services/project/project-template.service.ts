@@ -52,7 +52,7 @@ interface TemplateIndex {
 /**
  * Service for loading project templates from assets.
  *
- * Templates are stored in `/assets/project-templates/` and follow
+ * Templates are stored in `assets/project-templates/` and follow
  * the same format as project export archives (manifest.json, project.json,
  * elements.json, etc.) - just as individual JSON files instead of a ZIP.
  *
@@ -66,7 +66,7 @@ export class ProjectTemplateService {
   private readonly http = inject(HttpClient);
   private readonly logger = inject(LoggerService);
 
-  private readonly TEMPLATES_BASE_PATH = '/assets/project-templates/';
+  private readonly TEMPLATES_BASE_PATH = 'assets/project-templates/';
 
   private cachedIndex: ProjectTemplateInfo[] | null = null;
 

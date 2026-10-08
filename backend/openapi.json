@@ -5433,6 +5433,47 @@
         }
       }
     },
+    "/api/v1/auth/ingress": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "operationId": "ingressLogin",
+        "description": "Sign in as the Home Assistant user that HA ingress authenticated. Only available when the server runs as a Home Assistant app (INGRESS_ENABLED) and the request came through the ingress proxy; otherwise 404.",
+        "responses": {
+          "200": {
+            "description": "Login successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The linked account is disabled or pending approval",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not an ingress request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/auth/logout": {
       "post": {
         "tags": [

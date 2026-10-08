@@ -376,6 +376,35 @@ GITHUB_CALLBACK_URL=https://inkweld.yoursite.com/api/auth/github/callback
 
 ---
 
+## Home Assistant Ingress
+
+Used by the Inkweld Home Assistant app, which serves the UI in the HA sidebar
+through ingress. Home Assistant signs people in, and Inkweld maps each HA user
+to an Inkweld account (created on first visit, linked by HA user id).
+
+### INGRESS_ENABLED
+
+**Default:** `false` | Boolean
+
+Trust Home Assistant's ingress headers (`X-Ingress-Path`, `X-Remote-User-*`)
+on requests whose TCP peer is `INGRESS_TRUSTED_PROXY`. Requests from anywhere
+else are treated normally, so a direct port can stay open alongside ingress.
+
+### INGRESS_TRUSTED_PROXY
+
+**Required with `INGRESS_ENABLED`** | IP address
+
+The Supervisor's ingress proxy. The Home Assistant app sets it to
+`172.30.32.2`; without it, no request is treated as ingress.
+
+### INGRESS_ADMINS
+
+**Default:** empty | Comma-separated HA usernames
+
+HA users who are Inkweld admins, applied on every ingress sign-in (granted
+and revoked; the last active admin is never demoted). When empty, the first
+account on the instance becomes admin.
+
 ## Default Admin User
 
 Bootstrap your instance with an initial admin user.

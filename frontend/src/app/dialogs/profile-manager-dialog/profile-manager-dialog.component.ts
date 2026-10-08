@@ -50,6 +50,7 @@ import {
   MigrationService,
   MigrationStatus,
 } from '@services/local/migration.service';
+import { appUrl } from '@utils/app-base';
 import { stripTrailingSlashes } from '@utils/string-utils';
 import { firstValueFrom } from 'rxjs';
 
@@ -367,7 +368,7 @@ export class ProfileManagerDialogComponent {
 
     this.storageContext.switchToConfig(profile.id);
     // Navigate to home - the current project URL won't exist in the new profile context
-    globalThis.location.href = '/';
+    globalThis.location.href = appUrl('/');
   }
 
   /**
@@ -661,7 +662,9 @@ export class ProfileManagerDialogComponent {
    */
   private leaveTo(destination: ProfileDestination): void {
     this.dialogRef.close();
-    globalThis.location.href = destination === 'welcome' ? '/setup' : '/';
+    globalThis.location.href = appUrl(
+      destination === 'welcome' ? '/setup' : '/'
+    );
   }
 
   /**
@@ -716,7 +719,7 @@ export class ProfileManagerDialogComponent {
       this.setupService.configureLocalMode({ name: displayName, username });
 
       // Navigate to home - the current project URL won't exist in the new profile context
-      globalThis.location.href = '/';
+      globalThis.location.href = appUrl('/');
     } catch (error) {
       console.error('Failed to add local mode:', error);
       this.localError.set(
@@ -770,7 +773,7 @@ export class ProfileManagerDialogComponent {
       this.storageContext.updateConfigDisplayName(targetId, displayName);
     }
     this.storageContext.switchToConfig(targetId);
-    globalThis.location.href = '/';
+    globalThis.location.href = appUrl('/');
   }
 
   /**
@@ -1010,7 +1013,7 @@ export class ProfileManagerDialogComponent {
 
       if (this.syncSuccess()) {
         setTimeout(() => {
-          globalThis.location.href = '/';
+          globalThis.location.href = appUrl('/');
         }, 1500);
       }
     } catch (error) {

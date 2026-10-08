@@ -32,11 +32,11 @@ export class TranslocoHttpLoader implements TranslocoLoader {
 
   getTranslation(lang: string): Observable<Translation> {
     const common$ = this.http.get<Translation>(
-      `/assets/i18n/${lang}/common.json`
+      `assets/i18n/${lang}/common.json`
     );
     const scopeRequests = SCOPES.map(scope =>
       this.http
-        .get<Translation>(`/assets/i18n/${lang}/${scope}.json`)
+        .get<Translation>(`assets/i18n/${lang}/${scope}.json`)
         .pipe(map(t => [scope, t] as const))
     );
 

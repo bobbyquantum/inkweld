@@ -35,6 +35,7 @@ import {
   type CloudProvider,
   getCloudProviderDisplayName,
 } from '@services/core/storage-context.service';
+import { appBasePath, appUrl } from '@utils/app-base';
 import { firstValueFrom } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
@@ -103,16 +104,19 @@ export const NEXTCLOUD_SETUP_GUIDE_URL =
  * - A build with an apiUrl (dev, or a hosted preview with autoConfigure
  *   disabled) pre-fills that server so the user only has to confirm.
  * - A production build has no apiUrl because the Inkweld server serves it
- *   (Docker, native binary), so the page's own origin is that server.
+ *   (Docker, native binary), so the page's own origin is that server, plus
+ *   the path prefix it is served under (`basePath`, e.g. behind a reverse
+ *   proxy or Home Assistant ingress).
  * - Anything else (Electron's app:// page) falls back to the default port.
  */
 export function defaultServerUrl(
   apiUrl: string,
-  location: Pick<Location, 'protocol' | 'origin'> | undefined
+  location: Pick<Location, 'protocol' | 'origin'> | undefined,
+  basePath = ''
 ): string {
   if (apiUrl) return apiUrl;
   if (location?.protocol === 'http:' || location?.protocol === 'https:') {
-    return location.origin;
+    return location.origin + basePath;
   }
   return 'http://localhost:8333';
 }
@@ -189,7 +193,8 @@ export class SetupComponent implements OnInit {
 
   protected serverUrl = defaultServerUrl(
     environment.apiUrl,
-    globalThis.location
+    globalThis.location,
+    appBasePath()
   );
   protected userName = '';
   protected displayName = '';
@@ -694,7 +699,7 @@ export class SetupComponent implements OnInit {
         duration: 3000,
       });
       // Full reload: the engine pulls this author's projects on startup
-      globalThis.location.assign('/');
+      globalThis.location.assign(appUrl('/'));
     } catch (error) {
       console.error('Failed to continue as existing profile:', error);
       this.snackBar.open(
@@ -763,7 +768,7 @@ export class SetupComponent implements OnInit {
       'Close',
       { duration: 5000 }
     );
-    globalThis.location.assign('/');
+    globalThis.location.assign(appUrl('/'));
     return true;
   }
 

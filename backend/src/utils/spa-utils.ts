@@ -39,6 +39,31 @@ export function injectCustomHtml(html: string, headExtra: string, bodyExtra: str
   return result;
 }
 
+/** The built document's base element (`<base href="/" />` in index.html). */
+const ROOT_BASE_ELEMENT = /<base\s+href="\/"\s*\/?>/;
+
+/**
+ * Meta tag telling the frontend it is served through Home Assistant ingress,
+ * so it should configure itself for this server and sign in through
+ * `POST /api/v1/auth/ingress` instead of showing setup and login.
+ */
+export const INGRESS_META = '<meta name="inkweld-ingress" content="home-assistant" />';
+
+/**
+ * Re-root the app under a Home Assistant ingress prefix: point `<base href>`
+ * at it (Angular resolves routes and relative asset URLs against it) and add
+ * {@link INGRESS_META}. `ingressPath` must already be validated (see
+ * utils/ingress.ts). Returns the document unchanged when there is no prefix
+ * or no root base element to replace.
+ */
+export function injectIngressBase(html: string, ingressPath: string | null): string {
+  if (!ingressPath || !ROOT_BASE_ELEMENT.test(html)) return html;
+  return html.replace(
+    ROOT_BASE_ELEMENT,
+    () => `<base href="${ingressPath}/" />\n    ${INGRESS_META}`
+  );
+}
+
 /**
  * Point the service worker manifest's index.html hash at the document the
  * server actually serves.

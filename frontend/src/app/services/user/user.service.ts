@@ -8,6 +8,7 @@ import {
   type User,
   UsersService,
 } from '@inkweld/index';
+import { appUrl, isHomeAssistantIngress } from '@utils/app-base';
 import {
   catchError,
   firstValueFrom,
@@ -41,6 +42,12 @@ const USER_CACHE_DB_BASE_NAME = 'userCache';
 
 const CACHE_KEY = 'currentUser';
 const MAX_RETRIES = 3;
+/**
+ * Set when someone signs out behind Home Assistant ingress, so the next load
+ * doesn't sign them straight back in. Per tab (sessionStorage): opening
+ * Inkweld from the HA sidebar again starts a fresh sign-in.
+ */
+const INGRESS_SIGNED_OUT_KEY = 'inkweld.ingressSignedOut';
 @Injectable({
   providedIn: 'root',
 })
@@ -204,25 +211,41 @@ export class UserService {
           'Using cached user due to network error'
         );
       } else if (!canRecover) {
-        // The server rejected the session (401) or the account itself (403
-        // disabled). The cached user was already pushed into the signal for
-        // fast paint, so without this the app kept treating a dead session
-        // as signed in: isAuthenticated() stayed true and the auth guard let
-        // the navigation through. Clear token and cache so the next check
-        // sees an anonymous user.
-        if (
-          refreshErr instanceof UserServiceError &&
-          (refreshErr.code === 'SESSION_EXPIRED' ||
-            refreshErr.code === 'ACCESS_DENIED')
-        ) {
-          await this.clearCurrentUser();
-        }
+        if (await this.recoverFromRejectedSession(refreshErr)) return;
         throw refreshErr;
       }
     }
   }
 
+  /**
+   * The server rejected the session (401) or the account itself (403
+   * disabled). The cached user was already pushed into the signal for fast
+   * paint, so without this the app kept treating a dead session as signed
+   * in: isAuthenticated() stayed true and the auth guard let the navigation
+   * through. Clear token and cache so the next check sees an anonymous user.
+   *
+   * Returns true when the session was replaced: behind HA ingress an expired
+   * token is swapped for a new one rather than ending in a sign-out.
+   */
+  private async recoverFromRejectedSession(err: unknown): Promise<boolean> {
+    if (
+      !(err instanceof UserServiceError) ||
+      (err.code !== 'SESSION_EXPIRED' && err.code !== 'ACCESS_DENIED')
+    ) {
+      return false;
+    }
+    await this.clearCurrentUser();
+    if (err.code === 'SESSION_EXPIRED' && (await this.signInThroughIngress())) {
+      this.error.set(undefined);
+      return true;
+    }
+    return false;
+  }
+
   private async processUserResult(user: User): Promise<void> {
+    if (user.username === 'anonymous' && (await this.signInThroughIngress())) {
+      return;
+    }
     if (user.username === 'anonymous') {
       this.logger.debug(
         'UserService',
@@ -237,6 +260,10 @@ export class UserService {
   }
 
   async setCurrentUser(user: User): Promise<void> {
+    // Any sign-in (password, passkey, OAuth, ingress) ends a sign-out.
+    if (user.username !== 'anonymous') {
+      this.setIngressSignedOut(false);
+    }
     if (this.storage.isAvailable()) {
       try {
         const db = await this.db;
@@ -283,7 +310,7 @@ export class UserService {
         // this profile belongs to gets their own profile, so the app reloads
         // into that storage context instead of a soft navigation.
         if (this.bindLoginToProfile(response.user)) {
-          globalThis.location.assign('/');
+          globalThis.location.assign(appUrl('/'));
           return;
         }
       }
@@ -294,6 +321,55 @@ export class UserService {
       throw error;
     } finally {
       this.isLoading.set(false);
+    }
+  }
+
+  /**
+   * Behind Home Assistant ingress, HA has already signed the person in: trade
+   * that for an Inkweld session instead of showing the login page. Returns
+   * false (leaving the caller to treat the user as signed out) when the page
+   * is not served through ingress or the server refuses.
+   */
+  private async signInThroughIngress(): Promise<boolean> {
+    if (!isHomeAssistantIngress() || this.isIngressSignedOut()) return false;
+    try {
+      const response = await firstValueFrom(
+        this.authenticationService.ingressLogin()
+      );
+      this.authTokenService.setToken(response.token);
+      await this.setCurrentUser(response.user);
+      // Another HA user on this browser gets their own profile (see login()).
+      if (this.bindLoginToProfile(response.user)) {
+        globalThis.location.assign(appUrl('/'));
+      }
+      return true;
+    } catch (err) {
+      this.logger.warn(
+        'UserService',
+        'Home Assistant ingress sign-in failed',
+        err
+      );
+      return false;
+    }
+  }
+
+  private isIngressSignedOut(): boolean {
+    try {
+      return globalThis.sessionStorage?.getItem(INGRESS_SIGNED_OUT_KEY) === '1';
+    } catch {
+      return false;
+    }
+  }
+
+  private setIngressSignedOut(signedOut: boolean): void {
+    try {
+      if (signedOut) {
+        globalThis.sessionStorage?.setItem(INGRESS_SIGNED_OUT_KEY, '1');
+      } else {
+        globalThis.sessionStorage?.removeItem(INGRESS_SIGNED_OUT_KEY);
+      }
+    } catch {
+      // Storage unavailable (private mode etc.): sign-out lasts until reload.
     }
   }
 
@@ -353,6 +429,9 @@ export class UserService {
     try {
       await firstValueFrom(this.authenticationService.logout());
       await this.clearCurrentUser();
+      if (isHomeAssistantIngress()) {
+        this.setIngressSignedOut(true);
+      }
       await this.router.navigate(['/']);
     } catch (err) {
       const error = this.formatError(err);

@@ -22,6 +22,7 @@ import {
   guessMimeType,
   buildAssetHeaders,
   injectCustomHtml,
+  injectIngressBase,
   patchNgswIndexHash,
   wasmContentEncoding,
 } from './utils/spa-utils';
@@ -39,6 +40,7 @@ import {
 import { setupBunDatabase, getBunDatabase } from './db/bun-sqlite';
 import { passkeyService } from './services/passkey.service';
 import { configService } from './services/config.service';
+import { getIngressPath, isIngressRequest } from './utils/ingress';
 
 // Import common route registration + specialized routes
 import { registerCommonRoutes } from './config/routes';
@@ -184,9 +186,12 @@ async function getCustomHtml(db: BunSqliteAppContext['Variables']['db']): Promis
  * snippet must never take down the whole app shell.
  */
 async function renderIndex(
-  html: string,
-  db: BunSqliteAppContext['Variables']['db']
+  rawHtml: string,
+  db: BunSqliteAppContext['Variables']['db'],
+  ingressPath: string | null
 ): Promise<{ html: string; cspMode: CspMode; cspTrustedSources: string }> {
+  // Behind Home Assistant ingress the app lives under the ingress prefix.
+  const html = injectIngressBase(rawHtml, ingressPath);
   try {
     const custom = await getCustomHtml(db);
     // The CSP comment makes a settings change reach service-worker clients
@@ -207,9 +212,10 @@ async function renderIndex(
 
 async function respondWithInjectedIndex(
   html: string,
-  db: BunSqliteAppContext['Variables']['db']
+  db: BunSqliteAppContext['Variables']['db'],
+  ingressPath: string | null
 ): Promise<Response> {
-  const rendered = await renderIndex(html, db);
+  const rendered = await renderIndex(html, db, ingressPath);
   const headers: Record<string, string> = {
     'Content-Type': 'text/html; charset=utf-8',
     'Cache-Control': 'no-cache',
@@ -233,9 +239,11 @@ async function respondWithInjectedIndex(
 async function respondWithPatchedNgsw(
   ngswJson: string,
   indexHtml: string,
-  db: BunSqliteAppContext['Variables']['db']
+  db: BunSqliteAppContext['Variables']['db'],
+  ingressPath: string | null
 ): Promise<Response> {
-  const served = patchNgswIndexHash(ngswJson, (await renderIndex(indexHtml, db)).html);
+  const rendered = await renderIndex(indexHtml, db, ingressPath);
+  const served = patchNgswIndexHash(ngswJson, rendered.html);
   return new Response(served, {
     headers: {
       'Content-Type': 'application/json',
@@ -288,6 +296,11 @@ app.use('*', (c, next) => {
 if (config.nodeEnv !== 'test') {
   app.use('*', (c, next) => {
     if (isCrossOriginPath(c.req.path)) return next();
+    // Home Assistant ingress: the browser's origin is whatever address HA is
+    // reached on, so it cannot be listed in ALLOWED_ORIGINS. HA's ingress
+    // session cookie is SameSite=Strict, so a cross-site page cannot get a
+    // request through the proxy in the first place.
+    if (isIngressRequest(c)) return next();
     return csrf({
       origin:
         allowedOrigins.length > 0 ? (requestOrigin) => isAllowedOrigin(requestOrigin) : undefined,
@@ -515,18 +528,22 @@ function createSpaHandler(
     }
 
     const db = c.get('db');
+    const ingressPath = getIngressPath(c);
 
     // index.html (direct hit or SPA fallback) always goes through the
     // injection path — this must happen before the brotli lookup because
     // pre-compressed bytes cannot have snippets spliced into them.
-    const assetResponse = await serveSpaAsset(root, pathname, c.req.header('Accept-Encoding'), db);
+    const assetResponse = await serveSpaAsset(root, pathname, c.req.header('Accept-Encoding'), {
+      db,
+      ingressPath,
+    });
     if (assetResponse) {
       return assetResponse;
     }
 
     const indexFile = Bun.file(indexFilePath);
     if (await indexFile.exists()) {
-      return respondWithInjectedIndex(await indexFile.text(), db);
+      return respondWithInjectedIndex(await indexFile.text(), db, ingressPath);
     }
 
     return next();
@@ -537,7 +554,7 @@ async function serveSpaAsset(
   root: string,
   pathname: string,
   acceptEncoding: string | undefined,
-  db: BunSqliteAppContext['Variables']['db']
+  index: { db: BunSqliteAppContext['Variables']['db']; ingressPath: string | null }
 ): Promise<Response | null> {
   const relativePath = sanitizeSpaPath(pathname);
 
@@ -546,14 +563,19 @@ async function serveSpaAsset(
     if (!(await file.exists())) {
       return null;
     }
-    return respondWithInjectedIndex(await file.text(), db);
+    return respondWithInjectedIndex(await file.text(), index.db, index.ingressPath);
   }
 
   if (relativePath === 'ngsw.json') {
     const ngswFile = Bun.file(join(root, relativePath));
     const indexFile = Bun.file(join(root, 'index.html'));
     if ((await ngswFile.exists()) && (await indexFile.exists())) {
-      return respondWithPatchedNgsw(await ngswFile.text(), await indexFile.text(), db);
+      return respondWithPatchedNgsw(
+        await ngswFile.text(),
+        await indexFile.text(),
+        index.db,
+        index.ingressPath
+      );
     }
   }
 
@@ -622,7 +644,8 @@ function createEmbeddedSpaHandler(
    * to fall through to the normal asset lookup.
    */
   async function serveEmbeddedNgsw(
-    db: BunSqliteAppContext['Variables']['db']
+    db: BunSqliteAppContext['Variables']['db'],
+    ingressPath: string | null
   ): Promise<Response | null> {
     const ngswFile = findEmbeddedFile(embeddedFiles, 'ngsw.json')?.file;
     if (ngswFile === undefined) {
@@ -631,7 +654,7 @@ function createEmbeddedSpaHandler(
     try {
       const ngswText =
         typeof ngswFile === 'string' ? await Bun.file(ngswFile).text() : await ngswFile.text();
-      return await respondWithPatchedNgsw(ngswText, await readEmbeddedIndexText(), db);
+      return await respondWithPatchedNgsw(ngswText, await readEmbeddedIndexText(), db, ingressPath);
     } catch {
       return null;
     }
@@ -648,19 +671,20 @@ function createEmbeddedSpaHandler(
     }
 
     const db = c.get('db');
+    const ingressPath = getIngressPath(c);
 
     // Direct index.html requests must go through the injection path before
     // the asset lookup finds the un-injected embedded copy.
     if (sanitizeSpaPath(pathname) === 'index.html') {
       try {
-        return await respondWithInjectedIndex(await readEmbeddedIndexText(), db);
+        return await respondWithInjectedIndex(await readEmbeddedIndexText(), db, ingressPath);
       } catch {
         // Fall through to the normal asset lookup below.
       }
     }
 
     if (sanitizeSpaPath(pathname) === 'ngsw.json') {
-      const ngswResponse = await serveEmbeddedNgsw(db);
+      const ngswResponse = await serveEmbeddedNgsw(db, ingressPath);
       if (ngswResponse) {
         return ngswResponse;
       }
@@ -678,7 +702,7 @@ function createEmbeddedSpaHandler(
 
     // Fall back to index.html for SPA routes
     try {
-      return await respondWithInjectedIndex(await readEmbeddedIndexText(), db);
+      return await respondWithInjectedIndex(await readEmbeddedIndexText(), db, ingressPath);
     } catch {
       return next();
     }

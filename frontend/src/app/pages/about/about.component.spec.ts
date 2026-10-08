@@ -48,7 +48,7 @@ describe('AboutComponent', () => {
 
   function flushVersionRequest(): void {
     httpTesting
-      .expectOne('/assets/version.txt')
+      .expectOne('assets/version.txt')
       .flush('', { status: 404, statusText: 'Not Found' });
   }
 
@@ -56,7 +56,7 @@ describe('AboutComponent', () => {
     const fixture = TestBed.createComponent(AboutComponent);
     const component = fixture.componentInstance;
     httpTesting
-      .expectOne('/assets/version.txt')
+      .expectOne('assets/version.txt')
       .flush('', { status: 404, statusText: 'Not Found' });
 
     expect(component.appName).toBe('Inkweld');
@@ -72,7 +72,7 @@ describe('AboutComponent', () => {
     const fixture = TestBed.createComponent(AboutComponent);
     const component = fixture.componentInstance;
 
-    httpTesting.expectOne('/assets/version.txt').flush('abc1234\n');
+    httpTesting.expectOne('assets/version.txt').flush('abc1234\n');
 
     expect(component.commitHash()).toBe('abc1234');
   });
@@ -82,7 +82,7 @@ describe('AboutComponent', () => {
     const component = fixture.componentInstance;
 
     httpTesting
-      .expectOne('/assets/version.txt')
+      .expectOne('assets/version.txt')
       .flush('<!DOCTYPE html><html><head>...');
 
     expect(component.commitHash()).toBeNull();
@@ -107,7 +107,7 @@ describe('AboutComponent', () => {
 
     component.openLicenses();
 
-    expect(openSpy).toHaveBeenCalledWith('/3rdpartylicenses.txt', '_blank');
+    expect(openSpy).toHaveBeenCalledWith('3rdpartylicenses.txt', '_blank');
     openSpy.mockRestore();
   });
 
@@ -122,7 +122,7 @@ describe('AboutComponent', () => {
     // Must sit next to the served font faces, not in 3rdpartylicenses.txt:
     // asset-only packages never become bundle inputs, so Angular's license
     // extraction cannot see them.
-    expect(openSpy).toHaveBeenCalledWith('/assets/fonts/LICENSE.txt', '_blank');
+    expect(openSpy).toHaveBeenCalledWith('assets/fonts/LICENSE.txt', '_blank');
     openSpy.mockRestore();
   });
 

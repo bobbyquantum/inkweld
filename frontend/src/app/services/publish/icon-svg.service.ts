@@ -3,7 +3,7 @@ import { firstResultSequential } from '@inkweld/async';
 import { resolveIconName } from '@models/worldbuilding-icons';
 
 /** Where the app serves the staged Material Symbols SVGs (see scripts/copy-icon-svgs.mjs). */
-const LOCAL_ICON_BASE = '/assets/icons/outlined/';
+const LOCAL_ICON_BASE = 'assets/icons/outlined/';
 /** Fallback for icons outside the curated set; same package and version as the staged files. */
 const CDN_ICON_BASE =
   'https://cdn.jsdelivr.net/npm/@material-symbols/svg-400@0.47.1/outlined/';

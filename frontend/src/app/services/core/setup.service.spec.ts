@@ -549,6 +549,50 @@ describe('SetupService', () => {
       expect(service.getMode()).toBe('server');
       expect(service.getServerUrl()).toBe('https://production.example.com');
     });
+
+    describe('behind Home Assistant ingress', () => {
+      let meta: HTMLMetaElement;
+
+      beforeEach(() => {
+        meta = document.createElement('meta');
+        meta.name = 'inkweld-ingress';
+        meta.content = 'home-assistant';
+        document.head.appendChild(meta);
+      });
+
+      afterEach(() => {
+        meta.remove();
+      });
+
+      // The app resolves its server from <base href>, i.e. document.baseURI.
+      const pageOrigin = () => new URL(document.baseURI).origin;
+
+      it('connects to the server that served the page', () => {
+        (service as any)['autoConfigureIfNeeded']();
+
+        expect(service.getMode()).toBe('server');
+        expect(service.getServerUrl()).toBe(pageOrigin());
+        expect(service.getActiveConfig()?.displayName).toBe('Home Assistant');
+      });
+
+      it('takes precedence over a hosted apiUrl', () => {
+        environment.apiUrl = 'https://production.example.com';
+        (service as any)['autoConfigureIfNeeded']();
+
+        expect(service.getServerUrl()).toBe(pageOrigin());
+      });
+
+      it('leaves a matching server profile active', () => {
+        (service as any)['autoConfigureIfNeeded']();
+        const storageContext = (service as any)
+          .storageContext as StorageContextService;
+        const addSpy = vi.spyOn(storageContext, 'addServerConfig');
+
+        (service as any)['autoConfigureIfNeeded']();
+
+        expect(addSpy).not.toHaveBeenCalled();
+      });
+    });
   });
   describe('cloud sync mode', () => {
     const cloudOptions = {

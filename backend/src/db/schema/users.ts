@@ -19,6 +19,12 @@ export const users = sqliteTable('users', {
   email: text('email'),
   password: text('password'),
   githubId: text('githubId').unique(),
+  /**
+   * Home Assistant user id, for accounts signed in through HA ingress (see
+   * services/ingress-auth.service.ts). The id is stable across HA username
+   * changes, so the link is made on it rather than on the name.
+   */
+  homeAssistantUserId: text('homeAssistantUserId').unique(),
   enabled: integer('enabled', { mode: 'boolean' }).notNull().default(false),
   approved: integer('approved', { mode: 'boolean' }).notNull().default(false),
   isAdmin: integer('isAdmin', { mode: 'boolean' }).notNull().default(false),

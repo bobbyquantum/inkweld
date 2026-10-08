@@ -106,10 +106,10 @@ describe('TranslocoHttpLoader', () => {
       lang: string,
       overrides?: Record<string, Record<string, unknown>>
     ) {
-      httpMock.expectOne(`/assets/i18n/${lang}/common.json`).flush(mockCommon);
+      httpMock.expectOne(`assets/i18n/${lang}/common.json`).flush(mockCommon);
       for (const scope of allScopeNames) {
         const mock = overrides?.[scope] ?? allScopeMocks[scope];
-        httpMock.expectOne(`/assets/i18n/${lang}/${scope}.json`).flush(mock);
+        httpMock.expectOne(`assets/i18n/${lang}/${scope}.json`).flush(mock);
       }
     }
 

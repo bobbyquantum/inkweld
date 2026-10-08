@@ -49,7 +49,7 @@ function lastForwardedFor(header: string | undefined): string | undefined {
 }
 
 /** Socket peer address as exposed by the Bun and Node adapters. */
-function socketAddress(c: Context): string | undefined {
+export function getSocketAddress(c: Context): string | undefined {
   // Bun: `Bun.serve({ fetch })` passes the Server as Hono's env binding.
   const env = c.env as { requestIP?: (req: Request) => { address?: string } | null } | undefined;
   if (env && typeof env.requestIP === 'function') {
@@ -85,5 +85,5 @@ export function getClientIp(c: Context): string | undefined {
     if (realIp) return realIp;
   }
 
-  return socketAddress(c);
+  return getSocketAddress(c);
 }

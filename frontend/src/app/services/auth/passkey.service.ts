@@ -24,6 +24,7 @@ import {
   startRegistration,
   WebAuthnAbortService,
 } from '@simplewebauthn/browser';
+import { appUrl } from '@utils/app-base';
 import { firstValueFrom } from 'rxjs';
 
 // Injection tokens for @simplewebauthn/browser functions.
@@ -202,7 +203,7 @@ export class PasskeyService {
         });
         if (bound.forkedFrom) {
           this.authTokenService.moveToken(bound.forkedFrom, bound.config.id);
-          globalThis.location.assign('/');
+          globalThis.location.assign(appUrl('/'));
         }
       }
 

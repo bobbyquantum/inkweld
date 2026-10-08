@@ -58,7 +58,7 @@ const PREFERENCE_CACHE_BASE_KEY = 'appearance.background-preference';
  * The bundled fallback. Matches the `--app-bg-image` default in theme.scss;
  * both exist because the stylesheet has to work before any JS runs.
  */
-const BUNDLED_IMAGE = "url('/home_background.png')";
+const BUNDLED_IMAGE = "url('home_background.png')";
 
 /**
  * Resolves the app background and applies it as CSS custom properties.

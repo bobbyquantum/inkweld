@@ -48,6 +48,7 @@ describe('UserService', () => {
   let authServiceMock: {
     login: Mock;
     logout: Mock;
+    ingressLogin: Mock;
   };
   let dialogMock: { open: Mock };
   let routerMock: { navigate: Mock };
@@ -73,6 +74,7 @@ describe('UserService', () => {
     authServiceMock = {
       login: vi.fn(),
       logout: vi.fn(),
+      ingressLogin: vi.fn(),
     };
     dialogMock = { open: vi.fn() };
     routerMock = { navigate: vi.fn() };
@@ -301,6 +303,101 @@ describe('UserService', () => {
       expect(service.isAuthenticated()).toBe(false);
       expect(service.error()).toBeUndefined();
       expect(service.isLoading()).toBe(false);
+      expect(authServiceMock.ingressLogin).not.toHaveBeenCalled();
+    });
+
+    describe('behind Home Assistant ingress', () => {
+      let meta: HTMLMetaElement;
+      const anonymousUser: User = {
+        id: '',
+        username: 'anonymous',
+        name: null,
+        enabled: false,
+      };
+
+      beforeEach(() => {
+        meta = document.createElement('meta');
+        meta.name = 'inkweld-ingress';
+        meta.content = 'home-assistant';
+        document.head.appendChild(meta);
+        authServiceMock.ingressLogin.mockReturnValue(
+          of({ token: 'ingress-token', user: TEST_USER })
+        );
+      });
+
+      afterEach(() => {
+        meta.remove();
+        sessionStorage.removeItem('inkweld.ingressSignedOut');
+      });
+
+      it('does not sign straight back in after signing out', async () => {
+        authServiceMock.logout.mockReturnValue(of({}));
+        await service.logout();
+        expect(sessionStorage.getItem('inkweld.ingressSignedOut')).toBe('1');
+
+        userServiceMock.getCurrentUser.mockReturnValue(of(anonymousUser));
+        await service.loadCurrentUser();
+
+        expect(authServiceMock.ingressLogin).not.toHaveBeenCalled();
+        expect(service.isAuthenticated()).toBe(false);
+      });
+
+      it('clears the sign-out once someone signs in', async () => {
+        sessionStorage.setItem('inkweld.ingressSignedOut', '1');
+
+        await service.setCurrentUser(TEST_USER);
+
+        expect(sessionStorage.getItem('inkweld.ingressSignedOut')).toBeNull();
+      });
+
+      it('signs in through ingress instead of staying anonymous', async () => {
+        userServiceMock.getCurrentUser.mockReturnValue(of(anonymousUser));
+        const setToken = vi.spyOn(TestBed.inject(AuthTokenService), 'setToken');
+
+        await service.loadCurrentUser();
+
+        expect(authServiceMock.ingressLogin).toHaveBeenCalled();
+        expect(setToken).toHaveBeenCalledWith('ingress-token');
+        expect(service.currentUser()).toEqual(TEST_USER);
+        expect(service.isAuthenticated()).toBe(true);
+        expect(storageContextMock.adoptServerLogin).toHaveBeenCalled();
+      });
+
+      it('replaces an expired session', async () => {
+        userServiceMock.getCurrentUser.mockReturnValue(
+          throwError(
+            () =>
+              new HttpErrorResponse({
+                error: { error: 'Invalid or expired token' },
+                status: 401,
+                statusText: 'Unauthorized',
+              })
+          )
+        );
+
+        await service.loadCurrentUser();
+
+        expect(service.isAuthenticated()).toBe(true);
+        expect(service.error()).toBeUndefined();
+      });
+
+      it('stays signed out when the server refuses', async () => {
+        userServiceMock.getCurrentUser.mockReturnValue(of(anonymousUser));
+        authServiceMock.ingressLogin.mockReturnValue(
+          throwError(
+            () =>
+              new HttpErrorResponse({
+                error: { error: 'Account is disabled' },
+                status: 403,
+              })
+          )
+        );
+
+        await service.loadCurrentUser();
+
+        expect(service.isAuthenticated()).toBe(false);
+        expect(service.currentUser()).toEqual(anonymousUser);
+      });
     });
   });
 
