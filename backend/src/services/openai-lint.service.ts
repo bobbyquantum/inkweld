@@ -20,6 +20,22 @@ export interface ReviewContext {
 
 const lintLog = logger.child('OpenAI-Lint');
 
+/**
+ * True when `endpoint` is empty (the default OpenAI API) or its host is
+ * openai.com or a subdomain of it. Compares the parsed hostname so a
+ * look-alike such as `https://openai.com.example.net` does not match.
+ */
+export function isOpenAiEndpoint(endpoint: string | undefined): boolean {
+  if (!endpoint) return true;
+  let hostname: string;
+  try {
+    hostname = new URL(endpoint).hostname.toLowerCase();
+  } catch {
+    return false;
+  }
+  return hostname === 'openai.com' || hostname.endsWith('.openai.com');
+}
+
 interface CacheEntry<T> {
   value: T;
   expiry: number;
@@ -230,9 +246,9 @@ The JSON must follow this format:
 
       // response_format: { type: 'json_object' } is OpenAI-specific and not
       // supported by all OpenAI-compatible servers (e.g. Ollama). Only send it
-      // when the endpoint looks like OpenAI (no custom endpoint configured, or
-      // the endpoint contains "openai.com").
-      if (!cfg.endpoint || cfg.endpoint.includes('openai.com')) {
+      // when the endpoint is OpenAI (no custom endpoint configured, or an
+      // openai.com host).
+      if (isOpenAiEndpoint(cfg.endpoint)) {
         body['response_format'] = { type: 'json_object' };
       }
 

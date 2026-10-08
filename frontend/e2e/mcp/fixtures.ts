@@ -315,7 +315,7 @@ export type McpFixtures = {
  */
 export const test = base.extend<McpFixtures>({
   mcpContext: async ({ request }, use) => {
-    const testId = `mcp-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+    const testId = `mcp-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
     const username = `mcpuser-${testId}`;
     const password = TEST_PASSWORDS.MCP_USER;
     const projectSlug = `mcp-project-${testId}`;

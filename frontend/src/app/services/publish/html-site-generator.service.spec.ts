@@ -845,6 +845,15 @@ describe('HtmlSiteGeneratorService', () => {
       );
     });
 
+    it('should decode an escaped entity in search text only once', () => {
+      const plainText = (
+        service as unknown as { plainText(html: string): string }
+      ).plainText.bind(service);
+      expect(plainText('<p>Write &amp;lt;b&amp;gt; &amp; more</p>')).toBe(
+        'Write &lt;b&gt; & more'
+      );
+    });
+
     it('should ship a search index and script and wire them into every page', async () => {
       const result = await service.generateSite(
         buildPlan([
