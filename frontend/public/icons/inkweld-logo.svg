@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <title>Inkweld</title>
+  <defs>
+    <linearGradient id="rim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffe066"/>
+      <stop offset="0.45" stop-color="#ff9a1f"/>
+      <stop offset="1" stop-color="#ff5e00"/>
+    </linearGradient>
+    <linearGradient id="body" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffb347"/>
+      <stop offset="0.3" stop-color="#b8461e"/>
+      <stop offset="0.65" stop-color="#4a3a48"/>
+      <stop offset="1" stop-color="#3a3346"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#fff3b0" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#ffb000" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <!-- glow at the tip -->
+  <circle cx="256" cy="70" r="62" fill="url(#glow)"/>
+  <!-- nib: outer rim, yellow edge, dark body -->
+  <path fill="url(#rim)" stroke="#1a1a1a" stroke-width="4" stroke-linejoin="round"
+        d="M256 58 C292 150 352 262 398 344 C352 376 306 430 298 512 L214 512 C206 430 160 376 114 344 C160 262 220 150 256 58 Z"/>
+  <path fill="#ffd23f"
+        d="M256 96 C286 180 336 274 374 342 C334 372 296 424 288 512 L224 512 C216 424 178 372 138 342 C176 274 226 180 256 96 Z"/>
+  <path fill="url(#body)"
+        d="M256 112 C284 192 330 280 364 342 C326 370 292 420 284 512 L228 512 C220 420 186 370 148 342 C182 280 228 192 256 112 Z"/>
+  <!-- slit and breather hole -->
+  <path stroke="#111" stroke-width="7" stroke-linecap="round" d="M256 76 V290"/>
+  <path stroke="#111" stroke-opacity="0.55" stroke-width="2" d="M256 330 V512"/>
+  <circle cx="256" cy="294" r="34" fill="#9a9aa6" fill-opacity="0.65"/>
+  <circle cx="256" cy="294" r="24" fill="#0d0d0d"/>
+  <!-- sparks -->
+  <g fill="#ff7a1a">
+    <circle cx="150" cy="70" r="7"/>
+    <circle cx="350" cy="52" r="8"/>
+    <circle cx="405" cy="150" r="6"/>
+    <circle cx="96" cy="190" r="6"/>
+    <circle cx="430" cy="250" r="5"/>
+    <circle cx="70" cy="300" r="5"/>
+  </g>
+  <g fill="#ffc94a">
+    <circle cx="180" cy="40" r="5"/>
+    <circle cx="320" cy="110" r="5"/>
+    <circle cx="210" cy="130" r="4"/>
+    <circle cx="372" cy="210" r="6"/>
+  </g>
+</svg>
