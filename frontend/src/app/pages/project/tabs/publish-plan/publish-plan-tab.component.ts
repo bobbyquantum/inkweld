@@ -4,6 +4,7 @@ import {
   DragDropModule,
   moveItemInArray,
 } from '@angular/cdk/drag-drop';
+import { CdkScrollable } from '@angular/cdk/scrolling';
 import { CommonModule, DatePipe, DecimalPipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
@@ -93,6 +94,7 @@ type PlanSection =
   changeDetection: ChangeDetectionStrategy.Eager,
   imports: [
     TooltipAriaLabelDirective,
+    CdkScrollable,
     CommonModule,
     DragDropModule,
     MatButtonModule,
@@ -535,6 +537,41 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
     this.updatePlan({ items });
   }
 
+  /** Move item to the start of the list */
+  moveItemToTop(index: number): void {
+    if (index <= 0) return;
+    const plan = this.plan();
+    if (!plan) return;
+
+    const items = [...plan.items];
+    moveItemInArray(items, index, 0);
+    this.updatePlan({ items });
+  }
+
+  /** Move item to the end of the list */
+  moveItemToBottom(index: number): void {
+    const plan = this.plan();
+    if (!plan) return;
+    const last = plan.items.length - 1;
+    if (index < 0 || index >= last) return;
+
+    const items = [...plan.items];
+    moveItemInArray(items, index, last);
+    this.updatePlan({ items });
+  }
+
+  /**
+   * Where front matter and a table of contents are inserted: after the run of
+   * front matter already at the start of the plan, so each new page lands
+   * ahead of the body and earlier additions keep their order.
+   */
+  private frontInsertIndex(items: readonly PublishPlanItem[]): number {
+    const index = items.findIndex(
+      item => item.type !== PublishPlanItemType.Frontmatter
+    );
+    return index === -1 ? items.length : index;
+  }
+
   addElement(elementId: string, index?: number): void {
     const plan = this.plan();
     if (!plan) return;
@@ -575,7 +612,9 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
       contentType,
     };
 
-    this.updatePlan({ items: [...plan.items, newItem] });
+    const items = [...plan.items];
+    items.splice(this.frontInsertIndex(items), 0, newItem);
+    this.updatePlan({ items });
     this.showAddItemMenu.set(false);
   }
 
@@ -619,7 +658,9 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
       includePageNumbers: false,
     };
 
-    this.updatePlan({ items: [...plan.items, newItem] });
+    const items = [...plan.items];
+    items.splice(this.frontInsertIndex(items), 0, newItem);
+    this.updatePlan({ items });
     this.showAddItemMenu.set(false);
   }
 

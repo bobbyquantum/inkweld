@@ -45,6 +45,8 @@
     "alreadyIncluded": "“{{name}}” is already included in this plan",
     "moveUp": "Move up",
     "moveDown": "Move down",
+    "moveToTop": "Move to top",
+    "moveToBottom": "Move to bottom",
     "removeItem": "Remove item",
     "includeToc": "Show Table of Contents item",
     "includeTocHint": "Untick to hide the Table of contents item in Contents without removing it. Reader navigation is unaffected.",
