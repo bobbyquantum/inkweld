@@ -1,8 +1,6 @@
 {
   "searchProjects": "Search projects",
   "closeSearch": "Close search",
-  "toggleNavMenu": "Toggle navigation menu",
-  "closeNavigation": "Close navigation",
   "syncAll": "Sync All",
   "create": "Create",
   "createOrImport": "Create or import project",
@@ -26,7 +24,6 @@
   "tryDifferentSearch": "Try a different search term",
   "openProject": "Open project {{title}}",
   "clickToSync": "Click to download",
-  "clickToSyncHint": "Sync this project to this device",
   "projectMenu": "Project options",
   "deactivateAction": "Deactivate on this device",
   "activateAction": "Download to this device",

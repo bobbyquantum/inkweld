@@ -58,18 +58,9 @@
 
             <div class="right-section"></div>
           } @else {
-            <!-- Normal mode: Hamburger/Logo + Search icon + User menu -->
-            <!-- Left section: Hamburger (mobile) + Logo -->
+            <!-- Normal mode: Logo + Search icon + User menu -->
+            <!-- Left section: Logo -->
             <div class="left-section">
-              @if (isAuthenticated() && isMobile()) {
-                <button
-                  mat-icon-button
-                  (click)="toggleSideNav()"
-                  [attr.aria-label]="'home.toggleNavMenu' | transloco"
-                  class="hamburger-btn">
-                  <mat-icon>menu</mat-icon>
-                </button>
-              }
               <div class="logo-container">
                 <img class="app-logo" src="logo.png" alt="InkWeld logo" />
                 <span class="app-name">Inkweld</span>
@@ -227,35 +218,8 @@
       </div>
     }
 
-    <!-- Main content area with side nav -->
-    <div
-      class="main-layout"
-      [class.has-sidenav]="isAuthenticated()"
-      [class.no-header]="!isAuthenticated()">
-      <!-- Side navigation with project list -->
-      @if (isAuthenticated()) {
-        <app-side-nav
-          [isOpen]="sideNavOpen"
-          [isMobile]="isMobile()"
-          [projectItems]="allProjects()"
-          [selectedProject]="selectedProject"
-          [isActivatedFn]="isProjectKeyActivated"
-          [activationRequired]="activationService.isActivationRequired()"
-          (projectSelected)="selectProject($event)"
-          (activateRequested)="onProjectActivateRequested($event)"
-          (deactivateRequested)="onProjectDeactivateRequested($event)"
-          (deleteRequested)="onProjectDeleteRequested($event)">
-        </app-side-nav>
-        @if (isMobile() && sideNavOpen()) {
-          <button
-            type="button"
-            class="side-nav-overlay"
-            (click)="toggleSideNav()"
-            (keydown.escape)="toggleSideNav()"
-            [attr.aria-label]="'home.closeNavigation' | transloco"></button>
-        }
-      }
-
+    <!-- Main content area -->
+    <div class="main-layout" [class.no-header]="!isAuthenticated()">
       <!-- Main content section - responsive cover grid -->
       <div
         class="main-content"
@@ -457,7 +421,6 @@
                     type="button"
                     class="cover-item"
                     data-testid="project-card"
-                    [class.selected]="selectedProject?.id === item.project.id"
                     (click)="onProjectClick(item.project, $event, card)"
                     [title]="item.project.title"
                     [attr.aria-label]="

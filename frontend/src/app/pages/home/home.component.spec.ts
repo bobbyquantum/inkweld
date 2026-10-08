@@ -257,7 +257,6 @@ describe('HomeComponent', () => {
     };
 
     // Setup mock user service (for UserAvatarComponent avatar loading)
-    // Note: SideNavComponent now uses UnifiedUserService which is already mocked above
     avatarUserService = {
       getUserAvatar: vi.fn().mockReturnValue(of(new Blob())),
     };
@@ -492,36 +491,25 @@ describe('HomeComponent', () => {
     });
   });
 
-  describe('side navigation', () => {
-    it('should toggle side nav', () => {
-      component.sideNavOpen.set(true);
-      component.toggleSideNav();
-      expect(component.sideNavOpen()).toBe(false);
-
-      component.toggleSideNav();
-      expect(component.sideNavOpen()).toBe(true);
-    });
-
-    it('should close side nav on mobile breakpoint', () => {
+  describe('breakpoints', () => {
+    it('should switch to mobile layout on a small breakpoint', () => {
       breakpointObserver.observe.mockReturnValue(
         of({ matches: true, breakpoints: {} })
       );
-      component.sideNavOpen.set(true);
 
       component.ngOnInit();
 
-      expect(component.sideNavOpen()).toBe(false);
+      expect(component.isMobile()).toBe(true);
     });
 
-    it('should open side nav on desktop breakpoint', () => {
+    it('should use desktop layout on a large breakpoint', () => {
       breakpointObserver.observe.mockReturnValue(
         of({ matches: false, breakpoints: {} })
       );
-      component.sideNavOpen.set(false);
 
       component.ngOnInit();
 
-      expect(component.sideNavOpen()).toBe(true);
+      expect(component.isMobile()).toBe(false);
     });
   });
 
