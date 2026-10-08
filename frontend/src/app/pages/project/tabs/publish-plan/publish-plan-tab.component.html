@@ -3,7 +3,9 @@
     class="publish-plan-editor"
     [class.sidenav-mode]="useSidenav()"
     data-testid="publish-plan-container">
-    <div class="pp-layout">
+    <!-- Both can be the scroll container (accordion vs sidenav layout); the
+         drop list only auto-scrolls ancestors registered as cdkScrollable. -->
+    <div class="pp-layout" cdkScrollable>
       <!-- ===== SIDENAV (desktop / tablet landscape) ===== -->
       @if (useSidenav()) {
         <nav class="pp-sidenav" data-testid="pp-sidenav">
@@ -95,7 +97,7 @@
       }
 
       <!-- ===== CONTENT AREA ===== -->
-      <div class="pp-content">
+      <div class="pp-content" cdkScrollable>
         @if (useSidenav()) {
           <!-- SIDENAV MODE: one section at a time -->
 
@@ -502,6 +504,7 @@
       id="publish-plan-items"
       [cdkDropListData]="plan.items"
       [cdkDropListEnterPredicate]="canEnterPublishList"
+      [cdkDropListAutoScrollStep]="8"
       (cdkDropListDropped)="dropItem($event)">
       @if (plan.items.length === 0) {
         <div class="empty-state" data-testid="empty-content-state">
@@ -581,6 +584,15 @@
             <button
               mat-icon-button
               appTooltipAriaLabel
+              (click)="moveItemToTop(i)"
+              [disabled]="i === 0"
+              [matTooltip]="'publish.planEditor.moveToTop' | transloco"
+              data-testid="move-top-button">
+              <mat-icon>vertical_align_top</mat-icon>
+            </button>
+            <button
+              mat-icon-button
+              appTooltipAriaLabel
               (click)="moveItemUp(i)"
               [disabled]="i === 0"
               [matTooltip]="'publish.planEditor.moveUp' | transloco"
@@ -595,6 +607,15 @@
               [matTooltip]="'publish.planEditor.moveDown' | transloco"
               data-testid="move-down-button">
               <mat-icon>arrow_downward</mat-icon>
+            </button>
+            <button
+              mat-icon-button
+              appTooltipAriaLabel
+              (click)="moveItemToBottom(i)"
+              [disabled]="i === plan.items.length - 1"
+              [matTooltip]="'publish.planEditor.moveToBottom' | transloco"
+              data-testid="move-bottom-button">
+              <mat-icon>vertical_align_bottom</mat-icon>
             </button>
             <button
               mat-icon-button

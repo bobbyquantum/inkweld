@@ -481,8 +481,26 @@ describe('PublishPlanTabComponent', () => {
 
       const plan = currentPlan();
       expect(plan?.items).toHaveLength(initialLength + 1);
-      const lastItem = plan?.items[plan.items.length - 1];
-      expect(lastItem?.type).toBe(PublishPlanItemType.Frontmatter);
+      expect(plan?.items[0]?.type).toBe(PublishPlanItemType.Frontmatter);
+    });
+
+    it('should insert ahead of the body, after existing front matter', () => {
+      component.addElement('elem-1');
+      component.addFrontmatter(FrontmatterType.TitlePage);
+      component.addFrontmatter(FrontmatterType.Dedication);
+
+      const items = currentPlan()?.items ?? [];
+      expect(
+        items.map(item =>
+          item.type === PublishPlanItemType.Frontmatter
+            ? item.contentType
+            : item.type
+        )
+      ).toEqual([
+        FrontmatterType.TitlePage,
+        FrontmatterType.Dedication,
+        PublishPlanItemType.Element,
+      ]);
     });
   });
 
@@ -517,8 +535,19 @@ describe('PublishPlanTabComponent', () => {
 
       const plan = currentPlan();
       expect(plan?.items).toHaveLength(initialLength + 1);
-      const lastItem = plan?.items[plan.items.length - 1];
-      expect(lastItem?.type).toBe(PublishPlanItemType.TableOfContents);
+      expect(plan?.items[0]?.type).toBe(PublishPlanItemType.TableOfContents);
+    });
+
+    it('should insert after front matter and before the body', () => {
+      component.addElement('elem-1');
+      component.addFrontmatter(FrontmatterType.TitlePage);
+      component.addTableOfContents();
+
+      expect(currentPlan()?.items.map(item => item.type)).toEqual([
+        PublishPlanItemType.Frontmatter,
+        PublishPlanItemType.TableOfContents,
+        PublishPlanItemType.Element,
+      ]);
     });
   });
 
@@ -653,6 +682,54 @@ describe('PublishPlanTabComponent', () => {
       component.moveItemDown(lastIndex);
 
       expect(currentPlan()?.items[lastIndex]?.id).toBe(lastItemId);
+    });
+  });
+
+  describe('moveItemToTop', () => {
+    it('should move item to the start of the list', () => {
+      component.addElement('elem-1');
+      component.addElement('elem-2');
+      component.addBackmatter(BackmatterType.Acknowledgments);
+      const lastItemId = currentPlan()?.items[2].id;
+
+      component.moveItemToTop(2);
+
+      expect(currentPlan()?.items[0].id).toBe(lastItemId);
+      expect(currentPlan()?.items).toHaveLength(3);
+    });
+
+    it('should not move the first item', () => {
+      component.addElement('elem-1');
+      component.addElement('elem-2');
+      const before = currentPlan();
+
+      component.moveItemToTop(0);
+
+      expect(currentPlan()).toBe(before);
+    });
+  });
+
+  describe('moveItemToBottom', () => {
+    it('should move item to the end of the list', () => {
+      component.addElement('elem-1');
+      component.addElement('elem-2');
+      component.addBackmatter(BackmatterType.Acknowledgments);
+      const firstItemId = currentPlan()?.items[0].id;
+
+      component.moveItemToBottom(0);
+
+      expect(currentPlan()?.items[2].id).toBe(firstItemId);
+      expect(currentPlan()?.items).toHaveLength(3);
+    });
+
+    it('should not move the last item', () => {
+      component.addElement('elem-1');
+      component.addElement('elem-2');
+      const before = currentPlan();
+
+      component.moveItemToBottom(1);
+
+      expect(currentPlan()).toBe(before);
     });
   });
 
