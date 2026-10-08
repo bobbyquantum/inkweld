@@ -5,6 +5,30 @@ import type * as OpenApiPlugin from 'docusaurus-plugin-openapi-docs';
 
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
 
+// Public URL of this docs site. Switch it (and static/CNAME) when the docs
+// move to the production domain.
+const siteUrl = 'https://preview.inkweld.org';
+
+/**
+ * URL of the hosted Inkweld app that the "Open App" links point to.
+ *
+ * Set INKWELD_APP_URL at build time to point somewhere specific. Otherwise it
+ * follows the docs domain: the docs at `<sub>.inkweld.org` link to the app at
+ * `<sub>.inkweld.app` (preview.inkweld.org → preview.inkweld.app, and
+ * inkweld.org → inkweld.app once the production docs launch).
+ */
+function resolveAppUrl(docsUrl: string): string {
+  const override = process.env.INKWELD_APP_URL?.trim();
+  if (override) {
+    return override.replace(/\/+$/, '');
+  }
+  const url = new URL(docsUrl);
+  url.hostname = url.hostname.replace(/(^|\.)inkweld\.org$/, '$1inkweld.app');
+  return url.origin;
+}
+
+const appUrl = resolveAppUrl(siteUrl);
+
 const config: Config = {
   title: 'Inkweld Docs',
   tagline: 'Collaborative writing, explained.',
@@ -16,7 +40,7 @@ const config: Config = {
   },
 
   // Set the production url of your site here
-  url: 'https://preview.inkweld.org',
+  url: siteUrl,
   // Set the /<baseUrl>/ pathname under which your site is served
   // For GitHub pages deployment, it is often '/<projectName>/'
   baseUrl: '/',
@@ -27,6 +51,10 @@ const config: Config = {
   projectName: 'inkweld', // Usually your repo name.
 
   onBrokenLinks: 'throw',
+
+  customFields: {
+    appUrl,
+  },
 
   // Even if you don't use internationalization, you can use this field to set
   // useful metadata like html lang. For example, if your site is Chinese, you
@@ -155,6 +183,12 @@ const config: Config = {
           label: 'API',
         },
         {
+          href: appUrl,
+          label: 'Open App',
+          position: 'right',
+          className: 'navbar-app-link',
+        },
+        {
           href: 'https://github.com/bobbyquantum/inkweld',
           label: 'GitHub',
           position: 'right',
@@ -226,6 +260,10 @@ const config: Config = {
         {
           title: 'More',
           items: [
+            {
+              label: 'Open App',
+              href: appUrl,
+            },
             {
               label: 'GitHub',
               href: 'https://github.com/bobbyquantum/inkweld',

@@ -56,3 +56,19 @@
 [data-theme='light'] .mermaid {
   margin: 1rem 0;
 }
+
+/* "Open App" call-to-action in the top navbar (desktop only; the mobile
+   sidebar keeps the plain link style) */
+.navbar__items--right .navbar-app-link {
+  margin-right: 0.5rem;
+  padding: 0.3rem 0.9rem;
+  border-radius: 999px;
+  background-color: var(--ifm-color-primary);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.navbar__items--right .navbar-app-link:hover {
+  background-color: var(--ifm-color-primary-dark);
+  color: #ffffff;
+}
