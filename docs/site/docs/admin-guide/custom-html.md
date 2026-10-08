@@ -24,6 +24,15 @@ either:
 If both are set, the text wins and the URL is ignored. Leave both empty to hide
 that document.
 
+Inkweld can't write your policy for you: it depends on who you let register,
+where you host, and which optional features (email, AI providers, GitHub
+sign-in) you turn on. The [Inkweld app's privacy policy](/privacy) covers only
+the app, and says that data stored on a server is that server's operator's
+responsibility, so your users rely on yours. A server stores account details
+(username, email, passkeys or a password hash), project content and media,
+activity and writing-session history, comments, AI image-generation prompts,
+and the IP address and user agent of connected MCP clients.
+
 Once a document is set, it is linked from the landing page, the sign-in and
 registration dialogs, and the other pages people see before signing in
 (password and passkey recovery, approval-pending, the About page). These pages

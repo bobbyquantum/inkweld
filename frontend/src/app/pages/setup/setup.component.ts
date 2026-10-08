@@ -39,6 +39,7 @@ import { appBasePath, appUrl } from '@utils/app-base';
 import { firstValueFrom } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
+import { APP_PRIVACY_POLICY_URL } from '../../config/app-links';
 import { SetupService } from '../../services/core/setup.service';
 import { UnifiedUserService } from '../../services/user/unified-user.service';
 
@@ -176,6 +177,7 @@ export class SetupComponent implements OnInit {
    */
   private takenSlugs = new Set<string>();
   protected readonly nextcloudGuideUrl = NEXTCLOUD_SETUP_GUIDE_URL;
+  protected readonly appPrivacyPolicyUrl = APP_PRIVACY_POLICY_URL;
   /** Name of the profile being upgraded, when this visit is an upgrade */
   protected readonly upgradeSourceName = signal<string | null>(null);
   protected readonly pendingCloudConnection =

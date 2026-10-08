@@ -61,6 +61,17 @@
   overflow: hidden;
 }
 
+.app-privacy-link {
+  margin: 12px 0 0;
+  text-align: center;
+  font-size: 0.85rem;
+
+  a {
+    color: inherit;
+    opacity: 0.8;
+  }
+}
+
 .setup-card mat-card-header {
   background: rgba(255, 255, 255, 0.05);
   padding: 24px;

@@ -271,6 +271,10 @@ const config: Config = {
               label: 'GitHub',
               href: 'https://github.com/bobbyquantum/inkweld',
             },
+            {
+              label: 'Privacy Policy',
+              to: '/privacy',
+            },
           ],
         },
       ],

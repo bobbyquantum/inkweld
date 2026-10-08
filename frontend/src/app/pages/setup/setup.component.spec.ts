@@ -18,6 +18,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { environment } from '../../../environments/environment';
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { APP_PRIVACY_POLICY_URL } from '../../config/app-links';
 import { SetupService } from '../../services/core/setup.service';
 import { UnifiedUserService } from '../../services/user/unified-user.service';
 import { defaultServerUrl, SetupComponent } from './setup.component';
@@ -136,6 +137,18 @@ describe('SetupComponent', () => {
 
   it('should create', () => {
     expect(component).toBeTruthy();
+  });
+
+  it('links to the app privacy policy in a new tab', () => {
+    mockSetupService.getServerUrl.mockReturnValue(null);
+    fixture.detectChanges();
+
+    const link: HTMLAnchorElement = fixture.nativeElement.querySelector(
+      '[data-testid="app-privacy-policy-link"]'
+    );
+    expect(link.getAttribute('href')).toBe(APP_PRIVACY_POLICY_URL);
+    expect(link.getAttribute('target')).toBe('_blank');
+    expect(link.textContent?.trim()).toBe('Privacy Policy');
   });
 
   describe('ngOnInit', () => {

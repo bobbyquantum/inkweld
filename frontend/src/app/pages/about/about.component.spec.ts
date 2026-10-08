@@ -10,6 +10,7 @@ import { UnifiedUserService } from '@services/user/unified-user.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { APP_PRIVACY_POLICY_URL } from '../../config/app-links';
 import { AboutComponent } from './about.component';
 
 describe('AboutComponent', () => {
@@ -140,5 +141,14 @@ describe('AboutComponent', () => {
       'noopener,noreferrer'
     );
     openSpy.mockRestore();
+  });
+
+  it('exposes the app privacy policy link', () => {
+    const fixture = TestBed.createComponent(AboutComponent);
+    flushVersionRequest();
+
+    expect(fixture.componentInstance.appPrivacyPolicyUrl).toBe(
+      APP_PRIVACY_POLICY_URL
+    );
   });
 });

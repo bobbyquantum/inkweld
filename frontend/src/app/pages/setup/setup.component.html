@@ -565,6 +565,16 @@
         </mat-card-actions>
       }
     </mat-card>
+
+    <p class="app-privacy-link">
+      <a
+        [href]="appPrivacyPolicyUrl"
+        target="_blank"
+        rel="noopener"
+        data-testid="app-privacy-policy-link"
+        >{{ 'auth.legal.privacyPolicy' | transloco }}</a
+      >
+    </p>
   </div>
 
   <!-- Theme toggle in bottom right corner -->

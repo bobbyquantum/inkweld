@@ -155,6 +155,24 @@
               <mat-icon>open_in_new</mat-icon>
             </button>
           </mat-list-item>
+          <mat-divider></mat-divider>
+          <mat-list-item class="link-item">
+            <mat-icon matListItemIcon>privacy_tip</mat-icon>
+            <span matListItemTitle>{{
+              'about.privacyPolicy' | transloco
+            }}</span>
+            <span matListItemLine>{{
+              'about.privacyPolicyDesc' | transloco
+            }}</span>
+            <button
+              mat-icon-button
+              (click)="openExternalLink(appPrivacyPolicyUrl)"
+              [attr.aria-label]="'about.privacyPolicyAria' | transloco"
+              data-testid="app-privacy-policy-link"
+              matListItemMeta>
+              <mat-icon>open_in_new</mat-icon>
+            </button>
+          </mat-list-item>
         </mat-list>
       </mat-card-content>
     </mat-card>
