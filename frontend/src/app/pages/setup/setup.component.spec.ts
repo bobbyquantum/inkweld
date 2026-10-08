@@ -296,12 +296,24 @@ describe('SetupComponent', () => {
     it('uses the page origin when the build has no apiUrl', () => {
       // Production builds are served by the Inkweld server itself.
       (environment as { apiUrl: string }).apiUrl = '';
+      // Other specs replace window.location and the suite runs without
+      // isolation, so pin the page this test reads.
+      vi.stubGlobal('location', {
+        ...globalThis.location,
+        protocol: 'https:',
+        origin: 'https://writing.example.com',
+        hostname: 'writing.example.com',
+      });
 
-      const fresh = TestBed.createComponent(SetupComponent);
+      try {
+        const fresh = TestBed.createComponent(SetupComponent);
 
-      expect(fresh.componentInstance['serverUrl']).toBe(
-        globalThis.location.origin
-      );
+        expect(fresh.componentInstance['serverUrl']).toBe(
+          'https://writing.example.com'
+        );
+      } finally {
+        vi.unstubAllGlobals();
+      }
     });
   });
 

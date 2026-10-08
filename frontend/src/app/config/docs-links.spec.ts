@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { docsOrigin, docsUrl } from './docs-links';
 
@@ -21,9 +21,19 @@ describe('docsOrigin', () => {
 });
 
 describe('docsUrl', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it('resolves a path against the docs for the current host', () => {
-    expect(docsUrl('/privacy')).toBe(
-      docsOrigin(globalThis.location.hostname) + '/privacy'
-    );
+    vi.stubGlobal('location', { hostname: 'preview.inkweld.app' });
+
+    expect(docsUrl('/privacy')).toBe('https://preview.inkweld.org/privacy');
+  });
+
+  it('uses the default docs when the host is unknown', () => {
+    vi.stubGlobal('location', {});
+
+    expect(docsUrl('/privacy')).toBe('https://preview.inkweld.org/privacy');
   });
 });
