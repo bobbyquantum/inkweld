@@ -18,9 +18,12 @@ const siteUrl = 'https://preview.inkweld.org';
  * inkweld.org → inkweld.app once the production docs launch).
  */
 function resolveAppUrl(docsUrl: string): string {
-  const override = process.env.INKWELD_APP_URL?.trim();
+  let override = process.env.INKWELD_APP_URL?.trim() ?? '';
+  while (override.endsWith('/')) {
+    override = override.slice(0, -1);
+  }
   if (override) {
-    return override.replace(/\/+$/, '');
+    return override;
   }
   const url = new URL(docsUrl);
   url.hostname = url.hostname.replace(/(^|\.)inkweld\.org$/, '$1inkweld.app');
