@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import clsx from 'clsx';
 import Link from '@docusaurus/Link';
+import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import Layout from '@theme/Layout';
 import Heading from '@theme/Heading';
 import HomepageFeatures from '@site/src/components/HomepageFeatures';
@@ -8,6 +9,8 @@ import HomepageFeatures from '@site/src/components/HomepageFeatures';
 import styles from './index.module.css';
 
 function HomepageHeader(): ReactNode {
+  const { siteConfig } = useDocusaurusContext();
+  const appUrl = siteConfig.customFields?.appUrl as string;
   return (
     <header className={clsx('hero hero--primary', styles.heroBanner)}>
       <div className="container">
@@ -24,9 +27,15 @@ function HomepageHeader(): ReactNode {
             <div className={styles.buttons}>
               <Link
                 className="button button--secondary button--lg"
+                href={appUrl}
+              >
+                Try Inkweld
+              </Link>
+              <Link
+                className="button button--outline button--lg"
                 to="/docs/installation"
               >
-                Get Started
+                Self-Host It
               </Link>
               <Link
                 className="button button--outline button--lg"

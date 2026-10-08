@@ -49,6 +49,10 @@ jobs:
 
       - name: Build docs site (with screenshots)
         working-directory: docs/site
+        env:
+          # Optional repo variable; when unset the "Open App" links follow the
+          # docs domain (preview.inkweld.org → preview.inkweld.app).
+          INKWELD_APP_URL: ${{ vars.INKWELD_APP_URL }}
         run: bun run build
 
       - name: Setup Pages

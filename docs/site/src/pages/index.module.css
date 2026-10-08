@@ -92,6 +92,19 @@ html[data-theme='light'] .heroBanner::before {
   margin-bottom: 2rem;
 }
 
+/* Outline buttons default to a dark border/label, which disappears on the
+   hero's dark overlay */
+.buttons :global(.button--outline) {
+  --ifm-button-border-color: rgba(255, 255, 255, 0.85);
+  --ifm-button-color: #ffffff;
+  color: #ffffff;
+}
+
+.buttons :global(.button--outline:hover) {
+  --ifm-button-background-color: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+}
+
 @media screen and (max-width: 996px) {
   .buttons {
     justify-content: center;
