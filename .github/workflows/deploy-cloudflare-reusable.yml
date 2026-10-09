@@ -12,7 +12,8 @@ name: Deploy Cloudflare (Reusable)
 #   vars:    BACKEND_WRANGLER_TOML, BASE_URL, FRONTEND_URL, APP_NAME,
 #            TWA_SHA256_FINGERPRINT, DROPBOX_APP_KEY (may be empty)
 #   secrets: CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID,
-#            <url-secret-prefix>_API_URL, <url-secret-prefix>_WSS_URL,
+#            PREVIEW_API_URL + PREVIEW_WSS_URL, or PRODUCTION_API_URL +
+#            PRODUCTION_WSS_URL (chosen by `url-secret-prefix`),
 #            SESSION_SECRET (optional; see below)
 
 on:
@@ -43,7 +44,7 @@ on:
         required: true
         type: boolean
       url-secret-prefix:
-        description: Prefix of the <prefix>_API_URL / <prefix>_WSS_URL secrets
+        description: Which <prefix>_API_URL / <prefix>_WSS_URL secrets to use, PREVIEW or PRODUCTION
         required: true
         type: string
       twa-fingerprint-required:
@@ -120,14 +121,35 @@ jobs:
       - name: Generate environment file
         working-directory: frontend
         env:
-          API_URL: ${{ secrets[format('{0}_API_URL', inputs.url-secret-prefix)] }}
-          WSS_URL: ${{ secrets[format('{0}_WSS_URL', inputs.url-secret-prefix)] }}
+          # Named explicitly (not secrets[<computed name>]) so only these
+          # secrets reach the runner; each environment holds just its own pair.
+          PREVIEW_API_URL: ${{ secrets.PREVIEW_API_URL }}
+          PREVIEW_WSS_URL: ${{ secrets.PREVIEW_WSS_URL }}
+          PRODUCTION_API_URL: ${{ secrets.PRODUCTION_API_URL }}
+          PRODUCTION_WSS_URL: ${{ secrets.PRODUCTION_WSS_URL }}
+          URL_SECRET_PREFIX: ${{ inputs.url-secret-prefix }}
           AUTO_CONFIGURE: ${{ inputs.auto-configure }}
           # Public OAuth app key for this environment's Dropbox app. Empty
           # hides the Dropbox option in Cloud Sync setup.
           DROPBOX_APP_KEY: ${{ vars.DROPBOX_APP_KEY }}
           ENVIRONMENT_FILE: ${{ inputs.environment-file }}
-        run: node scripts/write-hosted-environment.mjs "src/environments/${ENVIRONMENT_FILE}"
+        run: |
+          case "$URL_SECRET_PREFIX" in
+            PREVIEW)
+              API_URL="$PREVIEW_API_URL"
+              WSS_URL="$PREVIEW_WSS_URL"
+              ;;
+            PRODUCTION)
+              API_URL="$PRODUCTION_API_URL"
+              WSS_URL="$PRODUCTION_WSS_URL"
+              ;;
+            *)
+              echo "::error::url-secret-prefix must be PREVIEW or PRODUCTION, got '${URL_SECRET_PREFIX}'."
+              exit 1
+              ;;
+          esac
+          API_URL="$API_URL" WSS_URL="$WSS_URL" \
+            node scripts/write-hosted-environment.mjs "src/environments/${ENVIRONMENT_FILE}"
 
       - name: Inject TWA signing fingerprint
         working-directory: frontend
