@@ -923,7 +923,7 @@ describe('AdminSettingsComponent', () => {
       flushAllConfigRequests(httpMock);
       await flushMicrotasks();
 
-      let promise = component.toggleRequirePolicyAcceptance(true);
+      let promise = component.enableRequirePolicyAcceptance();
       let putReq = httpMock.expectOne(
         '/api/v1/admin/config/REQUIRE_POLICY_ACCEPTANCE'
       );
@@ -932,13 +932,30 @@ describe('AdminSettingsComponent', () => {
       await promise;
       expect(component.requirePolicyAcceptance()).toBe(true);
 
-      promise = component.toggleRequirePolicyAcceptance(false);
+      promise = component.disableRequirePolicyAcceptance();
       putReq = httpMock.expectOne(
         '/api/v1/admin/config/REQUIRE_POLICY_ACCEPTANCE'
       );
       putReq.error(new ProgressEvent('error'), { status: 500 });
       await promise;
       expect(component.requirePolicyAcceptance()).toBe(true);
+
+      promise = component.disableRequirePolicyAcceptance();
+      putReq = httpMock.expectOne(
+        '/api/v1/admin/config/REQUIRE_POLICY_ACCEPTANCE'
+      );
+      expect(putReq.request.body).toEqual({ value: 'false' });
+      putReq.flush(null);
+      await promise;
+      expect(component.requirePolicyAcceptance()).toBe(false);
+
+      promise = component.enableRequirePolicyAcceptance();
+      putReq = httpMock.expectOne(
+        '/api/v1/admin/config/REQUIRE_POLICY_ACCEPTANCE'
+      );
+      putReq.error(new ProgressEvent('error'), { status: 500 });
+      await promise;
+      expect(component.requirePolicyAcceptance()).toBe(false);
       consoleErrorSpy.mockRestore();
     });
 

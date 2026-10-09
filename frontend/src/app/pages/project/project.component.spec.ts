@@ -1012,6 +1012,34 @@ describe('ProjectComponent', () => {
         'testuser',
         'test-project'
       );
+      expect(router.navigate).toHaveBeenCalledWith(['/']);
+      expect(component.isDeleting()).toBe(false);
+    });
+
+    it('should report a failed deletion and stay on the project', async () => {
+      const consoleErrorSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+      (
+        dialogGateway.openConfirmationDialog as ReturnType<typeof vi.fn>
+      ).mockResolvedValue(true);
+      (
+        projectService.deleteProject as ReturnType<typeof vi.fn>
+      ).mockRejectedValue(new Error('boom'));
+      vi.mocked(router.navigate!).mockClear();
+
+      component.onDeleteProjectClick();
+      await fixture.whenStable();
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      expect(snackBar.open).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.any(String),
+        { duration: 5000 }
+      );
+      expect(router.navigate).not.toHaveBeenCalledWith(['/']);
+      expect(component.isDeleting()).toBe(false);
+      consoleErrorSpy.mockRestore();
     });
 
     it('should not delete project when cancelled', async () => {

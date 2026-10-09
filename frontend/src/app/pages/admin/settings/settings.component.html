@@ -510,7 +510,11 @@
           </div>
           <mat-slide-toggle
             [checked]="requirePolicyAcceptance()"
-            (change)="toggleRequirePolicyAcceptance($event.checked)"
+            (change)="
+              $event.checked
+                ? enableRequirePolicyAcceptance()
+                : disableRequirePolicyAcceptance()
+            "
             [disabled]="isSaving()"
             color="primary"
             data-testid="setting-toggle-require-policy-acceptance"></mat-slide-toggle>
