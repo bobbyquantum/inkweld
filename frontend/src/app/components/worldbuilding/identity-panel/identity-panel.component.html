@@ -30,7 +30,7 @@
         </div>
       } @else {
         <!-- Name section -->
-        <div class="name-section">
+        <div class="name-section" [class.has-image]="showImage()">
           <app-glass-card class="name-glass" [title]="''">
             <mat-icon class="element-icon" aria-hidden="true">{{
               elementIcon()
@@ -123,7 +123,12 @@
         <!-- Description + tags section (single card) -->
         <div class="description-tags-section">
           <app-glass-card class="identity-glass">
-            <mat-form-field appearance="outline" class="description-field">
+            <!-- Dynamic subscript: the hint wraps to two lines on a phone and
+                 would otherwise overflow into the Tags field below. -->
+            <mat-form-field
+              appearance="outline"
+              class="description-field"
+              subscriptSizing="dynamic">
               <mat-label>{{
                 'worldbuilding.identityPanel.descriptionLabel' | transloco
               }}</mat-label>

@@ -346,6 +346,37 @@ describe('IdentityPanelComponent', () => {
     });
   });
 
+  describe('phone layout hooks', () => {
+    it('should flag the name section when the image sits beside it', async () => {
+      fixture.componentRef.setInput('showImage', true);
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+      expect(
+        fixture.nativeElement.querySelector('.name-section.has-image')
+      ).toBeTruthy();
+
+      fixture.componentRef.setInput('showImage', false);
+      fixture.detectChanges();
+      expect(
+        fixture.nativeElement.querySelector('.name-section.has-image')
+      ).toBeNull();
+      // Without the image the element icon is the only visual marker.
+      expect(fixture.nativeElement.querySelector('.element-icon')).toBeTruthy();
+    });
+
+    it('should let the description hint grow instead of overlapping the tags', async () => {
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+      expect(
+        fixture.nativeElement.querySelector(
+          '.description-field .mat-mdc-form-field-subscript-dynamic-size'
+        )
+      ).toBeTruthy();
+    });
+  });
+
   describe('image placeholder and actions', () => {
     it('should render the element icon as the empty-image placeholder', async () => {
       fixture.componentRef.setInput('elementIcon', 'pets');
