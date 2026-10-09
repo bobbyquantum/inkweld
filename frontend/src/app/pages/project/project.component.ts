@@ -35,7 +35,7 @@ import { PresenceIndicatorComponent } from '@components/presence-indicator/prese
 import { ProjectTreeComponent } from '@components/project-tree/project-tree.component';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
 import { TooltipAriaLabelDirective } from '@directives/tooltip-aria-label.directive';
-import { type Element, ElementType, type Project } from '@inkweld/index';
+import { type Element, ElementType } from '@inkweld/index';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { LoggerService } from '@services/core/logger.service';
 import { PopoutService } from '@services/core/popout.service';
@@ -143,7 +143,6 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   public readonly isZenMode = signal(false);
   public readonly showSidebar = signal(true);
   public readonly sidebarCollapsed = signal(false);
-  public readonly isDeleting = signal(false);
 
   /** Current project sync state - exposed for connection status display */
   protected readonly projectSyncState = this.projectState.getSyncState;
@@ -846,43 +845,6 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
 
   public useTabsDesktop(): boolean {
     return this.settingsService.getSetting<boolean>('useTabsDesktop', true);
-  }
-
-  public onDeleteProjectClick(): void {
-    const project = this.projectState.project();
-    if (!project) return;
-    void this.confirmAndDeleteProject(project);
-  }
-
-  private async confirmAndDeleteProject(project: Project): Promise<void> {
-    const confirmed = await this.dialogGateway.openConfirmationDialog({
-      title: 'Delete Project',
-      message: `To confirm deletion, please type the project slug "${project.slug}" below. This action cannot be undone.`,
-      confirmText: 'Delete',
-      cancelText: 'Cancel',
-      requireConfirmationText: project.slug,
-    });
-    if (!confirmed) return;
-
-    this.isDeleting.set(true);
-    try {
-      await this.projectService.deleteProject(project.username, project.slug);
-      this.snackBar.open(
-        this.transloco.translate('project.snackbar.projectDeleted'),
-        this.transloco.translate('close'),
-        { duration: 3000 }
-      );
-      void this.router.navigate(['/']);
-    } catch (error) {
-      console.error('Error deleting project:', error);
-      this.snackBar.open(
-        this.transloco.translate('project.snackbar.deleteFailed'),
-        this.transloco.translate('close'),
-        { duration: 5000 }
-      );
-    } finally {
-      this.isDeleting.set(false);
-    }
   }
 
   /**
