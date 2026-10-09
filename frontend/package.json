@@ -1,6 +1,6 @@
 {
   "name": "inkweld-frontend",
-  "version": "0.1.0",
+  "version": "1.0.0-beta.1",
   "description": "Inkweld - A collaborative creative writing platform for authors, screenwriters, and storytellers",
   "author": "Inkweld <inkweld@example.com>",
   "main": "dist-electron/main.js",

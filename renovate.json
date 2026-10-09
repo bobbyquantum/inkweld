@@ -23,6 +23,11 @@
       "matchDatasources": ["docker", "npm"],
       "groupName": "Bun",
       "groupSlug": "bun"
+    },
+    {
+      "description": "Title every dependency update chore(deps) instead of config:recommended's fix(deps) for runtime dependencies. release-please builds the changelog from squash-merged PR titles and hides chore, so dependency bumps neither appear as bug fixes nor cut a release on their own. Title a PR fix: by hand when an update fixes a user-facing problem.",
+      "matchPackageNames": ["*"],
+      "semanticCommitType": "chore"
     }
   ]
 }

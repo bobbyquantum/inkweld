@@ -52,9 +52,11 @@ jobs:
         run: |
           # Frontend-only preview: no backend is provisioned. An empty apiUrl
           # keeps the app in local/offline mode; users can point at an existing
-          # server at runtime through the setup flow.
-          printf 'export const environment = {\n  production: true,\n  version: "0.1.0",\n  apiUrl: "",\n  wssUrl: "",\n  cloudSync: {\n    dropbox: { appKey: "%s" },\n  },\n};\n' \
-            "${DROPBOX_APP_KEY}" > src/environments/environment.preview.ts
+          # server at runtime through the setup flow. The version comes from
+          # frontend/package.json, which release-please bumps with each release.
+          APP_VERSION="$(jq -r .version package.json)"
+          printf 'export const environment = {\n  production: true,\n  version: "%s",\n  apiUrl: "",\n  wssUrl: "",\n  cloudSync: {\n    dropbox: { appKey: "%s" },\n  },\n};\n' \
+            "${APP_VERSION}" "${DROPBOX_APP_KEY}" > src/environments/environment.preview.ts
 
       - name: Inject TWA signing fingerprint
         working-directory: frontend

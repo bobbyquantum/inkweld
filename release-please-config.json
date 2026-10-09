@@ -1,0 +1,62 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "release-type": "node",
+  "include-component-in-tag": false,
+  "include-v-in-tag": true,
+  "versioning": "prerelease",
+  "prerelease": true,
+  "prerelease-type": "beta",
+  "bootstrap-sha": "4234ed650a0af9f1792920328e43d96d3879b252",
+  "changelog-sections": [
+    { "type": "feat", "section": "Features" },
+    { "type": "fix", "section": "Bug Fixes" },
+    { "type": "perf", "section": "Performance Improvements" },
+    { "type": "revert", "section": "Reverts" },
+    { "type": "docs", "section": "Documentation", "hidden": true },
+    { "type": "refactor", "section": "Code Refactoring", "hidden": true },
+    { "type": "style", "section": "Styles", "hidden": true },
+    { "type": "test", "section": "Tests", "hidden": true },
+    { "type": "build", "section": "Build System", "hidden": true },
+    { "type": "ci", "section": "Continuous Integration", "hidden": true },
+    { "type": "chore", "section": "Miscellaneous Chores", "hidden": true }
+  ],
+  "packages": {
+    ".": {
+      "package-name": "inkweld",
+      "changelog-path": "CHANGELOG.md",
+      "extra-files": [
+        {
+          "type": "json",
+          "path": "frontend/package.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "json",
+          "path": "backend/package.json",
+          "jsonpath": "$.version"
+        },
+        { "type": "generic", "path": "backend/src/config/env.ts" },
+        {
+          "type": "generic",
+          "path": "frontend/src/environments/environment.ts"
+        },
+        {
+          "type": "generic",
+          "path": "frontend/src/environments/environment.development.ts"
+        },
+        {
+          "type": "generic",
+          "path": "frontend/src/environments/environment.electron.ts"
+        },
+        {
+          "type": "generic",
+          "path": "frontend/src/environments/environment.preview.ts"
+        },
+        {
+          "type": "generic",
+          "path": "frontend/src/environments/environment.prod.ts"
+        }
+      ]
+    }
+  }
+}

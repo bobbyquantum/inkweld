@@ -81,12 +81,13 @@ Then open `http://localhost:8333` in your browser.
 
 ## Status
 
-### Unreleased 
+### 1.0 beta
 
-- Can be deployed and used now, however, until numbered releases are started, there are no guarantees that data migration paths will be available.  
-- Not recommended for production use.   If you do use it in this way, always back up your work before upgrading, and be aware, manual fixing of exports might be needed to move to newer versions.  
-- The database migrations have been squashed into a single baseline for v1. A database that was fully migrated before the squash (commit `a49deaef`) upgrades cleanly; an older one must first be started on a build from just before the squash so its remaining migrations run, or be reset.  
-
+- Inkweld is feature complete for 1.0 and in beta: the focus until 1.0.0 is testing and bug fixing. Please report problems on the [issue tracker](https://github.com/bobbyquantum/inkweld/issues).
+- Releases follow [Semantic Versioning](https://semver.org/), and the [changelog](CHANGELOG.md) lists what changed in each one.
+- Docker images are tagged per release: `ghcr.io/bobbyquantum/inkweld:1.0.0-beta.1` and so on, plus `:beta` for the newest beta. `:latest` follows the betas until 1.0.0 and stable releases after it; `:dev` follows `main`.
+- Upgrades between releases keep your data: the Docker/Bun server applies database migrations on start, and Cloudflare deployments apply them with `wrangler d1 migrations apply`. Back up before upgrading all the same.
+- The database migrations were squashed into a single baseline for 1.0. A database from a pre-release build that was fully migrated before the squash (commit `a49deaef`) upgrades cleanly; an older one must first be started on a build from just before the squash so its remaining migrations run, or be reset.
 
 ---
 
