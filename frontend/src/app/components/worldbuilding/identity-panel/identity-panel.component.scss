@@ -320,12 +320,35 @@
   font-size: 18px;
   font-weight: 500;
   color: var(--sys-on-surface);
+  // break-word, not anywhere: "anywhere" lets the name's min-content shrink
+  // to single letters, so a squeezed card broke it into syllable fragments.
+  // break-word still splits a word that is wider than the whole card.
   overflow-wrap: break-word;
-  overflow-wrap: anywhere;
   min-width: 0;
 
   @media (max-width: 759px) {
     font-size: 16px;
+  }
+}
+
+// Phone: the name card shares a row with the 64px image, so give the name as
+// much of that row as possible — left-aligned, tighter padding, and no
+// element icon (the image beside it already shows the icon or picture).
+@media (max-width: 759px) {
+  .name-glass {
+    padding: 10px 12px;
+
+    ::ng-deep .glass-card-body {
+      justify-content: flex-start;
+    }
+  }
+
+  .name-section.has-image .element-icon {
+    display: none;
+  }
+
+  .element-name {
+    flex: 1;
   }
 }
 

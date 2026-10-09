@@ -130,7 +130,7 @@
   }
 
   &:hover {
-    border-color: var(--mat-primary-500);
+    border-color: var(--sys-primary);
     background: rgba(0, 0, 0, 0.05);
     transform: translateY(-4px);
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
@@ -138,17 +138,12 @@
     .dark-theme & {
       background: rgba(255, 255, 255, 0.1);
       box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-      border-color: var(--sys-primary);
     }
   }
 
-  &:focus {
-    outline: 2px solid var(--mat-primary-500);
+  &:focus-visible {
+    outline: 2px solid var(--sys-primary);
     outline-offset: 2px;
-
-    .dark-theme & {
-      outline-color: var(--sys-primary);
-    }
   }
 }
 
@@ -157,11 +152,7 @@
   width: 48px;
   height: 48px;
   margin-bottom: 16px;
-  color: var(--mat-primary-500);
-
-  .dark-theme & {
-    color: var(--sys-primary);
-  }
+  color: var(--sys-primary);
 }
 
 .option-card h3 {
@@ -179,28 +170,23 @@
   color: inherit; // Inherit color for proper theming
 }
 
+// Theme roles rather than fixed colours, so the filled button keeps its
+// contrast against the translucent card in both light and dark mode.
 .option-button {
   display: inline-block;
   padding: 12px 24px;
-  background: var(--mat-primary-500);
-  color: white;
+  background: var(--sys-primary);
+  color: var(--sys-on-primary);
   border-radius: 8px;
   font-weight: 500;
-  transition: background-color 0.3s ease;
-
-  .dark-theme & {
-    background: var(--sys-primary);
-    color: var(--sys-on-primary);
-  }
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
 }
 
 .option-card:hover .option-button {
-  background: var(--mat-primary-600);
-
-  .dark-theme & {
-    background: var(--sys-primary-container);
-    color: var(--sys-on-primary-container);
-  }
+  background: var(--sys-primary-container);
+  color: var(--sys-on-primary-container);
 }
 
 .setup-form {
@@ -377,6 +363,13 @@ mat-divider[vertical] {
   }
 }
 
+.theme-toggle-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 100;
+}
+
 @media (max-width: 768px) {
   .setup-options {
     flex-direction: column;
@@ -438,8 +431,19 @@ mat-divider[vertical] {
     display: none;
   }
 
+  // Stack the theme toggle under the card instead of floating it over the
+  // bottom corner, where it covered the last mode card on a phone.
   .setup-container {
+    flex-direction: column;
+    gap: 12px;
     padding: 12px;
+  }
+
+  .theme-toggle-container {
+    position: relative;
+    bottom: auto;
+    right: auto;
+    z-index: 1;
   }
 
   .setup-card mat-card-title {
@@ -468,13 +472,6 @@ mat-divider[vertical] {
   .dark-theme & {
     color: var(--sys-on-surface);
   }
-}
-
-.theme-toggle-container {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  z-index: 100;
 }
 
 // Clash resolution on the cloud upgrade path
