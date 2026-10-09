@@ -12,7 +12,8 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:label="${twaAppName}"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Inkweld">
+        android:theme="@style/Theme.Inkweld"
+        android:manageSpaceActivity="com.google.androidbrowserhelper.trusted.ManageDataLauncherActivity">
 
         <activity
             android:name="com.google.androidbrowserhelper.trusted.LauncherActivity"
@@ -60,6 +61,17 @@
                     android:scheme="https"
                     android:host="${twaHost}" />
             </intent-filter>
+        </activity>
+
+        <!--
+            LauncherActivity enables this activity and publishes a "Site settings"
+            shortcut for it on every launch; without the declaration that call
+            throws and the app crashes on open.
+        -->
+        <activity android:name="com.google.androidbrowserhelper.trusted.ManageDataLauncherActivity">
+            <meta-data
+                android:name="android.support.customtabs.trusted.MANAGE_SPACE_URL"
+                android:value="https://${twaHost}/" />
         </activity>
 
         <provider
