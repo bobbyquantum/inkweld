@@ -26,7 +26,6 @@ import { AnnouncementFeedComponent } from '@components/announcement-feed/announc
 import { LegalLinksComponent } from '@components/legal-links/legal-links.component';
 import { ProjectCardComponent } from '@components/project-card/project-card.component';
 import { ServerInfoBubbleComponent } from '@components/server-info-bubble/server-info-bubble.component';
-import { SideNavComponent } from '@components/side-nav/side-nav.component';
 import { StorageMeterComponent } from '@components/storage-meter/storage-meter.component';
 import { ThemeToggleComponent } from '@components/theme-toggle/theme-toggle.component';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
@@ -109,7 +108,6 @@ export const PINNED_PROJECTS_STORAGE_KEY = 'inkweld-home-pinned-projects';
     ProjectCardComponent,
     ServerInfoBubbleComponent,
     UserMenuComponent,
-    SideNavComponent,
     StorageMeterComponent,
     ThemeToggleComponent,
     PullToRefreshDirective,
@@ -147,9 +145,7 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   // Component state
   loadError = false;
-  selectedProject: Project | null = null;
   isMobile = signal(false);
-  sideNavOpen = signal(true); // Open by default on desktop
   mobileSearchActive = signal(false); // Track mobile search mode
   isInitializing = signal(true); // Track if we're still initializing user state
 
@@ -485,17 +481,7 @@ export class HomeComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe(result => {
         this.isMobile.set(result.matches);
-        // Close side nav on mobile by default
-        if (this.isMobile()) {
-          this.sideNavOpen.set(false);
-        } else {
-          this.sideNavOpen.set(true);
-        }
       });
-  }
-
-  toggleSideNav(): void {
-    this.sideNavOpen.set(!this.sideNavOpen());
   }
 
   /** Start the home-screen tour (from the empty state's button). */

@@ -162,6 +162,14 @@ afterEach(() => {
   // This prevents cross-test contamination with isolate: false
   vi.unstubAllGlobals();
 
+  // Undo window.location replacements made with Object.defineProperty
+  if (globalThis.location !== baselineLocation) {
+    Object.defineProperty(globalThis, 'location', {
+      writable: true,
+      value: baselineLocation,
+    });
+  }
+
   // Ensure fake timers are restored so subsequent tests aren't affected
   vi.useRealTimers();
 
@@ -540,3 +548,9 @@ Object.defineProperty(globalThis, 'location', {
     hash: globalThis.location?.hash || '',
   },
 });
+
+// Specs replace window.location with plain objects (e.g. `{ href: '' }`) to
+// observe navigations, and not all of them put it back. With isolate: false
+// that leaked object (no protocol/origin) reaches every later spec in the
+// worker, so the global afterEach restores this baseline.
+const baselineLocation = globalThis.location;

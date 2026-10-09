@@ -230,10 +230,6 @@
     "reconnectFailed": "Failed to reconnect to server",
     "popoutBlocked": "Your browser blocked the new window. Allow pop-ups for this site to open a document in its own window."
   },
-  "sideNav": {
-    "projects": "Projects",
-    "sharedBy": "Shared by {{username}}"
-  },
   "projectCard": {
     "sharedBy": "Shared by {{username}}"
   },
