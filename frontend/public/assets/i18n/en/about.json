@@ -19,6 +19,9 @@
   "reportIssues": "Report Issues",
   "reportIssuesDesc": "Found a bug? Let us know",
   "reportIssuesAria": "Open GitHub issues",
+  "privacyPolicy": "Privacy Policy",
+  "privacyPolicyDesc": "How the Inkweld app handles your data",
+  "privacyPolicyAria": "Open the Inkweld app privacy policy",
   "libraries": {
     "angular": "A platform for building mobile and desktop web applications",
     "angularMaterial": "Material Design components for Angular",

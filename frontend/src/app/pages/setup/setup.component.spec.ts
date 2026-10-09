@@ -18,6 +18,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { environment } from '../../../environments/environment';
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { APP_PRIVACY_POLICY_PATH, docsUrl } from '../../config/docs-links';
 import { SetupService } from '../../services/core/setup.service';
 import { UnifiedUserService } from '../../services/user/unified-user.service';
 import { defaultServerUrl, SetupComponent } from './setup.component';
@@ -136,6 +137,18 @@ describe('SetupComponent', () => {
 
   it('should create', () => {
     expect(component).toBeTruthy();
+  });
+
+  it('links to the app privacy policy in a new tab', () => {
+    mockSetupService.getServerUrl.mockReturnValue(null);
+    fixture.detectChanges();
+
+    const link: HTMLAnchorElement = fixture.nativeElement.querySelector(
+      '[data-testid="app-privacy-policy-link"]'
+    );
+    expect(link.getAttribute('href')).toBe(docsUrl(APP_PRIVACY_POLICY_PATH));
+    expect(link.getAttribute('target')).toBe('_blank');
+    expect(link.textContent?.trim()).toBe('Privacy Policy');
   });
 
   describe('ngOnInit', () => {
@@ -283,12 +296,24 @@ describe('SetupComponent', () => {
     it('uses the page origin when the build has no apiUrl', () => {
       // Production builds are served by the Inkweld server itself.
       (environment as { apiUrl: string }).apiUrl = '';
+      // Other specs replace window.location and the suite runs without
+      // isolation, so pin the page this test reads.
+      vi.stubGlobal('location', {
+        ...globalThis.location,
+        protocol: 'https:',
+        origin: 'https://writing.example.com',
+        hostname: 'writing.example.com',
+      });
 
-      const fresh = TestBed.createComponent(SetupComponent);
+      try {
+        const fresh = TestBed.createComponent(SetupComponent);
 
-      expect(fresh.componentInstance['serverUrl']).toBe(
-        globalThis.location.origin
-      );
+        expect(fresh.componentInstance['serverUrl']).toBe(
+          'https://writing.example.com'
+        );
+      } finally {
+        vi.unstubAllGlobals();
+      }
     });
   });
 

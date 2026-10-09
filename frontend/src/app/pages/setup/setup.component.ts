@@ -39,6 +39,7 @@ import { appBasePath, appUrl } from '@utils/app-base';
 import { firstValueFrom } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
+import { APP_PRIVACY_POLICY_PATH, docsUrl } from '../../config/docs-links';
 import { SetupService } from '../../services/core/setup.service';
 import { UnifiedUserService } from '../../services/user/unified-user.service';
 
@@ -94,9 +95,9 @@ const PROVIDER_OPTIONS: Record<
   },
 };
 
-/** Where the Nextcloud CORS and app-password walkthrough lives */
-export const NEXTCLOUD_SETUP_GUIDE_URL =
-  'https://preview.inkweld.org/user-guide/getting-started/nextcloud-sync';
+/** Docs path of the Nextcloud CORS and app-password walkthrough */
+export const NEXTCLOUD_SETUP_GUIDE_PATH =
+  '/user-guide/getting-started/nextcloud-sync';
 
 /**
  * Server URL input default.
@@ -175,7 +176,8 @@ export class SetupComponent implements OnInit {
    * plus the source's own non-clashing projects, which are copied as they are
    */
   private takenSlugs = new Set<string>();
-  protected readonly nextcloudGuideUrl = NEXTCLOUD_SETUP_GUIDE_URL;
+  protected readonly nextcloudGuideUrl = docsUrl(NEXTCLOUD_SETUP_GUIDE_PATH);
+  protected readonly appPrivacyPolicyUrl = docsUrl(APP_PRIVACY_POLICY_PATH);
   /** Name of the profile being upgraded, when this visit is an upgrade */
   protected readonly upgradeSourceName = signal<string | null>(null);
   protected readonly pendingCloudConnection =
