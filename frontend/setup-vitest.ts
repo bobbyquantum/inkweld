@@ -169,6 +169,7 @@ afterEach(() => {
       value: baselineLocation,
     });
   }
+  resetBaselineLocation();
 
   // Ensure fake timers are restored so subsequent tests aren't affected
   vi.useRealTimers();
@@ -554,3 +555,15 @@ Object.defineProperty(globalThis, 'location', {
 // that leaked object (no protocol/origin) reaches every later spec in the
 // worker, so the global afterEach restores this baseline.
 const baselineLocation = globalThis.location;
+
+// The baseline is a plain object, so a spec writing `location.href = …` (or
+// code under test navigating with it) changes the baseline itself. Reset its
+// fields after each test too.
+const baselineLocationFields = { ...baselineLocation };
+function resetBaselineLocation(): void {
+  const target = baselineLocation as unknown as Record<string, unknown>;
+  for (const key of Object.keys(target)) {
+    if (!(key in baselineLocationFields)) delete target[key];
+  }
+  Object.assign(target, baselineLocationFields);
+}
