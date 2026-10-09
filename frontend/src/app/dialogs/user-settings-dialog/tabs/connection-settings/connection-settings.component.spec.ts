@@ -10,15 +10,7 @@ import {
 } from '@services/core/profile-manager.service';
 import { StorageContextService } from '@services/core/storage-context.service';
 import { of } from 'rxjs';
-import {
-  afterAll,
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  vi,
-} from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
 import { ConnectionSettingsComponent } from './connection-settings.component';
@@ -60,7 +52,6 @@ describe('ConnectionSettingsComponent', () => {
   };
   let gateway: { openProfileManagerDialog: ReturnType<typeof vi.fn> };
   let router: { navigate: ReturnType<typeof vi.fn> };
-  const originalLocation = window.location;
 
   const current = info({
     id: 'cloud-dropbox-1',
@@ -77,22 +68,6 @@ describe('ConnectionSettingsComponent', () => {
     subtitle: 'ink.example.com',
     icon: 'dns',
     hasCredentials: false,
-  });
-
-  beforeAll(() => {
-    Object.defineProperty(window, 'location', {
-      value: { ...originalLocation, href: '' },
-      writable: true,
-      configurable: true,
-    });
-  });
-
-  afterAll(() => {
-    Object.defineProperty(window, 'location', {
-      value: originalLocation,
-      writable: true,
-      configurable: true,
-    });
   });
 
   beforeEach(async () => {
@@ -134,7 +109,9 @@ describe('ConnectionSettingsComponent', () => {
     fixture = TestBed.createComponent(ConnectionSettingsComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
-    window.location.href = '';
+    // A fresh location per test, so the navigations asserted below never
+    // write to the shared one (setup-vitest.ts unstubs it after each test).
+    vi.stubGlobal('location', { ...window.location, href: '' });
   });
 
   it('shows the current connection and the others', () => {
