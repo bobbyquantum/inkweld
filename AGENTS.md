@@ -941,6 +941,20 @@ cd backend && bun run generate:openapi && bun run generate:angular-client
 > `backend/openapi.json` and the client, then fails if the committed artifacts
 > differ. If it fails, run the command above and commit the result.
 
+### Hosted Deploys (Cloudflare)
+
+preview.inkweld.app deploys on every push to `main`
+(`deploy-cloudflare.yml`); inkweld.app deploys on every push to the
+long-lived `production` branch (`deploy-cloudflare-production.yml`). Both
+call `deploy-cloudflare-reusable.yml` — change the deploy steps there, not in
+the callers, so the two cannot drift. All configuration lives on the GitHub
+environments `preview` / `production`. `production` only ever fast-forwards
+to a commit already on `main` (`git push origin origin/main:production`);
+never commit to it directly, and never push to it unless asked — it ships to
+users. The generated frontend environment file comes from
+`frontend/scripts/write-hosted-environment.mjs`, which reads the version from
+the root `package.json`. Details: `docs/site/docs/admin-guide/ci-cd.md`.
+
 ### Wrangler Version Pin (backend)
 
 `backend/package.json` pins `wrangler` to an **exact** `4.116.0` (no caret), and
