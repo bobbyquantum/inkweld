@@ -214,7 +214,7 @@ Inkweld provides **one shared preview environment** and **one production environ
 
 The shared **preview** environment is what `cloudflare:preview:deploy` deploys to. It always points at your custom (or workers.dev) domain, so it can only show one branch at a time. This is the environment used for testing feature branches before merging and, via the `deploy-cloudflare.yml` workflow, the latest `main`.
 
-Preview builds set `autoConfigure: false` in their `environment.preview.ts`: the hosted server URL is still baked in (and pre-fills the server step), but first run shows the setup screen so visitors choose **Browser**, **Cloud Sync**, or **Server** mode instead of being auto-connected. Remove the flag (or set it to `true`) for a hosted-only preview that skips the setup screen. Production builds keep the default behavior and auto-connect.
+The hosted preview and production builds set `autoConfigure: false` in their generated environment file (`environment.preview.ts` / `environment.cloudflare.ts`, via the workflow's `auto-configure` input): the hosted server URL is still baked in (and pre-fills the server step), but first run shows the setup screen so visitors choose **Browser**, **Cloud Sync**, or **Server** mode instead of being auto-connected. Set `auto-configure: true` in the calling workflow (or the flag to `true`) for a hosted-only deployment that skips the setup screen and auto-connects.
 
 **Per-PR previews** are separate. When you add the `deploy:preview:frontend` label to a pull request, GitHub Actions deploys the frontend to Cloudflare Pages under a stable `pr-<number>` branch, giving each PR a predictable URL:
 

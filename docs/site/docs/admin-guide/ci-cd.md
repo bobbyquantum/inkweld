@@ -69,7 +69,7 @@ build and ship exactly the same way and only differ in their inputs:
 | Pages project              | `inkweld-frontend-preview`             | `inkweld-frontend`                                        |
 | D1 database / wrangler env | `inkweld_preview` / `--env preview`    | `inkweld_prod` / `--env production`                       |
 | Angular configuration      | `preview` (`environment.preview.ts`)   | `cloudflare` (`environment.cloudflare.ts`)                |
-| First visit                | setup screen, hosted server pre-filled | connects to the hosted server                             |
+| First visit                | setup screen, hosted server pre-filled | setup screen, hosted server pre-filled                    |
 
 Each run writes `backend/wrangler.toml` from the environment's
 `BACKEND_WRANGLER_TOML` variable, generates the frontend environment file
