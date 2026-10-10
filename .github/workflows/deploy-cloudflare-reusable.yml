@@ -6,9 +6,9 @@ name: Deploy Cloudflare (Reusable)
 # `production` branch) so the two deploys cannot drift apart.
 #
 # Everything environment-specific comes from the GitHub environment named by
-# `environment`: the job declares it, so that environment's variables and
-# secrets are read directly (environment secrets cannot be passed in by a
-# caller). Required there:
+# `environment`: the job declares it, so that environment's variables are read
+# directly, and its secrets too as long as the caller uses `secrets: inherit`
+# (without it the secrets context is empty). Required there:
 #   vars:    BACKEND_WRANGLER_TOML, BASE_URL, FRONTEND_URL, APP_NAME,
 #            TWA_SHA256_FINGERPRINT, DROPBOX_APP_KEY (may be empty)
 #   secrets: CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID,

@@ -17,6 +17,10 @@ jobs:
     permissions:
       contents: read
     uses: ./.github/workflows/deploy-cloudflare-reusable.yml
+    # A reusable workflow only sees the secrets its caller hands it; with
+    # inherit, the called job also resolves its GitHub environment's secrets
+    # (which take precedence over repository secrets of the same name).
+    secrets: inherit
     with:
       environment: preview
       pages-project: inkweld-frontend-preview
