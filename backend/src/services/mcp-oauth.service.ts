@@ -632,7 +632,8 @@ class McpOAuthService {
       // client that lost the rotation response or a stolen token being
       // replayed. Both are indistinguishable server-side, so revoke the
       // session (RFC 6819 §5.2.2.3) and force a fresh authorization.
-      const [replayed] = await db
+      // Field-select needs the concrete Drizzle type; the union hides the overload.
+      const [replayed] = await (db as D1DatabaseInstance)
         .select({ id: mcpOAuthSessions.id, revokedAt: mcpOAuthSessions.revokedAt })
         .from(mcpOAuthSessions)
         .where(eq(mcpOAuthSessions.previousRefreshTokenHash, refreshTokenHash))

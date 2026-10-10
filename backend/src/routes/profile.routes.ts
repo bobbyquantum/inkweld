@@ -61,6 +61,14 @@ profileRoutes.use('/me/banner', requireAuth);
 // enforced again after parsing.
 profileRoutes.use('/me/banner', bodyLimit({ maxSize: MAX_BACKGROUND_UPLOAD_BYTES + 64 * 1024 }));
 
+/**
+ * Anonymous callers are allowed; visibility is enforced per response. Listing
+ * bearerAuth as an alternative keeps generated clients sending a session, so
+ * members-only content is not hidden from signed-in callers. Typed up front:
+ * an inline `{}` literal makes Hono infer the handler's input as `never`.
+ */
+const optionalBearerAuth: Record<string, string[]>[] = [{}, { bearerAuth: [] }];
+
 const UsernameParams = z.object({
   username: z.string().openapi({ description: 'Username', example: 'johndoe' }),
 });
@@ -165,7 +173,7 @@ const getProfileRoute = createRoute({
   // Anonymous callers are allowed; visibility is enforced per response. Listing
   // bearerAuth as an alternative keeps generated clients sending a session, so
   // members-only content is not hidden from signed-in callers.
-  security: [{}, { bearerAuth: [] }],
+  security: optionalBearerAuth,
   request: { params: UsernameParams },
   responses: {
     200: {
@@ -245,7 +253,7 @@ const getActivityRoute = createRoute({
   // Anonymous callers are allowed; visibility is enforced per response. Listing
   // bearerAuth as an alternative keeps generated clients sending a session, so
   // members-only content is not hidden from signed-in callers.
-  security: [{}, { bearerAuth: [] }],
+  security: optionalBearerAuth,
   request: { params: UsernameParams, query: ActivityQuery },
   responses: {
     200: {
@@ -296,7 +304,7 @@ const getBannerRoute = createRoute({
   // Anonymous callers are allowed; visibility is enforced per response. Listing
   // bearerAuth as an alternative keeps generated clients sending a session, so
   // members-only content is not hidden from signed-in callers.
-  security: [{}, { bearerAuth: [] }],
+  security: optionalBearerAuth,
   request: { params: UsernameParams },
   responses: {
     200: {

@@ -32,6 +32,16 @@ export type ServerUnavailablePage = Page & {
 };
 
 /**
+ * Page signed in as a freshly registered user, carrying that user's credentials.
+ */
+export type AuthenticatedPage = Page & {
+  testCredentials: {
+    username: string;
+    password: string;
+  };
+};
+
+/**
  * Online Test Fixtures
  *
  * These fixtures work with the REAL backend server, not mocked APIs.
@@ -77,7 +87,7 @@ export type OnlineTestFixtures = {
    * Authenticated user page.
    * Creates and logs in a unique test user via the real backend.
    */
-  authenticatedPage: Page;
+  authenticatedPage: AuthenticatedPage;
 
   /**
    * Admin user page.
@@ -270,10 +280,7 @@ export const test = base.extend<OnlineTestFixtures>({
     }
 
     // Store credentials for potential later use
-    // @ts-expect-error - Dynamic property for test context
-    page.testCredentials = { username, password };
-
-    await use(page);
+    await use(Object.assign(page, { testCredentials: { username, password } }));
 
     // Cleanup
     await context.close();

@@ -114,10 +114,7 @@ test.describe('Passkeys', () => {
       });
 
       await test.step('signs out and signs back in using the passkey', async () => {
-        // @ts-expect-error - Dynamic property attached by the fixture.
-        const { username } = authenticatedPage.testCredentials as {
-          username: string;
-        };
+        const { username } = authenticatedPage.testCredentials;
 
         // Trigger logout via UI so all in-memory state resets.
         // The virtual authenticator's resident credentials live in the CDP

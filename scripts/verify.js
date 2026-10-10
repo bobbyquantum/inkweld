@@ -95,14 +95,9 @@ async function runSerial(steps) {
 
 // Phase 1 — fast checks (can all run in parallel since they're read-only)
 const fastParallelSteps = [
-  // Frontend lint is type-aware (recommendedTypeChecked), so it already
-  // does a full TS project load. Running a separate frontend typecheck
-  // on top of that is redundant — we only run the backend typecheck here.
-  {
-    name: "typecheck:backend",
-    command: "npm",
-    args: ["run", "typecheck:backend"],
-  },
+  // Type-aware lint does not report compile errors, so type check every
+  // project too. `bun check` covers all of them in a couple of seconds.
+  { name: "typecheck", command: "npm", args: ["run", "typecheck"] },
   { name: "lint:frontend", command: "npm", args: ["run", "lint:frontend"] },
   { name: "lint:backend", command: "npm", args: ["run", "lint:backend"] },
 ];

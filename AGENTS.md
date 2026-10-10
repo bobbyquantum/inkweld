@@ -232,7 +232,21 @@ npm run dev
 
 # Run tests
 npm test
+
+# Type check every TS project (frontend app/spec/e2e/Storybook, backend, packages)
+npm run typecheck
 ```
+
+**Type checking** uses `bun check` (Bun ≥ 1.4.3), a typescript-go port that
+reads each `tsconfig.json` and reports the same errors as `tsc` in about two
+seconds for the whole repo. CI runs it in the **Type Check** job. It is the only
+check on specs, e2e and the backend: Vitest, Playwright and `bun test` strip
+types without checking them, and `ng build` only covers the app sources.
+`bun check` follows TypeScript 7, so a compiler option TS 7 removed (e.g.
+`baseUrl`) is a hard error even though the installed `tsc` 6 accepts it.
+`frontend/tsconfig.json` has `"files": []` and only references the real
+projects, so check it with `bun check -b` (plain `tsc --noEmit` there checks
+nothing).
 
 ### Common Commands
 
@@ -1043,7 +1057,7 @@ Renovate is disabled for it via `renovate.json`. **Do not "fix" this to a range.
 ### Before Submitting Changes
 
 1. ✅ All tests pass (`npm test` for frontend, `bun test` for backend)
-2. ✅ Linting passes (`npm run lint`)
+2. ✅ Linting and type checking pass (`npm run lint`, `npm run typecheck`)
 3. ✅ Code is properly formatted
 4. ✅ New features have test coverage
 5. ✅ Documentation is updated if needed

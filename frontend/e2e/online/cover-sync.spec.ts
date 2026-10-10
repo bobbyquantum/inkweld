@@ -86,7 +86,6 @@ test.describe('Cover Auto-Sync on Home Screen', () => {
   test('should trigger cover sync requests on home screen for projects with covers', async ({
     authenticatedPage: page,
   }) => {
-    // @ts-expect-error - Dynamic property set by fixture
     const { username } = page.testCredentials;
 
     // Create a project

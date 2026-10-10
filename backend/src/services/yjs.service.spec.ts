@@ -5,6 +5,7 @@ import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import * as Y from 'yjs';
 import { Level } from 'level';
+// @ts-expect-error - y-leveldb has types but package.json exports aren't properly configured
 import { getLevelUpdatesKeys, keyEncoding } from 'y-leveldb';
 
 import { config } from '../config/env';
@@ -150,14 +151,17 @@ async function applyUpdates(
   return { sharedDoc, initialState };
 }
 
+/** `config` is typed read-only; these specs point its data path at a temp dir. */
+const mutableConfig = config as { dataPath: string };
+
 beforeEach(async () => {
   tempRoot = await mkdtemp(path.join(tmpdir(), 'inkweld-yjs-compaction-'));
-  config.dataPath = tempRoot;
+  mutableConfig.dataPath = tempRoot;
   (fileStorageService as unknown as { basePath: string }).basePath = tempRoot;
 });
 
 afterEach(async () => {
-  config.dataPath = originalDataPath;
+  mutableConfig.dataPath = originalDataPath;
   (fileStorageService as unknown as { basePath: string }).basePath = originalDataPath;
   await fs.rm(tempRoot, { recursive: true, force: true });
 });
@@ -415,6 +419,7 @@ describe('YjsService persist failure tracking', () => {
         return real.storeUpdate(name, update);
       },
       flushDocument: (name: string) => real.flushDocument(name),
+      _transact: (f) => real._transact(f),
       destroy: () => real.destroy(),
     });
     return state;

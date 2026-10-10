@@ -111,10 +111,10 @@ export async function mcpRequest(
         meta['io.modelcontextprotocol/protocolVersion'] ?? MCP_PROTOCOL_VERSION,
       'Mcp-Method': method,
       'Mcp-Name':
-        typeof params.name === 'string'
-          ? params.name
-          : typeof params.uri === 'string'
-            ? params.uri
+        typeof params['name'] === 'string'
+          ? params['name']
+          : typeof params['uri'] === 'string'
+            ? params['uri']
             : method,
     },
     data: {
