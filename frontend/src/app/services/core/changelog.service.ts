@@ -19,7 +19,7 @@ export interface ChangelogVersion {
 const VERSION_HEADER_PATTERNS = [
   /^\[([^\]]+)\](?: - (.+))?$/,
   /^\[([^\]]+)\]\([^)\s]*\)(?: \(([^)]+)\))?$/,
-  /^(\d+\.\d+\.\d+\S*)(?: \(([^)]+)\))?$/,
+  /^(\d+\.\d+\.\d+(?:-[\dA-Za-z.-]+)?)(?: \(([^)]+)\))?$/,
 ];
 
 function parseVersionHeader(

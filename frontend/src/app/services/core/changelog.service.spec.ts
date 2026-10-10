@@ -143,6 +143,10 @@ All notable changes to this project will be documented in this file.
 
 * a fix
 
+## 1.0.0-beta.2 (2026-10-15)
+
+* another fix
+
 ## [1.0.0] - 2026-10-10
 
 - Initial release
@@ -156,6 +160,7 @@ All notable changes to this project will be documented in this file.
       expect(versions.map(v => [v.version, v.date])).toEqual([
         ['1.1.0', '2026-11-02'],
         ['1.0.1', '2026-10-20'],
+        ['1.0.0-beta.2', '2026-10-15'],
         ['1.0.0', '2026-10-10'],
       ]);
       expect(versions[0].isUnreleased).toBe(false);
