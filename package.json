@@ -44,8 +44,9 @@
     "format:frontend": "cd frontend && prettier --write \"src/**/*.{ts,html,scss}\" \".storybook/**/*.ts\"",
     "format:backend": "cd backend && bun run format",
     "format:docs": "cd docs/site && bun run format",
-    "typecheck": "npm run typecheck:frontend && npm run typecheck:backend",
-    "typecheck:frontend": "cd frontend && npx tsc --noEmit",
+    "typecheck": "npm run typecheck:packages && npm run typecheck:frontend && npm run typecheck:backend",
+    "typecheck:packages": "bun check -p packages/inkweld-async && bun check -p packages/inkweld-presence && bun check -p packages/inkweld-prosemirror",
+    "typecheck:frontend": "cd frontend && bun check -b",
     "typecheck:backend": "cd backend && bun run typecheck",
     "verify": "node scripts/verify.js",
     "verify:e2e": "VERIFY_MODE=e2e node scripts/verify.js",
@@ -118,5 +119,5 @@
   "engines": {
     "node": ">=22.0.0"
   },
-  "packageManager": "bun@1.4.2"
+  "packageManager": "bun@1.4.3"
 }

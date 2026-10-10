@@ -1,5 +1,5 @@
 import nodemailer from 'nodemailer';
-import type { Transporter } from 'nodemailer';
+import type { Transporter, TransportOptions } from 'nodemailer';
 import { configService } from './config.service';
 import { logger } from './logger.service';
 import type { DatabaseInstance } from '../types/context';
@@ -73,7 +73,7 @@ class EmailService {
       Number.isFinite(parsedPort) && parsedPort >= 1 && parsedPort <= 65535 ? parsedPort : 587;
     const secure = encryption === 'tls'; // port 465 / implicit TLS
 
-    const transportOptions: nodemailer.TransportOptions & {
+    const transportOptions: TransportOptions & {
       host: string;
       port: number;
       secure: boolean;
@@ -102,7 +102,7 @@ class EmailService {
       // nodemailer uses STARTTLS by default when secure=false and the server advertises it
     }
 
-    this.transporter = nodemailer.createTransport(transportOptions as nodemailer.TransportOptions);
+    this.transporter = nodemailer.createTransport(transportOptions as TransportOptions);
     this.transporterConfigHash = configHash;
     return this.transporter;
   }

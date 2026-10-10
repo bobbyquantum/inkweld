@@ -84,10 +84,7 @@ test.describe('Online Publish Style Editor', () => {
     // Multiple format generations against a real backend — needs headroom on
     // slow CI runners (the default 30s budget is marginal).
     test.slow();
-    // Set by the authenticatedPage fixture (via @ts-expect-error there).
-    const { username }: { username: string } = page[
-      'testCredentials' as never
-    ] as { username: string };
+    const { username } = page.testCredentials;
     const slug = await createProject(page, 'pub-style');
     const testContent =
       'A short paragraph used to verify rendered typography in the HTML output.';

@@ -453,7 +453,7 @@ export class YjsService {
                 (error: unknown) => {
                   yjsLog.warn(
                     `LevelDB compaction failed for ${documentId} — deferring to the next batch`,
-                    error
+                    { error: String(error) }
                   );
                 }
               );

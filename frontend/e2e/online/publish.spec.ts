@@ -137,10 +137,7 @@ test.describe('Online Publishing Workflow', () => {
     // Multiple generate/download cycles against a real backend — needs headroom
     // on slow CI runners (the default 30s budget is marginal).
     test.slow();
-    // Set by the authenticatedPage fixture (via @ts-expect-error there).
-    const { username }: { username: string } = page[
-      'testCredentials' as never
-    ] as { username: string };
+    const { username } = page.testCredentials;
     const slug = await createProject(page, 'plan-mgmt');
 
     await test.step('shows publishing tab via sidenav button', async () => {
@@ -266,10 +263,7 @@ test.describe('Online Publishing Workflow', () => {
     // Four full generation + download cycles — needs headroom on slow CI
     // runners (the default 30s budget is marginal).
     test.slow();
-    // Set by the authenticatedPage fixture (via @ts-expect-error there).
-    const { username }: { username: string } = page[
-      'testCredentials' as never
-    ] as { username: string };
+    const { username } = page.testCredentials;
     const testContent =
       'The quick brown fox jumps over the lazy dog near the riverbank.';
 

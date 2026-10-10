@@ -73,10 +73,8 @@ export interface BackgroundPreference {
  * banner is the personal image slot for the profile — and `plain` (the theme's
  * own surface colour) is the default so a fresh profile stays uncluttered.
  */
-export interface ProfileBackgroundPreference {
-  kind: 'plain' | 'preset';
-  presetId?: BackgroundPresetId;
-}
+export type ProfileBackgroundPreference =
+  { kind: 'plain' } | { kind: 'preset'; presetId: BackgroundPresetId };
 
 /** Device-independent per-user UI preferences (the `users.preferences` JSON). */
 export interface UserPreferences {

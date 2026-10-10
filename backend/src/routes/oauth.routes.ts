@@ -1248,7 +1248,7 @@ oauthRoutes.openapi(updateAllProjectsRoute, async (c) => {
 
   await mcpOAuthService.updateAllProjectsSettings(db, sessionId, accessAllProjects, defaultRole);
 
-  return c.json({ message: 'Session settings updated successfully' });
+  return c.json({ message: 'Session settings updated successfully' }, 200);
 });
 
 /**

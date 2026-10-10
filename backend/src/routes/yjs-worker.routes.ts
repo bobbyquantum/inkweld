@@ -145,7 +145,7 @@ app.get('/yjs/do/:endpoint', async (c) => {
     if (documentId !== undefined) {
       target.searchParams.set('documentId', documentId);
     }
-    const req = new Request(target, {
+    const req = new Request(target.href, {
       method: c.req.method,
       headers: c.req.raw.headers,
     });
