@@ -1,0 +1,206 @@
+name: Deploy Cloudflare (Reusable)
+
+# Builds and deploys the frontend (Cloudflare Pages) and backend (Worker + D1)
+# for one hosted environment. Called by deploy-cloudflare.yml (preview, from
+# `main`) and deploy-cloudflare-production.yml (production, from the
+# `production` branch) so the two deploys cannot drift apart.
+#
+# Everything environment-specific comes from the GitHub environment named by
+# `environment`: the job declares it, so that environment's variables and
+# secrets are read directly (environment secrets cannot be passed in by a
+# caller). Required there:
+#   vars:    BACKEND_WRANGLER_TOML, BASE_URL, FRONTEND_URL, APP_NAME,
+#            TWA_SHA256_FINGERPRINT, DROPBOX_APP_KEY (may be empty)
+#   secrets: CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID,
+#            PREVIEW_API_URL + PREVIEW_WSS_URL, or PRODUCTION_API_URL +
+#            PRODUCTION_WSS_URL (chosen by `url-secret-prefix`),
+#            SESSION_SECRET (optional; see below)
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: GitHub environment, also the wrangler `--env` name
+        required: true
+        type: string
+      pages-project:
+        description: Cloudflare Pages project for the frontend
+        required: true
+        type: string
+      d1-database:
+        description: D1 database the migrations are applied to
+        required: true
+        type: string
+      angular-configuration:
+        description: Angular build configuration
+        required: true
+        type: string
+      environment-file:
+        description: Environment file (under frontend/src/environments) that configuration uses
+        required: true
+        type: string
+      auto-configure:
+        description: Connect first-time visitors to the hosted server instead of showing the setup screen
+        required: true
+        type: boolean
+      url-secret-prefix:
+        description: Which <prefix>_API_URL / <prefix>_WSS_URL secrets to use, PREVIEW or PRODUCTION
+        required: true
+        type: string
+      twa-fingerprint-required:
+        description: Fail the deploy when TWA_SHA256_FINGERPRINT is unset (the Android app verifies this host)
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy ${{ inputs.environment }}
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version-file: package.json
+
+      - name: Setup Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: "24"
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Write backend wrangler.toml
+        env:
+          BACKEND_WRANGLER_TOML: ${{ vars.BACKEND_WRANGLER_TOML }}
+        run: |
+          if [ -z "$BACKEND_WRANGLER_TOML" ]; then
+            echo "::error::BACKEND_WRANGLER_TOML is not set on this GitHub environment."
+            exit 1
+          fi
+          printf '%s' "${BACKEND_WRANGLER_TOML}" > backend/wrangler.toml
+
+      - name: Write backend secrets file (if SESSION_SECRET secret is set)
+        env:
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+        run: |
+          # --secrets-file pushes secrets to Cloudflare alongside the deploy,
+          # atomically overriding any [vars] placeholder in wrangler.toml.
+          # Secrets not listed here are preserved from the previous version.
+          # Only write the file when a SESSION_SECRET GitHub secret exists —
+          # wrangler rejects an empty --secrets-file. When the secret is absent,
+          # the existing Cloudflare Worker secret (set via `wrangler secret put`)
+          # persists across deploys and overrides the [vars] placeholder at runtime.
+          if [ -n "$SESSION_SECRET" ]; then
+            printf 'SESSION_SECRET="%s"\n' "$SESSION_SECRET" > backend/.secrets.env
+          fi
+
+      - name: Write frontend wrangler.toml
+        env:
+          PAGES_PROJECT: ${{ inputs.pages-project }}
+        run: |
+          printf 'name = "%s"\ncompatibility_date = "2025-01-01"\npages_build_output_dir = "dist/browser"\n' "${PAGES_PROJECT}" > frontend/wrangler.toml
+
+      - name: Generate environment file
+        working-directory: frontend
+        env:
+          # Named explicitly (not secrets[<computed name>]) so only these
+          # secrets reach the runner; each environment holds just its own pair.
+          PREVIEW_API_URL: ${{ secrets.PREVIEW_API_URL }}
+          PREVIEW_WSS_URL: ${{ secrets.PREVIEW_WSS_URL }}
+          PRODUCTION_API_URL: ${{ secrets.PRODUCTION_API_URL }}
+          PRODUCTION_WSS_URL: ${{ secrets.PRODUCTION_WSS_URL }}
+          URL_SECRET_PREFIX: ${{ inputs.url-secret-prefix }}
+          AUTO_CONFIGURE: ${{ inputs.auto-configure }}
+          # Public OAuth app key for this environment's Dropbox app. Empty
+          # hides the Dropbox option in Cloud Sync setup.
+          DROPBOX_APP_KEY: ${{ vars.DROPBOX_APP_KEY }}
+          ENVIRONMENT_FILE: ${{ inputs.environment-file }}
+        run: |
+          case "$URL_SECRET_PREFIX" in
+            PREVIEW)
+              API_URL="$PREVIEW_API_URL"
+              WSS_URL="$PREVIEW_WSS_URL"
+              ;;
+            PRODUCTION)
+              API_URL="$PRODUCTION_API_URL"
+              WSS_URL="$PRODUCTION_WSS_URL"
+              ;;
+            *)
+              echo "::error::url-secret-prefix must be PREVIEW or PRODUCTION, got '${URL_SECRET_PREFIX}'."
+              exit 1
+              ;;
+          esac
+          API_URL="$API_URL" WSS_URL="$WSS_URL" \
+            node scripts/write-hosted-environment.mjs "src/environments/${ENVIRONMENT_FILE}"
+
+      - name: Inject TWA signing fingerprint
+        working-directory: frontend
+        env:
+          TWA_SHA256_FINGERPRINT: ${{ vars.TWA_SHA256_FINGERPRINT }}
+          REQUIRED: ${{ inputs.twa-fingerprint-required }}
+        run: |
+          # The Android TWA verifies its host through this file, so deploying
+          # that host without the Play app-signing fingerprint breaks the app.
+          if [ -z "$TWA_SHA256_FINGERPRINT" ] && [ "$REQUIRED" = "true" ]; then
+            echo "::error::TWA_SHA256_FINGERPRINT is not set on this GitHub environment."
+            exit 1
+          fi
+          sed -i "s|__TWA_SHA256_FINGERPRINT__|${TWA_SHA256_FINGERPRINT}|g" public/.well-known/assetlinks.json
+
+      - name: Build frontend
+        working-directory: frontend
+        env:
+          ANGULAR_CONFIGURATION: ${{ inputs.angular-configuration }}
+        run: bun run clean && bun run ng build --configuration="${ANGULAR_CONFIGURATION}" && node scripts/copy-licenses.mjs && node scripts/absolutize-index-preloads.mjs && git rev-parse --short HEAD > dist/browser/assets/version.txt && bun run compress-wasm
+
+      - name: Generate frontend imports & build backend
+        working-directory: backend
+        run: bun run generate:frontend-imports && bun run build
+
+      - name: Deploy frontend to Cloudflare Pages
+        uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # `main` is the Pages project's production branch for both
+          # environments; it is a Pages label, not the git branch deployed.
+          command: pages deploy frontend/dist/browser --project-name=${{ inputs.pages-project }} --branch=main
+
+      - name: Run database migrations
+        uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: backend
+          command: d1 migrations apply ${{ inputs.d1-database }} --env ${{ inputs.environment }} --remote
+
+      - name: Deploy backend Worker
+        uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: backend
+          command: >-
+            deploy --env ${{ inputs.environment }}
+            ${{ secrets.SESSION_SECRET && '--secrets-file .secrets.env' || '' }}
+            --var BASE_URL:${{ vars.BASE_URL }}
+            --var FRONTEND_URL:${{ vars.FRONTEND_URL }}
+            --var APP_NAME:${{ vars.APP_NAME }}

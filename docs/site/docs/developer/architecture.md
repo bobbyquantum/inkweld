@@ -631,6 +631,8 @@ GitHub Actions workflow:
 2. **Test** frontend and backend
 3. **Build** Docker image
 4. **Publish** to GHCR (on main branch)
+5. **Deploy** to Cloudflare: preview from `main`, production (inkweld.app)
+   from the `production` branch — see [CI/CD](../admin-guide/ci-cd.md)
 
 ## Performance Considerations
 

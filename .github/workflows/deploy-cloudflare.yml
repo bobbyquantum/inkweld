@@ -8,116 +8,23 @@ concurrency:
   group: deploy-cloudflare-preview
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   deploy-preview:
     name: Deploy Preview
     permissions:
       contents: read
-    runs-on: ubuntu-latest
-    environment: preview
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
-        with:
-          bun-version-file: package.json
-
-      - name: Setup Node.js
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
-        with:
-          node-version: "24"
-
-      - name: Cache Bun dependencies
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
-        with:
-          path: ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-bun-
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-
-      - name: Write backend wrangler.toml
-        env:
-          BACKEND_WRANGLER_TOML: ${{ vars.BACKEND_WRANGLER_TOML }}
-        run: printf '%s' "${BACKEND_WRANGLER_TOML}" > backend/wrangler.toml
-
-      - name: Write backend secrets file (if SESSION_SECRET secret is set)
-        env:
-          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
-        run: |
-          # --secrets-file pushes secrets to Cloudflare alongside the deploy,
-          # atomically overriding any [vars] placeholder in wrangler.toml.
-          # Secrets not listed here are preserved from the previous version.
-          # Only write the file when a SESSION_SECRET GitHub secret exists —
-          # wrangler rejects an empty --secrets-file. When the secret is absent,
-          # the existing Cloudflare Worker secret (set via `wrangler secret put`)
-          # persists across deploys and overrides the [vars] placeholder at runtime.
-          if [ -n "$SESSION_SECRET" ]; then
-            printf 'SESSION_SECRET="%s"\n' "$SESSION_SECRET" > backend/.secrets.env
-          fi
-
-      - name: Write frontend wrangler.toml
-        run: |
-          printf 'name = "inkweld-frontend-preview"\ncompatibility_date = "2025-01-01"\npages_build_output_dir = "dist/browser"\n' > frontend/wrangler.toml
-
-      - name: Generate preview environment file
-        working-directory: frontend
-        env:
-          PREVIEW_API_URL: ${{ secrets.PREVIEW_API_URL }}
-          PREVIEW_WSS_URL: ${{ secrets.PREVIEW_WSS_URL }}
-          # Public OAuth app key for the "Inkweld Preview" Dropbox app. Empty
-          # hides the Dropbox option in Cloud Sync setup.
-          DROPBOX_APP_KEY: ${{ vars.DROPBOX_APP_KEY }}
-        run: |
-          # autoConfigure: false — the preview keeps its hosted apiUrl (used to
-          # pre-fill the server step) but shows the setup screen so users can
-          # choose Browser / Cloud Sync / Server mode instead of being
-          # auto-connected.
-          printf 'export const environment = {\n  production: true,\n  version: "0.1.0",\n  apiUrl: "%s",\n  wssUrl: "%s",\n  autoConfigure: false,\n  cloudSync: {\n    dropbox: { appKey: "%s" },\n  },\n};\n' \
-            "${PREVIEW_API_URL}" "${PREVIEW_WSS_URL}" "${DROPBOX_APP_KEY}" > src/environments/environment.preview.ts
-
-      - name: Inject TWA signing fingerprint
-        working-directory: frontend
-        env:
-          TWA_SHA256_FINGERPRINT: ${{ vars.TWA_SHA256_FINGERPRINT }}
-        run: |
-          sed -i "s|__TWA_SHA256_FINGERPRINT__|${TWA_SHA256_FINGERPRINT}|g" public/.well-known/assetlinks.json
-
-      - name: Build frontend
-        working-directory: frontend
-        run: bun run clean && bun run ng build --configuration=preview && node scripts/copy-licenses.mjs && node scripts/absolutize-index-preloads.mjs && git rev-parse --short HEAD > dist/browser/assets/version.txt && bun run compress-wasm
-
-      - name: Generate frontend imports & build backend
-        working-directory: backend
-        run: bun run generate:frontend-imports && bun run build
-
-      - name: Deploy frontend to Cloudflare Pages
-        uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy frontend/dist/browser --project-name=inkweld-frontend-preview --branch=main
-
-      - name: Run database migrations
-        uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          workingDirectory: backend
-          command: d1 migrations apply inkweld_preview --env preview --remote
-
-      - name: Deploy backend Worker
-        uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          workingDirectory: backend
-          command: >-
-            deploy --env preview
-            ${{ secrets.SESSION_SECRET && '--secrets-file .secrets.env' || '' }}
-            --var BASE_URL:${{ vars.BASE_URL }}
-            --var FRONTEND_URL:${{ vars.FRONTEND_URL }}
-            --var APP_NAME:${{ vars.APP_NAME }}
+    uses: ./.github/workflows/deploy-cloudflare-reusable.yml
+    with:
+      environment: preview
+      pages-project: inkweld-frontend-preview
+      d1-database: inkweld_preview
+      angular-configuration: preview
+      environment-file: environment.preview.ts
+      # The preview keeps its hosted apiUrl (used to pre-fill the server step)
+      # but shows the setup screen so users can choose Browser / Cloud Sync /
+      # Server mode instead of being auto-connected.
+      auto-configure: false
+      url-secret-prefix: PREVIEW

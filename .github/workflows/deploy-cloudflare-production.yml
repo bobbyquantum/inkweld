@@ -1,0 +1,55 @@
+name: Deploy Cloudflare (Production)
+
+# Production (https://inkweld.app) deploys from the long-lived `production`
+# branch. Promote a release by fast-forwarding it to a commit on `main`:
+#   git push origin <commit-on-main>:production
+# See docs/site/docs/admin-guide/ci-cd.md.
+
+on:
+  push:
+    branches: ["production"]
+  workflow_dispatch:
+
+# Never cancel a production deploy part-way (e.g. between the D1 migrations
+# and the Worker deploy); a newer promotion waits for it instead.
+concurrency:
+  group: deploy-cloudflare-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  check-branch:
+    name: Check branch
+    permissions: {}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Refuse to deploy anything but the production branch
+        env:
+          REF: ${{ github.ref }}
+        run: |
+          # workflow_dispatch can be pointed at any branch; production only
+          # ever ships what has been promoted to `production`.
+          if [ "$REF" != "refs/heads/production" ]; then
+            echo "::error::Production deploys run from the production branch, not ${REF}."
+            exit 1
+          fi
+
+  deploy-production:
+    name: Deploy Production
+    needs: check-branch
+    permissions:
+      contents: read
+    uses: ./.github/workflows/deploy-cloudflare-reusable.yml
+    with:
+      environment: production
+      pages-project: inkweld-frontend
+      d1-database: inkweld_prod
+      angular-configuration: cloudflare
+      environment-file: environment.cloudflare.ts
+      # inkweld.app connects first-time visitors straight to the hosted server.
+      auto-configure: true
+      url-secret-prefix: PRODUCTION
+      # The Play-store TWA (android/app/build.gradle.kts) targets inkweld.app.
+      twa-fingerprint-required: true
