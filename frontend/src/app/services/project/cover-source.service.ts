@@ -280,8 +280,7 @@ export class CoverSourceService {
       // render was running. Don't overwrite a cover that is no longer ours.
       const current = this.source();
       if (
-        !current ||
-        current.elementId !== input.source.elementId ||
+        current?.elementId !== input.source.elementId ||
         current.frameId !== input.source.frameId
       ) {
         this.status.set('idle');

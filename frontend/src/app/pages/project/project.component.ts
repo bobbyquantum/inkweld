@@ -143,7 +143,6 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   public readonly isZenMode = signal(false);
   public readonly showSidebar = signal(true);
   public readonly sidebarCollapsed = signal(false);
-  public readonly isDeleting = signal(false);
 
   /** Current project sync state - exposed for connection status display */
   protected readonly projectSyncState = this.projectState.getSyncState;
@@ -846,47 +845,6 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
 
   public useTabsDesktop(): boolean {
     return this.settingsService.getSetting<boolean>('useTabsDesktop', true);
-  }
-
-  public onDeleteProjectClick(): void {
-    const project = this.projectState.project();
-    if (!project) return;
-
-    void this.dialogGateway
-      .openConfirmationDialog({
-        title: 'Delete Project',
-        message: `To confirm deletion, please type the project slug "${project.slug}" below. This action cannot be undone.`,
-        confirmText: 'Delete',
-        cancelText: 'Cancel',
-        requireConfirmationText: project.slug,
-      })
-      .then(confirmed => {
-        if (confirmed) {
-          this.isDeleting.set(true);
-
-          void this.projectService
-            .deleteProject(project.username, project.slug)
-            .then(() => {
-              this.snackBar.open(
-                this.transloco.translate('project.snackbar.projectDeleted'),
-                this.transloco.translate('close'),
-                { duration: 3000 }
-              );
-              void this.router.navigate(['/']);
-            })
-            .catch(error => {
-              console.error('Error deleting project:', error);
-              this.snackBar.open(
-                this.transloco.translate('project.snackbar.deleteFailed'),
-                this.transloco.translate('close'),
-                { duration: 5000 }
-              );
-            })
-            .finally(() => {
-              this.isDeleting.set(false);
-            });
-        }
-      });
   }
 
   /**

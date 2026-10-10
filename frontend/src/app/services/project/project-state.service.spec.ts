@@ -1268,7 +1268,7 @@ describe('ProjectStateService', () => {
     it('does not save while no project is loaded', () => {
       service.setExpanded('a', true);
       service.setTreeScrollTop(120);
-      expect(localStorage.length).toBe(0);
+      expect(localStorage).toHaveLength(0);
     });
 
     it('drops expanded ids whose element no longer exists', async () => {

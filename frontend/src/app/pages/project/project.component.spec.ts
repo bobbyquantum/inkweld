@@ -249,9 +249,7 @@ describe('ProjectComponent', () => {
       exportProject: vi.fn().mockResolvedValue(undefined),
     };
 
-    projectService = {
-      deleteProject: vi.fn().mockResolvedValue(undefined),
-    };
+    projectService = {};
 
     dialogGateway = {
       openConfirmationDialog: vi.fn().mockResolvedValue(false),
@@ -976,53 +974,6 @@ describe('ProjectComponent', () => {
       component.onRecentDocumentKeydown(event, mockElement.id);
 
       expect(projectStateService.openDocument).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('delete project', () => {
-    it('should open confirmation dialog on delete', async () => {
-      (
-        dialogGateway.openConfirmationDialog as ReturnType<typeof vi.fn>
-      ).mockResolvedValue(false);
-
-      component.onDeleteProjectClick();
-      await fixture.whenStable();
-
-      expect(dialogGateway.openConfirmationDialog).toHaveBeenCalledWith({
-        title: 'Delete Project',
-        message: expect.stringContaining('test-project'),
-        confirmText: 'Delete',
-        cancelText: 'Cancel',
-        requireConfirmationText: 'test-project',
-      });
-    });
-
-    it('should delete project when confirmed', async () => {
-      (
-        dialogGateway.openConfirmationDialog as ReturnType<typeof vi.fn>
-      ).mockResolvedValue(true);
-
-      component.onDeleteProjectClick();
-      await fixture.whenStable();
-
-      // Allow promises to settle
-      await new Promise(resolve => setTimeout(resolve, 0));
-
-      expect(projectService.deleteProject).toHaveBeenCalledWith(
-        'testuser',
-        'test-project'
-      );
-    });
-
-    it('should not delete project when cancelled', async () => {
-      (
-        dialogGateway.openConfirmationDialog as ReturnType<typeof vi.fn>
-      ).mockResolvedValue(false);
-
-      component.onDeleteProjectClick();
-      await fixture.whenStable();
-
-      expect(projectService.deleteProject).not.toHaveBeenCalled();
     });
   });
 

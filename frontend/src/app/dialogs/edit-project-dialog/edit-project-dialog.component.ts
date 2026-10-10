@@ -520,32 +520,7 @@ export class EditProjectDialogComponent implements OnInit {
         throw new Error('Project slug is required');
       }
 
-      // Handle cover image upload
-      let newCoverMediaId = this.currentCoverMediaId;
-      if (
-        this.coverImage instanceof File &&
-        updatedProject.username &&
-        updatedProject.slug
-      ) {
-        // Upload to server — returns the unique cover filename (e.g. 'cover-1707900000000.jpg')
-        // The upload method also saves to IndexedDB using the filename stem as mediaId
-        try {
-          const coverFilename = await this.projectService.uploadProjectCover(
-            updatedProject.username,
-            updatedProject.slug,
-            this.coverImage
-          );
-          // Use the filename stem (without extension) as the coverMediaId
-          newCoverMediaId = coverFilename.replace(/\.[^.]+$/, '');
-          this.currentCoverMediaId = newCoverMediaId;
-        } catch (imageError) {
-          // Log but don't fail - local storage is the source of truth
-          console.warn(
-            'Failed to upload cover to server (will sync later):',
-            imageError
-          );
-        }
-      }
+      const newCoverMediaId = await this.uploadPickedCover(updatedProject);
 
       // Use UnifiedProjectService for update - handles both online and offline modes.
       // This only persists title/description to the project record — the cover
@@ -606,6 +581,40 @@ export class EditProjectDialogComponent implements OnInit {
     } finally {
       this.isSaving.set(false);
     }
+  }
+
+  /**
+   * Upload the cover the user picked, if any, and return the cover media id
+   * to save with the project (the current one when nothing new was uploaded).
+   */
+  private async uploadPickedCover(
+    project: Project
+  ): Promise<string | undefined> {
+    if (
+      !(this.coverImage instanceof File) ||
+      !project.username ||
+      !project.slug
+    ) {
+      return this.currentCoverMediaId;
+    }
+    // Upload to server — returns the unique cover filename (e.g. 'cover-1707900000000.jpg')
+    // The upload method also saves to IndexedDB using the filename stem as mediaId
+    try {
+      const coverFilename = await this.projectService.uploadProjectCover(
+        project.username,
+        project.slug,
+        this.coverImage
+      );
+      // Use the filename stem (without extension) as the coverMediaId
+      this.currentCoverMediaId = coverFilename.replace(/\.[^.]+$/, '');
+    } catch (imageError) {
+      // Log but don't fail - local storage is the source of truth
+      console.warn(
+        'Failed to upload cover to server (will sync later):',
+        imageError
+      );
+    }
+    return this.currentCoverMediaId;
   }
 
   private showError(message: string): void {

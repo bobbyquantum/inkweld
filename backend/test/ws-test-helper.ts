@@ -57,11 +57,14 @@ export function connectYjsSocket(baseUrl: string, documentId: string): Promise<C
 /** Poll `predicate` until it holds or `timeoutMs` elapses. */
 export async function waitForSocket(predicate: () => boolean, timeoutMs = 5000): Promise<void> {
   const deadline = Date.now() + timeoutMs;
-  while (Date.now() < deadline) {
+  // Polling is inherently sequential: check, wait, check again.
+  const poll = async (): Promise<void> => {
     if (predicate()) return;
+    if (Date.now() >= deadline) throw new Error('Timed out waiting for WebSocket traffic');
     await new Promise((resolve) => setTimeout(resolve, 15));
-  }
-  throw new Error('Timed out waiting for WebSocket traffic');
+    return poll();
+  };
+  await poll();
 }
 
 export interface WsFixture {

@@ -67,7 +67,11 @@ const TEST_HOST = '127.0.0.1';
 async function waitForServer(baseUrl: string, timeoutMs = 2_000): Promise<void> {
   const startedAt = Date.now();
 
-  while (Date.now() - startedAt < timeoutMs) {
+  // Polling is inherently sequential: try, wait, try again.
+  const poll = async (): Promise<void> => {
+    if (Date.now() - startedAt >= timeoutMs) {
+      throw new Error(`Timed out waiting for test server at ${baseUrl}`);
+    }
     try {
       await fetch(baseUrl, { method: 'HEAD' });
       // Any successful fetch (no exception) means the socket is accepting connections.
@@ -77,9 +81,9 @@ async function waitForServer(baseUrl: string, timeoutMs = 2_000): Promise<void> 
     }
 
     await new Promise((resolve) => setTimeout(resolve, 25));
-  }
-
-  throw new Error(`Timed out waiting for test server at ${baseUrl}`);
+    return poll();
+  };
+  await poll();
 }
 
 /**
@@ -120,13 +124,14 @@ export async function startTestServer(): Promise<{ port: number; baseUrl: string
 /**
  * Stop the test server
  */
-export async function stopTestServer(): Promise<void> {
+export function stopTestServer(): Promise<void> {
   if (testServer) {
-    testServer.stop();
+    void testServer.stop();
     testServer = null;
     testPort = 0;
     console.log('✅ Test server stopped');
   }
+  return Promise.resolve();
 }
 
 /**

@@ -16,7 +16,7 @@ interface Env {
   BACKEND_API_HOST?: string;
 }
 
-export const onRequest: PagesFunction<Env> = async context => {
+export const onRequest: PagesFunction<Env> = context => {
   const url = new URL(context.request.url);
   const hostname = url.hostname;
 
@@ -38,5 +38,5 @@ export const onRequest: PagesFunction<Env> = async context => {
   const redirectUrl = new URL(`${protocol}://${apiHost}/api/v1/ai/mcp`);
   redirectUrl.search = url.search;
 
-  return Response.redirect(redirectUrl.toString(), 302);
+  return Promise.resolve(Response.redirect(redirectUrl.toString(), 302));
 };

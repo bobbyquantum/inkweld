@@ -148,7 +148,7 @@ describe('CanvasRasterizerService', () => {
     expect(blob).toBeInstanceOf(Blob);
     expect(blob?.type).toBe('image/jpeg');
     expect(toDataURL).toHaveBeenCalled();
-    expect(document.body.children.length).toBe(before);
+    expect(document.body.children).toHaveLength(before);
   });
 
   it('asks the browser for every font family the canvas text uses', async () => {

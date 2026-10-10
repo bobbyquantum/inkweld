@@ -482,17 +482,23 @@ export class AdminSettingsComponent implements OnInit {
     }
   }
 
-  async toggleRequirePolicyAcceptance(enabled: boolean): Promise<void> {
-    if (
-      await this.saveStringConfig(
-        'REQUIRE_POLICY_ACCEPTANCE',
-        enabled ? 'true' : 'false'
-      )
-    ) {
-      this.requirePolicyAcceptance.set(enabled);
+  /** Require signed-in users to accept the current legal documents. */
+  async enableRequirePolicyAcceptance(): Promise<void> {
+    if (await this.saveStringConfig('REQUIRE_POLICY_ACCEPTANCE', 'true')) {
+      this.requirePolicyAcceptance.set(true);
       this.systemConfigService.refreshSystemFeatures();
     } else {
-      this.requirePolicyAcceptance.set(!enabled);
+      this.requirePolicyAcceptance.set(false);
+    }
+  }
+
+  /** Stop asking users to accept the legal documents. */
+  async disableRequirePolicyAcceptance(): Promise<void> {
+    if (await this.saveStringConfig('REQUIRE_POLICY_ACCEPTANCE', 'false')) {
+      this.requirePolicyAcceptance.set(false);
+      this.systemConfigService.refreshSystemFeatures();
+    } else {
+      this.requirePolicyAcceptance.set(true);
     }
   }
 

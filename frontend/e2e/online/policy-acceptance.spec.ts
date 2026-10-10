@@ -73,6 +73,9 @@ async function openApp(browser: Browser): Promise<Page> {
 }
 
 test.describe('Policy acceptance (REQUIRE_POLICY_ACCEPTANCE)', () => {
+  // Skipped outside the online config: the instance-wide flag would break the
+  // parallel specs sharing the default backend, so this suite needs a private
+  // Bun backend, which only that config can start.
   test.skip(
     !canStartIsolatedBackend(),
     'Needs a private Bun backend; only the online config can start one'
