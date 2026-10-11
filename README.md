@@ -70,12 +70,12 @@ Then open `http://localhost:8333` in your browser.
 | Version history & snapshots | ✅ local | ✅ synced | ✅ synced |
 | Media library & covers | ✅ | ✅ | ✅ |
 | Publishing (PDF, EPUB, HTML…) | ✅ | ✅ | ✅ |
-| AI features, MCP API keys | ⬜ | ⬜ | ✅ (if the server enables them) |
+| AI features, MCP for AI assistants | ⬜ | ⬜ | ✅ (if the server enables them) |
 | Backup | Export archive | Continuous mirror + export archive | Server + export archive |
 | Move to another mode later | ✅ | ✅ | ✅ |
 | Cost to run | Free | Free (your storage quota) | Self-host, or a hosted server |
 
-📋 **[Full feature roadmap →](#feature-roadmap)**
+📋 **[Full feature list →](#feature-list)** · 🗺️ **[Roadmap →](ROADMAP.md)**
 
 ---
 
@@ -99,193 +99,24 @@ The Inkweld Android app is in closed testing on Google Play, and it needs tester
 
 ---
 
-## Feature Roadmap
+## Feature List
 
-**Status:** ✅ Done | 🔨 In Progress | ⬜ Planned  
-**Priority:** 🔥 High | 🟡 Medium | 🟢 Nice to have
+Everything below ships in 1.0. Planned features live in the [roadmap](ROADMAP.md).
 
-### Project Management
-| Status | Priority | Feature | Notes |
-|--------|----------|---------|-------|
-| ✅ | 🔥 | Home screen with project cards | Browse and manage all projects |
-| ✅ | 🔥 | Drag-and-drop project tree | Organize documents, folders, elements |
-| ✅ | 🔥 | Folder hierarchy | Unlimited nesting depth |
-| ✅ | 🔥 | Project archives (import/export) | Backup and restore entire projects |
-| ✅ | 🟡 | Project renaming | |
-| ✅ | 🟡 | Context menus | Right-click actions on tree items |
-| ✅ | 🟡 | Home screen search | Filter projects by name |
-| ✅ | 🟡 | Project templates | Start new projects from templates |
-| ✅ | 🟢 | Project duplication | Export & re-import with new name |
-
-### Search & Navigation
-| Status | Priority | Feature | Notes |
-|--------|----------|---------|-------|
-| ✅ | 🔥 | Quick file open (Ctrl/Cmd + P) | |
-| ✅ | 🔥 | Find in document (Ctrl/Cmd + F) | |
-| ✅ | 🔥 | Mobile-responsive design | |
-| ✅ | 🔥 | Project-wide search (Ctrl/Cmd + Shift + F) | Full-text search across all documents |
-| ✅ | 🔥 | Find and replace in document | |
-| ✅ | 🟡 | Tag filtering in search | Filter search results by tags, element types, relationships, and worldbuilding schemas |
-| ✅ | 🟡 | Browse elements by tag | Project search browse mode filters by tag; open from the Tags settings tab or the search dialog |
-| ✅ | 🟡 | Breadcrumbs | Folder path shown above each editor (document, folder, worldbuilding, canvas, relationship chart, timeline); toggle in user settings |
-| ✅ | 🟡 | Pinning | Pin elements to Home tab and sidebar for quick access |
-| ✅ | 🟢 | Recent files list | Tracks last 10 files per project |
-
-### Writing Tools
-| Status | Priority | Feature | Notes |
-|--------|----------|---------|-------|
-| ✅ | 🔥 | Full keyboard shortcut support | |
-| ✅ | 🔥 | Image insertion | |
-| ✅ | 🟡 | Zen mode (distraction-free) | |
-| ✅ | 🟡 | Document snapshots | Version history for documents |
-| ✅ | 🟡 | Comments/Annotations | Inline feedback with threaded replies and resolution |
-| ✅ | 🟢 | Writing statistics | Daily word counts and session stats across projects, shown on your profile |
-| ✅ | 🔥 | Scenes & notes | Prose documents are created as Scenes (manuscript, with synopsis/status/word target/story date) or Notes (research, front matter); POV and location as relationships |
-| ✅ | 🔥 | Corkboard & outline | Open a folder to see its scenes as index cards (drag to reorder, edit synopsis and status in place) or as an outline table with word counts and totals |
-
-### Worldbuilding
-| Status | Priority | Feature | Notes |
-|--------|----------|---------|-------|
-| ✅ | 🔥 | Custom element templates | |
-| ✅ | 🔥 | Relationships with backlinks | Bidirectional connections |
-| ✅ | 🔥 | Element references (@mentions) | |
-| ✅ | 🟡 | Tags on documents & elements | Categorize and organize content |
-| ✅ | 🟡 | Tags on images | Extend tagging to media library |
-| ✅ | 🟡 | Custom calendar systems | Fantasy calendars with custom months/years |
-| ✅ | 🟡 | Random generators | Names, places and writing prompts; the worldbuilding templates ship five, bound to Character, Settlement, Building and Geographic Feature for a dice by the name field |
-| ⬜ | 🟢 | Language/Conlang tools | Vocabulary lists, alphabets |
-| ⬜ | 🟢 | Secrets/GM notes | Per-element spoiler hiding from some collaborators |
-| ⬜ | 🟢 | Reference images panel | Side-by-side images while writing |
-
-### Media Library
-| Status | Priority | Feature | Notes |
-|--------|----------|---------|-------|
-| ✅ | 🔥 | Local-first image storage | Saved to IndexedDB, syncs to server |
-| ✅ | 🔥 | Inline image embedding | Paste/drop images into documents |
-| ✅ | 🟡 | Cover images | Project and element covers |
-| ✅ | 🟡 | Category filtering | Filter by generated, inline, published, etc. |
-| ✅ | 🟡 | Server sync | Bi-directional sync when connected |
-| ✅ | 🟡 | Image search/filtering | Search within media library |
-| ⬜ | 🟢 | Bulk image operations | Multi-select, batch delete |
-
-### Collaboration
-| Status | Priority | Feature | Notes |
-|--------|----------|---------|-------|
-| ✅ | 🔥 | Real-time co-editing | Multiple users editing same document |
-| ✅ | 🔥 | CRDT conflict resolution | Yjs-based, no manual merge needed |
-| ✅ | 🔥 | Presence indicators | See who's viewing/editing |
-| ✅ | 🔥 | Collaborative cursors | See other users' cursor positions |
-| ✅ | 🟡 | Project sharing | Invite collaborators with role-based access |
-| ✅ | 🟡 | Local-first architecture | Works offline, syncs when connected |
-| ✅ | 🟡 | Migrate local to server | Start offline, add sync server later |
-| ✅ | 🟢 | Activity feed | Per-project feed of recent changes by collaborators |
-
-
-### Relationship Charts
-| Status | Priority | Feature | Notes |
-|--------|----------|---------|-------|
-| ✅ | 🔥 | Relationship chart element | New element type for visualizing connections |
-| ✅ | 🔥 | Graph layout | Force-directed network visualization |
-| ✅ | 🟡 | Hierarchy layout | Tree-style parent/child visualization |
-| ✅ | 🟡 | Relationship type filtering | Choose which relationship types to include |
-| ✅ | 🟡 | Element type filtering | Choose which element types to include |
-| ✅ | 🟢 | Export chart as image | PNG/SVG export |
-
-### Canvas
-
-| Status | Priority | Feature | Notes |
-|--------|----------|---------|-------|
-| ✅ | 🔥 | Canvas element type | Infinite freeform canvas with layers |
-| ✅ | 🔥 | Drawing tools | Freehand draw, line, shapes (rect, ellipse, arrow), text, pin |
-| ✅ | 🔥 | Image placement | Add and position images on the canvas |
-| ✅ | 🟡 | Layers | Add, rename, duplicate, delete; visibility & lock toggles |
-| ✅ | 🟡 | Pan and zoom | Navigate large canvases smoothly |
-| ✅ | 🟡 | Export as PNG | Standard and high-resolution export |
-| ✅ | 🟡 | Shape fills & stroke palette | Per-object color editing with the full color picker; gradient fills for shapes |
-| ✅ | 🟢 | Pin-to-element linking | Connect canvas pins to worldbuilding elements |
-| ✅ | 🟡 | Canvas size & crop frames | Page bounds plus named crop frames; per-frame PNG/SVG export and set-as-project-cover |
-| ✅ | 🟡 | Region pen tool | Click-to-place vertices, close the loop into a polygon — trace map regions |
-| ✅ | 🟢 | Collapsible sidebar sections | Layers, Objects, Pins and Frames each collapse independently; state remembered |
-| ✅ | 🟢 | Unified colour chooser | Canvas uses the worldbuilding appearance picker: swatches, full picker, gradient mode |
-| ✅ | 🟢 | Canvas guided tour | Auto-offered on first open; replay from the sidebar help button |
-| ✅ | 🟡 | Phone layout & touch | Sidebar drawer on narrow screens, long-press context menu, tap-to-name linked regions, finger-sized handles |
-| ⬜ | 🟢 | SVG import | Place an SVG as an image; later, import Inkscape files as editable objects |
-
-### Interactive Maps
-
-| Status | Priority | Feature | Notes |
-|--------|----------|---------|-------|
-| ✅ | 🔥 | Map background images | Flag any canvas image as a non-editable backdrop; multiple per layer for tiling large maps |
-| ✅ | 🔥 | Location pins | Double-click (or double-tap) a linked pin to open its element |
-| ✅ | 🔥 | Pin-to-element linking | `canvas-pin` relationship type; links cleaned up when elements are deleted |
-| ✅ | 🟡 | Multiple map layers | Per-layer backgrounds blended with layer visibility/opacity; "Map" preset in the new-element dialog |
-| ✅ | 🟡 | Linked regions | Shapes linked to elements: click-to-open areas; discontinuous regions via shared links |
-| ✅ | 🟡 | Pins as annotations | Pins live on an always-on overlay, independent of drawing layers |
-| ⬜ | 🟢 | AI map restyling | Rough-colour a layer, restyle it via AI image generation (political, terrain, parchment…) |
-
-### Timelines
-| Status | Priority | Feature | Notes |
-|--------|----------|---------|-------|
-| ✅ | 🔥 | Timeline element type | New element for chronological visualization |
-| ✅ | 🔥 | Time systems | Define custom calendars and date formats (see Custom calendar systems) |
-| ✅ | 🔥 | Timeline fields on elements | Add dates to worldbuilding elements |
-| ✅ | 🔥 | Auto-build from elements | Generate timeline from element date fields |
-| ✅ | 🟡 | Events system | Add events directly to timeline with element references |
-| ✅ | 🟡 | Multiple timelines | Parallel timelines for different storylines/regions |
-| ✅ | 🟢 | Era/period grouping | Visual spans for ages, reigns, wars |
-
-### Publishing
-| Status | Priority | Feature | Notes |
-|--------|----------|---------|-------|
-| ✅ | 🔥 | EPUB export | Industry-standard e-book format |
-| ✅ | 🔥 | PDF export (via Typst) | Print-ready documents |
-| ✅ | 🔥 | Markdown export | Plain text with formatting |
-| ✅ | 🔥 | HTML export | Single-file web output |
-| ✅ | 🟡 | Publish plans | Save export configurations for reuse; a folder in a plan publishes its contents in tree order, so reordering scenes needs no plan changes |
-| ✅ | 🟡 | Typography customization | Per-plan style editor with 6 presets and full per-section overrides (font, size, weight, alignment, color, indent, page breaks) |
-| ⬜ | 🟢 | Presentation mode | Read-only, docs-site-like rendering of a whole project |
-
-### Auth & Security
-| Status | Priority | Feature | Notes |
-|--------|----------|---------|-------|
-| ✅ | 🔥 | Password auth | Strong client-side requirements. Disabled by default in v0.2+ (passwordless-first per NIST SP 800-63B Rev. 4) — set `PASSWORD_LOGIN_ENABLED=true` to opt in |
-| ✅ | 🔥 | Passkeys (WebAuthn) | Passwordless sign-in with device biometrics or hardware security keys |
-| ✅ | 🔥 | Magic-link passkey recovery | Email-based recovery to enrol a new passkey if the original device is lost (requires `EMAIL_RECOVERY_ENABLED=true` + SMTP) |
-| ✅ | 🔥 | CSRF protection | |
-| ✅ | 🟡 | User approval system | |
-| ✅ | 🔥 | Password reset via email | Forgot/reset flow with emailed token links (only when password login is enabled) |
-| ✅ | 🟡 | GitHub OAuth | Optional GitHub sign-in |
-
-### DevOps & Admin
-| Status | Priority | Feature | Notes |
-|--------|----------|---------|-------|
-| ✅ | 🔥 | Docker with multi-stage builds | |
-| ✅ | 🔥 | Docker Compose | |
-| ✅ | 🔥 | CI/CD with automated testing | |
-| ✅ | 🟡 | Auto-publish to GHCR | |
-| ✅ | 🟡 | Admin dashboard | User management, AI settings, announcements |
-| ✅ | 🟡 | Production logging | |
-| ⬜ | 🟢 | Monitoring setup | |
-
-### Documentation
-| Status | Priority | Item | Notes |
-|--------|----------|------|-------|
-| ✅ | 🟡 | Features marketing page | `/features` landing page for website |
-| ✅ | 🟡 | Import/archive docs | User guide for exporting, importing, and backing up projects |
-| ✅ | 🟢 | Desktop app docs | Electron app installation guide |
-
-### Optional AI Features
-> All AI features require admin configuration and are disabled by default. See [AI Stance](#data-security--ai-stance).
-
-| Status | Priority | Feature | Notes |
-|--------|----------|---------|-------|
-| ✅ | 🟡 | AI image generation | OpenAI, OpenRouter, Fal.ai, Stable Diffusion |
-| ✅ | 🟡 | Image model profiles | Admin-configured presets per provider/model |
-| ✅ | 🟡 | Worldbuilding context for images | Include element data in generation prompts |
-| ✅ | 🟡 | Reference images | Use existing images as style/composition reference |
-| ✅ | 🟡 | Prompt optimization | AI-powered prompt rewriting for better results |
-| ✅ | 🟡 | AI grammar/lint suggestions | Per-paragraph grammar/style suggestions with accept/reject (OpenAI) |
-| ⬜ | 🟢 | AI writing assistance | Suggestions, continuations, rephrasing |
+- **Projects:** home screen with covers, search, sorting and pinning; drag-and-drop project tree with unlimited folder nesting; project templates; rename; archives (`.inkweld.zip`) to back up, restore or duplicate a project.
+- **Writing:** rich-text editor with tables, images, links and keyboard shortcuts; scenes and notes with synopsis, status and word targets; corkboard and outline views of a folder; find and replace; zen mode; snapshots (named and automatic); threaded comments; writing statistics.
+- **Search and navigation:** quick open (Ctrl/Cmd+P), find in document (Ctrl/Cmd+F), project-wide full-text search (Ctrl/Cmd+Shift+F) with tag, type, relationship and template filters; breadcrumbs; pinned items; recent files; mobile-friendly layout.
+- **Worldbuilding:** templates for characters, places, factions and more, edited in a live template editor, with per-element customisation; relationships with backlinks; @mentions in prose; tags; custom calendars; random name, place and prompt generators.
+- **Media library:** images stored on the device and synced to the server; paste or drop images into documents; project and element covers; filtering, search and tags.
+- **Collaboration:** real-time co-editing with presence and cursors; sharing with viewer and editor roles; offline-first with sync on reconnect; move a project from browser-only to a server later; activity feed.
+- **Relationship charts:** graph and hierarchy layouts, filtered by relationship and element type, exported as PNG or SVG.
+- **Canvas and maps:** layered freeform canvas with drawing tools, shapes, text, images and gradient fills; pan, zoom and touch support; size and crop frames exported as PNG/SVG or used as the project cover; interactive maps with background images, pins and regions linked to elements.
+- **Timelines:** custom time systems, eras, events, and timelines built automatically from element dates.
+- **Publishing:** publish plans for EPUB, PDF (Typst), Markdown, HTML and a multi-page website, with typography presets and per-section style overrides.
+- **Accounts and security:** passkeys by default, with optional magic-link recovery, passwords (with email reset) and GitHub sign-in; user approval; CSRF protection and a Content-Security-Policy.
+- **Administration:** admin dashboard for users, settings, AI providers and announcements; custom branding and legal pages; per-user storage quotas; production logging.
+- **Self-hosting:** Docker image and Compose, native Bun server, or Cloudflare Workers; Home Assistant app; Android app; Electron desktop build.
+- **Optional AI features** (configured by an admin, off by default; see [AI stance](#data-security--ai-stance)): image generation (OpenAI, OpenRouter, Fal.ai, Stable Diffusion) with model profiles, worldbuilding context and reference images; prompt optimisation; grammar and style suggestions; an MCP server for AI assistants.
 
 ---
 
@@ -362,7 +193,7 @@ The main logo is not AI, this was hand-drawn in Inkscape as SVG.
 
 ## Contributing
 
-Check out the [Status](#status) and [Feature Roadmap](#feature-roadmap) for areas that need work.
+Check out the [Status](#status) and the [Roadmap](ROADMAP.md) for areas that need work.
 
 - 🐛 [Report bugs](https://github.com/bobbyquantum/inkweld/issues)
 - 💡 [Request features](https://github.com/bobbyquantum/inkweld/discussions)
