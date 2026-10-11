@@ -9,6 +9,7 @@ import {
   SharePermission,
   type UpdatePublishedFileRequest,
 } from '../../models/published-file';
+import { toReadableBlob } from '../../utils/readable-blob';
 import { AuthTokenService } from '../auth/auth-token.service';
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
@@ -540,7 +541,8 @@ export class PublishedFilesService {
     try {
       const [username, slug] = projectKey.split('/');
       const formData = new FormData();
-      formData.append('file', blob, request.filename);
+      // Safari can send an IndexedDB Blob as an empty body; see toReadableBlob.
+      formData.append('file', await toReadableBlob(blob), request.filename);
       formData.append('metadata', JSON.stringify(toWireRequest(request)));
 
       const response = await fetch(
@@ -575,7 +577,9 @@ export class PublishedFilesService {
       error?: string;
       message?: string;
     } | null;
-    const detail = body?.error ?? body?.message ?? response.statusText;
+    // Thrown domain errors carry the detail in `message` ("error" is just the
+    // status name); hand-written route replies only set `error`.
+    const detail = body?.message ?? body?.error ?? response.statusText;
     return detail ? `${response.status} ${detail}` : `${response.status}`;
   }
 

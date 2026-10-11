@@ -191,6 +191,34 @@ describe('Media Routes', () => {
     expect(response.status).toBe(413);
   });
 
+  // Safari has sent uploads with a multipart header but a zero-byte body when
+  // it could not read the stored Blob.
+  it('says so when the upload body is empty', async () => {
+    const { response, json } = await client.request(`/api/v1/media/${username}/${slug}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'multipart/form-data; boundary=----WebKitFormBoundaryEmpty' },
+      body: '',
+    });
+
+    expect(response.status).toBe(400);
+    const data = (await json()) as { message: string };
+    expect(data.message).toContain('The upload arrived empty');
+  });
+
+  it('rejects a zero-byte file', async () => {
+    const formData = new FormData();
+    formData.append('file', new Blob([], { type: 'image/png' }), 'empty.png');
+
+    const { response, json } = await client.request(`/api/v1/media/${username}/${slug}`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    expect(response.status).toBe(400);
+    const data = (await json()) as { message: string };
+    expect(data.message).toContain('The uploaded file is empty (0 bytes)');
+  });
+
   it('should reject unsupported file types', async () => {
     const formData = new FormData();
     const blob = new Blob(['fake-exe-content'], { type: 'application/x-msdownload' });

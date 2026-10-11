@@ -14,6 +14,10 @@
  * character.
  */
 
+import type { Context, MiddlewareHandler } from 'hono';
+import { BadRequestError } from '../errors';
+import { logger } from '../services/logger.service';
+
 /** Project media: images, audio, video, PDF/EPUB. */
 export const MAX_MEDIA_UPLOAD_BYTES = 100 * 1024 * 1024;
 /** Avatars and project covers; imageService.validateImage re-checks at 10 MB after decode. */
@@ -24,6 +28,57 @@ export const MAX_PUBLISHED_FILE_UPLOAD_BYTES = 100 * 1024 * 1024;
 export const MULTIPART_OVERHEAD_BYTES = 64 * 1024;
 
 const MAX_FILENAME_LENGTH = 200;
+
+/**
+ * Reject an upload whose body is empty with a message that says so.
+ *
+ * Safari has sent uploads with a multipart `Content-Type` but a zero-byte body
+ * (`Content-Length: 0`) when it could not read the Blob it was given. The
+ * route's OpenAPI validator then answered with a multipart parse error, which
+ * looked like a bug in the request rather than a file the browser never sent.
+ * Mount this ahead of the validator, next to `bodyLimit`.
+ */
+export const rejectEmptyUpload: MiddlewareHandler = async (c, next) => {
+  const contentLength = c.req.header('content-length');
+  // Only uploads: these paths also serve GET and DELETE, which have no body.
+  if ((c.req.method === 'POST' || c.req.method === 'PUT') && contentLength === '0') {
+    logEmptyUpload(c, 'request body was empty', contentLength);
+    throw new BadRequestError(
+      'The upload arrived empty: no file data reached the server. The browser may not have been able to read the file; add it again and retry.'
+    );
+  }
+  await next();
+};
+
+/**
+ * Return the uploaded file, or throw a 400 that says why there is none. A
+ * zero-byte file gets its own message for the same reason as
+ * {@link rejectEmptyUpload}.
+ */
+export function requireUploadedFile(
+  c: Context,
+  value: unknown,
+  missingMessage = 'No file provided'
+): File {
+  if (!(value instanceof File)) {
+    throw new BadRequestError(missingMessage);
+  }
+  if (value.size === 0) {
+    logEmptyUpload(c, 'uploaded file was 0 bytes', c.req.header('content-length'));
+    throw new BadRequestError(
+      'The uploaded file is empty (0 bytes). The browser may not have been able to read the file; add it again and retry.'
+    );
+  }
+  return value;
+}
+
+function logEmptyUpload(c: Context, reason: string, contentLength: string | undefined): void {
+  logger.warn('Upload', `Rejected upload: ${reason}`, {
+    path: c.req.path,
+    contentLength: contentLength ?? null,
+    userAgent: c.req.header('user-agent') ?? null,
+  });
+}
 
 /**
  * Reduce a client-supplied filename to a single safe path segment, or return

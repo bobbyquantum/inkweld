@@ -3,6 +3,7 @@ import { inject, Injectable, signal } from '@angular/core';
 import { forEachConcurrent, forEachSequential } from '@inkweld/async';
 import { StorageContextService } from '@services/core/storage-context.service';
 import { StorageUsageService } from '@services/user/storage-usage.service';
+import { toReadableBlob, UnreadableBlobError } from '@utils/readable-blob';
 import { firstValueFrom } from 'rxjs';
 
 import { LocalStorageService, type MediaInfo } from './local-storage.service';
@@ -428,10 +429,12 @@ export class MediaSyncService {
     }));
 
     try {
-      const blob = await this.localStorage.getMedia(projectKey, mediaId);
-      if (!blob) {
+      const stored = await this.localStorage.getMedia(projectKey, mediaId);
+      if (!stored) {
         throw new Error(`Media not found: ${mediaId}`);
       }
+      // Safari can send an IndexedDB Blob as an empty body; see toReadableBlob.
+      const blob = await toReadableBlob(stored);
 
       // Use the media upload endpoint
       const { username, slug } = this.parseProjectKey(projectKey);
@@ -471,6 +474,12 @@ export class MediaSyncService {
           Date.now() + QUOTA_UPLOAD_PAUSE_MS
         );
       }
+      let message = `Failed to upload ${mediaId}`;
+      if (quotaExceeded) {
+        message = `Sync capacity is full; ${mediaId} was not uploaded`;
+      } else if (error instanceof UnreadableBlobError) {
+        message = `The local copy of ${mediaId} can no longer be read; add the file again`;
+      }
       // Revert status
       state.update(s => ({
         ...s,
@@ -478,9 +487,7 @@ export class MediaSyncService {
           item.mediaId === mediaId ? { ...item, status: 'local-only' } : item
         ),
         quotaExceeded: quotaExceeded || s.quotaExceeded,
-        error: quotaExceeded
-          ? `Sync capacity is full; ${mediaId} was not uploaded`
-          : `Failed to upload ${mediaId}`,
+        error: message,
       }));
       throw error;
     }

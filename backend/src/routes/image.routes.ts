@@ -1,6 +1,11 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi';
 import { bodyLimit } from 'hono/body-limit';
-import { MAX_IMAGE_UPLOAD_BYTES, MULTIPART_OVERHEAD_BYTES } from '../utils/upload';
+import {
+  MAX_IMAGE_UPLOAD_BYTES,
+  MULTIPART_OVERHEAD_BYTES,
+  rejectEmptyUpload,
+  requireUploadedFile,
+} from '../utils/upload';
 import { requireAuth } from '../middleware/auth';
 import { imageService } from '../services/image.service';
 import { getStorageService } from '../services/storage.service';
@@ -13,10 +18,11 @@ import { ProjectPathParamsSchema, QuotaExceededSchema } from '../schemas/common.
 
 const imageRoutes = new OpenAPIHono<AppContext>();
 
-// Reject oversized cover uploads with 413 before parseBody() buffers them;
+// Reject empty cover uploads (400) and oversized ones (413) before parseBody() buffers them;
 // imageService.validateImage re-checks the decoded image afterwards.
 imageRoutes.use(
   '/:username/:slug/cover',
+  rejectEmptyUpload,
   bodyLimit({ maxSize: MAX_IMAGE_UPLOAD_BYTES + MULTIPART_OVERHEAD_BYTES })
 );
 
@@ -112,11 +118,7 @@ imageRoutes.openapi(uploadCoverRoute, async (c) => {
 
   // Get the uploaded file
   const body = await c.req.parseBody();
-  const file = body['cover'] as File;
-
-  if (!file) {
-    throw new BadRequestError('No file uploaded');
-  }
+  const file = requireUploadedFile(c, body['cover'], 'No file uploaded');
 
   // Verify project ownership
   const project = await projectService.findByUsernameAndSlug(db, username, slug);

@@ -5,6 +5,8 @@ import { requireAuth } from '../middleware/auth';
 import {
   MAX_MEDIA_UPLOAD_BYTES,
   MULTIPART_OVERHEAD_BYTES,
+  rejectEmptyUpload,
+  requireUploadedFile,
   sanitizeUploadFilename,
 } from '../utils/upload';
 import { getStorageService } from '../services/storage.service';
@@ -19,9 +21,10 @@ const mediaRoutes = new OpenAPIHono<AppContext>();
 
 // Apply auth to all routes - media is project-specific
 mediaRoutes.use('/:username/:slug/*', requireAuth);
-// Reject oversized uploads with 413 before parseBody() buffers them.
+// Reject empty uploads (400) and oversized ones (413) before parseBody() buffers them.
 mediaRoutes.use(
   '/:username/:slug',
+  rejectEmptyUpload,
   bodyLimit({ maxSize: MAX_MEDIA_UPLOAD_BYTES + MULTIPART_OVERHEAD_BYTES })
 );
 
@@ -232,11 +235,7 @@ mediaRoutes.openapi(uploadMediaRoute, async (c) => {
 
   // Get the uploaded file
   const body = await c.req.parseBody();
-  const file = body['file'] || body['image'];
-
-  if (!file || !(file instanceof File)) {
-    throw new BadRequestError('No file provided');
-  }
+  const file = requireUploadedFile(c, body['file'] || body['image']);
 
   // Validate file type
   const allowedTypes = [
