@@ -474,6 +474,12 @@ export class MediaSyncService {
           Date.now() + QUOTA_UPLOAD_PAUSE_MS
         );
       }
+      let message = `Failed to upload ${mediaId}`;
+      if (quotaExceeded) {
+        message = `Sync capacity is full; ${mediaId} was not uploaded`;
+      } else if (error instanceof UnreadableBlobError) {
+        message = `The local copy of ${mediaId} can no longer be read; add the file again`;
+      }
       // Revert status
       state.update(s => ({
         ...s,
@@ -481,11 +487,7 @@ export class MediaSyncService {
           item.mediaId === mediaId ? { ...item, status: 'local-only' } : item
         ),
         quotaExceeded: quotaExceeded || s.quotaExceeded,
-        error: quotaExceeded
-          ? `Sync capacity is full; ${mediaId} was not uploaded`
-          : error instanceof UnreadableBlobError
-            ? `The local copy of ${mediaId} can no longer be read; add the file again`
-            : `Failed to upload ${mediaId}`,
+        error: message,
       }));
       throw error;
     }
