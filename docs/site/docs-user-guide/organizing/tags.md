@@ -37,8 +37,8 @@ Each tag has:
 Tags are managed in Project Settings:
 
 1. Open your project
-2. Click the **Settings** button in the navigator sidebar
-3. Select the **Tags** sub-tab
+2. Click **Project Settings** at the bottom of the navigator sidebar
+3. Select the **Tags** section
 
 <ThemedImage
   src="/img/generated/tags-tab"
@@ -88,13 +88,13 @@ Deleting a tag removes it from all elements. This cannot be undone.
 
 ## Applying Tags to Elements
 
-### From the Editor Toolbar
+### From the Editor Status Bar
 
-Any document or element can have tags:
+Any document can have tags:
 
-1. Open the document or element
-2. Click the **Tags** button (🏷️) in the editor toolbar
-3. Select tags to apply, or type to search
+1. Open the document
+2. Click the small **tag** icon in the status bar at the bottom of the editor, next to the word count (its tooltip says **Manage tags**). Tags already on the document show as coloured icons there
+3. In the **Tags for …** dialog, select tags to apply, or type to search
 4. Tags are saved automatically
 
 ### From the Identity Panel (Worldbuilding)

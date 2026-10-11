@@ -32,12 +32,12 @@ AI Client (Claude, etc.)
 
 ## MCP Endpoint
 
-| Property             | Value                                          |
-| -------------------- | ---------------------------------------------- |
-| **URL**              | `/api/v1/ai/mcp`                               |
-| **Transport**        | Streamable HTTP (stateless, POST for JSON-RPC) |
-| **Protocol Version** | `2026-07-28`                                   |
-| **Auth**             | Bearer token (OAuth JWT)                       |
+| Property             | Value                                                      |
+| -------------------- | ---------------------------------------------------------- |
+| **URL**              | `/api/v1/ai/mcp`                                           |
+| **Transport**        | Streamable HTTP (stateless, POST for JSON-RPC)             |
+| **Protocol Version** | `2026-07-28`                                               |
+| **Auth**             | Bearer token (OAuth JWT). There are no long-lived API keys |
 
 The server implements the **stateless** MCP protocol (`2026-07-28`): modern
 clients have no `initialize` handshake and no `Mcp-Session-Id` header. Every
@@ -76,20 +76,23 @@ statelessly.
 
 #### Write Operations
 
-| Tool                      | Description                                     |
-| ------------------------- | ----------------------------------------------- |
-| `create_element`          | Create new story elements                       |
-| `update_element`          | Modify existing elements                        |
-| `delete_element`          | Remove elements from the tree                   |
-| `move_elements`           | Move elements to a new parent                   |
-| `reorder_element`         | Change element position within siblings         |
-| `sort_elements`           | Sort children alphabetically                    |
-| `update_worldbuilding`    | Update worldbuilding data for an element        |
-| `update_document_content` | Replace prose content of a document element     |
-| `create_relationship`     | Create relationships between elements           |
-| `delete_relationship`     | Remove a relationship                           |
-| `tag_element`             | Add, remove, or set tags on an element          |
-| `create_snapshot`         | Create a snapshot of a document's current state |
+| Tool                      | Description                                                         |
+| ------------------------- | ------------------------------------------------------------------- |
+| `create_element`          | Create new story elements                                           |
+| `update_element`          | Modify existing elements                                            |
+| `delete_element`          | Remove elements from the tree                                       |
+| `replace_all_elements`    | Replace the whole element tree in one call (destructive, see below) |
+| `move_elements`           | Move elements to a new parent                                       |
+| `reorder_element`         | Change element position within siblings                             |
+| `sort_elements`           | Sort children alphabetically                                        |
+| `update_worldbuilding`    | Update worldbuilding data for an element                            |
+| `update_document_content` | Replace prose content of a document element                         |
+| `create_relationship`     | Create relationships between elements                               |
+| `delete_relationship`     | Remove a relationship                                               |
+| `tag_element`             | Add, remove, or set tags on an element                              |
+| `create_snapshot`         | Create a snapshot of a document's current state                     |
+
+`replace_all_elements` (requires `write:elements`) deletes every existing element and replaces them with the supplied list, so it is meant for bulk restructuring or initial setup, not routine edits. The elements must be in positional order: children immediately follow their parent and each has `level = parent level + 1`. The tool normalizes `order` values and `parentId`s from that ordering. Prefer `create_element`, `move_elements` and `reorder_element` when you only need to change part of the tree.
 
 When creating a worldbuilding entry via `create_element`, pass `schemaId` along with `type: "WORLDBUILDING"` so the element is template-bound (for example, `character-v1` or `location-v1`). If `schemaId` is omitted, the element is treated as generic worldbuilding.
 
@@ -217,11 +220,13 @@ The OAuth consent page and the Authorized Apps management tab both use the share
 
 ### Required Environment Variables
 
-| Variable          | Purpose                                              |
-| ----------------- | ---------------------------------------------------- |
-| `DATABASE_KEY`    | JWT signing secret (min 32 chars)                    |
-| `BASE_URL`        | Server base URL (issuer for JWTs)                    |
-| `ALLOWED_ORIGINS` | Comma-separated frontend URLs (for consent redirect) |
+| Variable          | Purpose                                                                                                                                                                                                                                                                           |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_KEY`    | JWT signing secret (min 32 chars). Falls back to `SESSION_SECRET` when unset, so most deployments only set `SESSION_SECRET`                                                                                                                                                       |
+| `BASE_URL`        | Public server URL, used as the OAuth issuer and in discovery metadata. Optional: the discovery endpoints fall back to the request's own origin, but set it explicitly behind a reverse proxy or on Cloudflare Workers, where the origin the server sees may not be the public one |
+| `ALLOWED_ORIGINS` | Comma-separated frontend URLs (the first is used for the consent page redirect)                                                                                                                                                                                                   |
+
+See the [Configuration reference](../configuration.md) for details. `MCP_ENABLED` turns MCP off entirely.
 
 ### Token Lifetimes
 

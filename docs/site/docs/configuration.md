@@ -11,7 +11,15 @@ This guide covers all configuration options for Inkweld, from essential security
 
 ## Configuration Methods
 
-Inkweld loads configuration from environment variables. You can set these using:
+Inkweld reads its configuration from environment variables. Many settings
+(authentication, email, AI, appearance, legal pages, sync capacity) can also be
+changed later in **Admin → Settings**. For those, a value saved in the admin UI
+wins over the environment variable, and the environment variable wins over the
+built-in default. Environment values are read live; they are never copied into
+the database, so removing a saved admin value falls back to the environment
+again.
+
+You can set environment variables using:
 
 ### Environment File (Recommended)
 
@@ -21,11 +29,16 @@ Create a `.env` file at the project root:
 cp .env.example .env
 ```
 
-The backend searches for `.env` in this order:
+The Bun server loads the **first** `.env` file it finds, in this order (files
+are not merged):
 
-1. `backend/.env`
-2. `.env` (project root - **recommended**)
-3. `~/.inkweld/.env` (user config directory)
+1. `.env` in the current working directory (e.g. `backend/.env` when started from `backend/`)
+2. `../.env` (the project root when started from `backend/`)
+3. The repository root `.env`
+4. `~/.inkweld/.env` (`%APPDATA%\Inkweld\.env` on Windows)
+
+Variables already set in the process environment always take precedence over
+the file.
 
 ### Docker Environment
 
@@ -43,7 +56,7 @@ docker run --env-file .env ...
 
 ### Cloudflare Workers
 
-Configure in `wrangler.toml`:
+Configure in `backend/wrangler.toml` (copy `backend/wrangler.toml.example`):
 
 ```toml
 [env.production.vars]
@@ -65,12 +78,18 @@ These settings are required for production deployments.
 
 ### SESSION_SECRET
 
-**Required** | String (32+ characters)
+**Required outside development** | String (32+ characters)
 
-The cryptographic key used to sign session cookies and encrypt sensitive data.
+The key used to sign session tokens (JWTs) and to encrypt sensitive values
+stored in the database, such as API keys saved in Admin → Settings.
+
+The server refuses to start without a secret of at least 32 characters
+whenever `NODE_ENV` is anything other than `development` or `test` (including
+`production`, `preview` or `staging`). In development it falls back to a
+public, well-known key and logs a warning — never expose such a server.
 
 ```bash
-SESSION_SECRET=your-super-secret-key-at-least-32-characters-long
+SESSION_SECRET=<run: openssl rand -hex 32>
 ```
 
 :::danger[Critical Security Setting]
@@ -84,14 +103,24 @@ SESSION_SECRET=your-super-secret-key-at-least-32-characters-long
 Generate a secure secret:
 
 ```bash
-openssl rand -base64 32
+openssl rand -hex 32
 ```
+
+### DATABASE_KEY
+
+**Optional** | String (32+ characters)
+
+Overrides `SESSION_SECRET` for both token signing and database encryption. When
+neither is set the rules above apply to whichever one is present. Most
+deployments only set `SESSION_SECRET`.
 
 ### ALLOWED_ORIGINS
 
-**Required for production** | Comma-separated URLs
+**Default:** `http://localhost:4200` | Comma-separated URLs
 
-Specifies which origins can make requests to the API (CORS).
+Specifies which origins can make requests to the API (CORS). Set it to every
+URL users open Inkweld from: it is also used as the expected origin for passkey
+sign-in, and its first entry is the fallback public URL for email links.
 
 ```bash
 # Single origin
@@ -118,22 +147,20 @@ The HTTP port the server listens on.
 PORT=8333
 ```
 
-### HOST
-
-**Default:** `0.0.0.0` | String
-
-The network interface to bind to.
-
-```bash
-HOST=0.0.0.0      # All interfaces (default)
-HOST=127.0.0.1    # Localhost only
-```
+The server always listens on all interfaces. To restrict it to localhost,
+bind the port in Docker (`-p 127.0.0.1:8333:8333`) or use a firewall.
 
 ### NODE_ENV
 
-**Default:** `development` | `development` | `production` | `preview`
+**Default:** `development` | String
 
-Controls various behaviors like logging verbosity and security settings.
+`development` and `test` (or leaving it unset) are treated as development: a
+missing `SESSION_SECRET` is allowed. Any other value (`production`, `preview`,
+`staging`, …) requires a secret.
+
+Logging is stricter: human-readable `debug` logs only appear when `NODE_ENV` is
+explicitly `development` or `test`. Anything else, including an unset
+`NODE_ENV`, logs JSON at `info`. See [Logging](./troubleshooting/logging).
 
 ```bash
 NODE_ENV=production
@@ -153,6 +180,8 @@ LOG_LEVEL=error    # Errors only
 LOG_LEVEL=none     # Disable logging
 ```
 
+See [Logging](./troubleshooting/logging) for details.
+
 **Log Output Format:**
 
 - **Development**: Human-readable, colored output to the terminal
@@ -164,26 +193,43 @@ LOG_LEVEL=none     # Disable logging
 - Automatic timing of request/response cycles
 - Structured error logging with stack traces
 
+### TRUST_PROXY
+
+**Default:** `false` | Boolean
+
+Set to `true` when Inkweld runs behind a reverse proxy (nginx, Caddy, Traefik,
+Cloudflare Tunnel) that overwrites `X-Forwarded-For`. Inkweld then uses the
+right-most `X-Forwarded-For` entry as the client IP for rate limiting and audit
+logs. Leave it `false` when clients can reach the server directly: otherwise
+anyone can pick their own IP and escape the login rate limit. Cloudflare
+Workers always use `CF-Connecting-IP` and ignore this setting.
+
+```bash
+TRUST_PROXY=true
+```
+
+### TLS_ENABLED / TLS_CERT_PATH / TLS_KEY_PATH
+
+**Default:** `false`, `./certs/cert.pem`, `./certs/key.pem` | Bun server only
+
+Serve HTTPS directly from the Bun server. If either file is missing the server
+logs a warning and starts without TLS. Most deployments terminate TLS at a
+reverse proxy instead.
+
 ---
 
 ## Database Configuration
 
-### DB_TYPE
-
-**Default:** `sqlite` | `sqlite` | `d1`
-
-The database backend to use.
-
-```bash
-DB_TYPE=sqlite    # Local SQLite (Docker, Native)
-DB_TYPE=d1        # Cloudflare D1
-```
+The Bun server always uses SQLite; Cloudflare Workers always use the D1
+database bound in `wrangler.toml`. `DB_TYPE` still appears in some example
+files but does not change anything.
 
 ### DB_PATH
 
-**Default:** `./sqlite.db` | File path
+**Default:** `<DATA_PATH>/inkweld.db` | File path
 
-Location of the SQLite database file (only used when `DB_TYPE=sqlite`).
+Location of the SQLite database file. The Docker image sets it to
+`/data/sqlite.db`.
 
 ```bash
 DB_PATH=./data/inkweld.db
@@ -196,8 +242,10 @@ DB_PATH=./data/inkweld.db
 Base directory for all data storage, including:
 
 - Per-project LevelDB instances (Yjs documents)
-- User-uploaded files (if not using R2)
-- Temporary files
+- Uploaded media, covers, avatars and published files
+- The SQLite database, unless `DB_PATH` is set
+
+The Docker image sets it to `/data/yjs`.
 
 ```bash
 DATA_PATH=/var/lib/inkweld/data
@@ -218,15 +266,24 @@ USER_APPROVAL_REQUIRED=true     # Admin approval required (default)
 USER_APPROVAL_REQUIRED=false    # Open registration
 ```
 
-### COOKIE_DOMAIN
+### REQUIRE_EMAIL
 
-**Default:** Auto-detected | String
+**Default:** `false` | Boolean
 
-The domain for session cookies. Usually not needed unless you're running multiple subdomains.
+Require an email address when registering. Needed if you want users to be able
+to recover their account by email.
 
-```bash
-COOKIE_DOMAIN=.yoursite.com
-```
+### Password rules
+
+Only apply when `PASSWORD_LOGIN_ENABLED=true`.
+
+| Variable                     | Default | Meaning                              |
+| ---------------------------- | ------- | ------------------------------------ |
+| `PASSWORD_MIN_LENGTH`        | `8`     | Minimum length                       |
+| `PASSWORD_REQUIRE_UPPERCASE` | `true`  | Require an uppercase letter          |
+| `PASSWORD_REQUIRE_LOWERCASE` | `true`  | Require a lowercase letter           |
+| `PASSWORD_REQUIRE_NUMBER`    | `true`  | Require a digit                      |
+| `PASSWORD_REQUIRE_SYMBOL`    | `true`  | Require a symbol such as `! @ # $ %` |
 
 ---
 
@@ -262,7 +319,7 @@ WEBAUTHN_RP_NAME="Acme Writing Platform"
 
 **Default:** `true` | Boolean
 
-Master switch for passkey support. When `false`, the passkey UI is hidden and WebAuthn endpoints return 404.
+Master switch for passkey support. When `false`, the passkey UI is hidden, the passkey endpoints return 403 and the passkey recovery endpoints return 404.
 
 ```bash
 PASSKEYS_ENABLED=true
@@ -291,6 +348,14 @@ Enable email-based account recovery. When passwords are disabled, this powers a 
 ```bash
 EMAIL_RECOVERY_ENABLED=true
 ```
+
+### ALLOW_INKWELD_APP_CLIENT
+
+**Default:** `false` | Boolean
+
+Let the official app at `https://inkweld.app` (and the Android app) sign in to
+this server, including with passkeys. See
+[Sign-in from the Official App](./admin-guide/official-app).
 
 See the [Passkeys admin guide](./admin-guide/passkeys) for full setup instructions.
 
@@ -356,12 +421,14 @@ GITHUB_CLIENT_SECRET=secret123...
 
 ### GITHUB_CALLBACK_URL
 
-**Default:** Auto-generated | URL
+**Default:** Derived from the request | URL
 
-The OAuth callback URL. Auto-generated from your server URL if not set.
+The OAuth callback URL. When unset, Inkweld builds it from the host and
+protocol of the incoming request (honouring `X-Forwarded-Proto`), so you only
+need it when that would be wrong.
 
 ```bash
-GITHUB_CALLBACK_URL=https://inkweld.yoursite.com/api/auth/github/callback
+GITHUB_CALLBACK_URL=https://inkweld.yoursite.com/api/v1/auth/github
 ```
 
 ### Setting Up GitHub OAuth
@@ -371,8 +438,10 @@ GITHUB_CALLBACK_URL=https://inkweld.yoursite.com/api/auth/github/callback
 3. Fill in:
    - **Application name:** Inkweld (or your instance name)
    - **Homepage URL:** `https://inkweld.yoursite.com`
-   - **Callback URL:** `https://inkweld.yoursite.com/api/auth/github/callback`
+   - **Callback URL:** `https://inkweld.yoursite.com/api/v1/auth/github`
 4. Copy the Client ID and Client Secret to your configuration
+
+See the [GitHub OAuth guide](./admin-guide/github-oauth) for details.
 
 ---
 
@@ -405,9 +474,17 @@ HA users who are Inkweld admins, applied on every ingress sign-in (granted
 and revoked; the last active admin is never demoted). When empty, the first
 account on the instance becomes admin.
 
+---
+
 ## Default Admin User
 
-Bootstrap your instance with an initial admin user.
+Bootstrap your instance with an initial admin user. Both variables must be set;
+the account is created on startup by the Bun server if it does not exist yet.
+Cloudflare Workers deployments don't seed an admin — the first user to register
+becomes administrator.
+
+Password sign-in is off by default (`PASSWORD_LOGIN_ENABLED=false`), so set
+`PASSWORD_LOGIN_ENABLED=true` as well if you want to sign in with this password.
 
 ### DEFAULT_ADMIN_USERNAME
 
@@ -468,6 +545,36 @@ Browser and Cloud Sync profiles never contact a server on their own, and this do
 :::note[APP_MODE and auto-configuration]
 `APP_MODE` is a policy; a hosted build's `autoConfigure` setting is only a first-run convenience that connects new visitors straight to the hosted server. Auto-configuration on its own does not stop anyone adding a Browser profile later. Set `APP_MODE=ONLINE` for that.
 :::
+
+### DEFAULT_SERVER_NAME
+
+**Optional** | URL
+
+Server URL suggested to the setup screen, and the fallback public URL for email
+links when `SITE_URL` is unset.
+
+### BASE_URL
+
+**Default:** Derived from the request | URL
+
+Public URL of the API, used in the MCP OAuth discovery metadata
+(`/.well-known/oauth-*`) that MCP clients read. Set it when the server sits
+behind a proxy that changes the host or protocol, or on Cloudflare Workers.
+
+### MCP_ENABLED
+
+**Default:** `true` | Boolean
+
+Allow MCP clients to connect to projects. The AI kill switch still takes
+precedence: when it is on, MCP is off regardless of this setting. See
+[MCP Clients](/user-guide/ai-mcp/mcp-clients).
+
+### MCP_MAX_DYNAMIC_CLIENTS
+
+**Default:** `500` | Integer
+
+Cap on MCP OAuth clients registered through dynamic client registration.
+Abandoned clients (no session after 24 hours) are pruned.
 
 ---
 
@@ -650,77 +757,69 @@ Set to `false` when:
 
 **Optional** | Directory path
 
-Serve frontend from an external directory instead of embedded assets.
+Serve the frontend from a directory (a built `frontend/dist/browser`) instead
+of the assets embedded in the binary. Takes precedence over embedded assets.
+The Docker image sets it to `/app/frontend/browser`.
 
 ```bash
-FRONTEND_DIST=/app/frontend/dist
+FRONTEND_DIST=/app/frontend/browser
 ```
+
+---
+
+## Appearance
+
+Backgrounds for the login and home screens. Usually set in **Admin →
+Appearance**; see the [Appearance guide](./admin-guide/appearance).
+
+| Variable                         | Default | Meaning                                                            |
+| -------------------------------- | ------- | ------------------------------------------------------------------ |
+| `LOGIN_BACKGROUND_URL`           | -       | External `https://` image for the login screen                     |
+| `HOME_BACKGROUND_URL`            | -       | External `https://` image for the home screen (and login if unset) |
+| `BACKGROUND_OVERLAY_OPACITY`     | -       | Scrim opacity over the image, `0`–`0.95`                           |
+| `BACKGROUND_BLUR`                | `0`     | Blur in pixels, `0`–`40`                                           |
+| `USER_BACKGROUND_ENABLED`        | `true`  | Let users pick a background preset                                 |
+| `USER_BACKGROUND_UPLOAD_ENABLED` | `false` | Let users upload their own background image (uses server storage)  |
 
 ---
 
 ## AI Features
 
+All AI features are **off** until the AI kill switch is turned off. See the
+[AI Kill Switch guide](./admin-guide/ai-kill-switch).
+
+### AI_KILL_SWITCH
+
+**Default:** `true` | Boolean
+
+Master switch. While `true`, the app hides every AI feature and the server
+refuses every AI request with `403`, whatever provider keys are set. Set it to `false` to allow them. When set in the
+environment, the admin UI shows it as locked. See the
+[AI Kill Switch guide](./admin-guide/ai-kill-switch) for exactly what is
+enforced on the server.
+
 ### OPENAI_API_KEY
 
 **Optional** | String
 
-Enable AI-powered features like content suggestions and image generation.
+OpenAI API key, shared by image generation and AI review. Setting it also turns
+the OpenAI image provider, AI image generation and AI review on by default —
+once the kill switch is off.
 
 ```bash
+AI_KILL_SWITCH=false
 OPENAI_API_KEY=sk-...
 ```
 
-Features enabled with this key:
+`OPENAI_API_BASE` points the OpenAI provider at an OpenAI-compatible endpoint
+(default `https://api.openai.com/v1`).
 
-- AI writing assistance
-- Content linting suggestions
-- DALL-E image generation
-
-See the [AI Image Generation guide](./admin-guide/ai-image-generation) for detailed setup.
-
----
-
-## Advanced: Real-time Collaboration
-
-These settings control the Yjs real-time collaboration system. Most deployments don't need to change these.
-
-### GC (Garbage Collection)
-
-**Default:** `true` | Boolean
-
-Enable garbage collection for Yjs documents to reclaim memory.
-
-```bash
-GC=true
-```
-
-### CALLBACK_URL
-
-**Optional** | URL
-
-Webhook URL called when Yjs documents are updated.
-
-```bash
-CALLBACK_URL=http://localhost:8333/yjs-callback
-```
-
-### CALLBACK_TIMEOUT
-
-**Default:** `5000` | Milliseconds
-
-Timeout for Yjs callback requests.
-
-### CALLBACK_DEBOUNCE_WAIT
-
-**Default:** `2000` | Milliseconds
-
-Debounce wait time before triggering callbacks.
-
-### CALLBACK_DEBOUNCE_MAXWAIT
-
-**Default:** `10000` | Milliseconds
-
-Maximum wait time for debounced callbacks.
+Other providers (OpenRouter, Anthropic, Fal.ai, Stable Diffusion, Cloudflare
+Workers AI) and the model lists are easiest to set up in **Admin → AI
+Providers**; their environment variables are listed in the
+[reference table](#environment-variable-reference) below. See the
+[AI Image Generation guide](./admin-guide/ai-image-generation) for detailed
+setup.
 
 ---
 
@@ -731,11 +830,10 @@ Maximum wait time for debounced callbacks.
 ```bash
 PORT=8333
 NODE_ENV=development
-SESSION_SECRET=dev-secret-key-for-local-testing-only
 ALLOWED_ORIGINS=http://localhost:4200,http://localhost:8333
-DB_TYPE=sqlite
 DATA_PATH=./data
 USER_APPROVAL_REQUIRED=false
+PASSWORD_LOGIN_ENABLED=true
 ```
 
 ### Production (Docker)
@@ -745,11 +843,10 @@ PORT=8333
 NODE_ENV=production
 SESSION_SECRET=<generated-32-char-secret>
 ALLOWED_ORIGINS=https://inkweld.yourcompany.com
+SITE_URL=https://inkweld.yourcompany.com
+TRUST_PROXY=true
 WEBAUTHN_RP_ID=inkweld.yourcompany.com
 WEBAUTHN_RP_NAME="My Inkweld"
-DB_TYPE=sqlite
-DB_PATH=/data/inkweld.db
-DATA_PATH=/data
 USER_APPROVAL_REQUIRED=true
 GITHUB_ENABLED=true
 GITHUB_CLIENT_ID=<your-client-id>
@@ -763,12 +860,15 @@ In `wrangler.toml`:
 ```toml
 [env.production.vars]
 NODE_ENV = "production"
-PORT = "8333"
-DB_TYPE = "d1"
+BASE_URL = "https://api.inkweld.yourcompany.com"
 ALLOWED_ORIGINS = "https://inkweld.yourcompany.com"
+WEBAUTHN_RP_ID = "inkweld.yourcompany.com"
 USER_APPROVAL_REQUIRED = "true"
 GITHUB_ENABLED = "false"
 ```
+
+The D1 database, R2 bucket and Durable Object are bindings in the same file,
+not variables. See [Cloudflare Workers](./installation/cloudflare).
 
 Set secrets via Wrangler:
 
@@ -780,65 +880,100 @@ wrangler secret put SESSION_SECRET --env production
 
 ## Environment Variable Reference
 
-| Variable                      | Default                                             | Description                                                                                                                                                                               |
-| ----------------------------- | --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `SESSION_SECRET`              | Required                                            | Session encryption key (32+ chars)                                                                                                                                                        |
-| `ALLOWED_ORIGINS`             | Required                                            | Comma-separated CORS origins                                                                                                                                                              |
-| `PORT`                        | `8333`                                              | HTTP server port                                                                                                                                                                          |
-| `HOST`                        | `0.0.0.0`                                           | Network interface to bind                                                                                                                                                                 |
-| `NODE_ENV`                    | `development`                                       | Environment mode                                                                                                                                                                          |
-| `INKWELD_VERSION`             | Auto (from CI/CD)                                   | Application version string                                                                                                                                                                |
-| `DB_TYPE`                     | `sqlite`                                            | Database type (`sqlite` or `d1`)                                                                                                                                                          |
-| `DB_PATH`                     | `./sqlite.db`                                       | SQLite file path                                                                                                                                                                          |
-| `DATA_PATH`                   | `./data`                                            | Data storage directory                                                                                                                                                                    |
-| `USER_APPROVAL_REQUIRED`      | `true`                                              | Require admin approval for new users                                                                                                                                                      |
-| `APP_MODE`                    | `BOTH`                                              | Which profiles can be added: `ONLINE` (server only), `LOCAL` (Browser/Cloud Sync only), or `BOTH`                                                                                         |
-| `COOKIE_DOMAIN`               | Auto                                                | Cookie domain                                                                                                                                                                             |
-| `PASSKEYS_ENABLED`            | `true`                                              | Master switch for passkey (WebAuthn) support                                                                                                                                              |
-| `PASSWORD_LOGIN_ENABLED`      | `false`                                             | Allow username/password sign-in (passwordless-first by default)                                                                                                                           |
-| `EMAIL_RECOVERY_ENABLED`      | `false`                                             | Allow email-based account recovery / magic-link flow                                                                                                                                      |
-| `ALLOW_INKWELD_APP_CLIENT`    | `false`                                             | Let the official app at inkweld.app (and the Android app) sign in, including with passkeys. See [Sign-in from the Official App](./admin-guide/official-app)                               |
-| `EMAIL_ENABLED`               | `false`                                             | Master switch for email delivery                                                                                                                                                          |
-| `EMAIL_HOST`                  | -                                                   | SMTP host                                                                                                                                                                                 |
-| `EMAIL_PORT`                  | `587`                                               | SMTP port                                                                                                                                                                                 |
-| `EMAIL_ENCRYPTION`            | `starttls`                                          | SMTP encryption: `starttls`, `tls`, or `none`                                                                                                                                             |
-| `EMAIL_USERNAME`              | -                                                   | SMTP username                                                                                                                                                                             |
-| `EMAIL_PASSWORD`              | -                                                   | SMTP password                                                                                                                                                                             |
-| `EMAIL_FROM`                  | -                                                   | Envelope From address                                                                                                                                                                     |
-| `EMAIL_FROM_NAME`             | `Inkweld`                                           | Display name shown to email recipients                                                                                                                                                    |
-| `WEBAUTHN_RP_ID`              | `localhost` (dev only — **required in production**) | WebAuthn Relying Party ID (domain only, no port). Once users register passkeys against an RP ID, it cannot be changed without invalidating every credential — set this before going live. |
-| `WEBAUTHN_RP_NAME`            | `Inkweld`                                           | Human-readable name shown in passkey prompts                                                                                                                                              |
-| `GITHUB_ENABLED`              | `false`                                             | Enable GitHub OAuth                                                                                                                                                                       |
-| `GITHUB_CLIENT_ID`            | -                                                   | GitHub OAuth client ID                                                                                                                                                                    |
-| `GITHUB_CLIENT_SECRET`        | -                                                   | GitHub OAuth client secret                                                                                                                                                                |
-| `GITHUB_CALLBACK_URL`         | Auto                                                | GitHub OAuth callback URL                                                                                                                                                                 |
-| `DEFAULT_ADMIN_USERNAME`      | -                                                   | Initial admin username                                                                                                                                                                    |
-| `DEFAULT_ADMIN_PASSWORD`      | -                                                   | Initial admin password                                                                                                                                                                    |
-| `SITE_URL`                    | -                                                   | Public URL used in email links                                                                                                                                                            |
-| `PRIVACY_POLICY_CONTENT`      | -                                                   | Privacy policy text (Markdown) served at `/privacy`                                                                                                                                       |
-| `PRIVACY_POLICY_URL`          | -                                                   | Where `/privacy` redirects when no text is set                                                                                                                                            |
-| `TERMS_OF_SERVICE_CONTENT`    | -                                                   | Terms of service text (Markdown) served at `/terms`                                                                                                                                       |
-| `TERMS_OF_SERVICE_URL`        | -                                                   | Where `/terms` redirects when no text is set                                                                                                                                              |
-| `REQUIRE_POLICY_ACCEPTANCE`   | `false`                                             | Require users to accept the privacy policy / terms                                                                                                                                        |
-| `CUSTOM_HEAD_HTML`            | -                                                   | Raw HTML injected into `<head>` (not sanitized)                                                                                                                                           |
-| `CUSTOM_BODY_HTML`            | -                                                   | Raw HTML injected at the end of `<body>` (not sanitized)                                                                                                                                  |
-| `SERVE_FRONTEND`              | `true`                                              | Serve embedded frontend                                                                                                                                                                   |
-| `FRONTEND_DIST`               | -                                                   | External frontend path                                                                                                                                                                    |
-| `OPENAI_API_KEY`              | -                                                   | OpenAI API key for AI features                                                                                                                                                            |
-| `AI_KILL_SWITCH`              | `true`                                              | Disable all AI features when `true`                                                                                                                                                       |
-| `AI_IMAGE_ENABLED`            | `true`                                              | Enable AI image generation                                                                                                                                                                |
-| `AI_IMAGE_OPENAI_ENABLED`     | `false`                                             | Enable OpenAI image generation provider                                                                                                                                                   |
-| `AI_IMAGE_OPENROUTER_ENABLED` | `false`                                             | Enable OpenRouter image generation provider                                                                                                                                               |
-| `AI_IMAGE_OPENROUTER_API_KEY` | -                                                   | OpenRouter API key                                                                                                                                                                        |
-| `AI_FALAI_ENABLED`            | `false`                                             | Enable Fal.ai image generation provider                                                                                                                                                   |
-| `AI_FALAI_API_KEY`            | -                                                   | Fal.ai API key                                                                                                                                                                            |
-| `AI_IMAGE_SD_ENABLED`         | `false`                                             | Enable Stable Diffusion (self-hosted) image generation                                                                                                                                    |
-| `AI_IMAGE_SD_ENDPOINT`        | -                                                   | Stable Diffusion WebUI endpoint URL                                                                                                                                                       |
-| `AI_IMAGE_WORKERSAI_ENABLED`  | `false`                                             | Enable Cloudflare Workers AI image generation                                                                                                                                             |
-| `WORKERSAI_ACCOUNT_ID`        | -                                                   | Cloudflare Account ID for Workers AI                                                                                                                                                      |
-| `WORKERSAI_API_TOKEN`         | -                                                   | Cloudflare Workers AI API token                                                                                                                                                           |
-| `GC`                          | `true`                                              | Yjs garbage collection                                                                                                                                                                    |
-| `LOG_LEVEL`                   | `debug`/`info`                                      | Log verbosity (`debug`, `info`, `warn`, `error`, `none`)                                                                                                                                  |
+| Variable                                                            | Default                           | Description                                                                                                                                                 |
+| ------------------------------------------------------------------- | --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SESSION_SECRET`                                                    | Required outside development      | Signs session tokens and encrypts stored secrets (32+ chars)                                                                                                |
+| `DATABASE_KEY`                                                      | -                                 | Overrides `SESSION_SECRET` for signing and encryption                                                                                                       |
+| `ALLOWED_ORIGINS`                                                   | `http://localhost:4200`           | Comma-separated origins allowed by CORS and passkeys                                                                                                        |
+| `PORT`                                                              | `8333`                            | HTTP server port                                                                                                                                            |
+| `NODE_ENV`                                                          | `development`                     | Environment mode                                                                                                                                            |
+| `TRUST_PROXY`                                                       | `false`                           | Trust the right-most `X-Forwarded-For` entry for client IPs                                                                                                 |
+| `TLS_ENABLED`                                                       | `false`                           | Serve HTTPS from the Bun server                                                                                                                             |
+| `TLS_CERT_PATH`                                                     | `./certs/cert.pem`                | TLS certificate (Bun only)                                                                                                                                  |
+| `TLS_KEY_PATH`                                                      | `./certs/key.pem`                 | TLS private key (Bun only)                                                                                                                                  |
+| `INKWELD_VERSION`                                                   | `0.1.0`                           | Version string reported by the server                                                                                                                       |
+| `LOG_LEVEL`                                                         | `debug`/`info`                    | Log verbosity (`debug`, `info`, `warn`, `error`, `none`)                                                                                                    |
+| `DB_PATH`                                                           | `<DATA_PATH>/inkweld.db`          | SQLite file path (Bun only)                                                                                                                                 |
+| `DATA_PATH`                                                         | `./data`                          | Data storage directory (Bun only)                                                                                                                           |
+| `SERVE_FRONTEND`                                                    | `true`                            | Serve the frontend from the backend                                                                                                                         |
+| `FRONTEND_DIST`                                                     | -                                 | Serve the frontend from this directory instead of embedded assets                                                                                           |
+| `APP_MODE`                                                          | `BOTH`                            | Which profiles can be added: `ONLINE` (server only), `LOCAL` (Browser/Cloud Sync only), or `BOTH`                                                           |
+| `DEFAULT_SERVER_NAME`                                               | -                                 | Server URL suggested on the setup screen                                                                                                                    |
+| `SITE_URL`                                                          | -                                 | Public URL used in email links                                                                                                                              |
+| `BASE_URL`                                                          | Derived from request              | Public API URL for MCP OAuth metadata                                                                                                                       |
+| `USER_APPROVAL_REQUIRED`                                            | `true`                            | Require admin approval for new users                                                                                                                        |
+| `REQUIRE_EMAIL`                                                     | `false`                           | Require an email address at registration                                                                                                                    |
+| `PASSWORD_MIN_LENGTH`                                               | `8`                               | Minimum password length                                                                                                                                     |
+| `PASSWORD_REQUIRE_UPPERCASE / _LOWERCASE / _NUMBER / _SYMBOL`       | `true`                            | Password character rules                                                                                                                                    |
+| `PASSKEYS_ENABLED`                                                  | `true`                            | Master switch for passkey (WebAuthn) support                                                                                                                |
+| `PASSWORD_LOGIN_ENABLED`                                            | `false`                           | Allow username/password sign-in (passwordless-first by default)                                                                                             |
+| `EMAIL_RECOVERY_ENABLED`                                            | `false`                           | Allow email-based account recovery / magic-link flow                                                                                                        |
+| `ALLOW_INKWELD_APP_CLIENT`                                          | `false`                           | Let the official app at inkweld.app (and the Android app) sign in, including with passkeys. See [Sign-in from the Official App](./admin-guide/official-app) |
+| `WEBAUTHN_RP_ID`                                                    | `localhost`                       | WebAuthn Relying Party ID (domain only). **Set before going live** — changing it invalidates every passkey.                                                 |
+| `WEBAUTHN_RP_NAME`                                                  | `Inkweld`                         | Name shown in passkey prompts                                                                                                                               |
+| `GITHUB_ENABLED`                                                    | `false`                           | Enable GitHub OAuth                                                                                                                                         |
+| `GITHUB_CLIENT_ID`                                                  | -                                 | GitHub OAuth client ID                                                                                                                                      |
+| `GITHUB_CLIENT_SECRET`                                              | -                                 | GitHub OAuth client secret                                                                                                                                  |
+| `GITHUB_CALLBACK_URL`                                               | Derived from request              | GitHub OAuth callback URL (`/api/v1/auth/github`)                                                                                                           |
+| `INGRESS_ENABLED`                                                   | `false`                           | Trust Home Assistant ingress headers                                                                                                                        |
+| `INGRESS_TRUSTED_PROXY`                                             | -                                 | IP of the Home Assistant ingress proxy                                                                                                                      |
+| `INGRESS_ADMINS`                                                    | -                                 | HA usernames that are Inkweld admins                                                                                                                        |
+| `DEFAULT_ADMIN_USERNAME`                                            | -                                 | Initial admin username (Bun only; needs the password too)                                                                                                   |
+| `DEFAULT_ADMIN_PASSWORD`                                            | -                                 | Initial admin password                                                                                                                                      |
+| `EMAIL_ENABLED`                                                     | `false`                           | Master switch for email delivery                                                                                                                            |
+| `EMAIL_HOST`                                                        | -                                 | SMTP host                                                                                                                                                   |
+| `EMAIL_PORT`                                                        | `587`                             | SMTP port                                                                                                                                                   |
+| `EMAIL_ENCRYPTION`                                                  | `starttls`                        | SMTP encryption: `starttls`, `tls`, or `none`                                                                                                               |
+| `EMAIL_USERNAME`                                                    | -                                 | SMTP username                                                                                                                                               |
+| `EMAIL_PASSWORD`                                                    | -                                 | SMTP password                                                                                                                                               |
+| `EMAIL_FROM`                                                        | -                                 | Envelope From address                                                                                                                                       |
+| `EMAIL_FROM_NAME`                                                   | `Inkweld`                         | Display name shown to email recipients                                                                                                                      |
+| `SYNC_QUOTA_ENABLED`                                                | `false`                           | Enforce per-user sync capacity                                                                                                                              |
+| `SYNC_QUOTA_DEFAULT_BYTES`                                          | `104857600`                       | Default per-user allowance in bytes                                                                                                                         |
+| `PRIVACY_POLICY_CONTENT`                                            | -                                 | Privacy policy text (Markdown) served at `/privacy`                                                                                                         |
+| `PRIVACY_POLICY_URL`                                                | -                                 | Where `/privacy` redirects when no text is set                                                                                                              |
+| `TERMS_OF_SERVICE_CONTENT`                                          | -                                 | Terms of service text (Markdown) served at `/terms`                                                                                                         |
+| `TERMS_OF_SERVICE_URL`                                              | -                                 | Where `/terms` redirects when no text is set                                                                                                                |
+| `REQUIRE_POLICY_ACCEPTANCE`                                         | `false`                           | Require users to accept the privacy policy / terms                                                                                                          |
+| `CUSTOM_HEAD_HTML`                                                  | -                                 | Raw HTML injected into `<head>` (not sanitized)                                                                                                             |
+| `CUSTOM_BODY_HTML`                                                  | -                                 | Raw HTML injected at the end of `<body>` (not sanitized)                                                                                                    |
+| `CONTENT_SECURITY_POLICY_MODE`                                      | `enforce`                         | `enforce`, `report-only` or `off`                                                                                                                           |
+| `CONTENT_SECURITY_POLICY_TRUSTED_SOURCES`                           | -                                 | Extra origins allowed by the CSP                                                                                                                            |
+| `LOGIN_BACKGROUND_URL / HOME_BACKGROUND_URL`                        | -                                 | External background images                                                                                                                                  |
+| `BACKGROUND_OVERLAY_OPACITY`                                        | -                                 | Background scrim opacity (`0`–`0.95`)                                                                                                                       |
+| `BACKGROUND_BLUR`                                                   | `0`                               | Background blur in pixels (`0`–`40`)                                                                                                                        |
+| `USER_BACKGROUND_ENABLED`                                           | `true`                            | Let users pick a background preset                                                                                                                          |
+| `USER_BACKGROUND_UPLOAD_ENABLED`                                    | `false`                           | Let users upload a background image                                                                                                                         |
+| `MCP_ENABLED`                                                       | `true`                            | Allow MCP clients (still off while the AI kill switch is on)                                                                                                |
+| `MCP_MAX_DYNAMIC_CLIENTS`                                           | `500`                             | Cap on dynamically registered MCP OAuth clients                                                                                                             |
+| `AI_KILL_SWITCH`                                                    | `true`                            | Disable all AI features when `true`                                                                                                                         |
+| `OPENAI_API_KEY`                                                    | -                                 | OpenAI API key                                                                                                                                              |
+| `OPENAI_API_BASE`                                                   | `https://api.openai.com/v1`       | OpenAI-compatible endpoint                                                                                                                                  |
+| `OPENROUTER_API_KEY`                                                | -                                 | OpenRouter API key                                                                                                                                          |
+| `ANTHROPIC_API_KEY`                                                 | -                                 | Anthropic API key (AI review)                                                                                                                               |
+| `FALAI_API_KEY`                                                     | -                                 | Fal.ai API key                                                                                                                                              |
+| `SD_API_ENDPOINT`                                                   | -                                 | Stable Diffusion WebUI endpoint URL                                                                                                                         |
+| `SD_API_KEY`                                                        | -                                 | Stable Diffusion API key, if required                                                                                                                       |
+| `WORKERSAI_ACCOUNT_ID`                                              | -                                 | Cloudflare account ID for Workers AI                                                                                                                        |
+| `WORKERSAI_API_TOKEN`                                               | -                                 | Cloudflare Workers AI API token                                                                                                                             |
+| `AI_IMAGE_ENABLED`                                                  | `true` if `OPENAI_API_KEY` is set | Enable AI image generation                                                                                                                                  |
+| `AI_IMAGE_DEFAULT_PROVIDER`                                         | `openai`                          | `openai`, `openrouter`, `stable-diffusion`, `falai` or `workersai`                                                                                          |
+| `AI_IMAGE_OPENAI_ENABLED`                                           | `true` if `OPENAI_API_KEY` is set | Enable the OpenAI image provider                                                                                                                            |
+| `AI_IMAGE_OPENROUTER_ENABLED`                                       | `false`                           | Enable the OpenRouter image provider                                                                                                                        |
+| `AI_IMAGE_FALAI_ENABLED`                                            | `false`                           | Enable the Fal.ai image provider                                                                                                                            |
+| `AI_IMAGE_SD_ENABLED`                                               | `false`                           | Enable the Stable Diffusion image provider                                                                                                                  |
+| `AI_IMAGE_WORKERSAI_ENABLED`                                        | `false`                           | Enable the Cloudflare Workers AI image provider                                                                                                             |
+| `AI_IMAGE_*_MODELS`                                                 | -                                 | JSON array of models offered per provider (empty = built-in list)                                                                                           |
+| `AI_IMAGE_CUSTOM_SIZES`                                             | -                                 | JSON array of custom image size profiles                                                                                                                    |
+| `AI_LINT_ENABLED`                                                   | `true` if `OPENAI_API_KEY` is set | Enable AI review of documents                                                                                                                               |
+| `AI_TEXT_ENABLED`                                                   | `false`                           | Enable text AI features (AI review, prompt optimisation)                                                                                                    |
+| `AI_TEXT_DEFAULT_PROVIDER`                                          | -                                 | `openai`, `openrouter` or `anthropic`                                                                                                                       |
+| `AI_TEXT_LINT_MODEL`                                                | -                                 | Model used for AI review                                                                                                                                    |
+| `AI_TEXT_LINT_PROMPT`                                               | -                                 | Custom system prompt for AI review                                                                                                                          |
+| `AI_TEXT_IMAGE_PROMPT_MODEL`                                        | -                                 | Model used to optimise image prompts                                                                                                                        |
+| `AI_TEXT_IMAGE_PROMPT_TEMPLATE`                                     | -                                 | Custom system prompt for image prompt optimisation                                                                                                          |
+| `AI_TEXT_OPENAI_ENABLED / _OPENROUTER_ENABLED / _ANTHROPIC_ENABLED` | `false`                           | Enable each text provider                                                                                                                                   |
+| `AI_TEXT_*_MODELS`                                                  | -                                 | JSON array of text models offered per provider                                                                                                              |
 
 ---
 

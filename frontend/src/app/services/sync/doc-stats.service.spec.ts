@@ -9,7 +9,7 @@ import {
 import { TestBed } from '@angular/core/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { environment } from '../../../environments/environment';
+import { StorageContextService } from '../core/storage-context.service';
 import { DocStatsService, type DocStorageStats } from './doc-stats.service';
 
 describe('DocStatsService', () => {
@@ -55,13 +55,27 @@ describe('DocStatsService', () => {
       expect(result).toEqual(mockStats);
     });
 
-    it('returns null when apiUrl is empty', async () => {
-      const original = environment.apiUrl;
-      (environment as { apiUrl: string }).apiUrl = '';
+    it('returns null when no server is configured', async () => {
+      vi.spyOn(
+        TestBed.inject(StorageContextService),
+        'getApiBaseUrl'
+      ).mockReturnValue('');
       const result = await service.fetchStats('user:slug:elements');
       expect(result).toBeNull();
       httpMock.expectNone(() => true);
-      (environment as { apiUrl: string }).apiUrl = original;
+    });
+
+    it('asks the configured server, not the build-time apiUrl', async () => {
+      vi.spyOn(
+        TestBed.inject(StorageContextService),
+        'getApiBaseUrl'
+      ).mockReturnValue('https://my-server.example');
+      const promise = service.fetchStats('user:slug:elements');
+      const req = httpMock.expectOne(r =>
+        r.url.startsWith('https://my-server.example/api/v1/ws/yjs/do/stats')
+      );
+      req.flush(mockStats);
+      expect(await promise).toEqual(mockStats);
     });
 
     it('returns null on HTTP error (e.g. 404 on Bun dev server)', async () => {

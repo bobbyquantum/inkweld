@@ -17,6 +17,9 @@ export const environment = {
   // Uncomment to show the setup screen (Browser / Cloud Sync / Server
   // choice) on first run instead of auto-connecting to the hosted apiUrl:
   // autoConfigure: false,
+  // For a frontend-only build that never suggests a server, set apiUrl and
+  // wssUrl to '' and uncomment:
+  // frontendOnly: true,
   /**
    * Cloud Sync provider app keys. These are public OAuth client identifiers
    * (they ship in the browser bundle). An empty key hides that provider from

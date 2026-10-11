@@ -2,7 +2,7 @@
 id: project-search
 title: Project Search
 description: Search for text across all documents in your project at once.
-sidebar_position: 7
+sidebar_position: 6
 ---
 
 import ThemedImage from '@site/src/components/ThemedImage';
@@ -19,7 +19,7 @@ Project Search lets you find any word or phrase across every document in your pr
 | Windows  | `Ctrl + Shift + F` |
 | Linux    | `Ctrl + Shift + F` |
 
-You can also open it from the **search icon** (`manage_search`) in the sidebar toolbar, or from the collapsed sidebar when the panel is hidden.
+You can also open it from the **Search in Project** button at the top of the project tree, or from the same button on the collapsed sidebar when the panel is hidden.
 
 ## Browsing & Searching
 
@@ -30,22 +30,22 @@ Open Project Search without typing anything to **browse all elements** in your p
 - **Partial matches** — "moon" matches "moonlight" and "Moonveil"
 - **Match count** — the number of text matches per document is shown next to the title (hidden in browse mode)
 - **Breadcrumb path** — the folder path to each result is shown beneath the document name
-- **Infinite scroll** — results load in batches as you scroll down, so large projects stay responsive
+- **Infinite scroll** — results load in batches as you scroll down (or click **Show more**), so large projects stay responsive
 
 ## Filters
 
-Click the **filter** button (funnel icon) to narrow results by:
+Click the **filter** button (sliders icon) at the right of the search box to show the filter panel; click it again to hide it. When filters are active, a badge on the button shows how many.
 
-| Filter                    | Description                                                                    |
-| ------------------------- | ------------------------------------------------------------------------------ |
-| **Tags**                  | Show only elements that have specific tags applied                             |
-| **Element types**         | Limit results to documents, folders, worldbuilding elements, etc.              |
-| **Worldbuilding schemas** | Filter worldbuilding elements by their schema (e.g. Character, Location, Item) |
-| **Relationships**         | Show only elements related to a specific element                               |
+| Filter         | Description                                                                                                    |
+| -------------- | -------------------------------------------------------------------------------------------------------------- |
+| **Type**       | Limit results to Documents, Worldbuilding, Charts, Canvas or Timelines                                         |
+| **Schema**     | Filter worldbuilding elements by their schema (e.g. Character, Location, Item). Shown when the project has any |
+| **Tags**       | Show only elements that have specific tags applied. Shown when the project has tags                            |
+| **Related to** | Show only elements related to a specific element. Pick one from the list ("Any element" clears it)             |
 
 Filters combine with each other and with the text query — for example you can search for "castle" filtered to Location-type worldbuilding elements.
 
-Active filters are shown as chips below the search bar. Click the **×** on any chip to remove it, or click **Clear** to remove all filters at once.
+Click a chip in the panel to turn that filter on or off. To remove every filter at once, click **Clear all filters** at the bottom of the panel (it appears while a filter is active).
 
 <ThemedImage
   src="/img/features/project-search-results"

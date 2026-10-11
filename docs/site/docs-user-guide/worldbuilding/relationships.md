@@ -27,7 +27,10 @@ Relationships define meaningful connections between your story elements—family
 3. Click **"Add Relationship"** at the top of the section
 4. Select a relationship type (e.g., "Parent", "Sibling", "Located In")
 5. Search and select the target element
-6. Click **Create**
+6. Optionally add a note
+7. Click **Add Relationship**
+
+The dialog walks you through three steps: **1. Select Relationship Type**, **2. Select Target Element**, and **3. Add Note (Optional)**. Under the type you pick, it shows how the target will see the link (for example _Target will see this as: Child of_).
 
 ## The Relationships Section
 
@@ -47,7 +50,7 @@ Each relationship displays as a card showing:
 
 - **Element icon** based on the element's template
 - **Element name** as a clickable link
-- **Delete button** to remove the relationship
+- A **more options** (⋮) menu with **Go to element** and, for relationships you created from this element, **Remove relationship**
 
 Click any relationship card to navigate directly to that element.
 
@@ -67,7 +70,11 @@ When you create a relationship, it appears on **both** elements:
 
 All relationship types are defined per-project in Project Settings. Demo templates may include pre-configured types to help you get started.
 
-Two types are created automatically the first time you use them: **canvas-pin** ("Has pin on canvas") when you link a canvas pin to an element, and **canvas-area** ("Has mapped area") when you link a shape as a region. They appear alongside your own types and show which [maps](./interactive-maps) an element is placed on.
+Two types are created automatically the first time you use them: **Pinned on canvas** (shown on the other element as **Has pin**) when you link a canvas pin to an element, and **Mapped area on canvas** (shown as **Has mapped area**) when you link a shape as a region. They appear alongside your own types and show which [maps](./interactive-maps) an element is placed on.
+
+### Template-managed relationship types
+
+When a template has a **Relationship** field (for example a **Mother** field on a Character), Inkweld creates a matching relationship type for it automatically. These types appear in the list with a **Template field** badge and have no Edit, Duplicate or Delete buttons: they're managed by the template field, so to change one, edit the field in the template. See [Relationship Fields](./elements#relationship-fields).
 
 <ThemedImage
   src="/img/features/relationships-tab-overview"
@@ -76,14 +83,14 @@ Two types are created automatically the first time you use them: **canvas-pin** 
 
 ### Creating a Relationship Type
 
-1. Go to **Project Settings** → **Relationship Types**
+1. Go to **Project Settings** → **Relationships**
 2. Click **"New Type"**
 3. Use the full editor to configure the type (see below)
-4. Click **Create** — the type is saved automatically
+4. Click **Create** to save the type
 
 ### Editing a Relationship Type
 
-Click the **Edit** (pencil) button on any type card to open the full editor with all existing values pre-filled.
+Click the **Edit** (pencil) button on any type to open the full editor with all existing values pre-filled, change what you need, then click **Save**.
 
 <ThemedImage
   src="/img/features/relationships-edit-dialog"
@@ -109,11 +116,11 @@ The editor lets you configure every aspect of a relationship type:
 
 ### Duplicating a Relationship Type
 
-Click the **Duplicate** button on any type card. The full editor opens pre-filled with the original type's data (name gets a "(Copy)" suffix). Modify anything you need, then click **Create** to save the copy.
+Click the **Duplicate** button on any type. The full editor opens pre-filled with the original type's data (name gets a "(Copy)" suffix). Modify anything you need, then click **Create** to save the copy.
 
 ### Deleting a Relationship Type
 
-Click the **Delete** button and confirm. Deleting a type does not remove existing relationships that use it — those remain but will no longer be grouped under a named type.
+Click the **Delete** button on the type and confirm. Deleting a type does not remove existing relationships that use it — those remain but will no longer be grouped under a named type.
 
 ### Common Patterns
 
@@ -135,14 +142,13 @@ An element can have many relationships of different types. Each type gets its ow
 To remove a relationship:
 
 1. Find the relationship card in the Relationships section
-2. Click the **Delete** (trash) button
-3. Confirm the deletion
+2. Open its **⋮** menu and choose **Remove relationship**
 
-The relationship is removed from both elements.
+The relationship is removed immediately, with no confirmation step, and disappears from both elements. Backlinks (incoming relationships) can only be removed from the element that created them.
 
 ### Changing a Relationship
 
 To change a relationship's type or target:
 
-1. Delete the existing relationship
+1. Remove the existing relationship
 2. Create a new one with the correct type and target

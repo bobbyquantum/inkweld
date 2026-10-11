@@ -553,6 +553,28 @@ describe('SetupComponent', () => {
       );
       expect(defaultServerUrl('', undefined)).toBe('http://localhost:8333');
     });
+
+    it('leaves the field empty for a frontend-only hosted build', () => {
+      expect(
+        defaultServerUrl(
+          '',
+          { protocol: 'https:', origin: 'https://inkweld.app' },
+          '',
+          true
+        )
+      ).toBe('');
+    });
+
+    it('still uses an explicit apiUrl on a frontend-only build', () => {
+      expect(
+        defaultServerUrl(
+          'https://api.example.test',
+          { protocol: 'https:', origin: 'https://inkweld.app' },
+          '',
+          true
+        )
+      ).toBe('https://api.example.test');
+    });
   });
 
   describe('mode selection helpers', () => {

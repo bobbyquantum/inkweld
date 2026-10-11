@@ -1,223 +1,84 @@
-# Yjs WebSocket Routes - Runtime Platform Support
+# Yjs WebSocket Routes
 
-This directory contains platform-specific implementations for Yjs collaborative editing WebSocket routes.
+Yjs collaborative editing has two server implementations that expose the same
+WebSocket endpoint. Which one runs depends on the entry point.
 
-## Architecture Overview
+| Runtime            | Entry point                              | Route file             | Persistence                                            |
+| ------------------ | ---------------------------------------- | ---------------------- | ------------------------------------------------------ |
+| Bun (self-hosted)  | `bun-runner.ts` → `bun-app.ts`           | `yjs.routes.ts`        | One LevelDB per project, via `services/yjs.service.ts` |
+| Cloudflare Workers | `cloudflare-runner.ts` → `worker-app.ts` | `yjs-worker.routes.ts` | Durable Object storage (`durable-objects/`)            |
 
-Inkweld supports **multiple runtime platforms** with different WebSocket/persistence implementations:
-
-### 🟦 Bun Runtime (Local Development)
-- **Routes**: `yjs.routes.ts`
-- **Service**: `yjs.service.ts` 
-- **WebSocket**: Bun's native WebSocket API (`upgradeWebSocket` from 'hono/bun')
-- **Persistence**: LevelDB file-based storage
-- **Use Case**: Local development, self-hosted deployments
-
-### ☁️ Cloudflare Workers (Production)
-- **Routes**: `yjs-worker.routes.ts`
-- **Service**: Durable Objects (`durable-objects/yjs-document.do.ts`)
-- **WebSocket**: Cloudflare WebSocket API with Durable Objects
-- **Persistence**: Durable Object storage (transactional key-value)
-- **Use Case**: Production deployments on Cloudflare
-
-## Runtime Detection
-
-The application automatically detects the runtime platform using `src/config/runtime.ts`:
-
-```typescript
-import { detectRuntime, RuntimePlatform } from './config/runtime';
-
-const platform = detectRuntime();
-// Returns: 'bun' | 'cloudflare-workers' | 'node' | 'unknown'
-```
-
-## File Structure
+Both apps mount the router at `/api/v1/ws`, so the Yjs endpoint is:
 
 ```
-backend/src/
-├── config/
-│   └── runtime.ts                    # Runtime detection utilities
-├── durable-objects/
-│   └── yjs-document.do.ts           # Cloudflare Durable Object for Yjs
-├── routes/
-│   ├── yjs.routes.ts                # Bun WebSocket implementation
-│   └── yjs-worker.routes.ts         # Cloudflare Workers implementation
-├── services/
-│   └── yjs.service.ts               # Shared Yjs logic (Bun/Node)
-├── types/
-│   └── cloudflare.ts                # Cloudflare Workers type definitions
-├── bun-app.ts                       # Bun app (includes yjs.routes)
-└── worker-app.ts                    # Workers app (includes yjs-worker.routes)
+ws(s)://<host>/api/v1/ws/yjs?documentId=<username>:<slug>:<elementId>
 ```
 
-## How It Works
+`documentId` is `username:projectSlug:elementId`, or `username:projectSlug:elements`
+for the project tree. Do not "fix" the trailing slash the backend/MCP adds to the
+elements document id — see AGENTS.md.
 
-### Bun Runtime (`bun-app.ts`)
-```typescript
-import yjsRoutes from './routes/yjs.routes';
+## Authentication
 
-app.route('/ws', yjsRoutes); // Uses Bun WebSocket + LevelDB
-```
+Browsers cannot send an `Authorization` header on a WebSocket, so the connection
+upgrades unauthenticated and authenticates over the socket (documented in the
+header comments of `yjs.routes.ts` and `yjs-project.do.ts`):
 
-### Cloudflare Workers (`worker-app.ts`)
-```typescript
-import yjsWorkerRoutes from './routes/yjs-worker.routes';
+1. The client sends its token as the first text message.
+2. The server validates the token and project access and answers with
+   `authenticated` or `access-denied:<reason>`.
+3. Only then does binary Yjs sync begin. Viewers receive updates but cannot
+   send them.
 
-app.route('/ws', yjsWorkerRoutes); // Uses Durable Objects
-```
+Denial closes use the y-websocket 3.1 convention in `utils/ws-close-codes.ts`
+(44xx permanent, 45xx transient). Binary frames that arrive before auth
+completes are queued within the bounds in `utils/ws-preauth.ts`, and a socket
+that never authenticates is closed.
 
-The correct implementation is loaded at **build time** based on the entry point:
-- `bun-runner.ts` → `bun-app.ts` → Bun WebSocket
-- `cloudflare-runner.ts` → `worker-app.ts` → Durable Objects
+## Bun: LevelDB
 
-## Cloudflare Durable Objects
+`yjs.routes.ts` uses Hono's `upgradeWebSocket` from `hono/bun`. `YjsService`
+keeps one LevelDB instance per project and tracks writing sessions for the
+stats and activity features.
 
-### What are Durable Objects?
+## Workers: Durable Objects
 
-Durable Objects are Cloudflare's solution for **stateful** serverless applications:
+`yjs-worker.routes.ts` validates `documentId`, then forwards the upgrade to a
+Durable Object. There is **one Durable Object per project** (`username:slug`),
+not one per document: it holds the elements doc and every open document of that
+project. The class is `YjsProject` in `durable-objects/yjs-project.do.ts`, bound
+as `YJS_PROJECTS` (see `wrangler.toml.example`), and uses WebSocket hibernation.
 
-- **One instance per document**: Each Yjs document gets a dedicated Durable Object
-- **Persistent WebSocket connections**: Connections survive across requests
-- **Transactional storage**: Built-in key-value storage for persistence
-- **Global coordination**: Guaranteed single instance per document ID worldwide
+The same router also serves a diagnostics proxy,
+`GET /api/v1/ws/yjs/do/{stats|elements|document|storage-keys|storage-size}?documentId=...`,
+which forwards to the Durable Object's internal HTTP API (the DO checks the
+bearer token itself).
 
-### How Yjs Uses Durable Objects
+## Local development
 
-1. **Client connects**: WebSocket upgrade request to `/ws/yjs?documentId=user:project:doc`
-2. **Route to DO**: Request routed to Durable Object instance (by `documentId`)
-3. **Manage state**: DO handles all connections, syncing, and awareness for that document
-4. **Persist updates**: DO stores Yjs updates in Durable Object storage
-5. **Cleanup**: DO hibernates when all clients disconnect (cost savings)
-
-### Configuration
-
-Durable Objects are configured in `wrangler.toml`:
-
-```toml
-[[durable_objects.bindings]]
-name = "YJS_DOCUMENTS"
-class_name = "YjsDocument"
-script_name = "inkweld-backend"
-
-[[migrations]]
-tag = "v1"
-new_classes = ["YjsDocument"]
-```
-
-## WebSocket Endpoint
-
-### Format
-```
-ws://localhost:8333/ws/yjs?documentId=<documentId>&userId=<userId>
-```
-
-### Parameters
-- `documentId` (required): Format `username:projectSlug:documentName` or `username:projectSlug:elements`
-- `userId` (optional): User ID for awareness protocol
-
-### Example
-```javascript
-const ws = new WebSocket('ws://localhost:8333/ws/yjs?documentId=alice:my-novel:chapter1&userId=123');
-```
-
-## Development Workflow
-
-### Local Development (Bun)
 ```bash
 cd backend
-bun run dev  # Uses LevelDB persistence
+bun run dev          # Bun + LevelDB
+bun run dev:worker   # wrangler dev (Miniflare + Durable Objects)
+bun test             # unit tests
 ```
 
-### Cloudflare Workers (Local Testing)
-```bash
-cd backend
-bun run wrangler dev  # Uses Miniflare with Durable Objects
-```
-
-### Production Deployment
-```bash
-cd backend
-bun run deploy  # Deploys to Cloudflare Workers
-```
-
-## Testing
-
-### Unit Tests
-```bash
-bun test  # Tests Yjs service logic
-```
-
-### E2E Tests
-```bash
-# Frontend e2e tests include WebSocket/Yjs scenarios
-cd ../frontend
-npm run e2e
-```
-
-## Adding New Runtime Platforms
-
-To support additional platforms (e.g., Deno, AWS Lambda):
-
-1. **Create route implementation**: `routes/yjs-<platform>.routes.ts`
-2. **Create platform-specific logic**: Handle WebSocket upgrades and persistence
-3. **Update runtime detection**: Add platform check to `config/runtime.ts`
-4. **Create platform app**: `<platform>-app.ts` that imports platform routes
-5. **Update build config**: Add entry point for new platform
-
-## Architecture
-
-The Hono backend supports multiple platforms for Yjs collaboration:
-
-### Platform Implementations
-```
-backend/src/
-├── routes/
-│   ├── yjs.routes.ts       # Bun implementation
-│   └── yjs-worker.routes.ts # Workers implementation
-├── services/
-│   └── yjs.service.ts      # Shared logic
-└── durable-objects/
-    └── yjs-document.do.ts  # Workers Durable Object
-```
-
-## Performance Considerations
-
-### Bun + LevelDB
-- ✅ Fast local file I/O
-- ✅ Simple deployment
-- ❌ Single-server limitation
-- ❌ Requires persistent disk
-
-### Cloudflare Durable Objects
-- ✅ Globally distributed
-- ✅ Auto-scaling per document
-- ✅ No infrastructure management
-- ✅ Hibernation API for cost savings
-- ⚠️ Cold start latency (~100-200ms)
-- ⚠️ Per-request pricing model
+Deploying to Cloudflare is done with the root `cloudflare:*` scripts; see
+`docs/site/docs/admin-guide/ci-cd.md`. Frontend e2e specs exercise the
+WebSocket path under both Bun and wrangler.
 
 ## Troubleshooting
 
-### "YJS_DOCUMENTS binding not found"
-- Check `wrangler.toml` has Durable Object binding configured
-- Run `bun run wrangler deploy` to apply migrations
-
-### "WebSocketPair is not defined"
-- This error occurs when trying to run Workers code in Bun
-- Ensure `cloudflare-runner.ts` is the entry point for Workers
-
-### "Cannot find module 'cloudflare:workers'"
-- Expected during development (types only available at runtime)
-- Use `@ts-expect-error` annotations where needed
-
-### LevelDB Persistence Issues
-- Check file permissions on `data/` directory
-- Ensure no concurrent writes to same LevelDB instance
-- Run cleanup: `rm -rf backend/data/*/.*yjs`
+- **"YJS_PROJECTS binding not found"** (503): the Worker config lacks the
+  Durable Object binding or its `[[migrations]]` entry; compare with
+  `wrangler.toml.example`.
+- **`WebSocketPair is not defined`**: Workers-only code was loaded under Bun.
+  The Workers entry point is `cloudflare-runner.ts`.
+- **LevelDB problems**: check permissions on the data directory and make sure
+  only one server process opens a project's LevelDB.
 
 ## References
 
-- [Cloudflare Durable Objects Docs](https://developers.cloudflare.com/durable-objects/)
-- [Yjs Documentation](https://docs.yjs.dev/)
-- [Hono Framework](https://hono.dev/)
+- [Cloudflare Durable Objects](https://developers.cloudflare.com/durable-objects/)
+- [Yjs documentation](https://docs.yjs.dev/)
 - [y-protocols](https://github.com/yjs/y-protocols)

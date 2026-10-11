@@ -38,7 +38,7 @@ Images are added to the library automatically when you:
 - **Set a project cover** in project settings
 - **Generate images with AI** (if configured)
 - **Export your project** as EPUB, PDF, HTML, or Markdown
-- **Upload directly** using the **+** button in the header
+- **Upload directly** using the **+** (Add media) button in the header, then **Upload Image**
 
 When the library is empty, you'll see a placeholder card explaining what kinds of media appear here.
 
@@ -49,7 +49,14 @@ When the library is empty, you'll see a placeholder card explaining what kinds o
 
 ## Searching
 
-A search bar sits at the top of the media tab. Type a keyword to filter items by filename or AI generation prompt — the grid updates instantly. Click the **×** button to clear the search.
+A search bar sits at the top of the media tab ("Search media, elements, or tags..."). Type a keyword and the grid updates instantly to show items where it matches any of:
+
+- the **file name**
+- the **AI prompt** used to generate the image
+- the name of a **worldbuilding element** the media is tagged with
+- the name of a **project tag** assigned to the media
+
+For example, searching for a character's name finds every image tagged with that character. Click the **×** button to clear the search.
 
 <ThemedImage
   src="/img/features/media-search"
@@ -80,11 +87,11 @@ Select a media category to show only items of that type:
 
 ### Elements
 
-Filter by worldbuilding elements that have been tagged on media. Click **+** to add element filters.
+Filter by worldbuilding elements that have been tagged on media. Click **+** to add element filters. When you pick several elements, an item must be tagged with all of them to appear.
 
 ### Tags
 
-Filter by project tags assigned to media. Click **+** to add tag filters.
+Filter by project tags assigned to media. Click **+** to add tag filters. When you pick several tags, an item must have all of them to appear.
 
 ### Date Range
 
@@ -130,7 +137,7 @@ This keeps reference images close to the elements they belong to.
 
 ## AI Image Generation
 
-If your instance has AI image generation enabled, click the **+** button in the header and choose **Generate with AI** to open the image generation dialog. See [AI Image Generation](./ai-generation) for details.
+If your administrator has enabled AI image generation, click the **+** (Add media) button in the header and choose **Generate with AI** to open the image generation dialog. If it is not enabled, the option is unavailable. See [AI Image Generation](./ai-generation) for details.
 
 When generation is in progress, active jobs appear at the top showing status (queued, generating, saving). Completed images are added to the library automatically.
 

@@ -1,6 +1,7 @@
 # E2E Testing Best Practices
 
 ## Table of Contents
+
 1. [Test Structure](#test-structure)
 2. [Naming Conventions](#naming-conventions)
 3. [Selectors](#selectors)
@@ -17,9 +18,12 @@
 ## Test Structure
 
 ### Use Descriptive Test Names
+
 ```typescript
 // ✅ Good
-test('should register a new user successfully with valid credentials', async ({ page }) => {
+test('should register a new user successfully with valid credentials', async ({
+  page,
+}) => {
   // ...
 });
 
@@ -30,18 +34,19 @@ test('registration works', async ({ page }) => {
 ```
 
 ### Group Related Tests
+
 ```typescript
 test.describe('User Registration', () => {
   test.describe('Validation', () => {
     test('should enforce password strength requirements', async ({ page }) => {
       // ...
     });
-    
+
     test('should validate password confirmation matches', async ({ page }) => {
       // ...
     });
   });
-  
+
   test.describe('Success Flows', () => {
     test('should register and auto-login', async ({ page }) => {
       // ...
@@ -51,13 +56,14 @@ test.describe('User Registration', () => {
 ```
 
 ### Use beforeEach for Setup
+
 ```typescript
 test.describe('Project Tests', () => {
   test.beforeEach(async ({ page }) => {
     // Common setup for all tests in this group
     await page.goto('/projects');
   });
-  
+
   test('should list projects', async ({ page }) => {
     // Test specific code
   });
@@ -69,21 +75,27 @@ test.describe('Project Tests', () => {
 ## Naming Conventions
 
 ### Test Files
+
 - Use `.spec.ts` suffix
 - Name after the feature: `registration.spec.ts`, `projects.spec.ts`
 - Group by feature area in folders: `auth/`, `projects/`
 
 ### Test Descriptions
+
 - Start with "should" for behavior tests
 - Be specific about expected outcome
 - Include relevant context
 
 ```typescript
 // ✅ Good
-test('should show error when username is already taken', async ({ page }) => {});
-test('should automatically login after successful registration', async ({ page }) => {});
+test('should show error when username is already taken', async ({
+  page,
+}) => {});
+test('should automatically login after successful registration', async ({
+  page,
+}) => {});
 
-// ❌ Bad  
+// ❌ Bad
 test('username error', async ({ page }) => {});
 test('login', async ({ page }) => {});
 ```
@@ -93,6 +105,7 @@ test('login', async ({ page }) => {});
 ## Selectors
 
 ### Always Use Test Data IDs
+
 ```typescript
 // ✅ Good - Stable, semantic selector
 await page.getByTestId('username-input').fill('user');
@@ -104,6 +117,7 @@ await page.locator('.register-btn').click();
 ```
 
 ### Fallback to Role-Based Selectors
+
 ```typescript
 // ✅ Good - Accessible
 await page.getByRole('button', { name: 'Submit' }).click();
@@ -114,17 +128,12 @@ await page.locator('button:has-text("Submit")').click();
 ```
 
 ### Add Test IDs to Components
+
 ```html
 <!-- ✅ Good -->
-<input 
-  matInput
-  formControlName="username"
-  data-testid="username-input" />
+<input matInput formControlName="username" data-testid="username-input" />
 
-<button 
-  mat-raised-button
-  type="submit"
-  data-testid="register-button">
+<button mat-raised-button type="submit" data-testid="register-button">
   Register
 </button>
 ```
@@ -134,8 +143,12 @@ await page.locator('button:has-text("Submit")').click();
 ## Test Data
 
 ### Generate Unique Values
+
 ```typescript
-import { generateUniqueUsername, generateUniqueSlug } from './test-helpers';
+import {
+  generateUniqueUsername,
+  generateUniqueSlug,
+} from '../common/test-helpers';
 
 // ✅ Good - Prevents conflicts
 test('should create project', async ({ page }) => {
@@ -150,30 +163,32 @@ test('should create project', async ({ page }) => {
 ```
 
 ### Use Constants for Common Values
+
 ```typescript
-import { TEST_CONSTANTS } from './test-helpers';
+import { TEST_PASSWORDS } from '../common/test-credentials';
 
 // ✅ Good
-await page.getByTestId('password-input').fill(TEST_CONSTANTS.VALID_PASSWORD);
+await page.getByTestId('password-input').fill(TEST_PASSWORDS.VALID);
 
 // ❌ Bad - Magic strings
 await page.getByTestId('password-input').fill('ValidPass123!');
 ```
 
 ### Keep Test Data Realistic
+
 ```typescript
 // ✅ Good - Realistic data
 const user = {
   username: 'john_doe',
   email: 'john@example.com',
-  name: 'John Doe'
+  name: 'John Doe',
 };
 
 // ❌ Bad - Unrealistic
 const user = {
   username: 'x',
   email: 'a@b.c',
-  name: 'A'
+  name: 'A',
 };
 ```
 
@@ -182,10 +197,13 @@ const user = {
 ## Assertions
 
 ### Use Specific Assertions
+
 ```typescript
 // ✅ Good - Specific and clear
 await expect(page.getByTestId('username-input')).toBeVisible();
-await expect(page.getByTestId('error-message')).toContainText('Username is required');
+await expect(page.getByTestId('error-message')).toContainText(
+  'Username is required'
+);
 await expect(page).toHaveURL('/dashboard');
 
 // ❌ Bad - Too generic
@@ -194,6 +212,7 @@ expect(element).toBeTruthy();
 ```
 
 ### Assert on Multiple States
+
 ```typescript
 // ✅ Good - Comprehensive
 test('should disable button during submission', async ({ page }) => {
@@ -205,6 +224,7 @@ test('should disable button during submission', async ({ page }) => {
 ```
 
 ### Verify Navigation
+
 ```typescript
 // ✅ Good - Explicit navigation check
 await page.getByTestId('submit-button').click();
@@ -220,9 +240,12 @@ await page.waitForTimeout(1000);
 ## Async Operations
 
 ### Wait for Specific Conditions
+
 ```typescript
 // ✅ Good - Wait for specific element
-await expect(localPage.locator('[data-testid="user-menu-button"]')).toBeVisible()
+await expect(
+  localPage.locator('[data-testid="user-menu-button"]')
+).toBeVisible();
 
 // ✅ Good - Wait for URL change
 await page.waitForURL('/projects');
@@ -235,6 +258,7 @@ await page.waitForTimeout(5000);
 ```
 
 ### Handle Race Conditions
+
 ```typescript
 // ✅ Good - Wait for button to be ready
 await page.getByTestId('submit-button').waitFor({ state: 'visible' });
@@ -245,11 +269,12 @@ await page.getByTestId('submit-button').click();
 ```
 
 ### Use Promise.all for Parallel Operations
+
 ```typescript
 // ✅ Good - Parallel execution
 await Promise.all([
   page.waitForNavigation(),
-  page.getByTestId('submit-button').click()
+  page.getByTestId('submit-button').click(),
 ]);
 
 // ⚠️ Slower - Sequential execution
@@ -262,6 +287,7 @@ await page.waitForNavigation();
 ## Test Isolation
 
 ### Clean State Between Tests
+
 ```typescript
 test.describe('User Tests', () => {
   test.beforeEach(async ({ page }) => {
@@ -276,6 +302,7 @@ test.describe('User Tests', () => {
 ```
 
 ### Don't Depend on Test Order
+
 ```typescript
 // ✅ Good - Each test is independent
 test('test A', async ({ page }) => {
@@ -299,6 +326,7 @@ test('test B - use user from A', async ({ page }) => {
 ```
 
 ### Use Fixtures for Shared Setup
+
 ```typescript
 // ✅ Good - Use fixtures
 test('authenticated test', async ({ authenticatedPage: page }) => {
@@ -322,9 +350,11 @@ test('test 2', async ({ page }) => {
 ## Performance
 
 ### Run Tests in Parallel
+
 ```typescript
-// Tests in different files run in parallel by default
-// Use test.describe.serial for sequential execution
+// Files run in parallel across workers, and the local and online configs are
+// `fullyParallel`, so tests inside a file may run in parallel too.
+// Use test.describe.serial when tests in a group depend on each other
 test.describe.serial('Sequential Tests', () => {
   test('runs first', async ({ page }) => {});
   test('runs second', async ({ page }) => {});
@@ -332,6 +362,7 @@ test.describe.serial('Sequential Tests', () => {
 ```
 
 ### Use Selective Test Execution
+
 ```bash
 # Run specific file
 npx playwright test registration.spec.ts
@@ -344,6 +375,7 @@ npx playwright test --headed
 ```
 
 ### Optimize Waits
+
 ```typescript
 // ✅ Good - Specific wait
 await page.waitForSelector('[data-testid="result"]');
@@ -357,11 +389,13 @@ await page.waitForTimeout(10000);
 ## Debugging
 
 ### Use UI Mode
+
 ```bash
 npx playwright test --ui
 ```
 
 ### Enable Trace
+
 ```typescript
 // In playwright.config.ts
 use: {
@@ -370,22 +404,24 @@ use: {
 ```
 
 ### Add Debug Points
+
 ```typescript
 test('debug test', async ({ page }) => {
   await page.goto('/login');
-  
+
   // Pause test execution
   await page.pause();
-  
+
   // Take screenshot
   await page.screenshot({ path: 'debug.png' });
-  
+
   // Log page content
   console.log(await page.content());
 });
 ```
 
 ### Use test.only for Focused Testing
+
 ```typescript
 // Run only this test
 test.only('focus on this', async ({ page }) => {
@@ -410,11 +446,12 @@ When running tests through the Playwright VS Code extension or IDE integration, 
 
 The Inkweld project provides multiple Playwright configurations:
 
-- **`playwright.online.config.ts`** - Default: Tests against live backend (port 8333)
+- **`playwright.online.config.ts`** - Default: starts its own Bun backend (in-memory database) and frontend on free ports
 - **`playwright.local.config.ts`** - Tests with local/mock functionality
 - **`playwright.docker.config.ts`** - Tests in Docker environment
 - **`playwright.wrangler.config.ts`** - Tests with Cloudflare Workers
 - **`playwright.screenshots.config.ts`** - Configuration for screenshot capture
+- **`playwright.mcp.config.ts`** - MCP protocol tests
 
 #### Method 1: Using Environment Variables
 
@@ -433,6 +470,9 @@ TEST_ENV=wrangler npx playwright test
 
 # Run screenshot tests
 TEST_ENV=screenshots npx playwright test
+
+# Run MCP tests
+TEST_ENV=mcp npx playwright test
 ```
 
 #### IDE Extension Usage
@@ -443,19 +483,20 @@ When using the Playwright VS Code extension (Test Explorer or inline test run bu
 2. The `TEST_ENV` environment variable (if set in terminal)
 3. The default in `playwright.config.ts` (if neither above is set)
 
-##### Method 2: VS Code Playwright Settings 
+##### Method 2: VS Code Playwright Settings
 
 Edit your VS Code `settings.json` (⌘+Shift+P → "Preferences: Open Settings (JSON)"):
 
 ```jsonc
 {
   "playwright.env": {
-    "TEST_ENV": "online"     // or "local", "docker", "wrangler", "screenshots"
-  }
+    "TEST_ENV": "online", // or "local", "docker", "wrangler", "screenshots", "mcp"
+  },
 }
 ```
 
-**Benefits**: 
+**Benefits**:
+
 - Persists across IDE restarts
 - Automatically picked up by Playwright extension
 - No need to set environment variables manually
@@ -482,13 +523,14 @@ npx playwright test
 
 ### Testing Different Scenarios
 
-| Config | Use Case | Notes |
-|--------|----------|-------|
-| `online` | Full integration tests | Requires backend running on port 8333 |
-| `local` | Local/mock API scenarios | Tests local functionality |
-| `docker` | Docker containerized tests | Used in CI/CD pipeline |
-| `wrangler` | Cloudflare Workers | Tests against D1/Durable Objects |
-| `screenshots` | Documentation screenshots | Generates screenshots for docs site |
+| Config        | Use Case                   | Notes                                             |
+| ------------- | -------------------------- | ------------------------------------------------- |
+| `online`      | Full integration tests     | Starts its own backend and frontend on free ports |
+| `local`       | Local/mock API scenarios   | Tests local functionality                         |
+| `docker`      | Docker containerized tests | Used in CI/CD pipeline                            |
+| `wrangler`    | Cloudflare Workers         | Tests against D1/Durable Objects                  |
+| `screenshots` | Documentation screenshots  | Generates screenshots for docs site               |
+| `mcp`         | MCP protocol tests         | Starts its own backend and the MCP Inspector      |
 
 ---
 
@@ -497,6 +539,7 @@ npx playwright test
 ### Avoid Flaky Tests
 
 #### ❌ Bad - Flaky due to timing
+
 ```typescript
 test('flaky test', async ({ page }) => {
   await page.getByTestId('button').click();
@@ -506,6 +549,7 @@ test('flaky test', async ({ page }) => {
 ```
 
 #### ✅ Good - Reliable
+
 ```typescript
 test('reliable test', async ({ page }) => {
   await page.getByTestId('button').click();
@@ -516,25 +560,28 @@ test('reliable test', async ({ page }) => {
 ### Handle Dynamic Content
 
 #### ❌ Bad - Fails if content changes
+
 ```typescript
 await expect(page.getByTestId('welcome-message')).toHaveText('Welcome, John!');
 ```
 
 #### ✅ Good - Flexible assertion
+
 ```typescript
 await expect(page.getByTestId('welcome-message')).toContainText('Welcome');
-```
 ```
 
 ### Don't Test Implementation Details
 
 #### ❌ Bad - Testing internal state
+
 ```typescript
 const state = await page.evaluate(() => window['appState']);
 expect(state.isLoading).toBe(false);
 ```
 
 #### ✅ Good - Testing user-visible behavior
+
 ```typescript
 await expect(page.getByTestId('loading-spinner')).not.toBeVisible();
 await expect(page.getByTestId('content')).toBeVisible();
@@ -543,15 +590,16 @@ await expect(page.getByTestId('content')).toBeVisible();
 ### Clean Up Resources
 
 #### ✅ Good - Proper cleanup
+
 ```typescript
 test('file upload', async ({ page }) => {
   const [fileChooser] = await Promise.all([
     page.waitForEvent('filechooser'),
-    page.getByTestId('upload-button').click()
+    page.getByTestId('upload-button').click(),
   ]);
-  
+
   await fileChooser.setFiles('test-file.pdf');
-  
+
   // Clean up after test
   test.afterEach(async () => {
     await deleteUploadedFile(page);
@@ -564,15 +612,17 @@ test('file upload', async ({ page }) => {
 ## Mobile Testing Specifics
 
 ### Use Appropriate Viewport
+
 ```typescript
 import { devices } from '@playwright/test';
 
 test.use({
-  ...devices['iPhone 12']
+  ...devices['iPhone 12'],
 });
 ```
 
 ### Use Touch Actions
+
 ```typescript
 // ✅ Good for mobile
 await page.getByTestId('button').tap();
@@ -582,11 +632,12 @@ await page.getByTestId('button').click();
 ```
 
 ### Test Orientation Changes
+
 ```typescript
 test('handles orientation', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 667 }); // Portrait
   // Test portrait behavior
-  
+
   await page.setViewportSize({ width: 667, height: 375 }); // Landscape
   // Test landscape behavior
 });
@@ -615,5 +666,5 @@ Before committing your test:
 
 - [Playwright Best Practices](https://playwright.dev/docs/best-practices)
 - [Project E2E README](./README.md)
-- [Test Helpers Documentation](./test-helpers.ts)
+- [Test helpers](./common/test-helpers.ts)
 - [Quick Start Guide](./QUICK_START.md)

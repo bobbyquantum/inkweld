@@ -9,46 +9,53 @@ import ThemedImage from '@site/src/components/ThemedImage';
 
 # Project Settings
 
-Project settings let you update your project's metadata and cover image. Access them from the project menu.
+Project settings cover two things: your project's details (title, description and cover image), and the **Project Settings** tab, which holds export/import, sync, collaboration and the Danger Zone.
 
-## Opening Project Settings
+## Editing Project Details
 
-1. Open your project
-2. Click the **three-dot menu** (⋮) in the project header
-3. Select **Edit Project**
+1. Open your project. The **Home** tab shows a card with your cover, title and description.
+2. Click that card (its tooltip for screen readers is **Edit project details**; a pencil icon sits at its edge).
+3. Change the fields in the dialog and click **Save**.
 
-## Project Details
+You need write access to the project. If you can only view it, the card is not clickable.
 
-### Title
+### Title and Description
 
-The display name of your project, shown on the dashboard and in exports.
-
-### Description
-
-An optional summary of your project. Helps identify the project on the dashboard.
+- **Title** — the display name of your project, shown on the bookshelf and in exports. It is required.
+- **Description** — an optional summary that helps you recognise the project.
 
 ## Cover Image
 
-Set a visual cover for your project. The cover appears on the dashboard and can be used in exports.
+Set a visual cover for your project. The cover appears on the bookshelf, on the Home tab and in exports. The dialog shows the current cover on the left and a **Cover Image** section on the right with these options:
 
-### Upload an Image
+### Upload Image
 
 1. Click **Upload Image**
-2. Select an image file from your device
-3. Crop the image to fit the cover dimensions
-4. Save your changes
+2. Select a JPEG or PNG file from your device
+3. In the **Crop Cover Image** step, adjust the selection to the 1:1.6 cover ratio (1600×2560 pixels is recommended) and click **Apply**
+4. Click **Save**
 
 ### Select from Library
 
-Choose an existing image from your project's media library:
-
 1. Click **Select from Library**
-2. Pick an image from the media library dialog
-3. The selected image becomes your project cover
+2. Pick an image from your project's media library
+3. Crop it to the cover ratio and click **Apply**, then **Save**
+
+### Design on Canvas
+
+Click **Design on Canvas** to build the cover as a drawing instead of using a finished image. Inkweld creates a [canvas](../worldbuilding/canvas) with a cover-size frame and links it to the project, making it a **live cover**: the cover image is re-rendered from the canvas whenever you change it, so you can keep refining the design.
+
+When a live cover is in use, the dialog shows a **Live cover** card with:
+
+- **Open canvas** — jumps to the canvas that drives the cover
+- **Update now** — re-renders the cover immediately instead of waiting
+- **Unlink** — stops following the canvas and keeps the current image as an ordinary cover. The canvas itself is not deleted.
+
+Choosing **Upload Image** or **Select from Library** while a live cover is linked asks you to confirm with **Unlink and continue**.
 
 ### Generate with AI
 
-If AI image generation is enabled on your server:
+If AI image generation is enabled on your server, **Generate with AI** appears (greyed out, with a cloud-off icon, if the service is currently unreachable):
 
 1. Click **Generate with AI**
 2. Follow the prompts to create a cover
@@ -58,20 +65,20 @@ See [AI Image Generation](/user-guide/media/ai-generation) for details.
 
 ### Remove Cover
 
-Click the remove button (×) on the cover image to remove it.
+Click the delete (trash) button on the cover preview to remove the cover.
 
 ## The Settings Tab
 
 Click **Project Settings** at the bottom of the project sidebar to open the settings tab. Its sections are listed down the left (on a narrow screen, as expandable panels). Which ones you see depends on your access:
 
-| Section                                                  | Who sees it                  |
-| -------------------------------------------------------- | ---------------------------- |
-| Actions (export / import)                                | Everyone                     |
-| Templates, Relationships, Tags, Time Systems, Generators | Owner and writers            |
-| [Sync](#sync)                                            | Everyone                     |
-| Collaboration                                            | Owner                        |
-| [MCP](#mcp)                                              | Owner, unless AI is disabled |
-| Danger Zone                                              | Owner                        |
+| Section                                                  | Who sees it                       |
+| -------------------------------------------------------- | --------------------------------- |
+| Actions (export / import)                                | Everyone                          |
+| Templates, Relationships, Tags, Time Systems, Generators | Owner and writers                 |
+| [Sync](#sync)                                            | Everyone                          |
+| Collaboration                                            | Owner only                        |
+| [MCP](#mcp)                                              | Owner only, unless AI is disabled |
+| Danger Zone (rename URL, delete)                         | Owner only                        |
 
 ## Sync
 
@@ -102,7 +109,7 @@ Images and other media are downloaded to each device separately from the text. T
 Documents and worldbuilding entries are cached in your browser so the project works offline. If a document will not sync or looks corrupted, **Reset Local Data** deletes this project's cached copy on this device and reloads it from the server. Other projects, other devices and other profiles on this device are not touched.
 
 :::warning
-Anything you changed on this device that has not reached the server yet is lost. Only reset when the server holds the copy you want, and never in Browser mode, where this device's copy is the only one.
+Anything you changed on this device that has not reached the server yet is lost. Only reset when the server holds the copy you want. **The button is also shown in Browser mode, where this device's copy is the only one: resetting there deletes the project's content for good.**
 :::
 
 ## MCP
@@ -125,14 +132,14 @@ You can change your project's URL slug (the part that appears in the browser add
 Changing the project URL has important consequences:
 
 - **Existing bookmarks and links will break** — anyone who saved a link to the old URL will need the new one
-- **Collaborators with offline copies will need to re-sync** — their local data will be migrated to the new project URL
+- **Collaborators with offline copies will need to re-sync** — only the device you renamed from moves its offline copy; everyone else's old offline copy is not moved
 - The old URL will temporarily redirect to the new one, but this is not permanent
   :::
 
 ### To Rename Your Project
 
-1. Open your project and go to **Settings**
-2. Click the **Danger Zone** tab
+1. Open your project and click **Project Settings** at the bottom of the sidebar
+2. Open the **Danger Zone** section
 3. Find the **Rename Project URL** card and click the **Rename Project** button
 
 <ThemedImage
@@ -140,7 +147,7 @@ Changing the project URL has important consequences:
   alt="Rename project card in the Danger Zone"
 />
 
-4. Enter the new slug (lowercase letters, numbers, and hyphens only)
+4. Enter the **New Project Slug** (lowercase letters, numbers, and hyphens only)
 5. Click **Rename Project** to confirm
 
 <ThemedImage
@@ -159,7 +166,6 @@ When you rename a project:
 - ✅ All media files (images, covers)
 - ✅ All publish plans and exported files
 - ✅ All snapshots and version history
-- ✅ MCP keys (re-keyed to new project path)
 - ✅ Collaborator access and permissions
 
 ## Deleting a Project
@@ -168,19 +174,20 @@ When you rename a project:
 Deleting a project permanently removes all content. This cannot be undone.
 :::
 
-The Delete Project option is located in the Danger Zone tab:
+Deleting is done from the **Danger Zone** section of the Project Settings tab, and only the project owner sees it:
 
 <ThemedImage
   src="/img/features/project-delete-card"
   alt="Delete Project card in the Danger Zone"
 />
 
-1. Open your project and go to **Settings**
-2. Click the **Danger Zone** tab
-3. Find the **Delete Project** card
-4. Click **Delete Project**
-5. Type the project name to confirm
-6. Click **Delete Permanently**
+1. Open your project and click **Project Settings** at the bottom of the sidebar
+2. Open the **Danger Zone** section
+3. Find the **Delete Project** card and click **Delete This Project**
+4. In the confirmation dialog, type the project's slug (the URL name shown in the dialog) exactly as shown
+5. Click **Delete**
+
+You can also delete a project from the bookshelf with the cover's **⋮** menu, **Delete project**, which asks for the same confirmation.
 
 ---
 

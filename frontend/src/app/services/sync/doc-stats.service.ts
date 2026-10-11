@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 
-import { environment } from '../../../environments/environment';
+import { StorageContextService } from '../core/storage-context.service';
 
 export interface DocStorageStats {
   documentId: string;
@@ -15,6 +15,7 @@ export interface DocStorageStats {
 @Injectable({ providedIn: 'root' })
 export class DocStatsService {
   private readonly http = inject(HttpClient);
+  private readonly storageContext = inject(StorageContextService);
 
   private readonly cache = new Map<
     string,
@@ -28,7 +29,7 @@ export class DocStatsService {
       return cached.stats;
     }
 
-    const baseUrl = environment.apiUrl;
+    const baseUrl = this.storageContext.getApiBaseUrl();
     if (!baseUrl) return null;
 
     try {

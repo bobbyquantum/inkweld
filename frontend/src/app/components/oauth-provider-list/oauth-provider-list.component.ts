@@ -16,9 +16,8 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { AuthenticationService } from '@inkweld/index';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { LoggerService } from '@services/core/logger.service';
+import { StorageContextService } from '@services/core/storage-context.service';
 import { firstValueFrom } from 'rxjs';
-
-import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-oauth-provider-list',
@@ -38,6 +37,7 @@ export class OAuthProviderListComponent implements OnInit {
   private readonly transloco = inject(TranslocoService);
   private readonly ngZone = inject(NgZone);
   private readonly logger = inject(LoggerService);
+  private readonly storageContext = inject(StorageContextService);
 
   /**
    * Whether this component is being used in the register context.
@@ -83,10 +83,7 @@ export class OAuthProviderListComponent implements OnInit {
   signInWithProvider(provider: string): void {
     this.logger.debug('OAuthProviderList', `Sign in with ${provider} clicked`);
     this.ngZone.runOutsideAngular(() => {
-      let apiUrl = '';
-      if (environment?.apiUrl) {
-        apiUrl = environment.apiUrl;
-      }
+      const apiUrl = this.storageContext.getApiBaseUrl();
       globalThis.location.href = `${apiUrl}/api/v1/auth/${provider.toLowerCase()}`;
     });
   }

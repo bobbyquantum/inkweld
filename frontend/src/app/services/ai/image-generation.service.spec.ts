@@ -12,6 +12,7 @@ import {
 } from '../../../api-client/model/models';
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { AuthTokenService } from '../auth/auth-token.service';
+import { StorageContextService } from '../core/storage-context.service';
 import { LocalStorageService } from '../local/local-storage.service';
 import { ProjectService } from '../project/project.service';
 import { ImageGenerationService } from './image-generation.service';
@@ -786,6 +787,33 @@ describe('ImageGenerationService', () => {
       const job = service.getJob(jobId);
       expect(job?.status).toBe('failed');
       expect(job?.error).toBe('Network error');
+    });
+
+    it('should stream from the configured server, not the build-time apiUrl', async () => {
+      vi.spyOn(
+        TestBed.inject(StorageContextService),
+        'getApiBaseUrl'
+      ).mockReturnValue('https://my-server.example');
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+        ok: true,
+        status: 200,
+        body: createSSEStream([
+          {
+            event: 'completed',
+            data: { type: 'completed', result: createMockResponse() },
+          },
+        ]),
+      } as unknown as Response);
+
+      service.startGeneration('user/project', createMockRequest(), {
+        providerType: 'openai',
+      });
+      await flushPromises();
+
+      expect(fetchSpy).toHaveBeenCalledWith(
+        'https://my-server.example/api/v1/ai/image/generate-stream',
+        expect.anything()
+      );
     });
 
     it('should include auth headers in fetch request', async () => {

@@ -23,10 +23,10 @@ Each snapshot stores:
 ## Creating a Snapshot
 
 1. Open a document or worldbuilding element
-2. Click the **history icon** (🕘) in the toolbar
-3. Click **New Snapshot**
-4. Give your snapshot a name (e.g., "Before rewrite") and an optional description
-5. Click **Create**
+2. Click the **Snapshots** chip (with the history icon) in the status bar at the bottom of the editor
+3. In the **Document Snapshots** dialog, click **New Snapshot**
+4. Give your snapshot a name (e.g., "Before rewrite") and an optional description. If you leave the name blank, the current date and time are used
+5. Click **New Snapshot** again to save it
 
 Your snapshot appears in the list immediately.
 
@@ -40,7 +40,7 @@ Good times to create a snapshot:
 
 ## Restoring a Snapshot
 
-1. Open the snapshots dialog via the **history icon** in the toolbar
+1. Open the snapshots dialog via the **Snapshots** chip in the status bar
 2. Find the snapshot you want to restore
 3. Click the **three-dot menu** (⋮) on the snapshot
 4. Select **Restore**
@@ -59,6 +59,10 @@ Restoring a snapshot replaces the current content of your document. Consider cre
 
 Deleted snapshots cannot be recovered.
 
+:::note
+The three-dot menu also has a **Preview HTML** item. It is not available yet: choosing it only shows a "Preview feature coming soon" message. To see an older version, restore it (after taking a snapshot of your current text, as above).
+:::
+
 ## Auto-Snapshots
 
 Inkweld can automatically create snapshots of your edited documents, providing a safety net without any manual action.
@@ -67,12 +71,12 @@ Inkweld can automatically create snapshots of your edited documents, providing a
 
 Auto-snapshots are triggered in two situations:
 
-- **Closing a document tab** — when you close a tab for a document you edited, an auto-snapshot is created for that document.
-- **Leaving the project** — when you navigate away from the project, auto-snapshots are created for any remaining edited documents that haven't been snapshotted yet.
+- **Closing a tab** — when you close a tab for a document or worldbuilding element you edited, an auto-snapshot is created for it.
+- **Leaving the project** — when you navigate away from the project, auto-snapshots are created for any remaining edited documents and elements that haven't been snapshotted yet.
 
 Additional details:
 
-- Auto-snapshots are named **"Auto-save — document name — date"** so you can tell them apart from manual snapshots
+- Auto-snapshots are named **"Auto-save — name — date"** so you can tell them apart from manual snapshots
 - A maximum of **10 auto-snapshots** are kept per document — older ones are pruned automatically
 - To prevent excessive snapshots, each document is auto-snapshotted at most **once every 5 minutes**
 
@@ -82,7 +86,7 @@ Auto-snapshots are **enabled by default**. To toggle them:
 
 1. Open **Settings** (click your avatar → Settings)
 2. Go to the **Project** tab
-3. Check or uncheck **Auto-save snapshots**
+3. Tick or untick **Auto-save snapshots on tab close and project exit**
 
 ### Auto-Snapshots vs. Manual Snapshots
 
@@ -101,4 +105,4 @@ Snapshots work fully in local mode (offline, no server). They are stored in your
 
 ## Worldbuilding Snapshots
 
-Snapshots are not limited to documents — you can also snapshot **worldbuilding elements** (characters, locations, items, etc.). The workflow is the same: open the element, click the history icon, and create or restore snapshots.
+Snapshots are not limited to documents — you can also snapshot **worldbuilding elements** (characters, locations, items, etc.). The workflow is the same: open the element, click the **Snapshots** chip in its status bar, and create or restore snapshots. Worldbuilding elements are auto-snapshotted too.

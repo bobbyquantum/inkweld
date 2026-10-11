@@ -41,11 +41,13 @@ export default function ApiPage(): ReactNode {
         <section className="margin-vert--lg">
           <Heading as="h2">Authentication</Heading>
           <p>
-            The Inkweld API uses session-based authentication with httpOnly
-            cookies.
+            Signing in returns a JWT. Send it as a bearer token on every
+            request. Password sign-in is off by default (servers are
+            passkey-first); an administrator can enable it with{' '}
+            <code>PASSWORD_LOGIN_ENABLED=true</code>.
           </p>
           <pre>
-            <code>{`POST /api/auth/login
+            <code>{`POST /api/v1/auth/login
 Content-Type: application/json
 
 {
@@ -55,12 +57,11 @@ Content-Type: application/json
 
 Response:
 {
-  "user": {
-    "id": "uuid",
-    "username": "your-username",
-    "email": "you@example.com"
-  }
-}`}</code>
+  "user": { "id": "uuid", "username": "your-username", ... },
+  "token": "eyJ..."
+}
+
+Then: Authorization: Bearer eyJ...`}</code>
           </pre>
         </section>
 
@@ -70,63 +71,53 @@ Response:
           <Heading as="h3">Projects</Heading>
           <ul>
             <li>
-              <code>GET /api/projects</code> - List your projects
+              <code>GET /api/v1/projects</code> - List your projects
             </li>
             <li>
-              <code>POST /api/projects</code> - Create a new project
+              <code>POST /api/v1/projects</code> - Create a project from a{' '}
+              <code>title</code> and <code>slug</code>
             </li>
             <li>
-              <code>GET /api/projects/:id</code> - Get project details
+              <code>GET /api/v1/projects/:username/:slug</code> - Get project
+              details
             </li>
             <li>
-              <code>PUT /api/projects/:id</code> - Update project
+              <code>PUT /api/v1/projects/:username/:slug</code> - Update project
             </li>
             <li>
-              <code>DELETE /api/projects/:id</code> - Delete project
+              <code>DELETE /api/v1/projects/:username/:slug</code> - Delete
+              project
             </li>
           </ul>
 
-          <Heading as="h3">Documents</Heading>
+          <Heading as="h3">Elements and documents</Heading>
           <ul>
             <li>
-              <code>GET /api/projects/:projectId/elements</code> - List project
-              files and folders
+              <code>GET /api/v1/projects/:username/:slug/elements</code> - The
+              project tree (folders, documents, worldbuilding elements)
             </li>
             <li>
-              <code>POST /api/projects/:projectId/elements</code> - Create file
-              or folder
+              <code>GET /api/v1/projects/:username/:slug/docs</code> - List
+              documents
             </li>
             <li>
-              <code>GET /api/documents/:id</code> - Get document content
-            </li>
-            <li>
-              <code>PUT /api/documents/:id</code> - Update document
+              <code>GET /api/v1/projects/:username/:slug/docs/:docId</code> -
+              Get a document
             </li>
           </ul>
-
-          <Heading as="h3">Worldbuilding</Heading>
-          <ul>
-            <li>
-              <code>GET /api/projects/:projectId/worldbuilding</code> - List
-              worldbuilding entries
-            </li>
-            <li>
-              <code>POST /api/projects/:projectId/worldbuilding</code> - Create
-              entry
-            </li>
-            <li>
-              <code>GET /api/worldbuilding/:id</code> - Get entry details
-            </li>
-          </ul>
+          <p>
+            Documents and worldbuilding content are edited through the real-time
+            connection below or the MCP server, not through REST writes.
+          </p>
         </section>
 
         <section className="margin-vert--lg">
           <Heading as="h2">WebSocket Connection</Heading>
           <p>Real-time collaboration uses WebSocket connections:</p>
           <pre>
-            <code>{`wss://your-server/ws/:projectId
+            <code>{`wss://your-server/api/v1/ws/yjs?documentId=<username>:<slug>:<elementId>
 
-Connection authenticated via session cookie.
+The client authenticates with its token after connecting.
 Yjs CRDT updates exchanged in binary format.`}</code>
           </pre>
         </section>

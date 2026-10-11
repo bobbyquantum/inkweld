@@ -28,11 +28,11 @@ If your administrator has enabled AI features, a third option appears:
 AI image generation is an optional feature. If you don't see the "Generate with AI" option, your administrator has not enabled it for this instance.
 :::
 
-After selecting an image, a cropper appears to adjust it to the correct aspect ratio (1:1.6, optimized for 1600×2560px). Click **Crop & Save** to apply.
+After selecting an image, a cropper appears to adjust it to the correct aspect ratio (1:1.6, optimized for 1600×2560px). Click **Apply**.
 
 ### Designing the Cover on a Canvas
 
-A cover can be a [canvas](../worldbuilding/canvas#frame-as-project-cover) element instead of an uploaded image. Choose **Design on Canvas** in the edit dialog (or **New element → Cover** in the project tree) to create a canvas with a cover-size frame that is linked as the project's **live cover**. Whatever you arrange inside the frame — images from your media library, text, shapes, drawings — is rendered to the cover image automatically a few seconds after you stop editing, so the dashboard, the sidebar, other devices and every export always show the current design.
+A cover can be a [canvas](../worldbuilding/canvas#frame-as-project-cover) element instead of an uploaded image. Choose **Design on Canvas** in the edit dialog (or **New element → Cover** in the project tree) to create a canvas with a cover-size frame that is linked as the project's **live cover**. Whatever you arrange inside the frame — images from your media library, text, shapes, drawings — is rendered to the cover image automatically a few seconds after you stop editing, so the dashboard, the sidebar, other devices and your exports always show the current design.
 
 The edit dialog shows a **Live cover** card while a canvas is linked, with **Open canvas**, **Update now** and **Unlink**. Uploading, picking or generating an image while a live cover is linked unlinks it (you'll be asked first); the canvas itself is kept.
 
@@ -44,7 +44,7 @@ Click the delete button on the cover image in the edit dialog. The project will 
 
 ## Covers in Exports
 
-Your project cover is included when **Include Cover Page** is enabled in a publish plan. EPUB, PDF, HTML and HTML Site exports all carry it; Markdown exports do not.
+Your project cover is included when **Include cover image** is ticked in the Style section of a publish plan. EPUB and PDF exports carry it, and so does the landing page of a Website export; single-file HTML shows it on its Title Page when the plan includes **Frontmatter > Title Page**, and Markdown exports have no cover. An EPUB always has a cover: if the project has none, Inkweld draws a default one from the title and author.
 
 ## Worldbuilding Images
 

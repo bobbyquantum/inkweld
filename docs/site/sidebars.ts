@@ -29,6 +29,7 @@ const sidebars: SidebarsConfig = {
         'installation/native-bun',
         'installation/twa',
         'installation/desktop',
+        'installation/home-assistant',
       ],
     },
     'configuration',

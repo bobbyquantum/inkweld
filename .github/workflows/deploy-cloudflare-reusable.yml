@@ -47,6 +47,11 @@ on:
         description: Which <prefix>_API_URL / <prefix>_WSS_URL secrets to use, PREVIEW or PRODUCTION
         required: true
         type: string
+      advertise-server:
+        description: Bake the hosted server URL into the frontend so the app offers it. False builds a frontend-only app that never suggests this environment's backend.
+        required: false
+        default: true
+        type: boolean
       twa-fingerprint-required:
         description: Fail the deploy when TWA_SHA256_FINGERPRINT is unset (the Android app verifies this host)
         required: false
@@ -129,11 +134,18 @@ jobs:
           PRODUCTION_WSS_URL: ${{ secrets.PRODUCTION_WSS_URL }}
           URL_SECRET_PREFIX: ${{ inputs.url-secret-prefix }}
           AUTO_CONFIGURE: ${{ inputs.auto-configure }}
+          ADVERTISE_SERVER: ${{ inputs.advertise-server }}
           # Public OAuth app key for this environment's Dropbox app. Empty
           # hides the Dropbox option in Cloud Sync setup.
           DROPBOX_APP_KEY: ${{ vars.DROPBOX_APP_KEY }}
           ENVIRONMENT_FILE: ${{ inputs.environment-file }}
         run: |
+          if [ "$ADVERTISE_SERVER" = "false" ]; then
+            # Frontend-only build: the backend stays private, so its URL must
+            # not reach the bundle.
+            node scripts/write-hosted-environment.mjs "src/environments/${ENVIRONMENT_FILE}"
+            exit 0
+          fi
           case "$URL_SECRET_PREFIX" in
             PREVIEW)
               API_URL="$PREVIEW_API_URL"

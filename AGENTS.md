@@ -139,7 +139,7 @@ src/app/
 - **Runtime**: Bun (NOT Node.js)
 - **Framework**: Hono (lightweight, runs on Bun and Cloudflare Workers)
 - **Database**: Drizzle ORM with SQLite/D1 + LevelDB (Yjs documents)
-- **Auth**: Session-based authentication with signed cookies
+- **Auth**: JWT bearer tokens (HS256, 30 days), passkeys, optional GitHub OAuth
 - **Testing**: Bun's built-in test runner
 - **Package Manager**: Bun
 
@@ -148,7 +148,7 @@ src/app/
 - **Run on Bun**: Use `bun` commands, not `npm` or `node`
 - **Type Imports**: Import Request/Response types using `import type`, not regular import
 - **Per-Project LevelDB**: Each project has its own LevelDB instance for document storage
-- **Session Management**: Uses signed cookies for session authentication
+- **Session Management**: Sessions are JWT bearer tokens, not cookies; revoke them by bumping `users.sessionsValidFrom`
 - **Migrations**: `backend/drizzle/` starts from a single `0000_baseline.sql`
   generated from `src/db/schema/`. Its statements use `IF NOT EXISTS` so a
   database created by the pre-squash migrations (the preview D1) records it as
@@ -203,7 +203,8 @@ src/
 - Avoid fragile selectors based on text or classes
 - Mock API responses using the mock-api framework in `e2e/mock-api/`
 - **Key Files**:
-  - `e2e/fixtures.ts` - Test fixtures (authenticatedPage, anonymousPage)
+  - `e2e/{local,online,mcp,screenshots}/fixtures.ts` - Per-suite test fixtures (authenticatedPage, anonymousPage)
+  - `e2e/common/` - Shared helpers (`test-helpers.ts`, `free-port.ts`, isolated backend)
   - `e2e/mock-api/` - Mock API handlers
   - `e2e/BEST_PRACTICES.md` - Detailed e2e testing guidelines
 
@@ -437,7 +438,7 @@ a missed edit. Keep it that way. The priority document is always force-synced.
 
 ### Authentication
 
-- Session-based auth with httpOnly cookies
+- JWT bearer-token sessions (stored client-side by `AuthTokenService`; no session cookies)
 - CSRF protection on all state-changing requests
 - GitHub OAuth support (optional)
 - User approval system (configurable)
@@ -488,12 +489,12 @@ Passkeys use the W3C WebAuthn API for passwordless, discoverable-credential (use
 - E2E tests use Chromium's CDP `WebAuthn.enable` + `WebAuthn.addVirtualAuthenticator` with `ctap2/internal/resident-key/UV/auto-presence`.
 - The login dialog's `onPasskeyLogin()` calls `userService.setCurrentUser(user)` after a successful passkey login to sync the user cache.
 - The online e2e backend explicitly opts into `PASSWORD_LOGIN_ENABLED=true` and `EMAIL_RECOVERY_ENABLED=true` (in `playwright.online.config.ts`) because the existing test fixtures register/login users via the password API. Production images use the secure-by-default passwordless posture.
-- Magic-link recovery tokens are hashed at rest (single-use, 60-min TTL); there is no test endpoint to read the plaintext token, so end-to-end redemption from a real browser is covered by unit tests + backend integration tests rather than Playwright.
+- Magic-link recovery tokens are hashed at rest (single-use, 15-min TTL); there is no test endpoint to read the plaintext token, so end-to-end redemption from a real browser is covered by unit tests + backend integration tests rather than Playwright.
 - **`ALLOW_INKWELD_APP_CLIENT`** (admin Settings, default off) lets the hosted app at `https://inkweld.app` (also the Android app) sign in to a self-hosted server. `getInkweldAppClientOrigins()` (`services/inkweld-app-client.service.ts`, 5s cache) feeds the extra origin into CORS/CSRF in `bun-app.ts`, `worker-app.ts` and `node-app.ts`, into the WebAuthn expected origins, and into `GET /.well-known/webauthn` (WebAuthn related origins; 404 while off). Passkey ceremonies must use `rpFromRequest(c)`, not `rpFromContext(c)`, or a ceremony from inkweld.app fails origin verification. A new origin check must include these origins too.
 
 **Data flow:**
 1. Register: `POST /register/start` → browser prompt → `POST /register/finish` → row in `userPasskeys`
-2. Login: `POST /login/start` → browser prompt → `POST /login/finish` → JWT in response body + cookie session
+2. Login: `POST /login/start` → browser prompt → `POST /login/finish` → JWT in response body
 3. Management: `GET /` (list), `PATCH /:id` (rename), `DELETE /:id`
 4. Recovery (passwordless mode, email enabled):
    `POST /api/v1/passkey-recovery/request` (anonymous, email)

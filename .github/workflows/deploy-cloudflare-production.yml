@@ -52,10 +52,12 @@ jobs:
       d1-database: inkweld_prod
       angular-configuration: cloudflare
       environment-file: environment.cloudflare.ts
-      # Like preview: the hosted apiUrl pre-fills the server step, but first
-      # run shows the setup screen so visitors choose Browser / Cloud Sync /
-      # Server mode instead of being auto-connected.
+      # The production backend is private (the owner's own server), so the
+      # public app must never suggest it: build a frontend-only app with no
+      # server URL. Visitors choose Browser / Cloud Sync, or enter their own
+      # server's address on the setup screen.
       auto-configure: false
+      advertise-server: false
       url-secret-prefix: PRODUCTION
       # The Play-store TWA (android/app/build.gradle.kts) targets inkweld.app.
       twa-fingerprint-required: true

@@ -2,7 +2,7 @@
 id: local-first-design
 title: Local-First Design
 description: Understanding how Inkweld stores and syncs your data using a local-first architecture.
-sidebar_position: 6
+sidebar_position: 8
 ---
 
 # Local-First Design
@@ -24,38 +24,56 @@ When you work in Inkweld, all data is saved to your browser's **IndexedDB** imme
 
 This happens automatically—you don't need to "save" manually.
 
-### Server Sync (When Connected)
+### Syncing (When Connected)
 
-If you're using **server mode**, Inkweld also syncs your changes to the server in real-time using WebSocket connections. This enables:
+How far your work travels depends on your [mode](../getting-started/client-mode):
 
-- Backup of your data on the server
-- Access from multiple devices
-- Real-time collaboration with other users
+- **Browser** — nothing leaves this browser. There is nothing to sync.
+- **Cloud Sync** — Inkweld mirrors your projects into your own Dropbox or Nextcloud folder a few seconds after you stop typing, and whenever you open the app. Use **Sync now** in the user menu to push and pull immediately.
+- **Realtime Sync** — Inkweld syncs your changes to an Inkweld server over a live WebSocket connection. This adds backup on the server, access from several devices and real-time collaboration with other users.
 
-The key benefit: **local storage happens first**, so even if the server connection drops, your work is safe.
+In every mode, **local storage happens first**, so even if the connection drops, your work is safe.
 
 ## Connection States
 
-The sync indicator in the project sidebar shows your current connection status:
+While you work in a project, Inkweld shows the connection state in a slim bar at the bottom of the project tree. The bar only appears when something needs your attention: it stays hidden while everything is synced, and in Local Mode. When the sidebar is collapsed, the same state shows as a single icon.
 
-| Icon             | Status                | Meaning                                    |
-| ---------------- | --------------------- | ------------------------------------------ |
-| ✓ Cloud          | **Connected**         | Synced with server                         |
-| Cloud with slash | **Offline Mode**      | Working locally (changes saved to browser) |
-| ⚠️ Error         | **Connection Failed** | Cannot reach server                        |
+| Icon             | Status                | Meaning                                                                                      |
+| ---------------- | --------------------- | -------------------------------------------------------------------------------------------- |
+| Cloud with check | **Connected**         | Synced with the server (no bar is shown in the expanded sidebar)                             |
+| Cloud with slash | **Offline Mode**      | Working locally; changes are saved to your browser and will sync when the connection returns |
+| Warning          | **Connection Failed** | Cannot reach the server (hover for the last error)                                           |
+| Folder           | **Local Mode**        | Browser profiles only: there is no server, so nothing is waiting to sync                     |
 
 :::note[No "Reconnecting" State]
-When the connection is interrupted, Inkweld simply shows "Offline Mode" rather than a separate reconnecting state. The app continues working normally with local data while attempting to reconnect in the background.
+When the connection is interrupted, Inkweld shows **Offline Mode** rather than a separate reconnecting state. The retry button spins while it tries again, and the app keeps working normally with local data.
 :::
+
+Each open document also has a small sync dot in the editor's status bar, so you can check a single document.
+
+### Media Sync
+
+Images and other media files sync separately from your text. On a server, open **Project Settings** and look in the **Sync** section for **Media Library Sync**:
+
+| Item               | Meaning                                                     |
+| ------------------ | ----------------------------------------------------------- |
+| **Server**         | How many media files (and how much space) are on the server |
+| **Local Cache**    | How many are stored on this device                          |
+| **Needs Download** | Files on the server that this device doesn't have yet       |
+| **Needs Upload**   | Files on this device the server doesn't have yet            |
+| **Last Checked**   | When Inkweld last compared the two                          |
+
+While files download, a progress bar and a percentage appear. When both "Needs" counts are zero, all media is synced. If your server limits how much each account can store, uploads of new media can pause while you are over the limit; the files stay safe on your device.
 
 ### Retrying Connection
 
-If you're in offline mode and want to force a reconnection attempt:
+If you're in Offline Mode and want to force a reconnection attempt:
 
-1. Click the **sync icon** in the project sidebar
-2. Inkweld will attempt to reconnect to the server
+1. Click the **Retry sync** button (the circular arrow) in the bar at the bottom of the project tree
+2. A **Reconnecting…** message appears briefly
+3. You then see either **Reconnected successfully**, or a message that the server couldn't be reached and you are still working offline with changes saved locally
 
-This is useful after regaining internet access or if you want to verify you're connected.
+This is useful after regaining internet access or if you want to verify you're connected. In Cloud Sync mode the same button runs a sync with your cloud storage.
 
 ## What Syncs When
 
@@ -84,6 +102,18 @@ If you make changes while offline:
 1. Changes save to IndexedDB immediately
 2. When you reconnect, changes sync automatically
 3. **Conflict resolution** uses CRDT (Conflict-free Replicated Data Types)
+
+### Sync All on the Bookshelf
+
+With Realtime Sync, the Bookshelf header has a **Sync All** button. It syncs every project you have downloaded to this device (an "activated" project) with the server, in one go. While it runs, the button shows a percentage; click it to cancel.
+
+Sync All is quick even for large projects because Inkweld first asks the server which documents have changed since last time. A document is skipped only when it hasn't changed on the server **and** you haven't edited it on this device since the last sync. Anything that changed on either side is synced, and when Inkweld can't tell, it syncs the document to be safe. So a Sync All can only ever do extra work, never skip an edit.
+
+The button is greyed out, with a tooltip explaining why, when you are offline, a sync is already running, or no project has been downloaded to this device yet.
+
+### Leaving a Project with Unsynced Changes
+
+If you leave a project while some changes haven't reached the server yet, Inkweld asks **Unsynced Changes** and offers **Stay** or **Leave**. Choose **Stay** to give it a moment to finish syncing. If you choose **Leave**, your changes remain in your browser and sync the next time you open the project while connected.
 
 ## Conflict Resolution
 
@@ -134,33 +164,52 @@ Modern browsers allocate generous storage limits:
 
 For most writing projects, you'll never approach these limits.
 
+Each profile on a device keeps its own copy of its projects, so removing or switching one profile doesn't touch the others.
+
 ### Clearing Storage
 
-If you clear your browser's site data, **you will lose unsynced changes**. Before clearing:
+If you clear your browser's site data, **you will lose unsynced changes**, and in Browser mode that means your projects. Before clearing:
 
-1. Ensure you see "Connected" in the sync indicator
+1. Make sure nothing is waiting to sync (no Offline Mode bar, and **Connected** in Realtime Sync)
 2. Or [export your project](./import-export) as a backup
 
-## Offline Mode vs Server Mode
+### If the App Gets Stuck
 
-These are the two operating modes chosen during [initial setup](../getting-started/client-mode):
+If Inkweld won't load or keeps misbehaving after a reload, you can wipe its local data and start fresh from the **Clear All Data** page at `/reset` on your Inkweld address (for example `https://your-inkweld-address/reset`). Click **Proceed and Clear Data** to confirm.
 
-### Offline Mode
+:::danger[This deletes local data]
+It signs you out and removes everything Inkweld stored in this browser: cached covers and images, all offline project data, your session and your settings. Any unsynced changes are **permanently lost**. In Browser mode that means all of your projects, so [export them](./import-export) first if you can. Projects already synced to a server or cloud storage can be downloaded again afterwards.
+:::
+
+## Choosing How Your Data Is Stored
+
+The [three modes](../getting-started/client-mode) all use the local-first design described above. They differ in where else your work is copied:
+
+### Browser
 
 - **No server connection** at all
 - All data stored only in your browser
 - Use **Export** to back up projects
-- Can switch to server mode later (in Settings)
 
-### Server Mode
+### Cloud Sync
 
-- **Local-first** with server sync
+- Your projects live in your browser and are mirrored to your own Dropbox or Nextcloud
+- Works offline, syncs when connected
+- Use it across devices without running a server
+
+### Realtime Sync
+
+- **Local-first** with sync to an Inkweld server
 - Data exists in both browser and server
 - Works offline, syncs when connected
 - Enables collaboration and multi-device access
 
+### Moving Up Later
+
+You can move to the next step at any time from the user menu (your avatar, top right of the project tabs or the Bookshelf): a Browser profile shows **Connect to sync**, and a Cloud Sync profile shows **Move to a server**. See [Choosing Your Mode](../getting-started/client-mode) for the details.
+
 :::tip
-Even in server mode, you're using the local-first architecture. The server is an additional sync target, not the primary storage location.
+Even with Realtime Sync, you're using the local-first architecture. The server is an additional sync target, not the primary storage location.
 :::
 
 ## Best Practices
@@ -178,13 +227,14 @@ While Inkweld's local-first design protects against connection issues, you shoul
 If you'll be working without internet:
 
 1. Open your project while connected (ensures full sync)
-2. Check the sync indicator shows "Connected"
+2. Check that no **Offline Mode** or **Connection Failed** bar is showing at the bottom of the project tree
 3. You're ready to work offline
 
 ### Checking Sync Status
 
-Look for the sync indicator in the project sidebar. If you see:
+Look at the bar at the bottom of the project tree (or the icon, if the sidebar is collapsed). If you see:
 
-- **Connected**: All changes are synced
+- **Nothing** (or **Connected**): All changes are synced
 - **Offline Mode**: Working locally (changes will sync when reconnected)
-- **Connection Failed**: Check your internet connection
+- **Connection Failed**: Check your internet connection or whether the server is up
+- **Local Mode**: Your projects live only in this browser, so keep your own [backups](./import-export)

@@ -16,7 +16,10 @@ import { randomBytes } from 'crypto';
 
 // ─── Prompt helpers ──────────────────────────────────────────────────────────
 
-async function promptSelection(question: string, validOptions: string[]): Promise<string> {
+async function promptSelection(
+  question: string,
+  validOptions: string[],
+): Promise<string> {
   console.log('');
   process.stdout.write(`${question} `);
 
@@ -27,14 +30,19 @@ async function promptSelection(question: string, validOptions: string[]): Promis
       if (validOptions.includes(input)) {
         resolve(input);
       } else {
-        console.log(`Invalid option. Please enter one of: ${validOptions.join(', ')}`);
+        console.log(
+          `Invalid option. Please enter one of: ${validOptions.join(', ')}`,
+        );
         resolve(promptSelection(question, validOptions));
       }
     });
   });
 }
 
-async function promptWithDefault(question: string, defaultValue: string): Promise<string> {
+async function promptWithDefault(
+  question: string,
+  defaultValue: string,
+): Promise<string> {
   process.stdout.write(`${question} [${defaultValue}]: `);
 
   return new Promise((resolve) => {
@@ -63,7 +71,10 @@ async function promptRequired(question: string): Promise<string> {
   });
 }
 
-async function promptYesNo(question: string, defaultValue: boolean): Promise<boolean> {
+async function promptYesNo(
+  question: string,
+  defaultValue: boolean,
+): Promise<boolean> {
   const defaultStr = defaultValue ? 'Y/n' : 'y/N';
   process.stdout.write(`${question} [${defaultStr}]: `);
 
@@ -85,6 +96,15 @@ async function promptYesNo(question: string, defaultValue: boolean): Promise<boo
   });
 }
 
+/** Hostname of a URL (no protocol or port); `localhost` when it cannot be parsed. */
+function hostnameOf(url: string): string {
+  try {
+    return new URL(url).hostname || 'localhost';
+  } catch {
+    return 'localhost';
+  }
+}
+
 // ─── Docker Deployment ───────────────────────────────────────────────────────
 
 async function gatherDockerConfig(): Promise<Record<string, string>> {
@@ -98,12 +118,17 @@ async function gatherDockerConfig(): Promise<Record<string, string>> {
   config.PORT = await promptWithDefault('Port to run on', '8333');
 
   // Session secret
-  const generateSecret = await promptYesNo('Generate a secure session secret automatically?', true);
+  const generateSecret = await promptYesNo(
+    'Generate a secure session secret automatically?',
+    true,
+  );
   if (generateSecret) {
     config.SESSION_SECRET = randomBytes(32).toString('hex');
     console.log(`  Generated: ${config.SESSION_SECRET.substring(0, 16)}...`);
   } else {
-    config.SESSION_SECRET = await promptRequired('Enter session secret (32+ characters)');
+    config.SESSION_SECRET = await promptRequired(
+      'Enter session secret (32+ characters)',
+    );
   }
 
   // Database type
@@ -111,24 +136,32 @@ async function gatherDockerConfig(): Promise<Record<string, string>> {
   console.log('Database options:');
   console.log('  1. SQLite (simpler, single file)');
   console.log('  2. PostgreSQL (production-ready, requires separate DB)');
-  const dbChoice = await promptSelection('Select database type (1-2):', ['1', '2']);
+  const dbChoice = await promptSelection('Select database type (1-2):', [
+    '1',
+    '2',
+  ]);
   config.DB_TYPE = dbChoice === '1' ? 'sqlite' : 'postgres';
 
   if (config.DB_TYPE === 'postgres') {
-    config.DATABASE_URL = await promptRequired('Enter PostgreSQL connection URL');
+    config.DATABASE_URL = await promptRequired(
+      'Enter PostgreSQL connection URL',
+    );
   }
 
   // Client URL / Domain
   config.CLIENT_URL = await promptWithDefault(
     'Domain/URL where Inkweld will be accessed',
-    'http://localhost:8333'
+    'http://localhost:8333',
   );
   config.ALLOWED_ORIGINS = config.CLIENT_URL;
+  // The Docker image runs with NODE_ENV=production, which refuses to start
+  // without WEBAUTHN_RP_ID. It is the bare hostname of the URL users visit.
+  config.WEBAUTHN_RP_ID = hostnameOf(config.CLIENT_URL);
 
   // User approval
   config.USER_APPROVAL_REQUIRED = (await promptYesNo(
     'Require admin approval for new user signups?',
-    true
+    true,
   ))
     ? 'true'
     : 'false';
@@ -139,8 +172,10 @@ async function gatherDockerConfig(): Promise<Record<string, string>> {
 
   if (enableGitHub) {
     config.GITHUB_CLIENT_ID = await promptRequired('GitHub OAuth Client ID');
-    config.GITHUB_CLIENT_SECRET = await promptRequired('GitHub OAuth Client Secret');
-    config.GITHUB_CALLBACK_URL = `${config.CLIENT_URL}/api/auth/github/callback`;
+    config.GITHUB_CLIENT_SECRET = await promptRequired(
+      'GitHub OAuth Client Secret',
+    );
+    config.GITHUB_CALLBACK_URL = `${config.CLIENT_URL}/api/v1/auth/github`;
   }
 
   console.log('');
@@ -173,18 +208,21 @@ async function generateEnvFile(config: Record<string, string>): Promise<void> {
     `CLIENT_URL=${config.CLIENT_URL}`,
     `ALLOWED_ORIGINS=${config.ALLOWED_ORIGINS}`,
     '',
+    '# Passkeys (WebAuthn): hostname only. Cannot be changed once users have registered passkeys.',
+    `WEBAUTHN_RP_ID=${config.WEBAUTHN_RP_ID}`,
+    '',
     '# User Management',
     `USER_APPROVAL_REQUIRED=${config.USER_APPROVAL_REQUIRED}`,
     '',
     '# GitHub OAuth',
-    `GITHUB_ENABLED=${config.GITHUB_ENABLED}`
+    `GITHUB_ENABLED=${config.GITHUB_ENABLED}`,
   );
 
   if (config.GITHUB_CLIENT_ID) {
     envContent.push(
       `GITHUB_CLIENT_ID=${config.GITHUB_CLIENT_ID}`,
       `GITHUB_CLIENT_SECRET=${config.GITHUB_CLIENT_SECRET}`,
-      `GITHUB_CALLBACK_URL=${config.GITHUB_CALLBACK_URL}`
+      `GITHUB_CALLBACK_URL=${config.GITHUB_CALLBACK_URL}`,
     );
   }
 
@@ -195,7 +233,9 @@ async function generateEnvFile(config: Record<string, string>): Promise<void> {
   console.log('');
 }
 
-async function buildAndRunDocker(config: Record<string, string>): Promise<void> {
+async function buildAndRunDocker(
+  config: Record<string, string>,
+): Promise<void> {
   console.log('🔨 Building Docker image...');
   console.log('');
 
@@ -225,14 +265,14 @@ async function buildAndRunDocker(config: Record<string, string>): Promise<void> 
     try {
       const containerExists = execSync(
         'docker ps -a --filter name=inkweld-backend --format "{{.Names}}"',
-        { encoding: 'utf8' }
+        { encoding: 'utf8' },
       ).trim();
 
       if (containerExists) {
         console.log('⚠️  Container "inkweld-backend" already exists');
         const shouldRemove = await promptYesNo(
           'Remove existing container and create new one?',
-          true
+          true,
         );
 
         if (shouldRemove) {
@@ -264,7 +304,7 @@ async function buildAndRunDocker(config: Record<string, string>): Promise<void> 
 
     execSync(
       `docker run -d -p ${config.PORT}:${config.PORT} -v inkweld_data:/data --env-file "${envPath}" --name inkweld-backend inkweld:local`,
-      { stdio: 'inherit' }
+      { stdio: 'inherit' },
     );
 
     console.log('');
@@ -280,7 +320,9 @@ async function buildAndRunDocker(config: Record<string, string>): Promise<void> 
     console.log('  Start container: docker start inkweld-backend');
     console.log('  Remove container: docker rm -f inkweld-backend');
     console.log('');
-    console.log('📖 Documentation: https://inkweld.org/docs');
+    console.log(
+      '📖 Documentation: https://preview.inkweld.org/docs/installation/docker',
+    );
     console.log('');
   } catch (error) {
     console.error('');
@@ -289,7 +331,9 @@ async function buildAndRunDocker(config: Record<string, string>): Promise<void> 
       console.error(`   ${error.message}`);
     }
     console.log('');
-    console.log('💡 Try running the commands manually to see detailed error messages');
+    console.log(
+      '💡 Try running the commands manually to see detailed error messages',
+    );
   }
 }
 
@@ -298,7 +342,9 @@ async function showDockerDeployment() {
   console.log('🐳 Interactive Docker Deployment');
   console.log('═'.repeat(80));
   console.log('');
-  console.log('This wizard will help you configure and deploy Inkweld with Docker.');
+  console.log(
+    'This wizard will help you configure and deploy Inkweld with Docker.',
+  );
   console.log('');
 
   // Check if Docker is installed
@@ -308,7 +354,9 @@ async function showDockerDeployment() {
     console.error('❌ Docker is not installed or not in PATH');
     console.log('');
     console.log('Please install Docker first:');
-    console.log('  • Windows/Mac: https://www.docker.com/products/docker-desktop');
+    console.log(
+      '  • Windows/Mac: https://www.docker.com/products/docker-desktop',
+    );
     console.log('  • Linux: https://docs.docker.com/engine/install/');
     console.log('');
     return;
@@ -334,7 +382,9 @@ async function showDockerDeployment() {
       const portMatch = envContent.match(/^PORT=(.+)$/m);
       config.PORT = portMatch ? portMatch[1] : '8333';
       const clientUrlMatch = envContent.match(/^CLIENT_URL=(.+)$/m);
-      config.CLIENT_URL = clientUrlMatch ? clientUrlMatch[1] : 'http://localhost:8333';
+      config.CLIENT_URL = clientUrlMatch
+        ? clientUrlMatch[1]
+        : 'http://localhost:8333';
 
       await buildAndRunDocker(config);
       return;
@@ -352,7 +402,10 @@ async function showDockerDeployment() {
   await generateEnvFile(config);
 
   // Ask if they want to build and run now
-  const shouldDeploy = await promptYesNo('Build and start Docker container now?', true);
+  const shouldDeploy = await promptYesNo(
+    'Build and start Docker container now?',
+    true,
+  );
 
   if (shouldDeploy) {
     await buildAndRunDocker(config);
@@ -363,7 +416,7 @@ async function showDockerDeployment() {
     console.log('To build and run manually:');
     console.log('  $ docker build -t inkweld:local .');
     console.log(
-      '  $ docker run -d -p 8333:8333 -v inkweld_data:/data --env-file .env --name inkweld inkweld:local'
+      '  $ docker run -d -p 8333:8333 -v inkweld_data:/data --env-file .env --name inkweld inkweld:local',
     );
     console.log('');
   }
@@ -376,24 +429,30 @@ async function showCloudflareDeployment() {
   console.log('☁️  Cloudflare Workers Deployment');
   console.log('═'.repeat(80));
   console.log('');
-  console.log('For Cloudflare Workers deployment, use the dedicated setup script:');
+  console.log(
+    'For Cloudflare Workers deployment, use the dedicated setup script:',
+  );
   console.log('');
   console.log('  $ npm run cloudflare:setup');
   console.log('');
   console.log('This interactive script will:');
   console.log('  • Create D1 databases (preview and/or production)');
   console.log('  • Create R2 storage buckets');
-  console.log('  • Generate wrangler.toml configuration');
+  console.log(
+    '  • Generate wrangler.toml configuration (including WEBAUTHN_RP_ID)',
+  );
   console.log('  • Generate frontend environment files');
-  console.log('  • Generate secrets');
   console.log('  • Run database migrations');
+  console.log('  • Set the SESSION_SECRET secret');
   console.log('');
   console.log('After setup, deploy with:');
   console.log('  $ npm run cloudflare:preview:deploy    # Deploy to preview');
-  console.log('  $ npm run cloudflare:prod:deploy       # Deploy to production');
+  console.log(
+    '  $ npm run cloudflare:prod:deploy       # Deploy to production',
+  );
   console.log('');
   console.log('📖 For detailed documentation, see:');
-  console.log('   https://inkweld.org/docs/hosting/cloudflare');
+  console.log('   https://preview.inkweld.org/docs/installation/cloudflare');
   console.log('');
 }
 
@@ -406,22 +465,29 @@ async function showDockerComposeDeployment() {
   console.log('');
   console.log('Prerequisites:');
   console.log('  • Docker and Docker Compose installed');
-  console.log('  • Ports 8333 and 5432 available');
+  console.log('  • Port 8333 available');
   console.log('');
   console.log('Step 1: Review compose.yaml');
   console.log('  The repository includes a compose.yaml with:');
-  console.log('  • Inkweld backend service');
-  console.log('  • PostgreSQL database');
-  console.log('  • Named volumes for data persistence');
+  console.log(
+    '  • An Inkweld service (backend + frontend, built from this repository)',
+  );
+  console.log(
+    '  • A named volume (inkweld_data) holding the SQLite database and project data',
+  );
   console.log('');
   console.log('Step 2: Create .env file (if not exists)');
   console.log('  $ cp .env.example .env');
   console.log('');
   console.log('Step 3: Generate secrets');
   console.log('  Edit .env and set:');
-  console.log('  • SESSION_SECRET (32+ characters)');
-  console.log('  • POSTGRES_PASSWORD');
-  console.log('  • DATABASE_URL');
+  console.log('  • SESSION_SECRET (32+ characters, e.g. openssl rand -hex 32)');
+  console.log(
+    '  • WEBAUTHN_RP_ID (your hostname, or localhost for a local trial)',
+  );
+  console.log(
+    '  • ALLOWED_ORIGINS (the public URL users open, e.g. http://localhost:8333)',
+  );
   console.log('');
   console.log('Step 4: Start services');
   console.log('  $ docker compose up -d');
@@ -438,7 +504,7 @@ async function showDockerComposeDeployment() {
   console.log('  $ docker compose down     # Stop and remove containers');
   console.log('');
   console.log('📖 For detailed documentation, see:');
-  console.log('   https://inkweld.org/docs/hosting/docker');
+  console.log('   https://preview.inkweld.org/docs/installation/docker');
   console.log('');
 }
 
@@ -448,7 +514,9 @@ async function main() {
   console.log('🚀 Inkweld Deployment Wizard');
   console.log('═'.repeat(80));
   console.log('');
-  console.log('This wizard will help you deploy Inkweld using your preferred method.');
+  console.log(
+    'This wizard will help you deploy Inkweld using your preferred method.',
+  );
   console.log('');
 
   // Deployment method selection
@@ -464,13 +532,17 @@ async function main() {
   console.log('   ✓ Low latency worldwide');
   console.log('   ✓ Pay-per-use pricing');
   console.log('');
-  console.log('3. Docker Compose (Multi-container setup)');
-  console.log('   ✓ Includes PostgreSQL database');
-  console.log('   ✓ Production-ready configuration');
-  console.log('   ✓ Easy to scale');
+  console.log('3. Docker Compose');
+  console.log('   ✓ Builds the image from source with SQLite storage');
+  console.log('   ✓ Environment-driven configuration via .env');
+  console.log('   ✓ Easy to start, stop and update');
   console.log('');
 
-  const method = await promptSelection('Select deployment method (1-3):', ['1', '2', '3']);
+  const method = await promptSelection('Select deployment method (1-3):', [
+    '1',
+    '2',
+    '3',
+  ]);
 
   switch (method) {
     case '1':

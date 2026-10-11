@@ -14,8 +14,8 @@ Pre-built desktop installers are not published yet. The steps below build the ap
 
 ## Prerequisites
 
-- [Node.js 22+](https://nodejs.org/)
-- [Bun 1.3+](https://bun.sh/)
+- [Node.js 22.22.3+](https://nodejs.org/) (or 24.15+ / 26+; the Angular CLI rejects other versions)
+- [Bun 1.4+](https://bun.sh/)
 - Platform tooling for packaging: Xcode command line tools on macOS, or the Visual Studio Build Tools on Windows. Linux needs no extra tooling for AppImage or `.deb` output.
 
 ## Run in development
@@ -56,7 +56,7 @@ Installers are written to `frontend/release/`. Cross-platform builds generally n
 
 ## Connecting to a server
 
-On first launch the desktop app shows the same mode selection screen as the web client. Choose **Offline** to keep everything on the machine, or **Server** and enter the URL of your Inkweld instance. See [Choosing Your Mode](/user-guide/getting-started/client-mode) in the User Guide.
+On first launch the desktop app shows the same mode selection screen as the web client. Choose **Browser** to keep everything on the machine, **Cloud Sync** to mirror projects to your own cloud storage, or **Realtime Sync** and enter the URL of your Inkweld server. See [Choosing Your Mode](/user-guide/getting-started/client-mode) in the User Guide.
 
 ## How it's built
 

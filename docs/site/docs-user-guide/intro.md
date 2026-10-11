@@ -33,6 +33,7 @@ This user guide covers everything you need to know to use Inkweld effectively:
 
 - [**Project Structure**](./organizing/project-structure) - Folders, documents, and hierarchy
 - [**Managing Documents**](./organizing/documents) - Create, rename, move, and delete content
+- [**Scenes, Corkboard & Outline**](./organizing/scenes-corkboard-outline) - Plan and rearrange scenes visually
 - [**Using Tags**](./organizing/tags) - Categorize and filter your elements
 - [**Navigation**](./organizing/search) - Move around the project tree and tabs
 - [**Project Search**](./organizing/project-search) - Search every document at once
@@ -43,16 +44,19 @@ This user guide covers everything you need to know to use Inkweld effectively:
 ### Worldbuilding
 
 - [**Elements & Templates**](./worldbuilding/elements) - Create structured worldbuilding entries with custom schemas
+- [**Element Types**](./worldbuilding/element-types) - The built-in templates and how to make your own
 - [**Element References**](./worldbuilding/element-references) - Link elements with @mentions
 - [**Relationships**](./worldbuilding/relationships) - Define connections between elements
 - [**Relationship Charts**](./worldbuilding/relationship-charts) - Visualise the web of connections
 - [**Canvas**](./worldbuilding/canvas) - Draw, sketch, and lay out ideas on an infinite canvas
 - [**Interactive Maps**](./worldbuilding/interactive-maps) - Pin locations and regions to map images
 - [**Timelines**](./worldbuilding/timeline) - Custom calendars, events, and eras
+- [**Generators**](./worldbuilding/generators) - Roll random names, places and prompts from your own tables
 
 ### Collaboration
 
 - [**Real-Time Collaboration**](./collaboration/real-time) - Write together simultaneously with presence and cursors
+- [**Comments**](./collaboration/comments) - Leave notes on passages and discuss them
 - [**Sharing Projects**](./collaboration/sharing) - Invite collaborators and manage access
 - [**Activity & Writing Stats**](./collaboration/activity-and-stats) - See what changed and track your word counts
 
@@ -83,12 +87,12 @@ This user guide covers everything you need to know to use Inkweld effectively:
 
 Ready to dive in? Here's the fastest path to writing:
 
-1. **Create an account** or log in at your Inkweld instance
-2. **Click "New Project"** on your dashboard
-3. **Enter a title** and create your project
-4. **Start writing** in the default Chapter 1 document
+1. **Create an account** or log in at your Inkweld instance (or choose to work in the browser only)
+2. **Click + Create** in the top bar, then **New Project**
+3. **Pick a template**, enter a title and create your project
+4. **Add a document** from the project tree and start writing
 
-That's it! Inkweld handles saving automatically, and your work syncs across all your devices.
+That's it! Inkweld saves automatically on your device, and when you are connected to a server your work syncs across all your devices.
 
 ---
 

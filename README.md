@@ -233,13 +233,13 @@ Then open `http://localhost:8333` in your browser.
 | ✅ | 🔥 | Markdown export | Plain text with formatting |
 | ✅ | 🔥 | HTML export | Single-file web output |
 | ✅ | 🟡 | Publish plans | Save export configurations for reuse; a folder in a plan publishes its contents in tree order, so reordering scenes needs no plan changes |
-| ✅ | 🟡 | Typography customization | Per-plan style editor with 6 presets and full per-section overrides (font, size, weight, alignment, color, indent, page breaks) |
+| ✅ | 🟡 | Typography customization | Per-plan style editor with 8 presets and full per-section overrides (font, size, weight, alignment, color, indent, page breaks) |
 | ⬜ | 🟢 | Presentation mode | Read-only, docs-site-like rendering of a whole project |
 
 ### Auth & Security
 | Status | Priority | Feature | Notes |
 |--------|----------|---------|-------|
-| ✅ | 🔥 | Password auth | Strong client-side requirements. Disabled by default in v0.2+ (passwordless-first per NIST SP 800-63B Rev. 4) — set `PASSWORD_LOGIN_ENABLED=true` to opt in |
+| ✅ | 🔥 | Password auth | Strong client-side requirements. Disabled by default (passwordless-first per NIST SP 800-63B Rev. 4) — set `PASSWORD_LOGIN_ENABLED=true` to opt in |
 | ✅ | 🔥 | Passkeys (WebAuthn) | Passwordless sign-in with device biometrics or hardware security keys |
 | ✅ | 🔥 | Magic-link passkey recovery | Email-based recovery to enrol a new passkey if the original device is lost (requires `EMAIL_RECOVERY_ENABLED=true` + SMTP) |
 | ✅ | 🔥 | CSRF protection | |
