@@ -7,7 +7,8 @@
     "!/**/*__*",
     "!/**/*__*/**",
     "!/api/**",
-    "!/auth/**"
+    "!/auth/**",
+    "!/share/**"
   ],
   "navigationRequestStrategy": "performance",
   "assetGroups": [
@@ -28,9 +29,7 @@
       "name": "fonts",
       "installMode": "prefetch",
       "resources": {
-        "files": [
-          "/**/*.(otf|ttf|woff|woff2)"
-        ]
+        "files": ["/**/*.(otf|ttf|woff|woff2)"]
       }
     },
     {
@@ -38,9 +37,7 @@
       "installMode": "lazy",
       "updateMode": "prefetch",
       "resources": {
-        "files": [
-          "/**/*.(svg|cur|jpg|jpeg|png|apng|webp|avif|gif|wasm)"
-        ]
+        "files": ["/**/*.(svg|cur|jpg|jpeg|png|apng|webp|avif|gif|wasm)"]
       }
     },
     {
@@ -48,18 +45,14 @@
       "installMode": "prefetch",
       "updateMode": "prefetch",
       "resources": {
-        "files": [
-          "/assets/i18n/**/*.json"
-        ]
+        "files": ["/assets/i18n/**/*.json"]
       }
     }
   ],
   "dataGroups": [
     {
       "name": "appearance-backgrounds",
-      "urls": [
-        "/api/v1/appearance/background/**"
-      ],
+      "urls": ["/api/v1/appearance/background/**"],
       "cacheConfig": {
         "maxSize": 4,
         "maxAge": "365d",

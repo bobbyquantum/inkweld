@@ -22,6 +22,7 @@ import { AnnouncementService } from '@services/announcement/announcement.service
 import { AuthTokenService } from '@services/auth/auth-token.service';
 import { CloudSyncEngineService } from '@services/cloud-sync/cloud-sync-engine.service';
 import { CloudTokenStoreService } from '@services/cloud-sync/cloud-token-store.service';
+import { AppModePolicyService } from '@services/core/app-mode-policy.service';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SetupService } from '@services/core/setup.service';
 import {
@@ -62,6 +63,7 @@ export class UserMenuComponent implements OnInit {
   protected authTokenService = inject(AuthTokenService);
   protected cloudSync = inject(CloudSyncEngineService);
   private readonly cloudTokens = inject(CloudTokenStoreService);
+  private readonly appModePolicy = inject(AppModePolicyService);
   private readonly dialogGateway = inject(DialogGatewayService);
   private readonly router = inject(Router);
   private readonly themeService = inject(ThemeService);
@@ -111,23 +113,30 @@ export class UserMenuComponent implements OnInit {
    */
   protected readonly ingress = isHomeAssistantIngress();
 
-  /** Browser and cloud profiles can move up to cloud storage or a server */
-  protected canUpgrade = computed(() => {
-    const type = this.activeProfile()?.type;
-    return type === 'local' || type === 'cloud';
-  });
+  /**
+   * Where the active profile can move up to: Browser to cloud storage or a
+   * server, cloud to a server, within what the home server's APP_MODE allows
+   */
+  private readonly upgradeTargets = computed(() =>
+    this.appModePolicy.upgradeTargets(this.activeProfile()?.type)
+  );
 
-  /** The next step up, worded for where the profile lives now */
+  protected canUpgrade = computed(() => this.upgradeTargets().length > 0);
+
+  /** The next step up, worded for where the profile can go */
   protected upgradeAction = computed(() =>
-    this.activeProfile()?.type === 'cloud'
-      ? { icon: 'dns', label: 'settings.connectionTab.moveToServer' }
-      : { icon: 'cloud', label: 'settings.connectionTab.upgradeProfile' }
+    this.upgradeTargets().includes('cloud')
+      ? { icon: 'cloud', label: 'settings.connectionTab.upgradeProfile' }
+      : { icon: 'dns', label: 'settings.connectionTab.moveToServer' }
   );
 
   ngOnInit(): void {
-    // Load unread count when in server mode
+    // Load unread count when in server mode, and keep the APP_MODE policy
+    // fresh while a server is being talked to anyway (Browser and Cloud Sync
+    // profiles never contact one on their own)
     if (this.setupService.getMode() === 'server') {
       void this.announcementService.loadUnreadCount();
+      void this.appModePolicy.ready();
     }
   }
 

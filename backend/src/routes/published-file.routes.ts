@@ -1,6 +1,11 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi';
 import { bodyLimit } from 'hono/body-limit';
-import { MAX_PUBLISHED_FILE_UPLOAD_BYTES, MULTIPART_OVERHEAD_BYTES } from '../utils/upload';
+import {
+  MAX_PUBLISHED_FILE_UPLOAD_BYTES,
+  MULTIPART_OVERHEAD_BYTES,
+  rejectEmptyUpload,
+  requireUploadedFile,
+} from '../utils/upload';
 import { eq, and, desc } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError } from '../errors';
@@ -10,6 +15,7 @@ import { projectService } from '../services/project.service';
 import { activityService } from '../services/activity.service';
 import { getStorageService } from '../services/storage.service';
 import { quotaService } from '../services/quota.service';
+import { getPublicApiUrl } from '../services/url.service';
 import { quotaStorageContext } from '../utils/quota-context';
 import { publishedFiles, type SharePermission } from '../db/schema';
 import { ProjectPathParamsSchema, QuotaExceededSchema } from '../schemas/common.schemas';
@@ -26,9 +32,10 @@ import { sanitizeFilename } from '../utils/xml-utils';
 
 const publishedFileRoutes = new OpenAPIHono<AppContext>();
 
-// Reject oversized uploads with 413 before parseBody() buffers them.
+// Reject empty uploads (400) and oversized ones (413) before parseBody() buffers them.
 publishedFileRoutes.use(
   '/:username/:slug/published',
+  rejectEmptyUpload,
   bodyLimit({ maxSize: MAX_PUBLISHED_FILE_UPLOAD_BYTES + MULTIPART_OVERHEAD_BYTES })
 );
 
@@ -193,12 +200,8 @@ publishedFileRoutes.openapi(createPublishedFileRoute, async (c) => {
 
   // Parse multipart form data
   const formData = await c.req.formData();
-  const file = formData.get('file') as File | null;
+  const file = requireUploadedFile(c, formData.get('file'), 'File is required');
   const metadataStr = formData.get('metadata') as string | null;
-
-  if (!file) {
-    return c.json({ error: 'File is required' }, 400);
-  }
 
   if (!metadataStr) {
     return c.json({ error: 'Metadata is required' }, 400);
@@ -654,10 +657,10 @@ publishedFileRoutes.openapi(getShareLinkRoute, async (c) => {
     throw new BadRequestError('Sharing is not enabled for this file');
   }
 
-  // Build share URL using server-configured base URL, not client Origin header
-  const { getBaseUrl } = await import('../services/url.service');
-  const baseUrl = await getBaseUrl(db);
-  const shareUrl = `${baseUrl}/share/${file.shareToken}`;
+  // `/share/:token` is answered by this API server, so the link uses the
+  // API's public URL. SITE_URL would be wrong on split deployments, where it
+  // is the frontend's origin.
+  const shareUrl = `${getPublicApiUrl(c)}/share/${file.shareToken}`;
 
   return c.json(
     {

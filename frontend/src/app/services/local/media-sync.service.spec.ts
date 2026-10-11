@@ -5,6 +5,7 @@ import { Observable, of, throwError } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { UnreadableBlobError } from '../../utils/readable-blob';
 import {
   getQuotaExceeded,
   StorageUsageService,
@@ -581,6 +582,44 @@ describe('MediaSyncService', () => {
       const newState = state();
       expect(newState.items[0].status).toBe('local-only');
       expect(newState.error).toBe('Failed to upload cover');
+    });
+
+    it('uploads an in-memory copy of the stored blob', async () => {
+      const stored = new Blob(['stored bytes'], { type: 'image/png' });
+      localStorageMock.getMedia.mockResolvedValue(stored);
+      httpMock.post.mockReturnValue(of({ filename: 'cover.png' }));
+
+      await service.uploadToServer(TEST_PROJECT_KEY, 'cover');
+
+      const formData = httpMock.post.mock.calls[0][1] as FormData;
+      const sent = formData.get('file') as File;
+      expect(sent).not.toBe(stored);
+      expect(sent.type).toBe('image/png');
+      expect(await sent.text()).toBe('stored bytes');
+    });
+
+    it('does not send an upload when the stored blob cannot be read', async () => {
+      const unreadable = new Blob(['12345'], { type: 'image/png' });
+      unreadable.arrayBuffer = () =>
+        Promise.reject(new DOMException('read failed', 'NotReadableError'));
+      localStorageMock.getMedia.mockResolvedValue(unreadable);
+
+      const state = service.getSyncState(TEST_PROJECT_KEY);
+      state.update(s => ({
+        ...s,
+        items: [{ mediaId: 'cover', size: 5, status: 'local-only' }],
+      }));
+
+      await expect(
+        service.uploadToServer(TEST_PROJECT_KEY, 'cover')
+      ).rejects.toBeInstanceOf(UnreadableBlobError);
+
+      expect(httpMock.post).not.toHaveBeenCalled();
+      const newState = state();
+      expect(newState.items[0].status).toBe('local-only');
+      expect(newState.error).toBe(
+        'The local copy of cover can no longer be read; add the file again'
+      );
     });
 
     it('should handle different mime types for file extension', async () => {

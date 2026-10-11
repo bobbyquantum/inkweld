@@ -41,7 +41,7 @@ Click the colour swatch in the **Frames** header to change the page colour or th
 | **Toolbar** (top)  | Tool selection, brush settings, view/edit mode, zoom controls            |
 | **Stage** (center) | The infinite drawing surface                                             |
 
-The **?** button in the sidebar header replays a short guided tour of the canvas and map features; it is offered automatically the first time you open a canvas.
+The **?** button in the sidebar header replays a short guided tour of the canvas and map features; on desktop it is also offered automatically the first time you open a canvas (it is not offered automatically on phones and other small screens, but you can still replay it with the button).
 
 Each sidebar section has a chevron in its header — click the header to collapse or expand it. The whole sidebar can also be collapsed to give the stage more room: click the **collapse** button in the sidebar header, or use the **expand** button on the left strip to bring it back. Both choices are remembered between sessions.
 

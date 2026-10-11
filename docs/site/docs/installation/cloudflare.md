@@ -16,7 +16,7 @@ Cloudflare deployment uses:
 - **Cloudflare Workers** - Serverless backend API at the edge
 - **Cloudflare Pages** - Global CDN for the Angular frontend
 - **D1 Database** - SQLite-based database for user data and projects
-- **R2 Storage** - Object storage for media files (optional)
+- **R2 Storage** - Object storage for uploads (covers, avatars, inline images). Required: without the `STORAGE` bucket binding every upload fails
 - **Durable Objects** - Real-time collaborative editing with Yjs
 
 ## Prerequisites
@@ -26,6 +26,7 @@ Before you begin:
 1. **Cloudflare Account** - [Sign up free](https://dash.cloudflare.com/sign-up)
 2. **Git** - For cloning the repository
 3. **Bun 1.4+** - Backend runtime and package manager
+4. **Node.js 22.22.3+** (or 24.15+ / 26+) - Builds the Angular frontend during deploy
 
 :::tip[Free Tier Available]
 Cloudflare offers generous free tiers for all required services. You can run Inkweld without any charges for development and small-scale use.
@@ -68,13 +69,15 @@ Available environments:
   preview     - Pre-production environment for testing
   production  - Live production environment
 
-Set up PREVIEW environment? (y/n): y
-Set up PRODUCTION environment? (y/n): y
+Set up PREVIEW environment? (Y/n): y
+Set up PRODUCTION environment? (Y/n): y
 ```
+
+If `backend/wrangler.toml` already exists, the wizard reads its worker names, database IDs and backend domains as defaults, then recreates the file from `wrangler.toml.example`.
 
 ### Step 1: Worker Configuration
 
-The wizard detects your Cloudflare account and suggests unique worker names:
+The wizard detects your Cloudflare account, asks for your **workers.dev subdomain** (needed to build the correct API URLs; find it under **Workers & Pages → Overview** in the dashboard) and suggests unique worker names:
 
 ```
 ============================================================
@@ -83,14 +86,18 @@ The wizard detects your Cloudflare account and suggests unique worker names:
 
 ℹ️  Worker names must be globally unique across all Cloudflare accounts.
 ℹ️  Detected account: your-account-name
+ℹ️  Your workers.dev subdomain is required to generate the correct API URLs.
+
+Your workers.dev subdomain (default: your-account): your-account
+✅ Using subdomain: your-account
 
 Worker name for PREVIEW (default: your-account-inkweld-preview):
-✅ Preview worker URL: https://your-account-inkweld-preview.workers.dev
-Continue with this URL? (y/n): y
+ℹ️  Preview worker URL: https://your-account-inkweld-preview.your-account.workers.dev
+Continue with this? (Y/n): y
 
 Worker name for PRODUCTION (default: your-account-inkweld):
-✅ Production worker URL: https://your-account-inkweld.workers.dev
-Continue with this URL? (y/n): y
+ℹ️  Production worker URL: https://your-account-inkweld.your-account.workers.dev
+Continue with this? (Y/n): y
 ```
 
 :::info[Worker Name Uniqueness]
@@ -102,7 +109,7 @@ Worker names must be globally unique across all Cloudflare accounts. The wizard 
 If you're setting up on a new machine with existing deployments, the wizard can import your configuration:
 
 ```
-Try to import existing environment variables from Cloudflare? (y/n): y
+Try to import existing environment variables from Cloudflare? (Y/n): y
 ✅ Found existing preview configuration
 ✅ Found existing production configuration
 ```
@@ -135,7 +142,19 @@ The wizard creates all required Cloudflare resources:
 
 ✅ Created Pages project: inkweld-frontend-preview
 ✅ Created Pages project: inkweld-frontend
+
+============================================================
+  Custom Domains (Optional)
+============================================================
+
+Configure custom domains for preview? (Y/n): n
 ```
+
+Custom domains are optional; see [Custom Domain](#custom-domain). The wizard also writes `ALLOWED_ORIGINS` and **`WEBAUTHN_RP_ID`** into `wrangler.toml`, derived from the frontend domain (your custom frontend domain, or `<pages-project>.pages.dev` when you skip custom domains).
+
+:::warning[WEBAUTHN_RP_ID is permanent]
+`WEBAUTHN_RP_ID` is the domain passkeys are bound to. It **cannot be changed after any user registers a passkey** without invalidating every credential. If you will later move from `*.pages.dev` to a custom domain, set up the custom domain before inviting users.
+:::
 
 ### Step 4: Generate Frontend Configuration
 
@@ -148,8 +167,8 @@ The wizard automatically generates environment files for the frontend:
 
 ℹ️  Frontend environment files configure the API URLs for each environment.
 ℹ️  Workers will be available at:
-ℹ️    Preview:    https://your-account-inkweld-preview.workers.dev
-ℹ️    Production: https://your-account-inkweld.workers.dev
+ℹ️    Preview:    https://your-account-inkweld-preview.your-account.workers.dev
+ℹ️    Production: https://your-account-inkweld.your-account.workers.dev
 
 ✅ Generated environment.preview.ts
 ✅ Generated environment.cloudflare.ts
@@ -164,7 +183,7 @@ Apply the database schema:
   Running Database Migrations
 ============================================================
 
-Run database migrations now? (y/n): y
+Run database migrations now? (Y/n): y
 ℹ️  Running migrations on inkweld_preview...
 ✅ Preview database migrated
 ℹ️  Running migrations on inkweld_prod...
@@ -181,14 +200,35 @@ Configure sensitive values securely:
 ============================================================
 
 ℹ️  SESSION_SECRET is required for each environment.
-ℹ️  This is a cryptographic key used to sign session cookies.
+ℹ️  This is a cryptographic key used to sign session tokens.
 ⚠️  CRITICAL: If this key is used for database encryption, changing it will
     make existing data unreadable!
 
-Generate and set SESSION_SECRET automatically? (y/n): y
-✅ SESSION_SECRET set for preview
-✅ SESSION_SECRET set for production
+Some secrets are missing. Would you like to set them now? (Y/n): y
+Generate a secure random secret? (recommended) (Y/n): y
+✅ Generated secret: AbCdEf12...WxYz
+ℹ️  (Full secret will be set but not displayed for security)
+✅ Preview secret set
+Use a DIFFERENT secret for production? (more secure) (Y/n): y
+✅ Production secret set
 ```
+
+If `SESSION_SECRET` already exists on Cloudflare, the wizard reports that and only offers to **overwrite** it (default: no). Do not overwrite it once you have data, because it also protects values encrypted in the database.
+
+### Step 7: Workers AI (Optional)
+
+The wizard finishes by offering to configure [Cloudflare Workers AI](../admin-guide/ai-image-generation) for image generation (default: no):
+
+```
+Configure Workers AI for image generation? (y/N): y
+Your Cloudflare Account ID: <account id>
+Your Workers AI API Token (leave empty to skip): <token with Workers AI → Read>
+✅ Workers AI configured!
+```
+
+It stores `WORKERSAI_ACCOUNT_ID` and `WORKERSAI_API_TOKEN` as secrets on each environment. Enable the feature afterwards under **Admin → AI Image Generation**. You can also set the secrets later with `bun run wrangler secret put WORKERSAI_ACCOUNT_ID --env <environment>`.
+
+The wizard ends with a summary of the next commands: deploy with `npm run cloudflare:preview:deploy` / `npm run cloudflare:prod:deploy`, and stream logs with `npm run cloudflare:preview:logs` / `npm run cloudflare:prod:logs`.
 
 ## Deploy Your Application
 
@@ -214,7 +254,9 @@ Inkweld provides **one shared preview environment** and **one production environ
 
 The shared **preview** environment is what `cloudflare:preview:deploy` deploys to. It always points at your custom (or workers.dev) domain, so it can only show one branch at a time. This is the environment used for testing feature branches before merging and, via the `deploy-cloudflare.yml` workflow, the latest `main`.
 
-Preview builds set `autoConfigure: false` in their `environment.preview.ts`: the hosted server URL is still baked in (and pre-fills the server step), but first run shows the setup screen so visitors choose **Browser**, **Cloud Sync**, or **Server** mode instead of being auto-connected. Remove the flag (or set it to `true`) for a hosted-only preview that skips the setup screen. Production builds keep the default behavior and auto-connect.
+The hosted preview and production builds set `autoConfigure: false` in their generated environment file (`environment.preview.ts` / `environment.cloudflare.ts`, via the workflow's `auto-configure` input): the hosted server URL is still baked in (and pre-fills the server step), but first run shows the setup screen so visitors choose **Browser**, **Cloud Sync**, or **Server** mode instead of being auto-connected. Set `auto-configure: true` in the calling workflow (or the flag to `true`) for a hosted-only deployment that skips the setup screen and auto-connects. Auto-connecting is only a first-run convenience: to stop people adding Browser or Cloud Sync profiles at all, set [`APP_MODE=ONLINE`](../configuration.md#app_mode) on the backend.
+
+If the backend is private and the public app should not offer it at all, set `advertise-server: false` in the calling workflow (production does this). The frontend is then built with no server URL and `frontendOnly: true`, so the setup screen's server field starts empty and visitors enter their own server's address. The backend is still deployed; it just isn't suggested.
 
 **Per-PR previews** are separate. When you add the `deploy:preview:frontend` label to a pull request, GitHub Actions deploys the frontend to Cloudflare Pages under a stable `pr-<number>` branch, giving each PR a predictable URL:
 
@@ -299,21 +341,44 @@ database_id = "your-production-database-id"
 migrations_dir = "drizzle"
 ```
 
-### 4. Run Migrations
+### 4. Create R2 Buckets
+
+```bash
+bun run wrangler r2 bucket create inkweld-storage-preview
+bun run wrangler r2 bucket create inkweld-storage
+```
+
+### 5. Set WEBAUTHN_RP_ID and ALLOWED_ORIGINS
+
+`wrangler.toml.example` ships placeholder values. In each `[env.*.vars]` section set both to your frontend's domain, for example:
+
+```toml
+[env.production.vars]
+WEBAUTHN_RP_ID = "yoursite.com"            # domain only: no protocol, no port
+ALLOWED_ORIGINS = "https://yoursite.com"   # full origin(s) users visit
+```
+
+Use the domain users actually open in the browser (a custom domain, or `<project>.pages.dev` if you have none).
+
+:::danger[WEBAUTHN_RP_ID cannot be changed later]
+Passkeys are bound to this value. Changing it after any user has registered a passkey invalidates every credential. Decide the final domain before inviting users.
+:::
+
+### 6. Run Migrations
 
 ```bash
 bun run db:migrate:preview
 bun run db:migrate:prod
 ```
 
-### 5. Set Secrets
+### 7. Set Secrets
 
 ```bash
 bun run wrangler secret put SESSION_SECRET --env preview
 bun run wrangler secret put SESSION_SECRET --env production
 ```
 
-### 6. Deploy
+### 8. Deploy
 
 ```bash
 npm run cloudflare:preview:deploy
@@ -387,11 +452,11 @@ To use your own domain instead of `*.workers.dev` and `*.pages.dev`:
 The setup wizard prompts for custom domains for both preview and production environments:
 
 ```
-Configure custom domains for preview? (y/n): y
+Configure custom domains for preview? (Y/n): y
 Preview backend API domain (e.g., api.preview.yoursite.com): api.preview.inkweld.app
 Preview frontend domain (e.g., preview.yoursite.com): preview.inkweld.app
 
-Configure custom domains for production? (y/n): y
+Configure custom domains for production? (Y/n): y
 Production backend API domain (e.g., api.yoursite.com): api.inkweld.app
 Production frontend domain (e.g., yoursite.com): inkweld.app
 ```
@@ -492,9 +557,9 @@ For production use, consider the Workers Paid plan at **$5/month**:
 ### View Logs
 
 ```bash
-# Stream real-time logs
-bun run wrangler tail --env preview
-bun run wrangler tail --env production
+# Stream real-time logs (from the repository root)
+npm run cloudflare:preview:logs
+npm run cloudflare:prod:logs
 ```
 
 ### Analytics

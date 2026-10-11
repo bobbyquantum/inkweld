@@ -16,14 +16,14 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ThemeToggleComponent } from '@components/theme-toggle/theme-toggle.component';
-import { ConfigurationService } from '@inkweld/index';
-import { TranslocoModule } from '@jsverse/transloco';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { sameUsername } from '@models/cloud-manifest';
 import { CloudSyncConfigService } from '@services/cloud-sync/cloud-sync-config.service';
 import {
   CloudSyncConnectService,
   type PendingCloudConnection,
 } from '@services/cloud-sync/cloud-sync-connect.service';
+import { AppModePolicyService } from '@services/core/app-mode-policy.service';
 import {
   peekProfileUpgradeSource,
   ProfileManagerService,
@@ -36,26 +36,11 @@ import {
   getCloudProviderDisplayName,
 } from '@services/core/storage-context.service';
 import { appBasePath, appUrl } from '@utils/app-base';
-import { firstValueFrom } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
 import { APP_PRIVACY_POLICY_PATH, docsUrl } from '../../config/docs-links';
 import { SetupService } from '../../services/core/setup.service';
 import { UnifiedUserService } from '../../services/user/unified-user.service';
-
-type AppMode = 'ONLINE' | 'LOCAL' | 'BOTH';
-
-// Define a safe interface for the system features response
-interface SystemFeaturesResponse {
-  appMode?: string;
-  defaultServerName?: string | null;
-  aiAutoReview?: boolean;
-  aiImageGeneration?: boolean;
-  captcha?: {
-    enabled?: boolean;
-    siteKey?: string;
-  };
-}
 
 /** Display metadata for a cloud provider option */
 interface CloudProviderOption {
@@ -108,14 +93,19 @@ export const NEXTCLOUD_SETUP_GUIDE_PATH =
  *   (Docker, native binary), so the page's own origin is that server, plus
  *   the path prefix it is served under (`basePath`, e.g. behind a reverse
  *   proxy or Home Assistant ingress).
+ * - A frontend-only hosted build (`frontendOnly`, e.g. inkweld.app on
+ *   Cloudflare Pages) has no server of its own to suggest, so the field
+ *   starts empty and the user enters their server's address.
  * - Anything else (Electron's app:// page) falls back to the default port.
  */
 export function defaultServerUrl(
   apiUrl: string,
   location: Pick<Location, 'protocol' | 'origin'> | undefined,
-  basePath = ''
+  basePath = '',
+  frontendOnly = false
 ): string {
   if (apiUrl) return apiUrl;
+  if (frontendOnly) return '';
   if (location?.protocol === 'http:' || location?.protocol === 'https:') {
     return location.origin + basePath;
   }
@@ -142,7 +132,8 @@ export function defaultServerUrl(
 export class SetupComponent implements OnInit {
   private readonly setupService = inject(SetupService);
   private readonly unifiedUserService = inject(UnifiedUserService);
-  private readonly ConfigurationService = inject(ConfigurationService);
+  private readonly appModePolicy = inject(AppModePolicyService);
+  private readonly transloco = inject(TranslocoService);
   private readonly cloudSyncConfig = inject(CloudSyncConfigService);
   private readonly cloudSyncConnect = inject(CloudSyncConnectService);
   private readonly profileManager = inject(ProfileManagerService);
@@ -183,20 +174,34 @@ export class SetupComponent implements OnInit {
   protected readonly pendingCloudConnection =
     signal<PendingCloudConnection | null>(null);
   protected readonly isConnectingCloud = signal(false);
-  protected readonly appMode = signal<AppMode>('BOTH');
+  /** The home server's APP_MODE: which kinds of profile may be added */
+  protected readonly appMode = this.appModePolicy.appMode;
+  /** Why some setup options are missing, when APP_MODE removes any */
+  protected readonly restrictionMessageKey =
+    this.appModePolicy.restrictionMessageKey;
   protected readonly configLoading = signal(true);
+  /**
+   * Set when APP_MODE forbids new cloud profiles but this visit reconnects
+   * a cloud profile already on this device: only that provider is offered,
+   * and only accounts with a profile here can be finished.
+   */
+  protected readonly reconnectProvider = signal<CloudProvider | null>(null);
 
   /** Cloud providers this build can offer */
-  protected readonly cloudProviders = computed<CloudProviderOption[]>(() =>
-    this.cloudSyncConfig
+  protected readonly cloudProviders = computed<CloudProviderOption[]>(() => {
+    const reconnect = this.reconnectProvider();
+    return this.cloudSyncConfig
       .availableProviders()
-      .map(id => ({ id, ...PROVIDER_OPTIONS[id] }))
-  );
+      .filter(id => !reconnect || id === reconnect)
+      .map(id => ({ id, ...PROVIDER_OPTIONS[id] }));
+  });
 
   protected serverUrl = defaultServerUrl(
     environment.apiUrl,
     globalThis.location,
-    appBasePath()
+    appBasePath(),
+    // Read with a cast: only hosted environment files declare it.
+    (environment as { frontendOnly?: boolean }).frontendOnly === true
   );
   protected userName = '';
   protected displayName = '';
@@ -210,12 +215,25 @@ export class SetupComponent implements OnInit {
     const upgradeFrom = this.route.snapshot.queryParamMap.get('upgradeFrom');
     if (upgradeFrom) setProfileUpgradeSource(upgradeFrom);
     this.loadUpgradeSource();
+    void this.initialiseSteps();
+  }
+
+  /**
+   * Wait for the home server's APP_MODE, then open the step this visit asks
+   * for. The policy is read from the server this app belongs to (not the
+   * active profile's), so it applies the same on first run and when a
+   * profile is added later.
+   */
+  private async initialiseSteps(): Promise<void> {
+    await this.appModePolicy.ready();
+    const serverName = this.appModePolicy.defaultServerName();
+    if (serverName) this.serverUrl = serverName;
 
     const cloudParam = this.route.snapshot.queryParamMap.get('cloud');
     const pending = this.cloudSyncConnect.getPendingConnection();
     if (cloudParam && pending && pending.provider === cloudParam) {
       this.pendingCloudConnection.set(pending);
-      this.openCloudProfileStep(pending);
+      this.continueCloudConnection(pending);
       this.configLoading.set(false);
       return;
     }
@@ -227,61 +245,15 @@ export class SetupComponent implements OnInit {
       this.route.snapshot.queryParamMap.get('provider')
     );
 
-    // Check if there's already a configured server
-    const existingServerUrl = this.setupService.getServerUrl();
-    if (existingServerUrl) {
-      // If already configured, try to load system config from that server
-      void this.loadSystemConfig();
-    } else {
-      // No server configured yet, skip loading and use defaults
-      this.configLoading.set(false);
-      console.info('No server configured yet, using default setup options');
-    }
-  }
-
-  private async loadSystemConfig(): Promise<void> {
-    try {
-      const systemFeatures = await firstValueFrom(
-        this.ConfigurationService.getAppConfiguration()
-      );
-
-      if (systemFeatures) {
-        // Use type assertion to a safe interface
-        const response = systemFeatures as SystemFeaturesResponse;
-
-        // Safely handle appMode
-        const appModeValue = response.appMode;
-        if (
-          typeof appModeValue === 'string' &&
-          (appModeValue === 'ONLINE' ||
-            appModeValue === 'LOCAL' ||
-            appModeValue === 'BOTH')
-        ) {
-          this.appMode.set(appModeValue);
-
-          // Auto-select mode if only one option is available
-          if (appModeValue === 'ONLINE') {
-            this.chooseServerMode();
-          } else if (appModeValue === 'LOCAL' && !this.canUseCloudMode()) {
-            this.chooseLocalMode();
-          }
-        }
-
-        // Safely handle defaultServerName
-        const serverName = response.defaultServerName;
-        if (typeof serverName === 'string' && serverName.trim().length > 0) {
-          this.serverUrl = serverName;
-        }
+    // Auto-select the mode if only one option is available
+    if (!this.inSubStep()) {
+      if (this.appMode() === 'ONLINE') {
+        this.chooseServerMode();
+      } else if (this.appMode() === 'LOCAL' && !this.canUseCloudMode()) {
+        this.chooseLocalMode();
       }
-    } catch (error) {
-      console.warn(
-        'Failed to load system configuration, using defaults:',
-        error
-      );
-      // Keep default mode as 'BOTH' if config fails to load
-    } finally {
-      this.configLoading.set(false);
     }
+    this.configLoading.set(false);
   }
 
   protected shouldShowModeSelection(): boolean {
@@ -315,7 +287,7 @@ export class SetupComponent implements OnInit {
    * manager).
    */
   protected canGoBack(): boolean {
-    if (this.inSubStep()) return this.hasModeChoice();
+    if (this.inSubStep() && this.hasModeChoice()) return true;
     return this.canReturnToApp();
   }
 
@@ -336,13 +308,21 @@ export class SetupComponent implements OnInit {
     );
   }
 
-  /** Jump to a step named in the URL (`?mode=cloud|server|local`) */
+  /**
+   * Jump to a step named in the URL (`?mode=cloud|server|local`). A step
+   * APP_MODE forbids is ignored, except that a cloud profile already on
+   * this device may still be reconnected (`?mode=cloud&provider=…`).
+   */
   private openRequestedStep(
     mode: string | null,
     provider: string | null
   ): void {
     switch (mode) {
       case 'cloud':
+        if (!this.canUseLocalMode()) {
+          if (!this.isReconnectableProvider(provider)) return;
+          this.reconnectProvider.set(provider);
+        }
         this.chooseCloudMode();
         if (provider === 'nextcloud') {
           this.showCloudSetup.set(false);
@@ -350,33 +330,56 @@ export class SetupComponent implements OnInit {
         }
         break;
       case 'server':
-        this.chooseServerMode();
+        if (this.canUseServerMode()) this.chooseServerMode();
         break;
       case 'local':
-        this.chooseLocalMode();
+        if (this.canUseLocalMode()) this.chooseLocalMode();
         break;
       default:
         break;
     }
   }
 
-  protected canUseServerMode(): boolean {
-    const mode = this.appMode();
-    return mode === 'BOTH' || mode === 'ONLINE';
+  /** A provider with a cloud profile on this device, which may reconnect */
+  private isReconnectableProvider(
+    provider: string | null
+  ): provider is CloudProvider {
+    return (
+      !!provider &&
+      this.storageContext
+        .getConfigurations()
+        .some(c => c.type === 'cloud' && c.cloudProvider === provider)
+    );
   }
 
+  protected canUseServerMode(): boolean {
+    return this.appModePolicy.canAddServerProfiles();
+  }
+
+  /**
+   * Browser profiles may be added. Cloud Sync profiles live in the browser
+   * too, so the cloud steps check this as well.
+   */
   protected canUseLocalMode(): boolean {
-    const mode = this.appMode();
-    return mode === 'BOTH' || mode === 'LOCAL';
+    return this.appModePolicy.canAddBrowserProfiles();
   }
 
   /**
    * Cloud sync is offered when this build has at least one provider key and
-   * the server (if any) allows working without it.
+   * the home server allows profiles stored in the browser.
    */
   protected canUseCloudMode(): boolean {
-    return (
-      this.canUseLocalMode() && this.cloudSyncConfig.isCloudSyncAvailable()
+    return this.appModePolicy.canAddCloudProfiles();
+  }
+
+  /** Tell the user APP_MODE does not allow what they just tried */
+  private refuseByPolicy(): void {
+    const key = this.restrictionMessageKey();
+    if (!key) return;
+    this.snackBar.open(
+      this.transloco.translate(key),
+      this.transloco.translate('close'),
+      { duration: 6000 }
     );
   }
 
@@ -409,6 +412,10 @@ export class SetupComponent implements OnInit {
    */
   protected async connectCloudProvider(provider: CloudProvider): Promise<void> {
     if (this.isConnectingCloud()) return;
+    if (!this.canUseLocalMode() && this.reconnectProvider() !== provider) {
+      this.refuseByPolicy();
+      return;
+    }
     if (provider === 'nextcloud') {
       this.showCloudSetup.set(false);
       this.showNextcloudSetup.set(true);
@@ -448,7 +455,7 @@ export class SetupComponent implements OnInit {
       this.nextcloudAppPassword = '';
       this.pendingCloudConnection.set(result.pending);
       this.showNextcloudSetup.set(false);
-      this.openCloudProfileStep(result.pending);
+      this.continueCloudConnection(result.pending);
     } catch (error) {
       this.snackBar.open(
         error instanceof Error
@@ -471,6 +478,10 @@ export class SetupComponent implements OnInit {
   }
 
   protected async setupServerMode(): Promise<void> {
+    if (!this.canUseServerMode()) {
+      this.refuseByPolicy();
+      return;
+    }
     if (!this.serverUrl.trim()) {
       this.snackBar.open('Please enter a server URL', 'Close', {
         duration: 3000,
@@ -496,6 +507,10 @@ export class SetupComponent implements OnInit {
   }
 
   protected async setupLocalMode(): Promise<void> {
+    if (!this.canUseLocalMode()) {
+      this.refuseByPolicy();
+      return;
+    }
     // Use defaults if fields are empty
     const username = this.userName.trim() || 'local';
     const displayName = this.displayName.trim() || 'Local User';
@@ -522,6 +537,10 @@ export class SetupComponent implements OnInit {
 
   /** Finish a fresh cloud connection: write the manifest, configure the app */
   protected async setupCloudProfile(): Promise<void> {
+    if (!this.canUseLocalMode()) {
+      this.refuseByPolicy();
+      return;
+    }
     const pending = this.pendingCloudConnection();
     if (!pending) {
       this.snackBar.open(
@@ -561,6 +580,49 @@ export class SetupComponent implements OnInit {
     } finally {
       this.isConnectingCloud.set(false);
     }
+  }
+
+  /**
+   * A provider account is connected. When APP_MODE forbids new cloud
+   * profiles the only thing that can finish is a reconnect: an account that
+   * already has a profile here got fresh credentials and is done. Any other
+   * account is dropped with the policy message.
+   */
+  private continueCloudConnection(pending: PendingCloudConnection): void {
+    if (this.canUseLocalMode()) {
+      this.openCloudProfileStep(pending);
+      return;
+    }
+    const linked = this.storageContext
+      .getConfigurations()
+      .some(
+        c =>
+          c.type === 'cloud' &&
+          c.cloudProvider === pending.provider &&
+          c.cloudAccountId === pending.accountId
+      );
+    // Not an upgrade either: that would create a profile
+    takeProfileUpgradeSource();
+    this.upgradeSourceName.set(null);
+    if (!linked) {
+      this.cloudSyncConnect.abandonPendingConnection();
+      this.pendingCloudConnection.set(null);
+      this.reconnectProvider.set(null);
+      this.refuseByPolicy();
+      void this.router.navigate([], { replaceUrl: true, queryParams: {} });
+      if (this.appMode() === 'ONLINE') this.chooseServerMode();
+      return;
+    }
+    this.cloudSyncConnect.clearPendingConnection();
+    this.snackBar.open(
+      this.transloco.translate('appModePolicy.reconnected', {
+        provider: getCloudProviderDisplayName(pending.provider),
+      }),
+      this.transloco.translate('close'),
+      { duration: 3000 }
+    );
+    // Full reload: the sync engine picks up the new credentials on startup
+    globalThis.location.assign(appUrl('/'));
   }
 
   /**
@@ -678,6 +740,10 @@ export class SetupComponent implements OnInit {
   }): Promise<void> {
     const pending = this.pendingCloudConnection();
     if (!pending || this.isConnectingCloud()) return;
+    if (!this.canUseLocalMode()) {
+      this.refuseByPolicy();
+      return;
+    }
     this.isConnectingCloud.set(true);
     const providerName = getCloudProviderDisplayName(pending.provider);
     try {
@@ -829,9 +895,10 @@ export class SetupComponent implements OnInit {
   }
 
   protected goBack(): void {
-    if (!this.inSubStep()) {
-      // At the mode picker: back means "return to the app"; an abandoned
-      // upgrade must not silently attach to the next profile created
+    if (!this.inSubStep() || !this.hasModeChoice()) {
+      // At the mode picker, or in the only step APP_MODE leaves: back means
+      // "return to the app"; an abandoned upgrade must not silently attach
+      // to the next profile created
       takeProfileUpgradeSource();
       void this.router.navigate(['/']);
       return;

@@ -7,35 +7,42 @@ sidebar_position: 3
 
 # Sharing Projects
 
-Project owners can invite other users to collaborate. Access the Collaboration tab in Project Settings to manage collaborators.
+Project owners can invite other people to collaborate. Open **Project Settings** at the bottom of the project sidebar and choose the **Collaboration** section.
+
+:::info
+Sharing needs **Realtime Sync** (an Inkweld server). In Browser or Cloud Sync mode the Collaboration section only says that it requires a server connection.
+:::
 
 ## Access Levels
 
-| Role       | Permissions                                                                                 |
-| ---------- | ------------------------------------------------------------------------------------------- |
-| **Owner**  | Full control—edit content, manage settings, invite/remove collaborators, delete the project |
-| **Admin**  | Full access including project settings                                                      |
-| **Editor** | Create, edit, and delete documents and worldbuilding entries                                |
-| **Viewer** | Browse and read all content (no editing)                                                    |
+| Role       | What they can do                                                                                                                                                      |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Owner**  | Everything. The only role that sees the **Collaboration**, **MCP** and **Danger Zone** sections: invite and remove people, change roles, rename or delete the project |
+| **Admin**  | "Full access including settings": edits content and the project's templates, tags and other configuration, but does not manage collaborators or delete the project    |
+| **Editor** | Create, edit and delete documents and worldbuilding entries ("Can view and edit content")                                                                             |
+| **Viewer** | Browse and read all content, with no editing ("Can view project content")                                                                                             |
+
+:::note[Who manages the collaborator list?]
+In the app, only the project owner sees the Collaboration section, so inviting people, changing roles and removing people are owner tasks. (An Admin collaborator is trusted with the project's settings, not with who else has access.)
+:::
 
 ## Inviting Collaborators
 
-1. Open your project and go to **Settings → Collaboration**
+1. Open your project and go to **Project Settings → Collaboration**
 2. Click **Invite Collaborator**
-3. Enter their username and select a role (Admin, Editor or Viewer)
-4. Click **Invite**
+3. Enter their **Username** and choose a **Role** (Viewer, Editor or Admin); each choice shows a short description
+4. Click **Send Invitation**
 
-The invited user sees the invitation under **Pending Invitations** on their home screen. Once they accept it, they can access the project according to their role.
+The invited person sees the invitation under **Pending Invitations** on their bookshelf, with **Accept** and **Decline** buttons. Once they accept, the project appears on their bookshelf with a group badge and they can work in it according to their role.
 
 ## Managing Collaborators
 
-In the Collaboration tab you can:
+The Collaboration section lists everyone invited, with a count of those who have joined and a badge for invitations still **Pending**. Each row shows who they are, when they joined (or when and by whom they were invited), and lets you:
 
-- **View current collaborators** with their roles and invitation status
-- **Change roles** using the dropdown next to each collaborator
-- **Remove collaborators** to revoke their access immediately
+- **Change their role** using the dropdown on the row. The change takes effect straight away, even for people who have the project open.
+- **Remove them** with the remove button (person icon) to revoke access immediately.
 
-AI apps that a user has connected through OAuth/MCP also appear in the Collaboration list, so you can see (and revoke) what has access to the project.
+AI apps that someone has connected through OAuth/MCP appear separately under **Connected Apps**, with the person who authorised them and the role granted. Use **Manage in Settings** to review or revoke them under your Authorized Apps settings.
 
 ## Requirements
 
@@ -49,4 +56,4 @@ AI apps that a user has connected through OAuth/MCP also appear in the Collabora
 Verify the exact username spelling. The user must already have an account on this instance.
 
 **Collaborator can't access the project?**  
-Check that their invitation status is "Accepted" and their account is active. Try removing and re-inviting them.
+Check that their status badge reads **Joined** (not **Invited** or **Pending**) and their account is active. Try removing and re-inviting them.

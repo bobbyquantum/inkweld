@@ -8,7 +8,7 @@
     "zoomIn": "Zoom in",
     "fitContents": "Fit contents",
     "chooseTimeSystem": "Choose a time system",
-    "timeSystemHint": "Events and eras on this timeline will be anchored to the time system you pick here. You can change it later.",
+    "timeSystemHint": "Events and eras on this timeline will be anchored to the time system you pick here. It can't be changed once the timeline is set up — create a new timeline to use a different system.",
     "noTimeSystems": "No time systems are installed in this project yet.",
     "openTimeSettings": "Open time system settings",
     "timeSystemLabel": "Time system",

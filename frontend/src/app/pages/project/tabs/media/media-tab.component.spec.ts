@@ -2,12 +2,16 @@ import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
+import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { AddMediaDialogComponent } from '@dialogs/add-media-dialog/add-media-dialog.component';
+import { FileUploadComponent } from '@dialogs/file-upload/file-upload.component';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SetupService } from '@services/core/setup.service';
+import { SystemConfigService } from '@services/core/system-config.service';
 import {
   LocalStorageService,
   type MediaInfo,
@@ -17,6 +21,7 @@ import { MediaTagService } from '@services/media-tag/media-tag.service';
 import { MediaProjectTagService } from '@services/project/media-project-tag.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { TagService } from '@services/tag/tag.service';
+import { of } from 'rxjs';
 import { vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
@@ -620,6 +625,45 @@ describe('MediaTabComponent', () => {
         },
       ] as never[]);
       expect(component.getElementIcon('el-1')).toBeTruthy();
+    });
+  });
+
+  describe('openAddMedia', () => {
+    function mockDialogs() {
+      const dialog = TestBed.inject(MatDialog);
+      return vi
+        .spyOn(dialog, 'open')
+        .mockReturnValue({ afterClosed: () => of(undefined) } as never);
+    }
+
+    function mockAiStatus(status: 'enabled' | 'disabled' | 'hidden') {
+      vi.spyOn(
+        TestBed.inject(SystemConfigService),
+        'getAiImageGenerationStatus'
+      ).mockReturnValue({ status });
+    }
+
+    it('should go straight to upload when AI generation is hidden', async () => {
+      mockAiStatus('hidden');
+      const open = mockDialogs();
+
+      await component.openAddMedia();
+
+      expect(open).toHaveBeenCalledTimes(1);
+      expect(open.mock.calls[0][0]).toBe(FileUploadComponent);
+    });
+
+    it('should offer the upload/generate chooser when AI generation is available', async () => {
+      mockAiStatus('enabled');
+      const open = mockDialogs();
+
+      await component.openAddMedia();
+
+      expect(open).toHaveBeenCalledTimes(1);
+      expect(open.mock.calls[0][0]).toBe(AddMediaDialogComponent);
+      expect(open.mock.calls[0][1]).toMatchObject({
+        data: { canGenerate: true },
+      });
     });
   });
 

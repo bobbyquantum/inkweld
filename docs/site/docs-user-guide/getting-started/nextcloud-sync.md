@@ -33,14 +33,14 @@ WebDAV.
    [WebAppPassword](https://apps.nextcloud.com/apps/webapppassword).
 2. Go to **Administration settings → WebAppPassword**.
 3. Under **WebDAV/CalDAV origins**, add the address of the Inkweld you use, for
-   example `https://preview.inkweld.org`. If you self-host Inkweld, add your own
-   address. For local development add `http://localhost:4200`.
+   example `https://inkweld.app` (this is the app's address, not the address of
+   these docs). If you self-host Inkweld, add your own address. For local development add `http://localhost:4200`.
 4. Save.
 
 The same setting can live in `config/config.php` instead of the UI:
 
 ```php
-'webapppassword.origins' => ['https://preview.inkweld.org'],
+'webapppassword.origins' => ['https://inkweld.app'],
 ```
 
 Origins must include the scheme and host. Paths are ignored, and a one-level

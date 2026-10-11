@@ -14,17 +14,40 @@ When you connect a tool for the first time, the tool opens a browser window to I
 
 You choose an access level per project:
 
-| Level             | Can do                         |
-| ----------------- | ------------------------------ |
-| **View only**     | Read project content           |
-| **View and edit** | Read and write project content |
-| **Full access**   | Everything on the project      |
+| Level             | Can do                          |
+| ----------------- | ------------------------------- |
+| **View only**     | Read project content            |
+| **View and edit** | Read and write project content  |
+| **Full access**   | Same tools as **View and edit** |
+
+**Full access** does not unlock any extra tools. Through MCP it behaves exactly like **View and edit**: the AI tool can read and change your project's content, but it cannot do anything else on the project's behalf.
+
+What each level lets the connected tool do:
+
+| Capability                                                                          | View only | View and edit / Full access |
+| ----------------------------------------------------------------------------------- | :-------: | :-------------------------: |
+| Read project details, the element tree, and document text                           |    Yes    |             Yes             |
+| Search elements and worldbuilding data, and read relationships                      |    Yes    |             Yes             |
+| Read the worldbuilding templates (schemas) the project uses                         |    Yes    |             Yes             |
+| Read the media library, image profiles and publish plans                            |    Yes    |             Yes             |
+| Create, rename, move, reorder, sort, tag and delete elements, and take snapshots    |    No     |             Yes             |
+| Replace the whole element tree in one step                                          |    No     |             Yes             |
+| Edit document text                                                                  |    No     |             Yes             |
+| Edit worldbuilding fields and relationships, and apply images to worldbuilding data |    No     |             Yes             |
+
+:::warning
+With **View and edit** or **Full access**, a tool can replace every element in the project in a single call. Only grant edit access to tools you trust, and keep [snapshots](../writing/snapshots) or an [export](../organizing/import-export) of important work.
+:::
+
+:::note
+MCP access can be switched off by your server administrator. If the administrator has turned on the AI kill switch, or has turned off MCP access in the admin settings, tools cannot connect to any project on that server. The kill switch always wins over the MCP setting.
+:::
 
 You can also grant the app **access to all your projects** (including future ones) at a single default level, instead of picking projects one by one.
 
 After authorizing, the connection is listed in **User Settings → Authorized Apps**, where you can change a project's access level, toggle all-projects access, add or remove projects, or disconnect the app entirely.
 
-Most tools accept a URL pointing at the Inkweld MCP endpoint. You can find your server's exact URL in **Project Settings → MCP Access**, or construct it as:
+Most tools accept a URL pointing at the Inkweld MCP endpoint. You can find your server's exact URL in **Project Settings → MCP** (the **MCP Access** page), or construct it as:
 
 ```text
 https://<your-server>/api/v1/ai/mcp
@@ -120,6 +143,7 @@ Any MCP client that supports Streamable HTTP (protocol `2026-07-28`) can connect
 
 ## Troubleshooting
 
-- **"Protected resource does not match"**: the endpoint URL you entered differs from the one advertised by the server's OAuth metadata. Use the exact URL shown in **Project Settings → MCP Access**.
+- **"MCP access is disabled by the AI kill switch" / "MCP access is disabled by the administrator"**: your server's administrator has turned off AI features or MCP access. Ask them to enable MCP access in the admin settings (and make sure the AI kill switch is off).
+- **A tool can read but not change anything**: the project was shared with **View only**. Open **User Settings → Authorized Apps** and change the project to **View and edit**.
 - **OAuth sign-in loop**: make sure your browser can reach the server's authorization page and that you're not blocking third-party cookies on the domain.
 - **Connection refused / 404**: confirm the server is running and that the path is exactly `/api/v1/ai/mcp`.

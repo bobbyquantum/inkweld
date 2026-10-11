@@ -1,31 +1,55 @@
 # Inkweld Documentation Hub
 
-The canonical docs now live inside our Docusaurus site located at `docs/site`. You can preview the content locally or build the production bundle that will eventually ship to `https://docs.inkweld.org`.
+The canonical docs live in the Docusaurus site at `docs/site`. It holds the
+admin and developer docs (`docs/site/docs`), the user guide
+(`docs/site/docs-user-guide`, served under `/user-guide`) and the generated API
+reference (from `backend/openapi.json`).
 
 ## Local preview
 
+Dependencies are installed from the repo root: `bun install` runs the root
+`postinstall`, which also installs `docs/site`. Then:
+
 ```bash
 cd docs/site
-npm install   # first run only
-npm run start
+bun run start   # http://localhost:3000, hot reload
 ```
 
-The dev server hosts the docs at `http://localhost:3000/` with hot reload enabled. Markdown files sit under `docs/site/docs` and update immediately.
+`start` first regenerates the API reference from `backend/openapi.json`.
 
 ## Production build
 
 ```bash
 cd docs/site
-npm run build
-npm run serve   # optional static preview
+bun run build               # API docs + screenshots + Docusaurus build
+bun run build:no-screenshots  # same without the Playwright screenshot run
+bun run serve               # optional static preview of docs/site/build
 ```
 
-CI will deploy the output in `docs/site/build/` to `docs.inkweld.org` once the hosting workflow is ready.
+The full build runs the screenshot suite (`bun run generate-screenshots`, i.e.
+`TEST_ENV=screenshots npx playwright test` in `frontend/`), which needs the
+Playwright Chromium browser. From the repo root, `bun run verify:docs` is the
+full build and `bun run verify:docs:lite` the one without screenshots (the
+default `bun run verify` uses the latter).
+
+## Deployment
+
+`.github/workflows/docs.yml` builds the site (with screenshots) and publishes
+`docs/site/build` to GitHub Pages with the Pages actions
+(`configure-pages`, `upload-pages-artifact`, `deploy-pages`). It runs on pushes
+to `main` that touch `docs/**` or `backend/openapi.json`, and can be started
+manually. The public URL is set by `siteUrl` in `docs/site/docusaurus.config.ts`
+and `docs/site/static/CNAME`. The optional repository variable `INKWELD_APP_URL`
+overrides where the "Open App" links point.
+
+`docs/deploy-docs.sh` is a manual alternative that deploys the build to
+Cloudflare Pages with Wrangler.
 
 ## Contributing to docs
 
-- Place new guides under `docs/site/docs/<category>/<topic>.md(x)`.
-- Organize navigation via `docs/site/sidebars.ts`.
+- Place new guides under `docs/site/docs/<category>/<topic>.md(x)` (or
+  `docs/site/docs-user-guide/` for the user guide).
+- Organize navigation via `docs/site/sidebars.ts` / `sidebars-user-guide.ts`.
 - Keep `docusaurus.config.ts` current (site title, links, metadata).
 - Update this README anytime the workflow changes.
 

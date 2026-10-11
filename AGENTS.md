@@ -139,7 +139,7 @@ src/app/
 - **Runtime**: Bun (NOT Node.js)
 - **Framework**: Hono (lightweight, runs on Bun and Cloudflare Workers)
 - **Database**: Drizzle ORM with SQLite/D1 + LevelDB (Yjs documents)
-- **Auth**: Session-based authentication with signed cookies
+- **Auth**: JWT bearer tokens (HS256, 30 days), passkeys, optional GitHub OAuth
 - **Testing**: Bun's built-in test runner
 - **Package Manager**: Bun
 
@@ -148,7 +148,7 @@ src/app/
 - **Run on Bun**: Use `bun` commands, not `npm` or `node`
 - **Type Imports**: Import Request/Response types using `import type`, not regular import
 - **Per-Project LevelDB**: Each project has its own LevelDB instance for document storage
-- **Session Management**: Uses signed cookies for session authentication
+- **Session Management**: Sessions are JWT bearer tokens, not cookies; revoke them by bumping `users.sessionsValidFrom`
 - **Migrations**: `backend/drizzle/` starts from a single `0000_baseline.sql`
   generated from `src/db/schema/`. Its statements use `IF NOT EXISTS` so a
   database created by the pre-squash migrations (the preview D1) records it as
@@ -205,7 +205,8 @@ src/
 - Avoid fragile selectors based on text or classes
 - Mock API responses using the mock-api framework in `e2e/mock-api/`
 - **Key Files**:
-  - `e2e/fixtures.ts` - Test fixtures (authenticatedPage, anonymousPage)
+  - `e2e/{local,online,mcp,screenshots}/fixtures.ts` - Per-suite test fixtures (authenticatedPage, anonymousPage)
+  - `e2e/common/` - Shared helpers (`test-helpers.ts`, `free-port.ts`, isolated backend)
   - `e2e/mock-api/` - Mock API handlers
   - `e2e/BEST_PRACTICES.md` - Detailed e2e testing guidelines
 
@@ -439,7 +440,7 @@ a missed edit. Keep it that way. The priority document is always force-synced.
 
 ### Authentication
 
-- Session-based auth with httpOnly cookies
+- JWT bearer-token sessions (stored client-side by `AuthTokenService`; no session cookies)
 - CSRF protection on all state-changing requests
 - GitHub OAuth support (optional)
 - User approval system (configurable)
@@ -490,16 +491,29 @@ Passkeys use the W3C WebAuthn API for passwordless, discoverable-credential (use
 - E2E tests use Chromium's CDP `WebAuthn.enable` + `WebAuthn.addVirtualAuthenticator` with `ctap2/internal/resident-key/UV/auto-presence`.
 - The login dialog's `onPasskeyLogin()` calls `userService.setCurrentUser(user)` after a successful passkey login to sync the user cache.
 - The online e2e backend explicitly opts into `PASSWORD_LOGIN_ENABLED=true` and `EMAIL_RECOVERY_ENABLED=true` (in `playwright.online.config.ts`) because the existing test fixtures register/login users via the password API. Production images use the secure-by-default passwordless posture.
-- Magic-link recovery tokens are hashed at rest (single-use, 60-min TTL); there is no test endpoint to read the plaintext token, so end-to-end redemption from a real browser is covered by unit tests + backend integration tests rather than Playwright.
+- Magic-link recovery tokens are hashed at rest (single-use, 15-min TTL); there is no test endpoint to read the plaintext token, so end-to-end redemption from a real browser is covered by unit tests + backend integration tests rather than Playwright.
+- **`ALLOW_INKWELD_APP_CLIENT`** (admin Settings, default off) lets the hosted app at `https://inkweld.app` (also the Android app) sign in to a self-hosted server. `getInkweldAppClientOrigins()` (`services/inkweld-app-client.service.ts`, 5s cache) feeds the extra origin into CORS/CSRF in `bun-app.ts`, `worker-app.ts` and `node-app.ts`, into the WebAuthn expected origins, and into `GET /.well-known/webauthn` (WebAuthn related origins; 404 while off). Passkey ceremonies must use `rpFromRequest(c)`, not `rpFromContext(c)`, or a ceremony from inkweld.app fails origin verification. A new origin check must include these origins too.
 
 **Data flow:**
 1. Register: `POST /register/start` → browser prompt → `POST /register/finish` → row in `userPasskeys`
-2. Login: `POST /login/start` → browser prompt → `POST /login/finish` → JWT in response body + cookie session
+2. Login: `POST /login/start` → browser prompt → `POST /login/finish` → JWT in response body
 3. Management: `GET /` (list), `PATCH /:id` (rename), `DELETE /:id`
 4. Recovery (passwordless mode, email enabled):
    `POST /api/v1/passkey-recovery/request` (anonymous, email)
    → email with `/recover-passkey/redeem?token=<raw>` link
    → `POST /start` + `POST /finish` enrol a NEW passkey (no session issued; existing passkeys untouched)
+
+### AI Kill Switch
+
+`AI_KILL_SWITCH` (default ON = all AI disabled; the env var locks it) is
+enforced on the server, not only by the UI hiding buttons. **Every new endpoint
+that sends content to an AI provider must be gated** with `requireAiEnabled`
+from `backend/src/utils/ai-kill-switch.ts` (a 403 with `code: 'AI_DISABLED'`),
+registered with `.use(path, …)` *before* the route handler. Use
+`isAiKillSwitchOn(db)` / `resolveAiKillSwitch(value)` instead of reading the
+config key yourself — they apply the env lock. Admin configuration endpoints
+stay open so AI can be set up before the switch is turned off.
+`test/ai-kill-switch.test.ts` lists the gated endpoints; add new ones there.
 
 ### Admin Branding & Custom HTML Injection
 
@@ -625,6 +639,58 @@ a thin layer over the published image). HA serves the UI at
   `utils/app-base.ts` for full-page navigations, new windows and server URLs.
   Stylesheet URLs to `public/` files stay relative and are listed in
   `externalDependencies` in `angular.json` so the build leaves them alone.
+
+### APP_MODE (Which Profiles May Be Added)
+
+`APP_MODE` (`ONLINE` | `LOCAL` | `BOTH`, backend env, sent as `appMode` in
+`/config/features`) is the admin's policy for adding profiles. The frontend
+reads it in one place, `AppModePolicyService` (`services/core/`), and every
+path that creates a profile asks it: setup, the profile manager (add server,
+add Browser, upgrade, add cloud storage), the user menu's upgrade button.
+
+- **The home server decides, not the active profile**:
+  `resolveHomeServerUrl()` is the ingress origin, the build's `apiUrl`, or the
+  page's own origin (no apiUrl: Docker/binary); Electron has none (no limit).
+  Another server added as a profile has no say.
+- `ONLINE` forbids Browser **and** Cloud Sync (both store in the browser);
+  `LOCAL` forbids adding servers.
+- **Fetching is lazy** (`ready()`): Browser/Cloud Sync profiles must not
+  contact a server (the local e2e fixtures fail on any `/api/` request), so
+  only setup, the profile manager's upgrade/add-server views, and the user
+  menu/profile manager *while a server profile is active* call it.
+- The last reported mode is cached per home server
+  (`inkweld-app-mode-policy`). An unreachable server keeps the cached mode;
+  never fall back to `SystemConfigService`'s "server unavailable" defaults
+  here (they say `LOCAL`). With nothing cached, nothing is restricted.
+- Existing profiles always keep working: switching to them, and reconnecting a
+  cloud profile (`?mode=cloud&provider=` is allowed on an `ONLINE` site when
+  the device already has a profile for that provider; the callback then only
+  restores credentials for an account already linked here).
+- `environment.autoConfigure` is a first-run convenience only and must not
+  restrict anything by itself. Ingress / hosted auto-configuration bypasses
+  the policy (it isn't a user adding a profile).
+
+### Published File Share Links
+
+A published file shared as "Anyone with link" / "Anyone" gets a link to
+`<server>/share/<token>`. The **API server** serves that page
+(`routes/share-page.routes.ts`, a static HTML page with no script, rendered by
+`utils/share-page.ts`), not the Angular app. On a split deployment the frontend
+origin can't tell which server issued a token. The page's Download button is a
+relative link to `GET /api/v1/share/:token`.
+
+- The client builds the link from `setupService.getServerUrl()`; the backend's
+  `share-link` endpoint uses `getPublicApiUrl(c)` (`BASE_URL`, else the request
+  origin). Never use `getBaseUrl` (SITE_URL) here: on split deployments it is
+  the frontend.
+- Only the server issues share tokens. `PublishedFilesService` must store the
+  server's record (its id **and** token) after an upload or a permission change.
+  The local copy of the file is moved to the server id. Never generate a token
+  on the client.
+- `share` is a reserved username, and `/share/**` is excluded from the service
+  worker's `navigationUrls`, so the page is reachable when the SPA shares its origin.
+- "Anyone with link" sends `X-Robots-Tag: noindex, nofollow`. "Anyone" allows
+  indexing. Both open with the link; nothing lists public files yet.
 
 ### Account Deletion
 

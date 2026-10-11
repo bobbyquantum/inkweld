@@ -2,6 +2,7 @@ import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { requireAdmin } from '../middleware/auth';
 import { configService } from '../services/config.service';
 import { imageGenerationService } from '../services/image-generation.service';
+import { clearInkweldAppClientCache } from '../services/inkweld-app-client.service';
 import type { AppContext } from '../types/context';
 import { ErrorResponseSchema, errorResponses } from '../schemas/common.schemas';
 import { CONFIG_KEYS, CONFIG_CATEGORIES } from '../db/schema/config';
@@ -277,6 +278,8 @@ adminConfigRoutes.openapi(setConfigRoute, async (c) => {
     imageGenerationService.invalidateConfiguration();
   }
 
+  if (configKey === 'ALLOW_INKWELD_APP_CLIENT') clearInkweldAppClientCache();
+
   // Return the updated value (masked if encrypted)
   const updated = await configService.get(db, configKey);
   if (updated.encrypted && updated.value) {
@@ -327,6 +330,7 @@ adminConfigRoutes.openapi(deleteConfigRoute, async (c) => {
 
   const configKey = key as keyof typeof CONFIG_KEYS;
   await configService.delete(db, configKey);
+  if (configKey === 'ALLOW_INKWELD_APP_CLIENT') clearInkweldAppClientCache();
 
   // Return the reverted value
   const reverted = await configService.get(db, configKey);

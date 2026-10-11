@@ -9,6 +9,7 @@ import { prettyJSON } from 'hono/pretty-json';
 import { secureHeaders } from 'hono/secure-headers';
 import { requestLogger } from './middleware/request-logger';
 import { logger } from './services/logger.service';
+import { getInkweldAppClientOrigins } from './services/inkweld-app-client.service';
 import { config } from './config/env';
 import { errorHandler } from './middleware/error-handler';
 import {
@@ -36,11 +37,13 @@ registerOpenOriginRoutes(app);
 
 // CORS configuration
 const allowedOrigins = config.allowedOrigins;
-app.use('*', (c, next) => {
+app.use('*', async (c, next) => {
   if (isCrossOriginPath(c.req.path)) return next();
+  // The admin's ALLOW_INKWELD_APP_CLIENT switch adds the hosted app
+  const extraOrigins = await getInkweldAppClientOrigins(c.get('db'));
   return cors({
     origin: (origin) => {
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (!origin || allowedOrigins.includes(origin) || extraOrigins.includes(origin)) {
         return origin || '*';
       }
       return allowedOrigins[0] || '*';
@@ -53,10 +56,11 @@ app.use('*', (c, next) => {
 
 // CSRF protection
 if (config.nodeEnv !== 'test') {
-  app.use('*', (c, next) => {
+  app.use('*', async (c, next) => {
     if (isCrossOriginPath(c.req.path)) return next();
+    const extraOrigins = await getInkweldAppClientOrigins(c.get('db'));
     return csrf({
-      origin: allowedOrigins.length > 0 ? allowedOrigins : undefined,
+      origin: allowedOrigins.length > 0 ? [...allowedOrigins, ...extraOrigins] : undefined,
     })(c, next);
   });
 }

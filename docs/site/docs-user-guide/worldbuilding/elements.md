@@ -11,7 +11,7 @@ import ThemedImage from '@site/src/components/ThemedImage';
 
 Inkweld's worldbuilding system is built around **elements**—structured entries that you create to represent anything in your story world. Characters, locations, factions, items, creatures, magic systems—they're all elements, and you define their structure using **templates**.
 
-New projects start with a set of built-in templates covering 29 common element types. See [Element Types](./element-types) for the full list — or clone and customize them, or design your own from scratch.
+Projects created from the **Worldbuilding (Empty)** or **Worldbuilding (Demo)** project template start with a set of built-in templates covering 29 common element types. See [Element Types](./element-types) for the full list — clone and customize them, or design your own from scratch. A project created from the **Empty Project** template has no worldbuilding templates at all, so you'll need to create your own (see [Creating a Template](#creating-a-template)) before you can add worldbuilding elements.
 
 ## What Are Elements?
 
@@ -30,7 +30,7 @@ Templates define the structure of elements:
 
 - What **fields** to capture (name, description, stats, etc.)
 - How to **organize** fields into tabs
-- What **field types** to use (text, selection, number, etc.)
+- What **field types** to use (text, select, number, relationship, etc.)
 
 Every element uses a template. You can create as many templates as your story needs.
 
@@ -41,12 +41,16 @@ When you create an element, it takes its **own copy** of the template's structur
 ### Creating an Element
 
 1. **Right-click** on a folder in your project tree
-2. Select **"New Worldbuilding Entry"**
-3. Choose a template (or create a new one)
+2. Select **New Element**
+3. In the **Create New** dialog, pick the type you want under **Worldbuilding Elements** (use the search box to filter, e.g. "character")
 4. Enter the element's name
-5. Click **Create**
+5. Click the **Create** button, which is labelled after the type you chose (for example **Create Character**)
 
 The element opens with structured fields to fill in.
+
+:::note
+The **Create New** dialog only lists templates your project already has. To add a new element type, create a template first in **Project Settings → Templates** (see below), then it will appear in the dialog.
+:::
 
 ### Creating a Template
 
@@ -55,7 +59,7 @@ There are two ways to create a new template:
 #### Option 1: Create from Scratch
 
 1. Open your project
-2. Go to **Project Settings** → **Element Templates**
+2. Go to **Project Settings** → **Templates**
 3. Click the **New Template** button
 4. The template editor opens with a blank starter template
 5. Define your fields and tabs
@@ -70,7 +74,7 @@ There are two ways to create a new template:
 
 If you want to start from an existing template (like the built-in Character or Location templates):
 
-1. Go to **Project Settings** → **Element Templates**
+1. Go to **Project Settings** → **Templates**
 2. Find the template you want to base yours on
 3. Click the **Clone** button (copy icon) on that template's row
 4. A copy is created that you can rename and customize
@@ -88,7 +92,7 @@ Cloning is great when you want to create a variation of an existing template. Fo
 
 ### The Templates Tab
 
-The Element Templates tab in Project Settings shows all your templates at a glance. Each template card displays:
+The **Templates** section of Project Settings shows all your templates at a glance. Each template card displays:
 
 - **Name** and **icon** (visual identifier)
 - **Tab and field counts**, plus the template's description
@@ -96,7 +100,7 @@ The Element Templates tab in Project Settings shows all your templates at a glan
 
 <ThemedImage
   src="/img/features/templates-overview"
-  alt="Element Templates tab showing template cards"
+  alt="Templates section showing template cards"
 />
 
 ### Template Components
@@ -112,16 +116,35 @@ A template consists of:
 
 ### Field Types
 
-| Type             | Use For                   | Example                    |
-| ---------------- | ------------------------- | -------------------------- |
-| **Short Text**   | Names, titles, brief info | "Elena Blackwood"          |
-| **Long Text**    | Plain text descriptions   | Backstory summary          |
-| **Selection**    | Pick from options         | "Faction Type: Guild"      |
-| **Multi-Select** | Pick multiple options     | "Abilities: Flight, Magic" |
-| **Number**       | Numeric values            | "Level: 5"                 |
-| **Date**         | Timeline entries          | "Founded: 1242"            |
-| **Toggle**       | Yes/No values             | "Active: ✓"                |
-| **Array**        | A list of short tags      | Tags, features             |
+These are the types offered in the **Field Type** list of the field settings dialog:
+
+| Type             | Use For                             | Example                    |
+| ---------------- | ----------------------------------- | -------------------------- |
+| **Text**         | Names, titles, brief info           | "Elena Blackwood"          |
+| **Text Area**    | Longer plain-text descriptions      | Backstory summary          |
+| **Number**       | Numeric values                      | "Level: 5"                 |
+| **Date**         | Timeline entries                    | "Founded: 1242"            |
+| **Select**       | Pick one option from a list         | "Faction Type: Guild"      |
+| **Multi Select** | Pick several options                | "Abilities: Flight, Magic" |
+| **Checkbox**     | Yes/No values                       | "Active: ✓"                |
+| **Array (Tags)** | A list of short entries             | Tags, features             |
+| **Relationship** | Link to another element (see below) | "Mother: Elena Blackwood"  |
+
+There is no separate "rich text" field type. Text Area fields hold plain text; to link to other elements, use a **Relationship** field, or `@` references in your prose documents.
+
+### Relationship Fields
+
+A **Relationship** field lets an element point at other elements straight from its form — for example a Character with a **Mother** field, or a Location with a **Ruler** field. In the field settings dialog you can set:
+
+| Setting                     | What it does                                                                                                                                            |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Linked element template** | Restricts which elements can be picked. Choose a template (say, Character) to only offer elements of that type, or leave it on **Any element**.         |
+| **Backlink label**          | What the linked element sees in its own Relationships section, such as **Child of**. If left blank, the field's label is used.                          |
+| **Allow multiple**          | Off: the field holds a single element, and choosing another replaces the first. On: you can link several elements (a **Children** field, for instance). |
+
+In an element, the field shows the linked elements as small cards with a **Link element** / **Change element** button and a **Remove link** (×) button. A link whose element has been deleted shows as **Deleted element** until you remove it.
+
+Behind the scenes, every relationship field creates a relationship type for you, named after the field. These links are ordinary relationships: they show up in the element's **Relationships** section, appear as backlinks on the linked element, and are drawn on [relationship charts](./relationship-charts). In **Project Settings → Relationships** such a type carries a **Template field** badge and is read-only — change it by editing the field in the template instead. See [Relationships](./relationships#template-managed-relationship-types).
 
 ### The Template Editor
 
@@ -181,22 +204,22 @@ Track people in your story:
 
 **Tab: Basic**
 
-- Name (short text)
-- Aliases (short text)
-- Age (short text)
-- Role (selection: Protagonist, Antagonist, Supporting)
+- Name (Text)
+- Aliases (Text)
+- Age (Text)
+- Role (Select: Protagonist, Antagonist, Supporting)
 
 **Tab: Description**
 
-- Appearance (rich text)
-- Personality (rich text)
-- Motivations (long text)
+- Appearance (Text Area)
+- Personality (Text Area)
+- Motivations (Text Area)
 
 **Tab: Background**
 
-- Backstory (rich text)
-- Skills (long text)
-- Relationships (rich text with @mentions)
+- Backstory (Text Area)
+- Skills (Array)
+- Mentor (Relationship, linked template: Character)
 
 ### Location Template
 
@@ -204,15 +227,15 @@ Track places in your world:
 
 **Tab: Overview**
 
-- Name (short text)
-- Type (selection: City, Town, Wilderness, Building)
-- Region (short text)
+- Name (Text)
+- Type (Select: City, Town, Wilderness, Building)
+- Region (Relationship, linked template: Location)
 
 **Tab: Details**
 
-- Description (rich text)
-- History (rich text)
-- Notable Features (long text)
+- Description (Text Area)
+- History (Text Area)
+- Notable Features (Array)
 
 ### Faction Template
 
@@ -220,21 +243,21 @@ Track organizations and groups:
 
 **Tab: Overview**
 
-- Name (short text)
-- Type (selection: Guild, Government, Religious, Criminal)
-- Motto (short text)
+- Name (Text)
+- Type (Select: Guild, Government, Religious, Criminal)
+- Motto (Text)
 
 **Tab: Structure**
 
-- Leadership (rich text with @mentions)
-- Hierarchy (rich text)
-- Membership Size (number)
+- Leader (Relationship, linked template: Character)
+- Hierarchy (Text Area)
+- Membership Size (Number)
 
 **Tab: Goals**
 
-- Objectives (rich text)
-- Allies (rich text with @mentions)
-- Enemies (rich text with @mentions)
+- Objectives (Text Area)
+- Allies (Relationship, allow multiple)
+- Enemies (Relationship, allow multiple)
 
 ### Item Template
 
@@ -242,26 +265,26 @@ Track objects and artifacts:
 
 **Tab: Basic**
 
-- Name (short text)
-- Type (selection: Weapon, Armor, Tool, Artifact)
-- Rarity (selection: Common, Rare, Legendary)
+- Name (Text)
+- Type (Select: Weapon, Armor, Tool, Artifact)
+- Rarity (Select: Common, Rare, Legendary)
 
 **Tab: Properties**
 
-- Appearance (rich text)
-- Magical Effects (rich text)
-- Limitations (long text)
+- Appearance (Text Area)
+- Magical Effects (Text Area)
+- Limitations (Text Area)
 
 **Tab: History**
 
-- Creation (rich text)
-- Notable Owners (rich text with @mentions)
+- Creation (Text Area)
+- Notable Owners (Relationship, allow multiple)
 
 ## Managing Templates
 
 ### Editing Templates
 
-1. Go to **Project Settings** → **Element Templates**
+1. Go to **Project Settings** → **Templates**
 2. Click the **Edit** button (pencil icon) on the template's row to open the Template Editor
 3. Add, remove, or reorder fields within each tab
 4. Changes save automatically — just close the editor when you're done
@@ -283,7 +306,7 @@ field simply stops being shown once the element is updated.
 
 To create a variation of an existing template:
 
-1. Find the template in the **Element Templates** tab
+1. Find the template in the **Templates** section of Project Settings
 2. Click its **Clone** button (copy icon)
 3. A copy is created with "(Copy)" appended to the name
 4. Edit the cloned template to customize it
@@ -354,6 +377,7 @@ The sidenav shows:
 - **Schema tabs** — one entry per tab defined in the template (e.g., Basic Info, Appearance)
 - **Relationships** — connections and backlinks
 - **Media** — images and files tagged to this element
+- **Styling** — custom backgrounds for the editor (only shown if you can edit the project)
 
 ### Identity Panel
 
@@ -371,7 +395,7 @@ The Identity section holds the element's core identity:
 
 ### Custom Backgrounds
 
-The Identity tab includes an **Appearance** panel that lets you give the editor's two regions — the left-hand menu (sidenav) and the right-hand content area — their own background. This is a per-element setting, so each character, location, or item can have a distinct look.
+The **Styling** section (the last entry in the navigation, visible if you can edit the project) contains an **Appearance** panel that lets you give the editor's two regions — the left-hand menu (sidenav) and the right-hand content area — their own background. This is a per-element setting, so each character, location, or item can have a distinct look.
 
 For each region you can:
 
@@ -381,15 +405,15 @@ For each region you can:
   - **Auto** — a single value that the editor adjusts for the active light/dark theme (images are automatically brightened or darkened so overlaid text stays readable).
   - **Manual** — separate values for the light theme and the dark theme.
 
-![Solid colour menu background](/img/features/worldbuilding-backgrounds/worldbuilding-background-menu-solid.png)
+<img src="/img/features/worldbuilding-backgrounds/worldbuilding-background-menu-solid.png" alt="Solid colour menu background" loading="lazy" />
 
 _A solid colour applied to the left-hand menu._
 
-![Gradient content background](/img/features/worldbuilding-backgrounds/worldbuilding-background-content-gradient.png)
+<img src="/img/features/worldbuilding-backgrounds/worldbuilding-background-content-gradient.png" alt="Gradient content background" loading="lazy" />
 
 _A gradient applied to the content area._
 
-![Custom menu and content backgrounds in dark mode](/img/features/worldbuilding-backgrounds/worldbuilding-background-both-dark.png)
+<img src="/img/features/worldbuilding-backgrounds/worldbuilding-background-both-dark.png" alt="Custom menu and content backgrounds in dark mode" loading="lazy" />
 
 _Both regions use custom backgrounds in dark mode._
 
@@ -397,7 +421,7 @@ Backgrounds are stored with the element and sync to collaborators in real time, 
 
 ### Schema Tab Fields
 
-Each template tab renders its fields as a form. Field types include text inputs, textareas, selects, multi-selects, numbers, dates, checkboxes, and arrays.
+Each template tab renders its fields as a form. Field types include text inputs, text areas, selects, multi-selects, numbers, dates, checkboxes, arrays, and relationship fields.
 
 <ThemedImage
   src="/img/features/worldbuilding-editor-fields"
@@ -480,8 +504,8 @@ element survives export, import and restore unchanged.
 
 ### Mobile Layout (Accordion)
 
-On screens narrower than 760px, the sidenav is replaced with an **accordion layout**. All sections — Identity & Details, schema tabs, Relationships, and Media — are rendered as collapsible panels stacked vertically.
+On screens narrower than 760px, the sidenav is replaced with an **accordion layout**. All sections — Identity & Details, schema tabs, Relationships, Media, and Styling (if you can edit the project) — are rendered as collapsible panels stacked vertically.
 
-![The worldbuilding editor in mobile accordion mode showing collapsible sections](/img/features/mobile/worldbuilding-accordion-iPhone14Pro.png)
+<img src="/img/features/mobile/worldbuilding-accordion-iPhone14Pro.png" alt="The worldbuilding editor in mobile accordion mode showing collapsible sections" loading="lazy" />
 
 The Identity & Details panel is expanded by default. Tap any panel header to expand or collapse it. The accordion layout provides the same editing capabilities as the desktop sidenav, optimized for touch interaction.

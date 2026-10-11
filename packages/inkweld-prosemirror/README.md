@@ -18,7 +18,7 @@ Before this package, the schema lived in `frontend/src/app/components/{element-r
 
 ```text
 src/
-├── schema/      Schema specs (nodes + marks) + factory: createExtendedSchema(baseNodes, baseMarks)
+├── schema/      Schema specs (nodes + marks) + createExtendedSchemaSpec({ baseNodes, baseMarks })
 ├── xml/         Canonical Yjs <-> XML string conversion (parser, serializer, mark/node tag tables)
 ├── markdown/    XML <-> Markdown conversion (lossy marks preserved as HTML spans)
 ├── uri/         inkweld:// URI codec for element_ref nodes
@@ -37,9 +37,13 @@ There is **no separate `bun install` step** — the source is included directly 
 ## Peer dependencies
 
 - `yjs` — XML and runtime modules import `yjs` types/values; provided by both apps.
-- `prosemirror-model` — schema module imports `Schema`, `NodeSpec`, `MarkSpec`; provided by both apps.
+- `prosemirror-model` — the schema module imports the `NodeSpec` / `MarkSpec` types; provided by both apps.
 
-Both peers are marked optional so a hypothetical pure-Markdown-only consumer could import only `@inkweld/prosemirror/markdown` without installing them. In practice both apps already have both.
+Both are declared as (required) `peerDependencies` and again as `devDependencies`, never as regular dependencies: a second copy under this package's own `node_modules` would break class-identity checks in y-prosemirror, ngx-editor and `EditorView`.
+
+### The package returns specs, never a `Schema`
+
+`createExtendedSchemaSpec({ baseNodes, baseMarks })` returns a plain `{ nodes, marks }` object. The host application builds the `Schema` itself (`new Schema(...)`; see `frontend/src/app/components/element-ref/extended-schema.ts`). Do not construct the `Schema` inside this package — it would pull in a second copy of `prosemirror-model` and typing in the editor would silently stop producing output (PR #1068).
 
 ## Tests
 

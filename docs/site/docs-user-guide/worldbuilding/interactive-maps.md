@@ -11,9 +11,9 @@ An interactive map is a [Canvas](./canvas) with two ingredients: one or more **b
 
 ## Creating a Map
 
-1. Right-click in the **Project Tree** (or click **+**)
-2. Under **Visualization**, choose **Map**
-3. Name it and click **Create**
+1. Right-click in the **Project Tree** (or click **+**) and choose **New Element**
+2. In the **Create New** dialog, under **Visualization**, choose **Map**
+3. Name it and click **Create Map**
 
 The new element opens with a map icon and a single layer called "Base map". It is a regular canvas — every drawing tool, layer, and frame feature is available.
 
@@ -38,7 +38,7 @@ Press `P` and click the map to drop a pin. The pin dialog asks for:
 - **Pin Color**
 - **Link to Element** — pick any document or worldbuilding element
 
-A linked pin opens its element when double-clicked (double-tapped on touch). Behind the scenes the link is a `canvas-pin` relationship, so the element's **Relationships** tab shows which maps it appears on, and the link is cleaned up automatically if either side is deleted.
+A linked pin opens its element when double-clicked (double-tapped on touch). Behind the scenes the link is a **Pinned on canvas** relationship (shown on the element as **Has pin**), so the element's **Relationships** section shows which maps it appears on, and the link is cleaned up automatically if either side is deleted.
 
 Pins live on an overlay above every layer. Hiding or deleting a layer never hides its pins, and the eraser skips them. The sidebar's **Pins** section lists them all; right-click a pin for **Edit pin…**, **Open linked element**, or **Unlink element**.
 
@@ -52,7 +52,7 @@ Where a pin marks a point, a region marks an area. Any shape — a rectangle, an
 
 Linked shapes get a pointer cursor and show the element's name when you hover; double-click (or double-tap) to open it. **Unlink element** removes the link, and **Open linked element** is available from the context menu too.
 
-Regions are `canvas-area` relationships, listed on the element alongside pin links. To represent territory that isn't one contiguous shape — an island chain, a scattered diaspora — link several shapes to the same element; together they form one region.
+Regions are **Mapped area on canvas** relationships (shown on the element as **Has mapped area**), listed on the element alongside pin links. To represent territory that isn't one contiguous shape — an island chain, a scattered diaspora — link several shapes to the same element; together they form one region.
 
 Because regions are ordinary shapes, they follow their layer: hide the layer and the region disappears, unlike pins. Keep regions on a dedicated layer if you want to toggle them independently of the artwork.
 
@@ -69,4 +69,4 @@ Maps export like any canvas — see [Exporting](./canvas#exporting). Two things 
 - **Keep regions on their own layer** so you can hide the overlays while still using the pins
 - **Use Pan mode (`H`)** whenever you're navigating rather than drawing — it prevents accidental nudges
 - **Link, don't label**: a pin linked to a location element stays correct when the location is renamed; a text label doesn't
-- **Check the Relationships tab** of an element to see every map it appears on
+- **Check the Relationships section** of an element to see every map it appears on

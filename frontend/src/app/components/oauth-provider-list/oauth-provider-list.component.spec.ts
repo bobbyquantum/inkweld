@@ -6,6 +6,7 @@ import {
   AuthenticationService,
   type OAuthProvidersResponse,
 } from '@inkweld/index';
+import { StorageContextService } from '@services/core/storage-context.service';
 import { type Observable, of, throwError } from 'rxjs';
 import { vi } from 'vitest';
 
@@ -183,6 +184,17 @@ describe('OAuthProviderListComponent', () => {
       component.signInWithProvider('github');
       expect(mockLocation.href).toBe(
         'http://localhost:8333/api/v1/auth/github'
+      );
+    });
+
+    it('should redirect to the configured server, not the build-time apiUrl', () => {
+      vi.spyOn(
+        TestBed.inject(StorageContextService),
+        'getApiBaseUrl'
+      ).mockReturnValue('https://my-server.example');
+      component.signInWithProvider('github');
+      expect(mockLocation.href).toBe(
+        'https://my-server.example/api/v1/auth/github'
       );
     });
 

@@ -6,12 +6,12 @@
 
 **Collaborative creative writing platform** with monorepo structure:
 
-| Layer     | Tech                         | Runtime   | Port |
-| --------- | ---------------------------- | --------- | ---- |
-| Frontend  | Angular (standalone)         | Node.js   | 4200 |
-| Backend   | Hono + Drizzle ORM           | Bun       | 8333 |
-| Real-time | Yjs + ProseMirror            | WebSocket | —    |
-| Storage   | SQLite + per-project LevelDB | —         | —    |
+| Layer     | Tech                                                         | Runtime   | Port |
+| --------- | ------------------------------------------------------------ | --------- | ---- |
+| Frontend  | Angular (standalone)                                         | Node.js   | 4200 |
+| Backend   | Hono + Drizzle ORM                                           | Bun       | 8333 |
+| Real-time | Yjs + ProseMirror                                            | WebSocket | —    |
+| Storage   | SQLite/D1 + per-project LevelDB (Durable Objects on Workers) | —         | —    |
 
 ## Mandatory Verification
 
@@ -21,7 +21,11 @@
 bun run verify
 ```
 
-Task is complete only when you see `✅ Verify completed`. Do not skip.
+This runs type checking, lint, the unit tests (packages, frontend, backend) and
+a docs build without screenshots. The task is complete only when the last line
+reads `--- verify (fast) passed in <N>s ---` (exit code 0). Use
+`bun run verify:e2e` or `bun run verify:full` when the change needs e2e tests or
+the docs screenshots. Do not skip.
 
 ## Critical Rules
 
@@ -67,7 +71,6 @@ bun run generate:openapi && bun run generate:angular-client
 ## Project-Specific Gotchas
 
 **Yjs Document IDs**: Frontend uses `username:slug:elements`, backend uses `username:slug:elements/` (trailing slash). This is intentional — y-websocket normalizes them. Do not "fix" this.
-
 
 ## Key Files
 

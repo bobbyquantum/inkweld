@@ -63,7 +63,10 @@ const SERVER_UNAVAILABLE_DEFAULTS: SystemFeatures = {
   aiAutoReview: false,
   aiImageGeneration: false,
   userApprovalRequired: true, // Keep strict in server mode
-  appMode: SystemFeaturesAppMode.Local, // Treat as local when server is down
+  // Treat as local when server is down. Not the profile policy: which
+  // profiles may be added comes from AppModePolicyService, which keeps the
+  // last mode the home server reported while it is unreachable.
+  appMode: SystemFeaturesAppMode.Local,
   emailEnabled: false,
   requireEmail: false,
   passwordPolicy: DEFAULT_PASSWORD_POLICY,

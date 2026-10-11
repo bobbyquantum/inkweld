@@ -86,4 +86,4 @@ Word counts are read from the copy of each document on this device and refreshed
 
 ## Publishing a Folder
 
-Add a folder to a [publish plan](../publishing/publish-plans.md) and it is published with everything inside it, in the order shown on the corkboard. Rearranging scenes there changes the next export without touching the plan.
+Add a folder to a [publish plan](../publishing/publish-plans.md) and its scenes (and any documents that are neither scene nor note) are published in the order shown on the corkboard. Notes inside the folder are skipped unless you add them to the plan on their own. Rearranging scenes there changes the next export without touching the plan.

@@ -1,16 +1,19 @@
 # E2E Testing
 
-This directory contains end-to-end tests for Inkweld, organized into five categories:
+This directory contains end-to-end tests for Inkweld, organized into the categories below:
 
 ## Test Categories
 
 ### 1. Local Tests (`e2e/local/`)
+
 Tests that run in **pure local/offline mode** without any network access.
 
 - **No Backend Required**: Tests run with the app in local mode
 - **Network Blocked**: Any API request will **fail the test**
 - **IndexedDB Storage**: All data stored locally
 - **Parallel Execution**: Tests can run in parallel
+- **Own Dev Server**: The config starts `npm start` on a free port (pin it with
+  `PLAYWRIGHT_FRONTEND_PORT`); you do not need to start one yourself
 
 ```bash
 npm run e2e:local        # Run local tests
@@ -20,12 +23,17 @@ npm run e2e:local:ci     # CI mode
 ```
 
 ### 2. Online Tests (`e2e/online/`)
+
 Tests that run against the **real backend** with an in-memory database.
 
 - **Real Backend**: Uses actual Bun server with SQLite in-memory
 - **Full Integration**: Tests complete frontend-backend communication
 - **Migration Tests**: Test offline → server workflows
-- **Sequential Execution**: Tests run one at a time
+- **Own Servers**: The config starts both the backend and the frontend on free
+  ports (`PLAYWRIGHT_BACKEND_PORT` / `PLAYWRIGHT_FRONTEND_PORT` pin them)
+- **Parallel Execution**: Config is `fullyParallel`; specs must not share
+  mutable server state. A spec that changes a global setting starts its own
+  backend through `common/isolated-backend.ts`
 
 ```bash
 npm run e2e:online        # Run online tests
@@ -35,6 +43,7 @@ npm run e2e:online:ci     # CI mode
 ```
 
 ### 3. Screenshot Tests (`e2e/screenshots/`)
+
 Tests that generate **promotional screenshots** for documentation.
 
 - **Mock API**: Uses mock API handlers (no real backend)
@@ -47,9 +56,10 @@ npm run e2e:screenshots   # Generate all screenshots
 ```
 
 ### 4. MCP Tests (`e2e/mcp/`)
+
 Tests for the **Model Context Protocol** server integration.
 
-- **JSON-RPC**: Tests MCP protocol over stdio
+- **JSON-RPC**: Tests the MCP protocol over HTTP against a real backend
 - **Inspector UI**: Tests MCP Inspector integration
 - **Tool Discovery**: Verifies available MCP tools
 
@@ -58,6 +68,7 @@ npm run e2e:mcp           # Run MCP tests
 ```
 
 ### 5. Docker/Cloudflare Tests
+
 Tests against containerized or deployed environments.
 
 ```bash
@@ -82,104 +93,51 @@ npm run e2e:ci
 e2e/
 ├── common/                # Shared test utilities
 │   ├── index.ts
-│   └── test-helpers.ts
-├── local/                 # Local/offline mode tests
-│   ├── fixtures.ts        # Local test fixtures
-│   ├── about.spec.ts
-│   ├── project-documents.spec.ts
-│   ├── element-ref.spec.ts
-│   ├── find-in-document.spec.ts
-│   ├── folder-operations.spec.ts
-│   ├── image-insert.spec.ts
-│   ├── launch.spec.ts
-│   ├── media-storage.spec.ts
-│   ├── media-tab.spec.ts
-│   ├── not-found.spec.ts
-│   ├── project-import-export.spec.ts
-│   ├── projects.spec.ts
-│   ├── publish.spec.ts
-│   ├── quick-open.spec.ts
-│   ├── snapshot.spec.ts
-│   ├── template-import.spec.ts
-│   ├── worldbuilding.spec.ts
-│   └── README.md
-├── online/                # Real backend tests
-│   ├── fixtures.ts        # Online test fixtures
-│   ├── about.spec.ts
-│   ├── account-settings.spec.ts
-│   ├── admin.spec.ts
-│   ├── announcements.spec.ts
-│   ├── auth/              # Auth sub-tests
-│   │   ├── login.spec.ts
-│   │   ├── oauth.spec.ts
-│   │   └── registration.spec.ts
-│   ├── auth.spec.ts
-│   ├── error-handling.spec.ts
-│   ├── image-generation.spec.ts
-│   ├── launch.spec.ts
-│   ├── media-storage.spec.ts
-│   ├── migration.spec.ts
-│   ├── migration-simple.spec.ts
-│   ├── oauth-mcp.spec.ts
-│   ├── project-switching.spec.ts
-│   ├── projects.spec.ts
-│   ├── publish.spec.ts
-│   ├── relationships-tab.spec.ts
-│   ├── server-unavailable.spec.ts
-│   ├── simple.spec.ts
-│   └── README.md
+│   ├── test-helpers.ts
+│   ├── test-credentials.ts
+│   ├── free-port.ts       # Free-port allocation for the configs
+│   ├── isolated-backend.ts # Per-spec backend for global-setting tests
+│   └── mock-llm-server.ts
+├── local/                 # Local/offline mode tests (fixtures.ts + *.spec.ts)
+├── online/                # Real backend tests (fixtures.ts + *.spec.ts, auth/)
+├── docker/                # Global setup/teardown for the Docker suite
 ├── screenshots/           # Screenshot generation tests
 │   ├── fixtures.ts        # Screenshot test fixtures
 │   ├── mock-api/          # Mock API handlers
-│   ├── about-screenshots.spec.ts
-│   ├── admin-ai-screenshots.spec.ts
-│   ├── admin-kill-switch-screenshots.spec.ts
-│   ├── documents-list-screenshots.spec.ts
-│   ├── element-ref-screenshots.spec.ts
-│   ├── project-rename-screenshots.spec.ts
-│   ├── pwa-screenshots.spec.ts
-│   ├── quick-open-screenshots.spec.ts
-│   ├── relationships-tab-screenshots.spec.ts
-│   ├── setup-screenshots.spec.ts
-│   ├── tags-screenshots.spec.ts
-│   └── templates-tab-screenshots.spec.ts
-└── mcp/                   # MCP protocol tests
-    ├── mcp-auth.spec.ts
-    ├── mcp-discovery.spec.ts
-    ├── mcp-inspector.spec.ts
-    ├── mcp-mutation-tools.spec.ts
-    ├── mcp-resources.spec.ts
-    └── mcp-search-tools.spec.ts
+│   └── *-screenshots.spec.ts
+├── mcp/                   # MCP protocol tests (fixtures.ts, mcp-setup.ts, mcp-*.spec.ts)
+├── online-setup.ts        # Global setup for the online suite
+└── wrangler-setup.ts      # Global setup for the wrangler suite (health check)
 ```
 
 ## Fixtures
 
 ### Local Fixtures (`e2e/local/fixtures.ts`)
 
-| Fixture | Description |
-|---------|-------------|
-| `localPage` | Page in local mode with user configured, API requests blocked |
-| `localPageWithProject` | Local page with a project pre-created |
-| `localContext` | Browser context for local mode (multi-page tests) |
+| Fixture                | Description                                                   |
+| ---------------------- | ------------------------------------------------------------- |
+| `localPage`            | Page in local mode with user configured, API requests blocked |
+| `localPageWithProject` | Local page with a project pre-created                         |
+| `localContext`         | Browser context for local mode (multi-page tests)             |
 
 ### Online Fixtures (`e2e/online/fixtures.ts`)
 
-| Fixture | Description |
-|---------|-------------|
-| `anonymousPage` | Server mode, not authenticated |
-| `authenticatedPage` | Server mode with registered user and JWT |
-| `adminPage` | Server mode with admin user (pre-seeded e2e-admin) |
-| `offlinePage` | Offline/local mode (for migration tests) |
+| Fixture                 | Description                                                        |
+| ----------------------- | ------------------------------------------------------------------ |
+| `anonymousPage`         | Server mode, not authenticated                                     |
+| `authenticatedPage`     | Server mode with registered user and JWT                           |
+| `adminPage`             | Server mode with admin user (pre-seeded e2e-admin)                 |
+| `offlinePage`           | Offline/local mode (for migration tests)                           |
 | `serverUnavailablePage` | Server mode with API requests blocked (for offline fallback tests) |
 
 ### Screenshot Fixtures (`e2e/screenshots/fixtures.ts`)
 
-| Fixture | Description |
-|---------|-------------|
-| `authenticatedPage` | Authenticated user with mock API and demo projects |
-| `adminPage` | Admin user with mock API for admin page screenshots |
-| `offlinePage` | Local mode for editor/project screenshots |
-| `unconfiguredPage` | No configuration set (shows setup screen) |
+| Fixture             | Description                                         |
+| ------------------- | --------------------------------------------------- |
+| `authenticatedPage` | Authenticated user with mock API and demo projects  |
+| `adminPage`         | Admin user with mock API for admin page screenshots |
+| `offlinePage`       | Local mode for editor/project screenshots           |
+| `unconfiguredPage`  | No configuration set (shows setup screen)           |
 
 ## Writing Tests
 
@@ -220,7 +178,15 @@ test.describe('My Feature', () => {
 import { join } from 'path';
 import { test } from './fixtures';
 
-const SCREENSHOTS_DIR = join(process.cwd(), '..', 'docs', 'site', 'static', 'img', 'generated');
+const SCREENSHOTS_DIR = join(
+  process.cwd(),
+  '..',
+  'docs',
+  'site',
+  'static',
+  'img',
+  'generated'
+);
 
 test.describe('My Feature Screenshots', () => {
   test('capture feature - desktop light', async ({ offlinePage: page }) => {
@@ -244,7 +210,6 @@ import {
   TEST_CONSTANTS,
   generateUniqueUsername,
   generateUniqueSlug,
-  waitForNetworkIdle,
   clearAllStorage,
   fillFormFields,
   createProjectWithTwoSteps,
@@ -256,16 +221,21 @@ import {
 
 ## Configuration Files
 
-| File | Purpose | Base URL |
-|------|---------|----------|
-| `playwright.config.ts` | Main router (routes via TEST_ENV) | varies |
-| `playwright.local.config.ts` | Local/offline tests | `http://localhost:4200` |
-| `playwright.online.config.ts` | Online tests (real backend) | `http://localhost:4400` |
-| `playwright.screenshots.config.ts` | Screenshot generation | `http://localhost:4200` |
-| `playwright.mcp.config.ts` | MCP protocol tests | N/A (JSON-RPC) |
-| `playwright.docker.config.ts` | Docker container tests | `http://localhost:9333` |
-| `playwright.wrangler.config.ts` | Wrangler dev (Workers) | `http://localhost:4400` |
-| `playwright.cloudflare.config.ts` | Deployed Cloudflare | Custom URL via env var |
+| File                               | Purpose                                                                                                           | Servers / URL                                                  |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| `playwright.config.ts`             | Router that picks a config via `TEST_ENV` (`online` default, `local`, `docker`, `wrangler`, `screenshots`, `mcp`) | varies                                                         |
+| `playwright.local.config.ts`       | Local/offline tests                                                                                               | Starts the frontend on a free port                             |
+| `playwright.online.config.ts`      | Online tests (real backend)                                                                                       | Starts backend and frontend on free ports                      |
+| `playwright.screenshots.config.ts` | Screenshot generation                                                                                             | Starts the frontend on `http://localhost:4200`                 |
+| `playwright.mcp.config.ts`         | MCP protocol tests                                                                                                | Starts the backend and the MCP Inspector on free ports         |
+| `playwright.docker.config.ts`      | Docker container tests                                                                                            | Container started by global setup, free port                   |
+| `playwright.wrangler.config.ts`    | Wrangler dev (Workers)                                                                                            | Frontend `4400`, backend `9333` by default (env vars override) |
+| `playwright.cloudflare.config.ts`  | Deployed Cloudflare (not selectable via `TEST_ENV`; use `npm run e2e:cloudflare`)                                 | `CLOUDFLARE_FRONTEND_URL`                                      |
+
+Ports are allocated by `common/free-port.ts` so several worktrees or agent
+sessions can run e2e at once. Set `PLAYWRIGHT_FRONTEND_PORT` /
+`PLAYWRIGHT_BACKEND_PORT` to pin them. Retries are 1 in CI and 0 otherwise
+(the deployed-Cloudflare config uses 3 / 1).
 
 ## Cloudflare Workers Testing
 
@@ -282,11 +252,13 @@ npm run e2e:wrangler:debug  # Debug mode
 
 **Prerequisites:**
 
-- Run `npx wrangler login` to authenticate
-- Create D1 database: `cd backend && npx wrangler d1 create inkweld_dev`
-- Configure `backend/wrangler.toml.local` with your database_id
+- `backend/wrangler.toml` (copy `backend/wrangler.toml.example`). The local D1
+  database is initialised by the config's webServer command
+  (`bun run init:d1-local`) and `wrangler dev --local` runs it all on disk, so
+  no Cloudflare login or real database is needed
 
-**Note:** Wrangler dev is slower to start (~30-60s) than the Bun backend.
+**Note:** Wrangler dev is slower to start (~30-60s) than the Bun backend. The
+suite runs serially with one worker.
 
 ### Cloudflare Deployed (Remote Testing)
 
@@ -301,12 +273,12 @@ CLOUDFLARE_FRONTEND_URL=https://inkweld-dev.pages.dev npm run e2e:cloudflare
 
 ## CI/CD
 
-The default `npm run e2e` runs both local and online tests sequentially:
+The default `npm run e2e` runs the local suite and then the online suite:
 
 1. Local tests run first (faster, no backend startup)
-2. Online tests run second (requires backend)
+2. Online tests run second (starts the backend itself)
 
-For CI, use `npm run e2e:ci` for minimal output.
+For CI, use `npm run e2e:ci`, which adds the `list` and `html` reporters.
 
 ## Adding New Tests
 

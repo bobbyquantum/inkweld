@@ -28,6 +28,7 @@ import mediaRoutes from '../routes/media.routes';
 import { commentRoutes } from '../routes/comment.routes';
 import { publishedFileRoutes } from '../routes/published-file.routes';
 import { shareRoutes } from '../routes/share.routes';
+import sharePageRoutes from '../routes/share-page.routes';
 import adminRoutes from '../routes/admin.routes';
 import { adminConfigRoutes } from '../routes/admin-config.routes';
 import { adminStatsRoutes } from '../routes/admin-stats.routes';
@@ -43,6 +44,7 @@ import {
 import oauthRoutes from '../routes/oauth.routes';
 import githubAuthRoutes from '../routes/github-auth.routes';
 import robotsRoutes from '../routes/robots.routes';
+import webauthnRelatedOriginsRoutes from '../routes/webauthn-related-origins.routes';
 import passwordResetRoutes from '../routes/password-reset.routes';
 import passkeyRoutes, { passkeyManagementHandlers } from '../routes/passkey.routes';
 import passkeyRecoveryRoutes from '../routes/passkey-recovery.routes';
@@ -161,6 +163,9 @@ export function registerCommonRoutes(app: any): void {
 
   // Public share endpoints (no auth required)
   app.route('/api/v1/share', shareRoutes);
+  // Landing page that share links point at (served here, not by the SPA, so
+  // it works when the frontend is hosted on another origin)
+  app.route('/share', sharePageRoutes);
 
   // Announcements
   app.route('/api/v1/announcements', publicAnnouncementRoutes);
@@ -196,6 +201,9 @@ export function registerCommonRoutes(app: any): void {
   // OAuth 2.1 for MCP authorization
   // Note: OAuth routes are mounted at root level for standard .well-known paths
   app.route('', oauthRoutes);
+
+  // WebAuthn related origins (only while ALLOW_INKWELD_APP_CLIENT is on)
+  app.route('/.well-known/webauthn', webauthnRelatedOriginsRoutes);
 
   // Robots.txt - blocks AI training bots, allows search engines
   app.route('/robots.txt', robotsRoutes);

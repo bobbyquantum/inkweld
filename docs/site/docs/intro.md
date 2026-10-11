@@ -17,12 +17,22 @@ The fastest way to try Inkweld:
 ```bash
 docker run -p 8333:8333 \
   -v inkweld_data:/data \
-  -e SESSION_SECRET=your-secret-key-min-32-characters-long \
-  -e CLIENT_URL=http://localhost:8333 \
+  -e SESSION_SECRET=$(openssl rand -hex 32) \
+  -e ALLOWED_ORIGINS=http://localhost:8333 \
+  -e WEBAUTHN_RP_ID=localhost \
   ghcr.io/bobbyquantum/inkweld:latest
 ```
 
+The secret above is generated fresh on each run, which is fine for a trial. For
+anything you keep, save one value (for example in a `.env` file passed with
+`--env-file`): a new secret signs everyone out and makes stored API keys
+unreadable.
+
 Open [http://localhost:8333](http://localhost:8333) and create your first account.
+New installs are passwordless: you register with a passkey (your device's
+fingerprint, face or PIN, or a security key), and the first account becomes
+the administrator. See [Configuration](./configuration) to enable passwords or
+email recovery.
 
 ## Local Development
 

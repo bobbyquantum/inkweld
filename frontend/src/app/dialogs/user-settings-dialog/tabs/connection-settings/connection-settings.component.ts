@@ -14,6 +14,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router } from '@angular/router';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
+import { AppModePolicyService } from '@services/core/app-mode-policy.service';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import {
   type ProfileDestination,
@@ -62,6 +63,9 @@ export class ConnectionSettingsComponent {
   private readonly transloco = inject(TranslocoService);
 
   protected readonly current = this.profileManager.activeConnection;
+  /** Why some kinds of profile can't be added, if APP_MODE restricts it */
+  protected readonly restrictionMessageKey =
+    inject(AppModePolicyService).restrictionMessageKey;
   protected readonly others = computed(() =>
     this.profileManager.connections().filter(c => !c.isActive)
   );

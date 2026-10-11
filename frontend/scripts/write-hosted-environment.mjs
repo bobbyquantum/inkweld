@@ -6,11 +6,18 @@
  * Usage: node scripts/write-hosted-environment.mjs <output-file>
  *
  * Reads from the process environment:
- *   API_URL          (required) hosted backend URL, e.g. https://api.inkweld.app
- *   WSS_URL          (required) hosted WebSocket URL, e.g. wss://api.inkweld.app
+ *   ADVERTISE_SERVER "true" (default) bakes API_URL / WSS_URL into the build so
+ *                    the app offers that server. "false" builds a
+ *                    frontend-only app: no server URL at all, and the setup
+ *                    screen's server field starts empty (`frontendOnly`), so a
+ *                    private backend is never suggested to visitors.
+ *   API_URL          hosted backend URL, e.g. https://api.example.com
+ *                    (required unless ADVERTISE_SERVER=false)
+ *   WSS_URL          hosted WebSocket URL, e.g. wss://api.example.com
+ *                    (required unless ADVERTISE_SERVER=false)
  *   AUTO_CONFIGURE   "true" connects first-time visitors to the hosted server;
  *                    "false" shows the setup screen (Browser / Cloud Sync /
- *                    Server) with the hosted URL pre-filled.
+ *                    Server) with the hosted URL pre-filled, if any.
  *   DROPBOX_APP_KEY  public Dropbox OAuth app key; empty hides the provider.
  *
  * The app version comes from the root package.json so a version bump reaches
@@ -26,16 +33,29 @@ if (!outputFile) {
   process.exit(1);
 }
 
-const apiUrl = process.env.API_URL ?? '';
-const wssUrl = process.env.WSS_URL ?? '';
-if (!apiUrl || !wssUrl) {
-  console.error('API_URL and WSS_URL must both be set.');
+const advertiseServer = process.env.ADVERTISE_SERVER ?? 'true';
+if (advertiseServer !== 'true' && advertiseServer !== 'false') {
+  console.error('ADVERTISE_SERVER must be "true" or "false".');
   process.exit(1);
 }
+const frontendOnly = advertiseServer === 'false';
 
 const autoConfigure = process.env.AUTO_CONFIGURE;
 if (autoConfigure !== 'true' && autoConfigure !== 'false') {
   console.error('AUTO_CONFIGURE must be "true" or "false".');
+  process.exit(1);
+}
+if (frontendOnly && autoConfigure === 'true') {
+  console.error(
+    'AUTO_CONFIGURE=true needs a server: set ADVERTISE_SERVER=true.'
+  );
+  process.exit(1);
+}
+
+const apiUrl = frontendOnly ? '' : (process.env.API_URL ?? '');
+const wssUrl = frontendOnly ? '' : (process.env.WSS_URL ?? '');
+if (!frontendOnly && (!apiUrl || !wssUrl)) {
+  console.error('API_URL and WSS_URL must both be set.');
   process.exit(1);
 }
 
@@ -51,6 +71,7 @@ const environment = {
   apiUrl,
   wssUrl,
   autoConfigure: autoConfigure === 'true',
+  frontendOnly,
   cloudSync: {
     dropbox: { appKey: process.env.DROPBOX_APP_KEY ?? '' },
   },
@@ -61,5 +82,5 @@ writeFileSync(
   `export const environment = ${JSON.stringify(environment, null, 2)};\n`
 );
 console.log(
-  `Wrote ${outputFile} (version ${version}, autoConfigure ${autoConfigure})`
+  `Wrote ${outputFile} (version ${version}, autoConfigure ${autoConfigure}, frontendOnly ${frontendOnly})`
 );

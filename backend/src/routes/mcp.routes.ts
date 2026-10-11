@@ -24,7 +24,7 @@ import {
   getRequestMeta,
 } from '../mcp';
 import { configService } from '../services/config.service';
-import { config } from '../config/env';
+import { isAiKillSwitchOn } from '../utils/ai-kill-switch';
 
 const mcpRoutes = new OpenAPIHono<AppContext>();
 
@@ -275,8 +275,7 @@ mcpRoutes.use('/', async (c, next) => {
     return next();
   }
   const db = c.get('db');
-  const killSwitch = await configService.getBoolean(db, 'AI_KILL_SWITCH');
-  const killSwitchOn = config.aiKillSwitch.lockedByEnv ? config.aiKillSwitch.enabled : killSwitch;
+  const killSwitchOn = await isAiKillSwitchOn(db);
   const mcpEnabled = await configService.getBoolean(db, 'MCP_ENABLED');
   if (killSwitchOn || !mcpEnabled) {
     return c.json(

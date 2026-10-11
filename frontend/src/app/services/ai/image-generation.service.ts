@@ -8,8 +8,8 @@ import {
   type ImageGenerateRequest,
   type ImageGenerateResponse,
 } from '../../../api-client/model/models';
-import { environment } from '../../../environments/environment';
 import { AuthTokenService } from '../auth/auth-token.service';
+import { StorageContextService } from '../core/storage-context.service';
 import {
   type GenerationMetadata,
   LocalStorageService,
@@ -104,6 +104,7 @@ export class ImageGenerationService {
   private readonly projectService = inject(ProjectService);
   private readonly authTokenService = inject(AuthTokenService);
   private readonly mediaTagService = inject(MediaTagService);
+  private readonly storageContext = inject(StorageContextService);
 
   /** All active and recent generation jobs */
   readonly jobs = signal<GenerationJob[]>([]);
@@ -437,12 +438,15 @@ export class ImageGenerationService {
   private openStreamingResponse(
     request: ImageGenerateRequest
   ): Promise<Response> {
-    return fetch(`${environment.apiUrl}/api/v1/ai/image/generate-stream`, {
-      method: 'POST',
-      headers: this.createStreamingHeaders(),
-      body: JSON.stringify(request),
-      credentials: 'include',
-    });
+    return fetch(
+      `${this.storageContext.getApiBaseUrl()}/api/v1/ai/image/generate-stream`,
+      {
+        method: 'POST',
+        headers: this.createStreamingHeaders(),
+        body: JSON.stringify(request),
+        credentials: 'include',
+      }
+    );
   }
 
   private async getStreamingErrorMessage(response: Response): Promise<string> {

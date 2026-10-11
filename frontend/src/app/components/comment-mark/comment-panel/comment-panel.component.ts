@@ -87,6 +87,9 @@ export class CommentPanelComponent {
     updates: Partial<CommentMarkAttrs>;
   }>();
 
+  /** Emitted for a reply to a local-only thread, which lives in the mark */
+  localReply = output<{ commentId: string; text: string }>();
+
   /** Emitted on thread hover (commentId or null for leave) */
   threadHovered = output<string | null>();
 
@@ -324,6 +327,14 @@ export class CommentPanelComponent {
   ): Promise<void> {
     const text = inputEl.value.trim();
     if (!text) return;
+
+    if (this.isLocalMode()) {
+      // The messages live in the mark; the editor applies the reply and
+      // passes the refreshed marks back in, which rebuilds the threads.
+      this.localReply.emit({ commentId: thread.id, text });
+      inputEl.value = '';
+      return;
+    }
 
     try {
       await this.commentService.addMessage(

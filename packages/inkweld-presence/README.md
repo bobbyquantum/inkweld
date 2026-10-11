@@ -25,7 +25,7 @@ disturbing Yjs sync state.
 `presenceMsgType` values are defined in `protocol/message-types.ts`. Payloads
 are encoded with lib0 — see individual message files for layout.
 
-## Lifecycle (no app-level heartbeat)
+## Lifecycle
 
 1. Client connects to the elements Yjs WS, authenticates, and immediately sends
    a `Hello` containing `{ user, status, location }`.
@@ -36,8 +36,17 @@ are encoded with lib0 — see individual message files for layout.
 4. As the user moves between tabs / changes selection / goes idle, the client
    sends `Update` deltas. The server rebroadcasts.
 5. On `close`/`error`, the server emits `Leave` to remaining connections and
-   removes the entry. There is **no heartbeat** — transport-level keepalive
-   (Bun ping interval, Cloudflare Hibernation auto-pong) is sufficient.
+   removes the entry.
+
+## Keepalive
+
+Presence has no heartbeat _message_, but the client sends an app-level text
+keepalive on the elements socket (`PRESENCE_KEEPALIVE_PING`, every 30 seconds
+from `yjs-element-sync.provider.ts`; see `src/protocol/keepalive.ts`). The
+server answers with `PRESENCE_KEEPALIVE_PONG`: the Bun route replies in its
+message handler, and the Cloudflare Durable Object registers the pair with
+`setWebSocketAutoResponse`, so the pong is sent without waking a hibernated
+object. The text frames never reach the Yjs decoder.
 
 ## Identifying a session
 

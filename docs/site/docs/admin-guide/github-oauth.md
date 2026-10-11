@@ -6,7 +6,7 @@ sidebar_position: 5
 
 # GitHub OAuth
 
-Allow users to sign in to your Inkweld instance using their GitHub account. This is optional — password-based authentication always works alongside OAuth.
+Allow users to sign in to your Inkweld instance using their GitHub account. This is optional, and works alongside the other sign-in methods you have enabled (passkeys, and password login if you turned it on).
 
 ## Overview
 
@@ -81,7 +81,7 @@ The OAuth flow:
 5. Inkweld fetches the user's GitHub profile (username, email, display name)
 6. If the user exists (matched by GitHub ID), they are logged in
 7. If the user is new, an Inkweld account is created automatically
-8. The user receives a JWT session token and is redirected to the home page
+8. Inkweld redirects the browser to the app with a one-time code (valid for 60 seconds), which the app exchanges for a session token, so the token never appears in a URL
 
 ### User Approval
 
@@ -116,7 +116,7 @@ The Client ID or Client Secret is missing. Check your credentials in **Admin →
 
 ### Redirect URI mismatch
 
-The callback URL configured in GitHub must exactly match your Inkweld instance URL. Check that:
+The callback URL configured in GitHub must exactly match the URL Inkweld sends. Unless you set `GITHUB_CALLBACK_URL` (or the **Callback URL** field in **Admin → GitHub**), Inkweld builds it from the request's `X-Forwarded-Proto` and `Host` headers, so behind a reverse proxy make sure those headers are forwarded or set the callback URL explicitly. Check that:
 
 - The protocol matches (`https` vs `http`)
 - The domain and port match

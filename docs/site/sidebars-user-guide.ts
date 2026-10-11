@@ -52,6 +52,7 @@ const sidebars: SidebarsConfig = {
         'writing/keyboard-shortcuts',
         'writing/formatting',
         'writing/snapshots',
+        'writing/ai-review',
       ],
     },
     {

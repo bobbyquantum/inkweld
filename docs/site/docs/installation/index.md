@@ -19,7 +19,7 @@ Inkweld offers flexible deployment options to suit different needs, from quick l
       <p style={{marginTop: '1rem'}}>The easiest and most reliable way to deploy Inkweld. Single container with everything included.</p>
       <ul>
         <li>One command to start</li>
-        <li>Automatic updates</li>
+        <li>Upgrade by pulling a new image</li>
         <li>Works anywhere Docker runs</li>
       </ul>
       <a href="./docker" class="button button--primary button--block">Docker Guide →</a>
@@ -40,7 +40,7 @@ Inkweld offers flexible deployment options to suit different needs, from quick l
   <div class="col col--4">
     <div style={{padding: '1.5rem', background: 'var(--ifm-card-background-color)', borderRadius: '12px', height: '100%'}}>
       <h3>⚡ Native Binary</h3>
-      <p style={{marginTop: '1rem'}}>Run the standalone Bun binary directly on your server without containerization.</p>
+      <p style={{marginTop: '1rem'}}>Build the standalone Bun binary from source and run it directly on your server without containerization.</p>
       <ul>
         <li>Minimal overhead</li>
         <li>Direct system access</li>

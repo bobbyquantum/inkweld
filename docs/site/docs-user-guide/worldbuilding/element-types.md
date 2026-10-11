@@ -15,14 +15,14 @@ There is no wrong answer — the types exist to give you a head start. If an ent
 
 ## People & Groups
 
-| Type             | Icon              | Use for                                                                                                                                                                              |
-| ---------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Character**    | `person`          | People, gods-as-characters, pets, and any individual with agency. Tabs: Basic Info, Appearance, Personality, Background, Abilities.                                                  |
-| **Organization** | `account_balance` | Countries, governments, religions, pantheons, cults, guilds, companies, clans, universities, adventuring parties. Tabs: Basic Info, Leadership, Structure, Holdings, Goals, History. |
-| **Deity**        | `ac_unit`         | Gods and goddesses as their own entries. Tabs: Basic Info (domains, portfolio, rank), Worship, Relations (divine family, allies, enemies), History.                                  |
-| **Ethnicity**    | `face`            | Cultures and ethnicities — a people sharing ancestry or customs, regardless of borders. Tabs: Basic Info, Culture (dress, values, customs, cuisine, arts), History.                  |
-| **Profession**   | `work`            | Jobs and trades unique to your world (dragon rider, moonsmith, memory tailor). Tabs: Basic Info, Duties & Skills, Training, Notable Practitioners.                                   |
-| **Title**        | `military_tech`   | Ranks and honours held by characters (Chief of Engineering, Guardian of the Wood). Tabs: Basic Info, Privileges & Obligations, History.                                              |
+| Type             | Icon              | Use for                                                                                                                                                                                                   |
+| ---------------- | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Character**    | `person`          | People, gods-as-characters, pets, and any individual with agency. Tabs: Basic Info, Appearance, Personality, Background, Abilities, Family.                                                               |
+| **Organization** | `account_balance` | Countries, governments, religions, pantheons, cults, guilds, companies, clans, universities, adventuring parties. Tabs: Basic Info, Leadership, Structure, Holdings & Territory, Goals & Agenda, History. |
+| **Deity**        | `ac_unit`         | Gods and goddesses as their own entries. Tabs: Basic Info (domains, portfolio, rank), Worship, Relations (divine family, allies, enemies), History.                                                       |
+| **Ethnicity**    | `face`            | Cultures and ethnicities — a people sharing ancestry or customs, regardless of borders. Tabs: Basic Info, Culture (dress, values, customs, cuisine, arts), History.                                       |
+| **Profession**   | `work`            | Jobs and trades unique to your world (dragon rider, moonsmith, memory tailor). Tabs: Basic Info, Duties & Skills, Training, Notable Practitioners.                                                        |
+| **Title**        | `military_tech`   | Ranks and honours held by characters (Chief of Engineering, Guardian of the Wood). Tabs: Basic Info, Privileges & Obligations, History.                                                                   |
 
 ## Places
 
@@ -78,4 +78,4 @@ There is no wrong answer — the types exist to give you a head start. If an ent
 - **A magic system** is a Magic System entry; the spells it enables are Spell entries; the school that teaches it is an Organization.
 - **A family or dynasty** is an Organization; each individual member is a Character.
 - **Politics** is broad: a government is an Organization, a politician is a Character, an ideology is a Tradition or Ethnicity.
-- Every built-in type can be **cloned** in Project Settings → Element Templates and renamed to fit your world's terminology.
+- Every built-in type can be **cloned** in Project Settings → Templates and renamed to fit your world's terminology.

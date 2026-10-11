@@ -40,7 +40,7 @@
 #    npm run cloudflare:preview:deploy   # Preview
 #    npm run cloudflare:prod:deploy      # Production
 #
-# For more details, see: docs/site/docs/hosting/cloudflare.md
+# For more details, see: docs/site/docs/installation/cloudflare.md
 # ========================================
 
 name = "inkweld-backend"
@@ -214,6 +214,9 @@ script_name = "inkweld-backend-prod"
 # Required for each environment:
 #   SESSION_SECRET - Used for JWT signing, CSRF token generation, and session
 #                    cookies. Must be at least 32 characters in production.
+#
+# Also required, but a plain var (set in the [env.*.vars] sections above, not
+# a secret):
 #   WEBAUTHN_RP_ID - Relying Party ID for WebAuthn/passkey authentication. Must
 #                    match your frontend domain (no protocol/port). IMMUTABLE.
 #
@@ -221,6 +224,8 @@ script_name = "inkweld-backend-prod"
 #   DATABASE_KEY   - Override for SESSION_SECRET, used specifically for database
 #                    encryption. Falls back to SESSION_SECRET if not set.
 #   GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET - Required if GitHub OAuth is enabled.
+#                    The OAuth app's callback URL is
+#                    https://<your-backend-domain>/api/v1/auth/github
 #
 # Set with:
 #   npx wrangler secret put SESSION_SECRET --env preview

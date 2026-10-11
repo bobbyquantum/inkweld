@@ -214,6 +214,7 @@ export class PublishCompleteDialogComponent {
       return;
     }
 
+    const previous = this.sharePermission();
     this.updating.set(true);
     this.sharePermission.set(permission);
 
@@ -228,6 +229,8 @@ export class PublishCompleteDialogComponent {
         this.file.set(updated);
       }
     } catch {
+      // The server kept the old setting, so the old link (if any) still applies.
+      this.sharePermission.set(previous);
       this.snackBar.open(
         this.transloco.translate('publish.complete.shareUpdateFailed'),
         this.transloco.translate('dismiss'),

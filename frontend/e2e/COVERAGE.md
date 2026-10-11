@@ -4,129 +4,123 @@ This document tracks which pages, features, and routes have e2e test coverage ac
 
 ## Coverage by Route/Page
 
-| Route | Page | Local Tests | Online Tests | Screenshots | Status |
-|-------|------|:-----------:|:------------:|:-----------:|--------|
-| `/` | Home/Bookshelf | `projects.spec.ts` | `projects.spec.ts` | `pwa-screenshots` | Covered |
-| `/setup` | Setup Wizard | `launch.spec.ts` | `launch.spec.ts` | `pwa-screenshots`, `setup-screenshots` | Covered |
-| `/about` | About Page | `about.spec.ts` | `about.spec.ts` | `about-screenshots` | Covered |
-| `/about/changelog` | Changelog | - | `about.spec.ts` | - | Partial |
-| `/create-project` | Create Project | `projects.spec.ts` | `projects.spec.ts` | `pwa-screenshots` | Covered |
-| `/settings` | Account Settings | - | `account-settings.spec.ts` | - | Partial |
-| `/admin` | Admin Dashboard | - | `admin.spec.ts` | `admin-ai-screenshots`, `admin-kill-switch-screenshots` | Covered |
-| `/admin/ai-providers` | AI Providers | - | `admin.spec.ts` | `admin-ai-screenshots` | Partial |
-| `/forgot-password` | Forgot Password | - | `forgot-password.spec.ts` | - | Covered |
-| `/reset-password` | Reset Password | - | `reset-password.spec.ts` | - | Covered |
-| `/:user/:slug` | Project Home | `projects.spec.ts` | `projects.spec.ts` | `pwa-screenshots` | Covered |
-| `/:user/:slug/document/:id` | Document Editor | `element-ref.spec.ts`, `find-in-document.spec.ts`, `image-insert.spec.ts` | - | `pwa-screenshots`, `element-ref-screenshots` | Covered |
-| `/:user/:slug/folder/:id` | Folder View (corkboard, outline, grid, list) | `folder-operations.spec.ts`, `corkboard-outline.spec.ts` | - | `pwa-screenshots`, `corkboard-screenshots` | Covered |
-| `/:user/:slug` | Project Documents (tree flow) | `project-documents.spec.ts` | - | - | Covered |
-| `/:user/:slug/media` | Media Library | `media-tab.spec.ts`, `media-storage.spec.ts` | `media-storage.spec.ts` | `pwa-screenshots` | Covered |
-| `/:user/:slug/settings` | Project Settings | - | `relationships-tab.spec.ts`, `tags.spec.ts`, `danger-zone.spec.ts` | `tags-screenshots`, `templates-tab-screenshots`, `relationships-tab-screenshots`, `project-rename-screenshots` | Covered |
-| `/:user/:slug/worldbuilding/:id` | Worldbuilding | `worldbuilding.spec.ts` | - | - | Partial |
-| `/:user/:slug/canvas/:id` | Canvas / Map | `canvas-tab.spec.ts` | - | `canvas-screenshots` | Covered |
-| `/:user/:slug/publish-plan/:id` | Publish Plan | `publish.spec.ts` | `publish.spec.ts` | - | Partial |
-| `/messages` | Messages | - | - | - | Not Covered |
-| `/approval-pending` | Approval Pending | - | - | - | Not Covered |
-| `/reset` | Reset Data | - | - | - | Not Covered |
-| `/:username` | User Profile | - | - | - | Not Covered |
-| `/oauth/authorize` | OAuth Consent | - | `oauth-mcp.spec.ts` | - | Partial |
-| `/unavailable` | Service Unavailable | - | `server-unavailable.spec.ts` | - | Partial |
-| `/*` (404) | Not Found | `not-found.spec.ts` | - | - | Partial |
+| Route                            | Page                                         |                                Local Tests                                |                            Online Tests                            |                                                  Screenshots                                                   | Status      |
+| -------------------------------- | -------------------------------------------- | :-----------------------------------------------------------------------: | :----------------------------------------------------------------: | :------------------------------------------------------------------------------------------------------------: | ----------- |
+| `/`                              | Home/Bookshelf                               |                            `projects.spec.ts`                             |                         `projects.spec.ts`                         |                                               `pwa-screenshots`                                                | Covered     |
+| `/setup`                         | Setup Wizard                                 |                             `launch.spec.ts`                              |                          `launch.spec.ts`                          |                                     `pwa-screenshots`, `setup-screenshots`                                     | Covered     |
+| `/about`                         | About Page                                   |                              `about.spec.ts`                              |                          `about.spec.ts`                           |                                              `about-screenshots`                                               | Covered     |
+| `/about/changelog`               | Changelog                                    |                                     -                                     |                          `about.spec.ts`                           |                                                       -                                                        | Partial     |
+| `/create-project`                | Create Project                               |                            `projects.spec.ts`                             |                         `projects.spec.ts`                         |                                               `pwa-screenshots`                                                | Covered     |
+| `/settings`                      | Account Settings                             |                                     -                                     |                     `account-settings.spec.ts`                     |                                                       -                                                        | Partial     |
+| `/admin`                         | Admin Dashboard                              |                                     -                                     |                          `admin.spec.ts`                           |                            `admin-ai-screenshots`, `admin-kill-switch-screenshots`                             | Covered     |
+| `/admin/ai-providers`            | AI Providers                                 |                                     -                                     |                          `admin.spec.ts`                           |                                             `admin-ai-screenshots`                                             | Partial     |
+| `/forgot-password`               | Forgot Password                              |                                     -                                     |                     `forgot-password.spec.ts`                      |                                                       -                                                        | Covered     |
+| `/reset-password`                | Reset Password                               |                                     -                                     |                      `reset-password.spec.ts`                      |                                                       -                                                        | Covered     |
+| `/:user/:slug`                   | Project Home                                 |                            `projects.spec.ts`                             |                         `projects.spec.ts`                         |                                               `pwa-screenshots`                                                | Covered     |
+| `/:user/:slug/document/:id`      | Document Editor                              | `element-ref.spec.ts`, `find-in-document.spec.ts`, `image-insert.spec.ts` |                                 -                                  |                                  `pwa-screenshots`, `element-ref-screenshots`                                  | Covered     |
+| `/:user/:slug/folder/:id`        | Folder View (corkboard, outline, grid, list) |         `folder-operations.spec.ts`, `corkboard-outline.spec.ts`          |                                 -                                  |                                   `pwa-screenshots`, `corkboard-screenshots`                                   | Covered     |
+| `/:user/:slug`                   | Project Documents (tree flow)                |                        `project-documents.spec.ts`                        |                                 -                                  |                                                       -                                                        | Covered     |
+| `/:user/:slug/media`             | Media Library                                |               `media-tab.spec.ts`, `media-storage.spec.ts`                |                      `media-storage.spec.ts`                       |                                               `pwa-screenshots`                                                | Covered     |
+| `/:user/:slug/settings`          | Project Settings                             |                                     -                                     | `relationships-tab.spec.ts`, `tags.spec.ts`, `danger-zone.spec.ts` | `tags-screenshots`, `templates-tab-screenshots`, `relationships-tab-screenshots`, `project-rename-screenshots` | Covered     |
+| `/:user/:slug/worldbuilding/:id` | Worldbuilding                                |                          `worldbuilding.spec.ts`                          |                                 -                                  |                                                       -                                                        | Partial     |
+| `/:user/:slug/canvas/:id`        | Canvas / Map                                 |                           `canvas-tab.spec.ts`                            |                                 -                                  |                                              `canvas-screenshots`                                              | Covered     |
+| `/:user/:slug/publish-plan/:id`  | Publish Plan                                 |                             `publish.spec.ts`                             |                         `publish.spec.ts`                          |                                                       -                                                        | Partial     |
+| `/messages`                      | Messages                                     |                                     -                                     |                                 -                                  |                                                       -                                                        | Not Covered |
+| `/approval-pending`              | Approval Pending                             |                                     -                                     |                                 -                                  |                                                       -                                                        | Not Covered |
+| `/reset`                         | Reset Data                                   |                                     -                                     |                                 -                                  |                                                       -                                                        | Not Covered |
+| `/:username`                     | User Profile                                 |                                     -                                     |                                 -                                  |                                                       -                                                        | Not Covered |
+| `/oauth/authorize`               | OAuth Consent                                |                                     -                                     |                        `oauth-mcp.spec.ts`                         |                                                       -                                                        | Partial     |
+| `/unavailable`                   | Service Unavailable                          |                                     -                                     |                    `server-unavailable.spec.ts`                    |                                                       -                                                        | Partial     |
+| `/*` (404)                       | Not Found                                    |                            `not-found.spec.ts`                            |                                 -                                  |                                                       -                                                        | Partial     |
 
 ## Coverage by Feature Area
 
-| Feature | Local Tests | Online Tests | Screenshots | Notes |
-|---------|:-----------:|:------------:|:-----------:|-------|
-| **Authentication** | | | | |
-| Login | - | `auth/login.spec.ts` | - | Online only |
-| Registration | - | `auth/registration.spec.ts` | - | Online only |
-| Forgot Password | - | `forgot-password.spec.ts` | - | Online only |
-| Reset Password | - | `reset-password.spec.ts` | - | Online only |
-| OAuth | - | `auth/oauth.spec.ts`, `oauth-mcp.spec.ts` | - | Online only |
-| **Projects** | | | | |
-| Create | `projects.spec.ts` | `projects.spec.ts` | `pwa-screenshots` | |
-| List/Browse | `projects.spec.ts` | `projects.spec.ts` | `pwa-screenshots` | |
-| Open/Navigate | `projects.spec.ts` | `projects.spec.ts` | - | |
-| Import/Export | `project-import-export.spec.ts` | - | - | Local only |
-| Rename | - | `danger-zone.spec.ts` | `project-rename-screenshots` | |
-| Delete | - | `danger-zone.spec.ts` | `project-rename-screenshots` | Online only |
-| Switching | - | `project-switching.spec.ts` | - | Online only |
-| **Documents** | | | | |
-| Project document flow | `project-documents.spec.ts` | - | - | |
-| Editor | `element-ref.spec.ts`, `find-in-document.spec.ts` | - | `pwa-screenshots` | |
-| Image Insert | `image-insert.spec.ts` | - | - | |
-| Snapshots | `snapshot.spec.ts` | - | - | |
-| **Folders** | | | | |
-| Operations | `folder-operations.spec.ts` | - | `pwa-screenshots` | |
-| Corkboard & outline | `corkboard-outline.spec.ts` | - | `corkboard-screenshots` | Synopsis/status editing, view switching and memory, open from outline |
-| Folder click preference | `corkboard-outline.spec.ts` | - | - | Settings → Project Tree toggle |
-| **Worldbuilding** | | | | |
-| Elements | `worldbuilding.spec.ts` | - | - | |
-| Element Refs | `element-ref.spec.ts` | - | `element-ref-screenshots` | |
-| Canvas (layers, tools, export) | `canvas-tab.spec.ts` | - | `canvas-screenshots` | |
-| Interactive maps (pins, regions) | `canvas-tab.spec.ts` | - | - | |
-| Canvas frames & cover export | `canvas-tab.spec.ts` | - | - | |
-| **Media** | | | | |
-| Storage | `media-storage.spec.ts` | `media-storage.spec.ts` | - | |
-| Library Tab | `media-tab.spec.ts` | - | `pwa-screenshots` | |
-| **Publishing** | | | | |
-| Publish Plan | `publish.spec.ts` | `publish.spec.ts` | `corkboard-screenshots` | Folders via drag and Add everything; duplicate drops refused |
-| **Settings** | | | | |
-| Tags | - | `tags.spec.ts` | `tags-screenshots` | |
-| Templates | - | - | `templates-tab-screenshots` | Screenshot only |
-| Relationships | - | `relationships-tab.spec.ts` | `relationships-tab-screenshots` | |
-| Account Settings | - | `account-settings.spec.ts` | - | |
-| Danger Zone | - | `danger-zone.spec.ts` | `project-rename-screenshots` | |
-| **Admin** | | | | |
-| Dashboard | - | `admin.spec.ts` | - | |
-| AI Settings | - | - | `admin-ai-screenshots` | Screenshot only |
-| Kill Switch | - | - | `admin-kill-switch-screenshots` | Screenshot only |
-| Announcements | - | `announcements.spec.ts` | - | |
-| **Navigation** | | | | |
-| Quick Open | `quick-open.spec.ts` | - | `quick-open-screenshots` | |
-| About Page | `about.spec.ts` | `about.spec.ts` | `about-screenshots` | |
-| 404 Page | `not-found.spec.ts` | - | - | |
-| Find/Replace | `find-in-document.spec.ts` | - | - | |
-| **Infrastructure** | | | | |
-| Migration | - | `migration.spec.ts`, `migration-simple.spec.ts` | - | Online only |
-| Server Unavailable | - | `server-unavailable.spec.ts` | - | Online only |
-| Error Handling | - | `error-handling.spec.ts` | - | Online only |
-| Template Import | `template-import.spec.ts` | - | - | Local only |
-| **MCP** | | | | |
-| Auth | - | - | - | `mcp/mcp-auth.spec.ts` |
-| Discovery | - | - | - | `mcp/mcp-discovery.spec.ts` |
-| Resources | - | - | - | `mcp/mcp-resources.spec.ts` |
-| Mutation Tools | - | - | - | `mcp/mcp-mutation-tools.spec.ts` |
-| Search Tools | - | - | - | `mcp/mcp-search-tools.spec.ts` |
+| Feature                          |                    Local Tests                    |                  Online Tests                   |           Screenshots           | Notes                                                                 |
+| -------------------------------- | :-----------------------------------------------: | :---------------------------------------------: | :-----------------------------: | --------------------------------------------------------------------- |
+| **Authentication**               |                                                   |                                                 |                                 |                                                                       |
+| Login                            |                         -                         |              `auth/login.spec.ts`               |                -                | Online only                                                           |
+| Registration                     |                         -                         |           `auth/registration.spec.ts`           |                -                | Online only                                                           |
+| Forgot Password                  |                         -                         |            `forgot-password.spec.ts`            |                -                | Online only                                                           |
+| Reset Password                   |                         -                         |            `reset-password.spec.ts`             |                -                | Online only                                                           |
+| OAuth                            |                         -                         |               `oauth-mcp.spec.ts`               |                -                | Online only                                                           |
+| **Projects**                     |                                                   |                                                 |                                 |                                                                       |
+| Create                           |                `projects.spec.ts`                 |               `projects.spec.ts`                |        `pwa-screenshots`        |                                                                       |
+| List/Browse                      |                `projects.spec.ts`                 |               `projects.spec.ts`                |        `pwa-screenshots`        |                                                                       |
+| Open/Navigate                    |                `projects.spec.ts`                 |               `projects.spec.ts`                |                -                |                                                                       |
+| Import/Export                    |          `project-import-export.spec.ts`          |                        -                        |                -                | Local only                                                            |
+| Rename                           |                         -                         |              `danger-zone.spec.ts`              |  `project-rename-screenshots`   |                                                                       |
+| Delete                           |                         -                         |              `danger-zone.spec.ts`              |  `project-rename-screenshots`   | Online only                                                           |
+| Switching                        |                         -                         |           `project-switching.spec.ts`           |                -                | Online only                                                           |
+| **Documents**                    |                                                   |                                                 |                                 |                                                                       |
+| Project document flow            |            `project-documents.spec.ts`            |                        -                        |                -                |                                                                       |
+| Editor                           | `element-ref.spec.ts`, `find-in-document.spec.ts` |                        -                        |        `pwa-screenshots`        |                                                                       |
+| Image Insert                     |              `image-insert.spec.ts`               |                        -                        |                -                |                                                                       |
+| Snapshots                        |                `snapshot.spec.ts`                 |                        -                        |                -                |                                                                       |
+| **Folders**                      |                                                   |                                                 |                                 |                                                                       |
+| Operations                       |            `folder-operations.spec.ts`            |                        -                        |        `pwa-screenshots`        |                                                                       |
+| Corkboard & outline              |            `corkboard-outline.spec.ts`            |                        -                        |     `corkboard-screenshots`     | Synopsis/status editing, view switching and memory, open from outline |
+| Folder click preference          |            `corkboard-outline.spec.ts`            |                        -                        |                -                | Settings → Project Tree toggle                                        |
+| **Worldbuilding**                |                                                   |                                                 |                                 |                                                                       |
+| Elements                         |              `worldbuilding.spec.ts`              |                        -                        |                -                |                                                                       |
+| Element Refs                     |               `element-ref.spec.ts`               |                        -                        |    `element-ref-screenshots`    |                                                                       |
+| Canvas (layers, tools, export)   |               `canvas-tab.spec.ts`                |                        -                        |      `canvas-screenshots`       |                                                                       |
+| Interactive maps (pins, regions) |               `canvas-tab.spec.ts`                |                        -                        |                -                |                                                                       |
+| Canvas frames & cover export     |               `canvas-tab.spec.ts`                |                        -                        |                -                |                                                                       |
+| **Media**                        |                                                   |                                                 |                                 |                                                                       |
+| Storage                          |              `media-storage.spec.ts`              |             `media-storage.spec.ts`             |                -                |                                                                       |
+| Library Tab                      |                `media-tab.spec.ts`                |                        -                        |        `pwa-screenshots`        |                                                                       |
+| **Publishing**                   |                                                   |                                                 |                                 |                                                                       |
+| Publish Plan                     |                 `publish.spec.ts`                 |                `publish.spec.ts`                |     `corkboard-screenshots`     | Folders via drag and Add everything; duplicate drops refused          |
+| **Settings**                     |                                                   |                                                 |                                 |                                                                       |
+| Tags                             |                         -                         |                 `tags.spec.ts`                  |       `tags-screenshots`        |                                                                       |
+| Templates                        |                         -                         |                        -                        |   `templates-tab-screenshots`   | Screenshot only                                                       |
+| Relationships                    |                         -                         |           `relationships-tab.spec.ts`           | `relationships-tab-screenshots` |                                                                       |
+| Account Settings                 |                         -                         |           `account-settings.spec.ts`            |                -                |                                                                       |
+| Danger Zone                      |                         -                         |              `danger-zone.spec.ts`              |  `project-rename-screenshots`   |                                                                       |
+| **Admin**                        |                                                   |                                                 |                                 |                                                                       |
+| Dashboard                        |                         -                         |                 `admin.spec.ts`                 |                -                |                                                                       |
+| AI Settings                      |                         -                         |                        -                        |     `admin-ai-screenshots`      | Screenshot only                                                       |
+| Kill Switch                      |                         -                         |                        -                        | `admin-kill-switch-screenshots` | Screenshot only                                                       |
+| Announcements                    |                         -                         |             `announcements.spec.ts`             |                -                |                                                                       |
+| **Navigation**                   |                                                   |                                                 |                                 |                                                                       |
+| Quick Open                       |               `quick-open.spec.ts`                |                        -                        |    `quick-open-screenshots`     |                                                                       |
+| About Page                       |                  `about.spec.ts`                  |                 `about.spec.ts`                 |       `about-screenshots`       |                                                                       |
+| 404 Page                         |                `not-found.spec.ts`                |                        -                        |                -                |                                                                       |
+| Find/Replace                     |            `find-in-document.spec.ts`             |                        -                        |                -                |                                                                       |
+| **Infrastructure**               |                                                   |                                                 |                                 |                                                                       |
+| Migration                        |                         -                         | `migration.spec.ts`, `migration-simple.spec.ts` |                -                | Online only                                                           |
+| Server Unavailable               |                         -                         |          `server-unavailable.spec.ts`           |                -                | Online only                                                           |
+| Error Handling                   |                         -                         |            `error-handling.spec.ts`             |                -                | Online only                                                           |
+| Template Import                  |             `template-import.spec.ts`             |                        -                        |                -                | Local only                                                            |
+| **MCP**                          |                                                   |                                                 |                                 |                                                                       |
+| Auth                             |                         -                         |                        -                        |                -                | `mcp/mcp-auth.spec.ts`                                                |
+| Discovery                        |                         -                         |                        -                        |                -                | `mcp/mcp-discovery.spec.ts`                                           |
+| Resources                        |                         -                         |                        -                        |                -                | `mcp/mcp-resources.spec.ts`                                           |
+| Mutation Tools                   |                         -                         |                        -                        |                -                | `mcp/mcp-mutation-tools.spec.ts`                                      |
+| Search Tools                     |                         -                         |                        -                        |                -                | `mcp/mcp-search-tools.spec.ts`                                        |
 
 ## Known Gaps
 
 The following areas have been identified as having incomplete or no e2e coverage:
 
 ### Not Covered (No Tests)
+
 - **Messages page** (`/messages`) - No tests for the notification/messages center page (announcements flow is covered via `announcements.spec.ts`)
 - **Approval Pending page** (`/approval-pending`) - No tests for the user approval flow (low value: static informational page)
 - **Reset Data page** (`/reset`) - No tests for the data reset functionality (low value: single-action utility)
 - **User Profile page** (`/:username`) - No tests for public user profiles (work-in-progress page)
 
 ### Screenshot-Only Coverage
+
 These features have screenshot tests but no functional e2e tests:
+
 - **Templates Management** - Only captured in `templates-tab-screenshots.spec.ts`
 - **Admin AI Settings** - Only captured in `admin-ai-screenshots.spec.ts`
 - **Admin Kill Switch** - Only captured in `admin-kill-switch-screenshots.spec.ts`
 
 ### Partial Coverage
+
 - **Account Settings** - Basic navigation tested, but OAuth session management (revoke, modify permissions) not deeply tested
 - **Changelog** - Navigation tested but content rendering not verified
 - **Folder Operations** - Basic tree operations tested, but rename/delete/move not covered
 - **Worldbuilding** - Element creation tested, but rename/delete/reorganize not covered
-
-## Test Counts
-
-| Suite | Spec Files | Approx. Tests |
-|-------|:----------:|:-------------:|
-| Local | 17 | ~80 |
-| Online | 25 | ~125 |
-| Screenshots | 12 | ~100 |
-| MCP | 6 | ~30 |
-| **Total** | **60** | **~335** |
