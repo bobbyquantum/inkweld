@@ -8,7 +8,7 @@ The Inkweld backend is a lightweight Hono API server designed to be easy to depl
 - Runs on Bun runtime (also compatible with Node.js and Cloudflare Workers)
 - Drizzle ORM for database operations (SQLite/D1)
 - Passkeys (WebAuthn) — passwordless sign-in, passwordless-first by default
-- Session-based authentication with signed cookies
+- Session authentication with JWT bearer tokens (plus passkeys and optional GitHub OAuth)
 - Zod + OpenAPI for request/response validation and auto-generated API docs
 - WebSocket support for real-time collaboration (Yjs)
 - LevelDB for per-project document storage
@@ -42,10 +42,17 @@ cp .env.example .env
 The backend automatically loads `.env` from the project root.
 
 Key environment variables:
+
 - `PORT` - Server port (default: 8333)
-- `DB_TYPE` - Database type (`sqlite` or `d1`)
-- `SESSION_SECRET` - Secret key for session encryption
-- `ALLOWED_ORIGINS` - Comma-separated list of allowed CORS origins
+- `DB_PATH` - SQLite database file (Bun/Node)
+- `SESSION_SECRET` - Secret key for session signing and database encryption
+- `ALLOWED_ORIGINS` - Comma-separated list of allowed CORS origins (also the
+  WebAuthn expected origins)
+
+The Bun server always uses SQLite and Workers always use the D1 database bound
+in `wrangler.toml`; `DB_TYPE` appears in some example files but changes
+nothing. See the full list in
+[`docs/site/docs/configuration.md`](../docs/site/docs/configuration.md).
 
 ### Development
 
@@ -70,6 +77,7 @@ bun run build:binary:full  # Full binary with embedded frontend (recommended)
 #### Full Binary Build
 
 The `build:binary:full` command creates a single self-contained executable (~68MB) that includes:
+
 - Bun runtime
 - Complete backend API server
 - Full Angular frontend application
@@ -77,6 +85,7 @@ The `build:binary:full` command creates a single self-contained executable (~68M
 - Interactive setup wizard for first-time users
 
 **Benefits:**
+
 - ✅ Single file deployment
 - ✅ No runtime dependencies required
 - ✅ Faster startup and asset serving
@@ -101,12 +110,14 @@ When you run the binary for the first time without a configuration file, it will
 **Configuration Locations:**
 
 The binary automatically checks for `.env` files in this order:
+
 1. Current directory (`./.env`)
 2. User config directory:
    - **Linux/Mac**: `~/.inkweld/.env`
    - **Windows**: `%APPDATA%\Inkweld\.env`
 
 **Usage:**
+
 ```bash
 # First run - setup wizard
 ./dist/inkweld
@@ -126,6 +137,7 @@ The binary automatically detects embedded frontend assets and serves them at the
 #### Standard Runtime
 
 For non-binary deployments:
+
 ```bash
 bun run build
 bun start
@@ -146,10 +158,14 @@ backend/
 │   │                    # password-reset, published-file, etc.)
 │   ├── schemas/         # Zod/OpenAPI request/response schemas
 │   ├── services/        # Business logic services
-│   ├── bun-app.ts       # Bun runtime entry point
-│   ├── node-app.ts      # Node.js runtime entry point
-│   └── worker-app.ts    # Cloudflare Workers runtime entry point
+│   ├── durable-objects/ # Cloudflare Durable Objects (Yjs per project)
+│   ├── bun-app.ts       # Bun app (entry: bun-runner.ts)
+│   ├── node-app.ts      # Node.js app (entry: node-runner.ts)
+│   └── worker-app.ts    # Workers app (entry: cloudflare-runner.ts)
+├── drizzle/             # SQL migrations (0000_baseline.sql + later)
+├── scripts/             # OpenAPI/client generation, binary build, D1 helpers
 ├── test/                # Test suite
+├── wrangler.toml.example
 ├── package.json
 ├── tsconfig.json
 └── README.md
@@ -166,7 +182,8 @@ interactive API docs on the documentation site.
 High-level groups:
 
 - **Health & config** — `/api/v1/health`, `/api/v1/config`
-- **Auth** — `/api/v1/auth/*` (login/logout, GitHub OAuth, password reset)
+- **Auth** — `/api/v1/auth/*` (login/logout, passkeys, passkey recovery,
+  GitHub OAuth, password reset)
 - **Users** — `/api/v1/users/*` (profile, search, avatars, registration)
 - **Projects** — `/api/v1/projects/*` (projects, documents, elements, images,
   published files)
@@ -177,8 +194,12 @@ High-level groups:
 - **AI** — `/api/v1/ai/lint`, `/api/v1/ai/image`, `/api/v1/ai/text`,
   `/api/v1/ai/providers`, `/api/v1/ai/mcp`, `/api/v1/ai/image-profiles`
 - **Admin** — `/api/v1/admin/*` (users, stats, config, announcements,
-  image profiles, image audits, email)
+  appearance, image profiles, image audits, email)
 - **Announcements** — `/api/v1/announcements/*`
+- **Appearance** — `/api/v1/appearance/*` (login/home backgrounds)
+- **Stats & activity** — `/api/v1/stats/*`, `/api/v1/activity/*`
+- **Real-time sync** — `/api/v1/ws/yjs` (WebSocket; see
+  [`src/routes/README_YJS.md`](./src/routes/README_YJS.md))
 - **OAuth metadata** — `/.well-known/*` (mounted at root for MCP OAuth 2.1)
 
 CSRF protection is applied via middleware (origin-based), not a token endpoint.
@@ -196,7 +217,7 @@ This Hono backend was designed with the following principles:
 ## Implemented Features
 
 - Database configuration (Drizzle ORM with SQLite/D1)
-- Session management with signed cookies
+- Sessions are HS256 JWT bearer tokens, revoked via `users.sessionsValidFrom`
 - Authentication (login, logout, session-based, GitHub OAuth, password reset)
 - User management (register, search, profile, avatars)
 - Project CRUD and sharing (collaborators, invitations, share links)
@@ -243,9 +264,9 @@ bun run lint:fix
 
 This backend supports three different runtime environments:
 
-1. **Bun** (recommended for local dev) - Uses native `bun:sqlite`
-2. **Node.js** (traditional hosting) - Uses `better-sqlite3`
-3. **Cloudflare Workers** (serverless) - Uses D1 database
+1. **Bun** (recommended; used by the Docker image and binary) - Uses native `bun:sqlite`
+2. **Node.js** (limited: no Yjs WebSocket collaboration) - Uses `better-sqlite3`
+3. **Cloudflare Workers** (serverless) - Uses D1, R2 and Durable Objects
 
 #### Local Development
 
@@ -262,50 +283,45 @@ bun run dev:worker
 
 #### Cloudflare Workers Deployment
 
-1. **Setup Configuration**:
+The guided path is `bun run cloudflare:setup` from the repo root, which creates
+`backend/wrangler.toml` from `wrangler.toml.example` and provisions the D1
+databases and R2 buckets. To do it by hand:
+
+1. Copy the example config:
    ```bash
-   # Copy example configuration
    cp wrangler.toml.example wrangler.toml
    ```
-
-2. **Create D1 Databases**:
-   ```bash
-   # Dev database
-   npx wrangler d1 create inkweld_dev
-   
-   # Production database
-   npx wrangler d1 create inkweld_prod
-   ```
-
-3. **Update wrangler.toml**:
-   - Add the database IDs from step 2 to the `[env.dev.d1_databases]` and `[env.production.d1_databases]` sections
-   - Uncomment the D1 binding configuration
-
-4. **Login to Cloudflare**:
+2. Log in and create the D1 databases (`inkweld_preview`, `inkweld_prod`):
    ```bash
    npx wrangler login
+   npx wrangler d1 create inkweld_prod
+   ```
+3. Put the database IDs in the `[[env.preview.d1_databases]]` and
+   `[[env.production.d1_databases]]` sections, and set `WEBAUTHN_RP_ID` in each
+   `[env.*.vars]` section (it cannot change once passkeys exist). Plain
+   `wrangler dev` uses the top-level `inkweld_local` database, which Wrangler
+   creates as local SQLite.
+4. Set secrets, e.g. `npx wrangler secret put SESSION_SECRET --env production`.
+5. Deploy from the **repo root** with the `cloudflare:*` scripts:
+   ```bash
+   bun run cloudflare:preview:deploy   # preview environment
+   bun run cloudflare:prod:deploy      # production environment
+   bun run cloudflare:preview:logs     # wrangler tail (also :prod:logs)
+   bun run cloudflare:preview:migrate  # D1 migrations only (also :prod:migrate)
    ```
 
-5. **Deploy**:
-   ```bash
-   # Deploy to dev environment
-   bun run deploy:dev
-   
-   # Deploy to production environment
-   bun run deploy:prod
-   ```
-
-6. **View Logs**:
-   ```bash
-   bun run logs:dev
-   bun run logs:prod
-   ```
+Hosted deploys are normally run by CI; see
+[`docs/site/docs/admin-guide/ci-cd.md`](../docs/site/docs/admin-guide/ci-cd.md).
 
 #### Docker Deployment
 
+The image is built from the repo-root `Dockerfile` (it bundles the frontend and
+the full binary):
+
 ```bash
-docker build -t inkweld-backend .
-docker run -p 8333:8333 inkweld-backend
+# From repo root
+bun run build:image
+docker run -p 8333:8333 -e SESSION_SECRET=change-me-to-a-long-random-string inkweld:latest
 ```
 
 #### Traditional Servers (Node.js)

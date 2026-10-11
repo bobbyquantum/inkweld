@@ -40,7 +40,7 @@
     "approved": "{{name}} has been approved",
     "approveFailed": "Failed to approve user",
     "rejectTitle": "Reject User",
-    "rejectMessage": "Are you sure you want to reject {{name}}? This will permanently delete their account.",
+    "rejectMessage": "Are you sure you want to reject {{name}}? They will be signed out and unable to sign in. Use Delete to remove the account.",
     "rejected": "{{name}} has been rejected",
     "rejectFailed": "Failed to reject user",
     "enabled": "{{name}} has been enabled",
@@ -174,7 +174,7 @@
     "syncQuotaDesc": "Limit how much server storage each account can use. When the limit is reached, new media uploads, published files and new projects are refused; editing and syncing existing work is never blocked.",
     "syncQuotaDefault": "Default allowance per user",
     "syncQuotaDefaultAria": "Default sync capacity per user in megabytes",
-    "syncQuotaHint": "Give individual users a different allowance from Users → Storage. Usage is measured and shown to users even while limits are off.",
+    "syncQuotaHint": "Give individual users a different allowance from Users → Projects & storage. Usage is measured and shown to users even while limits are off.",
     "syncQuotaDefaultInvalid": "Enter a default allowance of at least 1 MB."
   },
   "killSwitchDialog": {

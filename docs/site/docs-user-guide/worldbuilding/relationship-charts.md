@@ -14,8 +14,8 @@ Relationship charts let you visualize the connections between your story element
 ## Creating a Chart
 
 1. Right-click in the **project tree** sidebar (or use the **+** button)
-2. Select **New Relationship Chart**
-3. Give it a name (e.g., "Character Web", "Family Tree", "Faction Map")
+2. Choose **New Element**, then pick **Relationship Chart** in the **Create New** dialog
+3. Give it a name (e.g., "Character Web", "Family Tree", "Faction Map") and click **Create Relationship Chart**
 
 The new chart appears in the project tree alongside your documents and elements.
 
@@ -48,15 +48,15 @@ The sidebar contains all chart configuration options. Collapse it with the close
 
 ### Layout
 
-Choose how nodes are arranged:
+Choose how nodes are arranged using the row of layout buttons. The buttons show only icons, so hover over one to see its name:
 
-| Layout       | Icon         | Best For                                              |
-| ------------ | ------------ | ----------------------------------------------------- |
-| **Force**    | Scatter      | Organic graphs where clusters form naturally          |
-| **Tree**     | Account Tree | Hierarchical relationships (org charts, family trees) |
-| **Circular** | Ring         | Evenly spaced arrangements, good for small groups     |
-| **Grid**     | Grid View    | Dense graphs, comparing many elements                 |
-| **Rings**    | Target       | Centrality-based, most connected nodes at center      |
+| Layout (tooltip)                                 | Best For                                              |
+| ------------------------------------------------ | ----------------------------------------------------- |
+| **Force-directed layout**                        | Organic graphs where clusters form naturally          |
+| **Hierarchical (tree) layout**                   | Hierarchical relationships (org charts, family trees) |
+| **Circular layout**                              | Evenly spaced arrangements, good for small groups     |
+| **Grid layout**                                  | Dense graphs, comparing many elements                 |
+| **Concentric layout (most connected at center)** | Centrality-based, most connected nodes at center      |
 
 ### Mode
 
@@ -68,6 +68,25 @@ When in curated mode, this section lists the elements currently on the chart. Yo
 
 - **Add elements** — click the ➕ button to open the element picker
 - **Remove elements** — hover over an element and click the ✕ button
+
+### Options and Schemas (All mode)
+
+In **All** mode the sidebar also offers:
+
+- **Show isolated elements** — a checkbox that includes elements with no relationships (hidden by default)
+- **Schemas** — one chip per template (Character, Location, …). Click chips to show only those kinds of element; click the filter-off button to **Show all schemas** again
+
+### Focus and filters
+
+**Focus** narrows a busy chart to one element's neighbourhood:
+
+1. **Click a node** on the graph. The chart now shows only that element and the elements connected to it, and the sidebar's **Focus** section reads _Showing 1 hop from …_.
+2. Use the **Depth** slider (1 to 5) to widen or narrow the view: depth 2 includes the neighbours of neighbours, and so on.
+3. To leave focus mode, click the focused node again or click the **Clear focus** (✕) button in the Focus section.
+
+### Display
+
+The **Display** section has a single labels button that cycles through **Labels: Auto**, **Labels: On** and **Labels: Off** each time you click it. Auto shows labels only when there's room.
 
 ### Relationship Types
 
@@ -88,18 +107,18 @@ Filter which relationship types appear on the chart. Click a type chip to toggle
 
 - **Zoom** — scroll wheel or pinch
 - **Pan** — click and drag the background
-- **Select** — click a node to highlight its connections
+- **Focus** — click a node to focus on it and its connected elements (see [Focus and filters](#focus-and-filters))
 
 ### Nodes
 
 Each node represents an element:
 
-- **Color** indicates the element type (characters, locations, items, etc.)
+- **Color** indicates the element type. Characters, Locations, Documents, Factions, Events and Notes each have their own colour; every other type is shown in grey
 - **Size** reflects the number of connections
-- **Images** appear on nodes that have a cover image set
+- **Images** appear on nodes whose element has an identity image (set in the worldbuilding editor)
 - **Drag** any node to reposition it
 
-Node colors are derived from the element's schema — all Characters share one color, all Locations another, and so on. This makes it easy to spot clusters of related element types at a glance.
+All Characters share one colour, all Locations another, and so on, which makes clusters of related element types easy to spot. Elements of types without their own colour appear grey.
 
 When an element has an identity image (set via the worldbuilding editor), the node displays that image as a circular thumbnail instead of the default colored circle. This is especially useful for character-heavy charts where faces help identify nodes quickly.
 
@@ -125,7 +144,7 @@ This gives the graph maximum canvas space while keeping essential controls reach
 Export your chart as an image for use outside Inkweld:
 
 1. Click the **download** button (in the sidebar header or collapsed strip)
-2. Choose **Export as PNG** for a standard image or **Export as High-Res PNG** for a 3× resolution version
+2. Choose **Export as PNG** for a standard image or **Export as PNG (High-res)** for a larger, sharper version
 
 ## When to Use Charts
 

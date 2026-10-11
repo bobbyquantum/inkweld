@@ -22,7 +22,7 @@ Element references are inline links to other elements:
 
 ## Quick Start
 
-1. Type `@` in any document
+1. Type `@` in a prose document
 2. Start typing to search for an element
 3. Select from the dropdown or press Enter
 4. A styled link is inserted into your text
@@ -53,21 +53,19 @@ When you hover over an element reference, a tooltip shows key information about 
 
 ### Triggering the Popup
 
-Type `@` anywhere in a document:
+Type `@` anywhere in the text of a prose document, scene or note. The popup appears immediately with suggestions.
 
-- In prose content
-- In worldbuilding fields
-- In notes
-
-The popup appears immediately with suggestions.
+:::note
+The `@` popup only works in the rich‑text editor used for documents, scenes and notes. It is not available in worldbuilding fields. To connect worldbuilding elements to each other, use [relationships](./relationships.md) instead.
+:::
 
 ### Searching
 
-The popup shows relevant elements by default. Start typing to filter:
+The popup lists up to eight elements by default. Start typing to filter:
 
 - Type `@Elena` to find elements named Elena
 - Type `@Tavern` to find elements containing "Tavern"
-- Results are ranked by relevance and recency
+- Results whose name matches best come first: an exact match, then names that start with what you typed, then names that merely contain it. Worldbuilding elements and documents get a small boost over folders, and ties are listed alphabetically. Recently opened elements are not favoured.
 
 <ThemedImage
   src="/img/features/element-ref-character-search"
@@ -81,17 +79,20 @@ The popup shows relevant elements by default. Start typing to filter:
 | `↑` `↓`  | Navigate through results      |
 | `Enter`  | Select highlighted result     |
 | `Escape` | Close popup without selecting |
-| `Tab`    | Select and continue typing    |
+
+You can also click a result to select it. `Tab` does not select a result.
 
 ### Element Type Icons
 
-The popup shows icons based on the element's type:
+Each result shows an icon, the element's name, the folder path it lives in, and its type. The icon depends on the element:
 
-| Icon | Element Type          |
-| ---- | --------------------- |
-| 📄   | Document              |
-| 📁   | Folder                |
-| ✨   | Worldbuilding element |
+| Icon                 | Element Type                                                       |
+| -------------------- | ------------------------------------------------------------------ |
+| Document (page) icon | Document                                                           |
+| Folder icon          | Folder                                                             |
+| Template's own icon  | Worldbuilding element (the icon of its template, e.g. a character) |
+
+An element you gave a custom icon shows that icon instead.
 
 ## Inserting References
 
@@ -122,11 +123,21 @@ References appear as:
 By default, the element's name is shown. To use custom text:
 
 1. **Right-click** the element reference
-2. Select **"Edit Display Text"**
+2. Select **Edit display text**
 3. Enter your preferred text
 4. Click **Save** or press Enter
 
+Click **Reset to original** in the same box to go back to the element's name.
+
 Example: Change `@Elena Blackwood` to display as just `Elena` or `the sorceress`.
+
+The right‑click menu has three actions:
+
+| Action                | What it does                            |
+| --------------------- | --------------------------------------- |
+| **Go to element**     | Opens the referenced element            |
+| **Edit display text** | Changes the words shown in your text    |
+| **Delete reference**  | Removes the reference from the document |
 
 <ThemedImage
   src="/img/features/element-ref-context-menu"

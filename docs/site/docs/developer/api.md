@@ -38,25 +38,30 @@ https://your-domain.com # Production
 
 ## Authentication
 
-### Session Cookies (Browser)
+### JWT Bearer Tokens (REST API)
 
-Most endpoints require authentication via session cookies:
+Authenticated endpoints expect an `Authorization: Bearer <token>` header. The token is an HS256-signed JWT that is valid for 30 days. A successful sign-in returns it in the response body as `{ user, token }`, and the web app stores and sends it for you.
+
+:::note Password login is off by default
+Inkweld is passwordless-first. With the default `PASSWORD_LOGIN_ENABLED=false`, `POST /api/v1/auth/login` returns `403` and users sign in with passkeys, which need a browser and so are awkward to script. To script against a server with username/password, set `PASSWORD_LOGIN_ENABLED=true` (see [Configuration](../configuration.md)). The account must be approved and enabled.
+:::
 
 ```bash
-# Login to obtain session cookie
-curl -X POST http://localhost:8333/api/v1/auth/login \
+# Login (requires PASSWORD_LOGIN_ENABLED=true)
+TOKEN=$(curl -s -X POST http://localhost:8333/api/v1/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"username": "user", "password": "pass"}' \
-  -c cookies.txt
+  -d '{"username": "user", "password": "pass"}' | jq -r .token)
 
-# Use session cookie for authenticated requests
+# Use the token for authenticated requests
 curl http://localhost:8333/api/v1/users/me \
-  -b cookies.txt
+  -H "Authorization: Bearer $TOKEN"
 ```
+
+Signing out of all devices (and other session-revoking actions) invalidates every token issued before that moment, so a stored token can stop working before its 30 days are up and you should be ready to sign in again on a `401`.
 
 ### OAuth 2.1 Bearer Tokens (MCP / AI Clients)
 
-The MCP endpoint (`/api/v1/ai/mcp`) uses OAuth 2.1 with PKCE for authorization. AI assistants discover the OAuth server via standard metadata endpoints, register dynamically, and obtain JWT access tokens:
+The MCP endpoint (`/api/v1/ai/mcp`) uses OAuth 2.1 with PKCE for authorization. AI assistants discover the OAuth server via standard metadata endpoints, register dynamically, and obtain JWT access tokens scoped to the projects the user granted. There are no long-lived API keys for MCP: use OAuth, or the JWT bearer token above for the REST API.
 
 ```bash
 # Use a bearer token for MCP requests
@@ -80,7 +85,20 @@ See the [MCP & OAuth Integration](./mcp-oauth.md) guide for the full OAuth flow,
 
 ## Rate Limiting
 
-Currently, there are no rate limits on the API. This may change in production deployments.
+General API endpoints are not rate limited by the server. A fixed set of abuse-sensitive endpoints is limited per client IP, answering `429 Too Many Requests` once the limit is passed:
+
+| Endpoint                                  | Limit         |
+| ----------------------------------------- | ------------- |
+| `POST /api/v1/auth/login`                 | 5 per minute  |
+| `POST /api/v1/auth/register`              | 3 per minute  |
+| `POST /api/v1/auth/forgot-password`       | 3 per minute  |
+| `POST /api/v1/auth/reset-password`        | 5 per minute  |
+| `/api/v1/auth/passkeys/login/*`           | 10 per minute |
+| `/api/v1/auth/passkeys/register/*`        | 10 per minute |
+| `/api/v1/auth/passkey-recovery/*`         | 3 per minute  |
+| `POST /oauth/register` (MCP client setup) | 10 per hour   |
+
+The limits are fixed (not configurable) and are held in memory per server process, so they apply on Bun and Docker but not meaningfully on Cloudflare Workers, where isolates are short-lived. On Workers, add Cloudflare WAF rate-limiting rules in front of the auth endpoints. Set `INKWELD_DISABLE_RATE_LIMIT=true` to switch them off (for example in automated tests).
 
 ## CORS
 
@@ -127,18 +145,17 @@ When the API changes:
 ## Example: Creating a Project
 
 ```bash
-# Authenticate
-curl -X POST http://localhost:8333/api/v1/auth/login \
+# Authenticate (requires PASSWORD_LOGIN_ENABLED=true)
+TOKEN=$(curl -s -X POST http://localhost:8333/api/v1/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"username": "alice", "password": "secret"}' \
-  -c cookies.txt
+  -d '{"username": "alice", "password": "secret"}' | jq -r .token)
 
-# Create project
+# Create project (slug: at least 3 chars, lowercase letters, digits and hyphens)
 curl -X POST http://localhost:8333/api/v1/projects \
   -H "Content-Type: application/json" \
-  -b cookies.txt \
+  -H "Authorization: Bearer $TOKEN" \
   -d '{
-    "name": "My Novel",
+    "title": "My Novel",
     "slug": "my-novel",
     "description": "A collaborative novel project"
   }'

@@ -96,10 +96,17 @@ also removes the server copy), deleting published files, or deleting projects.
 
 ## Giving one user more (or less)
 
-**Admin → Users → (user) → Storage** shows the user's per-project usage against
-their allowance. Untick **Use instance default** to set an allowance in MB just
-for that user, or tick it again to go back to the default. An allowance of `0`
-is valid and blocks all new uploads for that account.
+On **Admin → Users**, open the user's actions menu (the three-dot button on their
+card) and choose **Projects & storage**. The dialog shows the user's storage used
+and allowance, then every project with its document and media size. To change the
+allowance:
+
+1. Untick **Use instance default** to enter an **Allowance (MB)** just for that
+   user, or tick it to go back to the default.
+2. Click **Set capacity**.
+
+An allowance of `0` is valid and blocks all new uploads for that account. While
+limits are off, the dialog notes that the allowance is not enforced.
 
 The same change is available over the API:
 

@@ -7,7 +7,7 @@ sidebar_position: 3
 
 # Formatting Text
 
-Inkweld provides formatting options to structure and style your creative writing. All formatting is accessed through the editor toolbar.
+Inkweld provides formatting options to structure and style your creative writing. Most formatting is in the editor toolbar, and selecting text also brings up a small floating menu with the basics.
 
 ## Character Formatting
 
@@ -15,12 +15,12 @@ Inkweld provides formatting options to structure and style your creative writing
 
 Apply these styles using the toolbar buttons:
 
-| Style             | Toolbar Button       | Keyboard Shortcut |
-| ----------------- | -------------------- | ----------------- |
-| **Bold**          | Bold button          | `Ctrl/Cmd + B`    |
-| _Italic_          | Italic button        | `Ctrl/Cmd + I`    |
-| <u>Underline</u>  | Underline button     | `Ctrl/Cmd + U`    |
-| ~~Strikethrough~~ | Strikethrough button | —                 |
+| Style             | Toolbar Button       | Keyboard Shortcut      |
+| ----------------- | -------------------- | ---------------------- |
+| **Bold**          | Bold button          | `Ctrl/Cmd + B`         |
+| _Italic_          | Italic button        | `Ctrl/Cmd + I`         |
+| <u>Underline</u>  | Underline button     | `Ctrl/Cmd + U`         |
+| ~~Strikethrough~~ | Strikethrough button | `Ctrl/Cmd + Shift + X` |
 
 ### When to Use Each
 
@@ -105,7 +105,7 @@ Indent list items to create hierarchy:
 
 Use the keyboard shortcuts:
 
-- `Ctrl/Cmd + ]` to indent
+- `Tab` or `Ctrl/Cmd + ]` to indent
 - `Ctrl/Cmd + [` to outdent
 
 ## Block Quotes
@@ -132,7 +132,7 @@ Insert a horizontal rule for:
 
 ---
 
-Create with the horizontal rule button in the toolbar.
+Create with the **Horizontal rule** button in the toolbar, or with `Ctrl/Cmd + Shift + H`. There is no Markdown typing shortcut for it.
 
 ## Tables
 
@@ -152,18 +152,22 @@ row**, styled differently from the body and preserved when you export.
 ### Editing a Table
 
 Click into any cell and type. Cells hold ordinary paragraphs, so all the
-character formatting above works inside them.
+character formatting above works inside them. The other table menu items are
+greyed out until the cursor is inside a table.
 
-| Action                    | How                                         |
-| ------------------------- | ------------------------------------------- |
-| Move to the next cell     | `Tab`                                       |
-| Move to the previous cell | `Shift + Tab`                               |
-| Insert a row or column    | Table menu → _Insert row/column_            |
-| Delete a row or column    | Table menu → _Delete row/column_            |
-| Merge selected cells      | Table menu → _Merge cells_                  |
-| Split a merged cell       | Table menu → _Split cell_                   |
-| Resize a column           | Drag the divider between two column headers |
-| Remove the whole table    | Table menu → _Delete table_                 |
+| Action                        | How                                                        |
+| ----------------------------- | ---------------------------------------------------------- |
+| Move to the next cell         | `Tab`                                                      |
+| Move to the previous cell     | `Shift + Tab`                                              |
+| Add a row                     | Table menu → _Insert row above_ or _Insert row below_      |
+| Add a column                  | Table menu → _Insert column left_ or _Insert column right_ |
+| Delete a row or column        | Table menu → _Delete row_ or _Delete column_               |
+| Merge selected cells          | Table menu → _Merge cells_                                 |
+| Split a merged cell           | Table menu → _Split cell_                                  |
+| Turn the header row on/off    | Table menu → _Toggle header row_                           |
+| Turn the header column on/off | Table menu → _Toggle header column_                        |
+| Resize a column               | Drag the divider between two columns                       |
+| Remove the whole table        | Table menu → _Delete table_                                |
 
 Select several cells by clicking one and dragging across the others — merge and
 alignment actions apply to the whole selection.
@@ -175,29 +179,34 @@ from the table menu when you need more space.
 
 ### Tables and Export
 
-Tables export to Markdown, HTML, EPUB, and PDF.
+Tables export to Markdown, HTML, EPUB, and PDF. Merged cells are handled
+differently by each format:
 
-Markdown and EPUB have no way to express merged cells. When you export a table
-containing merged cells, the merge is flattened: the cell's text stays in place
-and the columns it spanned become empty, so the grid keeps its shape. PDF output
-preserves merges.
+| Format   | Merged cells                                                                                                      |
+| -------- | ----------------------------------------------------------------------------------------------------------------- |
+| PDF      | Cells merged across columns are kept                                                                              |
+| EPUB     | Merges across columns and rows are kept                                                                           |
+| Markdown | Markdown tables cannot merge cells, so the text stays in the first cell and the columns it spanned are left empty |
+| HTML     | The merge is not written out, so a merged cell takes up a single column                                           |
+
+If a table relies on merged cells, check the exported result in the format you
+plan to publish.
 
 :::warning
-A table always exports with its first row as the header. If you turn the header
-row off in the editor, Markdown export will still treat row one as the header —
-that is a limitation of the Markdown table format, not of Inkweld.
+Markdown always treats a table's first row as the header, even if you turned
+the header row off in the editor — that is a limitation of the Markdown table
+format. EPUB, PDF and HTML follow your header row and column settings.
 :::
 
 ## Links
 
 ### Inserting Links
 
-1. Select the text you want to link
-2. Click the link button in the toolbar
-3. Enter the URL in the prompt
-4. Press Enter to confirm
+1. Click the **Insert link** button in the toolbar (or press `Ctrl/Cmd + K`, or use the link button in the floating menu)
+2. A dialog opens. If you had text selected, enter just the **URL**. If nothing was selected, enter the **Link text** and the **URL**
+3. Click **Insert**
 
-To remove a link, select the linked text, click the link button, and clear the URL.
+To change a link, put the cursor in it and open the dialog again; it becomes **Edit Link**, with an **Open in new tab** option and a **Remove link** button.
 
 ### Internal Element Links
 
@@ -211,20 +220,16 @@ See [Element References](../worldbuilding/element-references) for details.
 
 ## Inline Code
 
-For technical terms or code-like text, use the inline code shortcut:
-
-- `Ctrl/Cmd + \`` (backtick)
-
-This applies `monospace formatting` to selected text.
+For technical terms or code-like text, select the text and press `Ctrl/Cmd + E` (or ``Ctrl/Cmd + ` ``, using the backtick key). This applies `monospace formatting` to the selection.
 
 ## Clearing Formatting
 
-To remove all formatting from text:
+To remove inline formatting from text:
 
 1. Select the formatted text
-2. Click the "Clear Formatting" button in the toolbar
+2. Click the **Clear formatting** button in the toolbar (or press `Ctrl/Cmd + \`)
 
-This removes bold, italic, underline, and other character formatting, returning text to normal paragraph style.
+This removes character-level formatting such as bold, italic, underline, strikethrough, code and links. It does not change the paragraph itself, so headings, lists, block quotes and alignment stay as they are. With nothing selected, the toolbar button clears the formatting that would apply to the next characters you type; the keyboard shortcut only works on a selection. It also removes comment highlights and AI Review highlights from the selected text.
 
 ## Paragraphs and Spacing
 

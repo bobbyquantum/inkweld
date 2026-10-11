@@ -11,14 +11,16 @@ Inkweld uses a ProseMirror-based editor with a focused set of keyboard shortcuts
 
 ## Text Formatting
 
-| Action           | Windows/Linux      | macOS             |
-| ---------------- | ------------------ | ----------------- |
-| Bold             | `Ctrl + B`         | `Cmd + B`         |
-| Italic           | `Ctrl + I`         | `Cmd + I`         |
-| Underline        | `Ctrl + U`         | `Cmd + U`         |
-| Strikethrough    | `Ctrl + Shift + X` | `Cmd + Shift + X` |
-| Code (inline)    | `Ctrl + E`         | `Cmd + E`         |
-| Clear formatting | `Ctrl + \`         | `Cmd + \`         |
+| Action           | Windows/Linux               | macOS                     |
+| ---------------- | --------------------------- | ------------------------- |
+| Bold             | `Ctrl + B`                  | `Cmd + B`                 |
+| Italic           | `Ctrl + I`                  | `Cmd + I`                 |
+| Underline        | `Ctrl + U`                  | `Cmd + U`                 |
+| Strikethrough    | `Ctrl + Shift + X`          | `Cmd + Shift + X`         |
+| Code (inline)    | `Ctrl + E` or ``Ctrl + ` `` | `Cmd + E` or ``Cmd + ` `` |
+| Insert link      | `Ctrl + K`                  | `Cmd + K`                 |
+| Insert image     | `Ctrl + Shift + I`          | `Cmd + Shift + I`         |
+| Clear formatting | `Ctrl + \`                  | `Cmd + \`                 |
 
 ## Block Formatting
 
@@ -47,12 +49,12 @@ Inkweld uses a ProseMirror-based editor with a focused set of keyboard shortcuts
 
 When inside a list item:
 
-| Action                   | Windows/Linux   | macOS           |
-| ------------------------ | --------------- | --------------- |
-| Split list item          | `Enter`         | `Enter`         |
-| Indent list item         | `Ctrl + ]`      | `Cmd + ]`       |
-| Outdent list item        | `Ctrl + [`      | `Cmd + [`       |
-| Line break (no new item) | `Shift + Enter` | `Shift + Enter` |
+| Action                   | Windows/Linux       | macOS              |
+| ------------------------ | ------------------- | ------------------ |
+| Split list item          | `Enter`             | `Enter`            |
+| Indent list item         | `Tab` or `Ctrl + ]` | `Tab` or `Cmd + ]` |
+| Outdent list item        | `Ctrl + [`          | `Cmd + [`          |
+| Line break (no new item) | `Shift + Enter`     | `Shift + Enter`    |
 
 ## Table Editing
 
@@ -107,5 +109,6 @@ Standard browser/OS shortcuts work as expected:
 These actions are available through the toolbar but do not have keyboard shortcuts:
 
 - Text alignment (left, center, right, justify)
-- Links
-- Tags and snapshots
+- Tags and snapshots (in the status bar)
+- Zen mode (in the status bar)
+- Auto-Review (when your server has AI enabled)

@@ -5,10 +5,12 @@ This directory contains static assets for the Inkweld project.
 ## Directory Structure
 
 - **demo_covers/** - Sample book cover images used for demo screenshots
+- **demo_images/** - Sample images used by the screenshot tests
+- **architecture-light.svg** / **architecture-dark.svg** - Architecture diagram
 
 ## Generating Screenshots
 
-Screenshots are generated using Playwright e2e tests and saved directly to `docs/site/static/img/` for use in the Docusaurus documentation site. Screenshots are **generated on-the-fly during the docs build** to ensure they are always up to date.
+Screenshots are generated using Playwright e2e tests and saved to `docs/site/static/img/generated/` (or `img/features/`) for use in the Docusaurus documentation site. Screenshots are **generated on-the-fly during the docs build** to ensure they are always up to date.
 
 ### Automatic Generation (Recommended)
 
@@ -16,10 +18,11 @@ Screenshots are automatically generated when building the documentation site:
 
 ```bash
 cd docs/site
-bun run build
+bun run build                 # screenshots + Docusaurus build
+bun run build:no-screenshots  # skip the screenshots
 ```
 
-This runs `TEST_ENV=screenshots npx playwright test` before the Docusaurus build.
+`bun run build` runs `bun run generate-screenshots` (`TEST_ENV=screenshots npx playwright test` in `frontend/`) before the Docusaurus build.
 
 ### Manual Generation
 
@@ -39,12 +42,11 @@ npx playwright test --config=playwright.screenshots.config.ts
 
 ### Generated Screenshots
 
-The following screenshots are created in `docs/site/static/img/` (these are **gitignored** and generated fresh on each build):
-
-- `bookshelf-desktop.png` / `bookshelf-desktop-dark.png` - Desktop bookshelf views
-- `bookshelf-mobile.png` / `bookshelf-mobile-dark.png` - Mobile bookshelf views  
-- `editor-desktop.png` / `editor-desktop-dark.png` - Desktop editor views
-- `editor-mobile.png` / `editor-mobile-dark.png` - Mobile editor views
+Screenshots are written under `docs/site/static/img/generated/` (shared views such as
+the bookshelf, editor and dialogs, in desktop/mobile and light/dark variants) and
+`docs/site/static/img/features/` (feature pages such as canvas, publishing and admin
+settings). Both folders are **gitignored** and regenerated on every full docs build.
+Each spec in `frontend/e2e/screenshots/` names its own outputs.
 
 ## Demo Covers
 

@@ -8,30 +8,45 @@ import ThemedImage from '@site/src/components/ThemedImage';
 
 # AI Kill Switch
 
-The AI Kill Switch is a master control that allows administrators to disable all AI features across the entire Inkweld instance. When enabled, no AI-powered functionality will be available to users.
+The AI Kill Switch is the master control for AI features on an Inkweld instance. It is **on by default**, which means AI is off until an administrator turns it off on purpose.
 
 ## Overview
 
-When the AI Kill Switch is **enabled** (default):
+When the kill switch is **on** (the default):
 
-- ❌ AI Image Generation buttons are hidden from the UI
-- ❌ AI Linting plugin is not loaded in the editor
-- ❌ All AI API endpoints return that AI is disabled
+- AI image generation buttons are hidden from the UI
+- The AI linting plugin and Auto-Review are not offered in the editor
+- The MCP endpoint (`/api/v1/ai/mcp`) rejects requests with 403, and the project MCP settings are hidden
+- The **AI Providers**, **AI Images**, **AI Text** and **Image Audits** pages disappear from the admin sidebar
 
-When the AI Kill Switch is **disabled**:
+When the kill switch is **off**, features still only appear when they are configured:
 
-- ✅ AI features become available based on provider configuration
-- ✅ AI Image Generation buttons appear in the Media tab, Project settings, etc.
-- ✅ AI Linting is loaded in the editor (if OpenAI API key is configured)
+- Image generation needs **Enable Image Generation** and at least one working provider
+- AI linting and Auto-Review need **Enable Text Generation** (Admin → AI Text) and an API key for the **default text provider**
+- MCP additionally needs the **MCP Access** setting, which is on by default
+
+## What the server enforces
+
+The kill switch is enforced in different places, and it is worth knowing which:
+
+| Feature                             | Hidden in the UI when on | Refused by the server when on                                       |
+| ----------------------------------- | ------------------------ | ------------------------------------------------------------------- |
+| AI linting                          | Yes                      | Yes (`/api/v1/ai/lint` reports AI as disabled and refuses requests) |
+| Auto-Review                         | Yes                      | Yes (the review endpoint returns 503)                               |
+| MCP access                          | Yes                      | Yes (403 on the MCP endpoint)                                       |
+| AI image generation                 | Yes                      | **No.** See the note below                                          |
+| Image prompt optimization (AI text) | Yes                      | **No.** It checks only that text generation is enabled              |
+
+:::warning[Image generation is not blocked server-side by the kill switch]
+The kill switch hides image generation from the interface (the server reports the feature as unavailable to the web app), but the image and prompt-optimization API routes do not check the kill switch themselves. They check **Enable Image Generation** (`AI_IMAGE_ENABLED`) and whether a provider is configured. If you need a hard guarantee that no data reaches an image provider, also turn off **Enable Image Generation** on **Admin → AI Images**, or remove the provider keys. Setting `AI_KILL_SWITCH=true` alone is not enough for that purpose.
+:::
 
 ## Why Use the Kill Switch?
 
-The kill switch provides several benefits:
-
-1. **Data Privacy**: When enabled, no user content is sent to external AI providers
-2. **Cost Control**: Prevents unexpected API usage charges
-3. **Compliance**: Ensures no third-party AI processing for regulated content
-4. **Default Safety**: Ships disabled by default to protect users who haven't explicitly opted in
+1. **Data Privacy**: with the switch on, the editor and admin UI offer no AI features, so users cannot send content to external providers through them
+2. **Cost Control**: prevents unexpected API usage charges
+3. **Compliance**: keeps third-party AI processing out of regulated deployments
+4. **Default Safety**: ships on by default to protect users who haven't explicitly opted in
 
 ## Configuration
 
@@ -77,30 +92,29 @@ services:
 
 ### Configuration Priority
 
-The kill switch follows this priority order:
+The kill switch is the one setting where the environment variable wins. Every other setting follows admin value, then environment variable, then default.
 
-1. **Environment Variable** (highest priority) - If `AI_KILL_SWITCH` is set, it cannot be changed via the admin panel
-2. **Database Setting** - Configured via the admin panel when no env var is set
-3. **Default Value** - `true` (AI disabled) if neither is configured
+1. **Environment variable** (highest priority): if `AI_KILL_SWITCH` is set at all, the admin toggle is locked and the environment value is used. Only the exact value `false` turns the switch off; any other value (including `0` or an empty string) leaves it on.
+2. **Database setting**: configured on **Admin → Settings → AI Kill Switch** when no environment variable is set.
+3. **Default**: on (AI disabled) if neither is configured.
 
 ## Affected Features
 
 ### AI Image Generation
 
-When the kill switch is enabled:
+When the kill switch is on:
 
-- The "Generate with AI" buttons are hidden from:
-  - Media tab toolbar
-  - Project cover editor
-  - Worldbuilding image dialogs
-- The AI Settings admin page shows a warning banner indicating AI is disabled
+- The "Generate with AI" buttons are hidden from the Media tab toolbar, the project cover editor and the worldbuilding image dialogs
+- **AI Providers**, **AI Images**, **AI Text** and **Image Audits** are removed from the admin sidebar, and the AI admin pages show a warning banner if opened directly
+- The server does not itself reject direct API calls to image generation (see the warning above)
 
-### AI Linting
+### AI Linting and Auto-Review
 
-When the kill switch is enabled:
+When the kill switch is on, the AI linting plugin and Auto-Review are not offered in the document editor, and the lint and Auto-Review endpoints refuse requests. When it is off, they are available only if text generation is enabled and the default text provider has a key. That provider is chosen under **Admin → AI Text → Default Provider** (`AI_TEXT_DEFAULT_PROVIDER`: OpenAI-compatible, OpenRouter or Anthropic), so an OpenAI key is not required if you use another provider.
 
-- The AI linting plugin is not loaded in the document editor
-- No spell-check or grammar suggestions powered by AI
+### MCP
+
+MCP access for external tools is disabled while the kill switch is on, whatever the **MCP Access** setting says.
 
 ## Local Mode
 
@@ -114,7 +128,7 @@ When Inkweld is running in **local mode** (no sync server connection), the AI ki
 Even with the kill switch disabled, you can maintain data privacy by using self-hosted AI providers:
 
 - **Stable Diffusion** with AUTOMATIC1111 WebUI for image generation
-- **Local LLM** endpoints for AI linting (coming soon)
+- **Local LLM** endpoints for AI linting and Auto-Review: the **OpenAI Compatible** provider accepts a custom endpoint (`OPENAI_API_BASE`, or the endpoint field on **Admin → AI Providers**), so servers such as Ollama or LM Studio work
 
 When using self-hosted providers, your data stays within your infrastructure.
 

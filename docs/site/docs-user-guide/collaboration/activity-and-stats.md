@@ -5,6 +5,8 @@ description: Track per-project activity and view your writing statistics across 
 sidebar_position: 4
 ---
 
+import ThemedImage from '@site/src/components/ThemedImage';
+
 # Activity & Writing Statistics
 
 Inkweld keeps a running log of meaningful actions inside each project, and aggregates your daily word counts so you can see how your writing has progressed over time.
@@ -24,7 +26,7 @@ A summary card appears on your own profile page (visit `/<your-username>`, e.g. 
 - **Projects** — how many projects you actively contributed to in the window
 - **Recent activity** — the most recent events from any of your projects, each linking to the relevant project
 
-![Writing-stats widget](/img/generated/writing-stats-widget-light.png)
+<ThemedImage src="/img/generated/writing-stats-widget" alt="Writing-stats widget" />
 
 If the statistics endpoint is unreachable the widget hides itself rather than showing a broken state, so the rest of the profile page remains usable. The widget is only shown on your own profile — other visitors see the [activity grid](#profile-activity-grid) instead, if you have made it visible.
 
@@ -37,7 +39,7 @@ Your profile page also shows a year-at-a-glance grid of your writing, one square
 - **Pick a year** from the list beside the grid to look back at earlier years. The list runs from the first year you wrote in Inkweld to the current one.
 - **Active days**, **day streak** (consecutive days ending today or yesterday) and **longest streak** are summarised above the grid.
 
-![Profile activity grid](/img/generated/profile-activity-grid-light.png)
+<ThemedImage src="/img/generated/profile-activity-grid" alt="Profile activity grid" />
 
 Days are counted in your browser's timezone, so a late-night session lands on the day you actually wrote it. Only words you personally wrote are counted, across every project you own or collaborate on — collaborators' words in your projects appear on _their_ grid, not yours.
 
@@ -62,20 +64,27 @@ The summary reloads together with the feed when you press the refresh button, an
 
 The feed records:
 
-| Event                     | Description                                   |
-| ------------------------- | --------------------------------------------- |
-| Document edit             | Any net-positive edit to a document           |
-| Snapshot created          | A versioned snapshot was saved                |
-| Comment thread            | A new [comment](./comments) thread was opened |
-| Comment reply             | A reply was added to an existing thread       |
-| File published            | A document was exported / published           |
-| Element created           | A new worldbuilding element was added         |
-| Element renamed           | An existing element was renamed               |
-| Element deleted           | An element was removed                        |
-| Collaborator invited      | An invitation was sent                        |
-| Collaborator joined       | An invitation was accepted                    |
-| Collaborator role changed | A collaborator's permissions changed          |
-| Collaborator removed      | A collaborator was removed from the project   |
+| Event                     | Description                                                   |
+| ------------------------- | ------------------------------------------------------------- |
+| Document edit             | Any net-positive edit to a document                           |
+| Snapshot created          | A versioned snapshot was saved                                |
+| Comment thread            | A new [comment](./comments) thread was opened                 |
+| Comment reply             | A reply was added to an existing thread                       |
+| File published            | A document was exported / published                           |
+| Element created           | A new worldbuilding element was added                         |
+| Element renamed           | An existing element was renamed                               |
+| Element deleted           | An element was removed                                        |
+| Items reorganized         | "reorganized items": elements were moved, reordered or sorted |
+| Tags updated              | "updated tags on" an element                                  |
+| Worldbuilding updated     | "updated worldbuilding on" an element                         |
+| Relationship created      | "created a relationship involving" an element                 |
+| Relationship deleted      | "deleted a relationship involving" an element                 |
+| Collaborator invited      | An invitation was sent                                        |
+| Collaborator joined       | An invitation was accepted                                    |
+| Collaborator role changed | A collaborator's permissions changed                          |
+| Collaborator removed      | A collaborator was removed from the project                   |
+
+The last five events (items reorganized, tags updated, worldbuilding updated, relationship created and relationship deleted) are currently recorded when changes are made through a connected AI tool over [MCP](../ai-mcp/mcp-clients). Edits you make by hand in the app do not add them to the feed.
 
 Each entry shows the actor, the affected entity, and a human-readable timestamp (with the exact time in a tooltip). Older entries can be loaded on demand via the **Load more** button at the bottom of the feed.
 

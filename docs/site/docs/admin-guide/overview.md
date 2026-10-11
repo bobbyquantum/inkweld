@@ -19,8 +19,15 @@ To access the admin panel:
 3. Select **Admin** from the dropdown menu
 
 Settings changed in the admin panel are stored in the database and take
-precedence over the matching environment variables. See
+precedence over the matching environment variables, which in turn take
+precedence over the built-in defaults. See
 [Configuration](/docs/configuration) for the environment-variable equivalents.
+
+:::note[The one exception]
+**AI Kill Switch** works the other way round: if `AI_KILL_SWITCH` is set in the
+environment, the toggle is locked and the environment value wins. See
+[AI Kill Switch](./ai-kill-switch.md).
+:::
 
 ## Admin Sections
 
@@ -28,34 +35,45 @@ precedence over the matching environment variables. See
 
 Manage user accounts:
 
-- Approve or reject pending registrations (when user approval is required)
+- Approve or reject pending registrations (when user approval is required).
+  **Rejecting does not delete the account:** it stays unapproved, the person is
+  signed out and cannot sign in. Use **Delete** to remove it. If the person
+  gave an email address and email is enabled, they are sent a notice
 - Search all users by username or email
 - Enable or disable accounts, and grant or remove admin status
 - Delete accounts, including every project the user owns (users can also
-  delete their own account from Settings → Account or `/delete-account`)
+  delete their own account from Settings → Account or `/delete-account`). The
+  last enabled administrator cannot be deleted
 - Open **Projects & storage** to see each of a user's projects and how much
-  document and media storage it uses
+  document and media storage it uses, and to set the user's sync capacity
+  allowance (see [Sync Capacity](./sync-capacity.md))
 
 ### Settings
 
-System-wide switches:
+System-wide switches, using the labels shown in the admin page:
 
 - **AI Kill Switch** — master control that disables every AI feature. See
   [AI Kill Switch](./ai-kill-switch.md).
-- **Require approval** — new registrations wait for an admin before they can
-  sign in
-- **Passkeys**, **password login** and **email recovery** — which sign-in and
-  recovery methods are offered. See [Passkeys](./passkeys.md).
-- **MCP access** — whether external tools can connect to projects over the
-  Model Context Protocol
-- **Require email** at registration
-- **Password policy** — minimum length and required character classes
-- **Site URL** — the public URL used in email links
-- **Privacy policy & terms** — publish your legal documents at `/privacy` and
+- **Require User Approval** — new registrations wait for an admin before they
+  can sign in
+- **Passkey Authentication**, **Password Login** and **Email-based Account
+  Recovery** — which sign-in and recovery methods are offered. Some changes ask
+  you to type a confirmation phrase, and you cannot turn off both passkeys and
+  password login. See [Passkeys](./passkeys.md).
+- **MCP Access** — whether external tools can connect to projects over the
+  Model Context Protocol. The AI kill switch overrides it.
+- **Require Email Address** — registration asks for an email address (needed for
+  password resets and notifications)
+- **Password Policy** — minimum length and required character classes
+- **Site URL** — the public URL used in email links and notifications
+- **Sync capacity limits** — per-user storage allowance. See
+  [Sync Capacity](./sync-capacity.md).
+- **Privacy Policy & Terms** — publish your legal documents at `/privacy` and
   `/terms` (as Markdown, or as a redirect to a URL), and optionally require
   users to accept them
-- **Custom HTML** — raw HTML injected into every page, for analytics or a
-  consent manager
+- **Custom HTML Injection** and **Content Security Policy** — raw HTML injected
+  into every page, for analytics or a consent manager, and the policy that
+  governs the scripts it may load
 
 The last two are covered in [Legal Pages & Custom HTML](./custom-html.md).
 
@@ -76,8 +94,27 @@ it, or unpublish it to turn it back into a draft.
 
 ### Email
 
-Enable transactional email (welcome emails, password resets, passkey recovery
-links) and configure the SMTP server it is sent through.
+Turn on **Enable Email** and fill in the SMTP server it sends through:
+
+- **SMTP Host**, **Port** and **Encryption** (STARTTLS on 587, TLS/SSL on 465,
+  or none on 25)
+- **Username** and **Password** (leave the password blank to keep the saved one)
+- **Sender Identity**: **From Address** and **From Name**
+
+Click **Save SMTP Settings**, then **Send Test Email** to send a message to the
+email address on your own admin account (the account needs one). The same
+settings can come from the `EMAIL_*` environment variables.
+
+Inkweld sends these emails, and only when email is enabled:
+
+| Email                                                     | When                                               |
+| --------------------------------------------------------- | -------------------------------------------------- |
+| Welcome                                                   | A new account can sign in straight away            |
+| Account awaiting approval                                 | Registration while **Require User Approval** is on |
+| Account approved                                          | An admin approves a pending user                   |
+| Registration update (rejected)                            | An admin rejects a pending user                    |
+| Password reset request, and password changed confirmation | Password login with email recovery on              |
+| Add a new passkey                                         | Passkey recovery link (valid 15 minutes)           |
 
 ### GitHub
 
@@ -90,21 +127,37 @@ GitHub OAuth app and pasting its credentials. See
 Totals for users, projects and pending approvals, plus server uptime, version
 and runtime.
 
-### AI Providers, AI Images and AI Text
+### AI Providers, AI Images, AI Text and Image Audits
 
 These sections are hidden while the AI kill switch is on.
 
-- **AI Providers** — API keys shared by every AI feature
+- **AI Providers** — API keys (and endpoints) shared by every AI feature
 - **AI Images** — image generation providers and profiles. See
   [AI Image Generation](./ai-image-generation.md).
 - **AI Text** — the models and prompts used for AI linting and for turning
   worldbuilding data into image prompts
 
-### Image Audits
+- **Image Audits** — a log of every AI image generation: who made it, the
+  profile and prompt used, credits consumed, and whether it succeeded or was
+  moderated. Search by prompt text or filter by status. See
+  [AI Image Generation](./ai-image-generation.md#image-audits).
 
-A log of every AI image generation request: who made it, the profile and
-prompt used, credits consumed, and whether it succeeded or was moderated. Search
-by prompt text or filter by status.
+## Crawlers
+
+The server answers `/robots.txt` itself: ordinary search engines are allowed,
+and well-known AI training crawlers (GPTBot, CCBot, ClaudeBot, Google-Extended
+and others) are disallowed. The hosted web app ships an equivalent file.
+Legitimate AI assistants are expected to connect through the authenticated MCP
+endpoint, not by crawling.
+
+## Admin API
+
+Every setting above is stored as a key in the database and can be read and
+changed by an admin over the API under `/api/v1/admin/config`
+(`GET /keys`, `GET /`, `GET /{key}`, `PUT /{key}`, `DELETE /{key}`). Deleting a
+key reverts it to the environment value or default. Secret values such as API
+keys are returned masked. See the [API reference](/docs/developer/api) for
+details.
 
 ## Quick Links
 

@@ -18,11 +18,17 @@ docker run -d \
   --name inkweld \
   -p 8333:8333 \
   -v inkweld_data:/data \
-  -e SESSION_SECRET=$(openssl rand -base64 32) \
+  -e SESSION_SECRET=$(openssl rand -hex 32) \
+  -e WEBAUTHN_RP_ID=localhost \
+  -e ALLOWED_ORIGINS=http://localhost:8333 \
   ghcr.io/bobbyquantum/inkweld:latest
 ```
 
 Then open [http://localhost:8333](http://localhost:8333) in your browser.
+
+:::warning[Set these for any real deployment]
+The image runs with `NODE_ENV=production`, so the server **refuses to start** unless `SESSION_SECRET` (32+ characters) and `WEBAUTHN_RP_ID` are set. `localhost` is fine for a local trial. For a real domain, set `WEBAUTHN_RP_ID` to your hostname (for example `inkweld.example.com`, no protocol or port) and `ALLOWED_ORIGINS` to the full public URL. **`WEBAUTHN_RP_ID` cannot be changed after users register passkeys**, so choose it before anyone signs up.
+:::
 
 :::tip[First User is Admin]
 The first user to register becomes the administrator automatically.
@@ -41,11 +47,18 @@ bun run deploy
 Select **Docker** and the wizard will:
 
 - ✅ Check Docker installation
-- ✅ Generate secure configuration
-- ✅ Build or pull the image
-- ✅ Create data volumes
-- ✅ Start the container
+- ✅ Ask for the port, public URL, user approval and GitHub settings, and generate a session secret
+- ✅ Write a `.env` file in the current directory
+- ✅ Build the image from the cloned source as `inkweld:local` (it does not pull the published image)
+- ✅ Create the `inkweld_data` volume
+- ✅ Start a container named `inkweld-backend`
 - ✅ Display access instructions
+
+:::note
+When the wizard asks for a database type, choose **SQLite**. It is the only database the server supports.
+:::
+
+To run the published image instead, follow the manual steps below.
 
 ## Manual Setup
 
@@ -60,17 +73,29 @@ Create a `.env` file with your configuration:
 
 ```bash
 # Required
-SESSION_SECRET=your-secret-key-minimum-32-characters-long
+SESSION_SECRET=<run: openssl rand -hex 32>
+
+# Required in production (the Docker image sets NODE_ENV=production).
+# Your public hostname only: no protocol, no port. Cannot be changed once
+# users have registered passkeys.
+WEBAUTHN_RP_ID=localhost
+
+# Every URL users open Inkweld from (CORS and passkey origin check)
+ALLOWED_ORIGINS=http://localhost:8333
 
 # Optional - customize these as needed
-PORT=8333
-ALLOWED_ORIGINS=http://localhost:8333
 USER_APPROVAL_REQUIRED=true
 GITHUB_ENABLED=false
 ```
 
+Generate a secret with `openssl rand -hex 32`. When you change the host port, change the left-hand side of `-p` (for example `-p 9000:8333`); the container always listens on 8333 inside.
+
 :::warning[Keep SESSION_SECRET Safe]
-The `SESSION_SECRET` is used to encrypt session data. If you change it, all existing sessions will be invalidated. Use a strong, random value and keep it secure.
+The `SESSION_SECRET` signs session tokens and encrypts secrets stored in the database, such as API keys saved in Admin → Settings. If you change it, everyone is signed out and those stored secrets become unreadable. Use a strong, random value and keep it secure.
+
+:::tip[Pin an image tag in production]
+`:latest` only moves when a release is published and `:dev` follows `main`. For production, pin a specific release tag so an upgrade happens only when you choose.
+:::
 :::
 
 ### Step 2: Run the Container
@@ -118,8 +143,17 @@ curl http://localhost:8333/api/v1/health
 You should see:
 
 ```json
-{ "status": "ok", "uptime": 1.23, "backend": "bun" }
+{
+  "status": "ok",
+  "timestamp": "2026-01-01T12:00:00.000Z",
+  "uptime": 1.23,
+  "version": "0.1.0",
+  "protocolVersion": 1,
+  "minClientVersion": "0.1.0"
+}
 ```
+
+The exact `version` and protocol numbers depend on the release you run.
 
 ## Docker Compose
 
@@ -135,9 +169,14 @@ services:
       - '8333:8333'
     environment:
       - NODE_ENV=production
-      - SESSION_SECRET=${SESSION_SECRET}
+      - SESSION_SECRET=${SESSION_SECRET:?SESSION_SECRET is required}
+      # Public hostname only (no protocol/port). Cannot be changed once users
+      # have registered passkeys.
+      - WEBAUTHN_RP_ID=${WEBAUTHN_RP_ID:-localhost}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:8333}
       - USER_APPROVAL_REQUIRED=${USER_APPROVAL_REQUIRED:-true}
+      # Set to true when a reverse proxy sits in front (see below)
+      - TRUST_PROXY=${TRUST_PROXY:-false}
     volumes:
       - inkweld_data:/data
     healthcheck:
@@ -151,15 +190,28 @@ volumes:
   inkweld_data:
 ```
 
+Put the values in a `.env` file next to `docker-compose.yml` (Compose reads it automatically):
+
+```bash
+SESSION_SECRET=<output of: openssl rand -hex 32>
+WEBAUTHN_RP_ID=inkweld.yourdomain.com
+ALLOWED_ORIGINS=https://inkweld.yourdomain.com
+```
+
 Start with:
 
 ```bash
 docker compose up -d
 ```
 
+The repository also ships `compose.yaml` (builds the image from source) and `compose.deploy.yaml` (pulls the published image); see [DEPLOY.md](https://github.com/bobbyquantum/inkweld/blob/main/DEPLOY.md).
+
 ## Reverse Proxy Setup
 
-For production, run Inkweld behind a reverse proxy like Nginx or Caddy to handle SSL/TLS.
+For production, run Inkweld behind a reverse proxy like Nginx or Caddy to handle SSL/TLS. When you do:
+
+- Set `ALLOWED_ORIGINS` to the public `https://` URL and `WEBAUTHN_RP_ID` to its hostname.
+- Set `TRUST_PROXY=true` so rate limiting and audit logs use the real client IP from `X-Forwarded-For`. Only do this when the proxy is the only way to reach the container (for example, publish the port as `-p 127.0.0.1:8333:8333`); otherwise clients can forge the header and escape the login rate limit.
 
 ### Nginx Example
 
@@ -274,6 +326,7 @@ Common issues:
 
 - **Port already in use**: Change the port mapping (e.g., `-p 9000:8333`)
 - **Invalid SESSION_SECRET**: Must be at least 32 characters
+- **`WEBAUTHN_RP_ID must be set in production`**: Add `-e WEBAUTHN_RP_ID=<your hostname>` (or `localhost` for a local trial)
 
 ### WebSocket connection fails
 

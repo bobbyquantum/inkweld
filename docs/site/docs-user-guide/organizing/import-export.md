@@ -2,7 +2,7 @@
 id: import-export
 title: Backups, Export & Import
 description: Export a project as a portable .inkweld.zip archive, restore it anywhere, and move projects between modes or instances.
-sidebar_position: 8
+sidebar_position: 9
 ---
 
 # Backups, Export & Import
@@ -22,7 +22,10 @@ Inkweld is pre-1.0. Export an archive before upgrading your server or clearing b
 | Project tree         | Every folder, document, and worldbuilding element, in order                 |
 | Document content     | Full rich text for each document                                            |
 | Worldbuilding data   | All field values, plus the templates (schemas) they use                     |
+| Time systems         | The calendars and time systems installed in the project                     |
+| Generators           | Random name and idea generators defined in the project                      |
 | Relationships & tags | Relationship types, links between elements, tag definitions and assignments |
+| Media links          | Which elements each media library file is tagged with                       |
 | Publish plans        | Saved export configurations and typography styles                           |
 | Media                | Cover and inline images from the media library                              |
 | Snapshots            | Named document versions and their history                                   |
@@ -31,11 +34,7 @@ Not included: collaborators and sharing permissions, comments, and per-user sett
 
 ## Exporting a project
 
-You can export from three places:
-
-- **Project Home tab** — the **Export Project** button in the _Start_ column
-- **Project Settings tab** — the **Export & Import** card under project actions
-- **Project menu** (⋮) in the header
+Open the **Project Settings** tab (bottom of the project navigator), go to the **Actions** section, and click **Export Project** on the **Export & Import** card.
 
 Inkweld packages the project and your browser downloads a file named like:
 
@@ -56,15 +55,14 @@ In Browser and Cloud Sync modes there is no server check; the archive is built s
 
 An import always creates a **new project**. It never overwrites an existing one, so it's safe to import the same archive more than once.
 
-Open the import dialog from:
+Open the import dialog from either of these:
 
-- The **+ Create** menu on the Bookshelf → **Import Project**
-- The **Import Project** button on an empty Bookshelf
-- The **Project Home** tab or the **Project Settings** tab inside any project
+- The **Create** menu on the Bookshelf (the home screen) → **Import Project**, or the **Import Project** button on an empty Bookshelf
+- The **Import Project** button on the **Export & Import** card in a project's **Project Settings** tab (**Actions** section)
 
 ### Step 1 — Choose the file
 
-Drag a `.inkweld.zip` file onto the drop zone, or click **Browse Files**. Inkweld reads the archive and checks that it's valid.
+Drag a `.inkweld.zip` file onto the drop zone (**Drag and drop a project archive here**), or click **Browse Files**. Inkweld reads the archive and checks that it's valid.
 
 ### Step 2 — Configure
 
@@ -84,7 +82,7 @@ Click **Import** and watch the progress bar. Elements are created first, then do
 
 ### Step 4 — Done
 
-The new project appears on your Bookshelf. All element IDs are regenerated on import, so the copy is fully independent of the original.
+The new project appears on your Bookshelf. Elements keep their original internal IDs, so the copy is independent of the original because it has its own slug (and, on a server, its own project), not because its IDs were regenerated.
 
 ## Common uses
 
@@ -110,20 +108,24 @@ Send the archive to a co-author or editor. They get an independent copy of the w
 
 ## Version compatibility
 
-Each archive records the format version it was written with.
+Each archive records the format version it was written with, and the dialog shows it next to the export date.
 
-- Archives from **older** versions of Inkweld are migrated automatically on import.
-- Archives from a **newer** version than the one you're running are rejected with an _unsupported version_ message. Update Inkweld, then import again.
+- An archive can only be imported by a version of Inkweld that uses the **same** archive format. Archives from an **older** format are **not** converted automatically: the import fails with a message that the archive version is not supported.
+- Archives from a **newer** format than the one you're running are rejected too, with a message asking you to update Inkweld.
+
+If an old archive no longer imports, open it in the Inkweld version that created it and export it again from there, or ask your administrator which release you need.
 
 ## Troubleshooting
 
-| Message                                         | What to do                                                                     |
-| ----------------------------------------------- | ------------------------------------------------------------------------------ |
-| _Please select a ZIP file_                      | Only `.inkweld.zip` (or `.zip`) archives are accepted.                         |
-| _Failed to parse archive_                       | The file is not an Inkweld archive or is corrupted. Re-export from the source. |
-| _This slug is already taken_                    | Choose a different slug; the import never replaces an existing project.        |
-| _The following documents have unsynced changes_ | Wait for sync to finish (check the connection indicator), then export again.   |
-| _Unsupported version_                           | The archive comes from a newer Inkweld. Update your instance.                  |
+| Message                                          | What to do                                                                                       |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
+| _Please select a ZIP file_                       | Only `.zip` files (normally `.inkweld.zip`) are accepted.                                        |
+| _Failed to parse archive_                        | The file is not an Inkweld archive or is corrupted. Re-export from the source.                   |
+| _Missing required file…_ / _Failed to parse…_    | The archive is incomplete or damaged. Re-export from the source.                                 |
+| _This slug is already taken_                     | Choose a different slug; the import never replaces an existing project.                          |
+| _Archive version … is newer than supported…_     | The archive comes from a newer Inkweld. Update your instance.                                    |
+| _Archive version … is not supported…_            | The archive uses an older format that this version cannot read. See Version compatibility above. |
+| _The following documents have unsynced changes…_ | Wait for sync to finish (check the connection indicator), then export again.                     |
 
 ---
 

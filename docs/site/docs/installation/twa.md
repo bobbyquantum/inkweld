@@ -17,7 +17,7 @@ contains your app's package name and signing key fingerprint.
 ## Prerequisites
 
 - **Java 21** (JDK) — `keytool` included, used to generate signing keys
-- **Android SDK** (API 35+) — install via Android Studio or `sdkmanager`
+- **Android SDK** (API 36 platform) — install via Android Studio or `sdkmanager`
 
 ## Setup
 
@@ -42,7 +42,7 @@ contains your app's package name and signing key fingerprint.
 
    This updates:
    - `android/app/build.gradle.kts` — host names for product flavors
-   - `frontend/public/.well-known/assetlinks.json` — Digital Asset Links file
+   - `frontend/public/.well-known/assetlinks.json` — Digital Asset Links file, containing the placeholder `__TWA_SHA256_FINGERPRINT__` instead of a real fingerprint (see [Deploy assetlinks.json](#deploy-assetlinksjson))
 
 ## Build
 
@@ -53,15 +53,20 @@ Two product flavors are available:
 | `bun run twa:build:preview` | preview | APK    | Side-loading, internal testing |
 | `bun run twa:bundle:prod`   | prod    | AAB    | Play Store submission          |
 
-The preview variant appends `.preview` to the package name (so it can be
-installed alongside the production app) and points at your preview host.
+Both flavors use the **same package name** (`applicationId`); there is no
+`.preview` suffix. The preview variant only points at your preview host, so
+installing it replaces an installed production build (and the reverse) rather
+than sitting alongside it.
 
 ### Signing locally
 
 Set these properties in `~/.gradle/gradle.properties` (or pass as env vars):
 
+`KEYSTORE_PATH` is resolved relative to the `android/` directory (default:
+`inkweld-release.keystore`), so do not prefix it with `android/`.
+
 ```properties
-KEYSTORE_PATH=android/inkweld-release.keystore
+KEYSTORE_PATH=inkweld-release.keystore
 KEYSTORE_PASSWORD=your-password
 KEY_ALIAS=inkweld
 KEY_PASSWORD=your-password
@@ -79,17 +84,38 @@ Or use Gradle project properties:
 
 ## Deploy assetlinks.json
 
-The `twa:setup` script generates `frontend/public/.well-known/assetlinks.json`.
-Deploy it with every frontend build:
+The `twa:setup` script generates `frontend/public/.well-known/assetlinks.json`
+with the placeholder `__TWA_SHA256_FINGERPRINT__` in place of the signing
+certificate fingerprint. The CI deploy
+(`.github/workflows/deploy-cloudflare-reusable.yml`) replaces it with the value
+of the `TWA_SHA256_FINGERPRINT` variable on the GitHub environment (`preview` or
+`production`) before building the frontend. The production deploy fails when
+that variable is unset; preview deploys without it.
 
-```bash
-# Cloudflare Pages
-npm run cloudflare:preview:deploy  # Preview
-npm run cloudflare:prod:deploy      # Production
+**A manual deploy ships the placeholder.** `npm run cloudflare:preview:deploy`,
+`npm run cloudflare:prod:deploy` and `npm run docker:prod` do not substitute
+anything, so the file served at `/.well-known/assetlinks.json` would contain the
+literal `__TWA_SHA256_FINGERPRINT__` and Android would fail to verify the
+domain. Before a manual build, replace the placeholder in
+`frontend/public/.well-known/assetlinks.json` with your real fingerprint (and
+revert it afterwards so the placeholder is not committed).
 
-# Docker
-npm run docker:prod
-```
+### Which fingerprint to use
+
+Use the **Play App Signing** certificate, not your local upload key. When you
+enable Play App Signing (the default for new apps), Google re-signs the app
+with its own key, and that is the certificate Android checks against
+`assetlinks.json`.
+
+1. Upload your first AAB to the Play Console (an internal testing track is enough).
+2. Open **Test and release → Setup → App signing** (the exact menu name varies as Play Console changes).
+3. Copy the **App signing key certificate → SHA-256 certificate fingerprint**.
+4. Store it as the `TWA_SHA256_FINGERPRINT` variable on each GitHub environment you deploy (see the [Cloudflare guide](./cloudflare#automated-deployment-via-github-actions)), then redeploy.
+
+The fingerprint printed by `twa:setup` comes from your local upload keystore.
+It is only correct for side-loaded builds you sign yourself (for example
+`twa:install:preview`); add it as a second entry in the
+`sha256_cert_fingerprints` array if you want both to verify.
 
 Google's Play Console checks this file to verify your app owns the domain.
 It must be accessible at `https://<your-host>/.well-known/assetlinks.json` on
@@ -178,7 +204,7 @@ no separate app update cycle needed.
 **"App not linked to website" error in Play Console**
 
 - Verify `assetlinks.json` is accessible at `https://<host>/.well-known/assetlinks.json`
-- Check the SHA256 fingerprint matches your signing key
+- Check the SHA256 fingerprint matches the **Play App Signing** certificate (not your upload key), and that the file does not still contain `__TWA_SHA256_FINGERPRINT__`
 - Ensure `android:autoVerify="true"` is set in the manifest's intent filter
 
 **Gradle build fails with signing errors**

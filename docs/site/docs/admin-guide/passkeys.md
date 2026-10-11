@@ -20,7 +20,7 @@ Inkweld supports **passkeys** — the W3C WebAuthn standard — allowing users t
 
 ## Server Configuration
 
-Passkeys require two environment variables to be set correctly in production. Without them, the WebAuthn ceremony will fail with origin or RP ID mismatches.
+Passkeys need the right relying-party ID and allowed origins in production. With a wrong value the WebAuthn ceremony fails with origin or RP ID mismatches.
 
 ### WEBAUTHN_RP_ID
 
@@ -49,6 +49,11 @@ If you change `WEBAUTHN_RP_ID` after users have registered passkeys, **all exist
 
 :::
 
+:::note[When it is unset in production]
+The Bun server **refuses to start** with `NODE_ENV=production` and no `WEBAUTHN_RP_ID`, because the value is baked into every registered passkey. On Cloudflare Workers the check is skipped (secrets only exist per request), and when the value is missing or still `localhost`, Inkweld falls back to the hostname of the first entry in `ALLOWED_ORIGINS`. Treat that as a safety net, not a configuration: set `WEBAUTHN_RP_ID` explicitly so the ID can never change by accident when you reorder your origins.
+
+:::
+
 ### WEBAUTHN_RP_NAME
 
 **Optional** | String | Default: `"Inkweld"`
@@ -58,6 +63,14 @@ A human-readable name for your site shown in the browser's passkey registration 
 ```bash
 WEBAUTHN_RP_NAME="Acme Writing Platform"
 ```
+
+---
+
+## Turning Passkeys On or Off
+
+**Admin → Settings → Passkey Authentication** (`PASSKEYS_ENABLED`, default on) is the master switch. While it is off, every passkey endpoint returns 403 and the passkey buttons disappear from the login dialog and account settings. Passkeys that users already registered are kept and work again when you switch it back on.
+
+The settings page will not let you turn off Passkey Authentication while **Password Login** is also off, because nobody could sign in. Enable password login first.
 
 ---
 
@@ -103,7 +116,7 @@ Users can manage their passkeys from **Account Settings → Passkeys** (navigate
 ### Signing in with a passkey
 
 1. Click **Log in** on any page.
-2. In the login dialog, click **Sign in with a passkey** (the fingerprint button).
+2. In the login dialog, click **Sign in with passkey** (the fingerprint button).
 3. Your browser shows a prompt — select a passkey and confirm with biometrics or PIN.
 4. You are logged in without entering a username or password.
 
@@ -146,7 +159,7 @@ Passkeys are stored in two tables:
 | ----------------------- | ---------------------------------------------------------------------------------------------- |
 | `userPasskeys`          | Registered credential IDs, public keys, counters, device metadata                              |
 | `webauthnChallenges`    | Single-use challenges (5-minute expiry). Cleaned up automatically.                             |
-| `passkeyRecoveryTokens` | Hashed magic-link tokens used by the passwordless recovery flow. Single-use, 60-minute expiry. |
+| `passkeyRecoveryTokens` | Hashed magic-link tokens used by the passwordless recovery flow. Single-use, 15-minute expiry. |
 
 The tables are created by the schema migrations in `backend/drizzle/`.
 
@@ -165,7 +178,7 @@ Two server-side settings control the auth surface:
 | `PASSWORD_LOGIN_ENABLED` | `false` | `/login`, `/forgot-password`, `/reset-password` return 403/404; registration form omits the password field |
 | `EMAIL_RECOVERY_ENABLED` | `false` | The "Lost your passkey?" link is hidden; the magic-link recovery endpoint returns 404                      |
 
-Both can be set via environment variables on first boot, or changed at runtime by an admin via **Admin → Settings**.
+Both can be set via environment variables, or changed at runtime by an admin via **Admin → Settings** (**Password Login** and **Email-based Account Recovery**). A value saved in the admin UI wins over the environment variable.
 
 ```bash
 # Passwordless-first deployment with email-based recovery
@@ -174,7 +187,7 @@ EMAIL_RECOVERY_ENABLED=true
 ```
 
 :::warning[Existing password users without a passkey]
-When you flip `PASSWORD_LOGIN_ENABLED` from `true` to `false`, any user who had an account but never registered a passkey **will be locked out** until they go through the email recovery flow (which requires `EMAIL_RECOVERY_ENABLED=true` and a working SMTP setup) to enrol one. The admin UI requires you to type "disable password login" to confirm this change.
+When you flip `PASSWORD_LOGIN_ENABLED` from `true` to `false`, any user who had an account but never registered a passkey **will be locked out** until they go through the email recovery flow (which requires `EMAIL_RECOVERY_ENABLED=true` and a working SMTP setup) to enrol one. The admin UI requires you to type `disable password login` to confirm this change.
 
 Existing password hashes are preserved while disabled, so flipping the flag back on restores access for all those users.
 
@@ -185,17 +198,22 @@ The admin settings UI will refuse to disable password login while passkeys are a
 
 :::
 
+:::warning[Disabling email recovery in passwordless mode]
+While password login is off, magic-link email is the only way for someone who lost their device to get back in. Turning **Email-based Account Recovery** off in that state asks you to type `disable email recovery` first, because anyone who then loses their passkeys is locked out until an admin intervenes.
+
+:::
+
 ### Magic-link passkey recovery
 
 When `PASSWORD_LOGIN_ENABLED=false` and `EMAIL_RECOVERY_ENABLED=true`, users who lose access to their device can recover their account via email:
 
 1. User clicks **Lost your passkey?** in the login dialog (or visits `/recover-passkey` directly).
 2. They enter the email address registered on their account.
-3. Inkweld emails them a one-time recovery link valid for **60 minutes**.
+3. Inkweld emails them a one-time recovery link valid for **15 minutes**.
 4. The link opens `/recover-passkey/redeem?token=...` and prompts them to enrol a **new** passkey on the current device.
 5. On success, the new passkey is added to their account. **Existing passkeys are NOT removed** — recovery is purely additive, so a recovered phone doesn't invalidate the user's other devices.
 6. The user is then redirected to the login screen to sign in with the new passkey. No session is granted by the recovery flow itself.
 
 Recovery tokens are stored hashed (SHA-256) so a database leak does not expose the magic-link URLs. Each token is single-use.
 
-For the recovery email to deliver, you must also configure SMTP — see the email configuration section.
+For the recovery email to deliver, you must also configure SMTP under **Admin → Email** (see the [Admin Guide](./overview.md#email)).

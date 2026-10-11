@@ -33,7 +33,7 @@ Select worldbuilding elements to include as context. For each element, toggle wh
 - **Description** — Include the description text
 - **Data** — Include structured field data
 
-This helps the AI understand your characters, locations, etc. You can skip this step if you prefer to write your prompt from scratch.
+This helps the AI understand your characters, locations, etc. You can skip this step if you prefer to write your prompt from scratch. Whatever you select here, together with your prompt, is sent to the AI provider your administrator has configured, so leave out anything you don't want shared.
 
 <ThemedImage
   src="/img/features/image-generation-dialog"

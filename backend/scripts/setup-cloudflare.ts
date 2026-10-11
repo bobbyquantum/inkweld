@@ -1101,7 +1101,7 @@ ${colors.yellow}Note:${colors.reset} Worker names must be globally unique across
     header('Setting Secrets');
 
     info('SESSION_SECRET is required for each environment.');
-    info('This is a cryptographic key used to sign session cookies.');
+    info('This is a cryptographic key used to sign session tokens.');
     warn(
       'CRITICAL: If this key is used for database encryption, changing it will make existing data unreadable!'
     );
@@ -1288,7 +1288,9 @@ ${colors.bright}Environments configured:${colors.reset} ${envList.join(', ')}
 ${colors.bright}Next Steps:${colors.reset}
 
 1. ${colors.cyan}Review wrangler.toml${colors.reset}
-   Update ALLOWED_ORIGINS with your actual frontend domain(s)
+   Update ALLOWED_ORIGINS with your actual frontend domain(s), and check that
+   WEBAUTHN_RP_ID matches the domain users will visit (it cannot be changed
+   once anyone has registered a passkey)
 `);
 
     if (previewDbId) {
@@ -1304,11 +1306,11 @@ ${colors.bright}Next Steps:${colors.reset}
     }
 
     console.log(`${colors.bright}View logs:${colors.reset}`);
-    if (previewDbId) console.log(`   npm run cloudflare:logs:preview`);
-    if (prodDbId) console.log(`   npm run cloudflare:logs:prod`);
+    if (previewDbId) console.log(`   npm run cloudflare:preview:logs`);
+    if (prodDbId) console.log(`   npm run cloudflare:prod:logs`);
 
     console.log(`
-${colors.bright}Full documentation:${colors.reset} docs/site/docs/hosting/cloudflare.md
+${colors.bright}Full documentation:${colors.reset} docs/site/docs/installation/cloudflare.md
 `);
   } finally {
     rl.close();

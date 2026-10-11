@@ -15,7 +15,7 @@ Documents are the core of your Inkweld project—they hold your chapters, scenes
 
 ### From the Create Button
 
-At the bottom of the project tree, there's always a **Create** button that opens the element type chooser:
+At the bottom of the project tree there is a **Create** button (you need write access to the project to see it). It opens the **Create New** chooser:
 
 <ThemedImage
   src="/img/generated/element-type-chooser"
@@ -23,40 +23,32 @@ At the bottom of the project tree, there's always a **Create** button that opens
 />
 
 1. Click the **Create** button
-2. Choose **Document** (or another element type)
-3. Enter a title for your new element
-4. Click **Create**
+2. Pick a type. The chooser groups them as **Documents & Organization** (Folder, Scene, Note), **Visualization** (Relationship Chart, Canvas, Map, Cover, Timeline) and **Worldbuilding Elements** (Character, Location and any custom templates). Use the search box to filter the list
+3. Type a name in the name field at the bottom
+4. Click the button at the bottom right, which is labelled after your choice (for example **Create Scene**), or press Enter
 
 <ThemedImage
   src="/img/generated/new-document-dialog"
   alt="New document naming dialog"
 />
 
-The new document opens automatically in a new tab.
+Canvas, Map and Cover ask a few setup questions (size, colours) before they are created. The new element opens automatically in a tab.
 
-### From the Toolbar
+Where the new element lands depends on what you have open:
 
-The navigator toolbar has two buttons for quickly creating elements:
+- If an element is selected in the tree (the one you are viewing), the new element is added right after it, in the same folder.
+- If nothing is selected, it is added at the top level of the project.
 
-- **New Document** (📄+) — Opens the element type chooser
-- **New Folder** (📁+) — Creates a folder directly (skips type chooser)
+### From a Folder's Context Menu
 
-If you have a folder selected in the tree, new elements will be created inside that folder.
+To create something inside a specific folder:
 
-### From Context Menu
-
-Right-click on a folder to create elements inside it:
-
-<ThemedImage
-  src="/img/generated/folder-context-menu"
-  alt="Folder context menu with New Element option"
-/>
-
-1. **Right-click** on a folder in the project tree
+1. **Right-click** the folder in the project tree
 2. Select **New Element**
-3. Choose the element type
-4. Enter a title
-5. Click **Create**
+3. Choose the element type and enter a name
+4. Click the **Create** button for that type
+
+The new element is created inside that folder.
 
 ## Document Types
 
@@ -79,7 +71,7 @@ Both use the rich text editor. A scene also carries:
 
 Edit these from the chips above the scene's text, or click the tune button to open **Scene details**.
 
-The role also decides publishing. When a folder in a [publish plan](../publishing/publish-plans) is exported, the scenes inside it are included and the notes are skipped, and adding everything to a plan leaves notes out. To publish a note, add it to the plan by itself. Documents with no role (created before scenes existed, or by an import) are treated like scenes. To switch a document between the two, right-click it in the project tree and choose **Convert to Scene** or **Convert to Note**.
+The role also decides publishing. When a folder in a [publish plan](../publishing/publish-plans) is exported, the scenes inside it are included and the notes are skipped, and adding everything to a plan leaves notes out. To publish a note, add it to the plan by itself. Documents with no role (created before scenes existed, or by an import) behave like notes on the corkboard and outline, but are still published like scenes. To switch a document between the two, right-click it in the project tree and choose **Convert to Scene** or **Convert to Note**.
 
 See [Scenes, Corkboard & Outline](./scenes-corkboard-outline) for more, and [The Editor](../writing/editor) for writing.
 
@@ -123,23 +115,22 @@ Documents save automatically:
 - When you switch documents
 - When you leave the project
 
-The connection indicator in the navigator shows sync status.
+The small dot in the editor's status bar (bottom of the editor) shows whether the document is synced. If the connection drops, a bar appears at the bottom of the project tree.
 
 ## Renaming Documents
 
-### From Context Menu
+### From the Project Tree
 
 1. **Right-click** the document in the project tree
 2. Select **Rename**
-3. Enter the new name
-4. Press **Enter** or click outside to confirm
+3. Enter the new name in the dialog
+4. Press **Enter** or click **Rename**
 
-### From Tab Context Menu
+Click **Cancel** to leave the name as it was. The dialog stays open if you click outside it, so you cannot rename by accident.
 
-1. **Right-click** the document's tab
-2. Select **Rename**
-3. Enter the new name
-4. Press **Enter** to confirm
+### From a Tab
+
+You can also right-click an open element's tab and choose **Rename**. It opens the same dialog. You need write access to the project.
 
 ## Moving Documents
 
@@ -150,11 +141,16 @@ The only way to move documents is drag and drop:
 1. Click and hold the document in the project tree
 2. Drag to the target folder
 3. Release to drop
+4. Confirm in the **Move Item** dialog, which shows where the item came from and where it will land. Click **Move**
 
 You can also drag documents to reorder them within a folder, or rearrange a folder's cards on its [corkboard](./scenes-corkboard-outline#corkboard).
 
 :::tip[Drag Indicator]
 When dragging, the target folder highlights to show where the document will be placed.
+:::
+
+:::tip[Skip the confirmation]
+Tick **Don't ask again — move items immediately** in the Move Item dialog, or turn off **Confirm element moves** under [User Settings → Project Tree](../settings/user-settings#project-tree), and moves happen straight away.
 :::
 
 ## Deleting Documents
@@ -163,40 +159,18 @@ When dragging, the target folder highlights to show where the document will be p
 
 1. Right-click the document in the project tree
 2. Select **Delete**
-3. Confirm the deletion
+3. Confirm in the **Confirm Delete** dialog
 
 :::warning[Permanent Deletion]
 Deleted documents are **permanently removed**. There is no recycle bin. Consider these precautions:
 
-- **Create a snapshot** before deleting if you're unsure
+- **Copy anything you may want back** into another document first
 - **Move to an archive folder** instead of deleting
 - **Export your project** regularly as a backup
   :::
 
 ## Document Snapshots
 
-Snapshots preserve document versions so you can restore previous content.
+Snapshots keep earlier versions of a document so you can go back to them. Open the snapshot list with the **Snapshots** chip in the editor's status bar. Inkweld also takes automatic snapshots when you close a document's tab or leave the project, and you can switch that off under [User Settings → Project](../settings/user-settings#auto-save-snapshots).
 
-### Creating a Snapshot
-
-1. Open the document
-2. Click the **History** button (🕐) in the editor toolbar
-3. Click **Create Snapshot**
-4. Enter a description (optional)
-5. Click **Save**
-
-### Viewing and Restoring Snapshots
-
-1. Click the **History** button in the toolbar
-2. Browse your snapshots
-3. Click a snapshot to preview its content
-4. Click **Restore** to revert to that version
-
-:::tip[Regular Snapshots]
-Create snapshots:
-
-- Before major revisions
-- After completing a chapter
-- Before sharing for feedback
-- At project milestones
-  :::
+See [Snapshots & Version History](../writing/snapshots) for how to create and restore them.

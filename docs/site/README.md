@@ -1,41 +1,40 @@
-# Website
+# Inkweld Docs Site
 
-This website is built using [Docusaurus](https://docusaurus.io/), a modern static website generator.
+This site is built with [Docusaurus](https://docusaurus.io/) and managed with
+Bun. See [`docs/README.md`](../README.md) for the full workflow.
 
 ## Installation
 
+From the **repo root** (the root `postinstall` also installs this package):
+
 ```bash
-yarn
+bun install
 ```
 
 ## Local Development
 
 ```bash
-yarn start
+cd docs/site
+bun run start
 ```
 
-This command starts a local development server and opens up a browser window. Most changes are reflected live without having to restart the server.
+This regenerates the API reference from `backend/openapi.json` and starts a
+local development server. Most changes are reflected live without restarting.
 
 ## Build
 
 ```bash
-yarn build
+bun run build                 # API docs + screenshots + site
+bun run build:no-screenshots  # skip the Playwright screenshot run
 ```
 
-This command generates static content into the `build` directory and can be served using any static contents hosting service.
+Output goes to `build/`. The screenshots come from `bun run
+generate-screenshots` (the Playwright screenshots suite in `frontend/`); they
+are written to `static/img/generated/` and `static/img/features/`, both
+gitignored.
 
 ## Deployment
 
-Using SSH:
-
-```bash
-USE_SSH=true yarn deploy
-```
-
-Not using SSH:
-
-```bash
-GIT_USER=<Your GitHub username> yarn deploy
-```
-
-If you are using GitHub pages for hosting, this command is a convenient way to build the website and push to the `gh-pages` branch.
+Pushes to `main` that touch `docs/**` deploy the site to GitHub Pages through
+`.github/workflows/docs.yml`. There is no `docusaurus deploy` / `gh-pages`
+step.

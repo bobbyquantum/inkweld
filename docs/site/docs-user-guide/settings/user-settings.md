@@ -7,7 +7,7 @@ sidebar_position: 1
 
 # User Settings
 
-User settings control your Inkweld experience across all projects. Open the settings dialog from the account menu in the top navigation. It has six sections: **Account**, **General**, **Appearance**, **Authorized Apps**, **Project Tree** and **Project**.
+User settings control your Inkweld experience across all projects. Click your avatar in the top navigation and choose **Settings**. It has six sections: **Account**, **General**, **Appearance**, **Authorized Apps**, **Project Tree** and **Project**.
 
 ## Account
 
@@ -38,15 +38,47 @@ Administrators can open any profile, including private ones, for moderation purp
 Profile visibility is a server-side setting and is not shown in local-only mode, where there is no one else to share with.
 :::
 
+### Sync capacity
+
+In server mode, the Account tab has a **Sync capacity** section showing how much server storage your projects use: documents, media, covers and published files for the projects you own. Projects other people share with you count against their owner, not you.
+
+- If your server limits storage, a meter shows what you have **used** out of your allowance. It turns to a warning as you approach the limit.
+- If the server does not set a limit, it simply shows how much you use.
+- When the allowance is reached the meter says **Storage full**. New uploads (images, covers, published files) and new projects are paused; media you add stays on your device and uploads once there is room. **Editing, syncing, reading, exporting and deleting all keep working.**
+- To make room, delete unused media or projects, or ask your server administrator for more capacity.
+
+The same meter appears in the bookshelf's top bar when your server enforces a limit, and a **Storage full** warning shows beside the connection status inside a project.
+
 ### Sign-in methods
 
-Under **Authentication** the Account tab lists how you can sign in — passkeys, password and GitHub, depending on what your server allows. Passkeys can be added, renamed and removed here.
+Under **Authentication** the Account tab lists how you can sign in — passkeys, password and GitHub, depending on what your server allows. Passkeys can be added, renamed and removed here. See [Creating Your Account](../getting-started/account-setup#managing-passkeys).
+
+### Delete account
+
+In server mode, the bottom of the Account tab has a **Delete account…** button. Deleting your account is permanent and removes:
+
+- every project you own, with its documents, worldbuilding, media and published files
+- your profile, avatar, banner and background
+- your passkeys, sign-in sessions, authorized apps and your access to projects shared with you
+- comments you wrote, including on other people's projects
+
+You are asked to type your username to confirm. **Export any projects you want to keep first.** The button is not shown in Browser or Cloud Sync mode, where no server account exists. If you can no longer sign in, the public `/delete-account` page on your server lets you sign in and delete from there, and your server administrator can also delete the account for you.
 
 ## General
 
 ### Guided Tours
 
-**Offer guided tours on new screens** controls whether Inkweld offers a short tour the first time you open a screen. When it is off, no tour is offered automatically — you can still start one from the account menu.
+**Offer guided tours on new screens** controls whether Inkweld offers a short tour the first time you open a screen. When it is off, no tour is offered automatically — you can still start one whenever you like.
+
+A tour is a short, step-by-step walk-through that highlights parts of the screen. There are tours for the bookshelf, the project workspace and the canvas. When one is offered, a card asks whether to **Take the tour**, **Not now**, or **Don't show tutorials**; the last switches this setting off for all tours, including ones added later.
+
+To replay a tour, open your avatar menu and choose **Take a tour** (on the bookshelf and, on larger screens, inside a project). The canvas tour is replayed from the help button in the canvas sidebar.
+
+### Writing
+
+**Convert Markdown as I type** is off by default. When it is on, typing `# `, `> `, `- ` or `1. ` at the start of a line turns it into a heading, quote or list, and **bold** or _italic_ is formatted as you close it. It also turns straight quotes into curly ones. If a conversion isn't what you wanted, press **Backspace** straight away to undo it. The setting applies to documents you open after changing it.
+
+It is off by default because prose often starts a line with `#` or `-`.
 
 ## Appearance
 
@@ -55,7 +87,7 @@ Under **Authentication** the Account tab lists how you can sign in — passkeys,
 Choose how tightly the app's chrome is packed — the sidebar, tabs, toolbars and status bars:
 
 - **Comfortable** — roomier rows and taller bars
-- **Compact** — tighter chrome, so more of your project fits on screen
+- **Compact** (the default) — tighter chrome, so more of your project fits on screen
 
 Your writing is never resized.
 
@@ -66,7 +98,7 @@ If your server administrator allows it, you can pick the background shown behind
 The login page always uses the server's background — nobody is signed in when it renders. When your administrator has not enabled personal backgrounds, this section is hidden.
 
 :::tip
-Light or dark mode is chosen from the **Theme** control in the account menu, not in this dialog.
+Light or dark mode is chosen from the **Theme** control in the avatar menu, not in this dialog. It has three buttons: **Light**, **Dark** and **Follow System**, which switches with your device's own light/dark setting.
 :::
 
 ## Authorized Apps
@@ -85,7 +117,7 @@ When enabled, the folder path of the open document or element is shown above the
 
 ### Clicking a Folder Opens It
 
-Off by default: clicking a folder in the project tree only expands or collapses it, and you open its [corkboard and outline](../organizing/scenes-corkboard-outline#opening-a-folder) by double-clicking or with **Open Folder**. When enabled, a click also opens the folder in a tab. Clicking an expanded folder then opens it without collapsing it; use the arrow beside it to collapse.
+The setting reads "Clicking a folder opens its corkboard as well as expanding it". It is off by default: clicking a folder in the project tree only expands or collapses it, and you open its [corkboard and outline](../organizing/scenes-corkboard-outline#opening-a-folder) by double-clicking or with **Open Folder**. When enabled, a click also opens the folder in a tab. Clicking an expanded folder then opens it without collapsing it; use the arrow beside it to collapse.
 
 ## Project
 
@@ -103,4 +135,4 @@ When enabled (the default), Inkweld saves a snapshot of each document you edited
 
 ## Server Connections
 
-Switching servers, adding a new connection and moving a browser-only project to a server are done from the **account menu** rather than this dialog: use **Switch profile**, **Add profile…** or **Manage profiles…**. See [Profiles: Switching, Adding and Upgrading](../getting-started/client-mode.md#profiles-switching-adding-and-upgrading).
+Switching servers, adding a new connection and moving a browser-only project to a server are done from the **account menu** rather than this dialog: use the switch-profile button beside your name, then **Add profile…** or **Manage profiles…**. See [Profiles: Switching, Adding and Upgrading](../getting-started/client-mode.md#profiles-switching-adding-and-upgrading).

@@ -17,7 +17,9 @@ Project archives are complete snapshots of an Inkweld project packaged as ZIP fi
 - Complete element tree structure (folders, documents, worldbuilding entries)
 - Document content as ProseMirror JSON
 - Worldbuilding data (flattened from Yjs CRDTs)
-- Schemas, relationships, tags, and publish plans
+- Schemas, relationships (including custom relationship types), tags, and publish plans
+- Time systems (calendars for the Timeline feature) and random generators
+- Media-to-element tag assignments
 - Media files (cover images, inline images)
 - Optional document snapshots (version history)
 
@@ -33,12 +35,15 @@ project-slug_YYYY-MM-DD_HH-MM-SS.inkweld.zip
 ├── documents.json             # ProseMirror document content
 ├── worldbuilding.json         # Worldbuilding entry data
 ├── schemas.json               # Worldbuilding templates
+├── time-systems.json          # Project calendars (Timeline)
+├── generators.json            # Random generators
 ├── relationships.json         # Element-to-element links
 ├── relationship-types.json    # Custom relationship definitions
 ├── tags.json                  # Tag definitions
 ├── element-tags.json          # Element-tag assignments
+├── media-tags.json            # Media-to-element assignments
 ├── publish-plans.json         # Export configurations
-├── snapshots.json             # Document version history (optional)
+├── snapshots.json             # Document version history (always written; may be empty)
 ├── media-index.json           # Media file manifest
 └── media/                     # Binary media files
     ├── cover.jpg
@@ -164,6 +169,16 @@ interface ArchiveWorldbuildingData {
 }
 ```
 
+```typescript
+interface ArchiveWorldbuildingData {
+  // ...fields above, plus:
+  /** Per-element background appearance (menu / content regions) */
+  appearance?: ElementAppearance;
+}
+```
+
+`appearance` is stored in the element's identity map, not in `data`, because schemas such as Character already use an `appearance` field group there.
+
 Field keys use dot notation for nested structures (e.g., `"appearance.height": "180cm"`).
 
 Each worldbuilding element carries its own copy of its schema (the `schema` Yjs
@@ -172,6 +187,22 @@ so an element customised away from the shared project schema keeps its shape on
 import. Archives written before per-element schemas omit both fields; on first
 open the element copies the shared schema in, which is the same recovery path
 used for elements that predate the feature.
+
+### time-systems.json
+
+Project-owned calendars used by the Timeline feature (`TimeSystem[]`, see `frontend/src/app/models/time-system.ts`): `id`, `name`, `isBuiltIn`, `unitLabels`, `subdivisions`, `format`, `parseSeparator` and optional per-unit aliases.
+
+### generators.json
+
+Random generators defined in the project (`Generator[]`, see `frontend/src/app/models/generator.ts`): `id`, `name`, `icon`, `description`, `category`, a root `template` and the `rules` it references (each rule has a `key` and weighted `entries`). Export always writes the file, possibly as `[]`.
+
+### relationships.json and relationship-types.json
+
+`relationships.json` holds the element-to-element links. `relationship-types.json` holds the project's `customRelationshipTypes` (`RelationshipTypeDefinition[]`); built-in types are not exported.
+
+### media-tags.json
+
+Assignments of media library items to worldbuilding elements (`MediaTag[]`: `id`, `mediaId`, `elementId`, `createdAt`). Export always writes it, possibly as `[]`.
 
 ### snapshots.json
 
@@ -226,6 +257,10 @@ The current archive format version is **1** (defined in `ARCHIVE_VERSION`).
 | Version | Change         |
 | ------- | -------------- |
 | 1       | Initial format |
+
+### Optional Files and Compatibility
+
+`time-systems.json`, `generators.json`, `media-tags.json`, `relationship-types.json` and the other list files were added over time without a version bump: on import a missing file is read as an empty list, so older archives still import. The same holds for the `appearance`, `schema` and `schemaBaseHash` fields of a worldbuilding entry.
 
 ### Version Checking on Import
 

@@ -34,7 +34,7 @@ Some Inkweld instances are pre-configured to automatically start in server mode.
 | Version history & snapshots             |     ✅ local      |             ✅ synced              |            ✅ synced            |
 | Media library & covers                  |        ✅         |                 ✅                 |               ✅                |
 | Publishing (PDF, EPUB, HTML…)           |        ✅         |                 ✅                 |               ✅                |
-| AI features, MCP API keys               |        ⬜         |                 ⬜                 | ✅ (if the server enables them) |
+| AI features, MCP access                 |        ⬜         |                 ⬜                 | ✅ (if the server enables them) |
 | Backup                                  |  Export archive   | Continuous mirror + export archive |     Server + export archive     |
 | Move to another mode later              |        ✅         |                 ✅                 |               ✅                |
 | Cost to run                             |       Free        |     Free (your storage quota)      |  Self-host, or a hosted server  |
@@ -74,7 +74,11 @@ Ideal for writing teams, and for anyone who wants sync that keeps running while 
 
 ## Setting Up Cloud Sync
 
-Choose **Cloud Sync** and pick your provider.
+Choose **Cloud Sync** (the button reads **Connect Cloud Storage**) and pick your provider.
+
+:::note
+**Nextcloud** is always offered. **Dropbox** appears only when the Inkweld you are using has been set up with a Dropbox app key, which is a choice made by whoever builds or hosts it. If you only see Nextcloud, ask whoever runs your Inkweld whether Dropbox can be enabled.
+:::
 
 - **Dropbox:** you sign in on Dropbox's own page. Inkweld never sees your password; Dropbox hands back permission to use a single app folder.
 - **Nextcloud:** you enter your server address, username and an app password. Your Nextcloud needs a one-time change to allow Inkweld to connect; see [Cloud Sync with Nextcloud](./nextcloud-sync).
@@ -97,12 +101,12 @@ If you choose **Browser**, you'll create a local profile:
   alt="Offline mode profile setup form"
 />
 
-| Field            | Description                               |
-| ---------------- | ----------------------------------------- |
-| **Username**     | A short identifier (used in project URLs) |
-| **Display Name** | Your name as shown in the app             |
+| Field            | Description                                                              |
+| ---------------- | ------------------------------------------------------------------------ |
+| **Username**     | A short identifier (used in project URLs); optional, defaults to `local` |
+| **Display Name** | Your name as shown in the app; optional, defaults to `Local User`        |
 
-Click **Start in Browser** to begin. Your profile is saved locally and you'll be taken to your bookshelf.
+On the mode screen click **Start in Browser**, fill in these two fields, then click **Create Browser profile** to begin. Your profile is saved locally and you'll be taken to your bookshelf.
 
 :::info[Data Storage]
 In Browser mode, your projects are stored in your browser's IndexedDB. Clearing browser data will remove your projects, so use the [**Export** feature](../organizing/import-export) to create backups.
@@ -135,12 +139,14 @@ Open the user menu (your avatar). The header shows who you are and where that pr
 
 ### Upgrading
 
-A profile can move up when your needs grow. From a Browser profile choose **Upgrade this profile…** in the user menu:
+A profile can move up when your needs grow. The user menu shows an upgrade button next to your connection status. On a Browser profile it reads **Connect to sync**; on a Cloud Sync profile it reads **Move to a server**. (Profiles on a server have nothing further to upgrade to, so the button does not appear.)
+
+From a Browser profile choose **Connect to sync**:
 
 - **Sync to your own cloud storage** (Dropbox or Nextcloud). Inkweld creates the cloud profile, copies every project, setting and cover across under the same username, and starts syncing. Your other devices can then connect to the same account.
 - **Move to an Inkweld server.** Log in or register, and your projects are copied to that server profile. This adds live collaboration and sharing.
 
-A cloud profile can move to a server the same way. Nothing is deleted: the old profile stays in the list, with a note of where its projects went and under which username, until you remove it.
+A Cloud Sync profile can move to a server the same way with **Move to a server**. Nothing is deleted: the old profile stays in the list, with a note of where its projects went and under which username, until you remove it.
 
 One cloud account can hold several authors. When you connect an account that already has Inkweld profiles in it, you are asked whether to **continue as** one of them (your projects from that author appear on this device) or **add a new profile** that keeps its own projects in the same account. If you connect a Browser profile to sync and the account already has an author with the same username, any projects that share an address are listed so you can give the copies a new one before anything is written; nothing is overwritten.
 

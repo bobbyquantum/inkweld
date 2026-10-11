@@ -46,8 +46,8 @@ graph TB
 - **Offline Storage**: IndexedDB via y-indexeddb
 - **Real-Time**: Yjs + y-websocket provider
 - **Editor**: ProseMirror with y-prosemirror binding
-- **Build**: Angular CLI + Vite
-- **Testing**: Vitest (unit) + Playwright (e2e)
+- **Build**: Angular CLI (`@angular/build` application builder, esbuild + Vite dev server)
+- **Testing**: Vitest (unit, with `vitest-mock-extended` for mocks) + Playwright (e2e)
 
 ### Modern Angular Patterns
 
@@ -76,7 +76,8 @@ export class MyComponent {
 - **UnifiedProjectService** - Hybrid online/offline operations
 - **DocumentService** - Yjs document lifecycle
 - **WorldbuildingService** - Template/schema system
-- **AuthService** - Authentication and session management
+- **UserService** (`services/user/`) - Current user, sign-in state and account actions; passkey, recovery, password-reset and policy-acceptance helpers live in `services/auth/`
+- **DocumentSyncPlannerService** (`services/sync/`) - Decides which documents "Sync All" can skip (see [Bulk Sync Fast Path](#bulk-sync-fast-path))
 
 ### Editor Schema
 
@@ -150,33 +151,66 @@ convert them for a format and never write back to the stored content.
 - **Framework**: Hono (lightweight web framework)
 - **Database**: SQLite or D1 via Drizzle ORM
 - **Document Storage**: LevelDB (per-project instances)
-- **Real-Time**: Native WebSocket support
-- **Testing**: Bun's built-in test runner
+- **Real-Time**: Yjs over WebSocket (Bun's native WebSocket, or a Durable Object on Workers)
+- **Testing**: Bun's built-in test runner (`bun test`)
 
 ### API Architecture
 
+Routes are OpenAPI-described Hono routers (`@hono/zod-openapi`) mounted under `/api/v1`, with Zod schemas shared between validation and the generated spec:
+
 ```typescript
-// Hono route example
-app.get('/api/projects', authMiddleware, async (c) => {
+// Simplified shape of a route in backend/src/routes/
+app.use('/projects/*', requireAuth);
+app.get('/projects', async (c) => {
   const user = c.get('user');
-  const projects = await projectService.findByUser(user.id);
+  const projects = await projectService.findByUser(c.get('db'), user.id);
   return c.json(projects);
 });
 
-// WebSocket upgrade
-app.get('/ws/:projectId', async (c) => {
-  const projectId = c.req.param('projectId');
-  return wsHandler.upgrade(c.req.raw, projectId);
-});
+// Collaboration WebSocket: /api/v1/ws/yjs?documentId=<username>:<slug>:<elementId>
+// (the client sends its JWT as the first message; no token in the URL)
 ```
 
 ### Key Modules
 
-- **auth/** - Session-based authentication
-- **routes/** - HTTP endpoints
+- **config/** - Environment parsing and route registration (including rate limits)
+- **middleware/** - Auth, CSRF/CORS helpers, per-runtime database injection, error handling, request logging
+- **routes/** - HTTP endpoints (one OpenAPI router per area)
+- **schemas/** - Zod/OpenAPI request and response schemas
 - **services/** - Business logic layer
 - **db/** - Drizzle ORM schema and database setup
-- **durable-objects/** - (Cloudflare Workers deployment only)
+- **mcp/** - Model Context Protocol server (tools, resources, OAuth-grant permission checks)
+- **durable-objects/** - Cloudflare Workers only: the per-project Yjs Durable Object
+- **utils/** - Shared helpers (session validity, CSP, project access, WebSocket guards)
+
+Entry points per runtime are `bun-app.ts` / `bun-runner.ts`, `node-app.ts` / `node-runner.ts` and `worker-app.ts`; all call the same `registerCommonRoutes()`.
+
+#### Module map
+
+| Area                                      | Where to look                                                                                                                                                               |
+| ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Sync capacity (per-user storage quotas)   | `services/quota.service.ts`, `utils/sync-quota.ts`; guide: [Sync Capacity](../admin-guide/sync-capacity.md)                                                                 |
+| Legal documents and policy acceptance     | `services/legal.service.ts`, `/config/legal/*` routes                                                                                                                       |
+| Account deletion (self-service and admin) | `services/account-deletion.service.ts`                                                                                                                                      |
+| Content-Security-Policy                   | `utils/csp.ts` (kept in step with `frontend/public/_headers`)                                                                                                               |
+| Custom HTML injection, SPA serving        | `utils/spa-utils.ts`; guide: [Custom HTML](../admin-guide/custom-html.md)                                                                                                   |
+| AI image generation providers             | `services/image-providers/` (OpenAI, fal.ai, OpenRouter, Stable Diffusion, Workers AI), `image-generation.service.ts`, `image-profile.service.ts`, `image-audit.service.ts` |
+| Linting and auto-review                   | `services/openai-lint.service.ts`, `services/auto-review.service.ts`, `auto-review-rejection.service.ts`                                                                    |
+| Passkeys and recovery                     | `services/passkey.service.ts`, `passkey-recovery.service.ts`                                                                                                                |
+| Home Assistant ingress                    | `utils/ingress.ts`, `services/ingress-auth.service.ts`                                                                                                                      |
+| MCP and its OAuth server                  | `mcp/`, `services/mcp-oauth.service.ts`; guide: [MCP & OAuth](./mcp-oauth.md)                                                                                               |
+| Runtime configuration, email, appearance  | `services/config.service.ts`, `email.service.ts`, `appearance.service.ts`                                                                                                   |
+| Presence, activity, writing sessions      | `services/presence.service.ts`, `activity.service.ts`, `writing-session.service.ts`                                                                                         |
+
+### Shared Packages
+
+`packages/` holds TypeScript workspaces used by both the frontend and backend (installed from the repo root with `bun install`, tested with `npm run test:packages`):
+
+| Package                                                 | Purpose                                                                       |
+| ------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `@inkweld/prosemirror` (`packages/inkweld-prosemirror`) | ProseMirror schema _specs_, Yjs XML serialisation and Markdown/XML conversion |
+| `@inkweld/presence` (`packages/inkweld-presence`)       | Binary presence protocol multiplexed onto the elements Yjs WebSocket          |
+| `@inkweld/async` (`packages/inkweld-async`)             | Sequential/paginated/bounded-concurrency promise helpers                      |
 
 ## Real-Time Collaboration (Yjs)
 
@@ -213,21 +247,21 @@ graph TD
 
 ### Per-Project Storage
 
-Each project gets its own LevelDB instance:
+On Bun/Node each project gets its own LevelDB instance at `<DATA_PATH>/<username>/<slug>/.yjs`, next to the project's media and cover files. On Cloudflare Workers the same role is played by a Durable Object per project with its own SQLite storage:
 
 ```mermaid
 %%{init: {'theme':'neutral'}}%%
 graph TD
-    Data["📁 data/"]
+    Data["📁 DATA_PATH (default ./data)"]
 
     Data --> U1["👤 username1/"]
     Data --> U2["👤 username2/"]
 
     U1 --> P1["📂 project-slug/"]
-    P1 --> L1["💾 leveldb/<br/>(Yjs documents)"]
+    P1 --> L1["💾 .yjs/<br/>(LevelDB: Yjs documents)"]
 
     U2 --> P2["📂 another-project/"]
-    P2 --> L2["💾 leveldb/<br/>(Yjs documents)"]
+    P2 --> L2["💾 .yjs/<br/>(LevelDB: Yjs documents)"]
 
     style Data fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
     style U1 fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
@@ -243,7 +277,15 @@ Benefits:
 - **Isolation** - Projects don't interfere
 - **Scalability** - Independent read/write operations
 - **Cleanup** - Easy to delete project data
-- **Connection pooling** - Automatic idle connection management
+- **Idle eviction** - Documents with no connected sockets are dropped from memory after about a minute, and a project's LevelDB handle closes with its last document
+
+### Server Real-Time Layer
+
+Clients connect to `/api/v1/ws/yjs?documentId=<username>:<slug>[:<elementId>]`. The first message is the user's JWT (keeping tokens out of URLs and logs); the server answers `authenticated` or `access-denied:<reason>` and only then starts the Yjs sync protocol. Viewers receive updates but cannot send them. Prose documents each get a connection, while the project's _elements_ document also carries presence (who is online and where) multiplexed by `@inkweld/presence`.
+
+- **Bun / Node** - `services/yjs.service.ts` keeps `WSSharedDoc` instances in memory, persists every update to the project's LevelDB, compacts a document after 50 incremental updates (`LEVELDB_COMPACT_THRESHOLD`), and evicts idle documents. `services/presence.service.ts` holds the in-process presence registry.
+- **Cloudflare Workers** - `durable-objects/yjs-project.do.ts` is one Durable Object per `username:slug` that manages all of the project's documents (rather than one object per document, which is far cheaper). It uses WebSocket hibernation, keeps connection state in socket attachments, enforces the auth deadline with an alarm, persists update frames and a compacted snapshot through `yjs-do-storage.ts`, and owns its own presence registry. `durable-objects/ws-rate-limiter.ts` throttles reconnect storms per document, and `utils/ws-guards.ts` holds the guards for its asynchronous auth step.
+- **Access** - Access is resolved once when a socket authenticates, so a collaborator removal or role change closes that user's open sockets (`utils/collaborator-revocation.ts`) and the client's reconnect re-runs the access check.
 
 ### Bulk Sync Fast Path
 
@@ -270,54 +312,62 @@ document. Instead it first asks the server which documents have changed:
   revision, a changed digest, or unreadable local state all force a sync.
 
 The planner is deliberately conservative: a bug can only cause an extra sync,
-never a missed edit.
+never a missed edit. The priority (currently open) document is always synced.
 
 ## Database Schema
 
 ### Drizzle ORM Schema
 
+The relational database holds accounts and metadata. **Elements, prose, worldbuilding data and element schemas live in Yjs documents**, not in tables. The tables below are the core ones; others cover OAuth/MCP clients and sessions, comments, snapshots, published files, announcements, activity, image profiles and audits, and runtime config (`backend/src/db/schema/`).
+
 ```mermaid
 %%{init: {'theme':'neutral'}}%%
 erDiagram
-    User ||--o{ Project : owns
-    User ||--o{ Session : has
-    Project ||--o{ ProjectElement : contains
-    Project ||--o{ WorldbuildingSchema : defines
+    users ||--o{ projects : owns
+    users ||--o{ user_passkeys : registers
+    users ||--o{ project_collaborators : "is invited as"
+    projects ||--o{ project_collaborators : has
+    projects ||--o{ document_snapshots : has
+    projects ||--o{ published_files : has
 
-    User {
-        int id PK
+    users {
+        string id PK
         string username
         string email
-        string passwordHash
-        string avatarPath
+        string password "null in passwordless mode"
         boolean approved
+        boolean enabled
         boolean isAdmin
+        int sessionsValidFrom "token revocation watermark"
+        int syncQuotaBytes
     }
 
-    Project {
-        int id PK
-        string name
+    projects {
+        string id PK
         string slug
+        string title
         string description
-        int userId FK
-        string coverImage
+        string user_id FK
+        string cover_image
     }
 
-    ProjectElement {
+    project_collaborators {
         int id PK
-        int projectId FK
-        string name
-        string type
-        int parentId FK
+        string project_id FK
+        string user_id FK
+        string role
+        string status
     }
 
-    WorldbuildingSchema {
-        int id PK
-        int projectId FK
-        string name
-        json schema
+    user_passkeys {
+        string id PK
+        string user_id FK
+        string credential_id
+        int counter
     }
 ```
+
+Schema changes ship as Drizzle migrations in `backend/drizzle/` (a single `0000_baseline.sql` plus later migrations generated with `bunx drizzle-kit generate`); they run automatically on startup, and via `wrangler d1 migrations` on Cloudflare.
 
 ### Document Storage Architecture
 
@@ -355,42 +405,45 @@ sequenceDiagram
     participant User
     participant Browser
     participant Backend
-    participant SessionStore
     participant Database
 
-    User->>Browser: Enter credentials
-    Browser->>Backend: POST /api/v1/auth/login
-    Backend->>Database: Verify credentials
+    User->>Browser: Passkey prompt (or password, if enabled)
+    Browser->>Backend: POST /api/v1/auth/passkeys/login/start + finish
+    Backend->>Database: Verify credential, check approved/enabled
     Database-->>Backend: User found
-    Backend->>SessionStore: Create session
-    SessionStore-->>Backend: Session ID
-    Backend-->>Browser: Set httpOnly cookie
-    Browser-->>User: Login successful
+    Backend-->>Browser: { user, token } (HS256 JWT, 30 days)
+    Browser-->>User: Signed in
 
-    Note over Browser,Backend: Subsequent requests include session cookie
+    Note over Browser,Backend: Subsequent requests send Authorization: Bearer token
 
     Browser->>Backend: GET /api/v1/users/me
-    Backend->>SessionStore: Validate session
-    SessionStore-->>Backend: Session valid
+    Backend->>Backend: Verify signature, expiry, iat >= sessionsValidFrom
     Backend->>Database: Get user data
-    Database-->>Backend: User data
     Backend-->>Browser: User profile
 ```
 
-### Session-Based Auth
+### Tokens, Not Server Sessions
 
-- **httpOnly cookies** for CSRF protection
-- **Session store** backed by Drizzle
-- **No JWT tokens** (intentional design choice)
-- **Optional GitHub OAuth** (configurable)
+- **JWT bearer tokens** - sign-in returns `{ user, token }`; the client stores the token (`AuthTokenService`) and sends `Authorization: Bearer <token>`. Tokens are HS256-signed with `DATABASE_KEY` / `SESSION_SECRET` and last 30 days. WebSockets authenticate with the same token as their first message.
+- **Revocation** - because tokens are stateless, each user has a `sessionsValidFrom` watermark. It is bumped by password reset, passkey recovery, and admin disable/unapprove; any token issued before it is rejected (`utils/session-validity.ts`, also enforced by the Durable Object).
+- **Enrolment tokens** - a newly registered user awaiting approval gets a 15-minute token that can only enrol a passkey.
+- **MCP** uses separate OAuth 2.1 access tokens scoped to per-project grants; see [MCP & OAuth](./mcp-oauth.md).
+- **Optional GitHub OAuth** sign-in.
+
+### Passwordless-First
+
+- **Passkeys (WebAuthn)** are the default sign-in. `PASSWORD_LOGIN_ENABLED` defaults to `false`: `/auth/login` and the password-reset endpoints are disabled, and registration enrols a passkey immediately (via `@simplewebauthn/server`; challenges are single-use and expire after 5 minutes).
+- **Email recovery** (`EMAIL_RECOVERY_ENABLED`, needs SMTP) - in passwordless mode a magic link lets a user enrol a _new_ passkey from a verified email; existing passkeys are kept. In password mode it powers the classic forgot-password flow.
+- **User approval workflow** (optional) gates new accounts.
+- **Home Assistant ingress** - when run as a Home Assistant app, requests from the Supervisor proxy are trusted by TCP peer address (never by header alone) and the HA user is linked to an Inkweld account by `POST /api/v1/auth/ingress`. A session is only valid for the HA user making the request.
 
 ### Security Measures
 
-- **CORS** configuration via `ALLOWED_ORIGINS`
-- **CSRF protection** on state-changing requests
-- **Content Security Policy** headers
-- **Rate limiting** (configurable)
-- **User approval workflow** (optional)
+- **CORS** configuration via `ALLOWED_ORIGINS`, which is also the expected origin set for passkeys
+- **CSRF protection** (origin checks) on state-changing requests
+- **Content Security Policy** on the served `index.html`; scripts are allowed by hash/origin, so the built page contains no inline script (`utils/csp.ts`)
+- **Rate limiting** on auth, passkey, recovery and OAuth client-registration endpoints. The limits are fixed (not configurable), per client IP and held in process memory, so on Workers use Cloudflare WAF rules instead. See [API](./api.md#rate-limiting)
+- **Storage quotas** (optional) refuse new uploads, never edits, once an account is over its allowance
 
 ## Deployment Targets
 
@@ -406,7 +459,7 @@ graph TB
         BunProd["🚀 Bun Server<br/>(Primary)"]
         NodeProd["Node.js Server<br/>(Compatible)"]
         Docker["🐳 Docker Container<br/>(Recommended)"]
-        CF["☁️ Cloudflare Workers<br/>(Experimental)"]
+        CF["☁️ Cloudflare Workers<br/>(hosted inkweld.app)"]
     end
 
     subgraph Storage["Storage Backends"]
@@ -431,41 +484,44 @@ graph TB
 ### Bun (Primary)
 
 ```bash
+cd backend
 bun run dev          # Development
-bun run build        # Production build
-bun run start        # Production server
+bun run build        # Production build into dist/
+bun run start        # Production server (NODE_ENV=production)
 ```
 
 ### Node.js (Compatible)
 
 ```bash
+cd backend
 bun run build:node   # Transpile for Node
-node dist/node-runner.js
+bun run start:node   # node dist/node-runner.js
 ```
 
-### Cloudflare Workers (Experimental)
+### Cloudflare Workers
 
-```bash
-bun run build:worker
-npx wrangler deploy
-```
+The hosted preview and production sites run here, deployed by CI (see [CI/CD](../admin-guide/ci-cd.md)). To deploy your own, use `bun run cloudflare:setup` and the `cloudflare:*` scripts described in [Getting Started](../getting-started.md#cloudflare-worker--durable-objects). `bun run build:worker` only validates the bundle (`wrangler deploy --dry-run`).
 
 Requires:
 
-- Durable Objects for WebSocket persistence
-- D1 database binding
-- R2 for file storage (optional)
+- Durable Objects (`YJS_PROJECTS`) for WebSocket persistence
+- A D1 database binding
+- An R2 bucket (`STORAGE`) for media and other files
 
 ### Docker (Recommended for Production)
 
 ```bash
 docker build -t inkweld .
-docker run -p 8333:8333 -v inkweld_data:/data inkweld
+docker run -p 8333:8333 -v inkweld_data:/data \
+  -e SESSION_SECRET=$(openssl rand -hex 32) \
+  -e WEBAUTHN_RP_ID=localhost \
+  -e ALLOWED_ORIGINS=http://localhost:8333 \
+  inkweld
 ```
 
 Benefits:
 
-- Single self-contained image with frontend embedded (~340MB)
+- Single self-contained image with the frontend embedded
 - Automatic migrations on startup
 - Volume mounting for persistence
 - Health check endpoint
@@ -533,7 +589,7 @@ Powered by:
 # Frontend
 cd frontend
 bun run build
-bun run compress  # Optional
+bun run compress-wasm  # Optional: Brotli-compress .wasm files
 
 # Backend
 cd backend
@@ -543,18 +599,18 @@ bun run build
 Output:
 
 - **frontend/dist/** - Angular production bundle
-- **backend/dist/** - Bun-optimized backend code
+- **backend/dist/** - Bun-optimized backend code (the Docker image instead compiles a single `inkweld-server` binary with `bun build --compile`)
 
 ### Docker Build
 
 Multi-stage Dockerfile:
 
-1. **Frontend build** stage (Node.js)
-2. **Backend build** stage (Bun)
-3. **Runtime** stage (minimal Bun image)
-   - Copies frontend dist to static assets
-   - Includes migrations for auto-run
-   - Non-root user for security
+1. **Frontend build** stage (Bun image with a Node binary for `ng build`; skipped when CI supplies a pre-built frontend)
+2. **Backend build** stage (Bun) - embeds the frontend assets and compiles a standalone `./inkweld-server` binary with its native modules
+3. **Runtime** stage (`debian:bookworm-slim`)
+   - Runs `./inkweld-server`, not a Bun install
+   - Copies the frontend dist and Drizzle migrations for auto-run
+   - Non-root `inkweld` user and a health check on `/api/v1/health`
 
 ## Testing Strategy
 
@@ -565,10 +621,10 @@ npm test          # Vitest unit tests
 npm run e2e       # Playwright e2e tests
 ```
 
-- **Unit tests** with @ngneat/spectator
-- **E2E tests** with fixtures (authenticatedPage, etc.)
+- **Unit tests** with Vitest and `vitest-mock-extended` (`*.spec.ts` next to the code)
+- **E2E tests** in four groups: `e2e/local` (offline, no backend), `e2e/online` (real Bun backend), `e2e/mcp` and `e2e/screenshots`; each has its own `fixtures.ts`. A Wrangler-runtime variant of the online suite runs in CI
 - **Mock API** handlers in `e2e/mock-api/`
-- **Screenshot tests** for visual regression
+- **Screenshot tests** generate the documentation images
 
 ### Backend Tests
 
@@ -576,10 +632,10 @@ npm run e2e       # Playwright e2e tests
 bun test
 ```
 
-- **Unit tests** for services and utilities
-- **Integration tests** for API endpoints
-- **Supertest** for HTTP assertions
+- **Unit tests** for services and utilities (`*.spec.ts` in `src/`, plus `backend/test/`)
+- **Integration tests** call the Hono app directly (`app.request(...)`), with no HTTP server or Supertest
 - **In-memory SQLite** for test isolation
+- Rate limiting is disabled under `NODE_ENV=test`
 
 ## API Documentation
 
@@ -613,15 +669,14 @@ Output: `frontend/src/api-client/`
 
 - **ESLint** with TypeScript support
 - **Prettier** for formatting
-- **Shared config** across frontend/backend
+- **`npm run typecheck`** (`bun check`) type checks every project, including specs and e2e tests
 
-### Pre-commit Hooks
+### Git Hooks
 
-Consider adding:
+[Husky](https://typicode.github.io/husky/) hooks live in `.husky/` and are installed by `bun install` (the `prepare` script):
 
-- Lint-staged for fast checks
-- Husky for Git hooks
-- Prettier format check
+- **pre-commit** runs `lint-staged` (Prettier on staged frontend, backend and docs files, plus ESLint `--fix` on backend sources) and blocks an accidental `backend/package-lock.json`
+- **pre-push** refuses direct pushes to `main` and checks commit messages with commitlint (conventional commits)
 
 ### CI/CD
 
@@ -640,15 +695,14 @@ GitHub Actions workflow:
 
 - **Lazy loading** for routes
 - **OnPush change detection** where appropriate
-- **Virtual scrolling** for long lists (consider)
 - **Service Worker** for offline support
 
 ### Backend
 
-- **LevelDB connection pooling** with automatic cleanup
+- **LevelDB handles and in-memory documents** are opened on demand and evicted when idle
 - **Database indexing** on foreign keys
 - **Pagination** for large result sets
-- **WebSocket connection limits** (configurable)
+- **Per-document WebSocket reconnect throttling** to protect against reconnect storms
 
 ### Real-Time
 
@@ -668,19 +722,21 @@ graph TD
 
     Root --> FE["🎨 frontend/<br/>(Angular App)"]
     Root --> BE["⚡ backend/<br/>(Bun/Hono API)"]
+    Root --> PK["📦 packages/<br/>(shared libraries)"]
     Root --> Docs["📚 docs/"]
     Root --> Assets["🖼️ assets/<br/>(Demo covers)"]
     Root --> PKG["📄 package.json<br/>(Root scripts)"]
 
     Docs --> Site["📖 site/<br/>(Docusaurus)"]
 
-    FE --> FESrc["src/"]
+    FE --> FESrc["src/ (specs sit next to code)"]
     FE --> FEE2E["e2e/"]
-    FE --> FETest["tests/"]
 
     BE --> BESrc["src/"]
     BE --> BETest["test/"]
-    BE --> BEData["data/"]
+    BE --> BEMig["drizzle/ (migrations)"]
+
+    PK --> PKP["inkweld-prosemirror<br/>inkweld-presence<br/>inkweld-async"]
 
     style Root fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
     style FE fill:#fff3e0,stroke:#f57c00,stroke-width:2px
@@ -696,13 +752,16 @@ bun install          # Install all dependencies
 npm run dev          # Start dev servers
 npm test             # Run all tests
 npm run lint         # Lint all code
+npm run typecheck    # Type check every project (bun check)
 ```
+
+`backend/data/` (or whatever `DATA_PATH` points at) is created at runtime and holds the SQLite file and per-project data; it is not part of the source tree.
 
 ### Git Workflow
 
 1. Create feature branch
 2. Make changes + add tests
-3. Run `npm test` and `npm run lint`
+3. Run `npm test`, `npm run lint` and `npm run typecheck`
 4. Open PR
 5. CI validates
 6. Merge to main

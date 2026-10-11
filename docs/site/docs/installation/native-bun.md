@@ -22,30 +22,14 @@ Choose this method when you:
 ## Prerequisites
 
 - **Bun 1.4+** - [Install Bun](https://bun.sh/)
-- **Node.js 22+** - Required for building the Angular frontend
+- **Node.js 22.22.3+** (or 24.15+ / 26+) - Required for building the Angular frontend; the Angular CLI rejects other versions
 - **Git** - For cloning the repository
 
+:::info[No pre-built binary yet]
+Releases currently publish the [Docker image](./docker) only. The native binary is built from source, as shown below. If you just want a quick, low-maintenance install, Docker is simpler.
+:::
+
 ## Quick Start
-
-### Option 1: Pre-built Binary
-
-Download and run the pre-compiled binary:
-
-```bash
-# Download latest release
-curl -L https://github.com/bobbyquantum/inkweld/releases/latest/download/inkweld-linux-x64 -o inkweld
-chmod +x inkweld
-
-# Create data directory
-mkdir -p data
-
-# Run with required environment variables
-SESSION_SECRET=$(openssl rand -base64 32) \
-DATA_PATH=./data \
-./inkweld
-```
-
-### Option 2: Build from Source
 
 Build and run from the source code:
 
@@ -54,24 +38,55 @@ Build and run from the source code:
 git clone https://github.com/bobbyquantum/inkweld.git
 cd inkweld
 
-# Install dependencies
+# Install dependencies (always from the repo root)
 bun install
 
-# Build the full binary (includes frontend)
-cd backend
-bun run build:binary:full
+# Build the Angular frontend (the binary embeds frontend/dist/browser)
+cd frontend
+bun run build
 
-# Run it
-SESSION_SECRET=$(openssl rand -base64 32) ./dist/inkweld
+# Build the full binary (includes the frontend)
+cd ../backend
+bun run build:binary:full
+# Output: backend/dist/inkweld
+```
+
+Create a `.env` file in `backend/` (the working directory you will run from):
+
+```bash
+NODE_ENV=production
+SESSION_SECRET=<run: openssl rand -hex 32>
+# Required when NODE_ENV=production. Hostname only; cannot be changed once
+# users have registered passkeys. Use localhost for a local trial.
+WEBAUTHN_RP_ID=localhost
+ALLOWED_ORIGINS=http://localhost:8333
+```
+
+Then run it from `backend/`:
+
+```bash
+./dist/inkweld
 ```
 
 Open [http://localhost:8333](http://localhost:8333) in your browser.
+
+:::warning[Run it next to the `drizzle/` folder]
+The binary applies database migrations from a `drizzle/` directory in its **working directory** (or the directory named by `DRIZZLE_MIGRATIONS_DIR`). The migration files are not embedded in the binary. If the folder is missing the server logs "Migrations folder not found" and starts with an empty database, which then fails. Running from `backend/` works because `backend/drizzle/` is already there; when you copy the binary elsewhere, copy `drizzle/` with it or set `DRIZZLE_MIGRATIONS_DIR`.
+:::
+
+### Interactive setup wizard
+
+If you start the compiled binary from an interactive terminal and it cannot find a `.env` file, it offers a **setup wizard** instead of failing. It looks in the current directory, then the parent directory, then `~/.inkweld/.env` (`%APPDATA%\Inkweld\.env` on Windows). Variables you set in your shell are not considered, so `SESSION_SECRET=... ./inkweld` with no `.env` still starts the wizard.
+
+The wizard asks for the data directory, port, database path, whether new users need approval, an optional default admin account and an optional OpenAI key. It generates a `SESSION_SECRET` for you and saves a `.env` (in `~/.inkweld/` or the current directory) containing `NODE_ENV=production`, `ALLOWED_ORIGINS=http://localhost:<port>` and `WEBAUTHN_RP_ID=localhost`.
+
+That is right for trying Inkweld locally. Before exposing it on a real domain, edit the saved `.env`: set `ALLOWED_ORIGINS` to your public URL and `WEBAUTHN_RP_ID` to its hostname **before anyone registers a passkey**. The wizard never runs when there is no terminal (systemd, Supervisor, PM2), so create the `.env` yourself for services.
 
 ## Build Options
 
 ### Standard Binary
 
-Creates a Bun binary that serves the API only (frontend served separately):
+Creates a Bun binary that serves the API only (frontend served separately). It does not need a frontend build:
 
 ```bash
 cd backend
@@ -84,7 +99,12 @@ bun run build:binary
 Creates a self-contained binary with the Angular frontend embedded:
 
 ```bash
-cd backend
+# 1. Build the frontend first (the script stops if frontend/dist/browser is missing)
+cd frontend
+bun run build
+
+# 2. Build the binary
+cd ../backend
 bun run build:binary:full
 # Output: dist/inkweld
 ```
@@ -110,29 +130,33 @@ Create a `.env` file or set environment variables:
 
 ```bash
 # Required
-SESSION_SECRET=your-secret-key-minimum-32-characters-long
+SESSION_SECRET=<run: openssl rand -hex 32>
+
+# Required when NODE_ENV=production. Your public hostname only (no protocol
+# or port). Cannot be changed once users have registered passkeys.
+WEBAUTHN_RP_ID=inkweld.yoursite.com
+
+# The public URL(s) users open Inkweld from (CORS and passkey origin check)
+ALLOWED_ORIGINS=https://inkweld.yoursite.com
 
 # Server
+NODE_ENV=production
 PORT=8333
-HOST=0.0.0.0
 
-# Database (SQLite)
-DB_TYPE=sqlite
-DB_PATH=./data/inkweld.db
-
-# Data storage
+# Data storage (the SQLite database defaults to <DATA_PATH>/inkweld.db)
 DATA_PATH=./data
-
-# CORS (for production with separate frontend)
-ALLOWED_ORIGINS=https://yoursite.com
+# DB_PATH=./data/inkweld.db
 
 # Features
 USER_APPROVAL_REQUIRED=true
 GITHUB_ENABLED=false
 SERVE_FRONTEND=true
+
+# Set to true only when behind a reverse proxy (see below)
+# TRUST_PROXY=true
 ```
 
-See the [Configuration Guide](../configuration) for all available options.
+Relative paths such as `./data` resolve from the working directory. The server loads the first `.env` it finds: the working directory, then its parent, then `~/.inkweld/.env`. See the [Configuration Guide](../configuration) for all available options.
 
 ## Running as a Service
 
@@ -149,11 +173,14 @@ After=network.target
 Type=simple
 User=inkweld
 Group=inkweld
+# /opt/inkweld must contain the binary, the drizzle/ migrations folder,
+# .env and the data/ directory
 WorkingDirectory=/opt/inkweld
 ExecStart=/opt/inkweld/inkweld
 Restart=always
 RestartSec=5
 Environment=NODE_ENV=production
+# Must define at least SESSION_SECRET, WEBAUTHN_RP_ID and ALLOWED_ORIGINS
 EnvironmentFile=/opt/inkweld/.env
 
 # Security hardening
@@ -189,7 +216,8 @@ If you prefer PM2:
 # Install PM2
 npm install -g pm2
 
-# Start Inkweld
+# Start Inkweld from the directory that holds the binary, drizzle/ and .env
+cd /opt/inkweld
 pm2 start ./inkweld --name inkweld
 
 # Save configuration
@@ -212,12 +240,17 @@ autostart=true
 autorestart=true
 redirect_stderr=true
 stdout_logfile=/var/log/inkweld/inkweld.log
+; SESSION_SECRET, WEBAUTHN_RP_ID and ALLOWED_ORIGINS come from /opt/inkweld/.env
+; (the server finds it in `directory`), or add them here.
 environment=NODE_ENV="production"
 ```
 
 ## Reverse Proxy Setup
 
-For production, run behind a reverse proxy for SSL termination.
+For production, run behind a reverse proxy for SSL termination. When you do:
+
+- Set `ALLOWED_ORIGINS` to the public `https://` URL and `WEBAUTHN_RP_ID` to its hostname.
+- Set `TRUST_PROXY=true` so rate limiting and audit logs use the real client IP from `X-Forwarded-For`. Only do this when the proxy is the only way to reach the server (bind it behind the proxy or firewall the port); otherwise clients can forge the header and escape the login rate limit.
 
 ### Nginx
 
@@ -262,44 +295,40 @@ Caddy automatically handles SSL with Let's Encrypt.
 
 ## Database Migrations
 
-Migrations run automatically on startup. To run them manually:
+Migrations run automatically on startup: the server applies any pending files from the `drizzle/` folder (see the note above) and records them in the `__drizzle_migrations` table, so a fully migrated database is a no-op. A failed migration stops the server rather than starting on a half-migrated schema.
+
+To apply them manually, for example before a risky upgrade, run from a source checkout:
 
 ```bash
 cd backend
 
-# Using Bun directly
-bun run drizzle-kit migrate
-
-# Or apply a specific migration
-bun run drizzle-kit push
+# Apply pending migrations (DB_PATH defaults to ./data/inkweld.db)
+DB_PATH=/opt/inkweld/data/inkweld.db bunx drizzle-kit migrate
 ```
+
+Do not use `drizzle-kit push` on a real database. It syncs the schema directly without recording migrations and is meant for development only.
 
 ## Updating
 
-### From Pre-built Binary
-
-```bash
-# Stop the service
-sudo systemctl stop inkweld
-
-# Download new version
-curl -L https://github.com/bobbyquantum/inkweld/releases/latest/download/inkweld-linux-x64 -o /opt/inkweld/inkweld
-chmod +x /opt/inkweld/inkweld
-
-# Start the service (migrations run automatically)
-sudo systemctl start inkweld
-```
-
-### From Source
+Rebuild from source and deploy the new binary **together with the new `drizzle/` folder**, since new releases can add migrations:
 
 ```bash
 cd inkweld
 git pull origin main
 bun install
-cd backend
-bun run build:binary:full
-sudo systemctl restart inkweld
+(cd frontend && bun run build)
+(cd backend && bun run build:binary:full)
+
+sudo systemctl stop inkweld
+sudo cp backend/dist/inkweld /opt/inkweld/inkweld
+sudo rm -rf /opt/inkweld/drizzle
+sudo cp -r backend/drizzle /opt/inkweld/drizzle
+
+# Start the service (migrations run automatically)
+sudo systemctl start inkweld
 ```
+
+Take a [backup](#backup-and-restore) first.
 
 ## Backup and Restore
 
@@ -363,7 +392,9 @@ Check the error message:
 
 Common issues:
 
-- Missing `SESSION_SECRET` environment variable
+- Missing `SESSION_SECRET` or (with `NODE_ENV=production`) `WEBAUTHN_RP_ID`; the error message names the missing variable
+- Started without a `.env` from an interactive terminal, which launches the setup wizard
+- `Migrations folder not found`: run from a directory that contains `drizzle/`, or set `DRIZZLE_MIGRATIONS_DIR`
 - Port already in use (change `PORT`)
 - Permission denied on data directory
 

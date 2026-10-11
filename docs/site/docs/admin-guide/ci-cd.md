@@ -5,7 +5,7 @@ description: Understand how GitHub Actions builds, tests, and publishes the Inkw
 
 ## Overview
 
-GitHub Actions orchestrates linting, testing, container publishing and the hosted Cloudflare deploys for Inkweld. Successful pushes to `main` build and push a Docker image to GitHub Container Registry (GHCR) and deploy the preview instance, pushes to `production` deploy inkweld.app, and tagged releases produce versioned artifacts.
+GitHub Actions orchestrates linting, type checking, testing, container publishing and the hosted Cloudflare deploys for Inkweld. Successful pushes to `main` build and push a `:dev` Docker image to GitHub Container Registry (GHCR) and deploy the preview instance, pushes to `production` deploy inkweld.app, and version tags (`v*`) publish the versioned release images, including `:latest`.
 
 ## Workflows
 
@@ -16,41 +16,51 @@ GitHub Actions orchestrates linting, testing, container publishing and the hoste
 - Pushes to `main`
 - Pull requests targeting `main`
 
+A newer push to the same ref cancels the run in progress.
+
 #### Jobs
 
-1. **OpenAPI Spec + Client Freshness**
-   - Regenerates `backend/openapi.json` and the Angular client
-     (`frontend/src/api-client/**`) from the current routes
-   - Fails if the committed artifacts differ, so the typed client can never
-     drift from the API
-   - Fix a failure with:
-     `cd backend && bun run generate:openapi && bun run generate:angular-client`
-2. **Test**
-   - Uses Ubuntu runners
-   - Installs Bun + Node dependencies for both apps
-   - Runs linting and the full Vitest/Bun test suites
-3. **Docker Publish** (only on `main` pushes)
-   - Depends on the test job
-   - Builds the Angular app, then the bundled backend Docker image
-   - Pushes to GHCR with cache reuse enabled
+Most jobs run in parallel on Ubuntu runners. Use `bun install --frozen-lockfile` from the repo root.
 
-Published tags:
+| Job                                                 | What it does                                                                                                                                                                                                                                   |
+| --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **OpenAPI Spec + Client Freshness**                 | Regenerates `backend/openapi.json` and the Angular client (`frontend/src/api-client/**`) and fails if the committed files differ. Fix with `cd backend && bun run generate:openapi && bun run generate:angular-client` (needs a Java runtime). |
+| **Lint**                                            | `bun run lint` (code formatting and lint rules).                                                                                                                                                                                               |
+| **Type Check**                                      | `bun run typecheck`: `bun check` over every TypeScript project (frontend app, specs, e2e and Storybook, backend, shared packages). It is the only check on specs, e2e and the backend.                                                         |
+| **Unit Tests (Shared Packages)**                    | Coverage runs for `packages/inkweld-prosemirror`, `inkweld-presence` and `inkweld-async`.                                                                                                                                                      |
+| **Unit Tests (Frontend) - Shard 1/2, 2/2**          | Vitest, split into two shards.                                                                                                                                                                                                                 |
+| **Unit Tests (Frontend) - Coverage**                | Merges the shards' coverage reports (runs even if a shard failed, unless the run was cancelled).                                                                                                                                               |
+| **Unit Tests (Backend)**                            | Bun test runner with an in-memory database and coverage.                                                                                                                                                                                       |
+| **SonarCloud Code Analysis**                        | Scans with the merged coverage. Skipped for Renovate dependency PRs, and waits on the `sonarcloud-analysis` environment.                                                                                                                       |
+| **E2E Tests (Local)**                               | Playwright against the frontend in local (offline) mode.                                                                                                                                                                                       |
+| **E2E Tests (Online) - 2 shards**                   | Playwright against a Bun backend.                                                                                                                                                                                                              |
+| **E2E Tests (Wrangler) - 3 shards**                 | Playwright against the backend running as a Cloudflare Worker under `wrangler dev` (local D1).                                                                                                                                                 |
+| **E2E Tests (Docker) - 2 shards**                   | Playwright against the Docker image.                                                                                                                                                                                                           |
+| **E2E Tests (Screenshots)**                         | Builds the docs site, which runs the Playwright tests that capture the documentation screenshots.                                                                                                                                              |
+| **Build Frontend for Docker**                       | Pushes to `main` only. Starts after lint, type check, every unit-test job and every e2e job above have passed (SonarCloud is not required). Builds and compresses the Angular app.                                                             |
+| **Build Docker (amd64)** / **Build Docker (arm64)** | Pushes to `main` only. Build and push the platform images.                                                                                                                                                                                     |
+| **Create Docker Manifest**                          | Pushes to `main` only. Combines the two platform images into the multi-arch `:dev` tag.                                                                                                                                                        |
 
-- `ghcr.io/bobbyquantum/inkweld:latest`
-- `ghcr.io/bobbyquantum/inkweld:main-<commit-sha>`
+Pull requests run everything except the four Docker jobs.
+
+#### Docker tags published from `main`
+
+- `ghcr.io/bobbyquantum/inkweld:dev` (multi-arch manifest)
+- `ghcr.io/bobbyquantum/inkweld:dev-amd64`
+- `ghcr.io/bobbyquantum/inkweld:dev-arm64`
+
+`:latest` is **not** published from `main`. It only moves when a release is tagged (below) or someone runs the manual publish workflow with the latest option.
 
 ### Release Workflow (`.github/workflows/release.yml`)
 
 #### Release triggers
 
-- GitHub releases
-- Git tags that match `v*`
+- A published GitHub release
+- A pushed git tag that matches `v*`
 
-#### Features
+#### What it publishes
 
-- Semantic versioning helpers
-- Always updates the `latest` tag alongside semantic tags
-- Publishes `v1.2.3`, `1.2`, and `1`
+Builds the `Dockerfile` image once and pushes it to GHCR as `v1.2.3` (the tag), `1.2.3`, `1.2`, `1` and `latest`. It does not re-run the test suite; tag a commit that has already passed CI on `main`.
 
 ### Cloudflare deploys (`deploy-cloudflare*.yml`)
 
@@ -59,17 +69,17 @@ D1 + R2 for the backend). Both are deployed by one reusable workflow,
 `.github/workflows/deploy-cloudflare-reusable.yml`, so preview and production
 build and ship exactly the same way and only differ in their inputs:
 
-|                            | Preview                                | Production                                                |
-| -------------------------- | -------------------------------------- | --------------------------------------------------------- |
-| Caller workflow            | `deploy-cloudflare.yml`                | `deploy-cloudflare-production.yml`                        |
-| Trigger                    | push to `main`                         | push to `production`, or **Run workflow** on `production` |
-| GitHub environment         | `preview`                              | `production`                                              |
-| Concurrency                | newer push cancels a running deploy    | queued, never cancelled mid-deploy                        |
-| URL                        | `https://preview.inkweld.app`          | `https://inkweld.app`                                     |
-| Pages project              | `inkweld-frontend-preview`             | `inkweld-frontend`                                        |
-| D1 database / wrangler env | `inkweld_preview` / `--env preview`    | `inkweld_prod` / `--env production`                       |
-| Angular configuration      | `preview` (`environment.preview.ts`)   | `cloudflare` (`environment.cloudflare.ts`)                |
-| First visit                | setup screen, hosted server pre-filled | setup screen, hosted server pre-filled                    |
+|                            | Preview                                | Production                                                    |
+| -------------------------- | -------------------------------------- | ------------------------------------------------------------- |
+| Caller workflow            | `deploy-cloudflare.yml`                | `deploy-cloudflare-production.yml`                            |
+| Trigger                    | push to `main`                         | push to `production`, or **Run workflow** on `production`     |
+| GitHub environment         | `preview`                              | `production`                                                  |
+| Concurrency                | newer push cancels a running deploy    | queued, never cancelled mid-deploy                            |
+| URL                        | `https://preview.inkweld.app`          | `https://inkweld.app`                                         |
+| Pages project              | `inkweld-frontend-preview`             | `inkweld-frontend`                                            |
+| D1 database / wrangler env | `inkweld_preview` / `--env preview`    | `inkweld_prod` / `--env production`                           |
+| Angular configuration      | `preview` (`environment.preview.ts`)   | `cloudflare` (`environment.cloudflare.ts`)                    |
+| First visit                | setup screen, hosted server pre-filled | setup screen, no server suggested (`advertise-server: false`) |
 
 Each run writes `backend/wrangler.toml` from the environment's
 `BACKEND_WRANGLER_TOML` variable, generates the frontend environment file
@@ -121,7 +131,21 @@ with the newer schema.
 **Use it when** you need a hotfix image or want to test a custom tag without merging to `main`.
 
 - Triggered manually through the Actions UI
-- Accepts a custom tag and optional `latest` toggle
+- Accepts a custom tag (default `manual`) and a **Also tag as latest** toggle (off by default)
+
+### Other workflows
+
+| Workflow                                                                                      | Trigger                                                             | Purpose                                                                                                                                       |
+| --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `deploy-pr-preview.yml`                                                                       | PR labelled `deploy:preview:frontend`, and new pushes to such a PR  | Deploys the PR's frontend to a Cloudflare Pages branch preview (`https://pr-<number>.<pages project>.pages.dev`).                             |
+| `cleanup-pr-preview.yml`                                                                      | PR closed, or the `deploy:preview:frontend` label removed           | Deletes that PR's Pages deployments.                                                                                                          |
+| `docs.yml`                                                                                    | Push to `main` touching `docs/**`, `backend/openapi.json`; manual   | Builds this documentation site and publishes it to GitHub Pages.                                                                              |
+| `validate-pr-title.yml`                                                                       | PR opened, edited, synchronized or reopened                         | Requires a Conventional Commit title (`feat`, `fix`, `docs`, `ci`, ...) with a lowercase subject.                                             |
+| `twa-build-check.yml`                                                                         | PRs touching `android/**`                                           | Builds the Android (TWA) preview release with a throwaway keystore to catch build breaks.                                                     |
+| `twa-build.yml`                                                                               | Manual                                                              | Builds a signed Android release (AAB for `prod`, APK for `preview`) and uploads it as a workflow artifact. See [TWA](../installation/twa.md). |
+| `regenerate-gradle-verification.yml`                                                          | Manual, on a branch                                                 | Regenerates `android/gradle/verification-metadata.xml` and commits it, for dependency-bump PRs that fail Gradle dependency verification.      |
+| `electron-build-check.yml`                                                                    | PRs touching the Electron/frontend sources (a label re-triggers it) | Builds the desktop app for Windows, macOS and Linux and reports one aggregate **Electron Build Status**.                                      |
+| `deploy-cloudflare.yml`, `deploy-cloudflare-production.yml`, `deploy-cloudflare-reusable.yml` | Push to `main` / push to `production`                               | Hosted deploys, described in the section above.                                                                                               |
 
 ## Image contents
 
@@ -132,11 +156,16 @@ with the newer schema.
 
 ## Sample runtime configuration
 
+`SESSION_SECRET`, `ALLOWED_ORIGINS` and `WEBAUTHN_RP_ID` are the settings a
+production container needs. See [Configuration](/docs/configuration) for the
+full list.
+
 ```bash
  docker run -p 8333:8333 -v inkweld_data:/data \
    -e NODE_ENV=production \
    -e SESSION_SECRET=${SESSION_SECRET} \
-   -e CLIENT_URL=https://app.inkweld.org \
+   -e ALLOWED_ORIGINS=https://app.inkweld.org \
+   -e WEBAUTHN_RP_ID=app.inkweld.org \
    ghcr.io/bobbyquantum/inkweld:latest
 ```
 
@@ -148,7 +177,8 @@ with the newer schema.
 
 ## Monitoring builds
 
-- Status badges in `README.md` reflect the latest CI and Docker publish state
+- The build status badge in `README.md` reflects the latest `ci.yml` run on `main`
+- Published images are listed on the repository's [GHCR package page](https://github.com/bobbyquantum/inkweld/pkgs/container/inkweld)
 - GitHub Actions logs retain full console output for every job
 - Image metadata embeds the source commit for traceability
 
@@ -157,20 +187,20 @@ with the newer schema.
 1. Create a feature branch
 2. Make changes + add tests
 3. Push and open a PR
-4. CI runs linting + tests
+4. CI runs linting, type checking, unit tests and the e2e suites
 5. Review + merge to `main`
-6. Docker publish job produces the latest image and preview.inkweld.app is redeployed
+6. The Docker jobs publish the `:dev` image and preview.inkweld.app is redeployed
 7. When preview looks right, promote to inkweld.app by fast-forwarding `production`
 
 ## Release workflow
 
-1. Create a GitHub release (e.g., `v1.0.0`)
-2. Release workflow tags and pushes versioned images
-3. Clients can pin exact tags (`v1.0.0`) or floating majors (`1`)
+1. Create a GitHub release or push a tag (e.g., `v1.0.0`)
+2. The release workflow pushes the versioned images and moves `latest`
+3. Clients can pin exact tags (`1.0.0`, `v1.0.0`), a minor (`1.0`), or a floating major (`1`)
 
 ## Troubleshooting CI failures
 
 - Inspect the failing job logs in GitHub Actions
-- Ensure `npm test`, `bun test`, and `docker build` pass locally
+- Ensure `npm test` (frontend), `bun test` (backend), `bun run lint`, `bun run typecheck` and `docker build` pass locally
 - Verify that secrets (GHCR token, etc.) exist in repository settings
 - Re-run failed jobs from the Actions UI once the issue is fixed

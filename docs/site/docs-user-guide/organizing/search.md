@@ -15,29 +15,21 @@ The project tree shows all your documents, folders, and worldbuilding elements i
 
 ### Basic Navigation
 
-- **Click** an item to open it in a new tab
-- **Double-click** a folder to expand/collapse it
+- **Click** a document or other item to open it in a tab
+- **Click** a folder to expand or collapse it
+- **Double-click** a folder to open its folder view (corkboard, outline, grid or list). With [Clicking a Folder Opens It](../settings/user-settings#clicking-a-folder-opens-it) turned on, a single click does both
 - **Right-click** for context menu options
 - **Drag and drop** to reorganize elements
-
-### Keyboard Navigation
-
-| Key     | Action                          |
-| ------- | ------------------------------- |
-| `↑` `↓` | Move selection up/down          |
-| `←`     | Collapse folder or go to parent |
-| `→`     | Expand folder                   |
-| `Enter` | Open selected item              |
+- Press **Enter** on a focused item to open it (or to expand or collapse a folder)
 
 ### Toolbar Buttons
 
 At the top of the project tree:
 
 - **Home** — Return to the project home tab
-- **Search** — Open [Project Search](./project-search) to find or browse elements
-- **Collapse All** — Collapse all expanded folders
+- **Search in Project** — Open [Project Search](./project-search) to find or browse elements
 
-New elements can be created using the **+ New** button at the bottom of the project tree.
+New elements are created with the **Create** button at the bottom of the project tree. See [Managing Documents](./documents#creating-documents).
 
 ## Element References
 
@@ -52,7 +44,7 @@ See [Element References](../worldbuilding/element-references) for details.
 
 ## Tabs
 
-Open documents appear as tabs at the top of the editor. Click tabs to switch between open documents. Right-click a tab for options like Close, Close Others, or Rename.
+Open documents appear as tabs at the top of the editor. Click tabs to switch between open documents, or drag them to reorder. Right-click a tab for options like Close, Close Others, Rename or Open in New Window.
 
 ## Project-wide Search
 
@@ -66,4 +58,4 @@ Press `Ctrl/Cmd + F` while editing a document to open the find bar. This lets yo
 
 ## Media Search
 
-The [Media Library](../media/library) includes a search bar to find images and files by name or AI generation prompt.
+The [Media Library](../media/library) has a search bar (**Search media, elements, or tags...**). It matches a file's name, its ID, or its AI generation prompt, as well as the names of the elements and tags the file is linked to.
