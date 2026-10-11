@@ -499,6 +499,18 @@ Passkeys use the W3C WebAuthn API for passwordless, discoverable-credential (use
    → email with `/recover-passkey/redeem?token=<raw>` link
    → `POST /start` + `POST /finish` enrol a NEW passkey (no session issued; existing passkeys untouched)
 
+### AI Kill Switch
+
+`AI_KILL_SWITCH` (default ON = all AI disabled; the env var locks it) is
+enforced on the server, not only by the UI hiding buttons. **Every new endpoint
+that sends content to an AI provider must be gated** with `requireAiEnabled`
+from `backend/src/utils/ai-kill-switch.ts` (a 403 with `code: 'AI_DISABLED'`),
+registered with `.use(path, …)` *before* the route handler. Use
+`isAiKillSwitchOn(db)` / `resolveAiKillSwitch(value)` instead of reading the
+config key yourself — they apply the env lock. Admin configuration endpoints
+stay open so AI can be set up before the switch is turned off.
+`test/ai-kill-switch.test.ts` lists the gated endpoints; add new ones there.
+
 ### Admin Branding & Custom HTML Injection
 
 Inkweld sets only strictly-necessary cookies, so it ships **no consent banner**

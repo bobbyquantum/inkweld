@@ -3,6 +3,7 @@ import * as bcrypt from 'bcryptjs';
 import { eq } from 'drizzle-orm';
 import { getDatabase } from '../src/db/index';
 import { projects, users } from '../src/db/schema/index';
+import { configService } from '../src/services/config.service';
 import { imageGenerationService } from '../src/services/image-generation.service';
 import { imageProfileService } from '../src/services/image-profile.service';
 import {
@@ -42,6 +43,8 @@ describe('AI image generation: reference-image project access', () => {
     ({ baseUrl } = await startTestServer());
     await enablePasswordLoginForTests();
     const db = getDatabase();
+    // The AI kill switch (default ON) would answer 403 before the access check.
+    await configService.set(db, 'AI_KILL_SWITCH', 'false');
     for (const name of [OWNER, OUTSIDER]) {
       await db.delete(users).where(eq(users.username, name));
       await db.insert(users).values({
@@ -85,6 +88,7 @@ describe('AI image generation: reference-image project access', () => {
     for (const spy of spies) spy.mockRestore();
     const db = getDatabase();
     await db.delete(projects).where(eq(projects.slug, SLUG));
+    await configService.delete(db, 'AI_KILL_SWITCH');
     for (const name of [OWNER, OUTSIDER]) {
       await db.delete(users).where(eq(users.username, name));
     }

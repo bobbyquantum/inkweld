@@ -16,7 +16,7 @@ When the AI Kill Switch is **enabled** (default):
 
 - ❌ AI Image Generation buttons are hidden from the UI
 - ❌ AI Linting plugin is not loaded in the editor
-- ❌ All AI API endpoints return that AI is disabled
+- ❌ The server refuses every AI request with `403 Forbidden`, even when provider API keys are configured (see [Server-Side Enforcement](#server-side-enforcement))
 
 When the AI Kill Switch is **disabled**:
 
@@ -83,6 +83,38 @@ The kill switch follows this priority order:
 2. **Database Setting** - Configured via the admin panel when no env var is set
 3. **Default Value** - `true` (AI disabled) if neither is configured
 
+## Server-Side Enforcement
+
+The kill switch is enforced by the server, not just by hiding buttons. While it is on, every endpoint that sends content to an AI provider, or reports provider availability, answers **`403 Forbidden`** with:
+
+```json
+{
+  "error": "AI features are disabled on this server (the AI kill switch is on). An administrator can turn it off in Admin → AI settings.",
+  "code": "AI_DISABLED"
+}
+```
+
+This applies regardless of `AI_IMAGE_ENABLED`, `AI_TEXT_ENABLED` or which provider keys are set, so a direct API call cannot reach a provider either. Blocked endpoints:
+
+| Endpoint                                                                  | Feature                                      |
+| ------------------------------------------------------------------------- | -------------------------------------------- |
+| `POST /api/v1/ai/image/generate`                                          | Image generation                             |
+| `POST /api/v1/ai/image/generate-stream`                                   | Streaming image generation                   |
+| `GET /api/v1/ai/image/status`                                             | Image provider status                        |
+| `POST /api/v1/ai/text/optimize-image-prompt`                              | Image prompt optimisation                    |
+| `GET /api/v1/ai/text/status`                                              | Text provider status                         |
+| `POST /api/v1/ai/lint`                                                    | Paragraph linting                            |
+| `POST /api/v1/projects/{username}/{slug}/docs/{docId}/auto-review/review` | Document auto-review                         |
+| `POST /api/v1/ai/mcp`                                                     | MCP (answers a JSON-RPC error with HTTP 403) |
+
+Authentication is still checked first, so an anonymous request gets `401`.
+
+These stay available while the switch is on, because none of them sends content to a provider:
+
+- **Admin configuration** — provider keys and endpoints (`/api/v1/ai/providers/*`), image profiles, custom image sizes, and the model catalogs — so you can set AI up completely before turning the switch off.
+- **`GET /api/v1/ai/lint/status`** — reports `enabled: false` so the editor knows to hide linting.
+- **Accepting, rejecting or clearing auto-review suggestions** that were made earlier — these only edit the document.
+
 ## Affected Features
 
 ### AI Image Generation
@@ -90,7 +122,7 @@ The kill switch follows this priority order:
 When the kill switch is enabled:
 
 - The "Generate with AI" buttons are hidden from:
-  - Media tab toolbar
+  - Media tab (the **Add media** button goes straight to upload)
   - Project cover editor
   - Worldbuilding image dialogs
 - The AI Settings admin page shows a warning banner indicating AI is disabled
