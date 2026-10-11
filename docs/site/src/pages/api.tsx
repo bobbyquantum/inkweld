@@ -74,8 +74,8 @@ Then: Authorization: Bearer eyJ...`}</code>
               <code>GET /api/v1/projects</code> - List your projects
             </li>
             <li>
-              <code>POST /api/v1/projects</code> - Create a project (
-              <code>title</code>, <code>slug</code>)
+              <code>POST /api/v1/projects</code> - Create a project from a{' '}
+              <code>title</code> and <code>slug</code>
             </li>
             <li>
               <code>GET /api/v1/projects/:username/:slug</code> - Get project
