@@ -266,6 +266,49 @@ describe('CommentPanelComponent', () => {
     });
   });
 
+  describe('onReply (local mode)', () => {
+    it('should emit localReply instead of calling the server', async () => {
+      const spy = vi.fn();
+      component.localReply.subscribe(spy);
+
+      const input = document.createElement('input');
+      input.value = '  Local reply  ';
+
+      await component.onReply(makeThread(), input);
+
+      expect(spy).toHaveBeenCalledWith({
+        commentId: 'thread-1',
+        text: 'Local reply',
+      });
+      expect(mockCommentService.addMessage).not.toHaveBeenCalled();
+      expect(input.value).toBe('');
+    });
+
+    it('should show the reply input for an expanded local thread', () => {
+      const marks: CommentMarkAttrs[] = [
+        {
+          commentId: 'local-1',
+          authorName: 'Bob',
+          preview: 'Preview',
+          messageCount: 1,
+          resolved: false,
+          createdAt: Date.now(),
+          localOnly: true,
+          messages: null,
+        },
+      ];
+      fixture.componentRef.setInput('commentMarks', marks);
+      fixture.componentRef.setInput('isOpen', true);
+      fixture.componentRef.setInput('canWrite', true);
+      component.expandedThreadId.set('local-1');
+      fixture.detectChanges();
+
+      expect(
+        fixture.nativeElement.querySelector('[data-testid="panel-reply-input"]')
+      ).not.toBeNull();
+    });
+  });
+
   describe('positionedThreads (edge cases)', () => {
     it('should return empty array when no threads', () => {
       component.threads.set([]);

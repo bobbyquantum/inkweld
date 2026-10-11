@@ -192,32 +192,59 @@ describe('CommentPopoverComponent', () => {
   });
 
   describe('onReply (local-only)', () => {
-    it('should emit updated when reply text is provided', async () => {
+    it('should emit localReply with the reply text', async () => {
       fixture.detectChanges();
 
-      const updatedSpy = vi.fn();
-      component.updated.subscribe(updatedSpy);
+      const replySpy = vi.fn();
+      component.localReply.subscribe(replySpy);
 
-      component.form.replyText().value.set('My reply');
+      component.form.replyText().value.set('  My reply  ');
       await component.onReply();
 
-      expect(updatedSpy).toHaveBeenCalledWith({
+      expect(replySpy).toHaveBeenCalledWith({
         commentId: 'test-comment',
-        updates: { messageCount: 2 },
+        text: 'My reply',
       });
+      expect(mockCommentService.addMessage).not.toHaveBeenCalled();
       expect(component.model().replyText).toBe('');
     });
 
     it('should not emit when reply text is empty', async () => {
       fixture.detectChanges();
 
-      const updatedSpy = vi.fn();
-      component.updated.subscribe(updatedSpy);
+      const replySpy = vi.fn();
+      component.localReply.subscribe(replySpy);
 
       component.form.replyText().value.set('   ');
       await component.onReply();
 
-      expect(updatedSpy).not.toHaveBeenCalled();
+      expect(replySpy).not.toHaveBeenCalled();
+    });
+
+    it('should show the reply once the editor passes back refreshed attrs', () => {
+      fixture.detectChanges();
+      const now = Date.now();
+      fixture.componentRef.setInput(
+        'attrs',
+        makeAttrs({
+          messageCount: 2,
+          messages: JSON.stringify([
+            {
+              id: 'm1',
+              authorName: 'Alice',
+              text: 'Hello there',
+              createdAt: now,
+            },
+            { id: 'm2', authorName: 'Bob', text: 'My reply', createdAt: now },
+          ]),
+        })
+      );
+      fixture.detectChanges();
+
+      expect(component.messages().map(m => m.text)).toEqual([
+        'Hello there',
+        'My reply',
+      ]);
     });
   });
 
@@ -327,7 +354,7 @@ describe('CommentPopoverComponent', () => {
   });
 
   describe('onUnresolve (local-only)', () => {
-    it('should return early without emitting for local-only comments', async () => {
+    it('should emit updated with resolved:false without calling the server', async () => {
       fixture.componentRef.setInput(
         'attrs',
         makeAttrs({ resolved: true, localOnly: true })
@@ -339,8 +366,11 @@ describe('CommentPopoverComponent', () => {
 
       await component.onUnresolve();
 
-      // localOnly returns early — no emit
-      expect(updatedSpy).not.toHaveBeenCalled();
+      expect(updatedSpy).toHaveBeenCalledWith({
+        commentId: 'test-comment',
+        updates: { resolved: false },
+      });
+      expect(mockCommentService.unresolveThread).not.toHaveBeenCalled();
     });
   });
 

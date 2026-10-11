@@ -997,6 +997,28 @@ export class DocumentElementEditorComponent
       event.updates
     );
     this.refreshCommentPanel();
+    this.refreshCommentPopover(event.commentId);
+  }
+
+  onLocalCommentReply(event: { commentId: string; text: string }): void {
+    if (!this.editor?.view) return;
+    this.commentService.addLocalReply(
+      this.editor.view,
+      event.commentId,
+      event.text
+    );
+    this.refreshCommentPanel();
+    this.refreshCommentPopover(event.commentId);
+  }
+
+  /** Re-read the open popover's attrs from the mark after it changed. */
+  private refreshCommentPopover(commentId: string): void {
+    if (this.commentPopoverAttrs()?.commentId !== commentId) return;
+    if (!this.editor?.view) return;
+    const attrs = this.commentService
+      .getCommentMarks(this.editor.view)
+      .find(a => a.commentId === commentId);
+    if (attrs) this.commentPopoverAttrs.set(attrs);
   }
 
   closeCommentPopover(): void {
