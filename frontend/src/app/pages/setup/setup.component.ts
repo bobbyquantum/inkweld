@@ -108,14 +108,19 @@ export const NEXTCLOUD_SETUP_GUIDE_PATH =
  *   (Docker, native binary), so the page's own origin is that server, plus
  *   the path prefix it is served under (`basePath`, e.g. behind a reverse
  *   proxy or Home Assistant ingress).
+ * - A frontend-only hosted build (`frontendOnly`, e.g. inkweld.app on
+ *   Cloudflare Pages) has no server of its own to suggest, so the field
+ *   starts empty and the user enters their server's address.
  * - Anything else (Electron's app:// page) falls back to the default port.
  */
 export function defaultServerUrl(
   apiUrl: string,
   location: Pick<Location, 'protocol' | 'origin'> | undefined,
-  basePath = ''
+  basePath = '',
+  frontendOnly = false
 ): string {
   if (apiUrl) return apiUrl;
+  if (frontendOnly) return '';
   if (location?.protocol === 'http:' || location?.protocol === 'https:') {
     return location.origin + basePath;
   }
@@ -196,7 +201,9 @@ export class SetupComponent implements OnInit {
   protected serverUrl = defaultServerUrl(
     environment.apiUrl,
     globalThis.location,
-    appBasePath()
+    appBasePath(),
+    // Read with a cast: only hosted environment files declare it.
+    (environment as { frontendOnly?: boolean }).frontendOnly === true
   );
   protected userName = '';
   protected displayName = '';
