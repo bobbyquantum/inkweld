@@ -8,6 +8,8 @@
 import type { Context } from 'hono';
 import type { PasskeyRpConfig } from '../services/passkey.service';
 import { config } from '../config/env';
+import type { DatabaseInstance } from '../types/context';
+import { getInkweldAppClientOrigins } from '../services/inkweld-app-client.service';
 
 /**
  * Resolve the RP ID from environment, falling back to the static config, then
@@ -58,9 +60,10 @@ function resolveOrigins(configOrigins: string[], requestOrigin: string | undefin
  * Derive the WebAuthn RP config from the current Hono request context.
  *
  * Runtime-aware: reads secrets from `c.env` (Cloudflare Workers) or
- * `process.env` / the static `config` object (Bun).
+ * `process.env` / the static `config` object (Bun). `extraOrigins` are
+ * accepted in addition to the configured ones (see {@link rpFromRequest}).
  */
-export function rpFromContext(c: Context): PasskeyRpConfig {
+export function rpFromContext(c: Context, extraOrigins: readonly string[] = []): PasskeyRpConfig {
   const env = (c.env ?? undefined) as Record<string, string | undefined> | undefined;
 
   const rawAllowedOrigins = env?.ALLOWED_ORIGINS ?? process.env['ALLOWED_ORIGINS'];
@@ -74,7 +77,19 @@ export function rpFromContext(c: Context): PasskeyRpConfig {
 
   const rpId = resolveRpId(env?.WEBAUTHN_RP_ID, configOrigins);
   const rpName = env?.WEBAUTHN_RP_NAME || config.webauthn.rpName;
-  const origins = resolveOrigins(configOrigins, c.req.header('origin'));
+  const resolved = resolveOrigins(configOrigins, c.req.header('origin'));
+  const origins = [...resolved, ...extraOrigins.filter((o) => !resolved.includes(o))];
 
   return { rpId, rpName, origins };
+}
+
+/**
+ * {@link rpFromContext} plus the origins an admin switch trusts at runtime:
+ * the hosted inkweld.app client when ALLOW_INKWELD_APP_CLIENT is on. Use this
+ * for every ceremony; a browser on inkweld.app reports that origin in its
+ * client data, so verification must accept it.
+ */
+export async function rpFromRequest(c: Context): Promise<PasskeyRpConfig> {
+  const db = c.get('db') as DatabaseInstance | undefined;
+  return rpFromContext(c, await getInkweldAppClientOrigins(db));
 }

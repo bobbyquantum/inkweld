@@ -27,7 +27,7 @@
 import { OpenAPIHono, createRoute } from '@hono/zod-openapi';
 import { configService } from '../services/config.service';
 import { passkeyRecoveryService } from '../services/passkey-recovery.service';
-import { rpFromContext } from '../utils/webauthn-utils';
+import { rpFromRequest } from '../utils/webauthn-utils';
 import {
   PasskeyRecoveryRequestSchema,
   PasskeyRecoveryStartRequestSchema,
@@ -129,7 +129,7 @@ passkeyRecoveryRoutes.openapi(startRoute, async (c) => {
   const db = c.get('db');
   const { token } = c.req.valid('json');
 
-  const result = await passkeyRecoveryService.redeemStart(db, token, rpFromContext(c));
+  const result = await passkeyRecoveryService.redeemStart(db, token, await rpFromRequest(c));
   if (!result.success) {
     return c.json({ error: result.error }, 400);
   }
@@ -173,7 +173,7 @@ passkeyRecoveryRoutes.openapi(finishRoute, async (c) => {
     db,
     token,
     response as unknown as RegistrationResponseJSON,
-    rpFromContext(c),
+    await rpFromRequest(c),
     name
   );
 

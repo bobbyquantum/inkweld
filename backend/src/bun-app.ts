@@ -10,6 +10,7 @@ import { prettyJSON } from 'hono/pretty-json';
 import { secureHeaders } from 'hono/secure-headers';
 import { requestLogger } from './middleware/request-logger';
 import { logger } from './services/logger.service';
+import { getInkweldAppClientOrigins } from './services/inkweld-app-client.service';
 import { websocket } from 'hono/bun';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
@@ -263,9 +264,11 @@ app.use('*', bunSqliteDatabaseMiddleware);
 // OAuth/MCP/discovery endpoints need permissive CORS from any origin
 registerOpenOriginRoutes(app);
 
-// CORS configuration for other routes
+// CORS configuration for other routes. ALLOWED_ORIGINS is fixed at startup;
+// the admin's ALLOW_INKWELD_APP_CLIENT switch adds the hosted app at runtime.
 const allowedOrigins = config.allowedOrigins;
-const isAllowedOrigin = (requestOrigin: string): boolean =>
+const isAllowedOrigin = (requestOrigin: string, extraOrigins: readonly string[]): boolean =>
+  extraOrigins.includes(requestOrigin) ||
   allowedOrigins.some((allowed) => {
     if (allowed === requestOrigin) return true;
     if (allowed.startsWith('*.')) {
@@ -274,12 +277,15 @@ const isAllowedOrigin = (requestOrigin: string): boolean =>
     return false;
   });
 
-app.use('*', (c, next) => {
+app.use('*', async (c, next) => {
   if (isCrossOriginPath(c.req.path)) return next();
 
+  const extraOrigins = await getInkweldAppClientOrigins(c.get('db'));
   const corsMiddleware = cors({
     origin: (requestOrigin) => {
-      if (!requestOrigin || isAllowedOrigin(requestOrigin)) return requestOrigin || '*';
+      if (!requestOrigin || isAllowedOrigin(requestOrigin, extraOrigins)) {
+        return requestOrigin || '*';
+      }
       return allowedOrigins[0] || '*';
     },
     credentials: true, // Enable credentials for session-based auth
@@ -294,16 +300,19 @@ app.use('*', (c, next) => {
 
 // CSRF protection (origin-based, matches Node runtime)
 if (config.nodeEnv !== 'test') {
-  app.use('*', (c, next) => {
+  app.use('*', async (c, next) => {
     if (isCrossOriginPath(c.req.path)) return next();
     // Home Assistant ingress: the browser's origin is whatever address HA is
     // reached on, so it cannot be listed in ALLOWED_ORIGINS. HA's ingress
     // session cookie is SameSite=Strict, so a cross-site page cannot get a
     // request through the proxy in the first place.
     if (isIngressRequest(c)) return next();
+    const extraOrigins = await getInkweldAppClientOrigins(c.get('db'));
     return csrf({
       origin:
-        allowedOrigins.length > 0 ? (requestOrigin) => isAllowedOrigin(requestOrigin) : undefined,
+        allowedOrigins.length > 0
+          ? (requestOrigin) => isAllowedOrigin(requestOrigin, extraOrigins)
+          : undefined,
     })(c, next);
   });
 }

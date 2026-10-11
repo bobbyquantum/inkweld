@@ -108,6 +108,19 @@ describe('rpFromContext', () => {
       expect(result.origins).toEqual(['http://localhost']);
     });
 
+    it('appends extra origins without duplicating configured ones', () => {
+      const c = mockContext({
+        WEBAUTHN_RP_ID: 'app.example.com',
+        ALLOWED_ORIGINS: 'https://app.example.com,https://inkweld.app',
+      });
+      const result = rpFromContext(c, ['https://inkweld.app', 'https://extra.example.com']);
+      expect(result.origins).toEqual([
+        'https://app.example.com',
+        'https://inkweld.app',
+        'https://extra.example.com',
+      ]);
+    });
+
     it('throws for wildcard in production', () => {
       process.env['NODE_ENV'] = 'production';
       const c = mockContext({

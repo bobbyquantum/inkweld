@@ -160,6 +160,36 @@
       </mat-card-content>
     </mat-card>
 
+    <!-- inkweld.app Client Card -->
+    <mat-card class="setting-card" data-testid="inkweld-app-client-card">
+      <mat-card-content>
+        <div class="setting-row">
+          <div class="setting-info">
+            <span class="setting-label">{{
+              'admin.settings.inkweldAppClient' | transloco
+            }}</span>
+            <span class="setting-description">{{
+              'admin.settings.inkweldAppClientDesc' | transloco
+            }}</span>
+            @if (inkweldAppClientEnabled()) {
+              <span
+                class="env-locked-notice"
+                data-testid="inkweld-app-client-update-warning">
+                <mat-icon>warning</mat-icon>
+                {{ 'admin.settings.inkweldAppClientUpdateWarning' | transloco }}
+              </span>
+            }
+          </div>
+          <mat-slide-toggle
+            [checked]="inkweldAppClientEnabled()"
+            (change)="toggleInkweldAppClient($event.checked, $event.source)"
+            [disabled]="isSaving()"
+            color="primary"
+            data-testid="setting-toggle-inkweld-app-client"></mat-slide-toggle>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
     <!-- MCP Access Card -->
     <mat-card class="setting-card" data-testid="mcp-access-card">
       <mat-card-content>

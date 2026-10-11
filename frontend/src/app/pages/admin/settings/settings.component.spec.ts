@@ -50,6 +50,7 @@ function flushAllConfigRequests(
     SYNC_QUOTA_DEFAULT_BYTES: '104857600',
     CONTENT_SECURITY_POLICY_MODE: 'enforce',
     CONTENT_SECURITY_POLICY_TRUSTED_SOURCES: '',
+    ALLOW_INKWELD_APP_CLIENT: 'false',
   };
   const values = { ...defaults, ...overrides };
 
@@ -747,6 +748,104 @@ describe('AdminSettingsComponent', () => {
       expect(component.mcpEnabled()).toBe(true);
       expect(component.isSaving()).toBe(false);
       expect(consoleErrorSpy).toHaveBeenCalled();
+      consoleErrorSpy.mockRestore();
+    });
+  });
+
+  describe('toggleInkweldAppClient', () => {
+    it('asks for confirmation before enabling, then saves', async () => {
+      fixture.detectChanges();
+      flushAllConfigRequests(httpMock);
+      await flushMicrotasks();
+      mockDialog.open.mockClear();
+      mockDialog.open.mockReturnValueOnce({ afterClosed: () => of(true) });
+
+      const togglePromise = component.toggleInkweldAppClient(true);
+      await flushMicrotasks();
+      const putReq = httpMock.expectOne(
+        '/api/v1/admin/config/ALLOW_INKWELD_APP_CLIENT'
+      );
+      expect(putReq.request.body).toEqual({ value: 'true' });
+      putReq.flush(null);
+
+      await togglePromise;
+      expect(mockDialog.open).toHaveBeenCalledOnce();
+      const data = mockDialog.open.mock.calls[0][1].data as {
+        details: string[];
+      };
+      expect(data.details).toHaveLength(3);
+      expect(component.inkweldAppClientEnabled()).toBe(true);
+    });
+
+    it('leaves the setting off and resets the toggle when cancelled', async () => {
+      fixture.detectChanges();
+      flushAllConfigRequests(httpMock);
+      await flushMicrotasks();
+      mockDialog.open.mockClear();
+      mockDialog.open.mockReturnValueOnce({ afterClosed: () => of(false) });
+      const toggle = { checked: true };
+
+      await component.toggleInkweldAppClient(true, toggle);
+
+      httpMock.expectNone('/api/v1/admin/config/ALLOW_INKWELD_APP_CLIENT');
+      expect(toggle.checked).toBe(false);
+      expect(component.inkweldAppClientEnabled()).toBe(false);
+    });
+
+    it('disables without confirmation', async () => {
+      fixture.detectChanges();
+      flushAllConfigRequests(httpMock, { ALLOW_INKWELD_APP_CLIENT: 'true' });
+      await flushMicrotasks();
+      expect(component.inkweldAppClientEnabled()).toBe(true);
+      mockDialog.open.mockClear();
+
+      const togglePromise = component.toggleInkweldAppClient(false);
+      const putReq = httpMock.expectOne(
+        '/api/v1/admin/config/ALLOW_INKWELD_APP_CLIENT'
+      );
+      expect(putReq.request.body).toEqual({ value: 'false' });
+      putReq.flush(null);
+
+      await togglePromise;
+      expect(mockDialog.open).not.toHaveBeenCalled();
+      expect(component.inkweldAppClientEnabled()).toBe(false);
+    });
+
+    it('shows the keep-up-to-date warning only while enabled', async () => {
+      fixture.detectChanges();
+      flushAllConfigRequests(httpMock, { ALLOW_INKWELD_APP_CLIENT: 'true' });
+      await flushMicrotasks();
+      fixture.detectChanges();
+
+      const el = fixture.nativeElement as HTMLElement;
+      expect(
+        el.querySelector('[data-testid="inkweld-app-client-update-warning"]')
+      ).not.toBeNull();
+
+      component.inkweldAppClientEnabled.set(false);
+      fixture.detectChanges();
+      expect(
+        el.querySelector('[data-testid="inkweld-app-client-update-warning"]')
+      ).toBeNull();
+    });
+
+    it('reverts state when the save fails', async () => {
+      const consoleErrorSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+      fixture.detectChanges();
+      flushAllConfigRequests(httpMock, { ALLOW_INKWELD_APP_CLIENT: 'true' });
+      await flushMicrotasks();
+
+      const togglePromise = component.toggleInkweldAppClient(false);
+      const putReq = httpMock.expectOne(
+        '/api/v1/admin/config/ALLOW_INKWELD_APP_CLIENT'
+      );
+      putReq.error(new ProgressEvent('error'), { status: 500 });
+
+      await togglePromise;
+      expect(component.inkweldAppClientEnabled()).toBe(true);
+      expect(component.isSaving()).toBe(false);
       consoleErrorSpy.mockRestore();
     });
   });
