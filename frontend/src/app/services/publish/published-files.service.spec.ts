@@ -289,6 +289,82 @@ describe('PublishedFilesService', () => {
       expect(result.shareToken).toBe('server-token');
     });
 
+    it('adopts the server id so later server calls address the right file', async () => {
+      setupService.getMode.mockReturnValue('server');
+      localStorageService.saveMedia.mockResolvedValue(undefined);
+      localStorageService.deleteMedia.mockResolvedValue(undefined);
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              ...mockFile,
+              id: 'server-uuid',
+              shareToken: null,
+            }),
+        })
+      );
+
+      const result = await service.savePublishedFile(mockProjectKey, mockBlob, {
+        filename: 'new-book.epub',
+        format: PublishFormat.EPUB,
+        mimeType: 'application/epub+zip',
+        planName: 'Default Export',
+        metadata: mockMetadata,
+      });
+
+      expect(result.id).toBe('server-uuid');
+      const localId = localStorageService.saveMedia.mock.calls[0][1].replace(
+        'published-',
+        ''
+      );
+      expect(localId).not.toBe('server-uuid');
+      expect(localStorageService.saveMedia).toHaveBeenLastCalledWith(
+        mockProjectKey,
+        'published-server-uuid',
+        mockBlob,
+        'test-book.epub'
+      );
+      expect(localStorageService.deleteMedia).toHaveBeenCalledWith(
+        mockProjectKey,
+        `published-${localId}`
+      );
+      const stored = JSON.parse(
+        localStorage.getItem(`${mockProjectKey}:published-files`) ?? '[]'
+      ) as PublishedFile[];
+      expect(stored.map(f => f.id)).toEqual(['server-uuid']);
+    });
+
+    it('keeps the server record when moving the local copy fails', async () => {
+      setupService.getMode.mockReturnValue('server');
+      localStorageService.saveMedia
+        .mockResolvedValueOnce(undefined)
+        .mockRejectedValueOnce(new Error('quota'));
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue({
+          ok: true,
+          json: () => Promise.resolve({ ...mockFile, id: 'server-uuid' }),
+        })
+      );
+
+      const result = await service.savePublishedFile(mockProjectKey, mockBlob, {
+        filename: 'new-book.epub',
+        format: PublishFormat.EPUB,
+        mimeType: 'application/epub+zip',
+        planName: 'Default Export',
+        metadata: mockMetadata,
+      });
+
+      expect(result.id).toBe('server-uuid');
+      expect(localStorageService.deleteMedia).not.toHaveBeenCalled();
+      expect(logger.warn).toHaveBeenCalledWith(
+        'Failed to move published file to its server id',
+        expect.any(String)
+      );
+    });
+
     it('should continue with offline file when server upload fails', async () => {
       setupService.getMode.mockReturnValue('server');
       localStorageService.saveMedia.mockResolvedValue(undefined);
@@ -466,7 +542,18 @@ describe('PublishedFilesService', () => {
 
       expect(service.lastUploadError()).toBeNull();
       expect(retried?.shareToken).toBe('server-token');
-      expect(retried?.id).toBe(saved.id);
+      // The record takes the server's id, and the local copy follows it
+      expect(retried?.id).toBe('server-id');
+      expect(localStorageService.saveMedia).toHaveBeenCalledWith(
+        mockProjectKey,
+        'published-server-id',
+        mockBlob,
+        'new-book.epub'
+      );
+      expect(localStorageService.deleteMedia).toHaveBeenCalledWith(
+        mockProjectKey,
+        `published-${saved.id}`
+      );
     });
 
     it('stays silent when no server is used', async () => {
@@ -582,7 +669,7 @@ describe('PublishedFilesService', () => {
       await service.loadFiles(mockProjectKey);
     });
 
-    it('should update share permission to Link', async () => {
+    it('updates the permission of a local file without inventing a token', async () => {
       const result = await service.updateSharePermission(
         mockProjectKey,
         'file-1',
@@ -590,37 +677,9 @@ describe('PublishedFilesService', () => {
       );
 
       expect(result?.sharePermission).toBe(SharePermission.Link);
-      expect(result?.shareToken).toBeDefined();
-    });
-
-    it('should update share permission to Public', async () => {
-      const result = await service.updateSharePermission(
-        mockProjectKey,
-        'file-1',
-        SharePermission.Public
-      );
-
-      expect(result?.sharePermission).toBe(SharePermission.Public);
-      expect(result?.shareToken).toBeDefined();
-    });
-
-    it('should remove share token when setting to Private', async () => {
-      // First set to Link to get a token
-      await service.updateSharePermission(
-        mockProjectKey,
-        'file-1',
-        SharePermission.Link
-      );
-
-      // Then set back to Private
-      const result = await service.updateSharePermission(
-        mockProjectKey,
-        'file-1',
-        SharePermission.Private
-      );
-
-      expect(result?.sharePermission).toBe(SharePermission.Private);
+      // Only a server can serve a share link, so none is made up locally
       expect(result?.shareToken).toBeUndefined();
+      expect(service.getShareUrl(result!)).toBeNull();
     });
 
     it('should return null for nonexistent file', async () => {
@@ -633,23 +692,97 @@ describe('PublishedFilesService', () => {
       expect(result).toBeNull();
     });
 
-    it('should call server in online mode', async () => {
-      setupService.getMode.mockReturnValue('server');
-      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }));
+    describe('in server mode', () => {
+      beforeEach(() => {
+        setupService.getMode.mockReturnValue('server');
+      });
 
-      await service.updateSharePermission(
-        mockProjectKey,
-        'file-1',
-        SharePermission.Link
-      );
+      it('stores the share token the server issued', async () => {
+        vi.stubGlobal(
+          'fetch',
+          vi.fn().mockResolvedValue({
+            ok: true,
+            json: () =>
+              Promise.resolve({
+                ...mockFile,
+                sharePermission: SharePermission.Link,
+                shareToken: 'server-token',
+              }),
+          })
+        );
 
-      expect(fetch).toHaveBeenCalledWith(
-        'http://localhost:8333/api/v1/projects/testuser/test-project/published/file-1',
-        expect.objectContaining({
-          method: 'PATCH',
-          body: expect.stringContaining('sharePermission'),
-        })
-      );
+        const result = await service.updateSharePermission(
+          mockProjectKey,
+          'file-1',
+          SharePermission.Link
+        );
+
+        expect(fetch).toHaveBeenCalledWith(
+          'http://localhost:8333/api/v1/projects/testuser/test-project/published/file-1',
+          expect.objectContaining({
+            method: 'PATCH',
+            body: JSON.stringify({ sharePermission: SharePermission.Link }),
+          })
+        );
+        expect(result?.shareToken).toBe('server-token');
+        expect(service.getShareUrl(result!)).toBe(
+          'http://localhost:8333/share/server-token'
+        );
+        const stored = JSON.parse(
+          localStorage.getItem(`${mockProjectKey}:published-files`) ?? '[]'
+        ) as PublishedFile[];
+        expect(stored[0].shareToken).toBe('server-token');
+      });
+
+      it('clears the token when the server turns sharing off', async () => {
+        vi.stubGlobal(
+          'fetch',
+          vi.fn().mockResolvedValue({
+            ok: true,
+            json: () =>
+              Promise.resolve({
+                ...mockFile,
+                sharePermission: SharePermission.Private,
+                shareToken: null,
+              }),
+          })
+        );
+
+        const result = await service.updateSharePermission(
+          mockProjectKey,
+          'file-1',
+          SharePermission.Private
+        );
+
+        expect(result?.sharePermission).toBe(SharePermission.Private);
+        expect(service.getShareUrl(result!)).toBeNull();
+      });
+
+      it('throws and keeps the local record when the server refuses', async () => {
+        vi.stubGlobal(
+          'fetch',
+          vi.fn().mockResolvedValue({
+            ok: false,
+            status: 404,
+            statusText: 'Not Found',
+            json: () => Promise.resolve({ error: 'File not found' }),
+          })
+        );
+
+        await expect(
+          service.updateSharePermission(
+            mockProjectKey,
+            'file-1',
+            SharePermission.Link
+          )
+        ).rejects.toThrow('404 File not found');
+
+        const stored = JSON.parse(
+          localStorage.getItem(`${mockProjectKey}:published-files`) ?? '[]'
+        ) as PublishedFile[];
+        expect(stored[0].sharePermission).toBe(SharePermission.Private);
+        expect(stored[0].shareToken).toBeUndefined();
+      });
     });
   });
 

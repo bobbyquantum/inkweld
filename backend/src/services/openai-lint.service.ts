@@ -1,8 +1,8 @@
 import { createHash } from 'crypto';
 import { configService } from './config.service';
-import { config as envConfig } from '../config/env';
 import { logger } from './logger.service';
 import { stripTrailingSlashes } from '../utils/string-utils';
+import { isAiKillSwitchOn } from '../utils/ai-kill-switch';
 import type { DatabaseInstance } from '../types/context';
 import type { RejectionContext } from './auto-review-rejection.service';
 
@@ -132,12 +132,7 @@ export class OpenAILintService {
    * and the configured provider has an API key.
    */
   public async isAiEnabled(db: DatabaseInstance): Promise<boolean> {
-    // Check the AI kill switch first (env var or DB)
-    const killSwitch = await configService.getBoolean(db, 'AI_KILL_SWITCH');
-    const killSwitchOn = envConfig.aiKillSwitch.lockedByEnv
-      ? envConfig.aiKillSwitch.enabled
-      : killSwitch;
-    if (killSwitchOn) return false;
+    if (await isAiKillSwitchOn(db)) return false;
 
     // Check the AI text feature toggle
     const textEnabled = await configService.getBoolean(db, 'AI_TEXT_ENABLED');

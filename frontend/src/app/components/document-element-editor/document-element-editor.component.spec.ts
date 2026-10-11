@@ -5,17 +5,21 @@ import {
   signal,
 } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
+import { type Editor } from '@bobbyquantum/ngx-editor';
 import { type Element, type Project } from '@inkweld/index';
 import { TranslocoService } from '@jsverse/transloco';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SettingsService } from '@services/core/settings.service';
+import { CommentService } from '@services/project/comment.service';
 import { DocumentService } from '@services/project/document.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { ZenModeService } from '@services/project/zen-mode.service';
+import { type EditorView } from 'prosemirror-view';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { DocumentSyncState } from '../../models/document-sync-state';
+import { type CommentMarkAttrs } from '../comment-mark/comment-mark-schema';
 import { DocumentElementEditorComponent } from './document-element-editor.component';
 
 // @bobbyquantum/ngx-editor is mocked globally in setup-vitest.ts
@@ -631,6 +635,52 @@ describe('DocumentElementEditorComponent', () => {
           })
         );
       });
+    });
+  });
+
+  describe('local comment replies', () => {
+    const attrs = (messageCount: number): CommentMarkAttrs => ({
+      commentId: 'c1',
+      authorName: 'Alice',
+      preview: 'Hi',
+      messageCount,
+      resolved: false,
+      createdAt: 1,
+      localOnly: true,
+      messages: null,
+    });
+
+    it('stores the reply in the mark and refreshes the open popover', () => {
+      const commentService = TestBed.inject(CommentService);
+      const view = {} as EditorView;
+      component.editor = { view, destroy: vi.fn() } as unknown as Editor;
+      const addLocalReply = vi
+        .spyOn(commentService, 'addLocalReply')
+        .mockImplementation(() => undefined);
+      vi.spyOn(commentService, 'getCommentMarks').mockReturnValue([attrs(2)]);
+      component.commentPopoverAttrs.set(attrs(1));
+
+      component.onLocalCommentReply({ commentId: 'c1', text: 'Reply' });
+
+      expect(addLocalReply).toHaveBeenCalledWith(view, 'c1', 'Reply');
+      expect(component.commentPopoverAttrs()?.messageCount).toBe(2);
+    });
+
+    it('leaves a popover for another comment alone', () => {
+      const commentService = TestBed.inject(CommentService);
+      component.editor = {
+        view: {} as EditorView,
+        destroy: vi.fn(),
+      } as unknown as Editor;
+      vi.spyOn(commentService, 'addLocalReply').mockImplementation(
+        () => undefined
+      );
+      const other = { ...attrs(1), commentId: 'other' };
+      component.commentPopoverAttrs.set(other);
+
+      component.onLocalCommentReply({ commentId: 'c1', text: 'Reply' });
+
+      expect(component.commentPopoverAttrs()).toBe(other);
     });
   });
 });

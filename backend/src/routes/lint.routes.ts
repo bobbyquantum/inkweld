@@ -1,5 +1,6 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi';
 import { requireAuth } from '../middleware/auth';
+import { requireAiEnabled } from '../utils/ai-kill-switch';
 import { openAILintService } from '../services/openai-lint.service';
 import { logger } from '../services/logger.service';
 import type { AppContext } from '../types/context';
@@ -9,6 +10,10 @@ const lintRoutes = new OpenAPIHono<AppContext>();
 
 // Apply auth middleware to all lint routes
 lintRoutes.use('*', requireAuth);
+
+// The AI kill switch blocks linting. `/status` stays open: it reports
+// `enabled: false` so the editor can hide the feature.
+lintRoutes.use('/', requireAiEnabled);
 
 // Schemas
 const LintRequestSchema = z
@@ -147,6 +152,10 @@ const lintRoute = createRoute({
         },
       },
       description: 'Not authenticated',
+    },
+    403: {
+      description: 'AI is disabled on this server (AI kill switch is on)',
+      content: { 'application/json': { schema: ErrorSchema } },
     },
     503: {
       content: {

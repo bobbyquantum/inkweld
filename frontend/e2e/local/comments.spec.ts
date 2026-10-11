@@ -151,6 +151,42 @@ test.describe('Comments — Local Mode', () => {
     });
   });
 
+  test('reply to a comment via the popover and the panel', async ({
+    localPage: page,
+  }) => {
+    await openEditorInProject(page, 'comment-reply');
+    await addCommentViaShortcut(page, 'Reply to me', 0);
+
+    await test.step('a popover reply is added to the thread', async () => {
+      await page.getByTestId('comment-highlight').first().click();
+      const popover = page.getByTestId('comment-popover');
+      await expect(popover).toBeVisible();
+
+      await page.getByTestId('comment-reply-input').fill('Popover reply');
+      await page.getByTestId('comment-reply-btn').click();
+
+      await expect(popover).toContainText('Popover reply');
+      await expect(page.getByTestId('comment-reply-input')).toHaveValue('');
+
+      await page.getByTestId('comment-close-btn').click();
+      await expect(popover).not.toBeVisible();
+    });
+
+    await test.step('a panel reply is added and the earlier one kept', async () => {
+      await page.getByTestId('toolbar-comments').click();
+      const thread = page.getByTestId('comment-panel-thread').first();
+      await expect(thread).toContainText('1 reply');
+      await thread.click();
+
+      const input = page.getByTestId('panel-reply-input');
+      await input.fill('Panel reply');
+      await input.press('Enter');
+
+      await expect(thread).toContainText('Popover reply');
+      await expect(thread).toContainText('Panel reply');
+    });
+  });
+
   test('delete a comment via the popover', async ({ localPage: page }) => {
     await openEditorInProject(page, 'comment-delete');
     await addCommentViaShortcut(page, 'Delete me', 0);

@@ -7,6 +7,7 @@ import { getPasswordPolicy } from '../services/password-validation.service';
 import { LEGAL_DOCUMENTS, legalService } from '../services/legal.service';
 import type { AppContext } from '../types/context';
 import { errorResponse } from '../schemas/common.schemas';
+import { resolveAiKillSwitch } from '../utils/ai-kill-switch';
 
 const configRoutes = new OpenAPIHono<AppContext>();
 
@@ -224,13 +225,10 @@ configRoutes.openapi(getFeaturesRoute, async (c) => {
     legalService.getLegalState(db),
   ]);
 
-  // Check AI kill switch status
-  // If locked by env var, always use the env value
-  // Otherwise, check database or fall back to default (true = AI disabled)
+  // AI kill switch: the env var locks it, otherwise database or default
+  // (true = AI disabled). Same rule the AI endpoints enforce.
   const lockedByEnv = config.aiKillSwitch.lockedByEnv;
-  const aiKillSwitch = lockedByEnv
-    ? config.aiKillSwitch.enabled
-    : isTruthy(cfg.AI_KILL_SWITCH.value);
+  const aiKillSwitch = resolveAiKillSwitch(cfg.AI_KILL_SWITCH.value);
 
   // If kill switch is ON (enabled = true), all AI features are disabled
   let hasOpenAI = false;

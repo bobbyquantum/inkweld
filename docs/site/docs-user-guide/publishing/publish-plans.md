@@ -85,6 +85,22 @@ The same item, word, and page totals appear at the bottom of the plan's sidebar,
 
 The generated file is also saved to your Media Library under "Published."
 
+## Sharing a Published File
+
+When you're connected to a server, the completion dialog also lets you share the file with people who don't have an account. Choose who can open it under **Who can access**:
+
+| Setting              | Who can open it              | Search engines        |
+| -------------------- | ---------------------------- | --------------------- |
+| **Only me**          | You, from the Publishing tab | —                     |
+| **Anyone with link** | Anyone you give the link to  | Asked not to index it |
+| **Anyone**           | Anyone you give the link to  | May index it          |
+
+Once sharing is on, copy the link with **Copy Link**. It opens a short page on your server showing the title, author, format and size, with a **Download** button. On hosted setups the link is on the server's address (for example `https://api.example.com/share/…`) rather than the app's, because the server is what stores and serves the file.
+
+Switching back to **Only me** turns the link off straight away. Turning sharing on again creates a new link, so an old one never starts working again.
+
+Sharing isn't available in local-only mode, or for a file whose upload to the server failed. Use **Retry upload** in the dialog first.
+
 ## Preview
 
 The **Preview** section renders the plan in your browser without saving a file:
