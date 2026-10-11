@@ -12,9 +12,11 @@ import { expect, test } from './fixtures';
  * APP_MODE is an environment variable, so instead of starting a backend per
  * mode these tests rewrite the `appMode` field of /config/features in the
  * browser. Everything else in the response comes from the real server.
+ * The route is set on the context so it also catches requests the
+ * production build's service worker makes on the page's behalf.
  */
 async function serveAppMode(page: Page, appMode: string): Promise<void> {
-  await page.route('**/api/v1/config/features', async route => {
+  await page.context().route('**/api/v1/config/features', async route => {
     try {
       const response = await route.fetch();
       const body = (await response.json()) as Record<string, unknown>;
