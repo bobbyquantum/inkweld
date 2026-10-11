@@ -1,6 +1,6 @@
 import { type Page } from '@playwright/test';
 
-import { expect, test } from './fixtures';
+import { expect, getApiBaseUrl, test } from './fixtures';
 
 /**
  * APP_MODE is the admin's policy for which profiles people may add. It is
@@ -16,18 +16,25 @@ import { expect, test } from './fixtures';
  * production build's service worker makes on the page's behalf.
  */
 async function serveAppMode(page: Page, appMode: string): Promise<void> {
+  const apiOrigin = new URL(getApiBaseUrl()).origin;
   await page.context().route('**/api/v1/config/features', async route => {
+    // The home server may not be the test backend: the dev build's apiUrl
+    // points at a port nothing listens on, and a production build served by
+    // a static server asks the page's own origin. Answer those directly.
+    if (new URL(route.request().url()).origin !== apiOrigin) {
+      await route.fulfill({
+        json: { appMode },
+        headers: { 'access-control-allow-origin': '*' },
+      });
+      return;
+    }
     try {
       const response = await route.fetch();
       const body = (await response.json()) as Record<string, unknown>;
       await route.fulfill({ response, json: { ...body, appMode } });
     } catch {
-      // The build's apiUrl may point at a server that isn't running here;
-      // answer for it so the policy is still known
-      await route.fulfill({
-        json: { appMode },
-        headers: { 'access-control-allow-origin': '*' },
-      });
+      // A navigation cancelled the request while it was in flight
+      await route.abort().catch(() => undefined);
     }
   });
 }
@@ -37,6 +44,10 @@ async function openUserMenu(page: Page): Promise<void> {
 }
 
 test.describe('APP_MODE policy after first run', () => {
+  // Several full page loads each; the first ones compile lazily on a cold
+  // dev server
+  test.slow();
+
   test('an ONLINE site only lets a signed-in user add server profiles', async ({
     authenticatedPage: page,
   }) => {

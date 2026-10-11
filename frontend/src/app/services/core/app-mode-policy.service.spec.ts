@@ -260,6 +260,20 @@ describe('AppModePolicyService', () => {
     expect(service.canAddBrowserProfiles()).toBe(false);
   });
 
+  it('tries again on the next ready() after a failure', async () => {
+    const service = create();
+    http
+      .expectOne(featuresUrl)
+      .error(new ProgressEvent('error'), { status: 0 });
+    await service.ready();
+
+    const retry = service.ready();
+    http.expectOne(featuresUrl).flush({ appMode: 'ONLINE' });
+    await retry;
+
+    expect(service.appMode()).toBe('ONLINE');
+  });
+
   it('does not apply a mode cached for another server', () => {
     localStorage.setItem(
       APP_MODE_POLICY_STORAGE_KEY,

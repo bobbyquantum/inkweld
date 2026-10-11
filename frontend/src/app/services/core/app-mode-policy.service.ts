@@ -150,8 +150,9 @@ export class AppModePolicyService {
   });
 
   /**
-   * Fetch the home server's mode (once per page load) and resolve when it is
-   * known or could not be read. Call it when a profile is about to be added.
+   * Fetch the home server's mode (once per page load, or again after a
+   * failure) and resolve when it is known or could not be read. Call it when
+   * a profile is about to be added.
    */
   ready(): Promise<void> {
     this.loading ??= this.load();
@@ -193,7 +194,9 @@ export class AppModePolicyService {
         this.serverName.set(name.trim());
       }
     } catch (error) {
-      // Keep the cached mode: an unreachable server must not lift its policy
+      // Keep the cached mode: an unreachable server must not lift its policy.
+      // The next ready() (the next profile someone starts adding) tries again.
+      this.loading = null;
       this.logger.warn(
         'AppModePolicy',
         `Could not read APP_MODE from ${serverUrl}; using ${this.mode()}`,
