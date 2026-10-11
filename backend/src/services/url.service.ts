@@ -1,3 +1,5 @@
+import type { Context } from 'hono';
+
 import { configService } from './config.service';
 import type { DatabaseInstance } from '../types/context';
 import { stripTrailingSlashes } from '../utils/string-utils';
@@ -34,4 +36,29 @@ export async function getBaseUrl(db: DatabaseInstance): Promise<string> {
 
   // 4. Last resort
   return 'http://localhost:4200';
+}
+
+/**
+ * Resolve the public URL of this API server, for links that the server itself
+ * must answer (e.g. `/share/:token`).
+ *
+ * Unlike {@link getBaseUrl} this is not the frontend: on a split deployment
+ * (Cloudflare Pages + Workers) the two are different origins.
+ *
+ * Priority order:
+ * 1. BASE_URL (Workers binding or environment variable)
+ * 2. The origin the request arrived on, honouring X-Forwarded-Proto so a
+ *    TLS-terminating proxy in front of Bun still yields an https URL
+ */
+export function getPublicApiUrl(c: Context): string {
+  const configured =
+    (c.env as Record<string, string | undefined> | undefined)?.BASE_URL || process.env.BASE_URL;
+  if (configured?.trim()) return stripTrailingSlashes(configured.trim());
+
+  const url = new URL(c.req.url);
+  const forwardedProto = c.req.header('x-forwarded-proto')?.split(',')[0]?.trim();
+  if (forwardedProto === 'https' || forwardedProto === 'http') {
+    url.protocol = `${forwardedProto}:`;
+  }
+  return url.origin;
 }

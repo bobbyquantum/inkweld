@@ -16,7 +16,9 @@ describe('Share Routes', () => {
   let ownerUserId: string;
   let projectId: string;
   let shareToken: string;
+  let fileId: string;
   let baseUrl: string;
+  let client: TestClient;
 
   beforeAll(async () => {
     const server = await startTestServer();
@@ -61,10 +63,11 @@ describe('Share Routes', () => {
 
     projectId = project.id;
     shareToken = 'test-share-token-' + Date.now();
+    fileId = crypto.randomUUID();
 
     // Create a published file with sharing enabled
     await db.insert(publishedFiles).values({
-      id: crypto.randomUUID(),
+      id: fileId,
       projectId,
       filename: 'test-story.epub',
       format: 'epub',
@@ -80,16 +83,13 @@ describe('Share Routes', () => {
     });
 
     // Write a test file to storage so the download route can read it
-    const client = new TestClient(baseUrl);
+    client = new TestClient(baseUrl);
     const loggedIn = await client.login('shareroutes-user', TEST_PASSWORDS.DEFAULT);
     expect(loggedIn).toBe(true);
 
     // Write file content directly to storage via the storage service
     try {
       const storage = getStorageService();
-      const fileId = (
-        await db.select().from(publishedFiles).where(eq(publishedFiles.shareToken, shareToken))
-      )[0].id;
       await storage.saveProjectFile(
         'shareroutes-user',
         'share-test-project',
@@ -122,6 +122,10 @@ describe('Share Routes', () => {
       const response = await fetch(`${baseUrl}/api/v1/share/${shareToken}`);
       // Should be 200 (file found) or 404 (if storage file wasn't written)
       expect([200, 404]).toContain(response.status);
+      if (response.status === 200) {
+        expect(response.headers.get('content-disposition')).toContain('test-story.epub');
+        expect(response.headers.get('x-robots-tag')).toBe('noindex, nofollow');
+      }
     });
   });
 
@@ -158,6 +162,84 @@ describe('Share Routes', () => {
       // No auth headers - this should still work
       const response = await fetch(`${baseUrl}/api/v1/share/${shareToken}/info`);
       expect(response.status).toBe(200);
+    });
+
+    it('keeps "Anyone with link" files out of search engines', async () => {
+      const response = await fetch(`${baseUrl}/api/v1/share/${shareToken}/info`);
+      expect(response.headers.get('x-robots-tag')).toBe('noindex, nofollow');
+    });
+  });
+
+  // ───────────────────── GET /share/:shareToken (landing page) ─────────
+
+  describe('GET /share/:shareToken', () => {
+    it('serves a public landing page for the shared file', async () => {
+      const response = await fetch(`${baseUrl}/share/${shareToken}`);
+      expect(response.status).toBe(200);
+      expect(response.headers.get('content-type')).toContain('text/html');
+      expect(response.headers.get('cache-control')).toBe('no-store');
+      expect(response.headers.get('content-security-policy')).toContain("default-src 'none'");
+      expect(response.headers.get('x-robots-tag')).toBe('noindex, nofollow');
+
+      const html = await response.text();
+      expect(html).toContain('<h1>Test Story</h1>');
+      expect(html).toContain('by Test Author');
+      expect(html).toContain('test-story.epub');
+      expect(html).toContain(`href="../api/v1/share/${shareToken}"`);
+    });
+
+    it('links to a download URL that resolves to the API route', async () => {
+      const html = await (await fetch(`${baseUrl}/share/${shareToken}`)).text();
+      const href = /class="download" href="([^"]+)"/.exec(html)?.[1];
+      expect(href).toBeDefined();
+      const resolved = new URL(href as string, `${baseUrl}/share/${shareToken}`);
+      expect(resolved.pathname).toBe(`/api/v1/share/${shareToken}`);
+    });
+
+    it('returns a not-found page for an unknown token', async () => {
+      const response = await fetch(`${baseUrl}/share/nonexistent-token`);
+      expect(response.status).toBe(404);
+      expect(response.headers.get('content-type')).toContain('text/html');
+      expect(response.headers.get('x-robots-tag')).toBe('noindex, nofollow');
+      expect(await response.text()).toContain('This link isn’t available');
+    });
+
+    it('returns the not-found page for a malformed token', async () => {
+      const response = await fetch(`${baseUrl}/share/${encodeURIComponent('<script>')}`);
+      expect(response.status).toBe(404);
+      expect(await response.text()).not.toContain('<script>');
+    });
+  });
+
+  // ───────────────── GET .../published/:fileId/share-link ──────────────
+
+  describe('GET /api/v1/projects/:username/:slug/published/:fileId/share-link', () => {
+    const originalBaseUrl = process.env.BASE_URL;
+
+    afterAll(() => {
+      if (originalBaseUrl === undefined) delete process.env.BASE_URL;
+      else process.env.BASE_URL = originalBaseUrl;
+    });
+
+    it("builds the link on the API server's public URL", async () => {
+      process.env.BASE_URL = 'https://api.share-test.example';
+      const { response, json } = await client.request(
+        `/api/v1/projects/shareroutes-user/share-test-project/published/${fileId}/share-link`
+      );
+      expect(response.status).toBe(200);
+      const data = (await json()) as { shareToken: string; shareUrl: string };
+      expect(data.shareToken).toBe(shareToken);
+      expect(data.shareUrl).toBe(`https://api.share-test.example/share/${shareToken}`);
+    });
+
+    it('falls back to the origin the request arrived on', async () => {
+      delete process.env.BASE_URL;
+      const { response, json } = await client.request(
+        `/api/v1/projects/shareroutes-user/share-test-project/published/${fileId}/share-link`
+      );
+      expect(response.status).toBe(200);
+      const data = (await json()) as { shareUrl: string };
+      expect(data.shareUrl).toBe(`${baseUrl}/share/${shareToken}`);
     });
   });
 
@@ -196,6 +278,51 @@ describe('Share Routes', () => {
     it('should return 404 for file download with sharing disabled', async () => {
       const response = await fetch(`${baseUrl}/api/v1/share/${privateToken}`);
       expect(response.status).toBe(404);
+    });
+
+    it('should not render the landing page with sharing disabled', async () => {
+      const response = await fetch(`${baseUrl}/share/${privateToken}`);
+      expect(response.status).toBe(404);
+      expect(await response.text()).not.toContain('Private Story');
+    });
+  });
+
+  // ───────────────────── "Anyone" (public) files ───────────────────────
+
+  describe('"Anyone" files', () => {
+    let publicToken: string;
+
+    beforeAll(async () => {
+      const db = getDatabase();
+      publicToken = 'public-token-' + Date.now();
+      await db.insert(publishedFiles).values({
+        id: crypto.randomUUID(),
+        projectId,
+        filename: 'public-story.pdf',
+        format: 'PDF_SIMPLE',
+        mimeType: 'application/pdf',
+        size: 4096,
+        planName: 'default',
+        metaTitle: 'Public Story',
+        metaAuthor: 'Author',
+        shareToken: publicToken,
+        sharePermission: 'public',
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      });
+    });
+
+    it('can be opened with the link, like "Anyone with link"', async () => {
+      const response = await fetch(`${baseUrl}/share/${publicToken}`);
+      expect(response.status).toBe(200);
+      expect(await response.text()).toContain('<h1>Public Story</h1>');
+    });
+
+    it('may be indexed by search engines', async () => {
+      const page = await fetch(`${baseUrl}/share/${publicToken}`);
+      expect(page.headers.get('x-robots-tag')).toBe('all');
+      const info = await fetch(`${baseUrl}/api/v1/share/${publicToken}/info`);
+      expect(info.headers.get('x-robots-tag')).toBe('all');
     });
   });
 });

@@ -624,6 +624,28 @@ a thin layer over the published image). HA serves the UI at
   Stylesheet URLs to `public/` files stay relative and are listed in
   `externalDependencies` in `angular.json` so the build leaves them alone.
 
+### Published File Share Links
+
+A published file shared as "Anyone with link" / "Anyone" gets a link to
+`<server>/share/<token>`. The **API server** serves that page
+(`routes/share-page.routes.ts`, a static HTML page with no script, rendered by
+`utils/share-page.ts`), not the Angular app. On a split deployment the frontend
+origin can't tell which server issued a token. The page's Download button is a
+relative link to `GET /api/v1/share/:token`.
+
+- The client builds the link from `setupService.getServerUrl()`; the backend's
+  `share-link` endpoint uses `getPublicApiUrl(c)` (`BASE_URL`, else the request
+  origin). Never use `getBaseUrl` (SITE_URL) here: on split deployments it is
+  the frontend.
+- Only the server issues share tokens. `PublishedFilesService` must store the
+  server's record (its id **and** token) after an upload or a permission change.
+  The local copy of the file is moved to the server id. Never generate a token
+  on the client.
+- `share` is a reserved username, and `/share/**` is excluded from the service
+  worker's `navigationUrls`, so the page is reachable when the SPA shares its origin.
+- "Anyone with link" sends `X-Robots-Tag: noindex, nofollow`. "Anyone" allows
+  indexing. Both open with the link; nothing lists public files yet.
+
 ### Account Deletion
 
 Google Play requires in-app **and** web account deletion for apps that allow

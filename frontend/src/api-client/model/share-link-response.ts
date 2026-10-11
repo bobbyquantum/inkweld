@@ -14,7 +14,7 @@ export interface ShareLinkResponse {
    */
   shareToken: string;
   /**
-   * Full share URL
+   * Share page URL on this API server
    */
   shareUrl: string;
   /**

@@ -222,13 +222,7 @@ export class PublishedFilesService {
       try {
         const serverFile = await this.uploadToServer(projectKey, blob, request);
         if (serverFile) {
-          // Update local record with server data (including real project ID and share token)
-          const updated = files.map(f =>
-            f.id === id ? { ...serverFile, id } : f
-          );
-          this.saveOfflineMetadata(projectKey, updated);
-          this.filesSubject.next(updated);
-          return updated.find(f => f.id === id) || file;
+          return await this.adoptServerRecord(projectKey, id, serverFile, blob);
         }
       } catch (err) {
         this.logger.warn(
@@ -269,12 +263,49 @@ export class PublishedFilesService {
     if (!serverFile) {
       return null;
     }
+    return this.adoptServerRecord(projectKey, file.id, serverFile, blob);
+  }
+
+  /**
+   * Replace a local-only record with the server's after an upload.
+   *
+   * The server assigns its own id and share token, and every later call
+   * (permission change, delete, share link) must use those. The local copy of
+   * the file is moved to the server id so it is still found offline.
+   */
+  private async adoptServerRecord(
+    projectKey: string,
+    localId: string,
+    serverFile: PublishedFile,
+    blob: Blob
+  ): Promise<PublishedFile> {
+    if (serverFile.id !== localId) {
+      try {
+        await this.localStorage.saveMedia(
+          projectKey,
+          `${PUBLISHED_BLOB_PREFIX}${serverFile.id}`,
+          blob,
+          serverFile.filename
+        );
+        await this.localStorage.deleteMedia(
+          projectKey,
+          `${PUBLISHED_BLOB_PREFIX}${localId}`
+        );
+      } catch (err) {
+        // The file can still be downloaded from the server under its id.
+        this.logger.warn(
+          'Failed to move published file to its server id',
+          String(err)
+        );
+      }
+    }
+
     const updated = this.filesSubject.value.map(f =>
-      f.id === file.id ? { ...serverFile, id: file.id } : f
+      f.id === localId ? serverFile : f
     );
     this.saveOfflineMetadata(projectKey, updated);
     this.filesSubject.next(updated);
-    return updated.find(f => f.id === file.id) ?? null;
+    return serverFile;
   }
 
   /**
@@ -325,58 +356,50 @@ export class PublishedFilesService {
   }
 
   /**
-   * Update file sharing permissions
+   * Update file sharing permissions.
+   *
+   * In server mode the server's answer is stored, because the share token
+   * comes from the server: a link built from anything else would not open.
+   * Throws when the server refuses or cannot be reached, leaving the local
+   * record unchanged.
    */
   async updateSharePermission(
     projectKey: string,
     fileId: string,
     permission: SharePermission
   ): Promise<PublishedFile | null> {
-    const files = this.filesSubject.value;
-    const fileIndex = files.findIndex(f => f.id === fileId);
-
-    if (fileIndex === -1) {
+    const file = this.filesSubject.value.find(f => f.id === fileId);
+    if (!file) {
       return null;
     }
 
-    const file = files[fileIndex];
-    const updated: PublishedFile = {
-      ...file,
-      sharePermission: permission,
-      updatedAt: new Date().toISOString(),
-      // Generate share token if enabling sharing
-      shareToken:
-        permission === SharePermission.Link ||
-        permission === SharePermission.Public
-          ? file.shareToken || nanoid(16)
-          : undefined,
-    };
+    const updated: PublishedFile = this.isOnline()
+      ? await this.updateOnServer(projectKey, fileId, {
+          sharePermission: permission,
+        })
+      : {
+          ...file,
+          sharePermission: permission,
+          updatedAt: new Date().toISOString(),
+          // Share links are served by a server; a local file has none.
+          shareToken: undefined,
+        };
 
-    // Update local state
-    const newFiles = [...files];
-    newFiles[fileIndex] = updated;
+    const newFiles = this.filesSubject.value.map(f =>
+      f.id === fileId ? updated : f
+    );
     this.saveOfflineMetadata(projectKey, newFiles);
     this.filesSubject.next(newFiles);
-
-    // Update on server if online
-    if (this.isOnline()) {
-      try {
-        await this.updateOnServer(projectKey, fileId, {
-          sharePermission: permission,
-        });
-      } catch (err) {
-        this.logger.warn(
-          'Failed to update share permission on server',
-          String(err)
-        );
-      }
-    }
 
     return updated;
   }
 
   /**
-   * Get share URL for a file
+   * Get share URL for a file.
+   *
+   * The link points at the server's `/share/:token` page (not at this app's
+   * origin): on hosted deployments the app and the API are different origins
+   * and only the server knows which file a token belongs to.
    */
   getShareUrl(file: PublishedFile): string | null {
     if (!file.shareToken) {
@@ -584,9 +607,9 @@ export class PublishedFilesService {
     projectKey: string,
     fileId: string,
     request: UpdatePublishedFileRequest
-  ): Promise<void> {
+  ): Promise<PublishedFile> {
     const [username, slug] = projectKey.split('/');
-    await fetch(
+    const response = await fetch(
       `${this.getServerUrl()}/api/v1/projects/${username}/${slug}/published/${fileId}`,
       {
         method: 'PATCH',
@@ -595,6 +618,10 @@ export class PublishedFilesService {
         credentials: 'include',
       }
     );
+    if (!response.ok) {
+      throw new Error(await this.describeFailure(response));
+    }
+    return (await response.json()) as PublishedFile;
   }
 
   private async deleteOnServer(
