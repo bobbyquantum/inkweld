@@ -6,6 +6,7 @@
  */
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi';
 import { requireAuth } from '../middleware/auth';
+import { requireAiEnabled } from '../utils/ai-kill-switch';
 import { configService } from '../services/config.service';
 import { logger } from '../services/logger.service';
 import {
@@ -21,6 +22,11 @@ const aiTextRoutes = new OpenAPIHono<AppContext>();
 
 // Apply auth middleware to all routes
 aiTextRoutes.use('*', requireAuth);
+
+// The AI kill switch blocks provider status and every call to a text model.
+// The default model catalog stays open for the admin settings page.
+aiTextRoutes.use('/status', requireAiEnabled);
+aiTextRoutes.use('/optimize-image-prompt', requireAiEnabled);
 
 // ============================================================================
 // Schemas
@@ -212,6 +218,10 @@ const statusRoute = createRoute({
       description: 'Unauthorized',
       content: { 'application/json': { schema: ErrorSchema } },
     },
+    403: {
+      description: 'AI is disabled on this server (AI kill switch is on)',
+      content: { 'application/json': { schema: ErrorSchema } },
+    },
   },
 });
 
@@ -342,6 +352,10 @@ const optimizeImagePromptRoute = createRoute({
     },
     401: {
       description: 'Unauthorized',
+      content: { 'application/json': { schema: ErrorSchema } },
+    },
+    403: {
+      description: 'AI is disabled on this server (AI kill switch is on)',
       content: { 'application/json': { schema: ErrorSchema } },
     },
     503: {

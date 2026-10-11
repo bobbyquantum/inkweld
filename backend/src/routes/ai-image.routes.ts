@@ -6,6 +6,7 @@
  */
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi';
 import { requireAuth, requireAdmin } from '../middleware/auth';
+import { requireAiEnabled } from '../utils/ai-kill-switch';
 import { imageGenerationService } from '../services/image-generation.service';
 import { imageProfileService } from '../services/image-profile.service';
 import { imageAuditService } from '../services/image-audit.service';
@@ -39,6 +40,13 @@ const aiImageRoutes = new OpenAPIHono<AppContext>();
 
 // Apply auth middleware to all routes
 aiImageRoutes.use('*', requireAuth);
+
+// The AI kill switch blocks provider status and every generation request.
+// The configuration endpoints (custom sizes, model catalogs) stay open so an
+// admin can set AI up before turning the switch off.
+aiImageRoutes.use('/status', requireAiEnabled);
+aiImageRoutes.use('/generate', requireAiEnabled);
+aiImageRoutes.use('/generate-stream', requireAiEnabled);
 
 // ============================================================================
 // Schemas
@@ -288,6 +296,10 @@ const statusRoute = createRoute({
       description: 'Unauthorized',
       content: { 'application/json': { schema: ErrorSchema } },
     },
+    403: {
+      description: 'AI is disabled on this server (AI kill switch is on)',
+      content: { 'application/json': { schema: ErrorSchema } },
+    },
   },
 });
 
@@ -323,6 +335,10 @@ const generateRoute = createRoute({
     },
     401: {
       description: 'Unauthorized',
+      content: { 'application/json': { schema: ErrorSchema } },
+    },
+    403: {
+      description: 'AI is disabled on this server (AI kill switch is on)',
       content: { 'application/json': { schema: ErrorSchema } },
     },
     503: {

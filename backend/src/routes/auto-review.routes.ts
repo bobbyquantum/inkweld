@@ -15,6 +15,7 @@ import { autoReviewService } from '../services/auto-review.service';
 import { autoReviewRejectionService } from '../services/auto-review-rejection.service';
 import { openAILintService } from '../services/openai-lint.service';
 import { requireAuth } from '../middleware/auth';
+import { requireAiEnabled } from '../utils/ai-kill-switch';
 import { logger } from '../services/logger.service';
 import { type AppContext } from '../types/context';
 import { ProjectPathParamsSchema } from '../schemas/common.schemas';
@@ -24,6 +25,10 @@ const lintReviewLog = logger.child('AutoReview');
 const lintReviewRoutes = new OpenAPIHono<AppContext>();
 
 lintReviewRoutes.use('*', requireAuth);
+
+// Only `review` calls the AI provider; accepting/rejecting/clearing marks
+// edits the document locally and stays available with the kill switch on.
+lintReviewRoutes.use('/:username/:slug/docs/:docId/auto-review/review', requireAiEnabled);
 
 /**
  * Resolve the project from the URL path params and enforce write access for
@@ -151,7 +156,7 @@ const reviewRoute = createRoute({
     },
     403: {
       content: { 'application/json': { schema: ErrorSchema } },
-      description: 'No write access',
+      description: 'No write access, or AI is disabled on this server (AI kill switch is on)',
     },
     404: {
       content: { 'application/json': { schema: ErrorSchema } },
