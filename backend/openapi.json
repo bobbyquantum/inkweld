@@ -885,7 +885,7 @@
           },
           "version": {
             "type": "string",
-            "example": "0.1.0",
+            "example": "1.0.0",
             "description": "Server version"
           },
           "uptime": {
@@ -1681,7 +1681,7 @@
           },
           "version": {
             "type": "string",
-            "example": "0.1.0",
+            "example": "1.0.0",
             "description": "Server version"
           },
           "protocolVersion": {

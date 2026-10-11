@@ -153,7 +153,9 @@ src/app/
   generated from `src/db/schema/`. Its statements use `IF NOT EXISTS` so a
   database created by the pre-squash migrations (the preview D1) records it as
   a no-op. Add new migrations with `bunx drizzle-kit generate` on top of it;
-  never hand-patch columns at startup.
+  never hand-patch columns at startup. Never squash or rewrite migrations
+  again: every release since 1.0.0-beta.1 must upgrade automatically from
+  any earlier one (see "Releases and Versioning").
 
 ### Directory Structure
 
@@ -925,11 +927,46 @@ Key facts:
 1. Increment `ARCHIVE_VERSION` in `project-archive.ts`
 2. Document the change in the version history JSDoc comment
 3. Make the import upgrade archives at the previous version (and test it in
-   `project-import.service.spec.ts`), or accept that they can no longer be imported
+   `project-import.service.spec.ts`). Since 1.0.0-beta.1 dropping support for
+   an older archive version is not an option (see "Releases and Versioning")
 
 **Important**: The `PROTOCOL_VERSION` (backend) and `ARCHIVE_VERSION` (frontend) are separate concerns:
 - `PROTOCOL_VERSION` handles live Yjs sync compatibility between client/server
 - `ARCHIVE_VERSION` handles static export/import file format compatibility
+
+### Releases and Versioning
+
+Releases are cut by release-please (`.github/workflows/release-please.yml`,
+`release-please-config.json`); the process is documented under "Releasing" in
+`docs/site/docs/admin-guide/ci-cd.md`.
+
+- **PR titles are the changelog.** PRs are squash-merged, so the Conventional
+  Commit title decides the version bump (`fix` patch, `feat` minor, `!` major;
+  during the 1.0 beta every release is the next `1.0.0-beta.N`) and the
+  CHANGELOG line. `docs`/`refactor`/`test`/`build`/`ci`/`chore`/`style`
+  are hidden and never cause a release; Renovate uses `chore(deps)`.
+- **Never bump versions by hand.** release-please updates the three
+  `package.json` files and every line marked `// x-release-please-version`
+  (`backend/src/config/env.ts`, `frontend/src/environments/environment*.ts`).
+  A new hardcoded app version needs that marker and an `extra-files` entry.
+  `MIN_CLIENT_VERSION` (`backend/src/config/protocol.ts`) and the OpenAPI
+  `info.version` are compatibility/API versions, not the app version.
+- `CHANGELOG.md` is rendered in-app (About → Changelog) by
+  `ChangelogService`, which parses both `## [X.Y.Z] - date` and
+  release-please's `## [X.Y.Z](compare-url) (date)` headings. Don't add a
+  `## [Unreleased]` section: release-please inserts new entries above the
+  first `## [` heading, so it would end up below them.
+- Release tags pushed by release-please don't trigger workflows (GITHUB_TOKEN),
+  so it calls `release.yml` (multi-arch Docker image) via `workflow_call`.
+- **Upgrade path commitment.** From 1.0.0-beta.1 on, every release must
+  upgrade automatically from any earlier release (README "Status"): forward
+  Drizzle migrations only, local IndexedDB/Yjs data upgraded in place, and
+  archives at every earlier `ARCHIVE_VERSION` still importable. A change that
+  would need users to export, reset or migrate by hand is a breaking change
+  that needs an automatic migration instead.
+- Versions can carry a pre-release suffix (`1.0.0-beta.1`). Version
+  comparisons (`version-compatibility.service.ts`) only look at
+  `MAJOR.MINOR.PATCH`.
 
 ### API Client
 

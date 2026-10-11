@@ -126,5 +126,73 @@ All notable changes to this project will be documented in this file.
       expect(versions[1].version).toBe('1.0.0');
       expect(versions[2].version).toBe('0.9.0');
     });
+
+    it('should parse release-please version headings', async () => {
+      httpClientMock.get.mockReturnValue(
+        of(`# Changelog
+
+## [1.1.0](https://github.com/o/r/compare/v1.0.1...v1.1.0) (2026-11-02)
+
+### Features
+
+* **editor:** something new
+
+## 1.0.1 (2026-10-20)
+
+### Bug Fixes
+
+* a fix
+
+## 1.0.0-beta.2 (2026-10-15)
+
+* another fix
+
+## [1.0.0] - 2026-10-10
+
+- Initial release
+`)
+      );
+
+      const versions = await new Promise<ChangelogVersion[]>(resolve => {
+        service.getChangelog().subscribe(v => resolve(v));
+      });
+
+      expect(versions.map(v => [v.version, v.date])).toEqual([
+        ['1.1.0', '2026-11-02'],
+        ['1.0.1', '2026-10-20'],
+        ['1.0.0-beta.2', '2026-10-15'],
+        ['1.0.0', '2026-10-10'],
+      ]);
+      expect(versions[0].isUnreleased).toBe(false);
+      expect(versions[0].content).toContain('Features');
+    });
+
+    it('should accept a release-please heading without a date', async () => {
+      httpClientMock.get.mockReturnValue(
+        of(
+          '# Changelog\n\n## [2.0.0](https://example.com/compare)\n\n- Change\n'
+        )
+      );
+
+      const versions = await new Promise<ChangelogVersion[]>(resolve => {
+        service.getChangelog().subscribe(v => resolve(v));
+      });
+
+      expect(versions).toHaveLength(1);
+      expect(versions[0].version).toBe('2.0.0');
+      expect(versions[0].date).toBe('');
+    });
+
+    it('should skip headings that are not versions', async () => {
+      httpClientMock.get.mockReturnValue(
+        of('# Changelog\n\n## Notes\n\nNothing here.\n')
+      );
+
+      const versions = await new Promise<ChangelogVersion[]>(resolve => {
+        service.getChangelog().subscribe(v => resolve(v));
+      });
+
+      expect(versions).toEqual([]);
+    });
   });
 });

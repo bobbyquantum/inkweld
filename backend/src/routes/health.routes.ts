@@ -12,7 +12,7 @@ const HealthResponseSchema = z
       .string()
       .openapi({ example: '2023-01-01T00:00:00.000Z', description: 'Current server timestamp' }),
     uptime: z.number().openapi({ example: 123.45, description: 'Server uptime in seconds' }),
-    version: z.string().openapi({ example: '0.1.0', description: 'Server version' }),
+    version: z.string().openapi({ example: '1.0.0', description: 'Server version' }),
     protocolVersion: z.number().openapi({
       example: 1,
       description: 'API protocol version for client compatibility checking',

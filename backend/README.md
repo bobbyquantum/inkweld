@@ -221,8 +221,8 @@ This Hono backend was designed with the following principles:
 - MCP (Model Context Protocol) endpoint with OAuth 2.1 + PKCE
 - Admin dashboard APIs (stats, config, announcements, image audits, email)
 
-Refer to the root [`README.md`](../README.md#feature-roadmap) for the
-project-wide feature roadmap.
+Refer to the root [`README.md`](../README.md#feature-list) for the
+project-wide feature list and [`ROADMAP.md`](../ROADMAP.md) for planned work.
 
 ## Testing
 
