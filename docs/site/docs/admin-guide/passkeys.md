@@ -88,6 +88,12 @@ If users access Inkweld from multiple origins (e.g., a custom domain and a `*.pa
 ALLOWED_ORIGINS=https://inkweld.yourcompany.com,https://inkweld.pages.dev
 ```
 
+To let people sign in from the official app at inkweld.app (and the Android
+app), use the admin switch described in
+[Sign-in from the Official App](./official-app) rather than adding it here. The
+switch also serves the `/.well-known/webauthn` file browsers need before they
+let inkweld.app use your server's passkeys.
+
 ---
 
 ## Example Production Configuration

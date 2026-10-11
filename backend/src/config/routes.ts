@@ -44,6 +44,7 @@ import {
 import oauthRoutes from '../routes/oauth.routes';
 import githubAuthRoutes from '../routes/github-auth.routes';
 import robotsRoutes from '../routes/robots.routes';
+import webauthnRelatedOriginsRoutes from '../routes/webauthn-related-origins.routes';
 import passwordResetRoutes from '../routes/password-reset.routes';
 import passkeyRoutes, { passkeyManagementHandlers } from '../routes/passkey.routes';
 import passkeyRecoveryRoutes from '../routes/passkey-recovery.routes';
@@ -200,6 +201,9 @@ export function registerCommonRoutes(app: any): void {
   // OAuth 2.1 for MCP authorization
   // Note: OAuth routes are mounted at root level for standard .well-known paths
   app.route('', oauthRoutes);
+
+  // WebAuthn related origins (only while ALLOW_INKWELD_APP_CLIENT is on)
+  app.route('/.well-known/webauthn', webauthnRelatedOriginsRoutes);
 
   // Robots.txt - blocks AI training bots, allows search engines
   app.route('/robots.txt', robotsRoutes);

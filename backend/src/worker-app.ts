@@ -13,6 +13,7 @@ import { config } from './config/env';
 import { errorHandler } from './middleware/error-handler';
 import { d1DatabaseMiddleware, type D1AppContext } from './middleware/database.d1.middleware';
 import { configService } from './services/config.service';
+import { getInkweldAppClientOrigins } from './services/inkweld-app-client.service';
 
 // Import common route registration + Worker-specific routes
 import { registerCommonRoutes } from './config/routes';
@@ -65,15 +66,18 @@ registerOpenOriginRoutes(app);
 
 // CORS configuration - reads ALLOWED_ORIGINS from wrangler.toml env bindings
 // In Workers, process.env is not available at runtime, so we read from c.env
-app.use('*', (c, next) => {
+app.use('*', async (c, next) => {
   if (isCrossOriginPath(c.req.path)) return next();
 
   // Get allowed origins from wrangler.toml bindings, fallback to static config
   const envOrigins = c.env?.ALLOWED_ORIGINS;
   const allowedOrigins = envOrigins ? envOrigins.split(',') : config.allowedOrigins;
+  // The admin's ALLOW_INKWELD_APP_CLIENT switch adds the hosted app
+  const extraOrigins = await getInkweldAppClientOrigins(c.get('db'));
 
   // Helper to check if origin matches allowed pattern (supports *.pages.dev wildcards)
   const isOriginAllowed = (origin: string): boolean => {
+    if (extraOrigins.includes(origin)) return true;
     for (const allowed of allowedOrigins) {
       // Exact match
       if (allowed === origin) return true;
@@ -103,14 +107,16 @@ app.use('*', (c, next) => {
 
 // CSRF protection (origin-based, matches Node and Bun runtimes)
 if (config.nodeEnv !== 'test') {
-  app.use('*', (c, next) => {
+  app.use('*', async (c, next) => {
     if (isCrossOriginPath(c.req.path)) return next();
 
     const envOrigins = c.env?.ALLOWED_ORIGINS;
     const origins = envOrigins ? envOrigins.split(',') : config.allowedOrigins;
+    const extraOrigins = await getInkweldAppClientOrigins(c.get('db'));
 
     return csrf({
       origin: (requestOrigin) => {
+        if (extraOrigins.includes(requestOrigin)) return true;
         for (const allowed of origins) {
           if (allowed === requestOrigin) return true;
           // Wildcard subdomain match (e.g., "*.inkweld.pages.dev")

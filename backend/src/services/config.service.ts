@@ -144,6 +144,11 @@ class ConfigService {
         // deliberate trust decision because it broadens the attack surface
         // beyond the device-bound passkey credential.
         return 'false';
+      case 'ALLOW_INKWELD_APP_CLIENT':
+        // Default OFF — trusting a frontend this server doesn't serve is the
+        // admin's call, and it ties the server to the hosted app's release
+        // cadence.
+        return 'false';
       case 'MCP_ENABLED':
         // Default ON — MCP is the primary way external tools connect to
         // projects. The AI kill switch still takes precedence (when ON, MCP
