@@ -93,7 +93,7 @@ Then open `http://localhost:8333` in your browser.
 
 The Inkweld Android app is in closed testing on Google Play, and it needs testers before it can be published. If you have an Android phone and would like to help:
 
-1. Join the [Inkweld testers group](TODO-GOOGLE-GROUP-URL) with the Google account you use on Play.
+1. Join the [Inkweld testers group](https://groups.google.com/g/inkweld) with the Google account you use on Play.
 2. Opt in at <https://play.google.com/apps/testing/app.inkweld>, then install Inkweld from the Play Store.
 3. Keep it installed and use it for a couple of weeks. Report anything that breaks on the [issue tracker](https://github.com/bobbyquantum/inkweld/issues).
 
