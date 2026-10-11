@@ -500,6 +500,18 @@ Passkeys use the W3C WebAuthn API for passwordless, discoverable-credential (use
    → email with `/recover-passkey/redeem?token=<raw>` link
    → `POST /start` + `POST /finish` enrol a NEW passkey (no session issued; existing passkeys untouched)
 
+### AI Kill Switch
+
+`AI_KILL_SWITCH` (default ON = all AI disabled; the env var locks it) is
+enforced on the server, not only by the UI hiding buttons. **Every new endpoint
+that sends content to an AI provider must be gated** with `requireAiEnabled`
+from `backend/src/utils/ai-kill-switch.ts` (a 403 with `code: 'AI_DISABLED'`),
+registered with `.use(path, …)` *before* the route handler. Use
+`isAiKillSwitchOn(db)` / `resolveAiKillSwitch(value)` instead of reading the
+config key yourself — they apply the env lock. Admin configuration endpoints
+stay open so AI can be set up before the switch is turned off.
+`test/ai-kill-switch.test.ts` lists the gated endpoints; add new ones there.
+
 ### Admin Branding & Custom HTML Injection
 
 Inkweld sets only strictly-necessary cookies, so it ships **no consent banner**
@@ -624,6 +636,58 @@ a thin layer over the published image). HA serves the UI at
   `utils/app-base.ts` for full-page navigations, new windows and server URLs.
   Stylesheet URLs to `public/` files stay relative and are listed in
   `externalDependencies` in `angular.json` so the build leaves them alone.
+
+### APP_MODE (Which Profiles May Be Added)
+
+`APP_MODE` (`ONLINE` | `LOCAL` | `BOTH`, backend env, sent as `appMode` in
+`/config/features`) is the admin's policy for adding profiles. The frontend
+reads it in one place, `AppModePolicyService` (`services/core/`), and every
+path that creates a profile asks it: setup, the profile manager (add server,
+add Browser, upgrade, add cloud storage), the user menu's upgrade button.
+
+- **The home server decides, not the active profile**:
+  `resolveHomeServerUrl()` is the ingress origin, the build's `apiUrl`, or the
+  page's own origin (no apiUrl: Docker/binary); Electron has none (no limit).
+  Another server added as a profile has no say.
+- `ONLINE` forbids Browser **and** Cloud Sync (both store in the browser);
+  `LOCAL` forbids adding servers.
+- **Fetching is lazy** (`ready()`): Browser/Cloud Sync profiles must not
+  contact a server (the local e2e fixtures fail on any `/api/` request), so
+  only setup, the profile manager's upgrade/add-server views, and the user
+  menu/profile manager *while a server profile is active* call it.
+- The last reported mode is cached per home server
+  (`inkweld-app-mode-policy`). An unreachable server keeps the cached mode;
+  never fall back to `SystemConfigService`'s "server unavailable" defaults
+  here (they say `LOCAL`). With nothing cached, nothing is restricted.
+- Existing profiles always keep working: switching to them, and reconnecting a
+  cloud profile (`?mode=cloud&provider=` is allowed on an `ONLINE` site when
+  the device already has a profile for that provider; the callback then only
+  restores credentials for an account already linked here).
+- `environment.autoConfigure` is a first-run convenience only and must not
+  restrict anything by itself. Ingress / hosted auto-configuration bypasses
+  the policy (it isn't a user adding a profile).
+
+### Published File Share Links
+
+A published file shared as "Anyone with link" / "Anyone" gets a link to
+`<server>/share/<token>`. The **API server** serves that page
+(`routes/share-page.routes.ts`, a static HTML page with no script, rendered by
+`utils/share-page.ts`), not the Angular app. On a split deployment the frontend
+origin can't tell which server issued a token. The page's Download button is a
+relative link to `GET /api/v1/share/:token`.
+
+- The client builds the link from `setupService.getServerUrl()`; the backend's
+  `share-link` endpoint uses `getPublicApiUrl(c)` (`BASE_URL`, else the request
+  origin). Never use `getBaseUrl` (SITE_URL) here: on split deployments it is
+  the frontend.
+- Only the server issues share tokens. `PublishedFilesService` must store the
+  server's record (its id **and** token) after an upload or a permission change.
+  The local copy of the file is moved to the server id. Never generate a token
+  on the client.
+- `share` is a reserved username, and `/share/**` is excluded from the service
+  worker's `navigationUrls`, so the page is reachable when the SPA shares its origin.
+- "Anyone with link" sends `X-Robots-Tag: noindex, nofollow`. "Anyone" allows
+  indexing. Both open with the link; nothing lists public files yet.
 
 ### Account Deletion
 

@@ -204,6 +204,20 @@
   padding: 24px;
 }
 
+.setup-policy-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 0 16px;
+  font-size: 14px;
+  line-height: 1.5;
+  opacity: 0.8;
+
+  mat-icon {
+    flex-shrink: 0;
+  }
+}
+
 .setup-footnote {
   margin: 0 0 16px;
   text-align: center;

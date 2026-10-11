@@ -98,8 +98,8 @@ export const ShareLinkResponseSchema = z
   .object({
     shareToken: z.string().openapi({ example: 'abc123xyz', description: 'Share token' }),
     shareUrl: z.url().openapi({
-      example: 'https://inkweld.app/share/abc123xyz',
-      description: 'Full share URL',
+      example: 'https://api.inkweld.app/share/abc123xyz',
+      description: 'Share page URL on this API server',
     }),
     expiresAt: z.string().optional().openapi({ description: 'Expiration timestamp if applicable' }),
   })

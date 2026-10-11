@@ -110,23 +110,19 @@ The **Publish** section lists earlier files made from the plan under **Previous 
 
 ## Sharing a Published File
 
-When you are connected to a server, the completion dialog (**Published Successfully!**) has a **Share Settings** area with a **Who can access** menu:
+When you're connected to a server, the completion dialog also lets you share the file with people who don't have an account. Choose who can open it under **Who can access**:
 
-| Option               | What it does                                                                           |
-| -------------------- | -------------------------------------------------------------------------------------- |
-| **Only me**          | The default. The file is not shared                                                    |
-| **Collaborators**    | Shown as "Coming soon" and cannot be selected yet                                      |
-| **Anyone with link** | Creates a share link. Anyone who has the link can download the file without signing in |
-| **Anyone**           | Also creates a share link and currently behaves the same as Anyone with link           |
+| Setting              | Who can open it              | Search engines        |
+| -------------------- | ---------------------------- | --------------------- |
+| **Only me**          | You, from the Publishing tab | —                     |
+| **Anyone with link** | Anyone you give the link to  | Asked not to index it |
+| **Anyone**           | Anyone you give the link to  | May index it          |
 
-When a link is available, it appears in a box with a **Copy link** button, and the main button becomes **Copy Link**. Choose **Only me** again to stop sharing.
+Once sharing is on, copy the link with **Copy Link**. It opens a short page on your server showing the title, author, format and size, with a **Download** button. On hosted setups the link is on the server's address (for example `https://api.example.com/share/…`) rather than the app's, because the server is what stores and serves the file.
 
-Two things to know:
+Switching back to **Only me** turns the link off straight away. Turning sharing on again creates a new link, so an old one never starts working again.
 
-- Sharing needs a server connection. In local mode, or offline, the dialog says "Sharing options available when online" and you can only download
-- If the upload to the server fails, the dialog says the file is **Saved on this device only** and offers **Retry upload**. If your server's sync capacity is full, the file stays on your device and cannot be shared until you free up space and publish again. See your administrator's guide on sync capacity
-
-Treat a share link like a password: anyone you give it to can download the file.
+Sharing isn't available in local-only mode, or for a file whose upload to the server failed. Use **Retry upload** in the dialog first.
 
 ## Preview
 

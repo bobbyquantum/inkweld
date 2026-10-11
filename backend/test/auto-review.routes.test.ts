@@ -20,6 +20,7 @@ import {
 } from './server-test-helper';
 import { TEST_PASSWORDS } from './test-credentials';
 import { openAILintService } from '../src/services/openai-lint.service';
+import { configService } from '../src/services/config.service';
 import { yjsService } from '../src/services/yjs.service';
 import { projectService } from '../src/services/project.service';
 import { autoReviewRejectionService } from '../src/services/auto-review-rejection.service';
@@ -60,6 +61,9 @@ describe('Lint Review Routes', () => {
       .returning();
 
     ownerUsername = testUser.username ?? 'lreview-user';
+
+    // The AI kill switch (default ON) would answer 403 before the handler runs.
+    await configService.set(db, 'AI_KILL_SWITCH', 'false');
 
     // Set a fake AI_OPENAI_API_KEY in the config table so isAiEnabled returns true
     await db
@@ -128,6 +132,7 @@ describe('Lint Review Routes', () => {
     await db.delete(projects).where(eq(projects.slug, projectSlug));
     await db.delete(users).where(eq(users.username, 'lreview-user'));
     await db.delete(config).where(eq(config.key, 'AI_OPENAI_API_KEY'));
+    await configService.delete(db, 'AI_KILL_SWITCH');
 
     await stopTestServer();
   });

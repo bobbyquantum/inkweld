@@ -56,6 +56,16 @@
       }
 
       <mat-card-content>
+        <!-- APP_MODE hides some kinds of profile; say so to anyone adding one -->
+        @if (
+          !configLoading() && canReturnToApp() && restrictionMessageKey();
+          as key
+        ) {
+          <p class="setup-policy-note" data-testid="app-mode-policy-note">
+            <mat-icon>info</mat-icon>
+            <span>{{ key | transloco }}</span>
+          </p>
+        }
         @if (configLoading()) {
           <!-- Configuration loading state -->
           <div style="text-align: center; padding: 48px 24px">

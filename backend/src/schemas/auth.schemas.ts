@@ -23,6 +23,7 @@ export const RESERVED_USERNAMES = [
   'privacy',
   'terms',
   'delete-account',
+  'share',
   'settings',
   'messages',
   'oauth',

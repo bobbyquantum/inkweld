@@ -4632,8 +4632,8 @@
           "shareUrl": {
             "type": "string",
             "format": "uri",
-            "example": "https://inkweld.app/share/abc123xyz",
-            "description": "Full share URL"
+            "example": "https://api.inkweld.app/share/abc123xyz",
+            "description": "Share page URL on this API server"
           },
           "expiresAt": {
             "type": "string",
@@ -8760,7 +8760,7 @@
             }
           },
           "403": {
-            "description": "No write access",
+            "description": "No write access, or AI is disabled on this server (AI kill switch is on)",
             "content": {
               "application/json": {
                 "schema": {
@@ -10888,6 +10888,16 @@
               }
             }
           },
+          "403": {
+            "description": "AI is disabled on this server (AI kill switch is on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LintError"
+                }
+              }
+            }
+          },
           "503": {
             "description": "AI linting service unavailable",
             "content": {
@@ -10922,6 +10932,16 @@
           },
           "401": {
             "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImageGenerationError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "AI is disabled on this server (AI kill switch is on)",
             "content": {
               "application/json": {
                 "schema": {
@@ -10973,6 +10993,16 @@
           },
           "401": {
             "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImageGenerationError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "AI is disabled on this server (AI kill switch is on)",
             "content": {
               "application/json": {
                 "schema": {
@@ -11241,6 +11271,16 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "AI is disabled on this server (AI kill switch is on)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TextGenerationError"
+                }
+              }
+            }
           }
         }
       }
@@ -11285,6 +11325,16 @@
           },
           "401": {
             "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TextGenerationError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "AI is disabled on this server (AI kill switch is on)",
             "content": {
               "application/json": {
                 "schema": {

@@ -6,6 +6,7 @@ import { type User } from '@inkweld/index';
 import { AnnouncementService } from '@services/announcement/announcement.service';
 import { AuthTokenService } from '@services/auth/auth-token.service';
 import { CloudSyncEngineService } from '@services/cloud-sync/cloud-sync-engine.service';
+import { AppModePolicyService } from '@services/core/app-mode-policy.service';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SetupService } from '@services/core/setup.service';
 import {
@@ -529,6 +530,29 @@ describe('UserMenuComponent', () => {
       });
 
       activeConfigSignal.set(mockServerConfig);
+      expect(component['canUpgrade']()).toBe(false);
+    });
+
+    it('only offers a move to a server on an ONLINE site', () => {
+      TestBed.inject(AppModePolicyService)['mode'].set('ONLINE');
+
+      expect(component['canUpgrade']()).toBe(true);
+      expect(component['upgradeAction']()).toEqual({
+        icon: 'dns',
+        label: 'settings.connectionTab.moveToServer',
+      });
+    });
+
+    it('offers a cloud profile no upgrade on a LOCAL site', () => {
+      TestBed.inject(AppModePolicyService)['mode'].set('LOCAL');
+      activeConfigSignal.set({
+        id: 'cloud-dropbox-1',
+        type: 'cloud',
+        cloudProvider: 'dropbox',
+        addedAt: '',
+        lastUsedAt: '',
+      });
+
       expect(component['canUpgrade']()).toBe(false);
     });
 

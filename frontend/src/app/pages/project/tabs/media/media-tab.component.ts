@@ -1172,6 +1172,12 @@ export class MediaTabComponent implements OnInit, OnDestroy {
    */
   async openAddMedia(): Promise<void> {
     const status = this.aiGenerationStatus();
+    // With AI turned off (kill switch, local mode) uploading is the only
+    // choice, so skip the chooser.
+    if (status.status === 'hidden') {
+      await this.uploadMedia();
+      return;
+    }
     const dialogRef = this.dialog.open<
       AddMediaDialogComponent,
       AddMediaDialogData,

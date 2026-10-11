@@ -73,6 +73,9 @@ export class CommentPopoverComponent {
   /** Emitted when thread data changes (mark cache should update) */
   updated = output<{ commentId: string; updates: Partial<CommentMarkAttrs> }>();
 
+  /** Emitted for a reply to a local-only thread, which lives in the mark */
+  localReply = output<{ commentId: string; text: string }>();
+
   @ViewChild('messagesContainer')
   messagesContainer?: ElementRef<HTMLDivElement>;
 
@@ -141,18 +144,23 @@ export class CommentPopoverComponent {
     return { top, left };
   });
 
-  constructor() {
-    // Fetch thread data when attrs change
-    effect(() => {
-      const a = this.attrs();
-      if (!a.commentId) return;
+  private readonly commentId = computed(() => this.attrs().commentId);
+  private readonly localOnly = computed(() => this.attrs().localOnly);
 
-      if (a.localOnly) {
+  constructor() {
+    // Fetch thread data when the thread changes. Tracks only the id and
+    // storage mode, so refreshed mark attrs (a reply, an unresolve) don't
+    // trigger another fetch.
+    effect(() => {
+      const commentId = this.commentId();
+      if (!commentId) return;
+
+      if (this.localOnly()) {
         this.loading.set(false);
         return;
       }
 
-      void this.fetchThread(a.commentId);
+      void this.fetchThread(commentId);
     });
   }
 
@@ -179,11 +187,8 @@ export class CommentPopoverComponent {
 
     const a = this.attrs();
     if (a.localOnly) {
-      // Local-only reply would need the editor view — emit for parent to handle
-      this.updated.emit({
-        commentId: a.commentId,
-        updates: { messageCount: (a.messageCount || 0) + 1 },
-      });
+      // The messages live in the mark, so the editor applies the reply
+      this.localReply.emit({ commentId: a.commentId, text });
       this.form.replyText().value.set('');
       return;
     }
@@ -233,7 +238,13 @@ export class CommentPopoverComponent {
 
   async onUnresolve(): Promise<void> {
     const a = this.attrs();
-    if (a.localOnly) return;
+    if (a.localOnly) {
+      this.updated.emit({
+        commentId: a.commentId,
+        updates: { resolved: false },
+      });
+      return;
+    }
 
     try {
       await this.commentService.unresolveThread(

@@ -271,6 +271,7 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
     'reset-password',
     'recover-passkey',
     'about',
+    'share',
     'settings',
     'messages',
     'oauth',
