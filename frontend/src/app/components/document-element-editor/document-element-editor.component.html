@@ -127,6 +127,7 @@
           (commentResolved)="onCommentResolved($event)"
           (commentDeleted)="onCommentDeleted($event)"
           (commentUpdated)="onCommentUpdated($event)"
+          (localReply)="onLocalCommentReply($event)"
           (threadHovered)="onCommentHover($event)"
           (scrollEditor)="onPanelWheel($event)">
         </app-comment-panel>
@@ -188,7 +189,8 @@
       (closed)="closeCommentPopover()"
       (resolved)="onCommentResolved($event)"
       (deleted)="onCommentDeleted($event)"
-      (updated)="onCommentUpdated($event)">
+      (updated)="onCommentUpdated($event)"
+      (localReply)="onLocalCommentReply($event)">
     </app-comment-popover>
   }
 
