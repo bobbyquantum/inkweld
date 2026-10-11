@@ -1,6 +1,11 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi';
 import { bodyLimit } from 'hono/body-limit';
-import { MAX_PUBLISHED_FILE_UPLOAD_BYTES, MULTIPART_OVERHEAD_BYTES } from '../utils/upload';
+import {
+  MAX_PUBLISHED_FILE_UPLOAD_BYTES,
+  MULTIPART_OVERHEAD_BYTES,
+  rejectEmptyUpload,
+  requireUploadedFile,
+} from '../utils/upload';
 import { eq, and, desc } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError } from '../errors';
@@ -26,9 +31,10 @@ import { sanitizeFilename } from '../utils/xml-utils';
 
 const publishedFileRoutes = new OpenAPIHono<AppContext>();
 
-// Reject oversized uploads with 413 before parseBody() buffers them.
+// Reject empty uploads (400) and oversized ones (413) before parseBody() buffers them.
 publishedFileRoutes.use(
   '/:username/:slug/published',
+  rejectEmptyUpload,
   bodyLimit({ maxSize: MAX_PUBLISHED_FILE_UPLOAD_BYTES + MULTIPART_OVERHEAD_BYTES })
 );
 
@@ -193,12 +199,8 @@ publishedFileRoutes.openapi(createPublishedFileRoute, async (c) => {
 
   // Parse multipart form data
   const formData = await c.req.formData();
-  const file = formData.get('file') as File | null;
+  const file = requireUploadedFile(c, formData.get('file'), 'File is required');
   const metadataStr = formData.get('metadata') as string | null;
-
-  if (!file) {
-    return c.json({ error: 'File is required' }, 400);
-  }
 
   if (!metadataStr) {
     return c.json({ error: 'Metadata is required' }, 400);

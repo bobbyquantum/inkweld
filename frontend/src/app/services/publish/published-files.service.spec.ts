@@ -439,6 +439,41 @@ describe('PublishedFilesService', () => {
       expect(service.lastUploadError()).toBe('400 Invalid metadata format');
     });
 
+    it('prefers the message of a thrown server error over its status name', async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue({
+          ok: false,
+          status: 400,
+          statusText: 'Bad Request',
+          json: () =>
+            Promise.resolve({
+              error: 'Bad Request',
+              message: 'The upload arrived empty',
+            }),
+        })
+      );
+
+      await service.savePublishedFile(mockProjectKey, mockBlob, request);
+
+      expect(service.lastUploadError()).toBe('400 The upload arrived empty');
+    });
+
+    it('does not upload a blob that cannot be read', async () => {
+      const fetchMock = vi.fn();
+      vi.stubGlobal('fetch', fetchMock);
+      const unreadable = new Blob(['12345'], { type: 'application/pdf' });
+      unreadable.arrayBuffer = () =>
+        Promise.reject(new DOMException('read failed', 'NotReadableError'));
+
+      await service.savePublishedFile(mockProjectKey, unreadable, request);
+
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(service.lastUploadError()).toContain(
+        'The local copy of this file (5 bytes) could not be read'
+      );
+    });
+
     it('records network failures and clears the error on success', async () => {
       vi.stubGlobal(
         'fetch',
