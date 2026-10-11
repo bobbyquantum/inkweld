@@ -83,7 +83,9 @@ test.describe('APP_MODE policy after first run', () => {
     offlinePage: page,
   }) => {
     await serveAppMode(page, 'ONLINE');
-    await page.reload();
+    // Not reload(): the fixture may have been redirected to /setup before
+    // it configured the profile
+    await page.goto('/');
     await expect(page.getByTestId('user-menu-button')).toBeVisible();
 
     // The profile is still usable. A Browser profile doesn't contact the
