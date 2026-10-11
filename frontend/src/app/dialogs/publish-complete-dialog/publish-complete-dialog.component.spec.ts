@@ -319,8 +319,13 @@ describe('PublishCompleteDialogComponent', () => {
       mockPublishedFilesService.updateSharePermission.mockRejectedValue(
         new Error('Update failed')
       );
+      const before = component.sharePermission();
 
       await component.onPermissionChange(SharePermission.Link);
+
+      // The server kept the old setting, so the dialog must show it again
+      expect(component.sharePermission()).toBe(before);
+      expect(component.canShare).toBe(false);
 
       expect(mockSnackBar.open).toHaveBeenCalledWith(
         'Failed to update sharing',

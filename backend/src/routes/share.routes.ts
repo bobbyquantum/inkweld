@@ -1,10 +1,12 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi';
 import { eq } from 'drizzle-orm';
 
-import { publishedFiles, projects, users } from '../db/schema';
+import { projects, users } from '../db/schema';
+import { findSharedFile } from '../services/share.service';
 import { getStorageService } from '../services/storage.service';
 import { PublishedFileErrorSchema } from '../schemas/published-file.schemas';
 import type { AppContext } from '../types/context';
+import { robotsTagFor } from '../utils/share-page';
 import { sanitizeFilename } from '../utils/xml-utils';
 
 const shareRoutes = new OpenAPIHono<AppContext>();
@@ -41,18 +43,8 @@ shareRoutes.openapi(getSharedFileRoute, async (c) => {
   const storage = getStorageService(c.get('storage'));
   const { shareToken } = c.req.param();
 
-  // Find file by share token
-  const [file] = await db
-    .select()
-    .from(publishedFiles)
-    .where(eq(publishedFiles.shareToken, shareToken));
-
+  const file = await findSharedFile(db, shareToken);
   if (!file) {
-    return c.json({ error: 'File not found or sharing not enabled' }, 404);
-  }
-
-  // Verify sharing is allowed
-  if (file.sharePermission !== 'link' && file.sharePermission !== 'public') {
     return c.json({ error: 'File not found or sharing not enabled' }, 404);
   }
 
@@ -89,6 +81,7 @@ shareRoutes.openapi(getSharedFileRoute, async (c) => {
       'Content-Type': file.mimeType,
       'Content-Disposition': `attachment; filename="${safeFilename}"`,
       'Content-Length': String(file.size),
+      'X-Robots-Tag': robotsTagFor(file.sharePermission),
     },
   });
 });
@@ -133,21 +126,12 @@ shareRoutes.openapi(getSharedFileInfoRoute, async (c) => {
   const db = c.get('db');
   const { shareToken } = c.req.param();
 
-  // Find file by share token
-  const [file] = await db
-    .select()
-    .from(publishedFiles)
-    .where(eq(publishedFiles.shareToken, shareToken));
-
+  const file = await findSharedFile(db, shareToken);
   if (!file) {
     return c.json({ error: 'File not found or sharing not enabled' }, 404);
   }
 
-  // Verify sharing is allowed
-  if (file.sharePermission !== 'link' && file.sharePermission !== 'public') {
-    return c.json({ error: 'File not found or sharing not enabled' }, 404);
-  }
-
+  c.header('X-Robots-Tag', robotsTagFor(file.sharePermission));
   return c.json(
     {
       filename: file.filename,

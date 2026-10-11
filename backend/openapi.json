@@ -4632,8 +4632,8 @@
           "shareUrl": {
             "type": "string",
             "format": "uri",
-            "example": "https://inkweld.app/share/abc123xyz",
-            "description": "Full share URL"
+            "example": "https://api.inkweld.app/share/abc123xyz",
+            "description": "Share page URL on this API server"
           },
           "expiresAt": {
             "type": "string",

@@ -28,6 +28,7 @@ import mediaRoutes from '../routes/media.routes';
 import { commentRoutes } from '../routes/comment.routes';
 import { publishedFileRoutes } from '../routes/published-file.routes';
 import { shareRoutes } from '../routes/share.routes';
+import sharePageRoutes from '../routes/share-page.routes';
 import adminRoutes from '../routes/admin.routes';
 import { adminConfigRoutes } from '../routes/admin-config.routes';
 import { adminStatsRoutes } from '../routes/admin-stats.routes';
@@ -161,6 +162,9 @@ export function registerCommonRoutes(app: any): void {
 
   // Public share endpoints (no auth required)
   app.route('/api/v1/share', shareRoutes);
+  // Landing page that share links point at (served here, not by the SPA, so
+  // it works when the frontend is hosted on another origin)
+  app.route('/share', sharePageRoutes);
 
   // Announcements
   app.route('/api/v1/announcements', publicAnnouncementRoutes);
