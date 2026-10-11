@@ -1,5 +1,8 @@
 import { provideHttpClient, withXhr } from '@angular/common/http';
-import { provideHttpClientTesting } from '@angular/common/http/testing';
+import {
+  HttpTestingController,
+  provideHttpClientTesting,
+} from '@angular/common/http/testing';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import {
@@ -13,6 +16,11 @@ import { type Project, ProjectsService } from '@inkweld/index';
 import { AuthTokenService } from '@services/auth/auth-token.service';
 import { CloudSyncConfigService } from '@services/cloud-sync/cloud-sync-config.service';
 import { CloudTokenStoreService } from '@services/cloud-sync/cloud-token-store.service';
+import {
+  APP_MODE_POLICY_STORAGE_KEY,
+  type AppMode,
+  AppModePolicyService,
+} from '@services/core/app-mode-policy.service';
 import { LoggerService } from '@services/core/logger.service';
 import { ProfileManagerService } from '@services/core/profile-manager.service';
 import { SetupService } from '@services/core/setup.service';
@@ -27,7 +35,7 @@ import {
   MigrationStatus,
 } from '@services/local/migration.service';
 import { of } from 'rxjs';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { ProfileManagerDialogComponent } from './profile-manager-dialog.component';
@@ -1675,6 +1683,150 @@ describe('ProfileManagerDialogComponent', () => {
       expect(component['authError']()).toBe(
         'Authentication failed. Please try again.'
       );
+    });
+  });
+
+  describe('APP_MODE policy', () => {
+    const cloud: ServerConfig = {
+      id: 'cloud-dropbox-1',
+      type: 'cloud',
+      cloudProvider: 'dropbox',
+      addedAt: '',
+      lastUsedAt: '',
+    };
+
+    /** Answer the policy service's features request from the home server */
+    async function serveAppMode(appMode: AppMode): Promise<void> {
+      // A Browser profile is active, so nothing was fetched yet
+      const loaded = TestBed.inject(AppModePolicyService).ready();
+      const http = TestBed.inject(HttpTestingController);
+      for (const req of http.match(r =>
+        r.url.endsWith('/api/v1/config/features')
+      )) {
+        req.flush({ appMode });
+      }
+      await loaded;
+      fixture.detectChanges();
+    }
+
+    function query(testId: string): HTMLElement | null {
+      return fixture.nativeElement.querySelector(`[data-testid="${testId}"]`);
+    }
+
+    afterEach(() => {
+      localStorage.removeItem(APP_MODE_POLICY_STORAGE_KEY);
+    });
+
+    describe('ONLINE', () => {
+      beforeEach(async () => {
+        await serveAppMode('ONLINE');
+      });
+
+      it('only offers a server upgrade to a Browser profile', () => {
+        expect(component['upgradeOptions']()).toEqual(['server']);
+      });
+
+      it('explains the restriction under the add buttons', () => {
+        expect(query('app-mode-policy-note')?.textContent).toContain(
+          'This Inkweld site only allows server profiles.'
+        );
+        expect(query('add-server-button')).not.toBeNull();
+      });
+
+      it('refuses to add a Browser profile', () => {
+        component.showAddLocalMode();
+        expect(component['currentView']()).toBe('list');
+
+        component['localUsername'].set('writer');
+        component.addLocalMode();
+        expect(setupServiceMock.configureLocalMode).not.toHaveBeenCalled();
+        expect(component['localError']()).toContain(
+          'only allows server profiles'
+        );
+      });
+
+      it('refuses to add or upgrade to cloud storage', () => {
+        component.addCloudStorage();
+        component.upgradeToCloud();
+        expect(routerMock.navigate).not.toHaveBeenCalled();
+      });
+
+      it('still switches to a Browser profile already on this device', async () => {
+        storageContextMock.getConfigurations.mockReturnValue([mockLocalConfig]);
+        const switchSpy = vi
+          .spyOn(component, 'switchToProfile')
+          .mockResolvedValue(undefined);
+
+        await component.switchToLocalMode();
+
+        expect(switchSpy).toHaveBeenCalledWith(mockLocalConfig);
+      });
+
+      it('does not offer a new Browser profile when none exists', async () => {
+        storageContextMock.getConfigurations.mockReturnValue([
+          mockServerConfig,
+        ]);
+
+        await component.switchToLocalMode();
+
+        expect(component['currentView']()).toBe('list');
+      });
+
+      it('still reconnects a cloud profile already on this device', () => {
+        component.reconnectCloud(cloud);
+        expect(routerMock.navigate).toHaveBeenCalledWith(['/setup'], {
+          queryParams: { mode: 'cloud', provider: 'dropbox' },
+        });
+      });
+    });
+
+    describe('LOCAL', () => {
+      beforeEach(async () => {
+        await serveAppMode('LOCAL');
+      });
+
+      it('hides adding a server and only offers cloud to a Browser profile', () => {
+        expect(query('add-server-button')).toBeNull();
+        expect(query('app-mode-policy-note')?.textContent).toContain(
+          'only allows profiles stored in this browser'
+        );
+        expect(component['upgradeOptions']()).toEqual(['cloud']);
+      });
+
+      it('offers a cloud profile nowhere to go', () => {
+        storageContextMock.configurations.set([cloud]);
+        storageContextMock.activeConfig.set(cloud);
+        expect(component['upgradeOptions']()).toEqual([]);
+      });
+
+      it('refuses to add a server', () => {
+        component.showAddServer();
+        expect(component['currentView']()).toBe('list');
+
+        component['newServerUrl'].set('https://other.example.com');
+        component.addServer();
+        expect(component['currentView']()).toBe('list');
+        expect(component['connectionError']()).toContain(
+          'only allows profiles stored in this browser'
+        );
+      });
+    });
+
+    it('a Browser profile asks the home server only once upgrading', () => {
+      const http = TestBed.inject(HttpTestingController);
+      const isFeatures = (r: { url: string }) =>
+        r.url.endsWith('/api/v1/config/features');
+      http.expectNone(isFeatures);
+
+      component.showUpgrade();
+
+      expect(http.match(isFeatures)).toHaveLength(1);
+    });
+
+    it('restricts nothing for BOTH', async () => {
+      await serveAppMode('BOTH');
+      expect(query('app-mode-policy-note')).toBeNull();
+      expect(component['upgradeOptions']()).toEqual(['cloud', 'server']);
     });
   });
 });

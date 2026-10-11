@@ -181,19 +181,26 @@
             {{ 'dialogs.profileManager.upgradeAction' | transloco }}
           </button>
         }
-        <button
-          mat-stroked-button
-          class="add-server-link"
-          (click)="showAddServer()"
-          [disabled]="isBusy()"
-          data-testid="add-server-button">
-          <mat-icon>drive_file_move</mat-icon>
-          {{ 'dialogs.profileManager.addServer' | transloco }}
-        </button>
+        @if (canAddServer()) {
+          <button
+            mat-stroked-button
+            class="add-server-link"
+            (click)="showAddServer()"
+            [disabled]="isBusy()"
+            data-testid="add-server-button">
+            <mat-icon>drive_file_move</mat-icon>
+            {{ 'dialogs.profileManager.addServer' | transloco }}
+          </button>
+        }
       </div>
       <p class="setup-hint">
         {{ 'dialogs.profileManager.addProfileHint' | transloco }}
       </p>
+      @if (restrictionMessageKey(); as key) {
+        <p class="setup-hint" data-testid="app-mode-policy-note">
+          {{ key | transloco }}
+        </p>
+      }
 
       <div class="secondary-actions">
         <button
