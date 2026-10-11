@@ -6,7 +6,7 @@ import { userService } from '../services/user.service';
 import { isSessionRevoked } from '../utils/session-validity';
 import { passkeyService } from '../services/passkey.service';
 import { configService } from '../services/config.service';
-import { rpFromContext } from '../utils/webauthn-utils';
+import { rpFromContext, rpFromRequest } from '../utils/webauthn-utils';
 import {
   PasskeyOptionsSchema,
   PasskeyRegisterFinishRequestSchema,
@@ -114,7 +114,7 @@ passkeyRoutes.openapi(registerStartRoute, async (c) => {
   const db = c.get('db');
   const user = await resolveRegistrationUser(c);
   if (!user) return c.json({ error: 'Not authenticated' }, 401);
-  const options = await passkeyService.startRegistration(db, user, rpFromContext(c));
+  const options = await passkeyService.startRegistration(db, user, await rpFromRequest(c));
   return c.json(options, 200);
 });
 
@@ -152,7 +152,7 @@ passkeyRoutes.openapi(registerFinishRoute, async (c) => {
     db,
     user,
     registrationResponse,
-    rpFromContext(c),
+    await rpFromRequest(c),
     name
   );
   if (!result.verified || !result.passkey) {
@@ -183,7 +183,7 @@ const loginStartRoute = createRoute({
 
 passkeyRoutes.openapi(loginStartRoute, async (c) => {
   const db = c.get('db');
-  const options = await passkeyService.startAuthentication(db, rpFromContext(c));
+  const options = await passkeyService.startAuthentication(db, await rpFromRequest(c));
   return c.json(options, 200);
 });
 
@@ -219,7 +219,7 @@ passkeyRoutes.openapi(loginFinishRoute, async (c) => {
   const result = await passkeyService.finishAuthentication(
     db,
     response as unknown as import('@simplewebauthn/server').VerifyAuthenticationResponseOpts['response'],
-    rpFromContext(c)
+    await rpFromRequest(c)
   );
 
   if (!result.verified || !result.userId) {

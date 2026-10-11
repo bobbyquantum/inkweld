@@ -43,6 +43,7 @@ const sidebars: SidebarsConfig = {
         'admin-guide/ai-kill-switch',
         'admin-guide/ai-image-generation',
         'admin-guide/passkeys',
+        'admin-guide/official-app',
         'admin-guide/github-oauth',
         'admin-guide/ci-cd',
       ],

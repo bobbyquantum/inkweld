@@ -126,6 +126,10 @@ export class AdminSettingsComponent implements OnInit {
   // MCP access as a whole — default ON. The AI kill switch takes precedence.
   readonly mcpEnabled = signal(true);
 
+  // Trust the official hosted app (inkweld.app, also the Android app):
+  // CORS, passkey origins and /.well-known/webauthn. Default OFF.
+  readonly inkweldAppClientEnabled = signal(false);
+
   /**
    * True when the server has outbound email (SMTP) configured. When false,
    * email-based recovery is non-functional even if the toggle is on, so we
@@ -178,6 +182,7 @@ export class AdminSettingsComponent implements OnInit {
         syncQuotaDefaultBytes,
         cspMode,
         cspTrustedSources,
+        inkweldAppClient,
       ] = await Promise.all([
         this.configService.getConfig('USER_APPROVAL_REQUIRED'),
         this.configService.getConfig('AI_KILL_SWITCH'),
@@ -203,6 +208,7 @@ export class AdminSettingsComponent implements OnInit {
         this.configService.getConfig('SYNC_QUOTA_DEFAULT_BYTES'),
         this.configService.getConfig('CONTENT_SECURITY_POLICY_MODE'),
         this.configService.getConfig('CONTENT_SECURITY_POLICY_TRUSTED_SOURCES'),
+        this.configService.getConfig('ALLOW_INKWELD_APP_CLIENT'),
       ]);
 
       this.userApprovalRequired.set(userApproval?.value === 'true');
@@ -256,6 +262,7 @@ export class AdminSettingsComponent implements OnInit {
       this.passwordLoginEnabled.set(passwordLoginEnabled?.value === 'true');
       this.emailRecoveryEnabled.set(emailRecoveryEnabled?.value === 'true');
       this.mcpEnabled.set(mcpEnabled?.value !== 'false');
+      this.inkweldAppClientEnabled.set(inkweldAppClient?.value === 'true');
 
       // For AI kill switch, also check the system config for lockedByEnv status
       const aiKillSwitchValue = aiKillSwitch?.value !== 'false'; // Default to true
@@ -772,6 +779,73 @@ export class AdminSettingsComponent implements OnInit {
    * MCP section in project settings and makes the server reject MCP requests.
    * The AI kill switch still takes precedence over this flag.
    */
+  /**
+   * Toggle sign-in from the official inkweld.app client. Turning it on asks
+   * for confirmation: the server then trusts code it doesn't serve, and has
+   * to keep up with the hosted app's releases.
+   */
+  async toggleInkweldAppClient(
+    enabled: boolean,
+    toggle?: { checked: boolean }
+  ): Promise<void> {
+    if (enabled) {
+      const t = (key: string) =>
+        this.transloco.translate(`admin.settings.${key}`);
+      const data: ConfirmationDialogData = {
+        title: t('inkweldAppClientConfirmTitle'),
+        message: t('inkweldAppClientConfirmMessage'),
+        details: [
+          t('inkweldAppClientConfirmTrust'),
+          t('inkweldAppClientConfirmUpdates'),
+          t('inkweldAppClientConfirmPasskeys'),
+        ],
+        cancelText: this.transloco.translate('cancel'),
+        confirmText: t('inkweldAppClientConfirm'),
+      };
+      const dialogRef = this.dialog.open<
+        ConfirmationDialogComponent,
+        ConfirmationDialogData,
+        boolean
+      >(ConfirmationDialogComponent, { width: '500px', data });
+      const confirmed = await firstValueFrom(dialogRef.afterClosed());
+      if (!confirmed) {
+        // The slide toggle already moved and its binding hasn't changed, so
+        // move it back directly
+        if (toggle) toggle.checked = false;
+        return;
+      }
+    }
+
+    this.isSaving.set(true);
+
+    try {
+      await this.configService.setConfig(
+        'ALLOW_INKWELD_APP_CLIENT',
+        enabled ? 'true' : 'false'
+      );
+      this.inkweldAppClientEnabled.set(enabled);
+      this.snackBar.open(
+        this.transloco.translate(
+          enabled
+            ? 'admin.settings.inkweldAppClientEnabledMsg'
+            : 'admin.settings.inkweldAppClientDisabledMsg'
+        ),
+        this.transloco.translate('close'),
+        { duration: 2500 }
+      );
+    } catch (err) {
+      console.error('Failed to save inkweld.app client setting:', err);
+      this.snackBar.open(
+        this.transloco.translate('admin.settings.saveFailed'),
+        this.transloco.translate('close'),
+        { duration: 3000 }
+      );
+      this.inkweldAppClientEnabled.set(!enabled);
+    } finally {
+      this.isSaving.set(false);
+    }
+  }
+
   async toggleMcp(enabled: boolean): Promise<void> {
     this.isSaving.set(true);
 
