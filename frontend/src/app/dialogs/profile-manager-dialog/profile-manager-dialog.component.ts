@@ -31,7 +31,7 @@ import { TooltipAriaLabelDirective } from '@directives/tooltip-aria-label.direct
 import { type Project, ProjectsService } from '@inkweld/index';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { AuthTokenService } from '@services/auth/auth-token.service';
-import { CloudSyncConfigService } from '@services/cloud-sync/cloud-sync-config.service';
+import { AppModePolicyService } from '@services/core/app-mode-policy.service';
 import {
   type ProfileDestination,
   type ProfileInfo,
@@ -108,7 +108,7 @@ export class ProfileManagerDialogComponent {
   private readonly authTokenService = inject(AuthTokenService);
   private readonly setupService = inject(SetupService);
   private readonly profileManager = inject(ProfileManagerService);
-  private readonly cloudSyncConfig = inject(CloudSyncConfigService);
+  private readonly appModePolicy = inject(AppModePolicyService);
   private readonly dialogRef = inject(
     MatDialogRef<ProfileManagerDialogComponent>
   );
@@ -142,10 +142,17 @@ export class ProfileManagerDialogComponent {
   protected activeProfile = computed(() =>
     this.storageContext.getActiveConfig()
   );
-  /** Cloud storage can be added when this build offers at least one provider */
-  protected canAddCloud = computed(() =>
-    this.cloudSyncConfig.isCloudSyncAvailable()
-  );
+  /**
+   * Cloud storage can be added when this build offers at least one provider
+   * and the home server's APP_MODE allows profiles stored in the browser
+   */
+  protected canAddCloud = this.appModePolicy.canAddCloudProfiles;
+  /** Browser profiles can be added unless APP_MODE is ONLINE */
+  protected canAddLocal = this.appModePolicy.canAddBrowserProfiles;
+  /** Server profiles can be added unless APP_MODE is LOCAL */
+  protected canAddServer = this.appModePolicy.canAddServerProfiles;
+  /** Why some kinds of profile can't be added here, if APP_MODE says so */
+  protected restrictionMessageKey = this.appModePolicy.restrictionMessageKey;
 
   /** The active profile as the manager describes it */
   protected activeInfo = computed(
@@ -153,19 +160,13 @@ export class ProfileManagerDialogComponent {
   );
 
   /**
-   * Upgrade paths for the active profile. Browser can go to cloud storage or
-   * a server; cloud can go to a server; a server profile is the top of the
-   * ladder.
+   * Upgrade paths for the active profile, within what APP_MODE allows.
+   * Browser can go to cloud storage or a server; cloud can go to a server;
+   * a server profile is the top of the ladder.
    */
-  protected upgradeOptions = computed<('cloud' | 'server')[]>(() => {
-    const info = this.activeInfo();
-    if (!info) return [];
-    if (info.kind === 'local') {
-      return this.canAddCloud() ? ['cloud', 'server'] : ['server'];
-    }
-    if (info.kind === 'cloud') return ['server'];
-    return [];
-  });
+  protected upgradeOptions = computed(() =>
+    this.appModePolicy.upgradeTargets(this.activeInfo()?.kind)
+  );
 
   // Storage on this device (loaded on demand)
   protected showStorage = signal(false);
@@ -257,6 +258,18 @@ export class ProfileManagerDialogComponent {
   // Reference to registration form component for register mode
   @ViewChild(RegistrationFormComponent)
   registrationForm?: RegistrationFormComponent;
+
+  constructor() {
+    // A server profile is talking to a server anyway: refresh the APP_MODE
+    // policy. Browser and Cloud Sync profiles ask only once someone starts
+    // adding a profile (upgrade choices, add server).
+    if (
+      this.activeProfile()?.type === 'server' ||
+      this.currentView() === 'upgrade'
+    ) {
+      void this.appModePolicy.ready();
+    }
+  }
 
   // Expose enum for template
   protected readonly MigrationStatus = MigrationStatus;
@@ -375,6 +388,10 @@ export class ProfileManagerDialogComponent {
    * Start adding a new server
    */
   showAddServer(): void {
+    if (!this.canAddServer()) return;
+    // A Browser profile hasn't asked the home server yet; do it now, before
+    // the form is submitted
+    void this.appModePolicy.ready();
     this.currentView.set('add');
     this.resetAddServerForm();
   }
@@ -461,6 +478,10 @@ export class ProfileManagerDialogComponent {
    * If they have local projects to migrate, those will be shown after authentication.
    */
   addServer(): void {
+    if (!this.canAddServer()) {
+      this.connectionError.set(this.policyMessage());
+      return;
+    }
     const rawUrl = this.newServerUrl().trim();
     if (!rawUrl) {
       this.connectionError.set(
@@ -544,6 +565,7 @@ export class ProfileManagerDialogComponent {
 
   /** Show the upgrade choices for the active profile */
   showUpgrade(): void {
+    void this.appModePolicy.ready();
     this.currentView.set('upgrade');
   }
 
@@ -554,7 +576,7 @@ export class ProfileManagerDialogComponent {
    */
   upgradeToCloud(): void {
     const active = this.activeProfile();
-    if (!active) return;
+    if (!active || !this.canAddCloud()) return;
     setProfileUpgradeSource(active.id);
     this.dialog.closeAll();
     void this.router.navigate(['/setup'], {
@@ -575,11 +597,15 @@ export class ProfileManagerDialogComponent {
 
   /** Add a cloud storage account via the welcome screen's provider picker */
   addCloudStorage(): void {
+    if (!this.canAddCloud()) return;
     this.dialog.closeAll();
     void this.router.navigate(['/setup'], { queryParams: { mode: 'cloud' } });
   }
 
-  /** Reconnect a cloud account whose credentials are gone */
+  /**
+   * Reconnect a cloud account whose credentials are gone. Allowed whatever
+   * APP_MODE says: the profile already exists on this device.
+   */
   reconnectCloud(profile: ServerConfig): void {
     this.dialog.closeAll();
     void this.router.navigate(['/setup'], {
@@ -671,6 +697,7 @@ export class ProfileManagerDialogComponent {
    * Show the add local mode form
    */
   showAddLocalMode(): void {
+    if (!this.canAddLocal()) return;
     this.currentView.set('add-local');
     this.resetAddLocalForm();
   }
@@ -696,6 +723,10 @@ export class ProfileManagerDialogComponent {
    * Add local mode profile and switch to it
    */
   addLocalMode(): void {
+    if (!this.canAddLocal()) {
+      this.localError.set(this.policyMessage());
+      return;
+    }
     const username = this.localUsername().trim();
     const displayName = this.localDisplayName().trim() || username;
 
@@ -729,7 +760,8 @@ export class ProfileManagerDialogComponent {
   }
 
   /**
-   * Switch to local mode (for existing local profile)
+   * Switch to local mode. An existing Browser profile always works; a new
+   * one is only offered when APP_MODE allows it.
    */
   async switchToLocalMode(): Promise<void> {
     const configs = this.storageContext.getConfigurations();
@@ -742,6 +774,12 @@ export class ProfileManagerDialogComponent {
       // Show form to create local profile
       this.showAddLocalMode();
     }
+  }
+
+  /** The APP_MODE restriction, worded the same as everywhere else */
+  private policyMessage(): string | null {
+    const key = this.restrictionMessageKey();
+    return key ? this.transloco.translate(key) : null;
   }
 
   // ============ Migration Methods ============

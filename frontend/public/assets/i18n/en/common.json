@@ -52,6 +52,11 @@
   "words": "words",
   "elements": "elements",
   "element": "element",
+  "appModePolicy": {
+    "serverOnly": "This Inkweld site only allows server profiles. Browser and Cloud Sync profiles already on this device keep working.",
+    "browserOnly": "This Inkweld site only allows profiles stored in this browser. Server profiles already on this device keep working.",
+    "reconnected": "Reconnected to {{provider}}."
+  },
   "errors": {
     "unknown": "Something went wrong. Please try again.",
     "networkError": "Network error. Please check your connection and try again.",

@@ -441,13 +441,33 @@ If you don't set a default admin, the first user to register automatically becom
 
 **Default:** `BOTH` | `ONLINE` | `LOCAL` | `BOTH`
 
-Controls whether the frontend allows users to operate in online mode, local mode, or offers both options.
+Controls which kinds of profile people may add in the app served by this server. It applies on the setup screen at first run and everywhere a profile can be added later: **Add profile** in the user menu, the profile manager, and its upgrade options.
 
 ```bash
-APP_MODE=ONLINE    # Require server connection (no local-only option)
-APP_MODE=LOCAL     # Local mode only (no server connection option)
-APP_MODE=BOTH      # User can choose either mode (default)
+APP_MODE=ONLINE    # Server profiles only (no Browser or Cloud Sync)
+APP_MODE=LOCAL     # Browser and Cloud Sync profiles only (no server)
+APP_MODE=BOTH      # Anything (default)
 ```
+
+- **`ONLINE`** hides Browser and Cloud Sync. Cloud Sync keeps writing in the browser and mirrors it to the user's own cloud storage, so it counts as a browser profile here.
+- **`LOCAL`** hides adding a server. Cloud Sync is still offered when the build has a provider configured.
+
+Profiles that already exist on a device are never removed or locked: someone who made a Browser profile before you switched to `ONLINE` can still open it, reconnect a Cloud Sync account that lost its credentials, and move its projects to a server. Only creating new profiles of a forbidden kind is refused.
+
+**Which server decides.** The policy comes from the server the app belongs to, not from whichever profile happens to be active:
+
+- the server that serves the frontend (Docker, native binary, Home Assistant ingress), or
+- the server a hosted frontend build points at (its `apiUrl`, e.g. a Cloudflare Pages frontend with a Workers backend).
+
+Servers added later as extra profiles do not change what the app offers. The desktop (Electron) app has no server of its own and offers everything.
+
+The app remembers the last mode it was told. If the server can't be reached, that remembered mode stays in force, so an outage never unlocks Browser profiles on an `ONLINE` site. A browser that has never reached the server (and so has nothing remembered) offers everything until it does.
+
+Browser and Cloud Sync profiles never contact a server on their own, and this doesn't change that: the app asks for the mode when someone opens the setup screen, the upgrade choices or the add-server form, and in the background only while a server profile is active.
+
+:::note[APP_MODE and auto-configuration]
+`APP_MODE` is a policy; a hosted build's `autoConfigure` setting is only a first-run convenience that connects new visitors straight to the hosted server. Auto-configuration on its own does not stop anyone adding a Browser profile later. Set `APP_MODE=ONLINE` for that.
+:::
 
 ---
 
@@ -772,7 +792,7 @@ wrangler secret put SESSION_SECRET --env production
 | `DB_PATH`                     | `./sqlite.db`                                       | SQLite file path                                                                                                                                                                          |
 | `DATA_PATH`                   | `./data`                                            | Data storage directory                                                                                                                                                                    |
 | `USER_APPROVAL_REQUIRED`      | `true`                                              | Require admin approval for new users                                                                                                                                                      |
-| `APP_MODE`                    | `BOTH`                                              | Application mode: `ONLINE`, `LOCAL`, or `BOTH`                                                                                                                                            |
+| `APP_MODE`                    | `BOTH`                                              | Which profiles can be added: `ONLINE` (server only), `LOCAL` (Browser/Cloud Sync only), or `BOTH`                                                                                         |
 | `COOKIE_DOMAIN`               | Auto                                                | Cookie domain                                                                                                                                                                             |
 | `PASSKEYS_ENABLED`            | `true`                                              | Master switch for passkey (WebAuthn) support                                                                                                                                              |
 | `PASSWORD_LOGIN_ENABLED`      | `false`                                             | Allow username/password sign-in (passwordless-first by default)                                                                                                                           |

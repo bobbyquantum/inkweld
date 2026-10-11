@@ -1,3 +1,4 @@
+import { signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -8,13 +9,15 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ActivatedRoute, Router } from '@angular/router';
-import { ConfigurationService } from '@inkweld/index';
 import { CloudSyncConfigService } from '@services/cloud-sync/cloud-sync-config.service';
 import { CloudSyncConnectService } from '@services/cloud-sync/cloud-sync-connect.service';
+import {
+  type AppMode,
+  AppModePolicyService,
+} from '@services/core/app-mode-policy.service';
 import { ProfileManagerService } from '@services/core/profile-manager.service';
 import { StorageContextService } from '@services/core/storage-context.service';
-import { of, throwError } from 'rxjs';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { environment } from '../../../environments/environment';
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
@@ -23,12 +26,20 @@ import { SetupService } from '../../services/core/setup.service';
 import { UnifiedUserService } from '../../services/user/unified-user.service';
 import { defaultServerUrl, SetupComponent } from './setup.component';
 
+/** What AppModePolicyService.restrictionMessageKey reports per mode */
+const RESTRICTION_KEYS: Record<AppMode, string | null> = {
+  ONLINE: 'appModePolicy.serverOnly',
+  LOCAL: 'appModePolicy.browserOnly',
+  BOTH: null,
+};
+
 describe('SetupComponent', () => {
   let component: SetupComponent;
   let fixture: ComponentFixture<SetupComponent>;
   let mockSetupService: any;
   let mockUnifiedUserService: any;
-  let mockConfigurationService: any;
+  let mockPolicy: any;
+  let policyMode: ReturnType<typeof signal<AppMode>>;
   let mockSnackBar: any;
   let mockRouter: any;
   let mockCloudSyncConfig: any;
@@ -50,9 +61,7 @@ describe('SetupComponent', () => {
       initialize: vi.fn().mockResolvedValue(undefined),
     };
 
-    mockConfigurationService = {
-      getAppConfiguration: vi.fn().mockReturnValue(of({})),
-    };
+    policyMode = signal<AppMode>('BOTH');
 
     mockSnackBar = {
       open: vi.fn(),
@@ -103,6 +112,18 @@ describe('SetupComponent', () => {
           : undefined
       ),
     };
+    // Same rules as AppModePolicyService, over a writable mode; the cloud
+    // check reads the (non-signal) CloudSyncConfig mock on every call
+    mockPolicy = {
+      appMode: policyMode,
+      defaultServerName: signal<string | null>(null),
+      ready: vi.fn().mockResolvedValue(undefined),
+      canAddBrowserProfiles: () => policyMode() !== 'ONLINE',
+      canAddServerProfiles: () => policyMode() !== 'LOCAL',
+      canAddCloudProfiles: () =>
+        policyMode() !== 'ONLINE' && mockCloudSyncConfig.isCloudSyncAvailable(),
+      restrictionMessageKey: () => RESTRICTION_KEYS[policyMode()],
+    };
     sessionStorage.removeItem('inkweld-profile-upgrade-source');
 
     await TestBed.configureTestingModule({
@@ -120,7 +141,7 @@ describe('SetupComponent', () => {
       providers: [
         { provide: SetupService, useValue: mockSetupService },
         { provide: UnifiedUserService, useValue: mockUnifiedUserService },
-        { provide: ConfigurationService, useValue: mockConfigurationService },
+        { provide: AppModePolicyService, useValue: mockPolicy },
         { provide: MatSnackBar, useValue: mockSnackBar },
         { provide: Router, useValue: mockRouter },
         { provide: CloudSyncConfigService, useValue: mockCloudSyncConfig },
@@ -134,6 +155,14 @@ describe('SetupComponent', () => {
     fixture = TestBed.createComponent(SetupComponent);
     component = fixture.componentInstance;
   });
+
+  /** Run ngOnInit and let it finish waiting for the APP_MODE policy */
+  async function init(): Promise<void> {
+    fixture.detectChanges();
+    await mockPolicy.ready();
+    await fixture.whenStable();
+    fixture.detectChanges();
+  }
 
   it('should create', () => {
     expect(component).toBeTruthy();
@@ -152,126 +181,292 @@ describe('SetupComponent', () => {
   });
 
   describe('ngOnInit', () => {
-    it('should not load system config if no server is configured', () => {
-      mockSetupService.getServerUrl.mockReturnValue(null);
+    it('waits for the APP_MODE policy before showing the choices', async () => {
+      let release!: () => void;
+      mockPolicy.ready.mockReturnValue(
+        new Promise<void>(resolve => (release = resolve))
+      );
 
       fixture.detectChanges();
+      expect(component['configLoading']()).toBe(true);
 
-      expect(
-        mockConfigurationService.getAppConfiguration
-      ).not.toHaveBeenCalled();
+      release();
+      await init();
       expect(component['configLoading']()).toBe(false);
+      expect(component['shouldShowModeSelection']()).toBe(true);
     });
 
-    it('should load system config if server is already configured', async () => {
-      mockSetupService.getServerUrl.mockReturnValue(
-        'http://configured-server.com'
-      );
-      mockConfigurationService.getAppConfiguration.mockReturnValue(
-        of({ appMode: 'BOTH' })
-      );
-
-      fixture.detectChanges();
-      await fixture.whenStable();
-
-      expect(mockConfigurationService.getAppConfiguration).toHaveBeenCalled();
-      expect(component['configLoading']()).toBe(false);
-    });
-
-    it('should set appMode from system config', async () => {
-      mockSetupService.getServerUrl.mockReturnValue('http://server.com');
-      mockConfigurationService.getAppConfiguration.mockReturnValue(
-        of({ appMode: 'ONLINE' })
-      );
-
-      fixture.detectChanges();
-      await fixture.whenStable();
+    it('takes appMode from the policy service', async () => {
+      policyMode.set('ONLINE');
+      await init();
 
       expect(component['appMode']()).toBe('ONLINE');
     });
 
     it('should auto-select online mode if ONLINE only', async () => {
-      mockSetupService.getServerUrl.mockReturnValue('http://server.com');
-      mockConfigurationService.getAppConfiguration.mockReturnValue(
-        of({ appMode: 'ONLINE' })
-      );
-
-      fixture.detectChanges();
-      await fixture.whenStable();
+      policyMode.set('ONLINE');
+      await init();
 
       expect(component['showServerSetup']()).toBe(true);
       expect(component['showLocalSetup']()).toBe(false);
     });
 
     it('should auto-select local mode if LOCAL only', async () => {
-      mockSetupService.getServerUrl.mockReturnValue('http://server.com');
-      mockConfigurationService.getAppConfiguration.mockReturnValue(
-        of({ appMode: 'LOCAL' })
-      );
-
-      fixture.detectChanges();
-      await fixture.whenStable();
+      policyMode.set('LOCAL');
+      await init();
 
       expect(component['showLocalSetup']()).toBe(true);
       expect(component['showServerSetup']()).toBe(false);
     });
 
     it('should set server URL from defaultServerName', async () => {
-      mockSetupService.getServerUrl.mockReturnValue('http://server.com');
-      mockConfigurationService.getAppConfiguration.mockReturnValue(
-        of({ defaultServerName: 'http://custom-server.com' })
-      );
-
-      fixture.detectChanges();
-      await fixture.whenStable();
+      mockPolicy.defaultServerName.set('http://custom-server.com');
+      await init();
 
       expect(component['serverUrl']).toBe('http://custom-server.com');
     });
 
-    it('should handle config load failure gracefully', async () => {
-      mockSetupService.getServerUrl.mockReturnValue('http://server.com');
-      mockConfigurationService.getAppConfiguration.mockReturnValue(
-        throwError(() => new Error('Network error'))
-      );
-
-      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-
-      fixture.detectChanges();
-      await fixture.whenStable();
-
-      expect(consoleSpy).toHaveBeenCalledWith(
-        'Failed to load system configuration, using defaults:',
-        expect.any(Error)
-      );
-      expect(component['appMode']()).toBe('BOTH');
-      expect(component['configLoading']()).toBe(false);
-
-      consoleSpy.mockRestore();
-    });
-
-    it('should ignore invalid appMode values', async () => {
-      mockSetupService.getServerUrl.mockReturnValue('http://server.com');
-      mockConfigurationService.getAppConfiguration.mockReturnValue(
-        of({ appMode: 'INVALID_MODE' })
-      );
-
-      fixture.detectChanges();
-      await fixture.whenStable();
-
-      expect(component['appMode']()).toBe('BOTH');
-    });
-
-    it('should ignore empty defaultServerName', async () => {
-      mockSetupService.getServerUrl.mockReturnValue('http://server.com');
+    it('keeps the default server URL when the server names none', async () => {
       component['serverUrl'] = 'http://original.com';
-      mockConfigurationService.getAppConfiguration.mockReturnValue(
-        of({ defaultServerName: '   ' })
-      );
-
-      fixture.detectChanges();
-      await fixture.whenStable();
+      await init();
 
       expect(component['serverUrl']).toBe('http://original.com');
+    });
+  });
+
+  describe('APP_MODE policy', () => {
+    it('ignores ?mode=local on an ONLINE site', async () => {
+      policyMode.set('ONLINE');
+      mockActivatedRoute.snapshot.queryParamMap.get.mockImplementation(
+        (key: string) => (key === 'mode' ? 'local' : null)
+      );
+      await init();
+
+      expect(component['showLocalSetup']()).toBe(false);
+      expect(component['showServerSetup']()).toBe(true);
+    });
+
+    it('ignores ?mode=cloud on an ONLINE site without a cloud profile', async () => {
+      policyMode.set('ONLINE');
+      mockCloudSyncConfig.isCloudSyncAvailable.mockReturnValue(true);
+      mockCloudSyncConfig.availableProviders.mockReturnValue(['dropbox']);
+      mockActivatedRoute.snapshot.queryParamMap.get.mockImplementation(
+        (key: string) => (key === 'mode' ? 'cloud' : null)
+      );
+      await init();
+
+      expect(component['showCloudSetup']()).toBe(false);
+      expect(component['showServerSetup']()).toBe(true);
+    });
+
+    it('ignores ?mode=server on a LOCAL site', async () => {
+      policyMode.set('LOCAL');
+      mockActivatedRoute.snapshot.queryParamMap.get.mockImplementation(
+        (key: string) => (key === 'mode' ? 'server' : null)
+      );
+      await init();
+
+      expect(component['showServerSetup']()).toBe(false);
+      expect(component['showLocalSetup']()).toBe(true);
+    });
+
+    it('refuses to create a Browser profile on an ONLINE site', async () => {
+      policyMode.set('ONLINE');
+
+      await component['setupLocalMode']();
+
+      expect(mockSetupService.configureLocalMode).not.toHaveBeenCalled();
+      expect(mockSnackBar.open).toHaveBeenCalledWith(
+        'This Inkweld site only allows server profiles. Browser and Cloud Sync profiles already on this device keep working.',
+        'Close',
+        expect.anything()
+      );
+    });
+
+    it('refuses to add a server on a LOCAL site', async () => {
+      policyMode.set('LOCAL');
+      component['serverUrl'] = 'http://server.com';
+
+      await component['setupServerMode']();
+
+      expect(mockSetupService.configureServerMode).not.toHaveBeenCalled();
+      expect(mockSnackBar.open).toHaveBeenCalledWith(
+        'This Inkweld site only allows profiles stored in this browser. Server profiles already on this device keep working.',
+        'Close',
+        expect.anything()
+      );
+    });
+
+    it('refuses to start a new cloud connection on an ONLINE site', async () => {
+      policyMode.set('ONLINE');
+      mockCloudSyncConfig.isCloudSyncAvailable.mockReturnValue(true);
+
+      await component['connectCloudProvider']('dropbox');
+
+      expect(mockCloudSyncConnect.beginAuthorization).not.toHaveBeenCalled();
+      expect(mockSnackBar.open).toHaveBeenCalled();
+    });
+
+    it('refuses to finish a new cloud profile on an ONLINE site', async () => {
+      policyMode.set('ONLINE');
+      component['pendingCloudConnection'].set({
+        provider: 'dropbox',
+        accountId: 'dbid:1',
+        accountLabel: 'a@example.com',
+        suggestedName: 'A',
+        suggestedUsername: 'a',
+      });
+
+      await component['setupCloudProfile']();
+      await component['continueAsExisting']({ name: 'A', username: 'a' });
+
+      expect(mockCloudSyncConnect.finishNewConnection).not.toHaveBeenCalled();
+      expect(mockCloudSyncConnect.adoptExistingProfile).not.toHaveBeenCalled();
+    });
+
+    it('explains the restriction to someone adding a profile', async () => {
+      policyMode.set('ONLINE');
+      mockSetupService.isConfigured.mockReturnValue(true);
+      await init();
+
+      const note: HTMLElement = fixture.nativeElement.querySelector(
+        '[data-testid="app-mode-policy-note"]'
+      );
+      expect(note.textContent).toContain(
+        'This Inkweld site only allows server profiles.'
+      );
+    });
+
+    it('shows no restriction note on first run or when nothing is restricted', async () => {
+      mockSetupService.isConfigured.mockReturnValue(true);
+      await init();
+
+      expect(
+        fixture.nativeElement.querySelector(
+          '[data-testid="app-mode-policy-note"]'
+        )
+      ).toBeNull();
+    });
+
+    it('returns to the app from the only step left once configured', async () => {
+      policyMode.set('ONLINE');
+      mockSetupService.isConfigured.mockReturnValue(true);
+      await init();
+
+      expect(component['showServerSetup']()).toBe(true);
+      expect(component['canGoBack']()).toBe(true);
+      component['goBack']();
+
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/']);
+    });
+
+    it('has no back button in the only step left on first run', async () => {
+      policyMode.set('ONLINE');
+      await init();
+
+      expect(component['canGoBack']()).toBe(false);
+    });
+
+    describe('reconnecting an existing cloud profile on an ONLINE site', () => {
+      const pending = {
+        provider: 'dropbox' as const,
+        accountId: 'dbid:1',
+        accountLabel: 'a@example.com',
+        suggestedName: 'A',
+        suggestedUsername: 'a',
+      };
+      let assignSpy: ReturnType<typeof vi.fn>;
+      const originalLocation = globalThis.location;
+
+      beforeEach(() => {
+        policyMode.set('ONLINE');
+        mockCloudSyncConfig.isCloudSyncAvailable.mockReturnValue(true);
+        mockCloudSyncConfig.availableProviders.mockReturnValue([
+          'dropbox',
+          'nextcloud',
+        ]);
+        mockStorageContext.getConfigurations.mockReturnValue([
+          {
+            id: 'cloud-dropbox-dbid:1',
+            type: 'cloud',
+            cloudProvider: 'dropbox',
+            cloudAccountId: 'dbid:1',
+          },
+        ]);
+        assignSpy = vi.fn();
+        Object.defineProperty(globalThis, 'location', {
+          value: { ...originalLocation, assign: assignSpy },
+          writable: true,
+          configurable: true,
+        });
+      });
+
+      afterEach(() => {
+        Object.defineProperty(globalThis, 'location', {
+          value: originalLocation,
+          writable: true,
+          configurable: true,
+        });
+      });
+
+      it('opens only that provider for ?mode=cloud&provider=', async () => {
+        const params: Record<string, string> = {
+          mode: 'cloud',
+          provider: 'dropbox',
+        };
+        mockActivatedRoute.snapshot.queryParamMap.get.mockImplementation(
+          (key: string) => params[key] ?? null
+        );
+        await init();
+
+        expect(component['showCloudSetup']()).toBe(true);
+        expect(component['cloudProviders']().map(p => p.id)).toEqual([
+          'dropbox',
+        ]);
+
+        await component['connectCloudProvider']('dropbox');
+        expect(mockCloudSyncConnect.beginAuthorization).toHaveBeenCalledWith(
+          'dropbox'
+        );
+      });
+
+      it('finishes as a reconnect when the account has a profile here', async () => {
+        mockActivatedRoute.snapshot.queryParamMap.get.mockImplementation(
+          (key: string) => (key === 'cloud' ? 'dropbox' : null)
+        );
+        mockCloudSyncConnect.getPendingConnection.mockReturnValue(pending);
+        await init();
+
+        expect(mockCloudSyncConnect.clearPendingConnection).toHaveBeenCalled();
+        expect(
+          mockCloudSyncConnect.abandonPendingConnection
+        ).not.toHaveBeenCalled();
+        expect(component['showCloudProfileSetup']()).toBe(false);
+        expect(mockSnackBar.open).toHaveBeenCalledWith(
+          'Reconnected to Dropbox.',
+          'Close',
+          expect.anything()
+        );
+        expect(assignSpy).toHaveBeenCalledWith('/');
+      });
+
+      it('drops an account that has no profile here', async () => {
+        mockActivatedRoute.snapshot.queryParamMap.get.mockImplementation(
+          (key: string) => (key === 'cloud' ? 'dropbox' : null)
+        );
+        mockCloudSyncConnect.getPendingConnection.mockReturnValue({
+          ...pending,
+          accountId: 'dbid:other',
+        });
+        await init();
+
+        expect(
+          mockCloudSyncConnect.abandonPendingConnection
+        ).toHaveBeenCalled();
+        expect(component['showCloudProfileSetup']()).toBe(false);
+        expect(component['showServerSetup']()).toBe(true);
+        expect(assignSpy).not.toHaveBeenCalled();
+      });
     });
   });
 
@@ -362,7 +557,7 @@ describe('SetupComponent', () => {
 
   describe('mode selection helpers', () => {
     it('shouldShowModeSelection should return true when BOTH mode and no selection', () => {
-      component['appMode'].set('BOTH');
+      policyMode.set('BOTH');
       component['showServerSetup'].set(false);
       component['showLocalSetup'].set(false);
 
@@ -370,14 +565,14 @@ describe('SetupComponent', () => {
     });
 
     it('shouldShowModeSelection should return false when mode selected', () => {
-      component['appMode'].set('BOTH');
+      policyMode.set('BOTH');
       component['showServerSetup'].set(true);
 
       expect(component['shouldShowModeSelection']()).toBe(false);
     });
 
     it('shouldShowModeSelection should return false when not BOTH mode', () => {
-      component['appMode'].set('ONLINE');
+      policyMode.set('ONLINE');
       component['showServerSetup'].set(false);
       component['showLocalSetup'].set(false);
 
@@ -385,32 +580,32 @@ describe('SetupComponent', () => {
     });
 
     it('canUseServerMode should return true for BOTH mode', () => {
-      component['appMode'].set('BOTH');
+      policyMode.set('BOTH');
       expect(component['canUseServerMode']()).toBe(true);
     });
 
     it('canUseServerMode should return true for ONLINE mode', () => {
-      component['appMode'].set('ONLINE');
+      policyMode.set('ONLINE');
       expect(component['canUseServerMode']()).toBe(true);
     });
 
     it('canUseServerMode should return false for LOCAL mode', () => {
-      component['appMode'].set('LOCAL');
+      policyMode.set('LOCAL');
       expect(component['canUseServerMode']()).toBe(false);
     });
 
     it('canUseLocalMode should return true for BOTH mode', () => {
-      component['appMode'].set('BOTH');
+      policyMode.set('BOTH');
       expect(component['canUseLocalMode']()).toBe(true);
     });
 
     it('canUseLocalMode should return true for LOCAL mode', () => {
-      component['appMode'].set('LOCAL');
+      policyMode.set('LOCAL');
       expect(component['canUseLocalMode']()).toBe(true);
     });
 
     it('canUseLocalMode should return false for ONLINE mode', () => {
-      component['appMode'].set('ONLINE');
+      policyMode.set('ONLINE');
       expect(component['canUseLocalMode']()).toBe(false);
     });
   });
@@ -418,13 +613,12 @@ describe('SetupComponent', () => {
   describe('layout order', () => {
     it('renders Local option before Server option when BOTH', async () => {
       // Arrange: BOTH mode, no selection -> show mode selection
-      component['appMode'].set('BOTH');
+      policyMode.set('BOTH');
       component['showServerSetup'].set(false);
       component['showLocalSetup'].set(false);
 
       // Act
-      fixture.detectChanges();
-      await fixture.whenStable();
+      await init();
 
       const container: HTMLElement | null =
         fixture.nativeElement.querySelector('.setup-options');
@@ -485,7 +679,7 @@ describe('SetupComponent', () => {
       expect(component['canGoBack']()).toBe(false);
     });
 
-    it('opens the step named by ?mode', () => {
+    it('opens the step named by ?mode', async () => {
       mockCloudSyncConfig.isCloudSyncAvailable.mockReturnValue(true);
       mockCloudSyncConfig.availableProviders.mockReturnValue(['nextcloud']);
       mockActivatedRoute.snapshot.queryParamMap.get.mockImplementation(
@@ -493,18 +687,18 @@ describe('SetupComponent', () => {
           key === 'mode' ? 'cloud' : key === 'provider' ? 'nextcloud' : null
       );
 
-      fixture.detectChanges();
+      await init();
 
       expect(component['showCloudSetup']()).toBe(false);
       expect(component['showNextcloudSetup']()).toBe(true);
     });
 
-    it('opens the server step for ?mode=server', () => {
+    it('opens the server step for ?mode=server', async () => {
       mockActivatedRoute.snapshot.queryParamMap.get.mockImplementation(
         (key: string) => (key === 'mode' ? 'server' : null)
       );
 
-      fixture.detectChanges();
+      await init();
 
       expect(component['showServerSetup']()).toBe(true);
     });
@@ -695,13 +889,13 @@ describe('SetupComponent', () => {
       suggestedUsername: 'bobby-quantum',
     };
 
-    it('remembers the source from ?upgradeFrom and retitles the screen', () => {
+    it('remembers the source from ?upgradeFrom and retitles the screen', async () => {
       mockActivatedRoute.snapshot.queryParamMap.get.mockImplementation(
         (key: string) =>
           key === 'upgradeFrom' ? 'local' : key === 'mode' ? 'cloud' : null
       );
 
-      fixture.detectChanges();
+      await init();
 
       expect(sessionStorage.getItem('inkweld-profile-upgrade-source')).toBe(
         'local'
@@ -711,14 +905,14 @@ describe('SetupComponent', () => {
       expect(fixture.nativeElement.textContent).toContain('Connect to sync');
     });
 
-    it('keeps the author name and username when prefilling the profile step', () => {
+    it('keeps the author name and username when prefilling the profile step', async () => {
       sessionStorage.setItem('inkweld-profile-upgrade-source', 'local');
       mockActivatedRoute.snapshot.queryParamMap.get.mockImplementation(
         (key: string) => (key === 'cloud' ? 'dropbox' : null)
       );
       mockCloudSyncConnect.getPendingConnection.mockReturnValue(pending);
 
-      fixture.detectChanges();
+      await init();
 
       expect(component['displayName']).toBe('Author A');
       expect(component['userName']).toBe('authora');
@@ -811,7 +1005,7 @@ describe('SetupComponent', () => {
         ],
       });
 
-      fixture.detectChanges();
+      await init();
 
       expect(component['showCloudClash']()).toBe(true);
       expect(component['clashes']()).toEqual([
@@ -854,7 +1048,7 @@ describe('SetupComponent', () => {
       expect(assign).toHaveBeenCalledWith('/');
     });
 
-    it('a rename may not take the address of another source project', () => {
+    it('a rename may not take the address of another source project', async () => {
       sessionStorage.setItem('inkweld-profile-upgrade-source', 'local');
       mockStorageContext.listProjectsForContext.mockReturnValue([
         { username: 'authora', slug: 'novel', title: 'Novel' },
@@ -870,7 +1064,7 @@ describe('SetupComponent', () => {
         ],
       });
 
-      fixture.detectChanges();
+      await init();
 
       component['setClashSlug']('novel', 'fresh');
       expect(component['clashesResolved']()).toBe(false);
@@ -897,7 +1091,7 @@ describe('SetupComponent', () => {
       );
     });
 
-    it('upgrading into an account without this author goes to the profile form', () => {
+    it('upgrading into an account without this author goes to the profile form', async () => {
       sessionStorage.setItem('inkweld-profile-upgrade-source', 'local');
       mockActivatedRoute.snapshot.queryParamMap.get.mockImplementation(
         (key: string) => (key === 'cloud' ? 'dropbox' : null)
@@ -907,14 +1101,14 @@ describe('SetupComponent', () => {
         existingProfiles: [{ name: 'Bee', username: 'bee', slugs: [] }],
       });
 
-      fixture.detectChanges();
+      await init();
 
       expect(component['showCloudProfileSetup']()).toBe(true);
       expect(component['showCloudChooseProfile']()).toBe(false);
       expect(component['userName']).toBe('authora');
     });
 
-    it('a plain add into an account with authors shows the chooser', () => {
+    it('a plain add into an account with authors shows the chooser', async () => {
       mockActivatedRoute.snapshot.queryParamMap.get.mockImplementation(
         (key: string) => (key === 'cloud' ? 'dropbox' : null)
       );
@@ -923,7 +1117,7 @@ describe('SetupComponent', () => {
         existingProfiles: [{ name: 'Bee', username: 'bee', slugs: [] }],
       });
 
-      fixture.detectChanges();
+      await init();
 
       expect(component['showCloudChooseProfile']()).toBe(true);
       component['addNewCloudProfile']();
@@ -960,8 +1154,7 @@ describe('SetupComponent', () => {
     }
 
     it('hides the cloud option when no provider is configured', async () => {
-      fixture.detectChanges();
-      await fixture.whenStable();
+      await init();
 
       expect(component['canUseCloudMode']()).toBe(false);
       expect(
@@ -971,8 +1164,7 @@ describe('SetupComponent', () => {
 
     it('renders Browser, Cloud Sync, Realtime in that order when available', async () => {
       enableDropbox();
-      fixture.detectChanges();
-      await fixture.whenStable();
+      await init();
 
       const ids = Array.from(
         fixture.nativeElement.querySelectorAll(
@@ -988,13 +1180,9 @@ describe('SetupComponent', () => {
 
     it('still offers a choice on a LOCAL-only server when cloud sync exists', async () => {
       enableDropbox();
-      mockSetupService.getServerUrl.mockReturnValue('http://server.com');
-      mockConfigurationService.getAppConfiguration.mockReturnValue(
-        of({ appMode: 'LOCAL' })
-      );
+      policyMode.set('LOCAL');
 
-      fixture.detectChanges();
-      await fixture.whenStable();
+      await init();
 
       expect(component['showLocalSetup']()).toBe(false);
       expect(component['shouldShowModeSelection']()).toBe(true);
@@ -1005,8 +1193,7 @@ describe('SetupComponent', () => {
       enableDropbox();
 
       component['chooseCloudMode']();
-      fixture.detectChanges();
-      await fixture.whenStable();
+      await init();
 
       expect(component['showCloudSetup']()).toBe(true);
       expect(mockCloudSyncConnect.beginAuthorization).not.toHaveBeenCalled();
@@ -1072,8 +1259,7 @@ describe('SetupComponent', () => {
         component['chooseCloudMode']();
 
         await component['connectCloudProvider']('nextcloud');
-        fixture.detectChanges();
-        await fixture.whenStable();
+        await init();
 
         expect(mockCloudSyncConnect.beginAuthorization).not.toHaveBeenCalled();
         expect(component['showNextcloudSetup']()).toBe(true);
@@ -1118,7 +1304,7 @@ describe('SetupComponent', () => {
         component['nextcloudAppPassword'] = 'pw';
 
         await component['connectNextcloud']();
-        fixture.detectChanges();
+        await init();
 
         expect(component['showCloudChooseProfile']()).toBe(true);
         expect(component['showCloudProfileSetup']()).toBe(false);
@@ -1178,30 +1364,27 @@ describe('SetupComponent', () => {
       });
     });
 
-    it('opens the profile step when returning from the provider', () => {
+    it('opens the profile step when returning from the provider', async () => {
       mockActivatedRoute.snapshot.queryParamMap.get.mockImplementation(
         (key: string) => (key === 'cloud' ? 'dropbox' : null)
       );
       mockCloudSyncConnect.getPendingConnection.mockReturnValue(pending);
 
-      fixture.detectChanges();
+      await init();
 
       expect(component['showCloudProfileSetup']()).toBe(true);
       expect(component['shouldShowModeSelection']()).toBe(false);
       expect(component['displayName']).toBe('Bobby Quantum');
       expect(component['userName']).toBe('bobby-quantum');
       expect(component['pendingProviderName']()).toBe('Dropbox');
-      expect(
-        mockConfigurationService.getAppConfiguration
-      ).not.toHaveBeenCalled();
     });
 
-    it('ignores a stale ?cloud param when no connection is pending', () => {
+    it('ignores a stale ?cloud param when no connection is pending', async () => {
       mockActivatedRoute.snapshot.queryParamMap.get.mockImplementation(
         (key: string) => (key === 'cloud' ? 'dropbox' : null)
       );
 
-      fixture.detectChanges();
+      await init();
 
       expect(component['showCloudProfileSetup']()).toBe(false);
       expect(component['configLoading']()).toBe(false);
