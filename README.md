@@ -86,8 +86,16 @@ Then open `http://localhost:8333` in your browser.
 - Inkweld is feature complete for 1.0 and in beta: the focus until 1.0.0 is testing and bug fixing. Please report problems on the [issue tracker](https://github.com/bobbyquantum/inkweld/issues).
 - Releases follow [Semantic Versioning](https://semver.org/), and the [changelog](CHANGELOG.md) lists what changed in each one.
 - Docker images are tagged per release: `ghcr.io/bobbyquantum/inkweld:1.0.0-beta.1` and so on, plus `:beta` for the newest beta. `:latest` follows the betas until 1.0.0 and stable releases after it; `:dev` follows `main`.
-- Upgrades between releases keep your data: the Docker/Bun server applies database migrations on start, and Cloudflare deployments apply them with `wrangler d1 migrations apply`. Back up before upgrading all the same.
-- The database migrations were squashed into a single baseline for 1.0. A database from a pre-release build that was fully migrated before the squash (commit `a49deaef`) upgrades cleanly; an older one must first be started on a build from just before the squash so its remaining migrations run, or be reset.
+- **From 1.0.0-beta.1 on, there is always an automatic upgrade path.** Any release can be upgraded to any later release without exporting and re-importing your work: the Docker/Bun server migrates its database on start (Cloudflare deployments with `wrangler d1 migrations apply`), the app upgrades the data it keeps on your device, and project archives exported by any release stay importable. Back up before upgrading all the same.
+- Builds from before 1.0.0-beta.1 had no such promise. The database migrations were squashed into a single baseline for 1.0: a database that was fully migrated before the squash (commit `a49deaef`) upgrades cleanly; an older one must first be started on a build from just before the squash so its remaining migrations run, or be reset.
+
+### 📱 Android beta testers wanted
+
+The Inkweld Android app is in closed testing on Google Play, and it needs testers before it can be published. If you have an Android phone and would like to help:
+
+1. Join the [Inkweld testers group](TODO-GOOGLE-GROUP-URL) with the Google account you use on Play.
+2. Opt in at <https://play.google.com/apps/testing/app.inkweld>, then install Inkweld from the Play Store.
+3. Keep it installed and use it for a couple of weeks. Report anything that breaks on the [issue tracker](https://github.com/bobbyquantum/inkweld/issues).
 
 ---
 
