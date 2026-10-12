@@ -5,6 +5,7 @@ import {
   RemoteConflictError,
   RemoteFileNotFoundError,
   RemoteRateLimitError,
+  RemoteReauthRequiredError,
 } from '../remote-store.interface';
 import {
   driveErrorResponse,
@@ -21,11 +22,17 @@ describe('GoogleDriveRemoteStore', () => {
   let now: number;
   let store: GoogleDriveRemoteStore;
   const getToken = vi.fn().mockResolvedValue('token');
+  let onAuthRejected: ReturnType<typeof vi.fn<() => void>>;
 
   beforeEach(() => {
+    onAuthRejected = vi.fn<() => void>();
     drive = new FakeGoogleDrive();
     now = 1_000_000;
-    store = new GoogleDriveRemoteStore(getToken, drive.fetch, () => now);
+    store = new GoogleDriveRemoteStore(getToken, {
+      fetchFn: drive.fetch,
+      now: () => now,
+      onAuthRejected,
+    });
   });
 
   describe('list', () => {
@@ -377,13 +384,17 @@ describe('GoogleDriveRemoteStore', () => {
   });
 
   describe('error mapping', () => {
-    it('maps 401 to RemoteAuthError', async () => {
+    it('pauses for a renewal on 401 instead of disconnecting', async () => {
       drive.failNext(
         () => true,
         () => driveErrorResponse(401, 'authError')
       );
 
-      await expect(store.list('/')).rejects.toBeInstanceOf(RemoteAuthError);
+      const error = await store.list('/').catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(RemoteReauthRequiredError);
+      expect(error).not.toBeInstanceOf(RemoteAuthError);
+      expect(onAuthRejected).toHaveBeenCalledTimes(1);
     });
 
     it('maps a 403 rate limit with Retry-After to RemoteRateLimitError', async () => {

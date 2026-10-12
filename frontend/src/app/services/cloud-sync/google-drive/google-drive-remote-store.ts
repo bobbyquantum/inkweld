@@ -2,12 +2,12 @@ import { forEachConcurrent, forEachPage } from '@inkweld/async';
 import { stripTrailingSlashes } from '@utils/string-utils';
 
 import {
-  RemoteAuthError,
   RemoteConflictError,
   type RemoteFile,
   type RemoteFileInfo,
   RemoteFileNotFoundError,
   RemoteRateLimitError,
+  RemoteReauthRequiredError,
   type RemoteStore,
 } from '../remote-store.interface';
 import {
@@ -93,11 +93,23 @@ export class GoogleDriveRemoteStore implements RemoteStore {
   private polling: Promise<void> | null = null;
   private readonly pathLocks = new Map<string, Promise<unknown>>();
 
+  private readonly fetchFn: typeof fetch;
+  private readonly now: () => number;
+  private readonly onAuthRejected: () => void;
+
   constructor(
     private readonly getAccessToken: AccessTokenProvider,
-    private readonly fetchFn: typeof fetch = fetch,
-    private readonly now: () => number = () => Date.now()
-  ) {}
+    options: {
+      fetchFn?: typeof fetch;
+      now?: () => number;
+      /** Drive answered 401: the token the provider handed out is dead */
+      onAuthRejected?: () => void;
+    } = {}
+  ) {
+    this.fetchFn = options.fetchFn ?? fetch;
+    this.now = options.now ?? ((): number => Date.now());
+    this.onAuthRejected = options.onAuthRejected ?? ((): void => undefined);
+  }
 
   async list(
     folderPath: string,
@@ -430,7 +442,13 @@ export class GoogleDriveRemoteStore implements RemoteStore {
   /** Map Drive errors onto the provider-neutral error types */
   private rethrow(error: unknown, path: string): never {
     if (error instanceof DriveApiError) {
-      if (error.isAuthError) throw new RemoteAuthError();
+      // Not a disconnect: Google tokens can be renewed, so pause instead
+      if (error.isAuthError) {
+        this.onAuthRejected();
+        throw new RemoteReauthRequiredError(
+          'Google Drive rejected the sign-in; it will be renewed'
+        );
+      }
       if (error.isRateLimited) {
         throw new RemoteRateLimitError(
           (error.retryAfterSeconds ?? DEFAULT_RETRY_AFTER_SECONDS) * 1000

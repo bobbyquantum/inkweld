@@ -218,7 +218,7 @@ path to file:
 | `ifVersion`     | Drive v3 has no conditional update. The live version is fetched just before the write and compared; a write landing in between is not detected, which the manifest merge tolerates                                                                                                                                                                                                                                                                    |
 | Uploads         | Multipart (create) or media (update) up to 5 MB; larger bodies use a resumable session sent in one `PUT`                                                                                                                                                                                                                                                                                                                                              |
 | Folder delete   | Every file whose name has the folder prefix, four at a time                                                                                                                                                                                                                                                                                                                                                                                           |
-| Errors          | 401 → `RemoteAuthError`; 429 or 403 `rateLimitExceeded`/`userRateLimitExceeded` → `RemoteRateLimitError` (Retry-After, else 10 s); 404 → `RemoteFileNotFoundError`                                                                                                                                                                                                                                                                                    |
+| Errors          | 401 → `RemoteReauthRequiredError` (the token is marked expired, so sync pauses and the next request renews it; never a disconnect); 429 or 403 `rateLimitExceeded`/`userRateLimitExceeded` → `RemoteRateLimitError` (Retry-After, else 10 s); 404 → `RemoteFileNotFoundError`                                                                                                                                                                         |
 
 Specs run against `FakeGoogleDrive` (`services/cloud-sync/testing/`), an
 in-memory imitation of the endpoints the store calls.
@@ -247,7 +247,14 @@ takes it from the callback page, identifies the account with
 3. If the token expires first, the store throws `RemoteReauthRequiredError`
    and the engine goes to `paused`: credentials are kept, edits wait locally,
    and the next renewal resumes sync. Unlike `RemoteAuthError` this never
-   disconnects the profile.
+   disconnects the profile. A 401 from Drive (a token revoked early, or a
+   skewed clock) is handled the same way: the store marks the token expired
+   and pauses.
+
+A renewed token is stored only after `about.get` confirms it belongs to the
+connected account (`permissionId`). `login_hint` is only a hint, and in the
+popup the user could pick another account, whose app data folder sync would
+otherwise read and overwrite.
 
 Renewals redirect to the same registered callback URL, marked by a `state`
 starting `renew.`. `main.ts` checks for that before bootstrapping

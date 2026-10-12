@@ -45,7 +45,8 @@ class FakeChannel {
   }
 }
 
-const flush = (): Promise<void> => new Promise(r => setTimeout(r, 0));
+/** Let the relayed response, the account check and the store settle */
+const flush = (): Promise<void> => new Promise(r => setTimeout(r, 20));
 
 describe('GoogleDriveAuthService', () => {
   const configId = 'cloud-google-drive-abc';
@@ -55,8 +56,27 @@ describe('GoogleDriveAuthService', () => {
   let logger: Record<string, ReturnType<typeof vi.fn>>;
   let openSpy: ReturnType<typeof vi.spyOn>;
   let popup: { closed: boolean; close: ReturnType<typeof vi.fn> };
+  /** Account the stubbed about.get reports for any renewed token */
+  let renewedAccount: string;
 
   beforeEach(() => {
+    renewedAccount = 'abc';
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() =>
+        Promise.resolve(
+          new Response(
+            JSON.stringify({
+              user: {
+                permissionId: renewedAccount,
+                emailAddress: 'bobby@example.com',
+                displayName: 'Bobby',
+              },
+            })
+          )
+        )
+      )
+    );
     hub = new FakeChannelHub();
     logger = { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() };
     popup = { closed: false, close: vi.fn() };
@@ -93,6 +113,7 @@ describe('GoogleDriveAuthService', () => {
     service.cancel(configId);
     tokens.clear(configId);
     openSpy.mockRestore();
+    vi.unstubAllGlobals();
     for (const frame of document.querySelectorAll('iframe')) frame.remove();
   });
 
@@ -177,6 +198,29 @@ describe('GoogleDriveAuthService', () => {
     respond(frameUrl());
 
     await expect(token).resolves.toBe('new');
+  });
+
+  it('rejects a renewed token for a different Google account', async () => {
+    seed(-1000);
+    renewedAccount = 'someone-else';
+
+    const token = service.getAccessToken(configId);
+    respond(frameUrl());
+
+    await expect(token).rejects.toBeInstanceOf(RemoteReauthRequiredError);
+    expect(tokens.get(configId)?.accessToken).toBe('old');
+    expect(logger['warn']).toHaveBeenCalled();
+  });
+
+  it('renews on the next request after Drive rejects the token', async () => {
+    seed(30 * 60_000);
+
+    service.invalidate(configId);
+    const token = service.getAccessToken(configId);
+    respond(frameUrl());
+
+    await expect(token).resolves.toBe('new');
+    expect(tokens.get(configId)?.loginHint).toBe('bobby@example.com');
   });
 
   it('ignores responses meant for another request', async () => {

@@ -556,8 +556,9 @@ export class CloudSyncConnectService {
           this.getNextcloudCredentials(configId)
         );
       case 'google-drive':
-        return new GoogleDriveRemoteStore(() =>
-          this.googleAuth.getAccessToken(configId)
+        return new GoogleDriveRemoteStore(
+          () => this.googleAuth.getAccessToken(configId),
+          { onAuthRejected: () => this.googleAuth.invalidate(configId) }
         );
       default:
         throw new Error(

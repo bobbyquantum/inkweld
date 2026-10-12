@@ -22,6 +22,7 @@ import {
   parseGoogleAuthResponse,
   RENEWAL_STATE_PREFIX,
 } from './google-auth';
+import { getGoogleDriveUser } from './google-drive-api';
 
 /** Opens the channel renewal responses arrive on; replaced in specs */
 export const GOOGLE_AUTH_CHANNEL_FACTORY = new InjectionToken<
@@ -145,9 +146,9 @@ export class GoogleDriveAuthService {
       this.timing.popupTimeoutMs,
       () => popup.closed
     )
-      .then(response => {
+      .then(async response => {
         if (!popup.closed) popup.close();
-        const token = this.applyResponse(configId, response);
+        const token = await this.applyResponse(configId, response);
         if (token) this.silentFailures.delete(configId);
         return token !== null;
       })
@@ -201,7 +202,9 @@ export class GoogleDriveAuthService {
     frame.src = url;
     this.document.body.appendChild(frame);
     try {
-      const token = this.applyResponse(configId, await response);
+      const answer = await response;
+      frame.remove();
+      const token = await this.applyResponse(configId, answer);
       if (token) {
         this.silentFailures.delete(configId);
       } else {
@@ -268,11 +271,26 @@ export class GoogleDriveAuthService {
     });
   }
 
-  /** Store a successful response; returns the new token or null */
-  private applyResponse(
+  /**
+   * Mark the stored token expired after Drive rejected it (revoked early, or
+   * the local clock is off), so the next request renews it instead of
+   * sending it again. The account and login hint are kept.
+   */
+  invalidate(configId: string): void {
+    const current = this.tokens.get(configId);
+    if (current) this.tokens.set(configId, { ...current, expiresAt: 0 });
+  }
+
+  /**
+   * Store a successful response; returns the new token or null. The token
+   * must belong to the connected account: `login_hint` is only a hint, and
+   * in the popup the user can pick another account, whose app data folder
+   * sync would otherwise read and overwrite.
+   */
+  private async applyResponse(
     configId: string,
     response: GoogleAuthResponse | null
-  ): string | null {
+  ): Promise<string | null> {
     if (response?.kind !== 'token') {
       if (response) {
         this.logger.debug(
@@ -291,6 +309,9 @@ export class GoogleDriveAuthService {
     }
     const current = this.tokens.get(configId);
     if (!current) return null;
+    if (!(await this.isSameAccount(response.accessToken, current.accountId))) {
+      return null;
+    }
     const next: CloudTokenSet = {
       ...current,
       accessToken: response.accessToken,
@@ -303,6 +324,27 @@ export class GoogleDriveAuthService {
     }
     this.renewals.update(n => n + 1);
     return next.accessToken;
+  }
+
+  private async isSameAccount(
+    accessToken: string,
+    accountId: string
+  ): Promise<boolean> {
+    try {
+      const user = await getGoogleDriveUser(accessToken);
+      if (user.permissionId === accountId) return true;
+      this.logger.warn(
+        'CloudSync',
+        'Google renewal signed in to a different account; ignoring it'
+      );
+    } catch (error) {
+      this.logger.warn(
+        'CloudSync',
+        'Could not confirm the renewed Google account',
+        error
+      );
+    }
+    return false;
   }
 
   private authorizeUrl(
