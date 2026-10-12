@@ -33,7 +33,7 @@ the betas focus on testing and bug fixing. Please report problems on the
   returns. A browser-only local mode needs no server at all.
 - Profiles for several servers or accounts on one device, each with its own
   isolated local data.
-- Cloud Sync mode that mirrors projects to the user's Dropbox or Nextcloud,
+- Cloud Sync mode that mirrors projects to the user's Dropbox, Google Drive or Nextcloud,
   with multi-author profiles.
 - Fast "Sync All" that only transfers documents that changed.
 - Per-device project activation, writing statistics, an activity feed and a
