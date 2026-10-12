@@ -34,8 +34,8 @@ upgrade (see the [installation docs](docs/site/docs/installation/)).
 ## Scope
 
 In scope: the web app, the backend API and WebSocket sync, the MCP server and
-its OAuth flow, the Docker image, the native binaries and the desktop and
-Android wrappers in this repository.
+its OAuth flow, the Docker image, the native binaries and the desktop
+wrapper in this repository.
 
 These are intended behaviour, not vulnerabilities:
 

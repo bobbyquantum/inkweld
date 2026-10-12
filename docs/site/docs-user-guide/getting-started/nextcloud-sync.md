@@ -57,9 +57,9 @@ reverse proxy in front of Nextcloud for the `/remote.php/dav/` path:
 `204` reply to `OPTIONS` preflight requests. The app is less error-prone.
 :::
 
-:::note[Desktop and Android]
-The Android app opens the same web page in Chrome, so it needs the server step
-too. A future desktop build may be able to skip it.
+:::note[Installed app and desktop]
+The web app installed on a phone or computer runs in the browser, so it needs
+the server step too. A future desktop build may be able to skip it.
 :::
 
 ## Step 2: Create an app password (each user)

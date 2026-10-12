@@ -5,11 +5,11 @@ description: How the Inkweld app handles your data.
 
 # Privacy Policy
 
-**Last updated:** 9 October 2026
+**Last updated:** 12 October 2026
 
-This policy covers **the Inkweld app**: the
-web app at [inkweld.app](https://inkweld.app) and the Android app
-(`app.inkweld`) on Google Play, which opens the same web app.
+This policy covers **the Inkweld app**: the web app at
+[inkweld.app](https://inkweld.app), whether you use it in a browser or install
+it on your device.
 
 Inkweld is a writing app that keeps your work on your own device. I do not run
 a server for your writing, I do not offer accounts, and **I do not collect,

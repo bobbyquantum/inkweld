@@ -115,8 +115,8 @@ async function savedSelectedTabId(page: Page): Promise<unknown> {
 }
 
 /**
- * Closing and reopening the app (e.g. the Android app, which always starts
- * at "/") must also reopen the active document. On phones there is no tab
+ * Closing and reopening the app (e.g. the installed web app, which always
+ * starts at "/") must also reopen the active document. On phones there is no tab
  * bar, which used to do both the saving of the selection and the reopening.
  */
 test.describe('Tab restore after reopening the app', () => {

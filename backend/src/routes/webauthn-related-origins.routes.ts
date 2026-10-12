@@ -7,8 +7,7 @@
  * and allows the ceremony if the page's origin is listed in `origins`.
  *
  * Served only while ALLOW_INKWELD_APP_CLIENT is on, so the official
- * inkweld.app client (and the Android app) can sign in with passkeys
- * registered on this server. The browser fetches it from the RP ID's host,
+ * inkweld.app client can sign in with passkeys registered on this server. The browser fetches it from the RP ID's host,
  * so this only helps when that host is served by this backend.
  */
 import { Hono } from 'hono';

@@ -27,8 +27,8 @@ import { UnifiedUserService } from '@services/user/unified-user.service';
 type PageState = 'loading' | 'deleted' | 'local' | 'sign-in' | 'signed-in';
 
 /**
- * Public `/delete-account` page — the web link a Google Play listing must
- * provide for account deletion. Signed in, it shows the same delete flow as
+ * Public `/delete-account` page — a direct web link for account deletion.
+ * Signed in, it shows the same delete flow as
  * Settings → Account; signed out, it explains how to sign in (and returns
  * here afterwards). `?deleted=1` is where the delete flow lands.
  */

@@ -64,9 +64,8 @@ Inkweld offers flexible deployment options to suit different needs, from quick l
 
 ## Client Apps
 
-The server hosts the web client, which also installs as a Progressive Web App. Two additional packagings are available:
+The server hosts the web client, which also installs as a Progressive Web App on phones, tablets and desktops. One additional packaging is available:
 
-- **[Android (Trusted Web Activity)](/docs/installation/twa)** — wrap your instance as a Play Store app
 - **[Desktop (Electron)](/docs/installation/desktop)** — build a native macOS, Windows, or Linux app from source
 
 ## System Requirements

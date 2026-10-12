@@ -353,8 +353,8 @@ EMAIL_RECOVERY_ENABLED=true
 
 **Default:** `false` | Boolean
 
-Let the official app at `https://inkweld.app` (and the Android app) sign in to
-this server, including with passkeys. See
+Let the official app at `https://inkweld.app` sign in to this server, including
+with passkeys. See
 [Sign-in from the Official App](./admin-guide/official-app).
 
 See the [Passkeys admin guide](./admin-guide/passkeys) for full setup instructions.
@@ -908,7 +908,7 @@ wrangler secret put SESSION_SECRET --env production
 | `PASSKEYS_ENABLED`                                                  | `true`                            | Master switch for passkey (WebAuthn) support                                                                                                                |
 | `PASSWORD_LOGIN_ENABLED`                                            | `false`                           | Allow username/password sign-in (passwordless-first by default)                                                                                             |
 | `EMAIL_RECOVERY_ENABLED`                                            | `false`                           | Allow email-based account recovery / magic-link flow                                                                                                        |
-| `ALLOW_INKWELD_APP_CLIENT`                                          | `false`                           | Let the official app at inkweld.app (and the Android app) sign in, including with passkeys. See [Sign-in from the Official App](./admin-guide/official-app) |
+| `ALLOW_INKWELD_APP_CLIENT`                                          | `false`                           | Let the official app at inkweld.app (in a browser or PWA) sign in, including with passkeys. See [Sign-in from the Official App](./admin-guide/official-app) |
 | `WEBAUTHN_RP_ID`                                                    | `localhost`                       | WebAuthn Relying Party ID (domain only). **Set before going live** — changing it invalidates every passkey.                                                 |
 | `WEBAUTHN_RP_NAME`                                                  | `Inkweld`                         | Name shown in passkey prompts                                                                                                                               |
 | `GITHUB_ENABLED`                                                    | `false`                           | Enable GitHub OAuth                                                                                                                                         |
