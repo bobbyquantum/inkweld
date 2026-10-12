@@ -146,6 +146,17 @@ describe('SetupService', () => {
       expect(mockLocalStorage[APP_CONFIG_STORAGE_KEY]).toBeDefined();
     });
 
+    it('should add https:// to a server URL typed without a protocol', async () => {
+      (globalThis.fetch as Mock).mockResolvedValue({ ok: true });
+
+      await service.configureServerMode('api.example.com/');
+
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        'https://api.example.com/api/v1/health'
+      );
+      expect(service.appConfig()?.serverUrl).toBe('https://api.example.com');
+    });
+
     it('should handle server connection failure', async () => {
       const serverUrl = 'https://unreachable.example.com';
       (globalThis.fetch as Mock).mockResolvedValue({

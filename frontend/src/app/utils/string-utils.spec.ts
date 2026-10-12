@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { stripTrailingSlashes, trimHyphens } from './string-utils';
+import {
+  normalizeServerUrl,
+  stripTrailingSlashes,
+  trimHyphens,
+} from './string-utils';
 
 describe('stripTrailingSlashes', () => {
   it('should return unchanged string with no trailing slashes', () => {
@@ -77,5 +81,29 @@ describe('trimHyphens', () => {
 
   it('should handle slug-like strings', () => {
     expect(trimHyphens('-my-project-name-')).toBe('my-project-name');
+  });
+});
+
+describe('normalizeServerUrl', () => {
+  it('adds https to a bare host', () => {
+    expect(normalizeServerUrl(' api.inkweld.app/ ')).toBe(
+      'https://api.inkweld.app'
+    );
+  });
+
+  it('keeps an existing protocol', () => {
+    expect(normalizeServerUrl('http://example.com')).toBe('http://example.com');
+    expect(normalizeServerUrl('HTTPS://example.com/')).toBe(
+      'HTTPS://example.com'
+    );
+  });
+
+  it('uses http for localhost', () => {
+    expect(normalizeServerUrl('localhost:8333')).toBe('http://localhost:8333');
+    expect(normalizeServerUrl('127.0.0.1:8333')).toBe('http://127.0.0.1:8333');
+  });
+
+  it('returns an empty string for blank input', () => {
+    expect(normalizeServerUrl('  ')).toBe('');
   });
 });

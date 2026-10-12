@@ -1,7 +1,7 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { type User } from '@inkweld/index';
 import { appOrigin, isHomeAssistantIngress } from '@utils/app-base';
-import { stripTrailingSlashes } from '@utils/string-utils';
+import { normalizeServerUrl, stripTrailingSlashes } from '@utils/string-utils';
 
 import { environment } from '../../../environments/environment';
 import { LoggerService } from './logger.service';
@@ -199,8 +199,8 @@ export class SetupService {
   ): Promise<void> {
     this.isLoading.set(true);
     try {
-      // Strip trailing slashes to prevent double-slash URLs
-      const normalizedUrl = stripTrailingSlashes(serverUrl);
+      // Add a missing protocol and strip trailing slashes (double-slash URLs)
+      const normalizedUrl = normalizeServerUrl(serverUrl);
 
       // Validate server connection
       const response = await fetch(`${normalizedUrl}/api/v1/health`);
