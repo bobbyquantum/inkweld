@@ -13,6 +13,37 @@
   </p>
 </section>
 
+@if (pwaInstall.installed() || pwaInstall.mode() !== 'none') {
+  <section class="settings-section" data-testid="install-app-section">
+    <h3 class="settings-section-title">
+      {{ 'settings.generalTab.installTitle' | transloco }}
+    </h3>
+    @if (pwaInstall.installed()) {
+      <p class="settings-section-hint" data-testid="install-app-installed">
+        {{ 'settings.generalTab.installed' | transloco }}
+      </p>
+    } @else if (pwaInstall.mode() === 'prompt') {
+      <button
+        mat-flat-button
+        color="primary"
+        type="button"
+        (click)="install()"
+        data-testid="settings-install-app-button">
+        <mat-icon>install_mobile</mat-icon>
+        {{ 'settings.generalTab.installButton' | transloco }}
+      </button>
+      <p class="settings-section-hint">
+        {{ 'settings.generalTab.installHint' | transloco }}
+      </p>
+    } @else {
+      <p class="settings-section-hint" data-testid="settings-install-app-ios">
+        {{ 'settings.generalTab.installIos' | transloco }}
+        {{ 'settings.generalTab.installHint' | transloco }}
+      </p>
+    }
+  </section>
+}
+
 <section class="settings-section">
   <h3 class="settings-section-title">
     {{ 'settings.generalTab.writingTitle' | transloco }}
