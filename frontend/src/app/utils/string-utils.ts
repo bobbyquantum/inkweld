@@ -19,3 +19,18 @@ export function trimHyphens(s: string): string {
   while (end > start && s[end - 1] === '-') end--;
   return s.substring(start, end);
 }
+
+/**
+ * Normalize a server URL typed by a user: trims it, drops trailing slashes and
+ * adds a protocol when missing (http for localhost / 127.0.0.1, https for
+ * everything else).
+ */
+export function normalizeServerUrl(url: string): string {
+  const trimmed = stripTrailingSlashes(url.trim());
+  if (!trimmed) return trimmed;
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  if (trimmed.startsWith('localhost') || trimmed.startsWith('127.0.0.1')) {
+    return `http://${trimmed}`;
+  }
+  return `https://${trimmed}`;
+}
