@@ -14,7 +14,11 @@ describe('CloudSyncCallbackComponent', () => {
   let component: CloudSyncCallbackComponent;
   let params: Record<string, string | null>;
   let query: Record<string, string | null>;
-  let connect: { completeAuthorization: ReturnType<typeof vi.fn> };
+  let fragment: string | null;
+  let connect: {
+    completeAuthorization: ReturnType<typeof vi.fn>;
+    completeGoogleAuthorization: ReturnType<typeof vi.fn>;
+  };
   let router: { navigate: ReturnType<typeof vi.fn> };
   let userService: { initialize: ReturnType<typeof vi.fn> };
   let engine: {
@@ -33,6 +37,9 @@ describe('CloudSyncCallbackComponent', () => {
             snapshot: {
               paramMap: { get: (k: string) => params[k] ?? null },
               queryParamMap: { get: (k: string) => query[k] ?? null },
+              get fragment() {
+                return fragment;
+              },
             },
           },
         },
@@ -53,7 +60,11 @@ describe('CloudSyncCallbackComponent', () => {
   beforeEach(() => {
     params = { provider: 'dropbox' };
     query = { code: 'code-1', state: 'state-1' };
-    connect = { completeAuthorization: vi.fn() };
+    fragment = null;
+    connect = {
+      completeAuthorization: vi.fn(),
+      completeGoogleAuthorization: vi.fn(),
+    };
     router = { navigate: vi.fn().mockResolvedValue(true) };
     userService = { initialize: vi.fn().mockResolvedValue(undefined) };
     engine = {
@@ -86,6 +97,45 @@ describe('CloudSyncCallbackComponent', () => {
       queryParams: { cloud: 'dropbox' },
     });
     expect(component.errorMessage()).toBe('');
+  });
+
+  it('completes a Google sign-in from the URL fragment', async () => {
+    params = { provider: 'google-drive' };
+    query = {};
+    fragment = 'access_token=t&expires_in=3599&state=s';
+    connect.completeGoogleAuthorization.mockResolvedValue({
+      kind: 'needs-profile',
+      pending: {},
+    });
+    await setup();
+
+    fixture.detectChanges();
+    await vi.waitFor(() => expect(router.navigate).toHaveBeenCalled());
+
+    expect(connect.completeGoogleAuthorization).toHaveBeenCalledWith(
+      'access_token=t&expires_in=3599&state=s'
+    );
+    expect(connect.completeAuthorization).not.toHaveBeenCalled();
+    expect(router.navigate).toHaveBeenCalledWith(['/setup'], {
+      replaceUrl: true,
+      queryParams: { cloud: 'google-drive' },
+    });
+  });
+
+  it('shows why a Google sign-in failed', async () => {
+    params = { provider: 'google-drive' };
+    connect.completeGoogleAuthorization.mockRejectedValue(
+      new Error('You cancelled the Google Drive sign-in.')
+    );
+    await setup();
+
+    fixture.detectChanges();
+    await vi.waitFor(() =>
+      expect(component.errorMessage()).toBe(
+        'You cancelled the Google Drive sign-in.'
+      )
+    );
+    expect(connect.completeGoogleAuthorization).toHaveBeenCalledWith('');
   });
 
   it('sends a fresh account to the setup profile step', async () => {

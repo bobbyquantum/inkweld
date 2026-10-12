@@ -77,10 +77,18 @@ describe('CloudSyncConfigService', () => {
   it('never offers providers without an adapter, even with a key', () => {
     (environment as { cloudSync: unknown }).cloudSync = {
       dropbox: { appKey: '' },
-      'google-drive': { appKey: 'gkey' },
+      onedrive: { appKey: 'okey' },
     };
     const service = createService();
     expect(service.availableProviders()).toEqual(['nextcloud']);
+  });
+
+  it('offers Google Drive once it has a client id', () => {
+    (environment as { cloudSync: unknown }).cloudSync = {
+      'google-drive': { appKey: 'gkey' },
+    };
+    const service = createService();
+    expect(service.availableProviders()).toEqual(['google-drive', 'nextcloud']);
   });
 
   it('prefers a runtime override over the build key and persists it', () => {

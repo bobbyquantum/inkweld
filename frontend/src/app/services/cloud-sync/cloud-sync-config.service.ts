@@ -9,6 +9,7 @@ export const CLOUD_SYNC_APP_KEYS_STORAGE_KEY = 'inkweld-cloud-sync-app-keys';
 /** Providers that have an adapter today. Extend as adapters land. */
 export const IMPLEMENTED_CLOUD_PROVIDERS: readonly CloudProvider[] = [
   'dropbox',
+  'google-drive',
   'nextcloud',
 ];
 

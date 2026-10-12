@@ -5,7 +5,7 @@
   # Same base policy the Bun server sends (backend/src/utils/csp.ts; csp.spec.ts
   # fails if they drift). No inline scripts: the build turns off critical-CSS
   # inlining, which was the only source of one.
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https: wss: blob: data:; media-src 'self' data: blob: https:; worker-src 'self' blob:; frame-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https: wss: blob: data:; media-src 'self' data: blob: https:; worker-src 'self' blob:; frame-src 'self' blob: https://accounts.google.com; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'
   # Disable X-Frame-Options in favor of CSP frame-ancestors
   X-Frame-Options: SAMEORIGIN
   # Other security headers

@@ -276,11 +276,12 @@ describe('CloudSyncConnectService', () => {
         codeVerifier: 'v',
         state: 's',
         redirectUri: 'r',
-        startedAt: Date.now() - 11 * 60 * 1000,
+        startedAt: Date.now() - 31 * 60 * 1000,
       });
       await expect(
         service.completeAuthorization('dropbox', 'code', 's')
-      ).rejects.toThrow(/No authorization in progress/);
+      ).rejects.toThrow(/took too long/);
+      expect(session['inkweld-cloud-sync-pending-auth']).toBeUndefined();
     });
 
     it('offers the existing authors when the folder has a manifest', async () => {
@@ -541,6 +542,188 @@ describe('CloudSyncConnectService', () => {
     it('refuses the OAuth redirect for nextcloud', async () => {
       await expect(service.beginAuthorization('nextcloud')).rejects.toThrow(
         /server address and app password/
+      );
+    });
+  });
+
+  describe('Google Drive', () => {
+    const APPDATA = 'https://www.googleapis.com/auth/drive.appdata';
+    const user = {
+      permissionId: '0123456789',
+      emailAddress: 'bobby@example.com',
+      displayName: 'Bobby Quantum',
+    };
+    const configId = buildCloudConfigId('google-drive', user.permissionId);
+
+    function seedPendingAuth(state = 'state-g'): void {
+      session['inkweld-cloud-sync-pending-auth'] = JSON.stringify({
+        provider: 'google-drive',
+        codeVerifier: 'unused',
+        state,
+        redirectUri: 'http://localhost:4200/cloud-sync/callback/google-drive',
+        startedAt: Date.now(),
+      });
+    }
+
+    function tokenFragment(overrides: Record<string, string> = {}): string {
+      return new URLSearchParams({
+        access_token: 'gat',
+        expires_in: '3599',
+        token_type: 'Bearer',
+        scope: APPDATA,
+        state: 'state-g',
+        ...overrides,
+      }).toString();
+    }
+
+    /** The account lookup plus an app data folder holding `manifest` */
+    function routeDrive(manifest: string | null): void {
+      routes.push(url =>
+        url.includes('/drive/v3/about') ? jsonResponse({ user }) : undefined
+      );
+      routes.push(url =>
+        url.includes('/changes/startPageToken')
+          ? jsonResponse({ startPageToken: '1' })
+          : undefined
+      );
+      routes.push(url => {
+        if (!url.includes('/drive/v3/files')) return undefined;
+        if (url.includes('alt=media')) return new Response(manifest ?? '');
+        return jsonResponse({
+          files:
+            manifest === null
+              ? []
+              : [
+                  {
+                    id: 'm1',
+                    name: CLOUD_MANIFEST_PATH,
+                    headRevisionId: 'r1',
+                    size: String(manifest.length),
+                  },
+                ],
+        });
+      });
+    }
+
+    it('redirects to Google for a token with only app data access', async () => {
+      const { assign } = stubLocation();
+
+      await service.beginAuthorization('google-drive');
+
+      const url = new URL(assign.mock.calls[0][0] as string);
+      expect(url.host).toBe('accounts.google.com');
+      expect(url.searchParams.get('response_type')).toBe('token');
+      expect(url.searchParams.get('scope')).toBe(APPDATA);
+      expect(url.searchParams.get('prompt')).toBe('select_account');
+      expect(url.searchParams.get('redirect_uri')).toBe(
+        'http://localhost:4200/cloud-sync/callback/google-drive'
+      );
+      const pending = JSON.parse(
+        session['inkweld-cloud-sync-pending-auth']
+      ) as { provider: string; state: string };
+      expect(pending.provider).toBe('google-drive');
+      expect(pending.state).toBe(url.searchParams.get('state'));
+    });
+
+    it('stores the token and asks for a profile on a fresh account', async () => {
+      seedPendingAuth();
+      routeDrive(null);
+
+      const result = await service.completeGoogleAuthorization(tokenFragment());
+
+      expect(result.kind).toBe('needs-profile');
+      expect(result.pending).toMatchObject({
+        provider: 'google-drive',
+        accountId: user.permissionId,
+        accountLabel: user.emailAddress,
+        suggestedName: 'Bobby Quantum',
+      });
+      const tokens = tokenStore.get(configId);
+      expect(tokens).toMatchObject({
+        provider: 'google-drive',
+        accessToken: 'gat',
+        loginHint: user.emailAddress,
+      });
+      expect(tokens?.refreshToken).toBeUndefined();
+      expect(tokens?.expiresAt).toBeGreaterThan(Date.now() + 3500_000);
+    });
+
+    it('offers the authors already in the app data folder', async () => {
+      seedPendingAuth();
+      routeDrive(
+        JSON.stringify(
+          createCloudManifest(
+            { provider: 'google-drive', accountId: user.permissionId },
+            { name: 'Bobby Quantum', username: 'bobby' }
+          )
+        )
+      );
+
+      const result = await service.completeGoogleAuthorization(tokenFragment());
+
+      expect(result.kind).toBe('choose-profile');
+      expect(result.pending.existingProfiles?.map(p => p.username)).toEqual([
+        'bobby',
+      ]);
+    });
+
+    it('reports a cancelled sign-in', async () => {
+      seedPendingAuth();
+
+      await expect(
+        service.completeGoogleAuthorization('error=access_denied&state=state-g')
+      ).rejects.toThrow(/cancelled the Google Drive sign-in/);
+    });
+
+    it('rejects a state mismatch', async () => {
+      seedPendingAuth('other');
+
+      await expect(
+        service.completeGoogleAuthorization(tokenFragment())
+      ).rejects.toThrow(/state mismatch/);
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('rejects a grant without app data access', async () => {
+      seedPendingAuth();
+
+      await expect(
+        service.completeGoogleAuthorization(tokenFragment({ scope: 'email' }))
+      ).rejects.toThrow(/needs permission/);
+    });
+
+    it('never runs the code exchange for Google', async () => {
+      session['inkweld-cloud-sync-pending-auth'] = JSON.stringify({
+        provider: 'google-drive',
+        codeVerifier: 'v',
+        state: 's',
+        redirectUri: 'x',
+        startedAt: Date.now(),
+      });
+
+      await expect(
+        service.completeAuthorization('google-drive', 'code', 's')
+      ).rejects.toThrow(/token, not a code/);
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('hands out a Drive store that uses the stored token', async () => {
+      tokenStore.set(configId, {
+        provider: 'google-drive',
+        accountId: user.permissionId,
+        accessToken: 'gat',
+        expiresAt: Date.now() + 3_600_000,
+      });
+      routeDrive(null);
+
+      const files = await service
+        .createStore('google-drive', configId)
+        .list('/', { recursive: true });
+
+      expect(files).toEqual([]);
+      const [, init] = callsTo('/drive/v3/files')[0];
+      expect((init.headers as Record<string, string>)['Authorization']).toBe(
+        'Bearer gat'
       );
     });
   });

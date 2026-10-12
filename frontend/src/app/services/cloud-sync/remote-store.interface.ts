@@ -2,7 +2,7 @@
  * Minimal file-store contract every Cloud Sync provider adapter implements.
  *
  * Paths are app-folder relative and start with "/". Every provider we target
- * (Dropbox app folder, Google Drive `drive.file`, OneDrive approot, S3,
+ * (Dropbox app folder, Google Drive appDataFolder, OneDrive approot, S3,
  * WebDAV) reduces to these five operations, so the sync engine is written
  * once against this interface.
  */
@@ -40,6 +40,18 @@ export class RemoteAuthError extends Error {
   constructor(message = 'Cloud storage authorization expired') {
     super(message);
     this.name = 'RemoteAuthError';
+  }
+}
+
+/**
+ * The access token expired and only the user can renew it (Google's browser
+ * token flow has no refresh token). Unlike RemoteAuthError the credentials
+ * stay: sync pauses and resumes once the token is renewed.
+ */
+export class RemoteReauthRequiredError extends Error {
+  constructor(message = 'Cloud storage sign-in needs renewing') {
+    super(message);
+    this.name = 'RemoteReauthRequiredError';
   }
 }
 

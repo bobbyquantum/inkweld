@@ -23,5 +23,9 @@ export const environment = {
    */
   cloudSync: {
     dropbox: { appKey: 'zoshj2h9i9wu0pk' },
+    'google-drive': {
+      appKey:
+        '691110670659-dh9r7eq0t7jul11q3cpv130rvhgotuv5.apps.googleusercontent.com',
+    },
   },
 };
