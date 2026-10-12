@@ -160,8 +160,9 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
 
   /**
    * What the sync strap shows. In cloud sync mode it follows the cloud
-   * engine: a problem (offline, error, credentials lost) renders as the
-   * offline strip with a retry; otherwise the strap stays hidden.
+   * engine: a problem (offline, error, credentials lost, sign-in to renew)
+   * renders as the offline strip with a retry; otherwise the strap stays
+   * hidden.
    */
   protected readonly stripSyncState = computed<DocumentSyncState>(() => {
     if (!this.storageContext.isCloudMode()) return this.projectSyncState();
@@ -169,6 +170,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
       case 'offline':
       case 'error':
       case 'disconnected':
+      case 'paused':
         return DocumentSyncState.Local;
       default:
         return DocumentSyncState.Synced;

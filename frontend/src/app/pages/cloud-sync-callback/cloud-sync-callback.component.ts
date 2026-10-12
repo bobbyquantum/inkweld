@@ -8,7 +8,10 @@ import {
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { CloudSyncConnectService } from '@services/cloud-sync/cloud-sync-connect.service';
+import {
+  type CloudCallbackResult,
+  CloudSyncConnectService,
+} from '@services/cloud-sync/cloud-sync-connect.service';
 import { CloudSyncEngineService } from '@services/cloud-sync/cloud-sync-engine.service';
 import { LoggerService } from '@services/core/logger.service';
 import {
@@ -25,7 +28,10 @@ const KNOWN_PROVIDERS: readonly CloudProvider[] = [
 
 /**
  * Landing page for the provider OAuth redirect:
- * `/cloud-sync/callback/:provider?code=...&state=...`
+ * `/cloud-sync/callback/:provider?code=...&state=...`, or for Google
+ * `/cloud-sync/callback/google-drive#access_token=...&state=...`. (Google
+ * token renewals land here too, but `main.ts` relays those without booting
+ * the app.)
  *
  * Finishes the PKCE exchange, then either lands the user on the home page
  * (existing Inkweld folder found) or sends them to the setup page to pick a
@@ -66,6 +72,15 @@ export class CloudSyncCallbackComponent implements OnInit {
     }
     this.providerName.set(getCloudProviderDisplayName(provider));
 
+    if (provider === 'google-drive') {
+      await this.finish(() =>
+        this.connect.completeGoogleAuthorization(
+          this.route.snapshot.fragment ?? ''
+        )
+      );
+      return;
+    }
+
     const query = this.route.snapshot.queryParamMap;
     const error = query.get('error');
     if (error) {
@@ -85,12 +100,18 @@ export class CloudSyncCallbackComponent implements OnInit {
       return;
     }
 
+    await this.finish(() =>
+      this.connect.completeAuthorization(provider, code, state)
+    );
+  }
+
+  /** Run the provider-specific completion, then continue on the setup page */
+  private async finish(
+    complete: () => Promise<CloudCallbackResult>
+  ): Promise<void> {
+    const provider = this.route.snapshot.paramMap.get('provider');
     try {
-      const result = await this.connect.completeAuthorization(
-        provider,
-        code,
-        state
-      );
+      const result = await complete();
       // Both outcomes continue on the welcome screen: pick an existing author
       // in this account, or name a new one.
       this.logger.info('CloudSync', `Connect result: ${result.kind}`);

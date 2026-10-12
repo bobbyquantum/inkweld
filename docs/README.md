@@ -38,12 +38,12 @@ default `bun run verify` uses the latter).
 `docs/site/build` to GitHub Pages with the Pages actions
 (`configure-pages`, `upload-pages-artifact`, `deploy-pages`). It runs on pushes
 to `main` that touch `docs/**` or `backend/openapi.json`, and can be started
-manually. The public URL is set by `siteUrl` in `docs/site/docusaurus.config.ts`
-and `docs/site/static/CNAME`. The optional repository variable `INKWELD_APP_URL`
+manually. The site is served at https://inkweld.org: that domain is set by
+`siteUrl` in `docs/site/docusaurus.config.ts`, `docs/site/static/CNAME` and the
+repository's GitHub Pages custom domain (Settings → Pages), which must agree.
+The app links to it through `frontend/src/app/config/docs-links.ts`, and
+preview.inkweld.org redirects to it (a Cloudflare redirect rule). The optional repository variable `INKWELD_APP_URL`
 overrides where the "Open App" links point.
-
-`docs/deploy-docs.sh` is a manual alternative that deploys the build to
-Cloudflare Pages with Wrangler.
 
 ## Contributing to docs
 

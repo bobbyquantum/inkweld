@@ -5,18 +5,17 @@ import type * as OpenApiPlugin from 'docusaurus-plugin-openapi-docs';
 
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
 
-// Public URL of this docs site. Switch it (and static/CNAME) when the docs
-// move to the production domain.
-const siteUrl = 'https://preview.inkweld.org';
+// Public URL of this docs site (keep static/CNAME and the GitHub Pages custom
+// domain in step). preview.inkweld.org redirects here.
+const siteUrl = 'https://inkweld.org';
 
 /**
  * URL of the hosted Inkweld app that the "Open App" links point to.
  *
  * Set INKWELD_APP_URL at build time to point somewhere specific. Otherwise it
  * follows the docs domain: the docs at `<sub>.inkweld.org` link to the app at
- * `<sub>.inkweld.app` (preview.inkweld.org → preview.inkweld.app, and
- * inkweld.org → inkweld.app once the production docs launch). The app links
- * back the same way (`frontend/src/app/config/docs-links.ts`).
+ * `<sub>.inkweld.app` (inkweld.org → inkweld.app). Every app links back to
+ * inkweld.org (`frontend/src/app/config/docs-links.ts`).
  */
 function resolveAppUrl(docsUrl: string): string {
   let override = process.env.INKWELD_APP_URL?.trim() ?? '';
