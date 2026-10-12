@@ -321,7 +321,7 @@ async function buildAndRunDocker(
     console.log('  Remove container: docker rm -f inkweld-backend');
     console.log('');
     console.log(
-      '📖 Documentation: https://preview.inkweld.org/docs/installation/docker',
+      '📖 Documentation: https://inkweld.org/docs/installation/docker',
     );
     console.log('');
   } catch (error) {
@@ -452,7 +452,7 @@ async function showCloudflareDeployment() {
   );
   console.log('');
   console.log('📖 For detailed documentation, see:');
-  console.log('   https://preview.inkweld.org/docs/installation/cloudflare');
+  console.log('   https://inkweld.org/docs/installation/cloudflare');
   console.log('');
 }
 
@@ -504,7 +504,7 @@ async function showDockerComposeDeployment() {
   console.log('  $ docker compose down     # Stop and remove containers');
   console.log('');
   console.log('📖 For detailed documentation, see:');
-  console.log('   https://preview.inkweld.org/docs/installation/docker');
+  console.log('   https://inkweld.org/docs/installation/docker');
   console.log('');
 }
 
