@@ -14,8 +14,8 @@ android {
         applicationId = "app.inkweld"
         minSdk = 24
         targetSdk = 36
-        versionCode = 7
-        versionName = "1.0.0-beta.1"
+        versionCode = 6
+        versionName = "0.1.4"
 
         manifestPlaceholders["twaHost"] = "inkweld.app"
         manifestPlaceholders["twaAppName"] = "Inkweld"

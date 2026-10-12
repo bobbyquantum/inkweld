@@ -78,7 +78,7 @@ the betas focus on testing and bug fixing. Please report problems on the
   (dynamic client registration) and per-project consent.
 - Home Assistant app support: runs behind Home Assistant ingress and signs in
   the Home Assistant user automatically.
-- Android app (Trusted Web Activity) and an Electron desktop build.
+- Installable web app (PWA) on desktop and mobile, and an Electron desktop build.
 
 ### Administration
 
