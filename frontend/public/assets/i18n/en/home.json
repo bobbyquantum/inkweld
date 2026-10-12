@@ -113,5 +113,13 @@
     "descriptionLabel": "Project Description",
     "projectUrl": "Project URL:",
     "submit": "Create Project"
+  },
+  "installBanner": {
+    "title": "Install Inkweld",
+    "body": "Open it from your home screen, dock or start menu in its own window. It works offline, and updates itself.",
+    "install": "Install",
+    "notNow": "Not now",
+    "iosBefore": "Tap",
+    "iosAfter": "Share, then Add to Home Screen."
   }
 }

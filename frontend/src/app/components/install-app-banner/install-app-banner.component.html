@@ -1,0 +1,40 @@
+@if (pwaInstall.showBanner()) {
+  <section
+    class="install-banner"
+    data-testid="install-app-banner"
+    [attr.aria-label]="'home.installBanner.title' | transloco">
+    <mat-icon class="install-icon" aria-hidden="true">install_mobile</mat-icon>
+    <div class="install-text">
+      <h3 class="install-title">
+        {{ 'home.installBanner.title' | transloco }}
+      </h3>
+      <p class="install-body">{{ 'home.installBanner.body' | transloco }}</p>
+      @if (pwaInstall.mode() === 'ios') {
+        <p class="install-ios" data-testid="install-app-ios-hint">
+          {{ 'home.installBanner.iosBefore' | transloco }}
+          <mat-icon class="inline-icon" aria-hidden="true">ios_share</mat-icon>
+          {{ 'home.installBanner.iosAfter' | transloco }}
+        </p>
+      }
+    </div>
+    <div class="install-actions">
+      <button
+        mat-button
+        type="button"
+        (click)="dismiss()"
+        data-testid="install-app-dismiss">
+        {{ 'home.installBanner.notNow' | transloco }}
+      </button>
+      @if (pwaInstall.mode() === 'prompt') {
+        <button
+          mat-flat-button
+          color="primary"
+          type="button"
+          (click)="install()"
+          data-testid="install-app-button">
+          {{ 'home.installBanner.install' | transloco }}
+        </button>
+      }
+    </div>
+  </section>
+}

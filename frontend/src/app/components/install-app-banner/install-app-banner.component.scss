@@ -1,0 +1,77 @@
+:host {
+  display: block;
+  padding: 0 24px;
+}
+
+.install-banner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  max-width: 1600px;
+  margin: 0 auto 24px;
+  padding: 16px 20px;
+  background: var(--s);
+  border: 1px solid var(--b);
+  border-radius: 8px;
+  box-sizing: border-box;
+}
+
+.install-icon {
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  font-size: 32px;
+  color: var(--sys-primary);
+}
+
+.install-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.install-title {
+  margin: 0 0 4px;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--t1);
+}
+
+.install-body,
+.install-ios {
+  margin: 0;
+  color: var(--t2);
+  font-size: 0.875rem;
+}
+
+.install-ios {
+  margin-top: 4px;
+}
+
+.inline-icon {
+  width: 18px;
+  height: 18px;
+  font-size: 18px;
+  vertical-align: text-bottom;
+}
+
+.install-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 8px;
+}
+
+@media (max-width: 600px) {
+  :host {
+    padding: 0 16px;
+  }
+
+  .install-banner {
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+
+  .install-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}

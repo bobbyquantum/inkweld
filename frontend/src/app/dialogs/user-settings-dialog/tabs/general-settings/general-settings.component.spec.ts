@@ -1,6 +1,10 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import {
+  type InstallMode,
+  PwaInstallService,
+} from '@services/core/pwa-install.service';
 import { TutorialService } from '@services/core/tutorial.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -13,16 +17,26 @@ describe('GeneralSettingsComponent', () => {
   let tutorial: TutorialService;
   let stored: Record<string, unknown>;
   const markdownShortcuts = signal(false);
+  const installMode = signal<InstallMode>('none');
+  const installed = signal(false);
+  const install = vi.fn().mockResolvedValue(true);
 
   beforeEach(async () => {
     stored = {};
     markdownShortcuts.set(false);
+    installMode.set('none');
+    installed.set(false);
+    install.mockClear();
 
     await TestBed.configureTestingModule({
       imports: [GeneralSettingsComponent, translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
         provideRouter([]),
+        {
+          provide: PwaInstallService,
+          useValue: { mode: installMode, installed, install },
+        },
         {
           provide: SettingsService,
           useValue: {
@@ -109,6 +123,43 @@ describe('GeneralSettingsComponent', () => {
 
       expect(markdownShortcuts()).toBe(true);
       expect(shortcutsSwitch().getAttribute('aria-checked')).toBe('true');
+    });
+  });
+
+  describe('Install app', () => {
+    const query = (testId: string): HTMLElement | null =>
+      (fixture.nativeElement as HTMLElement).querySelector(
+        `[data-testid="${testId}"]`
+      );
+
+    it('is hidden when the browser cannot install', () => {
+      expect(query('install-app-section')).toBeNull();
+    });
+
+    it('installs from the button when the browser can prompt', async () => {
+      installMode.set('prompt');
+      await settle();
+
+      query('settings-install-app-button')?.click();
+
+      expect(install).toHaveBeenCalled();
+    });
+
+    it('explains Add to Home Screen on iPhone and iPad', async () => {
+      installMode.set('ios');
+      await settle();
+
+      expect(query('settings-install-app-button')).toBeNull();
+      expect(query('settings-install-app-ios')?.textContent).toContain(
+        'Add to Home Screen'
+      );
+    });
+
+    it('says so when already installed', async () => {
+      installed.set(true);
+      await settle();
+
+      expect(query('install-app-installed')).not.toBeNull();
     });
   });
 });
