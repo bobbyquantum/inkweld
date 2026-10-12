@@ -10,7 +10,8 @@ name: Deploy Cloudflare (Reusable)
 # directly, and its secrets too as long as the caller uses `secrets: inherit`
 # (without it the secrets context is empty). Required there:
 #   vars:    BACKEND_WRANGLER_TOML, BASE_URL, FRONTEND_URL, APP_NAME,
-#            TWA_SHA256_FINGERPRINT, DROPBOX_APP_KEY (may be empty)
+#            TWA_SHA256_FINGERPRINT, DROPBOX_APP_KEY (may be empty),
+#            GOOGLE_DRIVE_CLIENT_ID (may be empty)
 #   secrets: CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID,
 #            PREVIEW_API_URL + PREVIEW_WSS_URL, or PRODUCTION_API_URL +
 #            PRODUCTION_WSS_URL (chosen by `url-secret-prefix`),
@@ -132,6 +133,10 @@ jobs:
           # Public OAuth app key for this environment's Dropbox app. Empty
           # hides the Dropbox option in Cloud Sync setup.
           DROPBOX_APP_KEY: ${{ vars.DROPBOX_APP_KEY }}
+          # Public OAuth client id from this environment's own Google Cloud
+          # project (the Drive app data folder is per project). Empty hides
+          # Google Drive.
+          GOOGLE_DRIVE_CLIENT_ID: ${{ vars.GOOGLE_DRIVE_CLIENT_ID }}
           ENVIRONMENT_FILE: ${{ inputs.environment-file }}
         run: |
           case "$URL_SECRET_PREFIX" in

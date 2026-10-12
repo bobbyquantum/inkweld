@@ -33,6 +33,14 @@ import {
 } from './dropbox/dropbox-api';
 import { DropboxRemoteStore } from './dropbox/dropbox-remote-store';
 import {
+  buildGoogleAuthorizeUrl,
+  grantsAppData,
+  parseGoogleAuthResponse,
+} from './google-drive/google-auth';
+import { getGoogleDriveUser } from './google-drive/google-drive-api';
+import { GoogleDriveAuthService } from './google-drive/google-drive-auth.service';
+import { GoogleDriveRemoteStore } from './google-drive/google-drive-remote-store';
+import {
   NextcloudRemoteStore,
   NextcloudUnreachableError,
 } from './nextcloud/nextcloud-remote-store';
@@ -54,6 +62,12 @@ import {
 
 /** sessionStorage key for the in-flight PKCE handshake */
 const PENDING_AUTH_KEY = 'inkweld-cloud-sync-pending-auth';
+
+/**
+ * How long a sign-in may take. Generous because a password, a second factor
+ * and the consent screen can add up; the state is single-use either way.
+ */
+const PENDING_AUTH_MAX_AGE_MS = 30 * 60 * 1000;
 
 /** sessionStorage key for a connected account awaiting profile setup */
 const PENDING_CONNECTION_KEY = 'inkweld-cloud-sync-pending-connection';
@@ -131,6 +145,7 @@ export class CloudSyncConnectService {
   private readonly tokens = inject(CloudTokenStoreService);
   private readonly setupService = inject(SetupService);
   private readonly logger = inject(LoggerService);
+  private readonly googleAuth = inject(GoogleDriveAuthService);
 
   /** Start the OAuth flow. Navigates away; nothing runs after this resolves. */
   async beginAuthorization(provider: CloudProvider): Promise<void> {
@@ -153,13 +168,20 @@ export class CloudSyncConnectService {
     };
     sessionStorage.setItem(PENDING_AUTH_KEY, JSON.stringify(pending));
 
-    const codeChallenge = await computeCodeChallenge(codeVerifier);
-    const url = this.buildAuthorizeUrl(provider, {
-      appKey,
-      redirectUri,
-      codeChallenge,
-      state,
-    });
+    const url =
+      provider === 'google-drive'
+        ? buildGoogleAuthorizeUrl({
+            clientId: appKey,
+            redirectUri,
+            state,
+            prompt: 'select_account',
+          })
+        : buildDropboxAuthorizeUrl({
+            appKey,
+            redirectUri,
+            codeChallenge: await computeCodeChallenge(codeVerifier),
+            state,
+          });
     this.logger.info(
       'CloudSync',
       `Redirecting to ${provider} for authorization`
@@ -198,6 +220,53 @@ export class CloudSyncConnectService {
     this.tokens.set(configId, accountTokens);
 
     return this.adoptOrRequestProfile(provider, configId, account);
+  }
+
+  /**
+   * Handle Google's redirect. Google answers in the URL fragment with an
+   * access token directly (there is no code to exchange: refresh tokens
+   * would need a client secret, see GoogleDriveAuthService).
+   */
+  async completeGoogleAuthorization(
+    fragment: string
+  ): Promise<CloudCallbackResult> {
+    const pending = this.takePendingAuth();
+    const response = parseGoogleAuthResponse(fragment);
+    if (pending?.provider !== 'google-drive' || !response) {
+      throw new Error('No authorization in progress. Please start again.');
+    }
+    if (pending.state !== response.state) {
+      throw new Error('Authorization state mismatch. Please start again.');
+    }
+    if (response.kind === 'error') {
+      throw new Error(
+        response.error === 'access_denied'
+          ? 'You cancelled the Google Drive sign-in.'
+          : (response.description ??
+              `Google returned an error: ${response.error}`)
+      );
+    }
+    if (!grantsAppData(response.scope)) {
+      throw new Error(
+        'Inkweld needs permission to store its data in your Google Drive. Please try again and allow it.'
+      );
+    }
+
+    const user = await getGoogleDriveUser(response.accessToken);
+    const account = {
+      id: user.permissionId,
+      label: user.emailAddress,
+      displayName: user.displayName,
+    };
+    const configId = buildCloudConfigId('google-drive', account.id);
+    this.tokens.set(configId, {
+      provider: 'google-drive',
+      accountId: account.id,
+      accessToken: response.accessToken,
+      expiresAt: Date.now() + response.expiresIn * 1000,
+      loginHint: user.emailAddress,
+    });
+    return this.adoptOrRequestProfile('google-drive', configId, account);
   }
 
   /**
@@ -471,6 +540,7 @@ export class CloudSyncConnectService {
 
   /** Forget credentials for a config (disconnect) */
   disconnect(configId: string): void {
+    this.googleAuth.cancel(configId);
     this.tokens.clear(configId);
   }
 
@@ -484,6 +554,10 @@ export class CloudSyncConnectService {
       case 'nextcloud':
         return new NextcloudRemoteStore(() =>
           this.getNextcloudCredentials(configId)
+        );
+      case 'google-drive':
+        return new GoogleDriveRemoteStore(() =>
+          this.googleAuth.getAccessToken(configId)
         );
       default:
         throw new Error(
@@ -529,19 +603,6 @@ export class CloudSyncConnectService {
     });
   }
 
-  private buildAuthorizeUrl(
-    provider: CloudProvider,
-    params: {
-      appKey: string;
-      redirectUri: string;
-      codeChallenge: string;
-      state: string;
-    }
-  ): string {
-    assertOAuthProvider(provider);
-    return buildDropboxAuthorizeUrl(params);
-  }
-
   private async exchangeCode(
     provider: CloudProvider,
     params: {
@@ -551,7 +612,7 @@ export class CloudSyncConnectService {
       redirectUri: string;
     }
   ): Promise<Omit<CloudTokenSet, 'accountId'>> {
-    assertOAuthProvider(provider);
+    assertCodeFlowProvider(provider);
     const response = await exchangeDropboxCode(params);
     return {
       provider,
@@ -565,7 +626,7 @@ export class CloudSyncConnectService {
     provider: CloudProvider,
     accessToken: string
   ): Promise<{ id: string; label: string; displayName: string }> {
-    assertOAuthProvider(provider);
+    assertCodeFlowProvider(provider);
     const account = await getDropboxCurrentAccount(accessToken);
     return {
       id: account.account_id,
@@ -585,7 +646,6 @@ export class CloudSyncConnectService {
       throw new RemoteAuthError();
     }
 
-    if (provider !== 'dropbox') throw new RemoteAuthError();
     const response = await refreshDropboxToken({
       appKey: this.config.getAppKey(provider),
       refreshToken: tokens.refreshToken,
@@ -599,39 +659,56 @@ export class CloudSyncConnectService {
     return refreshed.accessToken;
   }
 
+  /**
+   * Consume the handshake saved before the redirect. Throws when it has
+   * expired, so a slow sign-in gets a message that says so.
+   */
   private takePendingAuth(): PendingAuth | null {
+    let pending: PendingAuth;
     try {
       const raw = sessionStorage.getItem(PENDING_AUTH_KEY);
       sessionStorage.removeItem(PENDING_AUTH_KEY);
       if (!raw) return null;
-      const pending = JSON.parse(raw) as PendingAuth;
-      // Ten minutes is plenty for a consent screen; anything older is stale.
-      if (Date.now() - pending.startedAt > 10 * 60 * 1000) return null;
-      return pending;
+      pending = JSON.parse(raw) as PendingAuth;
     } catch {
       return null;
     }
+    if (Date.now() - pending.startedAt > PENDING_AUTH_MAX_AGE_MS) {
+      throw new Error('The sign-in took too long. Please start again.');
+    }
+    return pending;
   }
 }
 
 /**
- * Dropbox is the only OAuth provider today. Each OAuth-specific step calls
- * this first so a provider that connects differently (Nextcloud) or has no
- * adapter yet fails with one clear message; when the next OAuth adapter lands
- * these become dispatch points.
+ * Each OAuth step calls this first so a provider that connects differently
+ * (Nextcloud) or has no adapter yet fails with one clear message.
  */
 function assertOAuthProvider(
   provider: CloudProvider
-): asserts provider is 'dropbox' {
+): asserts provider is 'dropbox' | 'google-drive' {
   if (provider === 'nextcloud') {
     throw new Error(
       'Nextcloud connects with a server address and app password, not a sign-in redirect'
     );
   }
-  if (provider !== 'dropbox') {
+  if (provider !== 'dropbox' && provider !== 'google-drive') {
     throw new Error(
       `${getCloudProviderDisplayName(provider)} is not supported yet`
     );
+  }
+}
+
+/**
+ * Providers whose redirect carries a code to exchange. Google answers with a
+ * token instead and goes through `completeGoogleAuthorization`.
+ */
+function assertCodeFlowProvider(
+  provider: CloudProvider
+): asserts provider is 'dropbox' {
+  assertOAuthProvider(provider);
+  if (provider === 'google-drive') {
+    throw new Error('Google Drive signs in with a token, not a code');
   }
 }
 

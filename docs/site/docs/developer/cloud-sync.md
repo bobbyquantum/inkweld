@@ -10,8 +10,8 @@ Sync (an Inkweld server). The user's own cloud storage holds a mirror of their
 projects, so they can move between devices without an Inkweld server or an
 Inkweld account. Identity comes from the provider account.
 
-Dropbox and Nextcloud (WebDAV) are wired today. The design is provider-neutral
-so Google Drive, OneDrive and S3-compatible stores can be added as adapters.
+Dropbox, Google Drive and Nextcloud (WebDAV) are wired today. The design is
+provider-neutral so OneDrive and S3-compatible stores can be added as adapters.
 
 ## How it fits the app
 
@@ -182,6 +182,89 @@ box; the user guide walks admins through the WebAppPassword app or a
 reverse-proxy rule. The account id is `<serverUrl>#<loginName>`, so the same
 login on two servers gets two storage contexts.
 
+## Google Drive adapter
+
+`GoogleDriveRemoteStore` (`services/cloud-sync/google-drive/`) asks only for
+the `drive.appdata` scope, so
+everything lives in Drive's hidden `appDataFolder`: the user cannot browse or
+edit the files (they are Yjs state, not readable documents anyway), and
+Inkweld cannot see the rest of their Drive. A user removes the data with
+"Delete hidden app data" under Drive settings → Manage apps; to take a copy
+elsewhere they export a project archive.
+
+Drive addresses files by id, and a folder hierarchy would mean creating and
+resolving folders on every write, so the layout is **flat**: each file sits
+directly in `appDataFolder` and its name is its full store path
+(`/projects/alice/novel/elements.yjs`). The store keeps an in-memory index of
+path to file:
+
+- The first call builds it from one paged `files.list` (`spaces=appDataFolder`),
+  taking a Changes API start token first so nothing written during the
+  listing is missed.
+- After that, `changes.list` from the saved token brings it up to date, so an
+  unchanged account costs one request. `list` and `delete` always poll;
+  `stat`, `get` and `put` reuse an index polled in the last
+  `INDEX_FRESHNESS_MS` (5 s), so a sync pass polls about once. An expired
+  token (410) rebuilds from a listing.
+- `get` returns the version from the index, read before the bytes, so the
+  version can lag the content (the next pass downloads again) but never lead
+  it (which would hide a change). A 404 re-polls once and follows the path's
+  current file.
+
+| Concern         | How the adapter handles it                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Version tag     | `headRevisionId`, which only moves on content changes; `version` as fallback                                                                                                                                                                                                                                                                                                                                                                          |
+| Duplicate names | Drive allows them, so two devices creating one path at once leave two files. Everyone reads and writes the oldest (`createdTime`, then id); a successful write deletes the rest. The device that wrote a removed copy still has the data and re-pushes it when it sees the version move. Writes to one path are serialized on each device, and a path missing from the index is re-polled before creating, so a device never duplicates its own files |
+| `ifVersion`     | Drive v3 has no conditional update. The live version is fetched just before the write and compared; a write landing in between is not detected, which the manifest merge tolerates                                                                                                                                                                                                                                                                    |
+| Uploads         | Multipart (create) or media (update) up to 5 MB; larger bodies use a resumable session sent in one `PUT`                                                                                                                                                                                                                                                                                                                                              |
+| Folder delete   | Every file whose name has the folder prefix, four at a time                                                                                                                                                                                                                                                                                                                                                                                           |
+| Errors          | 401 → `RemoteAuthError`; 429 or 403 `rateLimitExceeded`/`userRateLimitExceeded` → `RemoteRateLimitError` (Retry-After, else 10 s); 404 → `RemoteFileNotFoundError`                                                                                                                                                                                                                                                                                    |
+
+Specs run against `FakeGoogleDrive` (`services/cloud-sync/testing/`), an
+in-memory imitation of the endpoints the store calls.
+
+### Sign-in without a refresh token
+
+Google issues refresh tokens to a "Web application" client only in exchange
+for its client secret, even with PKCE, and Cloud Sync has no server to keep a
+secret. So Google uses the browser token flow (`response_type=token`,
+`google-auth.ts`): the redirect carries a one-hour access token in the URL
+fragment and nothing else. `CloudSyncConnectService.completeGoogleAuthorization`
+takes it from the callback page, identifies the account with
+`about.get` (`user.permissionId` is the account id, the email is kept as
+`loginHint`), and joins the usual profile flow.
+
+`GoogleDriveAuthService` keeps the token alive:
+
+1. From ten minutes before expiry, a hidden iframe asks again with
+   `prompt=none` and `login_hint`. This works when the browser sends Google's
+   cookies to the iframe (Chrome does; Safari and Firefox usually don't). A
+   failure is not retried for five minutes.
+2. If that fails, the next click anywhere in the app opens a popup with the
+   same request. For a user still signed in to Google it closes itself within
+   a second or so. It opens on one click only; after that "Sync now" (or the
+   retry on the sync strip) opens it.
+3. If the token expires first, the store throws `RemoteReauthRequiredError`
+   and the engine goes to `paused`: credentials are kept, edits wait locally,
+   and the next renewal resumes sync. Unlike `RemoteAuthError` this never
+   disconnects the profile.
+
+Renewals redirect to the same registered callback URL, marked by a `state`
+starting `renew.`. `main.ts` checks for that before bootstrapping
+(`relayGoogleAuthResponse`): it posts the fragment on the
+`inkweld-google-auth` BroadcastChannel, removes the token from the address
+bar, closes a popup, and does not start the app inside the iframe or popup.
+The CSP's `frame-src` allows `https://accounts.google.com` for the iframe.
+
+**Separate Google Cloud projects per deployment.** The app data folder belongs
+to the Cloud project, so preview and production must use different projects
+(not two clients in one project), just as Dropbox uses two apps. A shared
+folder is unsafe: an older build treats a newer manifest version as unreadable
+and rebuilds it, dropping other authors and tombstones. The preview project
+also covers `localhost`. PR previews live on per-PR `pages.dev` hosts that
+Google cannot allow-list (no wildcard origins), so their builds leave the
+client id empty.
+
 ## Configuration
 
 Provider app keys are public OAuth client identifiers and ship in the browser
@@ -190,13 +273,17 @@ bundle via the environment file:
 ```ts
 cloudSync: {
   dropbox: { appKey: '...' },
+  'google-drive': { appKey: '<client id>.apps.googleusercontent.com' },
 },
 ```
 
 An empty key hides the provider from the setup page. Nextcloud needs no key
 and is always offered (`KEYLESS_CLOUD_PROVIDERS`), so Cloud Sync appears even
 in a build with no OAuth keys. The Cloudflare deploy
-workflow reads `DROPBOX_APP_KEY` from a repository variable. Self-hosters
+workflow reads `DROPBOX_APP_KEY` and `GOOGLE_DRIVE_CLIENT_ID` from the GitHub
+environment's variables. The Google client is a "Web application" client
+whose authorized JavaScript origins and redirect URIs list the frontend
+origin; its client secret is never used. Self-hosters
 register their own provider app (Google and Microsoft bind allowed origins to
 the client, so the hosted Inkweld app cannot serve other domains) and can
 override the key at runtime; the override is stored in `localStorage` under
@@ -211,8 +298,9 @@ origin and must be registered with the provider exactly.
 2. Implement `RemoteStore` (`list`, `stat`, `get`, `put`, `delete`) for the
    provider's API, mapping its errors to `RemoteFileNotFoundError`,
    `RemoteAuthError` and `RemoteConflictError`.
-3. Add the OAuth pieces to `CloudSyncConnectService` (`buildAuthorizeUrl`,
-   `exchangeCode`, `describeAccount`, token refresh) and list the provider in
+3. Add the OAuth pieces to `CloudSyncConnectService` (the authorize URL in
+   `beginAuthorization`, `exchangeCode`, `describeAccount`, token refresh) and
+   list the provider in
    `IMPLEMENTED_CLOUD_PROVIDERS`. A provider that authenticates some other way
    gets its own `connect<Provider>` entry point that ends in
    `adoptOrRequestProfile`, as Nextcloud does, and goes in

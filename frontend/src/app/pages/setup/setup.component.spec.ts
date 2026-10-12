@@ -1207,31 +1207,58 @@ describe('SetupComponent', () => {
       expect(component['configLoading']()).toBe(false);
     });
 
-    it('finishes the connection with the entered profile', async () => {
+    it('finishes the connection with the entered profile and reloads', async () => {
+      const originalLocation = globalThis.location;
+      const assign = vi.fn();
+      Object.defineProperty(globalThis, 'location', {
+        value: { assign },
+        writable: true,
+        configurable: true,
+      });
       component['pendingCloudConnection'].set(pending);
       component['showCloudProfileSetup'].set(true);
       component['displayName'] = '  Bobby  ';
       component['userName'] = ' bobby ';
 
-      await component['setupCloudProfile']();
+      try {
+        await component['setupCloudProfile']();
+      } finally {
+        Object.defineProperty(globalThis, 'location', {
+          value: originalLocation,
+          writable: true,
+          configurable: true,
+        });
+      }
 
       expect(mockCloudSyncConnect.finishNewConnection).toHaveBeenCalledWith(
         pending,
         { username: 'bobby', name: 'Bobby' }
       );
-      expect(mockUnifiedUserService.initialize).toHaveBeenCalled();
-      expect(mockRouter.navigate).toHaveBeenCalledWith(['/'], {
-        replaceUrl: true,
-      });
-      expect(component['isConnectingCloud']()).toBe(false);
+      // A reload starts the sync engine, which the OAuth callback skipped
+      expect(assign).toHaveBeenCalledWith('/');
+      expect(mockRouter.navigate).not.toHaveBeenCalled();
     });
 
     it('falls back to the suggested profile when fields are blank', async () => {
+      const originalLocation = globalThis.location;
+      Object.defineProperty(globalThis, 'location', {
+        value: { assign: vi.fn() },
+        writable: true,
+        configurable: true,
+      });
       component['pendingCloudConnection'].set(pending);
       component['displayName'] = '';
       component['userName'] = '';
 
-      await component['setupCloudProfile']();
+      try {
+        await component['setupCloudProfile']();
+      } finally {
+        Object.defineProperty(globalThis, 'location', {
+          value: originalLocation,
+          writable: true,
+          configurable: true,
+        });
+      }
 
       expect(mockCloudSyncConnect.finishNewConnection).toHaveBeenCalledWith(
         pending,

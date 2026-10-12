@@ -37,10 +37,12 @@ import {
 import { CloudSyncConnectService } from './cloud-sync-connect.service';
 import { CloudSyncEngineService } from './cloud-sync-engine.service';
 import { CloudSyncStateService } from './cloud-sync-state.service';
+import { GoogleDriveAuthService } from './google-drive/google-drive-auth.service';
 import {
   RemoteAuthError,
   type RemoteFileInfo,
   RemoteRateLimitError,
+  RemoteReauthRequiredError,
 } from './remote-store.interface';
 import { InMemoryRemoteStore } from './testing/in-memory-remote-store';
 
@@ -69,6 +71,10 @@ describe('CloudSyncEngineService', () => {
     indexFiles: (list: RemoteFileInfo[]) => Map<string, RemoteFileInfo>;
     pullCover: ReturnType<typeof vi.fn>;
     deleteRemoteProject: ReturnType<typeof vi.fn>;
+  };
+  let googleAuth: {
+    renewals: ReturnType<typeof signal<number>>;
+    renewWithPopup: ReturnType<typeof vi.fn>;
   };
   let connect: {
     hasCredentials: ReturnType<typeof vi.fn>;
@@ -157,6 +163,10 @@ describe('CloudSyncEngineService', () => {
       pullCover: vi.fn().mockResolvedValue(true),
       deleteRemoteProject: vi.fn().mockResolvedValue(undefined),
     };
+    googleAuth = {
+      renewals: signal(0),
+      renewWithPopup: vi.fn().mockResolvedValue(true),
+    };
     connect = {
       hasCredentials: vi.fn(() => hasCredentials),
       createStore: vi.fn(() => store),
@@ -195,6 +205,7 @@ describe('CloudSyncEngineService', () => {
           },
         },
         { provide: CloudSyncConnectService, useValue: connect },
+        { provide: GoogleDriveAuthService, useValue: googleAuth },
         { provide: CloudProjectMirrorService, useValue: mirror },
         { provide: CloudSyncStateService, useValue: state },
         { provide: LocalProjectService, useValue: localProjects },
@@ -468,6 +479,40 @@ describe('CloudSyncEngineService', () => {
     expect(engine.status()).toBe('disconnected');
     expect(connect.disconnect).toHaveBeenCalledWith('cloud-dropbox-abc');
     expect(engine.lastError()).toMatch(/authorization/i);
+  });
+
+  it('pauses without dropping credentials when the sign-in needs renewing', async () => {
+    mirror.syncProject.mockRejectedValue(new RemoteReauthRequiredError());
+    engine.initialize();
+    await engine.syncNow();
+
+    expect(engine.status()).toBe('paused');
+    expect(engine.isActive()).toBe(true);
+    expect(connect.disconnect).not.toHaveBeenCalled();
+  });
+
+  it('renews from "Sync now" while paused and resumes after the renewal', async () => {
+    mirror.syncProject.mockRejectedValueOnce(new RemoteReauthRequiredError());
+    engine.initialize({ runStartupPass: false });
+    await engine.syncNow();
+    expect(engine.status()).toBe('paused');
+    const callsBefore = mirror.syncProject.mock.calls.length;
+
+    await engine.syncNow();
+
+    expect(googleAuth.renewWithPopup).toHaveBeenCalledTimes(1);
+    expect(mirror.syncProject.mock.calls.length).toBe(callsBefore);
+
+    mirror.syncProject.mockImplementation(
+      (_s, username: string, slug: string) =>
+        Promise.resolve(summaryFor(`${username}/${slug}`))
+    );
+    googleAuth.renewals.set(1);
+    TestBed.tick();
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(mirror.syncProject.mock.calls.length).toBeGreaterThan(callsBefore);
+    expect(engine.status()).toBe('synced');
   });
 
   it('backs off and retries when the provider rate limits', async () => {

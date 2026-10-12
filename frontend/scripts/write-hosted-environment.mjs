@@ -12,6 +12,7 @@
  *                    "false" shows the setup screen (Browser / Cloud Sync /
  *                    Server) with the hosted URL pre-filled.
  *   DROPBOX_APP_KEY  public Dropbox OAuth app key; empty hides the provider.
+ *   GOOGLE_DRIVE_CLIENT_ID  public Google OAuth client id; empty hides Drive.
  *
  * The app version comes from the root package.json so a version bump reaches
  * the hosted builds without editing the workflow.
@@ -53,6 +54,7 @@ const environment = {
   autoConfigure: autoConfigure === 'true',
   cloudSync: {
     dropbox: { appKey: process.env.DROPBOX_APP_KEY ?? '' },
+    'google-drive': { appKey: process.env.GOOGLE_DRIVE_CLIENT_ID ?? '' },
   },
 };
 

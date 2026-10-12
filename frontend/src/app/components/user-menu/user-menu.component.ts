@@ -222,6 +222,12 @@ export class UserMenuComponent implements OnInit {
           text: 'Cloud Sync · reconnect needed',
           cssClass: 'local',
         };
+      case 'paused':
+        return {
+          icon: 'cloud_off',
+          text: 'Cloud Sync · paused, sync now to resume',
+          cssClass: 'local',
+        };
       default:
         return { icon: 'cloud_sync', text: 'Cloud Sync', cssClass: 'local' };
     }

@@ -16,6 +16,8 @@
  * 'unsafe-eval' because Typst's wasm-bindgen glue (PDF export and preview)
  * calls `new Function(...)`; drop it to 'wasm-unsafe-eval' if a later
  * typst.ts stops doing that. Inline script stays blocked either way.
+ * frame-src allows accounts.google.com for the hidden iframe that renews a
+ * Google Drive token (Cloud Sync).
  *
  * The Cloudflare Pages deployment serves the same base policy statically from
  * frontend/public/_headers; csp.spec.ts keeps the two in step.
@@ -34,7 +36,7 @@ const BASE_DIRECTIVES: ReadonlyArray<readonly [string, readonly string[]]> = [
   ['connect-src', ["'self'", 'https:', 'wss:', 'blob:', 'data:']],
   ['media-src', ["'self'", 'data:', 'blob:', 'https:']],
   ['worker-src', ["'self'", 'blob:']],
-  ['frame-src', ["'self'", 'blob:']],
+  ['frame-src', ["'self'", 'blob:', 'https://accounts.google.com']],
   ['manifest-src', ["'self'"]],
   ['object-src', ["'none'"]],
   ['base-uri', ["'self'"]],

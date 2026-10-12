@@ -6,6 +6,7 @@ import {
   Injectable,
   Injector,
   signal,
+  untracked,
 } from '@angular/core';
 import { firstResultSequential, forEachSequential } from '@inkweld/async';
 import { type Project } from '@inkweld/index';
@@ -49,12 +50,14 @@ import {
   splitProjectKey,
 } from './cloud-sync-layout';
 import { CloudSyncStateService } from './cloud-sync-state.service';
+import { GoogleDriveAuthService } from './google-drive/google-drive-auth.service';
 import {
   RemoteAuthError,
   RemoteConflictError,
   type RemoteFileInfo,
   RemoteFileNotFoundError,
   RemoteRateLimitError,
+  RemoteReauthRequiredError,
   type RemoteStore,
 } from './remote-store.interface';
 
@@ -65,6 +68,7 @@ export type CloudSyncStatus =
   | 'syncing'
   | 'synced'
   | 'offline'
+  | 'paused' // sign-in needs renewing by the user; edits wait locally
   | 'error';
 
 /** Quiet period after the last local edit before a project is synced */
@@ -107,6 +111,7 @@ export class CloudSyncEngineService {
   private readonly logger = inject(LoggerService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly injector = inject(Injector);
+  private readonly googleAuth = inject(GoogleDriveAuthService);
 
   readonly status = signal<CloudSyncStatus>('disabled');
   readonly lastSyncAt = signal<string | null>(null);
@@ -160,8 +165,15 @@ export class CloudSyncEngineService {
     }
   }
 
-  /** Full pass now, ignoring the minimum gap. Used by the UI. */
+  /**
+   * Full pass now, ignoring the minimum gap. Used by the UI, always from a
+   * click: while paused it opens the sign-in renewal popup instead (which a
+   * browser only allows during a click), and the pass follows the renewal.
+   */
   syncNow(): Promise<void> {
+    if (this.status() === 'paused') {
+      return this.googleAuth.renewWithPopup().then(() => undefined);
+    }
     return this.syncAll('manual', { force: true });
   }
 
@@ -248,6 +260,19 @@ export class CloudSyncEngineService {
       const key = projectKeyFromDocId(connectionKey);
       if (key) this.markDirty(key);
     });
+
+    // Resume once a paused sign-in is renewed
+    effect(
+      () => {
+        if (this.googleAuth.renewals() === 0) return;
+        untracked(() => {
+          if (this.status() === 'paused') {
+            void this.syncAll('sign-in renewed', { force: true });
+          }
+        });
+      },
+      { injector: this.injector }
+    );
 
     // Follow the open project: watch its elements doc and sync it on open.
     // initialize() runs outside an injection context, so pass the injector.
@@ -663,6 +688,14 @@ export class CloudSyncEngineService {
         this.retryTimer = null;
         void this.syncAll('rate-limit retry', { force: true });
       }, error.retryAfterMs);
+      return;
+    }
+    if (error instanceof RemoteReauthRequiredError) {
+      // Not a disconnect: the credentials stay and sync resumes as soon as
+      // the user renews the sign-in.
+      this.status.set('paused');
+      this.lastError.set(error.message);
+      this.logger.info('CloudSync', 'Sign-in expired; sync paused');
       return;
     }
     if (error instanceof RemoteAuthError) {

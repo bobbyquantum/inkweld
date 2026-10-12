@@ -85,7 +85,7 @@ const PROVIDER_OPTIONS: Record<
     name: 'Google Drive',
     icon: 'cloud',
     description:
-      'Inkweld can only see files it created in your Drive, nothing else.',
+      'Inkweld keeps its data in a hidden app folder in your Drive and cannot see your other files.',
   },
   onedrive: {
     name: 'OneDrive',
@@ -546,11 +546,13 @@ export class SetupComponent implements OnInit {
       if (await this.finishUpgradeInto(config.id, username, providerName)) {
         return;
       }
-      await this.unifiedUserService.initialize();
       this.snackBar.open(`Connected to ${providerName}!`, 'Close', {
         duration: 3000,
       });
-      await this.router.navigate(['/'], { replaceUrl: true });
+      // Full reload, as for an existing author: the app booted on the OAuth
+      // callback page, which skips starting the sync engine, so without one
+      // nothing would sync until the next reload.
+      globalThis.location.assign(appUrl('/'));
     } catch (error) {
       console.error('Failed to finish cloud sync setup:', error);
       this.snackBar.open(
