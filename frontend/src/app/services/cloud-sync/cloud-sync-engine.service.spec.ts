@@ -501,7 +501,7 @@ describe('CloudSyncEngineService', () => {
     await engine.syncNow();
 
     expect(googleAuth.renewWithPopup).toHaveBeenCalledTimes(1);
-    expect(mirror.syncProject.mock.calls.length).toBe(callsBefore);
+    expect(mirror.syncProject.mock.calls).toHaveLength(callsBefore);
 
     mirror.syncProject.mockImplementation(
       (_s, username: string, slug: string) =>

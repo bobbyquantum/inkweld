@@ -132,13 +132,16 @@ export class FakeGoogleDrive {
   }
 
   externalDelete(name: string): void {
-    for (const file of [...this.files.values()]) {
+    // Deleting the current entry while iterating a Map is safe
+    for (const file of this.files.values()) {
       if (file.meta.name === name) this.remove(file.meta.id);
     }
   }
 
   namesInOrder(): string[] {
-    return [...this.files.values()].map(f => f.meta.name).sort();
+    return [...this.files.values()]
+      .map(f => f.meta.name)
+      .sort((a, b) => a.localeCompare(b));
   }
 
   text(name: string): string | undefined {
