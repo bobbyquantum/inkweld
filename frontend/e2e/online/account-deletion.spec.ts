@@ -9,9 +9,8 @@ import {
 } from './fixtures';
 
 /**
- * Self-service account deletion (required by Google Play for apps that allow
- * account creation): from Settings → Account, and from the public
- * /delete-account page the store listing links to.
+ * Self-service account deletion: from Settings → Account, and from the
+ * public /delete-account page, which can be linked to directly.
  */
 
 async function currentSession(

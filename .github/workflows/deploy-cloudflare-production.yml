@@ -59,5 +59,3 @@ jobs:
       auto-configure: false
       advertise-server: false
       url-secret-prefix: PRODUCTION
-      # The Play-store TWA (android/app/build.gradle.kts) targets inkweld.app.
-      twa-fingerprint-required: true

@@ -10,8 +10,8 @@ name: Deploy Cloudflare (Reusable)
 # directly, and its secrets too as long as the caller uses `secrets: inherit`
 # (without it the secrets context is empty). Required there:
 #   vars:    BACKEND_WRANGLER_TOML, BASE_URL, FRONTEND_URL, APP_NAME,
-#            TWA_SHA256_FINGERPRINT, DROPBOX_APP_KEY (may be empty),
-#            GOOGLE_DRIVE_CLIENT_ID (may be empty)
+#            DROPBOX_APP_KEY (may be empty), GOOGLE_DRIVE_CLIENT_ID (may be
+#            empty)
 #   secrets: CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID,
 #            PREVIEW_API_URL + PREVIEW_WSS_URL, or PRODUCTION_API_URL +
 #            PRODUCTION_WSS_URL (chosen by `url-secret-prefix`),
@@ -52,11 +52,6 @@ on:
         description: Bake the hosted server URL into the frontend so the app offers it. False builds a frontend-only app that never suggests this environment's backend.
         required: false
         default: true
-        type: boolean
-      twa-fingerprint-required:
-        description: Fail the deploy when TWA_SHA256_FINGERPRINT is unset (the Android app verifies this host)
-        required: false
-        default: false
         type: boolean
 
 permissions:
@@ -167,20 +162,6 @@ jobs:
           esac
           API_URL="$API_URL" WSS_URL="$WSS_URL" \
             node scripts/write-hosted-environment.mjs "src/environments/${ENVIRONMENT_FILE}"
-
-      - name: Inject TWA signing fingerprint
-        working-directory: frontend
-        env:
-          TWA_SHA256_FINGERPRINT: ${{ vars.TWA_SHA256_FINGERPRINT }}
-          REQUIRED: ${{ inputs.twa-fingerprint-required }}
-        run: |
-          # The Android TWA verifies its host through this file, so deploying
-          # that host without the Play app-signing fingerprint breaks the app.
-          if [ -z "$TWA_SHA256_FINGERPRINT" ] && [ "$REQUIRED" = "true" ]; then
-            echo "::error::TWA_SHA256_FINGERPRINT is not set on this GitHub environment."
-            exit 1
-          fi
-          sed -i "s|__TWA_SHA256_FINGERPRINT__|${TWA_SHA256_FINGERPRINT}|g" public/.well-known/assetlinks.json
 
       - name: Build frontend
         working-directory: frontend
