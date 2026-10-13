@@ -96,7 +96,7 @@ Then open `http://localhost:8333` in your browser.
 Everything below ships in 1.0. Planned features live in the [roadmap](ROADMAP.md).
 
 - **Projects:** home screen with covers, search, sorting and pinning; drag-and-drop project tree with unlimited folder nesting; project templates; rename; archives (`.inkweld.zip`) to back up, restore or duplicate a project.
-- **Writing:** rich-text editor with tables, images, links and keyboard shortcuts; scenes and notes with synopsis, status and word targets; corkboard and outline views of a folder; find and replace; zen mode; snapshots (named and automatic); threaded comments; writing statistics.
+- **Writing:** rich-text editor with tables, images, links and keyboard shortcuts; scenes and notes with synopsis, status and word targets; corkboard and outline views of a folder; conversation scenes written as speech bubbles, with a script view; find and replace; zen mode; snapshots (named and automatic); threaded comments; writing statistics.
 - **Search and navigation:** quick open (Ctrl/Cmd+P), find in document (Ctrl/Cmd+F), project-wide full-text search (Ctrl/Cmd+Shift+F) with tag, type, relationship and template filters; breadcrumbs; pinned items; recent files; mobile-friendly layout.
 - **Worldbuilding:** templates for characters, places, factions and more, edited in a live template editor, with per-element customisation; relationships with backlinks; @mentions in prose; tags; custom calendars; random name, place and prompt generators.
 - **Media library:** images stored on the device and synced to the server; paste or drop images into documents; project and element covers; filtering, search and tags.
@@ -107,7 +107,7 @@ Everything below ships in 1.0. Planned features live in the [roadmap](ROADMAP.md
 - **Publishing:** publish plans for EPUB, PDF (Typst), Markdown, HTML and a multi-page website, with typography presets and per-section style overrides.
 - **Accounts and security:** passkeys by default, with optional magic-link recovery, passwords (with email reset) and GitHub sign-in; user approval; CSRF protection and a Content-Security-Policy.
 - **Administration:** admin dashboard for users, settings, AI providers and announcements; custom branding and legal pages; per-user storage quotas; production logging.
-- **Self-hosting:** Docker image and Compose, native Bun server, or Cloudflare Workers; Home Assistant app; installable web app (PWA) on desktop and mobile; Electron desktop build.
+- **Self-hosting:** Docker image and Compose, native Bun server, or Cloudflare Workers; Home Assistant app; installable web app (PWA) on desktop and mobile, with an in-app install prompt; Electron desktop build.
 - **Optional AI features** (configured by an admin, off by default; see [AI stance](#data-security--ai-stance)): image generation (OpenAI, OpenRouter, Fal.ai, Stable Diffusion) with model profiles, worldbuilding context and reference images; prompt optimisation; grammar and style suggestions; an MCP server for AI assistants.
 
 ---
