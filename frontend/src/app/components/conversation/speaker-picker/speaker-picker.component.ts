@@ -40,6 +40,8 @@ interface PickerOption {
 const PANEL_WIDTH = 300;
 const PANEL_MAX_HEIGHT = 380;
 const MARGIN = 8;
+/** How soon after `compositionend` an Enter still belongs to the IME. */
+const COMPOSITION_GRACE_MS = 50;
 
 /**
  * Popover for choosing a speaker: people already in the conversation
@@ -78,6 +80,8 @@ export class SpeakerPickerComponent implements AfterViewInit {
     viewChild<ElementRef<HTMLInputElement>>('search');
 
   readonly query = signal('');
+  private composing = false;
+  private compositionEndedAt = Number.NEGATIVE_INFINITY;
   readonly activeIndex = signal(0);
 
   readonly currentKey = computed(() => {
@@ -176,6 +180,8 @@ export class SpeakerPickerComponent implements AfterViewInit {
         if (count) this.activeIndex.update(i => (i - 1 + count) % count);
         break;
       case 'Enter': {
+        // Enter that confirms an IME candidate is part of typing the name.
+        if (this.isComposing(event)) return;
         event.preventDefault();
         const option = this.options()[this.activeIndex()];
         if (option) this.choose(option);
@@ -186,6 +192,28 @@ export class SpeakerPickerComponent implements AfterViewInit {
         this.closed.emit();
         break;
     }
+  }
+
+  onCompositionStart(): void {
+    this.composing = true;
+  }
+
+  onCompositionEnd(event: CompositionEvent): void {
+    this.composing = false;
+    this.compositionEndedAt = event.timeStamp;
+  }
+
+  /**
+   * True while an input method is composing. Safari ends the composition
+   * just before the keydown of the Enter that confirms it, so an Enter
+   * straight after `compositionend` counts too.
+   */
+  private isComposing(event: KeyboardEvent): boolean {
+    return (
+      event.isComposing ||
+      this.composing ||
+      event.timeStamp - this.compositionEndedAt < COMPOSITION_GRACE_MS
+    );
   }
 
   choose(option: PickerOption): void {

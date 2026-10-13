@@ -19,6 +19,8 @@
     [value]="query()"
     (input)="onQuery($event)"
     (keydown)="onKeydown($event)"
+    (compositionstart)="onCompositionStart()"
+    (compositionend)="onCompositionEnd($event)"
     data-testid="speaker-picker-search" />
 
   <div class="speaker-picker__list" role="listbox">

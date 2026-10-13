@@ -78,6 +78,8 @@ import {
   setConversationMode,
   setSpeaker,
   type Speaker,
+  speakerKey,
+  speakerOf,
   speechToDescription,
   toggleExtension,
 } from '../conversation';
@@ -708,13 +710,11 @@ export class DocumentElementEditorComponent
     const picker = this.speakerPicker();
     const view = this.editor?.view;
     if (!picker || !view) return;
-    const command =
-      picker.mode === 'change'
-        ? setSpeaker(picker.pos, speaker)
-        : addLine(speaker);
-    command(view.state, view.dispatch);
-    // Leave the cursor in the line that was just added or changed.
-    if (picker.mode === 'change') {
+    if (picker.mode === 'add') {
+      addLine(speaker)(view.state, view.dispatch);
+    } else if (this.pickerLineStillThere(picker)) {
+      setSpeaker(picker.pos, speaker)(view.state, view.dispatch);
+      // Leave the cursor in the line that was just changed.
       focusSpeechEnd(picker.pos)(view.state, view.dispatch);
     }
     this.closeSpeakerPicker();
@@ -725,6 +725,10 @@ export class DocumentElementEditorComponent
     const picker = this.speakerPicker();
     const view = this.editor?.view;
     if (picker?.mode !== 'change' || !view) return;
+    if (!this.pickerLineStillThere(picker)) {
+      this.closeSpeakerPicker();
+      return;
+    }
     const command = {
       offscreen: toggleExtension(picker.pos, 'os'),
       voiceover: toggleExtension(picker.pos, 'vo'),
@@ -733,6 +737,23 @@ export class DocumentElementEditorComponent
     }[action];
     command(view.state, view.dispatch);
     this.closeSpeakerPicker();
+  }
+
+  /**
+   * Whether the line a "change" picker was opened for is still at its
+   * position. A collaborator's edit while the picker is open can move it,
+   * and acting on whatever is there now would change someone else's line.
+   */
+  private pickerLineStillThere(
+    picker: Extract<SpeakerPickerState, { mode: 'change' }>
+  ): boolean {
+    const doc = this.editor?.view?.state.doc;
+    if (!doc || picker.pos < 0 || picker.pos >= doc.content.size) return false;
+    const node = doc.nodeAt(picker.pos);
+    return (
+      isSpeech(node) &&
+      speakerKey(speakerOf(node)) === speakerKey(picker.current)
+    );
   }
 
   /**

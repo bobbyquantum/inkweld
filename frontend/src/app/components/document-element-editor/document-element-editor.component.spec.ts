@@ -822,6 +822,33 @@ describe('DocumentElementEditorComponent', () => {
       expect(speakers()).toEqual(['paragraph']);
     });
 
+    it('leaves the document alone when the line moved while the picker was open', () => {
+      const open = () =>
+        component.speakerPicker.set({
+          mode: 'change',
+          anchor: new DOMRect(),
+          cast: [],
+          pos: 0,
+          current: { id: null, name: 'Ana' },
+          extension: null,
+        });
+      open();
+      component.onSpeakerPicked({ id: null, name: 'Tomas' });
+      open();
+      component.onSpeakerAction('delete');
+      component.speakerPicker.set({
+        mode: 'change',
+        anchor: new DOMRect(),
+        cast: [],
+        pos: 9999,
+        current: { id: null, name: 'Mara' },
+        extension: null,
+      });
+      component.onSpeakerAction('delete');
+      expect(speakers()).toEqual(['Mara', 'Tomas']);
+      expect(component.speakerPicker()).toBeNull();
+    });
+
     it('does nothing without an open picker', () => {
       component.onSpeakerPicked({ id: null, name: 'Ana' });
       component.onSpeakerAction('delete');

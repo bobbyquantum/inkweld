@@ -22,11 +22,7 @@ describe('flattenConversation', () => {
     expect(out).toEqual([
       {
         type: 'paragraph',
-        content: [
-          text('Mara:', [{ type: 'strong' }]),
-          text(' '),
-          text('Then fix it.'),
-        ],
+        content: [text('Mara:', [{ type: 'strong' }]), text(' Then fix it.')],
       },
     ]);
   });
@@ -39,15 +35,31 @@ describe('flattenConversation', () => {
         part('dialogue', text('Fine.', [{ type: 'strong' }]))
       )
     ) as { content: unknown[] };
+    // One italic run for the whole note, so exporters emit one emphasis.
     expect(out.content).toEqual([
       text('Mara:', [{ type: 'strong' }]),
       text(' '),
-      text('(', [{ type: 'em' }]),
-      text('not ', [{ type: 'em' }]),
-      text('turning', [{ type: 'em' }]),
-      text(')', [{ type: 'em' }]),
+      text('(not turning)', [{ type: 'em' }]),
       text(' '),
       text('Fine.', [{ type: 'strong' }]),
+    ]);
+  });
+
+  it('keeps runs apart when their marks differ', () => {
+    const out = flattenConversation(
+      speech(
+        { speakerName: 'Ana' },
+        part('parenthetical', text('very', [{ type: 'strong' }])),
+        part('dialogue', text('No.'))
+      )
+    ) as { content: unknown[] };
+    expect(out.content).toEqual([
+      text('Ana:', [{ type: 'strong' }]),
+      text(' '),
+      text('(', [{ type: 'em' }]),
+      text('very', [{ type: 'strong' }, { type: 'em' }]),
+      text(')', [{ type: 'em' }]),
+      text(' No.'),
     ]);
   });
 

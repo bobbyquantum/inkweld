@@ -55,6 +55,39 @@ function withMark(nodes: JsonNode[], mark: string): JsonNode[] {
   });
 }
 
+/** Marks as a comparable key (order-independent). */
+function marksKey(node: JsonNode): string {
+  return JSON.stringify(
+    [...(node.marks ?? [])].sort((a, b) => a.type.localeCompare(b.type))
+  );
+}
+
+/**
+ * Merge neighbouring text nodes that carry the same marks. Exporters wrap
+ * each text node in its own emphasis, so `(`, `not turning` and `)` would
+ * otherwise come out as three italic runs (`*(**not turning**)*` in
+ * Markdown) instead of one.
+ */
+function mergeTextRuns(nodes: JsonNode[]): JsonNode[] {
+  const out: JsonNode[] = [];
+  for (const node of nodes) {
+    const last = out.at(-1);
+    if (
+      last?.type === 'text' &&
+      node.type === 'text' &&
+      marksKey(last) === marksKey(node)
+    ) {
+      out[out.length - 1] = {
+        ...last,
+        text: `${last.text ?? ''}${node.text ?? ''}`,
+      };
+    } else {
+      out.push(node);
+    }
+  }
+  return out;
+}
+
 function speechToParagraph(
   speech: JsonNode,
   resolveName?: SpeakerNameResolver
@@ -80,7 +113,7 @@ function speechToParagraph(
       content.push(...inline);
     }
   }
-  return { type: 'paragraph', content };
+  return { type: 'paragraph', content: mergeTextRuns(content) };
 }
 
 /**

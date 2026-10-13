@@ -106,6 +106,18 @@ describe('SpeakerPickerComponent', () => {
     expect(picked).toEqual([ANA]);
   });
 
+  it('ignores Enter while an input method is composing', () => {
+    search().dispatchEvent(new CompositionEvent('compositionstart'));
+    press('Enter');
+    search().dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Enter', isComposing: true })
+    );
+    search().dispatchEvent(new CompositionEvent('compositionend'));
+    // Safari: the confirming Enter arrives just after compositionend.
+    press('Enter');
+    expect(picked).toEqual([]);
+  });
+
   it('wraps around and picks with the mouse', () => {
     press('ArrowUp');
     expect(fixture.componentInstance.activeIndex()).toBe(2);
