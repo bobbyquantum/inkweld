@@ -51,6 +51,15 @@ import { TreeNodeIconComponent } from './components/tree-node-icon/tree-node-ico
 import { buildMoveDialogData } from './move-dialog-data';
 
 /**
+ * `event instanceof TouchEvent`, safe where the browser has no TouchEvent:
+ * desktop Firefox without a touchscreen leaves it undefined, and a bare
+ * `instanceof` there throws, so every click on a tree row failed.
+ */
+function isTouchEvent(event: unknown): event is TouchEvent {
+  return typeof TouchEvent !== 'undefined' && event instanceof TouchEvent;
+}
+
+/**
  * Component for displaying and managing the project tree with ARIA accessibility.
  */
 @Component({
@@ -362,7 +371,7 @@ export class ProjectTreeComponent implements OnDestroy {
    */
   public onNodeDown(node: ProjectElement, event?: Event) {
     this.selectedItem = node;
-    if (event instanceof TouchEvent && event.touches.length === 1) {
+    if (isTouchEvent(event) && event.touches.length === 1) {
       this.touchStartX = event.touches[0].clientX;
       this.touchStartY = event.touches[0].clientY;
     }
@@ -761,7 +770,7 @@ export class ProjectTreeComponent implements OnDestroy {
     this.contextItem = data;
     // Detect touch origin: TouchEvent or a PointerEvent with pointerType === 'touch'
     const isTouch =
-      (typeof TouchEvent !== 'undefined' && event instanceof TouchEvent) ||
+      isTouchEvent(event) ||
       (event instanceof PointerEvent && event.pointerType === 'touch');
     if (isTouch) {
       this.suppressTouchOpenNodeId = data.id;
@@ -796,7 +805,7 @@ export class ProjectTreeComponent implements OnDestroy {
     }
     // Suppress opening if the touch moved significantly (scroll swipe), not a tap
     if (
-      event instanceof TouchEvent &&
+      isTouchEvent(event) &&
       this.touchStartX !== null &&
       this.touchStartY !== null
     ) {

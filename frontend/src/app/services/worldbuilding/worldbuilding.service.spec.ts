@@ -19,6 +19,7 @@ import { type PublishPlan } from '../../models/publish-plan';
 import { type ElementTypeSchema } from '../../models/schema-types';
 import { type TimeSystem } from '../../models/time-system';
 import { AuthTokenService } from '../auth/auth-token.service';
+import { CLOUD_SYNC_ORIGIN } from '../cloud-sync/cloud-sync-origin';
 import { SetupService } from '../core/setup.service';
 import { StorageContextService } from '../core/storage-context.service';
 import { VersionCompatibilityService } from '../core/version-compatibility.service';
@@ -1573,6 +1574,27 @@ describe('WorldbuildingService', () => {
       // localEdit$ is subscribed to by AutoSnapshotService to track dirty elements
       expect(service.localEdit$).toBeDefined();
       expect(typeof service.localEdit$.subscribe).toBe('function');
+    });
+
+    it('should not report updates pulled by Cloud Sync as local edits', async () => {
+      const elementId = 'cloud-pulled-element';
+      await service.saveWorldbuildingData(
+        elementId,
+        { description: 'here' },
+        username,
+        slug
+      );
+      const ydoc = service.getYDoc(elementId, username, slug)!;
+      const edits: string[] = [];
+      const sub = service.localEdit$.subscribe(key => edits.push(key));
+
+      ydoc.getMap('worldbuilding').set('fromCloud', 'x');
+      ydoc.transact(
+        () => ydoc.getMap('worldbuilding').set('fromCloud', 'y'),
+        CLOUD_SYNC_ORIGIN
+      );
+      expect(edits).toHaveLength(1);
+      sub.unsubscribe();
     });
   });
 

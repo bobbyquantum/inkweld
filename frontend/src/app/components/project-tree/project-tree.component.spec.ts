@@ -1391,6 +1391,20 @@ describe('ProjectTreeComponent', () => {
       expect(emitted).toHaveLength(0);
     });
 
+    it('should open on click where the browser has no TouchEvent (desktop Firefox)', () => {
+      vi.stubGlobal('TouchEvent', undefined);
+      try {
+        const emitted: unknown[] = [];
+        component.documentOpened.subscribe(e => emitted.push(e));
+        component.onNodeDown(mockDto, new MouseEvent('mousedown'));
+        component.onOpenDocument(mockDto);
+
+        expect(emitted).toHaveLength(1);
+      } finally {
+        vi.unstubAllGlobals();
+      }
+    });
+
     it('should suppress open after scroll swipe (touch moved > 10px)', () => {
       // Simulate touch start at (0,0)
       const touchStart = new TouchEvent('touchstart', {

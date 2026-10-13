@@ -202,6 +202,15 @@ export class CloudSyncEngineService {
     });
   }
 
+  /**
+   * Forget what this device synced for a project whose local copy is being
+   * removed. Without this, downloading it again would find records saying
+   * every file is current, pull nothing, and open an empty project.
+   */
+  forgetProject(username: string, slug: string): Promise<void> {
+    return this.state.deleteByPrefix(`${projectFolder(username, slug)}/`);
+  }
+
   /** Record a local change; the project syncs after a quiet period */
   markDirty(projectKey: string): void {
     if (!this.store) return;
@@ -511,7 +520,7 @@ export class CloudSyncEngineService {
     });
     await this.media.deleteProjectMedia(key);
     await this.activation.deactivate(key);
-    await this.state.deleteByPrefix(`${projectFolder(username, slug)}/`);
+    await this.forgetProject(username, slug);
     if ('databases' in indexedDB) {
       const prefix = this.storageContext.getPrefix();
       const all = await indexedDB.databases();
