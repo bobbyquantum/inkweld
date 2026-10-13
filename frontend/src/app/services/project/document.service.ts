@@ -54,6 +54,7 @@ import * as Y from 'yjs';
 
 import { DocumentSyncState } from '../../models/document-sync-state';
 import { AuthTokenService } from '../auth/auth-token.service';
+import { CLOUD_SYNC_ORIGIN } from '../cloud-sync/cloud-sync-origin';
 import { FindInDocumentService } from '../core/find-in-document.service';
 import { InsertImageService } from '../core/insert-image.service';
 import { InsertLinkService } from '../core/insert-link.service';
@@ -1015,12 +1016,14 @@ export class DocumentService {
         // Skip updates that come from IndexedDB (loading persisted state),
         // from the WebSocket provider (remote edits), or from another window
         // of this browser (that window already counted the edit as its own —
-        // counting it again would snapshot and re-upload the same change).
+        // counting it again would snapshot and re-upload the same change),
+        // or from Cloud Sync (another device's edit, already in the cloud).
         // Everything else is a local edit (ProseMirror, programmatic, etc.)
         if (
           origin !== idbProvider &&
           origin !== connection?.provider &&
-          origin !== broadcastProvider
+          origin !== broadcastProvider &&
+          origin !== CLOUD_SYNC_ORIGIN
         ) {
           this.localEdit$.next(documentId);
         }

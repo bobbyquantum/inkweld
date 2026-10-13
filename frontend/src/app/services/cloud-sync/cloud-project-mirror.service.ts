@@ -30,6 +30,7 @@ import {
   worldbuildingDocId,
   worldbuildingPath,
 } from './cloud-sync-layout';
+import { CLOUD_SYNC_ORIGIN } from './cloud-sync-origin';
 import { CloudSyncStateService } from './cloud-sync-state.service';
 import {
   type RemoteFile,
@@ -39,8 +40,7 @@ import {
 } from './remote-store.interface';
 import { type AcquiredDoc, YDocAccessService } from './ydoc-access.service';
 
-/** Transaction origin for updates applied from the cloud, so change trackers can ignore them */
-export const CLOUD_SYNC_ORIGIN = 'cloud-sync';
+export { CLOUD_SYNC_ORIGIN };
 
 /** Remote media index: everything needed to recreate a Blob locally */
 export interface RemoteMediaIndex {
@@ -149,6 +149,29 @@ function base64(bytes: Uint8Array): string {
 
 function stateVectorDigest(doc: Y.Doc): string {
   return base64(Y.encodeStateVector(doc));
+}
+
+/**
+ * Whether the doc lacks state this device already recorded as synced. Local
+ * edits only ever add to a state vector, so a clock below the recorded one
+ * means the local copy was lost (project downloaded again) or loaded stale
+ * (an editor that read IndexedDB before a pull was flushed). Either way the
+ * remote has to be read again even though its version has not moved.
+ */
+function lacksRecordedState(doc: Y.Doc, recordedDigest: string): boolean {
+  let recorded: Map<number, number>;
+  try {
+    recorded = Y.decodeStateVector(
+      Uint8Array.from(atob(recordedDigest), c => c.codePointAt(0)!)
+    );
+  } catch {
+    return false;
+  }
+  const local = Y.decodeStateVector(Y.encodeStateVector(doc));
+  for (const [client, clock] of recorded) {
+    if ((local.get(client) ?? 0) < clock) return true;
+  }
+  return false;
 }
 
 function isEmptyDoc(doc: Y.Doc): boolean {
@@ -368,7 +391,8 @@ export class CloudProjectMirrorService {
     let remoteVersion = record?.remoteVersion ?? '';
     let remoteDigest: string | null = null;
 
-    if (remote && remote.version !== record?.remoteVersion) {
+    const stale = !!record && lacksRecordedState(doc, record.localDigest);
+    if (remote && (remote.version !== record?.remoteVersion || stale)) {
       const file = await store.get(path);
       remoteDigest = base64(Y.encodeStateVectorFromUpdate(file.content));
       const before = stateVectorDigest(doc);

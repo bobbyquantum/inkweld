@@ -397,6 +397,12 @@ describe('CloudSyncEngineService', () => {
     expect(mirror.syncProject.mock.calls.map(c => c[2])).not.toContain('gone');
   });
 
+  it('forgets what it synced for a project removed from this device', async () => {
+    await engine.forgetProject('bobby', 'novel');
+
+    expect(state.deleteByPrefix).toHaveBeenCalledWith('/projects/bobby/novel/');
+  });
+
   it('keeps a local project edited after the remote deletion', async () => {
     projects.set([
       project('kept', { updatedDate: '2026-02-01T00:00:00.000Z' }),
