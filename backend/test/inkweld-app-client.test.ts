@@ -1,6 +1,6 @@
 /**
  * ALLOW_INKWELD_APP_CLIENT: one switch that lets the hosted inkweld.app
- * client (and the Android app) sign in to this server — CORS, WebAuthn
+ * client sign in to this server — CORS, WebAuthn
  * expected origins and /.well-known/webauthn.
  */
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'bun:test';

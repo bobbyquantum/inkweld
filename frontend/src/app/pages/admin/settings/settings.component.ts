@@ -126,7 +126,7 @@ export class AdminSettingsComponent implements OnInit {
   // MCP access as a whole — default ON. The AI kill switch takes precedence.
   readonly mcpEnabled = signal(true);
 
-  // Trust the official hosted app (inkweld.app, also the Android app):
+  // Trust the official hosted app (inkweld.app):
   // CORS, passkey origins and /.well-known/webauthn. Default OFF.
   readonly inkweldAppClientEnabled = signal(false);
 

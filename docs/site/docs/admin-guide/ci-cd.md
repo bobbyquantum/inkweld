@@ -107,8 +107,7 @@ build and ship exactly the same way and only differ in their inputs:
 Each run writes `backend/wrangler.toml` from the environment's
 `BACKEND_WRANGLER_TOML` variable, generates the frontend environment file
 with `frontend/scripts/write-hosted-environment.mjs` (the version comes from
-the root `package.json`), injects the Play app-signing fingerprint into
-`/.well-known/assetlinks.json`, builds, deploys Pages, applies D1 migrations
+the root `package.json`), builds, deploys Pages, applies D1 migrations
 and deploys the Worker. All variables and secrets are read from the GitHub
 environment; see [Cloudflare installation](../installation/cloudflare.md#automated-deployment-via-github-actions)
 for the full list.
@@ -158,17 +157,14 @@ with the newer schema.
 
 ### Other workflows
 
-| Workflow                                                                                      | Trigger                                                             | Purpose                                                                                                                                       |
-| --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `deploy-pr-preview.yml`                                                                       | PR labelled `deploy:preview:frontend`, and new pushes to such a PR  | Deploys the PR's frontend to a Cloudflare Pages branch preview (`https://pr-<number>.<pages project>.pages.dev`).                             |
-| `cleanup-pr-preview.yml`                                                                      | PR closed, or the `deploy:preview:frontend` label removed           | Deletes that PR's Pages deployments.                                                                                                          |
-| `docs.yml`                                                                                    | Push to `main` touching `docs/**`, `backend/openapi.json`; manual   | Builds this documentation site and publishes it to GitHub Pages.                                                                              |
-| `validate-pr-title.yml`                                                                       | PR opened, edited, synchronized or reopened                         | Requires a Conventional Commit title (`feat`, `fix`, `docs`, `ci`, ...) with a lowercase subject.                                             |
-| `twa-build-check.yml`                                                                         | PRs touching `android/**`                                           | Builds the Android (TWA) preview release with a throwaway keystore to catch build breaks.                                                     |
-| `twa-build.yml`                                                                               | Manual                                                              | Builds a signed Android release (AAB for `prod`, APK for `preview`) and uploads it as a workflow artifact. See [TWA](../installation/twa.md). |
-| `regenerate-gradle-verification.yml`                                                          | Manual, on a branch                                                 | Regenerates `android/gradle/verification-metadata.xml` and commits it, for dependency-bump PRs that fail Gradle dependency verification.      |
-| `electron-build-check.yml`                                                                    | PRs touching the Electron/frontend sources (a label re-triggers it) | Builds the desktop app for Windows, macOS and Linux and reports one aggregate **Electron Build Status**.                                      |
-| `deploy-cloudflare.yml`, `deploy-cloudflare-production.yml`, `deploy-cloudflare-reusable.yml` | Push to `main` / push to `production`                               | Hosted deploys, described in the section above.                                                                                               |
+| Workflow                                                                                      | Trigger                                                             | Purpose                                                                                                           |
+| --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `deploy-pr-preview.yml`                                                                       | PR labelled `deploy:preview:frontend`, and new pushes to such a PR  | Deploys the PR's frontend to a Cloudflare Pages branch preview (`https://pr-<number>.<pages project>.pages.dev`). |
+| `cleanup-pr-preview.yml`                                                                      | PR closed, or the `deploy:preview:frontend` label removed           | Deletes that PR's Pages deployments.                                                                              |
+| `docs.yml`                                                                                    | Push to `main` touching `docs/**`, `backend/openapi.json`; manual   | Builds this documentation site and publishes it to GitHub Pages.                                                  |
+| `validate-pr-title.yml`                                                                       | PR opened, edited, synchronized or reopened                         | Requires a Conventional Commit title (`feat`, `fix`, `docs`, `ci`, ...) with a lowercase subject.                 |
+| `electron-build-check.yml`                                                                    | PRs touching the Electron/frontend sources (a label re-triggers it) | Builds the desktop app for Windows, macOS and Linux and reports one aggregate **Electron Build Status**.          |
+| `deploy-cloudflare.yml`, `deploy-cloudflare-production.yml`, `deploy-cloudflare-reusable.yml` | Push to `main` / push to `production`                               | Hosted deploys, described in the section above.                                                                   |
 
 ## Image contents
 

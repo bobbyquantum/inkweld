@@ -1,8 +1,8 @@
 /**
  * "Allow the inkweld.app client" (ALLOW_INKWELD_APP_CLIENT).
  *
- * The official hosted app at https://inkweld.app — which the Android app
- * also loads — can connect to any Inkweld server, but a self-hosted server
+ * The official hosted app at https://inkweld.app can connect to any
+ * Inkweld server, but a self-hosted server
  * only trusts the origins in ALLOWED_ORIGINS. This one admin switch adds the
  * hosted app everywhere that trust is checked:
  *

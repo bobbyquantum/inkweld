@@ -46,7 +46,7 @@ export const routes: Routes = [
     title: 'Terms of Service',
   },
   {
-    // Public account-deletion page, linked from the Google Play listing.
+    // Public account-deletion page, so deletion can be linked to directly.
     // Must stay above ':username' — 'delete-account' is a reserved username.
     path: 'delete-account',
     loadComponent: () =>

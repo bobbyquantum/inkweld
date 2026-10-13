@@ -43,9 +43,9 @@ export function accountServerName(
  * "Delete account" danger zone: lists what will be removed and, after the
  * person types their username, deletes the signed-in server account.
  *
- * Google Play requires apps that allow account creation to let people delete
- * the account from inside the app, so this lives in Settings → Account and on
- * the public /delete-account page that the store listing links to.
+ * People who can create an account must be able to delete it themselves, so
+ * this lives in Settings → Account and on the public /delete-account page,
+ * which can be linked to directly.
  */
 @Component({
   selector: 'app-delete-account',

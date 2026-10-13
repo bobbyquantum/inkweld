@@ -1,7 +1,0 @@
-[versions]
-material = "1.14.0"
-androidbrowserhelper = "2.7.4"
-
-[libraries]
-material = { group = "com.google.android.material", name = "material", version.ref = "material" }
-androidbrowserhelper = { group = "com.google.androidbrowserhelper", name = "androidbrowserhelper", version.ref = "androidbrowserhelper" }

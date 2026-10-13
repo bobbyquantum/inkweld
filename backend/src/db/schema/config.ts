@@ -163,16 +163,16 @@ export const CONFIG_KEYS = {
     type: 'boolean' as const,
   },
 
-  // Lets the official hosted app (https://inkweld.app, which the Android app
-  // also loads) sign in to this server: adds it to the CORS/CSRF origins and
+  // Lets the official hosted app (https://inkweld.app) sign in to this
+  // server: adds it to the CORS/CSRF origins and
   // the WebAuthn expected origins, and serves /.well-known/webauthn so
   // browsers accept this server's passkeys there. See
   // services/inkweld-app-client.service.ts.
   ALLOW_INKWELD_APP_CLIENT: {
     category: 'auth' as ConfigCategory,
     description:
-      'Allow people to sign in to this server from the official Inkweld app (inkweld.app and ' +
-      'the Android app). Keep this server up to date: the official app follows the latest ' +
+      'Allow people to sign in to this server from the official Inkweld app at inkweld.app. ' +
+      'Keep this server up to date: the official app follows the latest ' +
       'release, and an older server may stop working with it after a sync protocol change.',
     encrypted: false,
     envVar: 'ALLOW_INKWELD_APP_CLIENT',

@@ -492,7 +492,7 @@ Passkeys use the W3C WebAuthn API for passwordless, discoverable-credential (use
 - The login dialog's `onPasskeyLogin()` calls `userService.setCurrentUser(user)` after a successful passkey login to sync the user cache.
 - The online e2e backend explicitly opts into `PASSWORD_LOGIN_ENABLED=true` and `EMAIL_RECOVERY_ENABLED=true` (in `playwright.online.config.ts`) because the existing test fixtures register/login users via the password API. Production images use the secure-by-default passwordless posture.
 - Magic-link recovery tokens are hashed at rest (single-use, 15-min TTL); there is no test endpoint to read the plaintext token, so end-to-end redemption from a real browser is covered by unit tests + backend integration tests rather than Playwright.
-- **`ALLOW_INKWELD_APP_CLIENT`** (admin Settings, default off) lets the hosted app at `https://inkweld.app` (also the Android app) sign in to a self-hosted server. `getInkweldAppClientOrigins()` (`services/inkweld-app-client.service.ts`, 5s cache) feeds the extra origin into CORS/CSRF in `bun-app.ts`, `worker-app.ts` and `node-app.ts`, into the WebAuthn expected origins, and into `GET /.well-known/webauthn` (WebAuthn related origins; 404 while off). Passkey ceremonies must use `rpFromRequest(c)`, not `rpFromContext(c)`, or a ceremony from inkweld.app fails origin verification. A new origin check must include these origins too.
+- **`ALLOW_INKWELD_APP_CLIENT`** (admin Settings, default off) lets the hosted app at `https://inkweld.app` sign in to a self-hosted server. `getInkweldAppClientOrigins()` (`services/inkweld-app-client.service.ts`, 5s cache) feeds the extra origin into CORS/CSRF in `bun-app.ts`, `worker-app.ts` and `node-app.ts`, into the WebAuthn expected origins, and into `GET /.well-known/webauthn` (WebAuthn related origins; 404 while off). Passkey ceremonies must use `rpFromRequest(c)`, not `rpFromContext(c)`, or a ceremony from inkweld.app fails origin verification. A new origin check must include these origins too.
 
 **Data flow:**
 1. Register: `POST /register/start` → browser prompt → `POST /register/finish` → row in `userPasskeys`
@@ -694,8 +694,8 @@ relative link to `GET /api/v1/share/:token`.
 
 ### Account Deletion
 
-Google Play requires in-app **and** web account deletion for apps that allow
-sign-up, so users can delete their own server account:
+Anyone who can sign up must be able to delete their own server account, both
+in the app and from a public web page:
 
 - `DELETE /api/v1/users/me` with `{ confirmUsername }` (case-insensitive).
   Refuses with 409 when the caller is the last enabled administrator (the
@@ -717,7 +717,7 @@ sign-up, so users can delete their own server account:
   `username:slug`, and a re-registered username would inherit its documents.
 - Frontend: `DeleteAccountComponent` (`components/delete-account/`) in
   Settings → Account (hidden in local mode) and on the public `/delete-account`
-  page (`pages/delete-account/`, the web link for the Play listing; also a
+  page (`pages/delete-account/`, a direct web link for deletion; also a
   reserved username). After success `UserService.deleteAccount()` signs out and
   wipes the server profile's local data with `clearContextData` — prose
   documents and worldbuilding data included, since they are stored under the
