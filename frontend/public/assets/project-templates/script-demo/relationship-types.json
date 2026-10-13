@@ -1,0 +1,121 @@
+[
+  {
+    "id": "referenced-in",
+    "name": "Referenced in",
+    "inverseLabel": "References",
+    "showInverse": true,
+    "category": "Reference",
+    "icon": "link",
+    "isBuiltIn": false,
+    "sourceEndpoint": {
+      "allowedSchemas": []
+    },
+    "targetEndpoint": {
+      "allowedSchemas": []
+    },
+    "createdAt": "2026-10-13T00:00:00.000Z",
+    "updatedAt": "2026-10-13T00:00:00.000Z"
+  },
+  {
+    "id": "scene-pov",
+    "name": "POV character",
+    "inverseLabel": "POV in scene",
+    "showInverse": true,
+    "category": "Reference",
+    "icon": "visibility",
+    "isBuiltIn": false,
+    "sourceEndpoint": {
+      "allowedSchemas": []
+    },
+    "targetEndpoint": {
+      "allowedSchemas": []
+    },
+    "createdAt": "2026-10-13T00:00:00.000Z",
+    "updatedAt": "2026-10-13T00:00:00.000Z"
+  },
+  {
+    "id": "scene-location",
+    "name": "Set in",
+    "inverseLabel": "Setting of scene",
+    "showInverse": true,
+    "category": "Reference",
+    "icon": "location_on",
+    "isBuiltIn": false,
+    "sourceEndpoint": {
+      "allowedSchemas": []
+    },
+    "targetEndpoint": {
+      "allowedSchemas": []
+    },
+    "createdAt": "2026-10-13T00:00:00.000Z",
+    "updatedAt": "2026-10-13T00:00:00.000Z"
+  },
+  {
+    "id": "uses-prop",
+    "name": "Uses prop",
+    "inverseLabel": "Used in scene",
+    "showInverse": true,
+    "category": "Reference",
+    "icon": "inventory_2",
+    "isBuiltIn": false,
+    "sourceEndpoint": {
+      "allowedSchemas": []
+    },
+    "targetEndpoint": {
+      "allowedSchemas": ["prop-v1"]
+    },
+    "createdAt": "2026-10-13T00:00:00.000Z",
+    "updatedAt": "2026-10-13T00:00:00.000Z"
+  },
+  {
+    "id": "sibling",
+    "name": "Sibling",
+    "inverseLabel": "Sibling of",
+    "showInverse": true,
+    "category": "Familial",
+    "icon": "people",
+    "isBuiltIn": false,
+    "sourceEndpoint": {
+      "allowedSchemas": ["cast-member-v1"]
+    },
+    "targetEndpoint": {
+      "allowedSchemas": ["cast-member-v1"]
+    },
+    "createdAt": "2026-10-13T00:00:00.000Z",
+    "updatedAt": "2026-10-13T00:00:00.000Z"
+  },
+  {
+    "id": "parent",
+    "name": "Parent of",
+    "inverseLabel": "Child of",
+    "showInverse": true,
+    "category": "Familial",
+    "icon": "family_restroom",
+    "isBuiltIn": false,
+    "sourceEndpoint": {
+      "allowedSchemas": ["cast-member-v1"]
+    },
+    "targetEndpoint": {
+      "allowedSchemas": ["cast-member-v1"]
+    },
+    "createdAt": "2026-10-13T00:00:00.000Z",
+    "updatedAt": "2026-10-13T00:00:00.000Z"
+  },
+  {
+    "id": "owns",
+    "name": "Owns",
+    "inverseLabel": "Owned by",
+    "showInverse": true,
+    "category": "Ownership",
+    "icon": "inventory_2",
+    "isBuiltIn": false,
+    "sourceEndpoint": {
+      "allowedSchemas": ["cast-member-v1"]
+    },
+    "targetEndpoint": {
+      "allowedSchemas": ["prop-v1"]
+    },
+    "createdAt": "2026-10-13T00:00:00.000Z",
+    "updatedAt": "2026-10-13T00:00:00.000Z"
+  }
+]

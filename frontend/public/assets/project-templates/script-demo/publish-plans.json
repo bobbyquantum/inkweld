@@ -1,0 +1,418 @@
+[
+  {
+    "id": "plan-shooting-script",
+    "name": "Shooting script (PDF)",
+    "format": "PDF_SIMPLE",
+    "createdAt": "2026-10-13T00:00:00.000Z",
+    "updatedAt": "2026-10-13T00:00:00.000Z",
+    "metadata": {
+      "title": "Last Light",
+      "subtitle": "A short film",
+      "author": "Inkweld demo",
+      "language": "en",
+      "description": "Two siblings light a decommissioned lighthouse by hand to bring a girl home through a storm."
+    },
+    "items": [
+      {
+        "id": "item-title",
+        "type": "frontmatter",
+        "contentType": "title-page"
+      },
+      {
+        "id": "item-cast",
+        "type": "worldbuilding",
+        "categories": ["cast-member-v1"],
+        "format": "appendix",
+        "title": "Cast",
+        "layout": "compact",
+        "includeIdentity": false,
+        "includeImages": false,
+        "includeEmptyFields": false,
+        "includedFieldKeys": ["roleType", "age", "summary"]
+      },
+      {
+        "id": "item-break",
+        "type": "separator",
+        "style": "page-break"
+      },
+      {
+        "id": "item-scene-1",
+        "type": "element",
+        "elementId": "scene-1",
+        "includeChildren": false,
+        "isChapter": true,
+        "titleOverride": "1. EXT. CLIFF PATH – DUSK"
+      },
+      {
+        "id": "item-scene-2",
+        "type": "element",
+        "elementId": "scene-2",
+        "includeChildren": false,
+        "isChapter": true,
+        "titleOverride": "2. INT. LIGHTHOUSE KITCHEN – NIGHT"
+      },
+      {
+        "id": "item-scene-3",
+        "type": "element",
+        "elementId": "scene-3",
+        "includeChildren": false,
+        "isChapter": true,
+        "titleOverride": "3. INT. LAMP ROOM – CONTINUOUS"
+      }
+    ],
+    "options": {
+      "chapterNumbering": "none",
+      "sceneBreakText": "CUT TO:",
+      "includeWordCounts": false,
+      "includeToc": false,
+      "includeCover": false,
+      "chapterHeadingStyle": "document-name",
+      "typographicQuotes": true
+    },
+    "styles": {
+      "preset": "manuscript",
+      "page": {
+        "size": "us-letter",
+        "marginTop": 1,
+        "marginBottom": 1,
+        "marginInside": 1,
+        "marginOutside": 1,
+        "pageNumbers": "numeric",
+        "runningHeader": true
+      },
+      "baseText": {
+        "font": "serifManuscript",
+        "fontSize": 12,
+        "weight": "normal",
+        "style": "normal",
+        "lineHeight": 1.3,
+        "align": "left",
+        "firstLineIndent": 0,
+        "color": "#000000"
+      },
+      "nodes": {
+        "paragraph": {
+          "text": {
+            "firstLineIndent": 0
+          },
+          "box": {
+            "marginTop": 0,
+            "marginBottom": 10
+          }
+        },
+        "heading1": {
+          "text": {
+            "fontSize": 22,
+            "weight": "bold",
+            "align": "left",
+            "firstLineIndent": 0
+          },
+          "box": {
+            "marginTop": 24,
+            "marginBottom": 12
+          }
+        },
+        "heading2": {
+          "text": {
+            "fontSize": 18,
+            "weight": "bold",
+            "align": "left",
+            "firstLineIndent": 0
+          },
+          "box": {
+            "marginTop": 24,
+            "marginBottom": 12
+          }
+        },
+        "heading3": {
+          "text": {
+            "fontSize": 14,
+            "weight": "semibold",
+            "align": "left",
+            "firstLineIndent": 0
+          },
+          "box": {
+            "marginTop": 14,
+            "marginBottom": 6
+          }
+        },
+        "heading4": {
+          "text": {
+            "fontSize": 12,
+            "weight": "semibold",
+            "style": "italic",
+            "align": "left",
+            "firstLineIndent": 0
+          },
+          "box": {
+            "marginTop": 12,
+            "marginBottom": 4
+          }
+        },
+        "heading5": {
+          "text": {
+            "fontSize": 11,
+            "weight": "bold",
+            "transform": "uppercase",
+            "align": "left",
+            "firstLineIndent": 0
+          },
+          "box": {
+            "marginTop": 10,
+            "marginBottom": 4
+          }
+        },
+        "heading6": {
+          "text": {
+            "fontSize": 11,
+            "weight": "semibold",
+            "style": "italic",
+            "align": "left",
+            "firstLineIndent": 0
+          },
+          "box": {
+            "marginTop": 10,
+            "marginBottom": 4
+          }
+        },
+        "blockquote": {
+          "text": {
+            "style": "italic",
+            "firstLineIndent": 0
+          },
+          "box": {
+            "marginTop": 10,
+            "marginBottom": 10,
+            "marginLeft": 24,
+            "marginRight": 24,
+            "paddingLeft": 12,
+            "borderWidth": 0
+          }
+        },
+        "codeBlock": {
+          "text": {
+            "font": "mono",
+            "fontSize": 10,
+            "firstLineIndent": 0,
+            "align": "left"
+          },
+          "box": {
+            "marginTop": 10,
+            "marginBottom": 10,
+            "paddingTop": 8,
+            "paddingBottom": 8,
+            "paddingLeft": 12,
+            "paddingRight": 12,
+            "background": "#f5f5f5",
+            "borderRadius": 4
+          }
+        },
+        "bulletList": {
+          "box": {
+            "marginTop": 6,
+            "marginBottom": 6,
+            "marginLeft": 18
+          }
+        },
+        "orderedList": {
+          "box": {
+            "marginTop": 6,
+            "marginBottom": 6,
+            "marginLeft": 18
+          }
+        },
+        "listItem": {
+          "box": {
+            "marginTop": 2,
+            "marginBottom": 2
+          }
+        },
+        "horizontalRule": {
+          "box": {
+            "marginTop": 12,
+            "marginBottom": 12
+          }
+        },
+        "image": {
+          "box": {
+            "marginTop": 10,
+            "marginBottom": 10
+          }
+        },
+        "figure": {
+          "box": {
+            "marginTop": 12,
+            "marginBottom": 12
+          }
+        },
+        "caption": {
+          "text": {
+            "fontSize": 9,
+            "style": "italic",
+            "align": "center",
+            "firstLineIndent": 0
+          },
+          "box": {
+            "marginTop": 4,
+            "marginBottom": 8
+          }
+        }
+      },
+      "marks": {
+        "bold": {
+          "weight": "bold"
+        },
+        "italic": {
+          "style": "italic"
+        },
+        "underline": {
+          "decoration": "underline"
+        },
+        "strike": {
+          "decoration": "line-through"
+        },
+        "code": {
+          "font": "mono"
+        },
+        "link": {
+          "color": "#1a5fb4",
+          "decoration": "underline"
+        },
+        "subscript": {
+          "fontSize": 9
+        },
+        "superscript": {
+          "fontSize": 9
+        }
+      },
+      "structure": {
+        "chapterTitle": {
+          "text": {
+            "fontSize": 12,
+            "weight": "normal",
+            "align": "center",
+            "firstLineIndent": 0,
+            "font": "serifManuscript",
+            "transform": "uppercase"
+          },
+          "box": {
+            "marginTop": 144,
+            "marginBottom": 48
+          },
+          "numberPrefix": {
+            "fontSize": 12,
+            "weight": "normal",
+            "transform": "uppercase",
+            "align": "center",
+            "letterSpacing": 0.15
+          },
+          "pageBreakBefore": true
+        },
+        "sceneBreak": {
+          "text": {
+            "align": "center",
+            "firstLineIndent": 0
+          },
+          "box": {
+            "marginTop": 18,
+            "marginBottom": 18
+          }
+        },
+        "toc": {
+          "title": {
+            "fontSize": 20,
+            "weight": "bold",
+            "align": "center",
+            "firstLineIndent": 0
+          },
+          "entry": {
+            "fontSize": 11,
+            "align": "left",
+            "firstLineIndent": 0
+          },
+          "indentPerLevel": 1.5
+        },
+        "frontmatter": {
+          "title": {
+            "fontSize": 18,
+            "weight": "bold",
+            "align": "center",
+            "firstLineIndent": 0
+          },
+          "body": {
+            "fontSize": 11,
+            "align": "center",
+            "firstLineIndent": 0
+          },
+          "box": {
+            "marginTop": 24,
+            "marginBottom": 24
+          }
+        },
+        "backmatter": {
+          "title": {
+            "fontSize": 18,
+            "weight": "bold",
+            "align": "center",
+            "firstLineIndent": 0
+          },
+          "body": {
+            "fontSize": 11,
+            "align": "left",
+            "firstLineIndent": 0
+          },
+          "box": {
+            "marginTop": 24,
+            "marginBottom": 24
+          }
+        }
+      },
+      "worldbuilding": {
+        "sectionTitle": {
+          "fontSize": 22,
+          "weight": "bold",
+          "align": "left",
+          "firstLineIndent": 0
+        },
+        "entryTitle": {
+          "fontSize": 14,
+          "weight": "bold",
+          "align": "left",
+          "firstLineIndent": 0
+        },
+        "entryBox": {
+          "marginTop": 12,
+          "marginBottom": 12,
+          "paddingTop": 8,
+          "paddingBottom": 8,
+          "paddingLeft": 12,
+          "paddingRight": 12,
+          "borderWidth": 0.5,
+          "borderColor": "#cccccc",
+          "borderRadius": 4
+        },
+        "tabHeading": {
+          "fontSize": 12,
+          "weight": "semibold",
+          "transform": "uppercase",
+          "align": "left",
+          "letterSpacing": 0.1,
+          "firstLineIndent": 0
+        },
+        "fieldLabel": {
+          "fontSize": 10,
+          "weight": "semibold",
+          "align": "left",
+          "firstLineIndent": 0,
+          "color": "#444444"
+        },
+        "fieldValue": {
+          "fontSize": 11,
+          "align": "left",
+          "firstLineIndent": 0
+        },
+        "defaultLayout": "card"
+      }
+    }
+  }
+]

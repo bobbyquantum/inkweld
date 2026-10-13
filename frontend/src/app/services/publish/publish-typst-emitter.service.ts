@@ -231,7 +231,9 @@ function wrapAlignTransform(s: TextStyle, body: string): string {
   }
   const align = typstAlign(s.align);
   if (align && align !== 'left') {
-    out = `align(${align})[${out}]`;
+    // Inside align's content block `out` is markup again, so it needs its
+    // own `#`; without it `upper(...)` printed as literal text.
+    out = `align(${align})[#${out}]`;
   }
   return out;
 }
