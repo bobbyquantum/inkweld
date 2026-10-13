@@ -22,13 +22,19 @@
       }
       <div
         class="editor-container fit-width"
-        [class.zen-mode-container]="zenMode">
+        [class.zen-mode-container]="zenMode"
+        [class.conversation-script]="isConversationDoc() && scriptView()">
         <div class="scaled-content">
           <div class="editor-wrapper" data-testid="document-editor">
             @if (editorKey > 0) {
               <ngx-editor
                 [editor]="editor"
-                [placeholder]="'editor.document.placeholder' | transloco"
+                [placeholder]="
+                  (isConversationDoc()
+                    ? 'editor.conversation.placeholder'
+                    : 'editor.document.placeholder'
+                  ) | transloco
+                "
                 class="editor-content">
               </ngx-editor>
               <!-- Custom floating menu for formatting + comments -->
@@ -42,6 +48,15 @@
           </div>
         </div>
       </div>
+      <!-- Speaker chips and view switch for conversations -->
+      @if (isConversationDoc()) {
+        <app-conversation-bar
+          [view]="editorReady() ? editor.view : null"
+          [version]="editorVersion()"
+          [disabled]="!projectState.canWrite()"
+          [(scriptView)]="scriptView"
+          (addSomeone)="openAddSpeaker($event)"></app-conversation-bar>
+      }
       <!-- Status bar showing word count, reading time and sync status -->
       @if (!zenMode) {
         <div class="editor-status-bar">
@@ -174,6 +189,19 @@
     [contextData]="contextMenuData()"
     (action)="onContextMenuAction($event)">
   </app-element-ref-context-menu>
+
+  <!-- Speaker picker for conversations (avatar click / "Someone new") -->
+  @if (speakerPicker(); as picker) {
+    <app-speaker-picker
+      [anchor]="picker.anchor"
+      [mode]="picker.mode"
+      [cast]="picker.cast"
+      [current]="picker.mode === 'change' ? picker.current : null"
+      [extension]="picker.mode === 'change' ? picker.extension : null"
+      (picked)="onSpeakerPicked($event)"
+      (action)="onSpeakerAction($event)"
+      (closed)="closeSpeakerPicker()"></app-speaker-picker>
+  }
 
   <!-- Element Reference Tooltip (hover) -->
   <app-element-ref-tooltip [tooltipData]="tooltipData()">

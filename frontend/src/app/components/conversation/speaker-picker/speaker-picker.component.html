@@ -1,0 +1,109 @@
+<div
+  class="speaker-picker"
+  role="dialog"
+  [attr.aria-label]="
+    (mode() === 'change'
+      ? 'editor.conversation.changeSpeaker'
+      : 'editor.conversation.someoneNew'
+    ) | transloco
+  "
+  [style]="panelStyle()"
+  data-testid="speaker-picker">
+  <input
+    #search
+    class="speaker-picker__search"
+    type="text"
+    autocomplete="off"
+    [placeholder]="'editor.conversation.searchSpeakers' | transloco"
+    [attr.aria-label]="'editor.conversation.searchSpeakers' | transloco"
+    [value]="query()"
+    (input)="onQuery($event)"
+    (keydown)="onKeydown($event)"
+    data-testid="speaker-picker-search" />
+
+  <div class="speaker-picker__list" role="listbox">
+    @for (option of options(); track option.key; let i = $index) {
+      <button
+        type="button"
+        role="option"
+        tabindex="-1"
+        class="speaker-picker__option speech--c{{ option.color }}"
+        [class.is-active]="i === activeIndex()"
+        [attr.aria-selected]="i === activeIndex()"
+        (mouseenter)="activeIndex.set(i)"
+        (mousedown)="$event.preventDefault()"
+        (click)="choose(option)"
+        data-testid="speaker-picker-option">
+        @if (option.kind === 'cast') {
+          <span class="speaker-picker__avatar" aria-hidden="true">{{
+            option.initials
+          }}</span>
+        } @else {
+          <mat-icon class="speaker-picker__icon" aria-hidden="true">{{
+            option.icon || 'person'
+          }}</mat-icon>
+        }
+        <span class="speaker-picker__text">
+          @if (option.kind === 'new') {
+            {{
+              'editor.conversation.newSpeaker'
+                | transloco: { name: option.label }
+            }}
+          } @else {
+            <span class="speaker-picker__label">{{ option.label }}</span>
+            @if (option.detail) {
+              <span class="speaker-picker__detail">{{ option.detail }}</span>
+            }
+          }
+        </span>
+        @if (option.kind === 'cast' && option.key === 'cast:' + currentKey()) {
+          <mat-icon class="speaker-picker__check" aria-hidden="true"
+            >check</mat-icon
+          >
+        }
+      </button>
+    } @empty {
+      <p class="speaker-picker__empty">
+        {{ 'editor.conversation.typeAName' | transloco }}
+      </p>
+    }
+  </div>
+
+  @if (mode() === 'change') {
+    <div class="speaker-picker__actions">
+      <button
+        type="button"
+        [class.is-on]="extension() === 'os'"
+        [attr.aria-pressed]="extension() === 'os'"
+        (click)="runAction('offscreen')"
+        data-testid="speaker-picker-offscreen">
+        <mat-icon aria-hidden="true">visibility_off</mat-icon>
+        {{ 'editor.conversation.offscreen' | transloco }}
+      </button>
+      <button
+        type="button"
+        [class.is-on]="extension() === 'vo'"
+        [attr.aria-pressed]="extension() === 'vo'"
+        (click)="runAction('voiceover')"
+        data-testid="speaker-picker-voiceover">
+        <mat-icon aria-hidden="true">record_voice_over</mat-icon>
+        {{ 'editor.conversation.voiceover' | transloco }}
+      </button>
+      <button
+        type="button"
+        (click)="runAction('description')"
+        data-testid="speaker-picker-description">
+        <mat-icon aria-hidden="true">notes</mat-icon>
+        {{ 'editor.conversation.makeDescription' | transloco }}
+      </button>
+      <button
+        type="button"
+        class="is-danger"
+        (click)="runAction('delete')"
+        data-testid="speaker-picker-delete">
+        <mat-icon aria-hidden="true">delete</mat-icon>
+        {{ 'editor.conversation.deleteLine' | transloco }}
+      </button>
+    </div>
+  }
+</div>

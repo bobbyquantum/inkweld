@@ -616,6 +616,59 @@ describe('ProjectStateService', () => {
         const written = mockSyncProvider.updateElements.mock.calls.at(-1)![0];
         expect(written[0].metadata['synopsis']).toBe('Mira arrives.');
       });
+
+      it('keeps the conversation icon when the role changes', () => {
+        mockSyncProvider._elementsSubject.next([
+          { ...doc, metadata: { format: 'conversation' } },
+        ]);
+        service.setDocumentRole('doc-1', 'note');
+        const written = mockSyncProvider.updateElements.mock.calls.at(-1)![0];
+        expect(written[0].metadata).toMatchObject({
+          role: 'note',
+          format: 'conversation',
+          icon: 'forum',
+        });
+      });
+    });
+
+    describe('setDocumentFormat', () => {
+      const doc: Element = {
+        id: 'doc-1',
+        name: 'Kitchen',
+        type: ElementType.Item,
+        parentId: null,
+        level: 0,
+        order: 0,
+        expandable: false,
+        version: 0,
+        metadata: { role: 'scene', synopsis: 'An argument.' },
+      };
+
+      beforeEach(() => {
+        mockSyncProvider._elementsSubject.next([doc]);
+        mockSyncProvider.updateElements.mockClear();
+      });
+
+      it('switches a document to a conversation with the conversation icon', () => {
+        service.setDocumentFormat('doc-1', 'conversation');
+        const written = mockSyncProvider.updateElements.mock.calls.at(-1)![0];
+        expect(written[0].metadata).toMatchObject({
+          role: 'scene',
+          synopsis: 'An argument.',
+          format: 'conversation',
+          icon: 'forum',
+        });
+      });
+
+      it('switches back to prose, clearing the flag and restoring the role icon', () => {
+        service.setDocumentFormat('doc-1', 'conversation');
+        service.setDocumentFormat('doc-1', 'prose');
+        const written = mockSyncProvider.updateElements.mock.calls.at(-1)![0];
+        expect(written[0].metadata).toMatchObject({
+          format: '',
+          icon: 'auto_stories',
+        });
+      });
     });
 
     it('should add child element and auto-expand parent', () => {
@@ -1712,6 +1765,28 @@ describe('ProjectStateService', () => {
       expect(seeded?.frames?.[0]).toMatchObject({ width: 1000, height: 1600 });
       expect(seeded?.background).toBe('#000000');
       expect(service.coverSource()?.frameId).toBe(seeded?.frames?.[0].id);
+    });
+
+    it('creates a conversation as a scene written as a conversation', async () => {
+      vi.mocked(
+        mockDialogGatewayService.openNewElementDialog
+      ).mockResolvedValue({
+        name: 'Kitchen argument',
+        type: ElementType.Item,
+        preset: 'conversation',
+      });
+
+      service.showNewElementDialog();
+      await flush();
+
+      const created = service
+        .elements()
+        .find(e => e.name === 'Kitchen argument');
+      expect(created?.metadata).toMatchObject({
+        role: 'scene',
+        format: 'conversation',
+        icon: 'forum',
+      });
     });
 
     it('creates nothing when the setup dialog is cancelled', async () => {

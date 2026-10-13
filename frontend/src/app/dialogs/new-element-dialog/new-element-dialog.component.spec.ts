@@ -295,7 +295,7 @@ describe('NewElementDialogComponent', () => {
   describe('category grouping', () => {
     it('should separate document options', () => {
       const docOptions = component.documentOptions();
-      expect(docOptions).toHaveLength(3); // Folder, Scene and Note
+      expect(docOptions).toHaveLength(4); // Folder, Scene, Note, Conversation
       expect(docOptions.every(o => o.category === 'document')).toBe(true);
     });
 
@@ -308,6 +308,17 @@ describe('NewElementDialogComponent', () => {
       expect(component.optionTestId(scene!)).toBe('element-type-item');
       expect(component.optionTestId(note!)).toBe('element-type-item-note');
       expect(component.optionKey(scene!)).not.toBe(component.optionKey(note!));
+    });
+
+    it('offers Conversation as a preset of the Item type', () => {
+      const conversation = component
+        .documentOptions()
+        .find(o => o.preset === 'conversation');
+      expect(conversation?.type).toBe(ElementType.Item);
+      expect(conversation?.icon).toBe('forum');
+      expect(component.optionTestId(conversation!)).toBe(
+        'element-type-item-conversation'
+      );
     });
 
     it('closes with the scene preset when a scene is created', () => {
@@ -337,7 +348,7 @@ describe('NewElementDialogComponent', () => {
       const sections = component.sections();
       expect(sections.map(s => s.key)).toEqual(['document', 'visualization']);
       expect(sections[0].className).toBe('category-document');
-      expect(sections[0].options).toHaveLength(3);
+      expect(sections[0].options).toHaveLength(4);
       expect(sections[1].className).toBe('category-visualization');
     });
 
@@ -515,8 +526,9 @@ describe('NewElementDialogComponent', () => {
       await new Promise(resolve => setTimeout(resolve, 50));
 
       expect(consoleErrorSpy).toHaveBeenCalled();
-      // Should still have default document types (Folder, Scene, Note)
-      expect(component.documentOptions()).toHaveLength(3);
+      // Should still have default document types (Folder, Scene, Note,
+      // Conversation)
+      expect(component.documentOptions()).toHaveLength(4);
 
       consoleErrorSpy.mockRestore();
     });

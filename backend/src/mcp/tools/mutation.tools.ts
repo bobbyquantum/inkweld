@@ -1412,6 +1412,7 @@ registerTool({
 - "prosemirror_xml" (default): Inkweld's canonical XML format. Use tags like <paragraph>, <heading level="1">, <blockquote>, <bullet_list><list_item>...</list_item></bullet_list>, <table><table_row><table_header>...</table_header></table_row></table>, etc.
   Example: <paragraph>Hello <bold>world</bold></paragraph>
   Table cells hold block content, so each one wraps its text in a <paragraph>; an optional align="left|center|right" attribute on a cell sets column alignment.
+  Conversation documents (element metadata format="conversation") hold one <speech> per spoken line, with descriptions as <paragraph> and scene breaks as <horizontal_rule/>: <speech speakerName="Mara" speakerId="{worldbuilding element id, optional}" extension="os|vo (optional: off-screen / voice-over)"><parenthetical>how it is said (optional)</parenthetical><dialogue>The line itself.</dialogue></speech>. Markdown input cannot express <speech>, so use prosemirror_xml for conversations.
 - "markdown": Standard CommonMark-style Markdown, plus GFM tables (including :--- / :---: / ---: column alignment). Lossy formatting (comments, text colors) can be expressed via inline <span data-mark="..."> elements. Element references use <code>[label](inkweld://username/slug/element/{id})</code> links.
 
 The content replaces the entire document. Use get_document_content first to read the current content if you need to make partial edits.`,

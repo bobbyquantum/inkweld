@@ -159,5 +159,31 @@
       "select": "Select",
       "cancel": "Cancel"
     }
+  },
+  "conversation": {
+    "placeholder": "Who's talking? Pick someone below, or type “Name:” to start a line.",
+    "barLabel": "Conversation",
+    "addLineFor": "Add a line for {{name}}",
+    "someoneNew": "Someone new",
+    "description": "Description",
+    "sceneBreak": "Scene break",
+    "view": "View",
+    "chatView": "Chat",
+    "scriptView": "Script",
+    "hint": "Enter adds the next line · Tab changes who's talking · type “Name:” to start a line · Alt+↑↓ moves a line",
+    "changeSpeaker": "Change who says this",
+    "searchSpeakers": "Search people or type a name",
+    "newSpeaker": "Add “{{name}}” as someone new",
+    "typeAName": "Type a name to add someone",
+    "howTheySayIt": "How they say it",
+    "writeLine": "Write a line…",
+    "offscreen": "Off-screen",
+    "voiceover": "Voice-over",
+    "makeDescription": "Make it a description",
+    "deleteLine": "Delete line",
+    "unknown": "Unknown",
+    "dragToMove": "Drag to move",
+    "moveUp": "Move up",
+    "moveDown": "Move down"
   }
 }

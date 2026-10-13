@@ -33,6 +33,8 @@
     "renameNote": "Rename Note",
     "convertToScene": "Convert to Scene",
     "convertToNote": "Convert to Note",
+    "switchToConversation": "Write as Conversation",
+    "switchToProse": "Write as Prose",
     "confirmDelete": "Confirm Delete",
     "confirmDeleteMessage": "Are you sure you want to delete \"{{name}}\"? This action cannot be undone.",
     "expandFolder": "Expand folder",

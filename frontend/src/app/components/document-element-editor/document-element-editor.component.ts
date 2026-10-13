@@ -34,9 +34,13 @@ import {
 import { type InsertLinkDialogResult } from '@dialogs/insert-link-dialog/insert-link-dialog.component';
 import { type SnapshotsDialogData } from '@dialogs/snapshots-dialog/snapshots-dialog.component';
 import { type TagEditorDialogData } from '@dialogs/tag-editor-dialog/tag-editor-dialog.component';
-import { type AutoReviewMarkAttrs } from '@inkweld/prosemirror/schema';
+import {
+  type AutoReviewMarkAttrs,
+  type SpeechNodeAttrs,
+} from '@inkweld/prosemirror/schema';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { DocumentSyncState } from '@models/document-sync-state';
+import { isConversation } from '@models/scene-metadata';
 import { type ResolvedTag } from '@models/tag.model';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { FindInDocumentService } from '@services/core/find-in-document.service';
@@ -52,6 +56,7 @@ import {
 } from '@services/lint/auto-review.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
 import { CommentService } from '@services/project/comment.service';
+import { ConversationService } from '@services/project/conversation.service';
 import { DocumentService } from '@services/project/document.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { ZenModeService } from '@services/project/zen-mode.service';
@@ -64,6 +69,23 @@ import type { EditorView } from 'prosemirror-view';
 import { firstValueFrom, type Subscription } from 'rxjs';
 
 import { AutoReviewPanelComponent } from '../auto-review-panel/auto-review-panel.component';
+import {
+  addLine,
+  castOf,
+  deleteSpeech,
+  focusSpeechEnd,
+  isSpeech,
+  setConversationMode,
+  setSpeaker,
+  type Speaker,
+  speechToDescription,
+  toggleExtension,
+} from '../conversation';
+import { ConversationBarComponent } from '../conversation/conversation-bar/conversation-bar.component';
+import {
+  type SpeakerPickerAction,
+  SpeakerPickerComponent,
+} from '../conversation/speaker-picker/speaker-picker.component';
 import { EditorFloatingMenuComponent } from '../editor-floating-menu';
 import { EditorToolbarComponent } from '../editor-toolbar';
 import {
@@ -102,6 +124,8 @@ import { createMediaUrl } from '../image-paste';
     FindInDocumentComponent,
     CommentPopoverComponent,
     CommentPanelComponent,
+    ConversationBarComponent,
+    SpeakerPickerComponent,
     TranslocoModule,
   ],
   templateUrl: './document-element-editor.component.html',
@@ -109,6 +133,7 @@ import { createMediaUrl } from '../image-paste';
   styleUrls: [
     './document-element-editor.component.scss',
     './document-element-editor-tables.scss',
+    './document-element-editor-conversation.scss',
   ],
 })
 export class DocumentElementEditorComponent
@@ -127,6 +152,7 @@ export class DocumentElementEditorComponent
   protected findService = inject(FindInDocumentService);
   private readonly tagService = inject(TagService);
   protected commentService = inject(CommentService);
+  private readonly conversationService = inject(ConversationService);
   private readonly logger = inject(LoggerService);
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
 
@@ -209,6 +235,15 @@ export class DocumentElementEditorComponent
   autoReviewPopoverAttrs = signal<AutoReviewMarkAttrs | null>(null);
   autoReviewPopoverPosition = signal<{ x: number; y: number }>({ x: 0, y: 0 });
 
+  /** True once the document's plugins (including conversations) are installed. */
+  protected readonly editorReady = signal(false);
+  /** Bumped on every editor update so the conversation bar re-reads state. */
+  readonly editorVersion = signal(0);
+  /** Conversation shown as a screenplay page rather than bubbles. */
+  readonly scriptView = signal(false);
+  /** Open speaker picker, if any. */
+  readonly speakerPicker = signal<SpeakerPickerState | null>(null);
+
   readonly syncState = computed(() => {
     return this.documentService.getSyncStatusSignal(this.documentIdSignal())();
   });
@@ -290,6 +325,14 @@ export class DocumentElementEditorComponent
     return parts.at(-1) ?? '';
   });
 
+  /** Whether the current document is written as a conversation. */
+  readonly isConversationDoc = computed(() => {
+    const id = this.bareElementId();
+    if (!id) return false;
+    const element = this.projectState.elements().find(e => e.id === id);
+    return isConversation(element?.metadata);
+  });
+
   /** Element name for the current document */
   readonly elementName = computed(() => {
     const id = this.bareElementId();
@@ -300,6 +343,32 @@ export class DocumentElementEditorComponent
   });
 
   constructor() {
+    // Switch the editor into (or out of) conversation mode as the document's
+    // format is known or changes.
+    effect(() => {
+      const conversation = this.isConversationDoc();
+      if (this.editorReady() && this.editor?.view) {
+        setConversationMode(this.editor.view, conversation);
+      }
+    });
+
+    // An avatar was clicked in a speech: offer a different speaker.
+    effect(() => {
+      const event = this.conversationService.speakerClick();
+      if (!event) return;
+      this.conversationService.speakerClick.set(null);
+      const node = this.editor?.view?.state.doc.nodeAt(event.pos);
+      if (!isSpeech(node)) return;
+      this.speakerPicker.set({
+        mode: 'change',
+        anchor: event.rect,
+        pos: event.pos,
+        current: event.speaker,
+        extension: (node.attrs as SpeechNodeAttrs).extension,
+        cast: castOf(this.editor.view.state.doc),
+      });
+    });
+
     effect(() => {
       const isLoading = this.projectState.isLoading();
       if (!isLoading && !this.idFormatted) {
@@ -504,12 +573,18 @@ export class DocumentElementEditorComponent
             // Register editor with find service for Ctrl+F support
             this.findService.setEditor(this.editor);
 
+            // Plugins are in place: conversation mode can now be applied.
+            this.editorReady.set(true);
+
             // Set read-only mode for viewers who can't write
             this.updateEditableState();
 
             // Subscribe to editor updates so the auto-review panel re-scans
             // marks when the Yjs doc changes (e.g. server inserts review marks).
             this.editorUpdateSub = this.editor.update.subscribe(() => {
+              if (this.isConversationDoc()) {
+                this.editorVersion.update(v => v + 1);
+              }
               this.autoReviewApi.tickDocVersion();
               if (this.autoReviewPanelOpen()) {
                 this.refreshAutoReviewPanel();
@@ -543,6 +618,9 @@ export class DocumentElementEditorComponent
         this.editor.destroy();
         this.documentService.disconnect(prevDocId);
       }
+
+      this.editorReady.set(false);
+      this.speakerPicker.set(null);
 
       // Only setup new connection if we have a valid new documentId
       if (newDocId && newDocId !== 'invalid' && !newDocId.endsWith(':')) {
@@ -607,6 +685,54 @@ export class DocumentElementEditorComponent
     if (!this.zenMode && this.documentId !== 'invalid' && this.documentId) {
       this.documentService.disconnect(this.documentId);
     }
+  }
+
+  /** "Someone new" in the conversation bar: pick a speaker for a new line. */
+  openAddSpeaker(anchor: DOMRect): void {
+    const view = this.editor?.view;
+    if (!view) return;
+    this.speakerPicker.set({
+      mode: 'add',
+      anchor,
+      cast: castOf(view.state.doc),
+    });
+  }
+
+  closeSpeakerPicker(): void {
+    this.speakerPicker.set(null);
+    this.editor?.view?.focus();
+  }
+
+  /** A speaker was chosen: add their line, or give the line to them. */
+  onSpeakerPicked(speaker: Speaker): void {
+    const picker = this.speakerPicker();
+    const view = this.editor?.view;
+    if (!picker || !view) return;
+    const command =
+      picker.mode === 'change'
+        ? setSpeaker(picker.pos, speaker)
+        : addLine(speaker);
+    command(view.state, view.dispatch);
+    // Leave the cursor in the line that was just added or changed.
+    if (picker.mode === 'change') {
+      focusSpeechEnd(picker.pos)(view.state, view.dispatch);
+    }
+    this.closeSpeakerPicker();
+  }
+
+  /** A line action from the speaker picker (change mode only). */
+  onSpeakerAction(action: SpeakerPickerAction): void {
+    const picker = this.speakerPicker();
+    const view = this.editor?.view;
+    if (picker?.mode !== 'change' || !view) return;
+    const command = {
+      offscreen: toggleExtension(picker.pos, 'os'),
+      voiceover: toggleExtension(picker.pos, 'vo'),
+      description: speechToDescription(picker.pos),
+      delete: deleteSpeech(picker.pos),
+    }[action];
+    command(view.state, view.dispatch);
+    this.closeSpeakerPicker();
   }
 
   /**
@@ -1258,3 +1384,15 @@ export class DocumentElementEditorComponent
     this.refreshAutoReviewPanel();
   }
 }
+
+/** The open speaker picker: adding a line, or changing the line at `pos`. */
+type SpeakerPickerState =
+  | { mode: 'add'; anchor: DOMRect; cast: Speaker[] }
+  | {
+      mode: 'change';
+      anchor: DOMRect;
+      cast: Speaker[];
+      pos: number;
+      current: Speaker;
+      extension: SpeechNodeAttrs['extension'];
+    };

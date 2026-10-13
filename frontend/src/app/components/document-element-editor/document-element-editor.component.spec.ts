@@ -11,15 +11,21 @@ import { TranslocoService } from '@jsverse/transloco';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SettingsService } from '@services/core/settings.service';
 import { CommentService } from '@services/project/comment.service';
+import { ConversationService } from '@services/project/conversation.service';
 import { DocumentService } from '@services/project/document.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { ZenModeService } from '@services/project/zen-mode.service';
-import { type EditorView } from 'prosemirror-view';
+import { EditorState } from 'prosemirror-state';
+import {
+  type EditorView,
+  EditorView as ProseMirrorView,
+} from 'prosemirror-view';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { DocumentSyncState } from '../../models/document-sync-state';
 import { type CommentMarkAttrs } from '../comment-mark/comment-mark-schema';
+import { extendedSchema } from '../element-ref/extended-schema';
 import { DocumentElementEditorComponent } from './document-element-editor.component';
 
 // @bobbyquantum/ngx-editor is mocked globally in setup-vitest.ts
@@ -681,6 +687,145 @@ describe('DocumentElementEditorComponent', () => {
       component.onLocalCommentReply({ commentId: 'c1', text: 'Reply' });
 
       expect(component.commentPopoverAttrs()).toBe(other);
+    });
+  });
+
+  describe('conversations', () => {
+    let host: HTMLElement;
+    let view: EditorView;
+
+    function line(name: string, text: string) {
+      return extendedSchema.nodes['speech'].create(
+        { speakerName: name },
+        extendedSchema.nodes['dialogue'].create(null, extendedSchema.text(text))
+      );
+    }
+
+    function speakers(): string[] {
+      const out: string[] = [];
+      view.state.doc.forEach(node =>
+        out.push(
+          node.type.name === 'speech'
+            ? `${node.attrs['speakerName']}${node.attrs['extension'] ? `/${node.attrs['extension']}` : ''}`
+            : node.type.name
+        )
+      );
+      return out;
+    }
+
+    beforeEach(() => {
+      host = document.createElement('div');
+      document.body.appendChild(host);
+      const doc = extendedSchema.nodes['doc'].create(null, [
+        line('Mara', 'Hi'),
+        line('Tomas', 'Yo'),
+      ]);
+      view = new ProseMirrorView(host, {
+        state: EditorState.create({ doc }),
+      });
+      // Let the component initialise first, then swap in a real view.
+      fixture.detectChanges();
+      component.editor = { view, destroy: vi.fn() } as unknown as Editor;
+    });
+
+    afterEach(() => {
+      view.destroy();
+      host.remove();
+    });
+
+    it('knows when the document is a conversation', () => {
+      component.documentId = 'testuser:test-project:doc-1';
+      expect(component.isConversationDoc()).toBe(false);
+      (
+        projectStateServiceMock.elements as ReturnType<typeof signal<Element[]>>
+      ).set([
+        {
+          id: 'doc-1',
+          name: 'Kitchen',
+          metadata: { format: 'conversation' },
+        } as unknown as Element,
+      ]);
+      expect(component.isConversationDoc()).toBe(true);
+    });
+
+    it('adds a line for a speaker picked from "Someone new"', () => {
+      component.openAddSpeaker(new DOMRect());
+      expect(component.speakerPicker()).toMatchObject({
+        mode: 'add',
+        cast: [
+          { id: null, name: 'Mara' },
+          { id: null, name: 'Tomas' },
+        ],
+      });
+      component.onSpeakerPicked({ id: 'el-ana', name: 'Ana' });
+      // The cursor is in Mara's line, so Ana answers right after it.
+      expect(speakers()).toEqual(['Mara', 'Ana', 'Tomas']);
+      expect(component.speakerPicker()).toBeNull();
+    });
+
+    it('changes a line from an avatar click', () => {
+      const conversation = TestBed.inject(ConversationService);
+      conversation.speakerClick.set({
+        pos: 0,
+        speaker: { id: null, name: 'Mara' },
+        rect: new DOMRect(),
+      });
+      TestBed.tick();
+      expect(component.speakerPicker()).toMatchObject({
+        mode: 'change',
+        pos: 0,
+      });
+      expect(conversation.speakerClick()).toBeNull();
+
+      component.onSpeakerPicked({ id: null, name: 'Tomas' });
+      expect(speakers()).toEqual(['Tomas', 'Tomas']);
+    });
+
+    it('ignores avatar clicks that no longer point at a line', () => {
+      TestBed.inject(ConversationService).speakerClick.set({
+        pos: 1,
+        speaker: { id: null, name: 'Mara' },
+        rect: new DOMRect(),
+      });
+      TestBed.tick();
+      expect(component.speakerPicker()).toBeNull();
+    });
+
+    it('runs line actions from the picker', () => {
+      const open = () =>
+        component.speakerPicker.set({
+          mode: 'change',
+          anchor: new DOMRect(),
+          cast: [],
+          pos: 0,
+          current: { id: null, name: 'Mara' },
+          extension: null,
+        });
+      open();
+      component.onSpeakerAction('offscreen');
+      expect(speakers()).toEqual(['Mara/os', 'Tomas']);
+      open();
+      component.onSpeakerAction('voiceover');
+      expect(speakers()).toEqual(['Mara/vo', 'Tomas']);
+      open();
+      component.onSpeakerAction('description');
+      expect(speakers()).toEqual(['paragraph', 'Tomas']);
+      component.speakerPicker.set({
+        mode: 'change',
+        anchor: new DOMRect(),
+        cast: [],
+        pos: view.state.doc.child(0).nodeSize,
+        current: { id: null, name: 'Tomas' },
+        extension: null,
+      });
+      component.onSpeakerAction('delete');
+      expect(speakers()).toEqual(['paragraph']);
+    });
+
+    it('does nothing without an open picker', () => {
+      component.onSpeakerPicked({ id: null, name: 'Ana' });
+      component.onSpeakerAction('delete');
+      expect(speakers()).toEqual(['Mara', 'Tomas']);
     });
   });
 });

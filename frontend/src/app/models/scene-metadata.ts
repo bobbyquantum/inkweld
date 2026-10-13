@@ -39,6 +39,16 @@ export const SCENE_STATUSES: readonly SceneStatus[] = [
   'final',
 ];
 
+/**
+ * How a prose document is written: ordinary prose, or a conversation of
+ * speech lines (see `@inkweld/prosemirror/schema`'s conversation nodes).
+ * Independent of the role — a conversation can be a scene or a note.
+ */
+export type DocumentFormat = 'prose' | 'conversation';
+
+/** Tree icon for a conversation, whatever its role. */
+export const CONVERSATION_ICON = 'forum';
+
 /** Material icon shown in the tree for each role. */
 export const DOCUMENT_ROLE_ICONS: Readonly<Record<DocumentRole, string>> = {
   scene: 'auto_stories',
@@ -52,6 +62,7 @@ export const SCENE_METADATA_KEYS = {
   status: 'status',
   wordTarget: 'wordTarget',
   storyDate: 'storyDate',
+  format: 'format',
 } as const;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -89,6 +100,18 @@ export function getDocumentRole(
 ): DocumentRole | undefined {
   const raw = metadata?.[SCENE_METADATA_KEYS.role];
   return isDocumentRole(raw) ? raw : undefined;
+}
+
+/** Format of a document; anything other than `conversation` is prose. */
+export function getDocumentFormat(metadata: MetadataMap): DocumentFormat {
+  return metadata?.[SCENE_METADATA_KEYS.format] === 'conversation'
+    ? 'conversation'
+    : 'prose';
+}
+
+/** True when the document is written as a conversation. */
+export function isConversation(metadata: MetadataMap): boolean {
+  return getDocumentFormat(metadata) === 'conversation';
 }
 
 /** True only when the document has explicitly been marked as a scene. */
@@ -169,11 +192,39 @@ export function readSceneMetadata(metadata: MetadataMap): SceneMetadata {
  * Metadata written when a document is created with, or converted to, a role.
  * Sets the tree icon alongside the role so the manuscript reads visually.
  */
-export function roleMetadata(role: DocumentRole): Record<string, string> {
+export function roleMetadata(
+  role: DocumentRole,
+  format: DocumentFormat = 'prose'
+): Record<string, string> {
   return {
     [SCENE_METADATA_KEYS.role]: role,
-    icon: DOCUMENT_ROLE_ICONS[role],
+    icon: documentIcon(role, format),
   };
+}
+
+/**
+ * Metadata written when a document switches format. Prose clears the key
+ * (written as '') rather than storing a value, so existing documents and
+ * prose documents look the same. The icon follows the format, falling back
+ * to the role's icon (or none) for prose.
+ */
+export function formatMetadata(
+  format: DocumentFormat,
+  role: DocumentRole | undefined
+): Record<string, string> {
+  return {
+    [SCENE_METADATA_KEYS.format]: format === 'prose' ? '' : format,
+    icon: documentIcon(role, format),
+  };
+}
+
+/** Tree icon for a document: conversations win over the role's icon. */
+export function documentIcon(
+  role: DocumentRole | undefined,
+  format: DocumentFormat
+): string {
+  if (format === 'conversation') return CONVERSATION_ICON;
+  return role ? DOCUMENT_ROLE_ICONS[role] : '';
 }
 
 /**
