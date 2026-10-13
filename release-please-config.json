@@ -46,10 +46,6 @@
         },
         {
           "type": "generic",
-          "path": "frontend/src/environments/environment.electron.ts"
-        },
-        {
-          "type": "generic",
           "path": "frontend/src/environments/environment.preview.ts"
         },
         {

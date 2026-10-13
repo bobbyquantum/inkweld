@@ -83,7 +83,6 @@ the betas focus on testing and bug fixing. Please report problems on the
 - Installable web app (PWA) on desktop and mobile. The app offers to install
   itself on the home screen and in Settings, with Add to Home Screen steps on
   iPhone and iPad.
-- Electron desktop build.
 
 ### Administration
 
