@@ -8,6 +8,7 @@
  *   - `elementRef` node (inline element references)
  *   - `comment` mark (overlapping comment highlights)
  *   - `link` mark (overridden for opener protection)
+ *   - `speech` / `parenthetical` / `dialogue` nodes (conversations)
  *
  * IMPORTANT — the factory returns SPECS, not a constructed `Schema`
  * instance. The host application constructs the `Schema` itself using
@@ -29,6 +30,7 @@
 import type { MarkSpec, NodeSpec } from 'prosemirror-model';
 
 import { commentMarkSpec, COMMENT_MARK_NAME } from './comment-mark-spec';
+import { conversationNodeSpecs } from './conversation-spec';
 import {
   ELEMENT_REF_NODE_NAME,
   elementRefNodeSpec,
@@ -67,6 +69,7 @@ export function createExtendedSchemaSpec({
     nodes: {
       ...baseNodes,
       [ELEMENT_REF_NODE_NAME]: elementRefNodeSpec,
+      ...conversationNodeSpecs,
     },
     marks: {
       ...baseMarks,

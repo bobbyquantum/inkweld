@@ -133,11 +133,37 @@ function renderBlockElement(node: AstElement, ctx: RenderContext): string {
       return renderImage(node);
     case 'table':
       return renderTable(node, ctx);
+    case 'speech':
+      return renderSpeech(node, ctx);
     default:
       // Unknown block: best-effort render its children.
       if (node.children.length === 0) return '';
       return renderInlineNodes(node.children, ctx);
   }
+}
+
+/** Label suffix for a speech's `extension` attribute. */
+const SPEECH_EXTENSION_LABELS: Record<string, string> = {
+  os: ' (O.S.)',
+  vo: ' (V.O.)',
+};
+
+/**
+ * Render a conversation line as `**Name:** *(how)* line`. Markdown has no
+ * speech construct, so the line flattens to a paragraph that still reads
+ * naturally; it does not round-trip back into a `<speech>`.
+ */
+function renderSpeech(node: AstElement, ctx: RenderContext): string {
+  const name = stringAttr(node.attrs, 'speakerName')?.trim() || 'Unknown';
+  const extension = SPEECH_EXTENSION_LABELS[stringAttr(node.attrs, 'extension') ?? ''] ?? '';
+  const parts = [`**${escapeMarkdownText(name + extension)}:**`];
+  for (const child of node.children) {
+    if (child.type !== 'element') continue;
+    const inline = renderInlineNodes(child.children, ctx).trim();
+    if (!inline) continue;
+    parts.push(child.name === 'parenthetical' ? `*(${inline})*` : inline);
+  }
+  return parts.join(' ');
 }
 
 /**

@@ -1,0 +1,58 @@
+// Speaker colours for conversations. A speaker's slot (0–5) comes from
+// `speakerColor()` in `components/conversation/conversation-plugin.ts`;
+// each `.speech--cN` class sets four custom properties:
+//   --speaker-bubble  bubble fill
+//   --speaker-ink     text on the bubble
+//   --speaker-strong  names, notes, dashed borders
+//   --speaker-soft    avatar fill
+
+@mixin speaker($bubble, $ink, $strong, $soft) {
+  --speaker-bubble: #{$bubble};
+  --speaker-ink: #{$ink};
+  --speaker-strong: #{$strong};
+  --speaker-soft: #{$soft};
+}
+
+// Light palette: one class per slot.
+@mixin palette-light {
+  .speech--c0 {
+    @include speaker(#e1f5ee, #04342c, #0f6e56, #9fe1cb);
+  }
+  .speech--c1 {
+    @include speaker(#faece7, #4a1b0c, #993c1d, #f5c4b3);
+  }
+  .speech--c2 {
+    @include speaker(#eeedfe, #26215c, #534ab7, #cecbf6);
+  }
+  .speech--c3 {
+    @include speaker(#fbeaf0, #4b1528, #993556, #f4c0d1);
+  }
+  .speech--c4 {
+    @include speaker(#faeeda, #412402, #854f0b, #fac775);
+  }
+  .speech--c5 {
+    @include speaker(#e6f1fb, #042c53, #185fa5, #b5d4f4);
+  }
+}
+
+// Dark palette: darker fills, light text.
+@mixin palette-dark {
+  .speech--c0 {
+    @include speaker(#085041, #e1f5ee, #9fe1cb, #0f6e56);
+  }
+  .speech--c1 {
+    @include speaker(#712b13, #faece7, #f5c4b3, #993c1d);
+  }
+  .speech--c2 {
+    @include speaker(#3c3489, #eeedfe, #cecbf6, #534ab7);
+  }
+  .speech--c3 {
+    @include speaker(#72243e, #fbeaf0, #f4c0d1, #993556);
+  }
+  .speech--c4 {
+    @include speaker(#633806, #faeeda, #fac775, #854f0b);
+  }
+  .speech--c5 {
+    @include speaker(#0c447c, #e6f1fb, #b5d4f4, #185fa5);
+  }
+}

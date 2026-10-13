@@ -20,7 +20,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { GeneratorDiceComponent } from '@components/generator-dice/generator-dice.component';
 import { TooltipAriaLabelDirective } from '@directives/tooltip-aria-label.directive';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
-import { DOCUMENT_ROLE_ICONS } from '@models/scene-metadata';
+import { CONVERSATION_ICON, DOCUMENT_ROLE_ICONS } from '@models/scene-metadata';
 
 import { ElementType } from '../../../api-client';
 import { ProjectStateService } from '../../services/project/project-state.service';
@@ -33,7 +33,7 @@ import { WorldbuildingService } from '../../services/worldbuilding/worldbuilding
  *  - `scene`: an Item flagged as manuscript prose (role metadata)
  *  - `note`: an Item flagged as non-manuscript prose (role metadata)
  */
-export type ElementPreset = 'map' | 'cover' | 'scene' | 'note';
+export type ElementPreset = 'map' | 'cover' | 'scene' | 'note' | 'conversation';
 
 export interface NewElementDialogResult {
   name: string;
@@ -157,6 +157,16 @@ export class NewElementDialogComponent {
       category: 'document',
       preset: 'note',
       testId: 'element-type-item-note',
+    },
+    {
+      type: ElementType.Item,
+      label: 'Conversation',
+      icon: CONVERSATION_ICON,
+      description:
+        'A scene written as a chat: speech bubbles for each speaker, with descriptions in between',
+      category: 'document',
+      preset: 'conversation',
+      testId: 'element-type-item-conversation',
     },
     {
       type: ElementType.RelationshipChart,

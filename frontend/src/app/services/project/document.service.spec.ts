@@ -16,6 +16,7 @@ import * as Y from 'yjs';
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { DocumentSyncState } from '../../models/document-sync-state';
 import { AuthTokenService } from '../auth/auth-token.service';
+import { CLOUD_SYNC_ORIGIN } from '../cloud-sync/cloud-sync-origin';
 import { SetupService } from '../core/setup.service';
 import { SystemConfigService } from '../core/system-config.service';
 import { type BroadcastSyncProvider } from '../sync/broadcast-sync.provider';
@@ -1844,6 +1845,19 @@ describe('DocumentService', () => {
       edit(ydoc, mockWebSocketProvider);
 
       expect(service.hasUnsyncedChanges(testDocumentId)).toBe(false);
+    });
+
+    it('should not report updates pulled by Cloud Sync as local edits', async () => {
+      const { ydoc } = await connect();
+      const edits: string[] = [];
+      const sub = service.localEdit$.subscribe(id => edits.push(id));
+
+      edit(ydoc, CLOUD_SYNC_ORIGIN);
+      expect(edits).toEqual([]);
+
+      edit(ydoc);
+      expect(edits).toEqual([testDocumentId]);
+      sub.unsubscribe();
     });
 
     it('should clear unsynced changes when reconnecting', async () => {

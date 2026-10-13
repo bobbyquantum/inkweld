@@ -311,6 +311,8 @@ describe('HomeComponent', () => {
             status: () => 'disabled',
             initialize: () => undefined,
             syncNow: vi.fn().mockResolvedValue(undefined),
+            syncProject: vi.fn().mockResolvedValue(undefined),
+            forgetProject: vi.fn().mockResolvedValue(undefined),
           },
         },
         provideZonelessChangeDetection(),
@@ -1273,6 +1275,39 @@ describe('HomeComponent', () => {
             'testuser/test-project'
           );
           expect(matDialog.open).not.toHaveBeenCalled();
+          expect(mockSyncQueueService.syncAllProjects).toHaveBeenCalledWith([
+            mockProjects[0],
+          ]);
+          expect(
+            TestBed.inject(CloudSyncEngineService).syncProject
+          ).not.toHaveBeenCalled();
+        });
+
+        it('downloads a Cloud Sync project from the cloud before finishing', async () => {
+          mockActivationService.isActivated.mockReturnValue(false);
+          (setupService.getMode as ReturnType<typeof vi.fn>).mockReturnValue(
+            'cloud'
+          );
+          const cloudSync = TestBed.inject(CloudSyncEngineService);
+          let pulled!: () => void;
+          vi.mocked(cloudSync.syncProject).mockReturnValue(
+            new Promise<void>(resolve => (pulled = resolve))
+          );
+
+          let finished = false;
+          const download = lift()
+            .actions.activate()
+            .then(() => (finished = true));
+          await vi.waitFor(() =>
+            expect(cloudSync.syncProject).toHaveBeenCalledWith(
+              'testuser/test-project'
+            )
+          );
+          expect(finished).toBe(false);
+
+          pulled();
+          await download;
+          expect(mockSyncQueueService.syncAllProjects).not.toHaveBeenCalled();
         });
 
         it('knows roughly how much the project takes up', async () => {
@@ -1501,6 +1536,39 @@ describe('HomeComponent', () => {
             'testuser/test-project'
           );
         });
+      });
+    });
+
+    describe('removing a project from this device', () => {
+      function purge(): Promise<void> {
+        localStorageService.deleteProjectMedia = vi
+          .fn()
+          .mockResolvedValue(undefined);
+        return (
+          component as unknown as {
+            purgeProjectLocalData(project: Project): Promise<void>;
+          }
+        ).purgeProjectLocalData(mockProjects[0]);
+      }
+
+      it('forgets what Cloud Sync pulled, so downloading it again pulls it all', async () => {
+        (setupService.getMode as ReturnType<typeof vi.fn>).mockReturnValue(
+          'cloud'
+        );
+
+        await purge();
+
+        expect(
+          TestBed.inject(CloudSyncEngineService).forgetProject
+        ).toHaveBeenCalledWith('testuser', 'test-project');
+      });
+
+      it('leaves Cloud Sync alone on other profiles', async () => {
+        await purge();
+
+        expect(
+          TestBed.inject(CloudSyncEngineService).forgetProject
+        ).not.toHaveBeenCalled();
       });
     });
 

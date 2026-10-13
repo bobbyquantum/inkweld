@@ -1,0 +1,657 @@
+[
+  {
+    "elementId": "readme-001",
+    "content": {
+      "type": "doc",
+      "content": [
+        {
+          "type": "heading",
+          "attrs": {
+            "level": 1
+          },
+          "content": [
+            {
+              "type": "text",
+              "text": "Last Light: a script demo"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "A short film in three scenes, written as conversations. Use it to see how Inkweld works for scripts, plays and anything with dialogue."
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "attrs": {
+            "level": 2
+          },
+          "content": [
+            {
+              "type": "text",
+              "text": "Try this"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Open “The Kitchen” in the Last Light folder. Each line is a speech bubble: press Enter at the end of a line and the other person answers, press Tab to change who is talking, or type a name and a colon (“Mara: …”) to start a line."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Switch between Chat and Script under the editor to see the same scene as a screenplay page."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Click a speaker's avatar to change who says a line, mark it off-screen or voice-over, or turn it into a description. Hover a line for the handle to drag it somewhere else."
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "attrs": {
+            "level": 2
+          },
+          "content": [
+            {
+              "type": "text",
+              "text": "What's in the project"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Cast, Sets and Props use their own templates (Cast Member, Set and Prop), built for scripts rather than novels: what a character wants, how they talk, casting and wardrobe; interior or exterior and set dressing; a prop's story job and continuity notes."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Each scene records its point of view and its set, so the folder's outline and corkboard show who and where at a glance, and each cast member and set lists the scenes they appear in."
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "attrs": {
+            "level": 2
+          },
+          "content": [
+            {
+              "type": "text",
+              "text": "Publish it"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Open Publishing and choose “Shooting script (PDF)”: a title page, the cast list, then each scene in Courier."
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "elementId": "scene-1",
+    "content": {
+      "type": "doc",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Wind flattens the grass along the cliff. MARA QUINN (40s), in a patched oilskin, climbs toward the lighthouse with a storm lantern."
+            }
+          ]
+        },
+        {
+          "type": "speech",
+          "attrs": {
+            "speakerId": "cast-ewan",
+            "speakerName": "Ewan Reid",
+            "extension": "vo"
+          },
+          "content": [
+            {
+              "type": "dialogue",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Mara, it's Ewan. You there?"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "speech",
+          "attrs": {
+            "speakerId": "cast-mara",
+            "speakerName": "Mara Quinn"
+          },
+          "content": [
+            {
+              "type": "parenthetical",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "thumbing the radio"
+                }
+              ]
+            },
+            {
+              "type": "dialogue",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Where else would I be?"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "speech",
+          "attrs": {
+            "speakerId": "cast-ewan",
+            "speakerName": "Ewan Reid",
+            "extension": "vo"
+          },
+          "content": [
+            {
+              "type": "dialogue",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Front's coming in fast. Iona's still out past the point."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "speech",
+          "attrs": {
+            "speakerId": "cast-mara",
+            "speakerName": "Mara Quinn"
+          },
+          "content": [
+            {
+              "type": "dialogue",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "She'll come in on the light."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "speech",
+          "attrs": {
+            "speakerId": "cast-ewan",
+            "speakerName": "Ewan Reid",
+            "extension": "vo"
+          },
+          "content": [
+            {
+              "type": "dialogue",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "That's the thing, Mara. There isn't one."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Mara stops. She looks up. The lamp room at the top of the tower is black."
+            }
+          ]
+        },
+        {
+          "type": "speech",
+          "attrs": {
+            "speakerId": "cast-mara",
+            "speakerName": "Mara Quinn"
+          },
+          "content": [
+            {
+              "type": "parenthetical",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "quietly"
+                }
+              ]
+            },
+            {
+              "type": "dialogue",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Tomas."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "elementId": "scene-2",
+    "content": {
+      "type": "doc",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Rain hammers the glass. TOMAS QUINN (30s) sits at the kitchen table, a dead bulb in front of him like evidence."
+            }
+          ]
+        },
+        {
+          "type": "speech",
+          "attrs": {
+            "speakerId": "cast-tomas",
+            "speakerName": "Tomas Quinn"
+          },
+          "content": [
+            {
+              "type": "dialogue",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Before you start. I changed it. Twice."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "speech",
+          "attrs": {
+            "speakerId": "cast-mara",
+            "speakerName": "Mara Quinn"
+          },
+          "content": [
+            {
+              "type": "dialogue",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Then why is it dark?"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "speech",
+          "attrs": {
+            "speakerId": "cast-tomas",
+            "speakerName": "Tomas Quinn"
+          },
+          "content": [
+            {
+              "type": "dialogue",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Because it's not the bulb. It's the wiring. It's the whole tower. The board stopped paying for it six years ago."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "speech",
+          "attrs": {
+            "speakerId": "cast-mara",
+            "speakerName": "Mara Quinn"
+          },
+          "content": [
+            {
+              "type": "parenthetical",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "setting the lantern down"
+                }
+              ]
+            },
+            {
+              "type": "dialogue",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Iona Reid is out past the point."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "That lands. Tomas looks at the window, at the black water beyond it."
+            }
+          ]
+        },
+        {
+          "type": "speech",
+          "attrs": {
+            "speakerId": "cast-tomas",
+            "speakerName": "Tomas Quinn"
+          },
+          "content": [
+            {
+              "type": "dialogue",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "How long?"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "speech",
+          "attrs": {
+            "speakerId": "cast-mara",
+            "speakerName": "Mara Quinn"
+          },
+          "content": [
+            {
+              "type": "dialogue",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Ewan says an hour before it turns."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "speech",
+          "attrs": {
+            "speakerId": "cast-tomas",
+            "speakerName": "Tomas Quinn"
+          },
+          "content": [
+            {
+              "type": "dialogue",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Then we light it by hand."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "He pulls a swollen logbook from the shelf and opens it to a page in their father's handwriting."
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "elementId": "scene-3",
+    "content": {
+      "type": "doc",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "The great lens towers over them, dusty and enormous. Mara hangs the storm lantern on the old hook at its heart."
+            }
+          ]
+        },
+        {
+          "type": "speech",
+          "attrs": {
+            "speakerId": "cast-tomas",
+            "speakerName": "Tomas Quinn"
+          },
+          "content": [
+            {
+              "type": "parenthetical",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "reading from the logbook"
+                }
+              ]
+            },
+            {
+              "type": "dialogue",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Dad did this in '87. It says here it held for three hours."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "speech",
+          "attrs": {
+            "speakerId": "cast-mara",
+            "speakerName": "Mara Quinn"
+          },
+          "content": [
+            {
+              "type": "dialogue",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "It only has to hold for one."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "speech",
+          "attrs": {
+            "speakerId": "cast-iona",
+            "speakerName": "Iona Reid",
+            "extension": "vo"
+          },
+          "content": [
+            {
+              "type": "parenthetical",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "breaking up"
+                }
+              ]
+            },
+            {
+              "type": "dialogue",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "…anyone on sixteen… I can't see the…"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Mara grabs the radio."
+            }
+          ]
+        },
+        {
+          "type": "speech",
+          "attrs": {
+            "speakerId": "cast-mara",
+            "speakerName": "Mara Quinn"
+          },
+          "content": [
+            {
+              "type": "dialogue",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Iona, it's Mara Quinn. Look north. Look for the light."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Tomas leans on the crank. Slowly, the lens begins to turn. A beam sweeps out across the water."
+            }
+          ]
+        },
+        {
+          "type": "speech",
+          "attrs": {
+            "speakerId": "cast-iona",
+            "speakerName": "Iona Reid",
+            "extension": "vo"
+          },
+          "content": [
+            {
+              "type": "dialogue",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "I see it. I see it!"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Mara slides down the wall, shaking. Tomas keeps turning."
+            }
+          ]
+        },
+        {
+          "type": "speech",
+          "attrs": {
+            "speakerId": "cast-tomas",
+            "speakerName": "Tomas Quinn"
+          },
+          "content": [
+            {
+              "type": "parenthetical",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "not stopping"
+                }
+              ]
+            },
+            {
+              "type": "dialogue",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Three hours, Dad said."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "speech",
+          "attrs": {
+            "speakerId": "cast-mara",
+            "speakerName": "Mara Quinn"
+          },
+          "content": [
+            {
+              "type": "dialogue",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Then we'd better take turns."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "horizontal_rule"
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "The beam sweeps on into the storm."
+            }
+          ]
+        }
+      ]
+    }
+  }
+]

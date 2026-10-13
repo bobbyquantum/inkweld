@@ -21,7 +21,14 @@ import {
 import { type CanvasContents, type CanvasEdit } from '@models/canvas-edit';
 import type { CoverSource } from '@models/cover-source';
 import { type ProjectElement } from '@models/project-element';
-import { type DocumentRole, roleMetadata } from '@models/scene-metadata';
+import {
+  type DocumentFormat,
+  type DocumentRole,
+  formatMetadata,
+  getDocumentFormat,
+  getDocumentRole,
+  roleMetadata,
+} from '@models/scene-metadata';
 import { GeneratorLibraryService } from '@services/generator/generator-library.service';
 import { TimeSystemLibraryService } from '@services/timeline/time-system-library.service';
 import { nanoid } from 'nanoid';
@@ -1791,6 +1798,11 @@ export class ProjectStateService implements OnDestroy {
       case 'note':
         this.setDocumentRole(elementId, preset);
         break;
+      case 'conversation':
+        // A conversation is part of the manuscript, so it starts as a scene.
+        this.setDocumentRole(elementId, 'scene');
+        this.setDocumentFormat(elementId, 'conversation');
+        break;
       default:
         break;
     }
@@ -1802,10 +1814,27 @@ export class ProjectStateService implements OnDestroy {
    * them immediately, including in projects created before this feature.
    */
   setDocumentRole(elementId: string, role: DocumentRole): void {
-    this.updateElementMetadata(elementId, roleMetadata(role));
+    const element = this.elements().find(e => e.id === elementId);
+    this.updateElementMetadata(
+      elementId,
+      roleMetadata(role, getDocumentFormat(element?.metadata))
+    );
     if (role === 'scene' && this.syncProvider) {
       ensureSceneRelationshipTypes(this.syncProvider);
     }
+  }
+
+  /**
+   * Switch a prose document between prose and conversation. Only the format
+   * flag and tree icon change: the editor renders whatever nodes the document
+   * holds, so switching back and forth never loses content.
+   */
+  setDocumentFormat(elementId: string, format: DocumentFormat): void {
+    const element = this.elements().find(e => e.id === elementId);
+    this.updateElementMetadata(
+      elementId,
+      formatMetadata(format, getDocumentRole(element?.metadata))
+    );
   }
 
   /**

@@ -15,7 +15,10 @@ describe('YDocAccessService', () => {
   let service: YDocAccessService;
   let project: ReturnType<typeof signal<Project | undefined>>;
   let liveElements: Y.Doc;
-  let localElements: { getYjsDocument: ReturnType<typeof vi.fn> };
+  let localElements: {
+    getYjsDocument: ReturnType<typeof vi.fn>;
+    getOpenYjsDocument: ReturnType<typeof vi.fn>;
+  };
   let documentService: {
     getConnectedYDoc: ReturnType<typeof vi.fn>;
     hasLocalContent: ReturnType<typeof vi.fn>;
@@ -28,6 +31,7 @@ describe('YDocAccessService', () => {
     liveElements = new Y.Doc();
     localElements = {
       getYjsDocument: vi.fn().mockResolvedValue(liveElements),
+      getOpenYjsDocument: vi.fn().mockReturnValue(null),
     };
     documentService = {
       getConnectedYDoc: vi.fn().mockReturnValue(null),
@@ -150,5 +154,77 @@ describe('YDocAccessService', () => {
     expect(headless.live).toBe(false);
     expect(prefix).toHaveReturnedWith('cloud-x:worldbuilding:bobby:novel:w2');
     await headless.release();
+  });
+
+  describe('an editor opening the doc while a headless copy is held', () => {
+    /** A change written to the headless copy, as a pull from the cloud would */
+    function pull(doc: Y.Doc): void {
+      doc.getMap('m').set('k', 'from the cloud');
+    }
+
+    it('hands a prose document what was pulled', async () => {
+      const headless = await service.acquireDocument('bobby:novel:e1');
+      pull(headless.doc);
+      await headless.flush();
+
+      // The editor read IndexedDB before the flush, so it has nothing yet
+      const live = new Y.Doc();
+      const origins: unknown[] = [];
+      live.on('update', (_u: Uint8Array, origin: unknown) =>
+        origins.push(origin)
+      );
+      documentService.getConnectedYDoc.mockReturnValue(live);
+      await headless.release();
+
+      expect(documentService.getConnectedYDoc).toHaveBeenLastCalledWith(
+        'bobby:novel:e1'
+      );
+      expect(live.getMap('m').get('k')).toBe('from the cloud');
+      expect(origins).toEqual(['cloud-sync']);
+    });
+
+    it('hands a worldbuilding doc what was pulled', async () => {
+      const headless = await service.acquireWorldbuilding(
+        'bobby',
+        'novel',
+        'w1',
+        'worldbuilding:bobby:novel:w1'
+      );
+      pull(headless.doc);
+
+      const live = new Y.Doc();
+      worldbuilding.getYDoc.mockReturnValue(live);
+      await headless.release();
+
+      expect(worldbuilding.getYDoc).toHaveBeenLastCalledWith(
+        'w1',
+        'bobby',
+        'novel'
+      );
+      expect(live.getMap('m').get('k')).toBe('from the cloud');
+    });
+
+    it('hands the elements doc of a project opened meanwhile what was pulled', async () => {
+      const headless = await service.acquireElements('bobby', 'novel');
+      expect(headless.live).toBe(false);
+      pull(headless.doc);
+
+      localElements.getOpenYjsDocument.mockReturnValue(liveElements);
+      await headless.release();
+
+      expect(localElements.getOpenYjsDocument).toHaveBeenCalledWith(
+        'bobby',
+        'novel'
+      );
+      expect(liveElements.getMap('m').get('k')).toBe('from the cloud');
+    });
+
+    it('leaves nothing to merge when no editor opened it', async () => {
+      const headless = await service.acquireDocument('bobby:novel:e1');
+      pull(headless.doc);
+      await headless.release();
+
+      expect(headless.doc.isDestroyed).toBe(true);
+    });
   });
 });

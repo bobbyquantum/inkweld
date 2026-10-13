@@ -900,6 +900,11 @@ export class LocalProjectElementsService {
     }
   }
 
+  /** The project's elements doc if it is already open, without opening it */
+  getOpenYjsDocument(username: string, slug: string): Y.Doc | null {
+    return this.yjsConnections.get(`${username}:${slug}`)?.doc ?? null;
+  }
+
   /**
    * Get Yjs document for a project (for integration with online mode)
    */

@@ -13,6 +13,7 @@ import { type Editor } from '@bobbyquantum/ngx-editor';
 import {
   createAutoReviewPlugin,
   createCommentPlugin,
+  createConversationPlugin,
   createElementRefPlugin,
   createFindPlugin,
   createImagePastePlugin,
@@ -54,6 +55,7 @@ import * as Y from 'yjs';
 
 import { DocumentSyncState } from '../../models/document-sync-state';
 import { AuthTokenService } from '../auth/auth-token.service';
+import { CLOUD_SYNC_ORIGIN } from '../cloud-sync/cloud-sync-origin';
 import { FindInDocumentService } from '../core/find-in-document.service';
 import { InsertImageService } from '../core/insert-image.service';
 import { InsertLinkService } from '../core/insert-link.service';
@@ -73,6 +75,7 @@ import {
 import { BroadcastSyncProvider } from '../sync/broadcast-sync.provider';
 import { UnifiedUserService } from '../user/unified-user.service';
 import { CommentService } from './comment.service';
+import { ConversationService } from './conversation.service';
 import { LiveDocumentRegistryService } from './live-document-registry.service';
 import { ProjectStateService } from './project-state.service';
 
@@ -199,6 +202,7 @@ export class DocumentService {
   private readonly projectStateService = inject(ProjectStateService);
   private readonly localStorage = inject(LocalStorageService);
   private readonly elementRefService = inject(ElementRefService);
+  private readonly conversationService = inject(ConversationService);
   private readonly findInDocumentService = inject(FindInDocumentService);
   private readonly insertImageService = inject(InsertImageService);
   private readonly insertLinkService = inject(InsertLinkService);
@@ -1015,12 +1019,14 @@ export class DocumentService {
         // Skip updates that come from IndexedDB (loading persisted state),
         // from the WebSocket provider (remote edits), or from another window
         // of this browser (that window already counted the edit as its own —
-        // counting it again would snapshot and re-upload the same change).
+        // counting it again would snapshot and re-upload the same change),
+        // or from Cloud Sync (another device's edit, already in the cloud).
         // Everything else is a local edit (ProseMirror, programmatic, etc.)
         if (
           origin !== idbProvider &&
           origin !== connection?.provider &&
-          origin !== broadcastProvider
+          origin !== broadcastProvider &&
+          origin !== CLOUD_SYNC_ORIGIN
         ) {
           this.localEdit$.next(documentId);
         }
@@ -1230,12 +1236,25 @@ export class DocumentService {
       tableEditing()
     );
 
+    // Conversation lines (speech bubbles). Its Enter / Tab / Backspace only
+    // act inside a speech, or on descriptions once the editor switches the
+    // document into conversation mode, so it is safe in every document.
+    const conversationPlugin = createConversationPlugin(
+      this.conversationService.pluginOptions()
+    );
+
     // Reconfigure state with new plugins - this triggers ySyncPlugin's init()
     // which binds Yjs content to ProseMirror
     // The undo-input-rule keymap goes first so it beats ngx-editor's baseKeymap
-    // Backspace (see createUndoInputRulePlugin).
+    // Backspace (see createUndoInputRulePlugin); the conversation keys come
+    // next for the same reason (Enter / Backspace inside a speech).
     const newState = view.state.reconfigure({
-      plugins: [createUndoInputRulePlugin(), ...view.state.plugins, ...plugins],
+      plugins: [
+        createUndoInputRulePlugin(),
+        conversationPlugin,
+        ...view.state.plugins,
+        ...plugins,
+      ],
     });
 
     // Check if view DOM is still attached before updating state

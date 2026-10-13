@@ -35,8 +35,10 @@ import { TooltipAriaLabelDirective } from '@directives/tooltip-aria-label.direct
 import { type Element, ElementType } from '@inkweld/index';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import {
+  type DocumentFormat,
   type DocumentRole,
   getDocumentRole,
+  isConversation,
   isScene,
 } from '@models/scene-metadata';
 import { ProjectSearchService } from '@services/core/project-search.service';
@@ -49,6 +51,15 @@ import { LoggerService } from '../../services/core/logger.service';
 import { ElementNavigationService } from '../../services/project/element-navigation.service';
 import { TreeNodeIconComponent } from './components/tree-node-icon/tree-node-icon.component';
 import { buildMoveDialogData } from './move-dialog-data';
+
+/**
+ * `event instanceof TouchEvent`, safe where the browser has no TouchEvent:
+ * desktop Firefox without a touchscreen leaves it undefined, and a bare
+ * `instanceof` there throws, so every click on a tree row failed.
+ */
+function isTouchEvent(event: unknown): event is TouchEvent {
+  return typeof TouchEvent !== 'undefined' && event instanceof TouchEvent;
+}
 
 /**
  * Component for displaying and managing the project tree with ARIA accessibility.
@@ -362,7 +373,7 @@ export class ProjectTreeComponent implements OnDestroy {
    */
   public onNodeDown(node: ProjectElement, event?: Event) {
     this.selectedItem = node;
-    if (event instanceof TouchEvent && event.touches.length === 1) {
+    if (isTouchEvent(event) && event.touches.length === 1) {
       this.touchStartX = event.touches[0].clientX;
       this.touchStartY = event.touches[0].clientY;
     }
@@ -714,6 +725,11 @@ export class ProjectTreeComponent implements OnDestroy {
     return isScene(this.liveElement(node).metadata);
   }
 
+  /** True when the document is written as a conversation (live, as above). */
+  public isConversationNode(node: ProjectElement): boolean {
+    return isConversation(this.liveElement(node).metadata);
+  }
+
   /** The current element for a (possibly stale) context-menu node. */
   private liveElement(node: ProjectElement): Element {
     return (
@@ -728,6 +744,15 @@ export class ProjectTreeComponent implements OnDestroy {
   public onConvertRole(node: ProjectElement, role: DocumentRole): void {
     if (!this.isProseDocument(node)) return;
     this.projectStateService.setDocumentRole(node.id, role);
+  }
+
+  /**
+   * Switch a prose document between prose and conversation. Content is
+   * untouched; only the editor that presents it changes.
+   */
+  public onSwitchFormat(node: ProjectElement, format: DocumentFormat): void {
+    if (!this.isProseDocument(node)) return;
+    this.projectStateService.setDocumentFormat(node.id, format);
   }
 
   /**
@@ -761,7 +786,7 @@ export class ProjectTreeComponent implements OnDestroy {
     this.contextItem = data;
     // Detect touch origin: TouchEvent or a PointerEvent with pointerType === 'touch'
     const isTouch =
-      (typeof TouchEvent !== 'undefined' && event instanceof TouchEvent) ||
+      isTouchEvent(event) ||
       (event instanceof PointerEvent && event.pointerType === 'touch');
     if (isTouch) {
       this.suppressTouchOpenNodeId = data.id;
@@ -796,7 +821,7 @@ export class ProjectTreeComponent implements OnDestroy {
     }
     // Suppress opening if the touch moved significantly (scroll swipe), not a tap
     if (
-      event instanceof TouchEvent &&
+      isTouchEvent(event) &&
       this.touchStartX !== null &&
       this.touchStartY !== null
     ) {

@@ -23,6 +23,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router, RouterModule } from '@angular/router';
 import { AnnouncementFeedComponent } from '@components/announcement-feed/announcement-feed.component';
+import { InstallAppBannerComponent } from '@components/install-app-banner/install-app-banner.component';
 import { LegalLinksComponent } from '@components/legal-links/legal-links.component';
 import { ProjectCardComponent } from '@components/project-card/project-card.component';
 import { ServerInfoBubbleComponent } from '@components/server-info-bubble/server-info-bubble.component';
@@ -105,6 +106,7 @@ export const PINNED_PROJECTS_STORAGE_KEY = 'inkweld-home-pinned-projects';
     RouterModule,
     TranslocoModule,
     AnnouncementFeedComponent,
+    InstallAppBannerComponent,
     ProjectCardComponent,
     ServerInfoBubbleComponent,
     UserMenuComponent,
@@ -751,7 +753,13 @@ export class HomeComponent implements OnInit, OnDestroy {
     const projectKey = `${project.username}/${project.slug}`;
     try {
       await this.activationService.activate(projectKey);
-      this.syncQueueService.syncAllProjects([project]).catch(() => {});
+      if (this.setupService.getMode() === 'cloud') {
+        // Pulled before resolving, so the lifted cover's "Downloading" lasts
+        // until the documents are actually on this device.
+        await this.cloudSync.syncProject(projectKey);
+      } else {
+        this.syncQueueService.syncAllProjects([project]).catch(() => {});
+      }
       this.snackBar.open(
         this.transloco.translate('home.snackbar.activatedSyncing', {
           title: project.title,
@@ -851,6 +859,9 @@ export class HomeComponent implements OnInit, OnDestroy {
 
     // Sync state + tombstones.
     await this.projectSyncService.deleteSyncState(projectKey).catch(() => {});
+    if (this.setupService.getMode() === 'cloud') {
+      await this.cloudSync.forgetProject(username, slug).catch(() => {});
+    }
     await this.projectSyncService.removeTombstone(projectKey).catch(() => {});
 
     // Snapshots.

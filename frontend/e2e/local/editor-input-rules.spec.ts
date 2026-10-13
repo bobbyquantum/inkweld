@@ -8,7 +8,10 @@
  */
 import { type Page } from '@playwright/test';
 
-import { openProjectFromGrid } from '../common/test-helpers';
+import {
+  openProjectFromGrid,
+  waitForIndexedDBStable,
+} from '../common/test-helpers';
 import { expect, openUserSettings, test } from './fixtures';
 
 /**
@@ -40,6 +43,31 @@ async function createDocumentAndFocus(
   await page.getByTestId('create-element-button').click();
   await expect(page.locator('ngx-editor')).toBeVisible();
   await page.locator('ngx-editor .ProseMirror').click();
+}
+
+/**
+ * The local IndexedDB database holding the open document. Its name is
+ * profile-prefixed (`local:user:slug:<id>`), so it is looked up by the
+ * document id from the URL rather than spelled out.
+ */
+async function openDocumentDbName(page: Page): Promise<string> {
+  const docId = new URL(page.url()).pathname.split('/').at(-1)!;
+  let name = '';
+  await expect
+    .poll(async () => {
+      name = await page.evaluate(async id => {
+        const dbs = await indexedDB.databases();
+        return (
+          dbs
+            .map(db => db.name ?? '')
+            .find(n => n.endsWith(`:${id}`) && !n.includes('worldbuilding')) ??
+          ''
+        );
+      }, docId);
+      return name;
+    })
+    .not.toBe('');
+  return name;
 }
 
 test.describe('Editor input rules', () => {
@@ -129,6 +157,9 @@ test.describe('Editor input rules', () => {
       'Chapter 1'
     );
 
+    // Reloading the moment the text appears can beat the last keystrokes to
+    // IndexedDB; wait until the document's database stops changing.
+    await waitForIndexedDBStable(page, await openDocumentDbName(page));
     await page.reload();
     await expect(page.locator('ngx-editor .ProseMirror h1')).toHaveText(
       'Chapter 1'

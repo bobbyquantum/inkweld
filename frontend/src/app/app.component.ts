@@ -20,6 +20,7 @@ import { PolicyAcceptanceService } from './services/auth/policy-acceptance.servi
 import { CloudSyncEngineService } from './services/cloud-sync/cloud-sync-engine.service';
 import { BackgroundService } from './services/core/background.service';
 import { LocaleService } from './services/core/locale.service';
+import { PwaInstallService } from './services/core/pwa-install.service';
 import { SetupService } from './services/core/setup.service';
 import { UpdateService } from './services/core/update.service';
 import { VersionCompatibilityService } from './services/core/version-compatibility.service';
@@ -48,6 +49,7 @@ export class AppComponent implements OnInit {
   protected readonly setupService = inject(SetupService);
   private readonly localeService = inject(LocaleService);
   protected readonly updateService = inject(UpdateService);
+  private readonly pwaInstall = inject(PwaInstallService);
   protected readonly versionCompatibility = inject(VersionCompatibilityService);
   protected readonly viewportService = inject(ViewportService);
   protected readonly unifiedUserService = inject(UnifiedUserService);
@@ -88,6 +90,7 @@ export class AppComponent implements OnInit {
     this.backgroundService.initialize();
     this.localeService.init();
     this.updateService.initialize();
+    this.pwaInstall.initialize();
     void this.initializeApp();
   }
 

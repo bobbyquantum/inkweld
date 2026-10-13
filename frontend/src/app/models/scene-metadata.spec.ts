@@ -1,11 +1,16 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  CONVERSATION_ICON,
   DOCUMENT_ROLE_ICONS,
+  documentIcon,
+  formatMetadata,
+  getDocumentFormat,
   getDocumentRole,
   getSceneStatus,
   getSceneStoryDate,
   getSceneWordTarget,
+  isConversation,
   isNote,
   isPublishableByDefault,
   isScene,
@@ -157,6 +162,47 @@ describe('scene-metadata model', () => {
         role: 'note',
         icon: DOCUMENT_ROLE_ICONS.note,
       });
+    });
+
+    it('keeps the conversation icon for a conversation', () => {
+      expect(roleMetadata('note', 'conversation')).toEqual({
+        role: 'note',
+        icon: CONVERSATION_ICON,
+      });
+    });
+  });
+
+  describe('document format', () => {
+    it('treats anything but "conversation" as prose', () => {
+      expect(getDocumentFormat(undefined)).toBe('prose');
+      expect(getDocumentFormat({ format: '' })).toBe('prose');
+      expect(getDocumentFormat({ format: 'screenplay' })).toBe('prose');
+      expect(getDocumentFormat({ format: 'conversation' })).toBe(
+        'conversation'
+      );
+      expect(isConversation({ format: 'conversation' })).toBe(true);
+      expect(isConversation({})).toBe(false);
+    });
+
+    it('writes the flag and the icon, clearing both for prose', () => {
+      expect(formatMetadata('conversation', 'scene')).toEqual({
+        format: 'conversation',
+        icon: CONVERSATION_ICON,
+      });
+      expect(formatMetadata('prose', 'note')).toEqual({
+        format: '',
+        icon: DOCUMENT_ROLE_ICONS.note,
+      });
+      expect(formatMetadata('prose', undefined)).toEqual({
+        format: '',
+        icon: '',
+      });
+    });
+
+    it('prefers the conversation icon over the role icon', () => {
+      expect(documentIcon('scene', 'conversation')).toBe(CONVERSATION_ICON);
+      expect(documentIcon('scene', 'prose')).toBe(DOCUMENT_ROLE_ICONS.scene);
+      expect(documentIcon(undefined, 'prose')).toBe('');
     });
   });
 

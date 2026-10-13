@@ -391,6 +391,57 @@ describe('CloudProjectMirrorService', () => {
     expect(mediaSyncVersion()).toBe(1);
   });
 
+  describe('a local copy missing what was already synced', () => {
+    const path = documentPath(username, slug, 'e9');
+    const docId = documentDocId(username, slug, 'e9');
+
+    beforeEach(async () => {
+      const remoteElements = new Y.Doc();
+      remoteElements.getArray('elements').push([{ id: 'e9', type: 'ITEM' }]);
+      store.seed(
+        elementsPath(username, slug),
+        Y.encodeStateAsUpdate(remoteElements)
+      );
+      const remoteDoc = new Y.Doc();
+      remoteDoc
+        .getXmlFragment('prosemirror')
+        .insert(0, [new Y.XmlText('From A')]);
+      store.seed(path, Y.encodeStateAsUpdate(remoteDoc));
+      await service.syncProject(store, username, slug);
+      store.log.length = 0;
+    });
+
+    it('reads the remote again although its version has not moved', async () => {
+      // An editor that loaded IndexedDB before the pull was flushed, or a
+      // project removed from this device and downloaded again
+      docs.docs.set(docId, new Y.Doc());
+      docs.docs.set(elementsId, new Y.Doc());
+
+      const summary = await service.syncProject(store, username, slug);
+
+      expect(store.log).toContain(`get ${path}`);
+      expect(docs.doc(docId).getXmlFragment('prosemirror').toJSON()).toContain(
+        'From A'
+      );
+      expect(
+        docs.doc(elementsId).getArray<{ id: string }>('elements').toArray()
+      ).toEqual([expect.objectContaining({ id: 'e9' })]);
+      expect(summary.pulled).toBe(2);
+    });
+
+    it('does not read it again for a local edit, which only adds state', async () => {
+      docs
+        .doc(docId)
+        .getXmlFragment('prosemirror')
+        .insert(0, [new Y.XmlText('More ')]);
+
+      await service.syncProject(store, username, slug);
+
+      expect(store.log).not.toContain(`get ${path}`);
+      expect(store.log).toContain(`put ${path}`);
+    });
+  });
+
   it('adopts newer remote project metadata and pushes newer local metadata', async () => {
     store.seed(
       projectJsonPath(username, slug),

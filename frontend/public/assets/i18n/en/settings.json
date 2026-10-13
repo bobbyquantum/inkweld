@@ -190,7 +190,12 @@
     "showToursHint": "When this is off, no tour is offered automatically — you can still start one from the account menu.",
     "writingTitle": "Writing",
     "markdownShortcuts": "Convert Markdown as I type",
-    "markdownShortcutsHint": "Typing \"# \", \"> \", \"- \" or \"1. \" at the start of a line becomes a heading, quote or list, and **bold** or _italic_ is formatted as you close it. Also turns straight quotes into curly ones. Off by default; applies to documents you open afterwards."
+    "markdownShortcutsHint": "Typing \"# \", \"> \", \"- \" or \"1. \" at the start of a line becomes a heading, quote or list, and **bold** or _italic_ is formatted as you close it. Also turns straight quotes into curly ones. Off by default; applies to documents you open afterwards.",
+    "installTitle": "Install app",
+    "installButton": "Install Inkweld",
+    "installHint": "Opens Inkweld in its own window from your home screen, dock or start menu. It works offline and updates itself.",
+    "installIos": "On iPhone or iPad, tap Share, then Add to Home Screen.",
+    "installed": "Inkweld is installed on this device."
   },
   "projectSettingsTab": {
     "fullscreenZen": "Enable fullscreen in Zen mode",

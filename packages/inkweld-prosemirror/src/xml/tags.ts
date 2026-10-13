@@ -76,4 +76,9 @@ export const BLOCK_NODE_NAMES = new Set([
   'table_row',
   'table_cell',
   'table_header',
+  // An empty `<dialogue/>` would drop the speech's required child on
+  // re-parse; keep conversation nodes explicit like the other blocks.
+  'speech',
+  'parenthetical',
+  'dialogue',
 ]);

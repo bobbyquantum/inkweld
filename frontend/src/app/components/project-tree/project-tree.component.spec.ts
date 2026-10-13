@@ -116,6 +116,7 @@ describe('ProjectTreeComponent', () => {
       updateProject: vi.fn(),
       renameNode: vi.fn(),
       setDocumentRole: vi.fn(),
+      setDocumentFormat: vi.fn(),
       showNewElementDialog: vi.fn(),
       toggleExpanded: vi.fn(),
       moveElement: vi.fn().mockResolvedValue(undefined),
@@ -1175,6 +1176,22 @@ describe('ProjectTreeComponent', () => {
       component.onConvertRole({ ...doc, type: ElementType.Canvas }, 'scene');
       expect(projectStateService.setDocumentRole).not.toHaveBeenCalled();
     });
+
+    it('detects conversations from the live element', () => {
+      expect(component.isConversationNode(doc)).toBe(false);
+      elementsSignal.set([{ ...doc, metadata: { format: 'conversation' } }]);
+      expect(component.isConversationNode({ ...doc, metadata: {} })).toBe(true);
+    });
+
+    it('switches format via project state, for prose documents only', () => {
+      component.onSwitchFormat(doc, 'conversation');
+      expect(projectStateService.setDocumentFormat).toHaveBeenCalledWith(
+        'doc-1',
+        'conversation'
+      );
+      component.onSwitchFormat({ ...doc, type: ElementType.Canvas }, 'prose');
+      expect(projectStateService.setDocumentFormat).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('Context Menu', () => {
@@ -1389,6 +1406,20 @@ describe('ProjectTreeComponent', () => {
       component.onOpenDocument(mockDto);
 
       expect(emitted).toHaveLength(0);
+    });
+
+    it('should open on click where the browser has no TouchEvent (desktop Firefox)', () => {
+      vi.stubGlobal('TouchEvent', undefined);
+      try {
+        const emitted: unknown[] = [];
+        component.documentOpened.subscribe(e => emitted.push(e));
+        component.onNodeDown(mockDto, new MouseEvent('mousedown'));
+        component.onOpenDocument(mockDto);
+
+        expect(emitted).toHaveLength(1);
+      } finally {
+        vi.unstubAllGlobals();
+      }
     });
 
     it('should suppress open after scroll swipe (touch moved > 10px)', () => {

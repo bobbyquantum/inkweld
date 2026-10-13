@@ -1,0 +1,38 @@
+[
+  {
+    "id": "et-cast-mara-lead",
+    "elementId": "cast-mara",
+    "tagId": "lead",
+    "createdAt": "2026-10-13T00:00:00.000Z"
+  },
+  {
+    "id": "et-cast-tomas-lead",
+    "elementId": "cast-tomas",
+    "tagId": "lead",
+    "createdAt": "2026-10-13T00:00:00.000Z"
+  },
+  {
+    "id": "et-prop-bulb-hero-prop",
+    "elementId": "prop-bulb",
+    "tagId": "hero-prop",
+    "createdAt": "2026-10-13T00:00:00.000Z"
+  },
+  {
+    "id": "et-prop-logbook-hero-prop",
+    "elementId": "prop-logbook",
+    "tagId": "hero-prop",
+    "createdAt": "2026-10-13T00:00:00.000Z"
+  },
+  {
+    "id": "et-scene-2-night-shoot",
+    "elementId": "scene-2",
+    "tagId": "night-shoot",
+    "createdAt": "2026-10-13T00:00:00.000Z"
+  },
+  {
+    "id": "et-scene-3-night-shoot",
+    "elementId": "scene-3",
+    "tagId": "night-shoot",
+    "createdAt": "2026-10-13T00:00:00.000Z"
+  }
+]

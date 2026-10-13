@@ -7,6 +7,7 @@ import { IndexeddbPersistence, storeState } from 'y-indexeddb';
 import * as Y from 'yjs';
 
 import { StorageContextService } from '../core/storage-context.service';
+import { CLOUD_SYNC_ORIGIN } from './cloud-sync-origin';
 
 /** A Yjs doc handed out for syncing, with the means to give it back */
 export interface AcquiredDoc {
@@ -31,6 +32,11 @@ export interface AcquiredDoc {
  * Headless loading of a doc that does not exist yet creates its IndexedDB
  * database, so callers should check {@link exists} first when they only want
  * to read.
+ *
+ * An editor can open the document while a headless copy is held. It reads
+ * IndexedDB before the headless copy is flushed, so it would miss whatever
+ * was pulled; releasing a headless copy therefore merges it into the live doc
+ * when one has appeared.
  */
 @Injectable({
   providedIn: 'root',
@@ -78,13 +84,17 @@ export class YDocAccessService {
       const doc = await this.localElements.getYjsDocument(username, slug);
       return this.liveDoc(doc);
     }
-    return this.headless(this.elementsDocId(username, slug));
+    return this.headless(this.elementsDocId(username, slug), () =>
+      this.localElements.getOpenYjsDocument(username, slug)
+    );
   }
 
   acquireDocument(docId: string): Promise<AcquiredDoc> {
     const live = this.liveDocs.getConnectedYDoc(docId);
     if (live) return Promise.resolve(this.liveDoc(live));
-    return this.headless(this.storageContext.prefixDocumentId(docId));
+    return this.headless(this.storageContext.prefixDocumentId(docId), () =>
+      this.liveDocs.getConnectedYDoc(docId)
+    );
   }
 
   acquireWorldbuilding(
@@ -95,7 +105,9 @@ export class YDocAccessService {
   ): Promise<AcquiredDoc> {
     const live = this.worldbuilding.getYDoc(elementId, username, slug);
     if (live) return Promise.resolve(this.liveDoc(live));
-    return this.headless(this.storageContext.prefixDocumentId(docId));
+    return this.headless(this.storageContext.prefixDocumentId(docId), () =>
+      this.worldbuilding.getYDoc(elementId, username, slug)
+    );
   }
 
   private liveDoc(doc: Y.Doc): AcquiredDoc {
@@ -107,7 +119,10 @@ export class YDocAccessService {
     };
   }
 
-  private async headless(docId: string): Promise<AcquiredDoc> {
+  private async headless(
+    docId: string,
+    findLive: () => Y.Doc | null
+  ): Promise<AcquiredDoc> {
     const doc = new Y.Doc();
     const provider = new IndexeddbPersistence(docId, doc);
     await provider.whenSynced;
@@ -118,6 +133,10 @@ export class YDocAccessService {
         await storeState(provider, true);
       },
       release: async () => {
+        const live = findLive();
+        if (live) {
+          Y.applyUpdate(live, Y.encodeStateAsUpdate(doc), CLOUD_SYNC_ORIGIN);
+        }
         await provider.destroy();
         doc.destroy();
       },

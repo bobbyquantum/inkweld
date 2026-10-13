@@ -28,6 +28,7 @@ import { LocalStorageService } from '../local/local-storage.service';
 import { DocumentService } from '../project/document.service';
 import { ProjectStateService } from '../project/project-state.service';
 import { chapterHeadingFor } from './chapter-heading';
+import { flattenConversation } from './conversation-publish';
 import { applyMarks, TYPST_MARK_TAGS } from './publish-marks-helper';
 import { PublishTypstEmitterService } from './publish-typst-emitter.service';
 import { smartenDocument, typographyLanguageFor } from './typography';
@@ -757,7 +758,10 @@ export class PdfGeneratorService {
     const fullDocId = this.getFullDocumentId(elementId);
 
     try {
-      const content = await this.documentService.getDocumentContent(fullDocId);
+      const content = flattenConversation(
+        await this.documentService.getDocumentContent(fullDocId),
+        id => this.projectStateService.elements().find(e => e.id === id)?.name
+      );
       if (!content) {
         ctx.markup += '#emph[Document is empty]\n\n';
         return;

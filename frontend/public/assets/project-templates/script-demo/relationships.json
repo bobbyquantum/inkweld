@@ -1,0 +1,148 @@
+[
+  {
+    "id": "rel-mara-tomas",
+    "sourceElementId": "cast-mara",
+    "targetElementId": "cast-tomas",
+    "relationshipTypeId": "sibling",
+    "createdAt": "2026-10-13T00:00:00.000Z",
+    "updatedAt": "2026-10-13T00:00:00.000Z",
+    "note": "Tomas came home to fix the wiring; Mara never left."
+  },
+  {
+    "id": "rel-ewan-iona",
+    "sourceElementId": "cast-ewan",
+    "targetElementId": "cast-iona",
+    "relationshipTypeId": "parent",
+    "createdAt": "2026-10-13T00:00:00.000Z",
+    "updatedAt": "2026-10-13T00:00:00.000Z"
+  },
+  {
+    "id": "rel-mara-lantern",
+    "sourceElementId": "cast-mara",
+    "targetElementId": "prop-lantern",
+    "relationshipTypeId": "owns",
+    "createdAt": "2026-10-13T00:00:00.000Z",
+    "updatedAt": "2026-10-13T00:00:00.000Z"
+  },
+  {
+    "id": "rel-tomas-logbook",
+    "sourceElementId": "cast-tomas",
+    "targetElementId": "prop-logbook",
+    "relationshipTypeId": "owns",
+    "createdAt": "2026-10-13T00:00:00.000Z",
+    "updatedAt": "2026-10-13T00:00:00.000Z",
+    "note": "Their father's; Tomas keeps it."
+  },
+  {
+    "id": "rel-scene-1-pov",
+    "sourceElementId": "scene-1",
+    "targetElementId": "cast-mara",
+    "relationshipTypeId": "scene-pov",
+    "createdAt": "2026-10-13T00:00:00.000Z",
+    "updatedAt": "2026-10-13T00:00:00.000Z"
+  },
+  {
+    "id": "rel-scene-1-set",
+    "sourceElementId": "scene-1",
+    "targetElementId": "set-cliff",
+    "relationshipTypeId": "scene-location",
+    "createdAt": "2026-10-13T00:00:00.000Z",
+    "updatedAt": "2026-10-13T00:00:00.000Z"
+  },
+  {
+    "id": "rel-scene-2-pov",
+    "sourceElementId": "scene-2",
+    "targetElementId": "cast-mara",
+    "relationshipTypeId": "scene-pov",
+    "createdAt": "2026-10-13T00:00:00.000Z",
+    "updatedAt": "2026-10-13T00:00:00.000Z"
+  },
+  {
+    "id": "rel-scene-2-set",
+    "sourceElementId": "scene-2",
+    "targetElementId": "set-kitchen",
+    "relationshipTypeId": "scene-location",
+    "createdAt": "2026-10-13T00:00:00.000Z",
+    "updatedAt": "2026-10-13T00:00:00.000Z"
+  },
+  {
+    "id": "rel-scene-3-pov",
+    "sourceElementId": "scene-3",
+    "targetElementId": "cast-tomas",
+    "relationshipTypeId": "scene-pov",
+    "createdAt": "2026-10-13T00:00:00.000Z",
+    "updatedAt": "2026-10-13T00:00:00.000Z"
+  },
+  {
+    "id": "rel-scene-3-set",
+    "sourceElementId": "scene-3",
+    "targetElementId": "set-lamp",
+    "relationshipTypeId": "scene-location",
+    "createdAt": "2026-10-13T00:00:00.000Z",
+    "updatedAt": "2026-10-13T00:00:00.000Z"
+  },
+  {
+    "id": "rel-scene-1-radio",
+    "sourceElementId": "scene-1",
+    "targetElementId": "prop-radio",
+    "relationshipTypeId": "uses-prop",
+    "createdAt": "2026-10-13T00:00:00.000Z",
+    "updatedAt": "2026-10-13T00:00:00.000Z"
+  },
+  {
+    "id": "rel-scene-1-lantern",
+    "sourceElementId": "scene-1",
+    "targetElementId": "prop-lantern",
+    "relationshipTypeId": "uses-prop",
+    "createdAt": "2026-10-13T00:00:00.000Z",
+    "updatedAt": "2026-10-13T00:00:00.000Z"
+  },
+  {
+    "id": "rel-scene-2-bulb",
+    "sourceElementId": "scene-2",
+    "targetElementId": "prop-bulb",
+    "relationshipTypeId": "uses-prop",
+    "createdAt": "2026-10-13T00:00:00.000Z",
+    "updatedAt": "2026-10-13T00:00:00.000Z"
+  },
+  {
+    "id": "rel-scene-2-logbook",
+    "sourceElementId": "scene-2",
+    "targetElementId": "prop-logbook",
+    "relationshipTypeId": "uses-prop",
+    "createdAt": "2026-10-13T00:00:00.000Z",
+    "updatedAt": "2026-10-13T00:00:00.000Z"
+  },
+  {
+    "id": "rel-scene-2-lantern",
+    "sourceElementId": "scene-2",
+    "targetElementId": "prop-lantern",
+    "relationshipTypeId": "uses-prop",
+    "createdAt": "2026-10-13T00:00:00.000Z",
+    "updatedAt": "2026-10-13T00:00:00.000Z"
+  },
+  {
+    "id": "rel-scene-3-lantern",
+    "sourceElementId": "scene-3",
+    "targetElementId": "prop-lantern",
+    "relationshipTypeId": "uses-prop",
+    "createdAt": "2026-10-13T00:00:00.000Z",
+    "updatedAt": "2026-10-13T00:00:00.000Z"
+  },
+  {
+    "id": "rel-scene-3-logbook",
+    "sourceElementId": "scene-3",
+    "targetElementId": "prop-logbook",
+    "relationshipTypeId": "uses-prop",
+    "createdAt": "2026-10-13T00:00:00.000Z",
+    "updatedAt": "2026-10-13T00:00:00.000Z"
+  },
+  {
+    "id": "rel-scene-3-radio",
+    "sourceElementId": "scene-3",
+    "targetElementId": "prop-radio",
+    "relationshipTypeId": "uses-prop",
+    "createdAt": "2026-10-13T00:00:00.000Z",
+    "updatedAt": "2026-10-13T00:00:00.000Z"
+  }
+]

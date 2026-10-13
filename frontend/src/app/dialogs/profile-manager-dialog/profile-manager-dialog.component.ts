@@ -51,7 +51,7 @@ import {
   MigrationStatus,
 } from '@services/local/migration.service';
 import { appUrl } from '@utils/app-base';
-import { stripTrailingSlashes } from '@utils/string-utils';
+import { normalizeServerUrl, stripTrailingSlashes } from '@utils/string-utils';
 import { firstValueFrom } from 'rxjs';
 
 import {
@@ -284,34 +284,6 @@ export class ProfileManagerDialogComponent {
   private migrationUsername = '';
 
   /**
-   * Normalize a server URL by ensuring it has a protocol prefix.
-   * If no protocol is specified, defaults to https:// for security.
-   * @param url - The URL to normalize
-   * @returns The normalized URL with protocol
-   */
-  private normalizeServerUrl(url: string): string {
-    const trimmed = stripTrailingSlashes(url.trim());
-    if (!trimmed) return trimmed;
-
-    // If URL already has a protocol, return as-is
-    if (/^https?:\/\//i.test(trimmed)) {
-      return trimmed;
-    }
-
-    // For localhost, default to http (common dev scenario)
-    if (
-      trimmed.startsWith('localhost') ||
-      trimmed.startsWith('127.0.0.1') ||
-      /^localhost:\d+/.exec(trimmed)
-    ) {
-      return `http://${trimmed}`;
-    }
-
-    // For everything else, default to https
-    return `https://${trimmed}`;
-  }
-
-  /**
    * Check if registration form is valid (for button disabled state)
    */
   protected isRegistrationFormValid(): boolean {
@@ -427,7 +399,7 @@ export class ProfileManagerDialogComponent {
       return;
     }
 
-    const url = this.normalizeServerUrl(rawUrl);
+    const url = normalizeServerUrl(rawUrl);
     this.isConnecting.set(true);
     this.connectionError.set(null);
     this.connectionSuccess.set(false);
@@ -491,7 +463,7 @@ export class ProfileManagerDialogComponent {
     }
 
     // Normalize URL to ensure it has a protocol
-    const url = this.normalizeServerUrl(rawUrl);
+    const url = normalizeServerUrl(rawUrl);
 
     // Always show the auth form - user needs to authenticate on the new server
     // The migration view handles both auth and optional project migration

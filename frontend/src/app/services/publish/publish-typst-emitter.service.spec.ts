@@ -217,6 +217,17 @@ describe('PublishTypstEmitterService', () => {
       });
       expect(out).toContain('align(right)');
       expect(out).toContain('upper(');
+      // The call inside align's content block must be a code expression,
+      // or Typst prints "upper([...])" as text.
+      expect(out).toMatch(/align\(right\)\[#upper\(\[#text\(/);
+    });
+
+    it('embeds an un-transformed aligned title as code', () => {
+      const out = emit(s => {
+        s.structure.chapterTitle.text.align = 'center';
+        s.structure.chapterTitle.text.transform = undefined;
+      });
+      expect(out).toMatch(/align\(center\)\[#\[#text\(/);
     });
 
     it('handles uppercase + non-left alignment on the number prefix', () => {

@@ -39,6 +39,7 @@ import { DefaultCoverRendererService } from '../project/default-cover-renderer.s
 import { DocumentService } from '../project/document.service';
 import { ProjectStateService } from '../project/project-state.service';
 import { chapterHeadingFor, withChapterHeading } from './chapter-heading';
+import { flattenConversation } from './conversation-publish';
 import {
   buildNavTree,
   coreImageExtension,
@@ -913,7 +914,10 @@ export class EpubGeneratorService {
     const fullDocId = this.getFullDocumentId(elementId);
 
     try {
-      const content = await this.documentService.getDocumentContent(fullDocId);
+      const content = flattenConversation(
+        await this.documentService.getDocumentContent(fullDocId),
+        id => this.projectStateService.elements().find(e => e.id === id)?.name
+      );
       if (!content) {
         this.logger.warn(
           'EpubGenerator',

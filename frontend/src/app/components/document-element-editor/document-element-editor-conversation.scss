@@ -1,0 +1,369 @@
+// Conversation styles: speech bubbles, descriptions, scene breaks, the
+// block handle and the script view.
+//
+// Split out of `document-element-editor.component.scss` (style budget) like
+// the table styles. Speech bubbles render in any document; descriptions and
+// scene breaks only take the conversation look in `.conversation-mode`,
+// which the conversation plugin puts on the editable element.
+
+@use '../../../themes/speaker-colors' as speakerColors;
+
+::ng-deep ngx-editor {
+  @include speakerColors.palette-light;
+
+  .ProseMirror {
+    // ── Speech bubbles ────────────────────────────────────────────────
+    .speech {
+      position: relative;
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+      margin: 2px 0;
+
+      &.speech--first {
+        margin-top: 14px;
+      }
+
+      &.is-dragging {
+        opacity: 0.4;
+      }
+    }
+
+    .speech__avatar {
+      flex: none;
+      width: 32px;
+      height: 32px;
+      padding: 0;
+      border: 0;
+      border-radius: 50%;
+      overflow: hidden;
+      visibility: hidden;
+      background: var(--speaker-soft, var(--sys-surface-container-high));
+      color: var(--speaker-ink, var(--sys-on-surface));
+      font: 500 12px / 1 var(--mat-ref-typeface-plain, sans-serif);
+      cursor: pointer;
+
+      img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+
+      &:focus-visible {
+        outline: 2px solid var(--speaker-strong);
+        outline-offset: 2px;
+      }
+    }
+
+    .speech--last .speech__avatar {
+      visibility: visible;
+    }
+
+    .speech__body {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      min-width: 0;
+      max-width: min(78%, 560px);
+    }
+
+    .speech__name {
+      display: none;
+      margin: 0 0 3px 12px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--speaker-strong, var(--sys-on-surface-variant));
+      user-select: none;
+    }
+
+    .speech--first .speech__name {
+      display: block;
+    }
+
+    .speech__extension {
+      font-weight: 400;
+      font-style: italic;
+    }
+
+    .speech__extension--script {
+      display: none;
+    }
+
+    .speech__bubble {
+      position: relative;
+      min-width: 56px;
+      padding: 8px 14px;
+      border-radius: 18px;
+      background: var(--speaker-bubble, var(--sys-surface-container));
+      color: var(--speaker-ink, var(--sys-on-surface));
+      line-height: 1.45;
+      overflow-wrap: anywhere;
+
+      p {
+        margin: 0;
+      }
+    }
+
+    .speech--last .speech__bubble {
+      border-bottom-left-radius: 4px;
+    }
+
+    .speech:focus-within .speech__bubble {
+      box-shadow: 0 0 0 2px var(--speaker-strong, var(--sys-primary));
+    }
+
+    .speech--offscreen .speech__bubble {
+      background: transparent;
+      border: 1.5px dashed var(--speaker-strong, var(--sys-outline));
+      color: var(--sys-on-surface);
+    }
+
+    .speech-parenthetical {
+      margin-bottom: 2px;
+      font-size: 0.85em;
+      font-style: italic;
+      color: var(--speaker-strong, var(--sys-on-surface-variant));
+    }
+
+    .speech-parenthetical.is-empty::before,
+    .speech-dialogue.is-empty::before {
+      content: attr(data-placeholder);
+      float: left;
+      height: 0;
+      pointer-events: none;
+      opacity: 0.6;
+    }
+
+    // Sits just after the bubble; hidden (not removed) so hovering a line
+    // never shifts the layout.
+    .speech__tools {
+      display: flex;
+      flex: none;
+      align-self: center;
+      gap: 2px;
+      visibility: hidden;
+    }
+
+    .speech:hover .speech__tools,
+    .speech:focus-within .speech__tools {
+      visibility: visible;
+    }
+
+    &[contenteditable='false'] .speech__tools {
+      display: none;
+    }
+
+    .speech__tool {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 26px;
+      height: 26px;
+      padding: 0;
+      border: 0;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--sys-on-surface-variant);
+      cursor: pointer;
+
+      .material-icons {
+        font-size: 17px;
+      }
+
+      &:hover {
+        background: var(--sys-surface-container-high);
+        color: var(--sys-on-surface);
+      }
+    }
+
+    // ── Conversation mode: descriptions, breaks, gutter ───────────────
+    &.conversation-mode {
+      > p {
+        margin: 14px 40px;
+        text-align: center;
+        font-family: var(
+          --editor-voice-font,
+          Georgia,
+          'Times New Roman',
+          serif
+        );
+        color: var(--sys-on-surface-variant);
+        line-height: 1.6;
+      }
+
+      // The empty-document prompt is absolutely positioned by ngx-editor,
+      // so it cannot be centred: keep it at the start of the line.
+      > p.NgxEditor__Placeholder:only-child {
+        margin: 0;
+        text-align: left;
+      }
+
+      > hr {
+        margin: 22px 0;
+        border: 0;
+        border-top: 1px solid var(--sys-outline-variant);
+      }
+    }
+  }
+
+  // ── Block handle (lives beside the editable element) ─────────────────
+  .block-handle-host {
+    position: relative;
+  }
+
+  .block-handle {
+    position: absolute;
+    left: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    z-index: 3;
+
+    &[hidden] {
+      display: none;
+    }
+  }
+
+  .block-handle__button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 20px;
+    padding: 0;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--sys-on-surface-variant);
+    opacity: 0.7;
+    cursor: pointer;
+
+    .material-icons {
+      font-size: 16px;
+    }
+
+    &:hover {
+      opacity: 1;
+      background: var(--sys-surface-container-high);
+    }
+  }
+
+  .block-handle__grip {
+    height: 24px;
+    cursor: grab;
+
+    .material-icons {
+      font-size: 18px;
+    }
+  }
+
+  .block-drop-line {
+    position: absolute;
+    left: 52px;
+    right: 16px;
+    height: 2px;
+    border-radius: 1px;
+    background: var(--sys-primary);
+    pointer-events: none;
+    z-index: 3;
+
+    &[hidden] {
+      display: none;
+    }
+  }
+}
+
+// Room for the block handle. Must out-rank the editor's own content
+// padding in `document-element-editor.component.scss`.
+.editor-container ::ng-deep ngx-editor .NgxEditor .NgxEditor__Content {
+  &.conversation-mode {
+    padding-left: 52px;
+  }
+}
+
+// ── Dark theme speaker colours ───────────────────────────────────────────
+:host-context(.dark-theme) ::ng-deep ngx-editor {
+  @include speakerColors.palette-dark;
+}
+
+// ── Script view: the same lines laid out as a screenplay page ────────────
+.conversation-script ::ng-deep ngx-editor .ProseMirror {
+  font-family: 'Courier Prime', 'Courier New', Courier, monospace;
+  font-size: 15px;
+
+  .speech {
+    display: block;
+    margin: 14px 0 0;
+  }
+
+  .speech__avatar,
+  .speech__tools,
+  .speech__extension--chat {
+    display: none;
+  }
+
+  .speech__extension--script {
+    display: inline;
+    font-style: normal;
+  }
+
+  .speech__body {
+    display: block;
+    max-width: none;
+  }
+
+  .speech__name {
+    display: block;
+    margin: 0 0 0 38%;
+    color: inherit;
+    font-size: inherit;
+    font-weight: 400;
+    text-transform: uppercase;
+  }
+
+  .speech__bubble,
+  .speech--offscreen .speech__bubble {
+    min-width: 0;
+    margin: 0 16% 0 22%;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    color: inherit;
+  }
+
+  .speech-parenthetical {
+    margin-left: 10%;
+    font-size: inherit;
+    font-style: normal;
+    color: inherit;
+
+    &:not(.is-empty)::before {
+      content: '(';
+    }
+
+    &:not(.is-empty)::after {
+      content: ')';
+    }
+  }
+
+  &.conversation-mode {
+    > p {
+      margin: 14px 0;
+      text-align: left;
+      font-family: inherit;
+      color: inherit;
+    }
+
+    > hr {
+      border: 0;
+      text-align: right;
+
+      &::after {
+        content: 'CUT TO:';
+      }
+    }
+  }
+}

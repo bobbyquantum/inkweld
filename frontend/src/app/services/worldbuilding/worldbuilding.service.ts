@@ -16,6 +16,7 @@ import * as Y from 'yjs';
 
 import { type ElementTypeSchema } from '../../models/schema-types';
 import { AuthTokenService } from '../auth/auth-token.service';
+import { CLOUD_SYNC_ORIGIN } from '../cloud-sync/cloud-sync-origin';
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
 import { StorageContextService } from '../core/storage-context.service';
@@ -309,10 +310,14 @@ export class WorldbuildingService {
 
     // Track local edits for auto-snapshots (same pattern as DocumentService)
     ydoc.on('update', (_update: Uint8Array, origin: unknown) => {
-      // Skip updates from IndexedDB (loading persisted state)
-      // or from the WebSocket provider (remote edits).
-      // Everything else is a local edit.
-      if (origin !== indexeddbProvider && origin !== connection.provider) {
+      // Skip updates from IndexedDB (loading persisted state), from the
+      // WebSocket provider (remote edits) or from Cloud Sync (another
+      // device's edit, already in the cloud). Everything else is a local edit.
+      if (
+        origin !== indexeddbProvider &&
+        origin !== connection.provider &&
+        origin !== CLOUD_SYNC_ORIGIN
+      ) {
         this.localEdit$.next(connectionKey);
       }
     });

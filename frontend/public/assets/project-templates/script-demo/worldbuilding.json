@@ -1,0 +1,193 @@
+[
+  {
+    "elementId": "cast-mara",
+    "schemaId": "cast-member-v1",
+    "data": {
+      "description": "Keeper of a lighthouse the board decommissioned six years ago. She never stopped climbing the stairs.",
+      "fullName": "Mara Quinn",
+      "roleType": "Lead",
+      "age": "40s",
+      "summary": "Keeper of a lighthouse that officially no longer exists. Stubborn, practical, and more afraid of the dark than she lets on.",
+      "want": "To keep the light burning the way her father did.",
+      "obstacle": "The tower is failing, the board has written it off, and her brother wants to leave the island.",
+      "arc": "Learns that keeping the light was never something she had to do alone.",
+      "voice.manner": "Short sentences. Answers questions with questions. Never says 'I'm sorry'.",
+      "voice.lines": ["Where else would I be?", "Then we'd better take turns."],
+      "voice.secrets": ["She has been paying for the bulbs herself."],
+      "casting.status": "Auditioning",
+      "casting.notes": "Needs to carry long silences. Physically comfortable with heights and weather.",
+      "casting.wardrobe": [
+        "Yellow oilskin, faded and patched",
+        "Wool jumper, darned at the elbows"
+      ]
+    }
+  },
+  {
+    "elementId": "cast-tomas",
+    "schemaId": "cast-member-v1",
+    "data": {
+      "description": "Mara's younger brother. An electrician who came home to fix the wiring and never left.",
+      "fullName": "Tomas Quinn",
+      "roleType": "Lead",
+      "age": "30s",
+      "summary": "Mara's younger brother, an electrician who came back to fix the lighthouse wiring and stayed out of guilt.",
+      "want": "To leave the island without feeling he abandoned her.",
+      "obstacle": "Every time he gets close to going, the tower needs him again.",
+      "arc": "Stops trying to fix the tower and starts sharing the work of keeping it.",
+      "voice.manner": "Talks in specifics and numbers when he is upset. Jokes to change the subject.",
+      "voice.lines": ["I changed it. Twice.", "Then we light it by hand."],
+      "casting.status": "Not started",
+      "casting.wardrobe": [
+        "Work trousers with a tool loop",
+        "Head torch, always slightly askew"
+      ]
+    }
+  },
+  {
+    "elementId": "cast-ewan",
+    "schemaId": "cast-member-v1",
+    "data": {
+      "description": "The island's harbourmaster, heard only over the radio. Iona's father.",
+      "fullName": "Ewan Reid",
+      "roleType": "Supporting",
+      "age": "50s",
+      "summary": "Harbourmaster and Iona's father. Calm on the radio, which is how you know it's bad.",
+      "want": "To get his daughter home.",
+      "voice.manner": "Radio procedure even when he is frightened. Calls Mara by her full name when it matters.",
+      "casting.notes": "Voice only in this draft: record wild lines on set for timing."
+    }
+  },
+  {
+    "elementId": "cast-iona",
+    "schemaId": "cast-member-v1",
+    "data": {
+      "description": "Ewan's daughter, caught out past the point when the weather turns.",
+      "fullName": "Iona Reid",
+      "roleType": "Voice only",
+      "age": "17",
+      "summary": "Ewan's daughter, out past the point in a small boat when the front comes in. Heard, never seen.",
+      "want": "To see the light.",
+      "casting.notes": "Recorded in a moving car with the window down for the radio break-up."
+    }
+  },
+  {
+    "elementId": "set-cliff",
+    "schemaId": "set-v1",
+    "data": {
+      "look": "A narrow, rutted path along the cliff edge, the tower ahead and the sea a long way below.",
+      "description": "A narrow path along the cliff edge up to the lighthouse.",
+      "name": "Cliff Path",
+      "interior": "EXT",
+      "timeOfDay": "Dusk",
+      "atmosphere": "Wind across the grass, gulls, the sea far below.",
+      "dressing.items": [
+        "Rope handrail on iron posts",
+        "A bench with a memorial plaque"
+      ],
+      "production.location": "Coastal path above the north beach",
+      "production.access": "Landowner permission needed; no vehicles past the gate."
+    }
+  },
+  {
+    "elementId": "set-kitchen",
+    "schemaId": "set-v1",
+    "data": {
+      "look": "Low ceiling, a range cooker, oilskins dripping by the door. One lamp over a scrubbed table.",
+      "description": "The keepers' kitchen at the foot of the tower, warm and cluttered.",
+      "name": "Lighthouse Kitchen",
+      "interior": "INT",
+      "timeOfDay": "Night",
+      "atmosphere": "Rain on the window, the kettle ticking as it cools.",
+      "dressing.items": [
+        "Range cooker",
+        "Tide tables pinned to the wall",
+        "A shelf of logbooks"
+      ],
+      "dressing.lighting": "Practical lamp over the table; everything else falls off into dark."
+    }
+  },
+  {
+    "elementId": "set-lamp",
+    "schemaId": "set-v1",
+    "data": {
+      "look": "Glass on every side, the Fresnel lens filling the room like a beehive made of light.",
+      "description": "The glass room at the top of the tower, dominated by the great lens.",
+      "name": "Lamp Room",
+      "interior": "INT",
+      "timeOfDay": "Continuous",
+      "atmosphere": "Wind howling round the gallery, the lens mechanism creaking.",
+      "dressing.items": [
+        "Fresnel lens",
+        "Clockwork turning crank",
+        "Old lantern hook"
+      ],
+      "production.notes": "Build the lens as a partial set piece; the beam is a VFX pass."
+    }
+  },
+  {
+    "elementId": "set-harbour",
+    "schemaId": "set-v1",
+    "data": {
+      "look": "A portacabin office: charts, a kettle, a radio that is never switched off.",
+      "description": "Ewan's harbour office. Off screen in this draft; his lines come over the radio.",
+      "name": "Harbour Office",
+      "interior": "INT",
+      "timeOfDay": "Night"
+    }
+  },
+  {
+    "elementId": "prop-bulb",
+    "schemaId": "prop-v1",
+    "data": {
+      "details": "Hand-blown 1000W lamp bulb, clear glass, filament snapped.",
+      "description": "A large burnt-out lamp bulb, blackened inside.",
+      "name": "Dead Bulb",
+      "source": "Hire",
+      "quantity": 2,
+      "storyPurpose": "Tomas's evidence that he has done everything he can.",
+      "continuity.notes": [
+        "Sits on the kitchen table, centre, for the whole of scene 2"
+      ],
+      "continuity.hero": true
+    }
+  },
+  {
+    "elementId": "prop-logbook",
+    "schemaId": "prop-v1",
+    "data": {
+      "details": "Leather-bound, salt-stained, pages from 1971 to 2019. Entries in two hands.",
+      "description": "A swollen leather logbook in their father's handwriting.",
+      "name": "Keeper's Logbook",
+      "source": "Build",
+      "quantity": 1,
+      "storyPurpose": "Proves the lamp has been lit by hand before, and that it held.",
+      "continuity.notes": ["Open to the 1987 entry from scene 2 onward"],
+      "continuity.hero": true
+    }
+  },
+  {
+    "elementId": "prop-radio",
+    "schemaId": "prop-v1",
+    "data": {
+      "details": "Yellow waterproof handheld, scuffed, aerial bent.",
+      "description": "A battered handheld VHF set on channel sixteen.",
+      "name": "VHF Radio",
+      "source": "Hire",
+      "quantity": 2,
+      "storyPurpose": "The only line to the harbour and to Iona."
+    }
+  },
+  {
+    "elementId": "prop-lantern",
+    "schemaId": "prop-v1",
+    "data": {
+      "details": "Brass and glass hurricane lantern, practical flame.",
+      "description": "A paraffin storm lantern, the kind that never quite goes out.",
+      "name": "Storm Lantern",
+      "source": "Practical",
+      "quantity": 1,
+      "storyPurpose": "Becomes the light at the heart of the lens in scene 3.",
+      "continuity.notes": ["Lit in every shot after the cliff path"]
+    }
+  }
+]

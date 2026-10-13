@@ -16,6 +16,13 @@
       "folder": "worldbuilding-demo"
     },
     {
+      "id": "script-demo",
+      "name": "Script (Demo)",
+      "description": "A short film written as conversations, with cast, sets and props templates and a script ready to publish as a PDF.",
+      "icon": "theater_comedy",
+      "folder": "script-demo"
+    },
+    {
       "id": "empty",
       "name": "Empty Project",
       "description": "A blank slate with just a README to get you started.",

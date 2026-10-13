@@ -1,0 +1,94 @@
+<div
+  class="conversation-bar"
+  role="toolbar"
+  [attr.aria-label]="'editor.conversation.barLabel' | transloco"
+  data-testid="conversation-bar">
+  <div class="conversation-bar__row">
+    @for (member of cast(); track member.key) {
+      <button
+        type="button"
+        class="chip speaker-chip speech--c{{ member.color }}"
+        [class.is-active]="member.key === activeKey()"
+        [disabled]="disabled()"
+        [matTooltip]="
+          'editor.conversation.addLineFor' | transloco: { name: member.name }
+        "
+        matTooltipShowDelay="600"
+        (mousedown)="$event.preventDefault()"
+        (click)="addLineFor(member)"
+        data-testid="conversation-speaker-chip">
+        <span class="chip__avatar" aria-hidden="true">
+          @if (avatars()[member.key]; as url) {
+            <img [src]="url" alt="" />
+          } @else {
+            {{ member.initials }}
+          }
+        </span>
+        <span class="chip__label">{{ member.name }}</span>
+      </button>
+    }
+    <button
+      type="button"
+      class="chip"
+      [disabled]="disabled()"
+      (mousedown)="$event.preventDefault()"
+      (click)="someoneNew($event)"
+      data-testid="conversation-someone-new">
+      <mat-icon aria-hidden="true">person_add</mat-icon>
+      <span class="chip__label">{{
+        'editor.conversation.someoneNew' | transloco
+      }}</span>
+    </button>
+    <button
+      type="button"
+      class="chip"
+      [disabled]="disabled()"
+      (mousedown)="$event.preventDefault()"
+      (click)="addDescription()"
+      data-testid="conversation-add-description">
+      <mat-icon aria-hidden="true">notes</mat-icon>
+      <span class="chip__label">{{
+        'editor.conversation.description' | transloco
+      }}</span>
+    </button>
+    <button
+      type="button"
+      class="chip"
+      [disabled]="disabled()"
+      (mousedown)="$event.preventDefault()"
+      (click)="addSceneBreak()"
+      data-testid="conversation-add-break">
+      <mat-icon aria-hidden="true">horizontal_rule</mat-icon>
+      <span class="chip__label">{{
+        'editor.conversation.sceneBreak' | transloco
+      }}</span>
+    </button>
+    <span class="conversation-bar__spacer"></span>
+    <fieldset class="view-toggle">
+      <legend class="sr-only">
+        {{ 'editor.conversation.view' | transloco }}
+      </legend>
+      <button
+        type="button"
+        [class.is-on]="!scriptView()"
+        [attr.aria-pressed]="!scriptView()"
+        (click)="scriptView.set(false)"
+        data-testid="conversation-view-chat">
+        {{ 'editor.conversation.chatView' | transloco }}
+      </button>
+      <button
+        type="button"
+        [class.is-on]="scriptView()"
+        [attr.aria-pressed]="scriptView()"
+        (click)="scriptView.set(true)"
+        data-testid="conversation-view-script">
+        {{ 'editor.conversation.scriptView' | transloco }}
+      </button>
+    </fieldset>
+  </div>
+  @if (!disabled()) {
+    <p class="conversation-bar__hint">
+      {{ 'editor.conversation.hint' | transloco }}
+    </p>
+  }
+</div>

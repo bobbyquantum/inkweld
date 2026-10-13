@@ -1,0 +1,23 @@
+[
+  {
+    "id": "lead",
+    "name": "Lead",
+    "icon": "star",
+    "color": "#FFB300",
+    "description": "Lead role"
+  },
+  {
+    "id": "hero-prop",
+    "name": "Hero prop",
+    "icon": "visibility",
+    "color": "#26A69A",
+    "description": "Seen in close-up; needs extra care"
+  },
+  {
+    "id": "night-shoot",
+    "name": "Night shoot",
+    "icon": "dark_mode",
+    "color": "#5C6BC0",
+    "description": "Scheduled for a night shoot"
+  }
+]
