@@ -116,6 +116,7 @@ describe('ProjectTreeComponent', () => {
       updateProject: vi.fn(),
       renameNode: vi.fn(),
       setDocumentRole: vi.fn(),
+      setDocumentFormat: vi.fn(),
       showNewElementDialog: vi.fn(),
       toggleExpanded: vi.fn(),
       moveElement: vi.fn().mockResolvedValue(undefined),
@@ -1174,6 +1175,22 @@ describe('ProjectTreeComponent', () => {
     it('ignores non-prose elements', () => {
       component.onConvertRole({ ...doc, type: ElementType.Canvas }, 'scene');
       expect(projectStateService.setDocumentRole).not.toHaveBeenCalled();
+    });
+
+    it('detects conversations from the live element', () => {
+      expect(component.isConversationNode(doc)).toBe(false);
+      elementsSignal.set([{ ...doc, metadata: { format: 'conversation' } }]);
+      expect(component.isConversationNode({ ...doc, metadata: {} })).toBe(true);
+    });
+
+    it('switches format via project state, for prose documents only', () => {
+      component.onSwitchFormat(doc, 'conversation');
+      expect(projectStateService.setDocumentFormat).toHaveBeenCalledWith(
+        'doc-1',
+        'conversation'
+      );
+      component.onSwitchFormat({ ...doc, type: ElementType.Canvas }, 'prose');
+      expect(projectStateService.setDocumentFormat).toHaveBeenCalledTimes(1);
     });
   });
 

@@ -35,8 +35,10 @@ import { TooltipAriaLabelDirective } from '@directives/tooltip-aria-label.direct
 import { type Element, ElementType } from '@inkweld/index';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import {
+  type DocumentFormat,
   type DocumentRole,
   getDocumentRole,
+  isConversation,
   isScene,
 } from '@models/scene-metadata';
 import { ProjectSearchService } from '@services/core/project-search.service';
@@ -723,6 +725,11 @@ export class ProjectTreeComponent implements OnDestroy {
     return isScene(this.liveElement(node).metadata);
   }
 
+  /** True when the document is written as a conversation (live, as above). */
+  public isConversationNode(node: ProjectElement): boolean {
+    return isConversation(this.liveElement(node).metadata);
+  }
+
   /** The current element for a (possibly stale) context-menu node. */
   private liveElement(node: ProjectElement): Element {
     return (
@@ -737,6 +744,15 @@ export class ProjectTreeComponent implements OnDestroy {
   public onConvertRole(node: ProjectElement, role: DocumentRole): void {
     if (!this.isProseDocument(node)) return;
     this.projectStateService.setDocumentRole(node.id, role);
+  }
+
+  /**
+   * Switch a prose document between prose and conversation. Content is
+   * untouched; only the editor that presents it changes.
+   */
+  public onSwitchFormat(node: ProjectElement, format: DocumentFormat): void {
+    if (!this.isProseDocument(node)) return;
+    this.projectStateService.setDocumentFormat(node.id, format);
   }
 
   /**

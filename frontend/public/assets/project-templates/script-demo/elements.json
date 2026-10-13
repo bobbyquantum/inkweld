@@ -1,0 +1,255 @@
+[
+  {
+    "id": "readme-001",
+    "name": "README",
+    "type": "ITEM",
+    "order": 0,
+    "level": 0,
+    "parentId": null,
+    "expandable": false,
+    "version": 0,
+    "metadata": {
+      "role": "note",
+      "icon": "sticky_note_2"
+    }
+  },
+  {
+    "id": "folder-script",
+    "name": "Last Light",
+    "type": "FOLDER",
+    "order": 1,
+    "level": 0,
+    "parentId": null,
+    "expandable": true,
+    "version": 0,
+    "metadata": {}
+  },
+  {
+    "id": "scene-1",
+    "name": "Cliff Path",
+    "type": "ITEM",
+    "order": 0,
+    "level": 1,
+    "parentId": "folder-script",
+    "expandable": false,
+    "version": 0,
+    "metadata": {
+      "role": "scene",
+      "format": "conversation",
+      "icon": "forum",
+      "status": "revised",
+      "synopsis": "Ewan radios Mara: his daughter is still at sea, and the lighthouse is dark."
+    }
+  },
+  {
+    "id": "scene-2",
+    "name": "The Kitchen",
+    "type": "ITEM",
+    "order": 1,
+    "level": 1,
+    "parentId": "folder-script",
+    "expandable": false,
+    "version": 0,
+    "metadata": {
+      "role": "scene",
+      "format": "conversation",
+      "icon": "forum",
+      "status": "draft",
+      "synopsis": "Tomas has done all he can with the wiring. Mara tells him who is out there."
+    }
+  },
+  {
+    "id": "scene-3",
+    "name": "The Lamp Room",
+    "type": "ITEM",
+    "order": 2,
+    "level": 1,
+    "parentId": "folder-script",
+    "expandable": false,
+    "version": 0,
+    "metadata": {
+      "role": "scene",
+      "format": "conversation",
+      "icon": "forum",
+      "status": "draft",
+      "synopsis": "The siblings light the lamp by hand, the way their father once did."
+    }
+  },
+  {
+    "id": "folder-cast",
+    "name": "Cast",
+    "type": "FOLDER",
+    "order": 2,
+    "level": 0,
+    "parentId": null,
+    "expandable": true,
+    "version": 0,
+    "metadata": {}
+  },
+  {
+    "id": "cast-mara",
+    "name": "Mara Quinn",
+    "type": "WORLDBUILDING",
+    "order": 0,
+    "level": 1,
+    "parentId": "folder-cast",
+    "expandable": false,
+    "version": 0,
+    "metadata": {},
+    "schemaId": "cast-member-v1"
+  },
+  {
+    "id": "cast-tomas",
+    "name": "Tomas Quinn",
+    "type": "WORLDBUILDING",
+    "order": 1,
+    "level": 1,
+    "parentId": "folder-cast",
+    "expandable": false,
+    "version": 0,
+    "metadata": {},
+    "schemaId": "cast-member-v1"
+  },
+  {
+    "id": "cast-ewan",
+    "name": "Ewan Reid",
+    "type": "WORLDBUILDING",
+    "order": 2,
+    "level": 1,
+    "parentId": "folder-cast",
+    "expandable": false,
+    "version": 0,
+    "metadata": {},
+    "schemaId": "cast-member-v1"
+  },
+  {
+    "id": "cast-iona",
+    "name": "Iona Reid",
+    "type": "WORLDBUILDING",
+    "order": 3,
+    "level": 1,
+    "parentId": "folder-cast",
+    "expandable": false,
+    "version": 0,
+    "metadata": {},
+    "schemaId": "cast-member-v1"
+  },
+  {
+    "id": "folder-sets",
+    "name": "Sets",
+    "type": "FOLDER",
+    "order": 3,
+    "level": 0,
+    "parentId": null,
+    "expandable": true,
+    "version": 0,
+    "metadata": {}
+  },
+  {
+    "id": "set-cliff",
+    "name": "Cliff Path",
+    "type": "WORLDBUILDING",
+    "order": 0,
+    "level": 1,
+    "parentId": "folder-sets",
+    "expandable": false,
+    "version": 0,
+    "metadata": {},
+    "schemaId": "set-v1"
+  },
+  {
+    "id": "set-kitchen",
+    "name": "Lighthouse Kitchen",
+    "type": "WORLDBUILDING",
+    "order": 1,
+    "level": 1,
+    "parentId": "folder-sets",
+    "expandable": false,
+    "version": 0,
+    "metadata": {},
+    "schemaId": "set-v1"
+  },
+  {
+    "id": "set-lamp",
+    "name": "Lamp Room",
+    "type": "WORLDBUILDING",
+    "order": 2,
+    "level": 1,
+    "parentId": "folder-sets",
+    "expandable": false,
+    "version": 0,
+    "metadata": {},
+    "schemaId": "set-v1"
+  },
+  {
+    "id": "set-harbour",
+    "name": "Harbour Office",
+    "type": "WORLDBUILDING",
+    "order": 3,
+    "level": 1,
+    "parentId": "folder-sets",
+    "expandable": false,
+    "version": 0,
+    "metadata": {},
+    "schemaId": "set-v1"
+  },
+  {
+    "id": "folder-props",
+    "name": "Props",
+    "type": "FOLDER",
+    "order": 4,
+    "level": 0,
+    "parentId": null,
+    "expandable": true,
+    "version": 0,
+    "metadata": {}
+  },
+  {
+    "id": "prop-bulb",
+    "name": "Dead Bulb",
+    "type": "WORLDBUILDING",
+    "order": 0,
+    "level": 1,
+    "parentId": "folder-props",
+    "expandable": false,
+    "version": 0,
+    "metadata": {},
+    "schemaId": "prop-v1"
+  },
+  {
+    "id": "prop-logbook",
+    "name": "Keeper's Logbook",
+    "type": "WORLDBUILDING",
+    "order": 1,
+    "level": 1,
+    "parentId": "folder-props",
+    "expandable": false,
+    "version": 0,
+    "metadata": {},
+    "schemaId": "prop-v1"
+  },
+  {
+    "id": "prop-radio",
+    "name": "VHF Radio",
+    "type": "WORLDBUILDING",
+    "order": 2,
+    "level": 1,
+    "parentId": "folder-props",
+    "expandable": false,
+    "version": 0,
+    "metadata": {},
+    "schemaId": "prop-v1"
+  },
+  {
+    "id": "prop-lantern",
+    "name": "Storm Lantern",
+    "type": "WORLDBUILDING",
+    "order": 3,
+    "level": 1,
+    "parentId": "folder-props",
+    "expandable": false,
+    "version": 0,
+    "metadata": {},
+    "schemaId": "prop-v1"
+  }
+]

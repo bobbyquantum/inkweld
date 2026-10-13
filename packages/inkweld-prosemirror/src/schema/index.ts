@@ -6,6 +6,8 @@
  *     `elementRefSchemaExtension`
  *   - `commentMarkSpec`, `COMMENT_MARK_NAME`, `CommentMarkAttrs`
  *   - `secureLinkMarkSpec`
+ *   - `speechNodeSpec`, `parentheticalNodeSpec`, `dialogueNodeSpec`
+ *     (conversation lines), `SPEECH_NODE_NAME` and friends
  *   - `createExtendedSchemaSpec({ baseNodes, baseMarks })` — returns
  *     `{nodes, marks}`; the host constructs `new Schema(...)` itself
  *     using its own copy of `prosemirror-model`.
@@ -34,6 +36,19 @@ export {
   type AutoReviewMarkAttrs,
   autoReviewMarkSpec,
 } from './auto-review-mark-spec';
+
+export {
+  CONVERSATION_NODE_NAMES,
+  DIALOGUE_NODE_NAME,
+  PARENTHETICAL_NODE_NAME,
+  SPEECH_NODE_NAME,
+  type SpeechExtension,
+  type SpeechNodeAttrs,
+  conversationNodeSpecs,
+  dialogueNodeSpec,
+  parentheticalNodeSpec,
+  speechNodeSpec,
+} from './conversation-spec';
 
 export {
   type CreateExtendedSchemaInput,

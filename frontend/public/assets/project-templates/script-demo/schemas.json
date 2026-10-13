@@ -1,0 +1,428 @@
+[
+  {
+    "id": "cast-member-v1",
+    "name": "Cast Member",
+    "icon": "theater_comedy",
+    "description": "Someone with lines: who they are, what they want and how they talk",
+    "version": 1,
+    "tabs": [
+      {
+        "key": "role",
+        "label": "Character",
+        "icon": "badge",
+        "order": 1,
+        "fields": [
+          {
+            "key": "fullName",
+            "label": "Full Name",
+            "type": "text",
+            "layout": {
+              "span": 12
+            },
+            "validation": {
+              "required": true
+            },
+            "placeholder": "As it appears in the cast list"
+          },
+          {
+            "key": "roleType",
+            "label": "Role",
+            "type": "select",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "Select role",
+            "options": ["Lead", "Supporting", "Featured", "Voice only", "Extra"]
+          },
+          {
+            "key": "age",
+            "label": "Playing Age",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "e.g. 40s"
+          },
+          {
+            "key": "summary",
+            "label": "Who They Are",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "One or two lines for the cast list"
+          },
+          {
+            "key": "want",
+            "label": "What They Want",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 2
+          },
+          {
+            "key": "obstacle",
+            "label": "What Stands in the Way",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 2
+          },
+          {
+            "key": "arc",
+            "label": "How They Change",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3
+          }
+        ]
+      },
+      {
+        "key": "voice",
+        "label": "Voice",
+        "icon": "record_voice_over",
+        "order": 2,
+        "fields": [
+          {
+            "key": "voice.manner",
+            "label": "How They Talk",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Rhythm, vocabulary, what they never say"
+          },
+          {
+            "key": "voice.lines",
+            "label": "Lines They'd Say",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a line"
+          },
+          {
+            "key": "voice.secrets",
+            "label": "What They Won't Say",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a subtext note"
+          }
+        ]
+      },
+      {
+        "key": "casting",
+        "label": "Casting & Wardrobe",
+        "icon": "checkroom",
+        "order": 3,
+        "fields": [
+          {
+            "key": "casting.actor",
+            "label": "Cast",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "Actor's name, once cast"
+          },
+          {
+            "key": "casting.status",
+            "label": "Casting Status",
+            "type": "select",
+            "layout": {
+              "span": 6
+            },
+            "options": ["Not started", "Auditioning", "Offer out", "Cast"]
+          },
+          {
+            "key": "casting.notes",
+            "label": "Casting Notes",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3
+          },
+          {
+            "key": "casting.wardrobe",
+            "label": "Wardrobe",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a costume note"
+          }
+        ]
+      }
+    ],
+    "defaultValues": {},
+    "defaultAppearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #fde7dc 0%, #f8d4cf 55%, #efc3d0 100%)",
+        "dark": "linear-gradient(160deg, #3a1d14 0%, #3d1d24 55%, #3a1a2c 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #fff6f1 0%, #fdeeec 55%, #f9e8ee 100%)",
+        "dark": "linear-gradient(160deg, #1e110c 0%, #211114 55%, #1f0f18 100%)"
+      }
+    }
+  },
+  {
+    "id": "set-v1",
+    "name": "Set",
+    "icon": "location_on",
+    "description": "A place a scene is shot or staged: how it looks, sounds and works on the day",
+    "version": 1,
+    "tabs": [
+      {
+        "key": "set",
+        "label": "Set",
+        "icon": "videocam",
+        "order": 1,
+        "fields": [
+          {
+            "key": "name",
+            "label": "Set Name",
+            "type": "text",
+            "layout": {
+              "span": 12
+            },
+            "validation": {
+              "required": true
+            },
+            "placeholder": "e.g. Lighthouse kitchen"
+          },
+          {
+            "key": "interior",
+            "label": "Interior / Exterior",
+            "type": "select",
+            "layout": {
+              "span": 6
+            },
+            "options": ["INT", "EXT", "INT/EXT"]
+          },
+          {
+            "key": "timeOfDay",
+            "label": "Usual Time of Day",
+            "type": "select",
+            "layout": {
+              "span": 6
+            },
+            "options": ["Day", "Night", "Dawn", "Dusk", "Continuous"]
+          },
+          {
+            "key": "look",
+            "label": "What We See",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 4
+          },
+          {
+            "key": "atmosphere",
+            "label": "Sound & Atmosphere",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3
+          }
+        ]
+      },
+      {
+        "key": "dressing",
+        "label": "Dressing",
+        "icon": "chair",
+        "order": 2,
+        "fields": [
+          {
+            "key": "dressing.items",
+            "label": "Set Dressing",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add an item"
+          },
+          {
+            "key": "dressing.lighting",
+            "label": "Lighting Notes",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3
+          }
+        ]
+      },
+      {
+        "key": "production",
+        "label": "Production",
+        "icon": "assignment",
+        "order": 3,
+        "fields": [
+          {
+            "key": "production.location",
+            "label": "Shooting Location",
+            "type": "text",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Where it's actually filmed or staged"
+          },
+          {
+            "key": "production.access",
+            "label": "Access & Permits",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3
+          },
+          {
+            "key": "production.notes",
+            "label": "Notes",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3
+          }
+        ]
+      }
+    ],
+    "defaultValues": {},
+    "defaultAppearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #d6f5e6 0%, #c0ede5 55%, #abdae3 100%)",
+        "dark": "linear-gradient(160deg, #112c1f 0%, #193e37 55%, #234a52 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f4fbf7 0%, #eaf6f4 55%, #dfeef1 100%)",
+        "dark": "linear-gradient(160deg, #0d1c14 0%, #132522 55%, #192b2e 100%)"
+      }
+    }
+  },
+  {
+    "id": "prop-v1",
+    "name": "Prop",
+    "icon": "inventory_2",
+    "description": "Anything handled on screen or stage, with its story job and continuity",
+    "version": 1,
+    "tabs": [
+      {
+        "key": "prop",
+        "label": "Prop",
+        "icon": "category",
+        "order": 1,
+        "fields": [
+          {
+            "key": "name",
+            "label": "Prop Name",
+            "type": "text",
+            "layout": {
+              "span": 12
+            },
+            "validation": {
+              "required": true
+            }
+          },
+          {
+            "key": "source",
+            "label": "Source",
+            "type": "select",
+            "layout": {
+              "span": 6
+            },
+            "options": ["Buy", "Build", "Hire", "Found", "Practical"]
+          },
+          {
+            "key": "quantity",
+            "label": "Quantity Needed",
+            "type": "number",
+            "layout": {
+              "span": 6
+            }
+          },
+          {
+            "key": "details",
+            "label": "Details",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3
+          },
+          {
+            "key": "storyPurpose",
+            "label": "Story Job",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Why the story needs it"
+          }
+        ]
+      },
+      {
+        "key": "continuity",
+        "label": "Continuity",
+        "icon": "fact_check",
+        "order": 2,
+        "fields": [
+          {
+            "key": "continuity.notes",
+            "label": "Continuity Notes",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a note"
+          },
+          {
+            "key": "continuity.hero",
+            "label": "Hero Prop",
+            "type": "checkbox",
+            "layout": {
+              "span": 6
+            },
+            "description": "Seen in close-up; needs extra care"
+          }
+        ]
+      }
+    ],
+    "defaultValues": {},
+    "defaultAppearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #fdf0d2 0%, #f8e2b6 55%, #f1d29c 100%)",
+        "dark": "linear-gradient(160deg, #33240a 0%, #3a2a0b 55%, #3f2e0d 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #fffaf0 0%, #fdf4e2 55%, #faeed4 100%)",
+        "dark": "linear-gradient(160deg, #1d1506 0%, #211807 55%, #241a08 100%)"
+      }
+    }
+  }
+]

@@ -308,6 +308,33 @@
           }}</span>
         </button>
       }
+      @if (isConversationNode(node)) {
+        <button
+          type="button"
+          class="context-menu-item"
+          cdkMenuItem
+          data-testid="context-menu-format-prose"
+          [disabled]="isLoading()"
+          (click)="onSwitchFormat(node, 'prose')">
+          <mat-icon>notes</mat-icon>
+          <span class="context-menu-item-title">{{
+            'project.tree.switchToProse' | transloco
+          }}</span>
+        </button>
+      } @else {
+        <button
+          type="button"
+          class="context-menu-item"
+          cdkMenuItem
+          data-testid="context-menu-format-conversation"
+          [disabled]="isLoading()"
+          (click)="onSwitchFormat(node, 'conversation')">
+          <mat-icon>forum</mat-icon>
+          <span class="context-menu-item-title">{{
+            'project.tree.switchToConversation' | transloco
+          }}</span>
+        </button>
+      }
     }
     @if (projectStateService.canWrite()) {
       <button
