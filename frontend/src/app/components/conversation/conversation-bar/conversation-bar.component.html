@@ -64,10 +64,10 @@
       }}</span>
     </button>
     <span class="conversation-bar__spacer"></span>
-    <div
-      class="view-toggle"
-      role="group"
-      [attr.aria-label]="'editor.conversation.view' | transloco">
+    <fieldset class="view-toggle">
+      <legend class="sr-only">
+        {{ 'editor.conversation.view' | transloco }}
+      </legend>
       <button
         type="button"
         [class.is-on]="!scriptView()"
@@ -84,7 +84,7 @@
         data-testid="conversation-view-script">
         {{ 'editor.conversation.scriptView' | transloco }}
       </button>
-    </div>
+    </fieldset>
   </div>
   @if (!disabled()) {
     <p class="conversation-bar__hint">

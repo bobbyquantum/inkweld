@@ -1,6 +1,6 @@
-<div
+<dialog
+  open
   class="speaker-picker"
-  role="dialog"
   [attr.aria-label]="
     (mode() === 'change'
       ? 'editor.conversation.changeSpeaker'
@@ -23,53 +23,55 @@
     (compositionend)="onCompositionEnd($event)"
     data-testid="speaker-picker-search" />
 
-  <div class="speaker-picker__list" role="listbox">
+  <ul class="speaker-picker__list">
     @for (option of options(); track option.key; let i = $index) {
-      <button
-        type="button"
-        role="option"
-        tabindex="-1"
-        class="speaker-picker__option speech--c{{ option.color }}"
-        [class.is-active]="i === activeIndex()"
-        [attr.aria-selected]="i === activeIndex()"
-        (mouseenter)="activeIndex.set(i)"
-        (mousedown)="$event.preventDefault()"
-        (click)="choose(option)"
-        data-testid="speaker-picker-option">
-        @if (option.kind === 'cast') {
-          <span class="speaker-picker__avatar" aria-hidden="true">{{
-            option.initials
-          }}</span>
-        } @else {
-          <mat-icon class="speaker-picker__icon" aria-hidden="true">{{
-            option.icon || 'person'
-          }}</mat-icon>
-        }
-        <span class="speaker-picker__text">
-          @if (option.kind === 'new') {
-            {{
-              'editor.conversation.newSpeaker'
-                | transloco: { name: option.label }
-            }}
+      <li>
+        <button
+          type="button"
+          class="speaker-picker__option speech--c{{ option.color }}"
+          [class.is-active]="i === activeIndex()"
+          [attr.aria-current]="i === activeIndex() ? 'true' : null"
+          (mouseenter)="activeIndex.set(i)"
+          (mousedown)="$event.preventDefault()"
+          (click)="choose(option)"
+          data-testid="speaker-picker-option">
+          @if (option.kind === 'cast') {
+            <span class="speaker-picker__avatar" aria-hidden="true">{{
+              option.initials
+            }}</span>
           } @else {
-            <span class="speaker-picker__label">{{ option.label }}</span>
-            @if (option.detail) {
-              <span class="speaker-picker__detail">{{ option.detail }}</span>
-            }
+            <mat-icon class="speaker-picker__icon" aria-hidden="true">{{
+              option.icon || 'person'
+            }}</mat-icon>
           }
-        </span>
-        @if (option.kind === 'cast' && option.key === 'cast:' + currentKey()) {
-          <mat-icon class="speaker-picker__check" aria-hidden="true"
-            >check</mat-icon
-          >
-        }
-      </button>
+          <span class="speaker-picker__text">
+            @if (option.kind === 'new') {
+              {{
+                'editor.conversation.newSpeaker'
+                  | transloco: { name: option.label }
+              }}
+            } @else {
+              <span class="speaker-picker__label">{{ option.label }}</span>
+              @if (option.detail) {
+                <span class="speaker-picker__detail">{{ option.detail }}</span>
+              }
+            }
+          </span>
+          @if (
+            option.kind === 'cast' && option.key === 'cast:' + currentKey()
+          ) {
+            <mat-icon class="speaker-picker__check" aria-hidden="true"
+              >check</mat-icon
+            >
+          }
+        </button>
+      </li>
     } @empty {
-      <p class="speaker-picker__empty">
+      <li class="speaker-picker__empty">
         {{ 'editor.conversation.typeAName' | transloco }}
-      </p>
+      </li>
     }
-  </div>
+  </ul>
 
   @if (mode() === 'change') {
     <div class="speaker-picker__actions">
@@ -108,4 +110,4 @@
       </button>
     </div>
   }
-</div>
+</dialog>

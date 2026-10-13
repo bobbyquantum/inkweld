@@ -267,11 +267,14 @@ export function addLine(speaker: Speaker): Command {
   };
 }
 
-/** Add an empty description after the current block. */
+/**
+ * Add an empty description after the current block. Not applicable when the
+ * cursor already sits in an empty description.
+ */
 export const addDescription: Command = (state, dispatch) => {
   const block = topBlockAt(state.selection.$from);
   if (block?.node.type.name === 'paragraph' && block.node.content.size === 0) {
-    return true;
+    return false;
   }
   if (dispatch) {
     const paragraph = state.schema.nodes['paragraph'].create();
@@ -292,7 +295,7 @@ export const addSceneBreak: Command = (state, dispatch) => {
     const { tr, pos } = insertAfterCurrent(state.tr, rule.create());
     const after = pos + 1;
     const next = tr.doc.resolve(after).nodeAfter;
-    if (!next || next.type.name !== 'paragraph') {
+    if (next?.type.name !== 'paragraph') {
       tr.insert(after, state.schema.nodes['paragraph'].create());
     }
     dispatch(setCursor(tr, after + 1).scrollIntoView());
@@ -512,57 +515,62 @@ export const enterInSpeech: Command = (state, dispatch) => {
   const { $from, empty } = state.selection;
   const context = speechAt($from);
   if (!context) return false;
-  if (!empty) {
-    // Replace the selection first, then behave as for a collapsed cursor.
-    if (dispatch) {
-      const tr = state.tr.deleteSelection();
-      let follow: Transaction | null = null;
-      enterInSpeech(state.apply(tr), next => (follow = next));
-      if (follow) {
-        const next: Transaction = follow;
-        for (const step of next.steps) tr.step(step);
-        tr.setSelection(next.selection.getBookmark().resolve(tr.doc));
-      }
-      dispatch(tr.scrollIntoView());
-    }
-    return true;
-  }
+  if (!empty) return enterOverSelection(state, dispatch);
+
   const { node: speech, pos } = context;
-
   if (context.part === 'parenthetical') {
-    if (dispatch) {
-      dispatch(setCursor(state.tr, dialogueStart(speech, pos)));
-    }
+    if (dispatch) dispatch(setCursor(state.tr, dialogueStart(speech, pos)));
     return true;
   }
-
   const dialogue = dialogueOf(speech);
   if (!dialogue || dialogue.content.size === 0) {
     return speechToDescription(pos)(state, dispatch);
   }
-
-  if (dispatch) {
-    const after = pos + speech.nodeSize;
-    const atEnd = $from.parentOffset === $from.parent.content.size;
-    const speaker = speakerOf(speech);
-    if (atEnd) {
-      const next = createSpeech(
-        state.schema,
-        otherSpeaker(state.doc, pos, speaker)
-      );
-      const tr = state.tr.insert(after, next);
-      dispatch(setCursor(tr, dialogueStart(next, after)).scrollIntoView());
-    } else {
-      const rest = $from.parent.content.cut($from.parentOffset);
-      const next = createSpeech(state.schema, speaker, rest);
-      const tr = state.tr.delete($from.pos, $from.end());
-      const insertAt = tr.mapping.map(after);
-      tr.insert(insertAt, next);
-      dispatch(setCursor(tr, dialogueStart(next, insertAt)).scrollIntoView());
-    }
-  }
+  if (dispatch) dispatch(splitSpeechAtCursor(state, context).scrollIntoView());
   return true;
 };
+
+/** Replace the selection first, then behave as for a collapsed cursor. */
+const enterOverSelection: Command = (state, dispatch) => {
+  if (!dispatch) return true;
+  const tr = state.tr.deleteSelection();
+  let follow: Transaction | null = null;
+  enterInSpeech(state.apply(tr), next => (follow = next));
+  if (follow) {
+    const next: Transaction = follow;
+    for (const step of next.steps) tr.step(step);
+    tr.setSelection(next.selection.getBookmark().resolve(tr.doc));
+  }
+  dispatch(tr.scrollIntoView());
+  return true;
+};
+
+/**
+ * At the end of a line, add the answering speaker's line below; mid-line,
+ * move the rest of the line into a new line by the same speaker.
+ */
+function splitSpeechAtCursor(
+  state: EditorState,
+  { node: speech, pos }: SpeechContext
+): Transaction {
+  const { $from } = state.selection;
+  const after = pos + speech.nodeSize;
+  const speaker = speakerOf(speech);
+  if ($from.parentOffset === $from.parent.content.size) {
+    const next = createSpeech(
+      state.schema,
+      otherSpeaker(state.doc, pos, speaker)
+    );
+    const tr = state.tr.insert(after, next);
+    return setCursor(tr, dialogueStart(next, after));
+  }
+  const rest = $from.parent.content.cut($from.parentOffset);
+  const next = createSpeech(state.schema, speaker, rest);
+  const tr = state.tr.delete($from.pos, $from.end());
+  const insertAt = tr.mapping.map(after);
+  tr.insert(insertAt, next);
+  return setCursor(tr, dialogueStart(next, insertAt));
+}
 
 /**
  * Backspace at the start of a speech part.
@@ -581,7 +589,7 @@ export const backspaceInSpeech: Command = (state, dispatch) => {
   const note = parentheticalOf(speech);
 
   if (context.part === 'parenthetical') {
-    if (note && note.content.size === 0) {
+    if (note?.content.size === 0) {
       return toggleParenthetical(pos)(state, dispatch);
     }
     return true;

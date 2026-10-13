@@ -243,8 +243,7 @@ describe('addDescription and addSceneBreak', () => {
   });
 
   it('does nothing on an empty description', () => {
-    const state = stateIn(doc(p()), 0);
-    expect(run(state, addDescription)?.doc.eq(state.doc)).toBe(true);
+    expect(run(stateIn(doc(p()), 0), addDescription)).toBeNull();
   });
 
   it('adds a break and somewhere to keep writing', () => {

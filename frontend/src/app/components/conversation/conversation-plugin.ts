@@ -45,12 +45,17 @@ import { SpeechNodeView, type SpeechViewHost } from './speech-node-view';
 /** Number of speaker colours defined in the stylesheet. */
 export const SPEAKER_COLOR_COUNT = 6;
 
+/** Keeps the rolling hash an exact integer (largest 31-bit prime). */
+const HASH_MODULUS = 2_147_483_647;
+
 /** A stable colour slot for a speaker. */
 export function speakerColor(speaker: Speaker): number {
   const key = speakerKey(speaker);
   let hash = 0;
-  for (const char of key) hash = (hash * 31 + char.codePointAt(0)!) | 0;
-  return Math.abs(hash) % SPEAKER_COLOR_COUNT;
+  for (const char of key) {
+    hash = (hash * 31 + char.codePointAt(0)!) % HASH_MODULUS;
+  }
+  return hash % SPEAKER_COLOR_COUNT;
 }
 
 export interface ConversationPluginOptions extends SpeechViewHost {
