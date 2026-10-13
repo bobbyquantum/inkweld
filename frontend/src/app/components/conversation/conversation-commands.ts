@@ -515,7 +515,10 @@ export const enterInSpeech: Command = (state, dispatch) => {
   const { $from, empty } = state.selection;
   const context = speechAt($from);
   if (!context) return false;
-  if (!empty) return enterOverSelection(state, dispatch);
+  if (!empty) {
+    if (dispatch) dispatch(enterOverSelection(state));
+    return true;
+  }
 
   const { node: speech, pos } = context;
   if (context.part === 'parenthetical') {
@@ -531,8 +534,7 @@ export const enterInSpeech: Command = (state, dispatch) => {
 };
 
 /** Replace the selection first, then behave as for a collapsed cursor. */
-const enterOverSelection: Command = (state, dispatch) => {
-  if (!dispatch) return true;
+function enterOverSelection(state: EditorState): Transaction {
   const tr = state.tr.deleteSelection();
   let follow: Transaction | null = null;
   enterInSpeech(state.apply(tr), next => (follow = next));
@@ -541,9 +543,8 @@ const enterOverSelection: Command = (state, dispatch) => {
     for (const step of next.steps) tr.step(step);
     tr.setSelection(next.selection.getBookmark().resolve(tr.doc));
   }
-  dispatch(tr.scrollIntoView());
-  return true;
-};
+  return tr.scrollIntoView();
+}
 
 /**
  * At the end of a line, add the answering speaker's line below; mid-line,
