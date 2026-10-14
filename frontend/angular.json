@@ -191,25 +191,6 @@
               "index": "src/index.html",
               "browser": "src/main.ts",
               "baseHref": "/"
-            },
-            "electron": {
-              "optimization": {
-                "scripts": true,
-                "styles": { "minify": true, "inlineCritical": false },
-                "fonts": true
-              },
-              "outputHashing": "all",
-              "sourceMap": false,
-              "namedChunks": false,
-              "extractLicenses": true,
-              "fileReplacements": [
-                {
-                  "replace": "src/environments/environment.ts",
-                  "with": "src/environments/environment.electron.ts"
-                }
-              ],
-              "outputPath": "dist/inkweld-frontend",
-              "baseHref": "./"
             }
           },
           "defaultConfiguration": "production"

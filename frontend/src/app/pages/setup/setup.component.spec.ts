@@ -547,8 +547,8 @@ describe('SetupComponent', () => {
       ).toBe('https://ha.local:8123/api/hassio_ingress/abc');
     });
 
-    it('falls back to localhost for non-web origins such as Electron', () => {
-      expect(defaultServerUrl('', { protocol: 'app:', origin: 'null' })).toBe(
+    it('falls back to localhost for non-web origins', () => {
+      expect(defaultServerUrl('', { protocol: 'file:', origin: 'null' })).toBe(
         'http://localhost:8333'
       );
       expect(defaultServerUrl('', undefined)).toBe('http://localhost:8333');

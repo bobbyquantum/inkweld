@@ -81,9 +81,9 @@ export function isRunningStandalone(win: Window | undefined): boolean {
 
 /**
  * Offers installing Inkweld as an app (PWA): the home-screen banner and the
- * Settings → General button read {@link mode}. Never offered inside the
- * desktop (Electron) app, when already installed, or behind Home Assistant
- * ingress (an installed copy would lose HA's session).
+ * Settings → General button read {@link mode}. Never offered when already
+ * installed, or behind Home Assistant ingress (an installed copy would lose
+ * HA's session).
  */
 @Injectable({ providedIn: 'root' })
 export class PwaInstallService {
@@ -125,9 +125,7 @@ export class PwaInstallService {
 
     this.dismissed.set(this.readDismissed());
 
-    const electron = (globalThis as { electronAPI?: { isElectron?: boolean } })
-      .electronAPI?.isElectron;
-    if (electron || isHomeAssistantIngress()) {
+    if (isHomeAssistantIngress()) {
       this.unsupported.set(true);
       return;
     }

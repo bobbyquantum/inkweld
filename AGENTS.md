@@ -650,7 +650,7 @@ add Browser, upgrade, add cloud storage), the user menu's upgrade button.
 
 - **The home server decides, not the active profile**:
   `resolveHomeServerUrl()` is the ingress origin, the build's `apiUrl`, or the
-  page's own origin (no apiUrl: Docker/binary); Electron has none (no limit).
+  page's own origin (no apiUrl: Docker/binary).
   Another server added as a profile has no say.
 - `ONLINE` forbids Browser **and** Cloud Sync (both store in the browser);
   `LOCAL` forbids adding servers.
