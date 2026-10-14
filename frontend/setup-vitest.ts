@@ -157,7 +157,7 @@ console.warn = (...args: unknown[]) => {
 // Note: Individual test files should handle their own cleanup in afterEach
 // This global cleanup runs last and ensures TestBed is reset
 
-afterEach(() => {
+afterEach(async () => {
   // Restore any globals stubbed by test files (e.g., indexedDB, fetch)
   // This prevents cross-test contamination with isolate: false
   vi.unstubAllGlobals();
@@ -180,6 +180,18 @@ afterEach(() => {
   } catch {
     // Ignore errors if TestBed was already reset
   }
+
+  // Let Node's timer phase run before the next test. Vitest moves from one
+  // test to the next on promise callbacks alone, so a run of synchronous tests
+  // never reaches it, and every pending setTimeout and jsdom
+  // requestAnimationFrame callback (jsdom runs those from a setInterval) keeps
+  // what it closes over alive. Material components queue such callbacks on
+  // every render (MatFormField's notched outline holds its label element in
+  // one, the form field and expansion panel hold themselves in animation
+  // timers), so each test's destroyed component tree stayed in memory: ~15 MB
+  // per test in publish-plan-tab.component.spec.ts, which ran out of Node's
+  // default heap.
+  await new Promise<void>(resolve => setTimeout(resolve));
 });
 
 // Mock nanoid
