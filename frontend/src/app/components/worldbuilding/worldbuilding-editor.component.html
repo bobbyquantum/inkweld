@@ -778,31 +778,42 @@
           [attr.data-testid]="'field-' + field.key"
           [ngClass]="'span-' + (field.layout?.span || 12)">
           @if (schemaEditingEnabled()) {
+            @let isLastField = fi === getFieldsForTab(tabKey).length - 1;
+            <!-- Narrow cards (small spans) swap the move/remove buttons for an
+                 overflow menu via a container query on the card. -->
             <div class="schema-field-toolbar">
               <span class="field-index">{{ fi + 1 }}</span>
               <button
                 mat-icon-button
                 type="button"
                 (click)="openFieldConfig(tabKey, field)"
-                [attr.aria-label]="'Edit field'"
+                [attr.aria-label]="
+                  'worldbuilding.schemaEdit.editField' | transloco
+                "
                 data-testid="field-edit">
                 <mat-icon>settings</mat-icon>
               </button>
               <button
                 mat-icon-button
                 type="button"
+                class="field-inline-action"
                 (click)="onMoveField(tabKey, field.key, -1)"
                 [disabled]="fi === 0"
-                [attr.aria-label]="'Move field up'"
+                [attr.aria-label]="
+                  'worldbuilding.schemaEdit.moveFieldUp' | transloco
+                "
                 data-testid="field-move-up">
                 <mat-icon>arrow_circle_up</mat-icon>
               </button>
               <button
                 mat-icon-button
                 type="button"
+                class="field-inline-action"
                 (click)="onMoveField(tabKey, field.key, 1)"
-                [disabled]="fi === getFieldsForTab(tabKey).length - 1"
-                [attr.aria-label]="'Move field down'"
+                [disabled]="isLastField"
+                [attr.aria-label]="
+                  'worldbuilding.schemaEdit.moveFieldDown' | transloco
+                "
                 data-testid="field-move-down">
                 <mat-icon>arrow_circle_down</mat-icon>
               </button>
@@ -810,11 +821,60 @@
                 mat-icon-button
                 type="button"
                 color="warn"
+                class="field-inline-action"
                 (click)="onRemoveField(tabKey, field.key)"
-                [attr.aria-label]="'Remove field'"
+                [attr.aria-label]="
+                  'worldbuilding.schemaEdit.removeField' | transloco
+                "
                 data-testid="field-remove">
                 <mat-icon>remove_circle</mat-icon>
               </button>
+              <button
+                mat-icon-button
+                type="button"
+                class="field-overflow-trigger"
+                [matMenuTriggerFor]="fieldActionsMenu"
+                [attr.aria-label]="
+                  'worldbuilding.schemaEdit.moreFieldActions'
+                    | transloco: { index: fi + 1 }
+                "
+                data-testid="field-more-actions">
+                <mat-icon>more_vert</mat-icon>
+              </button>
+              <mat-menu #fieldActionsMenu="matMenu" xPosition="before">
+                <button
+                  mat-menu-item
+                  type="button"
+                  (click)="onMoveField(tabKey, field.key, -1)"
+                  [disabled]="fi === 0"
+                  data-testid="field-menu-move-up">
+                  <mat-icon>arrow_circle_up</mat-icon>
+                  <span>{{
+                    'worldbuilding.schemaEdit.moveFieldUp' | transloco
+                  }}</span>
+                </button>
+                <button
+                  mat-menu-item
+                  type="button"
+                  (click)="onMoveField(tabKey, field.key, 1)"
+                  [disabled]="isLastField"
+                  data-testid="field-menu-move-down">
+                  <mat-icon>arrow_circle_down</mat-icon>
+                  <span>{{
+                    'worldbuilding.schemaEdit.moveFieldDown' | transloco
+                  }}</span>
+                </button>
+                <button
+                  mat-menu-item
+                  type="button"
+                  (click)="onRemoveField(tabKey, field.key)"
+                  data-testid="field-menu-remove">
+                  <mat-icon color="warn">remove_circle</mat-icon>
+                  <span>{{
+                    'worldbuilding.schemaEdit.removeField' | transloco
+                  }}</span>
+                </button>
+              </mat-menu>
             </div>
           }
           @switch (field.type) {
