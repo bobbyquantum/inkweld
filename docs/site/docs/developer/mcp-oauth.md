@@ -141,6 +141,8 @@ Call `get_project_schemas` before `create_element` or `update_worldbuilding` to 
 { "name": "get_project_schemas", "arguments": { "project": "alice/my-novel" } }
 ```
 
+Every worldbuilding element also has two **identity fields** outside its schema, `description` and `image` (listed as `identityFields` in the result). `update_worldbuilding` resolves a bare key against the element's schema first: if the schema defines a `description` field, `"description"` writes that field. Use `"identity.description"` / `"identity.image"` to write the identity field, and `"worldbuilding.<key>"` to force a schema field.
+
 ### Available Resources
 
 Resources list the projects the user has authorized access to:

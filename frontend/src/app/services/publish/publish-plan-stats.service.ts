@@ -5,7 +5,7 @@ import {
   type PublishPlanItem,
   PublishPlanItemType,
 } from '@models/publish-plan';
-import { isPublishableByDefault } from '@models/scene-metadata';
+import { isNote } from '@models/scene-metadata';
 import { flattenToPlainText } from '@utils/prosemirror-text';
 import { isWorldbuildingType } from '@utils/worldbuilding.utils';
 
@@ -28,7 +28,9 @@ export const WORDS_PER_MINUTE = 238;
  *   when the document has no local copy yet)
  * - `ready`: `words` holds the counted value
  * - `unavailable`: the document has not been synced to this device yet, so
- *   its length is unknown until the plan is published (which syncs first)
+ *   its length is unknown until the plan is published (which syncs first).
+ *   Never reported for a document that only exists on this device (local
+ *   mode, or created here): with no stored content it is simply empty.
  */
 export type WordCountEntry =
   | { status: 'loading' }
@@ -51,6 +53,8 @@ export interface PlanItemStats {
   loadingDocuments: number;
   /** Number of contributing documents not available locally. */
   unavailableDocuments: number;
+  /** Notes inside a listed folder, which the folder does not publish. */
+  skippedNotes: number;
 }
 
 /** Aggregate statistics for the whole plan. */
@@ -64,6 +68,8 @@ export interface PlanSummaryStats {
   loading: number;
   /** Documents whose content is not available on this device. */
   unavailable: number;
+  /** Notes inside listed folders, left out of the publication. */
+  skippedNotes: number;
   estimatedPages: number;
   readingMinutes: number;
 }
@@ -185,6 +191,7 @@ export class PublishPlanStatsService {
       unavailable: false,
       loadingDocuments: 0,
       unavailableDocuments: 0,
+      skippedNotes: 0,
     };
     if (item.type !== PublishPlanItemType.Element) return stats;
 
@@ -201,9 +208,9 @@ export class PublishPlanStatsService {
       docs = [element];
     } else if (element.type === ElementType.Folder && item.includeChildren) {
       // Notes inside a folder are not published, so they do not count.
-      docs = this.documentsUnder(element.id, elements).filter(doc =>
-        isPublishableByDefault(doc.metadata)
-      );
+      const all = this.documentsUnder(element.id, elements);
+      docs = all.filter(doc => !isNote(doc.metadata));
+      stats.skippedNotes = all.length - docs.length;
       stats.entries = this.entriesUnder(element.id, elements);
     }
     // Canvases, timelines and relationship charts carry no countable text.
@@ -242,6 +249,7 @@ export class PublishPlanStatsService {
       words: 0,
       loading: 0,
       unavailable: 0,
+      skippedNotes: 0,
       estimatedPages: 0,
       readingMinutes: 0,
     };
@@ -256,11 +264,50 @@ export class PublishPlanStatsService {
       summary.words += stats.words ?? 0;
       summary.loading += stats.loadingDocuments;
       summary.unavailable += stats.unavailableDocuments;
+      summary.skippedNotes += stats.skippedNotes;
     }
 
     summary.estimatedPages = Math.ceil(summary.words / WORDS_PER_PAGE);
     summary.readingMinutes = Math.ceil(summary.words / WORDS_PER_MINUTE);
     return summary;
+  }
+
+  /**
+   * Notes inside a folder row: the folder publishes its other documents but
+   * leaves these out. Empty for any other row.
+   */
+  skippedNotes(item: PublishPlanItem, elements: readonly Element[]): Element[] {
+    if (item.type !== PublishPlanItemType.Element || !item.includeChildren) {
+      return [];
+    }
+    const root = elements.find(e => e.id === item.elementId);
+    if (root?.type !== ElementType.Folder) return [];
+    return this.documentsUnder(root.id, elements).filter(doc =>
+      isNote(doc.metadata)
+    );
+  }
+
+  /**
+   * Ids of the documents a plan publishes: listed documents, and the
+   * documents (not notes) inside listed folders.
+   */
+  publishedDocumentIds(
+    plan: PublishPlan,
+    elements: readonly Element[]
+  ): string[] {
+    const ids: string[] = [];
+    for (const item of plan.items) {
+      if (item.type !== PublishPlanItemType.Element) continue;
+      const element = elements.find(e => e.id === item.elementId);
+      if (element?.type === ElementType.Item) {
+        ids.push(element.id);
+      } else if (element?.type === ElementType.Folder && item.includeChildren) {
+        for (const doc of this.documentsUnder(element.id, elements)) {
+          if (!isNote(doc.metadata)) ids.push(doc.id);
+        }
+      }
+    }
+    return ids;
   }
 
   /** Every document element that is `elementId` itself or a descendant of it. */
@@ -320,25 +367,32 @@ export class PublishPlanStatsService {
     }
   }
 
+  private async readCount(
+    elementId: string,
+    docId: string
+  ): Promise<WordCountEntry> {
+    if (!(await this.documentService.hasLocalContent(docId))) {
+      if (!(await this.projectState.isDocumentUnavailable(elementId))) {
+        // Nothing stored, and nowhere else it could be (local mode, or
+        // created on this device): the document is simply empty.
+        return { status: 'ready', words: 0 };
+      }
+      // A document that was just added (or never opened on this device)
+      // has no local copy yet. Pull it rather than report a count that
+      // silently leaves it out; the row stays "loading" meanwhile.
+      if (!(await this.pullDocument(docId))) return { status: 'unavailable' };
+    }
+    const content = await this.documentService.getDocumentContent(docId);
+    return { status: 'ready', words: countWords(content) };
+  }
+
   private async countDocument(elementId: string): Promise<void> {
     const request = (this.requests.get(elementId) ?? 0) + 1;
     this.requests.set(elementId, request);
     const docId = this.fullDocumentId(elementId);
     let entry: WordCountEntry;
     try {
-      let available = await this.documentService.hasLocalContent(docId);
-      if (!available) {
-        // A document that was just added (or never opened on this device)
-        // has no local copy yet. Pull it rather than report a count that
-        // silently leaves it out; the row stays "loading" meanwhile.
-        available = await this.pullDocument(docId);
-      }
-      if (!available) {
-        entry = { status: 'unavailable' };
-      } else {
-        const content = await this.documentService.getDocumentContent(docId);
-        entry = { status: 'ready', words: countWords(content) };
-      }
+      entry = await this.readCount(elementId, docId);
     } catch {
       entry = { status: 'unavailable' };
     }

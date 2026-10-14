@@ -15,6 +15,7 @@ import {
   type OnDestroy,
   type OnInit,
   signal,
+  untracked,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -39,7 +40,7 @@ import {
   type PublishCompleteDialogResult,
 } from '@dialogs/publish-complete-dialog/publish-complete-dialog.component';
 import { TooltipAriaLabelDirective } from '@directives/tooltip-aria-label.directive';
-import { ElementType } from '@inkweld/index';
+import { type Element, ElementType } from '@inkweld/index';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import {
   BackmatterType,
@@ -189,6 +190,9 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
   /** Preview panel has been opened at least once (accordion mode) */
   protected previewExpanded = signal(false);
 
+  /** Documents whose word count has been re-read since this editor opened. */
+  private readonly recounted = new Set<string>();
+
   /** Per-document word counts, resolved lazily by the stats service */
   protected readonly wordCounts = this.statsService.wordCounts;
 
@@ -267,12 +271,20 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
         browserWindow.removeEventListener('resize', updateLayout);
     }
 
-    // Count words for every document referenced by the plan. Re-runs when
-    // items are added or removed; already-counted documents are cached.
+    // Count the words of every document the plan publishes. Counts are
+    // cached app-wide, so a document is re-read the first time this editor
+    // sees it (opening the plan, adding it, or converting a note inside a
+    // listed folder to a scene) rather than showing a count from before its
+    // latest edits.
     effect(() => {
       const plan = this.plan();
       if (!plan) return;
-      this.statsService.ensureCounted(this.planElementIds(plan));
+      const stale = this.statsService
+        .publishedDocumentIds(plan, this.elements())
+        .filter(id => !this.recounted.has(id));
+      if (stale.length === 0) return;
+      for (const id of stale) this.recounted.add(id);
+      untracked(() => this.statsService.recount(stale));
     });
 
     // Reactively load published files when project becomes available (handles refresh)
@@ -346,6 +358,31 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
     const ids = this.planElementIds(plan);
     this.statsService.invalidate(ids);
     this.statsService.ensureCounted(ids);
+  }
+
+  /** Notes inside a folder row, which the folder does not publish. */
+  skippedNotes(item: PublishPlanItem): Element[] {
+    return this.statsService.skippedNotes(item, this.elements());
+  }
+
+  /**
+   * Turn the notes inside a folder row into scenes so the folder publishes
+   * them (the tree's "Convert to Scene", for all of them at once).
+   */
+  publishSkippedNotes(item: PublishPlanItem): void {
+    const notes = this.skippedNotes(item);
+    if (notes.length === 0) return;
+    for (const note of notes) {
+      this.projectState.setDocumentRole(note.id, 'scene');
+    }
+    this.previewOutdated.set(true);
+    this.snackBar.open(
+      this.transloco.translate(this.notesKey('converted', notes.length), {
+        count: notes.length,
+      }),
+      undefined,
+      { duration: 3000 }
+    );
   }
 
   /** Helper: update plan in state */
@@ -789,15 +826,23 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Translation key for a document/entry count, picking the singular form
-   * for exactly one. Resolved with the transloco pipe so it renders once the
+   * Translation key for a document/entry/page-estimate count, picking the
+   * singular form for exactly one. Resolved with the transloco pipe so it renders once the
    * publish scope has loaded (the synchronous translate API would return the
    * raw key on a direct page load).
    */
-  countKey(kind: 'documents' | 'entries', count: number): string {
+  countKey(kind: 'documents' | 'entries' | 'pages', count: number): string {
+    const key = kind === 'pages' ? 'pagesEstimate' : kind;
     return count === 1
-      ? `publish.planEditor.stats.${kind}One`
-      : `publish.planEditor.stats.${kind}`;
+      ? `publish.planEditor.stats.${key}One`
+      : `publish.planEditor.stats.${key}`;
+  }
+
+  /** Translation key for a skipped-notes message, singular for one note. */
+  notesKey(kind: 'skipped' | 'convert' | 'converted', count: number): string {
+    return count === 1
+      ? `publish.planEditor.notes.${kind}One`
+      : `publish.planEditor.notes.${kind}`;
   }
 
   /** Translation key for reading time: minutes only, or hours and minutes */

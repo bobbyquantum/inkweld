@@ -508,6 +508,44 @@ mat-expansion-panel {
     }
   }
 
+  // Notes a listed folder leaves out; opens a menu offering to publish them.
+  // On its own line under the name, so the hover toolbar (which overlays the
+  // first line's right edge) never covers it. The indent lines it up with
+  // the name: drag handle + order + icon, each 24px plus a 12px gap.
+  .item-footer {
+    flex: 0 0 100%;
+    padding-left: 108px;
+    box-sizing: border-box;
+  }
+
+  .item-skipped-notes {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+    padding: 2px 8px;
+    border: 1px dashed var(--sys-outline-variant);
+    border-radius: 12px;
+    background: transparent;
+    font: inherit;
+    font-size: 0.8rem;
+    color: var(--sys-on-surface-variant);
+    white-space: nowrap;
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+      border-color: var(--sys-primary);
+      color: var(--sys-primary);
+    }
+
+    mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+    }
+  }
+
   // Overlaid on the row's right edge so the (hidden) buttons never take
   // width away from the label.
   .item-actions {
@@ -718,5 +756,15 @@ mat-expansion-panel {
 .option-hint {
   margin: -12px 0 0 40px;
   font-size: 0.8125rem;
+  color: var(--sys-on-surface-variant);
+}
+
+// Explanation at the top of a folder row's skipped-notes menu.
+.skipped-notes-hint {
+  margin: 0;
+  padding: 8px 16px;
+  max-width: 280px;
+  font-size: 0.8rem;
+  line-height: 1.4;
   color: var(--sys-on-surface-variant);
 }

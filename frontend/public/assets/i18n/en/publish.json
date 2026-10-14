@@ -95,12 +95,23 @@
     "addFrontmatter": "Frontmatter",
     "addBackmatter": "Backmatter",
     "addSeparator": "Separator",
+    "planNameHint": "Shown on the tab and in the list of plans",
+    "notes": {
+      "skipped": "{{count}} notes not published",
+      "skippedOne": "1 note not published",
+      "hint": "Notes are kept out of publications, so this folder leaves them out. Convert them to scenes to publish them with the rest of the folder.",
+      "convert": "Convert {{count}} notes to scenes",
+      "convertOne": "Convert the note to a scene",
+      "converted": "Converted {{count}} notes to scenes",
+      "convertedOne": "Converted 1 note to a scene"
+    },
     "stats": {
       "items": "Items",
       "pages": "Pages",
       "documents": "{{count}} documents",
       "entries": "{{count}} entries",
       "pagesEstimate": "~{{count}} pages",
+      "pagesEstimateOne": "~1 page",
       "pagesHint": "Estimated at 275 words per printed page",
       "readingHint": "Estimated reading time at 238 words per minute",
       "readMinutes": "{{minutes}} min read",
@@ -128,6 +139,7 @@
     "generationFailed": "Preview generation failed",
     "upToDate": "Preview is up to date",
     "pageCount": "{{count}} pages",
+    "pageCountOne": "1 page",
     "noteEpub": "EPUB readers apply their own fonts and page sizes; this preview shows the content as a single flowing page.",
     "noteSite": "The website export produces one page per chapter. This preview shows the same content as a single page."
   },

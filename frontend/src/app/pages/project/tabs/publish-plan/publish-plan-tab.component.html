@@ -262,6 +262,17 @@
 <ng-template #metadataTemplate>
   @if (plan(); as plan) {
     <div class="form-grid">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>{{ 'publish.planEditor.planName' | transloco }}</mat-label>
+        <input
+          matInput
+          id="publish-plan-name-field"
+          [value]="plan.name"
+          (input)="updateName($event)"
+          data-testid="plan-name-field" />
+        <mat-hint>{{ 'publish.planEditor.planNameHint' | transloco }}</mat-hint>
+      </mat-form-field>
+
       <mat-form-field appearance="outline">
         <mat-label>{{
           'publish.planEditor.formatLabel' | transloco
@@ -377,7 +388,7 @@
               [matTooltip]="'publish.planEditor.stats.pagesHint' | transloco">
               <mat-icon>auto_stories</mat-icon>
               {{
-                'publish.planEditor.stats.pagesEstimate'
+                countKey('pages', summary.estimatedPages)
                   | transloco: { count: summary.estimatedPages | number }
               }}
             </span>
@@ -389,6 +400,18 @@
               {{
                 readingTimeKey(summary.readingMinutes)
                   | transloco: readingTimeParams(summary.readingMinutes)
+              }}
+            </span>
+          }
+          @if (summary.skippedNotes > 0) {
+            <span
+              class="stat-chip"
+              data-testid="plan-stat-skipped-notes"
+              [matTooltip]="'publish.planEditor.notes.hint' | transloco">
+              <mat-icon>sticky_note_2</mat-icon>
+              {{
+                notesKey('skipped', summary.skippedNotes)
+                  | transloco: { count: summary.skippedNotes }
               }}
             </span>
           }
@@ -578,6 +601,37 @@
                     | transloco: { count: stats.entries }
                 }}
               </span>
+            }
+            @if (stats.skippedNotes > 0) {
+              <div class="item-footer">
+                <button
+                  type="button"
+                  class="item-skipped-notes"
+                  [matMenuTriggerFor]="skippedNotesMenu"
+                  [matTooltip]="'publish.planEditor.notes.hint' | transloco"
+                  data-testid="item-skipped-notes">
+                  <mat-icon>sticky_note_2</mat-icon>
+                  {{
+                    notesKey('skipped', stats.skippedNotes)
+                      | transloco: { count: stats.skippedNotes }
+                  }}
+                </button>
+                <mat-menu #skippedNotesMenu="matMenu">
+                  <p class="skipped-notes-hint">
+                    {{ 'publish.planEditor.notes.hint' | transloco }}
+                  </p>
+                  <button
+                    mat-menu-item
+                    (click)="publishSkippedNotes(item)"
+                    data-testid="publish-skipped-notes">
+                    <mat-icon>auto_stories</mat-icon>
+                    <span>{{
+                      notesKey('convert', stats.skippedNotes)
+                        | transloco: { count: stats.skippedNotes }
+                    }}</span>
+                  </button>
+                </mat-menu>
+              </div>
             }
           }
           <div class="item-actions">

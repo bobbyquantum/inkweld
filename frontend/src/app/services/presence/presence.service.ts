@@ -1,5 +1,6 @@
 import {
   computed,
+  DestroyRef,
   effect,
   inject,
   Injectable,
@@ -18,6 +19,7 @@ import { type IElementSyncProvider } from '@services/sync/element-sync-provider.
 import { UnifiedUserService } from '@services/user/unified-user.service';
 
 const IDLE_TIMEOUT_MS = 5 * 60 * 1000;
+const ACTIVITY_EVENTS = ['mousemove', 'keydown', 'pointerdown'] as const;
 
 function locationsEqual(
   a: PresenceLocation | null | undefined,
@@ -137,9 +139,19 @@ export class PresenceService {
 
   private installActivityListeners(): void {
     const onActivity = (): void => this.markActive();
-    globalThis.addEventListener?.('mousemove', onActivity, { passive: true });
-    globalThis.addEventListener?.('keydown', onActivity, { passive: true });
-    globalThis.addEventListener?.('pointerdown', onActivity, { passive: true });
+    for (const type of ACTIVITY_EVENTS) {
+      globalThis.addEventListener?.(type, onActivity, { passive: true });
+    }
+    // The window outlives this service when its injector is destroyed (unit
+    // tests do that after every test), so detach from it and drop the timer
+    // and presence subscription that would otherwise keep the service alive.
+    inject(DestroyRef).onDestroy(() => {
+      for (const type of ACTIVITY_EVENTS) {
+        globalThis.removeEventListener?.(type, onActivity);
+      }
+      if (this.idleTimer) clearTimeout(this.idleTimer);
+      this.subscription?.unsubscribe();
+    });
   }
 
   private normalizeLocation(

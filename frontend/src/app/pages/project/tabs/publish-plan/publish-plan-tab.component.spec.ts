@@ -48,6 +48,7 @@ describe('PublishPlanTabComponent', () => {
     project: ReturnType<typeof signal<any>>;
     getPublishPlan: ReturnType<typeof vi.fn>;
     updatePublishPlan: ReturnType<typeof vi.fn>;
+    setDocumentRole: ReturnType<typeof vi.fn>;
     coverMediaId: ReturnType<typeof signal<string | null>>;
   };
   let mockPublishService: {
@@ -69,9 +70,12 @@ describe('PublishPlanTabComponent', () => {
   let mockStatsService: {
     wordCounts: ReturnType<typeof signal<ReadonlyMap<string, WordCountEntry>>>;
     ensureCounted: ReturnType<typeof vi.fn>;
+    recount: ReturnType<typeof vi.fn>;
     invalidate: ReturnType<typeof vi.fn>;
     itemStats: ReturnType<typeof vi.fn>;
     summary: ReturnType<typeof vi.fn>;
+    publishedDocumentIds: ReturnType<typeof vi.fn>;
+    skippedNotes: ReturnType<typeof vi.fn>;
   };
   let mockDialogGateway: {
     openElementPickerDialog: ReturnType<typeof vi.fn>;
@@ -85,6 +89,7 @@ describe('PublishPlanTabComponent', () => {
     unavailable: false,
     loadingDocuments: 0,
     unavailableDocuments: 0,
+    skippedNotes: 0,
   };
 
   beforeEach(async () => {
@@ -94,8 +99,19 @@ describe('PublishPlanTabComponent', () => {
     mockStatsService = {
       wordCounts,
       ensureCounted: vi.fn(),
+      recount: vi.fn(),
       invalidate: vi.fn(),
       itemStats: vi.fn().mockReturnValue(emptyItemStats),
+      // Every listed element stands in for one published document.
+      publishedDocumentIds: vi.fn((plan: PublishPlan) =>
+        plan.items
+          .filter(
+            (item): item is ElementItem =>
+              item.type === PublishPlanItemType.Element
+          )
+          .map(item => item.elementId)
+      ),
+      skippedNotes: vi.fn().mockReturnValue([]),
       summary: vi.fn().mockReturnValue({
         items: 0,
         chapters: 0,
@@ -104,6 +120,7 @@ describe('PublishPlanTabComponent', () => {
         words: 0,
         loading: 0,
         unavailable: 0,
+        skippedNotes: 0,
         estimatedPages: 0,
         readingMinutes: 0,
       }),
@@ -123,6 +140,7 @@ describe('PublishPlanTabComponent', () => {
       updatePublishPlan: vi.fn().mockImplementation((plan: PublishPlan) => {
         currentPlan.set(plan);
       }),
+      setDocumentRole: vi.fn(),
       coverMediaId: signal(null),
     };
 
@@ -184,6 +202,17 @@ describe('PublishPlanTabComponent', () => {
 
   it('should create', () => {
     expect(component).toBeTruthy();
+  });
+
+  it('should show a labelled plan name field in the metadata section', () => {
+    const field = (
+      fixture.nativeElement as HTMLElement
+    ).querySelector<HTMLInputElement>('[data-testid="plan-name-field"]');
+    expect(field?.value).toBe('Default Export');
+
+    field!.value = 'Paperback';
+    field!.dispatchEvent(new Event('input'));
+    expect(currentPlan()?.name).toBe('Paperback');
   });
 
   it('should display plan name input', () => {
@@ -1436,13 +1465,120 @@ describe('PublishPlanTabComponent', () => {
   });
 
   describe('statistics', () => {
-    it('should ask the stats service to count every element in the plan', () => {
+    it('should re-read each published document once as it enters the plan', () => {
       component.addElement('elem-1');
+      fixture.detectChanges();
+      expect(mockStatsService.recount).toHaveBeenLastCalledWith(['elem-1']);
+
       component.addElement('elem-2');
       fixture.detectChanges();
-      const calls = mockStatsService.ensureCounted.mock.calls as string[][][];
-      const last = calls.at(-1)?.[0] ?? [];
-      expect(last).toEqual(['elem-1', 'elem-2']);
+      // Only the new document: elem-1 was already re-read by this editor.
+      expect(mockStatsService.recount).toHaveBeenLastCalledWith(['elem-2']);
+
+      mockStatsService.recount.mockClear();
+      component.updateMetadata('title', {
+        target: { value: 'New title' },
+      } as unknown as Event);
+      fixture.detectChanges();
+      expect(mockStatsService.recount).not.toHaveBeenCalled();
+    });
+
+    it('should re-read documents that were counted before the editor opened', () => {
+      // A document edited since its count was cached must not keep showing
+      // the old number (or a stale "not synced" badge) when the plan opens.
+      currentPlan.set({
+        ...testPlan,
+        items: [
+          {
+            id: 'row',
+            type: PublishPlanItemType.Element,
+            elementId: 'elem-1',
+            includeChildren: false,
+            isChapter: true,
+          },
+        ],
+      });
+      const fresh = TestBed.createComponent(PublishPlanTabComponent);
+      mockStatsService.recount.mockClear();
+      fresh.detectChanges();
+      expect(mockStatsService.recount).toHaveBeenCalledWith(['elem-1']);
+    });
+
+    it('should show skipped notes on a folder row and convert them on request', () => {
+      const notes = [
+        { id: 'note-1', name: 'Research', type: ElementType.Item },
+        { id: 'note-2', name: 'Ideas', type: ElementType.Item },
+      ];
+      mockStatsService.itemStats.mockReturnValue({
+        ...emptyItemStats,
+        skippedNotes: 2,
+      });
+      mockStatsService.skippedNotes.mockReturnValue(notes);
+      component.addElement('folder-1');
+      fixture.detectChanges();
+
+      const chip = (fixture.nativeElement as HTMLElement).querySelector(
+        '[data-testid="item-skipped-notes"]'
+      );
+      expect(chip?.textContent).toContain('2 notes not published');
+
+      component.publishSkippedNotes(currentPlan()!.items[0]);
+
+      expect(mockProjectState.setDocumentRole).toHaveBeenCalledWith(
+        'note-1',
+        'scene'
+      );
+      expect(mockProjectState.setDocumentRole).toHaveBeenCalledWith(
+        'note-2',
+        'scene'
+      );
+      expect(mockSnackBar.open).toHaveBeenLastCalledWith(
+        'Converted 2 notes to scenes',
+        undefined,
+        expect.any(Object)
+      );
+      expect(component['previewOutdated']()).toBe(true);
+    });
+
+    it('should not show a skipped-notes chip when a folder has no notes', () => {
+      component.addElement('folder-1');
+      fixture.detectChanges();
+      expect(
+        (fixture.nativeElement as HTMLElement).querySelector(
+          '[data-testid="item-skipped-notes"]'
+        )
+      ).toBeNull();
+    });
+
+    it('should total skipped notes in the plan statistics', () => {
+      mockStatsService.summary.mockReturnValue({
+        items: 1,
+        chapters: 1,
+        documents: 0,
+        entries: 0,
+        words: 0,
+        loading: 0,
+        unavailable: 0,
+        skippedNotes: 1,
+        estimatedPages: 0,
+        readingMinutes: 0,
+      });
+      component.addElement('folder-1');
+      fixture.detectChanges();
+      expect(
+        (fixture.nativeElement as HTMLElement).querySelector(
+          '[data-testid="plan-stat-skipped-notes"]'
+        )?.textContent
+      ).toContain('1 note not published');
+    });
+
+    it('should pick singular skipped-note keys for one note', () => {
+      expect(component.notesKey('skipped', 1)).toBe(
+        'publish.planEditor.notes.skippedOne'
+      );
+      expect(component.notesKey('convert', 3)).toBe(
+        'publish.planEditor.notes.convert'
+      );
     });
 
     it('should expose a plan summary from the stats service', () => {
@@ -1454,6 +1590,7 @@ describe('PublishPlanTabComponent', () => {
         words: 5500,
         loading: 0,
         unavailable: 0,
+        skippedNotes: 0,
         estimatedPages: 20,
         readingMinutes: 24,
       });
@@ -1483,6 +1620,7 @@ describe('PublishPlanTabComponent', () => {
         words: 0,
         loading: 0,
         unavailable: 1,
+        skippedNotes: 0,
         estimatedPages: 0,
         readingMinutes: 0,
       });
@@ -1667,6 +1805,12 @@ describe('PublishPlanTabComponent', () => {
       expect(component.countKey('entries', 2)).toBe(
         'publish.planEditor.stats.entries'
       );
+      expect(component.countKey('pages', 1)).toBe(
+        'publish.planEditor.stats.pagesEstimateOne'
+      );
+      expect(component.countKey('pages', 4)).toBe(
+        'publish.planEditor.stats.pagesEstimate'
+      );
     });
 
     it('should render singular labels through the translation pipe', () => {
@@ -1693,6 +1837,9 @@ describe('PublishPlanTabComponent', () => {
       expect(
         el.querySelector('[data-testid="plan-stat-reading"]')?.textContent
       ).toContain('1 min read');
+      expect(
+        el.querySelector('[data-testid="plan-stat-pages"]')?.textContent?.trim()
+      ).toMatch(/^\S+\s*~1 page$/);
     });
 
     it('should skip documents already in the plan when adding everything', () => {

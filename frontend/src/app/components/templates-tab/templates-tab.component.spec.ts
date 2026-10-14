@@ -447,6 +447,17 @@ describe('TemplatesTabComponent', () => {
       expect(schema.id).toMatch(/^custom-\d+$/);
     });
 
+    it('should not seed fields that duplicate the element name or identity description', () => {
+      mockProjectState.project.set(mockProject);
+
+      component.createTemplate();
+
+      const schema = mockProjectState.openSchemaEditor.mock.calls[0][0];
+      expect(schema.tabs).toEqual([
+        { key: 'general', label: 'General', fields: [] },
+      ]);
+    });
+
     it('should not open the editor without a project', () => {
       mockProjectState.project.set(null);
 
