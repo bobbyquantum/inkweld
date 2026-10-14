@@ -171,7 +171,12 @@ export class RelationshipFieldComponent {
       filterType: ElementType.Worldbuilding,
       filterSchemaId: field.targetSchemaId || undefined,
       maxSelections: multiple ? 50 : 1,
-      excludeIds: multiple ? this.linkedElementIds() : [],
+      // An element can't be linked to itself, even when the field targets
+      // its own template (e.g. a Location's "Part Of").
+      excludeIds: [
+        this.sourceElementId(),
+        ...(multiple ? this.linkedElementIds() : []),
+      ],
     });
     if (!result || result.elements.length === 0) return;
 

@@ -113,6 +113,14 @@ describe('ElementPickerDialogComponent', () => {
           'event-v1': 'event',
           'concept-v1': 'lightbulb',
         };
+        const names: Record<string, string> = {
+          'character-v1': 'Character',
+          'location-v1': 'Location',
+          'custom-1791937566034': 'NPC',
+        };
+        if (names[schemaId]) {
+          return { icon: icons[schemaId] ?? 'category', name: names[schemaId] };
+        }
         return icons[schemaId] ? { icon: icons[schemaId] } : null;
       }),
       getSchemaIcon: vi.fn().mockImplementation((schemaId: string) => {
@@ -506,11 +514,55 @@ describe('ElementPickerDialogComponent', () => {
   });
 
   it('should return correct type labels', () => {
-    expect(component.getTypeLabel(wb('character-v1'))).toBe('character');
+    expect(component.getTypeLabel(wb('character-v1'))).toBe('Character');
     expect(component.getTypeLabel(wb(undefined))).toBe('');
     expect(component.getTypeLabel({ type: 'FOLDER', name: 'x' } as never)).toBe(
       'Folder'
     );
+  });
+
+  it('should label a custom template by its name, not its id', () => {
+    expect(component.getTypeLabel(wb('custom-1791937566034'))).toBe('NPC');
+  });
+
+  it('should fall back sensibly when the template is not loaded', () => {
+    // Built-in ids still read as a name…
+    expect(component.getTypeLabel(wb('wb-item-v1'))).toBe('Wb Item');
+    // …generated custom ids do not, so they get a generic label.
+    expect(component.getTypeLabel(wb('custom-1791937724499'))).toBe(
+      'Worldbuilding'
+    );
+  });
+
+  it('should match the template name in search', () => {
+    mockProjectState.elements.mockReturnValue([
+      ...mockElements,
+      {
+        ...mockElements[0],
+        id: 'npc-1',
+        name: 'Saltmere',
+        schemaId: 'custom-1791937566034',
+      },
+    ]);
+    const picker = TestBed.createComponent(
+      ElementPickerDialogComponent
+    ).componentInstance;
+    picker.searchText.set('npc');
+    expect(picker.filteredElements().map(e => e.id)).toEqual(['npc-1']);
+  });
+
+  it('should give each checkbox the element name as its accessible name', () => {
+    const inputs = Array.from(
+      fixture.nativeElement.querySelectorAll(
+        '[data-testid="element-picker-item"] input[type="checkbox"]'
+      ) as NodeListOf<HTMLInputElement>
+    );
+    expect(inputs.map(i => i.getAttribute('aria-label'))).toEqual([
+      'Hero',
+      'Castle',
+      'Sword',
+      'Main Folder',
+    ]);
   });
 
   it('should indent by depth unless searching', () => {

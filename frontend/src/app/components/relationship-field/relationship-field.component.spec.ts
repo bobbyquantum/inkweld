@@ -221,6 +221,16 @@ describe('RelationshipFieldComponent', () => {
     );
   });
 
+  it('should never offer the element itself as a link target', async () => {
+    dialogGateway.openElementPickerDialog.mockResolvedValue(null);
+
+    await component.openPicker();
+
+    expect(dialogGateway.openElementPickerDialog).toHaveBeenCalledWith(
+      expect.objectContaining({ excludeIds: ['hero'] })
+    );
+  });
+
   it('should replace the existing link in single mode', async () => {
     relationships.push(makeRel('r1', 'hero', 'mother-el'));
     relationshipService.relationships.set([...relationships]);
