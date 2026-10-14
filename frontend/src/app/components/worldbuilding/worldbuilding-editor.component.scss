@@ -335,7 +335,9 @@
 // Identity Panel — Inline Overrides
 // ==========================================
 // When identity panel is shown as section content (not as a sidebar),
-// override its internal sizing and hide its collapse toggle.
+// override its internal sizing and hide its collapse toggle. The extra
+// ancestor class outranks the panel's own encapsulated rules, so these
+// overrides (and the relationships ones below) need no !important.
 
 .identity-inline {
   width: 100%;
@@ -352,18 +354,18 @@
 
   ::ng-deep {
     .identity-panel {
-      width: 100% !important;
-      max-width: 100% !important;
-      min-width: unset !important;
-      flex-direction: column !important;
-      flex-wrap: nowrap !important;
-      align-items: stretch !important;
-      height: auto !important;
-      background: transparent !important;
-      border-radius: 0 !important;
+      width: 100%;
+      max-width: 100%;
+      min-width: unset;
+      flex-direction: column;
+      flex-wrap: nowrap;
+      align-items: stretch;
+      height: auto;
+      background: transparent;
+      border-radius: 0;
 
       .collapse-toggle {
-        display: none !important;
+        display: none;
       }
     }
 
@@ -373,18 +375,18 @@
     // a column here left the small icon stranded on its own row.
     @media (min-width: 760px) {
       .identity-content {
-        flex-direction: column !important;
-        flex-wrap: nowrap !important;
-        gap: 16px !important;
+        flex-direction: column;
+        flex-wrap: nowrap;
+        gap: 16px;
 
         .image-section {
-          flex: initial !important;
+          flex: initial;
           max-width: 400px;
         }
 
         .name-section {
-          flex: initial !important;
-          min-width: initial !important;
+          flex: initial;
+          min-width: initial;
         }
       }
     }
@@ -402,23 +404,23 @@
 
   ::ng-deep {
     .meta-panel {
-      width: 100% !important;
-      min-width: unset !important;
-      background: transparent !important;
+      width: 100%;
+      min-width: unset;
+      background: transparent;
 
       &.collapsed {
-        width: 100% !important;
+        width: 100%;
       }
     }
 
     // Hide the collapsed icon bar since we always show expanded
     .collapsed-panel {
-      display: none !important;
+      display: none;
     }
 
     // Hide the collapse toggle in the expanded header
     .panel-header .collapse-toggle {
-      display: none !important;
+      display: none;
     }
   }
 }
