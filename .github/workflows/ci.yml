@@ -306,8 +306,10 @@ jobs:
           pattern: frontend-coverage-shard-*
           path: frontend/coverage/shards
 
+      # download-artifact extracts a lone match straight into `path` and
+      # several into one directory each, so find the reports at any depth.
       - name: Merge coverage and check thresholds
-        run: cd frontend && node scripts/merge-lcov.mjs --out coverage/inkweld-frontend/lcov.info coverage/shards/*/lcov.info
+        run: cd frontend && node scripts/merge-lcov.mjs --out coverage/inkweld-frontend/lcov.info $(find coverage/shards -name lcov.info | sort)
 
       - name: Upload frontend coverage
         if: ${{ !cancelled() }}
