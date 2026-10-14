@@ -5,6 +5,15 @@
 // Mobile + tablet portrait: accordion with expandable sections
 // Status bar always spans full width at the bottom
 
+// Element background image/colour, shared by the sidenav, content and
+// accordion (one emitted rule keeps the stylesheet inside its size budget).
+%wb-custom-bg {
+  background: var(--wb-bg);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
 // Main container: flex column to stack layout + status bar
 .worldbuilding-editor-container {
   display: flex;
@@ -45,10 +54,7 @@
   // `background` (not `background-image`) so a plain solid colour value from
   // var(--wb-bg) also renders.
   &.has-custom-background {
-    background: var(--wb-bg);
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
+    @extend %wb-custom-bg;
   }
 
   // Auto-adjusted image backgrounds get an overlay so overlaid content stays
@@ -186,10 +192,7 @@
 
   // Custom background for the content region.
   &.has-custom-background {
-    background: var(--wb-bg);
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
+    @extend %wb-custom-bg;
     background-attachment: local;
   }
 
@@ -459,10 +462,7 @@ mat-accordion {
   // face is tinted with that background so the section list echoes the
   // element's side menu styling.
   &.has-custom-background {
-    background: var(--wb-bg);
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
+    @extend %wb-custom-bg;
     border-radius: 12px;
     padding: 4px;
 
@@ -545,49 +545,43 @@ mat-accordion {
 }
 
 .field-container {
-  grid-column: span 12;
+  // Each span class sets its column count on the 12-, 6- and 2-column grids
+  // (one rule per span keeps the stylesheet inside its size budget):
+  // 6 columns: spans 1-2 → thirds, 3-6 → halves, wider → full width;
+  // 2 columns: spans up to a quarter → halves, wider → full width.
+  --span: 12;
+  --span-md: 6;
+  --span-sm: 2;
+  grid-column: span var(--span);
   min-width: 0;
 
-  // Layout span (1-12 columns of the tab's 12-column grid).
-  @for $i from 1 through 12 {
-    &.span-#{$i} {
-      grid-column: span #{$i};
-    }
-  }
-
-  // 6-column grid: spans 1-2 → thirds, 3-6 → halves, wider → full width.
   @container wb-content (max-width: 600px) {
-    @for $i from 1 through 12 {
-      $cols: 6;
-      @if $i <= 2 {
-        $cols: 2;
-      } @else if $i <= 6 {
-        $cols: 3;
-      }
-      &.span-#{$i} {
-        grid-column: span #{$cols};
-      }
-    }
+    grid-column: span var(--span-md);
   }
 
-  // 2-column grid: spans up to a quarter → halves, wider → full width.
   @container wb-content (max-width: 400px) {
-    @for $i from 1 through 12 {
-      $cols: 2;
-      @if $i <= 3 {
-        $cols: 1;
-      }
-      &.span-#{$i} {
-        grid-column: span #{$cols};
-      }
-    }
+    grid-column: span var(--span-sm);
   }
 
   // Material's form-field infix defaults to a fixed 180px width, which would
   // overflow a narrow cell; let it follow the cell instead.
   ::ng-deep .mat-mdc-form-field-infix {
     width: auto;
-    min-width: 0;
+  }
+}
+
+// Only field containers carry `span-N`; the short selector saves bytes.
+@for $i from 1 through 11 {
+  .span-#{$i} {
+    --span: #{$i};
+    @if $i <= 2 {
+      --span-md: 2;
+    } @else if $i <= 6 {
+      --span-md: 3;
+    }
+    @if $i <= 3 {
+      --span-sm: 1;
+    }
   }
 }
 
@@ -914,7 +908,6 @@ mat-accordion {
   padding: 6px;
   box-sizing: border-box;
   container-type: inline-size;
-  container-name: wb-field;
 
   &:hover {
     border-color: var(--sys-primary);
@@ -927,14 +920,9 @@ mat-accordion {
   align-items: center;
   gap: 2px;
   margin-bottom: 4px;
-  min-width: 0;
 
   .field-index {
-    flex: 1 1 auto;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    margin-right: auto;
     font-size: 12px;
     font-weight: 500;
     color: var(--sys-on-surface-variant);
@@ -943,13 +931,13 @@ mat-accordion {
   // Wide cards show every action inline; narrow ones keep "Edit field" and
   // move the rest into the overflow menu so no button is squeezed under
   // another (index + 4 × 28px buttons needs ~140px).
-  @container wb-field (width >= 160px) {
+  @container (width >= 160px) {
     .field-overflow-trigger {
       display: none;
     }
   }
 
-  @container wb-field (width < 160px) {
+  @container (width < 160px) {
     .field-inline-action {
       display: none;
     }
