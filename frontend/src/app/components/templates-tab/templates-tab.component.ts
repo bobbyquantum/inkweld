@@ -183,24 +183,10 @@ export class TemplatesTabComponent {
       description: '',
       version: 1,
       isNew: true,
-      tabs: [
-        {
-          key: 'general',
-          label: 'General',
-          fields: [
-            {
-              key: 'name',
-              label: 'Name',
-              type: 'text',
-            },
-            {
-              key: 'description',
-              label: 'Description',
-              type: 'textarea',
-            },
-          ],
-        },
-      ],
+      // Starts with no fields: every element already has a name and the
+      // Identity panel's description, and a template field keyed `description`
+      // would shadow that identity field for MCP writes.
+      tabs: [{ key: 'general', label: 'General', fields: [] }],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };

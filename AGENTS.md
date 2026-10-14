@@ -821,6 +821,14 @@ to shared schema") get the shared schema copied in on first open by
   appended, element data is never touched. Snapshots and project archives carry
   the copy (`__elementSchema` key inside `worldbuildingData`; `schema` +
   `schemaBaseHash` on `ArchiveWorldbuildingData`).
+- **Identity vs template fields**: `description` and `image` live in the
+  element's `identity` map, outside any schema, but a template may still
+  define a field with one of those keys (older templates do). MCP
+  `update_worldbuilding` (`mcp/tools/worldbuilding-fields.ts`) resolves a bare
+  key against the element's schema (copy, else shared by `schemaId`) first,
+  so the template field stays writable; `identity.<key>` / `worldbuilding.<key>`
+  pick a map explicitly. New templates start with an empty General tab rather
+  than seeding `name`/`description` fields that duplicate identity.
 
 ### Editor Schema & Tables
 

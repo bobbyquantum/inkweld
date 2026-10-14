@@ -126,6 +126,20 @@ describe('MCP project tools', () => {
     expect(spy).toHaveBeenCalledWith('alice:novel:elements/');
   });
 
+  it('get_project_schemas lists the identity fields that sit outside every schema', async () => {
+    seedSchemas([]);
+    const json = await rpc([grant('novel', FULL)], 'tools/call', {
+      name: 'get_project_schemas',
+      arguments: { project: 'alice/novel' },
+    });
+    const data = JSON.parse(textOf(json)) as {
+      identityFields: { key: string }[];
+      note: string;
+    };
+    expect(data.identityFields.map((f) => f.key)).toEqual(['description', 'image']);
+    expect(data.note).toContain('identity.<key>');
+  });
+
   it('get_project_schemas returns an empty list when the project has no schemas', async () => {
     seedSchemas([]);
     const json = await rpc([grant('novel', FULL)], 'tools/call', {

@@ -76,7 +76,10 @@ registerTool({
     description:
       'Get the worldbuilding element types (schemas/templates, e.g. Character, Location) defined for a project, ' +
       "with each one's id, name, icon, description, tabs/fields and defaults. Call this before create_element " +
-      'or update_worldbuilding to learn the valid schema ids and field keys. Use list_projects first to find the project key.',
+      'or update_worldbuilding to learn the valid schema ids and field keys. The result also lists the identity ' +
+      'fields (description, image) every element has outside its schema; a schema field may reuse one of those ' +
+      'keys, in which case update_worldbuilding needs "identity.<key>" to reach the identity field. ' +
+      'Use list_projects first to find the project key.',
     inputSchema: {
       type: 'object',
       properties: {
