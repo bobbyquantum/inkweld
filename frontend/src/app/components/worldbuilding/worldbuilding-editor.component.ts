@@ -191,7 +191,10 @@ function mergeIntoShape(
     TranslocoModule,
   ],
   templateUrl: './worldbuilding-editor.component.html',
-  styleUrls: ['./worldbuilding-editor.component.scss'],
+  styleUrls: [
+    './worldbuilding-editor.component.scss',
+    './worldbuilding-editor-field-grid.scss',
+  ],
 })
 export class WorldbuildingEditorComponent implements OnDestroy {
   // Input properties
