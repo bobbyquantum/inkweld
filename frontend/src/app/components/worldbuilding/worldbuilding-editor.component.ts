@@ -968,6 +968,26 @@ export class WorldbuildingEditorComponent implements OnDestroy {
     return tab?.fields || [];
   }
 
+  /**
+   * A field's span on each tier of the responsive field grid, as the custom
+   * properties `.field-container` reads: the 12-column grid uses the schema
+   * span; the 6-column grid shows spans 1-2 as thirds, 3-6 as halves and
+   * wider ones full width; the 2-column grid shows spans up to a quarter as
+   * halves. Computed here rather than in the stylesheet, which is close to
+   * the component style budget.
+   */
+  fieldSpanStyle(field: FieldSchema): Record<string, number> {
+    const span = Math.min(Math.max(field.layout?.span || 12, 1), 12);
+    let span6 = 6;
+    if (span <= 2) span6 = 2;
+    else if (span <= 6) span6 = 3;
+    return {
+      '--span': span,
+      '--span-6': span6,
+      '--span-2': span <= 3 ? 1 : 2,
+    };
+  }
+
   // ---------------------------------------------------------------------------
   // Schema edit mode (preview only)
   // ---------------------------------------------------------------------------

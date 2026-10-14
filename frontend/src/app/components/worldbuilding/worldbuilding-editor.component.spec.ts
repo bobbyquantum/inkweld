@@ -1451,6 +1451,44 @@ describe('WorldbuildingEditorComponent', () => {
       expect(component['schemaEditingEnabled']()).toBe(false);
     });
 
+    describe('fieldSpanStyle', () => {
+      const style = (span?: number) =>
+        component.fieldSpanStyle({
+          key: 'f',
+          label: 'F',
+          type: 'number',
+          layout: span === undefined ? undefined : { span },
+        });
+
+      it('should keep small spans side by side on the narrower grids', () => {
+        expect(style(2)).toEqual({ '--span': 2, '--span-6': 2, '--span-2': 1 });
+        expect(style(3)).toEqual({ '--span': 3, '--span-6': 3, '--span-2': 1 });
+        expect(style(4)).toEqual({ '--span': 4, '--span-6': 3, '--span-2': 2 });
+        expect(style(6)).toEqual({ '--span': 6, '--span-6': 3, '--span-2': 2 });
+        expect(style(8)).toEqual({ '--span': 8, '--span-6': 6, '--span-2': 2 });
+      });
+
+      it('should default to full width and clamp out-of-range spans', () => {
+        expect(style()).toEqual({ '--span': 12, '--span-6': 6, '--span-2': 2 });
+        expect(style(20)['--span']).toBe(12);
+        expect(style(-3)['--span']).toBe(1);
+      });
+
+      it('should set the span properties on the rendered field', async () => {
+        component.selectSection('basic');
+        fixture.detectChanges();
+        await fixture.whenStable();
+        fixture.detectChanges();
+        const host = fixture.nativeElement as HTMLElement;
+        const card = host.querySelector<HTMLElement>(
+          '[data-testid="field-name"]'
+        );
+        expect(card?.style.getPropertyValue('--span')).toBeTruthy();
+        expect(card?.style.getPropertyValue('--span-6')).toBeTruthy();
+        expect(card?.style.getPropertyValue('--span-2')).toBeTruthy();
+      });
+    });
+
     describe('field toolbar', () => {
       const query = <T extends HTMLElement>(
         root: ParentNode,

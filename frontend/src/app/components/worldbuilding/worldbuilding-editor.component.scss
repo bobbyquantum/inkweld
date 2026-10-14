@@ -545,42 +545,16 @@ mat-accordion {
 }
 
 .field-container {
-  grid-column: span 12;
+  // The field's span on each grid tier comes from `fieldSpanStyle()`.
+  grid-column: span var(--span, 12);
   min-width: 0;
 
-  // Layout span (1-12 columns of the tab's 12-column grid).
-  @for $i from 1 through 12 {
-    &.span-#{$i} {
-      grid-column: span #{$i};
-    }
-  }
-
-  // 6-column grid: spans 1-2 → thirds, 3-6 → halves, wider → full width.
   @container wb-content (max-width: 600px) {
-    @for $i from 1 through 12 {
-      $cols: 6;
-      @if $i <= 2 {
-        $cols: 2;
-      } @else if $i <= 6 {
-        $cols: 3;
-      }
-      &.span-#{$i} {
-        grid-column: span #{$cols};
-      }
-    }
+    grid-column: span var(--span-6, 6);
   }
 
-  // 2-column grid: spans up to a quarter → halves, wider → full width.
   @container wb-content (max-width: 400px) {
-    @for $i from 1 through 12 {
-      $cols: 2;
-      @if $i <= 3 {
-        $cols: 1;
-      }
-      &.span-#{$i} {
-        grid-column: span #{$cols};
-      }
-    }
+    grid-column: span var(--span-2, 2);
   }
 
   // Material's form-field infix defaults to a fixed 180px width, which would

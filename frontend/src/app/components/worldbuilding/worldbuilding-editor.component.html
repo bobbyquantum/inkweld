@@ -776,7 +776,8 @@
           class="field-container"
           [class.schema-edit]="schemaEditingEnabled()"
           [attr.data-testid]="'field-' + field.key"
-          [ngClass]="'span-' + (field.layout?.span || 12)">
+          [ngClass]="'span-' + (field.layout?.span || 12)"
+          [style]="fieldSpanStyle(field)">
           @if (schemaEditingEnabled()) {
             @let isLastField = fi === getFieldsForTab(tabKey).length - 1;
             <!-- Narrow cards (small spans) swap the move/remove buttons for an
