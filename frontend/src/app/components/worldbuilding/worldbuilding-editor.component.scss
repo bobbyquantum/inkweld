@@ -335,7 +335,9 @@
 // Identity Panel — Inline Overrides
 // ==========================================
 // When identity panel is shown as section content (not as a sidebar),
-// override its internal sizing and hide its collapse toggle.
+// override its internal sizing and hide its collapse toggle. The extra
+// ancestor class outranks the panel's own encapsulated rules, so these
+// overrides (and the relationships ones below) need no !important.
 
 .identity-inline {
   width: 100%;
@@ -352,18 +354,18 @@
 
   ::ng-deep {
     .identity-panel {
-      width: 100% !important;
-      max-width: 100% !important;
-      min-width: unset !important;
-      flex-direction: column !important;
-      flex-wrap: nowrap !important;
-      align-items: stretch !important;
-      height: auto !important;
-      background: transparent !important;
-      border-radius: 0 !important;
+      width: 100%;
+      max-width: 100%;
+      min-width: unset;
+      flex-direction: column;
+      flex-wrap: nowrap;
+      align-items: stretch;
+      height: auto;
+      background: transparent;
+      border-radius: 0;
 
       .collapse-toggle {
-        display: none !important;
+        display: none;
       }
     }
 
@@ -373,18 +375,18 @@
     // a column here left the small icon stranded on its own row.
     @media (min-width: 760px) {
       .identity-content {
-        flex-direction: column !important;
-        flex-wrap: nowrap !important;
-        gap: 16px !important;
+        flex-direction: column;
+        flex-wrap: nowrap;
+        gap: 16px;
 
         .image-section {
-          flex: initial !important;
+          flex: initial;
           max-width: 400px;
         }
 
         .name-section {
-          flex: initial !important;
-          min-width: initial !important;
+          flex: initial;
+          min-width: initial;
         }
       }
     }
@@ -402,23 +404,23 @@
 
   ::ng-deep {
     .meta-panel {
-      width: 100% !important;
-      min-width: unset !important;
-      background: transparent !important;
+      width: 100%;
+      min-width: unset;
+      background: transparent;
 
       &.collapsed {
-        width: 100% !important;
+        width: 100%;
       }
     }
 
     // Hide the collapsed icon bar since we always show expanded
     .collapsed-panel {
-      display: none !important;
+      display: none;
     }
 
     // Hide the collapse toggle in the expanded header
     .panel-header .collapse-toggle {
-      display: none !important;
+      display: none;
     }
   }
 }
@@ -512,41 +514,6 @@ mat-accordion {
   mat-panel-description {
     color: var(--sys-on-surface-variant);
     font-size: 13px;
-  }
-}
-
-// ==========================================
-// Tab Content (Shared — used in both modes)
-// ==========================================
-
-.tab-content {
-  padding: 1.5rem;
-  display: grid;
-  grid-template-columns: repeat(12, 1fr);
-  gap: 1rem;
-  box-sizing: border-box;
-
-  // Narrow container: reduce padding and single column
-  @container wb-content (max-width: 600px) {
-    padding: 1rem;
-    gap: 0.75rem;
-    grid-template-columns: 1fr;
-  }
-}
-
-.field-container {
-  grid-column: span 12;
-
-  // Layout span (1-12 columns of the tab's 12-column grid).
-  @for $i from 1 through 12 {
-    &.span-#{$i} {
-      grid-column: span #{$i};
-    }
-  }
-
-  // Narrow container: always full width
-  @container wb-content (max-width: 600px) {
-    grid-column: span 1 !important;
   }
 }
 
@@ -861,50 +828,6 @@ mat-accordion {
   flex-direction: column;
   gap: 14px;
   padding: 1.5rem;
-}
-
-// Field container in edit mode: dashed outline + hover toolbar.
-.field-container.schema-edit {
-  position: relative;
-  border: 1px dashed var(--sys-outline-variant);
-  border-radius: 8px;
-  padding: 6px;
-
-  &:hover {
-    border-color: var(--sys-primary);
-  }
-}
-
-.schema-field-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  margin-bottom: 4px;
-
-  .field-index {
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--sys-on-surface-variant);
-    margin-right: auto;
-  }
-
-  button.mat-mdc-icon-button {
-    --mdc-icon-button-state-layer-size: 28px;
-    width: 28px;
-    height: 28px;
-    padding: 0;
-
-    mat-icon {
-      font-size: 18px;
-      width: 18px;
-      height: 18px;
-    }
-
-    &.active {
-      color: var(--sys-primary);
-      background-color: var(--sys-primary-container);
-    }
-  }
 }
 
 // ---------------------------------------------------------------------------

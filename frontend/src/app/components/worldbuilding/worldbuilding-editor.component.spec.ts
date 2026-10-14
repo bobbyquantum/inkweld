@@ -1451,6 +1451,98 @@ describe('WorldbuildingEditorComponent', () => {
       expect(component['schemaEditingEnabled']()).toBe(false);
     });
 
+    describe('field toolbar', () => {
+      const query = <T extends HTMLElement>(
+        root: ParentNode,
+        testId: string
+      ): T | null => root.querySelector<T>(`[data-testid="${testId}"]`);
+
+      async function renderBasicTab(): Promise<HTMLElement> {
+        component.selectSection('basic');
+        fixture.detectChanges();
+        await fixture.whenStable();
+        fixture.detectChanges();
+        const host = fixture.nativeElement as HTMLElement;
+        const card = query<HTMLElement>(host, 'field-name');
+        expect(card).toBeTruthy();
+        return card!;
+      }
+
+      afterEach(() => {
+        // Close any menu opened by a test so its overlay doesn't leak.
+        document
+          .querySelectorAll('.cdk-overlay-container')
+          .forEach(el => (el.innerHTML = ''));
+      });
+
+      it('should label every field action', async () => {
+        const card = await renderBasicTab();
+        const label = (id: string) =>
+          query(card, id)?.getAttribute('aria-label');
+
+        expect(label('field-edit')).toBe('Edit field');
+        expect(label('field-move-up')).toBe('Move field up');
+        expect(label('field-move-down')).toBe('Move field down');
+        expect(label('field-remove')).toBe('Remove field');
+        expect(label('field-more-actions')).toBe('More actions for field 1');
+      });
+
+      it('should mark the move/remove buttons as collapsible into the overflow menu', async () => {
+        const card = await renderBasicTab();
+        for (const id of ['field-move-up', 'field-move-down', 'field-remove']) {
+          expect(query(card, id)?.classList).toContain('field-inline-action');
+        }
+        // "Edit field" stays inline at every width.
+        expect(query(card, 'field-edit')?.classList).not.toContain(
+          'field-inline-action'
+        );
+        expect(query(card, 'field-more-actions')?.classList).toContain(
+          'field-overflow-trigger'
+        );
+      });
+
+      it('should remove a field from the overflow menu', async () => {
+        const emit = vi.fn();
+        component.schemaEdit.subscribe(emit);
+        const card = await renderBasicTab();
+
+        query<HTMLButtonElement>(card, 'field-more-actions')!.click();
+        fixture.detectChanges();
+        await fixture.whenStable();
+
+        const moveUp = query<HTMLButtonElement>(document, 'field-menu-move-up');
+        expect(moveUp?.disabled).toBe(true);
+        expect(
+          query<HTMLButtonElement>(document, 'field-menu-move-down')?.disabled
+        ).toBe(false);
+
+        query<HTMLButtonElement>(document, 'field-menu-remove')!.click();
+        expect(emit).toHaveBeenCalledWith({
+          type: 'remove-field',
+          tabKey: 'basic',
+          fieldKey: 'name',
+        });
+      });
+
+      it('should move a field down from the overflow menu', async () => {
+        const emit = vi.fn();
+        component.schemaEdit.subscribe(emit);
+        const card = await renderBasicTab();
+
+        query<HTMLButtonElement>(card, 'field-more-actions')!.click();
+        fixture.detectChanges();
+        await fixture.whenStable();
+
+        query<HTMLButtonElement>(document, 'field-menu-move-down')!.click();
+        expect(emit).toHaveBeenCalledWith({
+          type: 'move-field',
+          tabKey: 'basic',
+          fieldKey: 'name',
+          delta: 1,
+        });
+      });
+    });
+
     it('should emit an add-field event', () => {
       const emit = vi.fn();
       component.schemaEdit.subscribe(emit);
