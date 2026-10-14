@@ -169,6 +169,15 @@ const projectsResourceHandler = {
   },
 };
 
+/** Identity fields every worldbuilding element has, outside its schema. */
+const IDENTITY_FIELDS = [
+  { key: 'description', description: 'Short description shown in the Identity panel and previews' },
+  {
+    key: 'image',
+    description: 'Element image (media:// reference or URL); set it with apply_image',
+  },
+];
+
 /**
  * Load a project's worldbuilding schemas (element types / templates) from the
  * `schemas` array of the project elements doc. Shared by the `schemas`
@@ -178,9 +187,22 @@ export async function loadProjectSchemas(
   ctx: McpContext,
   username: string,
   slug: string
-): Promise<{ total: number; schemas: SchemaLike[] }> {
+): Promise<{
+  total: number;
+  schemas: SchemaLike[];
+  identityFields: { key: string; description: string }[];
+  note: string;
+}> {
   const schemas = await getSchemas(ctx, username, slug);
-  return { total: schemas.length, schemas };
+  return {
+    total: schemas.length,
+    schemas,
+    identityFields: IDENTITY_FIELDS,
+    note:
+      'Every worldbuilding element also has the identity fields above, which are not part of any schema. ' +
+      'With update_worldbuilding, a bare key a schema defines writes that schema field (even "description"); ' +
+      'use "identity.<key>" to write an identity field and "worldbuilding.<key>" to force a schema field.',
+  };
 }
 
 /**

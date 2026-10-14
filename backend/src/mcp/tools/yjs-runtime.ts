@@ -391,6 +391,40 @@ export async function getSchemas(
 }
 
 /**
+ * Get the schema a worldbuilding element renders with (works on both runtimes):
+ * its own copy (`schema.snapshot`), or else the shared project schema named by
+ * `worldbuilding.schemaId` — the same resolution as the frontend's
+ * `WorldbuildingService.getElementSchemaState`. Null when neither exists.
+ */
+export async function getElementSchema(
+  ctx: McpContext,
+  username: string,
+  slug: string,
+  elementId: string
+): Promise<SchemaLike | null> {
+  const docId = `${username}:${slug}:${elementId}/`;
+  let doc: { getMap: (name: string) => { get: (key: string) => unknown } };
+  if (isCloudflareWorkers(ctx)) {
+    const workerService = new YjsWorkerService({
+      env: ctx.env as { YJS_PROJECTS: NonNullable<NonNullable<typeof ctx.env>['YJS_PROJECTS']> },
+      authToken: ctx.authToken ?? '',
+    });
+    doc = (await workerService.getDocument(docId)).doc;
+  } else {
+    const { yjsService } = await import('../../services/yjs.service');
+    doc = (await yjsService.getDocument(docId)).doc;
+  }
+
+  const copy = doc.getMap('schema').get('snapshot') as SchemaLike | undefined;
+  if (copy && typeof copy === 'object' && Array.isArray(copy.tabs)) return copy;
+
+  const schemaId = doc.getMap('worldbuilding').get('schemaId');
+  if (typeof schemaId !== 'string' || !schemaId) return null;
+  const schemas = await getSchemas(ctx, username, slug);
+  return schemas.find((schema) => schema.id === schemaId) ?? null;
+}
+
+/**
  * Get all relationships for a project (works on both runtimes)
  */
 export async function getRelationships(

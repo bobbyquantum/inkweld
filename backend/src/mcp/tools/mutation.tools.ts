@@ -39,8 +39,14 @@ import {
   replaceAllRelationships as runtimeReplaceAllRelationships,
   addRelationship as runtimeAddRelationship,
   getSchemas as runtimeGetSchemas,
+  getElementSchema as runtimeGetElementSchema,
   type Relationship,
 } from './yjs-runtime';
+import {
+  IDENTITY_FIELD_KEYS,
+  routeWorldbuildingFields,
+  schemaFieldKeys,
+} from './worldbuilding-fields';
 
 const mcpMutLog = logger.child('MCP-Mutation');
 
@@ -1275,12 +1281,40 @@ This properly handles positional hierarchy - subtrees move with their parents.`,
 // update_worldbuilding tool
 // ============================================
 
+/**
+ * Field keys of the element's template, used to tell a template field named
+ * `description`/`image` from the identity field. Only read when the update has
+ * such a bare key. Best-effort: an unreadable schema falls back to the identity
+ * routing.
+ */
+async function readSchemaFieldKeys(
+  ctx: McpContext,
+  username: string,
+  slug: string,
+  elementId: string,
+  fields: Record<string, unknown>
+): Promise<Set<string>> {
+  if (!Object.keys(fields).some((key) => IDENTITY_FIELD_KEYS.has(key))) return new Set();
+  try {
+    return schemaFieldKeys(await runtimeGetElementSchema(ctx, username, slug, elementId));
+  } catch (err) {
+    mcpMutLog.warn(`Could not read the schema of ${elementId}; using identity routing`, {
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return new Set();
+  }
+}
+
 registerTool({
   tool: {
     name: 'update_worldbuilding',
     title: 'Update Worldbuilding Data',
     description:
-      'Update worldbuilding fields for a character, location, or other worldbuilding element',
+      'Update worldbuilding fields for a character, location, or other worldbuilding element. ' +
+      'An element has two kinds of data: identity fields shared by every element ("description", "image", ' +
+      'shown in the Identity panel) and the fields its template defines (keys from get_project_schemas). ' +
+      'A bare key that the element\'s template defines always writes the template field, even "description". ' +
+      'Prefix a key with "identity." or "worldbuilding." to choose explicitly.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -1292,7 +1326,9 @@ registerTool({
         fields: {
           type: 'object',
           description:
-            'Key-value pairs of fields to update. Use field names directly without prefixes (e.g., "age", "occupation", not "worldbuilding.age"). Special identity fields: "description" and "image" are stored in a separate identity namespace.',
+            'Key-value pairs of fields to update, keyed by template field key (e.g. "age", "occupation"). ' +
+            'A bare "description" or "image" writes the identity field unless the element\'s template defines a field with that key. ' +
+            '"identity.description" / "identity.image" always write the identity field; "worldbuilding.<key>" always writes the template field.',
           additionalProperties: true,
         },
       },
@@ -1327,23 +1363,11 @@ registerTool({
     }
 
     try {
-      // Special identity fields that go to the identity map
-      const IDENTITY_FIELDS = new Set(['description', 'image']);
-
-      // Separate fields into identity and worldbuilding
-      const identityUpdates: Record<string, unknown> = {};
-      const worldbuildingUpdates: Record<string, unknown> = {};
-
-      for (const [key, value] of Object.entries(fields)) {
-        if (key.startsWith('identity.')) {
-          const identityKey = key.replaceAll('identity.', '');
-          identityUpdates[identityKey] = value;
-        } else if (IDENTITY_FIELDS.has(key)) {
-          identityUpdates[key] = value;
-        } else {
-          worldbuildingUpdates[key] = value;
-        }
-      }
+      const { identity: identityUpdates, worldbuilding: worldbuildingUpdates } =
+        routeWorldbuildingFields(
+          fields,
+          await readSchemaFieldKeys(ctx, username, slug, elementId, fields)
+        );
 
       // Apply updates using runtime-aware function
       if (Object.keys(identityUpdates).length > 0) {
@@ -1387,6 +1411,8 @@ registerTool({
           success: true,
           elementId,
           updatedFields,
+          identityFields: Object.keys(identityUpdates),
+          worldbuildingFields: Object.keys(worldbuildingUpdates),
         },
       };
     } catch (err) {
