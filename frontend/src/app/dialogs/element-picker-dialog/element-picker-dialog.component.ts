@@ -151,7 +151,8 @@ export class ElementPickerDialogComponent {
     return elements.filter(
       el =>
         el.name.toLowerCase().includes(search) ||
-        el.schemaId?.toLowerCase().includes(search)
+        el.schemaId?.toLowerCase().includes(search) ||
+        (!!el.schemaId && this.getTypeLabel(el).toLowerCase().includes(search))
     );
   });
 
@@ -232,7 +233,7 @@ export class ElementPickerDialogComponent {
 
   /** Secondary label: the template name, or the plain element kind. */
   getTypeLabel(element: Element): string {
-    if (element.schemaId) return element.schemaId.replace(/-v\d+$/, '');
+    if (element.schemaId) return this.schemaLabel(element.schemaId);
     let key: string | null = null;
     if (element.type === ElementType.Folder) {
       key = 'typeFolder';
@@ -240,6 +241,23 @@ export class ElementPickerDialogComponent {
       key = isNote(element.metadata) ? 'typeNote' : 'typeDocument';
     }
     return key ? this.transloco.translate(`dialogs.elementPicker.${key}`) : '';
+  }
+
+  /**
+   * Display name of a template. When the schema is not loaded, a built-in id
+   * (`character-v1`) still reads as a name; a generated custom id
+   * (`custom-<timestamp>`) does not, so it falls back to a generic label.
+   */
+  private schemaLabel(schemaId: string): string {
+    const name = this.worldbuildingService.getSchemaById(schemaId)?.name;
+    if (name?.trim()) return name;
+    if (/^custom-\d+$/.test(schemaId)) {
+      return this.transloco.translate(
+        'dialogs.elementPicker.typeWorldbuilding'
+      );
+    }
+    const base = schemaId.replace(/-v\d+$/, '').replaceAll(/[-_]+/g, ' ');
+    return base.replaceAll(/\b\w/g, c => c.toUpperCase());
   }
 
   /** Whether to hint that a folder brings its contents along. */

@@ -97,6 +97,7 @@
     "typeFolder": "Folder",
     "typeDocument": "Document",
     "typeNote": "Note",
+    "typeWorldbuilding": "Worldbuilding",
     "includesChildren": "includes everything inside",
     "createNew": "Create new…",
     "createNewTooltip": "Create a new worldbuilding element and select it"
