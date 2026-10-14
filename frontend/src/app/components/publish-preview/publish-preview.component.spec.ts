@@ -230,6 +230,26 @@ describe('PublishPreviewComponent', () => {
       expect(stats?.textContent).toContain('3');
     });
 
+    it('should count typst page groups and say "1 page" for one', async () => {
+      component.plan = { ...mockPlan, format: PublishFormat.PDF_SIMPLE };
+      const doc = (pages: number): string =>
+        `<svg class="typst-doc">${'<g class="typst-page"></g>'.repeat(pages)}</svg>`;
+      const pageCount = (): string | null | undefined =>
+        (fixture.nativeElement as HTMLElement)
+          .querySelector('[data-testid="preview-page-count"]')
+          ?.textContent?.trim();
+
+      (mockPdfGenerator.renderSvgPreview as Mock).mockResolvedValue(doc(4));
+      await component.generatePreview();
+      fixture.detectChanges();
+      expect(pageCount()).toBe('4 pages');
+
+      (mockPdfGenerator.renderSvgPreview as Mock).mockResolvedValue(doc(1));
+      await component.generatePreview();
+      fixture.detectChanges();
+      expect(pageCount()).toBe('1 page');
+    });
+
     it('should show the outdated notice and a refresh button', async () => {
       await component.generatePreview();
       component.outdated = true;
@@ -322,7 +342,18 @@ describe('PublishPreviewComponent', () => {
 });
 
 describe('countSvgPages', () => {
-  it('counts root svg elements', () => {
+  it('counts the page groups in a typst.ts document', () => {
+    const svg =
+      '<svg class="typst-doc" xmlns="x">' +
+      '<g class="typst-page" transform="translate(0, 0)"></g>' +
+      '<g transform="translate(0, 842)" class="typst-page"></g>' +
+      '<g class="typst-page-number-indicator"></g>' +
+      '<g class="typst-page"><svg class="typst-image"></svg></g>' +
+      '</svg>';
+    expect(countSvgPages(svg)).toBe(3);
+  });
+
+  it('counts root svg elements when there are no page groups', () => {
     expect(countSvgPages('<svg xmlns="x"></svg><svg></svg>')).toBe(2);
   });
 

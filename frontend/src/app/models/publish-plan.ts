@@ -410,6 +410,21 @@ export function defaultAuthorName(
   return user?.name?.trim() || user?.username?.trim() || fallback;
 }
 
+/**
+ * `base`, or `base 2`, `base 3`… — the first that no plan in `plans` is
+ * called, so a new plan never shows up as an identical tab or list entry.
+ */
+export function uniquePlanName(
+  base: string,
+  plans: readonly Pick<PublishPlan, 'name'>[]
+): string {
+  const taken = new Set(plans.map(p => p.name.trim().toLowerCase()));
+  if (!taken.has(base.toLowerCase())) return base;
+  let n = 2;
+  while (taken.has(`${base} ${n}`.toLowerCase())) n++;
+  return `${base} ${n}`;
+}
+
 export function createDefaultPublishPlan(
   projectTitle: string,
   authorName: string

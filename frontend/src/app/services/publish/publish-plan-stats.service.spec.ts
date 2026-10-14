@@ -66,6 +66,7 @@ describe('PublishPlanStatsService', () => {
   let syncDocumentToServer: Mock<
     (id: string, timeoutMs?: number) => Promise<string | null>
   >;
+  let isDocumentUnavailable: Mock<(id: string) => Promise<boolean>>;
 
   const elements: Element[] = [
     element('folder', ElementType.Folder),
@@ -92,6 +93,10 @@ describe('PublishPlanStatsService', () => {
     syncDocumentToServer = vi.fn<
       (id: string, timeoutMs?: number) => Promise<string | null>
     >(() => Promise.resolve(null));
+    // Server mode, document created elsewhere: missing content must be pulled.
+    isDocumentUnavailable = vi.fn<(id: string) => Promise<boolean>>(() =>
+      Promise.resolve(true)
+    );
 
     TestBed.configureTestingModule({
       providers: [
@@ -109,6 +114,7 @@ describe('PublishPlanStatsService', () => {
           useValue: {
             elements: signal(elements),
             project: signal({ username: 'user', slug: 'proj' }),
+            isDocumentUnavailable,
           },
         },
       ],
@@ -208,6 +214,23 @@ describe('PublishPlanStatsService', () => {
       expect(service.wordCounts().get('doc-c')).toEqual({
         status: 'unavailable',
       });
+    });
+
+    it('counts a document with nothing stored as empty when it can only be local', async () => {
+      // Local mode (or created on this device): there is no server copy, so
+      // no content means no words, not "not synced".
+      hasLocalContent.mockResolvedValue(false);
+      isDocumentUnavailable.mockResolvedValue(false);
+      service.ensureCounted(['doc-c']);
+      await flush();
+
+      expect(isDocumentUnavailable).toHaveBeenCalledWith('doc-c');
+      expect(service.wordCounts().get('doc-c')).toEqual({
+        status: 'ready',
+        words: 0,
+      });
+      expect(syncDocumentToServer).not.toHaveBeenCalled();
+      expect(getDocumentContent).not.toHaveBeenCalled();
     });
 
     it('marks documents unavailable when reading fails', async () => {
@@ -328,6 +351,7 @@ describe('PublishPlanStatsService', () => {
         unavailable: false,
         loadingDocuments: 0,
         unavailableDocuments: 0,
+        skippedNotes: 0,
       });
     });
 
@@ -353,6 +377,7 @@ describe('PublishPlanStatsService', () => {
         unavailable: false,
         loadingDocuments: 0,
         unavailableDocuments: 0,
+        skippedNotes: 0,
       });
     });
 
@@ -376,6 +401,35 @@ describe('PublishPlanStatsService', () => {
       );
       expect(stats.words).toBe(5);
       expect(stats.documents).toBe(2);
+      expect(stats.skippedNotes).toBe(1);
+    });
+
+    it('lists the notes a folder row leaves out, including nested ones', () => {
+      const withNotes = [
+        ...elements,
+        element('sub', ElementType.Folder, 'folder'),
+        {
+          ...element('nested-note', ElementType.Item, 'sub'),
+          metadata: { role: 'note' },
+        },
+        {
+          ...element('scene', ElementType.Item, 'sub'),
+          metadata: { role: 'scene' },
+        },
+      ];
+      const folderRow = elementItem('folder', { includeChildren: true });
+
+      expect(service.skippedNotes(folderRow, withNotes).map(e => e.id)).toEqual(
+        ['nested-note']
+      );
+      expect(service.itemStats(folderRow, withNotes).skippedNotes).toBe(1);
+      // A folder without its contents, or a single document, skips nothing.
+      expect(service.skippedNotes(elementItem('folder'), withNotes)).toEqual(
+        []
+      );
+      expect(
+        service.skippedNotes(elementItem('nested-note'), withNotes)
+      ).toEqual([]);
     });
 
     it('reports nothing for a folder without children included', () => {
@@ -401,6 +455,7 @@ describe('PublishPlanStatsService', () => {
         unavailable: false,
         loadingDocuments: 0,
         unavailableDocuments: 0,
+        skippedNotes: 0,
       });
     });
 
@@ -487,6 +542,18 @@ describe('PublishPlanStatsService', () => {
       expect(after.words).toBe(6);
     });
 
+    it('totals the notes left out of listed folders', () => {
+      const withNote = [
+        ...elements,
+        {
+          ...element('note', ElementType.Item, 'folder'),
+          metadata: { role: 'note' },
+        },
+      ];
+      expect(service.summary(plan, withNote).skippedNotes).toBe(1);
+      expect(service.summary(plan, elements).skippedNotes).toBe(0);
+    });
+
     it('counts documents, not rows, for loading and unavailable totals', async () => {
       hasLocalContent.mockImplementation(() => Promise.resolve(false));
       service.ensureCounted(['doc-c', 'folder']);
@@ -494,6 +561,37 @@ describe('PublishPlanStatsService', () => {
       expect(service.summary(plan, elements).loading).toBe(3);
       await flush();
       expect(service.summary(plan, elements).unavailable).toBe(3);
+    });
+  });
+
+  describe('publishedDocumentIds', () => {
+    it('lists listed documents and the non-note documents in listed folders', () => {
+      const withNote = [
+        ...elements,
+        {
+          ...element('note', ElementType.Item, 'folder'),
+          metadata: { role: 'note' },
+        },
+        {
+          ...element('listed-note', ElementType.Item),
+          metadata: { role: 'note' },
+        },
+      ];
+      const plan = createDefaultPublishPlan('T', 'A');
+      plan.items = [
+        elementItem('doc-c'),
+        elementItem('folder', { includeChildren: true }),
+        // A note listed on its own is published.
+        elementItem('listed-note'),
+        elementItem('wb'),
+      ];
+
+      expect(service.publishedDocumentIds(plan, withNote)).toEqual([
+        'doc-c',
+        'doc-a',
+        'doc-b',
+        'listed-note',
+      ]);
     });
   });
 });

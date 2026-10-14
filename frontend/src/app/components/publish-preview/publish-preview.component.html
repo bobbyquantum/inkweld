@@ -64,8 +64,8 @@
               >
             }
             @if (s.pages !== null) {
-              <span>{{
-                'publish.preview.pageCount' | transloco: { count: s.pages }
+              <span data-testid="preview-page-count">{{
+                pageCountKey(s.pages) | transloco: { count: s.pages }
               }}</span>
             }
           </span>

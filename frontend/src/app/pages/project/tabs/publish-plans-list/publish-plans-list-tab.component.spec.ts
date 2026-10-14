@@ -104,6 +104,21 @@ describe('PublishPlansListTabComponent', () => {
     expect(mockRouter.navigate).toHaveBeenCalled();
   });
 
+  it('gives a new plan a name no other plan has', () => {
+    mockProjectState.publishPlans.set([
+      { ...testPlan, name: 'Default Export' },
+      { ...testPlan, id: 'other', name: 'Default Export 2' },
+    ]);
+    mockProjectState.createPublishPlan.mockClear();
+
+    component.createPublishPlan();
+
+    const [created] = mockProjectState.createPublishPlan.mock.calls[0] as [
+      PublishPlan,
+    ];
+    expect(created.name).toBe('Default Export 3');
+  });
+
   it('should open a plan', () => {
     component.openPublishPlan(testPlan);
 

@@ -153,7 +153,7 @@ export class NewElementDialogComponent {
       label: 'Note',
       icon: DOCUMENT_ROLE_ICONS.note,
       description:
-        'Research, brainstorming, front matter or anything else in prose that is not part of the manuscript',
+        'Not published: research, brainstorming and planning in prose. Use a Scene for anything that belongs in the book',
       category: 'document',
       preset: 'note',
       testId: 'element-type-item-note',

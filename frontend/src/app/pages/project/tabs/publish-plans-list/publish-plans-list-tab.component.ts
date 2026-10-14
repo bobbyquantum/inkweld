@@ -19,6 +19,7 @@ import {
   defaultAuthorName,
   PublishFormat,
   type PublishPlan,
+  uniquePlanName,
 } from '@models/publish-plan';
 import { type PublishedFile } from '@models/published-file';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
@@ -123,6 +124,7 @@ export class PublishPlansListTabComponent implements OnInit {
         project.username ?? 'Unknown Author'
       )
     );
+    plan.name = uniquePlanName(plan.name, this.projectState.publishPlans());
     this.projectState.createPublishPlan(plan);
     this.openPublishPlan(plan);
   }
