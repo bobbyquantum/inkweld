@@ -30,6 +30,7 @@ import { ProjectStateService } from '../project/project-state.service';
 import { chapterHeadingFor } from './chapter-heading';
 import { flattenConversation } from './conversation-publish';
 import { applyMarks, TYPST_MARK_TAGS } from './publish-marks-helper';
+import { PublishStyleResolverService } from './publish-style-resolver.service';
 import { PublishTypstEmitterService } from './publish-typst-emitter.service';
 import { smartenDocument, typographyLanguageFor } from './typography';
 import {
@@ -77,6 +78,11 @@ interface PdfContext {
   styles?: PublishStyles;
   wordCount: number;
   chapterCount: number;
+  /**
+   * The page style asks for two text columns. Title, copyright, dedication
+   * and table-of-contents pages are still set full width.
+   */
+  twoColumns: boolean;
 }
 
 interface CoverImageData {
@@ -158,6 +164,7 @@ export class PdfGeneratorService {
   private readonly projectStateService = inject(ProjectStateService);
   private readonly localStorage = inject(LocalStorageService);
   private readonly typstEmitter = inject(PublishTypstEmitterService);
+  private readonly styleResolver = inject(PublishStyleResolverService);
   private readonly worldbuildingRenderer = inject(
     WorldbuildingPublishRendererService
   );
@@ -254,13 +261,7 @@ export class PdfGeneratorService {
         message: 'Processing content...',
       });
 
-      const ctx: PdfContext = {
-        markup: this.getTypstTemplate(plan),
-        options: plan.options,
-        styles: plan.styles,
-        wordCount: 0,
-        chapterCount: 0,
-      };
+      const ctx = this.createContext(plan);
 
       // Process content into Typst markup
       await this.processContent(plan, ctx, result);
@@ -340,6 +341,17 @@ export class PdfGeneratorService {
       this.completeSubject.next(result);
       return result;
     }
+  }
+
+  private createContext(plan: PublishPlan): PdfContext {
+    return {
+      markup: this.getTypstTemplate(plan),
+      options: plan.options,
+      styles: plan.styles,
+      wordCount: 0,
+      chapterCount: 0,
+      twoColumns: this.styleResolver.resolvePage(plan.styles).columns === 2,
+    };
   }
 
   private getTypstTemplate(plan: PublishPlan): string {
@@ -488,9 +500,10 @@ export class PdfGeneratorService {
 
       case PublishPlanItemType.TableOfContents:
         if (plan.options.includeToc === false) break;
-        ctx.markup += '#pagebreak(weak: true)\n';
+        this.beginFrontPage(ctx);
         ctx.markup += '= Table of Contents\n\n';
         ctx.markup += '#outline(title: none, indent: auto)\n\n';
+        this.endFrontPage(ctx);
         break;
 
       case PublishPlanItemType.Worldbuilding:
@@ -653,11 +666,12 @@ export class PdfGeneratorService {
         break;
 
       case FrontmatterType.Dedication:
-        ctx.markup += '#pagebreak(weak: true)\n';
+        this.beginFrontPage(ctx);
         ctx.markup += '#v(8em)\n';
         ctx.markup += `#align(center)[#emph[${this.escapeTypst(
           item.customContent || ''
         )}]]\n\n`;
+        this.endFrontPage(ctx);
         break;
 
       case FrontmatterType.Custom:
@@ -670,8 +684,24 @@ export class PdfGeneratorService {
     }
   }
 
+  /**
+   * Start a page that always has a single full-width column (title page,
+   * copyright, dedication, table of contents). In a one-column document this
+   * is just a weak page break. In a two-column one it opens a `#page` block
+   * with `columns: 1`, which starts its own page; `endFrontPage` closes it.
+   */
+  private beginFrontPage(ctx: PdfContext): void {
+    ctx.markup += ctx.twoColumns
+      ? '#page(columns: 1)[\n'
+      : '#pagebreak(weak: true)\n';
+  }
+
+  private endFrontPage(ctx: PdfContext): void {
+    if (ctx.twoColumns) ctx.markup += ']\n\n';
+  }
+
   private generateTitlePage(metadata: PublishMetadata, ctx: PdfContext): void {
-    ctx.markup += '#pagebreak(weak: true)\n';
+    this.beginFrontPage(ctx);
     ctx.markup += '#align(center + horizon)[\n';
 
     if (this.coverImageData) {
@@ -695,13 +725,14 @@ export class PdfGeneratorService {
     ctx.markup += `  #v(3em)\n`;
     ctx.markup += `  #text(size: 16pt)[${this.escapeTypst(metadata.author)}]\n`;
     ctx.markup += ']\n\n';
+    this.endFrontPage(ctx);
   }
 
   private generateCopyrightPage(
     metadata: PublishMetadata,
     ctx: PdfContext
   ): void {
-    ctx.markup += '#pagebreak(weak: true)\n';
+    this.beginFrontPage(ctx);
     ctx.markup += '#v(1fr)\n';
     ctx.markup += '#set text(size: 10pt, fill: gray.darken(20%))\n';
 
@@ -726,6 +757,7 @@ export class PdfGeneratorService {
 
     ctx.markup += `#set text(fill: black)\n`;
     ctx.markup += '\n';
+    this.endFrontPage(ctx);
   }
 
   private getChildElements(parent: Element, allElements: Element[]): Element[] {
@@ -1201,13 +1233,7 @@ export class PdfGeneratorService {
       await this.loadCoverImage();
     }
 
-    const ctx: PdfContext = {
-      markup: this.getTypstTemplate(plan),
-      options: plan.options,
-      styles: plan.styles,
-      wordCount: 0,
-      chapterCount: 0,
-    };
+    const ctx = this.createContext(plan);
 
     const result: PdfResult = { success: false, warnings: [] };
     await this.processContent(plan, ctx, result);

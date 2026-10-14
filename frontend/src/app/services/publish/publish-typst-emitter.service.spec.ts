@@ -82,6 +82,83 @@ describe('PublishTypstEmitterService', () => {
     });
   });
 
+  describe('page columns', () => {
+    it('emits no column setting for a single-column page (the default)', () => {
+      const out = emit();
+      expect(out).not.toContain('columns: 2');
+      expect(out).not.toContain('#set columns(');
+      expect(out).not.toContain('scope: "parent"');
+    });
+
+    it('treats a plan saved without columns as one column', () => {
+      const out = emit(s => {
+        delete s.page.columns;
+        delete s.page.columnGap;
+      });
+      expect(out).not.toContain('columns: 2');
+      expect(out).not.toContain('#set columns(');
+    });
+
+    it('ignores unsupported column counts', () => {
+      const out = emit(s => {
+        (s.page as { columns?: number }).columns = 3;
+      });
+      expect(out).not.toContain('columns: 2');
+    });
+
+    it('sets two page columns and the gutter when columns is 2', () => {
+      const out = emit(s => {
+        s.page.columns = 2;
+        s.page.columnGap = 0.3;
+      });
+      expect(out).toMatch(/numbering: [^\n]*,\n {2}columns: 2,\n\)/);
+      expect(out).toContain('#set columns(gutter: 0.3in)');
+    });
+
+    it('uses the default gutter when the gap is missing or invalid', () => {
+      const missing = emit(s => {
+        s.page.columns = 2;
+        delete s.page.columnGap;
+      });
+      expect(missing).toContain('#set columns(gutter: 0.25in)');
+      const invalid = emit(s => {
+        s.page.columns = 2;
+        s.page.columnGap = -1;
+      });
+      expect(invalid).toContain('#set columns(gutter: 0.25in)');
+    });
+
+    it('spans a page-breaking chapter title across both columns', () => {
+      const out = emit(s => {
+        s.page.columns = 2;
+        s.structure.chapterTitle.pageBreakBefore = true;
+      });
+      expect(out).toMatch(
+        /#let chapter-title[\s\S]*place\(top, float: true, scope: "parent"/
+      );
+    });
+
+    it('keeps a chapter title in the flow when it does not start a page', () => {
+      const out = emit(s => {
+        s.page.columns = 2;
+        s.structure.chapterTitle.pageBreakBefore = false;
+      });
+      const chapter = out.slice(out.indexOf('#let chapter-title'));
+      expect(
+        chapter.slice(0, chapter.indexOf('#let scene-break'))
+      ).not.toContain('place(');
+    });
+
+    it('spans worldbuilding section titles across both columns', () => {
+      const out = emit(s => {
+        s.page.columns = 2;
+      });
+      expect(out).toMatch(
+        /#let wb-section-title\(body\) = place\(top, float: true, scope: "parent"/
+      );
+    });
+  });
+
   describe('page numbering', () => {
     it('emits numbering: none', () => {
       const out = emit(s => {

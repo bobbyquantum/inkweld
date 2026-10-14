@@ -45,6 +45,7 @@ import { chapterHeadingFor, withChapterHeading } from './chapter-heading';
 import { flattenConversation } from './conversation-publish';
 import { IconSvgService } from './icon-svg.service';
 import { PublishCssEmitterService } from './publish-css-emitter.service';
+import { PublishStyleResolverService } from './publish-style-resolver.service';
 import { countHtmlWords } from './publish-word-count';
 import { smartenDocument, typographyLanguageFor } from './typography';
 import {
@@ -190,6 +191,7 @@ export class HtmlGeneratorService {
   private readonly coverSourceService = inject(CoverSourceService);
   private readonly localStorage = inject(LocalStorageService);
   private readonly cssEmitter = inject(PublishCssEmitterService);
+  private readonly styleResolver = inject(PublishStyleResolverService);
   private readonly iconSvg = inject(IconSvgService);
   private readonly worldbuildingRenderer = inject(
     WorldbuildingPublishRendererService
@@ -1450,6 +1452,12 @@ export class HtmlGeneratorService {
     styles: PublishStyles
   ): string {
     const stylesheet = this.cssEmitter.emitHtmlStylesheet(styles);
+    // Two-column pages need one wrapper to carry `column-count`; the
+    // stylesheet only styles it when the page style asks for two columns.
+    const body =
+      this.styleResolver.resolvePage(styles).columns === 2
+        ? `<div class="ink-columns">\n${content}\n</div>`
+        : content;
     return `<!DOCTYPE html>
 <html lang="${metadata.language || 'en'}">
 <head>
@@ -1463,7 +1471,7 @@ ${stylesheet}
   </style>
 </head>
 <body>
-${content}
+${body}
 </body>
 </html>`;
   }

@@ -97,6 +97,7 @@ export class PublishCssEmitterService {
       this.markRules(styles),
       this.structureRules(styles),
       this.worldbuildingRules(styles),
+      this.columnRules(styles),
     ]
       .filter(Boolean)
       .join('\n\n');
@@ -112,6 +113,27 @@ export class PublishCssEmitterService {
     ]
       .filter(Boolean)
       .join('\n\n');
+  }
+
+  /**
+   * Two-column layout for the single-file HTML output. Only emitted when the
+   * page style asks for two columns, so single-column documents keep their
+   * exact stylesheet. It targets `.ink-columns`, the wrapper the HTML
+   * generator puts around the content; the multi-page site and the EPUB never
+   * add that class, so they ignore the setting. Title page, contents,
+   * chapter and section titles span both columns; worldbuilding entries and
+   * figures are not split between columns; below 700px it is one column.
+   */
+  private columnRules(styles: PublishStyles | undefined | null): string {
+    const page = this.resolver.resolvePage(styles);
+    if (page.columns !== 2) return '';
+    return [
+      `.ink-columns { column-count: 2; column-gap: ${page.columnGap}in; }`,
+      '.ink-columns .title-page, .ink-columns .copyright, .ink-columns .dedication, .ink-columns .ink-toc, .ink-columns .ink-chapter-title, .ink-columns .ink-wb-section-title, .ink-columns .ink-page-break, .ink-columns .ink-chapter-break { column-span: all; }',
+      '.ink-columns .ink-wb-entry, .ink-columns figure, .ink-columns .ink-doc-table, .ink-columns .ink-doc-code-block { break-inside: avoid; }',
+      '.ink-columns .ink-wb-field { grid-column: span 12 !important; }',
+      '@media (max-width: 700px) { .ink-columns { column-count: 1; column-gap: normal; } }',
+    ].join('\n');
   }
 
   private baseHtmlReset(): string {

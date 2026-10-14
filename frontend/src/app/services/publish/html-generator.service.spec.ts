@@ -457,6 +457,46 @@ describe('HtmlGeneratorService', () => {
       expect(text).toContain('Chapter 1:');
     });
 
+    describe('page columns', () => {
+      const columnsPlan = (columns?: 1 | 2): PublishPlan => {
+        const styles = createDefaultPublishStyles();
+        if (columns === undefined) delete styles.page.columns;
+        else styles.page.columns = columns;
+        return {
+          ...mockPlan,
+          styles,
+          items: [
+            {
+              id: 'item-1',
+              type: PublishPlanItemType.Element,
+              elementId: 'doc-1',
+              includeChildren: false,
+              isChapter: true,
+            },
+          ],
+        };
+      };
+
+      it('wraps the content in the column container for two columns', async () => {
+        const result = await service.generateHtml(columnsPlan(2));
+        expect(result.success).toBe(true);
+        const text = await result.file!.text();
+        expect(text).toContain('<div class="ink-columns">');
+        expect(text).toContain('column-count: 2');
+        expect(text).toContain('@media (max-width: 700px)');
+      });
+
+      it.each([1, undefined] as const)(
+        'leaves the output single-column when columns is %s',
+        async columns => {
+          const result = await service.generateHtml(columnsPlan(columns));
+          const text = await result.file!.text();
+          expect(text).not.toContain('ink-columns');
+          expect(text).not.toContain('column-count');
+        }
+      );
+    });
+
     describe('chapterHeadingStyle option', () => {
       const planWithStyle = (
         style: ChapterHeadingStyle | undefined,

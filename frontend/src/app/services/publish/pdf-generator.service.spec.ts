@@ -679,6 +679,74 @@ describe('PdfGeneratorService', () => {
     });
   });
 
+  describe('page columns', () => {
+    async function markupFor(columns: 1 | 2 | undefined): Promise<string> {
+      const styles = createDefaultPublishStyles();
+      if (columns === undefined) delete styles.page.columns;
+      else styles.page.columns = columns;
+      const result = await service.generatePdf({
+        ...mockPlan,
+        styles,
+        items: [
+          {
+            id: 'fm-1',
+            type: PublishPlanItemType.Frontmatter,
+            contentType: FrontmatterType.TitlePage,
+          },
+          {
+            id: 'fm-2',
+            type: PublishPlanItemType.Frontmatter,
+            contentType: FrontmatterType.Copyright,
+          },
+          {
+            id: 'toc-1',
+            type: PublishPlanItemType.TableOfContents,
+            title: 'Contents',
+            depth: 2,
+            includePageNumbers: true,
+          },
+          ...mockPlan.items,
+        ],
+      });
+      expect(result.success).toBe(true);
+      const prefix = 'Compiling Typst markup:\n';
+      const logged = (loggerMock.debug.mock.calls as unknown[][])
+        .map(args => args[1])
+        .filter(
+          (msg): msg is string =>
+            typeof msg === 'string' && msg.startsWith(prefix)
+        )
+        .at(-1);
+      expect(logged).toBeDefined();
+      return logged!;
+    }
+
+    it('sets two page columns but keeps title, copyright and contents full width', async () => {
+      const markup = await markupFor(2);
+      expect(markup).toMatch(/numbering: [^\n]*,\n {2}columns: 2,\n\)/);
+      expect(markup).toContain('#set columns(gutter: 0.25in)');
+      // Title page, copyright page and contents each open a one-column page.
+      expect(markup.match(/#page\(columns: 1\)\[/g)).toHaveLength(3);
+      expect(markup).toMatch(
+        /#page\(columns: 1\)\[\n#align\(center \+ horizon\)/
+      );
+      expect(markup).toMatch(
+        /#page\(columns: 1\)\[\n= Table of Contents\n\n#outline\(title: none, indent: auto\)\n\n\]/
+      );
+    });
+
+    it.each([1, undefined] as const)(
+      'emits no column markup when columns is %s',
+      async columns => {
+        const markup = await markupFor(columns);
+        expect(markup).not.toContain('columns: 2');
+        expect(markup).not.toContain('#page(columns: 1)');
+        expect(markup).not.toContain('#set columns(');
+        expect(markup).toContain('#pagebreak(weak: true)');
+      }
+    );
+  });
+
   describe('separator items', () => {
     it('should process separator items', async () => {
       const planWithSeparator: PublishPlan = {

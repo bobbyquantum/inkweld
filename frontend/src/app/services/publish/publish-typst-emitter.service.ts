@@ -62,6 +62,11 @@ export class PublishTypstEmitterService {
         ? `  paper: ${dims.paper},`
         : `  width: ${dims.width},\n  height: ${dims.height},`;
     const numbering = pageNumberingExpr(page.pageNumbers);
+    const twoColumns = page.columns === 2;
+    const columnsLine = twoColumns ? '\n  columns: 2,' : '';
+    const columnGutterRule = twoColumns
+      ? [`#set columns(gutter: ${page.columnGap}in)`]
+      : [];
 
     // Paragraph defaults
     // CSS line-height is a unitless multiplier on font-size that includes
@@ -105,6 +110,15 @@ export class PublishTypstEmitterService {
     );
     const chNumWrapped = chapterNumberPrefixExpr(ch.numberPrefix);
     const chPageBreak = ch.pageBreakBefore ? '  pagebreak(weak: true)\n' : '';
+    // In two columns a chapter title that opens its own page spans both
+    // columns as a float at the top of the page. Without a page break the
+    // title stays in the flow, so it is not pulled away from the chapter's
+    // first lines (or up above the previous chapter's last ones).
+    const chBlockOpen =
+      twoColumns && ch.pageBreakBefore
+        ? `place(top, float: true, scope: "parent", clearance: ${ch.box.marginBottom ?? 24}pt, block(width: 100%)`
+        : `block(above: ${ch.box.marginTop ?? 48}pt, below: ${ch.box.marginBottom ?? 24}pt)`;
+    const chBlockClose = twoColumns && ch.pageBreakBefore ? ')' : '';
 
     // Helper: worldbuilding entry + field
     const wb = this.resolver.resolveWorldbuildingEntry(styles, undefined);
@@ -117,8 +131,9 @@ export class PublishTypstEmitterService {
       `#set page(
 ${paperLine}
   margin: (top: ${page.marginTop}in, bottom: ${page.marginBottom}in, inside: ${page.marginInside}in, outside: ${page.marginOutside}in),
-  numbering: ${numbering},
+  numbering: ${numbering},${columnsLine}
 )`,
+      ...columnGutterRule,
       `#set text(
   font: ${typstFontList(base.font)},
   size: ${base.fontSize ?? 11}pt,
@@ -134,10 +149,10 @@ ${paperLine}
       `#let doc-blockquote(body) = block(inset: (left: ${bq.box?.marginLeft ?? 24}pt, right: ${bq.box?.marginRight ?? 24}pt), above: ${bq.box?.marginTop ?? 10}pt, below: ${bq.box?.marginBottom ?? 10}pt)[#text(${typstTextArgs(bq.text)})[#body]]`,
       `#let doc-code-block(body) = block(fill: ${typstColor(cb.box?.background ?? '#f5f5f5')}, inset: ${cb.box?.paddingLeft ?? 12}pt, above: ${cb.box?.marginTop ?? 10}pt, below: ${cb.box?.marginBottom ?? 10}pt, radius: ${cb.box?.borderRadius ?? 4}pt)[#text(${typstTextArgs(cb.text)})[#raw(body)]]`,
       `#let chapter-title(num: none, body) = {
-${chPageBreak}  block(above: ${ch.box.marginTop ?? 48}pt, below: ${ch.box.marginBottom ?? 24}pt)[
+${chPageBreak}  ${chBlockOpen}[
     #if num != none [#${chNumWrapped}]
     #${chTitleInner}
-  ]
+  ]${chBlockClose}
 }`,
       `#let scene-break(text-content) = block(above: ${sb.box.marginTop ?? 18}pt, below: ${sb.box.marginBottom ?? 18}pt)[#align(center)[#text(${typstTextArgs(sb.text)})[#text-content]]]`,
       `#let wb-entry(title, body) = block(stroke: ${wbStroke}, inset: ${wb.entryBox.paddingLeft ?? 12}pt, above: ${wb.entryBox.marginTop ?? 12}pt, below: ${wb.entryBox.marginBottom ?? 12}pt, radius: ${wb.entryBox.borderRadius ?? 4}pt)[
@@ -150,7 +165,9 @@ ${chPageBreak}  block(above: ${ch.box.marginTop ?? 48}pt, below: ${ch.box.margin
   body
 }`,
       `#let wb-field(label, value) = grid(columns: (auto, 1fr), column-gutter: 8pt, [#text(${typstTextArgs(wb.fieldLabel)})[#label]], [#text(${typstTextArgs(wb.fieldValue)})[#value]])`,
-      `#let wb-section-title(body) = block(above: 24pt, below: 12pt)[#text(${typstTextArgs(wbSectionTitleStyle)})[#body]]`,
+      twoColumns
+        ? `#let wb-section-title(body) = place(top, float: true, scope: "parent", clearance: 12pt, block(width: 100%)[#text(${typstTextArgs(wbSectionTitleStyle)})[#body]])`
+        : `#let wb-section-title(body) = block(above: 24pt, below: 12pt)[#text(${typstTextArgs(wbSectionTitleStyle)})[#body]]`,
     ];
 
     return out.join('\n\n') + '\n\n';
