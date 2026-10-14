@@ -272,4 +272,20 @@ describe('PresenceService', () => {
     );
     vi.useRealTimers();
   });
+
+  it('stops listening for activity and drops its timer when destroyed', () => {
+    vi.useFakeTimers();
+    currentUser.set({ id: 'u1', username: 'alice' });
+    const service = setupService({ provider, currentUser });
+    service.setActiveLocation({ kind: 'elements' });
+    provider.setLocalPresence.mockClear();
+
+    TestBed.resetTestingModule();
+    globalThis.dispatchEvent(new MouseEvent('mousemove'));
+    vi.advanceTimersByTime(6 * 60 * 1000);
+
+    expect(provider.setLocalPresence).not.toHaveBeenCalled();
+    expect(provider.remotePresence$.observed).toBe(false);
+    vi.useRealTimers();
+  });
 });

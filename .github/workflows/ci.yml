@@ -217,16 +217,19 @@ jobs:
           retention-days: 1
 
   # ===========================================
-  # Unit Tests - Frontend (Vitest) - Sharded across parallel runners
+  # Unit Tests - Frontend (Vitest) - Shardable across parallel runners
   # ===========================================
   # `ng test` has no --shard flag, so frontend/scripts/test-shard.mjs deals
   # the spec files round-robin across the matrix and passes each shard's list
-  # via --include. Unsharded this was the longest job in the workflow (~18m);
-  # 2 shards (~9m each) bring it in line with the e2e jobs; 3 ran ~5-6m,
-  # shorter than the e2e shards, so the extra runner bought no wall-clock. Each shard emits an lcov.info
-  # covering the whole tree, so per-shard thresholds are disabled (the `shard`
-  # configuration in angular.json) and enforced on the merged report in the
-  # frontend-coverage job below.
+  # via --include. Unsharded this used to be the longest job in the workflow
+  # (~18m), so it ran as 2 shards. Since setup-vitest.ts lets pending timers
+  # run between tests (destroyed component trees were retained, ~15 MB per
+  # test), the 2 shards' test steps took ~3m and ~4m, so one runner (~7-8m
+  # including setup) stays well inside the e2e jobs and frees a runner. Raise
+  # shardTotal again if this job becomes the critical path. Each shard emits an
+  # lcov.info covering the whole tree, so per-shard thresholds are disabled
+  # (the `shard` configuration in angular.json) and enforced on the merged
+  # report in the frontend-coverage job below.
   test-frontend:
     name: Unit Tests (Frontend) - Shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
     runs-on: ubuntu-latest
@@ -236,8 +239,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shardIndex: [1, 2]
-        shardTotal: [2]
+        shardIndex: [1]
+        shardTotal: [1]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
@@ -303,8 +306,10 @@ jobs:
           pattern: frontend-coverage-shard-*
           path: frontend/coverage/shards
 
+      # download-artifact extracts a lone match straight into `path` and
+      # several into one directory each, so find the reports at any depth.
       - name: Merge coverage and check thresholds
-        run: cd frontend && node scripts/merge-lcov.mjs --out coverage/inkweld-frontend/lcov.info coverage/shards/*/lcov.info
+        run: cd frontend && node scripts/merge-lcov.mjs --out coverage/inkweld-frontend/lcov.info $(find coverage/shards -name lcov.info | sort)
 
       - name: Upload frontend coverage
         if: ${{ !cancelled() }}
