@@ -536,7 +536,7 @@ Profiles that already exist on a device are never removed or locked: someone who
 - the server that serves the frontend (Docker, native binary, Home Assistant ingress), or
 - the server a hosted frontend build points at (its `apiUrl`, e.g. a Cloudflare Pages frontend with a Workers backend).
 
-Servers added later as extra profiles do not change what the app offers. The desktop (Electron) app has no server of its own and offers everything.
+Servers added later as extra profiles do not change what the app offers.
 
 The app remembers the last mode it was told. If the server can't be reached, that remembered mode stays in force, so an outage never unlocks Browser profiles on an `ONLINE` site. A browser that has never reached the server (and so has nothing remembered) offers everything until it does.
 

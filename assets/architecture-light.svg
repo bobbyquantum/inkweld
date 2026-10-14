@@ -73,5 +73,5 @@
     <text x="54" y="460" font-size="13" fill="#18181b">Your own Dropbox or Nextcloud mirrors your projects · the browser talks to the provider directly · multi-device, no account</text>
     <line x1="205" y1="390" x2="205" y2="410" stroke="#a1a1aa" stroke-width="2" stroke-dasharray="4 4"/>
   </g>
-  <text x="460.0" y="512" text-anchor="middle" font-size="12" fill="#71717a">Runs as a Docker image, a native Bun binary, or a Cloudflare Worker · client ships as PWA, Android TWA, or Electron desktop app</text>
+  <text x="460.0" y="512" text-anchor="middle" font-size="12" fill="#71717a">Runs as a Docker image, a native Bun binary, or a Cloudflare Worker · client installs as a PWA on phones, tablets and desktops</text>
 </svg>

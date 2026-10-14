@@ -27,7 +27,6 @@ const sidebars: SidebarsConfig = {
         'installation/docker',
         'installation/cloudflare',
         'installation/native-bun',
-        'installation/desktop',
         'installation/home-assistant',
       ],
     },

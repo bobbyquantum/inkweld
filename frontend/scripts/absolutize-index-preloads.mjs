@@ -33,9 +33,8 @@
  * `/chunk-XXXX.js`, and a base-absolute href in a `Link:` header resolves
  * against the origin rather than the request path.
  *
- * Runs after `ng build` for the Cloudflare targets only — a build served from a
- * non-root base (Electron's `file://`, for one) keeps its relative hrefs. Pass
- * the build output base as the first argument (default `dist`); rewrites
+ * Runs after `ng build` for the Cloudflare targets only. Pass the build output
+ * base as the first argument (default `dist`); rewrites
  * `<base>/browser/index.html`. Fails if index.html is absent. An index.html
  * with no preload hints (Angular 22.2 stopped emitting them) has nothing for
  * Cloudflare to promote into Early Hints, so it is left untouched.

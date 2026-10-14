@@ -20,7 +20,6 @@ import { Router } from '@angular/router';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
 import { type Project } from '@inkweld/index';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
-import { ElectronService } from '@services/electron.service';
 
 import { ProjectActivationService } from '../../services/local/project-activation.service';
 import { UnifiedProjectService } from '../../services/local/unified-project.service';
@@ -62,7 +61,6 @@ export class CreateProjectComponent implements OnInit {
   private readonly unifiedProjectService = inject(UnifiedProjectService);
   private readonly activationService = inject(ProjectActivationService);
   private readonly templateService = inject(ProjectTemplateService);
-  private readonly electronService = inject(ElectronService);
   protected unifiedUserService = inject(UnifiedUserService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly router = inject(Router);
@@ -93,16 +91,11 @@ export class CreateProjectComponent implements OnInit {
   });
 
   readonly projectUrl = signal('');
-  baseUrl: string;
+  readonly baseUrl = globalThis.location.origin;
   username = '';
   readonly isSaving = signal(false);
 
   constructor() {
-    // Use inkweld:// protocol in Electron, otherwise use current origin
-    this.baseUrl = this.electronService.isElectron
-      ? 'inkweld:/'
-      : globalThis.location.origin;
-
     effect(() => {
       const title = this.projectForm.title().value();
       if (title) {

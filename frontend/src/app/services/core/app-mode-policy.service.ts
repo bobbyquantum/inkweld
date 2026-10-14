@@ -36,16 +36,14 @@ function isAppMode(value: unknown): value is AppMode {
  * what this site allows.
  *
  * - Home Assistant ingress: the server that served the page, under its prefix
- * - Electron: none, the desktop app has no server of its own
  * - A build with an apiUrl (hosted, dev): that server
  * - A build without one (Docker, native binary): the page's own origin
  */
 export function resolveHomeServerUrl(
-  env: { apiUrl?: string; electron?: boolean },
+  env: { apiUrl?: string },
   doc: Document | null = globalThis.document ?? null
 ): string | null {
   if (isHomeAssistantIngress(doc)) return appOrigin(doc) || null;
-  if (env.electron) return null;
   if (env.apiUrl) return stripTrailingSlashes(env.apiUrl);
   // Only a page served over http(s) has a server behind it
   const origin = appOrigin(doc);
@@ -90,8 +88,7 @@ function writeCache(policy: CachedPolicy): void {
  * The last mode reported is cached per server. While the server cannot be
  * reached the cached mode stands, so an outage never unlocks profile kinds
  * an `ONLINE` site forbids. With nothing cached (first visit while the
- * server is down, or no home server at all, as in Electron) nothing is
- * restricted.
+ * server is down, or no home server at all) nothing is restricted.
  *
  * Browser and Cloud Sync profiles never contact a server on their own, so
  * nothing is fetched until {@link ready} is called: by the user menu and
