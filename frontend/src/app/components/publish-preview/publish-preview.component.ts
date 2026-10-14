@@ -89,6 +89,13 @@ export class PublishPreviewComponent
   protected markdownText = signal<string | null>(null);
 
   protected readonly PublishFormat = PublishFormat;
+
+  /** Translation key for the page count, singular for one page. */
+  protected pageCountKey(count: number): string {
+    return count === 1
+      ? 'publish.preview.pageCountOne'
+      : 'publish.preview.pageCount';
+  }
   protected readonly devicePresets: {
     value: DevicePreset;
     icon: string;
@@ -261,10 +268,17 @@ export class PublishPreviewComponent
   }
 }
 
-/** Typst emits one root `<svg>` element per page. */
+/**
+ * Pages in typst.ts SVG output. The document is one root `<svg
+ * class="typst-doc">` holding a `<g class="typst-page">` per page, so
+ * counting root `<svg>` elements always said 1. Output without page groups
+ * (one `<svg>` per page) falls back to counting those.
+ */
 export function countSvgPages(svg: string): number {
-  const matches = svg.match(/<svg[\s>]/g);
-  return matches ? matches.length : 0;
+  const pages = svg.match(/class="(?:[^"]*\s)?typst-page(?:\s[^"]*)?"/g);
+  if (pages) return pages.length;
+  const roots = svg.match(/<svg[\s>]/g);
+  return roots ? roots.length : 0;
 }
 
 function statsFromResult(stats: PublishStats | undefined): PreviewStats {
