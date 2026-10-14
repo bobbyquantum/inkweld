@@ -67,15 +67,6 @@ describe('resolveHomeServerUrl', () => {
     ).toBe('http://ha.local:8123/api/hassio_ingress/tok');
   });
 
-  it('has no home server in Electron', () => {
-    expect(
-      resolveHomeServerUrl(
-        { apiUrl: 'http://localhost:8333', electron: true },
-        makeDocument('https://app.local/')
-      )
-    ).toBeNull();
-  });
-
   it('has no home server on a non-web page without an apiUrl', () => {
     expect(
       resolveHomeServerUrl({ apiUrl: '' }, makeDocument('file:///app/'))

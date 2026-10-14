@@ -158,14 +158,6 @@ describe('PwaInstallService', () => {
     expect(service.mode()).toBe('none');
   });
 
-  it('offers nothing inside the desktop app', () => {
-    vi.stubGlobal('electronAPI', { isElectron: true });
-    const service = createService();
-    globalThis.dispatchEvent(installEvent());
-
-    expect(service.mode()).toBe('none');
-  });
-
   it('offers nothing behind Home Assistant ingress', () => {
     const meta = document.createElement('meta');
     meta.name = 'inkweld-ingress';

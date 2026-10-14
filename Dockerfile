@@ -40,9 +40,6 @@ COPY frontend/bun.lock frontend/package.json ./frontend/
 # copy-changelog.mjs ships the repo-root changelog as an in-app asset
 COPY CHANGELOG.md ./
 
-# Skip Electron binary download - not needed for web frontend build in Docker
-ENV ELECTRON_SKIP_BINARY_DOWNLOAD=1
-
 # Install workspace deps so `packages/inkweld-prosemirror/node_modules/{prosemirror-model,yjs}`
 # get linked. The root `postinstall` script chains into `frontend && backend && docs/site`
 # installs that we don't want here, so override it.

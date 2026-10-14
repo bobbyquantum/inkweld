@@ -1319,7 +1319,7 @@ export class StorageContextService {
 
   /**
    * Canonical API base URL: the runtime-configured server, falling back to
-   * the build-time environment default (dev / electron). Services must use
+   * the build-time environment default (dev). Services must use
    * this instead of `environment.apiUrl` directly — the environment constant
    * only matches the actual server when the app happens to be deployed
    * alongside it, and silently points at the wrong origin for any server

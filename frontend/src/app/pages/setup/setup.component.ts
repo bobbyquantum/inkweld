@@ -96,7 +96,8 @@ export const NEXTCLOUD_SETUP_GUIDE_PATH =
  * - A frontend-only hosted build (`frontendOnly`, e.g. inkweld.app on
  *   Cloudflare Pages) has no server of its own to suggest, so the field
  *   starts empty and the user enters their server's address.
- * - Anything else (Electron's app:// page) falls back to the default port.
+ * - A page with no web origin (e.g. opened from `file://`) falls back to the
+ *   default port.
  */
 export function defaultServerUrl(
   apiUrl: string,

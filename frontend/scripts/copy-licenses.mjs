@@ -5,7 +5,7 @@
  * `extractLicenses` writes `3rdpartylicenses.txt` as a *root* build artifact
  * (`BuildOutputFileType.Root`), i.e. next to `browser/` rather than inside it.
  * Everything that serves the app — Cloudflare Pages, the Docker image, the
- * embedded backend, Electron — only ever sees `<outputPath>/browser`, so
+ * embedded backend — only ever sees `<outputPath>/browser`, so
  * `/3rdpartylicenses.txt` 404s there. On Cloudflare the SPA fallback in
  * `public/_redirects` turns that 404 into index.html, and the Angular
  * `:username` route then renders a user profile instead of the licenses.

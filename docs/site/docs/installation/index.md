@@ -64,9 +64,7 @@ Inkweld offers flexible deployment options to suit different needs, from quick l
 
 ## Client Apps
 
-The server hosts the web client, which also installs as a Progressive Web App on phones, tablets and desktops. One additional packaging is available:
-
-- **[Desktop (Electron)](/docs/installation/desktop)** — build a native macOS, Windows, or Linux app from source
+The server hosts the web client, which also installs as a Progressive Web App on phones, tablets and desktops. The app offers to install itself, or you can install it from Settings → General.
 
 ## System Requirements
 

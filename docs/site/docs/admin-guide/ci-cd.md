@@ -134,14 +134,13 @@ with the newer schema.
 
 ### Other workflows
 
-| Workflow                                                                                      | Trigger                                                             | Purpose                                                                                                           |
-| --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `deploy-pr-preview.yml`                                                                       | PR labelled `deploy:preview:frontend`, and new pushes to such a PR  | Deploys the PR's frontend to a Cloudflare Pages branch preview (`https://pr-<number>.<pages project>.pages.dev`). |
-| `cleanup-pr-preview.yml`                                                                      | PR closed, or the `deploy:preview:frontend` label removed           | Deletes that PR's Pages deployments.                                                                              |
-| `docs.yml`                                                                                    | Push to `main` touching `docs/**`, `backend/openapi.json`; manual   | Builds this documentation site and publishes it to GitHub Pages.                                                  |
-| `validate-pr-title.yml`                                                                       | PR opened, edited, synchronized or reopened                         | Requires a Conventional Commit title (`feat`, `fix`, `docs`, `ci`, ...) with a lowercase subject.                 |
-| `electron-build-check.yml`                                                                    | PRs touching the Electron/frontend sources (a label re-triggers it) | Builds the desktop app for Windows, macOS and Linux and reports one aggregate **Electron Build Status**.          |
-| `deploy-cloudflare.yml`, `deploy-cloudflare-production.yml`, `deploy-cloudflare-reusable.yml` | Push to `main` / push to `production`                               | Hosted deploys, described in the section above.                                                                   |
+| Workflow                                                                                      | Trigger                                                            | Purpose                                                                                                           |
+| --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------- |
+| `deploy-pr-preview.yml`                                                                       | PR labelled `deploy:preview:frontend`, and new pushes to such a PR | Deploys the PR's frontend to a Cloudflare Pages branch preview (`https://pr-<number>.<pages project>.pages.dev`). |
+| `cleanup-pr-preview.yml`                                                                      | PR closed, or the `deploy:preview:frontend` label removed          | Deletes that PR's Pages deployments.                                                                              |
+| `docs.yml`                                                                                    | Push to `main` touching `docs/**`, `backend/openapi.json`; manual  | Builds this documentation site and publishes it to GitHub Pages.                                                  |
+| `validate-pr-title.yml`                                                                       | PR opened, edited, synchronized or reopened                        | Requires a Conventional Commit title (`feat`, `fix`, `docs`, `ci`, ...) with a lowercase subject.                 |
+| `deploy-cloudflare.yml`, `deploy-cloudflare-production.yml`, `deploy-cloudflare-reusable.yml` | Push to `main` / push to `production`                              | Hosted deploys, described in the section above.                                                                   |
 
 ## Image contents
 
