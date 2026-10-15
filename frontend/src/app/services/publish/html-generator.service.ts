@@ -45,6 +45,7 @@ import { chapterHeadingFor, withChapterHeading } from './chapter-heading';
 import { flattenConversation } from './conversation-publish';
 import { IconSvgService } from './icon-svg.service';
 import { PublishCssEmitterService } from './publish-css-emitter.service';
+import { shrinkImageToJpeg } from './publish-image-shrink';
 import { PublishStyleResolverService } from './publish-style-resolver.service';
 import { countHtmlWords } from './publish-word-count';
 import { smartenDocument, typographyLanguageFor } from './typography';
@@ -53,6 +54,9 @@ import {
   type RenderedWorldbuildingField,
   WorldbuildingPublishRendererService,
 } from './worldbuilding-publish-renderer.service';
+
+/** Images larger than this are shrunk before being embedded as data URLs. */
+const HTML_IMAGE_SHRINK_THRESHOLD_BYTES = 512 * 1024;
 
 function clampLevel(n: number): 1 | 2 | 3 | 4 | 5 | 6 {
   if (!Number.isFinite(n)) return 1;
@@ -217,6 +221,8 @@ export class HtmlGeneratorService {
 
   /** media id → resolved href (or null when unavailable) for the current run. */
   private readonly resolvedImages = new Map<string, string | null>();
+  /** Large `data:` images already shrunk in this run, by source. */
+  private readonly shrunkDataUrls = new Map<string, string>();
 
   /** icon name → inline SVG (or null when unavailable) for the current run. */
   private readonly resolvedIcons = new Map<string, string | null>();
@@ -332,6 +338,7 @@ export class HtmlGeneratorService {
 
   resetRenderState(): void {
     this.resolvedImages.clear();
+    this.shrunkDataUrls.clear();
     this.resolvedIcons.clear();
     this.resetHeadingIds();
     this.pendingWarnings = [];
@@ -372,7 +379,9 @@ export class HtmlGeneratorService {
     try {
       const coverBlob = await this.loadCoverBlob(project);
       if (coverBlob) {
-        this.coverImageData = await this.blobToBase64(coverBlob);
+        this.coverImageData = await this.blobToBase64(
+          await this.shrinkForEmbedding(coverBlob)
+        );
       }
     } catch (error) {
       this.logger.warn('HtmlGenerator', 'Failed to load cover', error);
@@ -410,6 +419,17 @@ export class HtmlGeneratorService {
       return blob ?? undefined;
     });
     return found ?? null;
+  }
+
+  /**
+   * A single-page HTML file carries its images as data URLs, so a large
+   * image (generated art is often a multi-megabyte PNG) is scaled down and
+   * re-encoded as JPEG first. Small images keep their format, and so any
+   * transparency.
+   */
+  private async shrinkForEmbedding(blob: Blob): Promise<Blob> {
+    if (blob.size <= HTML_IMAGE_SHRINK_THRESHOLD_BYTES) return blob;
+    return (await shrinkImageToJpeg(blob))?.blob ?? blob;
   }
 
   private blobToBase64(blob: Blob): Promise<string> {
@@ -603,7 +623,36 @@ export class HtmlGeneratorService {
       }
       return this.resolvedImages.get(mediaId) ?? null;
     }
-    return isPassthroughImageSrc(src) ? src : null;
+    if (!isPassthroughImageSrc(src)) return null;
+    return this.isLargeDataUrl(src) ? this.shrinkDataUrl(src) : src;
+  }
+
+  /**
+   * A `data:` image over the embedding threshold. Identity images made by
+   * the image generator are stored this way, often as multi-megabyte PNGs.
+   */
+  private isLargeDataUrl(src: string): boolean {
+    // Base64 carries 3 bytes in 4 characters.
+    return (
+      /^data:image\//i.test(src) &&
+      (src.length * 3) / 4 > HTML_IMAGE_SHRINK_THRESHOLD_BYTES
+    );
+  }
+
+  /** Shrink a large `data:` image once per run, keeping it if that fails. */
+  private async shrinkDataUrl(src: string): Promise<string> {
+    const cached = this.shrunkDataUrls.get(src);
+    if (cached) return cached;
+    let href = src;
+    try {
+      const blob = await (await fetch(src)).blob();
+      const shrunk = await this.shrinkForEmbedding(blob);
+      if (shrunk !== blob) href = await this.blobToBase64(shrunk);
+    } catch (error) {
+      this.logger.warn('HtmlGenerator', 'Failed to shrink an image', error);
+    }
+    this.shrunkDataUrls.set(src, href);
+    return href;
   }
 
   /**
@@ -1056,7 +1105,7 @@ export class HtmlGeneratorService {
       mediaId
     );
     if (!blob) return null;
-    return await this.blobToBase64(blob);
+    return await this.blobToBase64(await this.shrinkForEmbedding(blob));
   }
 
   private nodeAttrs(node: ProseMirrorNode): Record<string, unknown> | null {

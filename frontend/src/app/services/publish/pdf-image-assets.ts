@@ -1,4 +1,5 @@
 import { mediaIdFromSrc } from './html-generator.service';
+import { shrinkImageToJpeg } from './publish-image-shrink';
 
 /** An image registered with the Typst compiler for one PDF run. */
 export interface PdfImageAsset {
@@ -21,12 +22,6 @@ export interface PreparedImage {
   width?: number;
   height?: number;
 }
-
-/** Longest side, in pixels, images are scaled down to before embedding. */
-export const PDF_IMAGE_MAX_SIDE = 1600;
-
-/** JPEG quality used when re-encoding images for the PDF. */
-const PDF_IMAGE_JPEG_QUALITY = 0.86;
 
 /** Image types Typst can decode directly. */
 const TYPST_IMAGE_TYPES: Record<string, PreparedImage['ext']> = {
@@ -74,58 +69,19 @@ export function collectImageSources(
   return out;
 }
 
-/**
- * Re-encode an image as a JPEG no larger than {@link PDF_IMAGE_MAX_SIDE} on
- * its longest side. Generated art is often a multi-megabyte PNG; embedded
- * as-is, a dozen of them make a PDF of tens of megabytes. Returns null when
- * the browser cannot decode or re-encode it (SVG, no OffscreenCanvas), so
- * the caller can fall back to the original bytes.
- */
-async function reencodeAsJpeg(blob: Blob): Promise<PreparedImage | null> {
-  if (
-    typeof createImageBitmap !== 'function' ||
-    typeof OffscreenCanvas === 'undefined' ||
-    blob.type === 'image/svg+xml'
-  ) {
-    return null;
-  }
-  try {
-    const bitmap = await createImageBitmap(blob);
-    const scale = Math.min(
-      1,
-      PDF_IMAGE_MAX_SIDE / Math.max(bitmap.width, bitmap.height)
-    );
-    const width = Math.max(1, Math.round(bitmap.width * scale));
-    const height = Math.max(1, Math.round(bitmap.height * scale));
-    const canvas = new OffscreenCanvas(width, height);
-    const context = canvas.getContext('2d');
-    if (!context) return null;
-    // JPEG has no alpha: paint transparent areas white, like the page.
-    context.fillStyle = '#ffffff';
-    context.fillRect(0, 0, width, height);
-    context.drawImage(bitmap, 0, 0, width, height);
-    bitmap.close();
-    const jpeg = await canvas.convertToBlob({
-      type: 'image/jpeg',
-      quality: PDF_IMAGE_JPEG_QUALITY,
-    });
-    return {
-      bytes: new Uint8Array(await jpeg.arrayBuffer()),
-      ext: 'jpg',
-      width,
-      height,
-    };
-  } catch {
-    return null;
-  }
-}
-
 /** Turn an image blob into bytes Typst can decode, or null when it can't. */
 export async function prepareImageForTypst(
   blob: Blob
 ): Promise<PreparedImage | null> {
-  const reencoded = await reencodeAsJpeg(blob);
-  if (reencoded) return reencoded;
+  const shrunk = await shrinkImageToJpeg(blob);
+  if (shrunk) {
+    return {
+      bytes: new Uint8Array(await shrunk.blob.arrayBuffer()),
+      ext: 'jpg',
+      width: shrunk.width,
+      height: shrunk.height,
+    };
+  }
   const ext = TYPST_IMAGE_TYPES[blob.type.toLowerCase()];
   if (!ext) return null;
   return { bytes: new Uint8Array(await blob.arrayBuffer()), ext };

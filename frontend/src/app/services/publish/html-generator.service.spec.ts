@@ -1812,6 +1812,77 @@ describe('HtmlGeneratorService', () => {
       );
     });
 
+    it('shrinks a large image to a JPEG before embedding it', async () => {
+      // A fake decoder and canvas: the real ones are not in the test DOM.
+      vi.stubGlobal(
+        'createImageBitmap',
+        vi.fn().mockResolvedValue({ width: 3200, height: 1600, close: vi.fn() })
+      );
+      vi.stubGlobal(
+        'OffscreenCanvas',
+        class {
+          constructor(
+            readonly width: number,
+            readonly height: number
+          ) {}
+          getContext() {
+            return { fillStyle: '', fillRect: vi.fn(), drawImage: vi.fn() };
+          }
+          convertToBlob() {
+            return Promise.resolve(new Blob(['jpg'], { type: 'image/jpeg' }));
+          }
+        }
+      );
+      const big = new Blob([new Uint8Array(600 * 1024)], { type: 'image/png' });
+      localStorageMock.getMedia.mockResolvedValue(big);
+
+      const text = await render([
+        {
+          type: 'paragraph',
+          content: [{ type: 'image', attrs: { src: 'media:big', alt: 'Art' } }],
+        },
+      ]);
+
+      expect(text).toContain('src="data:image/jpeg;base64,anBn" alt="Art"');
+    });
+
+    it('shrinks a large data URL image, such as a generated identity image', async () => {
+      vi.stubGlobal(
+        'createImageBitmap',
+        vi.fn().mockResolvedValue({ width: 2048, height: 2048, close: vi.fn() })
+      );
+      vi.stubGlobal(
+        'OffscreenCanvas',
+        class {
+          getContext() {
+            return { fillStyle: '', fillRect: vi.fn(), drawImage: vi.fn() };
+          }
+          convertToBlob() {
+            return Promise.resolve(new Blob(['jpg'], { type: 'image/jpeg' }));
+          }
+        }
+      );
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue({
+          blob: () =>
+            Promise.resolve(
+              new Blob([new Uint8Array(600 * 1024)], { type: 'image/png' })
+            ),
+        })
+      );
+      const dataUrl = 'data:image/png;base64,' + 'A'.repeat(800 * 1024);
+
+      const href = await service.resolveImageHref(dataUrl);
+
+      expect(href).toBe('data:image/jpeg;base64,anBn');
+    });
+
+    it('passes a small data URL image through unchanged', async () => {
+      const dataUrl = 'data:image/png;base64,iVBORw0KGgo=';
+      expect(await service.resolveImageHref(dataUrl)).toBe(dataUrl);
+    });
+
     it('should accept media:// references with an extension', async () => {
       localStorageMock.getMedia.mockImplementation((_key: string, id: string) =>
         Promise.resolve(
