@@ -7,7 +7,6 @@
  * https://openapi-generator.tech
  * Do not edit the class manually.
  */
-import { ImageSize } from './image-size';
 import { WorldbuildingContext } from './worldbuilding-context';
 
 export interface ImageGenerateRequest {
@@ -27,7 +26,10 @@ export interface ImageGenerateRequest {
    * Number of images to generate
    */
   n?: number;
-  size?: ImageSize;
+  /**
+   * Image size: pixels (\"1024x1024\"), an aspect ratio (\"16:9\"), an aspect ratio with a resolution (\"16:9@4K\") or \"auto\". Uses the profile default if not specified.
+   */
+  size?: string;
   /**
    * Image quality (overrides profile config)
    */

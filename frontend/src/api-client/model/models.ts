@@ -98,7 +98,6 @@ export * from './image-model-info';
 export * from './image-models-response';
 export * from './image-provider-status';
 export * from './image-provider-type';
-export * from './image-size';
 export * from './invitation-status';
 export * from './invite-collaborator-request';
 export * from './json-rpc-request';

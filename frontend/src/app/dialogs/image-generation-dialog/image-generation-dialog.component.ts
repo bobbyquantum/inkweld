@@ -41,7 +41,6 @@ import {
   type ImageGenerateResponse,
   type ImageGenerationStatus,
   ImageProviderType,
-  ImageSize,
   type PublicImageModelProfile,
   PublicImageModelProfileProvider,
   type WorldbuildingContext,
@@ -79,6 +78,13 @@ export interface ImageGenerationDialogResult {
 }
 
 type DialogStage = 'select-elements' | 'edit-prompt' | 'generating';
+
+/**
+ * An aspect-ratio size: "16:9", "2.35:1", or with a resolution "16:9@4K" /
+ * "1:1@512sq". Groups: 1 ratio, 2 width part, 3 height part, 4 resolution.
+ */
+const ASPECT_RATIO_SIZE_PATTERN =
+  /^((\d+(?:\.\d+)?):(\d+(?:\.\d+)?))(?:@([A-Za-z0-9]+))?$/;
 
 @Component({
   selector: 'app-image-generation-dialog',
@@ -165,7 +171,7 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
   readonly selectedProvider = signal<ImageProviderType | null>(null);
   readonly selectedModel = signal<string | null>(null);
   readonly imageCount = signal<number>(1);
-  readonly selectedSize = signal<ImageSize>(ImageSize._1024x1024);
+  readonly selectedSize = signal<string>('1024x1024');
   readonly quality = signal<ImageGenerateRequestQuality>(
     ImageGenerateRequestQuality.Standard
   );
@@ -203,79 +209,79 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
 
   // Default size options based on OpenRouter/Gemini supported aspect ratios
   readonly defaultSizeOptions: {
-    value: ImageSize;
+    value: string;
     label: string;
     megapixels: string;
     isCustom?: boolean;
   }[] = [
     {
-      value: ImageSize._1024x1024,
+      value: '1024x1024',
       label: '1024×1024 (1:1 Square)',
       megapixels: '1.05',
     },
     {
-      value: ImageSize._832x1248,
+      value: '832x1248',
       label: '832×1248 (2:3 Portrait)',
       megapixels: '1.04',
     },
     {
-      value: ImageSize._1248x832,
+      value: '1248x832',
       label: '1248×832 (3:2 Landscape)',
       megapixels: '1.04',
     },
     {
-      value: ImageSize._864x1184,
+      value: '864x1184',
       label: '864×1184 (3:4 Portrait)',
       megapixels: '1.02',
     },
     {
-      value: ImageSize._1184x864,
+      value: '1184x864',
       label: '1184×864 (4:3 Landscape)',
       megapixels: '1.02',
     },
     {
-      value: ImageSize._896x1152,
+      value: '896x1152',
       label: '896×1152 (4:5 Portrait)',
       megapixels: '1.03',
     },
     {
-      value: ImageSize._1152x896,
+      value: '1152x896',
       label: '1152×896 (5:4 Landscape)',
       megapixels: '1.03',
     },
     {
-      value: ImageSize._768x1344,
+      value: '768x1344',
       label: '768×1344 (9:16 Tall)',
       megapixels: '1.03',
     },
     {
-      value: ImageSize._1344x768,
+      value: '1344x768',
       label: '1344×768 (16:9 Wide)',
       megapixels: '1.03',
     },
     {
-      value: ImageSize._1536x672,
+      value: '1536x672',
       label: '1536×672 (21:9 Ultra-wide)',
       megapixels: '1.03',
     },
     // Fal.ai extended sizes
     {
-      value: ImageSize._1920x1080,
+      value: '1920x1080',
       label: '1920×1080 (HD Landscape)',
       megapixels: '2.07',
     },
     {
-      value: ImageSize._1080x1920,
+      value: '1080x1920',
       label: '1080×1920 (HD Portrait)',
       megapixels: '2.07',
     },
     {
-      value: ImageSize._1600x2560,
+      value: '1600x2560',
       label: '1600×2560 (Ebook Cover)',
       megapixels: '4.10',
     },
     {
-      value: ImageSize._2560x1600,
+      value: '2560x1600',
       label: '2560×1600 (Wide Ebook)',
       megapixels: '4.10',
     },
@@ -284,34 +290,20 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
   /**
    * Parse an aspect ratio size string and return label info.
    * Supports formats:
-   * - "16:9@4K" -> ratio with resolution qualifier
-   * - "16:9" -> plain ratio (used by OpenRouter)
+   * - "16:9@4K", "1:1@512sq" -> ratio with resolution qualifier (Fal.ai)
+   * - "16:9", "2.35:1" -> plain ratio (OpenRouter, Fal.ai models without a resolution)
    */
   private parseAspectRatioSize(size: string): {
     ratio: string;
     resolution?: string;
     label: string;
   } | null {
-    // Try format with resolution: "16:9@4K"
-    const withResMatch = /^(\d+:\d+)@(\d+K)$/.exec(size);
-    if (withResMatch) {
-      return {
-        ratio: withResMatch[1],
-        resolution: withResMatch[2],
-        label: `${withResMatch[1]} @ ${withResMatch[2]}`,
-      };
-    }
-
-    // Try plain aspect ratio: "16:9", "1:1", etc.
-    const plainMatch = /^(\d+:\d+)$/.exec(size);
-    if (plainMatch) {
-      return {
-        ratio: plainMatch[1],
-        label: plainMatch[1],
-      };
-    }
-
-    return null;
+    const match = ASPECT_RATIO_SIZE_PATTERN.exec(size);
+    if (!match) return null;
+    const [, ratio, , , resolution] = match;
+    return resolution
+      ? { ratio, resolution, label: `${ratio} @ ${resolution}` }
+      : { ratio, label: ratio };
   }
 
   /**
@@ -319,34 +311,11 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
    * Returns width and height normalized to fit within a 20x20 viewbox.
    */
   getAspectRatioPreview(sizeValue: string): { width: number; height: number } {
-    // Common aspect ratios mapped to their dimensions
-    const ratioMap: Record<string, [number, number]> = {
-      '1:1': [1, 1],
-      '2:3': [2, 3],
-      '3:2': [3, 2],
-      '3:4': [3, 4],
-      '4:3': [4, 3],
-      '4:5': [4, 5],
-      '5:4': [5, 4],
-      '9:16': [9, 16],
-      '16:9': [16, 9],
-      '21:9': [21, 9],
-    };
-
-    // Try to parse the size value
-    // First check if it's a plain ratio like "16:9"
-    const plainMatch = /^(\d+):(\d+)$/.exec(sizeValue);
-    if (plainMatch) {
-      const w = Number.parseInt(plainMatch[1], 10);
-      const h = Number.parseInt(plainMatch[2], 10);
-      return this.normalizeToViewbox(w, h, 16);
-    }
-
-    // Check if it's a ratio with resolution like "16:9@4K"
-    const withResMatch = /^(\d+):(\d+)@/.exec(sizeValue);
-    if (withResMatch) {
-      const w = Number.parseInt(withResMatch[1], 10);
-      const h = Number.parseInt(withResMatch[2], 10);
+    // Ratio, with or without a resolution: "16:9", "2.35:1", "16:9@4K"
+    const ratioMatch = ASPECT_RATIO_SIZE_PATTERN.exec(sizeValue);
+    if (ratioMatch) {
+      const w = Number.parseFloat(ratioMatch[2]);
+      const h = Number.parseFloat(ratioMatch[3]);
       return this.normalizeToViewbox(w, h, 16);
     }
 
@@ -355,12 +324,6 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
     if (dimMatch) {
       const w = Number.parseInt(dimMatch[1], 10);
       const h = Number.parseInt(dimMatch[2], 10);
-      return this.normalizeToViewbox(w, h, 16);
-    }
-
-    // Check preset ratio map
-    if (ratioMap[sizeValue]) {
-      const [w, h] = ratioMap[sizeValue];
       return this.normalizeToViewbox(w, h, 16);
     }
 
@@ -390,7 +353,7 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
    * Get the label for the currently selected size.
    */
   getSelectedSizeLabel(): string {
-    const size = this.selectedSize() as string;
+    const size = this.selectedSize();
     const options = this.sizeOptions();
     const match = options.find(o => String(o.value) === size);
     return match?.label ?? size;
@@ -413,7 +376,7 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
 
     // Build options list
     const options: {
-      value: ImageSize | string;
+      value: string;
       label: string;
       megapixels: string;
       isCustom?: boolean;
@@ -432,7 +395,7 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
       } else {
         // Dimension format - check if we have a default label
         const defaultOption = this.defaultSizeOptions.find(
-          d => (d.value as string) === size
+          d => d.value === size
         );
         if (defaultOption) {
           options.push(defaultOption);
@@ -466,7 +429,7 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
       const customOptions = custom.map(cs => {
         const mp = (cs.width * cs.height) / 1_000_000;
         return {
-          value: `${cs.width}x${cs.height}` as ImageSize,
+          value: `${cs.width}x${cs.height}`,
           label: `${cs.width}×${cs.height} (${cs.name})`,
           megapixels: mp.toFixed(2),
           isCustom: true,
@@ -493,16 +456,14 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
         if (options.length > 0) {
           const currentSize = this.selectedSize();
           // Check if current size is still valid for this profile
-          const isValid = options.some(
-            o => o.value === (currentSize as string)
-          );
+          const isValid = options.some(o => o.value === currentSize);
           if (!isValid) {
             // Reset to profile's default size or first option
             const defaultSize = profile.defaultSize;
             if (defaultSize && options.some(o => o.value === defaultSize)) {
-              this.selectedSize.set(defaultSize as ImageSize);
+              this.selectedSize.set(defaultSize);
             } else {
-              this.selectedSize.set(options[0].value as ImageSize);
+              this.selectedSize.set(options[0].value);
             }
           }
         }
@@ -511,7 +472,7 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
 
     // Default to cover sizes and prepopulate prompt if forCover
     if (this.data.forCover) {
-      this.selectedSize.set(ImageSize._768x1344);
+      this.selectedSize.set('768x1344');
 
       // Prepopulate prompt with project info if no prompt provided
       if (!this.data.prompt) {
@@ -620,7 +581,7 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
     // Set default size if specified, unless we're in forCover mode
     // (forCover mode has its own portrait size preference)
     if (profile.defaultSize && !this.data.forCover) {
-      this.selectedSize.set(profile.defaultSize as ImageSize);
+      this.selectedSize.set(profile.defaultSize);
     }
   }
 

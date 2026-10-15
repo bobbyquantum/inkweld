@@ -1,0 +1,560 @@
+{
+  "endpoint_id": "krea/v2/large/text-to-image",
+  "metadata": {
+    "display_name": "Krea 2 Large",
+    "category": "text-to-image",
+    "description": "Generate high-fidelity images from text with Krea 2 Large, supporting aspect ratio, creativity, seed controls, and optional style references.",
+    "status": "active",
+    "tags": [
+      "text-to-image",
+      "image-generation",
+      "style-reference",
+      "krea",
+      "krea-2"
+    ],
+    "updated_at": "2026-06-30T18:57:25.450Z",
+    "is_favorited": null,
+    "thumbnail_url": "https://v3b.fal.media/files/b/0a9c2fb3/ATU9JDQwjBy0xRtTwPbft_7338811c31e94f11b04ef25761fe530f.jpg",
+    "model_url": "https://fal.run/krea/v2/large/text-to-image",
+    "license_type": "commercial",
+    "date": "2026-05-27T08:04:43.864Z",
+    "group": {
+      "key": "krea2",
+      "label": "Krea 2 Large"
+    },
+    "highlighted": false,
+    "kind": "inference",
+    "pinned": false
+  },
+  "openapi": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Queue OpenAPI for fal-ai/krea/v2/large/text-to-image",
+      "version": "1.0.0",
+      "description": "The OpenAPI schema for the fal-ai/krea/v2/large/text-to-image queue.",
+      "x-fal-metadata": {
+        "endpointId": "fal-ai/krea/v2/large/text-to-image",
+        "category": "text-to-image",
+        "thumbnailUrl": "https://v3b.fal.media/files/b/0a9b37a4/5SSrbEC9CL36gRzTd6r_z_xz4dLk6F.png",
+        "playgroundUrl": "https://fal.ai/models/fal-ai/krea/v2/large/text-to-image",
+        "documentationUrl": "https://fal.ai/models/fal-ai/krea/v2/large/text-to-image/api",
+        "about": "Generate images with Krea's krea-2 large model."
+      }
+    },
+    "components": {
+      "securitySchemes": {
+        "apiKeyAuth": {
+          "type": "apiKey",
+          "in": "header",
+          "name": "Authorization",
+          "description": "Fal Key"
+        }
+      },
+      "schemas": {
+        "QueueStatus": {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": [
+                "IN_QUEUE",
+                "IN_PROGRESS",
+                "COMPLETED"
+              ]
+            },
+            "request_id": {
+              "type": "string",
+              "description": "The request id."
+            },
+            "response_url": {
+              "type": "string",
+              "description": "The response url."
+            },
+            "status_url": {
+              "type": "string",
+              "description": "The status url."
+            },
+            "cancel_url": {
+              "type": "string",
+              "description": "The cancel url."
+            },
+            "logs": {
+              "type": "object",
+              "description": "The logs.",
+              "additionalProperties": true
+            },
+            "metrics": {
+              "type": "object",
+              "description": "The metrics.",
+              "additionalProperties": true
+            },
+            "queue_position": {
+              "type": "integer",
+              "description": "The queue position."
+            }
+          },
+          "required": [
+            "status",
+            "request_id"
+          ]
+        },
+        "KreaV2LargeTextToImageInput": {
+          "required": [
+            "prompt"
+          ],
+          "x-fal-order-properties": [
+            "prompt",
+            "aspect_ratio",
+            "creativity",
+            "seed",
+            "image_style_references",
+            "styles",
+            "moodboards",
+            "enable_safety_checker"
+          ],
+          "description": "Input for Krea-2 Large image generation.",
+          "title": "Krea2LargeInput",
+          "type": "object",
+          "properties": {
+            "styles": {
+              "default": [],
+              "items": {
+                "$ref": "#/components/schemas/Style"
+              },
+              "maxItems": 10,
+              "description": "Optional list of Krea preset styles (LoRA-based) to apply. Each entry references a style by `id` from the Krea styles catalog. At most 10 entries.",
+              "title": "Styles",
+              "type": "array"
+            },
+            "creativity": {
+              "default": "medium",
+              "enum": [
+                "raw",
+                "low",
+                "medium",
+                "high"
+              ],
+              "description": "Controls how loosely the model interprets the prompt. Higher values produce more creative results that may drift from the prompt; lower values stay closer to the prompt.",
+              "title": "Creativity",
+              "type": "string"
+            },
+            "image_style_references": {
+              "default": [],
+              "items": {
+                "$ref": "#/components/schemas/ImageStyleReference"
+              },
+              "maxItems": 10,
+              "description": "Optional list of reference images that guide the style of the generated image. At most 10 entries.",
+              "title": "Image Style References",
+              "type": "array"
+            },
+            "moodboards": {
+              "default": [],
+              "items": {
+                "$ref": "#/components/schemas/Moodboard"
+              },
+              "maxItems": 1,
+              "description": "Optional moodboard to apply to the generation. Krea currently accepts at most one moodboard per request. Each entry references a moodboard by `id` (UUID).",
+              "title": "Moodboards",
+              "type": "array"
+            },
+            "aspect_ratio": {
+              "default": "1:1",
+              "enum": [
+                "1:1",
+                "4:3",
+                "3:2",
+                "16:9",
+                "2.35:1",
+                "4:5",
+                "2:3",
+                "9:16"
+              ],
+              "description": "Aspect ratio of the generated image.",
+              "title": "Aspect Ratio",
+              "type": "string",
+              "examples": [
+                "1:1"
+              ]
+            },
+            "seed": {
+              "description": "Random seed for reproducible generation.",
+              "title": "Seed",
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "enable_safety_checker": {
+              "default": true,
+              "description": "Authorized callers may set false to request relaxed screening.",
+              "title": "Enable Safety Checker",
+              "type": "boolean"
+            },
+            "prompt": {
+              "minLength": 1,
+              "examples": [
+                "A Van Gogh-tinged Provençal farmhouse under starry nights."
+              ],
+              "description": "Text description of the image to generate.",
+              "title": "Prompt",
+              "type": "string",
+              "maxLength": 5000
+            }
+          }
+        },
+        "KreaV2LargeTextToImageOutput": {
+          "required": [
+            "images",
+            "seed"
+          ],
+          "x-fal-order-properties": [
+            "images",
+            "seed"
+          ],
+          "title": "Krea2Output",
+          "type": "object",
+          "properties": {
+            "seed": {
+              "examples": [
+                12345
+              ],
+              "description": "The seed used to generate the image.",
+              "title": "Seed",
+              "type": "integer"
+            },
+            "images": {
+              "items": {
+                "$ref": "#/components/schemas/Image"
+              },
+              "examples": [
+                [
+                  {
+                    "url": "https://v3.fal.media/files/panda/krea_v2_example.png"
+                  }
+                ]
+              ],
+              "description": "The generated images.",
+              "title": "Images",
+              "type": "array"
+            }
+          }
+        },
+        "Style": {
+          "required": [
+            "id"
+          ],
+          "x-fal-order-properties": [
+            "id",
+            "strength"
+          ],
+          "title": "Style",
+          "type": "object",
+          "properties": {
+            "id": {
+              "description": "Krea style identifier (a LoRA-based preset style) returned by the Krea styles catalog.",
+              "title": "Id",
+              "type": "string"
+            },
+            "strength": {
+              "default": 1,
+              "minimum": -2,
+              "description": "How strongly the style influences the generated image. Negative values push away from the style.",
+              "title": "Strength",
+              "type": "number",
+              "maximum": 2
+            }
+          }
+        },
+        "ImageStyleReference": {
+          "required": [
+            "image_url"
+          ],
+          "x-fal-order-properties": [
+            "image_url",
+            "strength"
+          ],
+          "title": "ImageStyleReference",
+          "type": "object",
+          "properties": {
+            "strength": {
+              "default": 1,
+              "minimum": -2,
+              "description": "How strongly the reference influences the generated image. Negative values push away from the reference.",
+              "title": "Strength",
+              "type": "number",
+              "maximum": 2
+            },
+            "image_url": {
+              "description": "Publicly accessible URL of a reference image.",
+              "title": "Image Url",
+              "type": "string"
+            }
+          }
+        },
+        "Moodboard": {
+          "required": [
+            "id"
+          ],
+          "x-fal-order-properties": [
+            "id",
+            "strength"
+          ],
+          "title": "Moodboard",
+          "type": "object",
+          "properties": {
+            "id": {
+              "description": "Krea moodboard identifier (UUID).",
+              "title": "Id",
+              "type": "string"
+            },
+            "strength": {
+              "default": 0.23,
+              "minimum": 0,
+              "description": "How strongly the moodboard influences the generated image.",
+              "title": "Strength",
+              "type": "number",
+              "maximum": 1
+            }
+          }
+        },
+        "Image": {
+          "required": [
+            "url"
+          ],
+          "x-fal-order-properties": [
+            "url",
+            "content_type",
+            "file_name",
+            "file_size",
+            "width",
+            "height"
+          ],
+          "description": "Represents an image file.",
+          "title": "Image",
+          "type": "object",
+          "properties": {
+            "url": {
+              "description": "The URL where the file can be downloaded from.",
+              "title": "Url",
+              "type": "string"
+            },
+            "file_name": {
+              "examples": [
+                "z9RV14K95DvU.png"
+              ],
+              "description": "The name of the file. It will be auto-generated if not provided.",
+              "title": "File Name",
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "width": {
+              "examples": [
+                1024
+              ],
+              "description": "The width of the image in pixels.",
+              "title": "Width",
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "file_size": {
+              "examples": [
+                4404019
+              ],
+              "description": "The size of the file in bytes.",
+              "title": "File Size",
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "content_type": {
+              "examples": [
+                "image/png"
+              ],
+              "description": "The mime type of the file.",
+              "title": "Content Type",
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "height": {
+              "examples": [
+                1024
+              ],
+              "description": "The height of the image in pixels.",
+              "title": "Height",
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "paths": {
+      "/fal-ai/krea/v2/large/text-to-image/requests/{request_id}/status": {
+        "get": {
+          "parameters": [
+            {
+              "name": "request_id",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "string",
+                "description": "Request ID"
+              }
+            },
+            {
+              "name": "logs",
+              "in": "query",
+              "required": false,
+              "schema": {
+                "type": "number",
+                "description": "Whether to include logs (`1`) in the response or not (`0`)."
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "The request status.",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/QueueStatus"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/fal-ai/krea/v2/large/text-to-image/requests/{request_id}/cancel": {
+        "put": {
+          "parameters": [
+            {
+              "name": "request_id",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "string",
+                "description": "Request ID"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "The request was cancelled.",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "success": {
+                        "type": "boolean",
+                        "description": "Whether the request was cancelled successfully."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/fal-ai/krea/v2/large/text-to-image": {
+        "post": {
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KreaV2LargeTextToImageInput"
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "The request status.",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/QueueStatus"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/fal-ai/krea/v2/large/text-to-image/requests/{request_id}": {
+        "get": {
+          "parameters": [
+            {
+              "name": "request_id",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "string",
+                "description": "Request ID"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Result of the request.",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/KreaV2LargeTextToImageOutput"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "servers": [
+      {
+        "url": "https://queue.fal.run"
+      }
+    ],
+    "security": [
+      {
+        "apiKeyAuth": []
+      }
+    ]
+  }
+}

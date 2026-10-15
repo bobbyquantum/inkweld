@@ -149,6 +149,13 @@ export const FalaiModelMetadataSchema = z
     supportedAspectRatios: z.array(z.string()),
     supportedResolutions: z.array(z.string()),
     sizeMode: z.enum(['dimensions', 'aspect_ratio', 'unknown']),
+    usesAspectRatioOnly: z
+      .boolean()
+      .openapi({ description: 'The model takes an aspect ratio instead of pixel dimensions' }),
+    defaultSize: z
+      .string()
+      .optional()
+      .openapi({ description: 'Suggested default size, one of supportedSizes' }),
   })
   .openapi('FalaiModelMetadata');
 
