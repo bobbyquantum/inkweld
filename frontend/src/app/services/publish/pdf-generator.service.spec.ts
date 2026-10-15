@@ -37,6 +37,7 @@ import {
   type PdfProgress,
   type PdfResult,
 } from './pdf-generator.service';
+import type { WorldbuildingPublishRendererService } from './worldbuilding-publish-renderer.service';
 
 describe('PdfGeneratorService', () => {
   let service: PdfGeneratorService;
@@ -1315,6 +1316,112 @@ describe('PdfGeneratorService', () => {
 
       const result = await service.generatePdf(mockPlan);
       expect(result.success).toBe(true);
+    });
+  });
+
+  describe('images', () => {
+    /** Generate a PDF for the plan and return the Typst markup it compiled. */
+    async function compiledMarkup(plan: PublishPlan): Promise<string> {
+      const result = await service.generatePdf(plan);
+      expect(result.success).toBe(true);
+      const prefix = 'Compiling Typst markup:\n';
+      const logged = (loggerMock.debug.mock.calls as unknown[][])
+        .map(args => args[1])
+        .filter(
+          (msg): msg is string =>
+            typeof msg === 'string' && msg.startsWith(prefix)
+        )
+        .at(-1);
+      expect(logged).toBeDefined();
+      return logged!.slice(prefix.length);
+    }
+
+    const pngBlob = () =>
+      new Blob([new Uint8Array([137, 80, 78, 71])], { type: 'image/png' });
+
+    it('embeds a document image as its own centred block', async () => {
+      localStorageMock.getMedia.mockResolvedValue(pngBlob());
+      documentServiceMock.getDocumentContent.mockResolvedValue([
+        {
+          type: 'paragraph',
+          content: [
+            {
+              type: 'image',
+              attrs: { src: 'media:map-1', alt: 'Map of Saltmere' },
+            },
+          ],
+        },
+      ]);
+
+      const markup = await compiledMarkup(mockPlan);
+
+      expect(localStorageMock.getMedia).toHaveBeenCalledWith(
+        'testuser/test-project',
+        'map-1'
+      );
+      expect(markup).toContain(
+        'image("images/img-1.png", width: 80%, alt: "Map of Saltmere")'
+      );
+      expect(markup).toContain('#block(breakable: false');
+    });
+
+    it('leaves out an image that cannot be loaded', async () => {
+      localStorageMock.getMedia.mockResolvedValue(null);
+      documentServiceMock.getDocumentContent.mockResolvedValue([
+        {
+          type: 'paragraph',
+          content: [
+            { type: 'text', text: 'Before ' },
+            { type: 'image', attrs: { src: 'media:gone' } },
+          ],
+        },
+      ]);
+
+      const markup = await compiledMarkup(mockPlan);
+
+      expect(markup).toContain('Before');
+      expect(markup).not.toContain('image("images/');
+    });
+
+    it('shows a worldbuilding image beside the description', async () => {
+      localStorageMock.getMedia.mockResolvedValue(pngBlob());
+      const renderer = (
+        service as unknown as {
+          worldbuildingRenderer: WorldbuildingPublishRendererService;
+        }
+      ).worldbuildingRenderer;
+      vi.spyOn(renderer, 'renderItem').mockResolvedValue([
+        {
+          elementId: 'npc-1',
+          title: 'Mother Brine',
+          layout: 'card',
+          description: 'Kindly old salt-wife.',
+          imageRef: 'media://brine.png',
+          tabs: [],
+        },
+      ]);
+      const plan: PublishPlan = {
+        ...mockPlan,
+        items: [
+          {
+            id: 'wb-1',
+            type: PublishPlanItemType.Worldbuilding,
+            categories: [],
+            format: 'inline',
+            title: 'Characters',
+          },
+        ],
+      };
+
+      const markup = await compiledMarkup(plan);
+
+      expect(localStorageMock.getMedia).toHaveBeenCalledWith(
+        'testuser/test-project',
+        'brine'
+      );
+      expect(markup).toContain(
+        '#grid(columns: (34%, 1fr), column-gutter: 10pt, align: (top, horizon), image("images/img-1.png", width: 100%), [#emph[Kindly old salt-wife.]])'
+      );
     });
   });
 });

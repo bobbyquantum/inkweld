@@ -29,6 +29,12 @@ import { DocumentService } from '../project/document.service';
 import { ProjectStateService } from '../project/project-state.service';
 import { chapterHeadingFor } from './chapter-heading';
 import { flattenConversation } from './conversation-publish';
+import {
+  collectImageSources,
+  type PdfImageAsset,
+  PdfImageAssets,
+  typstImageWidth,
+} from './pdf-image-assets';
 import { applyMarks, TYPST_MARK_TAGS } from './publish-marks-helper';
 import { PublishStyleResolverService } from './publish-style-resolver.service';
 import { PublishTypstEmitterService } from './publish-typst-emitter.service';
@@ -171,6 +177,11 @@ export class PdfGeneratorService {
 
   private coverImageData: CoverImageData | null = null;
 
+  /** Images registered with Typst for the current run. */
+  private imageAssets: PdfImageAssets | null = null;
+  /** Registered images by source, for the synchronous markup writers. */
+  private readonly resolvedImages = new Map<string, PdfImageAsset>();
+
   private readonly progressSubject = new BehaviorSubject<PdfProgress>({
     phase: PdfPhase.Idle,
     overallProgress: 0,
@@ -232,6 +243,7 @@ export class PdfGeneratorService {
   async generatePdf(plan: PublishPlan): Promise<PdfResult> {
     this.isCancelled = false;
     this.coverImageData = null;
+    this.resetImages();
     this.typography = typographyLanguageFor(plan);
     const startTime = Date.now();
     const result: PdfResult = {
@@ -533,6 +545,7 @@ export class PdfGeneratorService {
   ): Promise<void> {
     const entries = await this.worldbuildingRenderer.renderItem(item, elements);
     if (entries.length === 0) return;
+    await this.registerImages(entries.map(entry => entry.imageRef));
     if (item.title) {
       ctx.markup += `#pagebreak(weak: true)\n`;
       ctx.markup += `#wb-section-title[${this.escapeTypst(item.title)}]\n\n`;
@@ -548,17 +561,19 @@ export class PdfGeneratorService {
     const parts: string[] = [];
     const titleArg = `[${this.escapeTypst(entry.title)}]`;
     const body: string[] = [];
-    if (entry.description) {
-      body.push(`#emph[${this.escapeTypst(entry.description)}]`, '#v(4pt)');
+    // The identity image was registered with Typst in processWorldbuilding;
+    // one that failed to load is simply left out.
+    const image = entry.imageRef
+      ? this.resolvedImages.get(entry.imageRef)
+      : undefined;
+    const description = entry.description
+      ? `#emph[${this.escapeTypst(entry.description)}]`
+      : '';
+    if (image) {
+      body.push(this.worldbuildingImageTypst(image, description), '#v(4pt)');
+    } else if (description) {
+      body.push(description, '#v(4pt)');
     }
-    // Worldbuilding identity images (`entry.imageRef`) are intentionally
-    // NOT rendered in PDF output. The HTML/EPUB/Markdown generators embed
-    // the URL directly because they run inside a browser context that
-    // resolves it natively, but Typst's `#image()` requires the raw image
-    // bytes to be registered with the compiler via `addSource`/asset map.
-    // Wiring per-entry image fetch + asset registration into the typst.ts
-    // pipeline is tracked separately; until then we omit the image rather
-    // than emit a broken `#image()` call that would fail compilation.
     for (const tab of entry.tabs) {
       const tabBody: string[] = [];
       for (const f of tab.fields) {
@@ -798,6 +813,7 @@ export class PdfGeneratorService {
         ctx.markup += '#emph[Document is empty]\n\n';
         return;
       }
+      await this.registerImages(collectImageSources(content));
       if (heading && !this.startsWithHeading(content)) {
         ctx.markup += `#chapter-title[${this.escapeTypst(heading)}]\n\n`;
       }
@@ -878,6 +894,10 @@ export class PdfGeneratorService {
 
     switch (nodeName) {
       case 'paragraph': {
+        if (this.isImageOnly(children)) {
+          children.forEach(c => this.nodeToTypst(c, ctx));
+          return;
+        }
         const text = this.extractTypstText(node);
         if (!text.trim()) {
           ctx.markup += '#v(0.5em)\n\n';
@@ -920,6 +940,10 @@ export class PdfGeneratorService {
 
       case 'horizontal_rule':
         ctx.markup += '#line(length: 100%, stroke: 0.5pt + gray)\n\n';
+        break;
+
+      case 'image':
+        ctx.markup += this.imageBlockTypst(node);
         break;
 
       case 'code_block':
@@ -1019,12 +1043,133 @@ export class PdfGeneratorService {
 
     const nodeName = this.getNodeName(node);
     if (nodeName === 'elementref') return this.extractElementRefTypstText(node);
+    if (nodeName === 'image') return this.inlineImageTypst(node);
     if (nodeName === 'text' || !nodeName)
       return this.extractMarkedTypstText(node);
 
     return this.getChildren(node)
       .map(c => this.extractTypstText(c))
       .join('');
+  }
+
+  /** Start a run with no images registered. */
+  private resetImages(): void {
+    this.resolvedImages.clear();
+    this.imageAssets = new PdfImageAssets(
+      async mediaId => {
+        const project = this.projectStateService.project();
+        if (!project) return null;
+        const projectKey = `${project.username}/${project.slug}`;
+        return (await this.localStorage.getMedia(projectKey, mediaId)) ?? null;
+      },
+      async (path, bytes) => {
+        await $typst.mapShadow(path, bytes);
+      }
+    );
+  }
+
+  /**
+   * Load the given image sources and register them with Typst, so the
+   * (synchronous) markup writers can refer to them. Sources that cannot be
+   * loaded are skipped.
+   */
+  private async registerImages(
+    sources: readonly (string | undefined)[]
+  ): Promise<void> {
+    const assets = this.imageAssets;
+    if (!assets) return;
+    const unique = [...new Set(sources.filter((s): s is string => !!s))];
+    await Promise.all(
+      unique.map(async src => {
+        const asset = await assets.register(src);
+        if (asset) this.resolvedImages.set(src, asset);
+      })
+    );
+  }
+
+  private imageSrc(node: ProseMirrorNode): string | undefined {
+    const attrs = (node as Record<string, unknown>)['attrs'] as
+      Record<string, unknown> | undefined;
+    const src = attrs?.['src'];
+    return typeof src === 'string' ? src : undefined;
+  }
+
+  /**
+   * `image(...)` call for a registered image. `size` is the sizing argument
+   * (`width: 70%`, `height: 100%`); alt text comes from the document node.
+   */
+  private imageCallTypst(
+    asset: PdfImageAsset,
+    size: string,
+    node?: ProseMirrorNode
+  ): string {
+    const attrs = node
+      ? ((node as Record<string, unknown>)['attrs'] as
+          Record<string, unknown> | undefined)
+      : undefined;
+    const alt = attrs?.['alt'];
+    const altArg =
+      typeof alt === 'string' && alt.trim() ? `, alt: ${typstString(alt)}` : '';
+    return `image(${typstString(asset.path)}, ${size}${altArg})`;
+  }
+
+  /** A paragraph holding nothing but images (and whitespace). */
+  private isImageOnly(children: ProseMirrorNode[]): boolean {
+    let images = 0;
+    for (const child of children) {
+      const name = this.getNodeName(child);
+      if (name === 'image') {
+        images++;
+      } else if (name === 'hard_break') {
+        continue;
+      } else if (name === 'text' && !this.extractPlainText(child).trim()) {
+        continue;
+      } else {
+        return false;
+      }
+    }
+    return images > 0;
+  }
+
+  /** A document image on its own: centred, sized for its shape, kept whole. */
+  private imageBlockTypst(node: ProseMirrorNode): string {
+    const src = this.imageSrc(node);
+    const asset = src ? this.resolvedImages.get(src) : undefined;
+    if (!asset) return '';
+    const attrs = (node as Record<string, unknown>)['attrs'] as
+      Record<string, unknown> | undefined;
+    const title = attrs?.['title'];
+    const caption =
+      typeof title === 'string' && title.trim()
+        ? `\n  #v(4pt)\n  #text(size: 0.85em, style: "italic")[${this.escapeTypst(title)}]`
+        : '';
+    return (
+      `#block(breakable: false, above: 10pt, below: 10pt, width: 100%)[#align(center)[\n` +
+      `  #${this.imageCallTypst(asset, `width: ${typstImageWidth(asset)}`, node)}${caption}\n]]\n\n`
+    );
+  }
+
+  /** An image inside running text: kept to the height of a line or two. */
+  private inlineImageTypst(node: ProseMirrorNode): string {
+    const src = this.imageSrc(node);
+    const asset = src ? this.resolvedImages.get(src) : undefined;
+    if (!asset) return '';
+    return `#box(height: 2em, ${this.imageCallTypst(asset, 'height: 100%', node)})`;
+  }
+
+  /**
+   * An entry's identity image beside its description, or centred above the
+   * fields when there is no description.
+   */
+  private worldbuildingImageTypst(
+    asset: PdfImageAsset,
+    description: string
+  ): string {
+    const image = this.imageCallTypst(asset, 'width: 100%');
+    if (!description) {
+      return `#align(center)[#box(width: 45%)[#${image}]]`;
+    }
+    return `#grid(columns: (34%, 1fr), column-gutter: 10pt, align: (top, horizon), ${image}, [${description}])`;
   }
 
   private extractElementRefTypstText(node: ProseMirrorNode): string {
@@ -1228,6 +1373,7 @@ export class PdfGeneratorService {
     this.isCancelled = false;
     this.initTypst();
     this.coverImageData = null;
+    this.resetImages();
 
     if (plan.options.includeCover) {
       await this.loadCoverImage();
