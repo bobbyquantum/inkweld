@@ -210,6 +210,22 @@ interface FalAiResult {
   requestId: string;
 }
 
+/**
+ * Merge a profile's model config (the admin's "Model Config JSON") into the
+ * Fal input, so model-specific parameters such as GPT Image's `quality` or
+ * `background` can be set per profile. The prompt is never overridden.
+ */
+export function applyProfileOptions(
+  input: Record<string, unknown>,
+  options: Record<string, unknown> | undefined
+): void {
+  if (!options) return;
+  for (const [key, value] of Object.entries(options)) {
+    if (key === 'prompt' || value === undefined) continue;
+    input[key] = value;
+  }
+}
+
 export class FalAiImageProvider extends BaseImageProvider {
   readonly type: ImageProviderType = 'falai';
   readonly name = 'Fal.ai';
@@ -432,6 +448,8 @@ export class FalAiImageProvider extends BaseImageProvider {
       }
 
       input.enable_safety_checker = false;
+
+      applyProfileOptions(input, request.options);
 
       // Use fal.subscribe for async generation with progress updates
       const result = (await fal.subscribe(model, {
