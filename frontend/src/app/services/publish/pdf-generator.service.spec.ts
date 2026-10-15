@@ -732,7 +732,7 @@ describe('PdfGeneratorService', () => {
         /#page\(columns: 1\)\[\n#align\(center \+ horizon\)/
       );
       expect(markup).toMatch(
-        /#page\(columns: 1\)\[\n= Table of Contents\n\n#outline\(title: none, indent: auto\)\n\n\]/
+        /#page\(columns: 1\)\[\n#heading\(outlined: false\)\[Table of Contents\]\n\n#outline\(title: none, indent: auto\)\n\n\]/
       );
     });
 

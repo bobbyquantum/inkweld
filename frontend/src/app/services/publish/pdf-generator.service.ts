@@ -520,7 +520,7 @@ export class PdfGeneratorService {
       case PublishPlanItemType.TableOfContents:
         if (plan.options.includeToc === false) break;
         this.beginFrontPage(ctx);
-        ctx.markup += '= Table of Contents\n\n';
+        ctx.markup += '#heading(outlined: false)[Table of Contents]\n\n';
         ctx.markup += '#outline(title: none, indent: auto)\n\n';
         this.endFrontPage(ctx);
         break;

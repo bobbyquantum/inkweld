@@ -41,6 +41,27 @@ describe('PublishTypstEmitterService', () => {
     expect(b).toContain('#set page(');
   });
 
+  describe('keeping titles with their content', () => {
+    it('keeps headings and entry titles with what follows them', () => {
+      const out = emit();
+      expect(out).toMatch(/#let doc-heading-1\(body\) = block\(sticky: true,/);
+      expect(out).toMatch(
+        /#let wb-entry[\s\S]*#block\(sticky: true, below: 4pt\)/
+      );
+    });
+
+    it('lists chapters and entries in the outline without showing a second title', () => {
+      const out = emit();
+      expect(out).toContain(
+        '#let outline-entry(level, body) = place(hide(heading(level: level, outlined: true, bookmarked: true, body)))'
+      );
+      expect(out).toMatch(/#let chapter-title[\s\S]*#outline-entry\(1, body\)/);
+      expect(out).toMatch(
+        /#let wb-entry[\s\S]*#block\(sticky: true, below: 4pt\)\[#outline-entry\(2, title\)/
+      );
+    });
+  });
+
   describe('page size handling', () => {
     it('emits paper:"us-letter" for us-letter', () => {
       const out = emit(s => {

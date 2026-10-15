@@ -92,7 +92,7 @@ export class PublishTypstEmitterService {
         `[#text(${typstTextArgs(r.text)})[#body]]`
       );
       headingHelpers.push(
-        `#let doc-heading-${lvl}(body) = block(above: ${r.box?.marginTop ?? 12}pt, below: ${r.box?.marginBottom ?? 6}pt)[#${headingBody}]`
+        `#let doc-heading-${lvl}(body) = block(sticky: true, above: ${r.box?.marginTop ?? 12}pt, below: ${r.box?.marginBottom ?? 6}pt)[#${headingBody}]`
       );
     }
 
@@ -148,16 +148,22 @@ ${paperLine}
       `#let doc-paragraph(body) = par[#body]`,
       `#let doc-blockquote(body) = block(inset: (left: ${bq.box?.marginLeft ?? 24}pt, right: ${bq.box?.marginRight ?? 24}pt), above: ${bq.box?.marginTop ?? 10}pt, below: ${bq.box?.marginBottom ?? 10}pt)[#text(${typstTextArgs(bq.text)})[#body]]`,
       `#let doc-code-block(body) = block(fill: ${typstColor(cb.box?.background ?? '#f5f5f5')}, inset: ${cb.box?.paddingLeft ?? 12}pt, above: ${cb.box?.marginTop ?? 10}pt, below: ${cb.box?.marginBottom ?? 10}pt, radius: ${cb.box?.borderRadius ?? 4}pt)[#text(${typstTextArgs(cb.text)})[#raw(body)]]`,
+      // An invisible heading puts each chapter in the table of contents
+      // and the PDF bookmarks without changing how the title looks.
+      `#let outline-entry(level, body) = place(hide(heading(level: level, outlined: true, bookmarked: true, body)))`,
       `#let chapter-title(num: none, body) = {
 ${chPageBreak}  ${chBlockOpen}[
+    #outline-entry(1, body)
     #if num != none [#${chNumWrapped}]
     #${chTitleInner}
   ]${chBlockClose}
 }`,
       `#let scene-break(text-content) = block(above: ${sb.box.marginTop ?? 18}pt, below: ${sb.box.marginBottom ?? 18}pt)[#align(center)[#text(${typstTextArgs(sb.text)})[#text-content]]]`,
+      // The title is sticky so it is never left alone at the foot of a page.
+      // The outline entry sits inside it: as the entry's first content it
+      // would otherwise start the bordered box on a page the title has left.
       `#let wb-entry(title, body) = block(stroke: ${wbStroke}, inset: ${wb.entryBox.paddingLeft ?? 12}pt, above: ${wb.entryBox.marginTop ?? 12}pt, below: ${wb.entryBox.marginBottom ?? 12}pt, radius: ${wb.entryBox.borderRadius ?? 4}pt)[
-  #text(${typstTextArgs(wb.entryTitle)})[#title]
-  #v(4pt)
+  #block(sticky: true, below: 4pt)[#outline-entry(2, title)#text(${typstTextArgs(wb.entryTitle)})[#title]]
   #body
 ]`,
       `#let wb-tab(title, body) = {
