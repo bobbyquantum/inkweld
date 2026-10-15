@@ -78,6 +78,13 @@ export interface PdfResult {
 /**
  * Internal context for PDF generation state
  */
+/**
+ * Where the cover image is mapped for Typst. Absolute, like every image
+ * path: typst.ts compiles `mainContent` from a file in `/tmp`, so a relative
+ * path would resolve under `/tmp` and never find the shadow file.
+ */
+const COVER_SHADOW_PATH = '/cover.jpg';
+
 interface PdfContext {
   markup: string;
   options: PublishOptions;
@@ -295,7 +302,7 @@ export class PdfGeneratorService {
       if (coverData) {
         const response = await fetch(`${coverData.base64}`);
         const buffer = await response.arrayBuffer();
-        await $typst.mapShadow('cover.jpg', new Uint8Array(buffer));
+        await $typst.mapShadow(COVER_SHADOW_PATH, new Uint8Array(buffer));
       }
 
       // Compile to PDF
@@ -720,7 +727,7 @@ export class PdfGeneratorService {
     ctx.markup += '#align(center + horizon)[\n';
 
     if (this.coverImageData) {
-      ctx.markup += '  #image("cover.jpg", width: 60%)\n';
+      ctx.markup += `  #image(${typstString(COVER_SHADOW_PATH)}, width: 60%)\n`;
       ctx.markup += '  #v(2em)\n';
     } else {
       ctx.markup += '  #v(4em)\n';
@@ -1389,7 +1396,7 @@ export class PdfGeneratorService {
     if (coverData) {
       const response = await fetch(coverData.base64);
       const buffer = await response.arrayBuffer();
-      await $typst.mapShadow('cover.jpg', new Uint8Array(buffer));
+      await $typst.mapShadow(COVER_SHADOW_PATH, new Uint8Array(buffer));
     }
 
     return await $typst.svg({ mainContent: ctx.markup });

@@ -1224,6 +1224,37 @@ describe('PdfGeneratorService', () => {
 
       expect(result.success).toBe(true);
     });
+
+    it('refers to the cover by an absolute path', async () => {
+      // typst.ts compiles from a file in /tmp, so a relative "cover.jpg"
+      // resolves to /tmp/cover.jpg and never finds the mapped image.
+      localStorageMock.getMedia.mockResolvedValue(
+        new Blob(['fake image'], { type: 'image/png' })
+      );
+
+      await service.generatePdf({
+        ...mockPlan,
+        options: { ...mockPlan.options, includeCover: true },
+        items: [
+          {
+            id: 'fm-1',
+            type: PublishPlanItemType.Frontmatter,
+            contentType: FrontmatterType.TitlePage,
+          },
+          ...mockPlan.items,
+        ],
+      });
+
+      const prefix = 'Compiling Typst markup:\n';
+      const markup = (loggerMock.debug.mock.calls as unknown[][])
+        .map(args => args[1])
+        .filter(
+          (msg): msg is string =>
+            typeof msg === 'string' && msg.startsWith(prefix)
+        )
+        .at(-1);
+      expect(markup).toContain('#image("/cover.jpg", width: 60%)');
+    });
   });
 
   describe('ProseMirror mark and elementRef handling', () => {
@@ -1360,7 +1391,7 @@ describe('PdfGeneratorService', () => {
         'map-1'
       );
       expect(markup).toContain(
-        'image("images/img-1.png", width: 80%, alt: "Map of Saltmere")'
+        'image("/images/img-1.png", width: 80%, alt: "Map of Saltmere")'
       );
       expect(markup).toContain('#block(breakable: false');
     });
@@ -1420,7 +1451,7 @@ describe('PdfGeneratorService', () => {
         'brine'
       );
       expect(markup).toContain(
-        '#grid(columns: (34%, 1fr), column-gutter: 10pt, align: (top, horizon), image("images/img-1.png", width: 100%), [#emph[Kindly old salt-wife.]])'
+        '#grid(columns: (34%, 1fr), column-gutter: 10pt, align: (top, horizon), image("/images/img-1.png", width: 100%), [#emph[Kindly old salt-wife.]])'
       );
     });
   });

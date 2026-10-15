@@ -81,14 +81,14 @@ describe('PdfImageAssets', () => {
     const again = await assets.register('media://portrait.png');
 
     expect(first).toEqual({
-      path: 'images/img-1.png',
+      path: '/images/img-1.png',
       width: 800,
       height: 600,
     });
     expect(again).toBe(first);
     expect(loadMedia).toHaveBeenCalledTimes(1);
     expect(loadMedia).toHaveBeenCalledWith('portrait');
-    expect(mapShadow).toHaveBeenCalledWith('images/img-1.png', png().bytes);
+    expect(mapShadow).toHaveBeenCalledWith('/images/img-1.png', png().bytes);
   });
 
   it('gives distinct images distinct paths', async () => {

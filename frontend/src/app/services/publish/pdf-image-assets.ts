@@ -2,7 +2,12 @@ import { mediaIdFromSrc } from './html-generator.service';
 
 /** An image registered with the Typst compiler for one PDF run. */
 export interface PdfImageAsset {
-  /** Virtual path the Typst markup refers to (`#image("…")`). */
+  /**
+   * Absolute virtual path the Typst markup refers to (`#image("…")`).
+   * It must be absolute: typst.ts compiles `mainContent` from a file in
+   * `/tmp`, so a relative path would resolve under `/tmp` and miss the
+   * shadow file.
+   */
   path: string;
   /** Pixel size, when known, so the layout can size portraits sensibly. */
   width?: number;
@@ -168,7 +173,7 @@ export class PdfImageAssets {
       const image = await this.prepare(blob);
       if (!image) return null;
       this.counter += 1;
-      const path = `images/img-${this.counter}.${image.ext}`;
+      const path = `/images/img-${this.counter}.${image.ext}`;
       await this.mapShadow(path, image.bytes);
       return { path, width: image.width, height: image.height };
     } catch {
