@@ -829,6 +829,16 @@ to shared schema") get the shared schema copied in on first open by
   so the template field stays writable; `identity.<key>` / `worldbuilding.<key>`
   pick a map explicitly. New templates start with an empty General tab rather
   than seeding `name`/`description` fields that duplicate identity.
+- **Identity images are media references.** `identity.image` holds a
+  `media://<id>.<ext>` reference, never a base64 `data:` URL (one generated
+  image is ~2.7 MB of base64 in every sync, snapshot, archive and MCP read).
+  `IdentityImageService` (`services/worldbuilding/identity-image.service.ts`)
+  saves the image as local media (uploaded by the media sync, so the server
+  quota applies) under an id derived from its bytes, or references the media
+  item it came from (the generator's saved copy, an uncropped library pick).
+  Opening an older element with an inline image migrates it with a
+  compare-and-set (`WorldbuildingService.replaceIdentityImage`). The Media
+  tab's delete check counts identity images and backgrounds as usages.
 
 ### Editor Schema & Tables
 

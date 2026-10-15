@@ -531,6 +531,28 @@ export class WorldbuildingService {
   }
 
   /**
+   * Replace the identity image only while it still equals `expected`
+   * (compare-and-set in one transaction). Returns whether it was replaced.
+   */
+  async replaceIdentityImage(
+    elementId: string,
+    expected: string,
+    next: string,
+    username: string,
+    slug: string
+  ): Promise<boolean> {
+    const connection = await this.requireConnection(elementId, username, slug);
+    if (!connection) return false;
+    let replaced = false;
+    connection.ydoc.transact(() => {
+      if (connection.identityMap.get('image') !== expected) return;
+      connection.identityMap.set('image', next);
+      replaced = true;
+    });
+    return replaced;
+  }
+
+  /**
    * Store a nested object on a Y.Map as a nested Y.Map so each field syncs
    * individually (rather than the whole object being replaced).
    *

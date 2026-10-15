@@ -366,6 +366,24 @@ describe('ImageGenerationDialogComponent', () => {
     it('should close dialog with saved result when saveAndClose is called', async () => {
       await component.saveAndClose();
 
+      // mediaId names the copy the generator saved, so callers can
+      // reference it instead of storing the image again.
+      expect(dialogRef.close).toHaveBeenCalledWith({
+        saved: true,
+        imageData: 'data:image/png;base64,base64data1',
+        mediaId: 'media-1',
+        response: mockCompletedJob.response,
+      });
+    });
+
+    it('omits mediaId when the saved media ids are not index-aligned', async () => {
+      generationService.getJob.mockReturnValue({
+        ...mockCompletedJob,
+        savedMediaIds: [],
+      });
+
+      await component.saveAndClose();
+
       expect(dialogRef.close).toHaveBeenCalledWith({
         saved: true,
         imageData: 'data:image/png;base64,base64data1',
