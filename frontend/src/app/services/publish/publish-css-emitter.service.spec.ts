@@ -82,3 +82,46 @@ describe('PublishCssEmitterService page columns', () => {
     expect(css).not.toContain('.ink-columns');
   });
 });
+
+describe('PublishCssEmitterService page and entries', () => {
+  let service: PublishCssEmitterService;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      providers: [provideZonelessChangeDetection(), PublishCssEmitterService],
+    });
+    service = TestBed.inject(PublishCssEmitterService);
+  });
+
+  it('declares a light page so a dark-mode reader keeps the text readable', () => {
+    const css = service.emitHtmlStylesheet(createDefaultPublishStyles());
+    expect(css).toContain(':root { color-scheme: light; }');
+    expect(css).toContain('html { background: #ffffff; }');
+    expect(
+      service.emitEpubStylesheet(createDefaultPublishStyles())
+    ).not.toContain('color-scheme');
+  });
+
+  it('rules entry titles instead of boxing entries', () => {
+    const styles = createDefaultPublishStyles();
+    styles.worldbuilding.entryTitle = {
+      ...styles.worldbuilding.entryTitle,
+      color: '#225566',
+    };
+    const css = service.emitHtmlStylesheet(styles);
+    const entryRule = /\.ink-wb-entry \{[^}]*\}/.exec(css)?.[0] ?? '';
+    expect(entryRule).not.toContain('border');
+    expect(css).toContain('border-bottom: 0.75pt solid #225566;');
+  });
+
+  it('draws no title rule when the entry border is off', () => {
+    const styles = createDefaultPublishStyles();
+    styles.worldbuilding.entryBox = {
+      ...styles.worldbuilding.entryBox,
+      borderWidth: 0,
+    };
+    expect(service.emitHtmlStylesheet(styles)).not.toContain(
+      '.ink-wb-entry-header { border-bottom'
+    );
+  });
+});

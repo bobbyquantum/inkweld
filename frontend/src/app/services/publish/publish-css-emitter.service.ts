@@ -137,7 +137,11 @@ export class PublishCssEmitterService {
   }
 
   private baseHtmlReset(): string {
+    // A published page is designed light: say so, and paint the page, so a
+    // reader's dark mode cannot leave dark text on a dark canvas.
     return `*,*::before,*::after { box-sizing: border-box; }
+:root { color-scheme: light; }
+html { background: #ffffff; }
 html, body { margin: 0; padding: 0; }
 img { max-width: 100%; height: auto; }`;
   }
