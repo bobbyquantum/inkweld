@@ -8,9 +8,10 @@ import { WebMcpService } from '@services/webmcp/webmcp.service';
 
 /**
  * A compact "let browser AI agents use Inkweld" switch for pages shown before
- * the user reaches Settings, such as /setup. It only appears in browsers that
- * offer WebMCP, and it is off until the user turns it on: like every AI
- * feature in Inkweld, it is opt-in.
+ * the user reaches Settings, such as /setup, so new users can find it. It is
+ * off until the user turns it on: like every AI feature in Inkweld, it is
+ * opt-in. In a browser without WebMCP it says so, and can still be turned on
+ * ahead of time (say, before installing a WebMCP extension).
  */
 @Component({
   selector: 'app-webmcp-opt-in',

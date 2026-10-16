@@ -58,9 +58,19 @@ describe('WebMcpOptInComponent', () => {
     expect(setWebMcpEnabled).toHaveBeenLastCalledWith(false);
   });
 
-  it('is hidden in browsers without WebMCP', async () => {
+  it('says when the browser has no WebMCP, and stays usable', async () => {
+    const note = (): HTMLElement | null =>
+      (fixture.nativeElement as HTMLElement).querySelector(
+        '[data-testid="webmcp-opt-in-unsupported"]'
+      );
+    expect(note()).toBeNull();
+
     supported.set(false);
     await settle();
-    expect(toggle()).toBeNull();
+
+    expect(note()?.textContent).toContain('Not supported');
+    toggle()!.click();
+    await settle();
+    expect(setWebMcpEnabled).toHaveBeenCalledWith(true);
   });
 });

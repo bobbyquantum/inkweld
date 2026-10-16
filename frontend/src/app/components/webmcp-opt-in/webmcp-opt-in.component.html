@@ -1,6 +1,6 @@
-@if (webMcp.supported()) {
-  <div class="webmcp-opt-in" data-testid="webmcp-opt-in">
-    <mat-icon aria-hidden="true">smart_toy</mat-icon>
+<div class="webmcp-opt-in" data-testid="webmcp-opt-in">
+  <mat-icon aria-hidden="true">smart_toy</mat-icon>
+  <div class="webmcp-opt-in__text">
     <mat-slide-toggle
       [checked]="enabled()"
       (change)="setEnabled($event.checked)"
@@ -8,5 +8,10 @@
       data-testid="webmcp-opt-in-toggle">
       {{ 'settings.generalTab.webMcpShort' | transloco }}
     </mat-slide-toggle>
+    @if (!webMcp.supported()) {
+      <span class="webmcp-opt-in__note" data-testid="webmcp-opt-in-unsupported">
+        {{ 'settings.generalTab.webMcpShortUnsupported' | transloco }}
+      </span>
+    }
   </div>
-}
+</div>

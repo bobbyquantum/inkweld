@@ -523,7 +523,7 @@ user can do in the app. Docs: `docs/site/docs/developer/webmcp.md`.
 - **A browser preference, not a server setting**: `SettingsService.webMcpEnabled`
   (default off), stored under the unprefixed `inkweld-webmcp` key so it is
   shared by every profile and can be chosen on /setup before a profile exists
-  (`WebMcpOptInComponent`, shown only where WebMCP is supported) as well as in
+  (`WebMcpOptInComponent`; it notes when the browser lacks WebMCP) as well as in
   Settings → General. The AI kill switch does not apply: no request goes to
   an AI provider, and the tools work in every mode. Keep it opt-in.
 - **Lazy**: the tools load through `WEBMCP_REGISTRY_LOADER` (a dynamic
