@@ -85,6 +85,23 @@ export class SettingsService {
    */
   readonly markdownShortcuts = this._markdownShortcuts.asReadonly();
 
+  /**
+   * Internal writable signal backing the "let browser AI agents use Inkweld"
+   * (WebMCP) preference. Updates must go through {@link setWebMcpEnabled}.
+   */
+  private readonly _webMcpEnabled = signal<boolean>(
+    this.getSetting<boolean>('webMcpEnabled', false)
+  );
+
+  /**
+   * Whether Inkweld registers WebMCP tools (`document.modelContext`) so an AI
+   * agent built into the browser can read and edit projects on the user's
+   * behalf. Defaults to `false`: nothing is exposed until the user opts in.
+   * It is a per-profile preference rather than a server setting because the
+   * tools run in this browser and work the same in every storage mode.
+   */
+  readonly webMcpEnabled = this._webMcpEnabled.asReadonly();
+
   getSetting<T>(key: string, defaultValue: T): T {
     const settings = this.getSettings();
     const value = settings[key];
@@ -118,6 +135,19 @@ export class SettingsService {
     this._markdownShortcuts.set(value);
     try {
       this.setSetting<boolean>('markdownShortcuts', value);
+    } catch {
+      // Storage can be unavailable (private mode/quota); keep UI reactive.
+    }
+  }
+
+  /**
+   * Update the WebMCP preference. Persists to storage and updates the
+   * reactive signal; `WebMcpService` registers or removes the tools.
+   */
+  setWebMcpEnabled(value: boolean): void {
+    this._webMcpEnabled.set(value);
+    try {
+      this.setSetting<boolean>('webMcpEnabled', value);
     } catch {
       // Storage can be unavailable (private mode/quota); keep UI reactive.
     }

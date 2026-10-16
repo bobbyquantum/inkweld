@@ -195,7 +195,11 @@
     "installButton": "Install Inkweld",
     "installHint": "Opens Inkweld in its own window from your home screen, dock or start menu. It works offline and updates itself.",
     "installIos": "On iPhone or iPad, tap Share, then Add to Home Screen.",
-    "installed": "Inkweld is installed on this device."
+    "installed": "Inkweld is installed on this device.",
+    "webMcpTitle": "AI agents in this browser",
+    "webMcp": "Let browser AI agents use Inkweld (WebMCP)",
+    "webMcpHint": "Lets an AI assistant built into your browser read and edit your projects through Inkweld, the way you do: documents, worldbuilding, relationships, tags, snapshots and publishing. It acts with your access, in this tab only. Applies to this profile; off by default.",
+    "webMcpUnsupported": "This browser doesn't support WebMCP yet, so turning this on has no effect here."
   },
   "projectSettingsTab": {
     "fullscreenZen": "Enable fullscreen in Zen mode",

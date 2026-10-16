@@ -6,6 +6,7 @@ import {
   PwaInstallService,
 } from '@services/core/pwa-install.service';
 import { TutorialService } from '@services/core/tutorial.service';
+import { WebMcpService } from '@services/webmcp/webmcp.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
@@ -17,6 +18,8 @@ describe('GeneralSettingsComponent', () => {
   let tutorial: TutorialService;
   let stored: Record<string, unknown>;
   const markdownShortcuts = signal(false);
+  const webMcpEnabled = signal(false);
+  const webMcpSupported = signal(true);
   const installMode = signal<InstallMode>('none');
   const installed = signal(false);
   const install = vi.fn().mockResolvedValue(true);
@@ -24,6 +27,8 @@ describe('GeneralSettingsComponent', () => {
   beforeEach(async () => {
     stored = {};
     markdownShortcuts.set(false);
+    webMcpEnabled.set(false);
+    webMcpSupported.set(true);
     installMode.set('none');
     installed.set(false);
     install.mockClear();
@@ -38,6 +43,10 @@ describe('GeneralSettingsComponent', () => {
           useValue: { mode: installMode, installed, install },
         },
         {
+          provide: WebMcpService,
+          useValue: { supported: webMcpSupported },
+        },
+        {
           provide: SettingsService,
           useValue: {
             getSetting: (key: string, defaultValue: unknown) =>
@@ -45,6 +54,10 @@ describe('GeneralSettingsComponent', () => {
             markdownShortcuts,
             setMarkdownShortcuts: vi.fn((value: boolean) => {
               markdownShortcuts.set(value);
+            }),
+            webMcpEnabled,
+            setWebMcpEnabled: vi.fn((value: boolean) => {
+              webMcpEnabled.set(value);
             }),
             setSetting: vi.fn((key: string, value: unknown) => {
               stored[key] = value;
@@ -123,6 +136,40 @@ describe('GeneralSettingsComponent', () => {
 
       expect(markdownShortcuts()).toBe(true);
       expect(shortcutsSwitch().getAttribute('aria-checked')).toBe('true');
+    });
+  });
+
+  describe('Browser AI agents (WebMCP)', () => {
+    function webMcpSwitch(): HTMLButtonElement {
+      return fixture.nativeElement.querySelector(
+        '[data-testid="webmcp-toggle"] button[role="switch"]'
+      );
+    }
+
+    const unsupportedNote = (): HTMLElement | null =>
+      (fixture.nativeElement as HTMLElement).querySelector(
+        '[data-testid="webmcp-unsupported"]'
+      );
+
+    it('is off by default', () => {
+      expect(webMcpSwitch().getAttribute('aria-checked')).toBe('false');
+    });
+
+    it('turns on from the toggle', async () => {
+      webMcpSwitch().click();
+      await settle();
+
+      expect(webMcpEnabled()).toBe(true);
+      expect(webMcpSwitch().getAttribute('aria-checked')).toBe('true');
+    });
+
+    it('says when the browser has no WebMCP support', async () => {
+      expect(unsupportedNote()).toBeNull();
+
+      webMcpSupported.set(false);
+      await settle();
+
+      expect(unsupportedNote()?.textContent).toContain("doesn't support");
     });
   });
 

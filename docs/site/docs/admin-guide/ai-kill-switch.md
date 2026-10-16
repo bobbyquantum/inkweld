@@ -132,6 +132,10 @@ When the kill switch is on, the AI linting plugin and Auto-Review are not offere
 
 MCP access for external tools is disabled while the kill switch is on, whatever the **MCP Access** setting says.
 
+### WebMCP (browser agents)
+
+The kill switch does not cover [WebMCP](/docs/developer/webmcp). WebMCP lets an AI agent built into a user's browser use Inkweld from an open tab. The server sends nothing to an AI provider for it, so there is nothing for the server to refuse. It is a per-user preference instead: it is off by default, and each user decides in **Settings → General** whether the agent in their own browser may act for them.
+
 ## Local Mode
 
 When Inkweld is running in **local mode** (no sync server connection), the AI kill switch is automatically enabled. This is because:

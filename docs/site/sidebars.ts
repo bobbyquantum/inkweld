@@ -54,6 +54,7 @@ const sidebars: SidebarsConfig = {
         'developer/architecture',
         'developer/api',
         'developer/mcp-oauth',
+        'developer/webmcp',
         'developer/project-archives',
         'developer/cloud-sync',
         'getting-started',

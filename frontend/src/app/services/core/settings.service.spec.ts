@@ -228,6 +228,27 @@ describe('SettingsService', () => {
     });
   });
 
+  describe('setWebMcpEnabled', () => {
+    it('defaults the signal to false when nothing is stored', () => {
+      expect(service.webMcpEnabled()).toBe(false);
+    });
+
+    it('honours a stored opt-in', () => {
+      localStorageMock['userSettings'] = JSON.stringify({
+        webMcpEnabled: true,
+      });
+      expect(createService().webMcpEnabled()).toBe(true);
+    });
+
+    it('persists the value and updates the reactive signal', () => {
+      service.setWebMcpEnabled(true);
+      expect(service.webMcpEnabled()).toBe(true);
+      expect(JSON.parse(localStorageMock['userSettings']).webMcpEnabled).toBe(
+        true
+      );
+    });
+  });
+
   describe('setDenseLayout', () => {
     it('defaults the signal to true (dense) when nothing is stored', () => {
       expect(service.denseLayout()).toBe(true);

@@ -513,6 +513,34 @@ config key yourself — they apply the env lock. Admin configuration endpoints
 stay open so AI can be set up before the switch is turned off.
 `test/ai-kill-switch.test.ts` lists the gated endpoints; add new ones there.
 
+### WebMCP (Browser AI Agents)
+
+`WebMcpService` (`frontend/src/app/services/webmcp/`) registers tools with
+the browser's WebMCP API (`document.modelContext`, or Chrome's earlier
+`navigator.modelContext`) so an agent built into the browser can do what the
+user can do in the app. Docs: `docs/site/docs/developer/webmcp.md`.
+
+- **A user preference, not a server setting**: `SettingsService.webMcpEnabled`
+  (Settings → General, default off, per profile). The AI kill switch does not
+  apply: no request goes to an AI provider, and the tools work in every mode.
+- **Lazy**: the tools load through `WEBMCP_REGISTRY_LOADER` (a dynamic
+  `import('./tools')`) only once enabled in a supporting browser. Keep
+  `webmcp.service.ts` free of static imports of the tool modules, or the
+  editor stack lands in the initial bundle.
+- **Same paths as the UI**: tools call the existing services
+  (`ProjectStateService.createElement()` is shared with the New element
+  dialog). Add a tool when you add a user-facing capability, under
+  `tools/*.tools.ts` with a spec; mark project changes `writes: true` (they
+  are left out while the user can only read) and check `ctx.requireWrite()`.
+- **Errors are results**: throw `ToolError`; `toModelContextTool` turns it
+  into an `isError` result, because a rejected promise reaches the agent
+  without its message.
+- **Documents** go through `DocumentAccess`: the live Y.Doc when an editor
+  has it open, otherwise a headless IndexedDB copy that is synced with the
+  server before and after on server profiles. Never replace the text of a
+  headless copy without that pull: the server's newer content would survive
+  the replace.
+
 ### Admin Branding & Custom HTML Injection
 
 Inkweld sets only strictly-necessary cookies, so it ships **no consent banner**
