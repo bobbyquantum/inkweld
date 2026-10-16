@@ -10,6 +10,7 @@ import {
   type OnDestroy,
   output,
   signal,
+  untracked,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -126,6 +127,13 @@ export class IdentityPanelComponent implements OnDestroy {
     value: string;
     elementId: string;
   }>();
+  /**
+   * A description edit still waiting out the debounce. Saved straight away
+   * when the panel closes or moves to another element, so an edit is never
+   * lost by opening something else within half a second of typing.
+   */
+  private pendingDescription: { value: string; elementId: string } | null =
+    null;
   private unsubscribeObserver: (() => void) | null = null;
   private elementSequence = 0;
   /** Tracks whether a realtime update arrived for a given element sequence. */
@@ -137,13 +145,13 @@ export class IdentityPanelComponent implements OnDestroy {
     // Setup description debounce
     this.descriptionChange$
       .pipe(debounceTime(500), takeUntil(this.destroy$))
-      .subscribe(({ value, elementId }) => {
-        void this.saveDescription(value, elementId);
-      });
+      .subscribe(() => this.flushPendingDescription());
 
     // Load identity data when elementId changes
     effect(() => {
       const id = this.elementId();
+      // An edit typed for the previous element is saved before switching.
+      untracked(() => this.flushPendingDescription());
       if (this.readOnly()) {
         this.isIdentityLoading.set(false);
         return;
@@ -167,6 +175,7 @@ export class IdentityPanelComponent implements OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.flushPendingDescription();
     this.destroy$.next();
     this.destroy$.complete();
     if (this.unsubscribeObserver) {
@@ -346,7 +355,17 @@ export class IdentityPanelComponent implements OnDestroy {
 
   onDescriptionChange(value: string): void {
     this.description.set(value);
-    this.descriptionChange$.next({ value, elementId: this.elementId() });
+    const change = { value, elementId: this.elementId() };
+    this.pendingDescription = change;
+    this.descriptionChange$.next(change);
+  }
+
+  /** Save a description edit still waiting out the debounce, if any. */
+  private flushPendingDescription(): void {
+    const pending = this.pendingDescription;
+    if (!pending) return;
+    this.pendingDescription = null;
+    void this.saveDescription(pending.value, pending.elementId);
   }
 
   private async saveDescription(

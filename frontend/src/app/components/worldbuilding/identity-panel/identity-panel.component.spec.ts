@@ -242,6 +242,43 @@ describe('IdentityPanelComponent', () => {
     vi.useRealTimers();
   });
 
+  it('saves a pending description edit when the panel closes', async () => {
+    vi.useFakeTimers();
+    fixture.detectChanges();
+
+    component.onDescriptionChange('Typed just before leaving');
+    fixture.destroy();
+    await vi.advanceTimersByTimeAsync(600);
+
+    expect(worldbuildingService.saveIdentityData).toHaveBeenCalledTimes(1);
+    expect(worldbuildingService.saveIdentityData).toHaveBeenCalledWith(
+      'test-element-id',
+      { description: 'Typed just before leaving' },
+      'testuser',
+      'test-project'
+    );
+    vi.useRealTimers();
+  });
+
+  it('saves a pending description edit for the old element when switching', async () => {
+    vi.useFakeTimers();
+    fixture.detectChanges();
+
+    component.onDescriptionChange('For the first element');
+    fixture.componentRef.setInput('elementId', 'other-element-id');
+    fixture.detectChanges();
+    await vi.advanceTimersByTimeAsync(600);
+
+    expect(worldbuildingService.saveIdentityData).toHaveBeenCalledTimes(1);
+    expect(worldbuildingService.saveIdentityData).toHaveBeenCalledWith(
+      'test-element-id',
+      { description: 'For the first element' },
+      'testuser',
+      'test-project'
+    );
+    vi.useRealTimers();
+  });
+
   describe('viewImage', () => {
     it('should open image viewer dialog when image URL is available', async () => {
       fixture.detectChanges();
