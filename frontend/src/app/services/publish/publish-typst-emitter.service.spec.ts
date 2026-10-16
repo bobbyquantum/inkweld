@@ -47,7 +47,7 @@ describe('PublishTypstEmitterService', () => {
       expect(out).toMatch(/#let doc-heading-1\(body\) = block\(sticky: true,/);
       expect(out).toMatch(/#let wb-tab[\s\S]*block\(sticky: true, above: 8pt/);
       expect(out).toMatch(
-        /#let wb-entry[\s\S]*#block\(sticky: true, below: 4pt\)/
+        /#let wb-entry[\s\S]*#block\(sticky: true, below: 6pt\)/
       );
     });
 
@@ -68,7 +68,7 @@ describe('PublishTypstEmitterService', () => {
       );
       expect(out).toMatch(/#let chapter-title[\s\S]*#outline-entry\(1, body\)/);
       expect(out).toMatch(
-        /#let wb-entry[\s\S]*#block\(sticky: true, below: 4pt\)\[#outline-entry\(2, title\)/
+        /#let wb-entry[\s\S]*#block\(sticky: true, below: 6pt\)\[#outline-entry\(2, title\)/
       );
     });
   });
@@ -429,36 +429,62 @@ describe('PublishTypstEmitterService', () => {
   });
 
   describe('worldbuilding helpers', () => {
-    it('emits stroke:none when borderWidth is zero/unset', () => {
+    it('does not box entries in print', () => {
+      const out = emit();
+      const entry = out.slice(
+        out.indexOf('#let wb-entry'),
+        out.indexOf('#let wb-tab')
+      );
+      expect(entry).toContain(
+        '#let wb-entry(title, body, fill: none) = block(fill: fill, inset: if fill == none { 0pt }'
+      );
+      // The block itself has no border; only the title rule has a stroke.
+      expect(entry.split('\n')[0]).not.toContain('stroke:');
+    });
+
+    it('draws no rule under entry titles when borderWidth is zero/unset', () => {
       const out = emit(s => {
         s.worldbuilding.entryBox = {
           ...s.worldbuilding.entryBox,
           borderWidth: 0,
         };
       });
-      expect(out).toContain('stroke: none');
+      const entry = out.slice(out.indexOf('#let wb-entry'));
+      expect(entry.slice(0, entry.indexOf('#let wb-tab'))).not.toContain(
+        '#line('
+      );
     });
 
-    it('emits stroke with sanitized color when borderWidth is set', () => {
+    it('rules entry titles in the title colour, scaled from the border width', () => {
       const out = emit(s => {
         s.worldbuilding.entryBox = {
           ...s.worldbuilding.entryBox,
           borderWidth: 2,
-          borderColor: '#aabbcc',
+        };
+        s.worldbuilding.entryTitle = {
+          ...s.worldbuilding.entryTitle,
+          color: '#aabbcc',
         };
       });
-      expect(out).toContain('2pt + rgb("#aabbcc")');
+      expect(out).toContain(
+        '#line(length: 100%, stroke: 3pt + rgb("#aabbcc"))'
+      );
     });
 
-    it('falls back to safe color when borderColor is invalid', () => {
+    it('falls back to a safe colour for the title rule', () => {
       const out = emit(s => {
         s.worldbuilding.entryBox = {
           ...s.worldbuilding.entryBox,
-          borderWidth: 1,
-          borderColor: 'javascript:bad',
+          borderWidth: 0.5,
+        };
+        s.worldbuilding.entryTitle = {
+          ...s.worldbuilding.entryTitle,
+          color: 'javascript:bad',
         };
       });
-      expect(out).toContain('1pt + rgb("#111111")');
+      expect(out).toContain(
+        '#line(length: 100%, stroke: 0.75pt + rgb("#111111"))'
+      );
     });
   });
 });

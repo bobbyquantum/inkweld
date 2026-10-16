@@ -122,9 +122,12 @@ export class PublishTypstEmitterService {
 
     // Helper: worldbuilding entry + field
     const wb = this.resolver.resolveWorldbuildingEntry(styles, undefined);
-    const wbStroke = wb.entryBox.borderWidth
-      ? `${wb.entryBox.borderWidth}pt + ${typstColor(wb.entryBox.borderColor ?? '#888')}`
-      : 'none';
+    // Entries are not boxed in print: a box's border, inset and margins cost
+    // a lot of page for little. The entry border instead draws a rule under
+    // the title, in the title's colour, which also separates entries.
+    const wbRule = wb.entryBox.borderWidth
+      ? `#line(length: 100%, stroke: ${Math.max(0.75, wb.entryBox.borderWidth * 1.5)}pt + ${typstColor(wb.entryTitle.color ?? '#333333')})`
+      : '';
     const wbSectionTitleStyle = styles?.worldbuilding?.sectionTitle ?? {};
 
     const out: string[] = [
@@ -159,11 +162,14 @@ ${chPageBreak}  ${chBlockOpen}[
   ]${chBlockClose}
 }`,
       `#let scene-break(text-content) = block(above: ${sb.box.marginTop ?? 18}pt, below: ${sb.box.marginBottom ?? 18}pt)[#align(center)[#text(${typstTextArgs(sb.text)})[#text-content]]]`,
-      // The title is sticky so it is never left alone at the foot of a page.
-      // The outline entry sits inside it: as the entry's first content it
-      // would otherwise start the bordered box on a page the title has left.
-      `#let wb-entry(title, body) = block(stroke: ${wbStroke}, inset: ${wb.entryBox.paddingLeft ?? 12}pt, above: ${wb.entryBox.marginTop ?? 12}pt, below: ${wb.entryBox.marginBottom ?? 12}pt, radius: ${wb.entryBox.borderRadius ?? 4}pt)[
-  #block(sticky: true, below: 4pt)[#outline-entry(2, title)#text(${typstTextArgs(wb.entryTitle)})[#title]]
+      // The title (with its rule) is sticky so it is never left alone at the
+      // foot of a page. The outline entry sits inside it: as the entry's
+      // first content it would otherwise start the entry on a page the title
+      // has left.
+      // An entry with an authored background colour becomes a filled,
+      // padded panel instead, so its text does not run to the fill's edge.
+      `#let wb-entry(title, body, fill: none) = block(fill: fill, inset: if fill == none { 0pt } else { (x: ${wb.entryBox.paddingLeft ?? 12}pt, y: ${wb.entryBox.paddingTop ?? 8}pt) }, radius: if fill == none { 0pt } else { ${wb.entryBox.borderRadius ?? 4}pt }, above: ${(wb.entryBox.marginTop ?? 12) + 6}pt, below: ${wb.entryBox.marginBottom ?? 12}pt)[
+  #block(sticky: true, below: 6pt)[#outline-entry(2, title)#text(${typstTextArgs(wb.entryTitle)})[#title]${wbRule ? `#v(-4pt)${wbRule}` : ''}]
   #body
 ]`,
       `#let wb-tab(title, body) = {
@@ -178,7 +184,7 @@ ${chPageBreak}  ${chBlockOpen}[
       `#let wb-cell(label, value) = block(breakable: false)[#block(below: 2pt)[#text(${typstTextArgs(wb.fieldLabel)})[#label]]#text(${typstTextArgs(wb.fieldValue)})[#value]]`,
       twoColumns
         ? `#let wb-section-title(body) = place(top, float: true, scope: "parent", clearance: 12pt, block(width: 100%)[#text(${typstTextArgs(wbSectionTitleStyle)})[#body]])`
-        : `#let wb-section-title(body) = block(above: 24pt, below: 12pt)[#text(${typstTextArgs(wbSectionTitleStyle)})[#body]]`,
+        : `#let wb-section-title(body) = block(sticky: true, above: 28pt, below: 6pt)[#outline-entry(1, body)#text(${typstTextArgs(wbSectionTitleStyle)})[#body]]`,
     ];
 
     return out.join('\n\n') + '\n\n';
@@ -208,7 +214,7 @@ function typstFontList(token: TextStyle['font']): string {
   return `("${primary}",)`;
 }
 
-function typstColor(hexOrName: string | undefined): string {
+export function typstColor(hexOrName: string | undefined): string {
   // Only accept #RGB / #RRGGBB / #RRGGBBAA. Anything else (named colors,
   // CSS functions, attacker-controlled strings) falls back to the default
   // text color so we never emit unvalidated content into the Typst source.

@@ -1,6 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { firstResultSequential, forEachSequential } from '@inkweld/async';
 import { type Element, ElementType } from '@inkweld/index';
+import { isBackgroundEmpty } from '@models/element-appearance';
 import { type PublishStyles } from '@models/publish-style';
 import { isPublishableByDefault } from '@models/scene-metadata';
 import { $typst, TypstSnippet } from '@myriaddreamin/typst.ts/contrib/snippet';
@@ -29,6 +30,7 @@ import { DocumentService } from '../project/document.service';
 import { ProjectStateService } from '../project/project-state.service';
 import { chapterHeadingFor } from './chapter-heading';
 import { flattenConversation } from './conversation-publish';
+import { sanitizeCssColor } from './html-generator.service';
 import {
   collectImageSources,
   type PdfImageAsset,
@@ -37,10 +39,14 @@ import {
 } from './pdf-image-assets';
 import { applyMarks, TYPST_MARK_TAGS } from './publish-marks-helper';
 import { PublishStyleResolverService } from './publish-style-resolver.service';
-import { PublishTypstEmitterService } from './publish-typst-emitter.service';
+import {
+  PublishTypstEmitterService,
+  typstColor,
+} from './publish-typst-emitter.service';
 import { smartenDocument, typographyLanguageFor } from './typography';
 import {
   type RenderedWorldbuildingEntry,
+  type RenderedWorldbuildingField,
   WorldbuildingPublishRendererService,
 } from './worldbuilding-publish-renderer.service';
 
@@ -585,28 +591,67 @@ export class PdfGeneratorService {
     for (const tab of entry.tabs) {
       // Fields sit on the schema's 12-column layout grid, as in the editor
       // and the HTML output, so six ability scores share a row.
-      // Rows are packed here: a field that does not fit in what is left of
-      // a row is preceded by an empty cell filling it, so every row adds up
-      // to exactly 12 columns and Typst never has to wrap a spanning cell.
       const cells: string[] = [];
-      let used = 0;
-      for (const f of tab.fields) {
-        const span = this.fieldSpan(f.span, twoColumns);
-        if (used > 0 && used + span > 12) {
-          cells.push(`grid.cell(colspan: ${12 - used})[]`);
-          used = 0;
-        }
+      const spans = tab.fields.map(f => this.fieldSpan(f.span, twoColumns));
+      for (const [index, start] of packFieldRows(spans).entries()) {
+        const f = tab.fields[index];
+        if (start > 0) cells.push(`grid.cell(colspan: ${start})[]`);
         cells.push(
-          `grid.cell(colspan: ${span})[#wb-cell([${this.escapeTypst(f.label)}], [${this.escapeTypst(f.displayValue)}])]`
+          `grid.cell(colspan: ${spans[index]})[#wb-cell([${this.escapeTypst(f.label)}], [${this.fieldValueTypst(f)}])]`
         );
-        used = (used + span) % 12;
       }
       body.push(
         `#wb-tab([${this.escapeTypst(tab.label)}], [\n#wb-fields(${cells.join(', ')})\n])`
       );
     }
-    parts.push(`#wb-entry(${titleArg}, [\n${body.join('\n')}\n])\n\n`);
+    const fill = this.entryFill(entry);
+    const fillArg = fill ? `, fill: ${fill}` : '';
+    parts.push(
+      `#wb-entry(${titleArg}, [\n${body.join('\n')}\n]${fillArg})\n\n`
+    );
     return parts.join('');
+  }
+
+  /**
+   * The Typst fill for an entry whose authored content background is a
+   * plain colour, or null. Gradients and images are not drawn in print.
+   */
+  private entryFill(entry: RenderedWorldbuildingEntry): string | null {
+    const setting = entry.appearance?.content;
+    if (!setting || isBackgroundEmpty(setting) || setting.type !== 'color') {
+      return null;
+    }
+    const value =
+      setting.mode === 'manual' ? setting.light || setting.dark : setting.value;
+    const color = sanitizeCssColor(value);
+    return color && /^#[0-9a-f]{3,8}$/i.test(color) ? typstColor(color) : null;
+  }
+
+  /**
+   * A field's value as Typst content. Long-text fields keep their line
+   * breaks: each line is a paragraph, a line starting `- ` is a bullet, and
+   * a line opening with a short title-case name ("Gaff Hook.", "Drown
+   * (Recharge 5-6).") gets that name in bold italic, the way traits and
+   * actions are set in a stat block.
+   */
+  private fieldValueTypst(f: RenderedWorldbuildingField): string {
+    if (f.type !== 'textarea' || !f.displayValue.includes('\n')) {
+      return this.escapeTypst(f.displayValue);
+    }
+    const lines = f.displayValue
+      .split(/\r?\n/)
+      .map(line => line.trim())
+      .filter(Boolean);
+    return lines
+      .map(line => {
+        const bullet = /^[-•*]\s+(.*)$/.exec(line);
+        if (bullet) return `- ${this.escapeTypst(bullet[1])}`;
+        const lead = statBlockLeadIn(line);
+        return lead
+          ? `#strong[#emph[${this.escapeTypst(lead.name)}]] ${this.escapeTypst(lead.rest)}`
+          : this.escapeTypst(line);
+      })
+      .join('\n\n');
   }
 
   /**
@@ -658,6 +703,17 @@ export class PdfGeneratorService {
       );
     } else if (element.type === ElementType.Folder && item.includeChildren) {
       const children = this.getChildElements(element, elements);
+
+      // A folder of worldbuilding entries (NPCs, Locations…) is titled with
+      // its name, so the reference section reads as sections rather than
+      // one long run of entries. Folders holding documents are left alone:
+      // their documents bring their own chapter headings.
+      if (
+        children.length > 0 &&
+        children.every(child => isWorldbuildingType(child.type))
+      ) {
+        ctx.markup += `#wb-section-title[${this.escapeTypst(item.titleOverride || element.name)}]\n\n`;
+      }
 
       // Sequential: markup is appended in reading order.
       await forEachSequential(children, async child => {
@@ -1452,4 +1508,67 @@ function typstString(s: string): string {
     .replaceAll(BACKSLASH, BACKSLASH + BACKSLASH)
     .replaceAll(QUOTE, BACKSLASH + QUOTE);
   return QUOTE + escaped + QUOTE;
+}
+
+/**
+ * Where each field starts in its row of a 12-column grid, as the number of
+ * empty columns to leave before it (0 when it follows straight on). Rows are
+ * packed here so every row adds up to 12 columns and Typst never has to wrap
+ * a spanning cell. A field that does not fit in what is left of a row starts
+ * a new one; so does a run of same-width fields (six ability scores) that
+ * would fit on a row of its own but not in what is left of this one.
+ */
+export function packFieldRows(spans: readonly number[]): number[] {
+  const starts: number[] = [];
+  let used = 0;
+  spans.forEach((span, index) => {
+    let gap = 0;
+    if (used > 0) {
+      const runStart = index === 0 || spans[index - 1] !== span;
+      let run = 0;
+      for (let i = index; i < spans.length && spans[i] === span; i++) {
+        run += span;
+      }
+      const runFitsRow = run <= 12;
+      if (used + span > 12 || (runStart && runFitsRow && used + run > 12)) {
+        gap = 12 - used;
+        used = 0;
+      }
+    }
+    starts.push(gap);
+    used = (used + span) % 12;
+  });
+  return starts;
+}
+
+/**
+ * Split a stat-block style line ("Gaff Hook. Melee Weapon Attack: …") into
+ * its lead-in name and the rest. The name must be short and in title case
+ * (small joining words and a parenthetical such as "(Recharge 5-6)" are
+ * allowed), so an ordinary sentence ("He left. Then …") is not matched.
+ */
+export function statBlockLeadIn(
+  line: string
+): { name: string; rest: string } | null {
+  const match = /^(.{1,48}?)\.\s+(\S.*)$/.exec(line);
+  if (!match) return null;
+  const name = match[1];
+  const words = name.replace(/\s*\([^)]{1,30}\)\s*$/, '').split(/\s+/);
+  if (words.length === 0 || words.length > 6) return null;
+  const joining = new Set([
+    'of',
+    'the',
+    'and',
+    'a',
+    'an',
+    'in',
+    'on',
+    'to',
+    'with',
+    'or',
+  ]);
+  const titleCase = words.every(
+    (word, i) => /^[A-Z0-9][\w'’-]*$/.test(word) || (i > 0 && joining.has(word))
+  );
+  return titleCase ? { name: `${name}.`, rest: match[2] } : null;
 }
