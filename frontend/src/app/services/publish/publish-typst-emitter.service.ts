@@ -167,10 +167,15 @@ ${chPageBreak}  ${chBlockOpen}[
   #body
 ]`,
       `#let wb-tab(title, body) = {
-  block(above: 8pt, below: 4pt)[#text(${typstTextArgs(wb.tabHeading)})[#title]]
+  block(sticky: true, above: 8pt, below: 4pt)[#text(${typstTextArgs(wb.tabHeading)})[#title]]
   body
 }`,
       `#let wb-field(label, value) = grid(columns: (auto, 1fr), column-gutter: 8pt, [#text(${typstTextArgs(wb.fieldLabel)})[#label]], [#text(${typstTextArgs(wb.fieldValue)})[#value]])`,
+      // Worldbuilding fields on the schema's 12-column layout grid: each cell
+      // holds a field's label above its value and spans the field's columns.
+      // A cell is never split, so a label is not parted from its value.
+      `#let wb-fields(..cells) = grid(columns: (1fr,) * 12, column-gutter: 8pt, row-gutter: 6pt, ..cells)`,
+      `#let wb-cell(label, value) = block(breakable: false)[#block(below: 2pt)[#text(${typstTextArgs(wb.fieldLabel)})[#label]]#text(${typstTextArgs(wb.fieldValue)})[#value]]`,
       twoColumns
         ? `#let wb-section-title(body) = place(top, float: true, scope: "parent", clearance: 12pt, block(width: 100%)[#text(${typstTextArgs(wbSectionTitleStyle)})[#body]])`
         : `#let wb-section-title(body) = block(above: 24pt, below: 12pt)[#text(${typstTextArgs(wbSectionTitleStyle)})[#body]]`,

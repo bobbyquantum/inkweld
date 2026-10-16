@@ -558,12 +558,13 @@ export class PdfGeneratorService {
       ctx.markup += `#wb-section-title[${this.escapeTypst(item.title)}]\n\n`;
     }
     for (const entry of entries) {
-      ctx.markup += this.renderWorldbuildingEntryTypst(entry);
+      ctx.markup += this.renderWorldbuildingEntryTypst(entry, ctx.twoColumns);
     }
   }
 
   private renderWorldbuildingEntryTypst(
-    entry: RenderedWorldbuildingEntry
+    entry: RenderedWorldbuildingEntry,
+    twoColumns: boolean
   ): string {
     const parts: string[] = [];
     const titleArg = `[${this.escapeTypst(entry.title)}]`;
@@ -582,18 +583,41 @@ export class PdfGeneratorService {
       body.push(description, '#v(4pt)');
     }
     for (const tab of entry.tabs) {
-      const tabBody: string[] = [];
+      // Fields sit on the schema's 12-column layout grid, as in the editor
+      // and the HTML output, so six ability scores share a row.
+      // Rows are packed here: a field that does not fit in what is left of
+      // a row is preceded by an empty cell filling it, so every row adds up
+      // to exactly 12 columns and Typst never has to wrap a spanning cell.
+      const cells: string[] = [];
+      let used = 0;
       for (const f of tab.fields) {
-        tabBody.push(
-          `#wb-field([${this.escapeTypst(f.label)}], [${this.escapeTypst(f.displayValue)}])`
+        const span = this.fieldSpan(f.span, twoColumns);
+        if (used > 0 && used + span > 12) {
+          cells.push(`grid.cell(colspan: ${12 - used})[]`);
+          used = 0;
+        }
+        cells.push(
+          `grid.cell(colspan: ${span})[#wb-cell([${this.escapeTypst(f.label)}], [${this.escapeTypst(f.displayValue)}])]`
         );
+        used = (used + span) % 12;
       }
       body.push(
-        `#wb-tab([${this.escapeTypst(tab.label)}], [\n${tabBody.join('\n')}\n])`
+        `#wb-tab([${this.escapeTypst(tab.label)}], [\n#wb-fields(${cells.join(', ')})\n])`
       );
     }
     parts.push(`#wb-entry(${titleArg}, [\n${body.join('\n')}\n])\n\n`);
     return parts.join('');
+  }
+
+  /**
+   * Columns (of 12) a field spans: the schema's layout span, or the full
+   * width when it has none. A two-column page is too narrow for side-by-side
+   * fields, so every field takes the full width there, as in the HTML output.
+   */
+  private fieldSpan(span: number | undefined, twoColumns: boolean): number {
+    if (twoColumns) return 12;
+    const n = Number(span);
+    return Number.isInteger(n) && n >= 1 && n <= 12 ? n : 12;
   }
 
   private async processElementItem(

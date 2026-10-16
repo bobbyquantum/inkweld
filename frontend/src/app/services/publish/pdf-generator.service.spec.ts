@@ -1414,6 +1414,120 @@ describe('PdfGeneratorService', () => {
       expect(markup).not.toContain('image("images/');
     });
 
+    it('lays worldbuilding fields out on the schema grid', async () => {
+      const renderer = (
+        service as unknown as {
+          worldbuildingRenderer: WorldbuildingPublishRendererService;
+        }
+      ).worldbuildingRenderer;
+      vi.spyOn(renderer, 'renderItem').mockResolvedValue([
+        {
+          elementId: 'pc-1',
+          title: 'Wren',
+          layout: 'card',
+          tabs: [
+            {
+              key: 'abilities',
+              label: 'Abilities',
+              fields: [
+                {
+                  key: 'str',
+                  label: 'STR',
+                  rawValue: 8,
+                  displayValue: '8',
+                  type: 'number',
+                  span: 2,
+                },
+                {
+                  key: 'notes',
+                  label: 'Notes',
+                  rawValue: 'x',
+                  displayValue: 'Quick hands',
+                  type: 'textarea',
+                },
+                {
+                  key: 'odd',
+                  label: 'Odd',
+                  rawValue: 1,
+                  displayValue: '1',
+                  type: 'number',
+                  span: 40,
+                },
+              ],
+            },
+          ],
+        },
+      ]);
+      const plan: PublishPlan = {
+        ...mockPlan,
+        items: [
+          {
+            id: 'wb-1',
+            type: PublishPlanItemType.Worldbuilding,
+            categories: [],
+            format: 'inline',
+            title: '',
+          },
+        ],
+      };
+
+      const markup = await compiledMarkup(plan);
+
+      expect(markup).toContain(
+        '#wb-fields(grid.cell(colspan: 2)[#wb-cell([STR], [8])], grid.cell(colspan: 10)[], grid.cell(colspan: 12)[#wb-cell([Notes], [Quick hands])], grid.cell(colspan: 12)[#wb-cell([Odd], [1])])'
+      );
+    });
+
+    it('gives every field the full width on a two-column page', async () => {
+      const renderer = (
+        service as unknown as {
+          worldbuildingRenderer: WorldbuildingPublishRendererService;
+        }
+      ).worldbuildingRenderer;
+      vi.spyOn(renderer, 'renderItem').mockResolvedValue([
+        {
+          elementId: 'pc-1',
+          title: 'Wren',
+          layout: 'card',
+          tabs: [
+            {
+              key: 'abilities',
+              label: 'Abilities',
+              fields: [
+                {
+                  key: 'str',
+                  label: 'STR',
+                  rawValue: 8,
+                  displayValue: '8',
+                  type: 'number',
+                  span: 2,
+                },
+              ],
+            },
+          ],
+        },
+      ]);
+      const styles = createDefaultPublishStyles();
+      styles.page.columns = 2;
+      const plan: PublishPlan = {
+        ...mockPlan,
+        styles,
+        items: [
+          {
+            id: 'wb-1',
+            type: PublishPlanItemType.Worldbuilding,
+            categories: [],
+            format: 'inline',
+            title: '',
+          },
+        ],
+      };
+
+      const markup = await compiledMarkup(plan);
+
+      expect(markup).toContain('grid.cell(colspan: 12)[#wb-cell([STR], [8])]');
+    });
+
     it('shows a worldbuilding image beside the description', async () => {
       localStorageMock.getMedia.mockResolvedValue(pngBlob());
       const renderer = (

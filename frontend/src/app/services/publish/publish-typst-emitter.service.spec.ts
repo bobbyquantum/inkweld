@@ -45,8 +45,19 @@ describe('PublishTypstEmitterService', () => {
     it('keeps headings and entry titles with what follows them', () => {
       const out = emit();
       expect(out).toMatch(/#let doc-heading-1\(body\) = block\(sticky: true,/);
+      expect(out).toMatch(/#let wb-tab[\s\S]*block\(sticky: true, above: 8pt/);
       expect(out).toMatch(
         /#let wb-entry[\s\S]*#block\(sticky: true, below: 4pt\)/
+      );
+    });
+
+    it('defines the 12-column field grid used by worldbuilding entries', () => {
+      const out = emit();
+      expect(out).toContain(
+        '#let wb-fields(..cells) = grid(columns: (1fr,) * 12, column-gutter: 8pt, row-gutter: 6pt, ..cells)'
+      );
+      expect(out).toMatch(
+        /#let wb-cell\(label, value\) = block\(breakable: false\)\[#block\(below: 2pt\)/
       );
     });
 
