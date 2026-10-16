@@ -65,10 +65,18 @@ const ProviderTypeSchema = z
  * - "auto"
  * The profile's `supportedSizes` decides which of these a request may use.
  */
-const IMAGE_SIZE_PATTERN =
-  /^(?:auto|\d{1,5}x\d{1,5}|\d+(?:\.\d+)?:\d+(?:\.\d+)?(?:@[A-Za-z0-9]{1,16})?)$/;
+const PIXEL_SIZE_PATTERN = /^\d{1,5}x\d{1,5}$/;
+const RATIO_PATTERN = /^\d+(?:\.\d+)?:\d+(?:\.\d+)?$/;
+const RESOLUTION_PATTERN = /^[A-Za-z0-9]{1,16}$/;
 
-const ImageSizeSchema = z.string().max(40).regex(IMAGE_SIZE_PATTERN).openapi({
+function isImageSize(size: string): boolean {
+  if (size === 'auto' || PIXEL_SIZE_PATTERN.test(size)) return true;
+  const [ratio, resolution, ...rest] = size.split('@');
+  if (rest.length > 0 || !RATIO_PATTERN.test(ratio)) return false;
+  return resolution === undefined || RESOLUTION_PATTERN.test(resolution);
+}
+
+const ImageSizeSchema = z.string().max(40).refine(isImageSize, 'Invalid image size').openapi({
   example: '1024x1024',
   description:
     'Image size: pixels ("1024x1024"), an aspect ratio ("16:9"), an aspect ratio with a resolution ("16:9@4K") or "auto". Uses the profile default if not specified.',

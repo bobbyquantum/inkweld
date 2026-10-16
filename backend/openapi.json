@@ -2488,7 +2488,6 @@
           "size": {
             "type": "string",
             "maxLength": 40,
-            "pattern": "^(?:auto|\\d{1,5}x\\d{1,5}|\\d+(?:\\.\\d+)?:\\d+(?:\\.\\d+)?(?:@[A-Za-z0-9]{1,16})?)$",
             "example": "1024x1024",
             "description": "Image size: pixels (\"1024x1024\"), an aspect ratio (\"16:9\"), an aspect ratio with a resolution (\"16:9@4K\") or \"auto\". Uses the profile default if not specified."
           },

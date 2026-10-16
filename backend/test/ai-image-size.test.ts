@@ -115,10 +115,12 @@ describe('AI image generation: size formats', () => {
     expect(generate).not.toHaveBeenCalled();
   });
 
-  it('rejects a size that is not a size', async () => {
-    supportedSizes = [];
-    const { response } = await post('<img src=x>');
-    expect(response.status).toBe(400);
-    expect(generate).not.toHaveBeenCalled();
-  });
+  for (const size of ['<img src=x>', '16:9@', '16:9@4K@2K', '1:1@4 K', '16x', '']) {
+    it(`rejects ${JSON.stringify(size)}, which is not a size`, async () => {
+      supportedSizes = [];
+      const { response } = await post(size);
+      expect(response.status).toBe(400);
+      expect(generate).not.toHaveBeenCalled();
+    });
+  }
 });
