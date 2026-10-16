@@ -294,6 +294,8 @@ ${indent}}`;
       '.ink-wb-entry-intro { display: flex; align-items: center; gap: 1em; margin: 0.25em 0 0.75em; }',
       '.ink-wb-entry-intro .ink-wb-entry-image { width: 34%; max-width: 280px; aspect-ratio: 1; margin: 0; flex: none; }',
       '.ink-wb-entry-intro .ink-wb-entry-description { flex: 1; margin: 0; font-style: italic; }',
+      // Entry text is set flush and ragged, not like body paragraphs.
+      '.ink-wb-entry-description, .ink-wb-long p, .ink-wb-long li { text-indent: 0; text-align: left; }',
       '.ink-wb-entry-intro-image-only { justify-content: center; }',
       '.ink-wb-entry-intro-image-only .ink-wb-entry-image { width: 45%; }',
       '@media (max-width: 600px) { .ink-wb-entry-intro { flex-direction: column; align-items: flex-start; } .ink-wb-entry-intro .ink-wb-entry-image { width: 100%; max-width: none; } }',
@@ -311,7 +313,8 @@ ${indent}}`;
       '.ink-wb-long p { margin: 0 0 0.45em; text-indent: 0; }',
       '.ink-wb-long ul { margin: 0.2em 0 0.45em; padding-left: 1.2em; }',
       // A field that starts a new row to keep a run of fields together.
-      '.ink-wb-row-start { grid-column-start: 1; }',
+      // Two classes so the span rules' grid-column shorthand cannot reset it.
+      '.ink-wb-field.ink-wb-row-start { grid-column-start: 1; }',
       ...Array.from(
         { length: 12 },
         (_, i) => `.ink-wb-span-${i + 1} { grid-column: span ${i + 1}; }`

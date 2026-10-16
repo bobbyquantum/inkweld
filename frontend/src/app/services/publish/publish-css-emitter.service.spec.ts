@@ -114,6 +114,18 @@ describe('PublishCssEmitterService page and entries', () => {
     expect(css).toContain('border-bottom: 0.75pt solid #225566;');
   });
 
+  it('sets entry text flush rather than indented and justified', () => {
+    expect(service.emitHtmlStylesheet(createDefaultPublishStyles())).toContain(
+      '.ink-wb-entry-description, .ink-wb-long p, .ink-wb-long li { text-indent: 0; text-align: left; }'
+    );
+  });
+
+  it('starts a row for a run of fields in a way the span rules cannot undo', () => {
+    expect(service.emitHtmlStylesheet(createDefaultPublishStyles())).toContain(
+      '.ink-wb-field.ink-wb-row-start { grid-column-start: 1; }'
+    );
+  });
+
   it('draws no title rule when the entry border is off', () => {
     const styles = createDefaultPublishStyles();
     styles.worldbuilding.entryBox = {
