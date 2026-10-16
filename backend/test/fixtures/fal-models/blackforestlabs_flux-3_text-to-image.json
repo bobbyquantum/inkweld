@@ -1,0 +1,448 @@
+{
+  "endpoint_id": "blackforestlabs/flux-3/text-to-image",
+  "metadata": {
+    "display_name": "Flux 3 Image",
+    "category": "text-to-image",
+    "description": "FLUX 3 Image is Black Forest Labs' newest image model. Generate detailed, well-composed images in native 2K and 4K with precise layout control and improved text rendering.",
+    "status": "active",
+    "tags": [
+      "flux-3-image",
+      "black-forest-labs",
+      "typography",
+      "4k"
+    ],
+    "updated_at": "2026-10-13T23:14:52.846Z",
+    "is_favorited": null,
+    "thumbnail_url": "https://v3b.fal.media/files/b/0aacace0/ZQ6bVh40FVDtOdqeEYIt7.jpg",
+    "model_url": "https://fal.run/blackforestlabs/flux-3/text-to-image",
+    "license_type": "commercial",
+    "date": "2026-10-01T09:42:01.969Z",
+    "group": {
+      "key": "flux-3-image",
+      "label": "Text to Image"
+    },
+    "highlighted": false,
+    "kind": "inference",
+    "pinned": false
+  },
+  "openapi": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Queue OpenAPI for fal-ai/flux-3-image",
+      "version": "1.0.0",
+      "description": "The OpenAPI schema for the fal-ai/flux-3-image queue.",
+      "x-fal-metadata": {
+        "endpointId": "fal-ai/flux-3-image",
+        "category": "text-to-image",
+        "thumbnailUrl": "https://v3b.fal.media/files/b/0aac8c68/MfaB-anFbtxXEpBXmED7V.jpg",
+        "playgroundUrl": "https://fal.ai/models/fal-ai/flux-3-image",
+        "documentationUrl": "https://fal.ai/models/fal-ai/flux-3-image/api",
+        "about": "Text To Image"
+      }
+    },
+    "components": {
+      "securitySchemes": {
+        "apiKeyAuth": {
+          "type": "apiKey",
+          "in": "header",
+          "name": "Authorization",
+          "description": "Fal Key"
+        }
+      },
+      "schemas": {
+        "QueueStatus": {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": [
+                "IN_QUEUE",
+                "IN_PROGRESS",
+                "COMPLETED"
+              ]
+            },
+            "request_id": {
+              "type": "string",
+              "description": "The request id."
+            },
+            "response_url": {
+              "type": "string",
+              "description": "The response url."
+            },
+            "status_url": {
+              "type": "string",
+              "description": "The status url."
+            },
+            "cancel_url": {
+              "type": "string",
+              "description": "The cancel url."
+            },
+            "logs": {
+              "type": "object",
+              "description": "The logs.",
+              "additionalProperties": true
+            },
+            "metrics": {
+              "type": "object",
+              "description": "The metrics.",
+              "additionalProperties": true
+            },
+            "queue_position": {
+              "type": "integer",
+              "description": "The queue position."
+            }
+          },
+          "required": [
+            "status",
+            "request_id"
+          ]
+        },
+        "Flux3ImageInput": {
+          "x-fal-order-properties": [
+            "prompt",
+            "aspect_ratio",
+            "resolution",
+            "enable_prompt_expansion",
+            "safety_tolerance",
+            "output_format",
+            "sync_mode",
+            "version"
+          ],
+          "properties": {
+            "resolution": {
+              "type": "string",
+              "enum": [
+                "512sq",
+                "768sq",
+                "1k",
+                "2k",
+                "4k"
+              ],
+              "default": "1k",
+              "description": "Output resolution tier. 4k can take several minutes.",
+              "title": "Resolution"
+            },
+            "sync_mode": {
+              "type": "boolean",
+              "default": false,
+              "description": "Return the image as a data URI instead of storing it in request history.",
+              "title": "Sync Mode"
+            },
+            "output_format": {
+              "type": "string",
+              "enum": [
+                "jpeg",
+                "png"
+              ],
+              "default": "jpeg",
+              "description": "The format of the generated image.",
+              "title": "Output Format"
+            },
+            "prompt": {
+              "type": "string",
+              "examples": [
+                "A red fox leaping over a stream in a pine forest, low-angle wildlife photograph."
+              ],
+              "description": "The prompt to generate an image from.",
+              "title": "Prompt"
+            },
+            "aspect_ratio": {
+              "type": "string",
+              "enum": [
+                "auto",
+                "21:9",
+                "2:1",
+                "16:9",
+                "3:2",
+                "7:5",
+                "4:3",
+                "5:4",
+                "1:1",
+                "4:5",
+                "3:4",
+                "5:7",
+                "2:3",
+                "9:16",
+                "1:2"
+              ],
+              "default": "auto",
+              "description": "Output aspect ratio. Auto uses the first reference image when editing.",
+              "title": "Aspect Ratio"
+            },
+            "enable_prompt_expansion": {
+              "type": "boolean",
+              "default": false,
+              "description": "Expand the prompt while preserving its intent and reference roles.",
+              "title": "Enable Prompt Expansion"
+            },
+            "safety_tolerance": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4,
+              "default": 2,
+              "description": "Safety tolerance, from 0 (strictest) to 4.",
+              "title": "Safety Tolerance"
+            },
+            "version": {
+              "type": "string",
+              "const": "latest",
+              "default": "latest",
+              "description": "The model version.",
+              "title": "Version"
+            }
+          },
+          "type": "object",
+          "required": [
+            "prompt"
+          ],
+          "title": "Flux3ImageInput"
+        },
+        "Flux3ImageOutput": {
+          "x-fal-order-properties": [
+            "images"
+          ],
+          "properties": {
+            "images": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/ImageFile"
+              },
+              "description": "The generated image.",
+              "title": "Images"
+            }
+          },
+          "type": "object",
+          "required": [
+            "images"
+          ],
+          "title": "Flux3ImageOutput"
+        },
+        "ImageFile": {
+          "x-fal-order-properties": [
+            "url",
+            "content_type",
+            "file_name",
+            "file_size",
+            "width",
+            "height"
+          ],
+          "properties": {
+            "file_size": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "examples": [
+                4404019
+              ],
+              "description": "The size of the file in bytes.",
+              "title": "File Size"
+            },
+            "url": {
+              "type": "string",
+              "description": "The URL where the file can be downloaded from.",
+              "title": "Url"
+            },
+            "file_name": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "examples": [
+                "z9RV14K95DvU.png"
+              ],
+              "description": "The name of the file. It will be auto-generated if not provided.",
+              "title": "File Name"
+            },
+            "width": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The width of the image",
+              "title": "Width"
+            },
+            "height": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The height of the image",
+              "title": "Height"
+            },
+            "content_type": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "examples": [
+                "image/png"
+              ],
+              "description": "The mime type of the file.",
+              "title": "Content Type"
+            }
+          },
+          "type": "object",
+          "required": [
+            "url"
+          ],
+          "title": "ImageFile"
+        }
+      }
+    },
+    "paths": {
+      "/fal-ai/flux-3-image/requests/{request_id}/status": {
+        "get": {
+          "parameters": [
+            {
+              "name": "request_id",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "string",
+                "description": "Request ID"
+              }
+            },
+            {
+              "name": "logs",
+              "in": "query",
+              "required": false,
+              "schema": {
+                "type": "number",
+                "description": "Whether to include logs (`1`) in the response or not (`0`)."
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "The request status.",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/QueueStatus"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/fal-ai/flux-3-image/requests/{request_id}/cancel": {
+        "put": {
+          "parameters": [
+            {
+              "name": "request_id",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "string",
+                "description": "Request ID"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "The request was cancelled.",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "success": {
+                        "type": "boolean",
+                        "description": "Whether the request was cancelled successfully."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/fal-ai/flux-3-image": {
+        "post": {
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Flux3ImageInput"
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "The request status.",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/QueueStatus"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/fal-ai/flux-3-image/requests/{request_id}": {
+        "get": {
+          "parameters": [
+            {
+              "name": "request_id",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "string",
+                "description": "Request ID"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Result of the request.",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/Flux3ImageOutput"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "servers": [
+      {
+        "url": "https://queue.fal.run"
+      }
+    ],
+    "security": [
+      {
+        "apiKeyAuth": []
+      }
+    ]
+  }
+}

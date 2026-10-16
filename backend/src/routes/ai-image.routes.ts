@@ -56,46 +56,31 @@ const ProviderTypeSchema = z
   .enum(['openai', 'openrouter', 'stable-diffusion', 'falai', 'workersai'])
   .openapi('ImageProviderType');
 
-// Image sizes supported across providers
-// Includes standard sizes, OpenRouter aspect ratios, Fal.ai aspect-ratio formats, and custom dimensions
-const PRESET_IMAGE_SIZES = [
-  // Standard pixel dimensions
-  '256x256',
-  '512x512',
-  '1024x1024', // 1:1 square
-  '1024x1536',
-  '1536x1024',
-  '1024x1792',
-  '1792x1024',
-  '832x1248', // 2:3 portrait
-  '1248x832', // 3:2 landscape
-  '864x1184', // 3:4 portrait
-  '1184x864', // 4:3 landscape
-  '896x1152', // 4:5 portrait
-  '1152x896', // 5:4 landscape
-  '768x1344', // 9:16 tall portrait - good for covers
-  '1344x768', // 16:9 wide landscape
-  '1536x672', // 21:9 ultra-wide
-  // Fal.ai extended sizes (flexible resolution support)
-  '1920x1080', // HD 1080p landscape
-  '1080x1920', // HD 1080p portrait
-  '1600x2560', // Ebook cover (Kindle)
-  '2560x1600', // Landscape ebook/print
-  // OpenRouter aspect ratios (FLUX, Gemini, etc.)
-  '1:1',
-  '2:3',
-  '3:2',
-  '3:4',
-  '4:3',
-  '4:5',
-  '5:4',
-  '9:16',
-  '16:9',
-  '21:9',
-  'auto',
-] as const;
+/**
+ * Image size accepted by the generate endpoints. Profiles store sizes in the
+ * provider's own format, so this is a shape check rather than a fixed list:
+ * - pixels: "1024x1024", "1600x2560"
+ * - aspect ratio: "16:9", "2.35:1" (OpenRouter, Fal.ai models without a resolution input)
+ * - aspect ratio + resolution: "16:9@4K", "1:1@512sq" (Fal.ai)
+ * - "auto"
+ * The profile's `supportedSizes` decides which of these a request may use.
+ */
+const PIXEL_SIZE_PATTERN = /^\d{1,5}x\d{1,5}$/;
+const RATIO_PATTERN = /^\d+(?:\.\d+)?:\d+(?:\.\d+)?$/;
+const RESOLUTION_PATTERN = /^[A-Za-z0-9]{1,16}$/;
 
-const ImageSizeSchema = z.enum(PRESET_IMAGE_SIZES).openapi('ImageSize');
+function isImageSize(size: string): boolean {
+  if (size === 'auto' || PIXEL_SIZE_PATTERN.test(size)) return true;
+  const [ratio, resolution, ...rest] = size.split('@');
+  if (rest.length > 0 || !RATIO_PATTERN.test(ratio)) return false;
+  return resolution === undefined || RESOLUTION_PATTERN.test(resolution);
+}
+
+const ImageSizeSchema = z.string().max(40).refine(isImageSize, 'Invalid image size').openapi({
+  example: '1024x1024',
+  description:
+    'Image size: pixels ("1024x1024"), an aspect ratio ("16:9"), an aspect ratio with a resolution ("16:9@4K") or "auto". Uses the profile default if not specified.',
+});
 
 const WorldbuildingContextSchema = z
   .object({
@@ -134,9 +119,7 @@ const GenerateRequestSchema = z
       example: 1,
       description: 'Number of images to generate',
     }),
-    size: ImageSizeSchema.optional().openapi({
-      description: 'Image size (uses profile default if not specified)',
-    }),
+    size: ImageSizeSchema.optional(),
     quality: z.enum(['standard', 'hd']).optional().openapi({
       example: 'standard',
       description: 'Image quality (overrides profile config)',

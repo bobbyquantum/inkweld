@@ -90,21 +90,21 @@ const GPT_IMAGE_15_RESOLUTIONS = DEFAULT_ASPECT_RESOLUTIONS;
 
 /**
  * Convert aspect ratio + resolution to a size string for storage.
- * Format: "ratio@resolution" (e.g., "16:9@4K")
+ * Format: "ratio@resolution" (e.g., "16:9@4K", "1:1@512sq"). A model without
+ * a `resolution` input stores the bare ratio ("16:9").
  */
 function aspectRatioToSizeString(ratio: string, resolution: string): ImageSize {
   return `${ratio}@${resolution}`;
 }
 
 /**
- * Parse a size string to determine if it's aspect_ratio format.
+ * Parse an aspect-ratio size string: "16:9@4K", "1:1@512sq", "2.35:1@2k" or a
+ * bare ratio ("16:9", no resolution). Returns null for pixel sizes and "auto".
  */
-function parseAspectRatioSize(size: string): { ratio: string; resolution: string } | null {
-  const match = /^(\d+:\d+)@(\d+K)$/.exec(size);
-  if (match) {
-    return { ratio: match[1], resolution: match[2] };
-  }
-  return null;
+export function parseAspectRatioSize(size: string): { ratio: string; resolution?: string } | null {
+  const match = /^(\d+(?:\.\d+)?:\d+(?:\.\d+)?)(?:@([A-Za-z0-9]+))?$/.exec(size);
+  if (!match) return null;
+  return match[2] ? { ratio: match[1], resolution: match[2] } : { ratio: match[1] };
 }
 
 /**
@@ -312,36 +312,37 @@ export class FalAiImageProvider extends BaseImageProvider {
   }
 
   /**
-   * Build size parameters based on the model's size mode.
+   * Build size parameters for the request.
+   *
+   * A ratio size ("16:9@2K", "1:1") always means aspect-ratio input, whatever
+   * the model, so profiles for models scanned from Fal's catalogue work
+   * without a code entry. `resolution` is only sent when the size names one.
+   * Pixel sizes go to `image_size` unless the model (or the profile, via
+   * `usesAspectRatioOnly`) only takes an aspect ratio.
    */
   private buildSizeParams(
     modelId: string,
-    size: string
+    size: string,
+    usesAspectRatioOnly = false
   ): Record<string, string | number | { width: number; height: number }> {
-    const sizeMode = this.getSizeMode(modelId);
+    const parsed = parseAspectRatioSize(size);
+    if (parsed) {
+      return parsed.resolution
+        ? { aspect_ratio: parsed.ratio, resolution: parsed.resolution }
+        : { aspect_ratio: parsed.ratio };
+    }
 
-    if (sizeMode === 'aspect_ratio') {
-      // Parse aspect_ratio@resolution format
-      const parsed = parseAspectRatioSize(size);
-      if (parsed) {
-        return {
-          aspect_ratio: parsed.ratio,
-          resolution: parsed.resolution,
-        };
-      }
-      // Fallback: if given dimensions, try to convert to aspect ratio
+    const knownAspectModel = this.getSizeMode(modelId) === 'aspect_ratio';
+    if (knownAspectModel || usesAspectRatioOnly) {
+      // Only the built-in aspect-ratio models are known to take `resolution`.
+      const resolution: Record<string, string> = knownAspectModel ? { resolution: '2K' } : {};
       const dimMatch = /^(\d+)x(\d+)$/.exec(size);
       if (dimMatch) {
         const w = Number.parseInt(dimMatch[1], 10);
         const h = Number.parseInt(dimMatch[2], 10);
-        const ratio = this.dimensionsToAspectRatio(w, h);
-        return {
-          aspect_ratio: ratio,
-          resolution: '2K', // Default to 2K
-        };
+        return { aspect_ratio: this.dimensionsToAspectRatio(w, h), ...resolution };
       }
-      // Default
-      return { aspect_ratio: '1:1', resolution: '2K' };
+      return { aspect_ratio: '1:1', ...resolution };
     }
 
     // Dimensions mode
@@ -397,7 +398,11 @@ export class FalAiImageProvider extends BaseImageProvider {
     const numImages = request.n || 1;
 
     // Get size parameters based on model's size mode
-    const sizeParams = this.buildSizeParams(model, request.size || '1024x1024');
+    const sizeParams = this.buildSizeParams(
+      model,
+      request.size || '1024x1024',
+      request.usesAspectRatioOnly
+    );
 
     falLog.info(`Generating image`, { model, sizeParams, count: numImages });
 

@@ -118,7 +118,7 @@
             id="image-profile-model-input"
             [matAutocomplete]="modelAuto"
             (input)="onModelSearchInput($event)"
-            (focus)="loadModelsForProvider()"
+            (focus)="ensureModelsLoaded()"
             [placeholder]="
               'admin.imageProfile.modelSearchPlaceholder' | transloco
             "
@@ -249,6 +249,15 @@
             <mat-icon>add</mat-icon>
           </button>
         </div>
+
+        @if (isLoadingModelMetadata()) {
+          <div class="loading-option" data-testid="model-sizes-loading">
+            <mat-spinner diameter="20"></mat-spinner>
+            <span>{{
+              'admin.imageProfile.loadingModelSizes' | transloco
+            }}</span>
+          </div>
+        }
 
         @for (size of sizesArray; track $index) {
           <div class="size-row">

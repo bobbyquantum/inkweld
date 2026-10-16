@@ -549,6 +549,7 @@
     "modelSearchPlaceholder": "Search for a model...",
     "modelAria": "Model",
     "loadingModels": "Loading models...",
+    "loadingModelSizes": "Reading the model's supported sizes...",
     "selectTypeFirst": "Select a model type above, then search here",
     "noModelsFound": "No models found. Type to search or check provider API key.",
     "refreshModels": "Refresh models",
