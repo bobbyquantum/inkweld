@@ -4,6 +4,21 @@ import { StorageContextService } from './storage-context.service';
 
 const SETTINGS_BASE_KEY = 'userSettings';
 
+/**
+ * Unprefixed localStorage key for the WebMCP opt-in. It belongs to the
+ * browser, not to a profile: the agent is the browser's, and /setup offers
+ * the switch before any profile exists.
+ */
+export const WEBMCP_ENABLED_KEY = 'inkweld-webmcp';
+
+function readWebMcpEnabled(): boolean {
+  try {
+    return localStorage.getItem(WEBMCP_ENABLED_KEY) === 'on';
+  } catch {
+    return false;
+  }
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -89,16 +104,15 @@ export class SettingsService {
    * Internal writable signal backing the "let browser AI agents use Inkweld"
    * (WebMCP) preference. Updates must go through {@link setWebMcpEnabled}.
    */
-  private readonly _webMcpEnabled = signal<boolean>(
-    this.getSetting<boolean>('webMcpEnabled', false)
-  );
+  private readonly _webMcpEnabled = signal<boolean>(readWebMcpEnabled());
 
   /**
    * Whether Inkweld registers WebMCP tools (`document.modelContext`) so an AI
    * agent built into the browser can read and edit projects on the user's
    * behalf. Defaults to `false`: nothing is exposed until the user opts in.
-   * It is a per-profile preference rather than a server setting because the
-   * tools run in this browser and work the same in every storage mode.
+   * It is a preference of this browser (shared by its profiles, stored under
+   * {@link WEBMCP_ENABLED_KEY}) rather than a server setting, because the
+   * tools run here and work the same in every storage mode.
    */
   readonly webMcpEnabled = this._webMcpEnabled.asReadonly();
 
@@ -147,7 +161,8 @@ export class SettingsService {
   setWebMcpEnabled(value: boolean): void {
     this._webMcpEnabled.set(value);
     try {
-      this.setSetting<boolean>('webMcpEnabled', value);
+      if (value) localStorage.setItem(WEBMCP_ENABLED_KEY, 'on');
+      else localStorage.removeItem(WEBMCP_ENABLED_KEY);
     } catch {
       // Storage can be unavailable (private mode/quota); keep UI reactive.
     }

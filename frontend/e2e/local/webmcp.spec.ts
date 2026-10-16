@@ -182,4 +182,42 @@ test.describe('WebMCP', () => {
       await expect.poll(() => toolNames(page)).toEqual([]);
     });
   });
+
+  test('new users can opt in from the setup page', async ({ page }) => {
+    // No profile yet: the app opens on first-run setup.
+    await page.route('**/api/**', route => route.abort('failed'));
+    // Like the shared fixtures: keep the welcome tour out of the way.
+    await page.addInitScript(() => {
+      localStorage.setItem('inkweld-tutorial-autostart', 'off');
+    });
+    await installModelContext(page);
+    await page.goto('/setup');
+    await page.getByTestId('setup-card').waitFor();
+
+    const optIn = page.getByTestId('webmcp-opt-in-toggle').getByRole('switch');
+    await expect(optIn).not.toBeChecked();
+    expect(await toolNames(page)).toEqual([]);
+
+    await optIn.click();
+    await expect(optIn).toBeChecked();
+    await expect.poll(() => toolNames(page)).toContain('get_app_state');
+
+    await test.step('the choice outlives setup and reloads', async () => {
+      await page.getByTestId('local-mode-button').click();
+      await page.getByTestId('local-username-input').fill('newwriter');
+      await page.getByTestId('local-displayname-input').fill('New Writer');
+      await page.getByTestId('start-local-button').click();
+      await page.getByTestId('create-new-project-button').waitFor();
+
+      await page.reload();
+      await page.getByTestId('create-new-project-button').waitFor();
+      await expect.poll(() => toolNames(page)).toContain('get_app_state');
+
+      await openUserSettings(page);
+      await page.getByRole('tab', { name: /general settings/i }).click();
+      await expect(
+        page.getByTestId('webmcp-toggle').getByRole('switch')
+      ).toBeChecked();
+    });
+  });
 });

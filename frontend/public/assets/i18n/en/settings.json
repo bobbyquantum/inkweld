@@ -198,7 +198,8 @@
     "installed": "Inkweld is installed on this device.",
     "webMcpTitle": "AI agents in this browser",
     "webMcp": "Let browser AI agents use Inkweld (WebMCP)",
-    "webMcpHint": "Lets an AI assistant built into your browser read and edit your projects through Inkweld, the way you do: documents, worldbuilding, relationships, tags, snapshots and publishing. It acts with your access, in this tab only. Applies to this profile; off by default.",
+    "webMcpShort": "Browser AI agents",
+    "webMcpHint": "Lets an AI assistant built into your browser read and edit your projects through Inkweld, the way you do: documents, worldbuilding, relationships, tags, snapshots and publishing. It acts with your access, in this tab only. Applies to every profile in this browser; off by default.",
     "webMcpUnsupported": "This browser doesn't support WebMCP yet, so turning this on has no effect here."
   },
   "projectSettingsTab": {

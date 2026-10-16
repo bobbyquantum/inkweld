@@ -520,9 +520,12 @@ the browser's WebMCP API (`document.modelContext`, or Chrome's earlier
 `navigator.modelContext`) so an agent built into the browser can do what the
 user can do in the app. Docs: `docs/site/docs/developer/webmcp.md`.
 
-- **A user preference, not a server setting**: `SettingsService.webMcpEnabled`
-  (Settings → General, default off, per profile). The AI kill switch does not
-  apply: no request goes to an AI provider, and the tools work in every mode.
+- **A browser preference, not a server setting**: `SettingsService.webMcpEnabled`
+  (default off), stored under the unprefixed `inkweld-webmcp` key so it is
+  shared by every profile and can be chosen on /setup before a profile exists
+  (`WebMcpOptInComponent`, shown only where WebMCP is supported) as well as in
+  Settings → General. The AI kill switch does not apply: no request goes to
+  an AI provider, and the tools work in every mode. Keep it opt-in.
 - **Lazy**: the tools load through `WEBMCP_REGISTRY_LOADER` (a dynamic
   `import('./tools')`) only once enabled in a supporting browser. Keep
   `webmcp.service.ts` free of static imports of the tool modules, or the

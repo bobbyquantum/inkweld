@@ -234,18 +234,19 @@ describe('SettingsService', () => {
     });
 
     it('honours a stored opt-in', () => {
-      localStorageMock['userSettings'] = JSON.stringify({
-        webMcpEnabled: true,
-      });
+      localStorageMock['inkweld-webmcp'] = 'on';
       expect(createService().webMcpEnabled()).toBe(true);
     });
 
-    it('persists the value and updates the reactive signal', () => {
+    it('stores the choice for the browser, outside any profile', () => {
       service.setWebMcpEnabled(true);
       expect(service.webMcpEnabled()).toBe(true);
-      expect(JSON.parse(localStorageMock['userSettings']).webMcpEnabled).toBe(
-        true
-      );
+      expect(localStorageMock['inkweld-webmcp']).toBe('on');
+      expect(localStorageMock['userSettings']).toBeUndefined();
+
+      service.setWebMcpEnabled(false);
+      expect(service.webMcpEnabled()).toBe(false);
+      expect(localStorageMock['inkweld-webmcp']).toBeUndefined();
     });
   });
 

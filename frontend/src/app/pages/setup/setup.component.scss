@@ -393,6 +393,11 @@ mat-divider[vertical] {
   bottom: 20px;
   right: 20px;
   z-index: 100;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
 }
 
 @media (max-width: 768px) {

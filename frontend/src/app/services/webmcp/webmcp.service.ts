@@ -39,7 +39,7 @@ export const WEBMCP_REGISTRY_LOADER = new InjectionToken<WebMcpRegistryLoader>(
  * app — browse and edit projects, documents, worldbuilding, relationships,
  * tags, snapshots and publish plans — through the same services the UI uses.
  *
- * Off unless the user turns it on in Settings → General
+ * Off unless the user turns it on in Settings → General or on /setup
  * (`SettingsService.webMcpEnabled`), and inert in browsers without WebMCP.
  * The tools are loaded with a dynamic import on first activation so they
  * add nothing to the initial bundle.
