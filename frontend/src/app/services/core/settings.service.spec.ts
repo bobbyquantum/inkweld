@@ -228,25 +228,25 @@ describe('SettingsService', () => {
     });
   });
 
-  describe('setWebMcpEnabled', () => {
-    it('defaults the signal to false when nothing is stored', () => {
-      expect(service.webMcpEnabled()).toBe(false);
+  describe('setAiAllowed', () => {
+    it('defaults to No AI when nothing is stored', () => {
+      expect(service.aiAllowed()).toBe(false);
     });
 
-    it('honours a stored opt-in', () => {
-      localStorageMock['inkweld-webmcp'] = 'on';
-      expect(createService().webMcpEnabled()).toBe(true);
+    it('honours a stored Allow AI', () => {
+      localStorageMock['inkweld-ai'] = 'allow';
+      expect(createService().aiAllowed()).toBe(true);
     });
 
     it('stores the choice for the browser, outside any profile', () => {
-      service.setWebMcpEnabled(true);
-      expect(service.webMcpEnabled()).toBe(true);
-      expect(localStorageMock['inkweld-webmcp']).toBe('on');
+      service.setAiAllowed(true);
+      expect(service.aiAllowed()).toBe(true);
+      expect(localStorageMock['inkweld-ai']).toBe('allow');
       expect(localStorageMock['userSettings']).toBeUndefined();
 
-      service.setWebMcpEnabled(false);
-      expect(service.webMcpEnabled()).toBe(false);
-      expect(localStorageMock['inkweld-webmcp']).toBeUndefined();
+      service.setAiAllowed(false);
+      expect(service.aiAllowed()).toBe(false);
+      expect(localStorageMock['inkweld-ai']).toBeUndefined();
     });
   });
 

@@ -108,7 +108,21 @@ export type OnlineTestFixtures = {
    * Useful for testing local-first fallback behavior.
    */
   serverUnavailablePage: Page;
+
+  /**
+   * Whether the authenticated and admin pages start with the user's AI
+   * preference on "Allow AI". AI is opt-in per user (default "No AI"), so a
+   * spec that exercises AI features sets `test.use({ allowAi: true })`.
+   */
+  allowAi: boolean;
 };
+
+/** Start the page with the user's AI preference on "Allow AI". */
+async function allowAiInPage(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    localStorage.setItem('inkweld-ai', 'allow');
+  });
+}
 
 /**
  * Generate a unique test identifier
@@ -121,6 +135,8 @@ function generateTestId(): string {
  * Extended test with online fixtures
  */
 export const test = base.extend<OnlineTestFixtures>({
+  allowAi: [false, { option: true }],
+
   // Anonymous page (no authentication)
   anonymousPage: async ({ browser }, use) => {
     // Create a new context for isolation
@@ -164,10 +180,11 @@ export const test = base.extend<OnlineTestFixtures>({
   },
 
   // Authenticated user page
-  authenticatedPage: async ({ browser }, use) => {
+  authenticatedPage: async ({ browser, allowAi }, use) => {
     // Create a new context for isolation
     const context = await browser.newContext();
     const page = await context.newPage();
+    if (allowAi) await allowAiInPage(page);
 
     // Suppress console logs for cleaner test output
     page.on('console', () => {});
@@ -287,10 +304,11 @@ export const test = base.extend<OnlineTestFixtures>({
   },
 
   // Admin user page (uses pre-seeded admin)
-  adminPage: async ({ browser }, use) => {
+  adminPage: async ({ browser, allowAi }, use) => {
     // Create a new context for isolation
     const context = await browser.newContext();
     const page = await context.newPage();
+    if (allowAi) await allowAiInPage(page);
 
     // Suppress console logs for cleaner test output
     page.on('console', () => {});

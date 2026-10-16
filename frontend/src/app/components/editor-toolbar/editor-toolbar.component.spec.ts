@@ -2,6 +2,7 @@ import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog, type MatDialogRef } from '@angular/material/dialog';
+import { SettingsService } from '@services/core/settings.service';
 import { SystemConfigService } from '@services/core/system-config.service';
 import { of, Subject } from 'rxjs';
 import {
@@ -714,6 +715,9 @@ describe('EditorToolbarComponent', () => {
 
       it('should recalculate overflow when the auto-review feature flag flips', async () => {
         const config = TestBed.inject(SystemConfigService);
+        // Auto-Review only shows for a user who has chosen "Allow AI".
+        const settings = TestBed.inject(SettingsService);
+        settings.setAiAllowed(true);
         const spy = vi.spyOn(component, 'recalculateOverflow');
 
         const features = config.systemFeatures();
@@ -727,6 +731,7 @@ describe('EditorToolbarComponent', () => {
         await fixture.whenStable();
 
         expect(spy).toHaveBeenCalled();
+        settings.setAiAllowed(false);
       });
 
       it('should clear overflow when all groups fit (using cache)', () => {

@@ -75,6 +75,7 @@ describe('DocumentElementEditorComponent', () => {
     settingsServiceMock = {
       getSetting: vi.fn().mockReturnValue(true),
       markdownShortcuts: vi.fn().mockReturnValue(false) as never,
+      aiAllowed: signal(false),
     };
 
     dialogGatewayMock = {

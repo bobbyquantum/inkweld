@@ -160,9 +160,10 @@ export class SettingsTabComponent implements OnDestroy {
   private readonly projectActivation = inject(ProjectActivationService);
   private readonly renameMigration = inject(ProjectRenameMigrationService);
 
-  // MCP settings are only visible when the AI kill switch is OFF
+  // MCP settings are only visible when AI is on for this user: the admin's
+  // kill switch is off and the user has chosen "Allow AI".
   protected readonly isAiKillSwitchEnabled =
-    this.systemConfigService.isAiKillSwitchEnabled;
+    this.systemConfigService.isAiOffForUser;
   // MCP access as a whole (the AI kill switch still takes precedence).
   protected readonly isMcpEnabled = this.systemConfigService.isMcpEnabled;
   private readonly dialog = inject(MatDialog);

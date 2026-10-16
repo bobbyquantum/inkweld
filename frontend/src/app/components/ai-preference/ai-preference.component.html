@@ -1,0 +1,22 @@
+@if (visible()) {
+  <div
+    class="ai-preference"
+    [class.ai-preference--pill]="pill()"
+    [matTooltip]="pill() ? ('settings.generalTab.aiHint' | transloco) : ''"
+    data-testid="ai-preference">
+    <mat-button-toggle-group
+      hideSingleSelectionIndicator
+      [value]="allowed() ? 'allow' : 'none'"
+      (change)="choose($event.value)"
+      [attr.aria-label]="'settings.generalTab.aiTitle' | transloco">
+      <mat-button-toggle value="none" data-testid="ai-preference-none">
+        <mat-icon aria-hidden="true">block</mat-icon>
+        {{ 'settings.generalTab.aiNone' | transloco }}
+      </mat-button-toggle>
+      <mat-button-toggle value="allow" data-testid="ai-preference-allow">
+        <mat-icon aria-hidden="true">auto_awesome</mat-icon>
+        {{ 'settings.generalTab.aiAllow' | transloco }}
+      </mat-button-toggle>
+    </mat-button-toggle-group>
+  </div>
+}

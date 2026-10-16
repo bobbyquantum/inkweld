@@ -38,7 +38,7 @@ describe('WebMcpService', () => {
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
-        { provide: SettingsService, useValue: { webMcpEnabled: enabled } },
+        { provide: SettingsService, useValue: { aiAllowed: enabled } },
         { provide: WEBMCP_REGISTRY_LOADER, useValue: loader },
       ],
     });
@@ -145,6 +145,35 @@ describe('WebMcpService', () => {
     expect(service.active()).toBe(false);
     expect(warn).toHaveBeenCalled();
     warn.mockRestore();
+  });
+
+  it('picks up a WebMCP API that appears after startup', async () => {
+    vi.useFakeTimers();
+    try {
+      const service = create();
+      enabled.set(true);
+      await settle();
+      expect(service.supported()).toBe(false);
+
+      // e.g. an extension or an origin-trial token adds it a moment later
+      setModelContext({ registerTool: vi.fn() });
+      await vi.advanceTimersByTimeAsync(1000);
+      await settle();
+
+      expect(service.supported()).toBe(true);
+      expect(registries).toHaveLength(1);
+      expect(service.active()).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('re-checks on demand', () => {
+    const service = create();
+    expect(service.refreshSupport()).toBe(false);
+    setModelContext({ registerTool: vi.fn() });
+    expect(service.refreshSupport()).toBe(true);
+    expect(service.supported()).toBe(true);
   });
 
   it('starts only once', async () => {

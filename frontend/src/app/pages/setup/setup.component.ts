@@ -15,8 +15,8 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ActivatedRoute, Router } from '@angular/router';
+import { AiPreferenceComponent } from '@components/ai-preference/ai-preference.component';
 import { ThemeToggleComponent } from '@components/theme-toggle/theme-toggle.component';
-import { WebMcpOptInComponent } from '@components/webmcp-opt-in/webmcp-opt-in.component';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { sameUsername } from '@models/cloud-manifest';
 import { CloudSyncConfigService } from '@services/cloud-sync/cloud-sync-config.service';
@@ -126,7 +126,7 @@ export function defaultServerUrl(
     MatProgressBarModule,
     TranslocoModule,
     ThemeToggleComponent,
-    WebMcpOptInComponent,
+    AiPreferenceComponent,
   ],
   templateUrl: './setup.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,

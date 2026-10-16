@@ -18,7 +18,7 @@ describe('GeneralSettingsComponent', () => {
   let tutorial: TutorialService;
   let stored: Record<string, unknown>;
   const markdownShortcuts = signal(false);
-  const webMcpEnabled = signal(false);
+  const aiAllowed = signal(false);
   const webMcpSupported = signal(true);
   const installMode = signal<InstallMode>('none');
   const installed = signal(false);
@@ -27,7 +27,7 @@ describe('GeneralSettingsComponent', () => {
   beforeEach(async () => {
     stored = {};
     markdownShortcuts.set(false);
-    webMcpEnabled.set(false);
+    aiAllowed.set(false);
     webMcpSupported.set(true);
     installMode.set('none');
     installed.set(false);
@@ -44,7 +44,7 @@ describe('GeneralSettingsComponent', () => {
         },
         {
           provide: WebMcpService,
-          useValue: { supported: webMcpSupported },
+          useValue: { supported: webMcpSupported, refreshSupport: vi.fn() },
         },
         {
           provide: SettingsService,
@@ -55,9 +55,9 @@ describe('GeneralSettingsComponent', () => {
             setMarkdownShortcuts: vi.fn((value: boolean) => {
               markdownShortcuts.set(value);
             }),
-            webMcpEnabled,
-            setWebMcpEnabled: vi.fn((value: boolean) => {
-              webMcpEnabled.set(value);
+            aiAllowed,
+            setAiAllowed: vi.fn((value: boolean) => {
+              aiAllowed.set(value);
             }),
             setSetting: vi.fn((key: string, value: unknown) => {
               stored[key] = value;
@@ -139,37 +139,28 @@ describe('GeneralSettingsComponent', () => {
     });
   });
 
-  describe('Browser AI agents (WebMCP)', () => {
-    function webMcpSwitch(): HTMLButtonElement {
-      return fixture.nativeElement.querySelector(
-        '[data-testid="webmcp-toggle"] button[role="switch"]'
-      );
-    }
-
-    const unsupportedNote = (): HTMLElement | null =>
+  describe('AI preference', () => {
+    const toggle = (testId: string): HTMLButtonElement =>
       (fixture.nativeElement as HTMLElement).querySelector(
-        '[data-testid="webmcp-unsupported"]'
+        `[data-testid="${testId}"] button`
+      )!;
+
+    it('offers No AI and Allow AI, starting on No AI', () => {
+      expect(toggle('ai-preference-none').getAttribute('aria-checked')).toBe(
+        'true'
       );
-
-    it('is off by default', () => {
-      expect(webMcpSwitch().getAttribute('aria-checked')).toBe('false');
     });
 
-    it('turns on from the toggle', async () => {
-      webMcpSwitch().click();
+    it('records Allow AI', async () => {
+      toggle('ai-preference-allow').click();
       await settle();
-
-      expect(webMcpEnabled()).toBe(true);
-      expect(webMcpSwitch().getAttribute('aria-checked')).toBe('true');
+      expect(aiAllowed()).toBe(true);
     });
 
-    it('says when the browser has no WebMCP support', async () => {
-      expect(unsupportedNote()).toBeNull();
-
+    it('is shown even in browsers without WebMCP', async () => {
       webMcpSupported.set(false);
       await settle();
-
-      expect(unsupportedNote()?.textContent).toContain("doesn't support");
+      expect(toggle('ai-preference-allow')).not.toBeNull();
     });
   });
 

@@ -15,9 +15,11 @@ This is separate from the [server MCP endpoint](./mcp-oauth.md): that one serves
 
 ## Turning it on
 
-WebMCP is **off by default**, like every AI feature in Inkweld. Each user turns it on for themselves in **Settings → General → AI agents in this browser**, or with the **Browser AI agents** switch at the bottom of the first-run setup page (in a browser without WebMCP it says so, and can still be turned on ahead of time). It is a preference of the browser, shared by every profile in it (`SettingsService.webMcpEnabled`, stored under the `inkweld-webmcp` localStorage key), not a server setting: nothing goes through the server, the agent is the browser's, and Inkweld sends nothing to an AI provider. It also has to exist before any profile does, so setup can offer it. For the same reason the server's [AI kill switch](../admin-guide/ai-kill-switch.md) does not apply to it.
+WebMCP is **off by default**, like every AI feature in Inkweld. It follows the user's own **No AI / Allow AI** choice (`SettingsService.aiAllowed`), which defaults to **No AI**. The user changes it in **Settings → General → AI**, or at the bottom of the first-run setup page, next to the theme selector. Setup shows it only in browsers that offer WebMCP, because before a server is chosen the browser's agent is the only AI there is to allow.
 
-In a browser without WebMCP the switch has no effect, and the settings page says so.
+The same choice also controls the server's AI features (see [AI preference](../admin-guide/ai-kill-switch.md#user-ai-preference)). For WebMCP the server's kill switch does not apply: nothing goes through the server, the agent is the browser's, and Inkweld sends nothing to an AI provider. The choice is stored per browser (`inkweld-ai` localStorage key) and shared by every profile in it, because setup offers it before any profile exists.
+
+`WebMcpService` looks for the API at startup, again a few times shortly after, and whenever the choice is shown. An extension or polyfill can add `document.modelContext` after the app boots, and Chrome adds it when an origin-trial token is inserted at runtime. In Chrome, WebMCP needs the `chrome://flags/#enable-webmcp-testing` flag or the site's origin-trial token.
 
 ## Tools
 

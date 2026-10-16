@@ -5,15 +5,15 @@ import { StorageContextService } from './storage-context.service';
 const SETTINGS_BASE_KEY = 'userSettings';
 
 /**
- * Unprefixed localStorage key for the WebMCP opt-in. It belongs to the
- * browser, not to a profile: the agent is the browser's, and /setup offers
- * the switch before any profile exists.
+ * Unprefixed localStorage key for the user's "No AI / Allow AI" choice. It
+ * belongs to the browser, not to a profile: /setup offers it before any
+ * profile exists, and the browser's own agent (WebMCP) is per browser.
  */
-export const WEBMCP_ENABLED_KEY = 'inkweld-webmcp';
+export const AI_PREFERENCE_KEY = 'inkweld-ai';
 
-function readWebMcpEnabled(): boolean {
+function readAiAllowed(): boolean {
   try {
-    return localStorage.getItem(WEBMCP_ENABLED_KEY) === 'on';
+    return localStorage.getItem(AI_PREFERENCE_KEY) === 'allow';
   } catch {
     return false;
   }
@@ -101,20 +101,21 @@ export class SettingsService {
   readonly markdownShortcuts = this._markdownShortcuts.asReadonly();
 
   /**
-   * Internal writable signal backing the "let browser AI agents use Inkweld"
-   * (WebMCP) preference. Updates must go through {@link setWebMcpEnabled}.
+   * Internal writable signal backing the "No AI / Allow AI" choice. Updates
+   * must go through {@link setAiAllowed}.
    */
-  private readonly _webMcpEnabled = signal<boolean>(readWebMcpEnabled());
+  private readonly _aiAllowed = signal<boolean>(readAiAllowed());
 
   /**
-   * Whether Inkweld registers WebMCP tools (`document.modelContext`) so an AI
-   * agent built into the browser can read and edit projects on the user's
-   * behalf. Defaults to `false`: nothing is exposed until the user opts in.
-   * It is a preference of this browser (shared by its profiles, stored under
-   * {@link WEBMCP_ENABLED_KEY}) rather than a server setting, because the
-   * tools run here and work the same in every storage mode.
+   * The user's own consent to AI features, on top of the admin's AI kill
+   * switch: AI runs only when the server allows it *and* the user has chosen
+   * "Allow AI". Defaults to `false` ("No AI"): every AI feature is opt-in.
+   * It covers the server's AI features (image generation, Auto-Review, MCP
+   * access) through `SystemConfigService`, and the WebMCP tools for the
+   * browser's own agent, which need no server. Stored per browser under
+   * {@link AI_PREFERENCE_KEY}, shared by every profile.
    */
-  readonly webMcpEnabled = this._webMcpEnabled.asReadonly();
+  readonly aiAllowed = this._aiAllowed.asReadonly();
 
   getSetting<T>(key: string, defaultValue: T): T {
     const settings = this.getSettings();
@@ -155,14 +156,14 @@ export class SettingsService {
   }
 
   /**
-   * Update the WebMCP preference. Persists to storage and updates the
-   * reactive signal; `WebMcpService` registers or removes the tools.
+   * Record the user's "No AI / Allow AI" choice. `SystemConfigService` and
+   * `WebMcpService` follow the signal.
    */
-  setWebMcpEnabled(value: boolean): void {
-    this._webMcpEnabled.set(value);
+  setAiAllowed(value: boolean): void {
+    this._aiAllowed.set(value);
     try {
-      if (value) localStorage.setItem(WEBMCP_ENABLED_KEY, 'on');
-      else localStorage.removeItem(WEBMCP_ENABLED_KEY);
+      if (value) localStorage.setItem(AI_PREFERENCE_KEY, 'allow');
+      else localStorage.removeItem(AI_PREFERENCE_KEY);
     } catch {
       // Storage can be unavailable (private mode/quota); keep UI reactive.
     }

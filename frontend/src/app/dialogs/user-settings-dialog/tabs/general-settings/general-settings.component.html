@@ -59,22 +59,12 @@
   </p>
 </section>
 
-<section class="settings-section" data-testid="webmcp-section">
+<section class="settings-section" data-testid="ai-section">
   <h3 class="settings-section-title">
-    {{ 'settings.generalTab.webMcpTitle' | transloco }}
+    {{ 'settings.generalTab.aiTitle' | transloco }}
   </h3>
-  <mat-slide-toggle
-    [checked]="webMcpEnabled"
-    (change)="setWebMcpEnabled($any($event).checked)"
-    data-testid="webmcp-toggle">
-    {{ 'settings.generalTab.webMcp' | transloco }}
-  </mat-slide-toggle>
-  <p class="settings-section-hint">
-    {{ 'settings.generalTab.webMcpHint' | transloco }}
+  <app-ai-preference />
+  <p class="settings-section-hint settings-section-hint--flush">
+    {{ 'settings.generalTab.aiHint' | transloco }}
   </p>
-  @if (!webMcp.supported()) {
-    <p class="settings-section-hint" data-testid="webmcp-unsupported">
-      {{ 'settings.generalTab.webMcpUnsupported' | transloco }}
-    </p>
-  }
 </section>

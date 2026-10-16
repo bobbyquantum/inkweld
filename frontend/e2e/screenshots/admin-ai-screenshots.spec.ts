@@ -269,6 +269,11 @@ test.describe('Image Generation Dialog Screenshots', () => {
     page: Page,
     scheme: ColorScheme
   ): Promise<void> {
+    // AI is opt-in per user: this user has chosen "Allow AI". The reload
+    // below picks the preference up.
+    await page.addInitScript(() => {
+      localStorage.setItem('inkweld-ai', 'allow');
+    });
     await applyColorSchemeAndReload(page, scheme, '.project-card');
     // Open the project from its card: a project has to be downloaded to
     // (activated on) this device first, and a direct /media URL bounces

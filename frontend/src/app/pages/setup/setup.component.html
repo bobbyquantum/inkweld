@@ -587,10 +587,10 @@
     </p>
   </div>
 
-  <!-- Theme toggle (and the WebMCP opt-in, where supported) in the bottom
-       right corner -->
+  <!-- Theme toggle (and, where the browser offers WebMCP, the No AI / Allow
+       AI choice) in the bottom right corner -->
   <div class="theme-toggle-container">
-    <app-webmcp-opt-in></app-webmcp-opt-in>
+    <app-ai-preference [pill]="true" [onlyWithWebMcp]="true" />
     <app-theme-toggle></app-theme-toggle>
   </div>
 </div>

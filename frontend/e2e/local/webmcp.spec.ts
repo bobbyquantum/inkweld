@@ -80,12 +80,18 @@ async function callOk(
   return result.structuredContent;
 }
 
-async function setWebMcp(page: Page, on: boolean): Promise<void> {
+/** A segment of the No AI / Allow AI toggle. */
+function aiChoice(page: Page, choice: 'none' | 'allow') {
+  return page.getByTestId(`ai-preference-${choice}`).getByRole('radio');
+}
+
+/** Choose No AI or Allow AI in Settings → General. */
+async function setAi(page: Page, allow: boolean): Promise<void> {
   await openUserSettings(page);
   await page.getByRole('tab', { name: /general settings/i }).click();
-  const toggle = page.getByTestId('webmcp-toggle').getByRole('switch');
-  await toggle.click();
-  await expect(toggle).toBeChecked({ checked: on });
+  const choice = aiChoice(page, allow ? 'allow' : 'none');
+  await choice.click();
+  await expect(choice).toHaveAttribute('aria-checked', 'true');
   await page.getByTestId('settings-close-button').click();
 }
 
@@ -97,9 +103,9 @@ test.describe('WebMCP', () => {
     await page.reload();
     await page.getByTestId('create-new-project-button').waitFor();
 
-    await test.step('nothing is registered until the user opts in', async () => {
+    await test.step('nothing is registered until the user allows AI', async () => {
       expect(await toolNames(page)).toEqual([]);
-      await setWebMcp(page, true);
+      await setAi(page, true);
       await expect.poll(() => toolNames(page)).toContain('get_app_state');
       expect(await toolNames(page)).not.toContain('get_project_tree');
     });
@@ -177,13 +183,13 @@ test.describe('WebMCP', () => {
       expect(missing.content[0].text).toContain('No element with id "nope"');
     });
 
-    await test.step('turning the preference off removes every tool', async () => {
-      await setWebMcp(page, false);
+    await test.step('choosing No AI removes every tool', async () => {
+      await setAi(page, false);
       await expect.poll(() => toolNames(page)).toEqual([]);
     });
   });
 
-  test('new users can opt in from the setup page', async ({ page }) => {
+  test('new users can allow AI from the setup page', async ({ page }) => {
     // No profile yet: the app opens on first-run setup.
     await page.route('**/api/**', route => route.abort('failed'));
     // Like the shared fixtures: keep the welcome tour out of the way.
@@ -194,12 +200,17 @@ test.describe('WebMCP', () => {
     await page.goto('/setup');
     await page.getByTestId('setup-card').waitFor();
 
-    const optIn = page.getByTestId('webmcp-opt-in-toggle').getByRole('switch');
-    await expect(optIn).not.toBeChecked();
+    await expect(aiChoice(page, 'none')).toHaveAttribute(
+      'aria-checked',
+      'true'
+    );
     expect(await toolNames(page)).toEqual([]);
 
-    await optIn.click();
-    await expect(optIn).toBeChecked();
+    await aiChoice(page, 'allow').click();
+    await expect(aiChoice(page, 'allow')).toHaveAttribute(
+      'aria-checked',
+      'true'
+    );
     await expect.poll(() => toolNames(page)).toContain('get_app_state');
 
     await test.step('the choice outlives setup and reloads', async () => {
@@ -215,9 +226,10 @@ test.describe('WebMCP', () => {
 
       await openUserSettings(page);
       await page.getByRole('tab', { name: /general settings/i }).click();
-      await expect(
-        page.getByTestId('webmcp-toggle').getByRole('switch')
-      ).toBeChecked();
+      await expect(aiChoice(page, 'allow')).toHaveAttribute(
+        'aria-checked',
+        'true'
+      );
     });
   });
 });

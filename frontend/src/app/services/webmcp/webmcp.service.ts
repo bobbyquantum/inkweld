@@ -11,6 +11,9 @@ import { SettingsService } from '@services/core/settings.service';
 
 import { getModelContext, type ModelContextLike } from './model-context';
 
+/** When to look for a WebMCP API that appeared after startup. */
+const LATE_SUPPORT_CHECKS_MS = [1000, 3000, 10000];
+
 /** What `WebMcpService` needs from the lazily loaded tool registry. */
 export interface WebMcpRegistryHandle {
   start(): void;
@@ -39,8 +42,8 @@ export const WEBMCP_REGISTRY_LOADER = new InjectionToken<WebMcpRegistryLoader>(
  * app — browse and edit projects, documents, worldbuilding, relationships,
  * tags, snapshots and publish plans — through the same services the UI uses.
  *
- * Off unless the user turns it on in Settings → General or on /setup
- * (`SettingsService.webMcpEnabled`), and inert in browsers without WebMCP.
+ * Off unless the user chooses "Allow AI" (`SettingsService.aiAllowed`, in
+ * Settings → General or on /setup), and inert in browsers without WebMCP.
  * The tools are loaded with a dynamic import on first activation so they
  * add nothing to the initial bundle.
  */
@@ -50,7 +53,12 @@ export class WebMcpService {
   private readonly injector = inject(Injector);
   private readonly loadRegistry = inject(WEBMCP_REGISTRY_LOADER);
 
-  /** Whether this browser offers WebMCP at all. */
+  /**
+   * Whether this browser offers WebMCP at all. Re-checked after startup
+   * (see {@link refreshSupport}): an extension or polyfill can add
+   * `document.modelContext` after the app has booted, and Chrome adds it
+   * when an origin-trial token is inserted at runtime.
+   */
   readonly supported = signal(getModelContext() !== null);
 
   /** Whether Inkweld's tools are currently registered. */
@@ -67,7 +75,7 @@ export class WebMcpService {
     this.started = true;
     effect(
       () => {
-        const wanted = this.settings.webMcpEnabled() && this.supported();
+        const wanted = this.settings.aiAllowed() && this.supported();
         untracked(() => {
           if (wanted) void this.activate();
           else this.deactivate();
@@ -75,6 +83,30 @@ export class WebMcpService {
       },
       { injector: this.injector }
     );
+    this.watchForLateSupport();
+  }
+
+  /** Look for the WebMCP API again, e.g. when the settings are opened. */
+  refreshSupport(): boolean {
+    const found = getModelContext() !== null;
+    if (found !== this.supported()) this.supported.set(found);
+    return found;
+  }
+
+  /**
+   * Re-check a few times after startup, then stop: the API is either there
+   * by then or the browser doesn't have it (and `refreshSupport()` still
+   * catches it when Settings or setup is opened).
+   */
+  private watchForLateSupport(): void {
+    if (this.supported() || typeof window === 'undefined') return;
+    const check = (): void => {
+      this.refreshSupport();
+    };
+    window.addEventListener('load', check, { once: true });
+    for (const delay of LATE_SUPPORT_CHECKS_MS) {
+      setTimeout(check, delay);
+    }
   }
 
   private async activate(): Promise<void> {

@@ -134,7 +134,19 @@ MCP access for external tools is disabled while the kill switch is on, whatever 
 
 ### WebMCP (browser agents)
 
-The kill switch does not cover [WebMCP](/docs/developer/webmcp). WebMCP lets an AI agent built into a user's browser use Inkweld from an open tab. The server sends nothing to an AI provider for it, so there is nothing for the server to refuse. It is a preference of each user's browser instead: it is off by default, and each user decides in **Settings → General** (or on the setup page) whether the agent in their own browser may act for them.
+The kill switch does not cover [WebMCP](/docs/developer/webmcp). WebMCP lets an AI agent built into a user's browser use Inkweld from an open tab. The server sends nothing to an AI provider for it, so there is nothing for the server to refuse. It follows each user's own AI preference instead (below).
+
+## User AI preference
+
+On top of the kill switch, every user makes their own **No AI / Allow AI** choice in **Settings → General → AI** (also offered on the first-run setup page in browsers with WebMCP). It defaults to **No AI**, so AI in Inkweld is opt-in for each user as well as for the instance:
+
+| Kill switch | User's choice   | AI features for that user      |
+| ----------- | --------------- | ------------------------------ |
+| On          | either          | Off                            |
+| Off         | No AI (default) | Off                            |
+| Off         | Allow AI        | Whatever the admin has enabled |
+
+The user's choice can only turn AI off; it never overrides the kill switch. It hides image generation, the AI linting plugin and Auto-Review, and the project MCP settings. It also turns off WebMCP. The choice is stored in the user's browser and shared by every profile in it. It is not sent to the server, so the server-side enforcement above is unchanged.
 
 ## Local Mode
 

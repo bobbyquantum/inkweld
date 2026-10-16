@@ -513,6 +513,13 @@ config key yourself — they apply the env lock. Admin configuration endpoints
 stay open so AI can be set up before the switch is turned off.
 `test/ai-kill-switch.test.ts` lists the gated endpoints; add new ones there.
 
+**The user's own AI preference** (`SettingsService.aiAllowed`, "No AI / Allow
+AI", default No AI, per browser) sits on top of the kill switch in the
+frontend: it can only turn AI off. `SystemConfigService.isAiOffForUser`,
+`isAiAutoReviewEnabled` and `isAiImageGenerationEnabled` already include it.
+Gate a new AI feature on those, not on the raw `isAiKillSwitchEnabled`, which
+is for the admin pages. It is a UI preference; the server does not see it.
+
 ### WebMCP (Browser AI Agents)
 
 `WebMcpService` (`frontend/src/app/services/webmcp/`) registers tools with
@@ -520,12 +527,14 @@ the browser's WebMCP API (`document.modelContext`, or Chrome's earlier
 `navigator.modelContext`) so an agent built into the browser can do what the
 user can do in the app. Docs: `docs/site/docs/developer/webmcp.md`.
 
-- **A browser preference, not a server setting**: `SettingsService.webMcpEnabled`
-  (default off), stored under the unprefixed `inkweld-webmcp` key so it is
-  shared by every profile and can be chosen on /setup before a profile exists
-  (`WebMcpOptInComponent`; it notes when the browser lacks WebMCP) as well as in
-  Settings → General. The AI kill switch does not apply: no request goes to
-  an AI provider, and the tools work in every mode. Keep it opt-in.
+- **Follows the user's AI preference**: `SettingsService.aiAllowed`, the
+  "No AI / Allow AI" choice (default No AI, `AiPreferenceComponent` in
+  Settings → General and, where WebMCP is available, on /setup). It is stored
+  under the unprefixed `inkweld-ai` key so it is shared by every profile and
+  can be chosen before one exists. The server's AI kill switch does not apply
+  to WebMCP: no request goes to an AI provider, and the tools work in every
+  mode. Detection re-runs after startup (`refreshSupport`) because extensions
+  and runtime origin-trial tokens add the API late.
 - **Lazy**: the tools load through `WEBMCP_REGISTRY_LOADER` (a dynamic
   `import('./tools')`) only once enabled in a supporting browser. Keep
   `webmcp.service.ts` free of static imports of the tool modules, or the
