@@ -74,6 +74,12 @@ export interface ImageGenerationDialogResult {
   saved: boolean;
   /** The generated image data (base64 or URL) */
   imageData?: string;
+  /**
+   * The project media item the generator saved this image as, when known.
+   * Callers that store a reference should use it rather than saving the
+   * image a second time.
+   */
+  mediaId?: string;
   /** The generation response */
   response?: ImageGenerateResponse;
 }
@@ -1035,7 +1041,12 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const imageData = await this.resolveImageDataUrl(job, selectedImage);
+    const mediaId = this.savedMediaIdFor(job);
+    const imageData = await this.resolveImageDataUrl(
+      job,
+      selectedImage,
+      mediaId
+    );
 
     if (!imageData) {
       this.snackBar.open(
@@ -1049,10 +1060,23 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
     const result: ImageGenerationDialogResult = {
       saved: true,
       imageData,
+      ...(mediaId ? { mediaId } : {}),
       response: job.response,
     };
 
     this.dialogRef.close(result);
+  }
+
+  /**
+   * The media id the generation service saved the selected image under.
+   * savedMediaIds is only reliably index-aligned with job.images when every
+   * save succeeded (failed saves are skipped, compacting the array), so the
+   * index is only trusted when the lengths match.
+   */
+  private savedMediaIdFor(job: GenerationJob): string | undefined {
+    return job.savedMediaIds.length === job.images.length
+      ? job.savedMediaIds[this.selectedImageIndex()]
+      : undefined;
   }
 
   /**
@@ -1063,7 +1087,8 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
    */
   private async resolveImageDataUrl(
     job: GenerationJob,
-    selectedImage: GeneratedImage
+    selectedImage: GeneratedImage,
+    mediaId: string | undefined
   ): Promise<string | null> {
     if (selectedImage.b64Json) {
       return `data:image/png;base64,${selectedImage.b64Json}`;
@@ -1071,15 +1096,6 @@ export class ImageGenerationDialogComponent implements OnInit, OnDestroy {
 
     try {
       let blob: Blob | null = null;
-      // The generation service saves each image to local media on
-      // completion. savedMediaIds is only reliably index-aligned with
-      // job.images when every save succeeded (failed saves are skipped,
-      // compacting the array) — so only trust the index when the lengths
-      // match; otherwise fall through to fetching the image URL.
-      const mediaId =
-        job.savedMediaIds.length === job.images.length
-          ? job.savedMediaIds[this.selectedImageIndex()]
-          : undefined;
       if (mediaId) {
         blob = await this.localStorage.getMedia(job.projectKey, mediaId);
       }

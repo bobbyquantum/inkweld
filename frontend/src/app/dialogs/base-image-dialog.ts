@@ -14,7 +14,12 @@ import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SystemConfigService } from '@services/core/system-config.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { base64ToBlob } from '@utils/base64-utils';
-import type { ImageCroppedEvent, LoadedImage } from 'ngx-image-cropper';
+import type {
+  CropperPosition,
+  Dimensions,
+  ImageCroppedEvent,
+  LoadedImage,
+} from 'ngx-image-cropper';
 
 /**
  * Abstract base class for image selection/cropping dialogs.
@@ -55,6 +60,11 @@ export abstract class BaseImageDialogComponent {
   readonly showCropper = signal(false);
   readonly pendingFileName = signal('');
   readonly isLoading = signal(false);
+
+  /** The library item being cropped, when the image came from the library. */
+  readonly libraryMediaId = signal<string | null>(null);
+  private loadedImageSize: Dimensions | null = null;
+  private lastImagePosition: CropperPosition | null = null;
 
   abstract readonly aspectRatio: number;
 
@@ -101,6 +111,7 @@ export abstract class BaseImageDialogComponent {
       const filename = result.selected?.filename || 'selected-image.png';
 
       this.resetCropperState();
+      this.libraryMediaId.set(result.selected?.mediaId ?? null);
       this.pendingFileName.set(filename);
       this.imageBase64.set(base64);
       this.showCropper.set(true);
@@ -137,11 +148,40 @@ export abstract class BaseImageDialogComponent {
         this.sanitizer.bypassSecurityTrustUrl(event.objectUrl) // NOSONAR — URL from ngx-image-cropper output
       );
       this.croppedBlob.set(event.blob);
+      this.lastImagePosition = event.imagePosition ?? null;
     }
   }
 
-  onImageLoaded(_image: LoadedImage): void {
+  onImageLoaded(image: LoadedImage): void {
+    // A rotated (EXIF) image is shown transformed; cropping it is never the
+    // stored original, so only an untransformed size counts as "whole".
+    const { original, transformed } = image ?? {};
+    this.loadedImageSize =
+      original?.size &&
+      transformed?.size &&
+      original.size.width === transformed.size.width &&
+      original.size.height === transformed.size.height
+        ? original.size
+        : null;
     this.hasImageLoaded.set(true);
+  }
+
+  /**
+   * The library item picked, when the crop still covers the whole picture,
+   * so the existing media item can be referenced instead of storing a copy.
+   */
+  protected uncroppedLibraryMediaId(): string | null {
+    const mediaId = this.libraryMediaId();
+    const size = this.loadedImageSize;
+    const pos = this.lastImagePosition;
+    if (!mediaId || !size || !pos) return null;
+    const tolerance = 1;
+    const whole =
+      pos.x1 <= tolerance &&
+      pos.y1 <= tolerance &&
+      pos.x2 >= size.width - tolerance &&
+      pos.y2 >= size.height - tolerance;
+    return whole ? mediaId : null;
   }
 
   onCropperReady(): void {
@@ -163,6 +203,9 @@ export abstract class BaseImageDialogComponent {
     this.isCropperReady.set(false);
     this.hasLoadFailed.set(false);
     this.pendingFileName.set('');
+    this.libraryMediaId.set(null);
+    this.loadedImageSize = null;
+    this.lastImagePosition = null;
   }
 
   abstract applyCroppedImage(): void;

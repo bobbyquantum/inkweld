@@ -24,6 +24,10 @@ import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { StorageContextService } from '@services/core/storage-context.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
 import {
+  IdentityImageService,
+  isInlineImage,
+} from '@services/worldbuilding/identity-image.service';
+import {
   type WorldbuildingIdentity,
   WorldbuildingService,
 } from '@services/worldbuilding/worldbuilding.service';
@@ -86,6 +90,7 @@ export class IdentityPanelComponent implements OnDestroy {
   private readonly http = inject(HttpClient);
   private readonly storageContext = inject(StorageContextService);
   private readonly localStorage = inject(LocalStorageService);
+  private readonly identityImages = inject(IdentityImageService);
 
   // State
   identity = signal<WorldbuildingIdentity>({});
@@ -125,6 +130,8 @@ export class IdentityPanelComponent implements OnDestroy {
   private elementSequence = 0;
   /** Tracks whether a realtime update arrived for a given element sequence. */
   private readonly receivedRealtime: Record<number, boolean> = {};
+  /** Elements whose inline image is being moved to media right now. */
+  private readonly migratingElements = new Set<string>();
 
   constructor() {
     // Setup description debounce
@@ -276,12 +283,29 @@ export class IdentityPanelComponent implements OnDestroy {
         this.identity.set(data);
         this.description.set(data.description ?? '');
         this.appearance.set(data.appearance);
+        this.migrateInlineImage(elementId, data);
       }
     } finally {
       if (sequence === this.elementSequence) {
         this.isIdentityLoading.set(false);
       }
     }
+  }
+
+  /**
+   * Older elements carry their image inline as a data URL; move it to
+   * project media. The realtime observer picks up the replaced value.
+   */
+  private migrateInlineImage(
+    elementId: string,
+    data: WorldbuildingIdentity
+  ): void {
+    if (!data.image || !isInlineImage(data.image)) return;
+    if (!this.canWrite() || this.migratingElements.has(elementId)) return;
+    this.migratingElements.add(elementId);
+    void this.identityImages
+      .migrateInlineImage(elementId, this.username(), this.slug())
+      .finally(() => this.migratingElements.delete(elementId));
   }
 
   private async setupRealtimeSync(
@@ -300,6 +324,7 @@ export class IdentityPanelComponent implements OnDestroy {
         if (sequence !== this.elementSequence) return;
         this.receivedRealtime[sequence] = true;
         this.identity.set(data);
+        this.migrateInlineImage(elementId, data);
         this.appearance.set(data.appearance);
         // Only update description if different to avoid cursor jumps
         if (data.description !== this.description()) {
@@ -418,15 +443,24 @@ export class IdentityPanelComponent implements OnDestroy {
 
     if (result.removed) {
       await this.clearImage();
-    } else if (result.imageData) {
-      // Save the new image
+    } else if (result.imageData || result.imageBlob || result.mediaId) {
+      // Store the image as project media and keep only a reference in the
+      // identity map (never the base64 itself).
+      const elementId = this.elementId();
+      const image = await this.identityImages.toIdentityImage(
+        `${username}/${slug}`,
+        result
+      );
+      if (!image) return;
       await this.worldbuildingService.saveIdentityData(
-        this.elementId(),
-        { image: result.imageData },
+        elementId,
+        { image },
         username,
         slug
       );
-      this.identity.set({ ...this.identity(), image: result.imageData });
+      if (elementId === this.elementId()) {
+        this.identity.set({ ...this.identity(), image });
+      }
     }
   }
 

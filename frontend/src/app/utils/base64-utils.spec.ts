@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { base64ToBlob } from './base64-utils';
+import { base64ToBlob, blobToDataUrl } from './base64-utils';
 
 describe('base64ToBlob', () => {
   it('should convert raw base64 string to Blob with default PNG mime type', () => {
@@ -83,5 +83,15 @@ describe('base64ToBlob', () => {
       };
       reader.readAsArrayBuffer(blob);
     });
+  });
+});
+
+describe('blobToDataUrl', () => {
+  it('round-trips through base64ToBlob', async () => {
+    const dataUrl = await blobToDataUrl(
+      new Blob(['hello'], { type: 'image/png' })
+    );
+    expect(dataUrl).toBe(`data:image/png;base64,${btoa('hello')}`);
+    expect(await base64ToBlob(dataUrl).text()).toBe('hello');
   });
 });

@@ -3,6 +3,8 @@ import { forEachSequential } from '@inkweld/async';
 import { type Element, ElementType } from '@inkweld/index';
 import { xmlToMarkdown } from '@inkweld/prosemirror/markdown';
 import { isPublishableByDefault } from '@models/scene-metadata';
+import { blobToDataUrl } from '@utils/base64-utils';
+import { mediaIdFromReference } from '@utils/media-reference';
 import { trimHyphens } from '@utils/string-utils';
 import { isWorldbuildingType } from '@utils/worldbuilding.utils';
 import { BehaviorSubject, type Observable, Subject } from 'rxjs';
@@ -23,6 +25,7 @@ import {
   type WorldbuildingItem,
 } from '../../models/publish-plan';
 import { LoggerService } from '../core/logger.service';
+import { LocalStorageService } from '../local/local-storage.service';
 import { DocumentService } from '../project/document.service';
 import { ProjectStateService } from '../project/project-state.service';
 import {
@@ -81,6 +84,7 @@ export class MarkdownGeneratorService {
   private readonly logger = inject(LoggerService);
   private readonly documentService = inject(DocumentService);
   private readonly projectStateService = inject(ProjectStateService);
+  private readonly localStorage = inject(LocalStorageService);
   private readonly worldbuildingRenderer = inject(
     WorldbuildingPublishRendererService
   );
@@ -401,10 +405,40 @@ export class MarkdownGeneratorService {
     const lines: string[] = [];
     if (item.title) lines.push(`## ${item.title}`, '');
 
-    for (const entry of entries) {
-      lines.push(...this.renderWorldbuildingEntryMarkdown(entry, item));
-    }
+    // Sequential: entries render in order.
+    await forEachSequential(entries, async entry => {
+      const imageRef =
+        item.includeImages === false
+          ? undefined
+          : await this.inlineImageRef(entry.imageRef);
+      lines.push(
+        ...this.renderWorldbuildingEntryMarkdown({ ...entry, imageRef }, item)
+      );
+    });
     return lines.join('\n').trimEnd();
+  }
+
+  /**
+   * Identity images are stored as `media://` references, which nothing
+   * outside Inkweld can load, so they are inlined from the local media
+   * library as data URLs (dropped when the file isn't available).
+   */
+  private async inlineImageRef(
+    ref: string | undefined
+  ): Promise<string | undefined> {
+    if (!ref?.startsWith('media://')) return ref;
+    const project = this.projectStateService.project();
+    if (!project) return undefined;
+    try {
+      const blob = await this.localStorage.getMedia(
+        `${project.username}/${project.slug}`,
+        mediaIdFromReference(ref)
+      );
+      return blob ? await blobToDataUrl(blob) : undefined;
+    } catch (error) {
+      this.logger.warn('MarkdownGenerator', `Failed to load ${ref}`, error);
+      return undefined;
+    }
   }
 
   private renderWorldbuildingEntryMarkdown(

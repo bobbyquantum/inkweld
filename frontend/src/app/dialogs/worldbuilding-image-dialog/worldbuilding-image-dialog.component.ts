@@ -44,6 +44,12 @@ export interface WorldbuildingImageDialogResult {
   imageData?: string;
   /** The image blob for storage */
   imageBlob?: Blob;
+  /**
+   * An existing project media item holding exactly this image (the
+   * generator's saved copy, or an uncropped library pick). The caller
+   * references it instead of storing the image again.
+   */
+  mediaId?: string;
   /** Whether the image was removed */
   removed?: boolean;
 }
@@ -134,6 +140,7 @@ export class WorldbuildingImageDialogComponent
       this.dialogRef.close({
         imageData: result.imageData,
         imageBlob: blob,
+        ...(result.mediaId ? { mediaId: result.mediaId } : {}),
       });
     } catch (err) {
       console.error('[WorldbuildingImageDialog] Failed to process image:', err);
@@ -146,10 +153,12 @@ export class WorldbuildingImageDialogComponent
   applyCroppedImage(): void {
     const blob = this.croppedBlob();
     if (blob && this.croppedImage()) {
+      const mediaId = this.uncroppedLibraryMediaId();
       void this.blobToBase64(blob).then(base64 => {
         this.dialogRef.close({
           imageData: base64,
           imageBlob: blob,
+          ...(mediaId ? { mediaId } : {}),
         });
       });
     }
