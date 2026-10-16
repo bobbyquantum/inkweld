@@ -66,6 +66,43 @@ export function elementTools(
 ): WebMcpToolDefinition[] {
   const tree = injector.get(ElementTreeService);
 
+  /** A WORLDBUILDING element needs a known template; nothing else takes one. */
+  function checkSchema(type: ElementType, schemaId: string | undefined): void {
+    if (type !== ElementType.Worldbuilding) {
+      if (schemaId) {
+        throw new ToolError('schemaId only applies to WORLDBUILDING.');
+      }
+      return;
+    }
+    if (!schemaId) {
+      throw new ToolError(
+        'A WORLDBUILDING element needs a schemaId. Call list_schemas.'
+      );
+    }
+    if (!injector.get(WorldbuildingService).getSchemaById(schemaId)) {
+      throw new ToolError(
+        `No template with id "${schemaId}". Call list_schemas.`
+      );
+    }
+  }
+
+  /** The New element dialog preset for the kind the agent asked for. */
+  function creationPreset(
+    type: ElementType,
+    documentKind: (typeof DOCUMENT_KINDS)[number] | undefined,
+    canvasKind: (typeof CANVAS_KINDS)[number] | undefined,
+    content: string | undefined
+  ): ElementPreset | undefined {
+    if ((documentKind || content) && type !== ElementType.Item) {
+      throw new ToolError('documentKind and content only apply to ITEM.');
+    }
+    if (canvasKind && type !== ElementType.Canvas) {
+      throw new ToolError('canvasKind only applies to CANVAS.');
+    }
+    if (canvasKind && canvasKind !== 'blank') return canvasKind;
+    return documentKind;
+  }
+
   function folder(parentId: string): Element {
     const parent = ctx.element(parentId);
     if (parent.type !== ElementType.Folder) {
@@ -310,31 +347,14 @@ export function elementTools(
         if (parentId) folder(parentId);
         if (afterId) ctx.element(afterId);
         const schemaId = args.optionalString('schemaId');
-        if (type === ElementType.Worldbuilding) {
-          if (!schemaId) {
-            throw new ToolError(
-              'A WORLDBUILDING element needs a schemaId. Call list_schemas.'
-            );
-          }
-          if (!injector.get(WorldbuildingService).getSchemaById(schemaId)) {
-            throw new ToolError(
-              `No template with id "${schemaId}". Call list_schemas.`
-            );
-          }
-        } else if (schemaId) {
-          throw new ToolError('schemaId only applies to WORLDBUILDING.');
-        }
-        const documentKind = args.optionalOneOf('documentKind', DOCUMENT_KINDS);
-        const canvasKind = args.optionalOneOf('canvasKind', CANVAS_KINDS);
+        checkSchema(type, schemaId);
         const content = args.optionalString('content');
-        if ((documentKind || content) && type !== ElementType.Item) {
-          throw new ToolError('documentKind and content only apply to ITEM.');
-        }
-        if (canvasKind && type !== ElementType.Canvas) {
-          throw new ToolError('canvasKind only applies to CANVAS.');
-        }
-        let preset: ElementPreset | undefined = documentKind;
-        if (canvasKind && canvasKind !== 'blank') preset = canvasKind;
+        const preset = creationPreset(
+          type,
+          args.optionalOneOf('documentKind', DOCUMENT_KINDS),
+          args.optionalOneOf('canvasKind', CANVAS_KINDS),
+          content
+        );
 
         const created = ctx.state.createElement(type, name, {
           parentId: afterId ? undefined : parentId,

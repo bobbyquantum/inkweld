@@ -36,10 +36,11 @@ export class WebMcpRegistry {
     this.watcher = effect(
       () => {
         const project = state.project();
-        const key =
-          project?.username && project.slug
-            ? `${project.username}/${project.slug}#${state.canWrite() ? 'write' : 'read'}`
-            : null;
+        let key: string | null = null;
+        if (project?.username && project.slug) {
+          const access = state.canWrite() ? 'write' : 'read';
+          key = `${project.username}/${project.slug}#${access}`;
+        }
         untracked(() => this.updateProjectTools(key));
       },
       { injector: this.injector }
