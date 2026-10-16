@@ -61,6 +61,12 @@ describe('PublishTypstEmitterService', () => {
       );
     });
 
+    it('does not indent paragraphs inside a field value', () => {
+      expect(emit()).toContain(
+        '#set par(first-line-indent: 0pt, spacing: 0.7em);#value'
+      );
+    });
+
     it('lists chapters and entries in the outline without showing a second title', () => {
       const out = emit();
       expect(out).toContain(

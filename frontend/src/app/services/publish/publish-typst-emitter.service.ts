@@ -180,8 +180,9 @@ ${chPageBreak}  ${chBlockOpen}[
       // Worldbuilding fields on the schema's 12-column layout grid: each cell
       // holds a field's label above its value and spans the field's columns.
       // A cell is never split, so a label is not parted from its value.
+      // Its paragraphs (long-text lines) are not indented like body text.
       `#let wb-fields(..cells) = grid(columns: (1fr,) * 12, column-gutter: 8pt, row-gutter: 6pt, ..cells)`,
-      `#let wb-cell(label, value) = block(breakable: false)[#block(below: 2pt)[#text(${typstTextArgs(wb.fieldLabel)})[#label]]#text(${typstTextArgs(wb.fieldValue)})[#value]]`,
+      `#let wb-cell(label, value) = block(breakable: false)[#block(below: 2pt)[#text(${typstTextArgs(wb.fieldLabel)})[#label]]#text(${typstTextArgs(wb.fieldValue)})[#set par(first-line-indent: 0pt, spacing: 0.7em);#value]]`,
       twoColumns
         ? `#let wb-section-title(body) = place(top, float: true, scope: "parent", clearance: 12pt, block(width: 100%)[#text(${typstTextArgs(wbSectionTitleStyle)})[#body]])`
         : `#let wb-section-title(body) = block(sticky: true, above: 28pt, below: 6pt)[#outline-entry(1, body)#text(${typstTextArgs(wbSectionTitleStyle)})[#body]]`,
