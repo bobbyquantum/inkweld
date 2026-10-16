@@ -1,7 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import { firstResultSequential, forEachSequential } from '@inkweld/async';
 import { type Element, ElementType } from '@inkweld/index';
-import { isBackgroundEmpty } from '@models/element-appearance';
 import { type PublishStyles } from '@models/publish-style';
 import { isPublishableByDefault } from '@models/scene-metadata';
 import { $typst, TypstSnippet } from '@myriaddreamin/typst.ts/contrib/snippet';
@@ -30,13 +29,18 @@ import { DocumentService } from '../project/document.service';
 import { ProjectStateService } from '../project/project-state.service';
 import { chapterHeadingFor } from './chapter-heading';
 import { flattenConversation } from './conversation-publish';
-import { sanitizeCssColor } from './html-generator.service';
 import {
   collectImageSources,
   type PdfImageAsset,
   PdfImageAssets,
   typstImageWidth,
 } from './pdf-image-assets';
+import {
+  packFieldRows,
+  printBackground,
+  splitLongText,
+  typstLinearGradient,
+} from './publish-entry-format';
 import { applyMarks, TYPST_MARK_TAGS } from './publish-marks-helper';
 import { PublishStyleResolverService } from './publish-style-resolver.service';
 import {
@@ -558,7 +562,15 @@ export class PdfGeneratorService {
   ): Promise<void> {
     const entries = await this.worldbuildingRenderer.renderItem(item, elements);
     if (entries.length === 0) return;
-    await this.registerImages(entries.map(entry => entry.imageRef));
+    await this.registerImages(
+      entries.flatMap(entry => {
+        const background = printBackground(entry.appearance?.content);
+        return [
+          entry.imageRef,
+          background?.type === 'image' ? background.src : undefined,
+        ];
+      })
+    );
     if (item.title) {
       ctx.markup += `#pagebreak(weak: true)\n`;
       ctx.markup += `#wb-section-title[${this.escapeTypst(item.title)}]\n\n`;
@@ -604,8 +616,7 @@ export class PdfGeneratorService {
         `#wb-tab([${this.escapeTypst(tab.label)}], [\n#wb-fields(${cells.join(', ')})\n])`
       );
     }
-    const fill = this.entryFill(entry);
-    const fillArg = fill ? `, fill: ${fill}` : '';
+    const fillArg = this.entryBackgroundArgs(entry);
     parts.push(
       `#wb-entry(${titleArg}, [\n${body.join('\n')}\n]${fillArg})\n\n`
     );
@@ -613,18 +624,23 @@ export class PdfGeneratorService {
   }
 
   /**
-   * The Typst fill for an entry whose authored content background is a
-   * plain colour, or null. Gradients and images are not drawn in print.
+   * Extra `wb-entry` arguments for an entry's authored content background:
+   * a colour or gradient fill, or an image. Empty when it has none.
    */
-  private entryFill(entry: RenderedWorldbuildingEntry): string | null {
-    const setting = entry.appearance?.content;
-    if (!setting || isBackgroundEmpty(setting) || setting.type !== 'color') {
-      return null;
+  private entryBackgroundArgs(entry: RenderedWorldbuildingEntry): string {
+    const background = printBackground(entry.appearance?.content);
+    if (!background) return '';
+    if (background.type === 'color') {
+      return `, fill: ${typstColor(background.color)}`;
     }
-    const value =
-      setting.mode === 'manual' ? setting.light || setting.dark : setting.value;
-    const color = sanitizeCssColor(value);
-    return color && /^#[0-9a-f]{3,8}$/i.test(color) ? typstColor(color) : null;
+    if (background.type === 'gradient') {
+      const gradient = typstLinearGradient(background.css);
+      return gradient ? `, fill: ${gradient}` : '';
+    }
+    // An image is drawn behind the entry under a light veil, like the
+    // editor's auto-adjusted image, so the text stays readable.
+    const image = this.resolvedImages.get(background.src);
+    return image ? `, bg-image: ${typstString(image.path)}` : '';
   }
 
   /**
@@ -635,21 +651,14 @@ export class PdfGeneratorService {
    * actions are set in a stat block.
    */
   private fieldValueTypst(f: RenderedWorldbuildingField): string {
-    if (f.type !== 'textarea' || !f.displayValue.includes('\n')) {
-      return this.escapeTypst(f.displayValue);
-    }
-    const lines = f.displayValue
-      .split(/\r?\n/)
-      .map(line => line.trim())
-      .filter(Boolean);
+    const lines = f.type === 'textarea' ? splitLongText(f.displayValue) : null;
+    if (!lines) return this.escapeTypst(f.displayValue);
     return lines
       .map(line => {
-        const bullet = /^[-•*]\s+(.*)$/.exec(line);
-        if (bullet) return `- ${this.escapeTypst(bullet[1])}`;
-        const lead = statBlockLeadIn(line);
-        return lead
-          ? `#strong[#emph[${this.escapeTypst(lead.name)}]] ${this.escapeTypst(lead.rest)}`
-          : this.escapeTypst(line);
+        if (line.kind === 'bullet') return `- ${this.escapeTypst(line.text)}`;
+        return line.lead
+          ? `#strong[#emph[${this.escapeTypst(line.lead)}]] ${this.escapeTypst(line.text)}`
+          : this.escapeTypst(line.text);
       })
       .join('\n\n');
   }
@@ -1508,67 +1517,4 @@ function typstString(s: string): string {
     .replaceAll(BACKSLASH, BACKSLASH + BACKSLASH)
     .replaceAll(QUOTE, BACKSLASH + QUOTE);
   return QUOTE + escaped + QUOTE;
-}
-
-/**
- * Where each field starts in its row of a 12-column grid, as the number of
- * empty columns to leave before it (0 when it follows straight on). Rows are
- * packed here so every row adds up to 12 columns and Typst never has to wrap
- * a spanning cell. A field that does not fit in what is left of a row starts
- * a new one; so does a run of same-width fields (six ability scores) that
- * would fit on a row of its own but not in what is left of this one.
- */
-export function packFieldRows(spans: readonly number[]): number[] {
-  const starts: number[] = [];
-  let used = 0;
-  spans.forEach((span, index) => {
-    let gap = 0;
-    if (used > 0) {
-      const runStart = index === 0 || spans[index - 1] !== span;
-      let run = 0;
-      for (let i = index; i < spans.length && spans[i] === span; i++) {
-        run += span;
-      }
-      const runFitsRow = run <= 12;
-      if (used + span > 12 || (runStart && runFitsRow && used + run > 12)) {
-        gap = 12 - used;
-        used = 0;
-      }
-    }
-    starts.push(gap);
-    used = (used + span) % 12;
-  });
-  return starts;
-}
-
-/**
- * Split a stat-block style line ("Gaff Hook. Melee Weapon Attack: …") into
- * its lead-in name and the rest. The name must be short and in title case
- * (small joining words and a parenthetical such as "(Recharge 5-6)" are
- * allowed), so an ordinary sentence ("He left. Then …") is not matched.
- */
-export function statBlockLeadIn(
-  line: string
-): { name: string; rest: string } | null {
-  const match = /^(.{1,48}?)\.\s+(\S.*)$/.exec(line);
-  if (!match) return null;
-  const name = match[1];
-  const words = name.replace(/\s*\([^)]{1,30}\)\s*$/, '').split(/\s+/);
-  if (words.length === 0 || words.length > 6) return null;
-  const joining = new Set([
-    'of',
-    'the',
-    'and',
-    'a',
-    'an',
-    'in',
-    'on',
-    'to',
-    'with',
-    'or',
-  ]);
-  const titleCase = words.every(
-    (word, i) => /^[A-Z0-9][\w'’-]*$/.test(word) || (i > 0 && joining.has(word))
-  );
-  return titleCase ? { name: `${name}.`, rest: match[2] } : null;
 }

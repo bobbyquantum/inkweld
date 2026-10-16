@@ -166,12 +166,32 @@ ${chPageBreak}  ${chBlockOpen}[
       // foot of a page. The outline entry sits inside it: as the entry's
       // first content it would otherwise start the entry on a page the title
       // has left.
-      // An entry with an authored background colour becomes a filled,
-      // padded panel instead, so its text does not run to the fill's edge.
-      `#let wb-entry(title, body, fill: none) = block(fill: fill, inset: if fill == none { 0pt } else { (x: ${wb.entryBox.paddingLeft ?? 12}pt, y: ${wb.entryBox.paddingTop ?? 8}pt) }, radius: if fill == none { 0pt } else { ${wb.entryBox.borderRadius ?? 4}pt }, above: ${(wb.entryBox.marginTop ?? 12) + 6}pt, below: ${wb.entryBox.marginBottom ?? 12}pt)[
+      `#let wb-entry-body(title, body) = [
   #block(sticky: true, below: 6pt)[#outline-entry(2, title)#text(${typstTextArgs(wb.entryTitle)})[#title]${wbRule ? `#v(-4pt)${wbRule}` : ''}]
   #body
 ]`,
+      // An entry with an authored background becomes a padded panel so its
+      // text does not run to the edge: a colour or gradient fill, or an
+      // image cover-fitted behind it under a light veil (as the editor does)
+      // so the text stays readable. An image panel is measured to size the
+      // image, so it is kept on one page.
+      `#let wb-entry(title, body, fill: none, bg-image: none) = {
+  let pad = (x: ${wb.entryBox.paddingLeft ?? 12}pt, y: ${wb.entryBox.paddingTop ?? 8}pt)
+  let panel = fill != none or bg-image != none
+  block(above: ${(wb.entryBox.marginTop ?? 12) + 6}pt, below: ${wb.entryBox.marginBottom ?? 12}pt, if bg-image != none {
+    layout(size => {
+      let inner = block(width: size.width, inset: pad, wb-entry-body(title, body))
+      let h = measure(inner).height
+      block(breakable: false, radius: ${wb.entryBox.borderRadius ?? 4}pt, clip: true, {
+        place(image(bg-image, width: size.width, height: h, fit: "cover"))
+        place(rect(width: size.width, height: h, fill: white.transparentize(22%)))
+        inner
+      })
+    })
+  } else {
+    block(width: 100%, fill: fill, inset: if panel { pad } else { 0pt }, radius: if panel { ${wb.entryBox.borderRadius ?? 4}pt } else { 0pt }, wb-entry-body(title, body))
+  })
+}`,
       `#let wb-tab(title, body) = {
   block(sticky: true, above: 8pt, below: 4pt)[#text(${typstTextArgs(wb.tabHeading)})[#title]]
   body

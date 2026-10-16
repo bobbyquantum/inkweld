@@ -5,10 +5,7 @@ import {
 } from '@components/image-paste/image-paste-plugin';
 import { firstResultSequential, forEachSequential } from '@inkweld/async';
 import { type Element, ElementType } from '@inkweld/index';
-import {
-  type BackgroundSetting,
-  isBackgroundEmpty,
-} from '@models/element-appearance';
+import { type BackgroundSetting } from '@models/element-appearance';
 import {
   createDefaultPublishStyles,
   type PublishStyles,
@@ -45,6 +42,11 @@ import { chapterHeadingFor, withChapterHeading } from './chapter-heading';
 import { flattenConversation } from './conversation-publish';
 import { IconSvgService } from './icon-svg.service';
 import { PublishCssEmitterService } from './publish-css-emitter.service';
+import {
+  packFieldRows,
+  printBackground,
+  splitLongText,
+} from './publish-entry-format';
 import { shrinkImageToJpeg } from './publish-image-shrink';
 import { PublishStyleResolverService } from './publish-style-resolver.service';
 import { countHtmlWords } from './publish-word-count';
@@ -664,27 +666,24 @@ export class HtmlGeneratorService {
   private async resolveEntryBackground(
     setting: BackgroundSetting | undefined
   ): Promise<{ css: string; isImage: boolean } | null> {
-    if (!setting || isBackgroundEmpty(setting)) return null;
-    const value =
-      setting.mode === 'manual' ? setting.light || setting.dark : setting.value;
-    if (!value) return null;
-    switch (setting.type) {
+    // The light-theme look, auto-adjusted exactly as in the editor.
+    const background = printBackground(setting);
+    if (!background) return null;
+    switch (background.type) {
       case 'color': {
-        const color = sanitizeCssColor(value);
+        const color = sanitizeCssColor(background.color);
         return color ? { css: color, isImage: false } : null;
       }
       case 'gradient': {
-        const gradient = sanitizeCssGradient(value);
+        const gradient = sanitizeCssGradient(background.css);
         return gradient ? { css: gradient, isImage: false } : null;
       }
       case 'image': {
-        const href = await this.resolveImageHref(value);
+        const href = await this.resolveImageHref(background.src);
         return href
           ? { css: `url("${href.replaceAll('"', '%22')}")`, isImage: true }
           : null;
       }
-      default:
-        return null;
     }
   }
 
@@ -723,12 +722,23 @@ export class HtmlGeneratorService {
       );
     }
     parts.push('</header>');
+    // The image sits beside the description (centred on its own when there
+    // is none), as in the PDF.
     if (imageHref) {
+      const introClass = entry.description
+        ? 'ink-wb-entry-intro'
+        : 'ink-wb-entry-intro ink-wb-entry-intro-image-only';
       parts.push(
+        `<div class="${introClass}">`,
         `<img class="ink-wb-entry-image" src="${esc(imageHref)}" alt="${esc(entry.title)}" loading="lazy" />`
       );
-    }
-    if (entry.description) {
+      if (entry.description) {
+        parts.push(
+          `<p class="ink-wb-entry-description">${esc(entry.description)}</p>`
+        );
+      }
+      parts.push('</div>');
+    } else if (entry.description) {
       parts.push(
         `<p class="ink-wb-entry-description">${esc(entry.description)}</p>`
       );
@@ -741,9 +751,13 @@ export class HtmlGeneratorService {
         `<h4 class="ink-wb-tab-heading">${this.renderIcon(tab.icon)}${esc(tab.label)}</h4>`,
         '<dl class="ink-wb-fields">'
       );
-      for (const f of tab.fields) {
-        parts.push(this.renderWorldbuildingField(f));
-      }
+      const spans = tab.fields.map(f => fieldSpanOf(f));
+      const starts = packFieldRows(spans);
+      tab.fields.forEach((f, index) => {
+        // A full-width field starts its own row in CSS anyway.
+        const rowStart = starts[index] > 0 && spans[index] < 12;
+        parts.push(this.renderWorldbuildingField(f, rowStart));
+      });
       parts.push('</dl>', '</section>');
     }
     parts.push('</article>');
@@ -755,7 +769,10 @@ export class HtmlGeneratorService {
    * sized by the schema's layout span. Relationship values link to the
    * target's page when the current export has one.
    */
-  private renderWorldbuildingField(f: RenderedWorldbuildingField): string {
+  private renderWorldbuildingField(
+    f: RenderedWorldbuildingField,
+    rowStart = false
+  ): string {
     const esc = (v: string): string => this.escapeHtml(v);
     const span = Number(f.span);
     const spanClass =
@@ -776,15 +793,47 @@ export class HtmlGeneratorService {
         })
         .join(', ');
     } else {
-      value = esc(f.displayValue);
+      value = this.longTextHtml(f) ?? esc(f.displayValue);
     }
+    // Starts a new grid row even though it would fit on this one, so a run
+    // of same-width fields (ability scores) stays together.
+    const rowClass = rowStart ? ' ink-wb-row-start' : '';
 
     return [
-      `<div class="ink-wb-field${typeClass}${spanClass}">`,
+      `<div class="ink-wb-field${typeClass}${spanClass}${rowClass}">`,
       `<dt class="ink-wb-field-label">${esc(f.label)}</dt>`,
       `<dd class="ink-wb-field-value">${value}</dd>`,
       '</div>',
     ].join('');
+  }
+
+  /**
+   * A multi-line long-text value as paragraphs and bullets, with stat-block
+   * lead-ins ("Gaff Hook.") in bold italic; null for any other value.
+   */
+  private longTextHtml(f: RenderedWorldbuildingField): string | null {
+    const lines = f.type === 'textarea' ? splitLongText(f.displayValue) : null;
+    if (!lines) return null;
+    const esc = (v: string): string => this.escapeHtml(v);
+    const out: string[] = [];
+    let inList = false;
+    for (const line of lines) {
+      if (line.kind === 'bullet') {
+        if (!inList) out.push('<ul>');
+        inList = true;
+        out.push(`<li>${esc(line.text)}</li>`);
+        continue;
+      }
+      if (inList) out.push('</ul>');
+      inList = false;
+      out.push(
+        line.lead
+          ? `<p><strong><em>${esc(line.lead)}</em></strong> ${esc(line.text)}</p>`
+          : `<p>${esc(line.text)}</p>`
+      );
+    }
+    if (inList) out.push('</ul>');
+    return `<div class="ink-wb-long">${out.join('')}</div>`;
   }
 
   /**
@@ -901,6 +950,19 @@ export class HtmlGeneratorService {
   ): Promise<string> {
     const parts: string[] = [];
     const children = this.getChildElements(element, elements);
+    // A folder of worldbuilding entries (NPCs, Locations…) is titled with
+    // its name, as in the PDF. Folders of documents bring their own
+    // chapter headings.
+    if (
+      children.length > 0 &&
+      children.every(child => isWorldbuildingType(child.type))
+    ) {
+      const anchor = this.uniqueHeadingId(element.name);
+      this.renderedHeadings.push({ level: 1, id: anchor, text: element.name });
+      parts.push(
+        `<h2 class="ink-wb-section-title" id="${anchor}">${this.escapeHtml(element.name)}</h2>`
+      );
+    }
     // Sequential: sections keep the project's reading order.
     await forEachSequential(children, async child => {
       if (
@@ -1732,4 +1794,10 @@ ${body}
     );
     return `${safeName || 'document'}.html`;
   }
+}
+
+/** Columns (of 12) a field spans: its schema span, or the full width. */
+function fieldSpanOf(f: RenderedWorldbuildingField): number {
+  const n = Number(f.span);
+  return Number.isInteger(n) && n >= 1 && n <= 12 ? n : 12;
 }

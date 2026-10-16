@@ -85,7 +85,8 @@ describe('PublishTypstEmitterService', () => {
         s.page.size = 'us-letter';
       });
       expect(out).toContain('paper: "us-letter"');
-      expect(out).not.toContain('width:');
+      const pageSetup = out.slice(0, out.indexOf(')') + 1);
+      expect(pageSetup).not.toContain('width:');
     });
 
     it('emits explicit width/height for us-trade (custom)', () => {
@@ -438,14 +439,23 @@ describe('PublishTypstEmitterService', () => {
     it('does not box entries in print', () => {
       const out = emit();
       const entry = out.slice(
-        out.indexOf('#let wb-entry'),
+        out.indexOf('#let wb-entry('),
         out.indexOf('#let wb-tab')
       );
       expect(entry).toContain(
-        '#let wb-entry(title, body, fill: none) = block(fill: fill, inset: if fill == none { 0pt }'
+        '#let wb-entry(title, body, fill: none, bg-image: none) = {'
       );
-      // The block itself has no border; only the title rule has a stroke.
-      expect(entry.split('\n')[0]).not.toContain('stroke:');
+      // A panel (fill or image) is padded; a plain entry is not boxed.
+      expect(entry).toContain('inset: if panel { pad } else { 0pt }');
+      expect(entry).not.toContain('stroke:');
+    });
+
+    it('sets an image background behind the entry under a light veil', () => {
+      const out = emit();
+      expect(out).toContain(
+        'place(image(bg-image, width: size.width, height: h, fit: "cover"))'
+      );
+      expect(out).toContain('fill: white.transparentize(22%)');
     });
 
     it('draws no rule under entry titles when borderWidth is zero/unset', () => {

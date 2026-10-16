@@ -30,11 +30,7 @@ import { LoggerService } from '../core/logger.service';
 import { LocalStorageService } from '../local/local-storage.service';
 import { DocumentService } from '../project/document.service';
 import { ProjectStateService } from '../project/project-state.service';
-import {
-  BUNDLED_TYPST_FONT_URLS,
-  packFieldRows,
-  statBlockLeadIn,
-} from './pdf-generator.service';
+import { BUNDLED_TYPST_FONT_URLS } from './pdf-generator.service';
 import {
   PdfGeneratorService,
   PdfPhase,
@@ -1546,7 +1542,7 @@ describe('PdfGeneratorService', () => {
           title: 'Tinted',
           layout: 'card',
           appearance: {
-            content: { type: 'color', mode: 'auto', value: '#f4ecd8' },
+            content: { type: 'color', mode: 'manual', light: '#f4ecd8' },
           },
           tabs: [],
         } as unknown as RenderedWorldbuildingEntry,
@@ -1659,53 +1655,6 @@ describe('PdfGeneratorService', () => {
         '#grid(columns: (34%, 1fr), column-gutter: 10pt, align: (top, horizon), image("/images/img-1.png", width: 100%), [#emph[Kindly old salt-wife.]])'
       );
     });
-  });
-});
-
-describe('packFieldRows', () => {
-  it('starts a field that does not fit on a new row', () => {
-    expect(packFieldRows([8, 6])).toEqual([0, 4]);
-  });
-
-  it('keeps a run of same-width fields together on a fresh row', () => {
-    // Speed (3) then six ability scores (2 each): the scores start a new row
-    // rather than splitting four and two.
-    expect(packFieldRows([3, 2, 2, 2, 2, 2, 2])).toEqual([0, 9, 0, 0, 0, 0, 0]);
-  });
-
-  it('lets a run too wide for one row follow on as usual', () => {
-    expect(packFieldRows([6, 4, 4, 4, 4])).toEqual([0, 0, 2, 0, 0]);
-  });
-
-  it('packs full-width fields one per row', () => {
-    expect(packFieldRows([12, 12])).toEqual([0, 0]);
-  });
-});
-
-describe('statBlockLeadIn', () => {
-  it('splits a stat-block name from its text', () => {
-    expect(
-      statBlockLeadIn('Gaff Hook. Melee Weapon Attack: +3 to hit.')
-    ).toEqual({
-      name: 'Gaff Hook.',
-      rest: 'Melee Weapon Attack: +3 to hit.',
-    });
-    expect(
-      statBlockLeadIn('Drown (Recharge 5-6). One creature grappled…')
-    )?.toBeTruthy();
-    expect(statBlockLeadIn('The Black Tide. On the night…')?.name).toBe(
-      'The Black Tide.'
-    );
-  });
-
-  it('leaves ordinary sentences alone', () => {
-    expect(statBlockLeadIn('He left. Then the tide came in.')).toBeNull();
-    expect(
-      statBlockLeadIn(
-        'Requires attunement by a creature that has drowned and returned. Lit, it shines.'
-      )
-    ).toBeNull();
-    expect(statBlockLeadIn('No full stop here')).toBeNull();
   });
 });
 
