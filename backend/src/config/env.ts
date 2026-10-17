@@ -113,7 +113,7 @@ export const config = {
   // Server
   port: Number.parseInt(process.env.PORT || '8333', 10),
   nodeEnv: process.env.NODE_ENV || 'development',
-  version: process.env.INKWELD_VERSION || '0.1.0',
+  version: process.env.INKWELD_VERSION || '1.0.0-beta.1', // x-release-please-version
 
   // Logging
   // LOG_LEVEL: 'debug' | 'info' | 'warn' | 'error' | 'none'

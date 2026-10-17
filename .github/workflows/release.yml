@@ -1,23 +1,150 @@
 name: Release
 
+# Builds and publishes the multi-arch (amd64 + arm64) Docker image for a
+# release tag: ghcr.io/<owner>/inkweld:{X.Y.Z, X.Y, X, latest} for a stable
+# release, :{X.Y.Z-beta.N, beta} for a pre-release. Until the first stable
+# release exists, pre-releases also move :latest, which the docs point at.
+#
+# - release-please.yml calls this after it creates a release. Tags that
+#   release-please pushes with GITHUB_TOKEN never trigger other workflows, so
+#   the tag push below does not fire for them and nothing is built twice.
+# - Pushing a v* tag by hand (used for v1.0.0-beta.1) runs it directly.
+#
+# The GitHub release itself is created by release-please, or by hand for a
+# manually pushed tag; creating one does not trigger this workflow.
+#
+# Same layout as CI's :dev image: the frontend is built once, each
+# architecture is built on a native runner and pushed by digest, and a final
+# job joins the digests into one tagged manifest list.
+
 on:
-  release:
-    types: [published]
+  workflow_call:
+    inputs:
+      tag:
+        description: "Release tag to build, e.g. v1.0.1"
+        required: true
+        type: string
   push:
     tags:
       - "v*"
 
 permissions:
   contents: read
-  packages: write
+
+env:
+  IMAGE: ghcr.io/${{ github.repository_owner }}/inkweld
 
 jobs:
-  docker-release:
+  prepare:
+    name: Validate tag
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+      floating: ${{ steps.tag.outputs.floating }}
+      prerelease_latest: ${{ steps.tag.outputs.prerelease_latest }}
+    steps:
+      - name: Validate release tag
+        id: tag
+        env:
+          # Under workflow_call the github context belongs to the caller (a
+          # push to main), so the tag comes from the input, not github.ref_name.
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::'$RELEASE_TAG' is not a release tag (expected vMAJOR.MINOR.PATCH)"
+            exit 1
+          fi
+          echo "tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
+          # The floating tag that follows this release line: latest for a
+          # stable release, the channel for a pre-release (v1.0.0-beta.2 -> beta).
+          if [[ "$RELEASE_TAG" == *-* ]]; then
+            channel="${RELEASE_TAG#*-}"
+            echo "floating=${channel%%.*}" >> "$GITHUB_OUTPUT"
+            # Until there is a stable vX.Y.Z tag, :latest follows pre-releases.
+            stable_tags="$(gh api --paginate "repos/${GITHUB_REPOSITORY}/git/matching-refs/tags/v" \
+              --jq '.[].ref | select(test("^refs/tags/v[0-9]+\\.[0-9]+\\.[0-9]+$"))')"
+            if [[ -z "$stable_tags" ]]; then
+              echo "prerelease_latest=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "prerelease_latest=false" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            echo "floating=latest" >> "$GITHUB_OUTPUT"
+            echo "prerelease_latest=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  # The frontend output is platform-agnostic, so build it once.
+  frontend:
+    name: Build frontend
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [prepare]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: refs/tags/${{ needs.prepare.outputs.tag }}
+          persist-credentials: false
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version-file: package.json
+
+      - name: Install dependencies
+        # Workspace-root install; also runs the frontend postinstall (fonts,
+        # font licences, CHANGELOG.md for the in-app changelog).
+        run: bun install --frozen-lockfile
+
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          bun run build
+          node scripts/compress-wasm.js
+          git rev-parse --short HEAD > dist/browser/assets/version.txt
+
+      - name: Upload frontend dist
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: release-frontend-dist
+          path: frontend/dist
+          retention-days: 1
+
+  image:
+    name: Build Docker (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    needs: [prepare, frontend]
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - arch: amd64
+            platform: linux/amd64
+            runner: ubuntu-latest
+          - arch: arm64
+            platform: linux/arm64
+            runner: ubuntu-26.04-arm
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: refs/tags/${{ needs.prepare.outputs.tag }}
+          persist-credentials: false
+
+      - name: Download frontend dist
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: release-frontend-dist
+          path: frontend/dist
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
@@ -29,25 +156,98 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata
+      - name: Extract labels
         id: meta
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6
         with:
-          images: ghcr.io/${{ github.repository_owner }}/inkweld
+          images: ${{ env.IMAGE }}
           tags: |
-            type=ref,event=tag
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
-            type=raw,value=latest
+            type=semver,pattern={{version}},value=${{ needs.prepare.outputs.tag }}
 
-      - name: Build and push Docker image
+      - name: Build and push by digest
+        id: build
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
           context: .
           file: Dockerfile
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
+          platforms: ${{ matrix.platform }}
+          build-args: FRONTEND_PREBUILT=true
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true
+          cache-from: type=gha,scope=${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.arch }}
+          provenance: false
+
+      - name: Export digest
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/digests"
+          touch "$RUNNER_TEMP/digests/${DIGEST#sha256:}"
+
+      - name: Upload digest
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: release-digest-${{ matrix.arch }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  manifest:
+    name: Publish multi-arch manifest
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [prepare, image]
+    permissions:
+      packages: write
+
+    steps:
+      - name: Download digests
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          path: ${{ runner.temp }}/digests
+          pattern: release-digest-*
+          merge-multiple: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract tags
+        id: meta
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6
+        with:
+          images: ${{ env.IMAGE }}
+          # v1.2.3 -> 1.2.3, 1.2, 1 and latest. A pre-release such as
+          # v1.3.0-beta.2 gets its full version (semver skips the short forms
+          # itself) and its channel (beta), plus latest only while no stable
+          # release exists.
+          flavor: |
+            latest=false
+          tags: |
+            type=semver,pattern={{version}},value=${{ needs.prepare.outputs.tag }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ needs.prepare.outputs.tag }}
+            type=semver,pattern={{major}},value=${{ needs.prepare.outputs.tag }}
+            type=raw,value=${{ needs.prepare.outputs.floating }}
+            type=raw,value=latest,enable=${{ needs.prepare.outputs.prerelease_latest == 'true' }}
+
+      - name: Create and push manifest list
+        working-directory: ${{ runner.temp }}/digests
+        run: |
+          mapfile -t tag_args < <(jq -r '.tags[] | "--tag=" + .' <<< "$DOCKER_METADATA_OUTPUT_JSON")
+          sources=()
+          for digest in *; do
+            sources+=("${IMAGE}@sha256:${digest}")
+          done
+          docker buildx imagetools create "${tag_args[@]}" "${sources[@]}"
+
+      - name: Inspect image
+        env:
+          VERSION: ${{ steps.meta.outputs.version }}
+        run: docker buildx imagetools inspect "${IMAGE}:${VERSION}"

@@ -147,7 +147,7 @@ You should see:
   "status": "ok",
   "timestamp": "2026-01-01T12:00:00.000Z",
   "uptime": 1.23,
-  "version": "0.1.0",
+  "version": "1.0.0-beta.1",
   "protocolVersion": 1,
   "minClientVersion": "0.1.0"
 }

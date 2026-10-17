@@ -10,6 +10,30 @@ export interface ChangelogVersion {
   isUnreleased: boolean;
 }
 
+/**
+ * Version headings (the text after `## `) the changelog may contain:
+ * - Keep a Changelog: `[1.0.0] - 2025-01-01` or `[Unreleased]`
+ * - release-please: `[1.0.1](https://…/compare/v1.0.0...v1.0.1) (2026-10-10)`
+ * - release-please without a previous tag: `1.0.1 (2026-10-10)`
+ */
+const VERSION_HEADER_PATTERNS = [
+  /^\[([^\]]+)\](?: - (.+))?$/,
+  /^\[([^\]]+)\]\([^)\s]*\)(?: \(([^)]+)\))?$/,
+  /^(\d+\.\d+\.\d+(?:-[\dA-Za-z.-]+)?)(?: \(([^)]+)\))?$/,
+];
+
+function parseVersionHeader(
+  header: string
+): { version: string; date: string } | null {
+  for (const pattern of VERSION_HEADER_PATTERNS) {
+    const match = pattern.exec(header);
+    if (match) {
+      return { version: match[1], date: match[2] ?? '' };
+    }
+  }
+  return null;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -39,12 +63,10 @@ export class ChangelogService {
         .replace(/---\s*$/, '')
         .trim();
 
-      // Match [version] - date or [Unreleased]
-      const versionMatch = /^\[([^\]]+)\](?: - (.*))?$/.exec(header);
+      const parsed = parseVersionHeader(header);
 
-      if (versionMatch) {
-        const version = versionMatch[1];
-        const date = versionMatch[2] || '';
+      if (parsed) {
+        const { version, date } = parsed;
         const isUnreleased = version.toLowerCase() === 'unreleased';
 
         versions.push({
