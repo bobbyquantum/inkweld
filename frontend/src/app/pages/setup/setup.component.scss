@@ -181,23 +181,49 @@
   color: inherit; // Inherit color for proper theming
 }
 
-// Theme roles rather than fixed colours, so the filled button keeps its
-// contrast against the translucent card in both light and dark mode.
+// An M3 filled button. The whole card is the real <button>, so this is a
+// span drawn to the filled-button spec: 40px tall, fully rounded, label-large,
+// primary / on-primary, with the 8% state layer and level-1 elevation on hover.
 .option-button {
-  display: inline-block;
-  padding: 12px 24px;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  padding: 0 24px;
+  border-radius: 20px;
+  overflow: hidden;
   background: var(--sys-primary);
   color: var(--sys-on-primary);
-  border-radius: 8px;
+  font-size: 14px;
   font-weight: 500;
-  transition:
-    background-color 0.3s ease,
-    color 0.3s ease;
+  line-height: 20px;
+  letter-spacing: 0.1px;
+  transition: box-shadow 150ms linear;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: currentColor;
+    opacity: 0;
+    transition: opacity 150ms linear;
+  }
 }
 
 .option-card:hover .option-button {
-  background: var(--sys-primary-container);
-  color: var(--sys-on-primary-container);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.3),
+    0 1px 3px 1px rgba(0, 0, 0, 0.15);
+
+  &::before {
+    opacity: 0.08;
+  }
+}
+
+.option-card:focus-visible .option-button::before,
+.option-card:active .option-button::before {
+  opacity: 0.1;
 }
 
 .setup-form {
@@ -388,16 +414,23 @@ mat-divider[vertical] {
   }
 }
 
-.theme-toggle-container {
+.setup-corner-controls {
   position: fixed;
-  bottom: 20px;
   right: 20px;
+  bottom: 20px;
+  left: 20px;
   z-index: 100;
   display: flex;
   flex-wrap: wrap;
-  justify-content: flex-end;
+  justify-content: space-between;
   align-items: center;
   gap: 8px;
+  // The bar spans the page; only its controls take clicks.
+  pointer-events: none;
+
+  > * {
+    pointer-events: auto;
+  }
 }
 
 @media (max-width: 768px) {
@@ -449,8 +482,6 @@ mat-divider[vertical] {
     grid-area: action;
     justify-self: start;
     margin-top: 6px;
-    padding: 8px 16px;
-    font-size: 14px;
   }
 
   .setup-footnote {
@@ -469,11 +500,13 @@ mat-divider[vertical] {
     padding: 12px;
   }
 
-  .theme-toggle-container {
+  .setup-corner-controls {
     position: relative;
-    bottom: auto;
     right: auto;
+    bottom: auto;
+    left: auto;
     z-index: 1;
+    width: 100%;
   }
 
   .setup-card mat-card-title {

@@ -1,141 +1,45 @@
-// An M3 connected button group: segments sit 2px apart with fully rounded
-// outer corners and small inner corners; the selected segment morphs into a
-// full pill and takes the primary colour.
+// The segmented button is Angular Material's button toggle, which the M3
+// theme draws as an M3 segmented button: outlined, fully rounded ends, the
+// selected segment filled with secondary-container and marked with a check.
+// Keep its look; only the surfaces below change for /setup.
 .ai-preference {
-  --ai-choice-height: 40px;
-  --ai-choice-inner-radius: 8px;
-  --ai-choice-padding: 16px;
-
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.ai-choice {
-  display: inline-flex;
-  gap: 2px;
-  min-width: 0;
-  margin: 0;
-  padding: 0;
-  border: none;
-}
-
-// Visually hidden: the legend names the group for screen readers, and the
-// radios do the work while the labels draw the buttons.
-.ai-choice__legend,
-.ai-choice__input {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  padding: 0;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-  border: 0;
-}
-
-.ai-choice__option {
-  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  height: var(--ai-choice-height);
-  padding: 0 var(--ai-choice-padding);
-  border: none;
-  border-radius: var(--ai-choice-inner-radius);
-  overflow: hidden;
-  cursor: pointer;
-  background: var(--sys-surface-container-highest);
-  color: var(--sys-on-surface-variant);
-  font-family: inherit;
-  font-size: 14px;
-  font-weight: 500;
-  letter-spacing: 0.1px;
-  white-space: nowrap;
-  transition:
-    border-radius 250ms cubic-bezier(0.2, 0, 0, 1),
-    background-color 150ms linear,
-    color 150ms linear;
-
-  &:first-child {
-    border-top-left-radius: calc(var(--ai-choice-height) / 2);
-    border-bottom-left-radius: calc(var(--ai-choice-height) / 2);
-  }
-
-  &:last-child {
-    border-top-right-radius: calc(var(--ai-choice-height) / 2);
-    border-bottom-right-radius: calc(var(--ai-choice-height) / 2);
-  }
-
-  // M3 state layer.
-  &::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: currentColor;
-    opacity: 0;
-    transition: opacity 150ms linear;
-    pointer-events: none;
-  }
-
-  &:hover::before {
-    opacity: 0.08;
-  }
-
-  &:has(:focus-visible) {
-    outline: 3px solid var(--sys-secondary);
-    outline-offset: 2px;
-  }
-
-  &:has(:focus-visible)::before,
-  &:active::before {
-    opacity: 0.1;
-  }
-
-  mat-icon {
-    width: 18px;
-    height: 18px;
-    font-size: 18px;
-  }
 }
 
-.ai-choice__option--selected {
-  border-radius: calc(var(--ai-choice-height) / 2);
-  background: var(--sys-primary);
-  color: var(--sys-on-primary);
+.ai-choice {
+  --mat-button-toggle-height: 40px;
 }
 
-// /setup: the theme selector's frosted pill (8px padding around 32px
-// buttons), so the two sit side by side at the same height.
-.ai-preference--pill {
-  --ai-choice-height: 32px;
-  --ai-choice-inner-radius: 4px;
-  --ai-choice-padding: 12px;
+.ai-preference__help {
+  --mat-icon-button-state-layer-size: 40px;
 
   padding: 8px;
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(12px) saturate(180%);
-  -webkit-backdrop-filter: blur(12px) saturate(180%);
-  border-radius: 24px;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
 
-  .dark-theme & {
-    background: rgba(18, 18, 20, 0.85);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+// /setup: frosted surfaces, so the outlined segments and the icon stay
+// readable over the background image. Built from the theme's surface colour
+// so they follow light and dark (including "follow system").
+.ai-preference--floating {
+  --ai-frosted-surface: color-mix(
+    in srgb,
+    var(--sys-surface-container) 82%,
+    transparent
+  );
+
+  .ai-choice,
+  .ai-preference__help {
+    backdrop-filter: blur(12px) saturate(180%);
+    -webkit-backdrop-filter: blur(12px) saturate(180%);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  }
+
+  .ai-choice {
+    --mat-button-toggle-background-color: var(--ai-frosted-surface);
   }
 
   .ai-preference__help {
-    color: rgba(0, 0, 0, 0.7);
-
-    .dark-theme & {
-      color: rgba(255, 255, 255, 0.8);
-    }
-
-    &:hover {
-      color: var(--sys-primary);
-    }
+    background: var(--ai-frosted-surface);
   }
 }

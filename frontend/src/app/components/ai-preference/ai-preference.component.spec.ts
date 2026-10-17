@@ -44,37 +44,37 @@ describe('AiPreferenceComponent', () => {
       `[data-testid="${testId}"]`
     )!;
 
-  const radio = (testId: string): HTMLInputElement =>
-    query(testId).querySelector('input')!;
+  /** The segment's button: the M3 button toggle is a radio in a group. */
+  const segment = (testId: string): HTMLButtonElement =>
+    query(testId).querySelector('button')!;
+
+  const checked = (testId: string): boolean =>
+    segment(testId).getAttribute('aria-checked') === 'true';
 
   it('starts on No AI', () => {
-    expect(radio('ai-preference-none').checked).toBe(true);
-    expect(radio('ai-preference-allow').checked).toBe(false);
+    expect(checked('ai-preference-none')).toBe(true);
+    expect(checked('ai-preference-allow')).toBe(false);
   });
 
   it('switches between Allow AI and No AI', async () => {
-    radio('ai-preference-allow').click();
+    segment('ai-preference-allow').click();
     await settle();
     expect(setAiAllowed).toHaveBeenLastCalledWith(true);
-    expect(radio('ai-preference-allow').checked).toBe(true);
-    expect(query('ai-preference-allow').classList).toContain(
-      'ai-choice__option--selected'
-    );
+    expect(checked('ai-preference-allow')).toBe(true);
 
-    radio('ai-preference-none').click();
+    segment('ai-preference-none').click();
     await settle();
     expect(setAiAllowed).toHaveBeenLastCalledWith(false);
+    expect(checked('ai-preference-none')).toBe(true);
   });
 
-  it('is a native radio group, named for screen readers', () => {
-    const none = radio('ai-preference-none');
-    const allow = radio('ai-preference-allow');
-    expect(none.type).toBe('radio');
-    expect(none.name).toBe(allow.name);
-    expect(
-      (fixture.nativeElement as HTMLElement).querySelector('legend')
-        ?.textContent
-    ).toContain('AI');
+  it('is a single-choice group named for screen readers', () => {
+    const group = (fixture.nativeElement as HTMLElement).querySelector(
+      'mat-button-toggle-group'
+    )!;
+    expect(group.getAttribute('role')).toBe('radiogroup');
+    expect(group.getAttribute('aria-label')).toBe('AI');
+    expect(segment('ai-preference-none').getAttribute('role')).toBe('radio');
   });
 
   it('explains the choice from the help button', () => {
@@ -85,9 +85,11 @@ describe('AiPreferenceComponent', () => {
     );
   });
 
-  it('draws the setup pill', async () => {
-    fixture.componentRef.setInput('pill', true);
+  it('draws frosted surfaces for /setup', async () => {
+    fixture.componentRef.setInput('floating', true);
     await settle();
-    expect(query('ai-preference').classList).toContain('ai-preference--pill');
+    expect(query('ai-preference').classList).toContain(
+      'ai-preference--floating'
+    );
   });
 });
