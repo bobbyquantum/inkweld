@@ -15,7 +15,7 @@ This is separate from the [server MCP endpoint](./mcp-oauth.md): that one serves
 
 ## Turning it on
 
-WebMCP is **off by default**, like every AI feature in Inkweld. It follows the user's own **No AI / Allow AI** choice (`SettingsService.aiAllowed`), which defaults to **No AI**. The user changes it in **Settings → General → AI**, or at the bottom of the first-run setup page, next to the theme selector. Setup shows it only in browsers that offer WebMCP, because before a server is chosen the browser's agent is the only AI there is to allow.
+WebMCP is **off by default**, like every AI feature in Inkweld. It follows the user's own **No AI / Allow AI** choice (`SettingsService.aiAllowed`), which defaults to **No AI**. The user changes it in **Settings → General → AI**, or at the bottom of the first-run setup page, next to the theme selector. The **?** next to the choice explains what Allow AI turns on and says whether the browser offers WebMCP.
 
 The same choice also controls the server's AI features (see [AI preference](../admin-guide/ai-kill-switch.md#user-ai-preference)). For WebMCP the server's kill switch does not apply: nothing goes through the server, the agent is the browser's, and Inkweld sends nothing to an AI provider. The choice is stored per browser (`inkweld-ai` localStorage key) and shared by every profile in it, because setup offers it before any profile exists.
 

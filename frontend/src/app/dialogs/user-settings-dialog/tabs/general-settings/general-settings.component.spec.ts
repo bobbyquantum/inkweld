@@ -6,7 +6,6 @@ import {
   PwaInstallService,
 } from '@services/core/pwa-install.service';
 import { TutorialService } from '@services/core/tutorial.service';
-import { WebMcpService } from '@services/webmcp/webmcp.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
@@ -19,7 +18,6 @@ describe('GeneralSettingsComponent', () => {
   let stored: Record<string, unknown>;
   const markdownShortcuts = signal(false);
   const aiAllowed = signal(false);
-  const webMcpSupported = signal(true);
   const installMode = signal<InstallMode>('none');
   const installed = signal(false);
   const install = vi.fn().mockResolvedValue(true);
@@ -28,7 +26,6 @@ describe('GeneralSettingsComponent', () => {
     stored = {};
     markdownShortcuts.set(false);
     aiAllowed.set(false);
-    webMcpSupported.set(true);
     installMode.set('none');
     installed.set(false);
     install.mockClear();
@@ -41,10 +38,6 @@ describe('GeneralSettingsComponent', () => {
         {
           provide: PwaInstallService,
           useValue: { mode: installMode, installed, install },
-        },
-        {
-          provide: WebMcpService,
-          useValue: { supported: webMcpSupported, refreshSupport: vi.fn() },
         },
         {
           provide: SettingsService,
@@ -142,7 +135,7 @@ describe('GeneralSettingsComponent', () => {
   describe('AI preference', () => {
     const toggle = (testId: string): HTMLButtonElement =>
       (fixture.nativeElement as HTMLElement).querySelector(
-        `[data-testid="${testId}"] button`
+        `[data-testid="${testId}"]`
       )!;
 
     it('offers No AI and Allow AI, starting on No AI', () => {
@@ -155,12 +148,6 @@ describe('GeneralSettingsComponent', () => {
       toggle('ai-preference-allow').click();
       await settle();
       expect(aiAllowed()).toBe(true);
-    });
-
-    it('is shown even in browsers without WebMCP', async () => {
-      webMcpSupported.set(false);
-      await settle();
-      expect(toggle('ai-preference-allow')).not.toBeNull();
     });
   });
 

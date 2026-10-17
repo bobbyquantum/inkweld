@@ -82,7 +82,7 @@ async function callOk(
 
 /** A segment of the No AI / Allow AI toggle. */
 function aiChoice(page: Page, choice: 'none' | 'allow') {
-  return page.getByTestId(`ai-preference-${choice}`).getByRole('radio');
+  return page.getByTestId(`ai-preference-${choice}`);
 }
 
 /** Choose No AI or Allow AI in Settings → General. */
@@ -212,6 +212,14 @@ test.describe('WebMCP', () => {
       'true'
     );
     await expect.poll(() => toolNames(page)).toContain('get_app_state');
+
+    await test.step('the help button explains the choice', async () => {
+      await page.getByTestId('ai-preference-help').click();
+      const dialog = page.getByTestId('ai-preference-info-dialog');
+      await expect(dialog).toContainText('This browser offers WebMCP');
+      await page.getByTestId('ai-preference-info-close').click();
+      await expect(dialog).toBeHidden();
+    });
 
     await test.step('the choice outlives setup and reloads', async () => {
       await page.getByTestId('local-mode-button').click();

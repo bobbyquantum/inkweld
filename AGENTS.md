@@ -529,7 +529,8 @@ user can do in the app. Docs: `docs/site/docs/developer/webmcp.md`.
 
 - **Follows the user's AI preference**: `SettingsService.aiAllowed`, the
   "No AI / Allow AI" choice (default No AI, `AiPreferenceComponent` in
-  Settings → General and, where WebMCP is available, on /setup). It is stored
+  Settings → General and on /setup, with a "?" that opens
+  `AiPreferenceInfoDialogComponent`). It is stored
   under the unprefixed `inkweld-ai` key so it is shared by every profile and
   can be chosen before one exists. The server's AI kill switch does not apply
   to WebMCP: no request goes to an AI provider, and the tools work in every

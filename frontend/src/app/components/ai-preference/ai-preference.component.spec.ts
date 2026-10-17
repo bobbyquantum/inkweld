@@ -1,7 +1,8 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
+import { MatDialog } from '@angular/material/dialog';
+import { AiPreferenceInfoDialogComponent } from '@dialogs/ai-preference-info-dialog/ai-preference-info-dialog.component';
 import { SettingsService } from '@services/core/settings.service';
-import { WebMcpService } from '@services/webmcp/webmcp.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
@@ -10,15 +11,13 @@ import { AiPreferenceComponent } from './ai-preference.component';
 describe('AiPreferenceComponent', () => {
   let fixture: ComponentFixture<AiPreferenceComponent>;
   const allowed = signal(false);
-  const supported = signal(true);
   const setAiAllowed = vi.fn((value: boolean) => allowed.set(value));
-  const refreshSupport = vi.fn();
+  const open = vi.fn();
 
   beforeEach(async () => {
     allowed.set(false);
-    supported.set(true);
     setAiAllowed.mockClear();
-    refreshSupport.mockClear();
+    open.mockClear();
     await TestBed.configureTestingModule({
       imports: [AiPreferenceComponent, translocoTestProvider()],
       providers: [
@@ -27,7 +26,7 @@ describe('AiPreferenceComponent', () => {
           provide: SettingsService,
           useValue: { aiAllowed: allowed, setAiAllowed },
         },
-        { provide: WebMcpService, useValue: { supported, refreshSupport } },
+        { provide: MatDialog, useValue: { open } },
       ],
     }).compileComponents();
     fixture = TestBed.createComponent(AiPreferenceComponent);
@@ -40,50 +39,63 @@ describe('AiPreferenceComponent', () => {
     fixture.detectChanges();
   }
 
-  const query = (testId: string): HTMLElement | null =>
-    (fixture.nativeElement as HTMLElement).querySelector(
+  const query = (testId: string): HTMLElement =>
+    (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>(
       `[data-testid="${testId}"]`
-    );
-
-  const button = (testId: string): HTMLButtonElement =>
-    query(testId)!.querySelector('button')!;
+    )!;
 
   const checked = (testId: string): boolean =>
-    button(testId).getAttribute('aria-checked') === 'true';
+    query(testId).getAttribute('aria-checked') === 'true';
 
   it('starts on No AI', () => {
     expect(checked('ai-preference-none')).toBe(true);
     expect(checked('ai-preference-allow')).toBe(false);
+    expect(query('ai-preference-none').tabIndex).toBe(0);
+    expect(query('ai-preference-allow').tabIndex).toBe(-1);
   });
 
   it('switches between Allow AI and No AI', async () => {
-    button('ai-preference-allow').click();
+    query('ai-preference-allow').click();
     await settle();
     expect(setAiAllowed).toHaveBeenLastCalledWith(true);
     expect(checked('ai-preference-allow')).toBe(true);
+    expect(query('ai-preference-allow').classList).toContain(
+      'ai-choice__option--selected'
+    );
 
-    button('ai-preference-none').click();
+    query('ai-preference-none').click();
     await settle();
     expect(setAiAllowed).toHaveBeenLastCalledWith(false);
   });
 
-  it('looks for WebMCP again when shown', () => {
-    expect(refreshSupport).toHaveBeenCalled();
+  it('moves the choice with the arrow keys, like a radio group', async () => {
+    const press = (testId: string, key: string): void => {
+      query(testId).dispatchEvent(new KeyboardEvent('keydown', { key }));
+    };
+    press('ai-preference-none', 'ArrowRight');
+    await settle();
+    expect(allowed()).toBe(true);
+    expect(document.activeElement).toBe(query('ai-preference-allow'));
+
+    press('ai-preference-allow', 'ArrowRight');
+    await settle();
+    expect(allowed()).toBe(false);
+
+    press('ai-preference-none', 'Enter');
+    expect(setAiAllowed).toHaveBeenCalledTimes(2);
   });
 
-  it('can be limited to browsers with WebMCP', async () => {
-    fixture.componentRef.setInput('onlyWithWebMcp', true);
-    await settle();
-    expect(query('ai-preference')).not.toBeNull();
-
-    supported.set(false);
-    await settle();
-    expect(query('ai-preference')).toBeNull();
+  it('explains the choice from the help button', () => {
+    query('ai-preference-help').click();
+    expect(open).toHaveBeenCalledWith(
+      AiPreferenceInfoDialogComponent,
+      expect.any(Object)
+    );
   });
 
   it('draws the setup pill', async () => {
     fixture.componentRef.setInput('pill', true);
     await settle();
-    expect(query('ai-preference')?.classList).toContain('ai-preference--pill');
+    expect(query('ai-preference').classList).toContain('ai-preference--pill');
   });
 });

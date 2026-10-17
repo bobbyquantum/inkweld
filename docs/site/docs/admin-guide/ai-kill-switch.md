@@ -138,7 +138,7 @@ The kill switch does not cover [WebMCP](/docs/developer/webmcp). WebMCP lets an 
 
 ## User AI preference
 
-On top of the kill switch, every user makes their own **No AI / Allow AI** choice in **Settings → General → AI** (also offered on the first-run setup page in browsers with WebMCP). It defaults to **No AI**, so AI in Inkweld is opt-in for each user as well as for the instance:
+On top of the kill switch, every user makes their own **No AI / Allow AI** choice in **Settings → General → AI** (also offered on the first-run setup page). It defaults to **No AI**, so AI in Inkweld is opt-in for each user as well as for the instance:
 
 | Kill switch | User's choice   | AI features for that user      |
 | ----------- | --------------- | ------------------------------ |
