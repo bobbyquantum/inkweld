@@ -14,6 +14,25 @@
 .ai-choice {
   display: inline-flex;
   gap: 2px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+// Visually hidden: the legend names the group for screen readers, and the
+// radios do the work while the labels draw the buttons.
+.ai-choice__legend,
+.ai-choice__input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
 
 .ai-choice__option {
@@ -64,12 +83,12 @@
     opacity: 0.08;
   }
 
-  &:focus-visible {
+  &:has(:focus-visible) {
     outline: 3px solid var(--sys-secondary);
     outline-offset: 2px;
   }
 
-  &:focus-visible::before,
+  &:has(:focus-visible)::before,
   &:active::before {
     opacity: 0.1;
   }

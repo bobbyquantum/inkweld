@@ -44,45 +44,37 @@ describe('AiPreferenceComponent', () => {
       `[data-testid="${testId}"]`
     )!;
 
-  const checked = (testId: string): boolean =>
-    query(testId).getAttribute('aria-checked') === 'true';
+  const radio = (testId: string): HTMLInputElement =>
+    query(testId).querySelector('input')!;
 
   it('starts on No AI', () => {
-    expect(checked('ai-preference-none')).toBe(true);
-    expect(checked('ai-preference-allow')).toBe(false);
-    expect(query('ai-preference-none').tabIndex).toBe(0);
-    expect(query('ai-preference-allow').tabIndex).toBe(-1);
+    expect(radio('ai-preference-none').checked).toBe(true);
+    expect(radio('ai-preference-allow').checked).toBe(false);
   });
 
   it('switches between Allow AI and No AI', async () => {
-    query('ai-preference-allow').click();
+    radio('ai-preference-allow').click();
     await settle();
     expect(setAiAllowed).toHaveBeenLastCalledWith(true);
-    expect(checked('ai-preference-allow')).toBe(true);
+    expect(radio('ai-preference-allow').checked).toBe(true);
     expect(query('ai-preference-allow').classList).toContain(
       'ai-choice__option--selected'
     );
 
-    query('ai-preference-none').click();
+    radio('ai-preference-none').click();
     await settle();
     expect(setAiAllowed).toHaveBeenLastCalledWith(false);
   });
 
-  it('moves the choice with the arrow keys, like a radio group', async () => {
-    const press = (testId: string, key: string): void => {
-      query(testId).dispatchEvent(new KeyboardEvent('keydown', { key }));
-    };
-    press('ai-preference-none', 'ArrowRight');
-    await settle();
-    expect(allowed()).toBe(true);
-    expect(document.activeElement).toBe(query('ai-preference-allow'));
-
-    press('ai-preference-allow', 'ArrowRight');
-    await settle();
-    expect(allowed()).toBe(false);
-
-    press('ai-preference-none', 'Enter');
-    expect(setAiAllowed).toHaveBeenCalledTimes(2);
+  it('is a native radio group, named for screen readers', () => {
+    const none = radio('ai-preference-none');
+    const allow = radio('ai-preference-allow');
+    expect(none.type).toBe('radio');
+    expect(none.name).toBe(allow.name);
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('legend')
+        ?.textContent
+    ).toContain('AI');
   });
 
   it('explains the choice from the help button', () => {

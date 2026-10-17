@@ -91,7 +91,7 @@ async function setAi(page: Page, allow: boolean): Promise<void> {
   await page.getByRole('tab', { name: /general settings/i }).click();
   const choice = aiChoice(page, allow ? 'allow' : 'none');
   await choice.click();
-  await expect(choice).toHaveAttribute('aria-checked', 'true');
+  await expect(choice.getByRole('radio')).toBeChecked();
   await page.getByTestId('settings-close-button').click();
 }
 
@@ -200,17 +200,11 @@ test.describe('WebMCP', () => {
     await page.goto('/setup');
     await page.getByTestId('setup-card').waitFor();
 
-    await expect(aiChoice(page, 'none')).toHaveAttribute(
-      'aria-checked',
-      'true'
-    );
+    await expect(aiChoice(page, 'none').getByRole('radio')).toBeChecked();
     expect(await toolNames(page)).toEqual([]);
 
     await aiChoice(page, 'allow').click();
-    await expect(aiChoice(page, 'allow')).toHaveAttribute(
-      'aria-checked',
-      'true'
-    );
+    await expect(aiChoice(page, 'allow').getByRole('radio')).toBeChecked();
     await expect.poll(() => toolNames(page)).toContain('get_app_state');
 
     await test.step('the help button explains the choice', async () => {
@@ -234,10 +228,7 @@ test.describe('WebMCP', () => {
 
       await openUserSettings(page);
       await page.getByRole('tab', { name: /general settings/i }).click();
-      await expect(aiChoice(page, 'allow')).toHaveAttribute(
-        'aria-checked',
-        'true'
-      );
+      await expect(aiChoice(page, 'allow').getByRole('radio')).toBeChecked();
     });
   });
 });

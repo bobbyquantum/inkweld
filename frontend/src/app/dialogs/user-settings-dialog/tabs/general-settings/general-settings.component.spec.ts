@@ -133,15 +133,13 @@ describe('GeneralSettingsComponent', () => {
   });
 
   describe('AI preference', () => {
-    const toggle = (testId: string): HTMLButtonElement =>
+    const toggle = (testId: string): HTMLInputElement =>
       (fixture.nativeElement as HTMLElement).querySelector(
-        `[data-testid="${testId}"]`
+        `[data-testid="${testId}"] input`
       )!;
 
     it('offers No AI and Allow AI, starting on No AI', () => {
-      expect(toggle('ai-preference-none').getAttribute('aria-checked')).toBe(
-        'true'
-      );
+      expect(toggle('ai-preference-none').checked).toBe(true);
     });
 
     it('records Allow AI', async () => {
