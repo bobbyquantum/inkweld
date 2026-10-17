@@ -198,6 +198,7 @@ describe('SettingsTabComponent', () => {
 
     systemConfigService = {
       isAiKillSwitchEnabled: signal(false), // AI enabled (kill switch OFF)
+      isAiOffForUser: signal(false), // and the user chose Allow AI
       isMcpEnabled: signal(true), // MCP access enabled
     };
 

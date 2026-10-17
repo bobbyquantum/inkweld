@@ -16,3 +16,8 @@
   font-size: 0.85rem;
   opacity: 0.7;
 }
+
+// Under the No AI / Allow AI toggle, which has no switch to indent past.
+.settings-section-hint--flush {
+  margin-left: 0;
+}

@@ -17,6 +17,7 @@ import { BackgroundService } from '@services/core/background.service';
 import { SetupService } from '@services/core/setup.service';
 import { UpdateService } from '@services/core/update.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
+import { WebMcpService } from '@services/webmcp/webmcp.service';
 import { Subject } from 'rxjs';
 import { type Mock, type MockedObject, vi } from 'vitest';
 
@@ -95,6 +96,7 @@ describe('AppComponent', () => {
         { provide: SetupService, useValue: setupService },
         { provide: BackgroundService, useValue: backgroundService },
         { provide: PolicyAcceptanceService, useValue: { start: vi.fn() } },
+        { provide: WebMcpService, useValue: { start: vi.fn() } },
         {
           provide: Configuration,
           useValue: {},

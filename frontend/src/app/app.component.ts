@@ -27,6 +27,7 @@ import { VersionCompatibilityService } from './services/core/version-compatibili
 import { ViewportService } from './services/core/viewport.service';
 import { BackgroundSyncService } from './services/local/background-sync.service';
 import { UnifiedUserService } from './services/user/unified-user.service';
+import { WebMcpService } from './services/webmcp/webmcp.service';
 
 @Component({
   selector: 'app-root',
@@ -57,6 +58,7 @@ export class AppComponent implements OnInit {
   private readonly cloudSync = inject(CloudSyncEngineService);
   private readonly backgroundService = inject(BackgroundService);
   private readonly policyAcceptance = inject(PolicyAcceptanceService);
+  private readonly webMcp = inject(WebMcpService);
   protected readonly router = inject(Router);
 
   // Track if we ever had a real authenticated user session
@@ -91,6 +93,8 @@ export class AppComponent implements OnInit {
     this.localeService.init();
     this.updateService.initialize();
     this.pwaInstall.initialize();
+    // Registers WebMCP tools for browser AI agents once the user opts in.
+    this.webMcp.start();
     void this.initializeApp();
   }
 

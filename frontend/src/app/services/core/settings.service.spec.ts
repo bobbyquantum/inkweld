@@ -228,6 +228,28 @@ describe('SettingsService', () => {
     });
   });
 
+  describe('setAiAllowed', () => {
+    it('defaults to No AI when nothing is stored', () => {
+      expect(service.aiAllowed()).toBe(false);
+    });
+
+    it('honours a stored Allow AI', () => {
+      localStorageMock['inkweld-ai'] = 'allow';
+      expect(createService().aiAllowed()).toBe(true);
+    });
+
+    it('stores the choice for the browser, outside any profile', () => {
+      service.setAiAllowed(true);
+      expect(service.aiAllowed()).toBe(true);
+      expect(localStorageMock['inkweld-ai']).toBe('allow');
+      expect(localStorageMock['userSettings']).toBeUndefined();
+
+      service.setAiAllowed(false);
+      expect(service.aiAllowed()).toBe(false);
+      expect(localStorageMock['inkweld-ai']).toBeUndefined();
+    });
+  });
+
   describe('setDenseLayout', () => {
     it('defaults the signal to true (dense) when nothing is stored', () => {
       expect(service.denseLayout()).toBe(true);

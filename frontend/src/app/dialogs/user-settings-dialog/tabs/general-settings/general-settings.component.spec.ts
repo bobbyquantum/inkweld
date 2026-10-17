@@ -17,6 +17,7 @@ describe('GeneralSettingsComponent', () => {
   let tutorial: TutorialService;
   let stored: Record<string, unknown>;
   const markdownShortcuts = signal(false);
+  const aiAllowed = signal(false);
   const installMode = signal<InstallMode>('none');
   const installed = signal(false);
   const install = vi.fn().mockResolvedValue(true);
@@ -24,6 +25,7 @@ describe('GeneralSettingsComponent', () => {
   beforeEach(async () => {
     stored = {};
     markdownShortcuts.set(false);
+    aiAllowed.set(false);
     installMode.set('none');
     installed.set(false);
     install.mockClear();
@@ -45,6 +47,10 @@ describe('GeneralSettingsComponent', () => {
             markdownShortcuts,
             setMarkdownShortcuts: vi.fn((value: boolean) => {
               markdownShortcuts.set(value);
+            }),
+            aiAllowed,
+            setAiAllowed: vi.fn((value: boolean) => {
+              aiAllowed.set(value);
             }),
             setSetting: vi.fn((key: string, value: unknown) => {
               stored[key] = value;
@@ -123,6 +129,25 @@ describe('GeneralSettingsComponent', () => {
 
       expect(markdownShortcuts()).toBe(true);
       expect(shortcutsSwitch().getAttribute('aria-checked')).toBe('true');
+    });
+  });
+
+  describe('AI preference', () => {
+    const toggle = (testId: string): HTMLButtonElement =>
+      (fixture.nativeElement as HTMLElement).querySelector(
+        `[data-testid="${testId}"] button`
+      )!;
+
+    it('offers No AI and Allow AI, starting on No AI', () => {
+      expect(toggle('ai-preference-none').getAttribute('aria-checked')).toBe(
+        'true'
+      );
+    });
+
+    it('records Allow AI', async () => {
+      toggle('ai-preference-allow').click();
+      await settle();
+      expect(aiAllowed()).toBe(true);
     });
   });
 

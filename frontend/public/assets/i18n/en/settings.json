@@ -195,7 +195,12 @@
     "installButton": "Install Inkweld",
     "installHint": "Opens Inkweld in its own window from your home screen, dock or start menu. It works offline and updates itself.",
     "installIos": "On iPhone or iPad, tap Share, then Add to Home Screen.",
-    "installed": "Inkweld is installed on this device."
+    "installed": "Inkweld is installed on this device.",
+    "aiTitle": "AI",
+    "aiNone": "No AI",
+    "aiAllow": "Allow AI",
+    "aiHelp": "What does this do?",
+    "aiHint": "AI features stay off until you allow them. Applies to every profile in this browser."
   },
   "projectSettingsTab": {
     "fullscreenZen": "Enable fullscreen in Zen mode",
