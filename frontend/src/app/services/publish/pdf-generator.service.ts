@@ -1254,9 +1254,10 @@ export class PdfGeneratorService {
       typeof title === 'string' && title.trim()
         ? `\n  #v(4pt)\n  #text(size: 0.85em, style: "italic")[${this.escapeTypst(title)}]`
         : '';
+    const widthArg = `width: ${typstImageWidth(asset)}`;
     return (
       `#block(breakable: false, above: 10pt, below: 10pt, width: 100%)[#align(center)[\n` +
-      `  #${this.imageCallTypst(asset, `width: ${typstImageWidth(asset)}`, node)}${caption}\n]]\n\n`
+      `  #${this.imageCallTypst(asset, widthArg, node)}${caption}\n]]\n\n`
     );
   }
 

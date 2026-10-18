@@ -66,7 +66,11 @@ export function statBlockLeadIn(
   const match = /^(.{1,48}?)\.\s+(\S.*)$/.exec(line);
   if (!match) return null;
   const name = match[1];
-  const words = name.replace(/\s*\([^)]{1,30}\)\s*$/, '').split(/\s+/);
+  const words = name
+    .trimEnd()
+    .replace(/\([^)]{1,30}\)$/, '')
+    .trim()
+    .split(/\s+/);
   if (words.length === 0 || words.length > 6) return null;
   const titleCase = words.every(
     (word, i) =>
@@ -93,8 +97,8 @@ export function splitLongText(value: string): LongTextLine[] | null {
     .map(line => line.trim())
     .filter(Boolean)
     .map((line): LongTextLine => {
-      const bullet = /^[-•*]\s+(.*)$/.exec(line);
-      if (bullet) return { kind: 'bullet', text: bullet[1] };
+      const bullet = /^[-•*]\s(.*)$/.exec(line);
+      if (bullet) return { kind: 'bullet', text: bullet[1].trim() };
       const lead = statBlockLeadIn(line);
       return lead
         ? { kind: 'paragraph', lead: lead.name, text: lead.rest }
@@ -140,6 +144,15 @@ export function printBackground(
   }
 }
 
+/** The words of a phrase in alphabetical order, so word order is ignored. */
+function sortedWords(phrase: string): string {
+  return phrase
+    .trim()
+    .split(/\s+/)
+    .sort((a, b) => a.localeCompare(b))
+    .join(' ');
+}
+
 /** CSS `to <side>` keywords as CSS angles. */
 const CSS_SIDE_ANGLES: Record<string, number> = {
   top: 0,
@@ -165,14 +178,14 @@ export function typstLinearGradient(css: string): string | null {
   let cssAngle = 180;
   const direction = parts[0];
   const degrees = /^(-?\d+(?:\.\d+)?)deg$/i.exec(direction);
-  const side = /^to\s+(.+)$/i.exec(direction);
+  const side = /^to\s(.+)$/i.exec(direction);
   if (degrees) {
     cssAngle = Number(degrees[1]);
     parts.shift();
   } else if (side) {
-    const words = side[1].toLowerCase().split(/\s+/).sort().join(' ');
+    const words = sortedWords(side[1].toLowerCase());
     const key = Object.keys(CSS_SIDE_ANGLES).find(
-      k => k.split(' ').sort().join(' ') === words
+      k => sortedWords(k) === words
     );
     if (key === undefined) return null;
     cssAngle = CSS_SIDE_ANGLES[key];

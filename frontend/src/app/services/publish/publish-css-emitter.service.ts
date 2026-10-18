@@ -267,6 +267,10 @@ ${indent}}`;
     epub = false
   ): string {
     const wb = this.resolver.resolveWorldbuildingEntry(styles, undefined);
+    // EPUB readers draw their own rounded corners
+    const bgRadius = epub
+      ? ''
+      : `border-radius: ${wb.entryBox.borderRadius ?? 4}pt; `;
     const rules: string[] = [
       `.ink-wb-section-title { ${textStyleDecls(
         textStyleFromWorldbuildingSection(styles),
@@ -302,7 +306,7 @@ ${indent}}`;
       '.ink-wb-entry-intro-image-only { justify-content: center; }',
       '.ink-wb-entry-intro-image-only .ink-wb-entry-image { width: 45%; }',
       '@media (max-width: 600px) { .ink-wb-entry-intro { flex-direction: column; align-items: flex-start; } .ink-wb-entry-intro .ink-wb-entry-image { width: 100%; max-width: none; } }',
-      `.ink-wb-has-bg { background: var(--ink-wb-bg); background-size: cover; background-position: center; padding: ${wb.entryBox.paddingTop ?? 8}pt ${wb.entryBox.paddingLeft ?? 12}pt; ${epub ? '' : `border-radius: ${wb.entryBox.borderRadius ?? 4}pt; `}overflow: hidden; }`,
+      `.ink-wb-has-bg { background: var(--ink-wb-bg); background-size: cover; background-position: center; padding: ${wb.entryBox.paddingTop ?? 8}pt ${wb.entryBox.paddingLeft ?? 12}pt; ${bgRadius}overflow: hidden; }`,
       // Over an image, a light veil keeps the text readable (as the PDF does).
       '.ink-wb-has-bg-image { box-shadow: inset 0 0 0 100vmax rgba(255, 255, 255, 0.78); }',
       '.ink-wb-tab { margin-top: 0.75em; }',
