@@ -155,7 +155,7 @@ If the web app will not load, shows an old account or server, or a project is ou
 - then send you to the setup page.
 
 :::warning
-Anything that has not been synced to a server is lost permanently. This includes everything in a local-only profile. Sync, or export the project from the project menu, before you reset. Server data is not touched, and the installed service worker is not removed, so use your browser's site settings to clear it too if the app shell itself is stale.
+Anything that has not been synced to a server is lost permanently. This includes everything in a Browser profile. Sync, or export the project from the project menu, before you reset. Server data is not touched, and the installed service worker is not removed, so use your browser's site settings to clear it too if the app shell itself is stale.
 :::
 
 ### Enable Debug Logging Temporarily

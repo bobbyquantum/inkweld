@@ -1196,7 +1196,7 @@ describe('ProfileManagerDialogComponent', () => {
       component.addLocalMode();
 
       expect(component['localError']()).toBe(
-        'Failed to add local mode. Please try again.'
+        'Failed to add the Browser profile. Please try again.'
       );
     });
 
