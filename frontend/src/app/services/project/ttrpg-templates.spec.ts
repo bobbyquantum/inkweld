@@ -86,6 +86,10 @@ describe('Tabletop RPG templates', () => {
       }
     });
 
+    it('formats the README, whose bold lead-ins are kept on import', () => {
+      expect(JSON.stringify(starterDocuments)).toContain('"strong"');
+    });
+
     it('publishes only folders that it contains', () => {
       expect(starterPlans.map(p => p.name)).toEqual([
         "Game Master's Guide",

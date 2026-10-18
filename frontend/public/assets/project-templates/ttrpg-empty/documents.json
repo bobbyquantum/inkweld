@@ -48,7 +48,12 @@
                   "content": [
                     {
                       "type": "text",
-                      "text": "Party"
+                      "text": "Party",
+                      "marks": [
+                        {
+                          "type": "strong"
+                        }
+                      ]
                     },
                     {
                       "type": "text",
@@ -56,7 +61,12 @@
                     },
                     {
                       "type": "text",
-                      "text": "NPCs"
+                      "text": "NPCs",
+                      "marks": [
+                        {
+                          "type": "strong"
+                        }
+                      ]
                     },
                     {
                       "type": "text",
@@ -74,7 +84,12 @@
                   "content": [
                     {
                       "type": "text",
-                      "text": "Locations"
+                      "text": "Locations",
+                      "marks": [
+                        {
+                          "type": "strong"
+                        }
+                      ]
                     },
                     {
                       "type": "text",
@@ -82,7 +97,12 @@
                     },
                     {
                       "type": "text",
-                      "text": "Factions"
+                      "text": "Factions",
+                      "marks": [
+                        {
+                          "type": "strong"
+                        }
+                      ]
                     },
                     {
                       "type": "text",
@@ -90,7 +110,12 @@
                     },
                     {
                       "type": "text",
-                      "text": "Quests"
+                      "text": "Quests",
+                      "marks": [
+                        {
+                          "type": "strong"
+                        }
+                      ]
                     },
                     {
                       "type": "text",
@@ -108,7 +133,12 @@
                   "content": [
                     {
                       "type": "text",
-                      "text": "Bestiary"
+                      "text": "Bestiary",
+                      "marks": [
+                        {
+                          "type": "strong"
+                        }
+                      ]
                     },
                     {
                       "type": "text",
@@ -126,7 +156,12 @@
                   "content": [
                     {
                       "type": "text",
-                      "text": "Session Notes"
+                      "text": "Session Notes",
+                      "marks": [
+                        {
+                          "type": "strong"
+                        }
+                      ]
                     },
                     {
                       "type": "text",
@@ -134,7 +169,12 @@
                     },
                     {
                       "type": "text",
-                      "text": "Player Guide"
+                      "text": "Player Guide",
+                      "marks": [
+                        {
+                          "type": "strong"
+                        }
+                      ]
                     },
                     {
                       "type": "text",
@@ -156,7 +196,12 @@
                     },
                     {
                       "type": "text",
-                      "text": "Adventure"
+                      "text": "Adventure",
+                      "marks": [
+                        {
+                          "type": "strong"
+                        }
+                      ]
                     },
                     {
                       "type": "text",
@@ -200,7 +245,12 @@
                   "content": [
                     {
                       "type": "text",
-                      "text": "Player Character"
+                      "text": "Player Character",
+                      "marks": [
+                        {
+                          "type": "strong"
+                        }
+                      ]
                     },
                     {
                       "type": "text",
@@ -218,7 +268,12 @@
                   "content": [
                     {
                       "type": "text",
-                      "text": "NPC"
+                      "text": "NPC",
+                      "marks": [
+                        {
+                          "type": "strong"
+                        }
+                      ]
                     },
                     {
                       "type": "text",
@@ -236,7 +291,12 @@
                   "content": [
                     {
                       "type": "text",
-                      "text": "Monster"
+                      "text": "Monster",
+                      "marks": [
+                        {
+                          "type": "strong"
+                        }
+                      ]
                     },
                     {
                       "type": "text",
@@ -254,7 +314,12 @@
                   "content": [
                     {
                       "type": "text",
-                      "text": "Location"
+                      "text": "Location",
+                      "marks": [
+                        {
+                          "type": "strong"
+                        }
+                      ]
                     },
                     {
                       "type": "text",
@@ -262,7 +327,12 @@
                     },
                     {
                       "type": "text",
-                      "text": "Faction"
+                      "text": "Faction",
+                      "marks": [
+                        {
+                          "type": "strong"
+                        }
+                      ]
                     },
                     {
                       "type": "text",
@@ -270,7 +340,12 @@
                     },
                     {
                       "type": "text",
-                      "text": "Quest"
+                      "text": "Quest",
+                      "marks": [
+                        {
+                          "type": "strong"
+                        }
+                      ]
                     },
                     {
                       "type": "text",
@@ -278,7 +353,12 @@
                     },
                     {
                       "type": "text",
-                      "text": "Magic Item"
+                      "text": "Magic Item",
+                      "marks": [
+                        {
+                          "type": "strong"
+                        }
+                      ]
                     },
                     {
                       "type": "text",
