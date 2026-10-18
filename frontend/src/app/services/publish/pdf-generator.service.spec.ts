@@ -1258,6 +1258,35 @@ describe('PdfGeneratorService', () => {
         .at(-1);
       expect(markup).toContain('#image("/cover.jpg", width: 60%)');
     });
+
+    it('sets the cover edge to edge on the first page when asked, with no title page needed', async () => {
+      localStorageMock.getMedia.mockResolvedValue(
+        new Blob(['fake image'], { type: 'image/png' })
+      );
+
+      await service.generatePdf({
+        ...mockPlan,
+        options: {
+          ...mockPlan.options,
+          includeCover: true,
+          coverFullBleed: true,
+        },
+        items: [...mockPlan.items],
+      });
+
+      const prefix = 'Compiling Typst markup:\n';
+      const markup = (loggerMock.debug.mock.calls as unknown[][])
+        .map(args => args[1])
+        .filter(
+          (msg): msg is string =>
+            typeof msg === 'string' && msg.startsWith(prefix)
+        )
+        .at(-1);
+      expect(markup).toContain(
+        '#page(margin: 0pt, columns: 1, header: none, footer: none)[#image("/cover.jpg", width: 100%, height: 100%, fit: "cover")]'
+      );
+      expect(markup).not.toContain('#image("/cover.jpg", width: 60%)');
+    });
   });
 
   describe('ProseMirror mark and elementRef handling', () => {

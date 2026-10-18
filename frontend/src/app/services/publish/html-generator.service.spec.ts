@@ -719,6 +719,27 @@ describe('HtmlGeneratorService', () => {
       expect(text).toContain('cover-image');
     });
 
+    it('sets the cover full width on the first page when asked, with no title page needed', async () => {
+      localStorageMock.getMedia.mockResolvedValue(
+        new Blob(['fake image'], { type: 'image/png' })
+      );
+
+      const result = await service.generateHtml({
+        ...mockPlan,
+        options: {
+          ...mockPlan.options,
+          includeCover: true,
+          coverFullBleed: true,
+        },
+        styles: createDefaultPublishStyles(),
+        items: [],
+      });
+
+      const text = await result.file!.text();
+      expect(text).toContain('<section class="cover-page">');
+      expect(text).toContain('class="cover-image-full"');
+    });
+
     it('should include subtitle when available', async () => {
       const planWithSubtitle: PublishPlan = {
         ...mockPlan,

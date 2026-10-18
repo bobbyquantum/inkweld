@@ -143,7 +143,10 @@ export class PublishCssEmitterService {
 :root { color-scheme: light; }
 html { background: #ffffff; }
 html, body { margin: 0; padding: 0; }
-img { max-width: 100%; height: auto; }`;
+body { overflow-x: clip; }
+img { max-width: 100%; height: auto; }
+.cover-page { width: 100vw; margin-left: calc(50% - 50vw); margin-right: calc(50% - 50vw); break-after: page; text-indent: 0; }
+.cover-page .cover-image-full { display: block; width: 100%; max-width: none; height: 100vh; object-fit: cover; }`;
   }
 
   private bodyRule(

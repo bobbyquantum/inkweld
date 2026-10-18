@@ -474,6 +474,8 @@ export class PdfGeneratorService {
       message: `Processing content (0/${plan.items.length})...`,
     });
 
+    this.generateFullBleedCover(ctx);
+
     // Sequential: the Typst markup is built in plan order and chapter numbers
     // depend on the items before them.
     await forEachSequential(plan.items, async item => {
@@ -811,11 +813,24 @@ export class PdfGeneratorService {
     if (ctx.twoColumns) ctx.markup += ']\n\n';
   }
 
+  /**
+   * The cover as a page of its own with no margins, header or footer, the
+   * image cropped to fill it rather than squeezed. It opens the document
+   * whether or not the plan has a title page.
+   */
+  private generateFullBleedCover(ctx: PdfContext): void {
+    if (!this.coverImageData || !ctx.options.coverFullBleed) return;
+    ctx.markup += `#page(margin: 0pt, columns: 1, header: none, footer: none)[#image(${typstString(
+      COVER_SHADOW_PATH
+    )}, width: 100%, height: 100%, fit: "cover")]\n\n`;
+  }
+
   private generateTitlePage(metadata: PublishMetadata, ctx: PdfContext): void {
+    const fullBleed = !!this.coverImageData && !!ctx.options.coverFullBleed;
     this.beginFrontPage(ctx);
     ctx.markup += '#align(center + horizon)[\n';
 
-    if (this.coverImageData) {
+    if (this.coverImageData && !fullBleed) {
       ctx.markup += `  #image(${typstString(COVER_SHADOW_PATH)}, width: 60%)\n`;
       ctx.markup += '  #v(2em)\n';
     } else {

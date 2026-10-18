@@ -451,6 +451,10 @@ export class HtmlGeneratorService {
     const sections: string[] = [];
     let chapterNumber = 0;
 
+    if (this.coverImageData && plan.options.coverFullBleed) {
+      sections.push(this.generateFullBleedCover());
+    }
+
     // Sequential: chapter numbers depend on the items before them, and images
     // are resolved into a shared cache in document order.
     await forEachSequential(plan.items, async item => {
@@ -491,7 +495,13 @@ export class HtmlGeneratorService {
         return Promise.resolve(this.processSeparator(item, plan.options));
 
       case PublishPlanItemType.Frontmatter:
-        return Promise.resolve(this.processFrontmatter(item, plan.metadata));
+        return Promise.resolve(
+          this.processFrontmatter(
+            item,
+            plan.metadata,
+            plan.options.coverFullBleed
+          )
+        );
 
       case PublishPlanItemType.TableOfContents:
         return Promise.resolve(
@@ -1007,11 +1017,12 @@ export class HtmlGeneratorService {
 
   private processFrontmatter(
     item: FrontmatterItem,
-    metadata: PublishMetadata
+    metadata: PublishMetadata,
+    coverFullBleed = false
   ): string {
     switch (item.contentType) {
       case FrontmatterType.TitlePage:
-        return this.generateTitlePage(metadata);
+        return this.generateTitlePage(metadata, coverFullBleed);
       case FrontmatterType.Copyright:
         return this.generateCopyrightPage(metadata);
       case FrontmatterType.Dedication:
@@ -1023,10 +1034,18 @@ export class HtmlGeneratorService {
     }
   }
 
-  private generateTitlePage(metadata: PublishMetadata): string {
+  /** The cover as a full-width page of its own, opening the document. */
+  private generateFullBleedCover(): string {
+    return `<section class="cover-page"><img src="${this.coverImageData}" alt="Cover" class="cover-image-full" /></section>`;
+  }
+
+  private generateTitlePage(
+    metadata: PublishMetadata,
+    fullBleed = false
+  ): string {
     const parts: string[] = ['<section class="title-page">'];
 
-    if (this.coverImageData) {
+    if (this.coverImageData && !fullBleed) {
       parts.push(
         `<img src="${this.coverImageData}" alt="Cover" class="cover-image" />`
       );
