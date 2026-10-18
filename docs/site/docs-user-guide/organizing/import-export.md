@@ -96,7 +96,7 @@ Export from one Inkweld server, import on another. Archives are self-contained a
 
 ### Moving between modes
 
-export the project from a Browser or Cloud Sync profile, switch mode (see [Choosing Your Mode](../getting-started/client-mode)), sign in if needed, and import. For several projects at once, the built-in migration under **Manage profiles…** in the account menu does the same thing without the intermediate files.
+Export the project from a Browser or Cloud Sync profile, switch profile (see [Choosing Your Mode](../getting-started/client-mode)), sign in if needed, and import. For several projects at once, the built-in migration under **Manage profiles…** in the account menu does the same thing without the intermediate files.
 
 ### Duplicating a project
 
