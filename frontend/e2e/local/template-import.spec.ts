@@ -40,6 +40,25 @@ async function openTreeElement(page: Page, elementName: string): Promise<void> {
 }
 
 test.describe('Template Worldbuilding Import', () => {
+  test('template documents keep their bold text', async ({
+    localPage: page,
+  }) => {
+    await createProjectWithTwoSteps(
+      page,
+      'Formatting Project',
+      'formatting',
+      'Testing text formatting import'
+    );
+    await page.waitForURL(/\/testuser\/formatting/);
+
+    await page.getByTestId('element-README').click();
+    await expect(page.getByTestId('document-editor')).toBeVisible();
+    // The README names each element type in bold
+    await expect(
+      page.locator('.ProseMirror strong', { hasText: 'Character' }).first()
+    ).toBeVisible();
+  });
+
   test('demo template imports element data: characters, location, tags, descriptions', async ({
     localPage: page,
   }) => {
