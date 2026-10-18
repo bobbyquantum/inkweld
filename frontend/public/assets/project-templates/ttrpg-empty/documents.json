@@ -1,0 +1,356 @@
+[
+  {
+    "elementId": "readme-ttrpg",
+    "content": {
+      "type": "doc",
+      "content": [
+        {
+          "type": "heading",
+          "attrs": {
+            "level": 1
+          },
+          "content": [
+            {
+              "type": "text",
+              "text": "Welcome to Your Tabletop RPG Campaign"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "This project is set up for running a tabletop campaign: element types for the people, places and monsters at your table, a folder for each part of the adventure, and two ready-made guides you can publish for your players."
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "attrs": {
+            "level": 2
+          },
+          "content": [
+            {
+              "type": "text",
+              "text": "What's Inside"
+            }
+          ]
+        },
+        {
+          "type": "bullet_list",
+          "content": [
+            {
+              "type": "list_item",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Party"
+                    },
+                    {
+                      "type": "text",
+                      "text": " and "
+                    },
+                    {
+                      "type": "text",
+                      "text": "NPCs"
+                    },
+                    {
+                      "type": "text",
+                      "text": " hold player characters and the people they meet."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "list_item",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Locations"
+                    },
+                    {
+                      "type": "text",
+                      "text": ", "
+                    },
+                    {
+                      "type": "text",
+                      "text": "Factions"
+                    },
+                    {
+                      "type": "text",
+                      "text": " and "
+                    },
+                    {
+                      "type": "text",
+                      "text": "Quests"
+                    },
+                    {
+                      "type": "text",
+                      "text": " map out the world and the plot."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "list_item",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Bestiary"
+                    },
+                    {
+                      "type": "text",
+                      "text": " holds monsters with full stat blocks. Add magic items alongside the rest."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "list_item",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Session Notes"
+                    },
+                    {
+                      "type": "text",
+                      "text": " is for prep and recaps; "
+                    },
+                    {
+                      "type": "text",
+                      "text": "Player Guide"
+                    },
+                    {
+                      "type": "text",
+                      "text": " is the handout your players read."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "list_item",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "The "
+                    },
+                    {
+                      "type": "text",
+                      "text": "Adventure"
+                    },
+                    {
+                      "type": "text",
+                      "text": " folder is for the story itself: overview, chapters and read-aloud text."
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "attrs": {
+            "level": 2
+          },
+          "content": [
+            {
+              "type": "text",
+              "text": "Element Types"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Right-click a folder and choose New Worldbuilding Entry. Besides the built-in types (Character, Location, Spell, Condition and more), this project has seven made for play:"
+            }
+          ]
+        },
+        {
+          "type": "bullet_list",
+          "content": [
+            {
+              "type": "list_item",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Player Character"
+                    },
+                    {
+                      "type": "text",
+                      "text": " - class, ability scores, combat numbers and backstory."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "list_item",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "NPC"
+                    },
+                    {
+                      "type": "text",
+                      "text": " - role, motivation, voice and secrets."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "list_item",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Monster"
+                    },
+                    {
+                      "type": "text",
+                      "text": " - a stat block with traits and actions, laid out the way you read it at the table."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "list_item",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Location"
+                    },
+                    {
+                      "type": "text",
+                      "text": ", "
+                    },
+                    {
+                      "type": "text",
+                      "text": "Faction"
+                    },
+                    {
+                      "type": "text",
+                      "text": ", "
+                    },
+                    {
+                      "type": "text",
+                      "text": "Quest"
+                    },
+                    {
+                      "type": "text",
+                      "text": " and "
+                    },
+                    {
+                      "type": "text",
+                      "text": "Magic Item"
+                    },
+                    {
+                      "type": "text",
+                      "text": "."
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Fields such as Part Of and Encounters link entries together, so a location lists the monsters found there."
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "attrs": {
+            "level": 2
+          },
+          "content": [
+            {
+              "type": "text",
+              "text": "Publishing"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "The Publishing tab has three plans: a Game Master's Guide as a PDF, the same guide as a web page, and a Player's Guide. Add a cover image in project settings and tick \"Cover fills the page edge to edge\" for a full-page cover. Fill in the plan's title and author before you publish."
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "attrs": {
+            "level": 2
+          },
+          "content": [
+            {
+              "type": "text",
+              "text": "Images"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Entries can carry an image, and a background colour, gradient or picture that shows in the editor and in published guides. With an image generator set up by your server admin you can illustrate entries from the entry's image button."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Want to see it all filled in? Create a new project from the Tabletop RPG demo, \"The Drowned Lantern\"."
+            }
+          ]
+        }
+      ]
+    }
+  }
+]

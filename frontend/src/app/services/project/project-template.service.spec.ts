@@ -80,6 +80,55 @@ describe('ProjectTemplateService', () => {
     expect(service).toBeTruthy();
   });
 
+  describe('getCatalog', () => {
+    it('returns the declared groups with their templates', async () => {
+      const promise = service.getCatalog();
+      httpMock.expectOne('assets/project-templates/index.json').flush({
+        version: 2,
+        groups: [
+          { id: 'rpg', name: 'RPG', description: 'Play', icon: 'casino' },
+        ],
+        templates: [
+          { ...mockTemplateIndex.templates[1], group: 'rpg', variant: 'demo' },
+        ],
+      });
+
+      const catalog = await promise;
+
+      expect(catalog.groups.map(g => g.id)).toEqual(['rpg']);
+      expect(catalog.templates[0]).toMatchObject({
+        group: 'rpg',
+        variant: 'demo',
+      });
+    });
+
+    it('gives a template with no group, or an unknown one, a group of its own', async () => {
+      const promise = service.getCatalog();
+      httpMock.expectOne('assets/project-templates/index.json').flush({
+        version: 1,
+        templates: [
+          mockTemplateIndex.templates[0],
+          { ...mockTemplateIndex.templates[1], group: 'missing' },
+        ],
+      });
+
+      const catalog = await promise;
+
+      expect(catalog.groups.map(g => g.id)).toEqual([
+        'empty',
+        'worldbuilding-empty',
+      ]);
+      expect(catalog.groups[0]).toMatchObject({
+        name: 'Empty Project',
+        icon: 'description',
+      });
+      expect(catalog.templates.map(t => t.group)).toEqual([
+        'empty',
+        'worldbuilding-empty',
+      ]);
+    });
+  });
+
   describe('getTemplates', () => {
     it('should load and return templates from index.json', async () => {
       const promise = service.getTemplates();

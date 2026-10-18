@@ -42,31 +42,75 @@
               [attr.aria-label]="
                 'home.createProjectPage.chooseTemplateAria' | transloco
               ">
-              @for (template of templates(); track template.id) {
+              @for (group of catalog().groups; track group.id) {
                 <label
                   class="template-card"
-                  [class.selected]="selectedTemplateId() === template.id"
-                  [attr.data-testid]="'template-' + template.id">
+                  [class.selected]="selectedGroupId() === group.id"
+                  [attr.data-testid]="'template-group-' + group.id">
                   <input
                     type="radio"
                     class="sr-only"
-                    name="template"
-                    [value]="template.id"
-                    [checked]="selectedTemplateId() === template.id"
-                    (change)="selectTemplate(template.id)" />
-                  <mat-icon class="template-icon">{{ template.icon }}</mat-icon>
+                    name="template-group"
+                    [value]="group.id"
+                    [checked]="selectedGroupId() === group.id"
+                    (change)="selectGroup(group.id)" />
+                  <mat-icon class="template-icon">{{ group.icon }}</mat-icon>
                   <div class="template-info">
-                    <span class="template-name">{{ template.name }}</span>
+                    <span class="template-name">{{ group.name }}</span>
                     <span class="template-description">{{
-                      template.description
+                      group.description
                     }}</span>
                   </div>
-                  @if (selectedTemplateId() === template.id) {
+                  @if (selectedGroupId() === group.id) {
                     <mat-icon class="check-icon">check_circle</mat-icon>
                   }
                 </label>
               }
             </div>
+
+            @if (groupTemplates().length > 1) {
+              <fieldset class="variant-picker" data-testid="variant-picker">
+                <legend>
+                  {{ 'home.createProjectPage.startWith' | transloco }}
+                </legend>
+                <div class="variant-options" role="radiogroup">
+                  @for (template of groupTemplates(); track template.id) {
+                    <label
+                      class="variant-option"
+                      [class.selected]="selectedTemplateId() === template.id"
+                      [attr.data-testid]="'template-' + template.id">
+                      <input
+                        type="radio"
+                        class="sr-only"
+                        name="template"
+                        [value]="template.id"
+                        [checked]="selectedTemplateId() === template.id"
+                        (change)="selectTemplate(template.id)" />
+                      <span class="variant-label">
+                        <mat-icon>{{
+                          template.variant === 'demo'
+                            ? 'auto_stories'
+                            : 'note_add'
+                        }}</mat-icon>
+                        {{
+                          (template.variant === 'demo'
+                            ? 'home.createProjectPage.variantDemo'
+                            : 'home.createProjectPage.variantStarter'
+                          ) | transloco
+                        }}
+                      </span>
+                      <span class="variant-description">{{
+                        template.description
+                      }}</span>
+                    </label>
+                  }
+                </div>
+              </fieldset>
+            } @else if (selectedTemplate(); as template) {
+              <p class="variant-note" data-testid="template-note">
+                {{ template.description }}
+              </p>
+            }
           }
         </mat-card-content>
 

@@ -1,0 +1,289 @@
+[
+  {
+    "elementId": "5whpcOBn55M9fhfsFCXVp",
+    "content": {
+      "type": "doc",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "The Drowned Lantern is a short horror-tinged adventure for four characters of 1st level. Forty years ago the sea swallowed Old Saltmere. Now the tide has gone out further than anyone remembers, and the dead lighthouse has started to burn again. Behind it all is "
+            },
+            {
+              "type": "elementRef",
+              "attrs": {
+                "elementId": "v_kbkl32M8OzYh9zx_AzN",
+                "elementType": "WORLDBUILDING",
+                "displayText": "Mother Brine",
+                "originalName": "Mother Brine",
+                "relationshipTypeId": "referenced-in"
+              }
+            },
+            {
+              "type": "text",
+              "text": ", the kindly salt-wife who leads the "
+            },
+            {
+              "type": "elementRef",
+              "attrs": {
+                "elementId": "vzHkwTd1KMkFbNSBD97LL",
+                "elementType": "WORLDBUILDING",
+                "displayText": "Children of the Tide",
+                "originalName": "Children of the Tide",
+                "relationshipTypeId": "referenced-in"
+              }
+            },
+            {
+              "type": "text",
+              "text": ". She drowned the lighthouse keeper to wake the Lantern, and on the night of the black tide she means to shine it on the sunken town and raise it - along with everyone buried there."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "image",
+              "attrs": {
+                "src": "media:img-gm-overview"
+              }
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Running the adventure: the party arrives in "
+            },
+            {
+              "type": "elementRef",
+              "attrs": {
+                "elementId": "QkGsXmPv-G8hzuuh6cBRF",
+                "elementType": "WORLDBUILDING",
+                "displayText": "Saltmere",
+                "originalName": "Saltmere",
+                "relationshipTypeId": "referenced-in"
+              }
+            },
+            {
+              "type": "text",
+              "text": " looking for work. Three fishermen are missing; the harbourmaster pays 50 gp to anyone who can find them. The trail leads across the exposed causeway to the lighthouse, where drowned acolytes guard the stair."
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "elementId": "bG0MDb_oxZ8EYTr9s87AX",
+    "content": {
+      "type": "doc",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "image",
+              "attrs": {
+                "src": "media:img-chapter-1-saltmere"
+              }
+            }
+          ]
+        },
+        {
+          "type": "blockquote",
+          "content": [
+            {
+              "type": "paragraph",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Saltmere smells of tar and old fish. Gulls scream over a harbour full of beached boats - the sea has pulled back half a mile, leaving the hulls stranded on black mud. At the end of the quay, an old woman is feeding cats and humming a hymn you almost recognise."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "The old woman is Mother Brine. She is warm, helpful and points the party to the harbourmaster. If anyone succeeds on a DC 14 Wisdom (Insight) check, they notice her hands are pruned as if she had been in the water for hours."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Clues in town: the missing fishermen all drank at the Gull and Anchor; all three wore a shell token of the Children of the Tide; the lighthouse light is green, not white."
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "elementId": "readme-001",
+    "content": {
+      "type": "doc",
+      "content": [
+        {
+          "type": "heading",
+          "attrs": {
+            "level": 1
+          },
+          "content": [
+            {
+              "type": "text",
+              "text": "Welcome to Your Project"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "This is your project's README. You can edit this document or delete it and start fresh."
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "attrs": {
+            "level": 2
+          },
+          "content": [
+            {
+              "type": "text",
+              "text": "Getting Started"
+            }
+          ]
+        },
+        {
+          "type": "bullet_list",
+          "content": [
+            {
+              "type": "list_item",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Use the sidebar to create new documents and folders"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "list_item",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Organize your content with nested folders"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "list_item",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Access project settings via the menu in the top bar"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "elementId": "tRhhY2dMcLMA5U0HhOIQp",
+    "content": {
+      "type": "doc",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "You are newcomers to Saltmere, a hard little fishing town on a grey northern coast. Forty years ago a storm drowned half of it; the townsfolk still won't talk about Old Saltmere. Lately the tide has gone strangely far out, and three fishermen have vanished. The harbourmaster is offering 50 gold pieces to anyone who can bring them home."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "image",
+              "attrs": {
+                "src": "media:img-welcome-1"
+              }
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Character options: any official species and class is welcome. Characters start at 1st level with standard array or point buy. Good backgrounds for this campaign: Sailor, Fisher, Acolyte, Guard. Every character should have a reason to need money - or a reason to care about a missing fisherman."
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Safety tools: we use lines and veils and the X-card. This campaign includes drowning, body horror and religious cults."
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "attrs": {
+            "level": 2
+          },
+          "content": [
+            {
+              "type": "text",
+              "text": "Handout: The Notice on the Harbour Post"
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "image",
+              "attrs": {
+                "src": "media:img-welcome-2"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+]
