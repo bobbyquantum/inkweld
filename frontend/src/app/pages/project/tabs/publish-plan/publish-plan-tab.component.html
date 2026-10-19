@@ -761,6 +761,13 @@
       </p>
 
       @if (plan.options.includeCover) {
+        <mat-checkbox
+          [checked]="!!plan.options.coverFullBleed"
+          [matTooltip]="'publish.planEditor.coverFullBleedHint' | transloco"
+          (change)="updateOptionCheckbox('coverFullBleed', $event)"
+          data-testid="cover-full-bleed-checkbox">
+          {{ 'publish.planEditor.coverFullBleed' | transloco }}
+        </mat-checkbox>
         <div class="cover-image-section">
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>{{

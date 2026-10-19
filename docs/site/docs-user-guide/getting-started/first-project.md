@@ -25,26 +25,32 @@ From the bookshelf, click **+ Create** in the top bar. A small menu opens with t
 
 Choose **New Project**. This opens the **Create New Project** page.
 
-## Step 2: Choose a Template
+## Step 2: Choose What You're Making
 
-The first step is **Choose a Template**. The template decides what your project contains on day one:
+The first step asks **What are you making?** Pick a kind of project. It decides what your project contains on day one:
 
 <ThemedImage
   src="/img/generated/create-project-templates"
   alt="Template selection screen"
 />
 
-| Template                  | Best For                             | What You Get                                                                                                                                                       |
-| ------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Worldbuilding (Empty)** | Most writers, and the default choice | Ready for worldbuilding: the built-in element types (characters, locations and so on) and relationship types are set up, but the only content is a README document |
-| **Worldbuilding (Demo)**  | Learning Inkweld                     | A fully worked example with sample characters, locations and relationships to explore and change                                                                   |
-| **Empty Project**         | Complete flexibility                 | A blank slate with just a README document                                                                                                                          |
+| Kind              | Best For                                      | What You Get                                                                                                                                                                                            |
+| ----------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Worldbuilding** | Most writers, and the default choice          | The built-in element types (characters, locations and so on) and relationship types, set up and ready for your world                                                                                    |
+| **Tabletop RPG**  | Game masters preparing and running a campaign | Element types for player characters, NPCs, monsters, locations, factions, quests and magic items, folders for each part of the adventure, and a Game Master's Guide and Player's Guide ready to publish |
+| **Script**        | Screenplays and stage plays                   | Scenes written as conversations, with cast, sets and props                                                                                                                                              |
+| **Blank Project** | Complete flexibility                          | A blank slate with just a README document                                                                                                                                                               |
+
+Most kinds then ask what to **Start with**:
+
+- **Start empty** sets up the structure (element types, folders, publishing plans) with no content of your own.
+- **Explore a demo** is the same project filled in, so you can see how it all fits together and change it. The Tabletop RPG demo is _The Drowned Lantern_, a complete illustrated adventure with a cover and both guides ready to publish.
 
 :::tip[Try the Demo]
-If you're new to Inkweld, start with **Worldbuilding (Demo)**. The sample content shows how documents, worldbuilding elements and relationships fit together. You can delete the project at any time.
+If you're new to Inkweld, start with a demo of the kind of project you want to make. You can delete the project at any time.
 :::
 
-Select a template and click **Next**.
+Select a kind (and what to start with) and click **Next**.
 
 ## Step 3: Enter Project Details
 

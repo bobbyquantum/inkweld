@@ -457,6 +457,46 @@ describe('HtmlGeneratorService', () => {
       expect(text).toContain('Chapter 1:');
     });
 
+    describe('page columns', () => {
+      const columnsPlan = (columns?: 1 | 2): PublishPlan => {
+        const styles = createDefaultPublishStyles();
+        if (columns === undefined) delete styles.page.columns;
+        else styles.page.columns = columns;
+        return {
+          ...mockPlan,
+          styles,
+          items: [
+            {
+              id: 'item-1',
+              type: PublishPlanItemType.Element,
+              elementId: 'doc-1',
+              includeChildren: false,
+              isChapter: true,
+            },
+          ],
+        };
+      };
+
+      it('wraps the content in the column container for two columns', async () => {
+        const result = await service.generateHtml(columnsPlan(2));
+        expect(result.success).toBe(true);
+        const text = await result.file!.text();
+        expect(text).toContain('<div class="ink-columns">');
+        expect(text).toContain('column-count: 2');
+        expect(text).toContain('@media (max-width: 700px)');
+      });
+
+      it.each([1, undefined] as const)(
+        'leaves the output single-column when columns is %s',
+        async columns => {
+          const result = await service.generateHtml(columnsPlan(columns));
+          const text = await result.file!.text();
+          expect(text).not.toContain('ink-columns');
+          expect(text).not.toContain('column-count');
+        }
+      );
+    });
+
     describe('chapterHeadingStyle option', () => {
       const planWithStyle = (
         style: ChapterHeadingStyle | undefined,
@@ -677,6 +717,27 @@ describe('HtmlGeneratorService', () => {
       expect(result.success).toBe(true);
       const text = await result.file!.text();
       expect(text).toContain('cover-image');
+    });
+
+    it('sets the cover full width on the first page when asked, with no title page needed', async () => {
+      localStorageMock.getMedia.mockResolvedValue(
+        new Blob(['fake image'], { type: 'image/png' })
+      );
+
+      const result = await service.generateHtml({
+        ...mockPlan,
+        options: {
+          ...mockPlan.options,
+          includeCover: true,
+          coverFullBleed: true,
+        },
+        styles: createDefaultPublishStyles(),
+        items: [],
+      });
+
+      const text = await result.file!.text();
+      expect(text).toContain('<section class="cover-page">');
+      expect(text).toContain('class="cover-image-full"');
     });
 
     it('should include subtitle when available', async () => {
@@ -1770,6 +1831,77 @@ describe('HtmlGeneratorService', () => {
       expect(text).toContain(
         '<img class="ink-doc-image" src="data:image/png;base64,cG5n" alt="A map" width="320" loading="lazy" />'
       );
+    });
+
+    it('shrinks a large image to a JPEG before embedding it', async () => {
+      // A fake decoder and canvas: the real ones are not in the test DOM.
+      vi.stubGlobal(
+        'createImageBitmap',
+        vi.fn().mockResolvedValue({ width: 3200, height: 1600, close: vi.fn() })
+      );
+      vi.stubGlobal(
+        'OffscreenCanvas',
+        class {
+          constructor(
+            readonly width: number,
+            readonly height: number
+          ) {}
+          getContext() {
+            return { fillStyle: '', fillRect: vi.fn(), drawImage: vi.fn() };
+          }
+          convertToBlob() {
+            return Promise.resolve(new Blob(['jpg'], { type: 'image/jpeg' }));
+          }
+        }
+      );
+      const big = new Blob([new Uint8Array(600 * 1024)], { type: 'image/png' });
+      localStorageMock.getMedia.mockResolvedValue(big);
+
+      const text = await render([
+        {
+          type: 'paragraph',
+          content: [{ type: 'image', attrs: { src: 'media:big', alt: 'Art' } }],
+        },
+      ]);
+
+      expect(text).toContain('src="data:image/jpeg;base64,anBn" alt="Art"');
+    });
+
+    it('shrinks a large data URL image, such as a generated identity image', async () => {
+      vi.stubGlobal(
+        'createImageBitmap',
+        vi.fn().mockResolvedValue({ width: 2048, height: 2048, close: vi.fn() })
+      );
+      vi.stubGlobal(
+        'OffscreenCanvas',
+        class {
+          getContext() {
+            return { fillStyle: '', fillRect: vi.fn(), drawImage: vi.fn() };
+          }
+          convertToBlob() {
+            return Promise.resolve(new Blob(['jpg'], { type: 'image/jpeg' }));
+          }
+        }
+      );
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue({
+          blob: () =>
+            Promise.resolve(
+              new Blob([new Uint8Array(600 * 1024)], { type: 'image/png' })
+            ),
+        })
+      );
+      const dataUrl = 'data:image/png;base64,' + 'A'.repeat(800 * 1024);
+
+      const href = await service.resolveImageHref(dataUrl);
+
+      expect(href).toBe('data:image/jpeg;base64,anBn');
+    });
+
+    it('passes a small data URL image through unchanged', async () => {
+      const dataUrl = 'data:image/png;base64,iVBORw0KGgo=';
+      expect(await service.resolveImageHref(dataUrl)).toBe(dataUrl);
     });
 
     it('should accept media:// references with an extension', async () => {

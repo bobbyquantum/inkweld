@@ -1,0 +1,58 @@
+[
+  {
+    "id": "protagonist",
+    "name": "Protagonist",
+    "icon": "star",
+    "color": "#FFD700",
+    "description": "Main character of the story"
+  },
+  {
+    "id": "antagonist",
+    "name": "Antagonist",
+    "icon": "whatshot",
+    "color": "#DC143C",
+    "description": "Character who opposes the protagonist"
+  },
+  {
+    "id": "supporting",
+    "name": "Supporting Cast",
+    "icon": "group",
+    "color": "#4682B4",
+    "description": "Secondary characters"
+  },
+  {
+    "id": "draft",
+    "name": "Draft",
+    "icon": "edit_note",
+    "color": "#FF8C00",
+    "description": "Work in progress"
+  },
+  {
+    "id": "complete",
+    "name": "Complete",
+    "icon": "check_circle",
+    "color": "#228B22",
+    "description": "Finished and reviewed"
+  },
+  {
+    "id": "needs-revision",
+    "name": "Needs Revision",
+    "icon": "pending",
+    "color": "#9370DB",
+    "description": "Requires updates or corrections"
+  },
+  {
+    "id": "important",
+    "name": "Important",
+    "icon": "priority_high",
+    "color": "#B22222",
+    "description": "High priority item"
+  },
+  {
+    "id": "key-location",
+    "name": "Key Location",
+    "icon": "place",
+    "color": "#2E8B57",
+    "description": "Major story location"
+  }
+]

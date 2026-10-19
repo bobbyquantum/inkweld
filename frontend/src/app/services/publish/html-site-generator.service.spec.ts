@@ -1017,7 +1017,8 @@ describe('HtmlSiteGeneratorService', () => {
       const page = await read('cast.html');
 
       expect(page).toContain(
-        'style="--ink-wb-bg: linear-gradient(135deg, #223 0%, #445 100%);"'
+        // Auto mode is lightened as in the editor's light theme.
+        'style="--ink-wb-bg: linear-gradient(135deg, #303040 0%, #505060 100%);"'
       );
       expect(page).toContain(
         `<span class="ink-wb-icon" aria-hidden="true">${fakeSvg('person')}</span>`
@@ -1044,6 +1045,67 @@ describe('HtmlSiteGeneratorService', () => {
       expect(iconSvgMock.getSvg).toHaveBeenCalledWith('person');
       expect(iconSvgMock.getSvg).toHaveBeenCalledWith('badge');
       expect(iconSvgMock.getSvg).toHaveBeenCalledTimes(2);
+    });
+
+    it('sets stat-block text, keeps ability scores on one row and puts the image beside the description', async () => {
+      const span = (key: string, n: number) => ({
+        key,
+        label: key.toUpperCase(),
+        rawValue: 10,
+        displayValue: '10',
+        type: 'number',
+        span: n,
+      });
+      wbRendererMock.renderItem.mockResolvedValue([
+        {
+          elementId: 'm-1',
+          title: 'Drowned Acolyte',
+          layout: 'card',
+          description: 'A cultist who came back.',
+          imageRef: 'data:image/png;base64,iVBORw0KGgo=',
+          tabs: [
+            {
+              key: 'stats',
+              label: 'Stat Block',
+              fields: [
+                span('speed', 3),
+                ...['str', 'dex', 'con', 'int', 'wis', 'cha'].map(k =>
+                  span(k, 2)
+                ),
+                {
+                  key: 'traits',
+                  label: 'Traits',
+                  rawValue: '',
+                  displayValue: 'Amphibious. Breathes air and water.\n- wet',
+                  type: 'textarea',
+                  span: 12,
+                },
+              ],
+            },
+          ],
+        },
+      ]);
+      const result = await service.generateSite(
+        buildPlan([
+          {
+            id: 'wb',
+            type: PublishPlanItemType.Worldbuilding,
+            categories: [],
+            format: 'appendix',
+            title: 'Bestiary',
+          },
+        ])
+      );
+      const { read } = await unzip(result.file!);
+      const page = await read('bestiary.html');
+
+      expect(page).toContain(
+        '<div class="ink-wb-field ink-wb-field-type-number ink-wb-span-2 ink-wb-row-start">'
+      );
+      expect(page).toContain(
+        '<div class="ink-wb-long"><p><strong><em>Amphibious.</em></strong> Breathes air and water.</p><ul><li>wet</li></ul></div>'
+      );
+      expect(page).toContain('<div class="ink-wb-entry-intro">');
     });
 
     it('should reject unsafe background values and resolve image backgrounds through media', async () => {

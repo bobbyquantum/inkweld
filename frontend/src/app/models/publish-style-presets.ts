@@ -7,6 +7,7 @@
  */
 import {
   createDefaultPublishStyles,
+  DEFAULT_COLUMN_GAP,
   type PublishStyles,
 } from './publish-style';
 
@@ -49,6 +50,8 @@ const manuscript: PublishStylePreset = {
       marginOutside: 1,
       pageNumbers: 'numeric',
       runningHeader: true,
+      columns: 1,
+      columnGap: DEFAULT_COLUMN_GAP,
     };
     styles.baseText = {
       font: 'serifManuscript',
@@ -222,6 +225,8 @@ const largePrint: PublishStylePreset = {
       marginOutside: 1,
       pageNumbers: 'numeric',
       runningHeader: true,
+      columns: 1,
+      columnGap: DEFAULT_COLUMN_GAP,
     };
     styles.baseText = {
       ...styles.baseText,

@@ -544,6 +544,106 @@ describe('UnifiedProjectService', () => {
       );
     });
 
+    describe('template cover', () => {
+      const coverBlob = new Blob(['cover-data'], { type: 'image/jpeg' });
+      const templateWithCover = {
+        manifest: {},
+        project: { hasCover: true },
+        elements: [],
+        documents: [],
+        worldbuilding: [],
+        schemas: [],
+        relationships: [],
+        customRelationshipTypes: [],
+        tags: [],
+        elementTags: [],
+        publishPlans: [],
+        timeSystems: [],
+        snapshots: [],
+        media: [
+          {
+            mediaId: 'cover-the-drowned-lantern',
+            filename: 'cover.jpg',
+            archivePath: 'media/cover.jpg',
+            mimeType: 'image/jpeg',
+            blob: coverBlob,
+          },
+          {
+            mediaId: 'img-hero',
+            filename: 'hero.jpg',
+            archivePath: 'media/hero.jpg',
+            mimeType: 'image/jpeg',
+            blob: new Blob(['hero'], { type: 'image/jpeg' }),
+          },
+        ],
+      };
+
+      beforeEach(() => {
+        setupService.getMode.mockReturnValue('local');
+        (
+          TestBed.inject(
+            ProjectTemplateService
+          ) as unknown as MockedObject<ProjectTemplateService>
+        ).loadTemplate.mockResolvedValue(templateWithCover as never);
+        (
+          projectService as unknown as { uploadProjectCover: unknown }
+        ).uploadProjectCover = vi.fn().mockResolvedValue('cover-123.jpg');
+        (
+          TestBed.inject(LocalProjectElementsService) as unknown as Record<
+            string,
+            unknown
+          >
+        )['saveProjectMeta'] = vi.fn().mockResolvedValue(undefined);
+      });
+
+      it('sets the project cover through the cover upload and records it', async () => {
+        const elements = TestBed.inject(
+          LocalProjectElementsService
+        ) as unknown as { saveProjectMeta: ReturnType<typeof vi.fn> };
+        const storage = TestBed.inject(
+          LocalStorageService
+        ) as unknown as MockedObject<LocalStorageService>;
+
+        await service.createProject(
+          { title: 'New Project', slug: 'new-project' },
+          'ttrpg-demo'
+        );
+
+        expect(
+          (projectService as unknown as { uploadProjectCover: unknown })
+            .uploadProjectCover
+        ).toHaveBeenCalledWith('offlineuser', 'offline-project', coverBlob);
+        expect(elements.saveProjectMeta).toHaveBeenCalledWith(
+          'offlineuser',
+          'offline-project',
+          { coverMediaId: 'cover-123' }
+        );
+        // The cover is stored under the name the upload gives it, not twice
+        expect(storage.saveMedia).toHaveBeenCalledTimes(1);
+        expect(storage.saveMedia).toHaveBeenCalledWith(
+          'offlineuser/offline-project',
+          'img-hero',
+          expect.any(Blob),
+          'hero.jpg'
+        );
+      });
+
+      it('still creates the project when the cover cannot be set', async () => {
+        (
+          projectService as unknown as {
+            uploadProjectCover: ReturnType<typeof vi.fn>;
+          }
+        ).uploadProjectCover.mockRejectedValue(new Error('upload failed'));
+
+        const project = await service.createProject(
+          { title: 'New Project', slug: 'new-project' },
+          'ttrpg-demo'
+        );
+
+        expect(project).toBeTruthy();
+      });
+    });
+
     it('should not call saveMedia when template has no media', async () => {
       setupService.getMode.mockReturnValue('local');
 

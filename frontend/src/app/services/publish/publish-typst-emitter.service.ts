@@ -62,6 +62,11 @@ export class PublishTypstEmitterService {
         ? `  paper: ${dims.paper},`
         : `  width: ${dims.width},\n  height: ${dims.height},`;
     const numbering = pageNumberingExpr(page.pageNumbers);
+    const twoColumns = page.columns === 2;
+    const columnsLine = twoColumns ? '\n  columns: 2,' : '';
+    const columnGutterRule = twoColumns
+      ? [`#set columns(gutter: ${page.columnGap}in)`]
+      : [];
 
     // Paragraph defaults
     // CSS line-height is a unitless multiplier on font-size that includes
@@ -87,7 +92,7 @@ export class PublishTypstEmitterService {
         `[#text(${typstTextArgs(r.text)})[#body]]`
       );
       headingHelpers.push(
-        `#let doc-heading-${lvl}(body) = block(above: ${r.box?.marginTop ?? 12}pt, below: ${r.box?.marginBottom ?? 6}pt)[#${headingBody}]`
+        `#let doc-heading-${lvl}(body) = block(sticky: true, above: ${r.box?.marginTop ?? 12}pt, below: ${r.box?.marginBottom ?? 6}pt)[#${headingBody}]`
       );
     }
 
@@ -105,20 +110,33 @@ export class PublishTypstEmitterService {
     );
     const chNumWrapped = chapterNumberPrefixExpr(ch.numberPrefix);
     const chPageBreak = ch.pageBreakBefore ? '  pagebreak(weak: true)\n' : '';
+    // In two columns a chapter title that opens its own page spans both
+    // columns as a float at the top of the page. Without a page break the
+    // title stays in the flow, so it is not pulled away from the chapter's
+    // first lines (or up above the previous chapter's last ones).
+    const chBlockOpen =
+      twoColumns && ch.pageBreakBefore
+        ? `place(top, float: true, scope: "parent", clearance: ${ch.box.marginBottom ?? 24}pt, block(width: 100%)`
+        : `block(above: ${ch.box.marginTop ?? 48}pt, below: ${ch.box.marginBottom ?? 24}pt)`;
+    const chBlockClose = twoColumns && ch.pageBreakBefore ? ')' : '';
 
     // Helper: worldbuilding entry + field
     const wb = this.resolver.resolveWorldbuildingEntry(styles, undefined);
-    const wbStroke = wb.entryBox.borderWidth
-      ? `${wb.entryBox.borderWidth}pt + ${typstColor(wb.entryBox.borderColor ?? '#888')}`
-      : 'none';
+    // Entries are not boxed in print: a box's border, inset and margins cost
+    // a lot of page for little. The entry border instead draws a rule under
+    // the title, in the title's colour, which also separates entries.
+    const wbRule = wb.entryBox.borderWidth
+      ? `#line(length: 100%, stroke: ${Math.max(0.75, wb.entryBox.borderWidth * 1.5)}pt + ${typstColor(wb.entryTitle.color ?? '#333333')})`
+      : '';
     const wbSectionTitleStyle = styles?.worldbuilding?.sectionTitle ?? {};
 
     const out: string[] = [
       `#set page(
 ${paperLine}
   margin: (top: ${page.marginTop}in, bottom: ${page.marginBottom}in, inside: ${page.marginInside}in, outside: ${page.marginOutside}in),
-  numbering: ${numbering},
+  numbering: ${numbering},${columnsLine}
 )`,
+      ...columnGutterRule,
       `#set text(
   font: ${typstFontList(base.font)},
   size: ${base.fontSize ?? 11}pt,
@@ -133,24 +151,61 @@ ${paperLine}
       `#let doc-paragraph(body) = par[#body]`,
       `#let doc-blockquote(body) = block(inset: (left: ${bq.box?.marginLeft ?? 24}pt, right: ${bq.box?.marginRight ?? 24}pt), above: ${bq.box?.marginTop ?? 10}pt, below: ${bq.box?.marginBottom ?? 10}pt)[#text(${typstTextArgs(bq.text)})[#body]]`,
       `#let doc-code-block(body) = block(fill: ${typstColor(cb.box?.background ?? '#f5f5f5')}, inset: ${cb.box?.paddingLeft ?? 12}pt, above: ${cb.box?.marginTop ?? 10}pt, below: ${cb.box?.marginBottom ?? 10}pt, radius: ${cb.box?.borderRadius ?? 4}pt)[#text(${typstTextArgs(cb.text)})[#raw(body)]]`,
+      // An invisible heading puts each chapter in the table of contents
+      // and the PDF bookmarks without changing how the title looks.
+      `#let outline-entry(level, body) = place(hide(heading(level: level, outlined: true, bookmarked: true, body)))`,
       `#let chapter-title(num: none, body) = {
-${chPageBreak}  block(above: ${ch.box.marginTop ?? 48}pt, below: ${ch.box.marginBottom ?? 24}pt)[
+${chPageBreak}  ${chBlockOpen}[
+    #outline-entry(1, body)
     #if num != none [#${chNumWrapped}]
     #${chTitleInner}
-  ]
+  ]${chBlockClose}
 }`,
       `#let scene-break(text-content) = block(above: ${sb.box.marginTop ?? 18}pt, below: ${sb.box.marginBottom ?? 18}pt)[#align(center)[#text(${typstTextArgs(sb.text)})[#text-content]]]`,
-      `#let wb-entry(title, body) = block(stroke: ${wbStroke}, inset: ${wb.entryBox.paddingLeft ?? 12}pt, above: ${wb.entryBox.marginTop ?? 12}pt, below: ${wb.entryBox.marginBottom ?? 12}pt, radius: ${wb.entryBox.borderRadius ?? 4}pt)[
-  #text(${typstTextArgs(wb.entryTitle)})[#title]
-  #v(4pt)
+      // The title (with its rule) is sticky so it is never left alone at the
+      // foot of a page. The outline entry sits inside it: as the entry's
+      // first content it would otherwise start the entry on a page the title
+      // has left.
+      `#let wb-entry-body(title, body) = [
+  #block(sticky: true, below: 6pt)[#outline-entry(2, title)#text(${typstTextArgs(wb.entryTitle)})[#title]${wbRule ? `#v(-4pt)${wbRule}` : ''}]
   #body
 ]`,
+      // An entry with an authored background becomes a padded panel so its
+      // text does not run to the edge: a colour or gradient fill, or an
+      // image cover-fitted behind it under a light veil (as the editor does)
+      // so the text stays readable. An image panel is measured to size the
+      // image, so it is kept on one page.
+      `#let wb-entry(title, body, fill: none, bg-image: none) = {
+  let pad = (x: ${wb.entryBox.paddingLeft ?? 12}pt, y: ${wb.entryBox.paddingTop ?? 8}pt)
+  let panel = fill != none or bg-image != none
+  block(above: ${(wb.entryBox.marginTop ?? 12) + 6}pt, below: ${wb.entryBox.marginBottom ?? 12}pt, if bg-image != none {
+    layout(size => {
+      let inner = block(width: size.width, inset: pad, wb-entry-body(title, body))
+      let h = measure(inner).height
+      block(breakable: false, radius: ${wb.entryBox.borderRadius ?? 4}pt, clip: true, {
+        place(image(bg-image, width: size.width, height: h, fit: "cover"))
+        place(rect(width: size.width, height: h, fill: white.transparentize(22%)))
+        inner
+      })
+    })
+  } else {
+    block(width: 100%, fill: fill, inset: if panel { pad } else { 0pt }, radius: if panel { ${wb.entryBox.borderRadius ?? 4}pt } else { 0pt }, wb-entry-body(title, body))
+  })
+}`,
       `#let wb-tab(title, body) = {
-  block(above: 8pt, below: 4pt)[#text(${typstTextArgs(wb.tabHeading)})[#title]]
+  block(sticky: true, above: 8pt, below: 4pt)[#text(${typstTextArgs(wb.tabHeading)})[#title]]
   body
 }`,
       `#let wb-field(label, value) = grid(columns: (auto, 1fr), column-gutter: 8pt, [#text(${typstTextArgs(wb.fieldLabel)})[#label]], [#text(${typstTextArgs(wb.fieldValue)})[#value]])`,
-      `#let wb-section-title(body) = block(above: 24pt, below: 12pt)[#text(${typstTextArgs(wbSectionTitleStyle)})[#body]]`,
+      // Worldbuilding fields on the schema's 12-column layout grid: each cell
+      // holds a field's label above its value and spans the field's columns.
+      // A cell is never split, so a label is not parted from its value.
+      // Its paragraphs (long-text lines) are not indented like body text.
+      `#let wb-fields(..cells) = grid(columns: (1fr,) * 12, column-gutter: 8pt, row-gutter: 6pt, ..cells)`,
+      `#let wb-cell(label, value) = block(breakable: false)[#block(below: 2pt)[#text(${typstTextArgs(wb.fieldLabel)})[#label]]#text(${typstTextArgs(wb.fieldValue)})[#set par(first-line-indent: 0pt, spacing: 0.7em);#value]]`,
+      twoColumns
+        ? `#let wb-section-title(body) = place(top, float: true, scope: "parent", clearance: 12pt, block(width: 100%)[#text(${typstTextArgs(wbSectionTitleStyle)})[#body]])`
+        : `#let wb-section-title(body) = block(sticky: true, above: 28pt, below: 6pt)[#outline-entry(1, body)#text(${typstTextArgs(wbSectionTitleStyle)})[#body]]`,
     ];
 
     return out.join('\n\n') + '\n\n';
@@ -180,7 +235,7 @@ function typstFontList(token: TextStyle['font']): string {
   return `("${primary}",)`;
 }
 
-function typstColor(hexOrName: string | undefined): string {
+export function typstColor(hexOrName: string | undefined): string {
   // Only accept #RGB / #RRGGBB / #RRGGBBAA. Anything else (named colors,
   // CSS functions, attacker-controlled strings) falls back to the default
   // text color so we never emit unvalidated content into the Typst source.

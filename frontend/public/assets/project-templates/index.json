@@ -1,33 +1,85 @@
 {
-  "version": 1,
+  "version": 2,
+  "groups": [
+    {
+      "id": "worldbuilding",
+      "name": "Worldbuilding",
+      "description": "Characters, places and lore for a world of your own, with built-in element types and relationships.",
+      "icon": "public"
+    },
+    {
+      "id": "tabletop-rpg",
+      "name": "Tabletop RPG",
+      "description": "Prepare and run a campaign: player characters, NPCs, monsters, locations and quests, with guides to publish for your table.",
+      "icon": "casino"
+    },
+    {
+      "id": "script",
+      "name": "Script",
+      "description": "Write scenes as conversations, with cast, sets and props.",
+      "icon": "theater_comedy"
+    },
+    {
+      "id": "blank",
+      "name": "Blank Project",
+      "description": "A blank slate with just a README to get you started.",
+      "icon": "description"
+    }
+  ],
   "templates": [
     {
       "id": "worldbuilding-empty",
       "name": "Worldbuilding (Empty)",
       "description": "Ready for worldbuilding with built-in relationship types and templates, but no starter content.",
       "icon": "public",
-      "folder": "worldbuilding-empty"
+      "folder": "worldbuilding-empty",
+      "group": "worldbuilding",
+      "variant": "starter"
     },
     {
       "id": "worldbuilding-demo",
       "name": "Worldbuilding (Demo)",
       "description": "A fully-featured demo with sample characters, locations, and relationships to explore.",
       "icon": "auto_stories",
-      "folder": "worldbuilding-demo"
+      "folder": "worldbuilding-demo",
+      "group": "worldbuilding",
+      "variant": "demo"
+    },
+    {
+      "id": "ttrpg-empty",
+      "name": "Tabletop RPG (Empty)",
+      "description": "Folders and element types for player characters, NPCs, monsters, locations, factions and quests, plus Game Master's and Player's Guides ready to fill in.",
+      "icon": "casino",
+      "folder": "ttrpg-empty",
+      "group": "tabletop-rpg",
+      "variant": "starter"
+    },
+    {
+      "id": "ttrpg-demo",
+      "name": "Tabletop RPG (Demo)",
+      "description": "The Drowned Lantern, a complete illustrated D&D 5e adventure for levels 1-5, with a cover and both guides ready to publish.",
+      "icon": "sailing",
+      "folder": "ttrpg-demo",
+      "group": "tabletop-rpg",
+      "variant": "demo"
     },
     {
       "id": "script-demo",
       "name": "Script (Demo)",
       "description": "A short film written as conversations, with cast, sets and props templates and a script ready to publish as a PDF.",
       "icon": "theater_comedy",
-      "folder": "script-demo"
+      "folder": "script-demo",
+      "group": "script",
+      "variant": "demo"
     },
     {
       "id": "empty",
       "name": "Empty Project",
       "description": "A blank slate with just a README to get you started.",
       "icon": "description",
-      "folder": "empty"
+      "folder": "empty",
+      "group": "blank",
+      "variant": "starter"
     }
   ]
 }

@@ -75,6 +75,7 @@ For print-style output (PDF), the **Page setup** section controls the physical p
 - **Page size**: US Letter (8.5 x 11 in), US Trade (6 x 9 in), A4, A5, B5 or Pocket (4.25 x 6.87 in)
 - **Page numbers**: None, Numeric (1, 2, 3) or Roman (i, ii, iii)
 - **Margin top**, **Margin bottom**, **Margin inside** and **Margin outside**, in inches. Inside and outside are the binding and outer edges of a page
+- **Columns**: One column or Two columns, for reference-book and game-module layouts. With two columns you can also set the **Column gap** in inches. In a PDF the title page, copyright page, dedication and table of contents stay full width, and chapter titles that start a new page span both columns. In single-file HTML output the same layout is used on wide screens (headings and the title page span both columns, worldbuilding entries are not split) and falls back to one column on narrow screens. EPUB, Markdown and the multi-page website ignore this setting
 - **Running header with chapter title**: Repeats the chapter title at the top of each page
 
 An EPUB is reflowable: it re-wraps to each reader's screen, so the Page setup section is hidden for EPUB and page size, margins and page numbers are left to the reading device.

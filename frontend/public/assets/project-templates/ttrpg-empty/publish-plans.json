@@ -1,0 +1,1232 @@
+[
+  {
+    "id": "cd1dafaa-247e-44cf-be6a-cc971c9c0d77",
+    "name": "Game Master's Guide",
+    "format": "PDF_SIMPLE",
+    "createdAt": "2026-10-14T00:42:59.753Z",
+    "updatedAt": "2026-10-18T18:21:15.274Z",
+    "metadata": {
+      "title": "My Campaign: Game Master's Guide",
+      "author": "Game Master",
+      "language": "en"
+    },
+    "items": [
+      {
+        "id": "0d626b7c-1a22-4274-9eed-289c3f3d2da8",
+        "type": "frontmatter",
+        "contentType": "title-page"
+      },
+      {
+        "id": "9ded14a7-0ee4-40ac-bcc3-77f0e4cfcd4f",
+        "type": "toc",
+        "title": "Contents",
+        "depth": 2,
+        "includePageNumbers": false
+      },
+      {
+        "id": "935fc55d-1e80-4f79-8c7d-3a1d588c1e12",
+        "type": "element",
+        "elementId": "jCg1tqF0h65O0c1JVxAUe",
+        "includeChildren": true,
+        "isChapter": true
+      },
+      {
+        "id": "535d1aad-f0b1-497a-89d1-0f6ea34321de",
+        "type": "element",
+        "elementId": "N1wXkjyb1nvmq7aGlGMqy",
+        "includeChildren": true,
+        "isChapter": true
+      },
+      {
+        "id": "5e2f1151-991b-4b33-8ae6-c8624a7bff87",
+        "type": "element",
+        "elementId": "IHX_QZuUtXTIjSCHpKJf2",
+        "includeChildren": true,
+        "isChapter": true
+      },
+      {
+        "id": "a7fedaa7-0a34-4bef-a91c-c63cafb0ad6a",
+        "type": "element",
+        "elementId": "ESyA9E8Tnk_REhqWPSJYg",
+        "includeChildren": true,
+        "isChapter": true
+      },
+      {
+        "id": "68964ec1-96cc-46a5-a5ce-c72c1ff8f3d1",
+        "type": "element",
+        "elementId": "ReQEavcmWtQ46vgDL8Q5E",
+        "includeChildren": true,
+        "isChapter": true
+      },
+      {
+        "id": "462831b8-8a94-436d-997d-431556509ed5",
+        "type": "element",
+        "elementId": "cESIfwjmVLtSRKMb9dgM3",
+        "includeChildren": true,
+        "isChapter": true
+      },
+      {
+        "id": "0640c6c4-4939-4bd0-bbfa-bd813877db83",
+        "type": "element",
+        "elementId": "mPa1vF77gSzlxyHKW3_Z9",
+        "includeChildren": true,
+        "isChapter": true
+      },
+      {
+        "id": "9a134d7b-b9c9-446e-9330-53481a6c57c4",
+        "type": "element",
+        "elementId": "CorS8RWJ_VVSuELwt9617",
+        "includeChildren": true,
+        "isChapter": true
+      }
+    ],
+    "options": {
+      "chapterNumbering": "none",
+      "sceneBreakText": "* * *",
+      "includeWordCounts": false,
+      "includeToc": true,
+      "includeCover": true,
+      "chapterHeadingStyle": "document-name",
+      "coverFullBleed": true
+    },
+    "styles": {
+      "page": {
+        "size": "us-trade",
+        "marginTop": 0.75,
+        "marginBottom": 0.75,
+        "marginInside": 0.875,
+        "marginOutside": 0.625,
+        "pageNumbers": "numeric",
+        "runningHeader": true,
+        "columns": 1
+      },
+      "baseText": {
+        "font": "sansClean",
+        "fontSize": 10,
+        "weight": "normal",
+        "style": "normal",
+        "lineHeight": 1.35,
+        "align": "left",
+        "firstLineIndent": 0,
+        "color": "#111111"
+      },
+      "nodes": {
+        "paragraph": {
+          "text": {
+            "firstLineIndent": 1.25
+          },
+          "box": {
+            "marginTop": 0,
+            "marginBottom": 0
+          }
+        },
+        "heading1": {
+          "text": {
+            "fontSize": 22,
+            "weight": "bold",
+            "align": "left",
+            "firstLineIndent": 0
+          },
+          "box": {
+            "marginTop": 24,
+            "marginBottom": 12
+          }
+        },
+        "heading2": {
+          "text": {
+            "fontSize": 18,
+            "weight": "bold",
+            "align": "left",
+            "firstLineIndent": 0
+          },
+          "box": {
+            "marginTop": 24,
+            "marginBottom": 12
+          }
+        },
+        "heading3": {
+          "text": {
+            "fontSize": 14,
+            "weight": "semibold",
+            "align": "left",
+            "firstLineIndent": 0
+          },
+          "box": {
+            "marginTop": 14,
+            "marginBottom": 6
+          }
+        },
+        "heading4": {
+          "text": {
+            "fontSize": 12,
+            "weight": "semibold",
+            "style": "italic",
+            "align": "left",
+            "firstLineIndent": 0
+          },
+          "box": {
+            "marginTop": 12,
+            "marginBottom": 4
+          }
+        },
+        "heading5": {
+          "text": {
+            "fontSize": 11,
+            "weight": "bold",
+            "transform": "uppercase",
+            "align": "left",
+            "firstLineIndent": 0
+          },
+          "box": {
+            "marginTop": 10,
+            "marginBottom": 4
+          }
+        },
+        "heading6": {
+          "text": {
+            "fontSize": 11,
+            "weight": "semibold",
+            "style": "italic",
+            "align": "left",
+            "firstLineIndent": 0
+          },
+          "box": {
+            "marginTop": 10,
+            "marginBottom": 4
+          }
+        },
+        "blockquote": {
+          "text": {
+            "style": "italic",
+            "firstLineIndent": 0
+          },
+          "box": {
+            "marginTop": 10,
+            "marginBottom": 10,
+            "marginLeft": 24,
+            "marginRight": 24,
+            "paddingLeft": 12,
+            "borderWidth": 0
+          }
+        },
+        "codeBlock": {
+          "text": {
+            "font": "mono",
+            "fontSize": 10,
+            "firstLineIndent": 0,
+            "align": "left"
+          },
+          "box": {
+            "marginTop": 10,
+            "marginBottom": 10,
+            "paddingTop": 8,
+            "paddingBottom": 8,
+            "paddingLeft": 12,
+            "paddingRight": 12,
+            "background": "#f5f5f5",
+            "borderRadius": 4
+          }
+        },
+        "bulletList": {
+          "box": {
+            "marginTop": 6,
+            "marginBottom": 6,
+            "marginLeft": 18
+          }
+        },
+        "orderedList": {
+          "box": {
+            "marginTop": 6,
+            "marginBottom": 6,
+            "marginLeft": 18
+          }
+        },
+        "listItem": {
+          "box": {
+            "marginTop": 2,
+            "marginBottom": 2
+          }
+        },
+        "horizontalRule": {
+          "box": {
+            "marginTop": 12,
+            "marginBottom": 12
+          }
+        },
+        "image": {
+          "box": {
+            "marginTop": 10,
+            "marginBottom": 10
+          }
+        },
+        "figure": {
+          "box": {
+            "marginTop": 12,
+            "marginBottom": 12
+          }
+        },
+        "caption": {
+          "text": {
+            "fontSize": 9,
+            "style": "italic",
+            "align": "center",
+            "firstLineIndent": 0
+          },
+          "box": {
+            "marginTop": 4,
+            "marginBottom": 8
+          }
+        }
+      },
+      "marks": {
+        "bold": {
+          "weight": "bold"
+        },
+        "italic": {
+          "style": "italic"
+        },
+        "underline": {
+          "decoration": "underline"
+        },
+        "strike": {
+          "decoration": "line-through"
+        },
+        "code": {
+          "font": "mono"
+        },
+        "link": {
+          "color": "#1a5fb4",
+          "decoration": "underline"
+        },
+        "subscript": {
+          "fontSize": 9
+        },
+        "superscript": {
+          "fontSize": 9
+        }
+      },
+      "structure": {
+        "chapterTitle": {
+          "text": {
+            "fontSize": 24,
+            "weight": "bold",
+            "align": "center",
+            "firstLineIndent": 0
+          },
+          "box": {
+            "marginTop": 48,
+            "marginBottom": 24
+          },
+          "numberPrefix": {
+            "fontSize": 12,
+            "weight": "normal",
+            "transform": "uppercase",
+            "align": "center",
+            "letterSpacing": 0.15
+          },
+          "pageBreakBefore": true
+        },
+        "sceneBreak": {
+          "text": {
+            "align": "center",
+            "firstLineIndent": 0
+          },
+          "box": {
+            "marginTop": 18,
+            "marginBottom": 18
+          }
+        },
+        "toc": {
+          "title": {
+            "fontSize": 20,
+            "weight": "bold",
+            "align": "center",
+            "firstLineIndent": 0
+          },
+          "entry": {
+            "fontSize": 11,
+            "align": "left",
+            "firstLineIndent": 0
+          },
+          "indentPerLevel": 1.5
+        },
+        "frontmatter": {
+          "title": {
+            "fontSize": 18,
+            "weight": "bold",
+            "align": "center",
+            "firstLineIndent": 0
+          },
+          "body": {
+            "fontSize": 11,
+            "align": "center",
+            "firstLineIndent": 0
+          },
+          "box": {
+            "marginTop": 24,
+            "marginBottom": 24
+          }
+        },
+        "backmatter": {
+          "title": {
+            "fontSize": 18,
+            "weight": "bold",
+            "align": "center",
+            "firstLineIndent": 0
+          },
+          "body": {
+            "fontSize": 11,
+            "align": "left",
+            "firstLineIndent": 0
+          },
+          "box": {
+            "marginTop": 24,
+            "marginBottom": 24
+          }
+        }
+      },
+      "worldbuilding": {
+        "sectionTitle": {
+          "fontSize": 22,
+          "weight": "bold",
+          "align": "left",
+          "firstLineIndent": 0
+        },
+        "entryTitle": {
+          "fontSize": 16,
+          "weight": "bold",
+          "align": "left",
+          "firstLineIndent": 0
+        },
+        "entryBox": {
+          "marginTop": 12,
+          "marginBottom": 12,
+          "paddingTop": 8,
+          "paddingBottom": 8,
+          "paddingLeft": 12,
+          "paddingRight": 12,
+          "borderWidth": 1,
+          "borderColor": "#888888",
+          "borderRadius": 4
+        },
+        "tabHeading": {
+          "fontSize": 12,
+          "weight": "semibold",
+          "transform": "uppercase",
+          "align": "left",
+          "letterSpacing": 0.1,
+          "firstLineIndent": 0
+        },
+        "fieldLabel": {
+          "fontSize": 10,
+          "weight": "semibold",
+          "align": "left",
+          "firstLineIndent": 0,
+          "color": "#444444"
+        },
+        "fieldValue": {
+          "fontSize": 11,
+          "align": "left",
+          "firstLineIndent": 0
+        },
+        "defaultLayout": "detail"
+      }
+    }
+  },
+  {
+    "id": "98d8fc96-0107-4c9e-a01c-6aee1b5ca24a",
+    "name": "Player's Guide",
+    "format": "HTML",
+    "createdAt": "2026-10-14T00:45:27.764Z",
+    "updatedAt": "2026-10-16T10:40:11.530Z",
+    "metadata": {
+      "title": "My Campaign: Player's Guide",
+      "author": "Game Master",
+      "language": "en"
+    },
+    "items": [
+      {
+        "id": "4f9e32de-dbaa-4571-81cb-4439bff37606",
+        "type": "element",
+        "elementId": "CorS8RWJ_VVSuELwt9617",
+        "includeChildren": true,
+        "isChapter": true
+      }
+    ],
+    "options": {
+      "chapterNumbering": "none",
+      "sceneBreakText": "* * *",
+      "includeWordCounts": false,
+      "includeToc": true,
+      "includeCover": true,
+      "chapterHeadingStyle": "document-name"
+    },
+    "styles": {
+      "preset": "webSerial",
+      "page": {
+        "size": "us-trade",
+        "marginTop": 0.75,
+        "marginBottom": 0.75,
+        "marginInside": 0.875,
+        "marginOutside": 0.625,
+        "pageNumbers": "numeric",
+        "runningHeader": true
+      },
+      "baseText": {
+        "font": "sansHumanist",
+        "fontSize": 12,
+        "weight": "normal",
+        "style": "normal",
+        "lineHeight": 1.6,
+        "align": "left",
+        "firstLineIndent": 0,
+        "color": "#1a1a1a"
+      },
+      "nodes": {
+        "paragraph": {
+          "text": {
+            "firstLineIndent": 0
+          },
+          "box": {
+            "marginTop": 0,
+            "marginBottom": 12
+          }
+        },
+        "heading1": {
+          "text": {
+            "fontSize": 22,
+            "weight": "bold",
+            "align": "left",
+            "firstLineIndent": 0
+          },
+          "box": {
+            "marginTop": 24,
+            "marginBottom": 12
+          }
+        },
+        "heading2": {
+          "text": {
+            "fontSize": 18,
+            "weight": "bold",
+            "align": "left",
+            "firstLineIndent": 0
+          },
+          "box": {
+            "marginTop": 24,
+            "marginBottom": 12
+          }
+        },
+        "heading3": {
+          "text": {
+            "fontSize": 14,
+            "weight": "semibold",
+            "align": "left",
+            "firstLineIndent": 0
+          },
+          "box": {
+            "marginTop": 14,
+            "marginBottom": 6
+          }
+        },
+        "heading4": {
+          "text": {
+            "fontSize": 12,
+            "weight": "semibold",
+            "style": "italic",
+            "align": "left",
+            "firstLineIndent": 0
+          },
+          "box": {
+            "marginTop": 12,
+            "marginBottom": 4
+          }
+        },
+        "heading5": {
+          "text": {
+            "fontSize": 11,
+            "weight": "bold",
+            "transform": "uppercase",
+            "align": "left",
+            "firstLineIndent": 0
+          },
+          "box": {
+            "marginTop": 10,
+            "marginBottom": 4
+          }
+        },
+        "heading6": {
+          "text": {
+            "fontSize": 11,
+            "weight": "semibold",
+            "style": "italic",
+            "align": "left",
+            "firstLineIndent": 0
+          },
+          "box": {
+            "marginTop": 10,
+            "marginBottom": 4
+          }
+        },
+        "blockquote": {
+          "text": {
+            "style": "italic",
+            "firstLineIndent": 0
+          },
+          "box": {
+            "marginTop": 10,
+            "marginBottom": 10,
+            "marginLeft": 24,
+            "marginRight": 24,
+            "paddingLeft": 12,
+            "borderWidth": 0
+          }
+        },
+        "codeBlock": {
+          "text": {
+            "font": "mono",
+            "fontSize": 10,
+            "firstLineIndent": 0,
+            "align": "left"
+          },
+          "box": {
+            "marginTop": 10,
+            "marginBottom": 10,
+            "paddingTop": 8,
+            "paddingBottom": 8,
+            "paddingLeft": 12,
+            "paddingRight": 12,
+            "background": "#f5f5f5",
+            "borderRadius": 4
+          }
+        },
+        "bulletList": {
+          "box": {
+            "marginTop": 6,
+            "marginBottom": 6,
+            "marginLeft": 18
+          }
+        },
+        "orderedList": {
+          "box": {
+            "marginTop": 6,
+            "marginBottom": 6,
+            "marginLeft": 18
+          }
+        },
+        "listItem": {
+          "box": {
+            "marginTop": 2,
+            "marginBottom": 2
+          }
+        },
+        "horizontalRule": {
+          "box": {
+            "marginTop": 12,
+            "marginBottom": 12
+          }
+        },
+        "image": {
+          "box": {
+            "marginTop": 10,
+            "marginBottom": 10
+          }
+        },
+        "figure": {
+          "box": {
+            "marginTop": 12,
+            "marginBottom": 12
+          }
+        },
+        "caption": {
+          "text": {
+            "fontSize": 9,
+            "style": "italic",
+            "align": "center",
+            "firstLineIndent": 0
+          },
+          "box": {
+            "marginTop": 4,
+            "marginBottom": 8
+          }
+        }
+      },
+      "marks": {
+        "bold": {
+          "weight": "bold"
+        },
+        "italic": {
+          "style": "italic"
+        },
+        "underline": {
+          "decoration": "underline"
+        },
+        "strike": {
+          "decoration": "line-through"
+        },
+        "code": {
+          "font": "mono"
+        },
+        "link": {
+          "color": "#1a5fb4",
+          "decoration": "underline"
+        },
+        "subscript": {
+          "fontSize": 9
+        },
+        "superscript": {
+          "fontSize": 9
+        }
+      },
+      "structure": {
+        "chapterTitle": {
+          "text": {
+            "fontSize": 28,
+            "weight": "bold",
+            "align": "left",
+            "firstLineIndent": 0,
+            "font": "sansHumanist"
+          },
+          "box": {
+            "marginTop": 24,
+            "marginBottom": 16
+          },
+          "numberPrefix": {
+            "fontSize": 12,
+            "weight": "normal",
+            "transform": "uppercase",
+            "align": "center",
+            "letterSpacing": 0.15
+          },
+          "pageBreakBefore": true
+        },
+        "sceneBreak": {
+          "text": {
+            "align": "center",
+            "firstLineIndent": 0
+          },
+          "box": {
+            "marginTop": 18,
+            "marginBottom": 18
+          }
+        },
+        "toc": {
+          "title": {
+            "fontSize": 20,
+            "weight": "bold",
+            "align": "center",
+            "firstLineIndent": 0
+          },
+          "entry": {
+            "fontSize": 11,
+            "align": "left",
+            "firstLineIndent": 0
+          },
+          "indentPerLevel": 1.5
+        },
+        "frontmatter": {
+          "title": {
+            "fontSize": 18,
+            "weight": "bold",
+            "align": "center",
+            "firstLineIndent": 0
+          },
+          "body": {
+            "fontSize": 11,
+            "align": "center",
+            "firstLineIndent": 0
+          },
+          "box": {
+            "marginTop": 24,
+            "marginBottom": 24
+          }
+        },
+        "backmatter": {
+          "title": {
+            "fontSize": 18,
+            "weight": "bold",
+            "align": "center",
+            "firstLineIndent": 0
+          },
+          "body": {
+            "fontSize": 11,
+            "align": "left",
+            "firstLineIndent": 0
+          },
+          "box": {
+            "marginTop": 24,
+            "marginBottom": 24
+          }
+        }
+      },
+      "worldbuilding": {
+        "sectionTitle": {
+          "fontSize": 22,
+          "weight": "bold",
+          "align": "left",
+          "firstLineIndent": 0
+        },
+        "entryTitle": {
+          "fontSize": 14,
+          "weight": "bold",
+          "align": "left",
+          "firstLineIndent": 0
+        },
+        "entryBox": {
+          "marginTop": 12,
+          "marginBottom": 12,
+          "paddingTop": 8,
+          "paddingBottom": 8,
+          "paddingLeft": 12,
+          "paddingRight": 12,
+          "borderWidth": 0.5,
+          "borderColor": "#cccccc",
+          "borderRadius": 4
+        },
+        "tabHeading": {
+          "fontSize": 12,
+          "weight": "semibold",
+          "transform": "uppercase",
+          "align": "left",
+          "letterSpacing": 0.1,
+          "firstLineIndent": 0
+        },
+        "fieldLabel": {
+          "fontSize": 10,
+          "weight": "semibold",
+          "align": "left",
+          "firstLineIndent": 0,
+          "color": "#444444"
+        },
+        "fieldValue": {
+          "fontSize": 11,
+          "align": "left",
+          "firstLineIndent": 0
+        },
+        "defaultLayout": "card"
+      }
+    }
+  },
+  {
+    "id": "566d020e-00dd-4eb4-a8fa-55f6d64971c4",
+    "name": "GM Guide (Web)",
+    "format": "HTML",
+    "createdAt": "2026-10-16T10:42:48.937Z",
+    "updatedAt": "2026-10-18T18:17:33.436Z",
+    "metadata": {
+      "title": "My Campaign: Game Master's Guide",
+      "author": "Game Master",
+      "language": "en"
+    },
+    "items": [
+      {
+        "id": "5b25d817-8e81-4769-a409-05767fc3c15a",
+        "type": "element",
+        "elementId": "jCg1tqF0h65O0c1JVxAUe",
+        "includeChildren": true,
+        "isChapter": true
+      },
+      {
+        "id": "30e34331-7440-4051-9eb1-357c5141e3e8",
+        "type": "element",
+        "elementId": "N1wXkjyb1nvmq7aGlGMqy",
+        "includeChildren": true,
+        "isChapter": true
+      },
+      {
+        "id": "7221c0c0-2e04-4aff-8dc0-75d4451e80eb",
+        "type": "element",
+        "elementId": "ESyA9E8Tnk_REhqWPSJYg",
+        "includeChildren": true,
+        "isChapter": true
+      },
+      {
+        "id": "a3c9b4ab-8dc5-4eb4-b2d2-444f33e003c2",
+        "type": "element",
+        "elementId": "ReQEavcmWtQ46vgDL8Q5E",
+        "includeChildren": true,
+        "isChapter": true
+      },
+      {
+        "id": "3ceb8c15-af34-4cf0-9860-b541860f73c8",
+        "type": "element",
+        "elementId": "cESIfwjmVLtSRKMb9dgM3",
+        "includeChildren": true,
+        "isChapter": true
+      },
+      {
+        "id": "33e543fb-5f39-4419-af90-0a632f73cf13",
+        "type": "element",
+        "elementId": "mPa1vF77gSzlxyHKW3_Z9",
+        "includeChildren": true,
+        "isChapter": true
+      },
+      {
+        "id": "8925720b-2343-4821-a39c-f1c32ff1ae70",
+        "type": "element",
+        "elementId": "IHX_QZuUtXTIjSCHpKJf2",
+        "includeChildren": true,
+        "isChapter": true
+      },
+      {
+        "id": "0a9dbc74-0017-44f3-9c5c-24916dbab911",
+        "type": "element",
+        "elementId": "CorS8RWJ_VVSuELwt9617",
+        "includeChildren": true,
+        "isChapter": true
+      }
+    ],
+    "options": {
+      "chapterNumbering": "none",
+      "sceneBreakText": "* * *",
+      "includeWordCounts": false,
+      "includeToc": true,
+      "includeCover": true,
+      "coverFullBleed": true
+    },
+    "styles": {
+      "preset": "ebook",
+      "page": {
+        "size": "us-trade",
+        "marginTop": 0.75,
+        "marginBottom": 0.75,
+        "marginInside": 0.875,
+        "marginOutside": 0.625,
+        "pageNumbers": "none",
+        "runningHeader": false,
+        "columns": 1,
+        "columnGap": 0.25
+      },
+      "baseText": {
+        "font": "serifBook",
+        "fontSize": 12,
+        "weight": "normal",
+        "style": "normal",
+        "lineHeight": 1.5,
+        "align": "justify",
+        "firstLineIndent": 1,
+        "color": "#111111"
+      },
+      "nodes": {
+        "paragraph": {
+          "text": {
+            "firstLineIndent": 1.25
+          },
+          "box": {
+            "marginTop": 0,
+            "marginBottom": 0
+          }
+        },
+        "heading1": {
+          "text": {
+            "fontSize": 22,
+            "weight": "bold",
+            "align": "left",
+            "firstLineIndent": 0
+          },
+          "box": {
+            "marginTop": 24,
+            "marginBottom": 12
+          }
+        },
+        "heading2": {
+          "text": {
+            "fontSize": 18,
+            "weight": "bold",
+            "align": "left",
+            "firstLineIndent": 0
+          },
+          "box": {
+            "marginTop": 24,
+            "marginBottom": 12
+          }
+        },
+        "heading3": {
+          "text": {
+            "fontSize": 14,
+            "weight": "semibold",
+            "align": "left",
+            "firstLineIndent": 0
+          },
+          "box": {
+            "marginTop": 14,
+            "marginBottom": 6
+          }
+        },
+        "heading4": {
+          "text": {
+            "fontSize": 12,
+            "weight": "semibold",
+            "style": "italic",
+            "align": "left",
+            "firstLineIndent": 0
+          },
+          "box": {
+            "marginTop": 12,
+            "marginBottom": 4
+          }
+        },
+        "heading5": {
+          "text": {
+            "fontSize": 11,
+            "weight": "bold",
+            "transform": "uppercase",
+            "align": "left",
+            "firstLineIndent": 0
+          },
+          "box": {
+            "marginTop": 10,
+            "marginBottom": 4
+          }
+        },
+        "heading6": {
+          "text": {
+            "fontSize": 11,
+            "weight": "semibold",
+            "style": "italic",
+            "align": "left",
+            "firstLineIndent": 0
+          },
+          "box": {
+            "marginTop": 10,
+            "marginBottom": 4
+          }
+        },
+        "blockquote": {
+          "text": {
+            "style": "italic",
+            "firstLineIndent": 0
+          },
+          "box": {
+            "marginTop": 10,
+            "marginBottom": 10,
+            "marginLeft": 24,
+            "marginRight": 24,
+            "paddingLeft": 12,
+            "borderWidth": 0
+          }
+        },
+        "codeBlock": {
+          "text": {
+            "font": "mono",
+            "fontSize": 10,
+            "firstLineIndent": 0,
+            "align": "left"
+          },
+          "box": {
+            "marginTop": 10,
+            "marginBottom": 10,
+            "paddingTop": 8,
+            "paddingBottom": 8,
+            "paddingLeft": 12,
+            "paddingRight": 12,
+            "background": "#f5f5f5",
+            "borderRadius": 4
+          }
+        },
+        "bulletList": {
+          "box": {
+            "marginTop": 6,
+            "marginBottom": 6,
+            "marginLeft": 18
+          }
+        },
+        "orderedList": {
+          "box": {
+            "marginTop": 6,
+            "marginBottom": 6,
+            "marginLeft": 18
+          }
+        },
+        "listItem": {
+          "box": {
+            "marginTop": 2,
+            "marginBottom": 2
+          }
+        },
+        "horizontalRule": {
+          "box": {
+            "marginTop": 12,
+            "marginBottom": 12
+          }
+        },
+        "image": {
+          "box": {
+            "marginTop": 10,
+            "marginBottom": 10
+          }
+        },
+        "figure": {
+          "box": {
+            "marginTop": 12,
+            "marginBottom": 12
+          }
+        },
+        "caption": {
+          "text": {
+            "fontSize": 9,
+            "style": "italic",
+            "align": "center",
+            "firstLineIndent": 0
+          },
+          "box": {
+            "marginTop": 4,
+            "marginBottom": 8
+          }
+        }
+      },
+      "marks": {
+        "bold": {
+          "weight": "bold"
+        },
+        "italic": {
+          "style": "italic"
+        },
+        "underline": {
+          "decoration": "underline"
+        },
+        "strike": {
+          "decoration": "line-through"
+        },
+        "code": {
+          "font": "mono"
+        },
+        "link": {
+          "color": "#1a5fb4",
+          "decoration": "underline"
+        },
+        "subscript": {
+          "fontSize": 9
+        },
+        "superscript": {
+          "fontSize": 9
+        }
+      },
+      "structure": {
+        "chapterTitle": {
+          "text": {
+            "fontSize": 24,
+            "weight": "bold",
+            "align": "center",
+            "firstLineIndent": 0
+          },
+          "box": {
+            "marginTop": 48,
+            "marginBottom": 24
+          },
+          "numberPrefix": {
+            "fontSize": 12,
+            "weight": "normal",
+            "transform": "uppercase",
+            "align": "center",
+            "letterSpacing": 0.15
+          },
+          "pageBreakBefore": true
+        },
+        "sceneBreak": {
+          "text": {
+            "align": "center",
+            "firstLineIndent": 0
+          },
+          "box": {
+            "marginTop": 18,
+            "marginBottom": 18
+          }
+        },
+        "toc": {
+          "title": {
+            "fontSize": 20,
+            "weight": "bold",
+            "align": "center",
+            "firstLineIndent": 0
+          },
+          "entry": {
+            "fontSize": 11,
+            "align": "left",
+            "firstLineIndent": 0
+          },
+          "indentPerLevel": 1.5
+        },
+        "frontmatter": {
+          "title": {
+            "fontSize": 18,
+            "weight": "bold",
+            "align": "center",
+            "firstLineIndent": 0
+          },
+          "body": {
+            "fontSize": 11,
+            "align": "center",
+            "firstLineIndent": 0
+          },
+          "box": {
+            "marginTop": 24,
+            "marginBottom": 24
+          }
+        },
+        "backmatter": {
+          "title": {
+            "fontSize": 18,
+            "weight": "bold",
+            "align": "center",
+            "firstLineIndent": 0
+          },
+          "body": {
+            "fontSize": 11,
+            "align": "left",
+            "firstLineIndent": 0
+          },
+          "box": {
+            "marginTop": 24,
+            "marginBottom": 24
+          }
+        }
+      },
+      "worldbuilding": {
+        "sectionTitle": {
+          "fontSize": 22,
+          "weight": "bold",
+          "align": "left",
+          "firstLineIndent": 0
+        },
+        "entryTitle": {
+          "fontSize": 14,
+          "weight": "bold",
+          "align": "left",
+          "firstLineIndent": 0
+        },
+        "entryBox": {
+          "marginTop": 12,
+          "marginBottom": 12,
+          "paddingTop": 8,
+          "paddingBottom": 8,
+          "paddingLeft": 12,
+          "paddingRight": 12,
+          "borderWidth": 0.5,
+          "borderColor": "#cccccc",
+          "borderRadius": 4
+        },
+        "tabHeading": {
+          "fontSize": 12,
+          "weight": "semibold",
+          "transform": "uppercase",
+          "align": "left",
+          "letterSpacing": 0.1,
+          "firstLineIndent": 0
+        },
+        "fieldLabel": {
+          "fontSize": 10,
+          "weight": "semibold",
+          "align": "left",
+          "firstLineIndent": 0,
+          "color": "#444444"
+        },
+        "fieldValue": {
+          "fontSize": 11,
+          "align": "left",
+          "firstLineIndent": 0
+        },
+        "defaultLayout": "card"
+      }
+    }
+  }
+]

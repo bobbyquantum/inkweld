@@ -133,6 +133,42 @@ describe('PublishStyleResolverService', () => {
     });
   });
 
+  describe('resolvePage columns', () => {
+    it('defaults to one column with the default gap', () => {
+      const resolved = service.resolvePage(null);
+      expect(resolved.columns).toBe(1);
+      expect(resolved.columnGap).toBe(0.25);
+    });
+
+    it('treats a page style saved without columns as one column', () => {
+      const styles = createDefaultPublishStyles();
+      delete styles.page.columns;
+      delete styles.page.columnGap;
+      const resolved = service.resolvePage(styles);
+      expect(resolved.columns).toBe(1);
+      expect(resolved.columnGap).toBe(0.25);
+    });
+
+    it('keeps two columns and a valid gap', () => {
+      const styles = createDefaultPublishStyles();
+      styles.page.columns = 2;
+      styles.page.columnGap = 0.5;
+      const resolved = service.resolvePage(styles);
+      expect(resolved.columns).toBe(2);
+      expect(resolved.columnGap).toBe(0.5);
+    });
+
+    it('falls back for unsupported counts and invalid or oversized gaps', () => {
+      const styles = createDefaultPublishStyles();
+      (styles.page as { columns?: number }).columns = 5;
+      styles.page.columnGap = Number.NaN;
+      expect(service.resolvePage(styles).columns).toBe(1);
+      expect(service.resolvePage(styles).columnGap).toBe(0.25);
+      styles.page.columnGap = 99;
+      expect(service.resolvePage(styles).columnGap).toBe(2);
+    });
+  });
+
   describe('resolveChapterTitle', () => {
     it('returns defaults when no override given', () => {
       const resolved = service.resolveChapterTitle(undefined);

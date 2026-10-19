@@ -194,6 +194,65 @@ describe('PublishStyleEditorComponent', () => {
     });
   });
 
+  describe('page columns', () => {
+    it('shows the columns control, one column for the default styles', () => {
+      const { fixture, component } = setupComponent();
+      const el = fixture.nativeElement as HTMLElement;
+      expect(
+        el.querySelector('[data-testid="page-columns-select"]')
+      ).not.toBeNull();
+      expect(component['pageColumns']).toBe(1);
+      // The gap only matters for two columns.
+      expect(el.querySelector('[data-testid="page-column-gap"]')).toBeNull();
+    });
+
+    it('treats a page style saved without columns as one column', () => {
+      const styles = createDefaultPublishStyles();
+      delete styles.page.columns;
+      delete styles.page.columnGap;
+      const { component } = setupComponent(styles);
+      expect(component['pageColumns']).toBe(1);
+      expect(component['pageColumnGap']).toBe(0.25);
+    });
+
+    it('updatePage stores the column count and clears the preset', () => {
+      const styles = createDefaultPublishStyles();
+      styles.preset = 'paperback';
+      const { component, emissions } = setupComponent(styles);
+
+      component.updatePage('columns', 2);
+
+      expect(emissions[0].page.columns).toBe(2);
+      expect(emissions[0].preset).toBeUndefined();
+      expect(emissions[0].page.marginTop).toBe(styles.page.marginTop);
+    });
+
+    it('shows the column gap control once two columns are chosen', () => {
+      const styles = createDefaultPublishStyles();
+      styles.page.columns = 2;
+      styles.page.columnGap = 0.4;
+      const { fixture, component } = setupComponent(styles);
+      const input = (
+        fixture.nativeElement as HTMLElement
+      ).querySelector<HTMLInputElement>('[data-testid="page-column-gap"]');
+      expect(component['pageColumnGap']).toBe(0.4);
+      expect(input).not.toBeNull();
+      expect(input!.value).toBe('0.4');
+    });
+
+    it('hides the whole page setup (columns included) for reflowable output', () => {
+      const fixture = TestBed.createComponent(PublishStyleEditorComponent);
+      fixture.componentInstance.styles = createDefaultPublishStyles();
+      fixture.componentInstance.reflowable = true;
+      fixture.detectChanges();
+      expect(
+        (fixture.nativeElement as HTMLElement).querySelector(
+          '[data-testid="page-columns-select"]'
+        )
+      ).toBeNull();
+    });
+  });
+
   describe('immutability', () => {
     it('does not mutate the input styles object on update', () => {
       const styles = createDefaultPublishStyles();
