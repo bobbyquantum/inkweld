@@ -84,7 +84,7 @@
         "http-server": "^14.1.1",
         "jsdom": "^30.0.0",
         "jszip": "^3.10.1",
-        "playwright-ng-schematics": "22.1.2",
+        "playwright-ng-schematics": "22.1.3",
         "png-to-ico": "^3.0.1",
         "prettier": "^3.7.4",
         "rimraf": "6.1.3",
@@ -1869,7 +1869,7 @@
 
     "playwright-core": ["playwright-core@1.64.1", "", { "bin": { "playwright-core": "cli.js" } }, "sha512-BC4s8y6SEVA6Q1rSxZTto8hI1KUI3xXlHGZgvGqP4IqPdI/a6FX9H29IDNz7vKo9l21b6LfYosScPL6M3xxyDQ=="],
 
-    "playwright-ng-schematics": ["playwright-ng-schematics@22.1.2", "", { "dependencies": { "@angular-devkit/architect": ">= 0.2200.0 < 0.2300.0", "@angular-devkit/core": "^22.0.0", "@angular-devkit/schematics": "^22.0.0" } }, "sha512-GV1EQWfpwPh8pr26OdiY4YyltoKs7DeqjTuudn8wGdJX3YSlVbdQANUOV2LVUj1Zfjz531FUpgfaMrJpCRpEBg=="],
+    "playwright-ng-schematics": ["playwright-ng-schematics@22.1.3", "", { "dependencies": { "@angular-devkit/architect": ">= 0.2200.0 < 0.2300.0", "@angular-devkit/core": "^22.0.0", "@angular-devkit/schematics": "^22.0.0" } }, "sha512-lRqQrerOajS9JtAN/qRHtFUHCkLMQzcvop36/7fwt5L6HQlU78xyXvRfU03uCAP7bd/yeBRmHQKm5cX2DR0QnA=="],
 
     "png-to-ico": ["png-to-ico@3.0.2", "", { "dependencies": { "@types/node": "^25.5.0", "minimist": "^1.2.8", "pngjs": "^7.0.0" }, "bin": { "png-to-ico": "bin/cli.js" } }, "sha512-36vvp3/YF7LPYkUEOj08/WgB1wI63qW391YfOhOWckgOtGkarr9+EhPBimcCmRP7fJaG4EaXQhTTaQ8qqdj8aA=="],
 
