@@ -1,0 +1,45 @@
+// The segmented button is Angular Material's button toggle, which the M3
+// theme draws as an M3 segmented button: outlined, fully rounded ends, the
+// selected segment filled with secondary-container and marked with a check.
+// Keep its look; only the surfaces below change for /setup.
+.ai-preference {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ai-choice {
+  --mat-button-toggle-height: 40px;
+}
+
+.ai-preference__help {
+  --mat-icon-button-state-layer-size: 40px;
+
+  padding: 8px;
+}
+
+// /setup: frosted surfaces, so the outlined segments and the icon stay
+// readable over the background image. Built from the theme's surface colour
+// so they follow light and dark (including "follow system").
+.ai-preference--floating {
+  --ai-frosted-surface: color-mix(
+    in srgb,
+    var(--sys-surface-container) 82%,
+    transparent
+  );
+
+  .ai-choice,
+  .ai-preference__help {
+    backdrop-filter: blur(12px) saturate(180%);
+    -webkit-backdrop-filter: blur(12px) saturate(180%);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  }
+
+  .ai-choice {
+    --mat-button-toggle-background-color: var(--ai-frosted-surface);
+  }
+
+  .ai-preference__help {
+    background: var(--ai-frosted-surface);
+  }
+}

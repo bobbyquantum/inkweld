@@ -37,6 +37,10 @@ import {
   type PdfProgress,
   type PdfResult,
 } from './pdf-generator.service';
+import type {
+  RenderedWorldbuildingEntry,
+  WorldbuildingPublishRendererService,
+} from './worldbuilding-publish-renderer.service';
 
 describe('PdfGeneratorService', () => {
   let service: PdfGeneratorService;
@@ -679,6 +683,74 @@ describe('PdfGeneratorService', () => {
     });
   });
 
+  describe('page columns', () => {
+    async function markupFor(columns: 1 | 2 | undefined): Promise<string> {
+      const styles = createDefaultPublishStyles();
+      if (columns === undefined) delete styles.page.columns;
+      else styles.page.columns = columns;
+      const result = await service.generatePdf({
+        ...mockPlan,
+        styles,
+        items: [
+          {
+            id: 'fm-1',
+            type: PublishPlanItemType.Frontmatter,
+            contentType: FrontmatterType.TitlePage,
+          },
+          {
+            id: 'fm-2',
+            type: PublishPlanItemType.Frontmatter,
+            contentType: FrontmatterType.Copyright,
+          },
+          {
+            id: 'toc-1',
+            type: PublishPlanItemType.TableOfContents,
+            title: 'Contents',
+            depth: 2,
+            includePageNumbers: true,
+          },
+          ...mockPlan.items,
+        ],
+      });
+      expect(result.success).toBe(true);
+      const prefix = 'Compiling Typst markup:\n';
+      const logged = (loggerMock.debug.mock.calls as unknown[][])
+        .map(args => args[1])
+        .filter(
+          (msg): msg is string =>
+            typeof msg === 'string' && msg.startsWith(prefix)
+        )
+        .at(-1);
+      expect(logged).toBeDefined();
+      return logged!;
+    }
+
+    it('sets two page columns but keeps title, copyright and contents full width', async () => {
+      const markup = await markupFor(2);
+      expect(markup).toMatch(/numbering: [^\n]*,\n {2}columns: 2,\n\)/);
+      expect(markup).toContain('#set columns(gutter: 0.25in)');
+      // Title page, copyright page and contents each open a one-column page.
+      expect(markup.match(/#page\(columns: 1\)\[/g)).toHaveLength(3);
+      expect(markup).toMatch(
+        /#page\(columns: 1\)\[\n#align\(center \+ horizon\)/
+      );
+      expect(markup).toMatch(
+        /#page\(columns: 1\)\[\n#heading\(outlined: false\)\[Table of Contents\]\n\n#outline\(title: none, indent: auto\)\n\n\]/
+      );
+    });
+
+    it.each([1, undefined] as const)(
+      'emits no column markup when columns is %s',
+      async columns => {
+        const markup = await markupFor(columns);
+        expect(markup).not.toContain('columns: 2');
+        expect(markup).not.toContain('#page(columns: 1)');
+        expect(markup).not.toContain('#set columns(');
+        expect(markup).toContain('#pagebreak(weak: true)');
+      }
+    );
+  });
+
   describe('separator items', () => {
     it('should process separator items', async () => {
       const planWithSeparator: PublishPlan = {
@@ -1155,6 +1227,66 @@ describe('PdfGeneratorService', () => {
 
       expect(result.success).toBe(true);
     });
+
+    it('refers to the cover by an absolute path', async () => {
+      // typst.ts compiles from a file in /tmp, so a relative "cover.jpg"
+      // resolves to /tmp/cover.jpg and never finds the mapped image.
+      localStorageMock.getMedia.mockResolvedValue(
+        new Blob(['fake image'], { type: 'image/png' })
+      );
+
+      await service.generatePdf({
+        ...mockPlan,
+        options: { ...mockPlan.options, includeCover: true },
+        items: [
+          {
+            id: 'fm-1',
+            type: PublishPlanItemType.Frontmatter,
+            contentType: FrontmatterType.TitlePage,
+          },
+          ...mockPlan.items,
+        ],
+      });
+
+      const prefix = 'Compiling Typst markup:\n';
+      const markup = (loggerMock.debug.mock.calls as unknown[][])
+        .map(args => args[1])
+        .filter(
+          (msg): msg is string =>
+            typeof msg === 'string' && msg.startsWith(prefix)
+        )
+        .at(-1);
+      expect(markup).toContain('#image("/cover.jpg", width: 60%)');
+    });
+
+    it('sets the cover edge to edge on the first page when asked, with no title page needed', async () => {
+      localStorageMock.getMedia.mockResolvedValue(
+        new Blob(['fake image'], { type: 'image/png' })
+      );
+
+      await service.generatePdf({
+        ...mockPlan,
+        options: {
+          ...mockPlan.options,
+          includeCover: true,
+          coverFullBleed: true,
+        },
+        items: [...mockPlan.items],
+      });
+
+      const prefix = 'Compiling Typst markup:\n';
+      const markup = (loggerMock.debug.mock.calls as unknown[][])
+        .map(args => args[1])
+        .filter(
+          (msg): msg is string =>
+            typeof msg === 'string' && msg.startsWith(prefix)
+        )
+        .at(-1);
+      expect(markup).toContain(
+        '#page(margin: 0pt, columns: 1, header: none, footer: none)[#image("/cover.jpg", width: 100%, height: 100%, fit: "cover")]'
+      );
+      expect(markup).not.toContain('#image("/cover.jpg", width: 60%)');
+    });
   });
 
   describe('ProseMirror mark and elementRef handling', () => {
@@ -1247,6 +1379,310 @@ describe('PdfGeneratorService', () => {
 
       const result = await service.generatePdf(mockPlan);
       expect(result.success).toBe(true);
+    });
+  });
+
+  describe('images', () => {
+    /** Generate a PDF for the plan and return the Typst markup it compiled. */
+    async function compiledMarkup(plan: PublishPlan): Promise<string> {
+      const result = await service.generatePdf(plan);
+      expect(result.success).toBe(true);
+      const prefix = 'Compiling Typst markup:\n';
+      const logged = (loggerMock.debug.mock.calls as unknown[][])
+        .map(args => args[1])
+        .filter(
+          (msg): msg is string =>
+            typeof msg === 'string' && msg.startsWith(prefix)
+        )
+        .at(-1);
+      expect(logged).toBeDefined();
+      return logged!.slice(prefix.length);
+    }
+
+    const pngBlob = () =>
+      new Blob([new Uint8Array([137, 80, 78, 71])], { type: 'image/png' });
+
+    it('embeds a document image as its own centred block', async () => {
+      localStorageMock.getMedia.mockResolvedValue(pngBlob());
+      documentServiceMock.getDocumentContent.mockResolvedValue([
+        {
+          type: 'paragraph',
+          content: [
+            {
+              type: 'image',
+              attrs: { src: 'media:map-1', alt: 'Map of Saltmere' },
+            },
+          ],
+        },
+      ]);
+
+      const markup = await compiledMarkup(mockPlan);
+
+      expect(localStorageMock.getMedia).toHaveBeenCalledWith(
+        'testuser/test-project',
+        'map-1'
+      );
+      expect(markup).toContain(
+        'image("/images/img-1.png", width: 80%, alt: "Map of Saltmere")'
+      );
+      expect(markup).toContain('#block(breakable: false');
+    });
+
+    it('leaves out an image that cannot be loaded', async () => {
+      localStorageMock.getMedia.mockResolvedValue(null);
+      documentServiceMock.getDocumentContent.mockResolvedValue([
+        {
+          type: 'paragraph',
+          content: [
+            { type: 'text', text: 'Before ' },
+            { type: 'image', attrs: { src: 'media:gone' } },
+          ],
+        },
+      ]);
+
+      const markup = await compiledMarkup(mockPlan);
+
+      expect(markup).toContain('Before');
+      expect(markup).not.toContain('image("images/');
+    });
+
+    it('lays worldbuilding fields out on the schema grid', async () => {
+      const renderer = (
+        service as unknown as {
+          worldbuildingRenderer: WorldbuildingPublishRendererService;
+        }
+      ).worldbuildingRenderer;
+      vi.spyOn(renderer, 'renderItem').mockResolvedValue([
+        {
+          elementId: 'pc-1',
+          title: 'Wren',
+          layout: 'card',
+          tabs: [
+            {
+              key: 'abilities',
+              label: 'Abilities',
+              fields: [
+                {
+                  key: 'str',
+                  label: 'STR',
+                  rawValue: 8,
+                  displayValue: '8',
+                  type: 'number',
+                  span: 2,
+                },
+                {
+                  key: 'notes',
+                  label: 'Notes',
+                  rawValue: 'x',
+                  displayValue: 'Quick hands',
+                  type: 'textarea',
+                },
+                {
+                  key: 'odd',
+                  label: 'Odd',
+                  rawValue: 1,
+                  displayValue: '1',
+                  type: 'number',
+                  span: 40,
+                },
+              ],
+            },
+          ],
+        },
+      ]);
+      const plan: PublishPlan = {
+        ...mockPlan,
+        items: [
+          {
+            id: 'wb-1',
+            type: PublishPlanItemType.Worldbuilding,
+            categories: [],
+            format: 'inline',
+            title: '',
+          },
+        ],
+      };
+
+      const markup = await compiledMarkup(plan);
+
+      expect(markup).toContain(
+        '#wb-fields(grid.cell(colspan: 2)[#wb-cell([STR], [8])], grid.cell(colspan: 10)[], grid.cell(colspan: 12)[#wb-cell([Notes], [Quick hands])], grid.cell(colspan: 12)[#wb-cell([Odd], [1])])'
+      );
+    });
+
+    it('sets long-text lines as paragraphs, bullets and stat-block entries', async () => {
+      const renderer = (
+        service as unknown as {
+          worldbuildingRenderer: WorldbuildingPublishRendererService;
+        }
+      ).worldbuildingRenderer;
+      vi.spyOn(renderer, 'renderItem').mockResolvedValue([
+        {
+          elementId: 'm-1',
+          title: 'Drowned Acolyte',
+          layout: 'card',
+          tabs: [
+            {
+              key: 'traits',
+              label: 'Traits',
+              fields: [
+                {
+                  key: 'traits',
+                  label: 'Traits',
+                  rawValue: '',
+                  displayValue:
+                    'Amphibious. Breathes air and water.\n- wet\nplain line',
+                  type: 'textarea',
+                },
+              ],
+            },
+          ],
+        },
+      ]);
+      const plan: PublishPlan = {
+        ...mockPlan,
+        items: [
+          {
+            id: 'wb-1',
+            type: PublishPlanItemType.Worldbuilding,
+            categories: [],
+            format: 'inline',
+            title: '',
+          },
+        ],
+      };
+
+      const markup = await compiledMarkup(plan);
+
+      expect(markup).toContain(
+        '[#strong[#emph[Amphibious.]] Breathes air and water.\n\n- wet\n\nplain line]'
+      );
+    });
+
+    it('fills an entry that has a colour background', async () => {
+      const renderer = (
+        service as unknown as {
+          worldbuildingRenderer: WorldbuildingPublishRendererService;
+        }
+      ).worldbuildingRenderer;
+      vi.spyOn(renderer, 'renderItem').mockResolvedValue([
+        {
+          elementId: 'n-1',
+          title: 'Tinted',
+          layout: 'card',
+          appearance: {
+            content: { type: 'color', mode: 'manual', light: '#f4ecd8' },
+          },
+          tabs: [],
+        } as unknown as RenderedWorldbuildingEntry,
+      ]);
+      const plan: PublishPlan = {
+        ...mockPlan,
+        items: [
+          {
+            id: 'wb-1',
+            type: PublishPlanItemType.Worldbuilding,
+            categories: [],
+            format: 'inline',
+            title: '',
+          },
+        ],
+      };
+
+      const markup = await compiledMarkup(plan);
+
+      expect(markup).toContain(', fill: rgb("#f4ecd8"))');
+    });
+
+    it('gives every field the full width on a two-column page', async () => {
+      const renderer = (
+        service as unknown as {
+          worldbuildingRenderer: WorldbuildingPublishRendererService;
+        }
+      ).worldbuildingRenderer;
+      vi.spyOn(renderer, 'renderItem').mockResolvedValue([
+        {
+          elementId: 'pc-1',
+          title: 'Wren',
+          layout: 'card',
+          tabs: [
+            {
+              key: 'abilities',
+              label: 'Abilities',
+              fields: [
+                {
+                  key: 'str',
+                  label: 'STR',
+                  rawValue: 8,
+                  displayValue: '8',
+                  type: 'number',
+                  span: 2,
+                },
+              ],
+            },
+          ],
+        },
+      ]);
+      const styles = createDefaultPublishStyles();
+      styles.page.columns = 2;
+      const plan: PublishPlan = {
+        ...mockPlan,
+        styles,
+        items: [
+          {
+            id: 'wb-1',
+            type: PublishPlanItemType.Worldbuilding,
+            categories: [],
+            format: 'inline',
+            title: '',
+          },
+        ],
+      };
+
+      const markup = await compiledMarkup(plan);
+
+      expect(markup).toContain('grid.cell(colspan: 12)[#wb-cell([STR], [8])]');
+    });
+
+    it('shows a worldbuilding image beside the description', async () => {
+      localStorageMock.getMedia.mockResolvedValue(pngBlob());
+      const renderer = (
+        service as unknown as {
+          worldbuildingRenderer: WorldbuildingPublishRendererService;
+        }
+      ).worldbuildingRenderer;
+      vi.spyOn(renderer, 'renderItem').mockResolvedValue([
+        {
+          elementId: 'npc-1',
+          title: 'Mother Brine',
+          layout: 'card',
+          description: 'Kindly old salt-wife.',
+          imageRef: 'media://brine.png',
+          tabs: [],
+        },
+      ]);
+      const plan: PublishPlan = {
+        ...mockPlan,
+        items: [
+          {
+            id: 'wb-1',
+            type: PublishPlanItemType.Worldbuilding,
+            categories: [],
+            format: 'inline',
+            title: 'Characters',
+          },
+        ],
+      };
+
+      const markup = await compiledMarkup(plan);
+
+      expect(localStorageMock.getMedia).toHaveBeenCalledWith(
+        'testuser/test-project',
+        'brine'
+      );
+      expect(markup).toContain(
+        '#grid(columns: (34%, 1fr), column-gutter: 10pt, align: (top, horizon), image("/images/img-1.png", width: 100%), [#emph[Kindly old salt-wife.]])'
+      );
     });
   });
 });

@@ -122,7 +122,7 @@ Once sharing is on, copy the link with **Copy Link**. It opens a short page on y
 
 Switching back to **Only me** turns the link off straight away. Turning sharing on again creates a new link, so an old one never starts working again.
 
-Sharing isn't available in local-only mode, or for a file whose upload to the server failed. Use **Retry upload** in the dialog first.
+Sharing isn't available with a Browser profile, or for a file whose upload to the server failed. Use **Retry upload** in the dialog first.
 
 ## Preview
 

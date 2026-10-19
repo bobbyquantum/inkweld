@@ -162,7 +162,21 @@ export interface PageStyle {
   pageNumbers: 'none' | 'numeric' | 'roman';
   /** Show running header with chapter title (PDF). */
   runningHeader: boolean;
+  /**
+   * Number of text columns on each page (PDF and HTML; ignored by reflowable
+   * EPUB and Markdown). Plans saved before this setting existed have no value,
+   * which means a single column.
+   */
+  columns?: PageColumns;
+  /** Gap between columns, in inches. Only used when `columns` is 2. */
+  columnGap?: number;
 }
+
+/** Supported page column counts. */
+export type PageColumns = 1 | 2;
+
+/** Default gap between columns, in inches. */
+export const DEFAULT_COLUMN_GAP = 0.25;
 
 // ---------------------------------------------------------------------------
 // Document node + mark style maps
@@ -325,6 +339,8 @@ export const DEFAULT_PAGE_STYLE: PageStyle = {
   marginOutside: 0.625,
   pageNumbers: 'numeric',
   runningHeader: true,
+  columns: 1,
+  columnGap: DEFAULT_COLUMN_GAP,
 };
 
 export const DEFAULT_BASE_TEXT: TextStyle = {

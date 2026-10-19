@@ -255,6 +255,11 @@ export interface PublishOptions {
   /** Cover image reference */
   coverImage?: string;
   /**
+   * Set the cover image edge to edge on a page of its own, cropped to fill
+   * it, instead of inset on the title page. Honoured by PDF and HTML.
+   */
+  coverFullBleed?: boolean;
+  /**
    * Convert straight quotes, apostrophes and hyphen runs to their
    * typographic forms in the output (stored documents are untouched).
    * Unset means the format's default: on, except for Markdown.

@@ -1,0 +1,836 @@
+[
+  {
+    "id": "gen-character-names",
+    "name": "Character names",
+    "icon": "person",
+    "description": "Given name plus a compound surname or a byname.",
+    "category": "names",
+    "template": "#given# #surname#",
+    "rules": [
+      {
+        "key": "given",
+        "entries": [
+          {
+            "text": "Aldric"
+          },
+          {
+            "text": "Brynn"
+          },
+          {
+            "text": "Cera"
+          },
+          {
+            "text": "Dara"
+          },
+          {
+            "text": "Edric"
+          },
+          {
+            "text": "Fen"
+          },
+          {
+            "text": "Gwyn"
+          },
+          {
+            "text": "Halric"
+          },
+          {
+            "text": "Ilsa"
+          },
+          {
+            "text": "Joss"
+          },
+          {
+            "text": "Kesta"
+          },
+          {
+            "text": "Lorrin"
+          },
+          {
+            "text": "Mira"
+          },
+          {
+            "text": "Neven"
+          },
+          {
+            "text": "Orla"
+          },
+          {
+            "text": "Perrin"
+          },
+          {
+            "text": "Quen"
+          },
+          {
+            "text": "Rhosyn"
+          },
+          {
+            "text": "Sable"
+          },
+          {
+            "text": "Talin"
+          },
+          {
+            "text": "Ulla"
+          },
+          {
+            "text": "Veyra"
+          },
+          {
+            "text": "Wynn"
+          },
+          {
+            "text": "Yara"
+          },
+          {
+            "text": "Zeph"
+          },
+          {
+            "text": "Corin"
+          },
+          {
+            "text": "Marek"
+          },
+          {
+            "text": "Sorcha"
+          }
+        ]
+      },
+      {
+        "key": "surname",
+        "entries": [
+          {
+            "text": "#surnameStem##surnameTail#",
+            "weight": 3
+          },
+          {
+            "text": "#byname#"
+          }
+        ]
+      },
+      {
+        "key": "surnameStem",
+        "entries": [
+          {
+            "text": "Stone"
+          },
+          {
+            "text": "Ash"
+          },
+          {
+            "text": "Bram"
+          },
+          {
+            "text": "Thorn"
+          },
+          {
+            "text": "Gild"
+          },
+          {
+            "text": "Wynd"
+          },
+          {
+            "text": "Harrow"
+          },
+          {
+            "text": "Marsh"
+          },
+          {
+            "text": "Fen"
+          },
+          {
+            "text": "Oak"
+          },
+          {
+            "text": "Ember"
+          },
+          {
+            "text": "Frost"
+          },
+          {
+            "text": "Vale"
+          },
+          {
+            "text": "Crow"
+          },
+          {
+            "text": "Dun"
+          },
+          {
+            "text": "Bright"
+          },
+          {
+            "text": "Rook"
+          },
+          {
+            "text": "Hale"
+          }
+        ]
+      },
+      {
+        "key": "surnameTail",
+        "entries": [
+          {
+            "text": "helm"
+          },
+          {
+            "text": "ridge"
+          },
+          {
+            "text": "water"
+          },
+          {
+            "text": "field"
+          },
+          {
+            "text": "wood"
+          },
+          {
+            "text": "mere"
+          },
+          {
+            "text": "ford"
+          },
+          {
+            "text": "bourne"
+          },
+          {
+            "text": "hollow"
+          },
+          {
+            "text": "crest"
+          },
+          {
+            "text": "moor"
+          },
+          {
+            "text": "gate"
+          },
+          {
+            "text": "barrow"
+          },
+          {
+            "text": "wright"
+          }
+        ]
+      },
+      {
+        "key": "byname",
+        "entries": [
+          {
+            "text": "the Quiet"
+          },
+          {
+            "text": "the Unbroken"
+          },
+          {
+            "text": "the Late"
+          },
+          {
+            "text": "the Younger"
+          },
+          {
+            "text": "of the Ash Road"
+          },
+          {
+            "text": "Twicebound"
+          },
+          {
+            "text": "Saltborn"
+          },
+          {
+            "text": "Nine-Fingers"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "gen-settlement-names",
+    "name": "Settlement names",
+    "icon": "location_city",
+    "description": "Villages, towns and cities built from compound stems.",
+    "category": "places",
+    "template": "#settlement#",
+    "rules": [
+      {
+        "key": "settlement",
+        "entries": [
+          {
+            "text": "#stem##tail#",
+            "weight": 4
+          },
+          {
+            "text": "#stem##tail# #qualifier#",
+            "weight": 2
+          },
+          {
+            "text": "#prefix# #stem##tail#"
+          }
+        ]
+      },
+      {
+        "key": "stem",
+        "entries": [
+          {
+            "text": "River"
+          },
+          {
+            "text": "Ash"
+          },
+          {
+            "text": "Dun"
+          },
+          {
+            "text": "Kel"
+          },
+          {
+            "text": "Mar"
+          },
+          {
+            "text": "Bram"
+          },
+          {
+            "text": "Corn"
+          },
+          {
+            "text": "Holl"
+          },
+          {
+            "text": "Thorn"
+          },
+          {
+            "text": "Wick"
+          },
+          {
+            "text": "Green"
+          },
+          {
+            "text": "Black"
+          },
+          {
+            "text": "Nether"
+          },
+          {
+            "text": "Stag"
+          },
+          {
+            "text": "Elder"
+          },
+          {
+            "text": "Pen"
+          }
+        ]
+      },
+      {
+        "key": "tail",
+        "entries": [
+          {
+            "text": "wyn"
+          },
+          {
+            "text": "ford"
+          },
+          {
+            "text": "ton"
+          },
+          {
+            "text": "bury"
+          },
+          {
+            "text": "mere"
+          },
+          {
+            "text": "dale"
+          },
+          {
+            "text": "holm"
+          },
+          {
+            "text": "stead"
+          },
+          {
+            "text": "gate"
+          },
+          {
+            "text": "haven"
+          },
+          {
+            "text": "cross"
+          },
+          {
+            "text": "bridge"
+          },
+          {
+            "text": "moor"
+          },
+          {
+            "text": "combe"
+          },
+          {
+            "text": "hythe"
+          }
+        ]
+      },
+      {
+        "key": "qualifier",
+        "entries": [
+          {
+            "text": "on the Mire"
+          },
+          {
+            "text": "under Stone"
+          },
+          {
+            "text": "by the Sea"
+          },
+          {
+            "text": "in the Vale"
+          },
+          {
+            "text": "beyond the Weir"
+          },
+          {
+            "text": "at the Ford"
+          }
+        ]
+      },
+      {
+        "key": "prefix",
+        "entries": [
+          {
+            "text": "Upper"
+          },
+          {
+            "text": "Lower"
+          },
+          {
+            "text": "Old"
+          },
+          {
+            "text": "New"
+          },
+          {
+            "text": "Little"
+          },
+          {
+            "text": "Great"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "gen-tavern-names",
+    "name": "Tavern & inn names",
+    "icon": "storefront",
+    "description": "Painted signs for inns, taverns and other premises.",
+    "category": "places",
+    "template": "#sign#",
+    "rules": [
+      {
+        "key": "sign",
+        "entries": [
+          {
+            "text": "The #adjective# #object#",
+            "weight": 3
+          },
+          {
+            "text": "The #creature# and #object#",
+            "weight": 2
+          },
+          {
+            "text": "The #adjective# #creature#",
+            "weight": 2
+          }
+        ]
+      },
+      {
+        "key": "adjective",
+        "entries": [
+          {
+            "text": "Crooked"
+          },
+          {
+            "text": "Gilded"
+          },
+          {
+            "text": "Weary"
+          },
+          {
+            "text": "Laughing"
+          },
+          {
+            "text": "Silent"
+          },
+          {
+            "text": "Rusted"
+          },
+          {
+            "text": "Drowned"
+          },
+          {
+            "text": "Hungry"
+          },
+          {
+            "text": "Merry"
+          },
+          {
+            "text": "Broken"
+          },
+          {
+            "text": "Salted"
+          },
+          {
+            "text": "Wandering"
+          },
+          {
+            "text": "Copper"
+          },
+          {
+            "text": "Thirsty"
+          },
+          {
+            "text": "Leaning"
+          },
+          {
+            "text": "Last"
+          }
+        ]
+      },
+      {
+        "key": "object",
+        "entries": [
+          {
+            "text": "Lantern"
+          },
+          {
+            "text": "Anvil"
+          },
+          {
+            "text": "Kettle"
+          },
+          {
+            "text": "Crown"
+          },
+          {
+            "text": "Barrel"
+          },
+          {
+            "text": "Compass"
+          },
+          {
+            "text": "Quill"
+          },
+          {
+            "text": "Hearth"
+          },
+          {
+            "text": "Fiddle"
+          },
+          {
+            "text": "Anchor"
+          },
+          {
+            "text": "Millstone"
+          },
+          {
+            "text": "Spoon"
+          },
+          {
+            "text": "Bell"
+          },
+          {
+            "text": "Wheel"
+          },
+          {
+            "text": "Ladle"
+          }
+        ]
+      },
+      {
+        "key": "creature",
+        "entries": [
+          {
+            "text": "Stag"
+          },
+          {
+            "text": "Boar"
+          },
+          {
+            "text": "Hart"
+          },
+          {
+            "text": "Sparrow"
+          },
+          {
+            "text": "Magpie"
+          },
+          {
+            "text": "Otter"
+          },
+          {
+            "text": "Raven"
+          },
+          {
+            "text": "Mare"
+          },
+          {
+            "text": "Hound"
+          },
+          {
+            "text": "Goat"
+          },
+          {
+            "text": "Badger"
+          },
+          {
+            "text": "Heron"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "gen-landmark-names",
+    "name": "Wilds & landmarks",
+    "icon": "terrain",
+    "description": "Mountains, marshes and other places worth naming.",
+    "category": "places",
+    "template": "#landmark#",
+    "rules": [
+      {
+        "key": "landmark",
+        "entries": [
+          {
+            "text": "The #adjective# #feature#",
+            "weight": 3
+          },
+          {
+            "text": "#adjective# #feature#"
+          },
+          {
+            "text": "The #feature# of #epithet#"
+          }
+        ]
+      },
+      {
+        "key": "adjective",
+        "entries": [
+          {
+            "text": "Shattered"
+          },
+          {
+            "text": "Weeping"
+          },
+          {
+            "text": "Hollow"
+          },
+          {
+            "text": "Amber"
+          },
+          {
+            "text": "Frostbound"
+          },
+          {
+            "text": "Sunken"
+          },
+          {
+            "text": "Whispering"
+          },
+          {
+            "text": "Blackened"
+          },
+          {
+            "text": "Endless"
+          },
+          {
+            "text": "Silvered"
+          },
+          {
+            "text": "Riven"
+          },
+          {
+            "text": "Drowned"
+          },
+          {
+            "text": "Starving"
+          }
+        ]
+      },
+      {
+        "key": "feature",
+        "entries": [
+          {
+            "text": "Fells"
+          },
+          {
+            "text": "Reach"
+          },
+          {
+            "text": "Spine"
+          },
+          {
+            "text": "Hollow"
+          },
+          {
+            "text": "Barrens"
+          },
+          {
+            "text": "Teeth"
+          },
+          {
+            "text": "Wastes"
+          },
+          {
+            "text": "Crags"
+          },
+          {
+            "text": "Downs"
+          },
+          {
+            "text": "Fen"
+          },
+          {
+            "text": "Narrows"
+          },
+          {
+            "text": "Rise"
+          },
+          {
+            "text": "Deeps"
+          },
+          {
+            "text": "Scar"
+          },
+          {
+            "text": "Steps"
+          }
+        ]
+      },
+      {
+        "key": "epithet",
+        "entries": [
+          {
+            "text": "Long Silence"
+          },
+          {
+            "text": "Second Winter"
+          },
+          {
+            "text": "Salt and Iron"
+          },
+          {
+            "text": "Nine Fires"
+          },
+          {
+            "text": "the Pale King"
+          },
+          {
+            "text": "Broken Vows"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "gen-story-prompts",
+    "name": "Story prompts",
+    "icon": "lightbulb",
+    "description": "A premise, a turn and a complication, for when you are stuck.",
+    "category": "prompts",
+    "template": "What if #subject# #event#, and #twist#?",
+    "rules": [
+      {
+        "key": "subject",
+        "entries": [
+          {
+            "text": "a cartographer with nothing left to map"
+          },
+          {
+            "text": "the youngest of three heirs"
+          },
+          {
+            "text": "a retired informer"
+          },
+          {
+            "text": "the last keeper of a dying craft"
+          },
+          {
+            "text": "a translator who no longer trusts the text"
+          },
+          {
+            "text": "a healer who has run out of supplies"
+          },
+          {
+            "text": "a courier carrying a sealed message"
+          },
+          {
+            "text": "a rival who arrived first"
+          },
+          {
+            "text": "the only person who kept the old records"
+          },
+          {
+            "text": "someone who was never meant to be found"
+          }
+        ]
+      },
+      {
+        "key": "event",
+        "entries": [
+          {
+            "text": "found the door already open"
+          },
+          {
+            "text": "was offered the one thing they had stopped asking for"
+          },
+          {
+            "text": "learned the map had been wrong for a century"
+          },
+          {
+            "text": "was asked to testify against a friend"
+          },
+          {
+            "text": "inherited a debt they did not know existed"
+          },
+          {
+            "text": "recognised the handwriting"
+          },
+          {
+            "text": "returned to find the town rebuilt without them"
+          },
+          {
+            "text": "was given one night to decide"
+          }
+        ]
+      },
+      {
+        "key": "twist",
+        "entries": [
+          {
+            "text": "no one else remembers it happening"
+          },
+          {
+            "text": "the only witness is someone they wronged"
+          },
+          {
+            "text": "the truth would cost them the person they came to save"
+          },
+          {
+            "text": "they have done this before and forgotten"
+          },
+          {
+            "text": "the deadline was never real"
+          },
+          {
+            "text": "admitting it would end the arrangement that keeps everyone fed"
+          },
+          {
+            "text": "the person who warned them was lying about something else"
+          }
+        ]
+      }
+    ]
+  }
+]

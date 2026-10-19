@@ -52,22 +52,75 @@ describe('CreateProjectComponent', () => {
     enabled: true,
   };
 
-  const mockTemplates = [
-    {
-      id: 'empty',
-      name: 'Empty Project',
-      description: 'A blank slate',
-      icon: 'description',
-      folder: 'empty',
-    },
-    {
-      id: 'worldbuilding-empty',
-      name: 'Worldbuilding (Empty)',
-      description: 'Ready for worldbuilding',
-      icon: 'public',
-      folder: 'worldbuilding-empty',
-    },
-  ];
+  const mockCatalog = {
+    groups: [
+      {
+        id: 'worldbuilding',
+        name: 'Worldbuilding',
+        description: 'Worlds and lore',
+        icon: 'public',
+      },
+      {
+        id: 'tabletop-rpg',
+        name: 'Tabletop RPG',
+        description: 'Run a campaign',
+        icon: 'casino',
+      },
+      {
+        id: 'script',
+        name: 'Script',
+        description: 'Write scenes',
+        icon: 'theater_comedy',
+      },
+    ],
+    templates: [
+      {
+        id: 'script-demo',
+        name: 'Script (Demo)',
+        description: 'A short film',
+        icon: 'theater_comedy',
+        folder: 'script-demo',
+        group: 'script',
+        variant: 'demo',
+      },
+      {
+        id: 'worldbuilding-demo',
+        name: 'Worldbuilding (Demo)',
+        description: 'Sample world',
+        icon: 'auto_stories',
+        folder: 'worldbuilding-demo',
+        group: 'worldbuilding',
+        variant: 'demo',
+      },
+      {
+        id: 'worldbuilding-empty',
+        name: 'Worldbuilding (Empty)',
+        description: 'Ready for worldbuilding',
+        icon: 'public',
+        folder: 'worldbuilding-empty',
+        group: 'worldbuilding',
+        variant: 'starter',
+      },
+      {
+        id: 'ttrpg-empty',
+        name: 'Tabletop RPG (Empty)',
+        description: 'Folders and element types',
+        icon: 'casino',
+        folder: 'ttrpg-empty',
+        group: 'tabletop-rpg',
+        variant: 'starter',
+      },
+      {
+        id: 'ttrpg-demo',
+        name: 'Tabletop RPG (Demo)',
+        description: 'The Drowned Lantern',
+        icon: 'sailing',
+        folder: 'ttrpg-demo',
+        group: 'tabletop-rpg',
+        variant: 'demo',
+      },
+    ],
+  };
 
   const mockProject: Project = {
     id: '1',
@@ -90,7 +143,7 @@ describe('CreateProjectComponent', () => {
     } as unknown as MockedObject<UnifiedProjectService>;
 
     templateService = {
-      getTemplates: vi.fn().mockResolvedValue(mockTemplates),
+      getCatalog: vi.fn().mockResolvedValue(mockCatalog),
     } as unknown as MockedObject<ProjectTemplateService>;
 
     snackBar = {
@@ -148,6 +201,96 @@ describe('CreateProjectComponent', () => {
 
   it('should create', () => {
     expect(component).toBeTruthy();
+  });
+
+  describe('choosing a template', () => {
+    beforeEach(async () => {
+      // the catalog loads after the first render
+      await fixture.whenStable();
+      fixture.detectChanges();
+    });
+
+    const click = (testId: string) => {
+      const input = fixture.nativeElement.querySelector(
+        `[data-testid="${testId}"] input`
+      ) as HTMLInputElement;
+      input.click();
+      fixture.detectChanges();
+    };
+
+    it('offers one card per kind of project, not one per template', () => {
+      const cards = fixture.nativeElement.querySelectorAll(
+        '[data-testid^="template-group-"]'
+      );
+      expect([...cards].map(c => c.textContent)).toEqual([
+        expect.stringContaining('Worldbuilding'),
+        expect.stringContaining('Tabletop RPG'),
+        expect.stringContaining('Script'),
+      ]);
+    });
+
+    it('starts on the worldbuilding starter and lists its variants, starter first', () => {
+      expect(component.selectedTemplateId()).toBe('worldbuilding-empty');
+      expect(component.groupTemplates().map(t => t.id)).toEqual([
+        'worldbuilding-empty',
+        'worldbuilding-demo',
+      ]);
+      expect(
+        fixture.nativeElement.querySelector('[data-testid="variant-picker"]')
+      ).toBeTruthy();
+    });
+
+    it('keeps a demo a demo when another kind of project is picked', () => {
+      click('template-worldbuilding-demo');
+      expect(component.selectedTemplateId()).toBe('worldbuilding-demo');
+
+      click('template-group-tabletop-rpg');
+
+      expect(component.selectedGroupId()).toBe('tabletop-rpg');
+      expect(component.selectedTemplateId()).toBe('ttrpg-demo');
+    });
+
+    it('falls back to what the new kind has when it lacks the chosen variant', () => {
+      click('template-group-tabletop-rpg');
+      click('template-ttrpg-empty');
+
+      // the script kind has only a demo
+      click('template-group-script');
+      expect(component.selectedTemplateId()).toBe('script-demo');
+
+      // ...and a demo then carries over to the next kind
+      click('template-group-worldbuilding');
+      expect(component.selectedTemplateId()).toBe('worldbuilding-demo');
+    });
+
+    it('shows a note instead of a choice when a kind has a single template', () => {
+      click('template-group-script');
+
+      expect(
+        fixture.nativeElement.querySelector('[data-testid="variant-picker"]')
+      ).toBeNull();
+      expect(
+        fixture.nativeElement.querySelector('[data-testid="template-note"]')
+          .textContent
+      ).toContain('A short film');
+    });
+
+    it('creates the project from the chosen template', async () => {
+      click('template-group-tabletop-rpg');
+      click('template-ttrpg-demo');
+      component.model.set({
+        title: 'Test Project',
+        slug: 'test-project',
+        description: '',
+      });
+
+      await component.onSubmit();
+
+      expect(projectService.createProject).toHaveBeenCalledWith(
+        expect.objectContaining({ slug: 'test-project' }),
+        'ttrpg-demo'
+      );
+    });
   });
 
   it('should initialize form with default values', () => {

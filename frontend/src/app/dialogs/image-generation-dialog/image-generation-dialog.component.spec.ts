@@ -11,7 +11,6 @@ import {
   type CustomSizesResponse,
   type ImageGenerationStatus,
   ImageProviderType,
-  ImageSize,
   type PublicImageModelProfile,
   PublicImageModelProfileProvider,
 } from '../../../api-client/model/models';
@@ -282,7 +281,7 @@ describe('ImageGenerationDialogComponent', () => {
           prompt: 'A beautiful sunset over mountains',
           profileId: 'profile-1',
           n: 1,
-          size: ImageSize._1024x1024,
+          size: '1024x1024',
         }),
         { forCover: undefined, providerType: 'openrouter' }
       );
@@ -298,7 +297,7 @@ describe('ImageGenerationDialogComponent', () => {
       request: {
         prompt: 'test',
         profileId: 'profile-1',
-        size: ImageSize._1024x1024,
+        size: '1024x1024',
       },
       status: 'completed',
       message: 'Generation complete',
@@ -364,6 +363,24 @@ describe('ImageGenerationDialogComponent', () => {
     });
 
     it('should close dialog with saved result when saveAndClose is called', async () => {
+      await component.saveAndClose();
+
+      // mediaId names the copy the generator saved, so callers can
+      // reference it instead of storing the image again.
+      expect(dialogRef.close).toHaveBeenCalledWith({
+        saved: true,
+        imageData: 'data:image/png;base64,base64data1',
+        mediaId: 'media-1',
+        response: mockCompletedJob.response,
+      });
+    });
+
+    it('omits mediaId when the saved media ids are not index-aligned', async () => {
+      generationService.getJob.mockReturnValue({
+        ...mockCompletedJob,
+        savedMediaIds: [],
+      });
+
       await component.saveAndClose();
 
       expect(dialogRef.close).toHaveBeenCalledWith({
@@ -472,7 +489,7 @@ describe('ImageGenerationDialogComponent', () => {
     });
 
     it('should use portrait size for cover generation', () => {
-      expect(component.selectedSize()).toBe(ImageSize._768x1344);
+      expect(component.selectedSize()).toBe('768x1344');
     });
 
     it('should auto-generate cover prompt from project info', () => {
@@ -718,6 +735,34 @@ describe('ImageGenerationDialogComponent', () => {
       expect(wideOption?.megapixels).toBe('-'); // N/A for aspect ratio
     });
 
+    it('should label scanned Fal.ai sizes with other resolutions or none', () => {
+      component.selectedProfile.set({
+        id: 'scanned-profile',
+        name: 'Scanned Profile',
+        description: null,
+        provider: PublicImageModelProfileProvider.Falai,
+        modelId: 'krea/v2/large/text-to-image',
+        supportsImageInput: false,
+        supportsCustomResolutions: false,
+        supportedSizes: ['1:1@512sq', '16:9@2k', '2.35:1'],
+        defaultSize: '1:1@512sq',
+        enabled: true,
+        sortOrder: 0,
+        usesAspectRatioOnly: true,
+        creditCost: 1,
+      });
+      component.customSizes.set([
+        { id: 'custom-1', name: 'Custom', width: 1234, height: 5678 },
+      ]);
+
+      const options = component.sizeOptions();
+      expect(options.map(o => [o.value, o.label])).toEqual([
+        ['1:1@512sq', '1:1 @ 512sq'],
+        ['16:9@2k', '16:9 @ 2k'],
+        ['2.35:1', '2.35:1'],
+      ]);
+    });
+
     it('should not add custom sizes for aspect ratio profiles', () => {
       // Set up an aspect ratio profile
       component.selectedProfile.set({
@@ -895,7 +940,7 @@ describe('ImageGenerationDialogComponent', () => {
         request: {
           prompt: 'test',
           profileId: 'profile-1',
-          size: ImageSize._1024x1024,
+          size: '1024x1024',
         },
         status: 'completed',
         message: 'Done',
@@ -920,7 +965,7 @@ describe('ImageGenerationDialogComponent', () => {
         request: {
           prompt: 'test',
           profileId: 'profile-1',
-          size: ImageSize._1024x1024,
+          size: '1024x1024',
         },
         status: 'generating',
         message: 'Generating...',
@@ -943,7 +988,7 @@ describe('ImageGenerationDialogComponent', () => {
         request: {
           prompt: 'test',
           profileId: 'profile-1',
-          size: ImageSize._1024x1024,
+          size: '1024x1024',
         },
         status: 'generating',
         message: 'Generating...',
@@ -1022,7 +1067,7 @@ describe('ImageGenerationDialogComponent', () => {
         request: {
           prompt: 'test',
           profileId: 'profile-1',
-          size: ImageSize._1024x1024,
+          size: '1024x1024',
         },
         status: 'generating',
         message: 'Generating...',
@@ -1043,7 +1088,7 @@ describe('ImageGenerationDialogComponent', () => {
         request: {
           prompt: 'test',
           profileId: 'profile-1',
-          size: ImageSize._1024x1024,
+          size: '1024x1024',
         },
         status: 'generating',
         message: 'Generating...',
@@ -1106,7 +1151,7 @@ describe('ImageGenerationDialogComponent', () => {
         request: {
           prompt: 'test',
           profileId: 'profile-1',
-          size: ImageSize._1024x1024,
+          size: '1024x1024',
         },
         status: 'generating',
         message: 'Generating...',
@@ -1133,7 +1178,7 @@ describe('ImageGenerationDialogComponent', () => {
         request: {
           prompt: 'test',
           profileId: 'profile-1',
-          size: ImageSize._1024x1024,
+          size: '1024x1024',
         },
         status: 'completed',
         message: 'Done',
@@ -1166,7 +1211,7 @@ describe('ImageGenerationDialogComponent', () => {
         request: {
           prompt: 'test',
           profileId: 'profile-1',
-          size: ImageSize._1024x1024,
+          size: '1024x1024',
         },
         status: 'generating',
         message: 'Generating...',
@@ -1256,6 +1301,16 @@ describe('ImageGenerationDialogComponent', () => {
         title: 'should parse a ratio with resolution like "16:9@4K"',
         aspectRatio: '16:9@4K',
         expected: { width: 16, height: 9 },
+      },
+      {
+        title: 'should parse a non-K resolution like "9:16@512sq"',
+        aspectRatio: '9:16@512sq',
+        expected: { width: 9, height: 16 },
+      },
+      {
+        title: 'should parse a decimal ratio like "2.35:1"',
+        aspectRatio: '2.35:1',
+        expected: { width: 16, height: 7 },
       },
       {
         title: 'should parse a dimension format like "1920x1080"',

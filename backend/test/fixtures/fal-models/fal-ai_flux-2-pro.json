@@ -1,0 +1,485 @@
+{
+  "endpoint_id": "fal-ai/flux-2-pro",
+  "metadata": {
+    "display_name": "Flux 2 Pro",
+    "category": "text-to-image",
+    "description": "Image editing with FLUX.2 [pro] from Black Forest Labs. Ideal for high-quality image manipulation, style transfer, and sequential editing workflows",
+    "status": "active",
+    "tags": [],
+    "updated_at": "2026-04-21T17:46:42.940Z",
+    "is_favorited": null,
+    "thumbnail_url": "https://v3b.fal.media/files/b/penguin/UfryXXm9my6IM8HsoP9FL_054c2c2953dc491996904114c6e04836.jpg",
+    "model_url": "https://fal.run/fal-ai/flux-2-pro",
+    "license_type": "commercial",
+    "date": "2025-11-23T00:14:31.608Z",
+    "group": {
+      "key": "Flux2-Pro",
+      "label": "Text to Image"
+    },
+    "highlighted": false,
+    "kind": "inference",
+    "pinned": false
+  },
+  "openapi": {
+    "openapi": "3.0.4",
+    "info": {
+      "title": "Queue OpenAPI for fal-ai/flux-2-pro",
+      "version": "1.0.0",
+      "description": "The OpenAPI schema for the fal-ai/flux-2-pro queue.",
+      "x-fal-metadata": {
+        "endpointId": "fal-ai/flux-2-pro",
+        "category": "text-to-image",
+        "thumbnailUrl": "https://v3b.fal.media/files/b/penguin/UfryXXm9my6IM8HsoP9FL_054c2c2953dc491996904114c6e04836.jpg",
+        "playgroundUrl": "https://fal.ai/models/fal-ai/flux-2-pro",
+        "documentationUrl": "https://fal.ai/models/fal-ai/flux-2-pro/api",
+        "about": "Generate images with Flux 2 Pro."
+      }
+    },
+    "components": {
+      "securitySchemes": {
+        "apiKeyAuth": {
+          "type": "apiKey",
+          "in": "header",
+          "name": "Authorization",
+          "description": "Fal Key"
+        }
+      },
+      "schemas": {
+        "QueueStatus": {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": [
+                "IN_QUEUE",
+                "IN_PROGRESS",
+                "COMPLETED"
+              ]
+            },
+            "request_id": {
+              "type": "string",
+              "description": "The request id."
+            },
+            "response_url": {
+              "type": "string",
+              "description": "The response url."
+            },
+            "status_url": {
+              "type": "string",
+              "description": "The status url."
+            },
+            "cancel_url": {
+              "type": "string",
+              "description": "The cancel url."
+            },
+            "logs": {
+              "type": "object",
+              "description": "The logs.",
+              "additionalProperties": true
+            },
+            "metrics": {
+              "type": "object",
+              "description": "The metrics.",
+              "additionalProperties": true
+            },
+            "queue_position": {
+              "type": "integer",
+              "description": "The queue position."
+            }
+          },
+          "required": [
+            "status",
+            "request_id"
+          ]
+        },
+        "Flux2ProInput": {
+          "x-fal-order-properties": [
+            "prompt",
+            "image_size",
+            "seed",
+            "safety_tolerance",
+            "enable_safety_checker",
+            "output_format",
+            "sync_mode"
+          ],
+          "properties": {
+            "output_format": {
+              "type": "string",
+              "enum": [
+                "jpeg",
+                "png"
+              ],
+              "default": "jpeg",
+              "description": "The format of the generated image.",
+              "title": "Output Format"
+            },
+            "prompt": {
+              "type": "string",
+              "examples": [
+                "An intense close-up of knight's visor reflecting battle, sword raised, flames in background, chiaroscuro helmet shadows, hyper-detailed armor, square medieval, cinematic lighting"
+              ],
+              "description": "The prompt to generate an image from.",
+              "title": "Prompt"
+            },
+            "sync_mode": {
+              "type": "boolean",
+              "default": false,
+              "description": "If `True`, the media will be returned as a data URI and the output data won't be available in the request history.",
+              "title": "Sync Mode"
+            },
+            "safety_tolerance": {
+              "description": "The safety tolerance level for the generated image. 1 being the most strict and 5 being the most permissive.",
+              "type": "string",
+              "enum": [
+                "1",
+                "2",
+                "3",
+                "4",
+                "5"
+              ],
+              "default": "2",
+              "title": "Safety Tolerance"
+            },
+            "image_size": {
+              "x-fal": {
+                "max_area": 4194304,
+                "multiple_of": 16,
+                "min_width": 256,
+                "min_height": 256,
+                "max_height": 2560,
+                "max_width": 2560
+              },
+              "description": "The size of the generated image.",
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/ImageSize"
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "square_hd",
+                    "square",
+                    "portrait_4_3",
+                    "portrait_16_9",
+                    "landscape_4_3",
+                    "landscape_16_9"
+                  ]
+                }
+              ],
+              "default": "landscape_4_3",
+              "title": "Image Size"
+            },
+            "seed": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The seed to use for the generation.",
+              "title": "Seed"
+            },
+            "enable_safety_checker": {
+              "type": "boolean",
+              "default": true,
+              "description": "Whether to enable the safety checker. Disabling it requires account authorization; unauthorized requests are always checked.",
+              "title": "Enable Safety Checker"
+            }
+          },
+          "type": "object",
+          "required": [
+            "prompt"
+          ],
+          "title": "Flux2ProTextToImageInput"
+        },
+        "Flux2ProOutput": {
+          "x-fal-order-properties": [
+            "images",
+            "seed"
+          ],
+          "properties": {
+            "images": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/ImageFile"
+              },
+              "examples": [
+                [
+                  {
+                    "url": "https://storage.googleapis.com/falserverless/example_outputs/flux2_pro_t2i_output.png"
+                  }
+                ]
+              ],
+              "description": "The generated images.",
+              "title": "Images"
+            },
+            "seed": {
+              "type": "integer",
+              "description": "The seed used for the generation.",
+              "title": "Seed"
+            }
+          },
+          "type": "object",
+          "required": [
+            "images",
+            "seed"
+          ],
+          "title": "Flux2ProOutput"
+        },
+        "ImageSize": {
+          "x-fal-order-properties": [
+            "width",
+            "height"
+          ],
+          "properties": {
+            "height": {
+              "exclusiveMinimum": 0,
+              "type": "integer",
+              "maximum": 14142,
+              "default": 512,
+              "description": "The height of the generated image.",
+              "title": "Height"
+            },
+            "width": {
+              "exclusiveMinimum": 0,
+              "type": "integer",
+              "maximum": 14142,
+              "default": 512,
+              "description": "The width of the generated image.",
+              "title": "Width"
+            }
+          },
+          "type": "object",
+          "title": "ImageSize"
+        },
+        "ImageFile": {
+          "x-fal-order-properties": [
+            "url",
+            "content_type",
+            "file_name",
+            "file_size",
+            "width",
+            "height"
+          ],
+          "properties": {
+            "content_type": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "examples": [
+                "image/png"
+              ],
+              "description": "The mime type of the file.",
+              "title": "Content Type"
+            },
+            "file_name": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "examples": [
+                "z9RV14K95DvU.png"
+              ],
+              "description": "The name of the file. It will be auto-generated if not provided.",
+              "title": "File Name"
+            },
+            "height": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The height of the image",
+              "title": "Height"
+            },
+            "file_size": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "examples": [
+                4404019
+              ],
+              "description": "The size of the file in bytes.",
+              "title": "File Size"
+            },
+            "url": {
+              "type": "string",
+              "description": "The URL where the file can be downloaded from.",
+              "title": "Url"
+            },
+            "width": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The width of the image",
+              "title": "Width"
+            }
+          },
+          "type": "object",
+          "required": [
+            "url"
+          ],
+          "title": "ImageFile"
+        }
+      }
+    },
+    "paths": {
+      "/fal-ai/flux-2-pro/requests/{request_id}/status": {
+        "get": {
+          "parameters": [
+            {
+              "name": "request_id",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "string",
+                "description": "Request ID"
+              }
+            },
+            {
+              "name": "logs",
+              "in": "query",
+              "required": false,
+              "schema": {
+                "type": "number",
+                "description": "Whether to include logs (`1`) in the response or not (`0`)."
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "The request status.",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/QueueStatus"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/fal-ai/flux-2-pro/requests/{request_id}/cancel": {
+        "put": {
+          "parameters": [
+            {
+              "name": "request_id",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "string",
+                "description": "Request ID"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "The request was cancelled.",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "success": {
+                        "type": "boolean",
+                        "description": "Whether the request was cancelled successfully."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/fal-ai/flux-2-pro": {
+        "post": {
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Flux2ProInput"
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "The request status.",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/QueueStatus"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/fal-ai/flux-2-pro/requests/{request_id}": {
+        "get": {
+          "parameters": [
+            {
+              "name": "request_id",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "string",
+                "description": "Request ID"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Result of the request.",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/Flux2ProOutput"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "servers": [
+      {
+        "url": "https://queue.fal.run"
+      }
+    ],
+    "security": [
+      {
+        "apiKeyAuth": []
+      }
+    ]
+  }
+}

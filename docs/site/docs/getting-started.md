@@ -89,7 +89,7 @@ That launches the Bun backend on port `8333` and the Angular dev server on port 
  npm run e2e
 ```
 
-Frontend unit tests use Vitest (`npm test`), while end-to-end coverage runs through Playwright. Its fixtures live next to the specs, one set per category: `frontend/e2e/local/fixtures.ts` (offline mode, no backend), `frontend/e2e/online/fixtures.ts` (real backend), `frontend/e2e/mcp/fixtures.ts` and `frontend/e2e/screenshots/fixtures.ts`. `npm run e2e` runs the local and online suites; see `frontend/e2e/README.md`. Backend tests run via `bun test`.
+Frontend unit tests use Vitest (`npm test`), while end-to-end coverage runs through Playwright. Its fixtures live next to the specs, one set per category: `frontend/e2e/local/fixtures.ts` (Browser profile, no backend), `frontend/e2e/online/fixtures.ts` (real backend), `frontend/e2e/mcp/fixtures.ts` and `frontend/e2e/screenshots/fixtures.ts`. `npm run e2e` runs the local and online suites; see `frontend/e2e/README.md`. Backend tests run via `bun test`.
 
 `npm run typecheck` runs `bun check` (a fast TypeScript port) over every project, including specs, e2e tests and the backend, which Vitest, Playwright and `bun test` do not type check. CI runs it as the Type Check job. A git pre-commit hook (Husky + lint-staged) formats staged files automatically.
 

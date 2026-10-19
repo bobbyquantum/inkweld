@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import {
   DEFAULT_BASE_TEXT,
+  DEFAULT_COLUMN_GAP,
   DEFAULT_DOC_NODE_STYLES,
   DEFAULT_MARK_STYLES,
   DEFAULT_PAGE_STYLE,
@@ -9,12 +10,20 @@ import {
   type DocNodeKey,
   type DocNodeStyles,
   type MarkKey,
+  type PageStyle,
   type PublishStyles,
   type TextStyle,
   type WorldbuildingLayout,
   type WorldbuildingSchemaOverride,
   type WorldbuildingStyles,
 } from '@models/publish-style';
+
+/** Page style with the optional column settings filled in. */
+export type ResolvedPageStyle = Omit<PageStyle, 'columns' | 'columnGap'> &
+  Required<Pick<PageStyle, 'columns' | 'columnGap'>>;
+
+/** Largest column gap (inches) the resolver passes on to the emitters. */
+const MAX_COLUMN_GAP = 2;
 
 /**
  * Resolved style for a single ProseMirror node, with the inherited base text
@@ -114,10 +123,21 @@ export class PublishStyleResolverService {
   }
 
   /**
-   * Returns the resolved page style.
+   * Returns the resolved page style. `columns` and `columnGap` are always
+   * present and valid: plans saved before columns existed have neither, and
+   * anything other than 2 means a single column.
    */
-  resolvePage(styles: PublishStyles | undefined | null) {
-    return { ...DEFAULT_PAGE_STYLE, ...styles?.page };
+  resolvePage(styles: PublishStyles | undefined | null): ResolvedPageStyle {
+    const page = { ...DEFAULT_PAGE_STYLE, ...styles?.page };
+    const gap = Number(page.columnGap);
+    return {
+      ...page,
+      columns: page.columns === 2 ? 2 : 1,
+      columnGap:
+        Number.isFinite(gap) && gap >= 0
+          ? Math.min(gap, MAX_COLUMN_GAP)
+          : DEFAULT_COLUMN_GAP,
+    };
   }
 
   /**

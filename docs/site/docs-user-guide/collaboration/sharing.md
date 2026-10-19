@@ -10,7 +10,7 @@ sidebar_position: 3
 Project owners can invite other people to collaborate. Open **Project Settings** at the bottom of the project sidebar and choose the **Collaboration** section.
 
 :::info
-Sharing needs **Realtime Sync** (an Inkweld server). In Browser or Cloud Sync mode the Collaboration section only says that it requires a server connection.
+Sharing needs an **Inkweld Server** profile. With a Browser or Cloud Sync profile the Collaboration section only says that it requires a server connection.
 :::
 
 ## Access Levels

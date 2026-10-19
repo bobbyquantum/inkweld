@@ -185,6 +185,17 @@ describe('WorldbuildingPublishRendererService', () => {
     expect(statsFields).toEqual(['physical.height', 'physical.weight']);
   });
 
+  it('passes a media:// identity image through for the generators to embed', async () => {
+    worldbuilding.getWorldbuildingData.mockResolvedValue({ name: 'Bob' });
+    worldbuilding.getIdentityData.mockResolvedValue({
+      image: 'media://identity-abc.png',
+    });
+    const [entry] = await service.renderItem(makeItem(), [
+      wbElement('e1', 'Bob'),
+    ]);
+    expect(entry.imageRef).toBe('media://identity-abc.png');
+  });
+
   it('honors the requested layout', async () => {
     worldbuilding.getWorldbuildingData.mockResolvedValue({ name: 'Bob' });
     const [entry] = await service.renderItem(makeItem({ layout: 'detail' }), [

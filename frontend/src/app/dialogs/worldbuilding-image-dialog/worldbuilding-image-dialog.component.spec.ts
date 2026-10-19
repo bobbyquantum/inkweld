@@ -217,6 +217,23 @@ describe('WorldbuildingImageDialogComponent', () => {
           imageData: validBase64,
         })
       );
+      expect(mockDialogRef.close.mock.calls[0][0]).not.toHaveProperty(
+        'mediaId'
+      );
+    });
+
+    it('should pass on the media item the generator saved', async () => {
+      mockDialogGateway.openImageGenerationDialog.mockResolvedValue({
+        saved: true,
+        imageData: 'data:image/png;base64,AAAA',
+        mediaId: 'generated-1-0',
+      });
+
+      await component.openGenerateDialog();
+
+      expect(mockDialogRef.close).toHaveBeenCalledWith(
+        expect.objectContaining({ mediaId: 'generated-1-0' })
+      );
     });
   });
 
@@ -263,6 +280,72 @@ describe('WorldbuildingImageDialogComponent', () => {
         })
       );
       spy.mockRestore();
+    });
+  });
+
+  describe('library pick', () => {
+    const blob = new Blob(['test'], { type: 'image/png' });
+    const loaded = (width: number, height: number) =>
+      ({
+        original: { size: { width, height } },
+        transformed: { size: { width, height } },
+      }) as never;
+    const cropped = (x1: number, y1: number, x2: number, y2: number) =>
+      ({
+        blob,
+        objectUrl: 'blob:cropped',
+        imagePosition: { x1, y1, x2, y2 },
+      }) as never;
+
+    async function pickAndApply(
+      size: [number, number],
+      crop: [number, number, number, number]
+    ): Promise<void> {
+      mockDialogGateway.openMediaSelectorDialog.mockResolvedValue({
+        blob,
+        selected: { mediaId: 'img-lib', filename: 'img-lib.png' },
+      });
+      await component.openMediaLibrary();
+      component.onImageLoaded(loaded(...size));
+      component.imageCropped(cropped(...crop));
+      vi.spyOn(
+        component as unknown as { blobToBase64: (b: Blob) => Promise<string> },
+        'blobToBase64'
+      ).mockResolvedValue('data:image/png;base64,AAAA');
+      component.applyCroppedImage();
+      await Promise.resolve();
+      await Promise.resolve();
+    }
+
+    it('references the library item when the whole image is kept', async () => {
+      await pickAndApply([600, 600], [0, 0, 600, 600]);
+
+      expect(mockDialogRef.close).toHaveBeenCalledWith(
+        expect.objectContaining({ mediaId: 'img-lib', imageBlob: blob })
+      );
+    });
+
+    it('stores a new image when the library image was cropped', async () => {
+      await pickAndApply([800, 600], [100, 0, 700, 600]);
+
+      expect(mockDialogRef.close).toHaveBeenCalled();
+      expect(mockDialogRef.close.mock.calls[0][0]).not.toHaveProperty(
+        'mediaId'
+      );
+    });
+
+    it('forgets the library item once a file is uploaded instead', async () => {
+      mockDialogGateway.openMediaSelectorDialog.mockResolvedValue({
+        blob,
+        selected: { mediaId: 'img-lib', filename: 'img-lib.png' },
+      });
+      await component.openMediaLibrary();
+      expect(component.libraryMediaId()).toBe('img-lib');
+
+      const file = new File(['x'], 'upload.png', { type: 'image/png' });
+      component.onFileSelected({ target: { files: [file] } } as never);
+
+      expect(component.libraryMediaId()).toBeNull();
     });
   });
 

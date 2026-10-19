@@ -141,6 +141,8 @@ async function fillEditorAndReview(page: Page, text: string): Promise<void> {
 // ---------------------------------------------------------------------------
 
 test.describe('AI Auto-Review — Online Mode', () => {
+  // AI is opt-in per user; these tests are about a user who allowed it.
+  test.use({ allowAi: true });
   // Serial mode: each auto-review test creates a project, types text, calls
   // the mock LLM, and waits for Yjs sync. Running 16+ tests in parallel
   // overwhelms the single-threaded backend's Yjs processing, causing 60s

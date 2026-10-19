@@ -29,6 +29,12 @@ import { chunk, forEachSequential } from '@inkweld/async';
 import { DocumentsService } from '@inkweld/index';
 import { type PresenceSession } from '@inkweld/presence';
 import {
+  escapeXmlAttr,
+  LINK_ATTR_NAMES,
+  MARK_TO_TAG,
+  TAG_TO_MARK,
+} from '@inkweld/prosemirror/xml';
+import {
   HARD_DENIAL_REASONS,
   LONG_BACKOFF_DENIAL_REASONS,
   parseAccessDeniedReason,
@@ -36,6 +42,7 @@ import {
   withJitter,
 } from '@services/sync/access-denial';
 import { yjsStateDigest } from '@utils/yjs-state-digest';
+import { applyXmlToFragment } from '@utils/yjs-xml-serializer';
 import { keymap } from 'prosemirror-keymap';
 import { type Node as ProseMirrorModelNode } from 'prosemirror-model';
 import { Plugin, PluginKey } from 'prosemirror-state';
@@ -175,10 +182,16 @@ export interface DocumentConnection {
 /**
  * Represents a ProseMirror JSON node for conversion to XML.
  */
+interface ProseMirrorMark {
+  type: string;
+  attrs?: Record<string, unknown>;
+}
+
 interface ProseMirrorNode {
   type: string;
   text?: string;
   attrs?: Record<string, unknown>;
+  marks?: ProseMirrorMark[];
   content?: ProseMirrorNode[];
 }
 
@@ -661,92 +674,10 @@ export class DocumentService {
    * proper propagation through Yjs to all clients.
    */
   importXmlString(ydoc: Y.Doc, fragment: Y.XmlFragment, xmlString: string) {
-    // Ensure the string has a single root element by wrapping it.
-    const wrapped = `<root>${xmlString}</root>`;
-    const parser = new DOMParser();
-    const dom = parser.parseFromString(wrapped, 'text/xml');
-    const root = dom.documentElement;
-
-    // Begin a Yjs transaction to update the fragment.
-    Y.transact(ydoc, () => {
-      // Clear existing content
-      fragment.delete(0, fragment.length);
-      this.logger.debug('DocumentService', 'Cleared previous doc');
-      // Traverse each child element of our temporary root.
-      for (const node of Array.from(root.childNodes)) {
-        const yNode = this.domNodeToYjsNode(node);
-        if (yNode) {
-          // Append the created node to the fragment using forward CRDT operation.
-          fragment.push([yNode]);
-        }
-      }
-    });
-  }
-
-  /**
-   * Recursively convert a DOM Node to a Yjs XmlElement or XmlText.
-   * Properly handles nested elements and attributes.
-   */
-  private domNodeToYjsNode(node: Node): Y.XmlElement | Y.XmlText | null {
-    if (node.nodeType === Node.TEXT_NODE) {
-      return this.textNodeToYjs(node);
-    }
-
-    if (node.nodeType === Node.ELEMENT_NODE) {
-      return this.elementNodeToYjs(node as Element);
-    }
-
-    return null;
-  }
-
-  private textNodeToYjs(node: Node): Y.XmlText | null {
-    const text = node.textContent || '';
-    if (text.trim() === '' && text !== ' ') {
-      return null;
-    }
-    const yText = new Y.XmlText();
-    yText.insert(0, text);
-    return yText;
-  }
-
-  private elementNodeToYjs(element: Element): Y.XmlElement {
-    const yElement = new Y.XmlElement(element.nodeName);
-
-    // Copy all attributes, parsing JSON values
-    for (const attr of Array.from(element.attributes)) {
-      yElement.setAttribute(attr.name, this.parseAttrValue(attr.value));
-    }
-
-    // Recursively process children
-    const children: (Y.XmlElement | Y.XmlText)[] = [];
-    for (const child of Array.from(element.childNodes)) {
-      const childNode = this.domNodeToYjsNode(child);
-      if (childNode) {
-        children.push(childNode);
-      }
-    }
-
-    if (children.length > 0) {
-      yElement.insert(0, children);
-    }
-
-    return yElement;
-  }
-
-  private parseAttrValue(raw: string): string {
-    try {
-      const parsed = JSON.parse(raw) as unknown;
-      if (
-        typeof parsed === 'object' ||
-        typeof parsed === 'number' ||
-        typeof parsed === 'boolean'
-      ) {
-        return parsed as unknown as string;
-      }
-    } catch {
-      // Keep as string if not valid JSON
-    }
-    return raw;
+    // The shared parser keeps formatting (<strong>, <em>, <a>, …) as marks on
+    // the text, which is how y-prosemirror stores it, and replaces the
+    // fragment's content in one transaction.
+    applyXmlToFragment(ydoc, fragment, xmlString);
   }
 
   /**
@@ -798,8 +729,8 @@ export class DocumentService {
 
     // Text node
     if (node.type === 'text' && typeof node.text === 'string') {
-      // Escape XML special characters
-      return this.escapeXml(node.text);
+      // Escape XML special characters, then wrap in the text's formatting
+      return this.wrapInMarks(this.escapeXml(node.text), node.marks);
     }
 
     // Element node
@@ -826,6 +757,44 @@ export class DocumentService {
       .map(child => this.prosemirrorNodeToXml(child))
       .join('');
     return `<${tagName}${attrStr}>${childXml}</${tagName}>`;
+  }
+
+  /**
+   * Wraps serialized text in tags for its marks (first mark outermost), in
+   * the form the shared XML importer reads back as formatting: `<strong>`,
+   * `<em>`, `<a href>`, and `<span data-mark>` for marks with no HTML tag.
+   * Legacy names (`bold`, `italic`) are valid tags there and read as
+   * strong and em.
+   */
+  private wrapInMarks(xml: string, marks?: ProseMirrorMark[]): string {
+    let result = xml;
+    for (const mark of [...(marks ?? [])].reverse()) {
+      const tag =
+        MARK_TO_TAG[mark.type] ?? (mark.type in TAG_TO_MARK ? mark.type : null);
+      const attrs = Object.entries(mark.attrs ?? {}).filter(
+        ([, value]) => value !== null && value !== undefined
+      );
+      if (tag === 'a') {
+        const linkAttrs = LINK_ATTR_NAMES.flatMap(name => {
+          const value = mark.attrs?.[name];
+          return value === null || value === undefined
+            ? []
+            : [
+                ` ${name}="${escapeXmlAttr(this.serializeXmlAttrValue(value))}"`,
+              ];
+        });
+        result = `<a${linkAttrs.join('')}>${result}</a>`;
+      } else if (tag) {
+        result = `<${tag}>${result}</${tag}>`;
+      } else {
+        const markAttrs = attrs.map(
+          ([key, value]) =>
+            ` ${key}="${escapeXmlAttr(this.serializeXmlAttrValue(value))}"`
+        );
+        result = `<span data-mark="${escapeXmlAttr(mark.type)}"${markAttrs.join('')}>${result}</span>`;
+      }
+    }
+    return result;
   }
 
   /**

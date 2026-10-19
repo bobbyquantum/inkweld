@@ -10,6 +10,7 @@ import { catchError, tap } from 'rxjs/operators';
 
 import { DocumentSyncState } from '../../models/document-sync-state';
 import { LoggerService } from './logger.service';
+import { SettingsService } from './settings.service';
 import { SetupService } from './setup.service';
 import { isLocalOrCloudMode } from './storage-context.service';
 
@@ -89,6 +90,7 @@ export class SystemConfigService {
   private readonly configApiService = inject(ConfigurationService);
   private readonly setupService = inject(SetupService);
   private readonly logger = inject(LoggerService);
+  private readonly settings = inject(SettingsService);
 
   private readonly systemFeaturesSignal = signal<SystemFeatures>({
     aiKillSwitch: true, // Default to ON (AI disabled) for safety
@@ -129,11 +131,26 @@ export class SystemConfigService {
     () => this.systemFeaturesSignal().aiKillSwitchLockedByEnv ?? false
   );
 
+  /**
+   * Whether AI is off for this user: the admin's kill switch is on, or the
+   * user has not chosen "Allow AI" (`SettingsService.aiAllowed`). The user's
+   * choice can only turn AI off, never past the kill switch. Use this, not
+   * {@link isAiKillSwitchEnabled}, to decide whether to offer an AI feature;
+   * the raw kill switch is for the admin pages.
+   */
+  public readonly isAiOffForUser = computed(
+    () => this.isAiKillSwitchEnabled() || !this.settings.aiAllowed()
+  );
+
   public readonly isAiAutoReviewEnabled = computed(
-    () => this.systemFeaturesSignal().aiAutoReview ?? false
+    () =>
+      this.settings.aiAllowed() &&
+      (this.systemFeaturesSignal().aiAutoReview ?? false)
   );
   public readonly isAiImageGenerationEnabled = computed(
-    () => this.systemFeaturesSignal().aiImageGeneration ?? false
+    () =>
+      this.settings.aiAllowed() &&
+      (this.systemFeaturesSignal().aiImageGeneration ?? false)
   );
   public readonly isUserApprovalRequired = computed(
     () => this.systemFeaturesSignal().userApprovalRequired ?? true

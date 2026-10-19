@@ -1761,25 +1761,56 @@ export class ProjectStateService implements OnDestroy {
         if (!canvasSetup) return;
       }
 
-      const newElementId = this.addElement(
-        result.type,
-        result.name,
-        parentElement?.id,
-        result.schemaId,
-        afterElement?.id
-      );
-      if (!newElementId) return;
-
-      if (canvasSetup) {
-        this.applyCanvasSetup(newElementId, result.preset, canvasSetup);
-      } else {
-        this.applyPreset(newElementId, result.preset);
-      }
-      const newElement = this.elements().find(e => e.id === newElementId);
+      const newElement = this.createElement(result.type, result.name, {
+        parentId: parentElement?.id,
+        afterElementId: afterElement?.id,
+        schemaId: result.schemaId,
+        preset: result.preset,
+        canvasSetup,
+      });
       if (newElement) {
         this.openDocument(newElement);
       }
     });
+  }
+
+  /**
+   * Create an element the way the new-element dialog does: insert it, then
+   * apply the creation preset (scene/note/conversation role, map or cover
+   * canvas). A canvas is seeded from `canvasSetup`, or a light page when
+   * none is given. Returns the new element, or undefined when no project is
+   * loaded.
+   */
+  createElement(
+    type: Element['type'],
+    name: string,
+    options: {
+      parentId?: string;
+      afterElementId?: string;
+      schemaId?: string;
+      preset?: ElementPreset;
+      canvasSetup?: CanvasSetupDialogResult;
+    } = {}
+  ): Element | undefined {
+    const newElementId = this.addElement(
+      type,
+      name,
+      options.parentId,
+      options.schemaId,
+      options.afterElementId
+    );
+    if (!newElementId) return undefined;
+
+    if (type === ElementType.Canvas) {
+      this.applyCanvasSetup(
+        newElementId,
+        options.preset,
+        options.canvasSetup ?? { page: LIGHT_PAGE }
+      );
+    } else {
+      this.applyPreset(newElementId, options.preset);
+    }
+    return this.elements().find(e => e.id === newElementId);
   }
 
   /** Apply the creation preset chosen in the new-element dialog, if any. */

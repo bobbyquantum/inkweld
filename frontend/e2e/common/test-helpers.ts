@@ -769,6 +769,31 @@ export async function getOfflineProjects(
   });
 }
 /**
+ * The kind of project (picker card) each template belongs to when it is not
+ * in the default one. Choosing a kind shows its templates; a kind with a
+ * single template has no further choice.
+ */
+const TEMPLATE_GROUPS: Record<string, { group: string; single: boolean }> = {
+  empty: { group: 'blank', single: true },
+  'script-demo': { group: 'script', single: true },
+  'ttrpg-empty': { group: 'tabletop-rpg', single: false },
+  'ttrpg-demo': { group: 'tabletop-rpg', single: false },
+};
+
+/** Pick a project template on the create-project page, whatever its kind. */
+export async function selectProjectTemplate(
+  page: Page,
+  templateId: string
+): Promise<void> {
+  const entry = TEMPLATE_GROUPS[templateId];
+  if (entry) {
+    await page.click(`[data-testid="template-group-${entry.group}"]`);
+    if (entry.single) return;
+  }
+  await page.click(`[data-testid="template-${templateId}"]`);
+}
+
+/**
  * Create a project with the two-step flow (template selection + project details)
  * @param page Playwright page
  * @param projectTitle The project title
@@ -789,7 +814,7 @@ export async function createProjectWithTwoSteps(
 
   // Step 1: Template selection - if a specific template is requested, click it
   if (templateId) {
-    await page.click(`[data-testid="template-${templateId}"]`);
+    await selectProjectTemplate(page, templateId);
   }
   // Otherwise use the default selected template (worldbuilding-empty)
 

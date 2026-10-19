@@ -61,6 +61,9 @@ import { MediaProjectTagService } from '@services/project/media-project-tag.serv
 import { ProjectStateService } from '@services/project/project-state.service';
 import { MediaAutoSyncService } from '@services/sync/media-auto-sync.service';
 import { TagService } from '@services/tag/tag.service';
+import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
+import { mediaIdFromReference } from '@utils/media-reference';
+import { isWorldbuildingType } from '@utils/worldbuilding.utils';
 import { firstValueFrom } from 'rxjs';
 
 import { FileSizePipe } from '../../../../pipes/file-size.pipe';
@@ -127,6 +130,7 @@ export class MediaTabComponent implements OnInit, OnDestroy {
   private readonly mediaProjectTagService = inject(MediaProjectTagService);
   private readonly tagService = inject(TagService);
   private readonly documentService = inject(DocumentService);
+  private readonly worldbuildingService = inject(WorldbuildingService);
   private readonly dialog = inject(MatDialog);
   private readonly breakpointObserver = inject(BreakpointObserver);
   private readonly destroyRef = inject(DestroyRef);
@@ -836,7 +840,16 @@ export class MediaTabComponent implements OnInit, OnDestroy {
       usages
     );
 
-    // 4. Element associations
+    // 4. Worldbuilding identity images and backgrounds
+    await this.findIdentityUsages(
+      elements,
+      project.username,
+      project.slug,
+      mediaId,
+      usages
+    );
+
+    // 5. Element associations
     const taggedElements = this.mediaTagService.getElementsForMedia(mediaId);
     for (const elId of taggedElements) {
       usages.push(`Tagged on element "${this.getElementName(elId)}"`);
@@ -865,6 +878,55 @@ export class MediaTabComponent implements OnInit, OnDestroy {
         /* ignore malformed config */
       }
     }
+  }
+
+  private async findIdentityUsages(
+    elements: ReturnType<typeof this.projectState.elements>,
+    username: string,
+    slug: string,
+    mediaId: string,
+    usages: string[]
+  ): Promise<void> {
+    const isMedia = (ref: string | undefined): boolean =>
+      !!ref?.startsWith('media://') && mediaIdFromReference(ref) === mediaId;
+    // Sequential: each read opens the element's document, and usages are
+    // reported in element order.
+    await forEachSequential(
+      elements.filter(e => isWorldbuildingType(e.type)),
+      async el => {
+        try {
+          const identity = await this.worldbuildingService.getIdentityData(
+            el.id,
+            username,
+            slug
+          );
+          if (isMedia(identity.image)) {
+            usages.push(
+              this.transloco.translate('media.tab.usedAsIdentityImage', {
+                name: el.name,
+              })
+            );
+          }
+          const backgrounds = [
+            identity.appearance?.menu,
+            identity.appearance?.content,
+          ].flatMap(region =>
+            region?.type === 'image'
+              ? [region.value, region.light, region.dark]
+              : []
+          );
+          if (backgrounds.some(isMedia)) {
+            usages.push(
+              this.transloco.translate('media.tab.usedAsBackground', {
+                name: el.name,
+              })
+            );
+          }
+        } catch {
+          /* skip unreadable elements */
+        }
+      }
+    );
   }
 
   private async findDocumentUsages(

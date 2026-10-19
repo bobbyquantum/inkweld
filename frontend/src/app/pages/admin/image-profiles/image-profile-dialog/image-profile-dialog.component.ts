@@ -2,7 +2,6 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
-  effect,
   inject,
   signal,
 } from '@angular/core';
@@ -31,6 +30,7 @@ import {
   AIProvidersService,
   type CreateImageModelProfileRequest,
   type CreateImageModelProfileRequestProvider,
+  FalaiModelMetadataSizeMode,
   type ImageModelInfo,
   type ImageProviderType,
 } from 'api-client';
@@ -129,6 +129,9 @@ export class ImageProfileDialogComponent {
 
   readonly showModelConfig = signal(false);
   readonly isLoadingModels = signal(false);
+  /** Reading the selected Fal.ai model's schema for its sizes */
+  readonly isLoadingModelMetadata = signal(false);
+  private metadataRequest = 0;
   readonly availableModels = signal<ExtendedImageModelInfo[]>([]);
   readonly modelSearchTerm = signal('');
   readonly selectedFalaiCategory = signal<FalaiCategory>('text-to-image');
@@ -210,20 +213,19 @@ export class ImageProfileDialogComponent {
     '21:9',
   ];
 
-  // Computed: filter models based on search term
+  // Computed: filter models based on search term. Models keep the
+  // provider's order (Fal.ai lists the most-used first).
   readonly filteredModels = computed(() => {
     const models = this.availableModels();
-    const search = this.modelSearchTerm().toLowerCase();
+    const search = this.modelSearchTerm().trim().toLowerCase();
     if (!search) {
-      return models.slice(0, 50); // Show first 50 when no search
+      return models;
     }
-    return models
-      .filter(
-        m =>
-          m.name.toLowerCase().includes(search) ||
-          m.id.toLowerCase().includes(search)
-      )
-      .slice(0, 50);
+    return models.filter(
+      m =>
+        m.name.toLowerCase().includes(search) ||
+        m.id.toLowerCase().includes(search)
+    );
   });
 
   /** Check if current provider is OpenAI (uses hardcoded dropdown) */
@@ -259,17 +261,6 @@ export class ImageProfileDialogComponent {
   }
 
   constructor() {
-    // Effect to load models when provider changes
-    effect(() => {
-      // Access signal to track it
-      const models = this.availableModels();
-      // This will trigger when availableModels changes
-      if (models.length > 0) {
-        // Models loaded, update search
-        this.modelSearchTerm.set('');
-      }
-    });
-
     if (
       this.data.profile?.modelConfig &&
       Object.keys(this.data.profile.modelConfig).length > 0
@@ -308,6 +299,13 @@ export class ImageProfileDialogComponent {
 
   toggleModelConfig(): void {
     this.showModelConfig.update(v => !v);
+  }
+
+  /** Load the model list the first time the model field is focused. */
+  ensureModelsLoaded(): void {
+    if (this.availableModels().length === 0 && !this.isLoadingModels()) {
+      void this.loadModelsForProvider();
+    }
   }
 
   /** Load available models for the selected provider from dynamic API */
@@ -407,6 +405,8 @@ export class ImageProfileDialogComponent {
   onProviderChange(): void {
     // Reset models and category when provider changes
     this.availableModels.set([]);
+    this.modelSearchTerm.set('');
+    this.cancelModelMetadata();
     this.selectedFalaiCategory.set('text-to-image');
 
     // Atomically clear all provider-specific state before applying the new
@@ -473,6 +473,8 @@ export class ImageProfileDialogComponent {
     this.selectedFalaiCategory.set(category);
     this.model.update(m => ({ ...m, modelId: '' }));
     this.availableModels.set([]);
+    this.modelSearchTerm.set('');
+    this.cancelModelMetadata();
 
     // Auto-set supportsImageInput based on category
     const categoryConfig = this.falaiCategories.find(c => c.value === category);
@@ -492,6 +494,8 @@ export class ImageProfileDialogComponent {
     this.model.update(m => ({
       ...m,
       modelId: model.id,
+      // Name the profile after the model unless the admin already named it.
+      name: m.name.trim() ? m.name : model.name,
       supportsImageInput: model.supportsImageInput ?? false,
     }));
 
@@ -503,6 +507,56 @@ export class ImageProfileDialogComponent {
         defaultSize: model.supportedSizes[0],
       }));
     }
+
+    // The Fal.ai list carries no size info; read it from the model's schema.
+    if (this.isFalaiProvider()) {
+      void this.applyFalaiModelMetadata(model.id);
+    }
+  }
+
+  /**
+   * Fill sizes and size flags from a Fal.ai model's input schema, so the
+   * profile sends the input the model actually reads (aspect ratio +
+   * resolution, or pixel dimensions).
+   */
+  private async applyFalaiModelMetadata(modelId: string): Promise<void> {
+    const request = ++this.metadataRequest;
+    this.isLoadingModelMetadata.set(true);
+    try {
+      const info = await firstValueFrom(
+        this.aiProvidersService.getFalaiModelMetadata(modelId)
+      );
+      // Ignore a late answer once another model has been picked.
+      if (request !== this.metadataRequest) return;
+      if (
+        !info ||
+        info.sizeMode === FalaiModelMetadataSizeMode.Unknown ||
+        !info.supportedSizes.length
+      ) {
+        return;
+      }
+      this.model.update(m => ({
+        ...m,
+        supportedSizes: [...info.supportedSizes],
+        defaultSize: info.defaultSize ?? info.supportedSizes[0],
+        usesAspectRatioOnly: info.usesAspectRatioOnly,
+        supportsCustomResolutions: info.supportsCustomResolutions,
+        supportsImageInput: m.supportsImageInput || info.supportsImageInput,
+      }));
+    } catch (error) {
+      // Sizes stay editable by hand if the schema can't be read.
+      console.error('Failed to load model metadata:', error);
+    } finally {
+      if (request === this.metadataRequest) {
+        this.isLoadingModelMetadata.set(false);
+      }
+    }
+  }
+
+  /** Drop a pending schema read so it can't overwrite a newer choice. */
+  private cancelModelMetadata(): void {
+    this.metadataRequest++;
+    this.isLoadingModelMetadata.set(false);
   }
 
   /** Update search term for filtering */

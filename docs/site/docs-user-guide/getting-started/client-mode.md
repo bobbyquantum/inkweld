@@ -2,7 +2,7 @@
 id: client-mode
 title: Choosing Your Mode
 sidebar_label: Choosing Your Mode
-description: Choose between Browser, Cloud Sync and Realtime Sync when starting Inkweld.
+description: Choose between Browser, Cloud Sync and Inkweld Server when starting Inkweld.
 sidebar_position: 1
 ---
 
@@ -13,7 +13,7 @@ import ThemedImage from '@site/src/components/ThemedImage';
 When you first open Inkweld, you'll see the mode selection screen. This lets you choose how you want to use the application.
 
 :::tip[Pre-Configured Instances]
-Some Inkweld instances are pre-configured to automatically start in server mode. If your instance has a fixed server URL configured in its build and auto-connect enabled, you'll skip this screen and go directly to the login page. Hosted instances can also enable mode selection (the preview deployment does this) — in that case you'll see this screen even though a server URL is pre-filled.
+Some Inkweld instances are pre-configured to automatically start with a Server profile. If your instance has a fixed server URL configured in its build and auto-connect enabled, you'll skip this screen and go directly to the login page. Hosted instances can also enable mode selection (the preview deployment does this) — in that case you'll see this screen even though a server URL is pre-filled.
 :::
 
 <ThemedImage
@@ -23,9 +23,9 @@ Some Inkweld instances are pre-configured to automatically start in server mode.
 
 ## Three Ways to Use Inkweld
 
-|                                         |      Browser      |             Cloud Sync             |          Realtime Sync          |
+|                                         |      Browser      |             Cloud Sync             |         Inkweld Server          |
 | --------------------------------------- | :---------------: | :--------------------------------: | :-----------------------------: |
-| Where your writing lives                | This browser only |   Your own Dropbox or Nextcloud    |        An Inkweld server        |
+| Where your writing lives                | This browser only |   Your own Dropbox or Nextcloud    |        An Inkweld Server        |
 | Account needed                          |       None        | Your Dropbox or Nextcloud account  | Inkweld account on that server  |
 | Works offline                           |        ✅         |    ✅ (syncs when back online)     |   ✅ (syncs when back online)   |
 | Use on several devices                  |        ⬜         |                 ✅                 |               ✅                |
@@ -61,7 +61,7 @@ Ideal for trying Inkweld, complete privacy, or writing on a single machine.
 
 Ideal for a single writer with a laptop and a phone, or anyone who wants an off-device copy without running a server.
 
-### Realtime Sync
+### Inkweld Server
 
 **Connect to an Inkweld server for collaboration.**
 
@@ -92,13 +92,13 @@ The user menu shows the sync status and has a **Sync now** action.
 With Dropbox, Inkweld asks only for access to its own folder (`Apps/Inkweld`) and cannot see or change anything else in your account. With Nextcloud, the app password grants your normal file access, but Inkweld only touches the `Inkweld` folder; keep the password dedicated to Inkweld so it can be revoked on its own. Both can be revoked at any time from the provider's security settings.
 :::
 
-## Setting Up Browser Mode
+## Setting Up a Browser Profile
 
 If you choose **Browser**, you'll create a local profile:
 
 <ThemedImage
   src="/img/generated/setup-offline"
-  alt="Offline mode profile setup form"
+  alt="Browser profile setup form"
 />
 
 | Field            | Description                                                              |
@@ -109,12 +109,12 @@ If you choose **Browser**, you'll create a local profile:
 On the mode screen click **Start in Browser**, fill in these two fields, then click **Create Browser profile** to begin. Your profile is saved locally and you'll be taken to your bookshelf.
 
 :::info[Data Storage]
-In Browser mode, your projects are stored in your browser's IndexedDB. Clearing browser data will remove your projects, so use the [**Export** feature](../organizing/import-export) to create backups.
+With a Browser profile, your projects are stored in your browser's IndexedDB. Clearing browser data will remove your projects, so use the [**Export** feature](../organizing/import-export) to create backups.
 :::
 
-## Connecting to a Server
+## Connecting to an Inkweld Server
 
-If you choose **Realtime Sync**, you'll enter your server's URL:
+If you choose **Inkweld Server**, you'll enter your server's URL:
 
 <ThemedImage
   src="/img/generated/setup-server"
@@ -131,7 +131,7 @@ If you're accessing a hosted Inkweld deployment (like one on Cloudflare Workers)
 
 ## Profiles: Switching, Adding and Upgrading
 
-Each way of using Inkweld is a **profile**: one author identity in one place. A Browser profile is a username stored in this browser only; a cloud profile is one cloud account; a server profile is one login on one Inkweld server. You can have as many of each as you like, for example two Browser profiles `testuserA` and `testuserB`, two cloud accounts, or ten author accounts across several servers. Every profile keeps its own projects and settings on the device.
+Each way of using Inkweld is a **profile**: one author identity in one place. A Browser profile is a username stored in this browser only; a Cloud Sync profile is one cloud account; a Server profile is one login on one Inkweld Server. You can have as many of each as you like, for example two Browser profiles `testuserA` and `testuserB`, two cloud accounts, or ten author accounts across several servers. Every profile keeps its own projects and settings on the device.
 
 ### Switching
 
@@ -167,4 +167,4 @@ Logging in to a server profile as a different author automatically gives that au
 
 ## Next Steps
 
-If you chose a server, continue with [Account Setup](./account-setup) to create your account. In Browser or Cloud Sync mode there is no account to set up — go straight to [The Bookshelf](./dashboard).
+If you chose a server, continue with [Account Setup](./account-setup) to create your account. With a Browser or Cloud Sync profile there is no account to set up — go straight to [The Bookshelf](./dashboard).

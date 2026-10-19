@@ -385,6 +385,44 @@ describe('WorldbuildingService', () => {
       ).toBe('https://example.com/b.png');
     });
 
+    it('replaceIdentityImage only replaces the image it expects', async () => {
+      const elementId = 'test-element-replace-image';
+      const inline = 'data:image/png;base64,abc';
+
+      await service.saveIdentityData(
+        elementId,
+        { image: inline },
+        username,
+        slug
+      );
+      expect(
+        await service.replaceIdentityImage(
+          elementId,
+          inline,
+          'media://identity-1.png',
+          username,
+          slug
+        )
+      ).toBe(true);
+      expect(
+        (await service.getIdentityData(elementId, username, slug)).image
+      ).toBe('media://identity-1.png');
+
+      // A second (stale) migration must not overwrite the current image.
+      expect(
+        await service.replaceIdentityImage(
+          elementId,
+          inline,
+          'media://identity-2.png',
+          username,
+          slug
+        )
+      ).toBe(false);
+      expect(
+        (await service.getIdentityData(elementId, username, slug)).image
+      ).toBe('media://identity-1.png');
+    });
+
     it('should save and retrieve identity appearance', async () => {
       const elementId = 'test-element-appearance';
 
