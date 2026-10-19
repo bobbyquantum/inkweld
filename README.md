@@ -59,7 +59,7 @@ Then open `http://localhost:8333` in your browser.
 
 ### Three ways to use it
 
-| | Browser | Cloud Sync | Realtime Sync |
+| | Browser | Cloud Sync | Inkweld Server |
 |---|:---:|:---:|:---:|
 | Where your writing lives | This browser only | Your own Dropbox, Google Drive or Nextcloud | An Inkweld server |
 | Account needed | None | Your cloud provider account | Inkweld account on that server |
@@ -70,7 +70,8 @@ Then open `http://localhost:8333` in your browser.
 | Version history & snapshots | ✅ local | ✅ synced | ✅ synced |
 | Media library & covers | ✅ | ✅ | ✅ |
 | Publishing (PDF, EPUB, HTML…) | ✅ | ✅ | ✅ |
-| AI features, MCP for AI assistants | ⬜ | ⬜ | ✅ (if the server enables them) |
+| Server AI features, MCP for AI assistants | ⬜ | ⬜ | ✅ (if the server enables them) |
+| Browser AI agents (WebMCP), after you choose Allow AI | ✅ | ✅ | ✅ |
 | Backup | Export archive | Continuous mirror + export archive | Server + export archive |
 | Move to another mode later | ✅ | ✅ | ✅ |
 | Cost to run | Free | Free (your storage quota) | Self-host, or a hosted server |
@@ -95,20 +96,20 @@ Then open `http://localhost:8333` in your browser.
 
 Everything below ships in 1.0. Planned features live in the [roadmap](ROADMAP.md).
 
-- **Projects:** home screen with covers, search, sorting and pinning; drag-and-drop project tree with unlimited folder nesting; project templates; rename; archives (`.inkweld.zip`) to back up, restore or duplicate a project.
+- **Projects:** home screen with covers, search, sorting and pinning; drag-and-drop project tree with unlimited folder nesting; project templates for worldbuilding, tabletop RPGs and scripts, with an illustrated tabletop RPG demo; rename; archives (`.inkweld.zip`) to back up, restore or duplicate a project.
 - **Writing:** rich-text editor with tables, images, links and keyboard shortcuts; scenes and notes with synopsis, status and word targets; corkboard and outline views of a folder; conversation scenes written as speech bubbles, with a script view; find and replace; zen mode; snapshots (named and automatic); threaded comments; writing statistics.
 - **Search and navigation:** quick open (Ctrl/Cmd+P), find in document (Ctrl/Cmd+F), project-wide full-text search (Ctrl/Cmd+Shift+F) with tag, type, relationship and template filters; breadcrumbs; pinned items; recent files; mobile-friendly layout.
 - **Worldbuilding:** templates for characters, places, factions and more, edited in a live template editor, with per-element customisation; relationships with backlinks; @mentions in prose; tags; custom calendars; random name, place and prompt generators.
 - **Media library:** images stored on the device and synced to the server; paste or drop images into documents; project and element covers; filtering, search and tags.
-- **Collaboration:** real-time co-editing with presence and cursors; sharing with viewer and editor roles; offline-first with sync on reconnect; move a project from browser-only to a server later; activity feed.
+- **Collaboration:** real-time co-editing with presence and cursors; sharing with viewer and editor roles; offline-first with sync on reconnect; move a project from a Browser profile to a server later; activity feed.
 - **Relationship charts:** graph and hierarchy layouts, filtered by relationship and element type, exported as PNG or SVG.
 - **Canvas and maps:** layered freeform canvas with drawing tools, shapes, text, images and gradient fills; pan, zoom and touch support; size and crop frames exported as PNG/SVG or used as the project cover; interactive maps with background images, pins and regions linked to elements.
 - **Timelines:** custom time systems, eras, events, and timelines built automatically from element dates.
-- **Publishing:** publish plans for EPUB, PDF (Typst), Markdown, HTML and a multi-page website, with typography presets and per-section style overrides.
+- **Publishing:** publish plans for EPUB, PDF (Typst), Markdown, HTML and a multi-page website, with typography presets, per-section style overrides, two-column layouts, full-page covers and sourcebook-style worldbuilding entries.
 - **Accounts and security:** passkeys by default, with optional magic-link recovery, passwords (with email reset) and GitHub sign-in; user approval; CSRF protection and a Content-Security-Policy.
 - **Administration:** admin dashboard for users, settings, AI providers and announcements; custom branding and legal pages; per-user storage quotas; production logging.
 - **Self-hosting:** Docker image and Compose, native Bun server, or Cloudflare Workers; Home Assistant app; installable web app (PWA) on desktop and mobile, with an in-app install prompt.
-- **Optional AI features** (configured by an admin, off by default; see [AI stance](#data-security--ai-stance)): image generation (OpenAI, OpenRouter, Fal.ai, Stable Diffusion) with model profiles, worldbuilding context and reference images; prompt optimisation; grammar and style suggestions; an MCP server for AI assistants.
+- **Optional AI features** (off by default: an admin enables them and each user opts in with Allow AI; see [AI stance](#data-security--ai-stance)): image generation (OpenAI, OpenRouter, Fal.ai, Stable Diffusion) with model profiles, worldbuilding context and reference images; prompt optimisation; grammar and style suggestions; an MCP server for AI assistants; WebMCP tools for AI agents built into the browser.
 
 ---
 
@@ -167,7 +168,7 @@ Frontend runs on `:4200`, backend on `:8333`.
 
 Inkweld is self-hosted — the content on your server doesn't leave your server and any browsers you connect with.  
 
-The exception to this are if you use external AI services.  There's an **AI Kill Switch** that disables all AI features, and AI is disabled by default.   
+The exception to this are if you use external AI services.  There's an **AI Kill Switch** that disables all AI features, and AI is disabled by default. Each user also has a **No AI / Allow AI** choice, No AI until they change it, which keeps every AI feature off for them even when the server allows AI.   
 
 If you choose to enable AI features, you can configure both self hosted services and external services, and uses include image generation based on content, and grammar suggestions.  
 
