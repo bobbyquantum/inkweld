@@ -42,7 +42,7 @@
     "title": "Announcements"
   },
   "tooltips": {
-    "onlineOnly": "Only available in online mode",
+    "onlineOnly": "Needs an Inkweld Server",
     "offline": "Cannot sync while offline",
     "syncInProgress": "Sync in progress...",
     "noProjectsToSync": "No projects to sync",

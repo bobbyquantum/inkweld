@@ -58,6 +58,6 @@ open your server's own address.
 ## How people connect
 
 On the setup screen at inkweld.app (or in the installed web app), people choose
-**Realtime Sync** and enter your server's address. Then they sign in as usual.
+**Inkweld Server** and enter your server's address. Then they sign in as usual.
 Their projects are the same ones they see at your server's own address, and on
 any other device signed in to the same account.

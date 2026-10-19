@@ -16,7 +16,7 @@ This user guide covers everything you need to know to use Inkweld effectively:
 
 ### Getting Started
 
-- [**Choosing Your Mode**](./getting-started/client-mode) - Browser only, Cloud Sync with your own storage, or an Inkweld server
+- [**Choosing Your Mode**](./getting-started/client-mode) - Browser, Cloud Sync with your own storage, or an Inkweld Server
 - [**Cloud Sync with Nextcloud**](./getting-started/nextcloud-sync) - Mirror projects to your own Nextcloud
 - [**Creating Your Account**](./getting-started/account-setup) - Sign up with a passkey and log in
 - [**Dashboard Overview**](./getting-started/dashboard) - Navigate your project library
@@ -83,11 +83,25 @@ This user guide covers everything you need to know to use Inkweld effectively:
 
 ---
 
+## Glossary
+
+Inkweld uses these terms consistently, in the app and in this guide:
+
+- **Profile**: one author identity in one place. You can have several.
+- **Browser profile**: projects stored only in this browser. No account needed.
+- **Cloud Sync profile**: projects stored in this browser and mirrored to your own Dropbox or Nextcloud.
+- **Server profile**: projects stored on an **Inkweld Server**, with collaboration and sharing (Realtime Sync).
+- **Offline**: a temporary loss of connection to the server. Your changes are kept and sync later.
+
+See [Choosing Your Mode](./getting-started/client-mode) for how to pick one.
+
+---
+
 ## Quick Start
 
 Ready to dive in? Here's the fastest path to writing:
 
-1. **Create an account** or log in at your Inkweld instance (or choose to work in the browser only)
+1. **Create an account** or log in at your Inkweld instance (or choose a Browser profile)
 2. **Click + Create** in the top bar, then **New Project**
 3. **Pick a template**, enter a title and create your project
 4. **Add a document** from the project tree and start writing
