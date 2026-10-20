@@ -15,6 +15,10 @@ export interface User {
   name?: string | null;
   email?: string;
   approved?: boolean;
+  /**
+   * Unix seconds when an admin rejected the registration (null = not rejected). Only surfaced to admins.
+   */
+  rejectedAt?: number | null;
   enabled: boolean;
   isAdmin?: boolean;
   hasAvatar?: boolean;

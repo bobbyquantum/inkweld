@@ -113,6 +113,11 @@
     border-left: 4px solid var(--sys-error);
   }
 
+  &.rejected {
+    opacity: 0.7;
+    border-left: 4px solid var(--sys-outline);
+  }
+
   &.admin {
     border-left: 4px solid var(--sys-primary);
   }
@@ -173,6 +178,11 @@
   &.disabled {
     background-color: var(--sys-error-container) !important;
     color: var(--sys-on-error-container) !important;
+  }
+
+  &.rejected {
+    background-color: var(--sys-surface-container-highest) !important;
+    color: var(--sys-on-surface-variant) !important;
   }
 
   &.admin {

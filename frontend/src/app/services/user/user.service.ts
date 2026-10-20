@@ -30,6 +30,7 @@ export class UserServiceError extends Error {
       | 'SERVER_ERROR'
       | 'LOGIN_FAILED'
       | 'ACCOUNT_PENDING'
+      | 'ACCOUNT_REJECTED'
       | 'ACCESS_DENIED',
     message: string
   ) {
@@ -551,15 +552,23 @@ export class UserService {
         return new UserServiceError('SESSION_EXPIRED', 'Session expired');
       }
       if (httpError.status === 403) {
-        // Check if this is a pending approval error
+        // Sign-in refusals carry a `code` (ACCOUNT_PENDING / ACCOUNT_REJECTED)
+        // next to the `error` text.
         const errorBody = httpError.error as
-          | {
-              message: string;
-              error: string;
-              statusCode: number;
-            }
-          | undefined;
+          { message?: string; error?: string; code?: string } | undefined;
 
+        if (errorBody?.code === 'ACCOUNT_REJECTED') {
+          return new UserServiceError(
+            'ACCOUNT_REJECTED',
+            errorBody.error ?? 'Account registration was not approved'
+          );
+        }
+        if (errorBody?.code === 'ACCOUNT_PENDING') {
+          return new UserServiceError(
+            'ACCOUNT_PENDING',
+            errorBody.error ?? 'Account pending approval'
+          );
+        }
         if (
           errorBody?.message?.includes('pending approval') ||
           errorBody?.message?.includes('disabled')

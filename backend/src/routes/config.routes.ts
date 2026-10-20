@@ -11,6 +11,8 @@ import { resolveAiKillSwitch } from '../utils/ai-kill-switch';
 
 const configRoutes = new OpenAPIHono<AppContext>();
 
+const isTruthy = (v: string) => v === 'true' || v === '1';
+
 // Schema definitions
 const ConfigResponseSchema = z
   .object({
@@ -171,13 +173,19 @@ const getConfigRoute = createRoute({
   },
 });
 
-configRoutes.openapi(getConfigRoute, (c) => {
+configRoutes.openapi(getConfigRoute, async (c) => {
+  // Report the effective settings (admin Settings, then env, then default):
+  // the same values registration and the GitHub routes act on.
+  const cfg = await configService.getMany(c.get('db'), [
+    'USER_APPROVAL_REQUIRED',
+    'GITHUB_ENABLED',
+  ] as const);
   return c.json({
     version: config.version,
     protocolVersion: PROTOCOL_VERSION,
     minClientVersion: MIN_CLIENT_VERSION,
-    userApprovalRequired: config.userApprovalRequired,
-    githubEnabled: config.github.enabled,
+    userApprovalRequired: isTruthy(cfg.USER_APPROVAL_REQUIRED.value),
+    githubEnabled: isTruthy(cfg.GITHUB_ENABLED.value),
   });
 });
 
@@ -205,7 +213,6 @@ configRoutes.openapi(getFeaturesRoute, async (c) => {
   // Every flag below is a config lookup; fetch them in ONE round trip (this
   // public endpoint is hit on every page load and used to issue ~15 serial
   // queries), and run the independent async checks concurrently.
-  const isTruthy = (v: string) => v === 'true' || v === '1';
   const [cfg, passwordPolicy, legal] = await Promise.all([
     configService.getMany(db, [
       'AI_KILL_SWITCH',
@@ -214,6 +221,7 @@ configRoutes.openapi(getFeaturesRoute, async (c) => {
       'AI_OPENROUTER_API_KEY',
       'AI_ANTHROPIC_API_KEY',
       'AI_OPENAI_API_KEY',
+      'USER_APPROVAL_REQUIRED',
       'EMAIL_ENABLED',
       'REQUIRE_EMAIL',
       'PASSKEYS_ENABLED',
@@ -271,7 +279,7 @@ configRoutes.openapi(getFeaturesRoute, async (c) => {
     aiImageGeneration: hasImageGeneration,
     appMode,
     defaultServerName,
-    userApprovalRequired: config.userApprovalRequired,
+    userApprovalRequired: isTruthy(cfg.USER_APPROVAL_REQUIRED.value),
     emailEnabled: isTruthy(cfg.EMAIL_ENABLED.value),
     requireEmail: isTruthy(cfg.REQUIRE_EMAIL.value),
     passwordPolicy,

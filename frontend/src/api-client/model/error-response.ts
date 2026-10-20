@@ -10,4 +10,8 @@
 
 export interface ErrorResponse {
   error: string;
+  /**
+   * Machine-readable reason, when the route gives one (e.g. ACCOUNT_PENDING / ACCOUNT_REJECTED on sign-in)
+   */
+  code?: string;
 }

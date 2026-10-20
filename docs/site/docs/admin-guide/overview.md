@@ -38,7 +38,12 @@ Manage user accounts:
 - Approve or reject pending registrations (when user approval is required).
   **Rejecting does not delete the account:** it stays unapproved, the person is
   signed out and cannot sign in. Use **Delete** to remove it. If the person
-  gave an email address and email is enabled, they are sent a notice
+  gave an email address and email is enabled, they are sent a notice.
+  A rejected account leaves the **Pending** tab and is listed under **All
+  Users** with a **Rejected** status, where you can still **Approve** or
+  **Delete** it. When the person tries to sign in they are told their
+  registration was not approved, instead of being shown the "awaiting
+  approval" page
 - Search all users by username or email
 - Enable or disable accounts, and grant or remove admin status
 - Delete accounts, including every project the user owns (users can also

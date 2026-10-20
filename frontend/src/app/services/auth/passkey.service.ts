@@ -65,6 +65,7 @@ export class PasskeyError extends Error {
       | 'VERIFICATION_FAILED'
       | 'NO_CREDENTIAL'
       | 'PENDING_APPROVAL'
+      | 'ACCOUNT_REJECTED'
       | 'ACCOUNT_DISABLED'
       | 'UNKNOWN',
     message: string
@@ -289,14 +290,19 @@ export class PasskeyService {
     // painting the raw error string in red. The backend handlers in
     // passkey.routes.ts return:
     //   403 'Account pending approval' — user not yet approved
+    //   403 code ACCOUNT_REJECTED       — registration rejected by an admin
     //   403 'Account is disabled'      — user disabled by admin
     // Anything else 4xx/5xx falls through to NETWORK_ERROR.
     if (err instanceof HttpErrorResponse) {
-      const serverMessage =
-        (typeof err.error === 'object' && err.error !== null
-          ? (err.error as { error?: string }).error
-          : undefined) || err.message;
+      const body =
+        typeof err.error === 'object' && err.error !== null
+          ? (err.error as { error?: string; code?: string })
+          : undefined;
+      const serverMessage = body?.error || err.message;
       if (err.status === 403) {
+        if (body?.code === 'ACCOUNT_REJECTED') {
+          return new PasskeyError('ACCOUNT_REJECTED', serverMessage);
+        }
         const lower = (serverMessage || '').toLowerCase();
         if (lower.includes('pending approval')) {
           return new PasskeyError('PENDING_APPROVAL', serverMessage);

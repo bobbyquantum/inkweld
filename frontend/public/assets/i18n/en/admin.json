@@ -40,9 +40,16 @@
     "approved": "{{name}} has been approved",
     "approveFailed": "Failed to approve user",
     "rejectTitle": "Reject User",
-    "rejectMessage": "Are you sure you want to reject {{name}}? They will be signed out and unable to sign in. Use Delete to remove the account.",
+    "rejectMessage": "Are you sure you want to reject {{name}}? They will be signed out and unable to sign in, and the account will be listed as Rejected. You can still approve it later, or use Delete to remove it.",
     "rejected": "{{name}} has been rejected",
     "rejectFailed": "Failed to reject user",
+    "status": {
+      "pending": "Pending",
+      "rejected": "Rejected",
+      "disabled": "Disabled",
+      "admin": "Admin",
+      "active": "Active"
+    },
     "enabled": "{{name}} has been enabled",
     "enableFailed": "Failed to enable user",
     "cannotDisableSelf": "You cannot disable yourself",

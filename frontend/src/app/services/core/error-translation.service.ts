@@ -7,6 +7,8 @@ export type ErrorTranslationResult = {
   message: string;
   shouldRedirect: boolean;
   silent: boolean;
+  /** Set with shouldRedirect: the registration was rejected, not pending. */
+  rejected?: boolean;
 };
 
 const PASSKEY_ERROR_KEYS: Record<string, string> = {
@@ -21,7 +23,11 @@ const USER_ERROR_KEYS: Record<string, string> = {
 };
 
 const SILENT_CODES = new Set(['CANCELLED']);
-const REDIRECT_CODES = new Set(['PENDING_APPROVAL', 'ACCOUNT_PENDING']);
+const REDIRECT_CODES = new Set([
+  'PENDING_APPROVAL',
+  'ACCOUNT_PENDING',
+  'ACCOUNT_REJECTED',
+]);
 
 @Injectable({ providedIn: 'root' })
 export class ErrorTranslationService {
@@ -49,7 +55,7 @@ export class ErrorTranslationService {
     }
 
     if (REDIRECT_CODES.has(error.code)) {
-      return { message: '', shouldRedirect: true, silent: false };
+      return this.redirect(error.code);
     }
 
     const key = PASSKEY_ERROR_KEYS[error.code];
@@ -64,7 +70,7 @@ export class ErrorTranslationService {
 
   private translateUserError(error: UserServiceError): ErrorTranslationResult {
     if (REDIRECT_CODES.has(error.code)) {
-      return { message: '', shouldRedirect: true, silent: false };
+      return this.redirect(error.code);
     }
 
     const key = USER_ERROR_KEYS[error.code];
@@ -74,6 +80,15 @@ export class ErrorTranslationService {
         : this.transloco.translate('errors.unknown'),
       shouldRedirect: false,
       silent: false,
+    };
+  }
+
+  private redirect(code: string): ErrorTranslationResult {
+    return {
+      message: '',
+      shouldRedirect: true,
+      silent: false,
+      rejected: code === 'ACCOUNT_REJECTED',
     };
   }
 }

@@ -230,8 +230,8 @@ passkeyRoutes.openapi(loginFinishRoute, async (c) => {
   if (!user) {
     return c.json({ error: 'User not found' }, 401);
   }
-  if (!user.enabled) return c.json({ error: 'Account is disabled' }, 403);
-  if (!user.approved) return c.json({ error: 'Account pending approval' }, 403);
+  const refusal = userService.loginRefusal(user);
+  if (refusal) return c.json(refusal, 403);
 
   const token = await authService.createSession(c, user);
 

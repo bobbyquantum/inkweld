@@ -181,18 +181,9 @@ export const config = {
   // Set to 'false' to disable frontend serving (API-only mode)
   serveFrontend: process.env.SERVE_FRONTEND !== 'false',
 
-  // User registration - defaults to false (no approval required) for easier setup
-  // Set to 'true' to require admin approval for new users
-  userApprovalRequired: process.env.USER_APPROVAL_REQUIRED === 'true',
-
-  // GitHub OAuth
-  github: {
-    enabled: process.env.GITHUB_ENABLED === 'true',
-    clientId: process.env.GITHUB_CLIENT_ID || '',
-    clientSecret: process.env.GITHUB_CLIENT_SECRET || '',
-    callbackUrl:
-      process.env.GITHUB_CALLBACK_URL || 'http://localhost:8333/api/auth/github/callback',
-  },
+  // USER_APPROVAL_REQUIRED and the GitHub OAuth settings are admin-editable:
+  // read them through configService (database, then env, then default), never
+  // from process.env here, or a value set in admin Settings is ignored.
 
   // AI Kill Switch - master switch for all AI features (defaults to ON/enabled = AI disabled)
   // When set to 'true' or not set, all AI features are disabled
