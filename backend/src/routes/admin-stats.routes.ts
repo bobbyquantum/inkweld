@@ -1,6 +1,6 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { requireAdmin } from '../middleware/auth';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, isNull } from 'drizzle-orm';
 import { users, projects } from '../db/schema';
 import { config } from '../config/env';
 import type { AppContext } from '../types/context';
@@ -46,7 +46,10 @@ adminStatsRoutes.openapi(systemStatsRoute, async (c) => {
   const [userCount, projectCount, pendingCount] = await Promise.all([
     db.$count(users),
     db.$count(projects),
-    db.$count(users, and(eq(users.approved, false), eq(users.enabled, true))),
+    db.$count(
+      users,
+      and(eq(users.approved, false), eq(users.enabled, true), isNull(users.rejectedAt))
+    ),
   ]);
 
   return c.json(

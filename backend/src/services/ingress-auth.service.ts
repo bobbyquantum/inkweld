@@ -23,13 +23,13 @@ import { RESERVED_USERNAMES } from '../schemas/auth.schemas';
 import { ingressAdmins, type IngressUser } from '../utils/ingress';
 import { trimHyphens } from '../utils/string-utils';
 import { logger } from './logger.service';
-import { userService } from './user.service';
+import { userService, type LoginRefusal } from './user.service';
 
 const FALLBACK_USERNAME = 'ha-user';
 const MAX_USERNAME_ATTEMPTS = 100;
 
 export type IngressSignInResult =
-  { ok: true; user: User } | { ok: false; status: 403; error: string };
+  { ok: true; user: User } | ({ ok: false; status: 403 } & LoginRefusal);
 
 /**
  * Turn an HA login name into an Inkweld username: lower-case letters, digits,
@@ -59,11 +59,9 @@ class IngressAuthService {
 
     user = await this.applyAdminPolicy(db, user, haUser, created);
 
-    if (!user.enabled) {
-      return { ok: false, status: 403, error: 'Account is disabled' };
-    }
-    if (!user.approved) {
-      return { ok: false, status: 403, error: 'Account pending approval' };
+    const refusal = userService.loginRefusal(user);
+    if (refusal) {
+      return { ok: false, status: 403, ...refusal };
     }
     return { ok: true, user };
   }

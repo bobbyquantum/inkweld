@@ -188,6 +188,17 @@
                         <mat-icon>more_vert</mat-icon>
                       </button>
                       <mat-menu #userMenu="matMenu">
+                        @if (!user.approved) {
+                          <button
+                            mat-menu-item
+                            (click)="approveUser(user)"
+                            [attr.data-testid]="
+                              'approve-user-menu-' + user.username
+                            ">
+                            <mat-icon>check</mat-icon>
+                            <span>{{ 'admin.users.approve' | transloco }}</span>
+                          </button>
+                        }
                         @if (!user.enabled && user.approved) {
                           <button
                             mat-menu-item

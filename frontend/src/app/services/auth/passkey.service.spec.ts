@@ -386,6 +386,25 @@ describe('PasskeyService', () => {
       });
     });
 
+    it('throws ACCOUNT_REJECTED on 403 with the rejected code', async () => {
+      const httpError = new HttpErrorResponse({
+        status: 403,
+        statusText: 'Forbidden',
+        error: {
+          error: 'Account registration was not approved',
+          code: 'ACCOUNT_REJECTED',
+        },
+      });
+      passkeyApi.startPasskeyLogin.mockReturnValue(obs(fakeLoginOptions));
+      fakeStartAuthentication.mockResolvedValue(fakeAssertion);
+      passkeyApi.finishPasskeyLogin.mockReturnValue(errObs(httpError));
+
+      await expect(service.login()).rejects.toMatchObject({
+        code: 'ACCOUNT_REJECTED',
+        message: 'Account registration was not approved',
+      });
+    });
+
     it('throws ACCOUNT_DISABLED on 403 with disabled message', async () => {
       const httpError = new HttpErrorResponse({
         status: 403,

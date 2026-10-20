@@ -3,6 +3,7 @@ import { bodyLimit } from 'hono/body-limit';
 import { MAX_IMAGE_UPLOAD_BYTES, MULTIPART_OVERHEAD_BYTES } from '../utils/upload';
 import { requireAuth, optionalAuth } from '../middleware/auth';
 import { type AppContext } from '../types/context';
+import type { User } from '../db/schema';
 import { userService } from '../services/user.service';
 import { isSessionRevoked } from '../utils/session-validity';
 import { fileStorageService } from '../services/file-storage.service';
@@ -23,6 +24,21 @@ import { UnauthorizedError } from '../errors';
 import { ingressSessionMatches } from '../utils/ingress';
 
 const userRoutes = new OpenAPIHono<AppContext>();
+
+/** A user list entry with the details only admins see. */
+function adminUserListEntry(u: User & { username: string }) {
+  return {
+    id: u.id,
+    username: u.username,
+    name: u.name,
+    email: u.email ?? undefined,
+    enabled: u.enabled,
+    approved: u.approved,
+    rejectedAt: u.rejectedAt,
+    isAdmin: u.isAdmin,
+    hasAvatar: u.hasAvatar,
+  };
+}
 
 // Apply auth middleware to protected routes
 // Note: /me uses custom auth handling to return anonymous user instead of 401
@@ -586,16 +602,7 @@ userRoutes.openapi(getUsersRoute, async (c) => {
     .map((u) => {
       if (isAdmin) {
         // Admins get full details
-        return {
-          id: u.id,
-          username: u.username,
-          name: u.name,
-          email: u.email ?? undefined,
-          enabled: u.enabled,
-          approved: u.approved,
-          isAdmin: u.isAdmin,
-          hasAvatar: u.hasAvatar,
-        };
+        return adminUserListEntry(u);
       } else {
         // Regular users get limited info
         return {
@@ -665,16 +672,7 @@ userRoutes.openapi(searchUsersRoute, async (c) => {
     .filter((u): u is typeof u & { username: string } => u.username !== null)
     .map((u) => {
       if (isAdmin) {
-        return {
-          id: u.id,
-          username: u.username,
-          name: u.name,
-          email: u.email ?? undefined,
-          enabled: u.enabled,
-          approved: u.approved,
-          isAdmin: u.isAdmin,
-          hasAvatar: u.hasAvatar,
-        };
+        return adminUserListEntry(u);
       } else {
         return {
           id: u.id,

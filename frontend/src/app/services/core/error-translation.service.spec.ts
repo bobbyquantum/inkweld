@@ -42,6 +42,17 @@ describe('ErrorTranslationService', () => {
         expect(result.silent).toBe(false);
       });
 
+      it('should flag a rejected registration on ACCOUNT_REJECTED code', () => {
+        const error = new PasskeyError('ACCOUNT_REJECTED', 'Not approved');
+        const result = service.translate(error);
+
+        expect(result.shouldRedirect).toBe(true);
+        expect(result.rejected).toBe(true);
+        expect(
+          service.translate(new PasskeyError('PENDING_APPROVAL', 'p')).rejected
+        ).toBe(false);
+      });
+
       it.each([
         [
           'NO_CREDENTIAL',
@@ -83,6 +94,15 @@ describe('ErrorTranslationService', () => {
     });
 
     describe('UserServiceError', () => {
+      it('should flag a rejected registration on ACCOUNT_REJECTED code', () => {
+        const result = service.translate(
+          new UserServiceError('ACCOUNT_REJECTED', 'Not approved')
+        );
+
+        expect(result.shouldRedirect).toBe(true);
+        expect(result.rejected).toBe(true);
+      });
+
       it('should return redirect result for ACCOUNT_PENDING code', () => {
         const error = new UserServiceError(
           'ACCOUNT_PENDING',

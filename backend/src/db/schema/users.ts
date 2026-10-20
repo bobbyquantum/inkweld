@@ -27,6 +27,12 @@ export const users = sqliteTable('users', {
   homeAssistantUserId: text('homeAssistantUserId').unique(),
   enabled: integer('enabled', { mode: 'boolean' }).notNull().default(false),
   approved: integer('approved', { mode: 'boolean' }).notNull().default(false),
+  /**
+   * Unix seconds when an admin rejected the registration, or NULL. A rejected
+   * account stays unapproved (it is not deleted) but is no longer listed as
+   * pending. Approving the account clears it.
+   */
+  rejectedAt: integer('rejectedAt'),
   isAdmin: integer('isAdmin', { mode: 'boolean' }).notNull().default(false),
   /**
    * Unix seconds. Session JWTs issued before this instant are rejected.

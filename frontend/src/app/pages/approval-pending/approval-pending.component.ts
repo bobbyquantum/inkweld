@@ -37,9 +37,12 @@ export class ApprovalPendingComponent implements OnInit {
   username = '';
   name = '';
   userId = '';
+  /** The registration was rejected by an administrator (not just pending). */
+  rejected = false;
 
   ngOnInit(): void {
     const params = this.route.snapshot.queryParams;
+    this.rejected = params['status'] === 'rejected';
     this.username = (params['username'] as string) || '';
     this.name = (params['name'] as string) || '';
     this.userId = (params['userId'] as string) || '';

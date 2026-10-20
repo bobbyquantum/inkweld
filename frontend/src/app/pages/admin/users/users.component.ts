@@ -419,17 +419,16 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
   }
 
   getUserStatusClass(user: AdminUser): string {
-    if (!user.approved) return 'pending';
+    if (!user.approved) return user.rejectedAt == null ? 'pending' : 'rejected';
     if (!user.enabled) return 'disabled';
     if (user.isAdmin) return 'admin';
     return 'active';
   }
 
   getUserStatusLabel(user: AdminUser): string {
-    if (!user.approved) return 'Pending';
-    if (!user.enabled) return 'Disabled';
-    if (user.isAdmin) return 'Admin';
-    return 'Active';
+    return this.transloco.translate(
+      `admin.users.status.${this.getUserStatusClass(user)}`
+    );
   }
 
   isCurrentUser(user: AdminUser): boolean {

@@ -30,6 +30,8 @@ export interface AdminUser {
   email?: string;
   enabled: boolean;
   approved?: boolean;
+  /** Unix seconds when the registration was rejected; null/absent if not. */
+  rejectedAt?: number | null;
   isAdmin?: boolean;
   githubId?: string | null;
   hasAvatar?: boolean;
@@ -256,9 +258,15 @@ export class AdminService {
           .pipe(catchError(this.handleError.bind(this)))
       );
 
-      // Update local state - remove from pending and users
+      // Rejecting keeps the account (Delete removes it): it leaves the
+      // pending list and shows as rejected in the user list.
+      const rejectedAt = Math.floor(Date.now() / 1000);
       this.pendingUsers.update(users => users.filter(u => u.id !== userId));
-      this.users.update(users => users.filter(u => u.id !== userId));
+      this.users.update(users =>
+        users.map(u =>
+          u.id === userId ? { ...u, approved: false, rejectedAt } : u
+        )
+      );
     } catch (error) {
       this.logger.error('AdminService', 'Failed to reject user', error);
       throw error;

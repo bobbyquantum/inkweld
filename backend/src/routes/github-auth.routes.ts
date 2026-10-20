@@ -107,8 +107,8 @@ githubAuthRoutes.get(
         // This is the only user, make them admin and approve
         await userService.setUserAdmin(db, user.id, true);
         await userService.approveUser(db, user.id);
-      } else if (!user.approved && !userApprovalRequired) {
-        // Auto-approve if approval is not required
+      } else if (!user.approved && user.rejectedAt === null && !userApprovalRequired) {
+        // Auto-approve if approval is not required (never one an admin rejected)
         await userService.approveUser(db, user.id);
       }
 
@@ -120,6 +120,10 @@ githubAuthRoutes.get(
         if (!updatedUser.enabled) {
           log.warn(`GitHub user ${githubUser.login} account is disabled`);
           return c.redirect(`${baseUrl}/?error=account_disabled`);
+        }
+        if (updatedUser.rejectedAt !== null) {
+          log.info(`GitHub user ${githubUser.login} was rejected`);
+          return c.redirect(`${baseUrl}/approval-pending?status=rejected`);
         }
         if (!updatedUser.approved) {
           log.info(`GitHub user ${githubUser.login} requires approval`);

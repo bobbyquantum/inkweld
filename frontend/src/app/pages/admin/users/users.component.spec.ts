@@ -76,6 +76,17 @@ const MOCK_PENDING: AdminUser[] = [
   },
 ];
 
+const MOCK_REJECTED: AdminUser = {
+  id: '5',
+  username: 'rejected',
+  email: 'rejected@test.com',
+  enabled: true,
+  approved: false,
+  rejectedAt: 1_790_000_000,
+  isAdmin: false,
+  githubId: null,
+};
+
 const CURRENT_USER: User = {
   id: '1',
   username: 'admin',
@@ -228,6 +239,7 @@ describe('AdminUsersComponent', () => {
     expect(component.getUserStatusClass(MOCK_USERS[1])).toBe('active');
     expect(component.getUserStatusClass(MOCK_USERS[2])).toBe('disabled');
     expect(component.getUserStatusClass(MOCK_PENDING[0])).toBe('pending');
+    expect(component.getUserStatusClass(MOCK_REJECTED)).toBe('rejected');
   });
 
   it('should return correct status label for users', { timeout: 5000 }, () => {
@@ -237,6 +249,31 @@ describe('AdminUsersComponent', () => {
     expect(component.getUserStatusLabel(MOCK_USERS[1])).toBe('Active');
     expect(component.getUserStatusLabel(MOCK_USERS[2])).toBe('Disabled');
     expect(component.getUserStatusLabel(MOCK_PENDING[0])).toBe('Pending');
+    expect(component.getUserStatusLabel(MOCK_REJECTED)).toBe('Rejected');
+  });
+
+  it('shows a rejected user in the all-users list with a Rejected chip', async () => {
+    adminServiceMock.users.set([...MOCK_USERS, MOCK_REJECTED]);
+    component.selectedTab.set(1);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const card = (fixture.nativeElement as HTMLElement).querySelector(
+      '[data-testid="user-card-rejected"]'
+    );
+    expect(card?.classList).toContain('rejected');
+    expect(
+      card?.querySelector('[data-testid="user-status-chip"]')?.textContent
+    ).toContain('Rejected');
+  });
+
+  it('should still offer approval for a rejected user', async () => {
+    fixture.detectChanges();
+
+    await component.approveUser(MOCK_REJECTED);
+
+    expect(adminServiceMock.approveUser).toHaveBeenCalledWith('5');
   });
 
   it('should approve user after confirmation', { timeout: 5000 }, async () => {
