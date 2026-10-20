@@ -294,27 +294,32 @@ export class PasskeyService {
     //   403 'Account is disabled'      — user disabled by admin
     // Anything else 4xx/5xx falls through to NETWORK_ERROR.
     if (err instanceof HttpErrorResponse) {
-      const body =
-        typeof err.error === 'object' && err.error !== null
-          ? (err.error as { error?: string; code?: string })
-          : undefined;
-      const serverMessage = body?.error || err.message;
-      if (err.status === 403) {
-        if (body?.code === 'ACCOUNT_REJECTED') {
-          return new PasskeyError('ACCOUNT_REJECTED', serverMessage);
-        }
-        const lower = (serverMessage || '').toLowerCase();
-        if (lower.includes('pending approval')) {
-          return new PasskeyError('PENDING_APPROVAL', serverMessage);
-        }
-        if (lower.includes('disabled')) {
-          return new PasskeyError('ACCOUNT_DISABLED', serverMessage);
-        }
-      }
-      return new PasskeyError('NETWORK_ERROR', serverMessage);
+      return this.httpToPasskeyError(err);
     }
 
     const message = err instanceof Error ? err.message : fallback;
     return new PasskeyError('NETWORK_ERROR', message);
+  }
+
+  private httpToPasskeyError(err: HttpErrorResponse): PasskeyError {
+    const body =
+      typeof err.error === 'object' && err.error !== null
+        ? (err.error as { error?: string; code?: string })
+        : undefined;
+    const serverMessage = body?.error || err.message;
+    if (err.status !== 403) {
+      return new PasskeyError('NETWORK_ERROR', serverMessage);
+    }
+    if (body?.code === 'ACCOUNT_REJECTED') {
+      return new PasskeyError('ACCOUNT_REJECTED', serverMessage);
+    }
+    const lower = (serverMessage || '').toLowerCase();
+    if (lower.includes('pending approval')) {
+      return new PasskeyError('PENDING_APPROVAL', serverMessage);
+    }
+    if (lower.includes('disabled')) {
+      return new PasskeyError('ACCOUNT_DISABLED', serverMessage);
+    }
+    return new PasskeyError('NETWORK_ERROR', serverMessage);
   }
 }

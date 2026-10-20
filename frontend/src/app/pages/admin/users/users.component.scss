@@ -180,9 +180,10 @@
     color: var(--sys-on-error-container) !important;
   }
 
+  // Set through the chip's own tokens, so no !important is needed.
   &.rejected {
-    background-color: var(--sys-surface-container-highest) !important;
-    color: var(--sys-on-surface-variant) !important;
+    --mat-chip-elevated-container-color: var(--sys-surface-container-highest);
+    --mat-chip-label-text-color: var(--sys-on-surface-variant);
   }
 
   &.admin {
