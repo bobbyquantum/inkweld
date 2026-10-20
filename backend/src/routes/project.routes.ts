@@ -3,7 +3,7 @@ import { requireAuth } from '../middleware/auth';
 import { projectService } from '../services/project.service';
 import { userService } from '../services/user.service';
 import { collaborationService } from '../services/collaboration.service';
-import { fileStorageService } from '../services/file-storage.service';
+import { logger } from '../services/logger.service';
 import { getStorageService } from '../services/storage.service';
 import { destroyProjectDurableObject } from '../utils/project-durable-object';
 import { yjsService } from '../services/yjs.service';
@@ -324,36 +324,51 @@ projectRoutes.openapi(updateProjectRoute, async (c) => {
   }
 
   // Handle slug change (project rename)
-  if (updates.slug && updates.slug !== slug) {
+  const newSlug = updates.slug && updates.slug !== slug ? updates.slug : null;
+  if (newSlug) {
     // Check if new slug already exists for this user
-    const existing = await projectService.findByUsernameAndSlug(db, username, updates.slug);
+    const existing = await projectService.findByUsernameAndSlug(db, username, newSlug);
     if (existing) {
       throw new BadRequestError('A project with this slug already exists');
     }
 
-    // Rename the project directory on disk
+    // Close the project's Yjs documents and release its LevelDB handle, whose
+    // store lives inside the project directory that is about to move.
     try {
-      await fileStorageService.renameProjectDirectory(username, slug, updates.slug);
-    } catch {
-      throw new InternalError('Failed to rename project directory');
+      await yjsService.renameProject(username, slug, newSlug);
+    } catch (error) {
+      logger.error('Projects', 'Failed to close Yjs documents before rename', error);
     }
 
-    // Rename the Yjs documents (LevelDB migration)
+    // Media, covers and published files are keyed by slug: a directory
+    // rename on the filesystem, a copy to the new keys in R2.
     try {
-      await yjsService.renameProject(username, slug, updates.slug);
+      await getStorageService(c.get('storage')).moveProjectDirectory(username, slug, newSlug);
     } catch (error) {
-      // Log but don't fail - LevelDB will be recreated on next access
-      console.error('Failed to rename LevelDB documents:', error);
+      logger.error('Projects', `Failed to move project files ${slug} -> ${newSlug}`, error);
+      throw new InternalError('Failed to move project files');
+    }
+
+    try {
+      await projectService.update(db, project.id, updates);
+    } catch (error) {
+      // Leave the files where the project's slug says they are.
+      await getStorageService(c.get('storage'))
+        .moveProjectDirectory(username, newSlug, slug)
+        .catch((moveError: unknown) => {
+          logger.error('Projects', `Failed to move project files back to ${slug}`, moveError);
+        });
+      throw error;
     }
 
     // Create alias for the old slug
-    await projectService.createSlugAlias(db, project.userId, slug, updates.slug);
+    await projectService.createSlugAlias(db, project.userId, slug, newSlug);
 
     // Update any existing aliases pointing to the old slug
-    await projectService.updateAliasChain(db, project.userId, slug, updates.slug);
+    await projectService.updateAliasChain(db, project.userId, slug, newSlug);
+  } else {
+    await projectService.update(db, project.id, updates);
   }
-
-  await projectService.update(db, project.id, updates);
 
   const updated = await projectService.findById(db, project.id);
   if (!updated) {
