@@ -253,7 +253,34 @@ describe('ingressAuthService.signIn', () => {
       username: `pending${run}`,
       displayName: null,
     });
-    expect(result).toEqual({ ok: false, status: 403, error: 'Account pending approval' });
+    expect(result).toEqual({
+      ok: false,
+      status: 403,
+      error: 'Account pending approval',
+      code: 'ACCOUNT_PENDING',
+    });
+  });
+
+  it('tells a rejected account apart from a pending one', async () => {
+    const created = await ingressAuthService.signIn(db(), {
+      id: haId('rejected'),
+      username: `rejected${run}`,
+      displayName: null,
+    });
+    if (!created.ok) throw new Error('expected an account');
+    await userService.rejectUser(db(), created.user.id);
+
+    const result = await ingressAuthService.signIn(db(), {
+      id: haId('rejected'),
+      username: `rejected${run}`,
+      displayName: null,
+    });
+    expect(result).toEqual({
+      ok: false,
+      status: 403,
+      error: 'Account registration was not approved',
+      code: 'ACCOUNT_REJECTED',
+    });
   });
 
   it('picks up the account created by a concurrent first sign-in', async () => {

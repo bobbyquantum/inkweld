@@ -30,6 +30,7 @@ export class UserServiceError extends Error {
       | 'SERVER_ERROR'
       | 'LOGIN_FAILED'
       | 'ACCOUNT_PENDING'
+      | 'ACCOUNT_REJECTED'
       | 'ACCESS_DENIED',
     message: string
   ) {
@@ -526,50 +527,67 @@ export class UserService {
         return new UserServiceError('NETWORK_ERROR', 'Server unavailable');
       }
       if (httpError.status === 401) {
-        // Check for specific login failure case
-        const errorBody = httpError.error as
-          | {
-              message?: string;
-              error?: string;
-              statusCode?: number;
-            }
-          | undefined;
-
-        // Handle both error response formats
-        if (
-          errorBody?.error === 'Invalid credentials' ||
-          errorBody?.message === 'Invalid credentials' ||
-          (errorBody?.message === 'Invalid username or password' &&
-            errorBody.error === 'Unauthorized')
-        ) {
-          return new UserServiceError(
-            'LOGIN_FAILED',
-            'Invalid username or password'
-          );
-        }
-        // Other 401 errors are treated as session expired
-        return new UserServiceError('SESSION_EXPIRED', 'Session expired');
+        return this.unauthorizedError(httpError);
       }
       if (httpError.status === 403) {
-        // Check if this is a pending approval error
-        const errorBody = httpError.error as
-          | {
-              message: string;
-              error: string;
-              statusCode: number;
-            }
-          | undefined;
-
-        if (
-          errorBody?.message?.includes('pending approval') ||
-          errorBody?.message?.includes('disabled')
-        ) {
-          return new UserServiceError('ACCOUNT_PENDING', errorBody.message);
-        }
-        return new UserServiceError('ACCESS_DENIED', 'Access denied');
+        return this.forbiddenError(httpError);
       }
     }
     return new UserServiceError('SERVER_ERROR', 'Failed to load user data');
+  }
+
+  /** Map a 401: wrong credentials on sign-in, otherwise an expired session. */
+  private unauthorizedError(httpError: HttpErrorResponse): UserServiceError {
+    const errorBody = httpError.error as
+      | {
+          message?: string;
+          error?: string;
+          statusCode?: number;
+        }
+      | undefined;
+
+    // Handle both error response formats
+    if (
+      errorBody?.error === 'Invalid credentials' ||
+      errorBody?.message === 'Invalid credentials' ||
+      (errorBody?.message === 'Invalid username or password' &&
+        errorBody.error === 'Unauthorized')
+    ) {
+      return new UserServiceError(
+        'LOGIN_FAILED',
+        'Invalid username or password'
+      );
+    }
+    // Other 401 errors are treated as session expired
+    return new UserServiceError('SESSION_EXPIRED', 'Session expired');
+  }
+
+  /** Map a 403: a sign-in refusal for the account, or plain access denial. */
+  private forbiddenError(httpError: HttpErrorResponse): UserServiceError {
+    // Sign-in refusals carry a `code` (ACCOUNT_PENDING / ACCOUNT_REJECTED)
+    // next to the `error` text.
+    const errorBody = httpError.error as
+      { message?: string; error?: string; code?: string } | undefined;
+
+    if (errorBody?.code === 'ACCOUNT_REJECTED') {
+      return new UserServiceError(
+        'ACCOUNT_REJECTED',
+        errorBody.error ?? 'Account registration was not approved'
+      );
+    }
+    if (errorBody?.code === 'ACCOUNT_PENDING') {
+      return new UserServiceError(
+        'ACCOUNT_PENDING',
+        errorBody.error ?? 'Account pending approval'
+      );
+    }
+    if (
+      errorBody?.message?.includes('pending approval') ||
+      errorBody?.message?.includes('disabled')
+    ) {
+      return new UserServiceError('ACCOUNT_PENDING', errorBody.message);
+    }
+    return new UserServiceError('ACCESS_DENIED', 'Access denied');
   }
 
   private async getCachedUser(): Promise<User | undefined> {

@@ -776,6 +776,23 @@ describe('UserService', () => {
       expect(error.message).toBe('Account is disabled');
     });
 
+    it.each([
+      ['ACCOUNT_REJECTED', 'Account registration was not approved'],
+      ['ACCOUNT_PENDING', 'Account pending approval'],
+    ])('should map a 403 with code %s', (code, message) => {
+      const httpError = new HttpErrorResponse({
+        error: { error: message, code },
+        status: 403,
+        statusText: 'Forbidden',
+      });
+
+      const error = (service as any).formatError(httpError);
+
+      expect(error).toBeInstanceOf(UserServiceError);
+      expect(error.code).toBe(code);
+      expect(error.message).toBe(message);
+    });
+
     it('should handle 403 errors without specific message as access denied', () => {
       const httpError = new HttpErrorResponse({
         error: {

@@ -20,6 +20,10 @@ export const ProjectPathParamsSchema = z.object({
 export const ErrorResponseSchema = z
   .object({
     error: z.string(),
+    code: z.string().optional().openapi({
+      description:
+        'Machine-readable reason, when the route gives one (e.g. ACCOUNT_PENDING / ACCOUNT_REJECTED on sign-in)',
+    }),
   })
   .openapi('ErrorResponse', { example: { error: 'An error occurred' } });
 
@@ -138,6 +142,11 @@ export const UserSchema = z
     name: z.string().nullable().optional(),
     email: z.string().optional(),
     approved: z.boolean().optional(),
+    /** Unix seconds when an admin rejected the registration. Admins only. */
+    rejectedAt: z.number().nullable().optional().openapi({
+      description:
+        'Unix seconds when an admin rejected the registration (null = not rejected). Only surfaced to admins.',
+    }),
     enabled: z.boolean(),
     isAdmin: z.boolean().optional(),
     hasAvatar: z.boolean().optional(),
