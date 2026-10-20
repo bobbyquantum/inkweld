@@ -102,26 +102,15 @@ export class DocumentImportService {
       // Map name must match worldbuilding.service.ts ('worldbuilding', not 'data')
       const dataMap = ydoc.getMap<unknown>('worldbuilding');
 
-      // Copy all data fields to the Yjs map
-      // Handle dot-notation keys (e.g., "appearance.height") by setting them
-      // into nested Y.Map structures
+      // Copy all data fields to the Yjs map. Grouped fields (e.g. a
+      // Character's Appearance group) are stored as nested Y.Maps, the way
+      // the editor writes them. Archives carry them as nested objects
+      // (`{"appearance": {"height": ...}}`); built-in templates and older
+      // archives use dot-notation keys (`"appearance.height"`). Both land in
+      // the same nested map.
       ydoc.transact(() => {
-        // First pass: create nested Y.Map for dot-notation parent keys
-        const nestedMaps = new Map<string, Y.Map<unknown>>();
-        for (const key of Object.keys(wb.data)) {
-          if (key.includes('.')) {
-            const parentKey = key.split('.')[0];
-            if (!nestedMaps.has(parentKey)) {
-              const nestedMap = new Y.Map<unknown>();
-              nestedMaps.set(parentKey, nestedMap);
-              dataMap.set(parentKey, nestedMap);
-            }
-          }
-        }
-
-        // Second pass: set all values
         for (const [key, value] of Object.entries(wb.data)) {
-          this.setWorldbuildingValue(dataMap, nestedMaps, key, value);
+          this.setWorldbuildingValue(dataMap, key, value);
         }
 
         // Also store the schema ID
@@ -178,29 +167,48 @@ export class DocumentImportService {
 
   private setWorldbuildingValue(
     dataMap: Y.Map<unknown>,
-    nestedMaps: Map<string, Y.Map<unknown>>,
     key: string,
     value: unknown
   ): void {
-    if (key.includes('.')) {
-      const [parentKey, childKey] = key.split('.');
-      const nestedMap = nestedMaps.get(parentKey);
-      if (!nestedMap) return;
-      if (Array.isArray(value)) {
-        const yArray = new Y.Array<unknown>();
-        value.forEach(item => yArray.push([item]));
-        nestedMap.set(childKey, yArray);
-      } else {
-        nestedMap.set(childKey, value);
+    const dot = key.indexOf('.');
+    if (dot > 0 && dot < key.length - 1) {
+      const group = this.getOrCreateGroup(dataMap, key.slice(0, dot));
+      group.set(key.slice(dot + 1), this.toYjsFieldValue(value));
+    } else if (this.isPlainObject(value)) {
+      const group = this.getOrCreateGroup(dataMap, key);
+      for (const [childKey, childValue] of Object.entries(value)) {
+        group.set(childKey, this.toYjsFieldValue(childValue));
       }
-    } else if (Array.isArray(value)) {
-      const yArray = new Y.Array<unknown>();
-      value.forEach(item => yArray.push([item]));
-      dataMap.set(key, yArray);
-    } else if (typeof value !== 'object' || value === null) {
-      dataMap.set(key, value);
+    } else {
+      dataMap.set(key, this.toYjsFieldValue(value));
     }
-    // Skip nested objects — created from dot-notation keys
+  }
+
+  /** The nested Y.Map holding a field group, created on first use. */
+  private getOrCreateGroup(
+    dataMap: Y.Map<unknown>,
+    key: string
+  ): Y.Map<unknown> {
+    const existing = dataMap.get(key);
+    if (existing instanceof Y.Map) return existing as Y.Map<unknown>;
+    const group = new Y.Map<unknown>();
+    dataMap.set(key, group);
+    return group;
+  }
+
+  /**
+   * A field value as the editor stores it: arrays become Y.Arrays, anything
+   * else (including an object inside a group) is kept as plain JSON.
+   */
+  private toYjsFieldValue(value: unknown): unknown {
+    if (!Array.isArray(value)) return value;
+    const yArray = new Y.Array<unknown>();
+    yArray.push(value);
+    return yArray;
+  }
+
+  private isPlainObject(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
   }
 
   /**

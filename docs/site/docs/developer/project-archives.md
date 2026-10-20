@@ -179,7 +179,10 @@ interface ArchiveWorldbuildingData {
 
 `appearance` is stored in the element's identity map, not in `data`, because schemas such as Character already use an `appearance` field group there.
 
-Field keys use dot notation for nested structures (e.g., `"appearance.height": "180cm"`).
+Grouped fields are nested objects, the way the editor stores them as nested
+Y.Maps (e.g., `"appearance": { "height": "180cm" }`). Import also accepts
+dot-notation keys (`"appearance.height": "180cm"`), which the built-in
+templates use, and merges both into the same group.
 
 Each worldbuilding element carries its own copy of its schema (the `schema` Yjs
 map on the element document). `schema` and `schemaBaseHash` round-trip that copy
@@ -300,8 +303,13 @@ The import process (`project-import.service.ts`):
 3. **Project Creation**: Create new project (offline or via API)
 4. **Data Import**: Import elements, documents, worldbuilding, schemas, etc.
 5. **Snapshot Import**: Restore version history (optional)
-6. **Media Import**: Extract and store media files
-7. **Cover Upload**: Upload cover to server (server mode)
+6. **Media Import**: Extract and store media files with the `mimeType` from
+   `media-index.json` (sniffed from the bytes, then the file extension, when it
+   is missing or `application/octet-stream`)
+7. **Cover**: The newest `cover-<timestamp>` file (or a legacy `cover`)
+   becomes the project cover the way choosing one in project settings does:
+   uploaded in server mode, saved locally otherwise, and recorded as the
+   project's `coverMediaId`
 
 ### Error Handling
 
