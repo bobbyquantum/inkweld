@@ -198,6 +198,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: [prepare, image]
+    # One release at a time moves the floating tags (beta, latest, X.Y, X),
+    # so two releases close together can't interleave their manifests.
+    concurrency:
+      group: release-manifest
+      cancel-in-progress: false
     permissions:
       packages: write
 

@@ -245,19 +245,23 @@ the commit types, and its GitHub release is marked as a pre-release.
 
 v1.0.0-beta.1 is released by hand with the curated notes in `CHANGELOG.md`:
 
-1. Merge the PR that sets the version to `1.0.0-beta.1`. Release Please runs
-   on that merge but finds no releasable commits (`bootstrap-sha` in
+1. **Squash-merge** the PR that sets the version to `1.0.0-beta.1` (a rebase
+   merge would put its individual commits on `main`, and a `fix:` among them
+   would open a beta.2 release PR). Release Please runs on that merge but
+   finds no releasable commits (`bootstrap-sha` in
    `release-please-config.json` points at the commit before it), so it does
    not open a release PR yet.
 2. If it was not filled in before merging, replace the `YYYY-MM-DD`
    placeholder in the `## [1.0.0-beta.1]` heading of `CHANGELOG.md` with the
    release date (a `docs:` PR, which Release Please ignores).
-3. Tag that commit on `main` and push the tag. This runs the release workflow
-   and publishes the Docker image:
+3. Tag the squash commit of that PR (not whatever `main` points at later)
+   and push the tag. This runs the release workflow and publishes the Docker
+   image:
 
    ```bash
    git fetch origin
-   git tag -a v1.0.0-beta.1 origin/main -m "v1.0.0-beta.1"
+   SHA=$(gh pr view <PR number> --json mergeCommit -q .mergeCommit.oid)
+   git tag -a v1.0.0-beta.1 "$SHA" -m "v1.0.0-beta.1"
    git push origin v1.0.0-beta.1
    ```
 
