@@ -395,6 +395,16 @@ project list and the project tree's saved state (`projectTreeStateKey`).
 records are appended under fresh keys, other records only fill free keys.
 Don't add a second copy step in front of it.
 
+**On the server**, the rename route (`PUT /projects/:u/:s` with a new `slug`)
+moves the project's stored files with `StorageService.moveProjectDirectory`:
+a directory rename on disk, and in R2 a copy of every `<user>/<slug>/` object
+followed by deleting the originals only after all copies succeed (a retry
+skips objects already copied). If the database update then fails, the files
+are moved back. Anything new stored per project must live under that prefix,
+or move with it. Server-side Yjs documents are keyed by `username:slug` (the
+LevelDB doc names, and the Durable Object's name on Workers) and are not
+moved yet.
+
 ### Bulk Sync Fast Path (Document Revision Manifest)
 
 "Sync All" used to open one WebSocket per prose document (3 at a time), so a

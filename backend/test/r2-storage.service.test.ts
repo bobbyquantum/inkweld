@@ -2,6 +2,7 @@ import { describe, it, expect } from 'bun:test';
 import type { R2Bucket } from '@cloudflare/workers-types';
 
 import { R2StorageService } from '../src/services/r2-storage.service';
+import { createObjectBucket } from './r2-bucket-mock';
 
 /**
  * Minimal in-memory R2 bucket that pages `list()` like the real one: at most
@@ -86,5 +87,106 @@ describe('R2StorageService listing', () => {
 
     expect([...store.keys()].filter((key) => key.startsWith('alice/novel/'))).toHaveLength(0);
     expect([...store.keys()].filter((key) => key.startsWith('alice/other/'))).toHaveLength(5);
+  });
+});
+
+describe('R2StorageService.moveProjectDirectory', () => {
+  it('moves media, covers and published files with their metadata', async () => {
+    const r2 = createObjectBucket();
+    r2.seed('alice/novel/media/img.png', 'png', 'image/png');
+    r2.seed('alice/novel/cover-1.jpg', 'jpg', 'image/jpeg');
+    r2.seed('alice/novel/published/file-1', 'epub', 'application/epub+zip');
+    r2.seed('alice/novel-two/media/keep.png', 'other project', 'image/png');
+    const service = new R2StorageService(r2.bucket);
+
+    await service.moveProjectDirectory('alice', 'novel', 'saga');
+
+    expect([...r2.store.keys()].sort()).toEqual([
+      'alice/novel-two/media/keep.png',
+      'alice/saga/cover-1.jpg',
+      'alice/saga/media/img.png',
+      'alice/saga/published/file-1',
+    ]);
+    expect(r2.text('alice/saga/media/img.png')).toBe('png');
+    expect(r2.store.get('alice/saga/cover-1.jpg')?.httpMetadata?.contentType).toBe('image/jpeg');
+    expect(r2.store.get('alice/saga/published/file-1')?.customMetadata).toEqual({
+      origin: 'upload',
+    });
+    expect(await service.readProjectFile('alice', 'saga', 'cover-1.jpg')).not.toBeNull();
+  });
+
+  it('moves every object when the listing spans several pages', async () => {
+    const r2 = createObjectBucket(100);
+    for (let i = 0; i < 250; i++) r2.seed(`alice/novel/media/${i}.png`, `img-${i}`);
+    const service = new R2StorageService(r2.bucket);
+
+    await service.moveProjectDirectory('alice', 'novel', 'saga');
+
+    expect(await service.listProjectFiles('alice', 'saga')).toHaveLength(250);
+    expect(await service.listProjectFiles('alice', 'novel')).toHaveLength(0);
+    expect(r2.text('alice/saga/media/249.png')).toBe('img-249');
+  });
+
+  it('keeps every original when a copy fails, and a retry finishes the move', async () => {
+    const r2 = createObjectBucket();
+    for (let i = 0; i < 10; i++) r2.seed(`alice/novel/media/${i}.png`, `img-${i}`);
+    const service = new R2StorageService(r2.bucket);
+
+    r2.options.failPutAfter = 4;
+    await expect(service.moveProjectDirectory('alice', 'novel', 'saga')).rejects.toThrow(
+      'Too many subrequests'
+    );
+    expect(await service.listProjectFiles('alice', 'novel')).toHaveLength(10);
+    const copiedFirstTime = r2.putCount();
+
+    r2.options.failPutAfter = Infinity;
+    await service.moveProjectDirectory('alice', 'novel', 'saga');
+
+    // The retry copied only what the first attempt had not.
+    expect(r2.putCount()).toBe(10);
+    expect(copiedFirstTime).toBeGreaterThan(0);
+    expect(await service.listProjectFiles('alice', 'saga')).toHaveLength(10);
+    expect(await service.listProjectFiles('alice', 'novel')).toHaveLength(0);
+  });
+
+  it('copies again an object that changed after an earlier partial copy', async () => {
+    const r2 = createObjectBucket();
+    r2.seed('alice/novel/media/a.png', 'new content');
+    r2.seed('alice/saga/media/a.png', 'stale copy');
+    const service = new R2StorageService(r2.bucket);
+
+    await service.moveProjectDirectory('alice', 'novel', 'saga');
+
+    expect(r2.text('alice/saga/media/a.png')).toBe('new content');
+  });
+
+  it('completes the move when removing the originals fails', async () => {
+    const r2 = createObjectBucket();
+    r2.seed('alice/novel/media/a.png', 'a');
+    r2.options.failDelete = true;
+    const service = new R2StorageService(r2.bucket);
+
+    await service.moveProjectDirectory('alice', 'novel', 'saga');
+
+    expect(r2.text('alice/saga/media/a.png')).toBe('a');
+  });
+
+  it('does nothing for an empty project or an unchanged slug', async () => {
+    const r2 = createObjectBucket();
+    r2.seed('alice/novel/media/a.png', 'a');
+    const service = new R2StorageService(r2.bucket);
+
+    await service.moveProjectDirectory('alice', 'empty', 'saga');
+    await service.moveProjectDirectory('alice', 'novel', 'novel');
+
+    expect([...r2.store.keys()]).toEqual(['alice/novel/media/a.png']);
+    expect(r2.putCount()).toBe(0);
+  });
+
+  it('rejects slugs that would escape the project namespace', async () => {
+    const service = new R2StorageService(createObjectBucket().bucket);
+    await expect(service.moveProjectDirectory('alice', 'novel', '../bob')).rejects.toThrow(
+      'path traversal'
+    );
   });
 });

@@ -120,6 +120,18 @@ describe('Storage Service', () => {
       expect(file2Exists).toBe(false);
     });
 
+    it('moves a project directory to a new slug', async () => {
+      await service.saveProjectFile(username, projectSlug, 'media/img.png', Buffer.from('img'));
+      await service.saveProjectFile(username, projectSlug, 'cover-1.jpg', Buffer.from('cover'));
+
+      await service.moveProjectDirectory(username, projectSlug, 'adapter-moved');
+
+      const moved = await service.readProjectFile(username, 'adapter-moved', 'media/img.png');
+      expect(Buffer.from(moved as Buffer).toString()).toBe('img');
+      expect(await service.projectFileExists(username, 'adapter-moved', 'cover-1.jpg')).toBe(true);
+      expect(await service.projectFileExists(username, projectSlug, 'cover-1.jpg')).toBe(false);
+    });
+
     it('should list project files', async () => {
       await service.saveProjectFile(username, projectSlug, 'doc1.txt', Buffer.from('content1'));
       await service.saveProjectFile(username, projectSlug, 'doc2.txt', Buffer.from('content2'));
@@ -249,6 +261,24 @@ describe('R2StorageAdapter', () => {
       mockR2.list = mock(() => Promise.resolve({ objects: [{ key: 'user/proj/f.txt' }] }));
       await storage.deleteProjectDirectory('user', 'proj');
       expect(mockR2.list).toHaveBeenCalledTimes(1);
+    });
+
+    it('moveProjectDirectory delegates to R2 list + get + put + delete', async () => {
+      mockR2.list = mock((opts: { prefix: string }) =>
+        Promise.resolve({
+          objects: opts.prefix === 'user/proj/' ? [{ key: 'user/proj/f.txt', size: 2 }] : [],
+        })
+      );
+      mockR2.get = mock(() =>
+        Promise.resolve({
+          arrayBuffer: () => Promise.resolve(new ArrayBuffer(2)),
+          httpMetadata: { contentType: 'text/plain' },
+        })
+      );
+      await storage.moveProjectDirectory('user', 'proj', 'renamed');
+      expect(mockR2.put).toHaveBeenCalledTimes(1);
+      expect(mockR2.put.mock.calls[0][0]).toBe('user/renamed/f.txt');
+      expect(mockR2.delete).toHaveBeenCalledWith(['user/proj/f.txt']);
     });
 
     it('saveUserAvatar delegates to R2 put', async () => {
