@@ -1,4 +1,3 @@
-import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, signal } from '@angular/core';
 import { forEachSequential } from '@inkweld/async';
 import { type Element, type Project, ProjectsService } from '@inkweld/index';
@@ -36,7 +35,9 @@ import { LocalProjectElementsService } from '../local/local-project-elements.ser
 import { LocalSnapshotService } from '../local/local-snapshot.service';
 import { LocalStorageService } from '../local/local-storage.service';
 import { ElementSyncProviderFactory } from '../sync/element-sync-provider.factory';
+import { coverTimestamp, resolveMediaType } from './archive-media';
 import { DocumentImportService } from './document-import.service';
+import { ProjectService } from './project.service';
 
 /**
  * Result of slug validation.
@@ -80,7 +81,6 @@ export interface ImportOptions {
 })
 export class ProjectImportService {
   private readonly logger = inject(LoggerService);
-  private readonly http = inject(HttpClient);
   private readonly syncFactory = inject(ElementSyncProviderFactory);
   private readonly localProject = inject(LocalProjectService);
   private readonly localElements = inject(LocalProjectElementsService);
@@ -88,6 +88,7 @@ export class ProjectImportService {
   private readonly localSnapshots = inject(LocalSnapshotService);
   private readonly projectsService = inject(ProjectsService);
   private readonly documentImport = inject(DocumentImportService);
+  private readonly projectService = inject(ProjectService);
 
   /** Current import progress */
   readonly progress = signal<ArchiveProgress>({
@@ -784,6 +785,11 @@ export class ProjectImportService {
 
   /**
    * Import media files from the archive.
+   *
+   * Each file is stored with the media type the archive recorded for it
+   * (sniffed from its bytes when the archive has none), since JSZip hands
+   * back untyped blobs. The project's cover is set the way choosing one in
+   * the project settings does, so the project card and project home show it.
    */
   private async importMedia(
     archive: ProjectArchive,
@@ -797,10 +803,9 @@ export class ProjectImportService {
     }
 
     const zip = await new JSZip().loadAsync(file);
-    const isOffline = this.syncFactory.isLocalMode();
+    const cover = this.findCurrentCover(archive.media);
 
-    // Sequential: progress is reported per file; blobs are large, and cover
-    // uploads must not overlap.
+    // Sequential: progress is reported per file, and blobs are large.
     await forEachSequential(archive.media, async (media, i) => {
       this.updateProgress(
         ImportPhase.ImportingMedia,
@@ -820,52 +825,69 @@ export class ProjectImportService {
         return;
       }
 
-      const blob = await mediaFile.async('blob');
+      const raw = await mediaFile.async('blob');
+      const blob = raw.slice(0, raw.size, await resolveMediaType(media, raw));
 
-      // Save to local IndexedDB storage
+      if (media === cover) {
+        await this.applyCover(username, slug, blob);
+        return;
+      }
+
       await this.localStorage.saveMedia(
         projectKey,
         media.mediaId,
         blob,
         media.filename
       );
-
-      // In server mode, upload the cover image
-      if (!isOffline && media.mediaId.startsWith('cover-')) {
-        try {
-          await this.uploadCoverImage(username, slug, blob);
-        } catch (err) {
-          this.logger.warn(
-            'ProjectImport',
-            `Failed to upload cover image for ${projectKey}`,
-            err
-          );
-          // Don't fail the entire import for cover upload failure
-        }
-      }
     });
   }
 
   /**
-   * Upload cover image to server using FormData.
-   * The server assigns a unique filename (cover-{timestamp}.jpg).
+   * The archive's cover image. Archives list every cover blob the project
+   * still held, so the newest (`cover-<timestamp>`) wins; `cover` is the id
+   * covers had before they were timestamped.
    */
-  private async uploadCoverImage(
+  private findCurrentCover(
+    media: ArchiveMediaFile[]
+  ): ArchiveMediaFile | undefined {
+    let current: ArchiveMediaFile | undefined;
+    let currentStamp = -1;
+    for (const entry of media) {
+      const stamp = coverTimestamp(entry.mediaId);
+      if (stamp !== null && stamp > currentStamp) {
+        current = entry;
+        currentStamp = stamp;
+      }
+    }
+    return current;
+  }
+
+  /**
+   * Make an image the project's cover: upload it (the server, or local
+   * storage, names it) and record it in the project's Yjs metadata.
+   */
+  private async applyCover(
     username: string,
     slug: string,
     blob: Blob
   ): Promise<void> {
-    const formData = new FormData();
-    formData.append('cover', blob, 'cover.jpg');
-
-    await firstValueFrom(
-      this.http.post(`/api/v1/projects/${username}/${slug}/cover`, formData)
-    );
-
-    this.logger.debug(
-      'ProjectImport',
-      `Uploaded cover image for ${username}/${slug}`
-    );
+    try {
+      const filename = await this.projectService.uploadProjectCover(
+        username,
+        slug,
+        blob
+      );
+      await this.localElements.saveProjectMeta(username, slug, {
+        coverMediaId: filename.replace(/\.[^.]+$/, ''),
+      });
+    } catch (err) {
+      // The project is usable without a cover; don't fail the import over it.
+      this.logger.warn(
+        'ProjectImport',
+        `Failed to set the cover for ${username}/${slug}`,
+        err
+      );
+    }
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
