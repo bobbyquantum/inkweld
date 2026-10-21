@@ -490,6 +490,19 @@ Passkeys use the W3C WebAuthn API for passwordless, discoverable-credential (use
 - The login dialog's `onPasskeyLogin()` calls `userService.setCurrentUser(user)` after a successful passkey login to sync the user cache.
 - The online e2e backend explicitly opts into `PASSWORD_LOGIN_ENABLED=true` and `EMAIL_RECOVERY_ENABLED=true` (in `playwright.online.config.ts`) because the existing test fixtures register/login users via the password API. Production images use the secure-by-default passwordless posture.
 - Magic-link recovery tokens are hashed at rest (single-use, 15-min TTL); there is no test endpoint to read the plaintext token, so end-to-end redemption from a real browser is covered by unit tests + backend integration tests rather than Playwright.
+- **Moving Browser projects to a server** (profile manager → "Move projects to a
+  server") signs in to a server that is not the active profile's, so it reads
+  that server's `/config/features` with `SetupService.fetchServerFeatures()`
+  and passes them to `RegistrationFormComponent`'s `serverFeatures` input —
+  `SystemConfigService` describes the Browser profile there. It offers passkey
+  sign-in/registration and password fields only as that server allows. The
+  sign-in switches to the target profile first (the API client and token store
+  follow the active profile); any failure, cancel or dialog close switches
+  back and removes the profiles the flow created. It calls
+  `PasskeyService.login({ reloadOnProfileChange: false })` so a login that
+  moves to its author's own profile doesn't reload mid-flow.
+  E2E: `e2e/online/move-to-passkey-server.spec.ts` (isolated backend with
+  `PASSWORD_LOGIN_ENABLED=false`).
 - **`ALLOW_INKWELD_APP_CLIENT`** (admin Settings, default off) lets the hosted app at `https://inkweld.app` sign in to a self-hosted server. `getInkweldAppClientOrigins()` (`services/inkweld-app-client.service.ts`, 5s cache) feeds the extra origin into CORS/CSRF in `bun-app.ts`, `worker-app.ts` and `node-app.ts`, into the WebAuthn expected origins, and into `GET /.well-known/webauthn` (WebAuthn related origins; 404 while off). Passkey ceremonies must use `rpFromRequest(c)`, not `rpFromContext(c)`, or a ceremony from inkweld.app fails origin verification. A new origin check must include these origins too.
 
 **Data flow:**

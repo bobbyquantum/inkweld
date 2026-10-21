@@ -275,6 +275,49 @@ describe('PasskeyService', () => {
       expect(authTokenService.moveToken).not.toHaveBeenCalled();
     });
 
+    describe('when the login belongs to another author', () => {
+      let assign: ReturnType<typeof vi.fn>;
+
+      beforeEach(() => {
+        passkeyApi.startPasskeyLogin.mockReturnValue(obs(fakeLoginOptions));
+        fakeStartAuthentication.mockResolvedValue(fakeAssertion);
+        passkeyApi.finishPasskeyLogin.mockReturnValue(
+          obs({ token: fakeToken, user: fakeUser })
+        );
+        storageContext.adoptServerLogin.mockReturnValue({
+          config: { id: 'server-1-testuser' },
+          forkedFrom: 'server-1',
+        } as ReturnType<StorageContextService['adoptServerLogin']>);
+        assign = vi.fn();
+        vi.stubGlobal('location', { ...globalThis.location, assign });
+      });
+
+      afterEach(() => {
+        vi.unstubAllGlobals();
+      });
+
+      it('moves the token to their profile and reloads into it', async () => {
+        await service.login();
+
+        expect(authTokenService.moveToken).toHaveBeenCalledWith(
+          'server-1',
+          'server-1-testuser'
+        );
+        expect(assign).toHaveBeenCalled();
+      });
+
+      it('stays on the page with reloadOnProfileChange: false', async () => {
+        const result = await service.login({ reloadOnProfileChange: false });
+
+        expect(result).toEqual(fakeUser);
+        expect(authTokenService.moveToken).toHaveBeenCalledWith(
+          'server-1',
+          'server-1-testuser'
+        );
+        expect(assign).not.toHaveBeenCalled();
+      });
+    });
+
     it('throws UNSUPPORTED when browser does not support passkeys', async () => {
       fakeBrowserSupportsWebAuthn.mockReturnValue(false);
       await expect(service.login()).rejects.toMatchObject({

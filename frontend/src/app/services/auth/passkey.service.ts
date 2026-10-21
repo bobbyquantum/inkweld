@@ -154,8 +154,15 @@ export class PasskeyService {
    *
    * On success the returned JWT is stored in `AuthTokenService` for the
    * active server context and the resolved user is returned to the caller.
+   *
+   * When the login belongs to another author than the active profile's, it
+   * moves to that author's own profile and the app reloads into it. Pass
+   * `reloadOnProfileChange: false` to stay on the page (the profile is still
+   * switched), e.g. when a flow carries on after signing in.
    */
-  async login(): Promise<User> {
+  async login({
+    reloadOnProfileChange = true,
+  }: { reloadOnProfileChange?: boolean } = {}): Promise<User> {
     if (!this.isSupported()) {
       throw new PasskeyError(
         'UNSUPPORTED',
@@ -204,7 +211,9 @@ export class PasskeyService {
         });
         if (bound.forkedFrom) {
           this.authTokenService.moveToken(bound.forkedFrom, bound.config.id);
-          globalThis.location.assign(appUrl('/'));
+          if (reloadOnProfileChange) {
+            globalThis.location.assign(appUrl('/'));
+          }
         }
       }
 
