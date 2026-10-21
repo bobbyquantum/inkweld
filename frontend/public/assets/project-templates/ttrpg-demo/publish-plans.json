@@ -844,7 +844,7 @@
   {
     "id": "566d020e-00dd-4eb4-a8fa-55f6d64971c4",
     "name": "GM Guide (Web)",
-    "format": "HTML",
+    "format": "HTML_SITE",
     "createdAt": "2026-10-16T10:42:48.937Z",
     "updatedAt": "2026-10-18T18:17:33.436Z",
     "metadata": {

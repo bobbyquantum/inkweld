@@ -129,6 +129,7 @@ export class PublishTypstEmitterService {
       ? `#line(length: 100%, stroke: ${Math.max(0.75, wb.entryBox.borderWidth * 1.5)}pt + ${typstColor(wb.entryTitle.color ?? '#333333')})`
       : '';
     const wbSectionTitleStyle = styles?.worldbuilding?.sectionTitle ?? {};
+    const wbSectionTitleFlow = `block(sticky: true, above: 28pt, below: 6pt)[#outline-entry(1, body)#text(${typstTextArgs(wbSectionTitleStyle)})[#body]]`;
 
     const out: string[] = [
       `#set page(
@@ -203,9 +204,14 @@ ${chPageBreak}  ${chBlockOpen}[
       // Its paragraphs (long-text lines) are not indented like body text.
       `#let wb-fields(..cells) = grid(columns: (1fr,) * 12, column-gutter: 8pt, row-gutter: 6pt, ..cells)`,
       `#let wb-cell(label, value) = block(breakable: false)[#block(below: 2pt)[#text(${typstTextArgs(wb.fieldLabel)})[#label]]#text(${typstTextArgs(wb.fieldValue)})[#set par(first-line-indent: 0pt, spacing: 0.7em);#value]]`,
+      // In two columns a section title that opens its own page (`float:
+      // true`, right after a page break) spans both columns as a float at
+      // the top of the page. Any other one stays in the flow: a parent-scope
+      // float is lifted to the top of the current page, above content that
+      // comes before it in the book.
       twoColumns
-        ? `#let wb-section-title(body) = place(top, float: true, scope: "parent", clearance: 12pt, block(width: 100%)[#text(${typstTextArgs(wbSectionTitleStyle)})[#body]])`
-        : `#let wb-section-title(body) = block(sticky: true, above: 28pt, below: 6pt)[#outline-entry(1, body)#text(${typstTextArgs(wbSectionTitleStyle)})[#body]]`,
+        ? `#let wb-section-title(body, float: false) = if float { place(top, float: true, scope: "parent", clearance: 12pt, block(width: 100%)[#outline-entry(1, body)#text(${typstTextArgs(wbSectionTitleStyle)})[#body]]) } else { ${wbSectionTitleFlow} }`
+        : `#let wb-section-title(body, float: false) = ${wbSectionTitleFlow}`,
     ];
 
     return out.join('\n\n') + '\n\n';

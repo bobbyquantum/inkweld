@@ -575,7 +575,7 @@ export class PdfGeneratorService {
     );
     if (item.title) {
       ctx.markup += `#pagebreak(weak: true)\n`;
-      ctx.markup += `#wb-section-title[${this.escapeTypst(item.title)}]\n\n`;
+      ctx.markup += `#wb-section-title(float: true)[${this.escapeTypst(item.title)}]\n\n`;
     }
     for (const entry of entries) {
       ctx.markup += this.renderWorldbuildingEntryTypst(entry, ctx.twoColumns);

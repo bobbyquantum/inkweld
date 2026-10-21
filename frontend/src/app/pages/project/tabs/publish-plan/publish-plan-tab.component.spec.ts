@@ -85,6 +85,7 @@ describe('PublishPlanTabComponent', () => {
     words: null,
     documents: 0,
     entries: 0,
+    images: 0,
     loading: false,
     unavailable: false,
     loadingDocuments: 0,
@@ -117,6 +118,7 @@ describe('PublishPlanTabComponent', () => {
         chapters: 0,
         documents: 0,
         entries: 0,
+        images: 0,
         words: 0,
         loading: 0,
         unavailable: 0,
@@ -1556,6 +1558,7 @@ describe('PublishPlanTabComponent', () => {
         chapters: 1,
         documents: 0,
         entries: 0,
+        images: 0,
         words: 0,
         loading: 0,
         unavailable: 0,
@@ -1587,6 +1590,7 @@ describe('PublishPlanTabComponent', () => {
         chapters: 2,
         documents: 2,
         entries: 1,
+        images: 0,
         words: 5500,
         loading: 0,
         unavailable: 0,
@@ -1611,12 +1615,36 @@ describe('PublishPlanTabComponent', () => {
       ).toBeTruthy();
     });
 
+    it('shows the page estimate for a plan of worldbuilding entries alone', () => {
+      mockStatsService.summary.mockReturnValue({
+        items: 1,
+        chapters: 0,
+        documents: 0,
+        entries: 3,
+        images: 0,
+        words: 0,
+        loading: 0,
+        unavailable: 0,
+        skippedNotes: 0,
+        estimatedPages: 6,
+        readingMinutes: 0,
+      });
+      component.addElement('elem-1');
+      fixture.detectChanges();
+      const el = fixture.nativeElement as HTMLElement;
+      expect(
+        el.querySelector('[data-testid="plan-stat-pages"]')?.textContent
+      ).toContain('~6 pages');
+      expect(el.querySelector('[data-testid="plan-stat-reading"]')).toBeFalsy();
+    });
+
     it('should show an unsynced warning chip when documents are unavailable', () => {
       mockStatsService.summary.mockReturnValue({
         items: 1,
         chapters: 1,
         documents: 1,
         entries: 0,
+        images: 0,
         words: 0,
         loading: 0,
         unavailable: 1,
@@ -1819,6 +1847,7 @@ describe('PublishPlanTabComponent', () => {
         chapters: 1,
         documents: 1,
         entries: 1,
+        images: 0,
         words: 10,
         loading: 0,
         unavailable: 0,

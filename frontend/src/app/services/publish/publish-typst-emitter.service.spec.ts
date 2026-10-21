@@ -188,13 +188,38 @@ describe('PublishTypstEmitterService', () => {
       ).not.toContain('place(');
     });
 
-    it('spans worldbuilding section titles across both columns', () => {
+    it('spans a page-opening worldbuilding section title across both columns', () => {
       const out = emit(s => {
         s.page.columns = 2;
       });
       expect(out).toMatch(
-        /#let wb-section-title\(body\) = place\(top, float: true, scope: "parent"/
+        /#let wb-section-title\(body, float: false\) = if float \{ place\(top, float: true, scope: "parent"/
       );
+    });
+
+    it('keeps any other worldbuilding section title in the flow', () => {
+      // A parent-scope float is lifted to the top of the current page, so a
+      // folder title after a chapter's opening would land above the
+      // chapter's text. Only `float: true` (after a page break) floats.
+      const out = emit(s => {
+        s.page.columns = 2;
+      });
+      const line = out
+        .split('\n')
+        .find(l => l.startsWith('#let wb-section-title'))!;
+      const flow = line.slice(line.indexOf('} else {'));
+      expect(flow).toMatch(/^\} else \{ block\(sticky: true/);
+      expect(flow).not.toContain('place(');
+    });
+
+    it('accepts the float argument in one column too, and never floats', () => {
+      const line = emit()
+        .split('\n')
+        .find(l => l.startsWith('#let wb-section-title'))!;
+      expect(line).toMatch(
+        /^#let wb-section-title\(body, float: false\) = block\(sticky: true/
+      );
+      expect(line).not.toContain('place(top');
     });
   });
 

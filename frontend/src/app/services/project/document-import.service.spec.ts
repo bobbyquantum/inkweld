@@ -1,6 +1,7 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import * as Y from 'yjs';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { LoggerService } from '../core/logger.service';
@@ -226,6 +227,51 @@ describe('DocumentImportService', () => {
         'DocumentImport',
         expect.stringContaining('wb-elem-dot')
       );
+    });
+
+    it('keeps a field group when a flat identity key shares its name', async () => {
+      // Exports write the identity description as a flat `description` next
+      // to a schema's `description.*` group; the flat value must not replace
+      // the group (which emptied the Description tab).
+      // Keep the written document alive past the service's destroy().
+      const destroyed: Y.Doc[] = [];
+      const destroy = vi
+        .spyOn(Y.Doc.prototype, 'destroy')
+        .mockImplementation(function (this: Y.Doc) {
+          destroyed.push(this);
+        });
+      try {
+        await service.writeWorldbuildingData(
+          {
+            elementId: 'wb-elem-group',
+            schemaId: 'region-v1',
+            data: {
+              description: 'The fertile lowlands.',
+              'description.overview': 'The breadbasket of the realm.',
+              'description.features': ['The Moonveil River'],
+              name: 'The Silver Vales',
+            },
+          },
+          'testuser',
+          'project-slug'
+        );
+      } finally {
+        destroy.mockRestore();
+      }
+
+      const [written] = destroyed;
+      const data = written.getMap<unknown>('worldbuilding');
+      const group = data.get('description');
+      expect(group).toBeInstanceOf(Y.Map);
+      expect((group as Y.Map<unknown>).toJSON()).toEqual({
+        overview: 'The breadbasket of the realm.',
+        features: ['The Moonveil River'],
+      });
+      expect(data.get('name')).toBe('The Silver Vales');
+      expect(written.getMap<unknown>('identity').get('description')).toBe(
+        'The fertile lowlands.'
+      );
+      written.destroy();
     });
   });
 });

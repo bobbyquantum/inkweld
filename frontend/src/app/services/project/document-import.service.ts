@@ -182,6 +182,13 @@ export class DocumentImportService {
     key: string,
     value: unknown
   ): void {
+    if (nestedMaps.has(key)) {
+      // A flat value under a field group's name (an identity description
+      // exported next to a schema's `description.*` group) would replace the
+      // group and empty its tab. The group wins; identity fields still reach
+      // the identity map.
+      return;
+    }
     if (key.includes('.')) {
       const [parentKey, childKey] = key.split('.');
       const nestedMap = nestedMaps.get(parentKey);

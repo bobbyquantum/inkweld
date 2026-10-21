@@ -15,6 +15,8 @@ import { DocumentService } from '../project/document.service';
 import { ProjectStateService } from '../project/project-state.service';
 import {
   countWords,
+  PAGES_PER_ENTRY,
+  PAGES_PER_IMAGE,
   PublishPlanStatsService,
   WORDS_PER_MINUTE,
   WORDS_PER_PAGE,
@@ -148,6 +150,7 @@ describe('PublishPlanStatsService', () => {
       expect(service.wordCounts().get('doc-c')).toEqual({
         status: 'ready',
         words: 4,
+        images: 0,
       });
       expect(hasLocalContent).toHaveBeenCalledWith('user:proj:doc-c');
       expect(getDocumentContent).toHaveBeenCalledWith('user:proj:doc-c');
@@ -158,8 +161,16 @@ describe('PublishPlanStatsService', () => {
       await flush();
 
       const counts = service.wordCounts();
-      expect(counts.get('doc-a')).toEqual({ status: 'ready', words: 3 });
-      expect(counts.get('doc-b')).toEqual({ status: 'ready', words: 2 });
+      expect(counts.get('doc-a')).toEqual({
+        status: 'ready',
+        words: 3,
+        images: 0,
+      });
+      expect(counts.get('doc-b')).toEqual({
+        status: 'ready',
+        words: 2,
+        images: 0,
+      });
       expect(counts.has('wb')).toBe(false);
       expect(counts.has('folder')).toBe(false);
     });
@@ -203,6 +214,7 @@ describe('PublishPlanStatsService', () => {
       expect(service.wordCounts().get('doc-c')).toEqual({
         status: 'ready',
         words: 4,
+        images: 0,
       });
     });
 
@@ -228,6 +240,7 @@ describe('PublishPlanStatsService', () => {
       expect(service.wordCounts().get('doc-c')).toEqual({
         status: 'ready',
         words: 0,
+        images: 0,
       });
       expect(syncDocumentToServer).not.toHaveBeenCalled();
       expect(getDocumentContent).not.toHaveBeenCalled();
@@ -253,12 +266,14 @@ describe('PublishPlanStatsService', () => {
       expect(service.wordCounts().get('doc-a')).toEqual({
         status: 'ready',
         words: 3,
+        images: 0,
       });
 
       await flush();
       expect(service.wordCounts().get('doc-a')).toEqual({
         status: 'ready',
         words: 5,
+        images: 0,
       });
       contents['user:proj:doc-a'] = [paragraph('one two three')];
     });
@@ -279,6 +294,7 @@ describe('PublishPlanStatsService', () => {
       expect(service.wordCounts().get('doc-c')).toEqual({
         status: 'ready',
         words: 4,
+        images: 0,
       });
 
       releaseFirst();
@@ -286,6 +302,7 @@ describe('PublishPlanStatsService', () => {
       expect(service.wordCounts().get('doc-c')).toEqual({
         status: 'ready',
         words: 4,
+        images: 0,
       });
     });
 
@@ -298,6 +315,7 @@ describe('PublishPlanStatsService', () => {
       expect(service.wordCounts().get('doc-c')).toEqual({
         status: 'ready',
         words: 4,
+        images: 0,
       });
     });
   });
@@ -347,6 +365,7 @@ describe('PublishPlanStatsService', () => {
         words: 4,
         documents: 1,
         entries: 0,
+        images: 0,
         loading: false,
         unavailable: false,
         loadingDocuments: 0,
@@ -373,6 +392,7 @@ describe('PublishPlanStatsService', () => {
         words: 5,
         documents: 2,
         entries: 1,
+        images: 0,
         loading: false,
         unavailable: false,
         loadingDocuments: 0,
@@ -451,6 +471,7 @@ describe('PublishPlanStatsService', () => {
         words: null,
         documents: 0,
         entries: 0,
+        images: 0,
         loading: false,
         unavailable: false,
         loadingDocuments: 0,
@@ -522,8 +543,45 @@ describe('PublishPlanStatsService', () => {
       expect(summary.words).toBe(9);
       expect(summary.loading).toBe(0);
       expect(summary.unavailable).toBe(0);
-      expect(summary.estimatedPages).toBe(Math.ceil(9 / WORDS_PER_PAGE));
+      expect(summary.images).toBe(0);
+      // Two worldbuilding entries take far more page than their words.
+      expect(summary.estimatedPages).toBe(
+        Math.ceil(9 / WORDS_PER_PAGE + 2 * PAGES_PER_ENTRY)
+      );
       expect(summary.readingMinutes).toBe(Math.ceil(9 / WORDS_PER_MINUTE));
+    });
+
+    it('allows page space for the images in counted documents', async () => {
+      const image = { type: 'image', attrs: { src: 'media:map' } };
+      getDocumentContent.mockImplementation(id =>
+        Promise.resolve(
+          id === 'user:proj:doc-c'
+            ? [
+                paragraph('six seven'),
+                image,
+                { type: 'paragraph', content: [image] },
+                { type: 'blockquote', content: [{ ...image }] },
+              ]
+            : contents[id]
+        )
+      );
+      plan.items = [elementItem('doc-c')];
+      service.ensureCounted(['doc-c']);
+      await flush();
+
+      expect(service.itemStats(plan.items[0], elements).images).toBe(3);
+      const summary = service.summary(plan, elements);
+      expect(summary.images).toBe(3);
+      expect(summary.estimatedPages).toBe(
+        Math.ceil(2 / WORDS_PER_PAGE + 3 * PAGES_PER_IMAGE)
+      );
+    });
+
+    it('estimates pages for a plan of worldbuilding entries alone', () => {
+      plan.items = [elementItem('wb', { isChapter: false })];
+      const summary = service.summary(plan, elements);
+      expect(summary.words).toBe(0);
+      expect(summary.estimatedPages).toBe(PAGES_PER_ENTRY);
     });
 
     it('counts pending and unavailable rows', async () => {

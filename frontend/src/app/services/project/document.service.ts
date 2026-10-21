@@ -41,6 +41,7 @@ import {
   rateLimitBackoff,
   withJitter,
 } from '@services/sync/access-denial';
+import { countDocumentWords } from '@utils/word-count';
 import { yjsStateDigest } from '@utils/yjs-state-digest';
 import { applyXmlToFragment } from '@utils/yjs-xml-serializer';
 import { keymap } from 'prosemirror-keymap';
@@ -1158,8 +1159,7 @@ export class DocumentService {
           if (!doc || typeof doc.textBetween !== 'function') return;
           const prevDoc = prevState.doc;
           if (prevDoc && doc !== prevDoc) {
-            const text = doc.textBetween(0, doc.content.size, ' ');
-            const count = text.trim().split(/\s+/).filter(Boolean).length;
+            const count = countDocumentWords(doc);
             this.logger.debug(
               'DocumentService',
               `word count updated: ${count} for ${documentId}`
@@ -1247,12 +1247,7 @@ export class DocumentService {
     // Initial word count update
     try {
       if (view.state.doc && typeof view.state.doc.textBetween === 'function') {
-        const text = view.state.doc.textBetween(
-          0,
-          view.state.doc.content.size,
-          ' '
-        );
-        const initialCount = text.trim().split(/\s+/).filter(Boolean).length;
+        const initialCount = countDocumentWords(view.state.doc);
         this.logger.debug(
           'DocumentService',
           `initial word count: ${initialCount} for ${documentId}`
