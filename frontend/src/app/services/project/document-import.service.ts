@@ -179,7 +179,11 @@ export class DocumentImportService {
       for (const [childKey, childValue] of Object.entries(value)) {
         group.set(childKey, this.toYjsFieldValue(childValue));
       }
-    } else {
+    } else if (!(dataMap.get(key) instanceof Y.Map)) {
+      // A flat value under a field group's name (an identity description
+      // exported next to a schema's `description.*` group) must not replace
+      // the group and empty its tab. The group wins, whichever comes first;
+      // identity fields still reach the identity map.
       dataMap.set(key, this.toYjsFieldValue(value));
     }
   }

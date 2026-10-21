@@ -25,7 +25,10 @@ import starterElements from '../../../../public/assets/project-templates/ttrpg-e
 import starterPlans from '../../../../public/assets/project-templates/ttrpg-empty/publish-plans.json';
 import starterRelationshipTypes from '../../../../public/assets/project-templates/ttrpg-empty/relationship-types.json';
 import starterSchemas from '../../../../public/assets/project-templates/ttrpg-empty/schemas.json';
+import { worldbuildingDataProblems } from '../../../testing/worldbuilding-template-checks';
 import { extendedSchema } from '../../components/element-ref/extended-schema';
+import type { ArchiveWorldbuildingData } from '../../models/project-archive';
+import type { ElementTypeSchema } from '../../models/schema-types';
 
 const TTRPG_SCHEMAS = [
   'ttrpg-player-character-v1',
@@ -103,6 +106,14 @@ describe('Tabletop RPG templates', () => {
       }
     });
 
+    it('publishes the web GM guide as a multi-page website', () => {
+      for (const plans of [starterPlans, demoPlans]) {
+        expect(plans.find(p => p.name === 'GM Guide (Web)')?.format).toBe(
+          'HTML_SITE'
+        );
+      }
+    });
+
     it('names no real person as the author', () => {
       for (const plan of starterPlans) {
         expect(plan.metadata.author).toBe('Game Master');
@@ -133,6 +144,15 @@ describe('Tabletop RPG templates', () => {
       for (const entry of demoWorldbuilding) {
         expect(ids).toContain(entry.elementId);
       }
+    });
+
+    it('only stores worldbuilding data under fields its schema shows', () => {
+      expect(
+        worldbuildingDataProblems(
+          demoWorldbuilding as unknown as ArchiveWorldbuildingData[],
+          demoSchemas as unknown as ElementTypeSchema[]
+        )
+      ).toEqual([]);
     });
 
     it('writes documents the editor can load', () => {
