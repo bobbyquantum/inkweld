@@ -845,7 +845,9 @@ export class SettingsTabComponent implements OnDestroy {
    */
   async renameProject(): Promise<void> {
     const project = this.projectState.project();
-    if (!project || !this.isValidSlug()) return;
+    if (!project || !this.isValidSlug() || this.currentMode !== 'server') {
+      return;
+    }
 
     const newSlug = this.renameModel().newProjectSlug.trim();
     const oldSlug = project.slug;

@@ -89,8 +89,8 @@ Inkweld uses these terms consistently, in the app and in this guide:
 
 - **Profile**: one author identity in one place. You can have several.
 - **Browser profile**: projects stored only in this browser. No account needed.
-- **Cloud Sync profile**: projects stored in this browser and mirrored to your own Dropbox or Nextcloud.
-- **Server profile**: projects stored on an **Inkweld Server**, with collaboration and sharing (Realtime Sync).
+- **Cloud Sync profile**: projects stored in this browser and mirrored to your own Dropbox, Google Drive or Nextcloud.
+- **Server profile**: projects stored on an **Inkweld Server**, with real-time collaboration and sharing.
 - **Offline**: a temporary loss of connection to the server. Your changes are kept and sync later.
 
 See [Choosing Your Mode](./getting-started/client-mode) for how to pick one.

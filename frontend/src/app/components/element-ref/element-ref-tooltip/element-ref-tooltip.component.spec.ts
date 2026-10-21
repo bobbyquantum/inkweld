@@ -31,8 +31,10 @@ describe('ElementRefTooltipComponent', () => {
     saveMedia: ReturnType<typeof vi.fn>;
   };
   let mockHttp: { get: ReturnType<typeof vi.fn> };
+  let serverMode = true;
 
   beforeEach(async () => {
+    serverMode = true;
     mockLocalStorage = {
       getMediaUrl: vi.fn().mockResolvedValue(null),
       saveMedia: vi.fn().mockResolvedValue(undefined),
@@ -63,7 +65,10 @@ describe('ElementRefTooltipComponent', () => {
         },
         {
           provide: StorageContextService,
-          useValue: { getApiBaseUrl: () => 'https://api' },
+          useValue: {
+            getApiBaseUrl: () => 'https://api',
+            isServerMode: () => serverMode,
+          },
         },
         {
           provide: HttpClient,
@@ -868,6 +873,21 @@ describe('ElementRefTooltipComponent', () => {
 
       expect(component.resolvedImageUrl()).toBe('blob:fresh');
       expect(mockLocalStorage.saveMedia).toHaveBeenCalled();
+    });
+
+    it('should never download media outside a server profile', async () => {
+      serverMode = false;
+      const generation = ++component['previewGeneration'];
+
+      await component['resolveImageUrl'](
+        'media://img-2.png',
+        'u',
+        'p',
+        generation
+      );
+
+      expect(component.resolvedImageUrl()).toBeNull();
+      expect(mockHttp.get).not.toHaveBeenCalled();
     });
 
     it('should clear the image when a media:// download fails', async () => {

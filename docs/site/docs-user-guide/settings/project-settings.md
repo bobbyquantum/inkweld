@@ -138,6 +138,8 @@ Changing the project URL has important consequences:
 
 ### To Rename Your Project
 
+Renaming is available on an **Inkweld Server** profile, where the server moves the project to its new URL. Browser and Cloud Sync profiles don't show the rename card; to change a project's URL there, export it and import it under the new name.
+
 1. Open your project and click **Project Settings** at the bottom of the sidebar
 2. Open the **Danger Zone** section
 3. Find the **Rename Project URL** card and click the **Rename Project** button

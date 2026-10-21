@@ -29,7 +29,10 @@ describe('AppearanceService', () => {
     dispatchEvent: vi.fn(),
   });
 
+  let serverMode = true;
+
   beforeEach(() => {
+    serverMode = true;
     themeSubject = new BehaviorSubject<'light-theme' | 'dark-theme' | 'system'>(
       'light-theme'
     );
@@ -53,7 +56,10 @@ describe('AppearanceService', () => {
         { provide: LocalStorageService, useValue: localStorageService },
         {
           provide: StorageContextService,
-          useValue: { getApiBaseUrl: () => 'http://test.local' },
+          useValue: {
+            getApiBaseUrl: () => 'http://test.local',
+            isServerMode: () => serverMode,
+          },
         },
       ],
     });
@@ -348,6 +354,17 @@ describe('AppearanceService', () => {
         expect.any(Blob),
         'bg.png'
       );
+      httpMock.verify();
+    });
+
+    it('should never contact the server outside a server profile', async () => {
+      serverMode = false;
+      vi.mocked(localStorageService.getMediaUrl).mockResolvedValue(null);
+
+      await expect(
+        service.resolveImageReference('media://bg.png', 'user', 'slug')
+      ).resolves.toBeNull();
+      httpMock.expectNone(() => true);
       httpMock.verify();
     });
 

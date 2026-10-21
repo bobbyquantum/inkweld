@@ -305,7 +305,7 @@ export class SetupService {
     return config?.type ?? null;
   }
 
-  /** True when connected to an Inkweld server (Realtime Sync mode) */
+  /** True when connected to an Inkweld Server */
   isServerMode(): boolean {
     return this.getMode() === 'server';
   }

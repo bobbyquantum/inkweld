@@ -61,7 +61,7 @@ Then open `http://localhost:8333` in your browser.
 
 | | Browser | Cloud Sync | Realtime Sync |
 |---|:---:|:---:|:---:|
-| Where your writing lives | This browser only | Your own Dropbox or Nextcloud | An Inkweld server |
+| Where your writing lives | This browser only | Your own Dropbox, Google Drive or Nextcloud | An Inkweld server |
 | Account needed | None | Your cloud provider account | Inkweld account on that server |
 | Works offline | ✅ | ✅ (syncs when back online) | ✅ (syncs when back online) |
 | Use on several devices | ⬜ | ✅ | ✅ |
@@ -295,7 +295,7 @@ Inkweld has two parts that can run together or separately, plus an optional Clou
 
 **The server** enables real-time collaboration and sharing. Run it on your own hardware or a VPS. Without it, you can still use Inkweld locally — documents save to your browser.
 
-**Cloud Sync** mirrors your projects to your own Dropbox or Nextcloud straight from the browser, so you can move between devices without running a server.
+**Cloud Sync** mirrors your projects to your own Dropbox, Google Drive or Nextcloud straight from the browser, so you can move between devices without running a server.
 
 ---
 
