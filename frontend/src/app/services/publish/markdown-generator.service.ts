@@ -33,6 +33,8 @@ import {
   LEADING_MARKDOWN_HEADING_RE,
 } from './chapter-heading';
 import { flattenConversation } from './conversation-publish';
+import { mediaIdFromSrc } from './html-generator.service';
+import { shrinkImageToJpeg } from './publish-image-shrink';
 import { countTextWords } from './publish-word-count';
 import {
   type RenderedWorldbuildingEntry,
@@ -63,6 +65,12 @@ export interface MarkdownResult {
   error?: string;
 }
 
+/**
+ * Images larger than this are scaled down and re-encoded before they are
+ * inlined, as in the single-file HTML export.
+ */
+const MARKDOWN_IMAGE_SHRINK_THRESHOLD_BYTES = 512 * 1024;
+
 type ProseMirrorNode =
   string | { [key: string]: unknown } | ProseMirrorNode[] | null | undefined;
 
@@ -76,6 +84,10 @@ interface ProseMirrorMark {
  *
  * Generates a single Markdown file with all content.
  * Useful for importing into other tools or version control.
+ *
+ * The output is one self-contained file, so project images (document images
+ * and worldbuilding identity images alike) are inlined as data URLs: a
+ * `media:` reference only resolves inside Inkweld.
  */
 @Injectable({
   providedIn: 'root',
@@ -99,6 +111,10 @@ export class MarkdownGeneratorService {
 
   private readonly completeSubject = new Subject<MarkdownResult>();
 
+  /** Data URL per media id for the current run (null: could not be loaded). */
+  private readonly resolvedImages = new Map<string, string | null>();
+  private pendingWarnings: string[] = [];
+
   readonly progress$: Observable<MarkdownProgress> =
     this.progressSubject.asObservable();
   readonly complete$: Observable<MarkdownResult> =
@@ -107,6 +123,8 @@ export class MarkdownGeneratorService {
   async generateMarkdown(plan: PublishPlan): Promise<MarkdownResult> {
     const startTime = Date.now();
     const result: MarkdownResult = { success: false, warnings: [] };
+    this.resolvedImages.clear();
+    this.pendingWarnings = [];
 
     try {
       this.updateProgress({
@@ -118,6 +136,7 @@ export class MarkdownGeneratorService {
       });
 
       const mdContent = await this.buildMarkdown(plan, result);
+      result.warnings.push(...this.pendingWarnings);
       const blob = new Blob([mdContent], {
         type: 'text/markdown;charset=utf-8',
       });
@@ -427,17 +446,68 @@ export class MarkdownGeneratorService {
     ref: string | undefined
   ): Promise<string | undefined> {
     if (!ref?.startsWith('media://')) return ref;
+    return (await this.resolveMediaId(mediaIdFromReference(ref))) ?? undefined;
+  }
+
+  /**
+   * Load a project media file as a data URL, once per run. A large image is
+   * scaled down first; one that can't be loaded resolves to null and adds a
+   * warning.
+   */
+  private async resolveMediaId(mediaId: string): Promise<string | null> {
+    if (this.resolvedImages.has(mediaId)) {
+      return this.resolvedImages.get(mediaId) ?? null;
+    }
+    let href: string | null = null;
     const project = this.projectStateService.project();
-    if (!project) return undefined;
     try {
-      const blob = await this.localStorage.getMedia(
-        `${project.username}/${project.slug}`,
-        mediaIdFromReference(ref)
-      );
-      return blob ? await blobToDataUrl(blob) : undefined;
+      const blob = project
+        ? await this.localStorage.getMedia(
+            `${project.username}/${project.slug}`,
+            mediaId
+          )
+        : null;
+      if (blob) href = await blobToDataUrl(await this.shrinkForEmbedding(blob));
     } catch (error) {
-      this.logger.warn('MarkdownGenerator', `Failed to load ${ref}`, error);
-      return undefined;
+      this.logger.warn('MarkdownGenerator', `Failed to load ${mediaId}`, error);
+    }
+    if (!href)
+      this.pendingWarnings.push(`Image ${mediaId} could not be loaded`);
+    this.resolvedImages.set(mediaId, href);
+    return href;
+  }
+
+  private async shrinkForEmbedding(blob: Blob): Promise<Blob> {
+    if (blob.size <= MARKDOWN_IMAGE_SHRINK_THRESHOLD_BYTES) return blob;
+    return (await shrinkImageToJpeg(blob))?.blob ?? blob;
+  }
+
+  /**
+   * Load every project image a document uses ahead of the synchronous
+   * conversion, so `renderImageXml` can inline them.
+   */
+  private async resolveDocumentImages(content: unknown): Promise<void> {
+    const ids = new Set<string>();
+    this.collectMediaIds(content as ProseMirrorNode, ids);
+    // Sequential: images are loaded one at a time into the per-run cache.
+    await forEachSequential(ids, async id => {
+      await this.resolveMediaId(id);
+    });
+  }
+
+  private collectMediaIds(node: ProseMirrorNode, out: Set<string>): void {
+    if (!node || typeof node !== 'object') return;
+    if (Array.isArray(node)) {
+      for (const child of node) this.collectMediaIds(child, out);
+      return;
+    }
+    if (this.getNodeName(node) === 'image') {
+      const attrs = node['attrs'] as Record<string, unknown> | undefined;
+      const id = mediaIdFromSrc(attrs?.['src']);
+      if (id) out.add(id);
+    }
+    for (const child of this.getChildren(node)) {
+      this.collectMediaIds(child, out);
     }
   }
 
@@ -499,6 +569,7 @@ export class MarkdownGeneratorService {
         id => this.projectStateService.elements().find(e => e.id === id)?.name
       );
       if (!content) return '*Document is empty*';
+      await this.resolveDocumentImages(content);
       return this.prosemirrorToMarkdown(content);
     } catch {
       return '*Content unavailable*';
@@ -696,12 +767,22 @@ export class MarkdownGeneratorService {
   private renderImageXml(node: ProseMirrorNode): string {
     const attrs = (node as Record<string, unknown>)['attrs'] as
       Record<string, unknown> | undefined;
-    const src = this.safeStringAttr(attrs, 'src');
     const alt = this.safeStringAttr(attrs, 'alt');
     const title = this.safeStringAttr(attrs, 'title');
+    const src = this.imageSrc(this.safeStringAttr(attrs, 'src'));
     if (!src) return '';
     const titleAttr = title ? ` title="${this.escapeXmlAttr(title)}"` : '';
     return `<image src="${this.escapeXmlAttr(src)}" alt="${this.escapeXmlAttr(alt)}"${titleAttr}/>`;
+  }
+
+  /**
+   * The source to write for an image: a project image becomes its data URL
+   * (or nothing when it couldn't be loaded); any other source is kept.
+   */
+  private imageSrc(src: string): string {
+    const mediaId = mediaIdFromSrc(src);
+    if (!mediaId) return src;
+    return this.resolvedImages.get(mediaId) ?? '';
   }
 
   private escapeXmlText(text: string): string {

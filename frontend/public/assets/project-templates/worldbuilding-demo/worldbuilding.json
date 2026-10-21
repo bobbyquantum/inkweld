@@ -1150,7 +1150,7 @@
         "In Ironhold, the festival becomes the Forge Moon — a night of showing masterworks"
       ],
       "history.notes": "Silverhollow's festival is the largest; its lanterns reflect in the Silver Fountain.",
-      "significanceSummary": "Honours Lunara and the memory of the Accord; marks the harvest's end."
+      "significance": "Honours Lunara and the memory of the Accord; marks the harvest's end."
     },
     "appearance": {
       "menu": {
@@ -1651,7 +1651,7 @@
         "The Shadow Moon (dark, only visible in the north)"
       ],
       "astronomy.notes": "Some scholars believe the Shadow Moon is not a moon at all, but a wound in the sky from the Sundering.",
-      "inhabitantsOverview": "Humans, dwarves, elves, Thornfolk, and countless other peoples"
+      "inhabitants": "Humans, dwarves, elves, Thornfolk, and countless other peoples"
     },
     "appearance": {
       "menu": {

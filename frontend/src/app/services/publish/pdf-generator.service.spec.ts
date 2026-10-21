@@ -1070,6 +1070,123 @@ describe('PdfGeneratorService', () => {
     });
   });
 
+  describe('worldbuilding section titles', () => {
+    async function twoColumnMarkup(plan: PublishPlan): Promise<string> {
+      const styles = createDefaultPublishStyles();
+      styles.page.columns = 2;
+      const result = await service.generatePdf({ ...plan, styles });
+      expect(result.success).toBe(true);
+      const prefix = 'Compiling Typst markup:\n';
+      const logged = (loggerMock.debug.mock.calls as unknown[][])
+        .map(args => args[1])
+        .filter(
+          (msg): msg is string =>
+            typeof msg === 'string' && msg.startsWith(prefix)
+        )
+        .at(-1);
+      expect(logged).toBeDefined();
+      return logged!.slice(prefix.length);
+    }
+
+    function mockEntries(title: string): void {
+      const renderer = (
+        service as unknown as {
+          worldbuildingRenderer: WorldbuildingPublishRendererService;
+        }
+      ).worldbuildingRenderer;
+      vi.spyOn(renderer, 'renderItem').mockResolvedValue([
+        { elementId: 'pc-1', title, layout: 'card', tabs: [] },
+      ]);
+    }
+
+    it('keeps a folder title after a chapter in the flow, in source order', async () => {
+      const chapter: Element = {
+        id: 'doc-1',
+        name: 'Chapter 1 - Saltmere',
+        type: ElementType.Item,
+        parentId: null,
+        order: 0,
+        level: 0,
+        expandable: false,
+        version: 1,
+        metadata: {},
+      };
+      const folder: Element = {
+        id: 'party',
+        name: 'Party',
+        type: ElementType.Folder,
+        parentId: null,
+        order: 1,
+        level: 0,
+        expandable: true,
+        version: 1,
+        metadata: {},
+      };
+      const pc: Element = {
+        id: 'pc-1',
+        name: 'Pip Cobble',
+        type: ElementType.Worldbuilding,
+        parentId: 'party',
+        order: 0,
+        level: 1,
+        expandable: false,
+        version: 1,
+        metadata: {},
+      };
+      projectStateMock.elements = signal([chapter, folder, pc]);
+      documentServiceMock.getDocumentContent.mockResolvedValue([
+        {
+          type: 'paragraph',
+          content: [{ type: 'text', text: 'The tide was out.' }],
+        },
+      ]);
+      mockEntries('Pip Cobble');
+
+      const markup = await twoColumnMarkup({
+        ...mockPlan,
+        items: [
+          ...mockPlan.items,
+          {
+            id: 'item-2',
+            type: PublishPlanItemType.Element,
+            elementId: 'party',
+            includeChildren: true,
+            isChapter: false,
+          },
+        ],
+      });
+
+      const body = markup.indexOf('The tide was out.');
+      const title = markup.indexOf('#wb-section-title[Party]');
+      const entry = markup.indexOf('[Pip Cobble]');
+      expect(body).toBeGreaterThan(-1);
+      expect(title).toBeGreaterThan(body);
+      expect(entry).toBeGreaterThan(title);
+      expect(markup).not.toContain('#wb-section-title(float: true)[Party]');
+    });
+
+    it('floats a titled worldbuilding section that opens its own page', async () => {
+      mockEntries('Wren');
+
+      const markup = await twoColumnMarkup({
+        ...mockPlan,
+        items: [
+          {
+            id: 'wb-1',
+            type: PublishPlanItemType.Worldbuilding,
+            title: 'NPCs',
+            categories: [],
+            format: 'inline',
+          },
+        ],
+      });
+
+      expect(markup).toContain(
+        '#pagebreak(weak: true)\n#wb-section-title(float: true)[NPCs]'
+      );
+    });
+  });
+
   describe('additional frontmatter types', () => {
     it('should process copyright frontmatter', async () => {
       const planWithCopyright: PublishPlan = {

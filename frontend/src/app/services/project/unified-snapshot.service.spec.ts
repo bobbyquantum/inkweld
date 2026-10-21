@@ -1084,6 +1084,31 @@ describe('UnifiedSnapshotService', () => {
       );
     });
 
+    it('counts the words on either side of a paragraph break separately', async () => {
+      const ydoc = new Y.Doc();
+      const prosemirror = ydoc.getXmlFragment('prosemirror');
+      ydoc.transact(() => {
+        const first = new Y.XmlElement('paragraph');
+        first.insert(0, [new Y.XmlText('One two three')]);
+        const second = new Y.XmlElement('paragraph');
+        second.insert(0, [new Y.XmlText('four five six')]);
+        prosemirror.insert(0, [first, second]);
+      });
+
+      documentService.getYDoc.mockResolvedValue(ydoc);
+      localSnapshots.createSnapshot.mockResolvedValue(mockStoredSnapshot);
+
+      await service.createSnapshot('doc-123', 'Test');
+
+      expect(localSnapshots.createSnapshot).toHaveBeenCalledWith(
+        'testuser/test-project',
+        'doc-123',
+        expect.objectContaining({
+          wordCount: 6,
+        })
+      );
+    });
+
     it('should return 0 for empty document', async () => {
       const ydoc = new Y.Doc();
       documentService.getYDoc.mockResolvedValue(ydoc);
