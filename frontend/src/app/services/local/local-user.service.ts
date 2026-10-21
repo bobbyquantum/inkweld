@@ -58,13 +58,25 @@ export class LocalUserService {
   }
 
   /**
-   * Update the local user profile
+   * Update the local user profile.
+   *
+   * The active profile's `userProfile` is updated too: it is what
+   * {@link initializeFromSetup} restores on the next start and what the
+   * profile switcher shows, so a rename must reach it as well.
    */
   updateLocalUser(updates: Partial<User>): void {
     const current = this.currentUser();
     const updated = { ...current, ...updates };
     this.currentUser.set(updated);
     this.saveLocalUser(updated);
+
+    const config = this.storageContext.getActiveConfig();
+    if (config && config.type !== 'server' && config.userProfile) {
+      this.storageContext.updateConfigUserProfile(config.id, {
+        ...config.userProfile,
+        name: updated.name ?? config.userProfile.name,
+      });
+    }
   }
 
   /**

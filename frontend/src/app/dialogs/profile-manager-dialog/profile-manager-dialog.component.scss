@@ -390,6 +390,26 @@
   gap: 16px;
 }
 
+.passkey-sign-in-button {
+  min-height: 44px;
+}
+
+// "or" between passkey and password sign-in
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--sys-on-surface-variant);
+  font-size: 0.875rem;
+
+  &::before,
+  &::after {
+    content: '';
+    flex: 1;
+    border-top: 1px solid var(--sys-outline-variant);
+  }
+}
+
 .auth-error {
   display: flex;
   align-items: center;

@@ -1,9 +1,17 @@
 import type { R2Bucket } from '@cloudflare/workers-types';
 import type { SlotNamespace } from './storage.service';
-import { forEachPage, forEachSequential } from '@inkweld/async';
+import { logger } from './logger.service';
+import { forEachConcurrent, forEachPage, forEachSequential } from '@inkweld/async';
 
 /** Maximum number of keys R2 accepts in a single `delete` call. */
 const R2_DELETE_BATCH_SIZE = 1000;
+
+/**
+ * Objects copied at once when a project moves to a new slug. Each copy holds
+ * one file in memory, so this bounds the Worker's memory as well as the
+ * number of in-flight subrequests.
+ */
+const R2_COPY_CONCURRENCY = 4;
 
 /** Binary payloads accepted for R2 uploads. */
 type BinaryData = Buffer | ArrayBuffer | Uint8Array;
@@ -133,17 +141,67 @@ export class R2StorageService {
   async deleteProjectDirectory(username: string, projectSlug: string): Promise<void> {
     const prefix = `${username}/${projectSlug}/`;
     const objects = await this.listAll(prefix);
+    await this.deleteKeys(objects.map((obj) => obj.key));
+  }
 
+  /**
+   * Move every file of a project to a new slug (project rename). R2 has no
+   * rename, so each object is copied to its new key with its content type and
+   * custom metadata, and the originals are deleted only once every copy has
+   * succeeded: a failure partway leaves the project complete under the old
+   * slug. A retry skips the objects an earlier attempt already copied (same
+   * size and etag), so it makes progress even when the attempt before it ran
+   * out of subrequests. Removing the originals is best effort; once the copies
+   * exist, a leftover under the old slug is not worth failing the rename for.
+   */
+  async moveProjectDirectory(username: string, oldSlug: string, newSlug: string): Promise<void> {
+    this.validateKeyComponent(username, 'username');
+    this.validateKeyComponent(oldSlug, 'project slug');
+    this.validateKeyComponent(newSlug, 'project slug');
+    if (oldSlug === newSlug) return;
+
+    const oldPrefix = `${username}/${oldSlug}/`;
+    const newPrefix = `${username}/${newSlug}/`;
+    const sources = await this.listAll(oldPrefix);
+    if (sources.length === 0) return;
+
+    const copied = new Map((await this.listAll(newPrefix)).map((obj) => [obj.key, obj]));
+    await forEachConcurrent(sources, R2_COPY_CONCURRENCY, async (source) => {
+      const targetKey = newPrefix + source.key.slice(oldPrefix.length);
+      const existing = copied.get(targetKey);
+      if (existing?.size === source.size && existing.etag === source.etag) return;
+      const object = await this.bucket.get(source.key);
+      // Deleted since the listing: nothing to carry over.
+      if (!object) return;
+      await this.bucket.put(targetKey, await object.arrayBuffer(), {
+        httpMetadata: object.httpMetadata,
+        customMetadata: object.customMetadata,
+      });
+    });
+
+    try {
+      await this.deleteKeys(sources.map((obj) => obj.key));
+    } catch (error) {
+      logger.error(
+        'R2Storage',
+        `Copied ${oldPrefix} to ${newPrefix} but could not remove it`,
+        error
+      );
+    }
+  }
+
+  /** Delete keys in batches of at most {@link R2_DELETE_BATCH_SIZE}. */
+  private async deleteKeys(keys: string[]): Promise<void> {
     // Delete in batches: one R2 call removes up to 1000 keys, and each call
     // counts against the Worker's subrequest limit (1000 to Cloudflare
     // services on the Free plan), so a per-key delete fails partway through
     // on large projects.
     const batches: string[][] = [];
-    for (let i = 0; i < objects.length; i += R2_DELETE_BATCH_SIZE) {
-      batches.push(objects.slice(i, i + R2_DELETE_BATCH_SIZE).map((obj) => obj.key));
+    for (let i = 0; i < keys.length; i += R2_DELETE_BATCH_SIZE) {
+      batches.push(keys.slice(i, i + R2_DELETE_BATCH_SIZE));
     }
     // Sequential: keeps the number of in-flight subrequests low.
-    await forEachSequential(batches, (keys) => this.bucket.delete(keys));
+    await forEachSequential(batches, (batch) => this.bucket.delete(batch));
   }
 
   /**

@@ -245,7 +245,13 @@ export class IdentityPanelComponent implements OnDestroy {
         }
       }
 
-      // Not cached or cache was invalid - download from server
+      // Not cached or cache was invalid - download from server. Only an
+      // Inkweld Server has a copy; a Browser or Cloud Sync profile must never
+      // contact one.
+      if (!this.storageContext.isServerMode()) {
+        this.resolvedImageUrl.set(null);
+        return;
+      }
       this.isLoadingImage.set(true);
       const apiUrl = `${this.storageContext.getApiBaseUrl()}/api/v1/media/${username}/${slug}/${filename}`;
 

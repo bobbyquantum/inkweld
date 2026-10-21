@@ -29,7 +29,7 @@ This happens automatically—you don't need to "save" manually.
 How far your work travels depends on your [mode](../getting-started/client-mode):
 
 - **Browser** — nothing leaves this browser. There is nothing to sync.
-- **Cloud Sync** — Inkweld mirrors your projects into your own Dropbox or Nextcloud folder a few seconds after you stop typing, and whenever you open the app. Use **Sync now** in the user menu to push and pull immediately.
+- **Cloud Sync** — Inkweld mirrors your projects into your own Dropbox, Google Drive or Nextcloud a few seconds after you stop typing, and whenever you open the app. Use **Sync now** in the user menu to push and pull immediately.
 - **Inkweld Server** — Inkweld syncs your changes to an Inkweld server over a live WebSocket connection. This adds backup on the server, access from several devices and real-time collaboration with other users.
 
 In every mode, **local storage happens first**, so even if the connection drops, your work is safe.
@@ -193,7 +193,7 @@ The [three modes](../getting-started/client-mode) all use the local-first design
 
 ### Cloud Sync
 
-- Your projects live in your browser and are mirrored to your own Dropbox or Nextcloud
+- Your projects live in your browser and are mirrored to your own Dropbox, Google Drive or Nextcloud
 - Works offline, syncs when connected
 - Use it across devices without running a server
 

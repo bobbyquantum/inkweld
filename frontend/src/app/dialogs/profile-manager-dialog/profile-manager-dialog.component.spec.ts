@@ -12,8 +12,13 @@ import {
 } from '@angular/material/dialog';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
-import { type Project, ProjectsService } from '@inkweld/index';
+import {
+  type Project,
+  ProjectsService,
+  type SystemFeatures,
+} from '@inkweld/index';
 import { AuthTokenService } from '@services/auth/auth-token.service';
+import { PasskeyError, PasskeyService } from '@services/auth/passkey.service';
 import { CloudSyncConfigService } from '@services/cloud-sync/cloud-sync-config.service';
 import { CloudTokenStoreService } from '@services/cloud-sync/cloud-token-store.service';
 import {
@@ -33,7 +38,9 @@ import {
   MigrationService,
   type MigrationState,
   MigrationStatus,
+  ServerApprovalRequiredError,
 } from '@services/local/migration.service';
+import { UserService } from '@services/user/user.service';
 import { of } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -76,12 +83,17 @@ describe('ProfileManagerDialogComponent', () => {
       mockLocalConfig,
       mockServerConfig,
     ]);
+    const activeConfig = signal<ServerConfig | null>(mockLocalConfig);
     return {
       getConfigurations: vi.fn(() => configurations()),
-      getActiveConfig: vi.fn().mockReturnValue(mockLocalConfig),
+      // Reads a signal so computeds over the active profile follow switches
+      getActiveConfig: vi.fn(() => activeConfig()),
       configurations,
-      activeConfig: signal<ServerConfig | null>(mockLocalConfig),
-      switchToConfig: vi.fn(),
+      activeConfig,
+      switchToConfig: vi.fn((id: string) => {
+        const target = configurations().find(c => c.id === id);
+        if (target) activeConfig.set(target);
+      }),
       addServerConfig: vi.fn().mockResolvedValue(undefined),
       updateConfigDisplayName: vi.fn(),
       removeConfig: vi.fn((id: string) => {
@@ -109,6 +121,10 @@ describe('ProfileManagerDialogComponent', () => {
       hasTokenForConfig: vi.fn().mockReturnValue(true),
       getTokenForConfig: vi.fn().mockReturnValue('mock-token'),
       clearTokenForConfig: vi.fn(),
+      setTokenForConfig: vi.fn(),
+      moveToken: vi.fn(),
+      setToken: vi.fn(),
+      clearToken: vi.fn(),
     };
   }
 
@@ -118,6 +134,7 @@ describe('ProfileManagerDialogComponent', () => {
       resetConfiguration: vi.fn(),
       configureLocalMode: vi.fn(),
       configureServerMode: vi.fn().mockResolvedValue(undefined),
+      fetchServerFeatures: vi.fn().mockResolvedValue(null),
       isHostedServerConfig: vi.fn().mockReturnValue(false),
     };
   }
@@ -168,7 +185,28 @@ describe('ProfileManagerDialogComponent', () => {
     };
   }
 
+  function createPasskeyServiceMock() {
+    return {
+      isSupported: vi.fn().mockReturnValue(true),
+      login: vi.fn().mockResolvedValue({ id: 'u1', username: 'passkeyuser' }),
+      register: vi.fn().mockResolvedValue(undefined),
+    };
+  }
+
+  function createUserServiceMock() {
+    const currentUser = signal({ id: 'local', username: 'testuser' });
+    return {
+      currentUser,
+      setCurrentUser: vi.fn((user: { id: string; username: string }) => {
+        currentUser.set(user);
+        return Promise.resolve();
+      }),
+    };
+  }
+
   let projectsServiceMock: ReturnType<typeof createProjectsServiceMock>;
+  let passkeyServiceMock: ReturnType<typeof createPasskeyServiceMock>;
+  let userServiceMock: ReturnType<typeof createUserServiceMock>;
 
   beforeEach(async () => {
     matDialogMock.open.mockReset();
@@ -179,6 +217,8 @@ describe('ProfileManagerDialogComponent', () => {
     migrationServiceMock = createMigrationServiceMock();
     backgroundSyncServiceMock = createBackgroundSyncServiceMock();
     projectsServiceMock = createProjectsServiceMock();
+    passkeyServiceMock = createPasskeyServiceMock();
+    userServiceMock = createUserServiceMock();
     routerMock = createRouterMock();
 
     await TestBed.configureTestingModule({
@@ -198,6 +238,8 @@ describe('ProfileManagerDialogComponent', () => {
         { provide: MigrationService, useValue: migrationServiceMock },
         { provide: BackgroundSyncService, useValue: backgroundSyncServiceMock },
         { provide: ProjectsService, useValue: projectsServiceMock },
+        { provide: PasskeyService, useValue: passkeyServiceMock },
+        { provide: UserService, useValue: userServiceMock },
         { provide: Router, useValue: routerMock },
         { provide: MatDialogRef, useValue: dialogRefMock },
         { provide: CloudTokenStoreService, useValue: cloudTokensMock },
@@ -205,7 +247,15 @@ describe('ProfileManagerDialogComponent', () => {
           provide: CloudSyncConfigService,
           useValue: { isCloudSyncAvailable: () => true },
         },
-        { provide: LoggerService, useValue: { info: vi.fn(), warn: vi.fn() } },
+        {
+          provide: LoggerService,
+          useValue: {
+            debug: vi.fn(),
+            info: vi.fn(),
+            warn: vi.fn(),
+            error: vi.fn(),
+          },
+        },
         ProfileManagerService,
       ],
     })
@@ -1011,7 +1061,7 @@ describe('ProfileManagerDialogComponent', () => {
         component as unknown as { showAuthForm: { set: (v: boolean) => void } }
       ).showAuthForm.set(true);
 
-      component.cancelMigration();
+      void component.cancelMigration();
 
       expect(component['currentView']()).toBe('list');
       expect(component['showAuthForm']()).toBe(false);
@@ -1086,7 +1136,8 @@ describe('ProfileManagerDialogComponent', () => {
 
       expect(migrationServiceMock.registerOnServer).toHaveBeenCalledWith(
         'testuser',
-        'password123'
+        'password123',
+        { name: undefined, email: undefined }
       );
     });
 
@@ -1827,6 +1878,417 @@ describe('ProfileManagerDialogComponent', () => {
       await serveAppMode('BOTH');
       expect(query('app-mode-policy-note')).toBeNull();
       expect(component['upgradeOptions']()).toEqual(['cloud', 'server']);
+    });
+  });
+
+  describe('moving projects to a server: sign-in options', () => {
+    const TARGET_URL = 'https://target.example.com';
+    const newServerConfig: ServerConfig = {
+      id: 'target-new',
+      type: 'server',
+      serverUrl: TARGET_URL,
+      displayName: 'Target',
+      addedAt: new Date().toISOString(),
+      lastUsedAt: new Date().toISOString(),
+    };
+
+    function features(overrides: Partial<SystemFeatures> = {}): SystemFeatures {
+      return {
+        passkeysEnabled: true,
+        passwordLoginEnabled: true,
+        requireEmail: false,
+        passwordPolicy: {
+          minLength: 8,
+          requireUppercase: false,
+          requireLowercase: false,
+          requireNumber: false,
+          requireSymbol: false,
+        },
+        ...overrides,
+      } as SystemFeatures;
+    }
+
+    const byTestId = (id: string): HTMLElement | null =>
+      (fixture.nativeElement as HTMLElement).querySelector(
+        `[data-testid="${id}"]`
+      );
+
+    /** Open the move flow against a server with the given features */
+    async function startMove(
+      serverFeatures: SystemFeatures | null
+    ): Promise<void> {
+      setupServiceMock.fetchServerFeatures.mockResolvedValue(serverFeatures);
+      component['newServerUrl'].set(TARGET_URL);
+      component.addServer();
+      await vi.waitFor(() =>
+        expect(component['isLoadingTargetFeatures']()).toBe(false)
+      );
+      fixture.detectChanges();
+      await fixture.whenStable();
+    }
+
+    /** configureServerMode creates a new server profile and switches to it */
+    function serverModeCreatesProfile(config = newServerConfig): void {
+      setupServiceMock.configureServerMode.mockImplementation(() => {
+        if (!storageContextMock.getConfigById(config.id)) {
+          storageContextMock.configurations.update(c => [...c, config]);
+        }
+        storageContextMock.switchToConfig(config.id);
+        return Promise.resolve();
+      });
+    }
+
+    const activeId = () => storageContextMock.activeConfig()?.id;
+    const hasProfile = (id: string) =>
+      storageContextMock.configurations().some(c => c.id === id);
+
+    it('reads the target server features when the move starts', async () => {
+      await startMove(features());
+      expect(setupServiceMock.fetchServerFeatures).toHaveBeenCalledWith(
+        TARGET_URL
+      );
+    });
+
+    it('offers passkey registration without password fields on a passkey-only server', async () => {
+      await startMove(features({ passwordLoginEnabled: false }));
+
+      expect(component['authMode']()).toBe('register');
+      expect(byTestId('migration-passkey-register-hint')).not.toBeNull();
+      expect(byTestId('migration-username-input')).not.toBeNull();
+      expect(byTestId('migration-password-input')).toBeNull();
+      expect(byTestId('migrate-authenticate-button')?.textContent).toContain(
+        'Register with a passkey'
+      );
+    });
+
+    it('offers only passkey sign-in on a passkey-only server', async () => {
+      await startMove(features({ passwordLoginEnabled: false }));
+      component.toggleAuthMode();
+      fixture.detectChanges();
+
+      expect(byTestId('migrate-passkey-login-button')).not.toBeNull();
+      expect(byTestId('migration-username-input')).toBeNull();
+      expect(byTestId('migration-password-input')).toBeNull();
+      expect(byTestId('migrate-authenticate-button')).toBeNull();
+    });
+
+    it('offers only password sign-in when the server has passkeys off', async () => {
+      await startMove(features({ passkeysEnabled: false }));
+      component.toggleAuthMode();
+      fixture.detectChanges();
+
+      expect(byTestId('migrate-passkey-login-button')).toBeNull();
+      expect(byTestId('migration-username-input')).not.toBeNull();
+      expect(byTestId('migration-password-input')).not.toBeNull();
+      expect(byTestId('migrate-authenticate-button')).not.toBeNull();
+    });
+
+    it('offers both when the server allows both', async () => {
+      await startMove(features());
+      component.toggleAuthMode();
+      fixture.detectChanges();
+
+      expect(byTestId('migrate-passkey-login-button')).not.toBeNull();
+      expect(byTestId('migration-password-input')).not.toBeNull();
+    });
+
+    it('offers both when the server features cannot be read', async () => {
+      await startMove(null);
+
+      expect(component['targetPasskeys']()).toBe(true);
+      expect(component['targetPasswordLogin']()).toBe(true);
+    });
+
+    it('hides passkey sign-in in a browser without WebAuthn', async () => {
+      passkeyServiceMock.isSupported.mockReturnValue(false);
+      await startMove(features());
+      component.toggleAuthMode();
+      fixture.detectChanges();
+
+      expect(byTestId('migrate-passkey-login-button')).toBeNull();
+      expect(byTestId('migration-password-input')).not.toBeNull();
+    });
+
+    it('says so when the server offers nothing this dialog can use', async () => {
+      passkeyServiceMock.isSupported.mockReturnValue(false);
+      await startMove(features({ passwordLoginEnabled: false }));
+
+      expect(component['authMode']()).toBe('login');
+      expect(byTestId('migration-no-sign-in-method')).not.toBeNull();
+      expect(byTestId('toggle-auth-mode-button')).toBeNull();
+      expect(byTestId('migrate-passkey-login-button')).toBeNull();
+    });
+
+    describe('passkey sign-in', () => {
+      beforeEach(async () => {
+        await startMove(features({ passwordLoginEnabled: false }));
+        serverModeCreatesProfile();
+      });
+
+      it('signs in on the target profile and shows the project selection', async () => {
+        await component.signInWithPasskey();
+
+        expect(setupServiceMock.configureServerMode).toHaveBeenCalledWith(
+          TARGET_URL,
+          {}
+        );
+        expect(passkeyServiceMock.login).toHaveBeenCalledWith({
+          reloadOnProfileChange: false,
+        });
+        expect(component['isAuthenticated']()).toBe(true);
+        expect(component['migrationTargetId']).toBe('target-new');
+        expect(component['migrationUsername']).toBe('passkeyuser');
+        expect(activeId()).toBe('target-new');
+      });
+
+      it('returns to the Browser profile and removes the new profile when cancelled', async () => {
+        passkeyServiceMock.login.mockRejectedValue(
+          new PasskeyError('CANCELLED', 'cancelled')
+        );
+
+        await component.signInWithPasskey();
+
+        expect(activeId()).toBe('local');
+        expect(hasProfile('target-new')).toBe(false);
+        expect(authTokenServiceMock.clearTokenForConfig).toHaveBeenCalledWith(
+          'target-new'
+        );
+        expect(storageContextMock.clearContextData).toHaveBeenCalledWith(
+          'target-new'
+        );
+        expect(component['isAuthenticated']()).toBe(false);
+        // A cancelled prompt is not an error
+        expect(component['authError']()).toBeNull();
+      });
+
+      it('shows why a failed sign-in failed, back on the Browser profile', async () => {
+        passkeyServiceMock.login.mockRejectedValue(
+          new PasskeyError('VERIFICATION_FAILED', 'nope')
+        );
+
+        await component.signInWithPasskey();
+
+        expect(activeId()).toBe('local');
+        expect(hasProfile('target-new')).toBe(false);
+        expect(component['authError']()).toBeTruthy();
+      });
+
+      it('explains an account waiting for approval instead of redirecting', async () => {
+        passkeyServiceMock.login.mockRejectedValue(
+          new PasskeyError('PENDING_APPROVAL', 'pending')
+        );
+
+        await component.signInWithPasskey();
+
+        expect(routerMock.navigate).not.toHaveBeenCalled();
+        expect(component['authError']()).toContain('approval');
+        expect(activeId()).toBe('local');
+      });
+
+      it('keeps an existing profile when the sign-in fails on it', async () => {
+        serverModeCreatesProfile(mockServerConfig);
+        passkeyServiceMock.login.mockRejectedValue(
+          new PasskeyError('VERIFICATION_FAILED', 'nope')
+        );
+
+        await component.signInWithPasskey();
+
+        expect(activeId()).toBe('local');
+        expect(hasProfile('server-123')).toBe(true);
+        expect(storageContextMock.clearContextData).not.toHaveBeenCalled();
+      });
+
+      it("gives another author's profile its session back when the login moves to its own profile", async () => {
+        serverModeCreatesProfile(mockServerConfig);
+        const ownProfile: ServerConfig = {
+          ...newServerConfig,
+          id: 'server-123-passkeyuser',
+        };
+        passkeyServiceMock.login.mockImplementation(() => {
+          storageContextMock.configurations.update(c => [...c, ownProfile]);
+          storageContextMock.switchToConfig(ownProfile.id);
+          return Promise.resolve({ id: 'u1', username: 'passkeyuser' });
+        });
+
+        await component.signInWithPasskey();
+
+        expect(authTokenServiceMock.setTokenForConfig).toHaveBeenCalledWith(
+          'server-123',
+          'mock-token'
+        );
+        expect(component['migrationTargetId']).toBe('server-123-passkeyuser');
+        expect(component['isAuthenticated']()).toBe(true);
+      });
+    });
+
+    it("uses the author's existing profile on that server instead of a new one", async () => {
+      await startMove(features({ passwordLoginEnabled: false }));
+      serverModeCreatesProfile();
+      const ownProfile: ServerConfig = {
+        ...newServerConfig,
+        id: 'target-passkeyuser',
+        userProfile: { name: 'Passkey User', username: 'passkeyuser' },
+      };
+      storageContextMock.configurations.update(c => [...c, ownProfile]);
+
+      await component.signInWithPasskey();
+
+      expect(authTokenServiceMock.moveToken).toHaveBeenCalledWith(
+        'target-new',
+        'target-passkeyuser'
+      );
+      expect(activeId()).toBe('target-passkeyuser');
+      expect(hasProfile('target-new')).toBe(false);
+      expect(component['migrationTargetId']).toBe('target-passkeyuser');
+      expect(component['isAuthenticated']()).toBe(true);
+    });
+
+    describe('password sign-in failure', () => {
+      it('returns to the Browser profile and removes the new profile', async () => {
+        await startMove(features());
+        serverModeCreatesProfile();
+        migrationServiceMock.loginToServer.mockRejectedValue(
+          new Error('Password login is disabled. Sign in with a passkey.')
+        );
+        component['username'].set('someone');
+        component['password'].set('secret');
+
+        await component.authenticate();
+
+        expect(activeId()).toBe('local');
+        expect(hasProfile('target-new')).toBe(false);
+        expect(component['authError']()).toContain('passkey');
+      });
+    });
+
+    describe('registering with a passkey', () => {
+      beforeEach(async () => {
+        await startMove(features({ passwordLoginEnabled: false }));
+        serverModeCreatesProfile();
+      });
+
+      it('creates the account, enrols a passkey and shows the project selection', async () => {
+        await component.onRegistrationSubmit({
+          username: 'newauthor',
+          name: 'New Author',
+        });
+
+        expect(migrationServiceMock.registerOnServer).toHaveBeenCalledWith(
+          'newauthor',
+          undefined,
+          { name: 'New Author', email: undefined }
+        );
+        expect(passkeyServiceMock.register).toHaveBeenCalledWith(
+          'Primary passkey'
+        );
+        expect(component['isAuthenticated']()).toBe(true);
+        expect(component['pendingPasskeyEnrolment']()).toBeNull();
+        expect(activeId()).toBe('target-new');
+      });
+
+      it('keeps the retry step open when the passkey prompt is cancelled', async () => {
+        passkeyServiceMock.register.mockRejectedValueOnce(
+          new PasskeyError('CANCELLED', 'cancelled')
+        );
+
+        await component.onRegistrationSubmit({ username: 'newauthor' });
+
+        expect(component['isAuthenticated']()).toBe(false);
+        expect(component['pendingPasskeyEnrolment']()).toEqual({});
+        expect(component['authError']()).toContain("passkey wasn't created");
+        fixture.detectChanges();
+        expect(byTestId('migration-passkey-enrol-button')).not.toBeNull();
+
+        await component.enrolPendingPasskey();
+
+        expect(component['isAuthenticated']()).toBe(true);
+        expect(component['pendingPasskeyEnrolment']()).toBeNull();
+      });
+
+      it('cancelling before the passkey exists goes back to the Browser profile', async () => {
+        migrationServiceMock.registerOnServer.mockImplementation(() =>
+          userServiceMock.setCurrentUser({ id: 's1', username: 'newauthor' })
+        );
+        passkeyServiceMock.register.mockRejectedValue(
+          new PasskeyError('CANCELLED', 'cancelled')
+        );
+        await component.onRegistrationSubmit({ username: 'newauthor' });
+
+        await component.cancelMigration();
+
+        expect(activeId()).toBe('local');
+        expect(hasProfile('target-new')).toBe(false);
+        expect(userServiceMock.currentUser().username).toBe('testuser');
+        expect(component['currentView']()).toBe('list');
+      });
+
+      it('closing the dialog before the passkey exists goes back to the Browser profile', async () => {
+        passkeyServiceMock.register.mockRejectedValue(
+          new PasskeyError('CANCELLED', 'cancelled')
+        );
+        await component.onRegistrationSubmit({ username: 'newauthor' });
+        expect(activeId()).toBe('target-new');
+
+        fixture.destroy();
+
+        await vi.waitFor(() => expect(activeId()).toBe('local'));
+        expect(hasProfile('target-new')).toBe(false);
+      });
+
+      it('enrols a passkey for an account waiting for approval, then goes back', async () => {
+        migrationServiceMock.registerOnServer.mockRejectedValue(
+          new ServerApprovalRequiredError('enrolment-token')
+        );
+
+        await component.onRegistrationSubmit({ username: 'newauthor' });
+
+        expect(authTokenServiceMock.setToken).toHaveBeenCalledWith(
+          'enrolment-token'
+        );
+        expect(passkeyServiceMock.register).toHaveBeenCalled();
+        expect(authTokenServiceMock.clearToken).toHaveBeenCalled();
+        expect(component['isAuthenticated']()).toBe(false);
+        expect(component['authError']()).toContain('approval');
+        expect(activeId()).toBe('local');
+        expect(hasProfile('target-new')).toBe(false);
+      });
+
+      it('goes back to the Browser profile when registration fails', async () => {
+        migrationServiceMock.registerOnServer.mockRejectedValue(
+          new Error('Username already taken')
+        );
+
+        await component.onRegistrationSubmit({ username: 'taken' });
+
+        expect(passkeyServiceMock.register).not.toHaveBeenCalled();
+        expect(component['authError']()).toBe('Username already taken');
+        expect(activeId()).toBe('local');
+        expect(hasProfile('target-new')).toBe(false);
+      });
+
+      it('refuses passwordless registration in a browser without passkeys', async () => {
+        passkeyServiceMock.isSupported.mockReturnValue(false);
+        // targetPasskeys is computed from isSupported(), re-read it
+        component['targetFeatures'].set({
+          ...features({ passwordLoginEnabled: false }),
+        });
+
+        await component.onRegistrationSubmit({ username: 'newauthor' });
+
+        expect(migrationServiceMock.registerOnServer).not.toHaveBeenCalled();
+        expect(component['authError']()).toContain("doesn't support passkeys");
+      });
+    });
+
+    it('cancelling after signing in goes back but keeps the signed-in profile', async () => {
+      await startMove(features({ passwordLoginEnabled: false }));
+      serverModeCreatesProfile();
+      await component.signInWithPasskey();
+
+      await component.cancelMigration();
+
+      expect(activeId()).toBe('local');
+      expect(hasProfile('target-new')).toBe(true);
     });
   });
 });

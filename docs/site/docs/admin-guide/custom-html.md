@@ -129,7 +129,7 @@ use it only while diagnosing a problem.
 
 Images, media and network connections are allowed from any `https:` origin,
 because projects embed remote images and the app connects to other Inkweld
-servers and to Dropbox or Nextcloud, so trackers that only load an image or
+servers and to Dropbox, Google Drive or Nextcloud, so trackers that only load an image or
 call an API need no trusted source.
 
 The app works offline by caching its page, so a policy change reaches people

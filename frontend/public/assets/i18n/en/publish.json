@@ -114,7 +114,7 @@
       "entries": "{{count}} entries",
       "pagesEstimate": "~{{count}} pages",
       "pagesEstimateOne": "~1 page",
-      "pagesHint": "Estimated at 275 words per printed page",
+      "pagesHint": "Estimated printed pages: 275 words a page, about two pages for each worldbuilding entry and half a page for each image",
       "readingHint": "Estimated reading time at 238 words per minute",
       "readMinutes": "{{minutes}} min read",
       "readHours": "{{hours}} h {{minutes}} min read",

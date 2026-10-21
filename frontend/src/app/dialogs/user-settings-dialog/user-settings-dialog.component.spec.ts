@@ -3,10 +3,12 @@ import {
   ChangeDetectionStrategy,
   Component,
   provideZonelessChangeDetection,
+  signal,
 } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { By } from '@angular/platform-browser';
+import { StorageContextService } from '@services/core/storage-context.service';
 import { BehaviorSubject } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -91,7 +93,10 @@ describe('UserSettingsDialogComponent', () => {
       selector => fixture.debugElement.query(By.css(selector)) !== null
     );
 
-  async function createDialog(data?: UserSettingsDialogData): Promise<void> {
+  async function createDialog(
+    data?: UserSettingsDialogData,
+    serverMode = true
+  ): Promise<void> {
     breakpoint$ = new BehaviorSubject<{ matches: boolean }>({ matches: false });
 
     await TestBed.configureTestingModule({
@@ -101,6 +106,10 @@ describe('UserSettingsDialogComponent', () => {
         {
           provide: BreakpointObserver,
           useValue: { observe: vi.fn().mockReturnValue(breakpoint$) },
+        },
+        {
+          provide: StorageContextService,
+          useValue: { isServerMode: signal(serverMode) },
         },
         ...(data ? [{ provide: MAT_DIALOG_DATA, useValue: data }] : []),
       ],
@@ -221,6 +230,38 @@ describe('UserSettingsDialogComponent', () => {
     expect(component.selectedCategory).toBe('authorized-apps');
     expect(renderedPanels()).toEqual(['app-authorized-apps']);
     expect(tabs()[3].getAttribute('aria-selected')).toBe('true');
+  });
+
+  describe('Browser and Cloud Sync profiles', () => {
+    beforeEach(async () => {
+      TestBed.resetTestingModule();
+      await createDialog(undefined, false);
+    });
+
+    it('should hide the authorized apps tab', () => {
+      expect(tabs()).toHaveLength(PANEL_SELECTORS.length - 1);
+      expect(
+        fixture.debugElement.query(
+          By.css('[data-testid="settings-authorized-apps-tab"]')
+        )
+      ).toBeNull();
+    });
+
+    it('should never render the authorized apps panel', async () => {
+      component.selectCategory('authorized-apps');
+      fixture.changeDetectorRef.markForCheck();
+      await fixture.whenStable();
+
+      expect(renderedPanels()).not.toContain('app-authorized-apps');
+    });
+
+    it('should open on the account tab when asked for authorized apps', async () => {
+      TestBed.resetTestingModule();
+      await createDialog({ selectedCategory: 'authorized-apps' }, false);
+
+      expect(component.selectedCategory).toBe('account');
+      expect(renderedPanels()).toEqual(['app-account-settings']);
+    });
   });
 
   it('should switch to the mobile layout when the breakpoint matches', async () => {

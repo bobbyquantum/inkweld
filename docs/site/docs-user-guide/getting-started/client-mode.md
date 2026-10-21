@@ -23,21 +23,21 @@ Some Inkweld instances are pre-configured to automatically start with a Server p
 
 ## Three Ways to Use Inkweld
 
-|                                         |      Browser      |             Cloud Sync             |         Inkweld Server          |
-| --------------------------------------- | :---------------: | :--------------------------------: | :-----------------------------: |
-| Where your writing lives                | This browser only |   Your own Dropbox or Nextcloud    |        An Inkweld Server        |
-| Account needed                          |       None        | Your Dropbox or Nextcloud account  | Inkweld account on that server  |
-| Works offline                           |        ✅         |    ✅ (syncs when back online)     |   ✅ (syncs when back online)   |
-| Use on several devices                  |        ⬜         |                 ✅                 |               ✅                |
-| Real-time co-editing, presence, cursors |        ⬜         |                 ⬜                 |               ✅                |
-| Share projects with collaborators       |        ⬜         |                 ⬜                 |               ✅                |
-| Version history & snapshots             |     ✅ local      |             ✅ synced              |            ✅ synced            |
-| Media library & covers                  |        ✅         |                 ✅                 |               ✅                |
-| Publishing (PDF, EPUB, HTML…)           |        ✅         |                 ✅                 |               ✅                |
-| AI features, MCP access                 |        ⬜         |                 ⬜                 | ✅ (if the server enables them) |
-| Backup                                  |  Export archive   | Continuous mirror + export archive |     Server + export archive     |
-| Move to another mode later              |        ✅         |                 ✅                 |               ✅                |
-| Cost to run                             |       Free        |     Free (your storage quota)      |  Self-host, or a hosted server  |
+|                                         |      Browser      |                 Cloud Sync                  |         Inkweld Server          |
+| --------------------------------------- | :---------------: | :-----------------------------------------: | :-----------------------------: |
+| Where your writing lives                | This browser only | Your own Dropbox, Google Drive or Nextcloud |        An Inkweld Server        |
+| Account needed                          |       None        |  Your Dropbox, Google or Nextcloud account  | Inkweld account on that server  |
+| Works offline                           |        ✅         |         ✅ (syncs when back online)         |   ✅ (syncs when back online)   |
+| Use on several devices                  |        ⬜         |                     ✅                      |               ✅                |
+| Real-time co-editing, presence, cursors |        ⬜         |                     ⬜                      |               ✅                |
+| Share projects with collaborators       |        ⬜         |                     ⬜                      |               ✅                |
+| Version history & snapshots             |     ✅ local      |                  ✅ synced                  |            ✅ synced            |
+| Media library & covers                  |        ✅         |                     ✅                      |               ✅                |
+| Publishing (PDF, EPUB, HTML…)           |        ✅         |                     ✅                      |               ✅                |
+| AI features, MCP access                 |        ⬜         |                     ⬜                      | ✅ (if the server enables them) |
+| Backup                                  |  Export archive   |     Continuous mirror + export archive      |     Server + export archive     |
+| Move to another mode later              |        ✅         |                     ✅                      |               ✅                |
+| Cost to run                             |       Free        |          Free (your storage quota)          |  Self-host, or a hosted server  |
 
 ### Browser
 
@@ -54,7 +54,7 @@ Ideal for trying Inkweld, complete privacy, or writing on a single machine.
 
 **Keep writing across your devices using your own cloud storage.**
 
-- Inkweld saves into its own folder in your cloud account: Dropbox (where it can only see that folder) or your own Nextcloud server
+- Inkweld saves into its own folder in your cloud account: Dropbox (where it can only see that folder), Google Drive (a hidden app folder it cannot see past) or your own Nextcloud server
 - Your projects still live in the browser and work offline; changes sync a few seconds after you stop typing and whenever you open the app
 - Open Inkweld on another device, connect the same account, and your projects appear. Edits made on two devices before they sync are merged automatically
 - There is no Inkweld server and no Inkweld account involved
@@ -77,10 +77,11 @@ Ideal for writing teams, and for anyone who wants sync that keeps running while 
 Choose **Cloud Sync** (the button reads **Connect Cloud Storage**) and pick your provider.
 
 :::note
-**Nextcloud** is always offered. **Dropbox** appears only when the Inkweld you are using has been set up with a Dropbox app key, which is a choice made by whoever builds or hosts it. If you only see Nextcloud, ask whoever runs your Inkweld whether Dropbox can be enabled.
+**Nextcloud** is always offered. **Dropbox** and **Google Drive** appear only when the Inkweld you are using has been set up with an app key for them, which is a choice made by whoever builds or hosts it. If you only see Nextcloud, ask whoever runs your Inkweld whether Dropbox or Google Drive can be enabled.
 :::
 
 - **Dropbox:** you sign in on Dropbox's own page. Inkweld never sees your password; Dropbox hands back permission to use a single app folder.
+- **Google Drive:** you sign in on Google's own page. Inkweld never sees your password; Google hands back permission to use a hidden folder that only Inkweld can read. Google's sign-in lasts an hour at a time and Inkweld renews it in the background; if your browser blocks that, a Google window may briefly open on your next click, and sync waits (keeping your edits) until it does.
 - **Nextcloud:** you enter your server address, username and an app password. Your Nextcloud needs a one-time change to allow Inkweld to connect; see [Cloud Sync with Nextcloud](./nextcloud-sync).
 
 - **First device:** Inkweld finds an empty folder and asks for a display name and username, prefilled from your account.
@@ -89,7 +90,7 @@ Choose **Cloud Sync** (the button reads **Connect Cloud Storage**) and pick your
 The user menu shows the sync status and has a **Sync now** action.
 
 :::info[Permissions]
-With Dropbox, Inkweld asks only for access to its own folder (`Apps/Inkweld`) and cannot see or change anything else in your account. With Nextcloud, the app password grants your normal file access, but Inkweld only touches the `Inkweld` folder; keep the password dedicated to Inkweld so it can be revoked on its own. Both can be revoked at any time from the provider's security settings.
+With Dropbox, Inkweld asks only for access to its own folder (`Apps/Inkweld`) and cannot see or change anything else in your account. With Google Drive, Inkweld asks only for its hidden app data folder: it cannot see the rest of your Drive, and you cannot browse its files either (use **Export** for a copy you can open). Remove that data from Drive settings → **Manage apps** → **Delete hidden app data**. With Nextcloud, the app password grants your normal file access, but Inkweld only touches the `Inkweld` folder; keep the password dedicated to Inkweld so it can be revoked on its own. Both can be revoked at any time from the provider's security settings.
 :::
 
 ## Setting Up a Browser Profile
@@ -143,7 +144,7 @@ A profile can move up when your needs grow. The user menu shows an upgrade butto
 
 From a Browser profile choose **Connect to sync**:
 
-- **Sync to your own cloud storage** (Dropbox or Nextcloud). Inkweld creates the cloud profile, copies every project, setting and cover across under the same username, and starts syncing. Your other devices can then connect to the same account.
+- **Sync to your own cloud storage** (Dropbox, Google Drive or Nextcloud). Inkweld creates the cloud profile, copies every project, setting and cover across under the same username, and starts syncing. Your other devices can then connect to the same account.
 - **Move to an Inkweld server.** Log in or register, and your projects are copied to that server profile. This adds live collaboration and sharing.
 
 A Cloud Sync profile can move to a server the same way with **Move to a server**. Nothing is deleted: the old profile stays in the list, with a note of where its projects went and under which username, until you remove it.

@@ -6,6 +6,7 @@ import {
   SnapshotsService,
   type SnapshotWithContent,
 } from '@inkweld/index';
+import { countFragmentWords } from '@utils/word-count';
 import {
   applyJsonToYjsMap,
   applyXmlToFragment,
@@ -13,7 +14,7 @@ import {
   yjsMapToJson,
 } from '@utils/yjs-xml-serializer';
 import { firstValueFrom } from 'rxjs';
-import * as Y from 'yjs';
+import type * as Y from 'yjs';
 
 import { LoggerService } from '../core/logger.service';
 import {
@@ -920,38 +921,14 @@ export class UnifiedSnapshotService {
   }
 
   /**
-   * Calculate word count from a Yjs document.
+   * Calculate word count from a Yjs document, counted as the editor counts.
    */
   private calculateWordCount(ydoc: Y.Doc): number {
     try {
-      const prosemirror = ydoc.getXmlFragment('prosemirror');
-      // Extract text content from XmlFragment by recursively getting text nodes
-      const text = this.extractTextFromXmlFragment(prosemirror);
-      // Simple word count - split on whitespace
-      return text.split(/\s+/).filter(w => w.length > 0).length;
+      return countFragmentWords(ydoc.getXmlFragment('prosemirror'));
     } catch {
       return 0;
     }
-  }
-
-  /**
-   * Recursively extract text content from an XmlFragment or XmlElement.
-   */
-  private extractTextFromXmlFragment(
-    node: Y.XmlFragment | Y.XmlElement
-  ): string {
-    let text = '';
-    for (const child of node.toArray()) {
-      if (child instanceof Y.XmlText) {
-        text += child.toString();
-      } else if (
-        child instanceof Y.XmlElement ||
-        child instanceof Y.XmlFragment
-      ) {
-        text += this.extractTextFromXmlFragment(child);
-      }
-    }
-    return text;
   }
 
   /**

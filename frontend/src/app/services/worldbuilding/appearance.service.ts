@@ -97,7 +97,11 @@ export class AppearanceService {
         return cachedUrl;
       }
 
-      if (!username || !slug) return null;
+      // Only an Inkweld Server has a copy to download; a Browser or Cloud
+      // Sync profile must never contact one.
+      if (!username || !slug || !this.storageContext.isServerMode()) {
+        return null;
+      }
 
       const apiUrl = `${this.storageContext.getApiBaseUrl()}/api/v1/media/${username}/${slug}/${filename}`;
       const blob = await firstValueFrom(

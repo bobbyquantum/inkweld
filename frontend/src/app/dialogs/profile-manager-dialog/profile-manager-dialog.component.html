@@ -540,84 +540,140 @@
       <div class="migration-form">
         <!-- Step 1: Authentication -->
         @if (!isAuthenticated()) {
-          <div class="auth-section">
-            <p class="form-description">
-              @if (localProjectsCount() > 0) {
-                @if (authMode() === 'register') {
-                  {{
-                    'dialogs.profileManager.registerMigrateDescription'
-                      | transloco
-                  }}
+          <div class="auth-section" data-testid="migration-auth-section">
+            @if (isLoadingTargetFeatures()) {
+              <div
+                class="checking-conflicts"
+                data-testid="migration-loading-features">
+                <mat-spinner diameter="18"></mat-spinner>
+                <span>{{
+                  'dialogs.profileManager.checkingSignInOptions' | transloco
+                }}</span>
+              </div>
+            } @else if (pendingPasskeyEnrolment()) {
+              <!-- A passwordless account was created; it still needs its passkey -->
+              <p class="form-description">
+                {{
+                  'dialogs.profileManager.passkeyEnrolmentNeeded' | transloco
+                }}
+              </p>
+            } @else {
+              <p class="form-description">
+                @if (localProjectsCount() > 0) {
+                  @if (authMode() === 'register') {
+                    {{
+                      'dialogs.profileManager.registerMigrateDescription'
+                        | transloco
+                    }}
+                  } @else {
+                    {{
+                      'dialogs.profileManager.loginMigrateDescription'
+                        | transloco
+                    }}
+                  }
                 } @else {
-                  {{
-                    'dialogs.profileManager.loginMigrateDescription' | transloco
-                  }}
+                  @if (authMode() === 'register') {
+                    {{
+                      'dialogs.profileManager.registerConnectDescription'
+                        | transloco
+                    }}
+                  } @else {
+                    {{
+                      'dialogs.profileManager.loginConnectDescription'
+                        | transloco
+                    }}
+                  }
                 }
+              </p>
+
+              @if (authMode() === 'register') {
+                @if (!targetPasswordLogin()) {
+                  <p
+                    class="form-description"
+                    data-testid="migration-passkey-register-hint">
+                    {{
+                      'dialogs.profileManager.registerWithPasskeyHint'
+                        | transloco
+                    }}
+                  </p>
+                }
+                <!-- Use shared registration form in external submit mode -->
+                <app-registration-form
+                  #registrationForm
+                  [compact]="true"
+                  [externalSubmit]="true"
+                  [serverUrl]="pendingServerUrl"
+                  [serverFeatures]="targetFeatures()"
+                  [showSubmitButton]="false"
+                  testIdPrefix="migration-"
+                  (submitRequest)="onRegistrationSubmit($event)"
+                  (validityChange)="onRegistrationValidityChange($event)">
+                </app-registration-form>
               } @else {
-                @if (authMode() === 'register') {
-                  {{
-                    'dialogs.profileManager.registerConnectDescription'
-                      | transloco
-                  }}
-                } @else {
-                  {{
-                    'dialogs.profileManager.loginConnectDescription' | transloco
-                  }}
+                @if (targetPasskeys()) {
+                  <button
+                    mat-stroked-button
+                    class="full-width passkey-sign-in-button"
+                    (click)="signInWithPasskey()"
+                    [disabled]="isAuthenticating()"
+                    data-testid="migrate-passkey-login-button">
+                    <mat-icon>fingerprint</mat-icon>
+                    {{ 'dialogs.profileManager.signInWithPasskey' | transloco }}
+                  </button>
+                }
+                @if (targetPasskeys() && targetPasswordLogin()) {
+                  <div class="auth-divider">
+                    <span>{{ 'dialogs.profileManager.or' | transloco }}</span>
+                  </div>
+                }
+                @if (targetPasswordLogin()) {
+                  <!-- Simple login form -->
+                  <mat-form-field appearance="outline" class="full-width">
+                    <mat-label>{{
+                      'dialogs.profileManager.usernameLabel' | transloco
+                    }}</mat-label>
+                    <input
+                      matInput
+                      id="migration-username"
+                      [value]="username()"
+                      (input)="username.set($any($event.target).value)"
+                      [disabled]="isAuthenticating()"
+                      type="text"
+                      data-testid="migration-username-input"
+                      [attr.aria-label]="
+                        'dialogs.profileManager.usernameAria' | transloco
+                      " />
+                  </mat-form-field>
+
+                  <mat-form-field appearance="outline" class="full-width">
+                    <mat-label>{{
+                      'dialogs.profileManager.passwordLabel' | transloco
+                    }}</mat-label>
+                    <input
+                      matInput
+                      id="migration-password"
+                      [value]="password()"
+                      (input)="password.set($any($event.target).value)"
+                      [disabled]="isAuthenticating()"
+                      type="password"
+                      data-testid="migration-password-input"
+                      [attr.aria-label]="
+                        'dialogs.profileManager.passwordAria' | transloco
+                      " />
+                  </mat-form-field>
+                }
+                @if (!targetPasskeys() && !targetPasswordLogin()) {
+                  <p
+                    class="form-description"
+                    data-testid="migration-no-sign-in-method">
+                    {{ 'dialogs.profileManager.noSignInMethod' | transloco }}
+                  </p>
                 }
               }
-            </p>
-
-            @if (authMode() === 'register') {
-              <!-- Use shared registration form in external submit mode -->
-              <app-registration-form
-                #registrationForm
-                [compact]="true"
-                [externalSubmit]="true"
-                [serverUrl]="pendingServerUrl"
-                [showSubmitButton]="false"
-                testIdPrefix="migration-"
-                (submitRequest)="onRegistrationSubmit($event)"
-                (validityChange)="onRegistrationValidityChange($event)">
-              </app-registration-form>
-            } @else {
-              <!-- Simple login form -->
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>{{
-                  'dialogs.profileManager.usernameLabel' | transloco
-                }}</mat-label>
-                <input
-                  matInput
-                  id="migration-username"
-                  [value]="username()"
-                  (input)="username.set($any($event.target).value)"
-                  [disabled]="isAuthenticating()"
-                  type="text"
-                  data-testid="migration-username-input"
-                  [attr.aria-label]="
-                    'dialogs.profileManager.usernameAria' | transloco
-                  " />
-              </mat-form-field>
-
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>{{
-                  'dialogs.profileManager.passwordLabel' | transloco
-                }}</mat-label>
-                <input
-                  matInput
-                  id="migration-password"
-                  [value]="password()"
-                  (input)="password.set($any($event.target).value)"
-                  [disabled]="isAuthenticating()"
-                  type="password"
-                  data-testid="migration-password-input"
-                  [attr.aria-label]="
-                    'dialogs.profileManager.passwordAria' | transloco
-                  " />
-              </mat-form-field>
             }
 
             @if (authError()) {
-              <div class="auth-error">
+              <div class="auth-error" data-testid="migration-auth-error">
                 <mat-icon>error</mat-icon>
                 {{ authError() }}
               </div>
@@ -627,48 +683,79 @@
               <button
                 mat-button
                 (click)="cancelMigration()"
-                [disabled]="isAuthenticating()">
+                [disabled]="isAuthenticating()"
+                data-testid="migration-cancel-button">
                 {{ 'cancel' | transloco }}
               </button>
-              <button
-                mat-button
-                (click)="toggleAuthMode()"
-                [disabled]="isAuthenticating()"
-                data-testid="toggle-auth-mode-button">
-                {{
-                  authMode() === 'login'
-                    ? ('dialogs.profileManager.needAccount' | transloco)
-                    : ('dialogs.profileManager.haveAccount' | transloco)
-                }}
-              </button>
-              @if (authMode() === 'login') {
+              @if (pendingPasskeyEnrolment()) {
                 <button
                   mat-raised-button
                   color="primary"
-                  (click)="authenticate()"
-                  [disabled]="isAuthenticating() || !username() || !password()"
-                  data-testid="migrate-authenticate-button">
+                  (click)="enrolPendingPasskey()"
+                  [disabled]="isAuthenticating()"
+                  data-testid="migration-passkey-enrol-button">
                   @if (isAuthenticating()) {
                     <mat-spinner diameter="18"></mat-spinner>
-                    {{ 'dialogs.profileManager.authenticating' | transloco }}
                   } @else {
-                    {{ 'dialogs.profileManager.logIn' | transloco }}
+                    <mat-icon>fingerprint</mat-icon>
                   }
+                  {{ 'dialogs.profileManager.setUpPasskey' | transloco }}
                 </button>
-              } @else {
-                <button
-                  mat-raised-button
-                  color="primary"
-                  (click)="triggerRegistrationSubmit()"
-                  [disabled]="isAuthenticating() || !isRegistrationFormValid()"
-                  data-testid="migrate-authenticate-button">
-                  @if (isAuthenticating()) {
-                    <mat-spinner diameter="18"></mat-spinner>
-                    {{ 'dialogs.profileManager.registering' | transloco }}
-                  } @else {
-                    {{ 'dialogs.profileManager.register' | transloco }}
+              } @else if (!isLoadingTargetFeatures()) {
+                @if (canRegisterOnTarget()) {
+                  <button
+                    mat-button
+                    (click)="toggleAuthMode()"
+                    [disabled]="isAuthenticating()"
+                    data-testid="toggle-auth-mode-button">
+                    {{
+                      authMode() === 'login'
+                        ? ('dialogs.profileManager.needAccount' | transloco)
+                        : ('dialogs.profileManager.haveAccount' | transloco)
+                    }}
+                  </button>
+                }
+                @if (authMode() === 'login') {
+                  @if (targetPasswordLogin()) {
+                    <button
+                      mat-raised-button
+                      color="primary"
+                      (click)="authenticate()"
+                      [disabled]="
+                        isAuthenticating() || !username() || !password()
+                      "
+                      data-testid="migrate-authenticate-button">
+                      @if (isAuthenticating()) {
+                        <mat-spinner diameter="18"></mat-spinner>
+                        {{
+                          'dialogs.profileManager.authenticating' | transloco
+                        }}
+                      } @else {
+                        {{ 'dialogs.profileManager.logIn' | transloco }}
+                      }
+                    </button>
                   }
-                </button>
+                } @else {
+                  <button
+                    mat-raised-button
+                    color="primary"
+                    (click)="triggerRegistrationSubmit()"
+                    [disabled]="
+                      isAuthenticating() || !isRegistrationFormValid()
+                    "
+                    data-testid="migrate-authenticate-button">
+                    @if (isAuthenticating()) {
+                      <mat-spinner diameter="18"></mat-spinner>
+                      {{ 'dialogs.profileManager.registering' | transloco }}
+                    } @else if (targetPasswordLogin()) {
+                      {{ 'dialogs.profileManager.register' | transloco }}
+                    } @else {
+                      {{
+                        'dialogs.profileManager.registerWithPasskey' | transloco
+                      }}
+                    }
+                  </button>
+                }
               }
             </div>
           </div>

@@ -15,6 +15,16 @@ import { ProjectStateService } from '../project/project-state.service';
 /** Words per printed page used for the page estimate (trade paperback). */
 export const WORDS_PER_PAGE = 275;
 
+/**
+ * Printed pages allowed for each worldbuilding entry in the page estimate.
+ * An entry's title, image and fields fill far more of a page than its few
+ * words suggest; in a trade-size guide most take about two pages.
+ */
+export const PAGES_PER_ENTRY = 2;
+
+/** Printed pages allowed for each image in a document. */
+export const PAGES_PER_IMAGE = 0.5;
+
 /** How long a count waits for a missing document to download. */
 const PULL_TIMEOUT_MS = 10000;
 
@@ -34,7 +44,7 @@ export const WORDS_PER_MINUTE = 238;
  */
 export type WordCountEntry =
   | { status: 'loading' }
-  | { status: 'ready'; words: number }
+  | { status: 'ready'; words: number; images?: number }
   | { status: 'unavailable' };
 
 /** Statistics for one row in the plan's contents list. */
@@ -45,6 +55,8 @@ export interface PlanItemStats {
   documents: number;
   /** Number of worldbuilding entries this row contributes. */
   entries: number;
+  /** Images in the counted documents. */
+  images: number;
   /** True while any contributing document is still being counted. */
   loading: boolean;
   /** True when any contributing document is not available locally. */
@@ -64,12 +76,19 @@ export interface PlanSummaryStats {
   documents: number;
   entries: number;
   words: number;
+  /** Images in the counted documents. */
+  images: number;
   /** Documents still being counted. */
   loading: number;
   /** Documents whose content is not available on this device. */
   unavailable: number;
   /** Notes inside listed folders, left out of the publication. */
   skippedNotes: number;
+  /**
+   * Estimated printed pages: the words at {@link WORDS_PER_PAGE}, plus
+   * {@link PAGES_PER_ENTRY} per worldbuilding entry and
+   * {@link PAGES_PER_IMAGE} per document image.
+   */
   estimatedPages: number;
   readingMinutes: number;
 }
@@ -187,6 +206,7 @@ export class PublishPlanStatsService {
       words: null,
       documents: 0,
       entries: 0,
+      images: 0,
       loading: false,
       unavailable: false,
       loadingDocuments: 0,
@@ -228,6 +248,7 @@ export class PublishPlanStatsService {
         stats.unavailableDocuments++;
       } else {
         total += entry.words;
+        stats.images += entry.images ?? 0;
         counted = true;
       }
     }
@@ -247,6 +268,7 @@ export class PublishPlanStatsService {
       documents: 0,
       entries: 0,
       words: 0,
+      images: 0,
       loading: 0,
       unavailable: 0,
       skippedNotes: 0,
@@ -262,12 +284,17 @@ export class PublishPlanStatsService {
       summary.documents += stats.documents;
       summary.entries += stats.entries;
       summary.words += stats.words ?? 0;
+      summary.images += stats.images;
       summary.loading += stats.loadingDocuments;
       summary.unavailable += stats.unavailableDocuments;
       summary.skippedNotes += stats.skippedNotes;
     }
 
-    summary.estimatedPages = Math.ceil(summary.words / WORDS_PER_PAGE);
+    summary.estimatedPages = Math.ceil(
+      summary.words / WORDS_PER_PAGE +
+        summary.entries * PAGES_PER_ENTRY +
+        summary.images * PAGES_PER_IMAGE
+    );
     summary.readingMinutes = Math.ceil(summary.words / WORDS_PER_MINUTE);
     return summary;
   }
@@ -375,7 +402,7 @@ export class PublishPlanStatsService {
       if (!(await this.projectState.isDocumentUnavailable(elementId))) {
         // Nothing stored, and nowhere else it could be (local mode, or
         // created on this device): the document is simply empty.
-        return { status: 'ready', words: 0 };
+        return { status: 'ready', words: 0, images: 0 };
       }
       // A document that was just added (or never opened on this device)
       // has no local copy yet. Pull it rather than report a count that
@@ -383,7 +410,11 @@ export class PublishPlanStatsService {
       if (!(await this.pullDocument(docId))) return { status: 'unavailable' };
     }
     const content = await this.documentService.getDocumentContent(docId);
-    return { status: 'ready', words: countWords(content) };
+    return {
+      status: 'ready',
+      words: countWords(content),
+      images: countImages(content),
+    };
   }
 
   private async countDocument(elementId: string): Promise<void> {
@@ -420,6 +451,16 @@ export function countWords(content: unknown): number {
   if (!content) return 0;
   const text = flattenToPlainText(contentNodes(content));
   return text.split(/\s+/).filter(Boolean).length;
+}
+
+/** Count the image nodes in ProseMirror JSON content. */
+export function countImages(content: unknown): number {
+  if (!content || typeof content !== 'object') return 0;
+  if (Array.isArray(content)) {
+    return content.reduce<number>((sum, node) => sum + countImages(node), 0);
+  }
+  const node = content as { type?: unknown; content?: unknown };
+  return (node.type === 'image' ? 1 : 0) + countImages(node.content);
 }
 
 /** Normalise a content array, a `doc` wrapper node, or a single node to nodes. */

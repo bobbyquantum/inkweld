@@ -381,7 +381,7 @@
               <span class="stat-pending">…</span>
             }
           </span>
-          @if (summary.words > 0) {
+          @if (summary.estimatedPages > 0) {
             <span
               class="stat-chip"
               data-testid="plan-stat-pages"
@@ -392,6 +392,8 @@
                   | transloco: { count: summary.estimatedPages | number }
               }}
             </span>
+          }
+          @if (summary.words > 0) {
             <span
               class="stat-chip"
               data-testid="plan-stat-reading"
