@@ -17,6 +17,7 @@ import {
   BadRequestError,
   InternalError,
 } from '../errors';
+import type { Context } from 'hono';
 import type { AppContext } from '../types/context';
 import {
   ProjectSchema,
@@ -297,6 +298,62 @@ const updateProjectRoute = createRoute({
   },
 });
 
+/**
+ * Apply an update that changes the project's slug (project rename): move its
+ * stored files to the new slug, update the row, and point the old slug at the
+ * new one.
+ */
+async function renameProjectSlug(
+  c: Context<AppContext>,
+  project: { id: string; userId: string; username: string },
+  slug: string,
+  newSlug: string,
+  updates: z.infer<typeof UpdateProjectRequestSchema>
+): Promise<void> {
+  const db = c.get('db');
+  const username = project.username;
+
+  // Check if new slug already exists for this user
+  const existing = await projectService.findByUsernameAndSlug(db, username, newSlug);
+  if (existing) {
+    throw new BadRequestError('A project with this slug already exists');
+  }
+
+  // Close the project's Yjs documents and release its LevelDB handle, whose
+  // store lives inside the project directory that is about to move.
+  try {
+    await yjsService.renameProject(username, slug, newSlug);
+  } catch (error) {
+    logger.error('Projects', 'Failed to close Yjs documents before rename', error);
+  }
+
+  // Media, covers and published files are keyed by slug: a directory rename
+  // on the filesystem, a copy to the new keys in R2.
+  const storage = getStorageService(c.get('storage'));
+  try {
+    await storage.moveProjectDirectory(username, slug, newSlug);
+  } catch (error) {
+    logger.error('Projects', `Failed to move project files ${slug} -> ${newSlug}`, error);
+    throw new InternalError('Failed to move project files');
+  }
+
+  try {
+    await projectService.update(db, project.id, updates);
+  } catch (error) {
+    // Leave the files where the project's slug says they are.
+    await storage.moveProjectDirectory(username, newSlug, slug).catch((moveError: unknown) => {
+      logger.error('Projects', `Failed to move project files back to ${slug}`, moveError);
+    });
+    throw error;
+  }
+
+  // Create alias for the old slug
+  await projectService.createSlugAlias(db, project.userId, slug, newSlug);
+
+  // Update any existing aliases pointing to the old slug
+  await projectService.updateAliasChain(db, project.userId, slug, newSlug);
+}
+
 projectRoutes.openapi(updateProjectRoute, async (c) => {
   const db = c.get('db');
   const username = c.req.param('username');
@@ -323,49 +380,9 @@ projectRoutes.openapi(updateProjectRoute, async (c) => {
     throw new ForbiddenError('Access denied');
   }
 
-  // Handle slug change (project rename)
   const newSlug = updates.slug && updates.slug !== slug ? updates.slug : null;
   if (newSlug) {
-    // Check if new slug already exists for this user
-    const existing = await projectService.findByUsernameAndSlug(db, username, newSlug);
-    if (existing) {
-      throw new BadRequestError('A project with this slug already exists');
-    }
-
-    // Close the project's Yjs documents and release its LevelDB handle, whose
-    // store lives inside the project directory that is about to move.
-    try {
-      await yjsService.renameProject(username, slug, newSlug);
-    } catch (error) {
-      logger.error('Projects', 'Failed to close Yjs documents before rename', error);
-    }
-
-    // Media, covers and published files are keyed by slug: a directory
-    // rename on the filesystem, a copy to the new keys in R2.
-    try {
-      await getStorageService(c.get('storage')).moveProjectDirectory(username, slug, newSlug);
-    } catch (error) {
-      logger.error('Projects', `Failed to move project files ${slug} -> ${newSlug}`, error);
-      throw new InternalError('Failed to move project files');
-    }
-
-    try {
-      await projectService.update(db, project.id, updates);
-    } catch (error) {
-      // Leave the files where the project's slug says they are.
-      await getStorageService(c.get('storage'))
-        .moveProjectDirectory(username, newSlug, slug)
-        .catch((moveError: unknown) => {
-          logger.error('Projects', `Failed to move project files back to ${slug}`, moveError);
-        });
-      throw error;
-    }
-
-    // Create alias for the old slug
-    await projectService.createSlugAlias(db, project.userId, slug, newSlug);
-
-    // Update any existing aliases pointing to the old slug
-    await projectService.updateAliasChain(db, project.userId, slug, newSlug);
+    await renameProjectSlug(c, project, slug, newSlug, updates);
   } else {
     await projectService.update(db, project.id, updates);
   }

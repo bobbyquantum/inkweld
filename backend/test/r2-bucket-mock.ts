@@ -28,37 +28,41 @@ export function createObjectBucket(pageSize = 1000) {
   });
 
   const bucket = {
-    async list(opts: { prefix?: string; cursor?: string }) {
-      const matching = [...store.keys()].filter((key) => key.startsWith(opts.prefix ?? '')).sort();
+    list(opts: { prefix?: string; cursor?: string }) {
+      const matching = [...store.keys()]
+        .filter((key) => key.startsWith(opts.prefix ?? ''))
+        .sort((a, b) => a.localeCompare(b));
       const start = opts.cursor ? Number(opts.cursor) : 0;
       const page = matching.slice(start, start + pageSize);
       const end = start + page.length;
       const truncated = end < matching.length;
-      return {
+      return Promise.resolve({
         objects: page.map((key) => summary(key, store.get(key) as StoredObject)),
         truncated,
         cursor: truncated ? String(end) : undefined,
-      };
+      });
     },
-    async head(key: string) {
+    head(key: string) {
       const object = store.get(key);
-      return object ? { ...summary(key, object), httpMetadata: object.httpMetadata } : null;
+      return Promise.resolve(
+        object ? { ...summary(key, object), httpMetadata: object.httpMetadata } : null
+      );
     },
-    async get(key: string) {
+    get(key: string) {
       const object = store.get(key);
-      if (!object) return null;
-      return {
+      if (!object) return Promise.resolve(null);
+      return Promise.resolve({
         httpMetadata: object.httpMetadata,
         customMetadata: object.customMetadata,
-        arrayBuffer: async () => object.body.slice().buffer,
-      };
+        arrayBuffer: () => Promise.resolve(object.body.slice().buffer),
+      });
     },
-    async put(
+    put(
       key: string,
       data: ArrayBuffer | Uint8Array,
       opts?: { httpMetadata?: { contentType?: string }; customMetadata?: Record<string, string> }
     ) {
-      if (puts >= options.failPutAfter) throw new Error('Too many subrequests');
+      if (puts >= options.failPutAfter) return Promise.reject(new Error('Too many subrequests'));
       puts++;
       const body = new Uint8Array(data instanceof Uint8Array ? data : new Uint8Array(data));
       store.set(key, {
@@ -67,10 +71,12 @@ export function createObjectBucket(pageSize = 1000) {
         httpMetadata: opts?.httpMetadata,
         customMetadata: opts?.customMetadata,
       });
+      return Promise.resolve();
     },
-    async delete(keys: string | string[]) {
-      if (options.failDelete) throw new Error('delete failed');
+    delete(keys: string | string[]) {
+      if (options.failDelete) return Promise.reject(new Error('delete failed'));
       for (const key of Array.isArray(keys) ? keys : [keys]) store.delete(key);
+      return Promise.resolve();
     },
   };
 
