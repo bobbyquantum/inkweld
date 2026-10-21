@@ -134,9 +134,9 @@ const sidebars: SidebarsConfig = {
       link: {
         type: 'generated-index',
         description:
-          'Connect Inkweld to AI assistants via the Model Context Protocol.',
+          'Choose whether Inkweld uses AI, and connect AI assistants via MCP and WebMCP.',
       },
-      items: ['ai-mcp/mcp-clients'],
+      items: ['ai-mcp/ai-preference', 'ai-mcp/mcp-clients'],
     },
   ],
 };

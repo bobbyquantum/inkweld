@@ -928,102 +928,109 @@
       {{ 'settings.dangerZone.description' | transloco }}
     </p>
 
-    <!-- Rename Project Section -->
-    <mat-card class="danger-card" data-testid="rename-project-card">
-      <mat-card-header>
-        <mat-card-title>
-          <mat-icon>edit</mat-icon>
-          {{ 'settings.dangerZone.rename.title' | transloco }}
-        </mat-card-title>
-      </mat-card-header>
-      <mat-card-content>
-        <p class="warning-text">
-          <strong>{{ 'settings.dangerZone.warningLabel' | transloco }}</strong>
-          {{ 'settings.dangerZone.rename.warning' | transloco }}
-        </p>
-        <ul class="consequence-list">
-          <li>
-            {{ 'settings.dangerZone.rename.consequenceBookmarks' | transloco }}
-          </li>
-          <li>
-            {{ 'settings.dangerZone.rename.consequenceResync' | transloco }}
-          </li>
-          <li>
-            {{ 'settings.dangerZone.rename.consequenceRedirect' | transloco }}
-          </li>
-        </ul>
+    <!-- Rename Project Section: renaming moves the project on the server,
+         which Browser and Cloud Sync profiles never contact -->
+    @if (currentMode === 'server') {
+      <mat-card class="danger-card" data-testid="rename-project-card">
+        <mat-card-header>
+          <mat-card-title>
+            <mat-icon>edit</mat-icon>
+            {{ 'settings.dangerZone.rename.title' | transloco }}
+          </mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <p class="warning-text">
+            <strong>{{
+              'settings.dangerZone.warningLabel' | transloco
+            }}</strong>
+            {{ 'settings.dangerZone.rename.warning' | transloco }}
+          </p>
+          <ul class="consequence-list">
+            <li>
+              {{
+                'settings.dangerZone.rename.consequenceBookmarks' | transloco
+              }}
+            </li>
+            <li>
+              {{ 'settings.dangerZone.rename.consequenceResync' | transloco }}
+            </li>
+            <li>
+              {{ 'settings.dangerZone.rename.consequenceRedirect' | transloco }}
+            </li>
+          </ul>
 
-        @if (!showRenameForm()) {
-          <div class="action-buttons">
-            <button
-              mat-stroked-button
-              color="warn"
-              (click)="showRenameForm.set(true)"
-              data-testid="rename-project-button">
-              <mat-icon>edit</mat-icon>
-              {{ 'settings.dangerZone.rename.button' | transloco }}
-            </button>
-          </div>
-        } @else {
-          <div class="rename-form">
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>{{
-                'settings.dangerZone.rename.slugLabel' | transloco
-              }}</mat-label>
-              <input
-                matInput
-                id="settings-rename-slug-input"
-                [formField]="renameForm.newProjectSlug"
-                [placeholder]="
-                  'settings.dangerZone.rename.slugPlaceholder' | transloco
-                "
-                data-testid="new-slug-input"
-                (keyup.enter)="renameProject()"
-                [attr.aria-label]="
-                  'settings.dangerZone.rename.slugLabel' | transloco
-                " />
-              <mat-hint>{{
-                'settings.dangerZone.rename.slugHint' | transloco
-              }}</mat-hint>
-            </mat-form-field>
-
-            @if (renameError()) {
-              <mat-card class="error-card inline-error">
-                <mat-card-content>
-                  <mat-icon>error</mat-icon>
-                  <span>{{ renameError() }}</span>
-                </mat-card-content>
-              </mat-card>
-            }
-
-            <div class="form-actions">
+          @if (!showRenameForm()) {
+            <div class="action-buttons">
               <button
-                mat-button
-                (click)="cancelRename()"
-                data-testid="cancel-rename-button">
-                {{ 'cancel' | transloco }}
-              </button>
-              <button
-                mat-raised-button
+                mat-stroked-button
                 color="warn"
-                [disabled]="!isValidSlug() || isRenaming()"
-                (click)="renameProject()"
-                data-testid="confirm-rename-button">
-                @if (isRenaming()) {
-                  <mat-progress-spinner diameter="20" mode="indeterminate">
-                  </mat-progress-spinner>
-                } @else {
-                  <ng-container>
-                    <mat-icon>check</mat-icon>
-                    {{ 'settings.dangerZone.rename.button' | transloco }}
-                  </ng-container>
-                }
+                (click)="showRenameForm.set(true)"
+                data-testid="rename-project-button">
+                <mat-icon>edit</mat-icon>
+                {{ 'settings.dangerZone.rename.button' | transloco }}
               </button>
             </div>
-          </div>
-        }
-      </mat-card-content>
-    </mat-card>
+          } @else {
+            <div class="rename-form">
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>{{
+                  'settings.dangerZone.rename.slugLabel' | transloco
+                }}</mat-label>
+                <input
+                  matInput
+                  id="settings-rename-slug-input"
+                  [formField]="renameForm.newProjectSlug"
+                  [placeholder]="
+                    'settings.dangerZone.rename.slugPlaceholder' | transloco
+                  "
+                  data-testid="new-slug-input"
+                  (keyup.enter)="renameProject()"
+                  [attr.aria-label]="
+                    'settings.dangerZone.rename.slugLabel' | transloco
+                  " />
+                <mat-hint>{{
+                  'settings.dangerZone.rename.slugHint' | transloco
+                }}</mat-hint>
+              </mat-form-field>
+
+              @if (renameError()) {
+                <mat-card class="error-card inline-error">
+                  <mat-card-content>
+                    <mat-icon>error</mat-icon>
+                    <span>{{ renameError() }}</span>
+                  </mat-card-content>
+                </mat-card>
+              }
+
+              <div class="form-actions">
+                <button
+                  mat-button
+                  (click)="cancelRename()"
+                  data-testid="cancel-rename-button">
+                  {{ 'cancel' | transloco }}
+                </button>
+                <button
+                  mat-raised-button
+                  color="warn"
+                  [disabled]="!isValidSlug() || isRenaming()"
+                  (click)="renameProject()"
+                  data-testid="confirm-rename-button">
+                  @if (isRenaming()) {
+                    <mat-progress-spinner diameter="20" mode="indeterminate">
+                    </mat-progress-spinner>
+                  } @else {
+                    <ng-container>
+                      <mat-icon>check</mat-icon>
+                      {{ 'settings.dangerZone.rename.button' | transloco }}
+                    </ng-container>
+                  }
+                </button>
+              </div>
+            </div>
+          }
+        </mat-card-content>
+      </mat-card>
+    }
 
     <!-- Delete Project Section -->
     <mat-card class="danger-card delete-card" data-testid="delete-project-card">

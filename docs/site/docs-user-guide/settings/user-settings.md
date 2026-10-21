@@ -74,6 +74,10 @@ A tour is a short, step-by-step walk-through that highlights parts of the screen
 
 To replay a tour, open your avatar menu and choose **Take a tour** (on the bookshelf and, on larger screens, inside a project). The canvas tour is replayed from the help button in the canvas sidebar.
 
+### AI
+
+**No AI** (the default) hides every AI feature; **Allow AI** turns on the AI features your server offers and lets an AI assistant built into your browser use Inkweld through WebMCP. The choice is saved in this browser for every profile. See [No AI or Allow AI](../ai-mcp/ai-preference.md).
+
 ### Writing
 
 **Convert Markdown as I type** is off by default. When it is on, typing `# `, `> `, `- ` or `1. ` at the start of a line turns it into a heading, quote or list, and **bold** or _italic_ is formatted as you close it. It also turns straight quotes into curly ones. If a conversion isn't what you wanted, press **Backspace** straight away to undo it. The setting applies to documents you open after changing it.
@@ -103,7 +107,7 @@ Light or dark mode is chosen from the **Theme** control in the avatar menu, not 
 
 ## Authorized Apps
 
-Lists the third-party applications — such as AI assistants connected over MCP — that you have granted access to your projects. For each one you can review and change which projects it may reach, grant access to another project, revoke a single project, or disconnect the app entirely. See [MCP Clients](../ai-mcp/mcp-clients.md).
+Shown only for an Inkweld Server profile. Lists the third-party applications — such as AI assistants connected over MCP — that you have granted access to your projects. For each one you can review and change which projects it may reach, grant access to another project, revoke a single project, or disconnect the app entirely. See [MCP Clients](../ai-mcp/mcp-clients.md).
 
 ## Project Tree
 

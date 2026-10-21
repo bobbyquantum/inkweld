@@ -11,6 +11,7 @@ import index from '../../../../public/assets/project-templates/index.json';
 import demoDocuments from '../../../../public/assets/project-templates/ttrpg-demo/documents.json';
 import demoElementTags from '../../../../public/assets/project-templates/ttrpg-demo/element-tags.json';
 import demoElements from '../../../../public/assets/project-templates/ttrpg-demo/elements.json';
+import demoGenerators from '../../../../public/assets/project-templates/ttrpg-demo/generators.json';
 import demoMedia from '../../../../public/assets/project-templates/ttrpg-demo/media.json';
 import demoMediaTags from '../../../../public/assets/project-templates/ttrpg-demo/media-tags.json';
 import demoProject from '../../../../public/assets/project-templates/ttrpg-demo/project.json';
@@ -18,7 +19,9 @@ import demoPlans from '../../../../public/assets/project-templates/ttrpg-demo/pu
 import demoRelationshipTypes from '../../../../public/assets/project-templates/ttrpg-demo/relationship-types.json';
 import demoRelationships from '../../../../public/assets/project-templates/ttrpg-demo/relationships.json';
 import demoSchemas from '../../../../public/assets/project-templates/ttrpg-demo/schemas.json';
+import demoSnapshots from '../../../../public/assets/project-templates/ttrpg-demo/snapshots.json';
 import demoTags from '../../../../public/assets/project-templates/ttrpg-demo/tags.json';
+import demoTimeSystems from '../../../../public/assets/project-templates/ttrpg-demo/time-systems.json';
 import demoWorldbuilding from '../../../../public/assets/project-templates/ttrpg-demo/worldbuilding.json';
 import starterDocuments from '../../../../public/assets/project-templates/ttrpg-empty/documents.json';
 import starterElements from '../../../../public/assets/project-templates/ttrpg-empty/elements.json';
@@ -26,6 +29,18 @@ import starterPlans from '../../../../public/assets/project-templates/ttrpg-empt
 import starterRelationshipTypes from '../../../../public/assets/project-templates/ttrpg-empty/relationship-types.json';
 import starterSchemas from '../../../../public/assets/project-templates/ttrpg-empty/schemas.json';
 import { extendedSchema } from '../../components/element-ref/extended-schema';
+
+/**
+ * Every media id a template's JSON refers to, in either form: `media://<id>`
+ * (worldbuilding images and backgrounds, with or without an extension) or
+ * `media:<id>` (prose images).
+ */
+function referencedMediaIds(...files: unknown[]): string[] {
+  const text = JSON.stringify(files);
+  return [...text.matchAll(/media:(?:\/\/)?([\w.-]+)/g)].map(match =>
+    match[1].replace(/\.[a-z0-9]+$/i, '')
+  );
+}
 
 const TTRPG_SCHEMAS = [
   'ttrpg-player-character-v1',
@@ -161,6 +176,23 @@ describe('Tabletop RPG templates', () => {
       for (const match of text.matchAll(/media:(img-[a-z0-9-]+)/g)) {
         expect(mediaIds).toContain(match[1]);
       }
+    });
+
+    it('ships every media file it refers to, anywhere in the template', () => {
+      // A missing file makes a Browser profile ask a server for it.
+      const referenced = referencedMediaIds(
+        demoDocuments,
+        demoElements,
+        demoWorldbuilding,
+        demoSchemas,
+        demoProject,
+        demoPlans,
+        demoGenerators,
+        demoSnapshots,
+        demoTimeSystems
+      );
+      expect(referenced.length).toBeGreaterThan(0);
+      for (const id of referenced) expect(mediaIds).toContain(id);
     });
 
     it('has a cover the project can pick up', () => {

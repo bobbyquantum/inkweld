@@ -267,6 +267,19 @@ describe('AddRelationshipDialogComponent', () => {
       expect(component.selectedTypeId()).toBe('references');
     });
 
+    it('should describe the selected type in a full sentence', async () => {
+      component.onTypeSelected('references');
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      const text = (fixture.nativeElement as HTMLElement).querySelector(
+        '.type-description'
+      )?.textContent;
+      expect(text?.replaceAll(/\s+/g, ' ')).toContain(
+        'Links this element to the selected target as “References”.'
+      );
+    });
+
     it('should clear element selection when type changes', () => {
       // Select type and element
       component.onTypeSelected('references');

@@ -145,7 +145,7 @@
     "switchWarning": "Switching profiles reloads the app. Each profile keeps its own projects and settings on this device.",
     "switchToLocalTitle": "Switch to a Browser profile?",
     "switchToLocalMessage": "Switching to a Browser profile will disconnect from the server. You will need to reconnect and log in again to access your server projects. Continue?",
-    "switchToLocalConfirm": "Switch to Local",
+    "switchToLocalConfirm": "Switch to Browser",
     "switchedToLocal": "Switched to a Browser profile",
     "switchFailed": "Failed to switch modes",
     "enterServerUrl": "Please enter a server URL",
@@ -155,8 +155,8 @@
     "changeServerTitle": "Change Server?",
     "changeServerMessage": "Changing servers will disconnect you from the current server. You will need to log in again. Continue?",
     "changeServerConfirm": "Change Server",
-    "migrateTitle": "Migrate Local Projects?",
-    "migrateMessage": "You have {{count}} local project(s). {{count}} will be uploaded to the server after you authenticate. Your local data will be removed after successful migration. Continue?",
+    "migrateTitle": "Migrate Browser Projects?",
+    "migrateMessage": "You have {{count}} project(s) in this browser. {{count}} will be uploaded to the server after you authenticate. Your local data will be removed after successful migration. Continue?",
     "migrateConfirm": "Continue",
     "enterCredentials": "Please enter username and password",
     "passwordsMismatch": "Passwords do not match",
@@ -218,7 +218,7 @@
     "dataLabel": "Documents & data",
     "mediaLabel": "Media",
     "totalLabel": "Total",
-    "unavailable": "Storage size is available in server mode.",
+    "unavailable": "Storage size is available on an Inkweld Server.",
     "loadFailed": "Failed to load storage size"
   },
   "mcp": {

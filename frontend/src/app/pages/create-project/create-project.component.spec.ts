@@ -384,11 +384,9 @@ describe('CreateProjectComponent', () => {
 
     await component.onSubmit();
 
-    expect(snackBar.open).toHaveBeenCalledWith(
-      'Project imported successfully!',
-      'Close',
-      { duration: 3000 }
-    );
+    expect(snackBar.open).toHaveBeenCalledWith('Project created!', 'Close', {
+      duration: 3000,
+    });
     expect(router.navigate).toHaveBeenCalledWith([
       '/',
       'testuser',

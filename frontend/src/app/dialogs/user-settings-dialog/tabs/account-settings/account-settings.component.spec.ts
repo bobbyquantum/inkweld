@@ -5,6 +5,7 @@ import { provideRouter } from '@angular/router';
 import { ProfileVisibility } from '@inkweld/model/profile-visibility';
 import { SystemConfigService } from '@services/core/system-config.service';
 import { StorageUsageService } from '@services/user/storage-usage.service';
+import { UnifiedUserService } from '@services/user/unified-user.service';
 import { UserService } from '@services/user/user.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -17,6 +18,10 @@ describe('AccountSettingsComponent (dialog tab)', () => {
   let mockUserService: {
     currentUser: ReturnType<typeof vi.fn>;
     updateProfile: ReturnType<typeof vi.fn>;
+  };
+  let mockUnifiedUserService: {
+    currentUser: ReturnType<typeof vi.fn>;
+    updateUser: ReturnType<typeof vi.fn>;
   };
   let mockSystemConfig: {
     isLocalMode: ReturnType<typeof vi.fn>;
@@ -54,6 +59,17 @@ describe('AccountSettingsComponent (dialog tab)', () => {
       }),
     };
 
+    // Mirrors UnifiedUserService: the server user unless a test switches it
+    // to the local user of a Browser or Cloud Sync profile.
+    mockUnifiedUserService = {
+      currentUser: vi
+        .fn()
+        .mockImplementation(() =>
+          (mockUserService.currentUser as unknown as () => unknown)()
+        ),
+      updateUser: vi.fn().mockResolvedValue(undefined),
+    };
+
     mockSystemConfig = {
       isLocalMode: vi.fn().mockReturnValue(false),
       isPasskeysEnabled: vi.fn().mockReturnValue(true),
@@ -80,6 +96,7 @@ describe('AccountSettingsComponent (dialog tab)', () => {
         provideZonelessChangeDetection(),
         provideRouter([]),
         { provide: UserService, useValue: mockUserService },
+        { provide: UnifiedUserService, useValue: mockUnifiedUserService },
         { provide: SystemConfigService, useValue: mockSystemConfig },
         { provide: StorageUsageService, useValue: mockStorageUsage },
       ],
@@ -194,15 +211,16 @@ describe('AccountSettingsComponent (dialog tab)', () => {
       });
     });
 
-    it('should not send email in local mode even if changed', async () => {
+    it('should save only the name, locally, in local mode', async () => {
       mockSystemConfig.isLocalMode.mockReturnValue(true);
       component.form.displayName().value.set('New Name');
       component.form.email().value.set('new@example.com');
       await component.saveProfile();
 
-      expect(mockUserService.updateProfile).toHaveBeenCalledWith({
+      expect(mockUnifiedUserService.updateUser).toHaveBeenCalledWith({
         name: 'New Name',
       });
+      expect(mockUserService.updateProfile).not.toHaveBeenCalled();
     });
 
     it('should handle save errors gracefully', async () => {
@@ -451,9 +469,64 @@ describe('AccountSettingsComponent (dialog tab)', () => {
       component.onProfileVisibilityChange(ProfileVisibility.Public);
       component.form.displayName().value.set('New Name');
       await component.saveProfile();
-      expect(mockUserService.updateProfile).toHaveBeenCalledWith({
+      expect(mockUnifiedUserService.updateUser).toHaveBeenCalledWith({
         name: 'New Name',
       });
+      expect(mockUserService.updateProfile).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Browser and Cloud Sync profiles', () => {
+    const localUser = {
+      id: '',
+      username: 'writer',
+      name: 'Local Writer',
+      enabled: true,
+    };
+
+    beforeEach(() => {
+      mockSystemConfig.isLocalMode.mockReturnValue(true);
+      mockUnifiedUserService.currentUser.mockReturnValue(localUser);
+      // The server user is anonymous while a local profile is active.
+      mockUserService.currentUser.mockReturnValue({
+        id: '',
+        username: 'anonymous',
+        name: 'anonymous',
+        enabled: false,
+      });
+      fixture = TestBed.createComponent(AccountSettingsComponent);
+      component = fixture.componentInstance;
+      fixture.detectChanges();
+    });
+
+    it("shows the local user's name, not the anonymous server user", () => {
+      expect(component.model().displayName).toBe('Local Writer');
+    });
+
+    it('reports no changes against the local user', async () => {
+      await component.saveProfile();
+
+      expect(mockSnackBar.open).toHaveBeenCalledWith(
+        'No changes to save',
+        expect.any(String),
+        expect.any(Object)
+      );
+      expect(mockUnifiedUserService.updateUser).not.toHaveBeenCalled();
+    });
+
+    it('saves the name locally without calling the server', async () => {
+      component.form.displayName().value.set('Renamed Writer');
+      await component.saveProfile();
+
+      expect(mockUnifiedUserService.updateUser).toHaveBeenCalledWith({
+        name: 'Renamed Writer',
+      });
+      expect(mockUserService.updateProfile).not.toHaveBeenCalled();
+      expect(mockSnackBar.open).toHaveBeenCalledWith(
+        'Profile updated',
+        expect.any(String),
+        expect.any(Object)
+      );
     });
   });
 });

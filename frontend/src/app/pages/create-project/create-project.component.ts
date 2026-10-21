@@ -273,7 +273,7 @@ export class CreateProjectComponent implements OnInit {
       );
 
       this.snackBar.open(
-        this.transloco.translate('project.snackbar.projectImported'),
+        this.transloco.translate('project.snackbar.projectCreated'),
         this.transloco.translate('close'),
         { duration: 3000 }
       );

@@ -35,7 +35,7 @@ export type CloudProvider =
  * - `local`: browser storage only (Browser mode)
  * - `cloud`: browser storage mirrored to the user's own cloud storage
  *   (Cloud Sync mode). No Inkweld server, no Inkweld account.
- * - `server`: connected to an Inkweld server (Realtime Sync mode)
+ * - `server`: connected to an Inkweld Server
  */
 export type StorageConfigType = 'local' | 'cloud' | 'server';
 
