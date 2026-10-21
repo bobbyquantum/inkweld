@@ -110,6 +110,9 @@ async function expectProjectOnServer(
 }
 
 test.describe('Move projects to a passkey-only server', () => {
+  // Skipped outside the online config: the shared backend there has password
+  // login on, so this suite needs a private Bun backend with it off, which
+  // only that config can start.
   test.skip(
     !canStartIsolatedBackend(),
     'Needs a private Bun backend; only the online config can start one'

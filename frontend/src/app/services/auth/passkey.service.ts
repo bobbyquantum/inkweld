@@ -200,23 +200,7 @@ export class PasskeyService {
       }
 
       this.authTokenService.setToken(result.token);
-      // Mirror UserService.login: bind the login to a server profile. A
-      // different author than the profile's owner is moved to their own
-      // profile, and the app reloads into that storage context.
-      const activeConfig = this.storageContext.getActiveConfig();
-      if (activeConfig?.type === 'server') {
-        const bound = this.storageContext.adoptServerLogin({
-          name: result.user.name ?? result.user.username,
-          username: result.user.username,
-        });
-        if (bound.forkedFrom) {
-          this.authTokenService.moveToken(bound.forkedFrom, bound.config.id);
-          if (reloadOnProfileChange) {
-            globalThis.location.assign(appUrl('/'));
-          }
-        }
-      }
-
+      this.bindServerLogin(result.user, reloadOnProfileChange);
       return result.user;
     } catch (err) {
       if (err instanceof PasskeyError) throw err;
@@ -236,6 +220,26 @@ export class PasskeyService {
         this.signalUnknownCredential(options.rpId, assertion.id);
       }
       throw passkeyError;
+    }
+  }
+
+  /**
+   * Mirror UserService.login: bind the login to a server profile. A
+   * different author than the profile's owner is moved to their own
+   * profile, and the app reloads into that storage context unless the
+   * caller asked to stay on the page.
+   */
+  private bindServerLogin(user: User, reloadOnProfileChange: boolean): void {
+    const activeConfig = this.storageContext.getActiveConfig();
+    if (activeConfig?.type !== 'server') return;
+    const bound = this.storageContext.adoptServerLogin({
+      name: user.name ?? user.username,
+      username: user.username,
+    });
+    if (!bound.forkedFrom) return;
+    this.authTokenService.moveToken(bound.forkedFrom, bound.config.id);
+    if (reloadOnProfileChange) {
+      globalThis.location.assign(appUrl('/'));
     }
   }
 
