@@ -239,6 +239,15 @@ describe('AuthTokenService', () => {
       expect(mockStorage[`srv:${hash1}:auth_token`]).toBeUndefined();
       expect(mockStorage[`srv:${hash2}:auth_token`]).toBe('token2');
     });
+
+    it('should set token for a specific config without touching the active one', () => {
+      mockStorage[`srv:${hash1}:auth_token`] = 'active-token';
+
+      service.setTokenForConfig(hash2, 'restored-token');
+
+      expect(mockStorage[`srv:${hash2}:auth_token`]).toBe('restored-token');
+      expect(service.getToken()).toBe('active-token');
+    });
   });
 
   describe('integration', () => {

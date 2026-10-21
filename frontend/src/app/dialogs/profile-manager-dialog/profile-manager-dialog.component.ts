@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  DestroyRef,
   inject,
   signal,
   ViewChild,
@@ -28,10 +29,17 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router } from '@angular/router';
 import { RegistrationFormComponent } from '@components/registration-form/registration-form.component';
 import { TooltipAriaLabelDirective } from '@directives/tooltip-aria-label.directive';
-import { type Project, ProjectsService } from '@inkweld/index';
+import {
+  type Project,
+  ProjectsService,
+  type SystemFeatures,
+  type User,
+} from '@inkweld/index';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { AuthTokenService } from '@services/auth/auth-token.service';
+import { PasskeyError, PasskeyService } from '@services/auth/passkey.service';
 import { AppModePolicyService } from '@services/core/app-mode-policy.service';
+import { ErrorTranslationService } from '@services/core/error-translation.service';
 import {
   type ProfileDestination,
   type ProfileInfo,
@@ -49,7 +57,9 @@ import { BackgroundSyncService } from '@services/local/background-sync.service';
 import {
   MigrationService,
   MigrationStatus,
+  ServerApprovalRequiredError,
 } from '@services/local/migration.service';
+import { UserService } from '@services/user/user.service';
 import { appUrl } from '@utils/app-base';
 import { normalizeServerUrl, stripTrailingSlashes } from '@utils/string-utils';
 import { firstValueFrom } from 'rxjs';
@@ -119,6 +129,9 @@ export class ProfileManagerDialogComponent {
   private readonly router = inject(Router);
   private readonly dialog = inject(MatDialog);
   private readonly transloco = inject(TranslocoService);
+  private readonly passkeyService = inject(PasskeyService);
+  private readonly userService = inject(UserService);
+  private readonly errorTranslation = inject(ErrorTranslationService);
 
   private readonly dialogData = inject<ProfileManagerDialogData | null>(
     MAT_DIALOG_DATA,
@@ -255,6 +268,41 @@ export class ProfileManagerDialogComponent {
   // Track registration form validity for external button control
   protected registrationFormValid = signal(false);
 
+  /**
+   * The target server's public features, read when the move flow starts, so
+   * the sign-in step offers what that server allows (the active profile's
+   * SystemConfigService describes the Browser profile, not the target).
+   * Null while loading or when the server didn't answer.
+   */
+  protected targetFeatures = signal<SystemFeatures | null>(null);
+  protected isLoadingTargetFeatures = signal(false);
+  /**
+   * Password sign-in and registration. Offered when the server allows it,
+   * or when its features couldn't be read and the server will decide.
+   */
+  protected targetPasswordLogin = computed(
+    () => this.targetFeatures()?.passwordLoginEnabled ?? true
+  );
+  /** Passkey sign-in and registration: the server and this browser support it */
+  protected targetPasskeys = computed(
+    () =>
+      this.passkeyService.isSupported() &&
+      (this.targetFeatures()?.passkeysEnabled ?? true)
+  );
+  /** A new account can be created here (with a password or a passkey) */
+  protected canRegisterOnTarget = computed(
+    () => this.targetPasswordLogin() || this.targetPasskeys()
+  );
+  /**
+   * Set when a passwordless account was created but its passkey isn't
+   * enrolled yet (the prompt was cancelled or failed). The user can retry;
+   * cancelling goes back to the Browser profile. `enrolmentToken` is the
+   * short-lived token of an account that waits for approval.
+   */
+  protected pendingPasskeyEnrolment = signal<{
+    enrolmentToken?: string;
+  } | null>(null);
+
   // Reference to registration form component for register mode
   @ViewChild(RegistrationFormComponent)
   registrationForm?: RegistrationFormComponent;
@@ -269,6 +317,13 @@ export class ProfileManagerDialogComponent {
     ) {
       void this.appModePolicy.ready();
     }
+    // Closing the dialog part-way through the move must not leave the app
+    // on the target profile the sign-in switched to.
+    inject(DestroyRef).onDestroy(() => {
+      if (this.migrationSourceId && !this.migrationStarted) {
+        void this.restoreSourceProfile();
+      }
+    });
   }
 
   // Expose enum for template
@@ -282,6 +337,14 @@ export class ProfileManagerDialogComponent {
   private migrationTargetId: string | null = null;
   /** Username the user logged in or registered with on the target server */
   private migrationUsername = '';
+  /** Profiles that existed before this flow's first sign-in attempt */
+  private knownProfileIds: Set<string> | null = null;
+  /** Profiles this flow created, removed again if the sign-in fails */
+  private readonly createdProfileIds = new Set<string>();
+  /** Signed-in user before the flow touched it, put back on failure */
+  private userBeforeSignIn: User | null = null;
+  /** Projects started moving (or the switch completed): stay on the target */
+  private migrationStarted = false;
 
   /**
    * Check if registration form is valid (for button disabled state)
@@ -471,6 +534,28 @@ export class ProfileManagerDialogComponent {
     this.migrationSourceId = this.activeProfile()?.id ?? null;
     this.currentView.set('migrate');
     this.showAuthForm.set(true);
+    void this.loadTargetFeatures(url);
+  }
+
+  /**
+   * Read the target server's sign-in options. A passwordless server starts
+   * on registration without password fields; one without registration
+   * (nothing this dialog can offer) starts on sign-in.
+   */
+  private async loadTargetFeatures(url: string): Promise<void> {
+    this.targetFeatures.set(null);
+    this.isLoadingTargetFeatures.set(true);
+    try {
+      const features = await this.setupService.fetchServerFeatures(url);
+      // The user may have cancelled or picked another server meanwhile
+      if (this.pendingServerUrl !== url) return;
+      this.targetFeatures.set(features);
+      if (!this.canRegisterOnTarget()) this.authMode.set('login');
+    } finally {
+      if (this.pendingServerUrl === url) {
+        this.isLoadingTargetFeatures.set(false);
+      }
+    }
   }
 
   /**
@@ -757,10 +842,11 @@ export class ProfileManagerDialogComponent {
   // ============ Migration Methods ============
 
   /**
-   * Cancel migration and return to list
+   * Cancel migration and return to list, back on the profile it started from
    */
-  cancelMigration(): void {
+  async cancelMigration(): Promise<void> {
     this.currentView.set('list');
+    if (this.migrationSourceId) await this.restoreSourceProfile();
     this.resetMigrationForm();
   }
 
@@ -779,6 +865,7 @@ export class ProfileManagerDialogComponent {
         .getConfigurations()
         .find(c => c.type === 'server' && c.serverUrl === normalizedUrl)?.id;
     if (!targetId) return;
+    this.migrationStarted = true;
     if (displayName) {
       this.storageContext.updateConfigDisplayName(targetId, displayName);
     }
@@ -802,6 +889,13 @@ export class ProfileManagerDialogComponent {
     this.migrationSourceId = null;
     this.migrationTargetId = null;
     this.migrationUsername = '';
+    this.createdProfileIds.clear();
+    this.knownProfileIds = null;
+    this.userBeforeSignIn = null;
+    this.targetFeatures.set(null);
+    this.isLoadingTargetFeatures.set(false);
+    this.pendingPasskeyEnrolment.set(null);
+    this.authMode.set('register');
     this.selectedProjectSlugs.set(new Set());
     this.conflictingSlugs.set(new Set());
     this.serverSlugs.set(new Set());
@@ -854,21 +948,19 @@ export class ProfileManagerDialogComponent {
 
   /**
    * Handle registration request from the shared registration form.
-   * Called when externalSubmit mode emits submitRequest.
+   * Called when externalSubmit mode emits submitRequest. Without a password
+   * (a passwordless server) the new account gets a passkey straight away.
    */
   async onRegistrationSubmit(credentials: {
     username: string;
     password?: string;
+    name?: string;
+    email?: string;
   }): Promise<void> {
-    // Local→remote profile migration always uses password registration today.
-    // Passwordless migration would require a passkey enrolment ceremony
-    // against the remote server mid-flow, which the migration UI doesn't
-    // support yet — guard explicitly so the call site below stays type-safe.
-    if (!credentials.password) {
+    const withPasskey = !credentials.password;
+    if (withPasskey && !this.targetPasskeys()) {
       this.authError.set(
-        this.transloco.translate(
-          'dialogs.profileManager.passwordRequiredMigrate'
-        )
+        this.transloco.translate('dialogs.profileManager.passkeysUnavailable')
       );
       return;
     }
@@ -876,42 +968,29 @@ export class ProfileManagerDialogComponent {
     this.isAuthenticating.set(true);
     this.registrationForm?.setLoading(true);
     this.authError.set(null);
+    let accountCreated = false;
 
     try {
       // Create or find the server profile for this author, then register.
       // The username picks the profile so a second author on the same server
       // never lands in someone else's storage.
-      await this.setupService.configureServerMode(this.pendingServerUrl, {
-        username: credentials.username,
-      });
-      this.migrationTargetId = this.activeProfile()?.id ?? null;
+      await this.enterTargetProfile(credentials.username);
 
-      // Register on server
-      await this.migrationService.registerOnServer(
-        credentials.username,
-        credentials.password
-      );
+      if (await this.registerAccount(credentials, withPasskey)) return;
+      accountCreated = true;
       this.migrationUsername = credentials.username;
 
-      // Select all projects by default and resolve slug conflicts BEFORE
-      // revealing the selection step. Flipping the view first left a window
-      // where the migrate button was clickable with an empty selection, so a
-      // fast click "skipped" migration entirely (vacuous success; flaky e2e).
-      const allSlugs = this.localProjects().map(p => p.slug);
-      this.selectedProjectSlugs.set(new Set(allSlugs));
-      await this.checkSlugConflicts();
+      if (withPasskey) {
+        // The account has no credential until this succeeds
+        this.pendingPasskeyEnrolment.set({});
+        await this.enrolPendingPasskey();
+        return;
+      }
 
-      // Auth successful - mark as authenticated and show project selection
-      this.isAuthenticated.set(true);
-      this.showAuthForm.set(false);
-
-      const message =
-        allSlugs.length > 0
-          ? this.transloco.translate('dialogs.profileManager.registeredMigrate')
-          : this.transloco.translate('dialogs.profileManager.registeredSwitch');
-      this.snackBar.open(message, this.transloco.translate('close'), {
-        duration: 3000,
-      });
+      await this.completeSignIn(
+        'dialogs.profileManager.registeredMigrate',
+        'dialogs.profileManager.registeredSwitch'
+      );
     } catch (error) {
       console.error('Registration failed:', error);
       const message =
@@ -920,12 +999,201 @@ export class ProfileManagerDialogComponent {
           : this.transloco.translate(
               'dialogs.profileManager.registrationFailed'
             );
+      if (!accountCreated) await this.restoreSourceProfile();
       this.registrationForm?.setError(message);
       this.authError.set(message);
     } finally {
       this.isAuthenticating.set(false);
       this.registrationForm?.setLoading(false);
     }
+  }
+
+  /**
+   * Create the account on the target server. Returns true when the account
+   * waits for approval and this already took over: a passwordless account
+   * still needs its passkey then, or it could never be signed in to once
+   * approved.
+   */
+  private async registerAccount(
+    credentials: {
+      username: string;
+      password?: string;
+      name?: string;
+      email?: string;
+    },
+    withPasskey: boolean
+  ): Promise<boolean> {
+    try {
+      await this.migrationService.registerOnServer(
+        credentials.username,
+        credentials.password,
+        { name: credentials.name, email: credentials.email }
+      );
+      return false;
+    } catch (error) {
+      if (
+        !withPasskey ||
+        !(error instanceof ServerApprovalRequiredError) ||
+        !error.enrolmentToken
+      ) {
+        throw error;
+      }
+      this.migrationUsername = credentials.username;
+      this.pendingPasskeyEnrolment.set({
+        enrolmentToken: error.enrolmentToken,
+      });
+      await this.enrolPendingPasskey();
+      return true;
+    }
+  }
+
+  /**
+   * Enrol the passkey of an account this flow just created on a passwordless
+   * server. On success the move carries on (or, for an account that waits
+   * for approval, ends back on the Browser profile with a note). A cancelled
+   * or failed prompt keeps the retry step open.
+   */
+  async enrolPendingPasskey(): Promise<void> {
+    const pending = this.pendingPasskeyEnrolment();
+    if (!pending) return;
+    this.isAuthenticating.set(true);
+    this.authError.set(null);
+    // An account waiting for approval only has a token for this ceremony
+    if (pending.enrolmentToken) {
+      this.authTokenService.setToken(pending.enrolmentToken);
+    }
+    let enrolled = false;
+    try {
+      await this.passkeyService.register(
+        this.transloco.translate('dialogs.profileManager.passkeyName')
+      );
+      enrolled = true;
+    } catch (error) {
+      console.error('Passkey enrolment failed:', error);
+      const result = this.errorTranslation.translate(error);
+      this.authError.set(
+        result.silent
+          ? this.transloco.translate(
+              'dialogs.profileManager.passkeyEnrolmentCancelled'
+            )
+          : result.message
+      );
+    } finally {
+      if (pending.enrolmentToken) this.authTokenService.clearToken();
+      this.isAuthenticating.set(false);
+    }
+    if (!enrolled) return;
+
+    this.pendingPasskeyEnrolment.set(null);
+    if (pending.enrolmentToken) {
+      // Nothing can move until an administrator approves the account
+      await this.restoreSourceProfile();
+      this.authError.set(
+        this.transloco.translate('dialogs.profileManager.awaitingApproval')
+      );
+      return;
+    }
+    await this.completeSignIn(
+      'dialogs.profileManager.registeredMigrate',
+      'dialogs.profileManager.registeredSwitch'
+    );
+  }
+
+  /**
+   * Sign in to the target server with a passkey. The passkey names the
+   * account, so the profile is picked by the server URL and the login moves
+   * to its author's own profile if that one belongs to someone else.
+   */
+  async signInWithPasskey(): Promise<void> {
+    if (this.isAuthenticating()) return;
+    this.isAuthenticating.set(true);
+    this.authError.set(null);
+
+    try {
+      await this.enterTargetProfile();
+      const profileId = this.migrationTargetId;
+      const previousToken = profileId
+        ? this.authTokenService.getTokenForConfig(profileId)
+        : null;
+
+      const user = await this.passkeyService.login({
+        reloadOnProfileChange: false,
+      });
+
+      const signedInId = this.activeProfile()?.id ?? null;
+      if (signedInId && signedInId !== profileId) {
+        // The login moved to its author's own profile. Give the profile it
+        // came from its own session back.
+        this.trackCreatedProfile(signedInId);
+        if (profileId && previousToken) {
+          this.authTokenService.setTokenForConfig(profileId, previousToken);
+        }
+        this.migrationTargetId = signedInId;
+      } else if (signedInId) {
+        this.useOwnServerProfile(signedInId, user.username);
+      }
+      this.migrationUsername = user.username;
+
+      await this.completeSignIn(
+        'dialogs.profileManager.authenticatedMigrate',
+        'dialogs.profileManager.authenticatedSwitch'
+      );
+    } catch (error) {
+      console.error('Passkey sign-in failed:', error);
+      await this.restoreSourceProfile();
+      this.authError.set(this.passkeySignInMessage(error));
+    } finally {
+      this.isAuthenticating.set(false);
+    }
+  }
+
+  /**
+   * A passkey sign-in starts on a profile picked by the server URL alone.
+   * When this flow created that profile and the author already has one on
+   * this server, move the session there instead of keeping two profiles for
+   * one author.
+   */
+  private useOwnServerProfile(profileId: string, username: string): void {
+    if (!this.createdProfileIds.has(profileId)) return;
+    const serverUrl = this.storageContext.getConfigById(profileId)?.serverUrl;
+    const wanted = username.trim().toLowerCase();
+    const own = this.storageContext
+      .getConfigurations()
+      .find(
+        c =>
+          c.id !== profileId &&
+          c.type === 'server' &&
+          c.serverUrl === serverUrl &&
+          c.userProfile?.username.trim().toLowerCase() === wanted
+      );
+    if (!own) return;
+    this.authTokenService.moveToken(profileId, own.id);
+    this.storageContext.switchToConfig(own.id);
+    this.discardProfile(profileId);
+    this.migrationTargetId = own.id;
+  }
+
+  /** Message for a failed passkey sign-in, or null for a cancelled prompt */
+  private passkeySignInMessage(error: unknown): string | null {
+    if (!(error instanceof PasskeyError)) {
+      return error instanceof Error
+        ? error.message
+        : this.transloco.translate(
+            'dialogs.profileManager.authenticationFailed'
+          );
+    }
+    const result = this.errorTranslation.translate(error);
+    if (result.silent) return null;
+    // There is no approval page to send the user to in the middle of a
+    // move; say why the projects can't move yet instead
+    if (result.shouldRedirect) {
+      return this.transloco.translate(
+        result.rejected
+          ? 'dialogs.profileManager.accountRejected'
+          : 'dialogs.profileManager.awaitingApproval'
+      );
+    }
+    return result.message;
   }
 
   /**
@@ -949,40 +1217,19 @@ export class ProfileManagerDialogComponent {
 
     try {
       // Create or find the server profile for this author, then log in
-      await this.setupService.configureServerMode(this.pendingServerUrl, {
-        username: usernameValue,
-      });
-      this.migrationTargetId = this.activeProfile()?.id ?? null;
+      await this.enterTargetProfile(usernameValue);
 
       // Login to server
       await this.migrationService.loginToServer(usernameValue, passwordValue);
       this.migrationUsername = usernameValue;
 
-      // Select all projects by default and resolve slug conflicts BEFORE
-      // revealing the selection step. Flipping the view first left a window
-      // where the migrate button was clickable with an empty selection, so a
-      // fast click "skipped" migration entirely (vacuous success; flaky e2e).
-      const allSlugs = this.localProjects().map(p => p.slug);
-      this.selectedProjectSlugs.set(new Set(allSlugs));
-      await this.checkSlugConflicts();
-
-      // Auth successful - mark as authenticated and show project selection
-      this.isAuthenticated.set(true);
-      this.showAuthForm.set(false);
-
-      const message =
-        allSlugs.length > 0
-          ? this.transloco.translate(
-              'dialogs.profileManager.authenticatedMigrate'
-            )
-          : this.transloco.translate(
-              'dialogs.profileManager.authenticatedSwitch'
-            );
-      this.snackBar.open(message, this.transloco.translate('close'), {
-        duration: 3000,
-      });
+      await this.completeSignIn(
+        'dialogs.profileManager.authenticatedMigrate',
+        'dialogs.profileManager.authenticatedSwitch'
+      );
     } catch (error) {
       console.error('Authentication failed:', error);
+      await this.restoreSourceProfile();
       this.authError.set(
         error instanceof Error
           ? error.message
@@ -993,6 +1240,97 @@ export class ProfileManagerDialogComponent {
     } finally {
       this.isAuthenticating.set(false);
     }
+  }
+
+  /**
+   * Switch to the target server profile so the sign-in talks to that server
+   * (the API client and token store follow the active profile). Remembers
+   * whether the profile is new, so a failed sign-in can remove it again.
+   */
+  private async enterTargetProfile(username?: string): Promise<void> {
+    this.userBeforeSignIn ??= this.userService.currentUser();
+    this.knownProfileIds ??= new Set(
+      this.storageContext.getConfigurations().map(c => c.id)
+    );
+    await this.setupService.configureServerMode(
+      this.pendingServerUrl,
+      username ? { username } : {}
+    );
+    const target = this.activeProfile();
+    this.migrationTargetId = target?.id ?? null;
+    if (target) this.trackCreatedProfile(target.id);
+  }
+
+  private trackCreatedProfile(id: string): void {
+    if (!this.knownProfileIds?.has(id)) this.createdProfileIds.add(id);
+  }
+
+  /**
+   * Go back to the profile the move started from. Profiles this flow created
+   * are removed unless the user is signed in to them; the source profile
+   * and its projects are never touched.
+   */
+  private async restoreSourceProfile(): Promise<void> {
+    const sourceId = this.migrationSourceId;
+    if (
+      sourceId &&
+      this.activeProfile()?.id !== sourceId &&
+      this.storageContext.getConfigById(sourceId)
+    ) {
+      this.storageContext.switchToConfig(sourceId);
+    }
+    if (!this.isAuthenticated()) {
+      for (const id of this.createdProfileIds) this.discardProfile(id);
+      this.knownProfileIds = null;
+      this.migrationTargetId = null;
+    }
+    const previousUser = this.userBeforeSignIn;
+    this.userBeforeSignIn = null;
+    if (
+      previousUser &&
+      this.userService.currentUser().username !== previousUser.username
+    ) {
+      await this.userService.setCurrentUser(previousUser);
+    }
+  }
+
+  /** Remove a profile this flow created, with anything stored under it */
+  private discardProfile(id: string): void {
+    this.createdProfileIds.delete(id);
+    this.authTokenService.clearTokenForConfig(id);
+    this.storageContext.removeConfig(id);
+    this.storageContext.clearContextData(id).catch((error: unknown) => {
+      console.warn(`Could not clear data of profile ${id}:`, error);
+    });
+  }
+
+  /**
+   * Shared tail of every successful sign-in: select all projects and resolve
+   * slug conflicts, then reveal the selection step.
+   */
+  private async completeSignIn(
+    migrateMessageKey: string,
+    switchMessageKey: string
+  ): Promise<void> {
+    // Select all projects by default and resolve slug conflicts BEFORE
+    // revealing the selection step. Flipping the view first left a window
+    // where the migrate button was clickable with an empty selection, so a
+    // fast click "skipped" migration entirely (vacuous success; flaky e2e).
+    const allSlugs = this.localProjects().map(p => p.slug);
+    this.selectedProjectSlugs.set(new Set(allSlugs));
+    await this.checkSlugConflicts();
+
+    // Auth successful - mark as authenticated and show project selection
+    this.isAuthenticated.set(true);
+    this.showAuthForm.set(false);
+
+    this.snackBar.open(
+      this.transloco.translate(
+        allSlugs.length > 0 ? migrateMessageKey : switchMessageKey
+      ),
+      this.transloco.translate('close'),
+      { duration: 3000 }
+    );
   }
 
   /**
@@ -1009,6 +1347,7 @@ export class ProfileManagerDialogComponent {
       return;
     }
 
+    this.migrationStarted = true;
     this.isMigrating.set(true);
     this.authError.set(null);
     this.syncSuccess.set(false);

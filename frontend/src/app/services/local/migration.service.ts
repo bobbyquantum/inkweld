@@ -70,6 +70,19 @@ export interface MigrationState {
 }
 
 /**
+ * Registration worked but the account waits for an administrator, so
+ * projects can't move yet. On a passwordless server the account has no
+ * credential yet: `enrolmentToken` is the short-lived token that lets the
+ * caller enrol a passkey for it before giving up.
+ */
+export class ServerApprovalRequiredError extends Error {
+  constructor(readonly enrolmentToken?: string) {
+    super('This server requires admin approval. Migration cannot proceed.');
+    this.name = 'ServerApprovalRequiredError';
+  }
+}
+
+/**
  * Service to handle migration of local project data to server-mode storage.
  *
  * IMPORTANT: Migration is a 100% LOCAL operation - it copies data between
@@ -856,24 +869,30 @@ export class MigrationService {
    * Register a new user on the server.
    *
    * @param username - Username to register
-   * @param password - Password for the new account
+   * @param password - Password for the new account. Leave it out on a
+   *   passwordless server; the caller then enrols a passkey.
+   * @param profile - Optional display name and email for the account
    */
-  async registerOnServer(username: string, password: string): Promise<void> {
+  async registerOnServer(
+    username: string,
+    password?: string,
+    profile: { name?: string; email?: string } = {}
+  ): Promise<void> {
     this.logger.info('MigrationService', `Registering user: ${username}`);
 
     try {
       const response = await firstValueFrom(
         this.authenticationService.registerUser({
           username,
-          password,
+          ...(password ? { password } : {}),
+          ...(profile.name ? { name: profile.name } : {}),
+          ...(profile.email ? { email: profile.email } : {}),
         })
       );
 
       // Check if admin approval is required
       if (response.requiresApproval) {
-        throw new Error(
-          'This server requires admin approval. Migration cannot proceed.'
-        );
+        throw new ServerApprovalRequiredError(response.enrolmentToken);
       }
 
       // Store authentication token

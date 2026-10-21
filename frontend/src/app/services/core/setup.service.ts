@@ -1,5 +1,5 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
-import { type User } from '@inkweld/index';
+import { type SystemFeatures, type User } from '@inkweld/index';
 import { appOrigin, isHomeAssistantIngress } from '@utils/app-base';
 import { normalizeServerUrl, stripTrailingSlashes } from '@utils/string-utils';
 
@@ -223,6 +223,31 @@ export class SetupService {
       throw error;
     } finally {
       this.isLoading.set(false);
+    }
+  }
+
+  /**
+   * Read another server's public feature flags (sign-in methods, password
+   * policy) without switching to it. The generated API client always talks
+   * to the active profile's server, so this goes through fetch. Returns null
+   * when the server can't be reached or answers with something else.
+   */
+  async fetchServerFeatures(serverUrl: string): Promise<SystemFeatures | null> {
+    const normalizedUrl = normalizeServerUrl(serverUrl);
+    try {
+      const response = await fetch(`${normalizedUrl}/api/v1/config/features`);
+      if (!response.ok) return null;
+      const body: unknown = await response.json();
+      return body !== null && typeof body === 'object'
+        ? (body as SystemFeatures)
+        : null;
+    } catch (error) {
+      this.logger.warn(
+        'SetupService',
+        `Could not read features from ${normalizedUrl}`,
+        error
+      );
+      return null;
     }
   }
 
