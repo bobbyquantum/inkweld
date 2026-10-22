@@ -6,7 +6,7 @@
       [attr.aria-label]="'messages.backToHome' | transloco">
       <mat-icon>arrow_back</mat-icon>
     </button>
-    <span class="toolbar-title">{{ 'messages.title' | transloco }}</span>
+    <h1 class="toolbar-title">{{ 'messages.title' | transloco }}</h1>
     <span class="spacer"></span>
     @if (hasUnread) {
       <button
@@ -19,7 +19,7 @@
     }
   </mat-toolbar>
 
-  <div class="messages-content">
+  <main id="main-content" class="messages-content">
     @if (announcementService.isLoading()) {
       <div class="loading-container">
         <mat-spinner diameter="40"></mat-spinner>
@@ -50,5 +50,5 @@
         }
       </div>
     }
-  </div>
+  </main>
 </div>

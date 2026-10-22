@@ -214,6 +214,18 @@ describe('TabInterfaceComponent', () => {
     expect(component).toBeTruthy();
   });
 
+  it('names each tab close button after its tab', () => {
+    const closeButtons = Array.from(
+      (
+        fixture.nativeElement as HTMLElement
+      ).querySelectorAll<HTMLButtonElement>('.close-tab-button')
+    );
+
+    expect(closeButtons.length).toBeGreaterThan(0);
+    const labels = closeButtons.map(b => b.getAttribute('aria-label'));
+    expect(labels).toContain('Close Document 1');
+  });
+
   it('should initialize with the correct tab index', () => {
     // The component should initialize with index 0 which is the home tab
     expect(component.currentTabIndex).toBe(0);

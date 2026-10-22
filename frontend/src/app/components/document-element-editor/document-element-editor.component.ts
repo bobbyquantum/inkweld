@@ -316,6 +316,13 @@ export class DocumentElementEditorComponent
     return this.tagService.getResolvedTagsForElement(docId);
   });
 
+  /** Comma-separated names of the assigned tags, for the tag button's label */
+  readonly elementTagNames = computed(() =>
+    this.elementTags()
+      .map(tag => tag.definition.name)
+      .join(', ')
+  );
+
   /**
    * Bare element id (last segment of `username:slug:elementId`).
    * Used for lookups against `projectState.elements()` which key by element id.

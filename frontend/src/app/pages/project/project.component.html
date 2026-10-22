@@ -146,6 +146,7 @@
   }
   <mat-sidenav-content
     [class.no-toolbar]="isPopout() || (!isMobile() && useTabsDesktop())">
+    <h1 class="cdk-visually-hidden">{{ projectState.project()?.title }}</h1>
     <!-- Main toolbar - only shown on mobile or when desktop tabs are disabled.
          Never in a pop-out, which shows the document and nothing else. -->
     @if (!isPopout() && (isMobile() || !useTabsDesktop())) {
@@ -170,9 +171,9 @@
     @if (isMobile()) {
       <div class="mobile-content-wrapper">
         <!-- Content area only (tabs removed since we now use sidenav navigation) -->
-        <div class="content-area">
+        <main id="main-content" class="content-area">
           <router-outlet></router-outlet>
-        </div>
+        </main>
       </div>
     } @else {
       <!-- Desktop layout: sidebar + shared content (single outlet preserves routed state) -->
@@ -434,9 +435,9 @@
               </app-tab-interface>
             </div>
           }
-          <div class="content-area">
+          <main id="main-content" class="content-area">
             <router-outlet></router-outlet>
-          </div>
+          </main>
         </div>
       </div>
     }

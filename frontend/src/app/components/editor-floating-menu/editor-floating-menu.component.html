@@ -1,5 +1,6 @@
 <div ngToolbar class="floating-menu" data-testid="editor-floating-menu">
   <button
+    appTooltipAriaLabel
     ngToolbarWidget
     value="bold"
     [attr.aria-pressed]="isBold()"
@@ -10,6 +11,7 @@
     <mat-icon>format_bold</mat-icon>
   </button>
   <button
+    appTooltipAriaLabel
     ngToolbarWidget
     value="italic"
     [attr.aria-pressed]="isItalic()"
@@ -20,6 +22,7 @@
     <mat-icon>format_italic</mat-icon>
   </button>
   <button
+    appTooltipAriaLabel
     ngToolbarWidget
     value="underline"
     [attr.aria-pressed]="isUnderline()"
@@ -30,6 +33,7 @@
     <mat-icon>format_underlined</mat-icon>
   </button>
   <button
+    appTooltipAriaLabel
     ngToolbarWidget
     value="strike"
     [attr.aria-pressed]="isStrike()"
@@ -41,6 +45,7 @@
   </button>
   <div class="floating-divider"></div>
   <button
+    appTooltipAriaLabel
     ngToolbarWidget
     value="link"
     [attr.aria-pressed]="isLink()"
@@ -52,6 +57,7 @@
   </button>
   <div class="floating-divider"></div>
   <button
+    appTooltipAriaLabel
     ngToolbarWidget
     value="comment"
     [matTooltip]="'editor.floatingMenu.comment' | transloco"

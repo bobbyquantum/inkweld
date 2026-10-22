@@ -39,17 +39,50 @@ h2 {
     min-width: 100%;
     border-right: none;
     border-bottom: 1px solid var(--sys-outline-variant);
-    padding-right: 0;
+    padding: 4px 8px;
     display: flex;
-    justify-content: space-around;
+    gap: 2px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
 
+    // Stack the icon above a label that may wrap to two lines. On one line
+    // the labels truncated to "A…", so Account, Appearance and Authorized
+    // Apps looked the same. Too many to fit scroll sideways, like M3 tabs.
     .mat-mdc-list-item {
-      flex: 1;
+      // As narrow as the longest word, so "Project Tree" and "Authorized
+      // Apps" wrap, then share out any space left.
+      flex: 1 0 auto;
+      width: min-content;
+      flex-direction: column;
       justify-content: center;
-      padding: 8px 0;
+      gap: 4px;
+      height: auto;
+      min-width: 56px;
+      min-height: 56px;
+      margin: 0;
+      padding: 6px 4px;
+      border-radius: 16px;
 
       .mat-icon {
-        margin-right: 0;
+        margin: 0;
+        align-self: center;
+      }
+
+      ::ng-deep .mdc-list-item__content {
+        align-self: stretch;
+        flex: none;
+        overflow: visible;
+        text-align: center;
+      }
+
+      .mdc-list-item__primary-text {
+        font-size: 12px;
+        line-height: 16px;
+        text-align: center;
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
       }
     }
   }
