@@ -716,7 +716,12 @@ describe('DialogGatewayService', () => {
 
       keydown$.next(escape);
 
-      expect(dialogRefMock.close).toHaveBeenCalledWith();
+      expect(dialogRefMock.close).toHaveBeenCalledWith(undefined);
+      // Read by MatDialog to style the trigger it refocuses.
+      expect(
+        (dialogRefMock as { _closeInteractionType?: string })
+          ._closeInteractionType
+      ).toBe('keyboard');
       expect(escape.defaultPrevented).toBe(true);
     });
 

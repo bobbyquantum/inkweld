@@ -1,4 +1,4 @@
-<div class="callback-container">
+<main id="main-content" class="callback-container">
   @if (errorMessage()) {
     <div class="error">
       <h2>{{ 'auth.oauthCallback.signInFailed' | transloco }}</h2>
@@ -9,4 +9,4 @@
     <mat-spinner diameter="40"></mat-spinner>
     <p>{{ 'auth.oauthCallback.completing' | transloco }}</p>
   }
-</div>
+</main>

@@ -1,6 +1,10 @@
 import { hasModifierKey } from '@angular/cdk/keycodes';
 import { inject, Injectable } from '@angular/core';
-import { MatDialog, type MatDialogRef } from '@angular/material/dialog';
+import {
+  _closeDialogVia,
+  MatDialog,
+  type MatDialogRef,
+} from '@angular/material/dialog';
 import { ElementType, type Project } from '@inkweld/index';
 import { filter, firstValueFrom } from 'rxjs';
 
@@ -91,7 +95,7 @@ export class DialogGatewayService {
    * `disableClose` keeps a stray backdrop click from throwing away what the
    * user was doing, but it also swallows Escape. Let Escape cancel the dialog
    * (it closes with no result, like the Cancel button); MatDialog then returns
-   * focus to the element that opened it.
+   * focus to the element that opened it, styled as keyboard focus.
    */
   private closeOnEscape<T, R>(
     dialogRef: MatDialogRef<T, R>
@@ -101,7 +105,7 @@ export class DialogGatewayService {
       .pipe(filter(event => event.key === 'Escape' && !hasModifierKey(event)))
       .subscribe(event => {
         event.preventDefault();
-        dialogRef.close();
+        _closeDialogVia(dialogRef, 'keyboard');
       });
     return dialogRef;
   }
