@@ -125,7 +125,14 @@ interface ConnectionInfo {
   authenticated: boolean; // Whether this connection has been authenticated
   canWrite: boolean; // Resolved from collaboration access; viewers cannot send updates
   sharedDoc?: WSSharedDoc; // Document (only set after auth)
-  pendingMessages: ArrayBuffer[]; // Binary messages queued before auth
+  /**
+   * True from the moment auth succeeds until the document is loaded and this
+   * socket registered on it. `authenticated` is already sent to the client in
+   * that window, so frames keep being queued in `pendingMessages` rather than
+   * reaching a connection that has no `sharedDoc` yet.
+   */
+  loadingDocument?: boolean;
+  pendingMessages: ArrayBuffer[]; // Binary messages queued before the document is ready
   /** Bytes currently held in pendingMessages (bounded, see utils/ws-preauth.ts). */
   pendingBytes?: number;
   unsubscribe?: () => void; // Cleanup function for document subscription
@@ -2180,7 +2187,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
   }
 
   private handleBinaryMessage(ws: WebSocket, connInfo: ConnectionInfo, message: ArrayBuffer): void {
-    if (!connInfo.authenticated) {
+    if (!connInfo.authenticated || connInfo.loadingDocument) {
       const queuedBytes = connInfo.pendingBytes ?? 0;
       if (!preAuthQueueAccepts(connInfo.pendingMessages.length, queuedBytes, message.byteLength)) {
         projDOLog.warn(`Pre-auth queue overflow for ${connInfo.documentId}; closing`);
@@ -2251,13 +2258,16 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
   }
 
   /**
-   * Replay frames queued while the auth handshake was in flight, through the
-   * same gate as live frames (viewer write-block, presence routing). The queue
-   * is cleared first so a frame that throws cannot be replayed.
+   * Replay frames queued while the auth handshake and document load were in
+   * flight, in arrival order, through the same gate as live frames (viewer
+   * write-block, presence routing). The queue is cleared first so a frame
+   * that throws cannot be replayed.
    */
   private drainPendingMessages(ws: WebSocket, connInfo: ConnectionInfo): void {
     const queued = connInfo.pendingMessages;
     connInfo.pendingMessages = [];
+    connInfo.pendingBytes = 0;
+    connInfo.loadingDocument = false;
     for (const data of queued) {
       this.dispatchAuthenticatedFrame(ws, connInfo, data);
     }
@@ -2549,8 +2559,10 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       if (!accessResult) return;
       const { canWrite, projectDbId } = accessResult;
 
-      // Authentication successful!
+      // Authentication successful! Frames keep queueing until the document
+      // is loaded and drained below (see `loadingDocument`).
       connInfo.authenticated = true;
+      connInfo.loadingDocument = true;
       connInfo.userId = sessionData.userId;
       connInfo.username = sessionData.username;
       connInfo.canWrite = canWrite;
@@ -2645,7 +2657,8 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
         this.watchElementsDocDO(sharedDoc, connInfo.documentId, projectDbId, db);
       }
 
-      // Process any binary messages that arrived during auth.
+      // Process binary messages that arrived during auth and the document
+      // load (including any sent after the client saw `authenticated`).
       this.drainPendingMessages(ws, connInfo);
 
       projDOLog.debug(
@@ -2655,6 +2668,14 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       projDOLog.error(`Auth error for ${connInfo.documentId}:`, error);
       safeSend(ws, 'access-denied:error');
       safeClose(ws, WS_CLOSE_SERVER_ERROR, 'Authentication error');
+    } finally {
+      // Every path that returns before the drain (socket gone, rate-limited,
+      // error) leaves a connection that will never sync: release its queue.
+      if (connInfo.loadingDocument) {
+        connInfo.loadingDocument = false;
+        connInfo.pendingMessages = [];
+        connInfo.pendingBytes = 0;
+      }
     }
   }
 
