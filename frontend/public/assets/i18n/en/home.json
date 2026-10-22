@@ -51,6 +51,7 @@
   },
   "snackbar": {
     "noActivatedToSync": "No activated projects to sync",
+    "syncAllOffline": "You're offline, so Sync All can't run. Your changes are saved on this device; try again once you're back online.",
     "activatedSyncing": "\"{{title}}\" activated — syncing now",
     "activateFailed": "Failed to activate project",
     "deactivated": "\"{{title}}\" deactivated",

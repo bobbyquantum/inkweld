@@ -28,6 +28,7 @@ import {
 } from '@inkweld/model/models';
 import { CloudSyncEngineService } from '@services/cloud-sync/cloud-sync-engine.service';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
+import { NetworkStatusService } from '@services/core/network-status.service';
 import {
   type CoverOpenProject,
   ProjectCoverOpenService,
@@ -87,6 +88,7 @@ describe('HomeComponent', () => {
   let projectsService: {
     getProjectStorageSize: ReturnType<typeof vi.fn>;
   };
+  let networkOnline: WritableSignal<boolean>;
   let mockSyncQueueService: {
     isSyncing: ReturnType<typeof signal<boolean>>;
     syncAllProjects: ReturnType<typeof vi.fn>;
@@ -285,6 +287,7 @@ describe('HomeComponent', () => {
         })
       ),
     };
+    networkOnline = signal(true);
     mockSyncQueueService = {
       isSyncing: signal(false),
       syncAllProjects: vi.fn().mockResolvedValue(undefined),
@@ -339,6 +342,10 @@ describe('HomeComponent', () => {
         { provide: CoverSyncService, useValue: coverSyncService },
         { provide: ProjectsService, useValue: projectsService },
         { provide: SyncQueueService, useValue: mockSyncQueueService },
+        {
+          provide: NetworkStatusService,
+          useValue: { online: networkOnline.asReadonly() },
+        },
         {
           provide: StorageContextService,
           useValue: {
@@ -436,6 +443,31 @@ describe('HomeComponent', () => {
 
     // Check that error flag is set
     expect((component as any).loadError).toBe(true);
+  });
+
+  it('loads a project list that failed offline again once back online', async () => {
+    mockProjectInitialized.set(false);
+    mockProjectsSignal.set([]);
+    networkOnline.set(false);
+    fixture.detectChanges();
+    projectService.loadProjects = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('Failed to fetch'))
+      .mockResolvedValue(undefined);
+    userService.initialize = vi.fn().mockResolvedValue(undefined);
+    await component.loadProjects();
+    expect(component.loadError).toBe(true);
+    const callsBefore = vi.mocked(projectService.loadProjects).mock.calls
+      .length;
+
+    networkOnline.set(true);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(
+      vi.mocked(projectService.loadProjects).mock.calls.length
+    ).toBeGreaterThan(callsBefore);
+    expect(component.loadError).toBe(false);
   });
 
   it('should navigate to create-project route when openNewProjectDialog is called', () => {
@@ -1659,6 +1691,29 @@ describe('HomeComponent', () => {
     });
 
     describe('syncAllProjects', () => {
+      it('explains instead of syncing while offline', () => {
+        networkOnline.set(false);
+
+        component.syncAllProjects();
+
+        expect(mockSyncQueueService.syncAllProjects).not.toHaveBeenCalled();
+        expect(snackBar.open).toHaveBeenCalledWith(
+          expect.stringContaining("You're offline"),
+          'Dismiss',
+          { duration: 5000 }
+        );
+      });
+
+      it('keeps the button enabled offline so the click can explain', () => {
+        networkOnline.set(false);
+
+        expect(component['syncAllEnabled']()).toBe(true);
+        expect(component['canSyncAll']()).toBe(false);
+
+        networkOnline.set(true);
+        expect(component['canSyncAll']()).toBe(true);
+      });
+
       it('should show snack bar when no activated projects', () => {
         mockActivationService.isActivationRequired.mockReturnValue(true);
         mockActivationService.isActivated.mockReturnValue(false);
@@ -1730,15 +1785,8 @@ describe('HomeComponent', () => {
 
     describe('syncAllTooltip', () => {
       it('should show offline message when not online', () => {
-        Object.defineProperty(navigator, 'onLine', {
-          value: false,
-          configurable: true,
-        });
+        networkOnline.set(false);
         expect(component['syncAllTooltip']()).toBe('Cannot sync while offline');
-        Object.defineProperty(navigator, 'onLine', {
-          value: true,
-          configurable: true,
-        });
       });
 
       it('should show sync in progress message', () => {

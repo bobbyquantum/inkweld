@@ -130,7 +130,7 @@
                   <button
                     mat-button
                     (click)="syncAllProjects()"
-                    [disabled]="!canSyncAll()"
+                    [disabled]="!syncAllEnabled()"
                     [matTooltip]="syncAllTooltip()"
                     class="sync-btn"
                     data-testid="sync-all-btn">
