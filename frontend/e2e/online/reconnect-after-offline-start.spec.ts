@@ -105,12 +105,22 @@ async function serverDocumentText(
         reject(new Error('No sync reply from the server'));
       }, 10_000);
       ws.onerror = () => reject(new Error('WebSocket error'));
-      ws.onopen = () => ws.send(token);
+      ws.onopen = () => {
+        ws.send(token);
+        // messageSync (0), syncStep1 (0), state vector of an empty doc. Sent
+        // straight after the token, as y-websocket does: the server queues it
+        // until auth completes. (The Durable Object says `authenticated`
+        // before its document is loaded, and drops frames sent in between.)
+        ws.send(new Uint8Array([0, 0, 1, 0]));
+      };
       ws.onmessage = (event: MessageEvent) => {
         if (typeof event.data === 'string') {
-          // messageSync (0), syncStep1 (0), state vector of an empty doc.
-          if (event.data === 'authenticated') {
-            ws.send(new Uint8Array([0, 0, 1, 0]));
+          // Throttled (the Workers backend limits reconnects per document):
+          // report nothing yet and let the caller poll again.
+          if (event.data.startsWith('access-denied')) {
+            clearTimeout(timer);
+            ws.close();
+            resolve();
           }
           return;
         }
@@ -178,7 +188,11 @@ test.describe('Reconnect after an offline start', () => {
     await test.step('the offline edit reached the server', async () => {
       const documentId = `${page.testCredentials.username}:${slug}:readme-001`;
       await expect
-        .poll(() => serverDocumentText(page, documentId), { timeout: 30_000 })
+        .poll(() => serverDocumentText(page, documentId), {
+          // Spaced past the Workers backend's 5 s reconnect cooldown.
+          intervals: [1_000, 6_000],
+          timeout: 45_000,
+        })
         .toContain('Written offline.');
     });
   });
