@@ -360,6 +360,14 @@ import { Context } from 'hono';
 
 **Canvas contents** live in their own `canvases` shared type (element id → `{ layers, objects: Map<id, json>, order: Array<id>, frames }` — `frames` is a JSON array of canvas-size/crop frames, written only when present) rather than as a JSON blob on the owning element. Each object is its own entry, so two people drawing at once keep both sets of strokes and a stroke costs a small delta instead of a rewrite of the whole element array. The element's `canvasConfig` metadata is still written, but only after drawing pauses — it is the interchange format for archives, templates and the media-usage scan, not the live editing surface. `IElementSyncProvider` also exposes `listCanvasElementIds()` and `deleteCanvas(elementId)` so that deleting an element can unlink the pins/regions that point at it and drop its canvas map.
 
+**HTTP routes that edit a Yjs document** must work on both runtimes.
+`yjsService` is Bun-only: on Workers it opens LevelDB and crashes the request
+with `indexedDB is not defined`. Use `openEditableDocument(documentId,
+documentRuntime(c))` (`services/yjs-document-access.ts`). On Bun it returns
+the live document. On Workers it loads a copy from the project DO's
+`GET /api/document-state`, and `commit()` sends only that copy's changes back
+as a `yUpdate`. AI auto-review uses it.
+
 **Starting offline**: a socket that never connected has no y-websocket
 reconnect loop and no online/visibility handlers, so the first handshake's
 failure must not be the end. `YjsElementSyncProvider` and `DocumentService`

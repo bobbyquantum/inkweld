@@ -4,16 +4,18 @@
  * Loads a Yjs document, extracts paragraph text with position mapping,
  * calls the OpenAI-compatible LLM for corrections, and surgically
  * applies `auto_review` marks back onto the Y.XmlText nodes via
- * `Y.XmlText.format()`. Because mutations happen on the live Y.Doc,
- * the existing `doc.on('update')` listener auto-broadcasts to all
- * connected clients — no extra sync code needed.
+ * `Y.XmlText.format()`. Documents are opened with `openEditableDocument`:
+ * on Bun the live Y.Doc (its `update` listener broadcasts to connected
+ * clients), on Workers a copy whose changes are sent to the project's
+ * Durable Object, which broadcasts them. Every method takes an optional
+ * `DocumentRuntime`; without one it uses the Bun path.
  *
  * Re-running a review clears all existing `auto_review` marks first.
  */
 
 import type * as YModule from 'yjs';
 import { openAILintService } from './openai-lint.service';
-import { yjsService } from './yjs.service';
+import { openEditableDocument, type DocumentRuntime } from './yjs-document-access';
 import { logger } from './logger.service';
 import { autoReviewRejectionService, type RejectionContext } from './auto-review-rejection.service';
 import { projectService } from './project.service';
@@ -479,7 +481,8 @@ export class AutoReviewService {
     db: DatabaseInstance,
     documentId: string,
     style: string,
-    level: string
+    level: string,
+    runtime?: DocumentRuntime
   ): Promise<LintReviewResult> {
     const Y = await import('yjs');
 
@@ -487,8 +490,8 @@ export class AutoReviewService {
       throw new Error('AI auto-review is not configured');
     }
 
-    const sharedDoc = await yjsService.getDocument(documentId);
-    const fragment = sharedDoc.doc.getXmlFragment('prosemirror');
+    const editable = await openEditableDocument(documentId, runtime);
+    const fragment = editable.doc.getXmlFragment('prosemirror');
 
     // Extract paragraphs before mutation.
     const paragraphs = extractParagraphs(Y, fragment);
@@ -583,7 +586,7 @@ export class AutoReviewService {
     let cleared = 0;
     let applied = 0;
 
-    sharedDoc.doc.transact(() => {
+    editable.doc.transact(() => {
       cleared = clearLintMarks(Y, fragment);
       for (const suggestion of markableSuggestions) {
         const para = paragraphs[Number(suggestion.id.split('-')[0])];
@@ -596,6 +599,7 @@ export class AutoReviewService {
         }
       }
     });
+    await editable.commit();
 
     autoReviewLog.info(
       `Review complete: ${applied}/${markableSuggestions.length} marks applied, ${cleared} cleared`
@@ -610,15 +614,16 @@ export class AutoReviewService {
   /**
    * Clear all auto_review marks from a document (used by "dismiss all").
    */
-  async clearAllMarks(documentId: string): Promise<number> {
+  async clearAllMarks(documentId: string, runtime?: DocumentRuntime): Promise<number> {
     const Y = await import('yjs');
-    const sharedDoc = await yjsService.getDocument(documentId);
-    const fragment = sharedDoc.doc.getXmlFragment('prosemirror');
+    const editable = await openEditableDocument(documentId, runtime);
+    const fragment = editable.doc.getXmlFragment('prosemirror');
 
     let cleared = 0;
-    sharedDoc.doc.transact(() => {
+    editable.doc.transact(() => {
       cleared = clearLintMarks(Y, fragment);
     });
+    await editable.commit();
     return cleared;
   }
 
@@ -629,31 +634,38 @@ export class AutoReviewService {
   async acceptSuggestion(
     documentId: string,
     suggestionId: string,
-    replacement: string
+    replacement: string,
+    runtime?: DocumentRuntime
   ): Promise<boolean> {
     const Y = await import('yjs');
-    const sharedDoc = await yjsService.getDocument(documentId);
-    const fragment = sharedDoc.doc.getXmlFragment('prosemirror');
+    const editable = await openEditableDocument(documentId, runtime);
+    const fragment = editable.doc.getXmlFragment('prosemirror');
 
     let success = false;
-    sharedDoc.doc.transact(() => {
+    editable.doc.transact(() => {
       success = this.findAndReplaceMark(Y, fragment, suggestionId, replacement);
     });
+    await editable.commit();
     return success;
   }
 
   /**
    * Reject a suggestion: remove just this auto_review mark (keep text).
    */
-  async rejectSuggestion(documentId: string, suggestionId: string): Promise<boolean> {
+  async rejectSuggestion(
+    documentId: string,
+    suggestionId: string,
+    runtime?: DocumentRuntime
+  ): Promise<boolean> {
     const Y = await import('yjs');
-    const sharedDoc = await yjsService.getDocument(documentId);
-    const fragment = sharedDoc.doc.getXmlFragment('prosemirror');
+    const editable = await openEditableDocument(documentId, runtime);
+    const fragment = editable.doc.getXmlFragment('prosemirror');
 
     let success = false;
-    sharedDoc.doc.transact(() => {
+    editable.doc.transact(() => {
       success = this.findAndRemoveMark(Y, fragment, suggestionId);
     });
+    await editable.commit();
     return success;
   }
 
@@ -663,7 +675,8 @@ export class AutoReviewService {
    */
   async getSuggestionInfo(
     documentId: string,
-    suggestionId: string
+    suggestionId: string,
+    runtime?: DocumentRuntime
   ): Promise<{
     message: string;
     suggestion: string;
@@ -671,8 +684,8 @@ export class AutoReviewService {
     originalText: string;
   } | null> {
     const Y = await import('yjs');
-    const sharedDoc = await yjsService.getDocument(documentId);
-    const fragment = sharedDoc.doc.getXmlFragment('prosemirror');
+    const editable = await openEditableDocument(documentId, runtime);
+    const fragment = editable.doc.getXmlFragment('prosemirror');
     return this.findMarkInfo(Y, fragment, suggestionId);
   }
 

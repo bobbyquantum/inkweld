@@ -189,6 +189,44 @@ export class YjsWorkerService {
   }
 
   /**
+   * The document's full Yjs state (`Y.encodeStateAsUpdate`), for callers that
+   * edit a local copy and send back the difference with
+   * {@link applyYjsUpdate}. Throws {@link YjsDocumentReadError} when the read
+   * fails.
+   */
+  async getDocumentState(docId: string): Promise<Uint8Array> {
+    const parts = stripTrailingSlashes(docId).split(':');
+    if (parts.length < 2) {
+      throw new Error(`Invalid docId format: ${docId}`);
+    }
+    const stub = getDoStub(this.ctx.env, parts[0], parts[1]);
+
+    let response: Response;
+    try {
+      response = await stub.fetch(
+        new Request(`https://yjs-do/api/document-state?documentId=${encodeURIComponent(docId)}`, {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${this.ctx.authToken}`,
+          },
+        })
+      );
+    } catch (err) {
+      log.error('Error getting document state from DO', err);
+      throw new YjsDocumentReadError(docId, 'the Durable Object request failed', { cause: err });
+    }
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '');
+      log.error(`DO returned ${response.status} for document state ${docId}`, { errorText });
+      throw new YjsDocumentReadError(docId, `Durable Object responded ${response.status}`, {
+        status: response.status,
+      });
+    }
+    return new Uint8Array(await response.arrayBuffer());
+  }
+
+  /**
    * Apply updates to a document
    */
   async applyUpdates(
