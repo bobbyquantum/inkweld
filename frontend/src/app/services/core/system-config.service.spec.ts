@@ -243,6 +243,72 @@ describe('SystemConfigService', () => {
     });
   });
 
+  describe('after a load that failed offline', () => {
+    function createFailingService(mode: string): SystemConfigService {
+      TestBed.resetTestingModule();
+      mockSetupService.getMode.mockReturnValue(mode as never);
+      (mockConfigService.getSystemFeatures as Mock)
+        .mockReset()
+        .mockReturnValueOnce(throwError(() => new Error('Failed to fetch')))
+        .mockReturnValue(of(mockSystemFeatures));
+      TestBed.configureTestingModule({
+        providers: [
+          provideZonelessChangeDetection(),
+          SystemConfigService,
+          { provide: ConfigurationService, useValue: mockConfigService },
+          { provide: SetupService, useValue: mockSetupService },
+          { provide: SettingsService, useValue: mockSettingsService },
+        ],
+      });
+      return TestBed.inject(SystemConfigService);
+    }
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      TestBed.resetTestingModule();
+      vi.useRealTimers();
+    });
+
+    it('loads the features again once the network is back', async () => {
+      const offlineService = createFailingService('server');
+      expect(offlineService.isAiKillSwitchEnabled()).toBe(true);
+      expect(mockConfigService.getSystemFeatures).toHaveBeenCalledTimes(1);
+
+      globalThis.dispatchEvent(new Event('online'));
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(mockConfigService.getSystemFeatures).toHaveBeenCalledTimes(2);
+      expect(offlineService.systemFeatures()).toEqual(mockSystemFeatures);
+
+      // Done: no further requests.
+      await vi.advanceTimersByTimeAsync(10 * 60_000);
+      expect(mockConfigService.getSystemFeatures).toHaveBeenCalledTimes(2);
+    });
+
+    it('never retries once the profile is not a server profile', async () => {
+      createFailingService('server');
+      mockSetupService.getMode.mockReturnValue('local');
+
+      globalThis.dispatchEvent(new Event('online'));
+      await vi.advanceTimersByTimeAsync(10 * 60_000);
+
+      expect(mockConfigService.getSystemFeatures).toHaveBeenCalledTimes(1);
+    });
+
+    it('stops retrying when the service is destroyed', async () => {
+      createFailingService('server');
+      TestBed.resetTestingModule();
+
+      globalThis.dispatchEvent(new Event('online'));
+      await vi.advanceTimersByTimeAsync(10 * 60_000);
+
+      expect(mockConfigService.getSystemFeatures).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('refreshSystemFeatures', () => {
     it('should refresh system features and reload configuration', () => {
       const newFeatures: SystemFeatures = {

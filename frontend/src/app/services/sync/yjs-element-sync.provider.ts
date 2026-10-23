@@ -71,6 +71,12 @@ import {
   type SyncConnectionConfig,
   type SyncConnectionResult,
 } from './element-sync-provider.interface';
+import {
+  initialConnectDenialReason,
+  type ReconnectAttemptResult,
+  ReconnectScheduler,
+  retryAfterInitialConnectFailure,
+} from './reconnect-scheduler';
 
 /**
  * Configuration for reconnection behavior. There is deliberately no attempt
@@ -228,6 +234,16 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
   private docId: string | null = null;
   /** Document ID for local IndexedDB storage (prefixed) */
   private localDocId: string | null = null;
+  /** Authenticated WebSocket URL for the current document. */
+  private wsUrl: string | null = null;
+  /**
+   * Bumped by every disconnect(). A handshake that finishes after its
+   * session was torn down (closing the project, or Retry starting a fresh
+   * connection) sees a different value and discards its socket.
+   */
+  private connectionGeneration = 0;
+  /** Retries a first handshake that failed, e.g. because the app started offline. */
+  private initialConnectRetry: ReconnectScheduler | null = null;
 
   // Reconnection state
   private reconnectAttempts = 0;
@@ -369,6 +385,7 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
     const pendingPresence = this.pendingPresence;
     this.disconnect();
     this.pendingPresence = pendingPresence;
+    const generation = this.connectionGeneration;
 
     // A new connection attempt clears any prior terminal denial so a user
     // retry / refresh can reconnect after a transient refusal.
@@ -401,6 +418,11 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
       // Load elements from local storage first
       this.loadElementsFromDoc();
 
+      // Observe the document whether or not the server is reachable, so
+      // changes arriving later (from the server once a retry gets through)
+      // reach the UI.
+      this.setupDocumentObserver();
+
       // Get auth token for WebSocket authentication
       const authToken = this.authTokenService.getToken();
       if (!authToken) {
@@ -426,65 +448,24 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
 
       // Now set up authenticated WebSocket connection for server sync
       // The server expects the auth token as the first text message after connection
-      const wsUrl = `${webSocketUrl}/api/v1/ws/yjs?documentId=${this.docId}`;
-      this.logger.info('YjsSync', `🌐 WebSocket URL: ${wsUrl}`);
+      this.wsUrl = `${webSocketUrl}/api/v1/ws/yjs?documentId=${this.docId}`;
+      this.logger.info('YjsSync', `🌐 WebSocket URL: ${this.wsUrl}`);
 
-      try {
-        this.wsProvider = await this.createAuthWsProvider(
-          wsUrl,
-          '',
-          this.doc,
-          authToken,
-          {
-            maxBackoffTime: WS_MAX_BACKOFF_TIME,
-            // Capture malformed-frame diagnostics through the logger so
-            // they're attributable to the elements doc in production logs.
-            onDecodeError: (error, byteLength, hexPreview) => {
-              this.logger.warn(
-                'YjsSync',
-                `Contained malformed WebSocket frame for ${this.docId} ` +
-                  `(${byteLength} bytes; preview: ${hexPreview})`,
-                error
-              );
-            },
-            onTextMessage: text => this.handlePostAuthText(text),
-          }
-        );
-
-        // Authentication succeeded - we're now connected and synced
-        // Set state immediately since the "connected" event already fired during auth
-        this.syncStateSubject.next(DocumentSyncState.Synced);
-
-        // Set up re-authentication for reconnections
-        setupReauthentication(
-          this.wsProvider,
-          () => this.authTokenService.getToken(),
-          error => this.handleReauthError(error)
-        );
-      } catch (authError) {
-        this.logger.error(
+      const outcome = await this.openWebSocket(generation);
+      if (outcome === 'connected') {
+        // Don't wait for WebSocket sync - this is local-first
+        // We already have data from IndexedDB, WebSocket syncs in background
+        // The sync state will be updated via the 'sync' event handler
+        this.logger.info(
           'YjsSync',
-          'Failed to authenticate WebSocket',
-          authError
+          '🔄 WebSocket connecting in background, local data ready'
         );
-        // Continue offline - we already have IndexedDB data
-        this.syncStateSubject.next(DocumentSyncState.Local);
-        return { success: true };
+      } else if (outcome !== 'stop') {
+        // The first handshake failed (typically: the app started offline).
+        // Nothing else retries a socket that never connected, so keep trying
+        // until one attempt gets through.
+        this.startInitialConnectRetry();
       }
-
-      // Set up event handlers before waiting for sync
-      this.setupWebSocketHandlers();
-      this.setupNetworkHandlers();
-      this.setupDocumentObserver();
-      this.setupPresenceHandlers();
-
-      // Don't wait for WebSocket sync - this is local-first
-      // We already have data from IndexedDB, WebSocket syncs in background
-      // The sync state will be updated via the 'sync' event handler
-      this.logger.info(
-        'YjsSync',
-        '🔄 WebSocket connecting in background, local data ready'
-      );
 
       return { success: true };
     } catch (error) {
@@ -518,6 +499,9 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
     // completed subject can never emit again.
 
     // Clear any pending reconnection
+    this.connectionGeneration++;
+    this.initialConnectRetry?.stop();
+    this.initialConnectRetry = null;
     if (this.reconnectTimeout) {
       clearTimeout(this.reconnectTimeout);
       this.reconnectTimeout = null;
@@ -586,6 +570,7 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
 
     this.docId = null;
     this.localDocId = null;
+    this.wsUrl = null;
 
     // Reset state
     this.elementsSubject.next([]);
@@ -1480,6 +1465,103 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
   /**
    * Set up WebSocket status and error handlers.
    */
+  /**
+   * Open the authenticated WebSocket for the current document and wire its
+   * handlers. Used for the first connection and, when that fails, by
+   * {@link startInitialConnectRetry}.
+   *
+   * @param generation - {@link connectionGeneration} of the session this
+   *   attempt belongs to; a socket that arrives after it ended is discarded.
+   */
+  private async openWebSocket(
+    generation: number
+  ): Promise<ReconnectAttemptResult> {
+    const doc = this.doc;
+    const wsUrl = this.wsUrl;
+    if (generation !== this.connectionGeneration || !doc || !wsUrl) {
+      return 'stop';
+    }
+    const authToken = this.authTokenService.getToken();
+    if (!authToken || this.versionCompatibility.syncBlocked()) {
+      // Signed out or blocked since the last attempt: stay local.
+      this.syncStateSubject.next(DocumentSyncState.Local);
+      return 'stop';
+    }
+
+    let provider: WebsocketProvider;
+    try {
+      provider = await this.createAuthWsProvider(wsUrl, '', doc, authToken, {
+        maxBackoffTime: WS_MAX_BACKOFF_TIME,
+        // Capture malformed-frame diagnostics through the logger so
+        // they're attributable to the elements doc in production logs.
+        onDecodeError: (error, byteLength, hexPreview) => {
+          this.logger.warn(
+            'YjsSync',
+            `Contained malformed WebSocket frame for ${this.docId} ` +
+              `(${byteLength} bytes; preview: ${hexPreview})`,
+            error
+          );
+        },
+        onTextMessage: text => this.handlePostAuthText(text),
+      });
+    } catch (authError) {
+      if (generation !== this.connectionGeneration) return 'stop';
+      this.logger.error(
+        'YjsSync',
+        'Failed to authenticate WebSocket',
+        authError
+      );
+      // Continue offline - we already have IndexedDB data
+      const reason = initialConnectDenialReason(authError);
+      if (reason !== null && HARD_DENIAL_REASONS.has(reason)) {
+        this.terminalDenialReason = reason;
+        this.syncStateSubject.next(DocumentSyncState.Unavailable);
+      } else {
+        this.syncStateSubject.next(DocumentSyncState.Local);
+      }
+      return retryAfterInitialConnectFailure(authError);
+    }
+
+    if (generation !== this.connectionGeneration) {
+      // Torn down, or replaced by a fresh connect(), during the handshake.
+      provider.destroy();
+      return 'stop';
+    }
+
+    this.wsProvider = provider;
+    // Authentication succeeded - we're now connected and synced
+    // Set state immediately since the "connected" event already fired during auth
+    this.syncStateSubject.next(DocumentSyncState.Synced);
+    this.lastConnectionErrorSubject.next(null);
+
+    // Set up re-authentication for reconnections
+    setupReauthentication(
+      provider,
+      () => this.authTokenService.getToken(),
+      error => this.handleReauthError(error)
+    );
+    this.setupWebSocketHandlers();
+    this.setupNetworkHandlers();
+    this.setupPresenceHandlers();
+    return 'connected';
+  }
+
+  /**
+   * Keep retrying a first handshake that failed. Once a socket has been up,
+   * y-websocket's loop and {@link setupNetworkHandlers} take over; before
+   * that nothing else would ever try again.
+   */
+  private startInitialConnectRetry(): void {
+    const generation = this.connectionGeneration;
+    this.initialConnectRetry?.stop();
+    const scheduler = new ReconnectScheduler({
+      attempt: () => this.openWebSocket(generation),
+      log: message => this.logger.info('YjsSync', `${message} (${this.docId})`),
+    });
+    this.initialConnectRetry = scheduler;
+    scheduler.start();
+  }
+
   private setupWebSocketHandlers(): void {
     if (!this.wsProvider) return;
 

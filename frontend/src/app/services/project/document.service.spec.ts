@@ -1526,6 +1526,133 @@ describe('DocumentService', () => {
     });
   });
 
+  describe('opened offline', () => {
+    const offlineError = new Error(
+      'WebSocket connection error: Connection error'
+    );
+
+    function setOnline(online: boolean): void {
+      Object.defineProperty(navigator, 'onLine', {
+        value: online,
+        configurable: true,
+      });
+    }
+
+    /** Register a connection and run its first (background) connect. */
+    async function openDocument(): Promise<DocumentConnection> {
+      const ydoc = new Y.Doc();
+      const connection: DocumentConnection = {
+        ydoc,
+        provider: null,
+        type: ydoc.getXmlFragment('prosemirror'),
+        indexeddbProvider: _mockIndexedDbProvider,
+        broadcastProvider: mockBroadcastProvider,
+      };
+      const editorWithView = {
+        ...mockEditor,
+        view: {
+          ...mockEditor.view,
+          dom: { parentNode: {} },
+          state: {
+            ...mockEditor.view.state,
+            plugins: [],
+            reconfigure: vi.fn().mockReturnValue({}),
+          },
+          updateState: vi.fn(),
+        },
+      } as unknown as DeepMockProxy<Editor>;
+      service.initializeSyncStatus(testDocumentId);
+      (
+        service as unknown as { connections: Map<string, unknown> }
+      ).connections.set(testDocumentId, connection);
+      await (
+        service as unknown as {
+          connectWebSocketInBackground: (
+            websocketUrl: string | null,
+            documentId: string,
+            doc: Y.Doc,
+            editor: Editor,
+            connection: DocumentConnection
+          ) => Promise<void>;
+        }
+      ).connectWebSocketInBackground(
+        'ws://localhost:8333',
+        testDocumentId,
+        ydoc,
+        editorWithView,
+        connection
+      );
+      return connection;
+    }
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      service.disconnect(testDocumentId);
+      setOnline(true);
+      vi.useRealTimers();
+    });
+
+    it('connects once the network comes back, so offline edits reach the server', async () => {
+      setOnline(false);
+      mockCreateAuthWsProvider
+        .mockRejectedValueOnce(offlineError)
+        .mockResolvedValue(mockWebSocketProvider);
+
+      const connection = await openDocument();
+      expect(connection.provider).toBeNull();
+      expect(service.getSyncStatusSignal(testDocumentId)()).toBe(
+        DocumentSyncState.Local
+      );
+
+      await vi.advanceTimersByTimeAsync(10 * 60_000);
+      expect(mockCreateAuthWsProvider).toHaveBeenCalledTimes(1);
+
+      setOnline(true);
+      globalThis.dispatchEvent(new Event('online'));
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(mockCreateAuthWsProvider).toHaveBeenCalledTimes(2);
+      // The handshake binds the same Y.Doc, so y-websocket's sync sends the
+      // edits made while offline.
+      expect(mockCreateAuthWsProvider.mock.calls[1][2]).toBe(connection.ydoc);
+      expect(connection.provider).toBe(mockWebSocketProvider);
+      expect(service.getSyncStatusSignal(testDocumentId)()).toBe(
+        DocumentSyncState.Synced
+      );
+      expect(connection.initialConnectRetry?.isActive).toBe(false);
+    });
+
+    it('stops retrying once the document is closed', async () => {
+      mockCreateAuthWsProvider.mockRejectedValue(offlineError);
+
+      await openDocument();
+      service.disconnect(testDocumentId);
+
+      globalThis.dispatchEvent(new Event('online'));
+      await vi.advanceTimersByTimeAsync(10 * 60_000);
+      expect(mockCreateAuthWsProvider).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not retry a hard denial', async () => {
+      mockCreateAuthWsProvider.mockRejectedValue(
+        new Error('WebSocket authentication denied: forbidden')
+      );
+
+      const connection = await openDocument();
+
+      expect(service.getSyncStatusSignal(testDocumentId)()).toBe(
+        DocumentSyncState.Unavailable
+      );
+      expect(connection.initialConnectRetry).toBeUndefined();
+      globalThis.dispatchEvent(new Event('online'));
+      await vi.advanceTimersByTimeAsync(10 * 60_000);
+      expect(mockCreateAuthWsProvider).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('Collaboration Setup', () => {
     it('should add the Yjs sync plugin to the editor', async () => {
       const reconfiguredState = {};

@@ -231,6 +231,11 @@ export function installWebSocketResilience(
  * 4. If authenticated, allow normal Yjs sync to proceed
  * 5. If denied, disconnect and reject the promise
  *
+ * Any failure before step 4 destroys the provider before rejecting. The
+ * caller never receives it, so left alive its y-websocket loop would keep
+ * reconnecting in the background (offline at startup, for example) without
+ * ever sending the token.
+ *
  * This approach:
  * - Avoids tokens in URLs (security risk)
  * - Avoids cookies (cross-domain issues)
@@ -311,6 +316,20 @@ export function createAuthenticatedWebsocketProvider(
     });
 
     let authCompleted = false;
+    let settled = false;
+
+    /** Reject once, after destroying the provider nobody will receive. */
+    const fail = (error: Error) => {
+      if (settled) return;
+      settled = true;
+      provider.off('status', handleStatus);
+      try {
+        provider.destroy();
+      } catch {
+        // Already torn down; the rejection below is what matters.
+      }
+      reject(error);
+    };
 
     /**
      * Set up auth handling when WebSocket connects
@@ -319,7 +338,7 @@ export function createAuthenticatedWebsocketProvider(
       if (status === 'connected' && !authCompleted) {
         const ws = provider.ws;
         if (!ws) {
-          reject(new Error('WebSocket not available after connect'));
+          fail(new Error('WebSocket not available after connect'));
           return;
         }
 
@@ -334,6 +353,7 @@ export function createAuthenticatedWebsocketProvider(
 
             if (response === 'authenticated') {
               authCompleted = true;
+              settled = true;
 
               // Restore original message handler for Yjs protocol
               ws.onmessage = originalHandler;
@@ -345,12 +365,7 @@ export function createAuthenticatedWebsocketProvider(
             } else if (response.startsWith('access-denied')) {
               const reason = response.split(':')[1] || 'unknown';
               console.error(`[AuthWS] Authentication denied: ${reason}`);
-
-              // Clean up
-              provider.off('status', handleStatus);
-              provider.disconnect();
-
-              reject(new Error(`WebSocket authentication denied: ${reason}`));
+              fail(new Error(`WebSocket authentication denied: ${reason}`));
             }
             // Ignore other text messages
             return;
@@ -366,8 +381,7 @@ export function createAuthenticatedWebsocketProvider(
         ws.send(authToken);
       } else if (status === 'disconnected' && !authCompleted) {
         // Connection failed before auth completed
-        provider.off('status', handleStatus);
-        reject(new Error('WebSocket disconnected before authentication'));
+        fail(new Error('WebSocket disconnected before authentication'));
       }
     };
 
@@ -377,7 +391,6 @@ export function createAuthenticatedWebsocketProvider(
     // Handle connection errors
     provider.on('connection-error', (error: Error | string | Event) => {
       if (!authCompleted) {
-        provider.off('status', handleStatus);
         let errorMessage: string;
         if (error instanceof Error) {
           errorMessage = error.message;
@@ -386,7 +399,16 @@ export function createAuthenticatedWebsocketProvider(
         } else {
           errorMessage = 'Connection error';
         }
-        reject(new Error(`WebSocket connection error: ${errorMessage}`));
+        fail(new Error(`WebSocket connection error: ${errorMessage}`));
+      }
+    });
+
+    // A socket that closes before it opened emits neither 'disconnected'
+    // (it was never connected) nor, unless the browser reports one, an
+    // error. Without this the promise would never settle.
+    provider.on('connection-close', () => {
+      if (!authCompleted) {
+        fail(new Error('WebSocket closed before authentication'));
       }
     });
 

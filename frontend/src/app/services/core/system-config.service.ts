@@ -1,14 +1,24 @@
-import { computed, inject, Injectable, signal } from '@angular/core';
+import {
+  computed,
+  DestroyRef,
+  inject,
+  Injectable,
+  signal,
+} from '@angular/core';
 import {
   ConfigurationService,
   type SystemFeatures,
   SystemFeaturesAppMode,
   type SystemFeaturesPasswordPolicy,
 } from '@inkweld/index';
-import { of } from 'rxjs';
+import { firstValueFrom, of } from 'rxjs';
 import { catchError, tap } from 'rxjs/operators';
 
 import { DocumentSyncState } from '../../models/document-sync-state';
+import {
+  type ReconnectAttemptResult,
+  ReconnectScheduler,
+} from '../sync/reconnect-scheduler';
 import { LoggerService } from './logger.service';
 import { SettingsService } from './settings.service';
 import { SetupService } from './setup.service';
@@ -224,7 +234,15 @@ export class SystemConfigService {
   );
   public readonly isConfigLoaded = this.isLoaded.asReadonly();
 
+  /**
+   * Re-fetches the features once the server is reachable again, after a load
+   * that fell back to {@link SERVER_UNAVAILABLE_DEFAULTS} (opened offline).
+   * Otherwise those defaults would stand until the next reload.
+   */
+  private featuresRetry: ReconnectScheduler | null = null;
+
   constructor() {
+    inject(DestroyRef).onDestroy(() => this.stopFeaturesRetry());
     this.loadSystemFeatures();
   }
 
@@ -264,6 +282,7 @@ export class SystemConfigService {
           this.systemFeaturesSignal.set(SERVER_UNAVAILABLE_DEFAULTS);
           this.configLoadedSuccessfully.set(false); // HTTP API failed
           this.isLoaded.set(true);
+          this.startFeaturesRetry();
           return of(null);
         })
       )
@@ -274,8 +293,40 @@ export class SystemConfigService {
    * Refresh system features configuration
    */
   public refreshSystemFeatures(): void {
+    this.stopFeaturesRetry();
     this.isLoaded.set(false);
     this.loadSystemFeatures();
+  }
+
+  private startFeaturesRetry(): void {
+    if (this.featuresRetry?.isActive) return;
+    this.featuresRetry = new ReconnectScheduler({
+      attempt: () => this.retryFeatures(),
+      log: message => this.logger.info('SystemConfig', `${message} (features)`),
+    });
+    this.featuresRetry.start();
+  }
+
+  private stopFeaturesRetry(): void {
+    this.featuresRetry?.stop();
+    this.featuresRetry = null;
+  }
+
+  /** One attempt of {@link featuresRetry}. */
+  private async retryFeatures(): Promise<ReconnectAttemptResult> {
+    // Browser and Cloud Sync profiles have no server to ask.
+    if (this.setupService.getMode() !== 'server') return 'stop';
+    try {
+      const features = await firstValueFrom(
+        this.configApiService.getSystemFeatures()
+      );
+      this.logger.info('SystemConfig', 'Loaded system features:', features);
+      this.systemFeaturesSignal.set(features);
+      this.configLoadedSuccessfully.set(true);
+      return 'connected';
+    } catch {
+      return 'retry';
+    }
   }
 
   /**

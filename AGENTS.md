@@ -360,6 +360,21 @@ import { Context } from 'hono';
 
 **Canvas contents** live in their own `canvases` shared type (element id → `{ layers, objects: Map<id, json>, order: Array<id>, frames }` — `frames` is a JSON array of canvas-size/crop frames, written only when present) rather than as a JSON blob on the owning element. Each object is its own entry, so two people drawing at once keep both sets of strokes and a stroke costs a small delta instead of a rewrite of the whole element array. The element's `canvasConfig` metadata is still written, but only after drawing pauses — it is the interchange format for archives, templates and the media-usage scan, not the live editing surface. `IElementSyncProvider` also exposes `listCanvasElementIds()` and `deleteCanvas(elementId)` so that deleting an element can unlink the pins/regions that point at it and drop its canvas map.
 
+**Starting offline**: a socket that never connected has no y-websocket
+reconnect loop and no online/visibility handlers, so the first handshake's
+failure must not be the end. `YjsElementSyncProvider` and `DocumentService`
+(open editors) retry it with `ReconnectScheduler`
+(`services/sync/reconnect-scheduler.ts`: equal-jitter backoff to 60 s, waits
+for `online` while the browser is offline, one attempt at a time, stops on a
+hard denial or teardown). `SystemConfigService` (features), `UserService`
+(`/users/me`) and `VersionCompatibilityService` (`/health`) re-run a fetch that
+failed at startup the same way, only for server profiles. An unreachable
+`/health` leaves compatibility unknown; never store it as incompatible, or
+`syncBlocked` keeps every connection local after the network is back.
+`createAuthenticatedWebsocketProvider` destroys its provider on any failure
+before auth (including a socket that closes without opening), so a failed
+attempt never leaves an unauthenticated loop behind.
+
 **IMPORTANT - Yjs Document ID Trailing Slash:**
 The frontend uses `username:slug:elements` while the backend/MCP uses `username:slug:elements/` with a trailing slash. **THIS IS NOT A BUG - DO NOT "FIX" IT.** The y-websocket library automatically normalizes these, and both refer to the same document. If you see this difference while debugging sync issues, look elsewhere for the actual problem.
 
