@@ -18,7 +18,7 @@ import { type ElementTag, type TagDefinition } from '@models/tag.model';
 import { type TimeSystem } from '@models/time-system';
 import type * as decoding from 'lib0/decoding';
 import { createDecoder, readVarUint } from 'lib0/decoding';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as Y from 'yjs';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
@@ -1718,6 +1718,157 @@ describe('YjsElementSyncProvider', () => {
       expect(stub.connect).toHaveBeenCalledTimes(1);
 
       vi.useRealTimers();
+    });
+  });
+
+  describe('starting offline', () => {
+    const config = {
+      username: 'testuser',
+      slug: 'test-project',
+      webSocketUrl: 'ws://localhost:8333',
+    };
+    const offlineError = new Error(
+      'WebSocket connection error: Connection error'
+    );
+    let createWs: ReturnType<typeof vi.fn>;
+
+    function setOnline(online: boolean): void {
+      Object.defineProperty(navigator, 'onLine', {
+        value: online,
+        configurable: true,
+      });
+    }
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+      createWs = vi.fn();
+      (provider as unknown as { createAuthWsProvider: unknown })[
+        'createAuthWsProvider'
+      ] = createWs;
+    });
+
+    afterEach(() => {
+      provider.disconnect();
+      setOnline(true);
+      vi.useRealTimers();
+    });
+
+    it('reconnects once when the network comes back', async () => {
+      setOnline(false);
+      createWs
+        .mockRejectedValueOnce(offlineError)
+        .mockResolvedValue(websocketProvider);
+
+      const result = await provider.connect(config);
+      expect(result).toEqual({ success: true });
+      expect(provider.getSyncState()).toBe(DocumentSyncState.Local);
+      expect(createWs).toHaveBeenCalledTimes(1);
+
+      // Still offline: no attempts, however long it lasts.
+      await vi.advanceTimersByTimeAsync(10 * 60_000);
+      expect(createWs).toHaveBeenCalledTimes(1);
+
+      setOnline(true);
+      globalThis.dispatchEvent(new Event('online'));
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(createWs).toHaveBeenCalledTimes(2);
+      expect(provider.getSyncState()).toBe(DocumentSyncState.Synced);
+      expect(provider.isConnected()).toBe(true);
+
+      // From here the provider's own loop owns reconnects: further network
+      // signals don't open another socket.
+      globalThis.dispatchEvent(new Event('online'));
+      globalThis.dispatchEvent(new Event('focus'));
+      await vi.advanceTimersByTimeAsync(10 * 60_000);
+      expect(createWs).toHaveBeenCalledTimes(2);
+    });
+
+    it('keeps retrying with backoff while the server stays unreachable', async () => {
+      createWs.mockRejectedValue(offlineError);
+
+      await provider.connect(config);
+      expect(createWs).toHaveBeenCalledTimes(1);
+
+      await vi.advanceTimersByTimeAsync(2_000);
+      expect(createWs).toHaveBeenCalledTimes(2);
+
+      // Capped at one attempt a minute at most, never zero.
+      const before = createWs.mock.calls.length;
+      await vi.advanceTimersByTimeAsync(10 * 60_000);
+      const attempts = createWs.mock.calls.length - before;
+      expect(attempts).toBeGreaterThan(5);
+      expect(attempts).toBeLessThanOrEqual(25);
+    });
+
+    it('does not double-connect when Retry starts a fresh connection mid-attempt', async () => {
+      let finishStale: (value: unknown) => void = () => undefined;
+      const staleProvider = { ...websocketProvider, destroy: vi.fn() };
+      createWs
+        .mockRejectedValueOnce(offlineError)
+        .mockReturnValueOnce(
+          new Promise(resolve => {
+            finishStale = resolve;
+          })
+        )
+        .mockResolvedValue(websocketProvider);
+
+      await provider.connect(config);
+      globalThis.dispatchEvent(new Event('online'));
+      expect(createWs).toHaveBeenCalledTimes(2);
+
+      // Retry: ProjectStateService.retrySyncConnection disconnects and
+      // connects again while the automatic attempt is still running.
+      provider.disconnect();
+      await provider.connect(config);
+      expect(createWs).toHaveBeenCalledTimes(3);
+
+      finishStale(staleProvider);
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(staleProvider.destroy).toHaveBeenCalledTimes(1);
+      expect((provider as unknown as { wsProvider: unknown }).wsProvider).toBe(
+        websocketProvider
+      );
+      expect(provider.getSyncState()).toBe(DocumentSyncState.Synced);
+    });
+
+    it('stops retrying after a hard denial', async () => {
+      createWs.mockRejectedValue(
+        new Error('WebSocket authentication denied: invalid-token')
+      );
+
+      await provider.connect(config);
+      expect(provider.getSyncState()).toBe(DocumentSyncState.Unavailable);
+
+      globalThis.dispatchEvent(new Event('online'));
+      await vi.advanceTimersByTimeAsync(10 * 60_000);
+      expect(createWs).toHaveBeenCalledTimes(1);
+    });
+
+    it('stops retrying when the project is closed', async () => {
+      createWs.mockRejectedValue(offlineError);
+
+      await provider.connect(config);
+      provider.disconnect();
+
+      globalThis.dispatchEvent(new Event('online'));
+      await vi.advanceTimersByTimeAsync(10 * 60_000);
+      expect(createWs).toHaveBeenCalledTimes(1);
+    });
+
+    it('shows changes the server sends once a retry gets through', async () => {
+      createWs
+        .mockRejectedValueOnce(offlineError)
+        .mockResolvedValue(websocketProvider);
+      await provider.connect(config);
+      globalThis.dispatchEvent(new Event('online'));
+      await vi.advanceTimersByTimeAsync(0);
+
+      const doc = (provider as unknown as { doc: Y.Doc }).doc;
+      doc.getArray<Element>('elements').insert(0, sampleElements);
+
+      expect(provider.getElements()).toEqual(sampleElements);
     });
   });
 

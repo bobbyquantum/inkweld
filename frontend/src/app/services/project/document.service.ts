@@ -81,6 +81,12 @@ import {
   WS_MAX_BACKOFF_TIME,
 } from '../sync/authenticated-websocket-provider';
 import { BroadcastSyncProvider } from '../sync/broadcast-sync.provider';
+import {
+  initialConnectDenialReason,
+  type ReconnectAttemptResult,
+  ReconnectScheduler,
+  retryAfterInitialConnectFailure,
+} from '../sync/reconnect-scheduler';
 import { UnifiedUserService } from '../user/unified-user.service';
 import { CommentService } from './comment.service';
 import { ConversationService } from './conversation.service';
@@ -178,6 +184,11 @@ export interface DocumentConnection {
    * its connection is torn down.
    */
   onlineHandler?: () => void;
+  /**
+   * Retries the first WebSocket handshake when it failed (the document was
+   * opened offline). Stopped once a socket is up or the connection closes.
+   */
+  initialConnectRetry?: ReconnectScheduler;
 }
 
 /**
@@ -1266,6 +1277,11 @@ export class DocumentService {
   /**
    * Connects to WebSocket in background (non-blocking).
    * When successful, updates the connection's provider and adds presence tracking.
+   *
+   * If the first handshake fails for a reason that can clear (offline, server
+   * unreachable, throttled), keeps retrying through a {@link ReconnectScheduler}
+   * on the connection: until a socket has been up there is no provider whose
+   * own reconnect loop or 'online' handler could take over.
    */
   private async connectWebSocketInBackground(
     websocketUrl: string | null,
@@ -1274,6 +1290,51 @@ export class DocumentService {
     editor: Editor,
     connection: DocumentConnection
   ): Promise<void> {
+    const outcome = await this.tryConnectWebSocket(
+      websocketUrl,
+      documentId,
+      ydoc,
+      editor,
+      connection
+    );
+    if (
+      outcome === 'connected' ||
+      outcome === 'stop' ||
+      this.connections.get(documentId) !== connection
+    ) {
+      return;
+    }
+    connection.initialConnectRetry?.stop();
+    const scheduler = new ReconnectScheduler({
+      attempt: () =>
+        this.connections.get(documentId) === connection
+          ? this.tryConnectWebSocket(
+              websocketUrl,
+              documentId,
+              ydoc,
+              editor,
+              connection
+            )
+          : Promise.resolve('stop'),
+      log: message =>
+        this.logger.info('DocumentService', `${message} (${documentId})`),
+    });
+    connection.initialConnectRetry = scheduler;
+    scheduler.start();
+  }
+
+  /**
+   * One attempt at the authenticated WebSocket for an open document. On
+   * success wires the provider into the connection (status, reconnect and
+   * presence handling) and returns `connected`.
+   */
+  private async tryConnectWebSocket(
+    websocketUrl: string | null,
+    documentId: string,
+    ydoc: Y.Doc,
+    editor: Editor,
+    connection: DocumentConnection
+  ): Promise<ReconnectAttemptResult> {
     if (!websocketUrl) {
       // No WebSocket URL available - staying in offline mode
       this.logger.info(
@@ -1281,7 +1342,7 @@ export class DocumentService {
         `No WebSocket URL configured, document ${documentId} will remain in offline mode`
       );
       this.updateSyncStatus(documentId, DocumentSyncState.Local);
-      return;
+      return 'stop';
     }
 
     // Update state to Syncing while establishing WebSocket connection
@@ -1302,7 +1363,7 @@ export class DocumentService {
         'No auth token available for WebSocket connection'
       );
       this.updateSyncStatus(documentId, DocumentSyncState.Local);
-      return;
+      return 'stop';
     }
 
     // Check version compatibility before connecting to WebSocket
@@ -1313,7 +1374,7 @@ export class DocumentService {
         `Sync blocked due to version incompatibility for document ${documentId} - working in local mode only`
       );
       this.updateSyncStatus(documentId, DocumentSyncState.Local);
-      return;
+      return 'stop';
     }
 
     const wsUrl = `${websocketUrl}/api/v1/ws/yjs?documentId=${formattedDocId}`;
@@ -1483,7 +1544,7 @@ export class DocumentService {
             error
           );
         }
-        return;
+        return 'stop';
       }
 
       // Update the connection object with the provider
@@ -1524,13 +1585,22 @@ export class DocumentService {
         connection.type
       );
     } catch (error) {
+      // Closed while the handshake ran: nothing left to retry for.
+      if (this.connections.get(documentId) !== connection) return 'stop';
       this.logger.error(
         'DocumentService',
         'Failed to establish authenticated WebSocket connection',
         error
       );
-      this.updateSyncStatus(documentId, DocumentSyncState.Local);
-      return;
+      const reason = initialConnectDenialReason(error);
+      const outcome = retryAfterInitialConnectFailure(error);
+      this.updateSyncStatus(
+        documentId,
+        reason !== null && outcome === 'stop'
+          ? DocumentSyncState.Unavailable
+          : DocumentSyncState.Local
+      );
+      return outcome;
     }
 
     // Set up WebSocket-specific handlers now that provider is connected
@@ -1817,6 +1887,7 @@ export class DocumentService {
       connection.onlineHandler = handleOnline;
       globalThis.addEventListener('online', handleOnline);
     }
+    return 'connected';
   }
 
   /**
@@ -2228,9 +2299,12 @@ export class DocumentService {
    * Called from both disconnect paths so every document teardown also drops
    * its global listener — previously the listener (and its closure over the
    * provider / Y.Doc / IndexedDB provider) leaked for the lifetime of the
-   * page and could reconnect a destroyed provider.
+   * page and could reconnect a destroyed provider. Also stops a pending
+   * first-handshake retry, for the same reason.
    */
   private removeOnlineHandler(connection: DocumentConnection): void {
+    connection.initialConnectRetry?.stop();
+    connection.initialConnectRetry = undefined;
     const handler = connection.onlineHandler;
     if (handler) {
       globalThis.removeEventListener('online', handler);

@@ -1,7 +1,14 @@
-import { computed, inject, Injectable, signal } from '@angular/core';
+import {
+  computed,
+  DestroyRef,
+  inject,
+  Injectable,
+  signal,
+} from '@angular/core';
 import { stripTrailingSlashes } from '@utils/string-utils';
 
 import { environment } from '../../../environments/environment';
+import { ReconnectScheduler } from '../sync/reconnect-scheduler';
 import {
   type ServerConfig,
   type ServerVersionInfo,
@@ -126,8 +133,20 @@ export class VersionCompatibilityService {
   /** Signal indicating if a compatibility check is in progress */
   readonly checking = signal(false);
 
-  /** Signal with the last compatibility result for the active server */
+  /**
+   * Signal with the last compatibility result for the active server. Only a
+   * server that answered sets it: an unreachable one says nothing about
+   * compatibility, and treating it as incompatible would keep sync blocked
+   * after the network comes back (the app opened offline).
+   */
   readonly lastResult = signal<CompatibilityResult | null>(null);
+
+  /** Re-runs a check the server did not answer, until it does. */
+  private recheck: ReconnectScheduler | null = null;
+
+  constructor() {
+    inject(DestroyRef).onDestroy(() => this.stopRecheck());
+  }
 
   /**
    * Whether sync should be blocked due to version incompatibility.
@@ -191,7 +210,26 @@ export class VersionCompatibilityService {
     }
 
     // Check compatibility with the active server
-    await this.checkAndUpdateProfileCompatibility(activeConfig);
+    const result = await this.checkAndUpdateProfileCompatibility(activeConfig);
+    if (!result.serverInfo && activeConfig.serverUrl) {
+      this.startRecheck(activeConfig);
+    }
+  }
+
+  private startRecheck(profile: ServerConfig): void {
+    if (this.recheck?.isActive) return;
+    this.recheck = new ReconnectScheduler({
+      attempt: async () => {
+        const result = await this.checkAndUpdateProfileCompatibility(profile);
+        return result.serverInfo ? 'connected' : 'retry';
+      },
+    });
+    this.recheck.start();
+  }
+
+  private stopRecheck(): void {
+    this.recheck?.stop();
+    this.recheck = null;
   }
 
   /**
@@ -228,7 +266,10 @@ export class VersionCompatibilityService {
   }
 
   /**
-   * Check compatibility with a server by fetching its health endpoint
+   * Check compatibility with a server by fetching its health endpoint.
+   * A server that can't be reached or answers with an error returns an
+   * incompatible result without `serverInfo`, and leaves {@link lastResult}
+   * as it was.
    */
   async checkServerCompatibility(
     serverUrl: string
@@ -324,7 +365,6 @@ export class VersionCompatibilityService {
             ? error.message
             : 'Failed to connect to server',
       };
-      this.lastResult.set(result);
       return result;
     } finally {
       this.checking.set(false);

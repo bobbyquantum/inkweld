@@ -246,6 +246,10 @@ describe('VersionCompatibilityService', () => {
 
       expect(result.compatible).toBe(false);
       expect(result.message).toContain('Network error');
+      // Unreachable says nothing about compatibility: sync stays allowed so
+      // it can resume once the network is back.
+      expect(service.lastResult()).toBeNull();
+      expect(service.syncBlocked()).toBe(false);
     });
 
     it('should return incompatible when server returns error status', async () => {
@@ -325,6 +329,69 @@ describe('VersionCompatibilityService', () => {
 
       // "2" matches /^\d+$/ and parses to 2
       expect(result.serverInfo?.protocolVersion).toBe(2);
+    });
+  });
+
+  describe('initialize while the server is unreachable', () => {
+    const healthy = {
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          version: '1.0.0',
+          protocolVersion: 1,
+          minClientVersion: '0.0.0',
+        }),
+    };
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+      (storageContextMock as { activeConfig: () => unknown }).activeConfig =
+        () => ({
+          id: 'server-1',
+          type: 'server',
+          serverUrl: 'http://localhost:8333',
+        });
+    });
+
+    afterEach(() => {
+      TestBed.resetTestingModule();
+      vi.useRealTimers();
+    });
+
+    it('checks again once the network is back', async () => {
+      const fetchMock = vi
+        .fn()
+        .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+        .mockResolvedValue(healthy);
+      globalThis.fetch = fetchMock;
+
+      await service.initialize();
+      expect(service.syncBlocked()).toBe(false);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+
+      globalThis.dispatchEvent(new Event('online'));
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      expect(service.lastResult()?.compatible).toBe(true);
+      expect(storageContextMock.updateConfigVersionInfo).toHaveBeenCalled();
+
+      // Answered: no more checks.
+      await vi.advanceTimersByTimeAsync(10 * 60_000);
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+
+    it('does not check a Browser profile at all', async () => {
+      const fetchMock = vi.fn();
+      globalThis.fetch = fetchMock;
+      (storageContextMock as { activeConfig: () => unknown }).activeConfig =
+        () => ({ id: 'local', type: 'local' });
+
+      await service.initialize();
+      globalThis.dispatchEvent(new Event('online'));
+      await vi.advanceTimersByTimeAsync(10 * 60_000);
+
+      expect(fetchMock).not.toHaveBeenCalled();
     });
   });
 

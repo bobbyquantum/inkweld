@@ -291,6 +291,59 @@ describe('UserService', () => {
       expect(service.isAuthenticated()).toBe(true);
     });
 
+    describe('after starting offline with a cached user', () => {
+      const offline = () =>
+        throwError(
+          () =>
+            new HttpErrorResponse({
+              error: new Error('offline'),
+              status: 0,
+              statusText: 'Network Error',
+            })
+        );
+
+      async function startOffline(): Promise<void> {
+        TestBed.inject(AuthTokenService).setToken('cached-token');
+        await service.loadCurrentUser();
+        userServiceMock.getCurrentUser.mockReturnValue(offline());
+        await service.loadCurrentUser();
+        userServiceMock.getCurrentUser.mockClear();
+      }
+
+      it('re-checks the session once when the network comes back', async () => {
+        await startOffline();
+        const refreshed = { ...TEST_USER, name: 'Renamed elsewhere' };
+        userServiceMock.getCurrentUser.mockReturnValue(of(refreshed));
+
+        globalThis.dispatchEvent(new Event('online'));
+        await vi.waitFor(() =>
+          expect(service.currentUser().name).toBe('Renamed elsewhere')
+        );
+        expect(userServiceMock.getCurrentUser).toHaveBeenCalledTimes(1);
+
+        globalThis.dispatchEvent(new Event('online'));
+        await Promise.resolve();
+        expect(userServiceMock.getCurrentUser).toHaveBeenCalledTimes(1);
+      });
+
+      it('signs out when the server rejects the session it could not check', async () => {
+        await startOffline();
+        userServiceMock.getCurrentUser.mockReturnValue(
+          throwError(
+            () =>
+              new HttpErrorResponse({
+                error: { error: 'Invalid or expired token' },
+                status: 401,
+                statusText: 'Unauthorized',
+              })
+          )
+        );
+
+        globalThis.dispatchEvent(new Event('online'));
+        await vi.waitFor(() => expect(service.isAuthenticated()).toBe(false));
+      });
+    });
+
     it('should handle anonymous user response (not authenticated)', async () => {
       const anonymousUser: User = {
         id: '',
