@@ -25,7 +25,7 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "typecheck": "bun check",
-    "format": "prettier --write \"src/**/*.ts\"",
+    "format": "bun fmt \"src/**/*.ts\"",
     "generate:openapi": "bun run scripts/generate-openapi.ts",
     "generate:angular-client": "bun run scripts/generate-angular-client.ts",
     "init:d1-local": "bun run scripts/init-d1-local.ts",
