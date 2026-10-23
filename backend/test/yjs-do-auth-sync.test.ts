@@ -282,7 +282,7 @@ describe('YjsProject DO frames sent while the document loads', () => {
     // Queued edits are applied, and counted against the session's baseline.
     expect(sessionStarts).toEqual([2]);
     expect(connInfo.loadingDocument).toBe(false);
-    expect(serverDoc.getXmlFragment('prosemirror').length).toBe(2);
+    expect(serverDoc.getXmlFragment('prosemirror')).toHaveLength(2);
 
     // A frame arriving while the session call is still pending is applied
     // directly, not queued behind it.
