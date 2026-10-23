@@ -7,12 +7,12 @@
       data-testid="account-settings-back">
       <mat-icon>arrow_back</mat-icon>
     </button>
-    <span class="toolbar-title">{{
-      'settings.accountTab.title' | transloco
-    }}</span>
+    <h1 class="toolbar-title">
+      {{ 'settings.accountTab.title' | transloco }}
+    </h1>
   </mat-toolbar>
 
-  <div class="settings-content">
+  <main id="main-content" class="settings-content">
     <section class="settings-section">
       <h2>
         <mat-icon>smart_toy</mat-icon>
@@ -31,5 +31,5 @@
         <app-passkeys-settings></app-passkeys-settings>
       </section>
     }
-  </div>
+  </main>
 </div>

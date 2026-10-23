@@ -19,6 +19,7 @@
       [class.toolbar-group--hidden]="isOverflowed('history')"
       [attr.aria-hidden]="isOverflowed('history') ? 'true' : null">
       <button
+        appTooltipAriaLabel
         ngToolbarWidget
         value="undo"
         [matTooltip]="'editor.toolbar.undo' | transloco"
@@ -27,6 +28,7 @@
         <mat-icon>undo</mat-icon>
       </button>
       <button
+        appTooltipAriaLabel
         ngToolbarWidget
         value="redo"
         [matTooltip]="'editor.toolbar.redo' | transloco"
@@ -51,6 +53,7 @@
       [class.toolbar-group--hidden]="isOverflowed('formatting')"
       [attr.aria-hidden]="isOverflowed('formatting') ? 'true' : null">
       <button
+        appTooltipAriaLabel
         ngToolbarWidget
         value="bold"
         #bold="ngToolbarWidget"
@@ -61,6 +64,7 @@
         <mat-icon>format_bold</mat-icon>
       </button>
       <button
+        appTooltipAriaLabel
         ngToolbarWidget
         value="italic"
         #italic="ngToolbarWidget"
@@ -71,6 +75,7 @@
         <mat-icon>format_italic</mat-icon>
       </button>
       <button
+        appTooltipAriaLabel
         ngToolbarWidget
         value="underline"
         #underline="ngToolbarWidget"
@@ -81,6 +86,7 @@
         <mat-icon>format_underlined</mat-icon>
       </button>
       <button
+        appTooltipAriaLabel
         ngToolbarWidget
         value="strike"
         #strike="ngToolbarWidget"
@@ -182,6 +188,7 @@
       [class.toolbar-group--hidden]="isOverflowed('alignment')"
       [attr.aria-hidden]="isOverflowed('alignment') ? 'true' : null">
       <button
+        appTooltipAriaLabel
         ngToolbarWidget
         value="left"
         #alignLeft="ngToolbarWidget"
@@ -191,6 +198,7 @@
         <mat-icon>format_align_left</mat-icon>
       </button>
       <button
+        appTooltipAriaLabel
         ngToolbarWidget
         value="center"
         #alignCenter="ngToolbarWidget"
@@ -200,6 +208,7 @@
         <mat-icon>format_align_center</mat-icon>
       </button>
       <button
+        appTooltipAriaLabel
         ngToolbarWidget
         value="right"
         #alignRight="ngToolbarWidget"
@@ -209,6 +218,7 @@
         <mat-icon>format_align_right</mat-icon>
       </button>
       <button
+        appTooltipAriaLabel
         ngToolbarWidget
         value="justify"
         #alignJustify="ngToolbarWidget"
@@ -234,6 +244,7 @@
       [class.toolbar-group--hidden]="isOverflowed('lists')"
       [attr.aria-hidden]="isOverflowed('lists') ? 'true' : null">
       <button
+        appTooltipAriaLabel
         ngToolbarWidget
         value="bullet-list"
         #bulletList="ngToolbarWidget"
@@ -244,6 +255,7 @@
         <mat-icon>format_list_bulleted</mat-icon>
       </button>
       <button
+        appTooltipAriaLabel
         ngToolbarWidget
         value="ordered-list"
         #orderedList="ngToolbarWidget"
@@ -254,6 +266,7 @@
         <mat-icon>format_list_numbered</mat-icon>
       </button>
       <button
+        appTooltipAriaLabel
         ngToolbarWidget
         value="blockquote"
         #blockquoteWidget="ngToolbarWidget"
@@ -280,6 +293,7 @@
       [class.toolbar-group--hidden]="isOverflowed('insert')"
       [attr.aria-hidden]="isOverflowed('insert') ? 'true' : null">
       <button
+        appTooltipAriaLabel
         ngToolbarWidget
         value="link"
         #linkWidget="ngToolbarWidget"
@@ -290,6 +304,7 @@
         <mat-icon>link</mat-icon>
       </button>
       <button
+        appTooltipAriaLabel
         ngToolbarWidget
         value="image"
         [matTooltip]="'editor.toolbar.insertImage' | transloco"
@@ -306,6 +321,7 @@
         <mat-icon>table_chart</mat-icon>
       </button>
       <button
+        appTooltipAriaLabel
         ngToolbarWidget
         value="hr"
         [matTooltip]="'editor.toolbar.horizontalRule' | transloco"
@@ -314,6 +330,7 @@
         <mat-icon>horizontal_rule</mat-icon>
       </button>
       <button
+        appTooltipAriaLabel
         ngToolbarWidget
         value="clear"
         [matTooltip]="'editor.toolbar.clearFormatting' | transloco"
@@ -578,6 +595,7 @@
     class="toolbar-group toolbar-comments-anchor"
     data-toolbar-fixed="comments">
     <button
+      appTooltipAriaLabel
       ngToolbarWidget
       value="comments"
       [attr.aria-pressed]="commentPanelOpen"
@@ -592,6 +610,7 @@
       class="toolbar-group toolbar-autoreview-anchor"
       data-toolbar-fixed="auto-review">
       <button
+        appTooltipAriaLabel
         ngToolbarWidget
         value="auto-review"
         [attr.aria-pressed]="autoReviewPanelOpen"

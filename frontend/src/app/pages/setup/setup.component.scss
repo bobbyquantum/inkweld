@@ -92,6 +92,11 @@
   color: inherit; // Inherit color from parent for proper theming
 }
 
+.setup-title {
+  margin: 0;
+  font: inherit;
+}
+
 .title-icon {
   font-size: 28px;
   width: 28px;

@@ -168,6 +168,26 @@ describe('SetupComponent', () => {
     expect(component).toBeTruthy();
   });
 
+  it('has a main landmark and a page heading', () => {
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+
+    expect(el.querySelectorAll('main')).toHaveLength(1);
+    expect(el.querySelector('h1')?.textContent?.trim()).toBe(
+      'Welcome to Inkweld'
+    );
+  });
+
+  it('names the back button', () => {
+    mockSetupService.isConfigured.mockReturnValue(true);
+    fixture.detectChanges();
+
+    const back: HTMLButtonElement = fixture.nativeElement.querySelector(
+      '[data-testid="back-button"]'
+    );
+    expect(back.getAttribute('aria-label')).toBe('Back');
+  });
+
   it('links to the app privacy policy in a new tab', () => {
     mockSetupService.getServerUrl.mockReturnValue(null);
     fixture.detectChanges();

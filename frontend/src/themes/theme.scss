@@ -182,6 +182,32 @@ $dark-theme: mat.define-theme(
 );
 
 @include cdk.overlay();
+@include cdk.a11y-visually-hidden();
+
+// The skip link focuses the page's <main> programmatically; a ring around the
+// whole page there adds nothing.
+main[tabindex='-1']:focus {
+  outline: none;
+}
+
+// For controls drawn smaller than a finger: on touch screens, a hit area at
+// least 44px square centred on the control (M3 asks for 48dp targets). The
+// control needs no position of its own; this makes it the containing block.
+@media (pointer: coarse) {
+  .touch-target {
+    position: relative;
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: max(100%, 44px);
+      height: max(100%, 44px);
+      transform: translate(-50%, -50%);
+    }
+  }
+}
 // ─────────────────────────────────────────────────────────────────────────────
 // Mobile Keyboard Viewport Handling
 // ─────────────────────────────────────────────────────────────────────────────

@@ -167,6 +167,25 @@ describe('AppComponent', () => {
     expect(compiled.querySelector('router-outlet')).not.toBeNull();
   });
 
+  it('skip link moves focus to the main landmark', () => {
+    const main = document.createElement('main');
+    document.body.appendChild(main);
+    try {
+      const link: HTMLAnchorElement =
+        fixture.nativeElement.querySelector('.skip-link');
+      expect(link.textContent?.trim()).toBe('Skip to content');
+
+      const event = new MouseEvent('click', { cancelable: true });
+      link.dispatchEvent(event);
+
+      expect(event.defaultPrevented).toBe(true);
+      expect(main.getAttribute('tabindex')).toBe('-1');
+      expect(document.activeElement).toBe(main);
+    } finally {
+      main.remove();
+    }
+  });
+
   describe('Authentication Error Bar', () => {
     it('should not show error bar when no session expired error', () => {
       const toolbar = fixture.debugElement.query(By.css('.auth-error-bar'));

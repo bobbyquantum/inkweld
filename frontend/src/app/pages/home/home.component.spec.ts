@@ -380,6 +380,18 @@ describe('HomeComponent', () => {
     expect(component).toBeTruthy();
   });
 
+  it('puts the project list in a main landmark under a page heading', () => {
+    fixture.detectChanges();
+    component.isInitializing.set(false);
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+
+    expect(el.querySelectorAll('main')).toHaveLength(1);
+    const headings = el.querySelectorAll('main h1');
+    expect(headings).toHaveLength(1);
+    expect(headings[0].textContent?.trim()).toBe('Your projects');
+  });
+
   it('should load projects on init', () => {
     const loadProjectsSpy = vi.spyOn(component as any, 'loadProjects');
     component.ngOnInit();

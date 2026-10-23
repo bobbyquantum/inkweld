@@ -219,7 +219,10 @@
     }
 
     <!-- Main content area -->
-    <div class="main-layout" [class.no-header]="!isAuthenticated()">
+    <main
+      id="main-content"
+      class="main-layout"
+      [class.no-header]="!isAuthenticated()">
       <!-- Main content section - responsive cover grid -->
       <div
         class="main-content"
@@ -293,6 +296,9 @@
             <app-theme-toggle></app-theme-toggle>
           </div>
         } @else {
+          <h1 class="cdk-visually-hidden">
+            {{ 'home.projectsHeading' | transloco }}
+          </h1>
           <!-- Content for authenticated users - responsive cover grid -->
           @if (isLoading() && pullToRefresh.state() !== 'refreshing') {
             <div class="loading-state" data-testid="loading-projects">
@@ -461,6 +467,6 @@
           }
         }
       </div>
-    </div>
+    </main>
   </div>
 }

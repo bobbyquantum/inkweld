@@ -1,5 +1,5 @@
 <div class="setup-container">
-  <div class="setup-content">
+  <main id="main-content" class="setup-content">
     <mat-card class="setup-card" data-testid="setup-card">
       <mat-card-header>
         <mat-card-title>
@@ -7,6 +7,7 @@
             <button
               mat-icon-button
               (click)="goBack()"
+              [attr.aria-label]="'back' | transloco"
               class="title-icon-button"
               data-testid="back-button">
               <mat-icon>arrow_back</mat-icon>
@@ -14,13 +15,15 @@
           } @else {
             <mat-icon class="title-icon">settings</mat-icon>
           }
-          @if (upgradeSourceName()) {
-            Connect to sync
-          } @else if (canReturnToApp()) {
-            Add a profile
-          } @else {
-            Welcome to Inkweld
-          }
+          <h1 class="setup-title">
+            @if (upgradeSourceName()) {
+              Connect to sync
+            } @else if (canReturnToApp()) {
+              Add a profile
+            } @else {
+              Welcome to Inkweld
+            }
+          </h1>
         </mat-card-title>
         <mat-card-subtitle>
           @if (configLoading()) {
@@ -585,7 +588,7 @@
         >{{ 'auth.legal.privacyPolicy' | transloco }}</a
       >
     </p>
-  </div>
+  </main>
 
   <!-- The No AI / Allow AI choice in the bottom left corner, the theme
        toggle in the bottom right -->

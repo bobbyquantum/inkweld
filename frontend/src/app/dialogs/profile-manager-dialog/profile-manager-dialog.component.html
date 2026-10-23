@@ -32,7 +32,11 @@
         }
       }
     </h2>
-    <button mat-icon-button mat-dialog-close class="close-button">
+    <button
+      mat-icon-button
+      mat-dialog-close
+      class="close-button"
+      [aria-label]="'close' | transloco">
       <mat-icon>close</mat-icon>
     </button>
   </div>

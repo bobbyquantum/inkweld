@@ -283,5 +283,8 @@ describe('UserSettingsDialogComponent', () => {
     );
     expect(closeButton).toBeTruthy();
     expect(closeButton.attributes['mat-dialog-close']).toBeDefined();
+    expect(
+      (closeButton.nativeElement as HTMLElement).getAttribute('aria-label')
+    ).toBe('Close');
   });
 });

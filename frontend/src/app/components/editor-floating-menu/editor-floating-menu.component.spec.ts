@@ -115,6 +115,19 @@ describe('EditorFloatingMenuComponent', () => {
     expect(component).toBeTruthy();
   });
 
+  it('names every formatting button after its tooltip', () => {
+    const buttons = Array.from(
+      (
+        fixture.nativeElement as HTMLElement
+      ).querySelectorAll<HTMLButtonElement>('button')
+    );
+
+    expect(buttons.length).toBeGreaterThan(0);
+    for (const button of buttons) {
+      expect(button.getAttribute('aria-label')?.trim()).toBeTruthy();
+    }
+  });
+
   describe('initial state', () => {
     it('should have bold state as false initially', () => {
       expect(component.isBold()).toBe(false);
