@@ -76,7 +76,7 @@ Then open `http://localhost:8333` in your browser.
 | Move to another mode later | ✅ | ✅ | ✅ |
 | Cost to run | Free | Free (your storage quota) | Self-host, or a hosted server |
 
-📋 **[Full feature list →](#feature-list)** · 🗺️ **[Roadmap →](ROADMAP.md)**
+📋 **[Full feature list →](#feature-list)**
 
 ---
 
@@ -94,7 +94,7 @@ Then open `http://localhost:8333` in your browser.
 
 ## Feature List
 
-Everything below ships in 1.0. Planned features live in the [roadmap](ROADMAP.md).
+Everything below ships in 1.0. New features are driven by what people using Inkweld ask for: suggest one in [Discussions](https://github.com/bobbyquantum/inkweld/discussions).
 
 - **Projects:** home screen with covers, search, sorting and pinning; drag-and-drop project tree with unlimited folder nesting; project templates for worldbuilding, tabletop RPGs and scripts, with an illustrated tabletop RPG demo; rename; archives (`.inkweld.zip`) to back up, restore or duplicate a project.
 - **Writing:** rich-text editor with tables, images, links and keyboard shortcuts; scenes and notes with synopsis, status and word targets; corkboard and outline views of a folder; conversation scenes written as speech bubbles, with a script view; find and replace; zen mode; snapshots (named and automatic); threaded comments; writing statistics.
@@ -186,7 +186,7 @@ The main logo is not AI, this was hand-drawn in Inkscape as SVG.
 
 ## Contributing
 
-Check out the [Status](#status) and the [Roadmap](ROADMAP.md) for areas that need work.
+Check out the [Status](#status) for where the project is.
 
 - 🐛 [Report bugs](https://github.com/bobbyquantum/inkweld/issues)
 - 💡 [Request features](https://github.com/bobbyquantum/inkweld/discussions)

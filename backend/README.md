@@ -243,7 +243,7 @@ This Hono backend was designed with the following principles:
 - Admin dashboard APIs (stats, config, announcements, image audits, email)
 
 Refer to the root [`README.md`](../README.md#feature-list) for the
-project-wide feature list and [`ROADMAP.md`](../ROADMAP.md) for planned work.
+project-wide feature list.
 
 ## Testing
 
