@@ -101,6 +101,9 @@ it. `frontend/tsconfig.json` only references the real projects
   must be gated with `requireAiEnabled` and listed in
   `backend/test/ai-kill-switch.test.ts`. Frontend AI features gate on the
   user's AI preference too. (`backend/AGENTS.md`, `frontend/AGENTS.md`)
+- **Backend routes that edit a Yjs document** use `openEditableDocument()`,
+  never `yjsService` directly: `yjsService` is Bun-only and crashes on
+  Workers. (`backend/AGENTS.md`)
 - **Storage quotas**: every server write that adds project storage calls
   `quotaService.assertCanStore()`; Yjs editing/sync is never blocked.
   (`backend/AGENTS.md`)

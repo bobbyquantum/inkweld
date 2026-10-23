@@ -25,6 +25,13 @@ LevelDB per project for Yjs documents (Durable Objects on Workers). The root
 - **Per-project LevelDB**: each project has its own LevelDB instance.
 - **Yjs document ids**: the backend/MCP use `username:slug:elements/` with a
   trailing slash, the frontend without. Not a bug; don't "fix" it.
+- **HTTP routes that edit a Yjs document** must work on both runtimes.
+  `yjsService` is Bun-only: on Workers it opens LevelDB and crashes the request
+  with `indexedDB is not defined`. Use `openEditableDocument(documentId,
+  documentRuntime(c))` (`services/yjs-document-access.ts`). On Bun it returns
+  the live document. On Workers it loads a copy from the project DO's
+  `GET /api/document-state`, and `commit()` sends only that copy's changes back
+  as a `yUpdate`. AI auto-review uses it.
 
 Layout of `src/`: `config/` (environment, route registration), `db/` (Drizzle
 schema), `durable-objects/` (Workers), `middleware/` (auth, session, CSRF,
