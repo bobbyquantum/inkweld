@@ -61,7 +61,7 @@ export default defineConfig({
   /* Retry once in CI, matching the online/local/docker configs.
      History: this was `retries: 0` so a mid-run `wrangler dev` crash would
      surface immediately. That crash is fixed (DO rejection guards + the
-     wrangler 4.116.0 pin/patch — see AGENTS.md). What remained was a
+     wrangler 4.116.0 pin/patch — see backend/AGENTS.md). What remained was a
      different class of failure: one test per shard timing out on a page
      that never rendered, or a UI race (see registration-form
      checkUsernameAvailability). The same specs flake at the same rate in the
