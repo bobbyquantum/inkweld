@@ -74,6 +74,12 @@ interface DoInternals {
   getDb(): unknown;
   checkAccessWithDb(): Promise<{ canWrite: boolean; projectDbId: string }>;
   getOrCreateDocument(documentId: string): Promise<Y.Doc>;
+  dispatchAuthenticatedFrame(ws: unknown, connInfo: ConnInfo, message: ArrayBuffer): void;
+  tryStartSession(
+    connInfo: ConnInfo,
+    projectId: string,
+    startWordCount: number | null
+  ): Promise<void>;
 }
 
 let YjsProject: new (state: unknown, env: unknown) => unknown;
@@ -99,6 +105,23 @@ function updateFrame(text: string): ArrayBuffer {
   return toArrayBuffer(encoding.toUint8Array(encoder));
 }
 
+/** Text written into the `prosemirror` fragment, which writing sessions count words in. */
+function writeProse(doc: Y.Doc, text: string): void {
+  const paragraph = new Y.XmlElement('paragraph');
+  paragraph.insert(0, [new Y.XmlText(text)]);
+  const fragment = doc.getXmlFragment('prosemirror');
+  fragment.insert(fragment.length, [paragraph]);
+}
+
+function proseUpdateFrame(text: string): ArrayBuffer {
+  const source = new Y.Doc();
+  writeProse(source, text);
+  const encoder = encoding.createEncoder();
+  encoding.writeVarUint(encoder, Y_MESSAGE_SYNC);
+  syncProtocol.writeUpdate(encoder, Y.encodeStateAsUpdate(source));
+  return toArrayBuffer(encoding.toUint8Array(encoder));
+}
+
 /** The sync sub-type (step 1 / step 2 / update) of each binary sync frame sent. */
 function syncFramesSent(ws: FakeWs): Array<{ type: number; payload: Uint8Array }> {
   return ws.sent
@@ -116,7 +139,7 @@ function syncFramesSent(ws: FakeWs): Array<{ type: number; payload: Uint8Array }
  * A DO whose document load is held open until `release()` is called, so a test
  * can deliver frames in the window between `authenticated` and the load.
  */
-function makeDO(serverDoc: Y.Doc) {
+function makeDO(serverDoc: Y.Doc, projectDbId = '') {
   const doInstance = new YjsProject(
     { storage: {}, setWebSocketAutoResponse: () => {}, getWebSockets: () => [] },
     { DATABASE_KEY: 'test-database-key-long-enough-for-hmac-32' }
@@ -133,7 +156,7 @@ function makeDO(serverDoc: Y.Doc) {
 
   doInstance.verifyToken = async () => ({ userId: 'u1', username: 'alice' });
   doInstance.getDb = () => ({});
-  doInstance.checkAccessWithDb = async () => ({ canWrite: true, projectDbId: '' });
+  doInstance.checkAccessWithDb = async () => ({ canWrite: true, projectDbId });
   doInstance.getOrCreateDocument = async () => {
     loadStarted();
     await loaded;
@@ -199,13 +222,24 @@ describe('YjsProject DO frames sent while the document loads', () => {
     const connInfo = makeConnInfo();
     doInstance.connections.set(ws, connInfo);
 
+    const dispatched: ArrayBuffer[] = [];
+    const dispatch = doInstance.dispatchAuthenticatedFrame.bind(doInstance);
+    doInstance.dispatchAuthenticatedFrame = (socket, info, message) => {
+      dispatched.push(message);
+      dispatch(socket, info, message);
+    };
+
     const auth = doInstance.handleAuthMessage(ws, connInfo, 'token');
     await loading;
-    doInstance.handleBinaryMessage(ws, connInfo, updateFrame('first'));
-    doInstance.handleBinaryMessage(ws, connInfo, updateFrame('second'));
+    const first = updateFrame('first');
+    const second = updateFrame('second');
+    doInstance.handleBinaryMessage(ws, connInfo, first);
+    doInstance.handleBinaryMessage(ws, connInfo, second);
+    expect(dispatched).toEqual([]);
     release();
     await auth;
 
+    expect(dispatched).toEqual([first, second]);
     const text = serverDoc.getText('t').toString();
     expect(text).toContain('first');
     expect(text).toContain('second');
@@ -214,6 +248,50 @@ describe('YjsProject DO frames sent while the document loads', () => {
     doInstance.handleBinaryMessage(ws, connInfo, updateFrame('third'));
     expect(connInfo.pendingMessages).toEqual([]);
     expect(serverDoc.getText('t').toString()).toContain('third');
+  });
+
+  it('replays the queue before the writing session starts, from a baseline taken first', async () => {
+    const serverDoc = new WSSharedDoc();
+    writeProse(serverDoc, 'alpha beta');
+    const { doInstance, loading, release } = makeDO(serverDoc, 'project-1');
+    const ws = makeWs();
+    const connInfo = makeConnInfo();
+    doInstance.connections.set(ws, connInfo);
+
+    // Hold the session's database call open, as a slow D1 query would.
+    let finishSession!: () => void;
+    let sessionCalled!: () => void;
+    const sessionStarted = new Promise<void>((resolve) => {
+      sessionCalled = resolve;
+    });
+    const sessionStarts: Array<number | null> = [];
+    doInstance.tryStartSession = (_info, _projectId, startWordCount) => {
+      sessionStarts.push(startWordCount);
+      sessionCalled();
+      return new Promise<void>((resolve) => {
+        finishSession = resolve;
+      });
+    };
+
+    const auth = doInstance.handleAuthMessage(ws, connInfo, 'token');
+    await loading;
+    doInstance.handleBinaryMessage(ws, connInfo, proseUpdateFrame('gamma delta epsilon'));
+    release();
+    await sessionStarted;
+
+    // Queued edits are applied, and counted against the session's baseline.
+    expect(sessionStarts).toEqual([2]);
+    expect(connInfo.loadingDocument).toBe(false);
+    expect(serverDoc.getXmlFragment('prosemirror').length).toBe(2);
+
+    // A frame arriving while the session call is still pending is applied
+    // directly, not queued behind it.
+    doInstance.handleBinaryMessage(ws, connInfo, updateFrame('during session'));
+    expect(connInfo.pendingMessages).toEqual([]);
+    expect(serverDoc.getText('t').toString()).toBe('during session');
+
+    finishSession();
+    await auth;
   });
 
   it('releases the queue when the socket closes during the load', async () => {

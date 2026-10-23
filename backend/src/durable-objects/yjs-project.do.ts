@@ -2354,19 +2354,32 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
   }
 
   /**
-   * Open a writing session for this connection if the user can write and
-   * the document id maps to a trackable element. Failures are swallowed.
+   * The word count a writing session for this connection starts from, or
+   * null when no session would be opened (read-only user, or a document id
+   * that does not map to a trackable element).
    */
-  private async tryStartSession(connInfo: ConnectionInfo, projectId: string): Promise<void> {
+  private sessionStartWordCount(connInfo: ConnectionInfo): number | null {
+    if (!connInfo.canWrite || !connInfo.userId) return null;
+    if (!this.parseTrackableElementId(connInfo.documentId)) return null;
+    return this.readWordCount(connInfo.sharedDoc);
+  }
+
+  /**
+   * Open a writing session for this connection, starting from the baseline
+   * taken by `sessionStartWordCount` (null: no session). Failures are swallowed.
+   */
+  private async tryStartSession(
+    connInfo: ConnectionInfo,
+    projectId: string,
+    startWordCount: number | null
+  ): Promise<void> {
     try {
-      if (!connInfo.canWrite) return;
-      if (!connInfo.userId) return;
+      if (startWordCount === null || !connInfo.userId) return;
       const elementId = this.parseTrackableElementId(connInfo.documentId);
       if (!elementId) return;
       const db = this.getDb();
       if (!db) return;
 
-      const startWordCount = this.readWordCount(connInfo.sharedDoc);
       const id = await writingSessionService.start(db, {
         projectId,
         elementId,
@@ -2626,9 +2639,26 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
 
       this.registerWebSocketForDocument(ws, sharedDoc, connInfo.documentId);
 
+      // If this is the elements doc, attach the snapshot-diff observer so
+      // element creates/renames/deletes are recorded as activity events.
+      if (db && projectDbId && isElementsDoc(connInfo.documentId)) {
+        this.watchElementsDocDO(sharedDoc, connInfo.documentId, projectDbId, db);
+      }
+
+      // The writing session's baseline is taken before the queued frames are
+      // applied, so edits sent during auth count towards this session.
+      const startWordCount = this.sessionStartWordCount(connInfo);
+
+      // Process binary messages that arrived during auth and the document
+      // load (including any sent after the client saw `authenticated`). This
+      // runs before the writing-session database call below: frames arriving
+      // during that await go straight to the document instead of filling the
+      // bounded queue.
+      this.drainPendingMessages(ws, connInfo);
+
       // Open a writing session for this connection (best-effort).
       if (projectDbId) {
-        await this.tryStartSession(connInfo, projectDbId);
+        await this.tryStartSession(connInfo, projectDbId, startWordCount);
       }
 
       // Re-serialize the attachment now that tryStartSession may have populated
@@ -2650,16 +2680,6 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
         trackedProjectSlug: connInfo.trackedProjectSlug,
         trackedElementName: connInfo.trackedElementName,
       });
-
-      // If this is the elements doc, attach the snapshot-diff observer so
-      // element creates/renames/deletes are recorded as activity events.
-      if (db && projectDbId && isElementsDoc(connInfo.documentId)) {
-        this.watchElementsDocDO(sharedDoc, connInfo.documentId, projectDbId, db);
-      }
-
-      // Process binary messages that arrived during auth and the document
-      // load (including any sent after the client saw `authenticated`).
-      this.drainPendingMessages(ws, connInfo);
 
       projDOLog.debug(
         `Yjs sync started for ${connInfo.documentId} (${this.documents.size} docs in DO)`
