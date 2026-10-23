@@ -95,9 +95,11 @@ Read `e2e/BEST_PRACTICES.md` before writing one.
   and keeps the local copy if that fails.
 - **Project archives** (`.inkweld.zip`): when the format changes, bump
   `ARCHIVE_VERSION` in `models/project-archive.ts`, document it in that
-  file's version-history JSDoc, and either make
+  file's version-history JSDoc, and make
   `services/project/project-import.service.ts` upgrade the previous version
-  (tested in its spec) or accept that old archives no longer import.
+  (tested in its spec). Since 1.0.0-beta.1, dropping support for an older
+  archive version is not an option (root `AGENTS.md`, "Releases and
+  versioning").
   `ARCHIVE_VERSION` (file format) and the backend `PROTOCOL_VERSION` (live Yjs
   sync) are separate. Docs: `docs/site/docs/developer/project-archives.md`.
 - **Markdown input rules** are opt-in (`components/editor-input-rules/AGENTS.md`).

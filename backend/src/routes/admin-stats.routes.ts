@@ -14,7 +14,7 @@ const SystemStatsSchema = z
     userCount: z.number().openapi({ example: 42, description: 'Total registered users' }),
     projectCount: z.number().openapi({ example: 100, description: 'Total projects' }),
     pendingUserCount: z.number().openapi({ example: 3, description: 'Users awaiting approval' }),
-    version: z.string().openapi({ example: '0.1.0', description: 'Server version' }),
+    version: z.string().openapi({ example: '1.0.0', description: 'Server version' }),
     uptime: z.number().openapi({ example: 86400, description: 'Server uptime in seconds' }),
     runtime: z.string().openapi({ example: 'bun', description: 'Runtime environment' }),
   })

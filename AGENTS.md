@@ -88,6 +88,38 @@ it. `frontend/tsconfig.json` only references the real projects
   synchronously and callers rely on a rejection, keep `async` and
   `return await` the promise.
 
+## Releases and versioning
+
+release-please cuts releases (`.github/workflows/release-please.yml`,
+`release-please-config.json`); the process is under "Releasing" in
+`docs/site/docs/admin-guide/ci-cd.md`.
+
+- **PR titles are the changelog.** PRs are squash-merged, so the Conventional
+  Commit title decides the bump (`fix` patch, `feat` minor, `!` major; during
+  the 1.0 beta every release is the next `1.0.0-beta.N`) and the CHANGELOG
+  line. `docs`/`refactor`/`test`/`build`/`ci`/`chore`/`style` are hidden and
+  never cause a release; Renovate uses `chore(deps)`.
+- **Never bump versions by hand.** release-please updates the three
+  `package.json` files and every line marked `// x-release-please-version`
+  (`backend/src/config/env.ts`, `frontend/src/environments/environment*.ts`).
+  A new hardcoded app version needs that marker and an `extra-files` entry.
+  `MIN_CLIENT_VERSION` and the OpenAPI `info.version` are compatibility/API
+  versions, not the app version.
+- `CHANGELOG.md` is rendered in-app (About → Changelog) by `ChangelogService`,
+  which parses `## [X.Y.Z] - date` and release-please's
+  `## [X.Y.Z](compare-url) (date)` headings. Don't add a `## [Unreleased]`
+  section: release-please inserts new entries above the first `## [` heading.
+- Tags pushed by release-please don't trigger workflows (GITHUB_TOKEN), so it
+  calls `release.yml` (multi-arch Docker image) via `workflow_call`.
+- **Upgrade path commitment.** From 1.0.0-beta.1 on, every release must
+  upgrade automatically from any earlier one (README "Status"): forward
+  Drizzle migrations only, local IndexedDB/Yjs data upgraded in place, and
+  archives at every earlier `ARCHIVE_VERSION` still importable. A change that
+  would make users export, reset or migrate by hand needs an automatic
+  migration instead.
+- Versions can carry a pre-release suffix (`1.0.0-beta.1`);
+  `version-compatibility.service.ts` compares only `MAJOR.MINOR.PATCH`.
+
 ## Gotchas that apply anywhere
 
 - **Yjs Document ID Trailing Slash**: the frontend uses

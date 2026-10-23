@@ -18,7 +18,9 @@ LevelDB per project for Yjs documents (Durable Objects on Workers). The root
   from `src/db/schema/`. Its statements use `IF NOT EXISTS` so a database
   created by the pre-squash migrations (the preview D1) records it as a no-op.
   Add new migrations with `bunx drizzle-kit generate` on top of it; never
-  hand-patch columns at startup.
+  hand-patch columns at startup. Never squash or rewrite migrations again:
+  every release since 1.0.0-beta.1 must upgrade automatically from any
+  earlier one (root `AGENTS.md`, "Releases and versioning").
 - **Sessions** are JWT bearer tokens (HS256, 30 days), not cookies; revoke them
   by bumping `users.sessionsValidFrom`. CSRF protection covers every
   state-changing request.

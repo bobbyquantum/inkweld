@@ -1,6 +1,6 @@
 {
   "name": "inkweld-backend",
-  "version": "0.1.0",
+  "version": "1.0.0-beta.1",
   "description": "Inkweld backend API built with Hono",
   "author": "bobbyquantum",
   "private": true,
