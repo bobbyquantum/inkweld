@@ -72,7 +72,7 @@ let YjsProject: new (state: unknown, env: unknown) => { fetch(req: Request): Pro
 let projectService: { findByUsernameAndSlug: (...args: unknown[]) => Promise<unknown> };
 let userService: { findById: (...args: unknown[]) => Promise<unknown> };
 
-describe('YjsProject DO GET /api/document', () => {
+describe('YjsProject DO GET /api/document and /api/document-state', () => {
   beforeAll(async () => {
     ({ projectService } = await import('../src/services/project.service'));
     ({ userService } = await import('../src/services/user.service'));
@@ -166,5 +166,68 @@ describe('YjsProject DO GET /api/document', () => {
 
   it('omits shared types that hold no data', async () => {
     expect(await readDocument('alice:proj:elements')).toEqual({});
+  });
+
+  it('serves the full Yjs state, and takes edits to a copy of it back as a yUpdate', async () => {
+    spyOn(projectService, 'findByUsernameAndSlug').mockResolvedValue({
+      id: 'project-1',
+      userId: 'owner-1',
+    });
+    const stored = new Y.Doc();
+    const paragraph = new Y.XmlElement('paragraph');
+    paragraph.insert(0, [new Y.XmlText('This are a test.')]);
+    stored.getXmlFragment('prosemirror').insert(0, [paragraph]);
+    const documentId = 'alice:proj:doc-1';
+    const entries = new Map<string, unknown>([
+      [`doc:${documentId}:snapshot`, Y.encodeStateAsUpdate(stored)],
+    ]);
+    const token = await signJwt({
+      userId: 'owner-1',
+      username: 'alice',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    });
+    const doInstance = new YjsProject(
+      {
+        storage: makeStorage(entries),
+        getWebSockets: () => [],
+        setWebSocketAutoResponse: () => {},
+      },
+      { DATABASE_KEY: SECRET, DB: {} }
+    );
+    const url = (path: string) =>
+      `https://yjs-do/api/${path}?documentId=${encodeURIComponent(`${documentId}/`)}`;
+    const headers = { Authorization: `Bearer ${token}` };
+
+    const stateRes = await doInstance.fetch(new Request(url('document-state'), { headers }));
+    expect(stateRes.status).toBe(200);
+    expect(stateRes.headers.get('Content-Type')).toBe('application/octet-stream');
+
+    const copy = new Y.Doc();
+    Y.applyUpdate(copy, new Uint8Array(await stateRes.arrayBuffer()));
+    const before = Y.encodeStateVector(copy);
+    const text = (copy.getXmlFragment('prosemirror').get(0) as Y.XmlElement).get(0) as Y.XmlText;
+    expect(text.toString()).toBe('This are a test.');
+    text.format(0, 4, { auto_review: { id: 's1' } });
+
+    const update = Y.encodeStateAsUpdate(copy, before);
+    const postRes = await doInstance.fetch(
+      new Request(url('document'), {
+        method: 'POST',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ yUpdate: btoa(String.fromCodePoint(...update)) }),
+      })
+    );
+    expect(postRes.status).toBe(200);
+
+    const after = new Y.Doc();
+    const againRes = await doInstance.fetch(new Request(url('document-state'), { headers }));
+    Y.applyUpdate(after, new Uint8Array(await againRes.arrayBuffer()));
+    const afterText = (after.getXmlFragment('prosemirror').get(0) as Y.XmlElement).get(
+      0
+    ) as Y.XmlText;
+    expect(afterText.toDelta()[0]).toEqual({
+      insert: 'This',
+      attributes: { auto_review: { id: 's1' } },
+    });
   });
 });

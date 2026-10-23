@@ -596,6 +596,8 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
         return this.handleMutateElements(request, documentId);
       case 'GET /api/document':
         return this.handleGetDocument(documentId);
+      case 'GET /api/document-state':
+        return this.handleGetDocumentState(documentId);
       case 'POST /api/document':
         return this.handleUpdateDocument(request, documentId);
       case 'GET /api/stats':
@@ -872,6 +874,21 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
         headers: { 'Content-Type': 'application/json' },
       });
     }
+  }
+
+  /**
+   * GET /api/document-state - The document's full Yjs state
+   * (`Y.encodeStateAsUpdate`) as binary. A Worker route that has to edit a
+   * document the way the Bun runtime edits its live copy (formatting marks,
+   * text replacement) loads this into a local Y.Doc, edits it, and sends back
+   * only its changes through `POST /api/document` with `yUpdate`.
+   */
+  private async handleGetDocumentState(documentId: string): Promise<Response> {
+    const sharedDoc = await this.getOrCreateDocument(documentId);
+    return new Response(Y.encodeStateAsUpdate(sharedDoc), {
+      status: 200,
+      headers: { 'Content-Type': 'application/octet-stream' },
+    });
   }
 
   /**
