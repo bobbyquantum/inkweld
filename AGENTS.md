@@ -1,1413 +1,169 @@
 # AI Agent Instructions for Inkweld
 
-This document provides guidance for AI coding assistants (Copilot, Cline, Windsurf, Cascade, etc.) working on the Inkweld project.
+Inkweld is a collaborative creative writing platform. This file holds the rules
+that apply to every change. Notes for one area live in `AGENTS.md` files next
+to the code (`frontend/`, `backend/`, and folders below them); **before
+changing code in an area, read the `AGENTS.md` files on the path to it** if your
+tool hasn't loaded them already. Longer design notes are in the developer docs
+(`docs/site/docs/developer/`). The full map is at the end.
 
----
+## Stack
 
-## Project Overview
+- **Frontend** (`frontend/`): Angular, standalone components, Vitest +
+  Playwright, Transloco i18n. Rules: `frontend/AGENTS.md`.
+- **Backend** (`backend/`): Hono on Bun (also Node and Cloudflare Workers),
+  Drizzle ORM on SQLite/D1, LevelDB per project (Durable Objects on Workers).
+  Rules: `backend/AGENTS.md`.
+- **Real-time**: Yjs CRDTs over WebSocket, offline-first with IndexedDB.
+- **Shared packages** (`packages/`): `inkweld-async`, `inkweld-presence`,
+  `inkweld-prosemirror`.
 
-**Inkweld** is a collaborative creative writing platform built with:
+## Rules for every change
 
-- **Frontend**: Angular (standalone components, modern control flow)
-- **Backend**: Hono running on Bun
-- **Database**: SQLite/D1 (Drizzle ORM) + LevelDB (per-project document storage)
-- **Real-time**: Yjs + WebSocket for collaborative editing
-- **Testing**: Vitest (unit) + Playwright (e2e)
+1. **Bun installs only.** Run `bun install` from the repo root. Never run
+   `npm install` / `npm ci` inside `frontend/` or `backend/` (a `preinstall`
+   guard errors). `npm test`, `npm run lint`, `npm run e2e` are fine.
+2. **Tests.** Every change needs test coverage and all tests must pass.
+   Frontend: `npm test` (Vitest), **never `bun test`**, never Jasmine.
+   Backend: `bun test`.
+3. **Verify before declaring done**: `bun run verify` runs type checking,
+   lint, the unit tests (packages, frontend, backend) and a docs build. It
+   passes only when the last line reads `--- verify (fast) passed in <N>s ---`.
+   Use `bun run verify:e2e` or `bun run verify:full` when e2e tests or the
+   docs screenshots are affected.
+4. **Never disable a lint rule** without asking the user first; fix the issue
+   instead. Document any approved exception in a comment.
+5. **No summary markdown files** (FIXES.md, STATUS.md, …) unless asked;
+   summarize in chat. Keep `AGENTS.md` files, READMEs and docs up to date when
+   behaviour changes.
+6. **Never edit `frontend/src/api-client/`.** After an API change, regenerate:
+   `cd backend && bun run generate:openapi && bun run generate:angular-client`
+   (needs a Java runtime). CI's "OpenAPI Spec + Client Freshness" job fails if
+   `backend/openapi.json` or the client are stale.
+7. **Never push to `production`** unless asked: it deploys inkweld.app. It only
+   fast-forwards to a commit already on `main`
+   (`git push origin origin/main:production`). `main` deploys
+   preview.inkweld.app. Deploy steps live in
+   `deploy-cloudflare-reusable.yml`; see
+   `docs/site/docs/admin-guide/ci-cd.md`.
 
----
-
-## AI Development Tools
-
-### Model Context Protocol (MCP)
-
-This project is configured with the **Angular CLI MCP Server**, which enables AI assistants to access real-time Angular documentation and best practices directly from angular.dev.
-
-**Configuration**: The MCP server is configured in `.vscode/mcp.json` and provides the following tools:
-
-- `get_best_practices` - Retrieves current Angular coding standards
-- `search_documentation` - Searches angular.dev in real-time
-- `list_projects` - Analyzes workspace structure
-- `find_examples` (experimental) - Searches curated Angular code examples
-- `modernize` (experimental) - Provides migration instructions for upgrading code
-
-**Benefits**:
-
-- AI assistants have access to up-to-date Angular documentation
-- Reduces reliance on potentially outdated training data
-- Project-aware guidance based on actual workspace structure
-- Official Angular patterns and best practices
-
-**Restart Required**: After MCP configuration changes, restart VS Code or your AI assistant to enable the integration.
-
-For more information, visit: <https://angular.dev/ai/mcp>
-
----
-
-## Core Development Rules
-
-### 0. Package Manager — CRITICAL
-
-**This project uses Bun exclusively for dependency management. NEVER run `npm install` inside `frontend/` or `backend/`.**
-
-- `npm install` inside `frontend/` or `backend/` generates a `package-lock.json` that is gitignored, causing non-deterministic installs on every fresh checkout
-- Both `frontend/package.json` and `backend/package.json` have a `preinstall` guard that will error if you try
-- Always install dependencies from the **repo root** using:
-  ```bash
-  bun install
-  ```
-- `npm test`, `npm run lint`, `npm run e2e` etc. are fine to run — they invoke the Angular CLI via Node.js internally, which is correct. The restriction is only on `npm install` / `npm ci`.
-
-### 1. Code Quality & Testing
-
-- **Test Coverage Required**: Before completing any code change, ensure test coverage exists
-- **All Tests Must Pass**: Run tests before submitting changes
-- **Test Frameworks**:
-  - Frontend: Vitest (unit), Playwright (e2e) - **USE `npm test` NOT `bun test`**
-  - Backend: Bun's built-in test runner
-  - **Never use Jasmine** - this project uses Vitest exclusively
-- **CRITICAL**: Always run frontend tests with `npm test` - Bun's test runner is incompatible with Angular tests
-
-### 2. Linting & Formatting
-
-- **Never disable lint rules** without explicit user approval
-- If a lint rule needs disabling, ask the user first and explain why
-- **Prefer fixing the issue** over disabling the rule
-- Document any approved lint rule exceptions with clear comments
-- Run `npm run lint:fix` to auto-fix issues before committing
-
-### 3. Documentation
-
-- **DO NOT create summary markdown files** (e.g., FIXES.md, STATUS.md, SUMMARY.md) unless explicitly requested
-- Provide summaries in chat responses only
-- Update existing documentation when making significant changes
-- Keep AGENTS.md, README files, and code comments up to date
-
----
-
-## Frontend Architecture
-
-### Technology Stack
-
-- **Framework**: Angular with standalone components
-- **Dependency Injection**: Use `inject()` syntax, **NOT constructor injection**
-- **Control Flow**: Use `@if`, `@for`, `@switch` directives (not `*ngIf`, `*ngFor`, `*ngSwitch`)
-- **Modules**: Everything is standalone - no NgModules
-- **State**: Service-based with RxJS
-- **Testing**: Vitest for unit tests, Playwright for e2e
-- **Package Manager**: Bun (NEVER run `npm install` or `bun install` inside `frontend/` or `backend/` directly — always install from the repo root with `bun install`)
-
-### Angular Control Flow Guidelines
-
-- Use `@if`/`@else` for conditionals (optionally assigning results with `as`)
-- Use `@for` with `track` (prefer unique IDs like `item.id`, avoid identity)
-- Use `@empty` for empty states in `@for` loops
-- Leverage contextual variables: `$index`, `$count`, `$first`, `$last`, etc.
-- Use `@switch`/`@case` with strict equality (`===`)
-- **Replace all legacy** `*ngIf`, `*ngFor`, `*ngSwitch` directives
-
-### Directory Structure
-
-```
-src/app/
-├── components/      # Shared UI components
-├── pages/           # Top-level routed pages
-├── dialogs/         # Dialog components
-├── services/        # Application services
-├── guards/          # Route guards
-├── interceptors/    # HTTP interceptors
-├── models/          # TypeScript interfaces
-├── pipes/           # Custom pipes
-├── config/          # App-wide configuration
-└── utils/           # Utility functions
-```
-
-### Frontend Best Practices
-
-- Always use `inject()` for dependency injection
-- Keep components focused and composable
-- Use signals for reactive state when appropriate
-- Maintain strict typing - avoid `any`
-- Use alias imports (`@components`, `@services`, etc.)
-- Follow existing patterns for consistency
-
----
-
-## Backend Architecture (Hono)
-
-### Technology Stack
-
-- **Runtime**: Bun (NOT Node.js)
-- **Framework**: Hono (lightweight, runs on Bun and Cloudflare Workers)
-- **Database**: Drizzle ORM with SQLite/D1 + LevelDB (Yjs documents)
-- **Auth**: JWT bearer tokens (HS256, 30 days), passkeys, optional GitHub OAuth
-- **Testing**: Bun's built-in test runner
-- **Package Manager**: Bun
-
-### Important Backend Rules
-
-- **Run on Bun**: Use `bun` commands, not `npm` or `node`
-- **Type Imports**: Import Request/Response types using `import type`, not regular import
-- **Per-Project LevelDB**: Each project has its own LevelDB instance for document storage
-- **Session Management**: Sessions are JWT bearer tokens, not cookies; revoke them by bumping `users.sessionsValidFrom`
-- **Migrations**: `backend/drizzle/` starts from a single `0000_baseline.sql`
-  generated from `src/db/schema/`. Its statements use `IF NOT EXISTS` so a
-  database created by the pre-squash migrations (the preview D1) records it as
-  a no-op. Add new migrations with `bunx drizzle-kit generate` on top of it;
-  never hand-patch columns at startup.
-
-### Directory Structure
-
-```
-src/
-├── config/          # Environment and route registration
-├── db/              # Drizzle schema and database setup
-├── durable-objects/ # Cloudflare Workers Durable Objects
-├── middleware/      # Auth, session, CSRF, error handling
-├── mcp/             # Model Context Protocol integration
-├── routes/          # API route handlers
-├── schemas/         # Zod/OpenAPI request/response schemas
-├── services/        # Business logic
-├── types/           # Shared TypeScript types
-└── utils/           # Utility functions
-```
-
-### Backend Best Practices
-
-- Follow Hono middleware patterns
-- Use OpenAPI/Zod for request/response validation
-- Keep routes focused and well-separated
-- Handle errors gracefully with proper HTTP status codes
-- Use Drizzle ORM best practices for database operations
-
----
-
-## Testing Guidelines
-
-### Unit Tests (Vitest)
-
-- **Location**: `*.spec.ts` files next to the code
-- **Coverage Thresholds** (Frontend):
-  - Statements: 80%
-  - Functions: 80%
-  - Lines: 80%
-  - Branches: 60%
-- **Run**: `npm test` (frontend) or `bun test` (backend)
-- Use `vitest-mock-extended` for deep mocking
-
-### E2E Tests (Playwright - Frontend)
-
-- **Location**: `frontend/e2e/`
-- **Run**: `npm run e2e` or `bun run e2e`
-- **CI Mode**: `npm run e2e:ci`
-- Use test data IDs (`data-testid`) for stable selectors
-- Avoid fragile selectors based on text or classes
-- Mock API responses using the mock-api framework in `e2e/mock-api/`
-- **Key Files**:
-  - `e2e/{local,online,mcp,screenshots}/fixtures.ts` - Per-suite test fixtures (authenticatedPage, anonymousPage)
-  - `e2e/common/` - Shared helpers (`test-helpers.ts`, `free-port.ts`, isolated backend)
-  - `e2e/mock-api/` - Mock API handlers
-  - `e2e/BEST_PRACTICES.md` - Detailed e2e testing guidelines
-
-### Testing Best Practices
-
-- Write tests before or alongside implementation
-- Test behavior, not implementation details
-- Keep tests isolated and independent
-- Use descriptive test names
-- Mock external dependencies appropriately
-- Ensure tests are deterministic and don't rely on timing
-
----
-
-## Development Workflow
-
-### Getting Started
+## Commands
 
 ```bash
-# Install dependencies
-bun install
-
-# Start development servers (both frontend & backend via root wrapper)
-# This runs: frontend on :4200 (bun run start) + backend on :8333 (bun run dev)
-npm run dev
-
-# Run tests
-npm test
-
-# Type check every TS project (frontend app/spec/e2e/Storybook, backend, packages)
-npm run typecheck
+bun install              # from the repo root
+npm run dev              # frontend :4200 + backend :8333
+npm test                 # all unit tests
+npm run lint             # npm run lint:fix to auto-fix
+npm run typecheck        # every TS project, via `bun check`
+bun run verify           # the pre-completion check
+bun run deploy           # interactive deployment wizard
 ```
+
+API docs (Swagger UI) are served at <http://localhost:8333/api>.
 
 **Type checking** uses `bun check` (Bun ≥ 1.4.3), a typescript-go port that
-reads each `tsconfig.json` and reports the same errors as `tsc` in about two
-seconds for the whole repo. CI runs it in the **Type Check** job. It is the only
-check on specs, e2e and the backend: Vitest, Playwright and `bun test` strip
-types without checking them, and `ng build` only covers the app sources.
-`bun check` follows TypeScript 7, so a compiler option TS 7 removed (e.g.
-`baseUrl`) is a hard error even though the installed `tsc` 6 accepts it.
-`frontend/tsconfig.json` has `"files": []` and only references the real
-projects, so check it with `bun check -b` (plain `tsc --noEmit` there checks
-nothing).
-
-### Common Commands
-
-```bash
-# Frontend
-cd frontend
-npm run dev            # Dev server (localhost:4200)
-npm test               # Run Vitest tests
-npm run e2e            # Run Playwright tests
-npm run lint           # Run linter
-npm run lint:fix       # Auto-fix lint issues
-npm run storybook      # Component workbench (localhost:6006)
-
-# Backend
-cd backend
-bun run dev            # Dev server (localhost:8333)
-bun test               # Run tests
-bun run generate:openapi  # Generate OpenAPI spec
-```
-
-### Code Style
-
-- Use Prettier for formatting (configured in `.prettierrc`)
-- Follow ESLint rules (configured in `eslint.config.*`)
-- Use meaningful variable and function names
-- Keep functions small and focused
-- Comment complex logic
-- Use TypeScript strict mode
-
----
-
-## Common Patterns
-
-### Frontend Service Injection
-
-```typescript
-// ✅ Correct - use inject()
-export class MyComponent {
-  private myService = inject(MyService);
-}
-
-// ❌ Wrong - don't use constructor injection
-export class MyComponent {
-  constructor(private myService: MyService) {}
-}
-```
-
-### Angular Control Flow
-
-```typescript
-// ✅ Correct - new control flow
-@if (condition) {
-  <div>Content</div>
-} @else {
-  <div>Alternative</div>
-}
-
-@for (item of items; track item.id) {
-  <div>{{ item.name }}</div>
-} @empty {
-  <div>No items</div>
-}
-
-// ❌ Wrong - legacy syntax
-<div *ngIf="condition">Content</div>
-<div *ngFor="let item of items">{{ item.name }}</div>
-```
-
-### Awaiting in Loops
-
-SonarCloud flags `await` inside a loop (S9382) and `async` functions with no
-`await` (S7503). Do not disable the rules:
-
-- Independent iterations: `await Promise.all(items.map(...))` (or
-  `mapWithConcurrency` in `backend/src/utils/concurrency.ts` /
-  `forEachConcurrent` from `@inkweld/async` when the fan-out must be
-  bounded).
-- Work that must run one item at a time (ordered writes, IndexedDB
-  transactions on one database, rate-limited remote calls, progress reporting,
-  early exit): use the helpers in `@inkweld/async` (`packages/inkweld-async`,
-  shared by frontend and backend: `forEachSequential`,
-  `mapSequential`, `firstResultSequential`, `forEachPage` for cursor
-  pagination, `chunk` for batches). Say in a one-line comment why it is
-  sequential.
-- An `async` function that never awaits: drop `async` and return
-  `Promise.resolve(...)` / `Promise.reject(...)`. If the body can throw
-  synchronously and callers rely on a rejection, keep `async` and use
-  `return await` on the promise you return.
-
-### Backend Type Imports
-
-```typescript
-// ✅ Correct - use import type for Hono types
-import type { Context } from 'hono';
-
-// ❌ Wrong - regular import
-import { Context } from 'hono';
-```
-
----
-
-## Project-Specific Context
-
-### Real-time Collaboration
-
-- Uses Yjs for CRDT-based collaborative editing
-- WebSocket connections for real-time sync
-- LevelDB stores per-project document state
-- Offline editing capability with automatic sync
-
-**Canvas contents** live in their own `canvases` shared type (element id → `{ layers, objects: Map<id, json>, order: Array<id>, frames }` — `frames` is a JSON array of canvas-size/crop frames, written only when present) rather than as a JSON blob on the owning element. Each object is its own entry, so two people drawing at once keep both sets of strokes and a stroke costs a small delta instead of a rewrite of the whole element array. The element's `canvasConfig` metadata is still written, but only after drawing pauses — it is the interchange format for archives, templates and the media-usage scan, not the live editing surface. `IElementSyncProvider` also exposes `listCanvasElementIds()` and `deleteCanvas(elementId)` so that deleting an element can unlink the pins/regions that point at it and drop its canvas map.
-
-**HTTP routes that edit a Yjs document** must work on both runtimes.
-`yjsService` is Bun-only: on Workers it opens LevelDB and crashes the request
-with `indexedDB is not defined`. Use `openEditableDocument(documentId,
-documentRuntime(c))` (`services/yjs-document-access.ts`). On Bun it returns
-the live document. On Workers it loads a copy from the project DO's
-`GET /api/document-state`, and `commit()` sends only that copy's changes back
-as a `yUpdate`. AI auto-review uses it.
-
-**Starting offline**: a socket that never connected has no y-websocket
-reconnect loop and no online/visibility handlers, so the first handshake's
-failure must not be the end. `YjsElementSyncProvider` and `DocumentService`
-(open editors) retry it with `ReconnectScheduler`
-(`services/sync/reconnect-scheduler.ts`: equal-jitter backoff to 60 s, waits
-for `online` while the browser is offline, one attempt at a time, stops on a
-hard denial or teardown). `SystemConfigService` (features), `UserService`
-(`/users/me`) and `VersionCompatibilityService` (`/health`) re-run a fetch that
-failed at startup the same way, only for server profiles. An unreachable
-`/health` leaves compatibility unknown; never store it as incompatible, or
-`syncBlocked` keeps every connection local after the network is back.
-`createAuthenticatedWebsocketProvider` destroys its provider on any failure
-before auth (including a socket that closes without opening), so a failed
-attempt never leaves an unauthenticated loop behind.
-
-**IMPORTANT - Yjs Document ID Trailing Slash:**
-The frontend uses `username:slug:elements` while the backend/MCP uses `username:slug:elements/` with a trailing slash. **THIS IS NOT A BUG - DO NOT "FIX" IT.** The y-websocket library automatically normalizes these, and both refer to the same document. If you see this difference while debugging sync issues, look elsewhere for the actual problem.
-
-### Local Document Storage Is Profile-Scoped
-
-Prose documents and worldbuilding docs are cached in IndexedDB (y-indexeddb)
-under `storageContext.prefixDocumentId(docId)` — e.g. `local:alice:novel:<id>`,
-`srv:<configId>:alice:novel:<id>` or `local:worldbuilding:alice:novel:<id>` —
-just like the elements doc. **Only the local database name carries the prefix;
-the WebSocket document id stays the bare `username:slug:elementId`** (for
-worldbuilding too — the `worldbuilding:` marker is local-only). Every path
-that opens a document database must use the prefixed name: the editor and
-`WorldbuildingService` connections, headless reads (`getLocalStateDigest`,
-`getDocumentContent`, `getYDoc`), headless sync (`syncDocumentToServer` /
-`syncWorldbuildingToServer`, which take a `sourceConfigId` for migrations and
-are called with bare ids), `LiveDocumentRegistryService.hasLocalContent`,
-`ProjectStateService.isDocumentUnavailable`, import, Cloud Sync's
-`YDocAccessService` (which takes bare ids and prefixes them), the project
-reset/purge paths, and the project rename/migration services. Because of this,
-`StorageContextService.clearContextData()` (profile disconnect, account
-deletion) removes a profile's documents and worldbuilding data without
-touching another profile's copy of the same `username:slug`, and
-`renameProjectInContext()` moves both.
-
-**Project rename has one local path**: `StorageContextService.renameProjectInContext()`
-(called through `ProjectRenameMigrationService` for the active profile, and by
-`ProfileManagerService.upgradeInto` for a copied profile). It merges each
-old-slug Yjs database — `<prefix>u:s:*` and `<prefix>worldbuilding:u:s:*` —
-into its new name with `cloneDatabase` and deletes the original, then rekeys
-media/snapshots/activations/saved tabs (`documentCache`)/project cache, the
-project list and the project tree's saved state (`projectTreeStateKey`).
-`cloneDatabase` never overwrites an existing target: y-indexeddb `updates`
-records are appended under fresh keys, other records only fill free keys.
-Don't add a second copy step in front of it.
-
-**On the server**, the rename route (`PUT /projects/:u/:s` with a new `slug`)
-moves the project's stored files with `StorageService.moveProjectDirectory`:
-a directory rename on disk, and in R2 a copy of every `<user>/<slug>/` object
-followed by deleting the originals only after all copies succeed (a retry
-skips objects already copied). If the database update then fails, the files
-are moved back. Anything new stored per project must live under that prefix,
-or move with it. Server-side Yjs documents are keyed by `username:slug` (the
-LevelDB doc names, and the Durable Object's name on Workers) and are not
-moved yet.
-
-### Bulk Sync Fast Path (Document Revision Manifest)
-
-"Sync All" used to open one WebSocket per prose document (3 at a time), so a
-project with hundreds of documents took minutes and hundreds of upgrades. It now
-first asks the server which documents actually changed:
-
-- `GET /api/v1/projects/:username/:slug/docs/sync-manifest` returns an opaque
-  per-document `revision` token (see `backend/src/services/document-revision.service.ts`).
-  On Bun it is the document's LevelDB update clock (`yjsService.getDocumentRevisions`),
-  read under **both** `<id>/` (how WebSocket-edited docs are stored) and `<id>`
-  (MCP/backend writers) — a single clock when one exists, `slash/bare` when both do;
-  on Workers the DO's `GET /api/revisions` returns the newest `update:*` row key,
-  or once compaction has removed them all, the unique `doc:<id>:revision` marker
-  `compact()` writes with each snapshot (`YjsDocStorage.readRevision`) — both are
-  read with one bounded reverse scan, no document loaded. **Never use the fixed
-  `snapshot` key as the token**: every compaction overwrites it, so a token would
-  repeat after `snapshot → edit → compaction` and a changed document be skipped.
-  A snapshot with no marker (written before markers existed) gets a fresh one
-  backfilled on first read; only if that write fails is it reported `unknown`.
-  **The two tokens are not comparable across runtimes**; a client only ever
-  compares a token to one from the same server.
-  The DO persists only sync *update* frames (`isSyncUpdateFrame`), never the
-  sync-step-2 reply each connecting client receives: storing that reply wrote
-  a full copy of the document per connection and moved the token, so no
-  document could ever be skipped on Workers.
-- `DocumentSyncPlannerService` skips a document only when the manifest revision
-  is unchanged **and** the local Yjs state digest still matches the checkpoint
-  stored in `DocumentSyncStateService` (IndexedDB) — i.e. no local edits since
-  the last sync. The digest (`utils/yjs-state-digest.ts`) encodes a Yjs
-  *snapshot* (state vector + delete set): **a state vector alone does not change
-  on a delete-only edit**, so text removed offline would never be pushed. Missing manifest, unknown revision, changed
-  revision, changed digest, or an unreadable local state all force a sync.
-- Checkpoints are only written when the revision is **identical before and after**
-  the sync run, so a concurrent collaborator edit can never be recorded as
-  synced. `before === null` (manifest unavailable) disables checkpointing.
-- `revision: null` means "never persisted, nothing to pull"; `unknown: true`
-  means "could not read, sync it". Do not collapse these two.
-
-The planner is deliberately conservative: a bug can only cause extra syncs, never
-a missed edit. Keep it that way. The priority document is always force-synced.
-
-### Authentication
-
-- JWT bearer-token sessions (stored client-side by `AuthTokenService`; no session cookies)
-- CSRF protection on all state-changing requests
-- GitHub OAuth support (optional)
-- User approval system (configurable)
-- **Passkeys (WebAuthn)** — passwordless sign-in via device biometrics/security keys
-
-### Passkeys (WebAuthn)
-
-Passkeys use the W3C WebAuthn API for passwordless, discoverable-credential (usernameless) login.
-
-**Architecture:**
-- Library: `@simplewebauthn/server` (backend) + `@simplewebauthn/browser` (frontend), both v13.3.0
-- Registration and authentication are **POST** endpoints (not GET)
-- Challenges are single-use, 5-minute expiry, stored in `webauthnChallenges` table
-- Credentials stored in `userPasskeys` table; timestamps in **seconds** (not milliseconds)
-- Login returns a JWT token identical to the password login flow
-
-**Key files:**
-- `backend/src/db/schema/user-passkeys.ts` — credential storage schema
-- `backend/src/db/schema/webauthn-challenges.ts` — challenge storage schema
-- `backend/src/db/schema/passkey-recovery-tokens.ts` — magic-link token storage (hashed)
-- `backend/src/services/passkey.service.ts` — WebAuthn ceremony logic
-- `backend/src/services/passkey-recovery.service.ts` — magic-link request + redeem ceremonies
-- `backend/src/routes/passkey.routes.ts` — Hono routes (all start/finish endpoints are POST)
-- `backend/src/routes/passkey-recovery.routes.ts` — Hono routes for the recovery flow
-- `frontend/src/app/services/auth/passkey.service.ts` — Angular service wrapping the API
-- `frontend/src/app/services/auth/passkey-recovery.service.ts` — magic-link recovery wrapper
-- `frontend/src/app/components/passkeys-settings/` — account settings UI (list/add/rename/delete)
-- `frontend/src/app/dialogs/login-dialog/` — passkey login button + "Lost your passkey?" link
-- `frontend/src/app/pages/recover-passkey/` — recovery request page (`/recover-passkey`)
-- `frontend/src/app/pages/recover-passkey-redeem/` — magic-link redemption page (`/recover-passkey/redeem?token=...`)
-- `frontend/e2e/online/passkey.spec.ts` — E2E tests using CDP virtual authenticator
-- `frontend/e2e/online/passwordless.spec.ts` — E2E for the `PASSWORD_LOGIN_ENABLED` flag
-- `frontend/e2e/online/passkey-recovery.spec.ts` — E2E for the recovery request page
-
-**Environment variables (production required):**
-- `WEBAUTHN_RP_ID` — domain only, no protocol/port (e.g. `inkweld.yourcompany.com`). Defaults to `localhost` in dev. **Cannot be changed after users register passkeys.**
-- `WEBAUTHN_RP_NAME` — display name shown in browser prompts. Defaults to `Inkweld`.
-- `ALLOWED_ORIGINS` — also used as `expectedOrigin` in WebAuthn verification; must include every origin users access the app from.
-- `PASSKEYS_ENABLED` — master switch for the passkey feature (default: `true`).
-- `PASSWORD_LOGIN_ENABLED` — allow username/password sign-in (default: `false` — passwordless-first per NIST SP 800-63B Rev. 4). When `false` the `/login`, `/forgot-password` and `/reset-password` endpoints return 403/404 and the registration form omits password fields and immediately enrols a passkey.
-- `EMAIL_RECOVERY_ENABLED` — allow email-based account recovery (default: `false`). In passwordless mode this powers a magic-link flow that lets a user enrol a NEW passkey from a verified email; existing passkeys are preserved. In password mode it powers the classic forgot-password flow. Requires SMTP / `EMAIL_*` settings.
-
-**Important gotchas:**
-- Backend timestamps (`createdAt`, `lastUsedAt`) are stored in **seconds**. The frontend `formatDate()` multiplies by 1000 before constructing a `Date`. Do not "fix" this.
-- `RP ID` in dev: both the frontend (`:4200`) and backend (`:8333`) share the `localhost` hostname — the WebAuthn origin check passes because ports are ignored for the RP ID check.
-- `rpFromContext(c)` in the backend reads `WEBAUTHN_RP_ID` / `WEBAUTHN_RP_NAME` from config and falls back to `config.allowedOrigins` for the origins list.
-- The Angular API client returns `Observable<HttpEvent<T>>` — in unit tests, use an `obs()` helper returning `Observable<any>` to avoid TypeScript errors with mock return values.
-- E2E tests use Chromium's CDP `WebAuthn.enable` + `WebAuthn.addVirtualAuthenticator` with `ctap2/internal/resident-key/UV/auto-presence`.
-- The login dialog's `onPasskeyLogin()` calls `userService.setCurrentUser(user)` after a successful passkey login to sync the user cache.
-- The online e2e backend explicitly opts into `PASSWORD_LOGIN_ENABLED=true` and `EMAIL_RECOVERY_ENABLED=true` (in `playwright.online.config.ts`) because the existing test fixtures register/login users via the password API. Production images use the secure-by-default passwordless posture.
-- Magic-link recovery tokens are hashed at rest (single-use, 15-min TTL); there is no test endpoint to read the plaintext token, so end-to-end redemption from a real browser is covered by unit tests + backend integration tests rather than Playwright.
-- **Moving Browser projects to a server** (profile manager → "Move projects to a
-  server") signs in to a server that is not the active profile's, so it reads
-  that server's `/config/features` with `SetupService.fetchServerFeatures()`
-  and passes them to `RegistrationFormComponent`'s `serverFeatures` input —
-  `SystemConfigService` describes the Browser profile there. It offers passkey
-  sign-in/registration and password fields only as that server allows. The
-  sign-in switches to the target profile first (the API client and token store
-  follow the active profile); any failure, cancel or dialog close switches
-  back and removes the profiles the flow created. It calls
-  `PasskeyService.login({ reloadOnProfileChange: false })` so a login that
-  moves to its author's own profile doesn't reload mid-flow.
-  E2E: `e2e/online/move-to-passkey-server.spec.ts` (isolated backend with
-  `PASSWORD_LOGIN_ENABLED=false`).
-- **`ALLOW_INKWELD_APP_CLIENT`** (admin Settings, default off) lets the hosted app at `https://inkweld.app` sign in to a self-hosted server. `getInkweldAppClientOrigins()` (`services/inkweld-app-client.service.ts`, 5s cache) feeds the extra origin into CORS/CSRF in `bun-app.ts`, `worker-app.ts` and `node-app.ts`, into the WebAuthn expected origins, and into `GET /.well-known/webauthn` (WebAuthn related origins; 404 while off). Passkey ceremonies must use `rpFromRequest(c)`, not `rpFromContext(c)`, or a ceremony from inkweld.app fails origin verification. A new origin check must include these origins too.
-
-**Data flow:**
-1. Register: `POST /register/start` → browser prompt → `POST /register/finish` → row in `userPasskeys`
-2. Login: `POST /login/start` → browser prompt → `POST /login/finish` → JWT in response body
-3. Management: `GET /` (list), `PATCH /:id` (rename), `DELETE /:id`
-4. Recovery (passwordless mode, email enabled):
-   `POST /api/v1/passkey-recovery/request` (anonymous, email)
-   → email with `/recover-passkey/redeem?token=<raw>` link
-   → `POST /start` + `POST /finish` enrol a NEW passkey (no session issued; existing passkeys untouched)
-
-### AI Kill Switch
-
-`AI_KILL_SWITCH` (default ON = all AI disabled; the env var locks it) is
-enforced on the server, not only by the UI hiding buttons. **Every new endpoint
-that sends content to an AI provider must be gated** with `requireAiEnabled`
-from `backend/src/utils/ai-kill-switch.ts` (a 403 with `code: 'AI_DISABLED'`),
-registered with `.use(path, …)` *before* the route handler. Use
-`isAiKillSwitchOn(db)` / `resolveAiKillSwitch(value)` instead of reading the
-config key yourself — they apply the env lock. Admin configuration endpoints
-stay open so AI can be set up before the switch is turned off.
-`test/ai-kill-switch.test.ts` lists the gated endpoints; add new ones there.
-
-**The user's own AI preference** (`SettingsService.aiAllowed`, "No AI / Allow
-AI", default No AI, per browser) sits on top of the kill switch in the
-frontend: it can only turn AI off. `SystemConfigService.isAiOffForUser`,
-`isAiAutoReviewEnabled` and `isAiImageGenerationEnabled` already include it.
-Gate a new AI feature on those, not on the raw `isAiKillSwitchEnabled`, which
-is for the admin pages. It is a UI preference; the server does not see it.
-
-### WebMCP (Browser AI Agents)
-
-`WebMcpService` (`frontend/src/app/services/webmcp/`) registers tools with
-the browser's WebMCP API (`document.modelContext`, or Chrome's earlier
-`navigator.modelContext`) so an agent built into the browser can do what the
-user can do in the app. Docs: `docs/site/docs/developer/webmcp.md`.
-
-- **Follows the user's AI preference**: `SettingsService.aiAllowed`, the
-  "No AI / Allow AI" choice (default No AI, `AiPreferenceComponent` in
-  Settings → General and on /setup, with a "?" that opens
-  `AiPreferenceInfoDialogComponent`). It is stored
-  under the unprefixed `inkweld-ai` key so it is shared by every profile and
-  can be chosen before one exists. The server's AI kill switch does not apply
-  to WebMCP: no request goes to an AI provider, and the tools work in every
-  mode. Detection re-runs after startup (`refreshSupport`) because extensions
-  and runtime origin-trial tokens add the API late.
-- **Lazy**: the tools load through `WEBMCP_REGISTRY_LOADER` (a dynamic
-  `import('./tools')`) only once enabled in a supporting browser. Keep
-  `webmcp.service.ts` free of static imports of the tool modules, or the
-  editor stack lands in the initial bundle.
-- **Same paths as the UI**: tools call the existing services
-  (`ProjectStateService.createElement()` is shared with the New element
-  dialog). Add a tool when you add a user-facing capability, under
-  `tools/*.tools.ts` with a spec; mark project changes `writes: true` (they
-  are left out while the user can only read) and check `ctx.requireWrite()`.
-- **Errors are results**: throw `ToolError`; `toModelContextTool` turns it
-  into an `isError` result, because a rejected promise reaches the agent
-  without its message.
-- **Documents** go through `DocumentAccess`: the live Y.Doc when an editor
-  has it open, otherwise a headless IndexedDB copy that is synced with the
-  server before and after on server profiles. Never replace the text of a
-  headless copy without that pull: the server's newer content would survive
-  the replace.
-
-### Admin Branding & Custom HTML Injection
-
-Inkweld sets only strictly-necessary cookies, so it ships **no consent banner**
-and never needs one by default. Instead, admins can bring their own compliance
-tooling via `general`-category config keys (editable in the admin Settings page):
-
-- Legal documents — `PRIVACY_POLICY_CONTENT` / `TERMS_OF_SERVICE_CONTENT`
-  (Markdown) or `PRIVACY_POLICY_URL` / `TERMS_OF_SERVICE_URL` (external page;
-  content wins when both are set). Served by the anonymous `/privacy` and
-  `/terms` routes (`pages/legal/`), which render the Markdown through Angular's
-  `[innerHTML]` sanitizer or redirect to an http(s) URL. The text comes from
-  `GET /api/v1/config/legal/{privacy|terms}`; `/config/features` carries
-  `hasPrivacyPolicy`, `hasTerms`, `policyVersion`, `requirePolicyAcceptance`
-  (and the URL fields only for externally-hosted documents).
-  `LegalLinksComponent` links to `/privacy` and `/terms` on every page reachable
-  before sign-in (landing page, login/register dialogs, passkey recovery,
-  forgot/reset password, approval-pending, OAuth consent, about) — not on
-  `/setup`, which runs before any server is chosen.
-- `REQUIRE_POLICY_ACCEPTANCE` — registration needs an `acceptedPolicyVersion`
-  equal to the current `policyVersion` (checkbox in `RegistrationFormComponent`),
-  and `PolicyAcceptanceService` (started from `AppComponent`) shows a blocking
-  dialog to signed-in users whose `users.policyAcceptedVersion` is stale, via
-  `GET/POST /api/v1/users/me/policy-acceptance`. Declining signs out. The
-  service resolves `SystemConfigService` lazily, only once a server user is
-  signed in: creating it at startup would cache features from before first-run
-  setup picks a server (setup navigates on without reloading).
-- `CUSTOM_HEAD_HTML` / `CUSTOM_BODY_HTML` — raw HTML injected at serve time into
-  the `<!-- INKWELD_HEAD_EXTRA -->` / `<!-- INKWELD_BODY_EXTRA -->` markers in
-  the built `index.html` (`injectCustomHtml()` in `backend/src/utils/spa-utils.ts`,
-  wired in `bun-app.ts`'s external + embedded SPA handlers, 5s cache). Values are
-  deliberately **not sanitized** — that is the feature; scripts placed there run
-  on every page load. They are only exposed in the features payload to the
-  frontend at serve time and are absent from the JSON API.
-
-**Gotchas:**
-- `policyVersion` is a short SHA-256 of all four legal values
-  (`legal.service.ts`), so **any** edit to the text or a URL makes everyone
-  accept again. Editing a policy hosted elsewhere doesn't change the version;
-  touch its URL (e.g. add `?v=2`) to re-prompt.
-- Acceptance is a UI gate only: the API, MCP and WebSockets keep working for an
-  account that has not accepted.
-- `/privacy` and `/terms` are reserved usernames and must stay above the
-  `:username` route. The gate never opens while one of them is the current
-  route, and waits for the first `NavigationEnd` (before it, `router.url` is
-  `/`), so a policy opened in a new tab can be read.
-- E2E: `policy-acceptance.spec.ts` flips the instance-wide flag, so it starts
-  its own backend via `e2e/common/isolated-backend.ts` (online config only,
-  `E2E_BACKEND_RUNTIME=bun`). Use the same helper for any other spec that must
-  change a global setting which would break parallel specs.
-- Custom HTML must never bypass substitution: `index.html` requests always go
-  through `respondWithInjectedIndex()`, even when a pre-compressed `.br` variant
-  exists. Keep any new serve path consistent with this.
-- **Service worker hash.** The Angular service worker rejects an app version
-  if `index.html` doesn't match its build-time SHA-1 in `ngsw.json`, which
-  breaks offline installs and updates. So an empty snippet leaves its marker
-  in place (index.html stays byte-identical to the build), and `ngsw.json` is
-  served through `patchNgswIndexHash()` so its `/index.html` hash follows the
-  injected document. Both bypass the `.br` variants; never "tidy" the markers
-  away when nothing is configured.
-- The `$&`-style `String.replace` pattern pitfall is handled in
-  `injectCustomHtml` (function replacements); keep it that way.
-
-**Content-Security-Policy** (`backend/src/utils/csp.ts`):
-- The Bun server sends it with every `index.html` response
-  (`respondWithInjectedIndex`). Inline `<script>`s in the rendered document are
-  allowed by SHA-256 hash and external `<script src>` by origin, so custom HTML
-  works without configuration; `CONTENT_SECURITY_POLICY_TRUSTED_SOURCES` adds
-  origins for scripts those snippets load later, and
-  `CONTENT_SECURITY_POLICY_MODE` is `enforce` / `report-only` / `off`.
-- **The built `index.html` must contain no inline script.** That is why
-  `angular.json` sets `inlineCritical: false` (Beasties' critical-CSS loader is
-  an inline script). Don't turn it back on; Pages can't hash at serve time.
-- `frontend/public/_headers` carries the same base policy for Cloudflare Pages;
-  `csp.spec.ts` fails if the two differ.
-- `script-src` has `'unsafe-eval'` only because typst.ts' wasm-bindgen glue
-  calls `new Function(...)`. Never add `'unsafe-inline'` to `script-src`.
-- The service worker caches `index.html` **with its headers** and refetches it
-  only when its `ngsw.json` hash changes, so non-default CSP settings add an
-  `<!-- inkweld-csp:… -->` comment (`cspSettingsComment`) to change the hash.
-- Unrelated but found alongside: `compress-wasm.js` Brotli-compresses every
-  `.wasm` in place, so the server detects compressed WASM by its missing
-  `\0asm` magic (`wasmContentEncoding`) rather than by filename.
-
-### Home Assistant Ingress
-
-Inkweld can run as a Home Assistant app (repo `bobbyquantum/addon-inkweld`,
-a thin layer over the published image). HA serves the UI at
-`/api/hassio_ingress/<token>/…`, strips the prefix, and sends it as
-`X-Ingress-Path` along with the signed-in HA user (`X-Remote-User-Id`,
-`-Name`, `-Display-Name`).
-
-- **Trust is by TCP peer, never by header.** `utils/ingress.ts` honours those
-  headers only with `INGRESS_ENABLED=true` and when the socket address is
-  `INGRESS_TRUSTED_PROXY` (no default; the HA app sets the Supervisor's
-  `172.30.32.2`). Don't switch it to
-  `getClientIp()` / `X-Forwarded-For`; a direct-port client controls those.
-- The served `index.html` gets `<base href="<prefix>/">` and an
-  `inkweld-ingress` meta tag (`injectIngressBase`, applied inside
-  `renderIndex` so the ngsw.json hash patch sees the same document).
-- `POST /api/v1/auth/ingress` (`ingress-auth.service.ts`) links the HA user id
-  to `users.homeAssistantUserId`, creating an approved account on first visit,
-  applies `INGRESS_ADMINS`, and returns a normal session JWT. The frontend
-  calls it from `UserService` when it would otherwise be anonymous or its
-  token expired, and `SetupService` points the app at `appOrigin()` instead of
-  showing setup.
-- **A session is only valid for the HA user making the request.**
-  `ingressSessionMatches` (checked in `getUserFromSession`, `GET /users/me`
-  and the Yjs WebSocket handshake) rejects a token whose account isn't
-  linked to the request's `X-Remote-User-Id`, so a browser shared by two HA
-  users never keeps the first one's session. The client answers that 401 by
-  signing in again and switching to the HA user's own server profile
-  (`switchToIngressProfile`); it drops only the token, never the profile's
-  user binding.
-- Sign-out, the account/server switcher and the server-info bubble are hidden
-  under ingress: HA decides who is signed in. The sign-out marker
-  (`inkweld.ingressSignedOut`, sessionStorage) still covers sign-outs the app
-  makes itself (declining a policy, deleting the account).
-- CSRF's origin check is skipped for ingress requests (HA's origin isn't
-  predictable; its `ingress_session` cookie is `SameSite=Strict`).
-- **The frontend must work under a path prefix.** Use relative asset URLs
-  (`assets/…`, not `/assets/…`) and `appUrl()` / `appOrigin()` from
-  `utils/app-base.ts` for full-page navigations, new windows and server URLs.
-  Stylesheet URLs to `public/` files stay relative and are listed in
-  `externalDependencies` in `angular.json` so the build leaves them alone.
-
-### APP_MODE (Which Profiles May Be Added)
-
-`APP_MODE` (`ONLINE` | `LOCAL` | `BOTH`, backend env, sent as `appMode` in
-`/config/features`) is the admin's policy for adding profiles. The frontend
-reads it in one place, `AppModePolicyService` (`services/core/`), and every
-path that creates a profile asks it: setup, the profile manager (add server,
-add Browser, upgrade, add cloud storage), the user menu's upgrade button.
-
-- **The home server decides, not the active profile**:
-  `resolveHomeServerUrl()` is the ingress origin, the build's `apiUrl`, or the
-  page's own origin (no apiUrl: Docker/binary).
-  Another server added as a profile has no say.
-- `ONLINE` forbids Browser **and** Cloud Sync (both store in the browser);
-  `LOCAL` forbids adding servers.
-- **Fetching is lazy** (`ready()`): Browser/Cloud Sync profiles must not
-  contact a server (the local e2e fixtures fail on any `/api/` request), so
-  only setup, the profile manager's upgrade/add-server views, and the user
-  menu/profile manager *while a server profile is active* call it.
-- The last reported mode is cached per home server
-  (`inkweld-app-mode-policy`). An unreachable server keeps the cached mode;
-  never fall back to `SystemConfigService`'s "server unavailable" defaults
-  here (they say `LOCAL`). With nothing cached, nothing is restricted.
-- Existing profiles always keep working: switching to them, and reconnecting a
-  cloud profile (`?mode=cloud&provider=` is allowed on an `ONLINE` site when
-  the device already has a profile for that provider; the callback then only
-  restores credentials for an account already linked here).
-- `environment.autoConfigure` is a first-run convenience only and must not
-  restrict anything by itself. Ingress / hosted auto-configuration bypasses
-  the policy (it isn't a user adding a profile).
-
-### Published File Share Links
-
-A published file shared as "Anyone with link" / "Anyone" gets a link to
-`<server>/share/<token>`. The **API server** serves that page
-(`routes/share-page.routes.ts`, a static HTML page with no script, rendered by
-`utils/share-page.ts`), not the Angular app. On a split deployment the frontend
-origin can't tell which server issued a token. The page's Download button is a
-relative link to `GET /api/v1/share/:token`.
-
-- The client builds the link from `setupService.getServerUrl()`; the backend's
-  `share-link` endpoint uses `getPublicApiUrl(c)` (`BASE_URL`, else the request
-  origin). Never use `getBaseUrl` (SITE_URL) here: on split deployments it is
-  the frontend.
-- Only the server issues share tokens. `PublishedFilesService` must store the
-  server's record (its id **and** token) after an upload or a permission change.
-  The local copy of the file is moved to the server id. Never generate a token
-  on the client.
-- `share` is a reserved username, and `/share/**` is excluded from the service
-  worker's `navigationUrls`, so the page is reachable when the SPA shares its origin.
-- "Anyone with link" sends `X-Robots-Tag: noindex, nofollow`. "Anyone" allows
-  indexing. Both open with the link; nothing lists public files yet.
-
-### Account Deletion
-
-Anyone who can sign up must be able to delete their own server account, both
-in the app and from a public web page:
-
-- `DELETE /api/v1/users/me` with `{ confirmUsername }` (case-insensitive).
-  Refuses with 409 when the caller is the last enabled administrator (the
-  admin "Delete user" route does the same).
-- `accountDeletionService.deleteAccount()` (`backend/src/services/account-deletion.service.ts`)
-  is shared with the admin "Delete user" route. It first calls
-  `userService.reserveForDeletion()` — one conditional UPDATE that drops the
-  admin flag only while another active admin remains, so two admins deleting
-  themselves at once cannot both succeed. **Do not reserve by disabling the
-  account**: the Durable Object refuses a disabled owner's token, which breaks
-  the wipe on Workers. It then tears down each owned project exactly like
-  `DELETE /projects/:u/:s` (Yjs docs, storage directory, Durable Object, row +
-  tombstone) **before** deleting the user row — the row cascade alone would
-  leave project content on disk/R2 — then drops avatar/banner/background. On
-  failure the admin flag is restored so the request can be retried.
-- The Durable Object's `POST /api/destroy` accepts the owner **or an active
-  site admin** (`isActiveSiteAdmin` in `utils/project-access.ts`); without
-  that, an admin deletion on Workers would leave the DO named
-  `username:slug`, and a re-registered username would inherit its documents.
-- Frontend: `DeleteAccountComponent` (`components/delete-account/`) in
-  Settings → Account (hidden in local mode) and on the public `/delete-account`
-  page (`pages/delete-account/`, a direct web link for deletion; also a
-  reserved username). After success `UserService.deleteAccount()` signs out and
-  wipes the server profile's local data with `clearContextData` — prose
-  documents and worldbuilding data included, since they are stored under the
-  profile prefix (see
-  "Local Document Storage Is Profile-Scoped"); other profiles on the device
-  keep their own copies. Then the app does a full load of
-  `/delete-account?deleted=1` so queued IndexedDB deletes can complete.
-- E2E: `e2e/online/account-deletion.spec.ts` also runs under the wrangler
-  config. The self-service test re-registers the same username and re-creates
-  the slug to prove that media, LevelDB, Durable Object and local IndexedDB
-  data (prose and worldbuilding) do not survive; the admin-deletion test does
-  the same for server
-  documents only.
-- `/delete-account` is exempt from the policy-acceptance gate, so someone who
-  won't accept new terms can still delete their account.
-
-### Sync Capacity (Per-User Storage Quotas)
-
-Each account has an allowance for the server storage of the projects it owns
-(Yjs data + media + covers + published files). `users.syncQuotaBytes` is the
-per-user override (`NULL` = instance default `SYNC_QUOTA_DEFAULT_BYTES`, 100 MB)
-and `users.storageUsedBytes` a fast running counter. Admin guide:
-`docs/site/docs/admin-guide/sync-capacity.md`.
-
-- **Off by default** (`SYNC_QUOTA_ENABLED=false`) so an upgrade never starts
-  refusing uploads. Usage is measured and shown either way; the
-  `GET /users/me/storage` response carries `enabled`, and the UI only warns
-  when it is true (`StorageUsageService.enforced` / `.overQuota`).
-- **Every write that adds project storage goes through
-  `quotaService.assertCanStore()`** (media upload, cover upload, published
-  file, MCP `apply_image`), and project creation through
-  `assertCanCreateProject()`. A new storage write path must do the same, and
-  pass `replacedBytes` when it overwrites a file so only the growth is charged.
-  Deletions credit the counter (`recordDeletion`): media `DELETE`, cover
-  delete, published-file delete, project delete (measured before teardown).
-- **Yjs editing/sync is never blocked**, nor reads/exports/deletes. Don't add a
-  quota check to the WebSocket or document paths.
-- The counter drifts both ways (high: an uncounted deletion; low: Yjs growth
-  is never counted), so `checkEnforcement` only trusts it while fresh: it may
-  accept a write for `RECONCILE_MAX_AGE_MS` (10 min) after a recompute and
-  refuse one for `RECONCILE_COOLDOWN_MS` (1 min); otherwise it reconciles
-  against real storage first. Specs that need the fast path stamp the counter
-  with `quotaService.persistUsage()`, and reset with
-  `quotaService.clearReconcileCooldown()`.
-- A refusal is **403 with `code: 'QUOTA_EXCEEDED'`** (and `reason`). Use
-  `getQuotaExceeded()` / `StorageUsageService.noteQuotaError()` on the client
-  to tell it apart from an access-control 403.
-- Media sync: a refused upload throws `MediaQuotaExceededError`, stops the batch,
-  and pauses *background* uploads for `QUOTA_UPLOAD_PAUSE_MS`; files stay local.
-  Manual "Upload all" and a server-side media delete lift the pause.
-- Deleting media in the Media tab (server mode) deletes the server copy first;
-  if that fails the local copy is kept, otherwise the next sync would download
-  it again.
-
-### Template Editor (Unified Schema Designer)
-
-Element schemas ("templates") are edited through the **unified interactive schema
-editor**, not a separate tabbed form. `WorldbuildingEditorComponent` renders the
-schema as a live preview (`previewSchema` + `editMode` inputs); the owning
-`TemplateEditorPageComponent` applies `SchemaEditEvent`s (add/remove/reorder
-tabs & fields, `update-tab` for label/icon, `update-field` for field config,
-`add-tab`, etc.) and live-saves via the `schemaChange` output.
-
-Key facts:
-
-- **Schema Details** is the top tab/section in edit mode (schema name, icon,
-  description); tabs follow, then the fixed Identity/Relationships/Media/Styling
-  sections. Two responsive layouts: sidenav (wide) and accordion (narrow).
-- Tab and schema icon pickers come from `getAvailableIcons()` in
-  `worldbuilding-editor.component.ts` — it must keep covering every built-in
-  element-type icon, so an existing schema's icon is always selectable.
-- The preview's identity panel is read-only (`[readOnly]="previewMode()"`), so
-  its async load cannot clobber the schema's `defaultAppearance`/`defaultImage`
-  — the styling preview is seeded from the schema instead.
-- Template snapshots reuse the document snapshot dialogs
-  (`CreateSnapshotDialog` accepts no `MAT_DIALOG_DATA`).
-
-### Per-element schema copies
-
-Every worldbuilding element owns a copy of its schema in a third Yjs map on
-the element doc, `schema` (alongside `worldbuilding` and `identity`), with keys
-`snapshot` (the `ElementTypeSchema`), `baseHash`, and `baseSchemaId`.
-`WorldbuildingService.getSchemaForElement` returns that copy, never the shared
-library object. Elements without a copy (imported without one, or after "Revert
-to shared schema") get the shared schema copied in on first open by
-`getElementSchemaState`.
-
-- **Drift detection**: `schemaContentHash` (`frontend/src/app/utils/schema-hash.ts`)
-  hashes only `name/icon/description/tabs/defaultValues/defaultAppearance/defaultImage`,
-  never `id/version/createdAt/updatedAt/isNew`, because `saveSchemaToLibrary` bumps
-  `version` on every save. `isCustom` = copy hash ≠ `baseHash`; `sharedUpdated` =
-  shared hash ≠ `baseHash`. The backend mirror in `backend/src/utils/schema-hash.ts`
-  **must stay byte-equivalent** (both specs assert the same golden hash) because
-  the MCP `create_element` tool writes the copy and `baseHash` at creation.
-- **Editing**: the element editor toggles `elementSchemaEditing` (status-bar chip
-  menu) and applies `SchemaEditEvent`s through the shared `SchemaEditService`
-  reducer with `removeRelationshipTypes: false` — a per-element edit must never
-  delete a relationship type other elements still use. The template editor uses
-  the same reducer with the default (`true`). Schema Details / defaults remain
-  template-only (`templateEditingEnabled()`).
-- **Sync** ("Update from shared schema") is a whole-schema apply via
-  `mergeElementSchema`: shared wins for matching keys, local-only tabs/fields are
-  appended, element data is never touched. Snapshots and project archives carry
-  the copy (`__elementSchema` key inside `worldbuildingData`; `schema` +
-  `schemaBaseHash` on `ArchiveWorldbuildingData`).
-- **Identity vs template fields**: `description` and `image` live in the
-  element's `identity` map, outside any schema, but a template may still
-  define a field with one of those keys (older templates do). MCP
-  `update_worldbuilding` (`mcp/tools/worldbuilding-fields.ts`) resolves a bare
-  key against the element's schema (copy, else shared by `schemaId`) first,
-  so the template field stays writable; `identity.<key>` / `worldbuilding.<key>`
-  pick a map explicitly. New templates start with an empty General tab rather
-  than seeding `name`/`description` fields that duplicate identity.
-- **Identity images are media references.** `identity.image` holds a
-  `media://<id>.<ext>` reference, never a base64 `data:` URL (one generated
-  image is ~2.7 MB of base64 in every sync, snapshot, archive and MCP read).
-  `IdentityImageService` (`services/worldbuilding/identity-image.service.ts`)
-  saves the image as local media (uploaded by the media sync, so the server
-  quota applies) under an id derived from its bytes, or references the media
-  item it came from (the generator's saved copy, an uncropped library pick).
-  Opening an older element with an inline image migrates it with a
-  compare-and-set (`WorldbuildingService.replaceIdentityImage`). The Media
-  tab's delete check counts identity images and backgrounds as usages.
-
-### Editor Schema & Tables
-
-The ProseMirror `Schema` is built in
-`frontend/src/app/components/element-ref/extended-schema.ts` from ngx-editor's
-base specs + `prosemirror-tables`' `tableNodes()` + Inkweld's own extensions.
-
-**Never construct the `Schema` inside `packages/inkweld-prosemirror`** — the
-shared package returns specs only. Building it there pulls a second copy of
-`prosemirror-model` into the bundle, which breaks class-identity checks in
-y-prosemirror and `EditorView`; typing into the editor then silently produces
-no output (see PR #1068). For the same reason `prosemirror-tables` is pinned
-in `frontend/package.json`'s `resolutions` block.
-
-Table support deliberately lives in Inkweld rather than in the
-`@bobbyquantum/ngx-editor` fork: Inkweld replaced ngx-editor's menu with its
-own Material toolbar, so the upstream table PR's menu components would be dead
-weight. Only the schema and plugins are used.
-
-**When touching tables, all of these need to stay in step**:
-
-- `extended-schema.ts` — node specs (`cellContent: 'paragraph+'`, `align` attr)
-- `document.service.ts` — `columnResizing` (must precede) + `tableEditing` + Tab keymap
-- `packages/inkweld-prosemirror/src/xml/tags.ts` — table names in `BLOCK_NODE_NAMES`,
-  so empty cells don't collapse to self-closing tags and drop columns
-- `markdown-to-xml.ts` / `xml-to-markdown.ts` — GFM table parsing and emission
-- `markdown-`, `html-`, `epub-`, `pdf-generator.service.ts` — publish output
-
-### Markdown Input Rules
-
-ngx-editor registers Markdown input rules (`# `, `> `, `- `, `1. `, bold/italic,
-smart quotes) behind its `inputRules` option. Inkweld makes them **opt-in**
-(`SettingsService.markdownShortcuts`, default off, Settings → General) because
-prose often starts a line with `#` or `-`; `DocumentElementEditorComponent.createEditor()`
-reads it when the editor is created, so a change applies to documents opened
-afterwards. `createUndoInputRulePlugin()` (Backspace reverts a conversion) is
-always installed ahead of ngx-editor's `baseKeymap` in `document.service.ts`
-and is a no-op when the rules are off.
-
-### Conversations (Speech-Bubble Documents)
-
-A prose document can be written as a **conversation**: `metadata.format =
-'conversation'` (`getDocumentFormat` / `formatMetadata` in
-`models/scene-metadata.ts`; created from the "Conversation" option in the
-new-element dialog, or "Write as Conversation" in the tree menu). It stays an
-`ElementType.Item` on purpose — sync, storage, archives, MCP and publishing
-all keep working without a new element type.
-
-- **Nodes** (`packages/inkweld-prosemirror/src/schema/conversation-spec.ts`):
-  `speech` (attrs `speakerId`, `speakerName`, `extension: 'os' | 'vo' | null`)
-  holding `parenthetical? dialogue`. Descriptions are plain `paragraph`s and
-  scene breaks are `horizontal_rule`s. The nodes live in the **same schema as
-  prose** so opening a conversation in a prose editor (or the reverse) can
-  never make y-prosemirror drop unknown nodes. Keep the nesting at one level:
-  deeper structures can merge into invalid shapes under concurrent edits.
-- **Speakers are any worldbuilding element** (or just a name). Never key
-  behaviour on a schema called "Character"; the speaker picker ranks elements
-  sharing a schema with speakers already linked in the conversation.
-- **Editor**: `createConversationPlugin` (`components/conversation/`) is
-  installed in every document. Enter / Tab / Backspace act only inside a
-  speech; behaviour that changes ordinary paragraphs (Enter at the end of a
-  description, `Name: ` shortcuts, Alt+↑↓, the drag handle) is switched on by
-  `setConversationMode`, which the document editor calls for conversation
-  documents. The editing logic is plain ProseMirror commands in
-  `conversation-commands.ts` — add behaviour there and test it against an
-  `EditorState`.
-- **Publishing** flattens each speech to `**Name:** *(note)* line` before any
-  exporter runs (`flattenConversation` in `services/publish/conversation-publish.ts`),
-  and the shared `xmlToMarkdown` renders `<speech>` the same way. Markdown has
-  no speech construct, so MCP writes conversations as XML.
-- Grouping (first/last line in a run by one speaker) and the speaker colour
-  are node decorations; the speech node view must only add or remove its own
-  classes so it never clobbers them.
-
-### EPUB Output
-
-`frontend/src/app/services/publish/epub-generator.service.ts` targets
-EPUBCheck-clean EPUB 3.3 with EPUB 2 fallbacks (NCX, `<guide>`,
-`<meta name="cover">`) for Kindle and older readers. Pure helpers live in
-`epub-utils.ts`. Rules that are easy to break:
-
-- **Filenames are assigned once, globally** (`assignFilenames`, after all items
-  are processed). Never derive a filename from a per-item counter — that made
-  every chapter `chapter_001.xhtml`, so the zip kept only the last one.
-- **Every resource must be inside the container.** Document images (`media:`
-  ids, `data:` URLs, and http(s) when CORS allows) are copied into
-  `OEBPS/images/` with a sniffed media type; only EPUB core image types are
-  packaged, anything else becomes a visible placeholder plus a warning.
-- **Markup is whitelisted.** Unknown node types render their children with no
-  wrapper, and only specific attributes (`start`, `colspan`, `rowspan`,
-  align/indent classes) are emitted. Plan text fields (dedication, custom
-  front/back matter) are plain text → escaped paragraphs, never raw HTML.
-  `escapeXml` also strips XML-invalid control characters, which otherwise make
-  a chapter unreadable.
-- `dcterms:modified` must have no milliseconds (`epubTimestamp`). The
-  identifier is the ISBN, or a UUID derived from project + plan id so
-  re-exports update the same book in readers; the NCX `dtb:uid` must match it.
-- Scene/chapter-break separators are appended to the preceding chapter; page
-  breaks are no-ops (each content document starts a page). A plan TOC item
-  puts `nav.xhtml` in the spine at that position; its `depth` hides deeper
-  levels on the page (`hidden`) while keeping them in reader navigation.
-- **Cover is always embedded.** `loadCoverBlob` tries the plan's
-  `options.coverImage`, then the project's stored cover; when neither exists
-  `DefaultCoverRendererService` draws the home-page placeholder (the
-  `default_cover.webp` artwork plus title and author) to a JPEG. The
-  placeholder is CSS only, so it is not a media file anywhere else.
-- **Typographic quotes** (`typography.ts`, `smartenDocument`) run on the
-  content tree before rendering in the EPUB, PDF, HTML and website generators,
-  per `plan.options.typographicQuotes` (unset = on except Markdown) and the
-  plan language. They never touch stored documents; keep code skipping and
-  whole-paragraph context when changing them.
-- **EPUB is reflowable.** The style editor gets `[reflowable]="true"` for it,
-  which hides page setup and swaps the print presets for the `ebook*` ones
-  (`reflowablePresets`). The EPUB generator ignores `styles.page`.
-- Element references are written with an `inkweld-element:` sentinel href and
-  rewritten to the target chapter file (or unlinked) in `resolveElementRefs`.
-
-### App Backgrounds (Login / Home)
-
-The full-screen background behind the login page and home screen is
-admin-configurable and optionally user-personalisable. It used to be the
-hard-coded asset `url('/home_background.png')` repeated in ten component
-stylesheets; it is now driven by CSS custom properties.
-
-**Do not reference `/home_background.png` in a component stylesheet.** Use the
-mixins in `frontend/src/themes/_app-background.scss`:
-
-```scss
-@use '../../../themes/app-background' as appBackground;
-
-.my-hero-surface {
-  @include appBackground.surface($attachment: fixed); // omit for centred views
-
-  &::before {
-    // …the existing full-bleed scrim…
-    @include appBackground.scrim-blur();
-  }
-}
-```
-
-Key facts:
-
-- `BackgroundService` (`services/core/background.service.ts`) resolves the
-  background and writes `--app-bg-image` / `--app-bg-color` / `--app-bg-filter` /
-  `--app-bg-scrim-override` onto `document.documentElement`. The defaults in
-  `theme.scss` are what renders before it runs, in LOCAL mode, and when the
-  server is unreachable.
-- Precedence: **user preference → admin surface config → bundled default**.
-- Two surfaces: `login` (pre-auth) and `app`/`home` (post-auth). Both live on the
-  same `.content-container` element in `home.component.html`, so the component's
-  constructor `effect()` calls `setSurface()` as authentication resolves. A user
-  preference only ever affects the post-auth surface — nobody is signed in when
-  the login page renders.
-- An unset login background **inherits the home one** (resolved server-side in
-  `appearance.service.ts`), so one upload brands both.
-- **Two spellings of the blur, deliberately.** `--app-bg-filter` is a standalone
-  `backdrop-filter` value (`none` when off, which also avoids creating a
-  compositing layer). `--app-bg-blur-fn` is appended to scrims that already have
-  their own filter list via `var(--app-bg-blur-fn, )`, because a CSS filter list
-  cannot contain the keyword `none`. The service *removes* the second property
-  rather than blanking it.
-- The scrim opacity arrives as `--app-bg-scrim-override` on the root and is read
-  through a `var()` fallback chain in `home.component.scss`. It has to work that
-  way round: a `:host` declaration out-specifies anything set on `:root`, but
-  custom-property *values* still inherit into it.
-- Uploaded images use a "single-slot" storage API (`saveSlotImage` /
-  `getSlotImage` on `StorageService`), namespaced `branding` (admin, two slots)
-  and `backgrounds` (one per user). On the filesystem the extension records the
-  stored content type and reads probe for it, because `sharp` is unavailable on
-  Workers and the upload is then stored untranscoded.
-- `GET /api/v1/appearance/config` and `/appearance/background/{surface}` are
-  **unauthenticated by necessity** — the login page resolves its background
-  before anyone can sign in — which also makes branding images world-readable.
-  `/appearance/user-background` is authenticated and self-only; there is no
-  `/:username/` form of it.
-- Background presets are CSS gradients, not image files. The visuals live in
-  `frontend/src/app/config/background-presets.ts`; the ids are mirrored in
-  `BACKGROUND_PRESET_IDS` in `backend/src/services/appearance.service.ts` for
-  server-side validation. **Keep the two lists in step.**
-- Values reaching a CSS `url()` token are validated on both sides
-  (`isSafeExternalImageUrl` in the backend, `isSafeUrlToken` in the service) so a
-  stored value cannot break out of the token. The localStorage first-paint cache
-  is re-validated on read for the same reason.
-
-### File Structure
-
-- Projects contain documents and elements
-- Documents use ProseMirror for rich text editing
-- Elements are hierarchical (folders, files, etc.)
-- Files stored in project-specific directories
-
-### Project Archives
-
-- **Archive Format**: Projects can be exported as `.inkweld.zip` files
-- **Version Control**: Archives have `ARCHIVE_VERSION` (currently 1); import accepts only that version
-- **Key Files**:
-  - `frontend/src/app/models/project-archive.ts` - Archive types and version constants
-  - `frontend/src/app/services/project/project-import.service.ts` - Import logic and version check
-  - `frontend/src/app/services/project/project-export.service.ts` - Export logic
-  - `docs/site/docs/developer/project-archives.md` - Technical documentation
-
-**When Changing Archive Format**:
-1. Increment `ARCHIVE_VERSION` in `project-archive.ts`
-2. Document the change in the version history JSDoc comment
-3. Make the import upgrade archives at the previous version (and test it in
-   `project-import.service.spec.ts`), or accept that they can no longer be imported
-
-**Important**: The `PROTOCOL_VERSION` (backend) and `ARCHIVE_VERSION` (frontend) are separate concerns:
-- `PROTOCOL_VERSION` handles live Yjs sync compatibility between client/server
-- `ARCHIVE_VERSION` handles static export/import file format compatibility
-
-### API Client
-
-- Auto-generated from OpenAPI specification
-- Located in `frontend/src/api-client/`
-- **Regenerate**: First generate OpenAPI spec, then Angular client
-
-**Regenerate**:
-
-```bash
-cd backend && bun run generate:openapi && bun run generate:angular-client
-```
-
-> **Note**: `bun run generate:angular-client` requires a Java runtime (the
-> OpenAPI generator is a JVM tool) — install a JRE if `java -version` fails
-> (e.g. `apt-get install openjdk-21-jre-headless`). The script also runs the
-> frontend's prettier config over its output, so regenerating produces only the
-> real API changes rather than a whole-client reformat. The generated
-> `frontend/src/api-client/**` must not be edited by hand — always regenerate
-> from the OpenAPI spec.
->
-> CI enforces this: the **OpenAPI Spec + Client Freshness** job regenerates both
-> `backend/openapi.json` and the client, then fails if the committed artifacts
-> differ. If it fails, run the command above and commit the result.
-
-### Hosted Deploys (Cloudflare)
-
-preview.inkweld.app deploys on every push to `main`
-(`deploy-cloudflare.yml`); inkweld.app deploys on every push to the
-long-lived `production` branch (`deploy-cloudflare-production.yml`). Both
-call `deploy-cloudflare-reusable.yml` — change the deploy steps there, not in
-the callers, so the two cannot drift. All configuration lives on the GitHub
-environments `preview` / `production`. `production` only ever fast-forwards
-to a commit already on `main` (`git push origin origin/main:production`);
-never commit to it directly, and never push to it unless asked — it ships to
-users. The generated frontend environment file comes from
-`frontend/scripts/write-hosted-environment.mjs`, which reads the version from
-the root `package.json`. Details: `docs/site/docs/admin-guide/ci-cd.md`.
-
-### Wrangler Version Pin (backend)
-
-`backend/package.json` pins `wrangler` to an **exact** `4.116.0` (no caret), and
-Renovate is disabled for it via `renovate.json`. **Do not "fix" this to a range.**
-
-- **Why**: wrangler ≥ 4.121 pulls miniflare 5.x-alpha, where any transient
-  ProxyWorker disconnect ("Network connection lost.") makes `wrangler dev` exit
-  with an **empty** `[ERROR]` mid-run — every test after it fails with
-  `ECONNREFUSED ::1:9333`. This flaked the `e2e-wrangler` CI job constantly
-  after the 2026-08-12 lockfile maintenance (#1300). It does not reproduce on
-  dev machines; CI runner contention provides the dropped connections.
-- **Upstream**: cloudflare/workers-sdk#15317 (also #15203, #4562). 4.116.0 is
-  the last release on the miniflare 4.x line.
-- **The pin alone is NOT enough**: 4.116.0 has the same defect, just at lower
-  frequency (two crashes on 2026-08-25 while pinned). The crash mechanism:
-  a client aborting an in-flight request rejects the ProxyWorker's internal
-  proxy fetch with "Network connection lost."; the ProxyWorker posts a
-  `type: "error"` message; `DevEnv.handleErrorEvent` re-emits it as a fatal
-  `"error"` event; the dev command's `await events.once(devEnv, "teardown")`
-  rejects (Node's `events.once` rejects on `"error"`), and the process exits.
-- **Local patch**: `backend/patches/wrangler@4.116.0.patch` (applied via
-  `patchedDependencies` in `backend/package.json`) makes
-  "Error inside ProxyWorker" events non-fatal — they log as
-  `Non-fatal error in ProxyController: ...` warnings and the affected request
-  simply fails; the server keeps running. It also fixes `castErrorCause` so the
-  cause's message/stack survive into the log instead of an empty `[ERROR]`.
-  Repro + verification: send POSTs with a partial body and RST the socket
-  mid-request; unpatched wrangler dies on the first one, patched logs a
-  warning and keeps serving.
-- **Unpin when**: #15317 ships a fixed release — restore `"wrangler": "^<ver>"`,
-  re-lock, drop the patch (`backend/patches/` + `patchedDependencies`), and
-  re-enable the Renovate rule. If bumping wrangler while the patch is still
-  needed, regenerate the patch against the new version (`bun patch wrangler`)
-  — a stale version key in `patchedDependencies` fails the install.
-- The wrangler e2e job also sets `WRANGLER_LOG=debug` +
-  `WRANGLER_LOG_PATH` and uploads wrangler's diagnostic log as an artifact
-  (`wrangler-diag-log-shard-*`); the real crash cause only appears there, not
-  in the console's empty `[ERROR]`.
-- **Retries (since 2026-09-09)**: `playwright.wrangler.config.ts` retries once
-  in CI like the online/local/docker configs. It used to be `retries: 0` so a
-  backend crash would surface immediately, but with the crash fixed the only
-  thing that setting caught was one-off frontend flakes (a page that never
-  rendered after `goto`, a UI race) that hit the other jobs at the same rate
-  and pass there on retry. Don't set it back to 0 to "find bugs": the flakes
-  are still visible — every e2e job traces the first attempt of each test
-  (`trace: 'retain-on-first-failure'`) and uploads `frontend/test-results/`
-  as `playwright-test-results-*` even when the job is green. Open a flaky
-  test's trace with `npx playwright show-trace <trace.zip>`.
-
----
-
-## Debugging Tips
-
-### Frontend Debugging
-
-- Use Angular DevTools browser extension
-- Check browser console for errors
-- Use `ng.probe()` in console for component inspection
-- Check Network tab for API call failures
-- Review Playwright traces for e2e test failures: `npx playwright show-trace <trace-file>`
-
-### Backend Debugging
-
-- Use VS Code debugger (configured in `.vscode/launch.json`)
-- Check server logs for stack traces
-- Verify database connections
-- Test API endpoints with Swagger UI at `/api`
-- Use `console.log()` or proper logging service
-
----
-
-## When Things Go Wrong
-
-### Build Failures
-
-- Clear node_modules and reinstall: `rm -rf node_modules && bun install`
-- Clear Angular cache: `rm -rf .angular`
-- Check for TypeScript errors: `npx tsc --noEmit`
-- Verify all dependencies are installed
-
-### Test Failures
-
-- Run single test: `npm test -- <test-file-pattern>`
-- Check for async timing issues
-- Verify mock setup is correct
-- Ensure tests are isolated
-- Check Playwright trace files for e2e failures
-
-### Lint Errors
-
-- Run auto-fix: `npm run lint:fix`
-- Check ESLint configuration
-- Verify Prettier formatting
-- Review specific error messages
-
----
-
-## Contributing
-
-### Before Submitting Changes
-
-1. ✅ All tests pass (`npm test` for frontend, `bun test` for backend)
-2. ✅ Linting and type checking pass (`npm run lint`, `npm run typecheck`)
-3. ✅ Code is properly formatted
-4. ✅ New features have test coverage
-5. ✅ Documentation is updated if needed
-6. ✅ No console errors or warnings
-
-### Pull Request Guidelines
-
-- Keep PRs focused on a single feature or fix
-- Write clear commit messages
-- Reference related issues
-- Include tests for new functionality
-- Update documentation as needed
-
----
-
-## Internationalization (i18n)
-
-The frontend uses **Transloco** (`@jsverse/transloco` 8.x) for runtime internationalization with JSON translation files. English is the current source language; the infrastructure is ready to add more locales without rework.
-
-### Architecture
-
-- **Library**: `@jsverse/transloco` — signal-based, standalone-friendly, runtime JSON loading
-- **File layout**: Per-locale folders, per-scope files:
-  ```text
-  frontend/public/assets/i18n/
-    en/common.json    # Shared strings (Cancel, Close, error fallbacks)
-    en/app.json       # App shell scope
-    en/login.json     # Login dialog scope
-    en/home.json      # Home page scope
-    en/settings.json  # User settings dialog scope
-  ```
-- **Loader**: `frontend/src/app/transloco-loader.ts` — HTTP loader that merges all scope files into a single translation map at load time
-- **Config**: `frontend/src/app/app.config.ts` — `provideTransloco()` with `autoPrefixKeys: false` (full dot-notation paths)
-- **Locale service**: `frontend/src/app/services/core/locale.service.ts` — handles `setActiveLang` + `localStorage` persistence
-- **Error translation**: `frontend/src/app/services/core/error-translation.service.ts` — maps typed error codes (`PasskeyError`, `UserServiceError`) to translation keys; unmapped errors fall back to a generic localized message
-- **Test provider**: `frontend/src/testing/transloco-test-provider.ts` — `TranslocoTestingModule` with inlined English translations for synchronous test loading
-
-### How to add a new translated string
-
-1. **Add the key to the JSON file** for the appropriate scope (e.g. `en/login.json`):
-   ```json
-   {
-     "myNewField": "My New Field"
-   }
-   ```
-2. **In templates**, use the `| transloco` pipe:
-   ```html
-   <mat-label>{{ 'login.myNewField' | transloco }}</mat-label>
-   ```
-3. **In TypeScript**, inject `TranslocoService` and call `translate()`:
-   ```typescript
-   private readonly transloco = inject(TranslocoService);
-   this.transloco.translate('login.myNewField');
-   // With params:
-   this.transloco.translate('login.welcomeBack', { username: 'Alice' });
-   ```
-4. **Never hardcode user-facing English strings** — always use translation keys.
-
-### Key naming conventions
-
-- **Scope-specific keys**: Use the scope as a prefix — `login.title`, `home.syncAll`, `app.updateNow`
-- **Common/shared keys**: Flat at the root — `cancel`, `close`, `dismiss`, `retry`
-- **Nested keys**: Use dot notation for grouping — `home.tooltips.onlineOnly`, `login.errors.loginFailed`
-- **Params**: Use `{{paramName}}` interpolation — `"welcomeBack": "Welcome back, {{username}}!"`
-
-### Error code mapping
-
-The `ErrorTranslationService` maps typed error codes to translation keys:
-
-| Error class | Code | Translation key | Behavior |
-|---|---|---|---|
-| `PasskeyError` | `CANCELLED` | — | Silent (no message shown) |
-| `PasskeyError` | `PENDING_APPROVAL` | — | Redirect to `/approval-pending` |
-| `PasskeyError` | `VERIFICATION_FAILED` | `login.errors.verificationFailed` | Show message |
-| `PasskeyError` | `NETWORK_ERROR` | `login.errors.networkError` | Show message |
-| `PasskeyError` | `UNSUPPORTED` | `login.errors.unsupported` | Show message |
-| `PasskeyError` | `ACCOUNT_DISABLED` | `login.errors.accountDisabled` | Show message |
-| `UserServiceError` | `LOGIN_FAILED` | `login.errors.loginFailed` | Show message |
-| `UserServiceError` | `ACCOUNT_PENDING` | — | Redirect to `/approval-pending` |
-| Any unknown error | — | `errors.unknown` | Generic fallback |
-
-**To add a new error code mapping**: Add the code to the lookup map in `error-translation.service.ts` and add the corresponding key to the appropriate JSON file.
-
-### How to add a new locale
-
-1. **Create translation files**: Copy `frontend/public/assets/i18n/en/` → `frontend/public/assets/i18n/<lang>/` and translate all JSON files
-2. **Register locale data**: Add `import locale<Lang> from '@angular/common/locales/<lang>'` and `registerLocaleData(locale<Lang>)` in `app.config.ts`
-3. **Add to available langs**: Add `{ id: '<lang>', label: '<Language Name>' }` to the `availableLangs` array in `provideTransloco()` config
-4. **Update the loader**: Add the new locale's scope files to the `SCOPES` merger in `transloco-loader.ts` (already covers all scopes)
-5. **Update the test provider**: Add the new locale's translations to `transloco-test-provider.ts`
-6. **The language switcher** in General Settings will automatically become enabled when `availableLangs.length > 1`
-
-### Testing with Transloco
-
-In unit tests, add `translocoTestProvider()` to the `imports` array of `TestBed.configureTestingModule()`:
-
-```typescript
-import { translocoTestProvider } from '../../../testing/transloco-test-provider';
-
-TestBed.configureTestingModule({
-  imports: [MyComponent, translocoTestProvider()],
-  providers: [/* ... */],
-});
-```
-
-The test provider uses `TranslocoTestingModule.forRoot()` with `preloadLangs: true` for synchronous loading. Translations are inlined in the provider file to avoid JSON import resolution issues in the test build.
-
-### Current translation coverage
-
-Translation coverage is near-complete. Out of 144 components in `frontend/src/app/`, the vast majority now use Transloco keys (`| transloco` pipe in templates and `TranslocoService.translate()` in TS) instead of hardcoded English strings. Originally only four components were translated as a pilot; coverage has since been extended across the app.
-
-Components with **no user-facing strings** (structural/icon-only) intentionally do not use Transloco — e.g. `AriaTabPanelComponent`, `TreeNodeIconComponent`, `FolderTabComponent`. These need no translation.
-
-To extend coverage to any remaining components, follow the patterns above.
-
----
-
-
-
-- **Getting Started**: [docs/site/docs/getting-started.md](docs/site/docs/getting-started.md)
-- **CI/CD Pipeline**: [docs/site/docs/admin-guide/ci-cd.md](docs/site/docs/admin-guide/ci-cd.md)
-- **E2E Testing**: [frontend/e2e/BEST_PRACTICES.md](frontend/e2e/BEST_PRACTICES.md)
-- **Deployment Wizard**: `bun run deploy` (interactive TUI in `scripts/deploy-wizard.ts`)
-- **API Documentation**: <http://localhost:8333/api> (served by the Hono backend)
-- **OpenAPI Spec**: [backend/openapi.json](backend/openapi.json)
-
----
-
-## Questions or Issues?
-
-If you encounter patterns, issues, or edge cases not covered here, suggest adding them to this document to help future AI agents and contributors.
-
-**Remember**: The goal is to write maintainable, tested, well-documented code that follows the project's established patterns and conventions.
+reports the same errors as `tsc`. It is the only check on specs, e2e and the
+backend: Vitest, Playwright and `bun test` strip types without checking them,
+and `ng build` covers only the app sources. It follows TypeScript 7, so an
+option TS 7 removed (e.g. `baseUrl`) is an error even though `tsc` 6 accepts
+it. `frontend/tsconfig.json` only references the real projects
+(`"files": []`), so check it with `bun check -b`.
+
+## Code style
+
+- Prettier and ESLint configs are in each package; run `npm run lint:fix`
+  before committing. TypeScript strict mode; small, focused functions;
+  comment complex logic; follow the surrounding patterns.
+- **Awaiting in loops**: SonarCloud flags `await` in a loop (S9382) and
+  `async` functions with no `await` (S7503). Don't disable the rules.
+  Independent iterations: `await Promise.all(items.map(...))`, or
+  `mapWithConcurrency` (`backend/src/utils/concurrency.ts`) /
+  `forEachConcurrent` (`@inkweld/async`) when the fan-out must be bounded.
+  Work that must run in order (ordered writes, IndexedDB transactions on one
+  database, rate-limited calls, progress, early exit): `@inkweld/async`'s
+  `forEachSequential`, `mapSequential`, `firstResultSequential`,
+  `forEachPage`, `chunk`, with a one-line comment saying why it is
+  sequential. An `async` function that never awaits: drop `async` and return
+  `Promise.resolve(...)` / `Promise.reject(...)`; if the body can throw
+  synchronously and callers rely on a rejection, keep `async` and
+  `return await` the promise.
+
+## Gotchas that apply anywhere
+
+- **Yjs Document ID Trailing Slash**: the frontend uses
+  `username:slug:elements`, the backend/MCP `username:slug:elements/`.
+  **This is not a bug; do not "fix" it.** y-websocket normalizes them. If you
+  see it while debugging sync, look elsewhere.
+- **Local document databases are profile-scoped**: IndexedDB names carry
+  `storageContext.prefixDocumentId(docId)`; WebSocket ids stay bare.
+  (`frontend/src/app/services/core/AGENTS.md`)
+- **AI kill switch**: every new endpoint that sends content to an AI provider
+  must be gated with `requireAiEnabled` and listed in
+  `backend/test/ai-kill-switch.test.ts`. Frontend AI features gate on the
+  user's AI preference too. (`backend/AGENTS.md`, `frontend/AGENTS.md`)
+- **Backend routes that edit a Yjs document** use `openEditableDocument()`,
+  never `yjsService` directly: `yjsService` is Bun-only and crashes on
+  Workers. (`backend/AGENTS.md`)
+- **Storage quotas**: every server write that adds project storage calls
+  `quotaService.assertCanStore()`; Yjs editing/sync is never blocked.
+  (`backend/AGENTS.md`)
+- **Bulk sync is conservative**: the planner may cause extra syncs, never a
+  missed edit. Never use a Durable Object's `snapshot` key as a revision
+  token. (`frontend/src/app/services/sync/AGENTS.md`,
+  `backend/src/durable-objects/AGENTS.md`)
+- **Never construct the ProseMirror `Schema` in `packages/inkweld-prosemirror`**;
+  it breaks typing in the editor. (`frontend/src/app/components/element-ref/AGENTS.md`)
+- **The built `index.html` must contain no inline script**
+  (`inlineCritical: false` stays) and `script-src` never gets
+  `'unsafe-inline'`. (`docs/site/docs/developer/legal-pages-and-custom-html.md`)
+- **The frontend must work under a path prefix** (Home Assistant ingress):
+  relative asset URLs, `appUrl()` / `appOrigin()` for navigations.
+- **Ingress headers are trusted by TCP peer only**, never by
+  `X-Forwarded-For`. (`docs/site/docs/developer/home-assistant-ingress.md`)
+- **Passkey timestamps are seconds**; the frontend multiplies by 1000. Passkey
+  ceremonies use `rpFromRequest(c)`. (`docs/site/docs/developer/passkeys.md`)
+- **Wrangler is pinned to exactly 4.116.0 with a local patch.** Don't change it
+  to a range. (`backend/AGENTS.md`)
+- **Reserved usernames** (`privacy`, `terms`, `share`, `delete-account`) back
+  real routes; frontend ones stay above the `:username` route.
+- **Mirrored lists** must stay in step: `schemaContentHash` (frontend and
+  backend `utils/schema-hash.ts`, same golden hash) and the background preset
+  ids (`background-presets.ts` ↔ `BACKGROUND_PRESET_IDS`).
+- **Project archive format changes** bump `ARCHIVE_VERSION`
+  (`frontend/AGENTS.md`).
+- **No hardcoded user-facing English** in the frontend; use Transloco keys.
+
+## Where the details live
+
+| Topic | Location |
+|---|---|
+| Angular conventions, tests, e2e, i18n, frontend-wide rules | `frontend/AGENTS.md` |
+| Hono conventions, migrations, AI kill switch, quotas, serving `index.html`, auth, rename, share links, sync manifest | `backend/AGENTS.md` |
+| Durable Object storage and revision tokens | `backend/src/durable-objects/AGENTS.md` |
+| Profile-scoped storage, project rename, APP_MODE, app backgrounds | `frontend/src/app/services/core/AGENTS.md` |
+| Starting offline, bulk sync planner | `frontend/src/app/services/sync/AGENTS.md` |
+| Canvas Yjs model | `frontend/src/app/services/canvas/AGENTS.md` |
+| Passkeys and policy acceptance (frontend) | `frontend/src/app/services/auth/AGENTS.md` |
+| WebMCP browser tools | `frontend/src/app/services/webmcp/AGENTS.md` |
+| EPUB output, published file share links | `frontend/src/app/services/publish/AGENTS.md` |
+| Per-element schema copies, identity images | `frontend/src/app/services/worldbuilding/AGENTS.md` |
+| Template (schema) editor | `frontend/src/app/components/worldbuilding/AGENTS.md` |
+| Editor schema and tables | `frontend/src/app/components/element-ref/AGENTS.md` |
+| Markdown input rules | `frontend/src/app/components/editor-input-rules/AGENTS.md` |
+| Conversations (speech-bubble documents) | `frontend/src/app/components/conversation/AGENTS.md` |
+| Shared ProseMirror specs | `packages/inkweld-prosemirror/AGENTS.md` |
+| Architecture, real-time layer, bulk sync design | `docs/site/docs/developer/architecture.md` |
+| Passkeys (key files, data flow, env vars) | `docs/site/docs/developer/passkeys.md` |
+| Legal pages, custom HTML, CSP, service worker hash | `docs/site/docs/developer/legal-pages-and-custom-html.md` |
+| Account deletion | `docs/site/docs/developer/account-deletion.md` |
+| Home Assistant ingress | `docs/site/docs/developer/home-assistant-ingress.md` |
+| Project archives | `docs/site/docs/developer/project-archives.md` |
+| Cloud Sync | `docs/site/docs/developer/cloud-sync.md` |
+| CI/CD, hosted deploys, wrangler pin history | `docs/site/docs/admin-guide/ci-cd.md` |
+| Sync capacity (admin view) | `docs/site/docs/admin-guide/sync-capacity.md` |
+| E2E practices | `frontend/e2e/BEST_PRACTICES.md` |
+| Getting started | `docs/site/docs/getting-started.md` |
+
+If you hit a pattern or trap that isn't covered, add it to the `AGENTS.md`
+closest to the code it concerns, and add a one-line pointer here only if it
+can bite anywhere in the repo.
