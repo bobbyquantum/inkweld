@@ -8,6 +8,7 @@ import {
   type OnDestroy,
   type OnInit,
   signal,
+  untracked,
 } from '@angular/core';
 import { debounce, form, FormField } from '@angular/forms/signals';
 import { MatButtonModule } from '@angular/material/button';
@@ -48,6 +49,7 @@ import {
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { CloudSyncEngineService } from '@services/cloud-sync/cloud-sync-engine.service';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
+import { NetworkStatusService } from '@services/core/network-status.service';
 import { ProjectCoverOpenService } from '@services/core/project-cover-open.service';
 import { SetupService } from '@services/core/setup.service';
 import {
@@ -141,6 +143,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   private readonly localSnapshotService = inject(LocalSnapshotService);
   private readonly localElementsService = inject(LocalProjectElementsService);
   private readonly tutorialService = inject(TutorialService);
+  private readonly network = inject(NetworkStatusService);
 
   /** True when the app is running in local-only mode (no backend). */
   protected readonly isLocalMode = this.storageContext.isLocalMode;
@@ -193,25 +196,32 @@ export class HomeComponent implements OnInit, OnDestroy {
     () => this.setupService.getMode() === 'server'
   );
 
-  /** Whether Sync All button should be enabled */
-  protected canSyncAll = computed(() => {
+  /**
+   * Whether the Sync All button is enabled. It stays enabled while offline so
+   * a click can say why nothing happens: a disabled button shows no tooltip.
+   */
+  protected syncAllEnabled = computed(() => {
     // Read activation version to re-evaluate when activations change
     this.activationService.activationVersion();
     const hasActivated = this.getActivatedProjects().length > 0;
     return (
       this.isServerMode() &&
       this.isAuthenticated() &&
-      navigator.onLine &&
       !this.syncQueueService.isSyncing() &&
       hasActivated
     );
   });
 
+  /** Whether a sync can start right now */
+  protected canSyncAll = computed(
+    () => this.syncAllEnabled() && this.network.online()
+  );
+
   /** Tooltip for Sync All button */
   protected syncAllTooltip = computed(() => {
     if (!this.isServerMode())
       return this.transloco.translate('home.tooltips.onlineOnly');
-    if (!navigator.onLine)
+    if (!this.network.online())
       return this.transloco.translate('home.tooltips.offline');
     if (this.syncQueueService.isSyncing())
       return this.transloco.translate('home.tooltips.syncInProgress');
@@ -333,6 +343,17 @@ export class HomeComponent implements OnInit, OnDestroy {
   private tutorialOffered = false;
 
   constructor() {
+    // A project list that failed to load (opened offline with nothing
+    // cached) loads again by itself once the network is back.
+    let wasOnline = this.network.online();
+    effect(() => {
+      const online = this.network.online();
+      if (online && !wasOnline && this.loadError) {
+        untracked(() => void this.loadProjects());
+      }
+      wasOnline = online;
+    });
+
     // Offer the home tour once the user state has resolved on a desktop
     // viewport. Reactive rather than a one-shot check because auth state and
     // the breakpoint both settle asynchronously during boot.
@@ -516,6 +537,15 @@ export class HomeComponent implements OnInit, OnDestroy {
    * Only projects that have been activated on this device are synced.
    */
   syncAllProjects(): void {
+    if (!this.network.online()) {
+      this.snackBar.open(
+        this.transloco.translate('home.snackbar.syncAllOffline'),
+        this.transloco.translate('dismiss'),
+        { duration: 5000 }
+      );
+      return;
+    }
+
     const activated = this.getActivatedProjects();
 
     if (activated.length === 0) {

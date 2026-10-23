@@ -1,4 +1,7 @@
-<div class="callback-container" data-testid="cloud-sync-callback">
+<main
+  id="main-content"
+  class="callback-container"
+  data-testid="cloud-sync-callback">
   @if (errorMessage()) {
     <div class="error">
       <h2>Couldn't connect to {{ providerName() }}</h2>
@@ -16,4 +19,4 @@
       {{ statusMessage() }} {{ providerName() }}…
     </p>
   }
-</div>
+</main>

@@ -343,6 +343,18 @@ git push origin vX.Y.Z^{commit}:production
 Release Please needs **Settings → Actions → General → Allow GitHub Actions to
 create and approve pull requests** to open its release PR.
 
+## Wrangler version pin
+
+`backend/package.json` pins `wrangler` to an **exact** `4.116.0` (no caret), and Renovate is disabled for it in `renovate.json`. Do not change it to a range.
+
+- **Why**: wrangler ≥ 4.121 pulls miniflare 5.x-alpha, where any transient ProxyWorker disconnect ("Network connection lost.") makes `wrangler dev` exit with an **empty** `[ERROR]` mid-run, and every test after it fails with `ECONNREFUSED ::1:9333`. This flaked the `e2e-wrangler` job constantly after the 2026-08-12 lockfile maintenance (#1300). It does not reproduce on dev machines; CI runner contention provides the dropped connections.
+- **Upstream**: cloudflare/workers-sdk#15317 (also #15203, #4562). 4.116.0 is the last release on the miniflare 4.x line.
+- **The pin alone is not enough**: 4.116.0 has the same defect at a lower frequency (two crashes on 2026-08-25 while pinned). The mechanism: a client aborting an in-flight request rejects the ProxyWorker's internal proxy fetch with "Network connection lost."; the ProxyWorker posts a `type: "error"` message; `DevEnv.handleErrorEvent` re-emits it as a fatal `"error"` event; the dev command's `await events.once(devEnv, "teardown")` rejects (Node's `events.once` rejects on `"error"`), and the process exits.
+- **Local patch**: `backend/patches/wrangler@4.116.0.patch` (applied through `patchedDependencies` in `backend/package.json`) makes "Error inside ProxyWorker" events non-fatal. They log as `Non-fatal error in ProxyController: ...` warnings, the affected request fails, and the server keeps running. It also fixes `castErrorCause` so the cause's message and stack reach the log instead of an empty `[ERROR]`. To reproduce, send POSTs with a partial body and reset the socket mid-request: unpatched wrangler dies on the first one, patched wrangler logs a warning and keeps serving.
+- **Unpin when** #15317 ships a fixed release: restore `"wrangler": "^<ver>"`, re-lock, drop the patch (`backend/patches/` + `patchedDependencies`), and re-enable the Renovate rule. If you bump wrangler while the patch is still needed, regenerate it against the new version (`bun patch wrangler`); a stale version key in `patchedDependencies` fails the install.
+- The wrangler e2e job sets `WRANGLER_LOG=debug` + `WRANGLER_LOG_PATH` and uploads wrangler's diagnostic log as an artifact (`wrangler-diag-log-shard-*`). The real crash cause only appears there, not in the console's empty `[ERROR]`.
+- **Retries (since 2026-09-09)**: `playwright.wrangler.config.ts` retries once in CI like the online/local/docker configs. It used to be `retries: 0` so a backend crash would surface immediately, but with the crash fixed the only thing that caught was one-off frontend flakes (a page that never rendered after `goto`, a UI race) that hit the other jobs at the same rate and pass there on retry. Don't set it back to 0 to find bugs: every e2e job traces the first attempt of each test (`trace: 'retain-on-first-failure'`) and uploads `frontend/test-results/` as `playwright-test-results-*` even when the job is green. Open a flaky test's trace with `npx playwright show-trace <trace.zip>`.
+
 ## Troubleshooting CI failures
 
 - Inspect the failing job logs in GitHub Actions

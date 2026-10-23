@@ -1,5 +1,6 @@
 {
   "updateNow": "Update Now",
+  "skipToContent": "Skip to content",
   "sessionExpiredMessage": "Your session has expired. Please re-authenticate or continue offline.",
   "reAuthenticate": "Re-authenticate",
   "continueOffline": "Continue Offline",

@@ -73,6 +73,7 @@
     "placeholder": "Type here...",
     "words": "words",
     "manageTags": "Manage tags",
+    "manageTagsWithNames": "Manage tags (tagged {{tags}})",
     "openSnapshots": "Open document snapshots",
     "snapshots": "Document snapshots",
     "snapshotsLabel": "Snapshots",

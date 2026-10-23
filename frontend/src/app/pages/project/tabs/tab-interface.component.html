@@ -43,6 +43,9 @@
           <button
             type="button"
             class="close-tab-button"
+            [attr.aria-label]="
+              'project.tabs.closeTabNamed' | transloco: { name: tab.name }
+            "
             (click)="closeTab(i, $event)">
             <mat-icon>close</mat-icon>
           </button>

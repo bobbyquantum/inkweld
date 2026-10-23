@@ -8,6 +8,7 @@ import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { type Editor } from '@bobbyquantum/ngx-editor';
 import { type Element, type Project } from '@inkweld/index';
 import { TranslocoService } from '@jsverse/transloco';
+import { type ResolvedTag } from '@models/tag.model';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { SettingsService } from '@services/core/settings.service';
 import { CommentService } from '@services/project/comment.service';
@@ -15,6 +16,7 @@ import { ConversationService } from '@services/project/conversation.service';
 import { DocumentService } from '@services/project/document.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { ZenModeService } from '@services/project/zen-mode.service';
+import { TagService } from '@services/tag/tag.service';
 import { EditorState } from 'prosemirror-state';
 import {
   type EditorView,
@@ -106,6 +108,36 @@ describe('DocumentElementEditorComponent', () => {
 
   it('should create', () => {
     expect(component).toBeTruthy();
+  });
+
+  describe('status bar tag button', () => {
+    function tagButton(): HTMLButtonElement {
+      return fixture.nativeElement.querySelector(
+        '[data-testid="status-bar-tags-button"]'
+      );
+    }
+
+    it('is named "Manage tags" when the document has no tags', () => {
+      fixture.detectChanges();
+
+      expect(tagButton().getAttribute('aria-label')).toBe('Manage tags');
+    });
+
+    it('lists the assigned tags in its name', () => {
+      vi.spyOn(
+        TestBed.inject(TagService),
+        'getResolvedTagsForElement'
+      ).mockReturnValue([
+        { assignment: { id: 'a1' }, definition: { name: 'Draft' } },
+        { assignment: { id: 'a2' }, definition: { name: 'Villain' } },
+      ] as ResolvedTag[]);
+      component.documentId = 'testuser:test-project:doc-1';
+      fixture.detectChanges();
+
+      expect(tagButton().getAttribute('aria-label')).toBe(
+        'Manage tags (tagged Draft, Villain)'
+      );
+    });
   });
 
   describe('initialization', () => {

@@ -1,5 +1,11 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { computed, inject, Injectable, signal } from '@angular/core';
+import {
+  computed,
+  DestroyRef,
+  inject,
+  Injectable,
+  signal,
+} from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { Router } from '@angular/router';
 import {
@@ -21,6 +27,10 @@ import { AuthTokenService } from '../auth/auth-token.service';
 import { LoggerService } from '../core/logger.service';
 import { StorageContextService } from '../core/storage-context.service';
 import { StorageService } from '../local/storage.service';
+import {
+  type ReconnectAttemptResult,
+  ReconnectScheduler,
+} from '../sync/reconnect-scheduler';
 
 export class UserServiceError extends Error {
   constructor(
@@ -62,6 +72,17 @@ export class UserService {
   private readonly logger = inject(LoggerService);
   private readonly authTokenService = inject(AuthTokenService);
   private readonly storageContext = inject(StorageContextService);
+
+  /**
+   * Re-checks the session once the server is reachable again, after a start
+   * that had to fall back to the cached user (opened offline). Without it a
+   * revoked or expired session would go unnoticed until the next reload.
+   */
+  private sessionRecheck: ReconnectScheduler | null = null;
+
+  constructor() {
+    inject(DestroyRef).onDestroy(() => this.stopSessionRecheck());
+  }
 
   private get userCacheConfig() {
     return {
@@ -211,10 +232,48 @@ export class UserService {
           'UserService',
           'Using cached user due to network error'
         );
+        this.startSessionRecheck();
       } else if (!canRecover) {
         if (await this.recoverFromRejectedSession(refreshErr)) return;
         throw refreshErr;
       }
+    }
+  }
+
+  private startSessionRecheck(): void {
+    if (this.sessionRecheck?.isActive) return;
+    this.sessionRecheck = new ReconnectScheduler({
+      attempt: () => this.recheckSession(),
+      log: message => this.logger.info('UserService', `${message} (session)`),
+    });
+    this.sessionRecheck.start();
+  }
+
+  private stopSessionRecheck(): void {
+    this.sessionRecheck?.stop();
+    this.sessionRecheck = null;
+  }
+
+  /** One attempt of {@link sessionRecheck}: fetch `/users/me` once. */
+  private async recheckSession(): Promise<ReconnectAttemptResult> {
+    if (!this.isAuthenticated() || !this.authTokenService.getToken()) {
+      return 'stop';
+    }
+    try {
+      const user = await firstValueFrom(this.userAPI.getCurrentUser());
+      await this.processUserResult(user);
+      return 'connected';
+    } catch (error) {
+      const userError = this.formatError(error);
+      if (
+        userError.code === 'NETWORK_ERROR' ||
+        userError.code === 'SERVER_ERROR'
+      ) {
+        return 'retry';
+      }
+      this.error.set(userError);
+      await this.recoverFromRejectedSession(userError);
+      return 'stop';
     }
   }
 
@@ -426,6 +485,7 @@ export class UserService {
   }
 
   async clearCurrentUser(): Promise<void> {
+    this.stopSessionRecheck();
     // Clear JWT token using AuthTokenService (handles prefixed key)
     this.authTokenService.clearToken();
 

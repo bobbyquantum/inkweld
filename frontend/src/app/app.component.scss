@@ -1,3 +1,24 @@
+// Hidden until it receives keyboard focus, then shown over the page.
+.skip-link {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: 10000;
+  padding: 8px 16px;
+  border-radius: 4px;
+  background: var(--mat-sys-inverse-surface);
+  color: var(--mat-sys-inverse-on-surface);
+  font: var(--mat-sys-label-large);
+  text-decoration: none;
+  transform: translateY(calc(-100% - 16px));
+
+  &:focus {
+    transform: none;
+    outline: 2px solid var(--mat-sys-primary);
+    outline-offset: 2px;
+  }
+}
+
 .auth-error-bar,
 .version-warning-bar {
   display: flex;

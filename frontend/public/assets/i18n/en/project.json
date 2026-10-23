@@ -47,6 +47,7 @@
     "unpin": "Unpin",
     "pin": "Pin",
     "close": "Close",
+    "closeTabNamed": "Close {{name}}",
     "closeToRight": "Close to the Right",
     "closeOthers": "Close Others",
     "closeAll": "Close All",

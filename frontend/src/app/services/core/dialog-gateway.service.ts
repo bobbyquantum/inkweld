@@ -1,7 +1,12 @@
+import { hasModifierKey } from '@angular/cdk/keycodes';
 import { inject, Injectable } from '@angular/core';
-import { MatDialog } from '@angular/material/dialog';
+import {
+  _closeDialogVia,
+  MatDialog,
+  type MatDialogRef,
+} from '@angular/material/dialog';
 import { ElementType, type Project } from '@inkweld/index';
-import { firstValueFrom } from 'rxjs';
+import { filter, firstValueFrom } from 'rxjs';
 
 import type {
   AddRelationshipDialogData,
@@ -86,15 +91,33 @@ export class DialogGatewayService {
   private readonly dialog = inject(MatDialog);
   private readonly activationService = inject(ProjectActivationService);
 
+  /**
+   * `disableClose` keeps a stray backdrop click from throwing away what the
+   * user was doing, but it also swallows Escape. Let Escape cancel the dialog
+   * (it closes with no result, like the Cancel button); MatDialog then returns
+   * focus to the element that opened it, styled as keyboard focus.
+   */
+  private closeOnEscape<T, R>(
+    dialogRef: MatDialogRef<T, R>
+  ): MatDialogRef<T, R> {
+    dialogRef
+      .keydownEvents()
+      .pipe(filter(event => event.key === 'Escape' && !hasModifierKey(event)))
+      .subscribe(event => {
+        event.preventDefault();
+        _closeDialogVia(dialogRef, 'keyboard');
+      });
+    return dialogRef;
+  }
+
   async openConfirmationDialog(data: ConfirmationDialogData): Promise<boolean> {
     const { ConfirmationDialogComponent } =
       await import('../../dialogs/confirmation-dialog/confirmation-dialog.component');
-    const dialogRef = this.dialog.open<unknown, unknown, boolean>(
-      ConfirmationDialogComponent,
-      {
+    const dialogRef = this.closeOnEscape(
+      this.dialog.open<unknown, unknown, boolean>(ConfirmationDialogComponent, {
         data,
         disableClose: true,
-      }
+      })
     );
     return (await firstValueFrom(dialogRef.afterClosed())) ?? false;
   }
@@ -108,16 +131,17 @@ export class DialogGatewayService {
   ): Promise<MoveElementDialogResult | undefined> {
     const { MoveElementDialogComponent } =
       await import('../../dialogs/move-element-dialog/move-element-dialog.component');
-    const dialogRef = this.dialog.open<
-      unknown,
-      MoveElementDialogData,
-      MoveElementDialogResult
-    >(MoveElementDialogComponent, {
-      data,
-      disableClose: true,
-      width: '460px',
-      maxWidth: '95vw',
-    });
+    const dialogRef = this.closeOnEscape(
+      this.dialog.open<unknown, MoveElementDialogData, MoveElementDialogResult>(
+        MoveElementDialogComponent,
+        {
+          data,
+          disableClose: true,
+          width: '460px',
+          maxWidth: '95vw',
+        }
+      )
+    );
     return firstValueFrom(dialogRef.afterClosed());
   }
 
@@ -141,16 +165,17 @@ export class DialogGatewayService {
   async openNewElementDialog(): Promise<NewElementDialogResult | null> {
     const { NewElementDialogComponent } =
       await import('../../dialogs/new-element-dialog/new-element-dialog.component');
-    const dialogRef = this.dialog.open<
-      unknown,
-      unknown,
-      NewElementDialogResult | null
-    >(NewElementDialogComponent, {
-      disableClose: true,
-      width: '800px',
-      maxWidth: '90vw',
-      maxHeight: '90vh',
-    });
+    const dialogRef = this.closeOnEscape(
+      this.dialog.open<unknown, unknown, NewElementDialogResult | null>(
+        NewElementDialogComponent,
+        {
+          disableClose: true,
+          width: '800px',
+          maxWidth: '90vw',
+          maxHeight: '90vh',
+        }
+      )
+    );
     return (await firstValueFrom(dialogRef.afterClosed())) ?? null;
   }
 
@@ -163,31 +188,37 @@ export class DialogGatewayService {
   ): Promise<CanvasSetupDialogResult | undefined> {
     const { CanvasSetupDialogComponent } =
       await import('../../dialogs/canvas-setup-dialog/canvas-setup-dialog.component');
-    const dialogRef = this.dialog.open<
-      InstanceType<typeof CanvasSetupDialogComponent>,
-      CanvasSetupDialogData,
-      CanvasSetupDialogResult
-    >(CanvasSetupDialogComponent, {
-      data,
-      disableClose: true,
-      width: '480px',
-      maxWidth: '95vw',
-    });
+    const dialogRef = this.closeOnEscape(
+      this.dialog.open<
+        InstanceType<typeof CanvasSetupDialogComponent>,
+        CanvasSetupDialogData,
+        CanvasSetupDialogResult
+      >(CanvasSetupDialogComponent, {
+        data,
+        disableClose: true,
+        width: '480px',
+        maxWidth: '95vw',
+      })
+    );
     return firstValueFrom(dialogRef.afterClosed());
   }
 
   async openNewFolderDialog(): Promise<{ name: string } | null> {
     const { NewElementDialogComponent } =
       await import('../../dialogs/new-element-dialog/new-element-dialog.component');
-    const dialogRef = this.dialog.open<
-      unknown,
-      unknown,
-      { name: string } | null
-    >(NewElementDialogComponent, {
-      disableClose: true,
-      width: '500px',
-      data: { skipTypeSelection: true, preselectedType: ElementType.Folder },
-    });
+    const dialogRef = this.closeOnEscape(
+      this.dialog.open<unknown, unknown, { name: string } | null>(
+        NewElementDialogComponent,
+        {
+          disableClose: true,
+          width: '500px',
+          data: {
+            skipTypeSelection: true,
+            preselectedType: ElementType.Folder,
+          },
+        }
+      )
+    );
     return (await firstValueFrom(dialogRef.afterClosed())) ?? null;
   }
 
@@ -212,13 +243,12 @@ export class DialogGatewayService {
   async openRenameDialog(data: RenameDialogData): Promise<string | null> {
     const { RenameDialogComponent } =
       await import('../../dialogs/rename-dialog/rename-dialog.component');
-    const dialogRef = this.dialog.open<unknown, unknown, string | null>(
-      RenameDialogComponent,
-      {
+    const dialogRef = this.closeOnEscape(
+      this.dialog.open<unknown, unknown, string | null>(RenameDialogComponent, {
         data,
         disableClose: true,
         width: '400px',
-      }
+      })
     );
     return (await firstValueFrom(dialogRef.afterClosed())) ?? null;
   }
@@ -251,14 +281,13 @@ export class DialogGatewayService {
   ): Promise<string | undefined> {
     const { IconPickerDialogComponent } =
       await import('../../dialogs/icon-picker-dialog/icon-picker-dialog.component');
-    const dialogRef = this.dialog.open<unknown, unknown, string>(
-      IconPickerDialogComponent,
-      {
+    const dialogRef = this.closeOnEscape(
+      this.dialog.open<unknown, unknown, string>(IconPickerDialogComponent, {
         data,
         disableClose: true,
         width: '480px',
         maxWidth: '92vw',
-      }
+      })
     );
     return firstValueFrom(dialogRef.afterClosed());
   }
@@ -266,12 +295,11 @@ export class DialogGatewayService {
   async openFileUploadDialog(): Promise<File | null> {
     const { FileUploadComponent } =
       await import('../../dialogs/file-upload/file-upload.component');
-    const dialogRef = this.dialog.open<unknown, unknown, File | null>(
-      FileUploadComponent,
-      {
+    const dialogRef = this.closeOnEscape(
+      this.dialog.open<unknown, unknown, File | null>(FileUploadComponent, {
         width: '500px',
         disableClose: true,
-      }
+      })
     );
     return (await firstValueFrom(dialogRef.afterClosed())) ?? null;
   }

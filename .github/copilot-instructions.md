@@ -1,6 +1,6 @@
 # Copilot Instructions for Inkweld
 
-> **Full docs**: See [AGENTS.md](../AGENTS.md) for comprehensive patterns and context.
+> **Full docs**: See [AGENTS.md](../AGENTS.md) for the repo-wide rules and a map of the `AGENTS.md` files next to the code (`frontend/`, `backend/` and folders below them). Read the ones on the path to the code you change.
 
 ## Architecture Overview
 

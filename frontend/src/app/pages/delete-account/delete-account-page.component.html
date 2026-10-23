@@ -9,7 +9,7 @@
     <h1>{{ 'settings.deleteAccount.page.title' | transloco }}</h1>
   </header>
 
-  <main class="page-content">
+  <main id="main-content" class="page-content">
     @switch (state()) {
       @case ('deleted') {
         <section data-testid="delete-account-done">
