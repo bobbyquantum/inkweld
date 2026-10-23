@@ -6,7 +6,7 @@
   "versioning": "prerelease",
   "prerelease": true,
   "prerelease-type": "beta",
-  "bootstrap-sha": "1b520676614443aee3525f3d6a02d46e0b664ecb",
+  "bootstrap-sha": "db1b1cdc228735babc016d1a22cece984efde8e8",
   "changelog-sections": [
     { "type": "feat", "section": "Features" },
     { "type": "fix", "section": "Bug Fixes" },
