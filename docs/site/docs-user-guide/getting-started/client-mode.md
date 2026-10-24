@@ -144,7 +144,7 @@ A profile can move up when your needs grow. The user menu shows an upgrade butto
 
 From a Browser profile choose **Connect to sync**:
 
-- **Sync to your own cloud storage** (Dropbox, Google Drive or Nextcloud). Inkweld creates the cloud profile, copies every project, setting and cover across under the same username, and starts syncing. Your other devices can then connect to the same account.
+- **Sync to your own cloud storage** (Dropbox, Google Drive or Nextcloud). Inkweld creates the cloud profile, copies every project, setting and cover across under the same username (shown but not editable, so project addresses stay the same), removes the Browser copy, and starts syncing. Your other devices can then connect to the same account.
 - **Move to an Inkweld server.** Log in or register, and your projects are copied to that server profile. This adds live collaboration and sharing.
 
 A Cloud Sync profile can move to a server the same way with **Move to a server**. Nothing is deleted: the old profile stays in the list, with a note of where its projects went and under which username, until you remove it.

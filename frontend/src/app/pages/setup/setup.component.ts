@@ -85,6 +85,9 @@ const PROVIDER_OPTIONS: Record<
 export const NEXTCLOUD_SETUP_GUIDE_PATH =
   '/user-guide/getting-started/nextcloud-sync';
 
+/** Display name a Browser profile gets when the user leaves the field empty */
+const DEFAULT_LOCAL_DISPLAY_NAME = 'Local User';
+
 /**
  * Server URL input default.
  *
@@ -174,6 +177,12 @@ export class SetupComponent implements OnInit {
   protected readonly appPrivacyPolicyUrl = docsUrl(APP_PRIVACY_POLICY_PATH);
   /** Name of the profile being upgraded, when this visit is an upgrade */
   protected readonly upgradeSourceName = signal<string | null>(null);
+  /**
+   * Username the new cloud profile must keep when it is an upgrade. The
+   * copied projects are owned by this username, so a different one would
+   * leave them under another author and keep the Browser profile around.
+   */
+  protected readonly upgradeUsername = signal<string | null>(null);
   protected readonly pendingCloudConnection =
     signal<PendingCloudConnection | null>(null);
   protected readonly isConnectingCloud = signal(false);
@@ -516,7 +525,7 @@ export class SetupComponent implements OnInit {
     }
     // Use defaults if fields are empty
     const username = this.userName.trim() || 'local';
-    const displayName = this.displayName.trim() || 'Local User';
+    const displayName = this.displayName.trim() || DEFAULT_LOCAL_DISPLAY_NAME;
 
     try {
       this.setupService.configureLocalMode({
@@ -555,7 +564,9 @@ export class SetupComponent implements OnInit {
       return;
     }
 
-    const username = this.userName.trim() || pending.suggestedUsername;
+    const username =
+      this.upgradeUsername() ??
+      (this.userName.trim() || pending.suggestedUsername);
     const displayName = this.displayName.trim() || pending.suggestedName;
     const providerName = getCloudProviderDisplayName(pending.provider);
 
@@ -865,17 +876,24 @@ export class SetupComponent implements OnInit {
   }
 
   /**
-   * Fill the profile step. When upgrading, the author keeps their existing
-   * name and username so project addresses stay the same; otherwise use the
-   * provider's suggestions.
+   * Fill the profile step. When upgrading, the author keeps their username
+   * (locked, so project addresses stay the same) and their name, unless it
+   * is the Browser placeholder, which the provider's account name beats.
+   * Otherwise use the provider's suggestions.
    */
   private prefillCloudProfile(pending: PendingCloudConnection): void {
     const source = this.upgradeSourceConfig();
     if (source?.userProfile) {
-      this.displayName = source.userProfile.name;
+      const name = source.userProfile.name.trim();
+      this.displayName =
+        name && name !== DEFAULT_LOCAL_DISPLAY_NAME
+          ? name
+          : pending.suggestedName;
       this.userName = source.userProfile.username;
+      this.upgradeUsername.set(source.userProfile.username);
       return;
     }
+    this.upgradeUsername.set(null);
     this.displayName = pending.suggestedName;
     this.userName = pending.suggestedUsername;
   }
@@ -917,6 +935,7 @@ export class SetupComponent implements OnInit {
       // that never became a profile
       this.cloudSyncConnect.abandonPendingConnection();
       takeProfileUpgradeSource();
+      this.upgradeUsername.set(null);
       this.pendingCloudConnection.set(null);
       // Drop the ?cloud= param so a refresh doesn't reopen this step
       void this.router.navigate([], {
