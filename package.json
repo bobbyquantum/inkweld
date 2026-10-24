@@ -41,9 +41,13 @@
     "lint:fix:frontend": "cd frontend && npm run lint:fix",
     "lint:fix:backend": "cd backend && bun run lint:fix",
     "format": "npm run format:frontend && npm run format:backend && npm run format:docs",
-    "format:frontend": "cd frontend && bun fmt \"src/**/*.{ts,html,scss}\" \".storybook/**/*.ts\"",
+    "format:frontend": "cd frontend && bun fmt \"src/**/*.{ts,html,scss}\" \"e2e/**/*.ts\" \".storybook/**/*.ts\"",
     "format:backend": "cd backend && bun run format",
     "format:docs": "cd docs/site && bun run format",
+    "format:check": "npm run format:check:frontend && npm run format:check:backend && npm run format:check:docs",
+    "format:check:frontend": "cd frontend && bun fmt --check \"src/**/*.{ts,html,scss}\" \"e2e/**/*.ts\" \".storybook/**/*.ts\"",
+    "format:check:backend": "cd backend && bun run format:check",
+    "format:check:docs": "cd docs/site && bun run format:check",
     "typecheck": "npm run typecheck:packages && npm run typecheck:frontend && npm run typecheck:backend",
     "typecheck:packages": "bun check -p packages/inkweld-async && bun check -p packages/inkweld-presence && bun check -p packages/inkweld-prosemirror",
     "typecheck:frontend": "cd frontend && bun check -b",
@@ -51,8 +55,8 @@
     "verify": "node scripts/verify.js",
     "verify:e2e": "VERIFY_MODE=e2e node scripts/verify.js",
     "verify:full": "VERIFY_MODE=full node scripts/verify.js",
-    "verify:frontend": "cd frontend && npm run lint && npm test && npm run e2e:ci",
-    "verify:backend": "cd backend && bun run lint && bun test",
+    "verify:frontend": "npm run format:check:frontend && cd frontend && npm run lint && npm test && npm run e2e:ci",
+    "verify:backend": "npm run format:check:backend && cd backend && bun run lint && bun test",
     "verify:docs": "cd docs/site && bun run build",
     "verify:docs:lite": "cd docs/site && bun run build:no-screenshots",
     "docs": "cd docs/site && bun start",
@@ -89,21 +93,23 @@
     "@commitlint/config-conventional": "^21.0.0",
     "concurrently": "^10.0.0",
     "husky": "^9.1.7",
-    "lint-staged": "^17.0.0",
-    "prettier": "^3.8.1"
+    "lint-staged": "^17.0.0"
   },
   "lint-staged": {
     "frontend/src/!(api-client)/**/*.{ts,html,scss}": [
       "bun fmt"
     ],
+    "frontend/e2e/**/*.ts": [
+      "bun fmt"
+    ],
     "frontend/.storybook/**/*.ts": [
       "bun fmt"
     ],
-    "backend/src/**/*.ts": [
+    "backend/{src,test,scripts}/**/*.ts": [
       "bun fmt",
       "./backend/node_modules/.bin/eslint --fix --no-warn-ignored"
     ],
-    "docs/site/**/*.{ts,md,mdx}": [
+    "docs/site/**/*.{js,jsx,ts,tsx,md,mdx,json,css}": [
       "bun fmt"
     ]
   },

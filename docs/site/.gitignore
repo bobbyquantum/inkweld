@@ -1,5 +1,7 @@
 # Dependencies
 /node_modules
+# Bun installs the docs (bun.lock); npm's lockfile would conflict with it
+package-lock.json
 
 # Production
 /build
