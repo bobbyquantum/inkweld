@@ -5,5 +5,5 @@
     // baseUrl is set by @docusaurus/tsconfig; suppress the TS 6.0 deprecation warning
     "ignoreDeprecations": "6.0"
   },
-  "exclude": [".docusaurus", "build"],
+  "exclude": [".docusaurus", "build"]
 }

@@ -667,15 +667,15 @@ Output: `frontend/src/api-client/`
 
 ### Linting
 
-- **ESLint** with TypeScript support
-- **Prettier** for formatting
+- **ESLint** with TypeScript support (lint rules only; it does not check formatting)
+- **`bun fmt`** for formatting, with the Prettier config in each package. `bun run format` writes, `bun run format:check` (run by verify and CI) only reports
 - **`npm run typecheck`** (`bun check`) type checks every project, including specs and e2e tests
 
 ### Git Hooks
 
 [Husky](https://typicode.github.io/husky/) hooks live in `.husky/` and are installed by `bun install` (the `prepare` script):
 
-- **pre-commit** runs `lint-staged` (Prettier on staged frontend, backend and docs files, plus ESLint `--fix` on backend sources) and blocks an accidental `backend/package-lock.json`
+- **pre-commit** runs `lint-staged` (`bun fmt` on staged frontend, backend and docs files, plus ESLint `--fix` on backend sources) and blocks an accidental `backend/package-lock.json`
 - **pre-push** refuses direct pushes to `main` and checks commit messages with commitlint (conventional commits)
 
 ### CI/CD

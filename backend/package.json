@@ -25,7 +25,8 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "typecheck": "bun check",
-    "format": "bun fmt \"src/**/*.ts\"",
+    "format": "bun fmt \"{src,test,scripts}/**/*.ts\" \"*.ts\"",
+    "format:check": "bun fmt --check \"{src,test,scripts}/**/*.ts\" \"*.ts\"",
     "generate:openapi": "bun run scripts/generate-openapi.ts",
     "generate:angular-client": "bun run scripts/generate-angular-client.ts",
     "init:d1-local": "bun run scripts/init-d1-local.ts",
@@ -67,8 +68,6 @@
     "@types/ws": "^8.18.1",
     "eslint": "^10.0.0",
     "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-prettier": "^5.5.4",
-    "prettier": "^3.7.4",
     "typescript": "^6.0.0",
     "typescript-eslint": "^8.51.0",
     "wrangler": "4.116.0"
