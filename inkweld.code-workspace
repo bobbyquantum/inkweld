@@ -29,14 +29,6 @@
     "coverage-gutters.showRulerCoverage": true,
     "coverage-gutters.showGutterCoverage": true,
     "typescript.tsdk": "🎨 Frontend/frontend/node_modules/typescript/lib",
-    "[typescript]": {
-      "editor.defaultFormatter": "dbaeumer.vscode-eslint",
-      "editor.formatOnSave": false
-    },
-    "[javascript]": {
-      "editor.defaultFormatter": "esbenp.prettier-vscode",
-      "editor.formatOnSave": false
-    },
     "jest.disabledWorkspaceFolders": ["✨ Root", "⚙️ Backend", "🎨 Frontend"],
     "github-actions.workflows.pinned.workflows": [
 

@@ -21,7 +21,7 @@ sidebar_position: 2
  bun install
 ```
 
-This installs all dependencies for the root, Angular frontend, Bun backend, and the shared `packages/*`. Always install from the repo root with `bun install`; never run `npm install` inside `frontend/` or `backend/` (a guard script will refuse). The `npm run ...` scripts used below are fine, they only invoke tools.
+This installs all dependencies for the root, Angular frontend, Bun backend, and the shared `packages/*`. Always install from the repo root with `bun install`; never run `npm install` inside `frontend/`, `backend/` or `docs/site/` (a guard script will refuse). The `npm run ...` scripts used below are fine, they only invoke tools.
 
 ## Configure environment files
 

@@ -21,8 +21,9 @@ tool hasn't loaded them already. Longer design notes are in the developer docs
 ## Rules for every change
 
 1. **Bun installs only.** Run `bun install` from the repo root. Never run
-   `npm install` / `npm ci` inside `frontend/` or `backend/` (a `preinstall`
-   guard errors). `npm test`, `npm run lint`, `npm run e2e` are fine.
+   `npm install` / `npm ci` inside `frontend/`, `backend/` or `docs/site/`
+   (a `preinstall` guard errors). `npm test`, `npm run lint`,
+   `npm run e2e` are fine.
 2. **Tests.** Every change needs test coverage and all tests must pass.
    Frontend: `npm test` (Vitest), **never `bun test`**, never Jasmine.
    Backend: `bun test`.
@@ -54,6 +55,7 @@ bun install              # from the repo root
 npm run dev              # frontend :4200 + backend :8333
 npm test                 # all unit tests
 npm run lint             # npm run lint:fix to auto-fix
+bun run format           # bun fmt; format:check only reports
 npm run typecheck        # every TS project, via `bun check`
 bun run verify           # the pre-completion check
 bun run deploy           # interactive deployment wizard
@@ -71,9 +73,12 @@ it. `frontend/tsconfig.json` only references the real projects
 
 ## Code style
 
-- Prettier and ESLint configs are in each package; run `npm run lint:fix`
-  before committing. TypeScript strict mode; small, focused functions;
-  comment complex logic; follow the surrounding patterns.
+- Prettier and ESLint configs are in each package. `bun fmt` formats (it
+  reads `.prettierrc*`); ESLint does not check formatting, so run
+  `bun run format` and `npm run lint:fix` before committing
+  (`bun run format:check` is what verify and CI run). TypeScript strict
+  mode; small, focused functions; comment complex logic; follow the
+  surrounding patterns.
 - **Awaiting in loops**: SonarCloud flags `await` in a loop (S9382) and
   `async` functions with no `await` (S7503). Don't disable the rules.
   Independent iterations: `await Promise.all(items.map(...))`, or

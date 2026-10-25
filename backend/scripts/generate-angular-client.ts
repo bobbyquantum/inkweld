@@ -4,7 +4,7 @@
  * This script:
  * 1. Reads the openapi.json file
  * 2. Generates TypeScript Angular client code
- * 3. Formats it with the frontend's prettier config
+ * 3. Formats it with `bun fmt`, using the frontend's Prettier config
  * 4. Outputs to frontend/src/api-client directory
  *
  * Prerequisites:
@@ -55,13 +55,13 @@ function generateAngularClient() {
     });
 
     // The generator emits its own formatting (4-space indent, trailing spaces)
-    // while the repository commits prettier-formatted output. Formatting here
+    // while the repository commits `bun fmt`-formatted output. Formatting here
     // keeps every regeneration to just the real API changes — without it the
     // diff is a whole-client reformat (~40k lines), which buries the actual
     // change and makes the CI freshness check fail on an otherwise clean tree.
     console.log('');
-    console.log('🎨 Formatting generated client with prettier...');
-    execSync('npx --no-install prettier --write "src/api-client/**/*.ts"', {
+    console.log('🎨 Formatting generated client with bun fmt...');
+    execSync('bun fmt "src/api-client/**/*.ts"', {
       cwd: frontendDir,
       stdio: 'inherit',
     });
