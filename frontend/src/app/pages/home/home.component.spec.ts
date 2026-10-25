@@ -1828,6 +1828,26 @@ describe('HomeComponent', () => {
         expect(mockSyncQueueService.syncAllProjects).not.toHaveBeenCalled();
       });
 
+      it('ignores a second click while the list is still loading', async () => {
+        let finishReload!: () => void;
+        projectService.reloadProjects = vi.fn(
+          () =>
+            new Promise<void>(resolve => {
+              finishReload = resolve;
+            })
+        );
+
+        const first = component.syncAllProjects();
+        expect(component['syncAllEnabled']()).toBe(false);
+        await component.syncAllProjects();
+        finishReload();
+        await first;
+
+        expect(projectService.reloadProjects).toHaveBeenCalledTimes(1);
+        expect(mockSyncQueueService.syncAllProjects).toHaveBeenCalledTimes(1);
+        expect(component['syncAllEnabled']()).toBe(true);
+      });
+
       it('still syncs when the list refresh fails', async () => {
         projectService.reloadProjects = vi
           .fn()
@@ -1996,6 +2016,12 @@ describe('HomeComponent', () => {
     it('shows while there is nothing to show yet', () => {
       mockLoadingSignal.set(true);
       expect(component['isLoading']()).toBe(true);
+    });
+
+    it('keeps the grid when only shared projects are on screen', () => {
+      component.collaboratedProjects.set(mockCollaboratedProjects);
+      mockLoadingSignal.set(true);
+      expect(component['isLoading']()).toBe(false);
     });
 
     it('keeps the grid during a refresh of a list already on screen', () => {

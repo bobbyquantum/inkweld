@@ -187,8 +187,14 @@ export class HomeComponent implements OnInit, OnDestroy {
    * view, Sync All) keeps the grid rather than flashing a spinner over it.
    */
   protected isLoading = computed(
-    () => this.projectService.isLoading() && !this.projectService.hasProjects()
+    () =>
+      this.projectService.isLoading() &&
+      !this.projectService.hasProjects() &&
+      this.collaboratedProjects().length === 0
   );
+
+  /** Sync All is re-reading the project list before it starts syncing. */
+  private readonly refreshingForSync = signal(false);
 
   /**
    * Cloud Sync is pulling the project list right now. Shown in place of the
@@ -217,7 +223,8 @@ export class HomeComponent implements OnInit, OnDestroy {
     () =>
       this.isServerMode() &&
       this.isAuthenticated() &&
-      !this.syncQueueService.isSyncing()
+      !this.syncQueueService.isSyncing() &&
+      !this.refreshingForSync()
   );
 
   /**
@@ -621,10 +628,18 @@ export class HomeComponent implements OnInit, OnDestroy {
       return;
     }
 
-    await Promise.all([
-      this.reloadProjectListQuietly(),
-      this.loadCollaborationData(),
-    ]);
+    // A second click while the list is still loading would start a second
+    // sync once the first finishes.
+    if (this.refreshingForSync()) return;
+    this.refreshingForSync.set(true);
+    try {
+      await Promise.all([
+        this.reloadProjectListQuietly(),
+        this.loadCollaborationData(),
+      ]);
+    } finally {
+      this.refreshingForSync.set(false);
+    }
 
     const activated = this.getActivatedProjects();
 
