@@ -453,9 +453,11 @@
             </div>
             <p class="field-hint profile-intro">
               @if (upgradeSourceName(); as source) {
-                Your projects from {{ source }} will be copied into
-                {{ pendingProviderName() }} under the profile below, then kept
-                in sync. Keep the username so project addresses stay the same.
+                {{
+                  'app.setup.upgradeIntro'
+                    | transloco
+                      : { source: source, provider: pendingProviderName() }
+                }}
               } @else if (pendingCloudConnection()?.existingProfiles?.length) {
                 This profile will keep its own projects, separate from the other
                 authors in this account.
@@ -496,17 +498,27 @@
                 <input
                   matInput
                   id="setup-cloud-username-input"
-                  [value]="userName"
+                  [value]="upgradeUsername() ?? userName"
+                  [readonly]="upgradeUsername() !== null"
                   (input)="userName = $any($event.target).value"
                   data-testid="cloud-username-input"
                   [attr.aria-label]="
                     'settings.connectionTab.usernameAria' | transloco
                   " />
-                <mat-icon matSuffix>person</mat-icon>
+                <mat-icon matSuffix>{{
+                  upgradeUsername() === null ? 'person' : 'lock'
+                }}</mat-icon>
               </mat-form-field>
-              <p class="field-hint">
-                Used in project addresses, and as your username if you later
-                move to an Inkweld server.
+              <p class="field-hint" data-testid="cloud-username-hint">
+                @if (upgradeUsername() !== null) {
+                  {{
+                    'app.setup.upgradeUsernameHint'
+                      | transloco: { source: upgradeSourceName() }
+                  }}
+                } @else {
+                  Used in project addresses, and as your username if you later
+                  move to an Inkweld server.
+                }
               </p>
             </div>
           </div>

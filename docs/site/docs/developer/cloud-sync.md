@@ -89,8 +89,11 @@ user-menu switcher and the Profile settings tab are thin views over it.
   `StorageContextService.cloneContextData` copies every localStorage key and
   IndexedDB database from the source prefix to the target prefix (a generic
   IndexedDB clone: same version, stores, indexes and keys), the author keeps
-  the same username so project paths match, and the app reloads into the new
-  profile. Activations travel with the data, so the engine's first full pass
+  the same username so project paths match (the welcome screen shows it
+  read-only; the copied projects are owned by it, and a different username
+  would leave them under another author and keep the Browser profile), the
+  Browser profile is removed, and the app reloads into the new profile. A
+  Browser placeholder name (`Local User`) is replaced by the account's name. Activations travel with the data, so the engine's first full pass
   pushes every project to the cloud folder. The pending upgrade is remembered
   in sessionStorage across the OAuth redirect. Upgrading to a server reuses
   the migration flow.
