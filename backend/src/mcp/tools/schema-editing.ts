@@ -125,7 +125,11 @@ export function deriveKey(label: string, taken: ReadonlySet<string>, fallback: s
     .join('');
   if (!base || /^\d/.test(base)) base = `${fallback}${base}`;
   let key = base;
-  for (let n = 2; taken.has(key); n++) key = `${base}${n}`;
+  let suffix = 2;
+  while (taken.has(key)) {
+    key = `${base}${suffix}`;
+    suffix++;
+  }
   return key;
 }
 
@@ -151,59 +155,67 @@ function readFieldProps(
   }
   const props: Record<string, unknown> = {};
   for (const [prop, value] of Object.entries(input)) {
-    if (value === undefined) continue;
-    if (value === null) {
-      if (!isPatch) continue;
-      if (prop === 'key' || prop === 'label' || prop === 'type') {
-        return fail(`field ${prop} cannot be removed`);
-      }
-      props[prop] = null;
-      continue;
-    }
-    const error = checkFieldProp(prop, value);
-    if (error) return fail(error);
-    props[prop] = typeof value === 'string' && prop !== 'defaultValue' ? value.trim() : value;
+    const read = readFieldProp(prop, value, isPatch);
+    if (!read.ok) return read;
+    if (read.value !== SKIP_PROP) props[prop] = read.value;
   }
   return ok(props);
 }
 
+/** Marks an input property that is left out of the result. */
+const SKIP_PROP = Symbol('skip');
+
+/** Properties every field must keep. */
+const REQUIRED_FIELD_PROPS: ReadonlySet<string> = new Set(['key', 'label', 'type']);
+
+/** Validate one field property: its value to store, `null` to remove it, or SKIP_PROP. */
+function readFieldProp(prop: string, value: unknown, isPatch: boolean): EditResult<unknown> {
+  if (value === undefined || (value === null && !isPatch)) return ok(SKIP_PROP);
+  if (value === null) {
+    return REQUIRED_FIELD_PROPS.has(prop) ? fail(`field ${prop} cannot be removed`) : ok(null);
+  }
+  const error = checkFieldProp(prop, value);
+  if (error) return fail(error);
+  return ok(typeof value === 'string' && prop !== 'defaultValue' ? value.trim() : value);
+}
+
+const isNonEmptyString = (value: unknown): boolean =>
+  typeof value === 'string' && value.trim() !== '';
+
+const isOption = (option: unknown): boolean =>
+  typeof option === 'string' ||
+  (isRecord(option) && typeof option.value === 'string' && typeof option.label === 'string');
+
+/** Value checks for field properties; any other allowed property must be a string. */
+const FIELD_PROP_CHECKS: Record<string, { valid: (value: unknown) => boolean; message: string }> = {
+  key: { valid: isNonEmptyString, message: 'field key must be a non-empty string' },
+  label: { valid: isNonEmptyString, message: 'field label must be a non-empty string' },
+  type: {
+    valid: (value) => typeof value === 'string' && FIELD_TYPE_SET.has(value),
+    message: `field type must be one of: ${FIELD_TYPES.join(', ')}`,
+  },
+  options: {
+    valid: (value) => Array.isArray(value) && value.every(isOption),
+    message: 'field options must be an array of strings or { value, label } objects',
+  },
+  validation: { valid: isRecord, message: 'field validation must be an object' },
+  layout: { valid: isRecord, message: 'field layout must be an object' },
+  rows: {
+    valid: (value) => Number.isInteger(value) && (value as number) > 0,
+    message: 'field rows must be a positive integer',
+  },
+  multiple: {
+    valid: (value) => typeof value === 'boolean',
+    message: 'field multiple must be a boolean',
+  },
+  defaultValue: { valid: () => true, message: '' },
+};
+
 /** Type-check one field property. Returns an error message or null. */
 function checkFieldProp(prop: string, value: unknown): string | null {
-  switch (prop) {
-    case 'key':
-    case 'label':
-      return typeof value === 'string' && value.trim()
-        ? null
-        : `field ${prop} must be a non-empty string`;
-    case 'type':
-      return typeof value === 'string' && FIELD_TYPE_SET.has(value)
-        ? null
-        : `field type must be one of: ${FIELD_TYPES.join(', ')}`;
-    case 'options':
-      return Array.isArray(value) &&
-        value.every(
-          (option) =>
-            typeof option === 'string' ||
-            (isRecord(option) &&
-              typeof option.value === 'string' &&
-              typeof option.label === 'string')
-        )
-        ? null
-        : 'field options must be an array of strings or { value, label } objects';
-    case 'validation':
-    case 'layout':
-      return isRecord(value) ? null : `field ${prop} must be an object`;
-    case 'rows':
-      return Number.isInteger(value) && (value as number) > 0
-        ? null
-        : 'field rows must be a positive integer';
-    case 'multiple':
-      return typeof value === 'boolean' ? null : 'field multiple must be a boolean';
-    case 'defaultValue':
-      return null;
-    default:
-      return typeof value === 'string' ? null : `field ${prop} must be a string`;
-  }
+  const check = FIELD_PROP_CHECKS[prop];
+  if (check) return check.valid(value) ? null : check.message;
+  return typeof value === 'string' ? null : `field ${prop} must be a string`;
 }
 
 /** Reject a new or renamed key that would shadow an identity field. */
@@ -332,73 +344,97 @@ function clampIndex(index: unknown, length: number): number {
   return Math.min(index, length);
 }
 
+type OperationOf<K extends SchemaOperation['op']> = Extract<SchemaOperation, { op: K }>;
+
+/** Each operation edits `tabs` in place and returns an error message or null. */
+type OperationHandlers = {
+  [K in SchemaOperation['op']]: (tabs: SchemaTab[], op: OperationOf<K>) => string | null;
+};
+
+const OPERATION_HANDLERS: OperationHandlers = {
+  add_tab: addTab,
+  update_tab: updateTab,
+  remove_tab: removeTab,
+  move_tab: moveTab,
+  add_field: addField,
+  update_field: (tabs, op) => updateField(tabs, op.fieldKey, op.patch),
+  remove_field: removeField,
+  move_field: moveField,
+};
+
 /** Apply one operation to `tabs` in place. Returns an error message or null. */
 function applyOperation(tabs: SchemaTab[], operation: unknown): string | null {
   if (!isRecord(operation) || typeof operation.op !== 'string') {
     return 'each operation must be an object with an "op"';
   }
-  const op = operation as SchemaOperation;
-  switch (op.op) {
-    case 'add_tab': {
-      const tab = createTab(op as unknown as Record<string, unknown>, tabs);
-      if (!tab.ok) return tab.error;
-      tabs.splice(clampIndex(op.index, tabs.length), 0, tab.value);
-      return null;
-    }
-    case 'update_tab': {
-      const tab = tabs.find((t) => t.key === op.tabKey);
-      if (!tab) return `tab "${op.tabKey}" not found`;
-      for (const prop of ['key', 'label', 'icon'] as const) {
-        const value = op[prop];
-        if (value === undefined) continue;
-        if (typeof value !== 'string' || !value.trim())
-          return `tab ${prop} must be a non-empty string`;
-        tab[prop] = value.trim();
-      }
-      return null;
-    }
-    case 'remove_tab': {
-      const index = tabs.findIndex((t) => t.key === op.tabKey);
-      if (index < 0) return `tab "${op.tabKey}" not found`;
-      tabs.splice(index, 1);
-      return null;
-    }
-    case 'move_tab': {
-      const index = tabs.findIndex((t) => t.key === op.tabKey);
-      if (index < 0) return `tab "${op.tabKey}" not found`;
-      const [tab] = tabs.splice(index, 1);
-      tabs.splice(clampIndex(op.index, tabs.length), 0, tab);
-      return null;
-    }
-    case 'add_field': {
-      const tab = tabs.find((t) => t.key === op.tabKey);
-      if (!tab) return `tab "${op.tabKey}" not found`;
-      const field = createField(op.field, allFieldKeys(tabs));
-      if (!field.ok) return field.error;
-      tab.fields.splice(clampIndex(op.index, tab.fields.length), 0, field.value);
-      return null;
-    }
-    case 'update_field':
-      return updateField(tabs, op.fieldKey, op.patch);
-    case 'remove_field': {
-      const located = locateField(tabs, op.fieldKey);
-      if (!located) return `field "${op.fieldKey}" not found`;
-      located.tab.fields.splice(located.index, 1);
-      return null;
-    }
-    case 'move_field': {
-      const located = locateField(tabs, op.fieldKey);
-      if (!located) return `field "${op.fieldKey}" not found`;
-      const target =
-        op.toTabKey === undefined ? located.tab : tabs.find((t) => t.key === op.toTabKey);
-      if (!target) return `tab "${op.toTabKey}" not found`;
-      const [field] = located.tab.fields.splice(located.index, 1);
-      target.fields.splice(clampIndex(op.index, target.fields.length), 0, field);
-      return null;
-    }
-    default:
-      return `unknown operation "${(op as { op: string }).op}"`;
+  if (!Object.hasOwn(OPERATION_HANDLERS, operation.op)) {
+    return `unknown operation "${operation.op}"`;
   }
+  const handler = OPERATION_HANDLERS[operation.op as SchemaOperation['op']] as (
+    tabs: SchemaTab[],
+    op: SchemaOperation
+  ) => string | null;
+  return handler(tabs, operation as SchemaOperation);
+}
+
+function addTab(tabs: SchemaTab[], op: OperationOf<'add_tab'>): string | null {
+  const tab = createTab(op as unknown as Record<string, unknown>, tabs);
+  if (!tab.ok) return tab.error;
+  tabs.splice(clampIndex(op.index, tabs.length), 0, tab.value);
+  return null;
+}
+
+function updateTab(tabs: SchemaTab[], op: OperationOf<'update_tab'>): string | null {
+  const tab = tabs.find((t) => t.key === op.tabKey);
+  if (!tab) return `tab "${op.tabKey}" not found`;
+  for (const prop of ['key', 'label', 'icon'] as const) {
+    const value = op[prop];
+    if (value === undefined) continue;
+    if (!isNonEmptyString(value)) return `tab ${prop} must be a non-empty string`;
+    tab[prop] = (value as string).trim();
+  }
+  return null;
+}
+
+function removeTab(tabs: SchemaTab[], op: OperationOf<'remove_tab'>): string | null {
+  const index = tabs.findIndex((t) => t.key === op.tabKey);
+  if (index < 0) return `tab "${op.tabKey}" not found`;
+  tabs.splice(index, 1);
+  return null;
+}
+
+function moveTab(tabs: SchemaTab[], op: OperationOf<'move_tab'>): string | null {
+  const index = tabs.findIndex((t) => t.key === op.tabKey);
+  if (index < 0) return `tab "${op.tabKey}" not found`;
+  const [tab] = tabs.splice(index, 1);
+  tabs.splice(clampIndex(op.index, tabs.length), 0, tab);
+  return null;
+}
+
+function addField(tabs: SchemaTab[], op: OperationOf<'add_field'>): string | null {
+  const tab = tabs.find((t) => t.key === op.tabKey);
+  if (!tab) return `tab "${op.tabKey}" not found`;
+  const field = createField(op.field, allFieldKeys(tabs));
+  if (!field.ok) return field.error;
+  tab.fields.splice(clampIndex(op.index, tab.fields.length), 0, field.value);
+  return null;
+}
+
+function removeField(tabs: SchemaTab[], op: OperationOf<'remove_field'>): string | null {
+  const located = locateField(tabs, op.fieldKey);
+  if (!located) return `field "${op.fieldKey}" not found`;
+  located.tab.fields.splice(located.index, 1);
+  return null;
+}
+
+function moveField(tabs: SchemaTab[], op: OperationOf<'move_field'>): string | null {
+  const located = locateField(tabs, op.fieldKey);
+  if (!located) return `field "${op.fieldKey}" not found`;
+  const target = op.toTabKey === undefined ? located.tab : tabs.find((t) => t.key === op.toTabKey);
+  if (!target) return `tab "${op.toTabKey}" not found`;
+  const [field] = located.tab.fields.splice(located.index, 1);
+  target.fields.splice(clampIndex(op.index, target.fields.length), 0, field);
+  return null;
 }
 
 function updateField(tabs: SchemaTab[], fieldKey: string, patch: unknown): string | null {
@@ -442,30 +478,53 @@ export function applySchemaOperations(
  * field sharing a name with a nested field group. Returns an error or null.
  */
 export function validateTabs(tabs: readonly SchemaTab[]): string | null {
-  const tabKeys = new Set<string>();
-  const fieldKeys = new Set<string>();
-  const flatKeys = new Set<string>();
-  const groupKeys = new Set<string>();
+  const seen: SeenKeys = {
+    tabKeys: new Set(),
+    fieldKeys: new Set(),
+    flatKeys: new Set(),
+    groupKeys: new Set(),
+  };
   for (const tab of tabs) {
-    if (!tab.label?.trim()) return 'each tab needs a label';
-    if (!tab.key?.trim()) return 'each tab needs a key';
-    if (tabKeys.has(tab.key)) return `tab key "${tab.key}" is used twice`;
-    tabKeys.add(tab.key);
-    for (const field of tab.fields) {
-      const key = field.key?.trim();
-      if (!key) return 'each field needs a key';
-      if (!field.label?.trim()) return `field "${key}" needs a label`;
-      if (fieldKeys.has(key))
-        return `field key "${key}" is used twice (keys must be unique across the template)`;
-      fieldKeys.add(key);
-      if (key.includes('.')) groupKeys.add(key.split('.')[0]);
-      else flatKeys.add(key);
-    }
+    const error = validateTab(tab, seen) ?? firstError(tab.fields, (f) => validateField(f, seen));
+    if (error) return error;
   }
-  for (const key of flatKeys) {
-    if (groupKeys.has(key))
-      return `field key "${key}" conflicts with a nested field group of the same name`;
+  const clash = [...seen.flatKeys].find((key) => seen.groupKeys.has(key));
+  return clash ? `field key "${clash}" conflicts with a nested field group of the same name` : null;
+}
+
+interface SeenKeys {
+  tabKeys: Set<string>;
+  fieldKeys: Set<string>;
+  flatKeys: Set<string>;
+  groupKeys: Set<string>;
+}
+
+function firstError<T>(items: readonly T[], check: (item: T) => string | null): string | null {
+  for (const item of items) {
+    const error = check(item);
+    if (error) return error;
   }
+  return null;
+}
+
+function validateTab(tab: SchemaTab, seen: SeenKeys): string | null {
+  if (!tab.label?.trim()) return 'each tab needs a label';
+  if (!tab.key?.trim()) return 'each tab needs a key';
+  if (seen.tabKeys.has(tab.key)) return `tab key "${tab.key}" is used twice`;
+  seen.tabKeys.add(tab.key);
+  return null;
+}
+
+function validateField(field: SchemaField, seen: SeenKeys): string | null {
+  const key = field.key?.trim();
+  if (!key) return 'each field needs a key';
+  if (!field.label?.trim()) return `field "${key}" needs a label`;
+  if (seen.fieldKeys.has(key)) {
+    return `field key "${key}" is used twice (keys must be unique across the template)`;
+  }
+  seen.fieldKeys.add(key);
+  if (key.includes('.')) seen.groupKeys.add(key.split('.')[0]);
+  else seen.flatKeys.add(key);
   return null;
 }
 
