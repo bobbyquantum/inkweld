@@ -143,6 +143,8 @@ Call `get_project_schemas` before `create_element` or `update_worldbuilding` to 
 
 Every worldbuilding element also has two **identity fields** outside its schema, `description` and `image` (listed as `identityFields` in the result). `update_worldbuilding` resolves a bare key against the element's schema first: if the schema defines a `description` field, `"description"` writes that field. Use `"identity.description"` / `"identity.image"` to write the identity field, and `"worldbuilding.<key>"` to force a schema field.
 
+Schema fields with a dotted key (`description.terrain`) are nested: `"description.terrain": "…"` writes that one field, and an object value (`"worldbuilding.description": { "terrain": "…" }`) merges into the nested fields instead of replacing them. `create_element` gives a new worldbuilding element the schema's empty field skeleton, as the app does, and a write creates any missing parent, so elements created before that still accept nested writes. A write is refused if a parent key holds plain text (an older template's `description` field). Every write updates the element's `lastModified`.
+
 ### Available Resources
 
 Resources list the projects the user has authorized access to:

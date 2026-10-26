@@ -104,7 +104,11 @@ function seedDocs(options: { copy?: unknown; schemaId?: string; shared?: unknown
   );
   return {
     identity: () => elementDoc.getMap('identity').toJSON(),
-    worldbuilding: () => elementDoc.getMap('worldbuilding').toJSON(),
+    // lastModified is stamped on every write; covered in mcp-worldbuilding-nested.test.ts
+    worldbuilding: () => {
+      const { lastModified: _lastModified, ...data } = elementDoc.getMap('worldbuilding').toJSON();
+      return data;
+    },
   };
 }
 
