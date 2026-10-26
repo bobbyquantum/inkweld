@@ -16,6 +16,7 @@ import { CloudSyncEngineService } from '@services/cloud-sync/cloud-sync-engine.s
 import { BackgroundService } from '@services/core/background.service';
 import { SetupService } from '@services/core/setup.service';
 import { UpdateService } from '@services/core/update.service';
+import { WhatsNewService } from '@services/core/whats-new.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
 import { WebMcpService } from '@services/webmcp/webmcp.service';
 import { Subject } from 'rxjs';
@@ -112,6 +113,10 @@ describe('AppComponent', () => {
           useValue: { initialize: vi.fn() },
         },
         {
+          provide: WhatsNewService,
+          useValue: { initialize: vi.fn() },
+        },
+        {
           provide: SwUpdate,
           useValue: {
             isEnabled: false,
@@ -160,6 +165,10 @@ describe('AppComponent', () => {
     const themeService = TestBed.inject(ThemeService);
     component.ngOnInit();
     expect(themeService.initTheme).toHaveBeenCalled();
+  });
+
+  it("should announce what's new on init", () => {
+    expect(TestBed.inject(WhatsNewService).initialize).toHaveBeenCalled();
   });
 
   it('should have a router outlet', () => {

@@ -167,7 +167,7 @@ jobs:
         working-directory: frontend
         env:
           ANGULAR_CONFIGURATION: ${{ inputs.angular-configuration }}
-        run: bun run clean && bun run ng build --configuration="${ANGULAR_CONFIGURATION}" && node scripts/copy-licenses.mjs && node scripts/absolutize-index-preloads.mjs && git rev-parse --short HEAD > dist/browser/assets/version.txt && bun run compress-wasm
+        run: bun run clean && bun run ng build --configuration="${ANGULAR_CONFIGURATION}" && node scripts/copy-licenses.mjs && bun scripts/write-sw-app-data.ts && node scripts/absolutize-index-preloads.mjs && git rev-parse --short HEAD > dist/browser/assets/version.txt && bun run compress-wasm
 
       - name: Generate frontend imports & build backend
         working-directory: backend

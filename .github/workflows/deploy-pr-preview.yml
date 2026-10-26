@@ -60,7 +60,7 @@ jobs:
 
       - name: Build frontend
         working-directory: frontend
-        run: bun run clean && bun run ng build --configuration=preview && node scripts/copy-licenses.mjs && node scripts/absolutize-index-preloads.mjs && git rev-parse --short HEAD > dist/browser/assets/version.txt && bun run compress-wasm
+        run: bun run clean && bun run ng build --configuration=preview && node scripts/copy-licenses.mjs && bun scripts/write-sw-app-data.ts && node scripts/absolutize-index-preloads.mjs && git rev-parse --short HEAD > dist/browser/assets/version.txt && bun run compress-wasm
 
       - name: Deploy frontend to Cloudflare Pages
         uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4

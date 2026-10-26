@@ -174,6 +174,15 @@ describe('spa-utils', () => {
       expect(headers.get('Cache-Control')).toBe('no-cache');
     });
 
+    it('should set no-cache for the changelog and version files', () => {
+      expect(buildAssetHeaders('text/markdown', 'assets/CHANGELOG.md').get('Cache-Control')).toBe(
+        'no-cache'
+      );
+      expect(buildAssetHeaders('text/plain', 'assets/version.txt').get('Cache-Control')).toBe(
+        'no-cache'
+      );
+    });
+
     it('should set Content-Encoding when encoding is provided', () => {
       const headers = buildAssetHeaders('application/wasm', 'file.wasm', 'br');
       expect(headers.get('Content-Encoding')).toBe('br');
