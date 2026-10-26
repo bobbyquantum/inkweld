@@ -1,5 +1,6 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { IDBFactory } from 'fake-indexeddb';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { environment } from '../../../environments/environment';
@@ -906,6 +907,13 @@ describe('StorageContextService', () => {
   });
 
   describe('renameProjectInContext', () => {
+    // A fresh factory per test: specs share fake-indexeddb (isolate: false),
+    // and a connection another spec file left open would block the drops
+    // below, stalling every later open of that database.
+    beforeEach(() => {
+      vi.stubGlobal('indexedDB', new IDBFactory());
+    });
+
     function open(
       name: string,
       setup: (db: IDBDatabase) => void

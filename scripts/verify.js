@@ -109,6 +109,7 @@ const fastParallelSteps = [
 // Frontend, backend, and shared package tests can run in parallel.
 const unitTestSteps = [
   { name: "test:packages", command: "npm", args: ["run", "test:packages"] },
+  { name: "test:scripts", command: "npm", args: ["run", "test:scripts"] },
   { name: "test:frontend", command: "npm", args: ["run", "test:frontend"] },
   { name: "test:backend", command: "npm", args: ["run", "test:backend"] },
 ];

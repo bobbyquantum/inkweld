@@ -3,6 +3,8 @@ import { inject, Injectable } from '@angular/core';
 import { marked } from 'marked';
 import { map, type Observable } from 'rxjs';
 
+import { commitScopeIcon } from './commit-scopes';
+
 export interface ChangelogVersion {
   version: string;
   date: string;
@@ -21,6 +23,24 @@ const VERSION_HEADER_PATTERNS = [
   /^\[([^\]]+)\]\([^)\s]*\)(?: \(([^)]+)\))?$/,
   /^(\d+\.\d+\.\d+(?:-[\dA-Za-z.-]+)?)(?: \(([^)]+)\))?$/,
 ];
+
+/**
+ * A release-please entry with a scope, `* **editor:** …`, as marked renders
+ * it (a loose list wraps the item in `<p>`).
+ */
+const SCOPED_ITEM = /(<li>(?:<p>)?)<strong>([\da-z-]+):<\/strong>/g;
+
+/** Put each approved scope's icon in front of its changelog entries. */
+function addScopeIcons(html: string): string {
+  return html.replaceAll(
+    SCOPED_ITEM,
+    (item: string, start: string, scope: string) => {
+      const icon = commitScopeIcon(scope);
+      if (!icon) return item;
+      return `${start}<span class="material-symbols-outlined changelog-scope-icon" aria-hidden="true">${icon}</span><strong>${scope}:</strong>`;
+    }
+  );
+}
 
 function parseVersionHeader(
   header: string
@@ -72,7 +92,7 @@ export class ChangelogService {
         versions.push({
           version,
           date,
-          content: marked.parse(content) as string,
+          content: addScopeIcons(marked.parse(content) as string),
           isUnreleased,
         });
       }

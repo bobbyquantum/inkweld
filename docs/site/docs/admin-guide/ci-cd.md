@@ -157,13 +157,13 @@ with the newer schema.
 
 ### Other workflows
 
-| Workflow                                                                                      | Trigger                                                            | Purpose                                                                                                           |
-| --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------- |
-| `deploy-pr-preview.yml`                                                                       | PR labelled `deploy:preview:frontend`, and new pushes to such a PR | Deploys the PR's frontend to a Cloudflare Pages branch preview (`https://pr-<number>.<pages project>.pages.dev`). |
-| `cleanup-pr-preview.yml`                                                                      | PR closed, or the `deploy:preview:frontend` label removed          | Deletes that PR's Pages deployments.                                                                              |
-| `docs.yml`                                                                                    | Push to `main` touching `docs/**`, `backend/openapi.json`; manual  | Builds this documentation site and publishes it to GitHub Pages.                                                  |
-| `validate-pr-title.yml`                                                                       | PR opened, edited, synchronized or reopened                        | Requires a Conventional Commit title (`feat`, `fix`, `docs`, `ci`, ...) with a lowercase subject.                 |
-| `deploy-cloudflare.yml`, `deploy-cloudflare-production.yml`, `deploy-cloudflare-reusable.yml` | Push to `main` / push to `production`                              | Hosted deploys, described in the section above.                                                                   |
+| Workflow                                                                                      | Trigger                                                            | Purpose                                                                                                                                                   |
+| --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `deploy-pr-preview.yml`                                                                       | PR labelled `deploy:preview:frontend`, and new pushes to such a PR | Deploys the PR's frontend to a Cloudflare Pages branch preview (`https://pr-<number>.<pages project>.pages.dev`).                                         |
+| `cleanup-pr-preview.yml`                                                                      | PR closed, or the `deploy:preview:frontend` label removed          | Deletes that PR's Pages deployments.                                                                                                                      |
+| `docs.yml`                                                                                    | Push to `main` touching `docs/**`, `backend/openapi.json`; manual  | Builds this documentation site and publishes it to GitHub Pages.                                                                                          |
+| `validate-pr-title.yml`                                                                       | PR opened, edited, synchronized or reopened                        | Requires a Conventional Commit title (`feat`, `fix`, `docs`, `ci`, ...) with a lowercase subject, and a scope (if any) from `.github/commit-scopes.json`. |
+| `deploy-cloudflare.yml`, `deploy-cloudflare-production.yml`, `deploy-cloudflare-reusable.yml` | Push to `main` / push to `production`                              | Hosted deploys, described in the section above.                                                                                                           |
 
 ## Image contents
 
@@ -232,6 +232,21 @@ Renovate titles every dependency update `chore(deps): …`, so dependency bumps
 stay out of the changelog and never cut a release on their own. Retitle a
 Renovate PR `fix(deps): …` before merging when the update fixes something
 users would notice.
+
+### Commit scopes
+
+A scope is optional, but when a title has one it must be in
+`.github/commit-scopes.json`, the approved list (`fix(editor): …`,
+`feat(publish): …`). The **Approved Commit Scope** job in
+`validate-pr-title.yml` runs `scripts/check-pr-title.mjs` against it, and
+suggests the approved scope when a title uses a known alias (`tree` →
+`project-tree`). Each scope also has a Material Symbols icon, which the in-app
+changelog (About → Changelog) shows in front of that scope's entries.
+
+To add a scope, add it to `.github/commit-scopes.json` in the PR that needs it:
+the check reads the list from the PR, while the script itself always comes from
+the base branch. `bun run test:scripts` checks the list, including that every
+icon exists in `@material-symbols/svg-400`.
 
 ### 1.0 beta
 
