@@ -19,6 +19,13 @@ is back. `createAuthenticatedWebsocketProvider` destroys its provider on any
 failure before auth (including a socket that closes without opening), so a
 failed attempt never leaves an unauthenticated loop behind.
 
+**Every provider from `createAuthenticatedWebsocketProvider` also needs
+`setupReauthentication`.** y-websocket reconnects on its own after any drop
+but never resends the token; the server closes that socket as `auth-timeout`
+(a transient 45xx close), y-websocket reconnects again, and the loop costs a
+Worker request, a Durable Object request and an alarm every ~10 s per open
+document until the tab is closed.
+
 ## Bulk sync fast path (document revision manifest)
 
 Design: `docs/site/docs/developer/architecture.md` → "Bulk Sync Fast Path".

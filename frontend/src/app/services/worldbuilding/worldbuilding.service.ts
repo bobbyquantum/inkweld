@@ -21,7 +21,10 @@ import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
 import { StorageContextService } from '../core/storage-context.service';
 import { VersionCompatibilityService } from '../core/version-compatibility.service';
-import { createAuthenticatedWebsocketProvider } from '../sync/authenticated-websocket-provider';
+import {
+  createAuthenticatedWebsocketProvider,
+  setupReauthentication,
+} from '../sync/authenticated-websocket-provider';
 import { ElementSyncProviderFactory } from '../sync/element-sync-provider.factory';
 import { type IElementSyncProvider } from '../sync/element-sync-provider.interface';
 import { mergeElementSchema } from './schema-merge';
@@ -84,6 +87,11 @@ export class WorldbuildingService {
   private readonly versionCompatibility = inject(VersionCompatibilityService);
   private readonly logger = inject(LoggerService);
   private readonly storageContext = inject(StorageContextService);
+
+  /** @internal Wrapped for testability — esbuild inlines local modules, so vi.mock can't intercept them */
+  private createAuthWsProvider = createAuthenticatedWebsocketProvider; // NOSONAR - writable for test overrides
+  /** @internal */
+  private setupWsReauth = setupReauthentication; // NOSONAR - writable for test overrides
 
   // Per-element worldbuilding data connections (each element has its own Yjs doc)
   private readonly connections = new Map<string, WorldbuildingConnection>();
@@ -352,12 +360,28 @@ export class WorldbuildingService {
     const fullWsUrl = `${wsUrl}/api/v1/ws/yjs?documentId=${formattedId}`;
 
     try {
-      const provider = await createAuthenticatedWebsocketProvider(
+      const provider = await this.createAuthWsProvider(
         fullWsUrl,
         '', // Empty room name - documentId is already in URL
         ydoc,
         authToken,
         {}
+      );
+
+      // y-websocket reconnects on its own after any drop, but only sends
+      // binary frames. Without this the reconnected socket never sends the
+      // token, the server closes it as an auth timeout (a transient close, so
+      // y-websocket reconnects again) and the loop runs for as long as the
+      // element stays open.
+      this.setupWsReauth(
+        provider,
+        () => this.authTokenService.getToken(),
+        error => {
+          this.logger.warn(
+            'WorldbuildingService',
+            `WebSocket re-authentication failed for ${elementId}: ${error}`
+          );
+        }
       );
 
       return provider;

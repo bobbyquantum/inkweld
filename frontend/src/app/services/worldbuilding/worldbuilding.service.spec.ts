@@ -1579,6 +1579,44 @@ describe('WorldbuildingService', () => {
       vi.useRealTimers();
     });
 
+    it('should re-authenticate the socket on every reconnect', async () => {
+      const mockWsProvider = {
+        synced: true,
+        on: vi.fn(),
+        off: vi.fn(),
+        destroy: vi.fn(),
+      };
+      const createAuthWsProvider = vi.fn().mockResolvedValue(mockWsProvider);
+      const setupWsReauth = vi.fn();
+      Object.assign(onlineService as any, {
+        createAuthWsProvider,
+        setupWsReauth,
+      });
+
+      await onlineService.getWorldbuildingData('reauth-elem', username, slug);
+
+      expect(createAuthWsProvider).toHaveBeenCalledWith(
+        `ws://localhost:8333/api/v1/ws/yjs?documentId=${username}:${slug}:reauth-elem/`,
+        '',
+        expect.any(Y.Doc),
+        'test-token',
+        {}
+      );
+      expect(setupWsReauth).toHaveBeenCalledTimes(1);
+      const [provider, getToken, onAuthError] = setupWsReauth.mock.calls[0] as [
+        unknown,
+        () => string | null,
+        (error: string) => void,
+      ];
+      expect(provider).toBe(mockWsProvider);
+      // The token is read fresh on each reconnect, not captured once.
+      (
+        mockAuthTokenService.getToken as ReturnType<typeof vi.fn>
+      ).mockReturnValue('rotated-token');
+      expect(getToken()).toBe('rotated-token');
+      expect(() => onAuthError('Access denied: forbidden')).not.toThrow();
+    });
+
     it('should skip sync-wait when provider is already synced', async () => {
       const mockWsProvider = {
         synced: true,
