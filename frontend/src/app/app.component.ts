@@ -25,6 +25,7 @@ import { SetupService } from './services/core/setup.service';
 import { UpdateService } from './services/core/update.service';
 import { VersionCompatibilityService } from './services/core/version-compatibility.service';
 import { ViewportService } from './services/core/viewport.service';
+import { WhatsNewService } from './services/core/whats-new.service';
 import { BackgroundSyncService } from './services/local/background-sync.service';
 import { UnifiedUserService } from './services/user/unified-user.service';
 import { WebMcpService } from './services/webmcp/webmcp.service';
@@ -50,6 +51,7 @@ export class AppComponent implements OnInit {
   protected readonly setupService = inject(SetupService);
   private readonly localeService = inject(LocaleService);
   protected readonly updateService = inject(UpdateService);
+  private readonly whatsNew = inject(WhatsNewService);
   private readonly pwaInstall = inject(PwaInstallService);
   protected readonly versionCompatibility = inject(VersionCompatibilityService);
   protected readonly viewportService = inject(ViewportService);
@@ -92,6 +94,8 @@ export class AppComponent implements OnInit {
     this.backgroundService.initialize();
     this.localeService.init();
     this.updateService.initialize();
+    // Once per version: "Updated to Inkweld X · What's new".
+    this.whatsNew.initialize();
     this.pwaInstall.initialize();
     // Registers WebMCP tools for browser AI agents once the user opts in.
     this.webMcp.start();

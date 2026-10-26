@@ -248,6 +248,29 @@ the check reads the list from the PR, while the script itself always comes from
 the base branch. `bun run test:scripts` checks the list, including that every
 icon exists in `@material-symbols/svg-400`.
 
+### What users see when a release lands
+
+PR titles also reach users inside the app. After `ng build`,
+`frontend/scripts/write-sw-app-data.ts` writes the version (from the root
+`package.json`) and up to five highlights for each of the last ten
+`CHANGELOG.md` releases (Features first, release-please's scope and links
+removed) into the `appData` of `ngsw.json`. Every frontend build that runs
+`copy-licenses.mjs` runs it too. When the service worker finds the new build,
+the update dialog in the open app reads that `appData`:
+
+- The title says what kind of update it is: a beta, a stable release, or a
+  major, minor or patch update.
+- It lists the highlights of every release since the version the user is
+  running, then "…and N more changes".
+- A preview build between releases keeps the released version, and a build
+  without `appData` gets the plain "Update Available" prompt.
+
+After an update, the app shows a one-time "Updated to Inkweld X · What's new"
+notice with a link to About → Changelog, once per browser. It skips that
+notice when the user already saw the highlights in the update dialog, and on a
+browser's first run. `assets/CHANGELOG.md` is served `no-cache` (in
+`_headers` and the Bun server) so the changelog page is never out of date.
+
 ### 1.0 beta
 
 Inkweld is feature complete for 1.0, and the betas are for testing and bug

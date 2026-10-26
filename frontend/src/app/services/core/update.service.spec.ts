@@ -7,6 +7,7 @@ import { vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { UpdateService } from './update.service';
+import { LAST_SEEN_VERSION_KEY } from './whats-new.service';
 
 describe('UpdateService', () => {
   let service: UpdateService;
@@ -16,6 +17,7 @@ describe('UpdateService', () => {
   let unrecoverableSubject: Subject<any>;
 
   beforeEach(() => {
+    localStorage.removeItem(LAST_SEEN_VERSION_KEY);
     versionUpdatesSubject = new Subject();
     unrecoverableSubject = new Subject();
     swUpdateMock = {
@@ -56,6 +58,8 @@ describe('UpdateService', () => {
     });
 
     service = TestBed.inject(UpdateService);
+    // Pin the running version so the spec doesn't depend on the release.
+    (service as { currentVersion: string }).currentVersion = '1.0.0-beta.1';
     service.initialize();
   });
 
@@ -130,6 +134,88 @@ describe('UpdateService', () => {
     versionUpdatesSubject.next(event);
 
     expect(dialogMock.open).toHaveBeenCalledTimes(1);
+  });
+
+  function readyWith(appData: object | undefined): VersionReadyEvent {
+    return {
+      type: 'VERSION_READY',
+      currentVersion: { hash: 'v1' },
+      latestVersion: { hash: 'v2', appData },
+    };
+  }
+
+  function openedData(): any {
+    return dialogMock.open.mock.calls[0][1].data;
+  }
+
+  it('names the version, bump and highlights from the build appData', () => {
+    versionUpdatesSubject.next(
+      readyWith({
+        version: '1.0.0-beta.3',
+        releases: [
+          { version: '1.0.0-beta.3', highlights: ['Word sprints'], more: 2 },
+          { version: '1.0.0-beta.2', highlights: ['Faster sync'], more: 0 },
+          { version: '1.0.0-beta.1', highlights: ['Old news'], more: 0 },
+        ],
+      })
+    );
+
+    expect(openedData()).toEqual(
+      expect.objectContaining({
+        title: 'Beta Update Available',
+        message:
+          "Inkweld 1.0.0-beta.3 is ready to install (you have 1.0.0-beta.1). What's new:",
+        details: [
+          'Word sprints',
+          'Faster sync',
+          '…and 2 more changes in About → Changelog',
+        ],
+      })
+    );
+  });
+
+  it('labels a move from beta to a stable release', () => {
+    versionUpdatesSubject.next(readyWith({ version: '1.0.0', releases: [] }));
+
+    expect(openedData()).toEqual(
+      expect.objectContaining({
+        title: 'Stable Release Available',
+        message:
+          'Inkweld 1.0.0 is ready to install (you have 1.0.0-beta.1). Update now?',
+        details: [],
+      })
+    );
+  });
+
+  it('marks the new version as seen when the update is accepted', () => {
+    versionUpdatesSubject.next(
+      readyWith({ version: '1.0.0-beta.2', releases: [] })
+    );
+
+    expect(localStorage.getItem(LAST_SEEN_VERSION_KEY)).toBe('1.0.0-beta.2');
+    expect(window.location.reload).toHaveBeenCalled();
+  });
+
+  it('uses the generic prompt when the build has the same version', () => {
+    // A preview build between releases keeps the released version.
+    versionUpdatesSubject.next(
+      readyWith({ version: '1.0.0-beta.1', releases: [] })
+    );
+
+    expect(openedData()).toEqual(
+      expect.objectContaining({
+        title: 'Update Available',
+        message: 'A new version of Inkweld is available. Update now?',
+      })
+    );
+    expect(localStorage.getItem(LAST_SEEN_VERSION_KEY)).toBeNull();
+  });
+
+  it('uses the generic prompt when the build has no appData', () => {
+    versionUpdatesSubject.next(readyWith(undefined));
+
+    expect(openedData().title).toBe('Update Available');
+    expect(openedData().details).toBeUndefined();
   });
 
   it('should handle checkForUpdate error gracefully', async () => {

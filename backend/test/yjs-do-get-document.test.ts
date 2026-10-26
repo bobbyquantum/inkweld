@@ -5,6 +5,7 @@ import * as Y from 'yjs';
  * GET /api/document on the Yjs Durable Object: the JSON view MCP tools read on
  * Cloudflare Workers. It must carry every shared type those tools read,
  * including the project-level ones the frontend keeps in the elements doc.
+ * Also POST /api/document path updates, which MCP tools write with.
  * Same cloudflare:workers stub approach as yjs-do-revisions.test.ts.
  */
 
@@ -229,5 +230,95 @@ describe('YjsProject DO GET /api/document and /api/document-state', () => {
       insert: 'This',
       attributes: { auto_review: { id: 's1' } },
     });
+  });
+
+  /** POST path updates to a DO holding `doc`, then read the document back. */
+  async function postPathUpdates(
+    doc: Y.Doc,
+    updates: Array<{ path: string; value: unknown }>
+  ): Promise<{ status: number; body: unknown; after: Y.Doc }> {
+    spyOn(projectService, 'findByUsernameAndSlug').mockResolvedValue({
+      id: 'project-1',
+      userId: 'owner-1',
+    });
+    const documentId = 'alice:proj:planet-1';
+    const entries = new Map<string, unknown>([
+      [`doc:${documentId}:snapshot`, Y.encodeStateAsUpdate(doc)],
+    ]);
+    const token = await signJwt({
+      userId: 'owner-1',
+      username: 'alice',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    });
+    const doInstance = new YjsProject(
+      {
+        storage: makeStorage(entries),
+        getWebSockets: () => [],
+        setWebSocketAutoResponse: () => {},
+      },
+      { DATABASE_KEY: SECRET, DB: {} }
+    );
+    const url = (path: string) =>
+      `https://yjs-do/api/${path}?documentId=${encodeURIComponent(`${documentId}/`)}`;
+    const headers = { Authorization: `Bearer ${token}` };
+    const res = await doInstance.fetch(
+      new Request(url('document'), {
+        method: 'POST',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ updates }),
+      })
+    );
+    const after = new Y.Doc();
+    const stateRes = await doInstance.fetch(new Request(url('document-state'), { headers }));
+    Y.applyUpdate(after, new Uint8Array(await stateRes.arrayBuffer()));
+    return { status: res.status, body: await res.json(), after };
+  }
+
+  it('creates missing nested maps for a dotted path (element created over MCP)', async () => {
+    // What create_element used to leave: top-level keys only, no `description` map.
+    const doc = new Y.Doc();
+    doc.getMap('worldbuilding').set('schemaId', 'planet-v1');
+
+    const { status, after } = await postPathUpdates(doc, [
+      { path: 'worldbuilding.description.terrain', value: 'Glass dunes' },
+    ]);
+
+    expect(status).toBe(200);
+    const description = after.getMap('worldbuilding').get('description');
+    expect(description).toBeInstanceOf(Y.Map);
+    expect(after.getMap('worldbuilding').toJSON()).toEqual({
+      schemaId: 'planet-v1',
+      description: { terrain: 'Glass dunes' },
+    });
+  });
+
+  it('writes into an existing nested map without touching its siblings', async () => {
+    const doc = new Y.Doc();
+    const description = new Y.Map();
+    doc.getMap('worldbuilding').set('description', description);
+    description.set('climate', 'Dry');
+
+    const { status, after } = await postPathUpdates(doc, [
+      { path: 'worldbuilding.description.terrain', value: 'Dunes' },
+    ]);
+
+    expect(status).toBe(200);
+    expect(after.getMap('worldbuilding').toJSON()).toEqual({
+      description: { climate: 'Dry', terrain: 'Dunes' },
+    });
+  });
+
+  it('refuses a dotted path through a text value with a 400 and applies nothing', async () => {
+    const doc = new Y.Doc();
+    doc.getMap('worldbuilding').set('description', 'Legacy text');
+
+    const { status, body, after } = await postPathUpdates(doc, [
+      { path: 'worldbuilding.summary', value: 'New' },
+      { path: 'worldbuilding.description.terrain', value: 'Dunes' },
+    ]);
+
+    expect(status).toBe(400);
+    expect((body as { error: string }).error).toContain('"description" holds a string value');
+    expect(after.getMap('worldbuilding').toJSON()).toEqual({ description: 'Legacy text' });
   });
 });

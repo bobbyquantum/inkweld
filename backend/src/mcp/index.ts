@@ -17,4 +17,5 @@ import './resources/projects.resource';
 import './tools/project.tools';
 import './tools/search.tools';
 import './tools/mutation.tools';
+import './tools/schema.tools';
 import './tools/image.tools';

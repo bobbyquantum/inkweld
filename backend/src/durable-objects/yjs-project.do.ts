@@ -35,6 +35,7 @@ import { WSSharedDoc } from 'y-durableobjects';
 import * as Y from 'yjs';
 import { logger } from '../services/logger.service';
 import { stripTrailingSlashes } from '../utils/string-utils';
+import { setYMapPath, yMapPathConflict } from '../utils/yjs-map-path';
 import { parseXmlToYjsNodes } from '@inkweld/prosemirror/xml';
 import { makeD1Database, type D1DatabaseInstance } from '../db/d1';
 import { writingSessionService } from '../services/writing-session.service';
@@ -1165,6 +1166,22 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     } else if (body.updates && body.updates.length > 0) {
       // Apply structured updates
       const updates = body.updates;
+      // Refuse the whole batch up front if a nested path runs into a non-map
+      // value, so the agent gets the reason and nothing is half applied.
+      const conflict = updates
+        .map(({ path }) => {
+          const parts = path.split('.');
+          return parts.length > 2
+            ? yMapPathConflict(sharedDoc.getMap(parts[0]), parts.slice(1))
+            : null;
+        })
+        .find((reason) => reason !== null);
+      if (conflict) {
+        return new Response(JSON.stringify({ error: conflict }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
       // WSSharedDoc extends Y.Doc, so sharedDoc IS the doc
       sharedDoc.transact(() => {
         for (const update of updates) {
@@ -1194,21 +1211,12 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
 
     // Get or create the root container
     const rootKey = parts[0];
-    let container = doc.getMap(rootKey);
+    const container = doc.getMap(rootKey);
 
-    // Navigate to the target, creating intermediate maps as needed
-    for (let i = 1; i < parts.length - 1; i++) {
-      const key = parts[i];
-      if (!container.has(key)) {
-        container.set(key, new Map());
-      }
-      container = container.get(key);
-    }
-
-    // Set the final value
-    const finalKey = parts.at(-1);
     if (parts.length > 1) {
-      container.set(finalKey, value);
+      // Creates missing intermediate Y.Maps (e.g. `description` for
+      // `worldbuilding.description.terrain` on an element made over MCP).
+      setYMapPath(container, parts.slice(1), value);
     } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
       // Root level - value should be a plain object to merge
       for (const [k, v] of Object.entries(value)) {

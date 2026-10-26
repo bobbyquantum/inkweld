@@ -96,6 +96,22 @@ statelessly.
 
 When creating a worldbuilding entry via `create_element`, pass `schemaId` along with `type: "WORLDBUILDING"` so the element is template-bound (for example, `character-v1` or `location-v1`). If `schemaId` is omitted, the element is treated as generic worldbuilding.
 
+#### Schema (Template) Operations
+
+These need the `write:schemas` permission (editors and admins).
+
+| Tool            | Description                                                                         |
+| --------------- | ----------------------------------------------------------------------------------- |
+| `create_schema` | Create a worldbuilding element type, from tabs of fields or by cloning another one  |
+| `update_schema` | Rename a schema, change its icon, description or defaults, and edit its tabs/fields |
+| `delete_schema` | Delete a schema (elements of that type keep their own copy and their data)          |
+
+`update_schema` takes either `operations` (applied in order: `add_tab`, `update_tab`, `remove_tab`, `move_tab`, `add_field`, `update_field`, `remove_field`, `move_field`) or `tabs` (replace every tab). Fields take the same properties as in the template editor (`label`, `key`, `type`, `placeholder`, `description`, `defaultValue`, `options`, `rows`, `icon`, `validation`, `layout`, and `targetSchemaId` / `multiple` / `inverseLabel` for relationship fields). A key left out is derived from the label (`"Eye Colour"` → `eyeColour`), and `description` / `image` are refused as new field keys because every element already has those identity fields. The edited schema is validated the way the template editor validates it (unique tab keys, field keys unique across the schema, no field clashing with a nested group); if any operation fails, nothing is written.
+
+Like the template editor, the tools keep each relationship field's backing relationship type in step: creating or changing the field adds or updates the type, and removing the field (or changing its type, or deleting the schema) deletes the type and every relationship made through it.
+
+Existing elements keep their own copy of their schema, so editing a shared schema doesn't change them: each one shows that the shared schema was updated and can take the change with "Update from shared schema" in the element editor. Elements created afterwards use the new version.
+
 #### Image Operations
 
 | Tool          | Description                                                                                                                               |
@@ -143,6 +159,8 @@ Call `get_project_schemas` before `create_element` or `update_worldbuilding` to 
 
 Every worldbuilding element also has two **identity fields** outside its schema, `description` and `image` (listed as `identityFields` in the result). `update_worldbuilding` resolves a bare key against the element's schema first: if the schema defines a `description` field, `"description"` writes that field. Use `"identity.description"` / `"identity.image"` to write the identity field, and `"worldbuilding.<key>"` to force a schema field.
 
+Schema fields with a dotted key (`description.terrain`) are nested: `"description.terrain": "…"` writes that one field, and an object value (`"worldbuilding.description": { "terrain": "…" }`) merges into the nested fields instead of replacing them. `create_element` gives a new worldbuilding element the schema's empty field skeleton, as the app does, and a write creates any missing parent, so elements created before that still accept nested writes. A write is refused if a parent key holds plain text (an older template's `description` field). Every write updates the element's `lastModified`.
+
 ### Available Resources
 
 Resources list the projects the user has authorized access to:
@@ -174,26 +192,27 @@ Call `list_projects` first, then use tools like `search_elements`, `create_eleme
 
 ### Scopes
 
-| Scope                 | Description               |
-| --------------------- | ------------------------- |
-| `mcp:tools`           | Access to MCP tools       |
-| `mcp:resources`       | Access to MCP resources   |
-| `read:project`        | Read project metadata     |
-| `read:elements`       | Read story elements       |
-| `read:worldbuilding`  | Read worldbuilding data   |
-| `read:schemas`        | Read element schemas      |
-| `write:elements`      | Create/modify elements    |
-| `write:worldbuilding` | Modify worldbuilding data |
+| Scope                 | Description                          |
+| --------------------- | ------------------------------------ |
+| `mcp:tools`           | Access to MCP tools                  |
+| `mcp:resources`       | Access to MCP resources              |
+| `read:project`        | Read project metadata                |
+| `read:elements`       | Read story elements                  |
+| `read:worldbuilding`  | Read worldbuilding data              |
+| `read:schemas`        | Read element schemas                 |
+| `write:elements`      | Create/modify elements               |
+| `write:worldbuilding` | Modify worldbuilding data            |
+| `write:schemas`       | Create/modify/delete element schemas |
 
 ### Grant Model
 
 During the consent flow, users select which projects to share and choose an access level per project:
 
-| Role       | Permissions                                                           |
-| ---------- | --------------------------------------------------------------------- |
-| **Viewer** | `read:project`, `read:elements`, `read:worldbuilding`, `read:schemas` |
-| **Editor** | All viewer permissions + `write:elements`, `write:worldbuilding`      |
-| **Admin**  | All permissions                                                       |
+| Role       | Permissions                                                                       |
+| ---------- | --------------------------------------------------------------------------------- |
+| **Viewer** | `read:project`, `read:elements`, `read:worldbuilding`, `read:schemas`             |
+| **Editor** | All viewer permissions + `write:elements`, `write:worldbuilding`, `write:schemas` |
+| **Admin**  | All permissions                                                                   |
 
 Users may instead choose **"Access all my projects"** plus a **default access level**. In that mode the session (`mcp_oauth_sessions.access_all_projects` / `default_role`) expands to every project the user owns (current and future) at the default role, instead of an explicit `project_collaborators` row per project. Explicit per-project grants are still honoured as overrides where present. This choice is carried from the consent page through the authorization code (`mcp_oauth_codes`) to the session.
 

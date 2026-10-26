@@ -147,7 +147,7 @@ Settings appears once there is more than one language.
 
 | Area | Notes |
 |---|---|
-| Profile-scoped storage, project rename, APP_MODE, backgrounds | `src/app/services/core/AGENTS.md` |
+| Profile-scoped storage, project rename, APP_MODE, backgrounds, update dialog | `src/app/services/core/AGENTS.md` |
 | Starting offline, bulk sync planner | `src/app/services/sync/AGENTS.md` |
 | Canvas Yjs model | `src/app/services/canvas/AGENTS.md` |
 | Passkeys, policy acceptance | `src/app/services/auth/AGENTS.md` |

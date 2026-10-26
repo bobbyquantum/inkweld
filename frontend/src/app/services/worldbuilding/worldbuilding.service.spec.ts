@@ -1579,6 +1579,62 @@ describe('WorldbuildingService', () => {
       vi.useRealTimers();
     });
 
+    it('should re-authenticate the socket on every reconnect', async () => {
+      // A fake provider whose 'status' events drive the real
+      // setupReauthentication listener the service installs.
+      const statusListeners: ((e: { status: string }) => void)[] = [];
+      const ws = {
+        send: vi.fn(),
+        onmessage: null as ((event: MessageEvent) => void) | null,
+      };
+      const mockWsProvider = {
+        synced: true,
+        ws,
+        on: vi.fn((event: string, cb: (e: { status: string }) => void) => {
+          if (event === 'status') statusListeners.push(cb);
+        }),
+        off: vi.fn(),
+        disconnect: vi.fn(),
+        destroy: vi.fn(),
+      };
+      const emitStatus = (status: string) => {
+        for (const cb of statusListeners) cb({ status });
+      };
+      const createAuthWsProvider = vi.fn().mockResolvedValue(mockWsProvider);
+      Object.assign(onlineService as any, { createAuthWsProvider });
+      const warn = vi.spyOn((onlineService as any).logger, 'warn');
+
+      await onlineService.getWorldbuildingData('reauth-elem', username, slug);
+
+      expect(createAuthWsProvider).toHaveBeenCalledWith(
+        `ws://localhost:8333/api/v1/ws/yjs?documentId=${username}:${slug}:reauth-elem/`,
+        '',
+        expect.any(Y.Doc),
+        'test-token',
+        {}
+      );
+      expect(statusListeners.length).toBeGreaterThan(0);
+
+      // The socket drops and y-websocket reconnects: the current token is
+      // sent, read fresh rather than the one captured at first connect.
+      (
+        mockAuthTokenService.getToken as ReturnType<typeof vi.fn>
+      ).mockReturnValue('rotated-token');
+      emitStatus('disconnected');
+      emitStatus('connected');
+      expect(ws.send).toHaveBeenCalledWith('rotated-token');
+
+      // A denial on a later reconnect stops the provider and is logged.
+      emitStatus('disconnected');
+      emitStatus('connected');
+      ws.onmessage?.({ data: 'access-denied:forbidden' } as MessageEvent);
+      expect(mockWsProvider.disconnect).toHaveBeenCalled();
+      expect(warn).toHaveBeenCalledWith(
+        'WorldbuildingService',
+        expect.stringContaining('reauth-elem')
+      );
+    });
+
     it('should skip sync-wait when provider is already synced', async () => {
       const mockWsProvider = {
         synced: true,

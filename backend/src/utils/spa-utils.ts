@@ -217,8 +217,15 @@ export async function wasmContentEncoding(file: Blob | SliceableFile): Promise<'
 }
 
 /**
+ * Files that change with every release under a fixed name, so browsers must
+ * revalidate them (frontend/public/_headers does the same on Cloudflare).
+ */
+const REVALIDATED_ASSETS = new Set(['index.html', 'assets/CHANGELOG.md', 'assets/version.txt']);
+
+/**
  * Build response headers for an asset, including content-type, optional encoding,
- * and cache-control (no-cache for index.html, immutable for everything else).
+ * and cache-control (no-cache for {@link REVALIDATED_ASSETS}, immutable for
+ * everything else).
  */
 export function buildAssetHeaders(
   contentType: string,
@@ -232,7 +239,7 @@ export function buildAssetHeaders(
   }
   headers.set(
     'Cache-Control',
-    relativePath === 'index.html' ? 'no-cache' : 'public, max-age=31536000, immutable'
+    REVALIDATED_ASSETS.has(relativePath) ? 'no-cache' : 'public, max-age=31536000, immutable'
   );
   return headers;
 }

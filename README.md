@@ -24,6 +24,14 @@
   <a href="https://github.com/bobbyquantum/inkweld/pkgs/container/inkweld"><img src="https://img.shields.io/badge/docker-ghcr.io-blue?logo=docker" alt="Docker"></a>
 </p>
 
+<p align="center">
+  <a href="https://sonarcloud.io/summary/new_code?id=bobbyquantum_inkweld"><img src="https://sonarcloud.io/api/project_badges/measure?project=bobbyquantum_inkweld&metric=alert_status" alt="Quality Gate Status"></a>
+  <a href="https://sonarcloud.io/component_measures?id=bobbyquantum_inkweld&metric=coverage"><img src="https://sonarcloud.io/api/project_badges/measure?project=bobbyquantum_inkweld&metric=coverage" alt="Coverage"></a>
+  <a href="https://sonarcloud.io/summary/new_code?id=bobbyquantum_inkweld"><img src="https://sonarcloud.io/api/project_badges/measure?project=bobbyquantum_inkweld&metric=reliability_rating" alt="Reliability Rating"></a>
+  <a href="https://sonarcloud.io/summary/new_code?id=bobbyquantum_inkweld"><img src="https://sonarcloud.io/api/project_badges/measure?project=bobbyquantum_inkweld&metric=security_rating" alt="Security Rating"></a>
+  <a href="https://sonarcloud.io/summary/new_code?id=bobbyquantum_inkweld"><img src="https://sonarcloud.io/api/project_badges/measure?project=bobbyquantum_inkweld&metric=sqale_rating" alt="Maintainability Rating"></a>
+</p>
+
 ---
 
 ## Quick Start
@@ -43,7 +51,7 @@ docker run -d \
 
 Then open `http://localhost:8333` in your browser.
 
-📖 **[Full deployment guide →](DEPLOY.md)**
+📖 **[Full deployment guide →](docs/site/docs/installation/index.md)**
 
 ---
 

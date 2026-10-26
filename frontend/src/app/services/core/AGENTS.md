@@ -1,7 +1,9 @@
 # Core services: agent notes
 
-Notes for `StorageContextService`, `AppModePolicyService` and
-`BackgroundService`. The rules in the root and `frontend/AGENTS.md` still apply.
+Notes for `StorageContextService`, `AppModePolicyService`,
+`BackgroundService` and the update notices (`UpdateService`,
+`WhatsNewService`). The rules in the root and `frontend/AGENTS.md` still
+apply.
 
 ## Local document storage is profile-scoped
 
@@ -130,3 +132,24 @@ mixins in `frontend/src/themes/_app-background.scss`:
   (`isSafeExternalImageUrl` in the backend, `isSafeUrlToken` in the service) so a
   stored value cannot break out of the token. The localStorage first-paint cache
   is re-validated on read for the same reason.
+
+## Update dialog and "What's new" notice
+
+`UpdateService` builds its `VERSION_READY` dialog from the new build's
+`ngsw.json` `appData` (`{ version, releases: [{ version, highlights, more }] }`),
+written after `ng build` by `scripts/write-sw-app-data.ts`. The pure helpers
+both sides use (SemVer compare, bump classification, changelog parsing) live
+in `utils/release-notes.ts`, which must stay free of Angular imports because
+Bun loads it in that script. `appData` is untrusted input from another build:
+read it through `readUpdateAppData()`, and fall back to the generic prompt
+when it's missing or isn't newer than `environment.version`.
+
+`WhatsNewService` keeps the last announced version in `localStorage`
+(`inkweld-last-seen-version`, per browser, not per profile). It shows a
+snackbar at most once per version, never on a browser's first run, and never
+after the user accepted the update dialog (`markVersionSeen()`), so people
+using several devices get one quiet notice per device and no dialogs.
+`UpdateService` calls `markVersionSeen()` as a plain function rather than
+injecting `WhatsNewService`: everything that injects `UpdateService` (sync
+providers via `VersionCompatibilityService`) would otherwise pull in Router
+and Transloco, which creates DI cycles in tests.

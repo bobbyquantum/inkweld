@@ -4,6 +4,10 @@
   "sessionExpiredMessage": "Your session has expired. Please re-authenticate or continue offline.",
   "reAuthenticate": "Re-authenticate",
   "continueOffline": "Continue Offline",
+  "whatsNew": {
+    "updated": "Updated to Inkweld {{version}}",
+    "action": "What's new"
+  },
   "notFound": {
     "title": "404 - Page Not Found",
     "message": "The page you are looking for does not exist.",
