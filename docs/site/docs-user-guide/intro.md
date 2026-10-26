@@ -16,7 +16,7 @@ This user guide covers everything you need to know to use Inkweld effectively:
 
 ### Getting Started
 
-- [**Choosing Your Mode**](./getting-started/client-mode) - Browser only, Cloud Sync with your own storage, or an Inkweld server
+- [**Choosing Your Mode**](./getting-started/client-mode) - Browser, Cloud Sync with your own storage, or Realtime Sync on an Inkweld server
 - [**Cloud Sync with Nextcloud**](./getting-started/nextcloud-sync) - Mirror projects to your own Nextcloud
 - [**Creating Your Account**](./getting-started/account-setup) - Sign up with a passkey and log in
 - [**Dashboard Overview**](./getting-started/dashboard) - Navigate your project library

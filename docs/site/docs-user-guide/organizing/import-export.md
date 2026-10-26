@@ -44,7 +44,7 @@ my-novel_2026-09-02_14-30-00.inkweld.zip
 
 ### Exporting while connected to a server
 
-In server mode, the export waits for the server copy to be complete first:
+In Realtime Sync, the export waits for the server copy to be complete first:
 
 1. **Sync check** — if any document still has unsynced changes, the export stops and lists those documents. Wait a moment for sync to finish, then try again.
 2. **Media download** — the cover and any images not yet cached locally are fetched from the server so the archive is complete.

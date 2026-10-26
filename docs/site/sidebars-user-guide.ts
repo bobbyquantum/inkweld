@@ -13,6 +13,7 @@ const sidebars: SidebarsConfig = {
       },
       items: [
         'getting-started/client-mode',
+        'getting-started/install-app',
         'getting-started/nextcloud-sync',
         'getting-started/account-setup',
         'getting-started/dashboard',

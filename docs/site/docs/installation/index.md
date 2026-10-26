@@ -62,6 +62,8 @@ Inkweld offers flexible deployment options to suit different needs, from quick l
 | **Real-time Collab** | ✅ WebSocket | ✅ Durable Objects  | ✅ WebSocket  |
 | **Best For**         | Most users   | Global teams        | Custom setups |
 
+Running Inkweld as a Home Assistant app? See [Home Assistant](./home-assistant).
+
 ## Client Apps
 
 The server hosts the web client, which also installs as a Progressive Web App on phones, tablets and desktops. The app offers to install itself, or you can install it from Settings → General.

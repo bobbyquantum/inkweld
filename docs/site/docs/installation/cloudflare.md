@@ -262,7 +262,7 @@ If the backend is private and the public app should not offer it at all, set `ad
 
 - Frontend: `https://pr-<number>.inkweld-frontend-preview.pages.dev`
 
-Per-PR previews are **frontend-only** — no backend is provisioned. The build ships with an empty `apiUrl`, so the app starts in local/offline mode; you can point it at an existing server at runtime through the setup flow. This keeps the preview lightweight and avoids exposing any Cloudflare account details. When the PR is closed or the `deploy:preview:frontend` label is removed, a cleanup workflow attempts to delete this branch's Pages deployments. See [Per-PR previews](#per-pr-previews) below.
+Per-PR previews are **frontend-only** — no backend is provisioned. The build ships with an empty `apiUrl`, so the app starts in Browser mode; you can point it at an existing server at runtime through the setup flow. This keeps the preview lightweight and avoids exposing any Cloudflare account details. When the PR is closed or the `deploy:preview:frontend` label is removed, a cleanup workflow attempts to delete this branch's Pages deployments. See [Per-PR previews](#per-pr-previews) below.
 
 **Manual deployments always go live:** When you run `cloudflare:preview:deploy` or `cloudflare:prod:deploy` from any branch, the deployment will immediately go live on your custom domain. A warning is shown if you're not on the `main` branch, but the deployment proceeds normally.
 
@@ -297,7 +297,7 @@ Optionally override the Pages project name with a `PAGES_PROJECT` variable (defa
 3. Review the preview. Multiple PRs can be deployed at once.
 4. Remove the label or close the PR to trigger the cleanup workflow, which attempts to delete the branch's Pages deployments. Because Cloudflare keeps the latest deployment for a branch, the most recent preview URL may remain reachable.
 
-> **Note:** Per-PR previews are frontend-only. They start in local/offline mode; to exercise backend features, point the preview at an existing server at runtime through the setup flow. No data is persisted by the preview itself.
+> **Note:** Per-PR previews are frontend-only. They start in Browser mode; to exercise backend features, point the preview at an existing server at runtime through the setup flow. No data is persisted by the preview itself.
 
 ## Manual Setup
 

@@ -1,6 +1,6 @@
 ---
 id: getting-started
-title: Getting Started
+title: Developer Setup
 description: Set up the Inkweld monorepo, run the dev servers, and understand the workflow before you deploy.
 sidebar_position: 2
 ---

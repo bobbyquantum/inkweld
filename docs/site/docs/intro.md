@@ -12,7 +12,7 @@ Get Inkweld running on your machine in minutes.
 
 ## Try with Docker
 
-The fastest way to try Inkweld:
+The fastest way to try Inkweld. For a production install, see [Installation](/docs/installation).
 
 ```bash
 docker run -p 8333:8333 \

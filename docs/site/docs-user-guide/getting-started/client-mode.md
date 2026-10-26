@@ -13,7 +13,7 @@ import ThemedImage from '@site/src/components/ThemedImage';
 When you first open Inkweld, you'll see the mode selection screen. This lets you choose how you want to use the application.
 
 :::tip[Pre-Configured Instances]
-Some Inkweld instances are pre-configured to automatically start in server mode. If your instance has a fixed server URL configured in its build and auto-connect enabled, you'll skip this screen and go directly to the login page. Hosted instances can also enable mode selection (the preview deployment does this) — in that case you'll see this screen even though a server URL is pre-filled.
+Some Inkweld instances are pre-configured to automatically start in Realtime Sync. If your instance has a fixed server URL configured in its build and auto-connect enabled, you'll skip this screen and go directly to the login page. Hosted instances can also enable mode selection (the preview deployment does this) — in that case you'll see this screen even though a server URL is pre-filled.
 :::
 
 <ThemedImage
@@ -38,6 +38,11 @@ Some Inkweld instances are pre-configured to automatically start in server mode.
 | Backup                                  |  Export archive   | Continuous mirror + export archive |     Server + export archive     |
 | Move to another mode later              |        ✅         |                 ✅                 |               ✅                |
 | Cost to run                             |       Free        |     Free (your storage quota)      |  Self-host, or a hosted server  |
+
+### Names you'll see
+
+- **Browser**, **Cloud Sync** and **Realtime Sync** are the three modes you choose from. The same names are used throughout the guide, and each profile you create is one of these three kinds.
+- **Offline Mode** and **Local Mode** are status labels in the sync bar at the bottom of the project tree. They are not modes you choose. **Offline Mode** means the server connection is down and your changes are being kept on this device until it returns. **Local Mode** means you are in Browser mode, so there is no server to sync with and nothing is waiting to sync.
 
 ### Browser
 
@@ -98,7 +103,7 @@ If you choose **Browser**, you'll create a local profile:
 
 <ThemedImage
   src="/img/generated/setup-offline"
-  alt="Offline mode profile setup form"
+  alt="Browser profile setup form"
 />
 
 | Field            | Description                                                              |

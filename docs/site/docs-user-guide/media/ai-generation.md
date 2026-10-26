@@ -70,10 +70,10 @@ Active generation jobs appear in the media tab header. Generation typically take
 
 ## If It's Not Working
 
-- **No Generate with AI option**: AI generation isn't enabled, or you're in offline mode. Contact your administrator.
+- **No Generate with AI option**: AI generation isn't enabled, or you're working in Browser or Cloud Sync mode. Contact your administrator.
 - **Generation failed**: Check your connection, or the AI service may be temporarily unavailable.
 - **Poor results**: Be more specific in your prompt. Results vary each generation.
 
 :::note
-AI image generation requires a server connection and is not available in offline mode.
+AI image generation requires a server connection and is not available in Browser or Cloud Sync mode.
 :::

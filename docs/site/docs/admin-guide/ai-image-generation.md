@@ -133,9 +133,9 @@ Image generation is also gated by the [AI Kill Switch](./ai-kill-switch), which 
 
 The page header shows totals for **Total Requests**, **Total Credits Used**, **Successful** and **Moderated**. Search the prompt text with **Search prompts**, filter by **Status**, and page through the results (10 to 100 per page); the **view generated image** button opens the output. Requests that fail before the provider responds (for example a network error) are not recorded. Reference-image URLs and a moderation message are also stored with each record, and are available through the audits API (`/api/v1/admin/image-audits`).
 
-## Local Mode
+## Browser and Cloud Sync modes
 
-AI image generation requires a server connection and is not available in local mode.
+AI image generation requires a server connection and is not available in Browser or Cloud Sync mode.
 
 ## Cost Considerations
 

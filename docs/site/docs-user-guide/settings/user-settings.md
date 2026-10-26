@@ -40,7 +40,7 @@ Profile visibility is a server-side setting and is not shown in local-only mode,
 
 ### Sync capacity
 
-In server mode, the Account tab has a **Sync capacity** section showing how much server storage your projects use: documents, media, covers and published files for the projects you own. Projects other people share with you count against their owner, not you.
+In Realtime Sync, the Account tab has a **Sync capacity** section showing how much server storage your projects use: documents, media, covers and published files for the projects you own. Projects other people share with you count against their owner, not you.
 
 - If your server limits storage, a meter shows what you have **used** out of your allowance. It turns to a warning as you approach the limit.
 - If the server does not set a limit, it simply shows how much you use.
@@ -55,7 +55,7 @@ Under **Authentication** the Account tab lists how you can sign in — passkeys,
 
 ### Delete account
 
-In server mode, the bottom of the Account tab has a **Delete account…** button. Deleting your account is permanent and removes:
+In Realtime Sync, the bottom of the Account tab has a **Delete account…** button. Deleting your account is permanent and removes:
 
 - every project you own, with its documents, worldbuilding, media and published files
 - your profile, avatar, banner and background

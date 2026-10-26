@@ -82,7 +82,7 @@ This is useful after regaining internet access or if you want to verify you're c
 When you open a project:
 
 1. **Local data loads first** from IndexedDB (instant)
-2. **WebSocket connects** to the server (if in server mode)
+2. **WebSocket connects** to the server (if in Realtime Sync)
 3. **Two-way sync** merges any changes from other devices
 
 This means you see your content immediately, even if the server is slow or unavailable.
