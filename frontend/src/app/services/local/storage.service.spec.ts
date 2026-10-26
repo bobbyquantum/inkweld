@@ -158,5 +158,23 @@ describe('StorageService', () => {
       // Should not throw
       expect(() => service.closeDatabase('nonexistent')).not.toThrow();
     });
+
+    it('should close every connection when the injector is destroyed', async () => {
+      await service.initializeDatabase({
+        dbName: TEST_DB,
+        version: 1,
+        stores: { testStore: null },
+      });
+
+      TestBed.resetTestingModule();
+
+      // An open connection would block the delete
+      const outcome = await new Promise<string>(resolve => {
+        const request = indexedDB.deleteDatabase(TEST_DB);
+        request.onsuccess = () => resolve('deleted');
+        request.onblocked = () => resolve('blocked');
+      });
+      expect(outcome).toBe('deleted');
+    });
   });
 });

@@ -1,4 +1,4 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, type OnDestroy, signal } from '@angular/core';
 
 export interface StorageConfig {
   dbName: string;
@@ -19,7 +19,7 @@ export class StorageError extends Error {
 @Injectable({
   providedIn: 'root',
 })
-export class StorageService {
+export class StorageService implements OnDestroy {
   readonly isAvailable = signal(typeof indexedDB !== 'undefined');
   private readonly dbConnections = new Map<string, Promise<IDBDatabase>>();
 
@@ -209,5 +209,15 @@ export class StorageService {
     for (const [dbName] of this.dbConnections) {
       this.closeDatabase(dbName);
     }
+  }
+
+  /**
+   * Close every connection when the injector goes away. In the app that is
+   * only at page unload; in tests it is every TestBed reset, and a connection
+   * left open there blocks a later spec's deleteDatabase (fake-indexeddb is
+   * shared across spec files), which then stalls every open of that database.
+   */
+  ngOnDestroy(): void {
+    this.closeAll();
   }
 }

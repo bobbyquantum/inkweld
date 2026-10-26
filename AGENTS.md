@@ -104,6 +104,9 @@ release-please cuts releases (`.github/workflows/release-please.yml`,
   the 1.0 beta every release is the next `1.0.0-beta.N`) and the CHANGELOG
   line. `docs`/`refactor`/`test`/`build`/`ci`/`chore`/`style` are hidden and
   never cause a release; Renovate uses `chore(deps)`.
+- **Scopes come from `.github/commit-scopes.json`.** A scope is optional; when
+  used it must be on that list (CI checks it), and each one has the icon the
+  in-app changelog shows. Add a new scope there in the PR that needs it.
 - **Never bump versions by hand.** release-please updates the three
   `package.json` files and every line marked `// x-release-please-version`
   (`backend/src/config/env.ts`, `frontend/src/environments/environment*.ts`).
