@@ -3,6 +3,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  DestroyRef,
   effect,
   inject,
   type OnDestroy,
@@ -89,6 +90,9 @@ export const PROJECT_SORT_STORAGE_KEY = 'inkweld-home-project-sort';
 
 /** localStorage key holding the ids of projects pinned to the top of the grid. */
 export const PINNED_PROJECTS_STORAGE_KEY = 'inkweld-home-pinned-projects';
+
+/** Minimum gap between project list re-reads triggered by the tab showing. */
+const VISIBLE_REFRESH_MIN_INTERVAL_MS = 60_000;
 
 @Component({
   selector: 'app-home',
@@ -177,7 +181,20 @@ export class HomeComponent implements OnInit, OnDestroy {
   loadingInvitations = signal(false);
 
   protected user = this.userService.currentUser;
-  protected isLoading = this.projectService.isLoading;
+  /**
+   * Show the loading state only while there is nothing to show yet. A refresh
+   * of a list already on screen (returning home, the tab coming back into
+   * view, Sync All) keeps the grid rather than flashing a spinner over it.
+   */
+  protected isLoading = computed(
+    () =>
+      this.projectService.isLoading() &&
+      !this.projectService.hasProjects() &&
+      this.collaboratedProjects().length === 0
+  );
+
+  /** Sync All is re-reading the project list before it starts syncing. */
+  private readonly refreshingForSync = signal(false);
 
   /**
    * Cloud Sync is pulling the project list right now. Shown in place of the
@@ -197,25 +214,33 @@ export class HomeComponent implements OnInit, OnDestroy {
   );
 
   /**
-   * Whether the Sync All button is enabled. It stays enabled while offline so
-   * a click can say why nothing happens: a disabled button shows no tooltip.
+   * Whether the Sync All button is enabled. It stays enabled while offline or
+   * with nothing activated so a click can say why nothing syncs (a disabled
+   * button shows no tooltip); with nothing activated the click still
+   * refreshes the project list.
    */
-  protected syncAllEnabled = computed(() => {
-    // Read activation version to re-evaluate when activations change
-    this.activationService.activationVersion();
-    const hasActivated = this.getActivatedProjects().length > 0;
-    return (
+  protected syncAllEnabled = computed(
+    () =>
       this.isServerMode() &&
       this.isAuthenticated() &&
       !this.syncQueueService.isSyncing() &&
-      hasActivated
+      !this.refreshingForSync()
+  );
+
+  /**
+   * Whether a sync can start right now. Unlike {@link syncAllEnabled} this
+   * needs an activated project: with none, the button still refreshes the
+   * project list and then says there is nothing to sync.
+   */
+  protected canSyncAll = computed(() => {
+    // Read activation version to re-evaluate when activations change
+    this.activationService.activationVersion();
+    return (
+      this.syncAllEnabled() &&
+      this.network.online() &&
+      this.getActivatedProjects().length > 0
     );
   });
-
-  /** Whether a sync can start right now */
-  protected canSyncAll = computed(
-    () => this.syncAllEnabled() && this.network.online()
-  );
 
   /** Tooltip for Sync All button */
   protected syncAllTooltip = computed(() => {
@@ -342,6 +367,9 @@ export class HomeComponent implements OnInit, OnDestroy {
   /** Latch so the home tour is offered at most once per visit. */
   private tutorialOffered = false;
 
+  /** When the project list was last re-read on the tab becoming visible. */
+  private lastVisibleRefreshAt = 0;
+
   constructor() {
     // A project list that failed to load (opened offline with nothing
     // cached) loads again by itself once the network is back.
@@ -353,6 +381,19 @@ export class HomeComponent implements OnInit, OnDestroy {
       }
       wasOnline = online;
     });
+
+    // Projects created on another device only reach this one when the list is
+    // re-read, so re-read it whenever the app comes back into view (switching
+    // tabs, or resuming the installed app on a phone).
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        this.refreshListOnVisible();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    inject(DestroyRef).onDestroy(() =>
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+    );
 
     // Offer the home tour once the user state has resolved on a desktop
     // viewport. Reactive rather than a one-shot check because auth state and
@@ -388,14 +429,18 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   async loadProjects() {
-    // If we already have projects and are initialized, just refresh collaboration data
+    // Returning to home with a list already loaded: show it straight away and
+    // re-read it alongside the collaboration data, so a project created on
+    // another device appears without a page reload.
     if (
       this.projectService.initialized() &&
       this.projectService.projects().length > 0
     ) {
       this.isInitializing.set(false);
-      // Always reload collaboration data when returning to home
-      await this.loadCollaborationData();
+      await Promise.all([
+        this.reloadProjectListQuietly(),
+        this.loadCollaborationData(),
+      ]);
       this.triggerCoverSync();
       return;
     }
@@ -475,7 +520,7 @@ export class HomeComponent implements OnInit, OnDestroy {
       // nothing-activated, so a pull in any of those states quietly refreshes
       // the list instead of scolding the user the way the button does.
       if (this.canSyncAll()) {
-        this.syncAllProjects();
+        void this.syncQueueService.syncAllProjects(this.getActivatedProjects());
       }
       await this.loadCollaborationData();
       this.triggerCoverSync();
@@ -533,10 +578,47 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   /**
+   * Re-read the project list, keeping what is on screen if that fails (the
+   * failure is already logged by the project service).
+   */
+  private async reloadProjectListQuietly(): Promise<void> {
+    try {
+      await this.projectService.reloadProjects();
+    } catch (error: unknown) {
+      console.warn('Failed to refresh the project list:', error);
+    }
+  }
+
+  /**
+   * Re-read the project and collaboration lists when the app comes back into
+   * view. At most once a minute, so flicking between windows does not refetch
+   * every time, and never while signed out, offline or before the first load.
+   */
+  private refreshListOnVisible(): void {
+    const now = Date.now();
+    if (
+      now - this.lastVisibleRefreshAt < VISIBLE_REFRESH_MIN_INTERVAL_MS ||
+      !this.isAuthenticated() ||
+      !this.network.online() ||
+      !this.projectService.initialized()
+    ) {
+      return;
+    }
+    this.lastVisibleRefreshAt = now;
+    void Promise.all([
+      this.reloadProjectListQuietly(),
+      this.loadCollaborationData(),
+    ]);
+  }
+
+  /**
    * Sync all activated projects (owned and shared) with the server.
    * Only projects that have been activated on this device are synced.
+   *
+   * The project list is re-read first, so projects created on another device
+   * appear even when there is nothing on this one to sync yet.
    */
-  syncAllProjects(): void {
+  async syncAllProjects(): Promise<void> {
     if (!this.network.online()) {
       this.snackBar.open(
         this.transloco.translate('home.snackbar.syncAllOffline'),
@@ -544,6 +626,19 @@ export class HomeComponent implements OnInit, OnDestroy {
         { duration: 5000 }
       );
       return;
+    }
+
+    // A second click while the list is still loading would start a second
+    // sync once the first finishes.
+    if (this.refreshingForSync()) return;
+    this.refreshingForSync.set(true);
+    try {
+      await Promise.all([
+        this.reloadProjectListQuietly(),
+        this.loadCollaborationData(),
+      ]);
+    } finally {
+      this.refreshingForSync.set(false);
     }
 
     const activated = this.getActivatedProjects();

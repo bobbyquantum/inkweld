@@ -2,6 +2,7 @@ import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { HttpClient } from '@angular/common/http';
 import { provideLocationMocks } from '@angular/common/testing';
 import {
+  computed,
   provideZonelessChangeDetection,
   signal,
   type WritableSignal,
@@ -237,6 +238,7 @@ describe('HomeComponent', () => {
     projectService = {
       isLoading: mockLoadingSignal,
       projects: mockProjectsSignal,
+      hasProjects: computed(() => mockProjectsSignal().length > 0),
       initialized: mockProjectInitialized,
       loadProjects: vi.fn().mockResolvedValue(undefined),
       reloadProjects: vi.fn().mockResolvedValue(undefined),
@@ -511,6 +513,31 @@ describe('HomeComponent', () => {
   });
 
   describe('loadProjects', () => {
+    it('re-reads a list it already holds when returning home', async () => {
+      mockProjectsSignal.set(mockProjects);
+      mockProjectInitialized.set(true);
+
+      await component.loadProjects();
+
+      // A project created on another device only shows up on a re-read.
+      expect(projectService.reloadProjects).toHaveBeenCalled();
+      expect(projectService.loadProjects).not.toHaveBeenCalled();
+    });
+
+    it('keeps the cached list when the re-read on returning home fails', async () => {
+      mockProjectsSignal.set(mockProjects);
+      mockProjectInitialized.set(true);
+      projectService.reloadProjects = vi
+        .fn()
+        .mockRejectedValue(new Error('offline'));
+      vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      await component.loadProjects();
+
+      expect(component.loadError).toBe(false);
+      expect(coverSyncService.syncCovers).toHaveBeenCalledWith(mockProjects);
+    });
+
     it('should not load projects when user is not authenticated', async () => {
       mockIsAuthenticated.set(false);
 
@@ -1703,12 +1730,15 @@ describe('HomeComponent', () => {
     });
 
     describe('syncAllProjects', () => {
-      it('explains instead of syncing while offline', () => {
+      it('explains instead of syncing while offline', async () => {
         networkOnline.set(false);
+        // ngOnInit already re-read the list on the way in.
+        projectService.reloadProjects = vi.fn().mockResolvedValue(undefined);
 
-        component.syncAllProjects();
+        await component.syncAllProjects();
 
         expect(mockSyncQueueService.syncAllProjects).not.toHaveBeenCalled();
+        expect(projectService.reloadProjects).not.toHaveBeenCalled();
         expect(snackBar.open).toHaveBeenCalledWith(
           expect.stringContaining("You're offline"),
           'Dismiss',
@@ -1726,11 +1756,11 @@ describe('HomeComponent', () => {
         expect(component['canSyncAll']()).toBe(true);
       });
 
-      it('should show snack bar when no activated projects', () => {
+      it('should show snack bar when no activated projects', async () => {
         mockActivationService.isActivationRequired.mockReturnValue(true);
         mockActivationService.isActivated.mockReturnValue(false);
 
-        component.syncAllProjects();
+        await component.syncAllProjects();
 
         expect(snackBar.open).toHaveBeenCalledWith(
           'No activated projects to sync',
@@ -1739,13 +1769,13 @@ describe('HomeComponent', () => {
         );
       });
 
-      it('should sync only activated projects', () => {
+      it('should sync only activated projects', async () => {
         mockActivationService.isActivationRequired.mockReturnValue(true);
         mockActivationService.isActivated.mockImplementation(
           (key: string) => key === 'testuser/test-project'
         );
 
-        component.syncAllProjects();
+        await component.syncAllProjects();
 
         expect(mockSyncQueueService.syncAllProjects).toHaveBeenCalledWith(
           expect.arrayContaining([
@@ -1754,10 +1784,10 @@ describe('HomeComponent', () => {
         );
       });
 
-      it('should sync all projects when activation not required', () => {
+      it('should sync all projects when activation not required', async () => {
         mockActivationService.isActivationRequired.mockReturnValue(false);
 
-        component.syncAllProjects();
+        await component.syncAllProjects();
 
         expect(mockSyncQueueService.syncAllProjects).toHaveBeenCalledWith(
           expect.arrayContaining([
@@ -1765,6 +1795,68 @@ describe('HomeComponent', () => {
             expect.objectContaining({ slug: 'another-project' }),
           ])
         );
+      });
+
+      it('re-reads the project list before syncing', async () => {
+        const order: string[] = [];
+        projectService.reloadProjects = vi.fn(() => {
+          order.push('reload');
+          return Promise.resolve();
+        });
+        mockSyncQueueService.syncAllProjects.mockImplementation(() => {
+          order.push('sync');
+        });
+
+        await component.syncAllProjects();
+
+        expect(order).toEqual(['reload', 'sync']);
+        expect(
+          collaborationApiService.getCollaboratedProjects
+        ).toHaveBeenCalled();
+      });
+
+      it('picks up new projects even when nothing is activated here', async () => {
+        mockActivationService.isActivationRequired.mockReturnValue(true);
+        mockActivationService.isActivated.mockReturnValue(false);
+
+        // Enabled so the click can refresh the list, then explain.
+        expect(component['syncAllEnabled']()).toBe(true);
+
+        await component.syncAllProjects();
+
+        expect(projectService.reloadProjects).toHaveBeenCalled();
+        expect(mockSyncQueueService.syncAllProjects).not.toHaveBeenCalled();
+      });
+
+      it('ignores a second click while the list is still loading', async () => {
+        let finishReload!: () => void;
+        projectService.reloadProjects = vi.fn(
+          () =>
+            new Promise<void>(resolve => {
+              finishReload = resolve;
+            })
+        );
+
+        const first = component.syncAllProjects();
+        expect(component['syncAllEnabled']()).toBe(false);
+        await component.syncAllProjects();
+        finishReload();
+        await first;
+
+        expect(projectService.reloadProjects).toHaveBeenCalledTimes(1);
+        expect(mockSyncQueueService.syncAllProjects).toHaveBeenCalledTimes(1);
+        expect(component['syncAllEnabled']()).toBe(true);
+      });
+
+      it('still syncs when the list refresh fails', async () => {
+        projectService.reloadProjects = vi
+          .fn()
+          .mockRejectedValue(new Error('server down'));
+        vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+        await component.syncAllProjects();
+
+        expect(mockSyncQueueService.syncAllProjects).toHaveBeenCalled();
       });
     });
 
@@ -1847,6 +1939,95 @@ describe('HomeComponent', () => {
       component['startTutorial']();
 
       expect(tutorialService.start).toHaveBeenCalledWith('home');
+    });
+  });
+
+  describe('refreshing when the app comes back into view', () => {
+    let visibility: DocumentVisibilityState;
+
+    const becomeVisible = () => {
+      visibility = 'visible';
+      document.dispatchEvent(new Event('visibilitychange'));
+    };
+
+    beforeEach(() => {
+      visibility = 'hidden';
+      vi.spyOn(document, 'visibilityState', 'get').mockImplementation(
+        () => visibility
+      );
+    });
+
+    it('re-reads the project list', () => {
+      becomeVisible();
+
+      expect(projectService.reloadProjects).toHaveBeenCalledTimes(1);
+      expect(
+        collaborationApiService.getCollaboratedProjects
+      ).toHaveBeenCalled();
+    });
+
+    it('ignores the tab being hidden', () => {
+      document.dispatchEvent(new Event('visibilitychange'));
+
+      expect(projectService.reloadProjects).not.toHaveBeenCalled();
+    });
+
+    it('re-reads at most once a minute', () => {
+      vi.useFakeTimers();
+      becomeVisible();
+      becomeVisible();
+      expect(projectService.reloadProjects).toHaveBeenCalledTimes(1);
+
+      vi.advanceTimersByTime(60_000);
+      becomeVisible();
+      expect(projectService.reloadProjects).toHaveBeenCalledTimes(2);
+    });
+
+    it('does not re-read while offline', () => {
+      networkOnline.set(false);
+      becomeVisible();
+
+      expect(projectService.reloadProjects).not.toHaveBeenCalled();
+    });
+
+    it('does not re-read while signed out', () => {
+      mockIsAuthenticated.set(false);
+      becomeVisible();
+
+      expect(projectService.reloadProjects).not.toHaveBeenCalled();
+    });
+
+    it('does not re-read before the first load', () => {
+      mockProjectInitialized.set(false);
+      becomeVisible();
+
+      expect(projectService.reloadProjects).not.toHaveBeenCalled();
+    });
+
+    it('stops listening once the component is destroyed', () => {
+      fixture.destroy();
+      becomeVisible();
+
+      expect(projectService.reloadProjects).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('loading state', () => {
+    it('shows while there is nothing to show yet', () => {
+      mockLoadingSignal.set(true);
+      expect(component['isLoading']()).toBe(true);
+    });
+
+    it('keeps the grid when only shared projects are on screen', () => {
+      component.collaboratedProjects.set(mockCollaboratedProjects);
+      mockLoadingSignal.set(true);
+      expect(component['isLoading']()).toBe(false);
+    });
+
+    it('keeps the grid during a refresh of a list already on screen', () => {
+      mockProjectsSignal.set(mockProjects);
+      mockLoadingSignal.set(true);
+      expect(component['isLoading']()).toBe(false);
     });
   });
 
