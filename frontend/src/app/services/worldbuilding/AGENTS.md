@@ -41,6 +41,13 @@ to shared schema") get the shared schema copied in on first open by
   start with an empty General tab rather than seeding `name`/`description`
   fields that duplicate identity.
 
+- **MCP schema tools** (`create_schema` / `update_schema` / `delete_schema`,
+  `backend/src/mcp/tools/schema.tools.ts`) edit the shared schemas only, never
+  element copies. `schema-editing.ts` there mirrors `SchemaEditService`'s
+  validation and `RelationshipFieldService.buildTypeDef` (template mode:
+  removing a relationship field removes its type and relationships). Keep them
+  in step when either side changes.
+
 ## Identity images are media references
 
 `identity.image` holds a `media://<id>.<ext>` reference, never a base64

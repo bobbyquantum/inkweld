@@ -204,6 +204,7 @@ oauthRoutes.openapi(protectedResourceMetadataRoute, (c) => {
       'read:schemas',
       'write:elements',
       'write:worldbuilding',
+      'write:schemas',
     ],
   });
 });
@@ -250,6 +251,7 @@ oauthRoutes.openapi(pathSpecificProtectedResourceRoute, (c) => {
       'read:schemas',
       'write:elements',
       'write:worldbuilding',
+      'write:schemas',
     ],
   });
 });
@@ -305,6 +307,7 @@ oauthRoutes.openapi(authServerMetadataRoute, (c) => {
       'read:schemas',
       'write:elements',
       'write:worldbuilding',
+      'write:schemas',
     ],
   });
 });
@@ -357,6 +360,7 @@ oauthRoutes.openapi(openidConfigurationRoute, (c) => {
       'read:schemas',
       'write:elements',
       'write:worldbuilding',
+      'write:schemas',
     ],
     subject_types_supported: ['public'],
     id_token_signing_alg_values_supported: ['RS256'],

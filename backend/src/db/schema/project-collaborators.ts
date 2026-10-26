@@ -132,6 +132,7 @@ export function roleToMcpPermissions(role: CollaboratorRole): string[] {
         'read:schemas',
         'write:elements',
         'write:worldbuilding',
+        'write:schemas',
       ];
     default:
       return ['read:project'];
