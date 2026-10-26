@@ -225,6 +225,13 @@ export class ElementRefTooltipComponent {
         return;
       }
 
+      // Only an Inkweld Server has a copy to download; a Browser or Cloud
+      // Sync profile must never contact one.
+      if (!this.storageContext.isServerMode()) {
+        this.setResolvedImage(null, generation);
+        return;
+      }
+
       const apiUrl = `${this.storageContext.getApiBaseUrl()}/api/v1/media/${username}/${slug}/${filename}`;
       const blob = await firstValueFrom(
         this.http.get(apiUrl, { responseType: 'blob' })

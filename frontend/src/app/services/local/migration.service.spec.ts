@@ -19,7 +19,11 @@ import { UserService } from '../user/user.service';
 import { LocalProjectService } from './local-project.service';
 import { LocalProjectElementsService } from './local-project-elements.service';
 import { LocalStorageService } from './local-storage.service';
-import { MigrationService, MigrationStatus } from './migration.service';
+import {
+  MigrationService,
+  MigrationStatus,
+  ServerApprovalRequiredError,
+} from './migration.service';
 import { ProjectSyncService } from './project-sync.service';
 
 describe('MigrationService', () => {
@@ -520,6 +524,50 @@ describe('MigrationService', () => {
       await expect(
         service.registerOnServer('testuser', 'password')
       ).rejects.toThrow('Registration succeeded but no token was returned');
+    });
+
+    it('registers without a password on a passwordless server', async () => {
+      authServiceMock.registerUser.mockReturnValue(
+        of({
+          token: 'test-token-123',
+          user: { id: '1', username: 'testuser', name: 'Test User' },
+          requiresApproval: false,
+        })
+      );
+
+      await service.registerOnServer('testuser', undefined, {
+        name: 'Test User',
+        email: 'test@example.com',
+      });
+
+      expect(authServiceMock.registerUser).toHaveBeenCalledWith({
+        username: 'testuser',
+        name: 'Test User',
+        email: 'test@example.com',
+      });
+      expect(authTokenServiceMock.setToken).toHaveBeenCalledWith(
+        'test-token-123'
+      );
+    });
+
+    it('hands over the enrolment token when approval is required', async () => {
+      authServiceMock.registerUser.mockReturnValue(
+        of({
+          user: { id: '1', username: 'testuser' },
+          requiresApproval: true,
+          enrolmentToken: 'enrol-token',
+        })
+      );
+
+      const error: unknown = await service
+        .registerOnServer('testuser')
+        .catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(ServerApprovalRequiredError);
+      expect((error as ServerApprovalRequiredError).enrolmentToken).toBe(
+        'enrol-token'
+      );
+      expect(authTokenServiceMock.setToken).not.toHaveBeenCalled();
     });
 
     it('should throw error when approval is required', async () => {

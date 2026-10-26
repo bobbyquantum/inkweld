@@ -77,6 +77,11 @@
           "approved": {
             "type": "boolean"
           },
+          "rejectedAt": {
+            "type": "number",
+            "nullable": true,
+            "description": "Unix seconds when an admin rejected the registration (null = not rejected). Only surfaced to admins."
+          },
           "enabled": {
             "type": "boolean"
           },
@@ -153,6 +158,10 @@
         "properties": {
           "error": {
             "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "description": "Machine-readable reason, when the route gives one (e.g. ACCOUNT_PENDING / ACCOUNT_REJECTED on sign-in)"
           }
         },
         "required": [
@@ -885,7 +894,7 @@
           },
           "version": {
             "type": "string",
-            "example": "0.1.0",
+            "example": "1.0.0",
             "description": "Server version"
           },
           "uptime": {
@@ -1681,7 +1690,7 @@
           },
           "version": {
             "type": "string",
-            "example": "0.1.0",
+            "example": "1.0.0",
             "description": "Server version"
           },
           "protocolVersion": {
@@ -6408,6 +6417,11 @@
                       "approved": {
                         "type": "boolean"
                       },
+                      "rejectedAt": {
+                        "type": "number",
+                        "nullable": true,
+                        "description": "Unix seconds when an admin rejected the registration; null when not rejected"
+                      },
                       "enabled": {
                         "type": "boolean"
                       },
@@ -6424,6 +6438,7 @@
                       "username",
                       "email",
                       "approved",
+                      "rejectedAt",
                       "enabled",
                       "isAdmin",
                       "githubId"
@@ -6497,6 +6512,11 @@
                     "approved": {
                       "type": "boolean"
                     },
+                    "rejectedAt": {
+                      "type": "number",
+                      "nullable": true,
+                      "description": "Unix seconds when an admin rejected the registration; null when not rejected"
+                    },
                     "enabled": {
                       "type": "boolean"
                     },
@@ -6513,6 +6533,7 @@
                     "username",
                     "email",
                     "approved",
+                    "rejectedAt",
                     "enabled",
                     "isAdmin",
                     "githubId"
@@ -6560,7 +6581,7 @@
           "Admin"
         ],
         "summary": "Reject a user",
-        "description": "Reject a pending user (sets approved to false)",
+        "description": "Reject a pending user: the account stays unapproved, is marked rejected (so it leaves the pending list) and is signed out",
         "operationId": "adminRejectUser",
         "parameters": [
           {
@@ -6660,6 +6681,11 @@
                     "approved": {
                       "type": "boolean"
                     },
+                    "rejectedAt": {
+                      "type": "number",
+                      "nullable": true,
+                      "description": "Unix seconds when an admin rejected the registration; null when not rejected"
+                    },
                     "enabled": {
                       "type": "boolean"
                     },
@@ -6676,6 +6702,7 @@
                     "username",
                     "email",
                     "approved",
+                    "rejectedAt",
                     "enabled",
                     "isAdmin",
                     "githubId"
@@ -6758,6 +6785,11 @@
                     "approved": {
                       "type": "boolean"
                     },
+                    "rejectedAt": {
+                      "type": "number",
+                      "nullable": true,
+                      "description": "Unix seconds when an admin rejected the registration; null when not rejected"
+                    },
                     "enabled": {
                       "type": "boolean"
                     },
@@ -6774,6 +6806,7 @@
                     "username",
                     "email",
                     "approved",
+                    "rejectedAt",
                     "enabled",
                     "isAdmin",
                     "githubId"
@@ -6873,6 +6906,11 @@
                     "approved": {
                       "type": "boolean"
                     },
+                    "rejectedAt": {
+                      "type": "number",
+                      "nullable": true,
+                      "description": "Unix seconds when an admin rejected the registration; null when not rejected"
+                    },
                     "enabled": {
                       "type": "boolean"
                     },
@@ -6889,6 +6927,7 @@
                     "username",
                     "email",
                     "approved",
+                    "rejectedAt",
                     "enabled",
                     "isAdmin",
                     "githubId"
@@ -6993,6 +7032,11 @@
                     "approved": {
                       "type": "boolean"
                     },
+                    "rejectedAt": {
+                      "type": "number",
+                      "nullable": true,
+                      "description": "Unix seconds when an admin rejected the registration; null when not rejected"
+                    },
                     "enabled": {
                       "type": "boolean"
                     },
@@ -7016,6 +7060,7 @@
                     "username",
                     "email",
                     "approved",
+                    "rejectedAt",
                     "enabled",
                     "isAdmin",
                     "githubId",

@@ -41,6 +41,6 @@
 ///
 /// @param {String} $existing - the filter list this scrim already applies.
 @mixin scrim-blur-append($existing) {
-  -webkit-backdrop-filter: #{$existing} var(--app-bg-blur-fn, );
-  backdrop-filter: #{$existing} var(--app-bg-blur-fn, );
+  -webkit-backdrop-filter: #{$existing} var(--app-bg-blur-fn,);
+  backdrop-filter: #{$existing} var(--app-bg-blur-fn,);
 }

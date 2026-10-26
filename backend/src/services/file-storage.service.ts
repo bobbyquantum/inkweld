@@ -74,6 +74,9 @@ export class FileStorageService {
     const projectPath = this.getProjectPath(username, projectSlug);
     const filePath = path.join(projectPath, filename);
     this.ensureWithinBase(filePath, projectPath);
+    // Filenames may name a subdirectory (published files live in
+    // `published/<id>`), which a project's first such write must create.
+    await fs.mkdir(path.dirname(filePath), { recursive: true });
     await fs.writeFile(filePath, data);
     return filePath;
   }

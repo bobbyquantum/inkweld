@@ -116,13 +116,10 @@ export class EditAvatarDialogComponent {
         await this.localStorage.saveUserAvatar(username, blob);
       }
 
-      const currentUser = this.unifiedUserService.currentUser();
-      if (currentUser) {
-        await this.userService.setCurrentUser({
-          ...currentUser,
-          hasAvatar: true,
-        });
-      }
+      // Through the unified service, so a Browser or Cloud Sync profile
+      // updates its local user instead of planting it in the server
+      // UserService, which would then look signed in.
+      await this.unifiedUserService.updateUser({ hasAvatar: true });
 
       this.dialogRef.close(true);
     } catch (error) {

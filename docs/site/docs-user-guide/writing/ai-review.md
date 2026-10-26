@@ -17,7 +17,7 @@ Auto-Review is optional and is **only shown when your server administrator has t
 - **AI Text Generation** must be enabled
 - A text provider must be configured with an API key on the AI Providers page
 
-Auto-Review is not available without a server, so it does not appear in local-only mode.
+Auto-Review is not available without a server, so it does not appear with a Browser profile.
 
 :::caution[Your text is sent to an AI provider]
 When you run a review, the text of the document is sent to the AI provider your administrator has configured (for example OpenAI, OpenRouter, Anthropic or a compatible service). Do not run a review on writing you are not comfortable sharing with that provider. Ask your administrator which provider is used and how it handles data.

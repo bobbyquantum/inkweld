@@ -6,7 +6,7 @@ import {
   ProfileBackgroundPlainKind,
   type Project,
 } from '@inkweld/index';
-import { of } from 'rxjs';
+import { of, Subject } from 'rxjs';
 import { type Mock, type MockedObject, vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
@@ -61,6 +61,7 @@ describe('DialogGatewayService', () => {
   let service: DialogGatewayService;
   let dialogMock: MockedObject<MatDialog>;
   let dialogRefMock: Partial<MatDialogRef<any>>;
+  let keydown$: Subject<KeyboardEvent>;
 
   const mockActivationService = {
     activate: vi.fn().mockResolvedValue(undefined),
@@ -69,8 +70,11 @@ describe('DialogGatewayService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
+    keydown$ = new Subject<KeyboardEvent>();
     dialogRefMock = {
       afterClosed: vi.fn().mockReturnValue(of(null)),
+      keydownEvents: vi.fn().mockReturnValue(keydown$),
+      close: vi.fn(),
     };
 
     dialogMock = {
@@ -671,5 +675,73 @@ describe('DialogGatewayService', () => {
       maxWidth: '95vw',
     });
     expect(result).toEqual(dialogResult);
+  });
+  describe('Escape on dialogs that block backdrop clicks', () => {
+    const escapable: [string, () => Promise<unknown>][] = [
+      [
+        'confirmation',
+        () => service.openConfirmationDialog({ title: 'T', message: 'M' }),
+      ],
+      ['new element', () => service.openNewElementDialog()],
+      ['new folder', () => service.openNewFolderDialog()],
+      ['rename', () => service.openRenameDialog({ currentName: 'Old' })],
+      [
+        'move element',
+        () =>
+          service.openMoveElementDialog({
+            elementName: 'A',
+            fromPath: 'P',
+            toPath: 'Q',
+            positionLabel: 'inside',
+          }),
+      ],
+      [
+        'icon picker',
+        () =>
+          service.openIconPickerDialog({
+            current: '',
+            icons: [],
+            titleKey: 't',
+          }),
+      ],
+      ['file upload', () => service.openFileUploadDialog()],
+    ];
+
+    it.each(escapable)('closes the %s dialog on Escape', async (_, open) => {
+      await open();
+      const escape = new KeyboardEvent('keydown', {
+        key: 'Escape',
+        cancelable: true,
+      });
+
+      keydown$.next(escape);
+
+      expect(dialogRefMock.close).toHaveBeenCalledWith(undefined);
+      // Read by MatDialog to style the trigger it refocuses.
+      expect(
+        (dialogRefMock as { _closeInteractionType?: string })
+          ._closeInteractionType
+      ).toBe('keyboard');
+      expect(escape.defaultPrevented).toBe(true);
+    });
+
+    it('ignores other keys and modified Escape', async () => {
+      await service.openRenameDialog({ currentName: 'Old' });
+
+      keydown$.next(new KeyboardEvent('keydown', { key: 'Enter' }));
+      keydown$.next(
+        new KeyboardEvent('keydown', { key: 'Escape', shiftKey: true })
+      );
+
+      expect(dialogRefMock.close).not.toHaveBeenCalled();
+    });
+
+    it('keeps the edit project form open on Escape', async () => {
+      await service.openEditProjectDialog({ id: '1' } as unknown as Project);
+
+      keydown$.next(new KeyboardEvent('keydown', { key: 'Escape' }));
+
+      expect(dialogRefMock.close).not.toHaveBeenCalled();
+    });
   });
 });

@@ -97,6 +97,7 @@ export class PublishCssEmitterService {
       this.markRules(styles),
       this.structureRules(styles),
       this.worldbuildingRules(styles),
+      this.columnRules(styles),
     ]
       .filter(Boolean)
       .join('\n\n');
@@ -114,10 +115,38 @@ export class PublishCssEmitterService {
       .join('\n\n');
   }
 
+  /**
+   * Two-column layout for the single-file HTML output. Only emitted when the
+   * page style asks for two columns, so single-column documents keep their
+   * exact stylesheet. It targets `.ink-columns`, the wrapper the HTML
+   * generator puts around the content; the multi-page site and the EPUB never
+   * add that class, so they ignore the setting. Title page, contents,
+   * chapter and section titles span both columns; worldbuilding entries and
+   * figures are not split between columns; below 700px it is one column.
+   */
+  private columnRules(styles: PublishStyles | undefined | null): string {
+    const page = this.resolver.resolvePage(styles);
+    if (page.columns !== 2) return '';
+    return [
+      `.ink-columns { column-count: 2; column-gap: ${page.columnGap}in; }`,
+      '.ink-columns .title-page, .ink-columns .copyright, .ink-columns .dedication, .ink-columns .ink-toc, .ink-columns .ink-chapter-title, .ink-columns .ink-wb-section-title, .ink-columns .ink-page-break, .ink-columns .ink-chapter-break { column-span: all; }',
+      '.ink-columns .ink-wb-entry, .ink-columns figure, .ink-columns .ink-doc-table, .ink-columns .ink-doc-code-block { break-inside: avoid; }',
+      '.ink-columns .ink-wb-field { grid-column: span 12 !important; }',
+      '@media (max-width: 700px) { .ink-columns { column-count: 1; column-gap: normal; } }',
+    ].join('\n');
+  }
+
   private baseHtmlReset(): string {
+    // A published page is designed light: say so, and paint the page, so a
+    // reader's dark mode cannot leave dark text on a dark canvas.
     return `*,*::before,*::after { box-sizing: border-box; }
+:root { color-scheme: light; }
+html { background: #ffffff; }
 html, body { margin: 0; padding: 0; }
-img { max-width: 100%; height: auto; }`;
+body { overflow-x: clip; }
+img { max-width: 100%; height: auto; }
+.cover-page { width: 100vw; margin-left: calc(50% - 50vw); margin-right: calc(50% - 50vw); break-after: page; text-indent: 0; }
+.cover-page .cover-image-full { display: block; width: 100%; max-width: none; height: 100vh; object-fit: cover; }`;
   }
 
   private bodyRule(
@@ -238,34 +267,61 @@ ${indent}}`;
     epub = false
   ): string {
     const wb = this.resolver.resolveWorldbuildingEntry(styles, undefined);
+    // EPUB readers draw their own rounded corners
+    const bgRadius = epub
+      ? ''
+      : `border-radius: ${wb.entryBox.borderRadius ?? 4}pt; `;
     const rules: string[] = [
       `.ink-wb-section-title { ${textStyleDecls(
         textStyleFromWorldbuildingSection(styles),
         { epub }
       ).join(' ')} }`,
-      `.ink-wb-entry { ${boxStyleDecls(wb.entryBox, { epub }).join(' ')} }`,
+      // Entries are not boxed: the border draws a rule under the title,
+      // which also separates entries. Only an entry with an authored
+      // background becomes a padded panel (see .ink-wb-has-bg).
+      `.ink-wb-entry { margin-top: ${(wb.entryBox.marginTop ?? 12) + 6}pt; margin-bottom: ${wb.entryBox.marginBottom ?? 12}pt; }`,
+      ...(wb.entryBox.borderWidth
+        ? [
+            `.ink-wb-entry-header { border-bottom: ${Math.max(0.75, wb.entryBox.borderWidth * 1.5)}pt solid ${safeCssColor(wb.entryTitle.color) ?? '#333333'}; padding-bottom: 0.15em; margin-bottom: 0.6em; }`,
+          ]
+        : []),
       `.ink-wb-entry-title { ${textStyleDecls(wb.entryTitle, { epub }).join(' ')} }`,
       `.ink-wb-tab-heading { ${textStyleDecls(wb.tabHeading, { epub }).join(' ')} }`,
       `.ink-wb-field-label { ${textStyleDecls(wb.fieldLabel, { epub }).join(' ')} display: inline-block; min-width: 8em; margin-right: 0.5em; }`,
       `.ink-wb-field-value { ${textStyleDecls(wb.fieldValue, { epub }).join(' ')} }`,
       // Entry chrome: header row, schema badge, icons (hidden until the
       // icon font is confirmed loaded), authored backgrounds, field grid.
-      '.ink-wb-entry { border-radius: 12px; overflow: hidden; }',
       '.ink-wb-entry-header { display: flex; align-items: baseline; gap: 0.5em; flex-wrap: wrap; }',
       '.ink-wb-entry-header .ink-wb-entry-title { margin: 0; }',
       '.ink-wb-entry-schema { font-size: 0.75em; letter-spacing: 0.04em; text-transform: uppercase; color: #666; border: 1px solid #ccc; border-radius: 999px; padding: 0.1em 0.6em; }',
       '.ink-wb-icon { display: inline-block; width: 1.25em; height: 1.25em; vertical-align: -0.25em; margin-right: 0.35em; }',
       '.ink-wb-icon svg { display: block; width: 100%; height: 100%; fill: currentColor; }',
-      '.ink-wb-entry-image { display: block; max-height: 420px; object-fit: cover; border-radius: 8px; margin: 0.75em 0; }',
-      '.ink-wb-has-bg { background: var(--ink-wb-bg); background-size: cover; background-position: center; padding: 1em; }',
-      '.ink-wb-has-bg .ink-wb-tab, .ink-wb-has-bg .ink-wb-entry-header, .ink-wb-has-bg .ink-wb-entry-description { background: rgba(255, 255, 255, 0.85); border-radius: 8px; padding: 0.6em 0.8em; }',
-      '.ink-wb-has-bg-image .ink-wb-tab, .ink-wb-has-bg-image .ink-wb-entry-header, .ink-wb-has-bg-image .ink-wb-entry-description { -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }',
+      '.ink-wb-entry-image { display: block; max-height: 420px; object-fit: cover; border-radius: 4px; margin: 0.75em 0; }',
+      // Image beside the description, or centred on its own.
+      '.ink-wb-entry-intro { display: flex; align-items: center; gap: 1em; margin: 0.25em 0 0.75em; }',
+      '.ink-wb-entry-intro .ink-wb-entry-image { width: 34%; max-width: 280px; aspect-ratio: 1; margin: 0; flex: none; }',
+      '.ink-wb-entry-intro .ink-wb-entry-description { flex: 1; margin: 0; font-style: italic; }',
+      // Entry text is set flush and ragged, not like body paragraphs.
+      '.ink-wb-entry-description, .ink-wb-long p, .ink-wb-long li { text-indent: 0; text-align: left; }',
+      '.ink-wb-entry-intro-image-only { justify-content: center; }',
+      '.ink-wb-entry-intro-image-only .ink-wb-entry-image { width: 45%; }',
+      '@media (max-width: 600px) { .ink-wb-entry-intro { flex-direction: column; align-items: flex-start; } .ink-wb-entry-intro .ink-wb-entry-image { width: 100%; max-width: none; } }',
+      `.ink-wb-has-bg { background: var(--ink-wb-bg); background-size: cover; background-position: center; padding: ${wb.entryBox.paddingTop ?? 8}pt ${wb.entryBox.paddingLeft ?? 12}pt; ${bgRadius}overflow: hidden; }`,
+      // Over an image, a light veil keeps the text readable (as the PDF does).
+      '.ink-wb-has-bg-image { box-shadow: inset 0 0 0 100vmax rgba(255, 255, 255, 0.78); }',
       '.ink-wb-tab { margin-top: 0.75em; }',
       '.ink-wb-fields { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 0.5em 1.25em; margin: 0; }',
       '.ink-wb-field { grid-column: span 12; min-width: 0; }',
       '.ink-wb-field .ink-wb-field-label { display: block; min-width: 0; margin: 0; }',
       '.ink-wb-field .ink-wb-field-value { margin: 0.15em 0 0; overflow-wrap: anywhere; }',
       '.ink-wb-field-type-textarea .ink-wb-field-value { white-space: pre-line; }',
+      // Long text split into paragraphs, bullets and stat-block entries.
+      '.ink-wb-field-type-textarea .ink-wb-field-value .ink-wb-long { white-space: normal; }',
+      '.ink-wb-long p { margin: 0 0 0.45em; text-indent: 0; }',
+      '.ink-wb-long ul { margin: 0.2em 0 0.45em; padding-left: 1.2em; }',
+      // A field that starts a new row to keep a run of fields together.
+      // Two classes so the span rules' grid-column shorthand cannot reset it.
+      '.ink-wb-field.ink-wb-row-start { grid-column-start: 1; }',
       ...Array.from(
         { length: 12 },
         (_, i) => `.ink-wb-span-${i + 1} { grid-column: span ${i + 1}; }`
@@ -308,6 +364,13 @@ function textStyleDecls(s: TextStyle, opts: { epub: boolean }): string[] {
   if (s.firstLineIndent !== undefined && opts.epub)
     out.push(`text-indent: ${s.firstLineIndent}em;`);
   return out;
+}
+
+/** A hex colour safe to emit into CSS, or null. */
+function safeCssColor(value: string | undefined): string | null {
+  return value && /^#(?:[0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(value)
+    ? value
+    : null;
 }
 
 function boxStyleDecls(

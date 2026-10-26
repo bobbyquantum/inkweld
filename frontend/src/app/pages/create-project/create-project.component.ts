@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   effect,
   inject,
   type OnInit,
@@ -25,6 +26,7 @@ import { ProjectActivationService } from '../../services/local/project-activatio
 import { UnifiedProjectService } from '../../services/local/unified-project.service';
 import { ProjectServiceError } from '../../services/project/project.service';
 import {
+  type ProjectTemplateCatalog,
   type ProjectTemplateInfo,
   ProjectTemplateService,
 } from '../../services/project/project-template.service';
@@ -36,6 +38,9 @@ interface ProjectFormValue {
   slug: string;
   description: string;
 }
+
+const DEFAULT_GROUP_ID = 'worldbuilding';
+const DEFAULT_TEMPLATE_ID = 'worldbuilding-empty';
 
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
@@ -69,10 +74,26 @@ export class CreateProjectComponent implements OnInit {
 
   /** Current step (1: template selection, 2: project details) */
   step = signal<1 | 2>(1);
-  /** Available project templates */
-  templates = signal<ProjectTemplateInfo[]>([]);
+  /** The kinds of project on offer and the templates inside them */
+  catalog = signal<ProjectTemplateCatalog>({ groups: [], templates: [] });
+  /** The kind of project picked in step 1 */
+  selectedGroupId = signal<string>(DEFAULT_GROUP_ID);
   /** Currently selected template ID */
-  selectedTemplateId = signal<string>('worldbuilding-empty');
+  selectedTemplateId = signal<string>(DEFAULT_TEMPLATE_ID);
+  /** Templates of the picked kind: the bare starter first, then the demo */
+  groupTemplates = computed<ProjectTemplateInfo[]>(() =>
+    this.catalog()
+      .templates.filter(t => t.group === this.selectedGroupId())
+      .sort(
+        (a, b) =>
+          Number(a.variant === 'demo') - Number(b.variant === 'demo') ||
+          a.name.localeCompare(b.name)
+      )
+  );
+  /** The template that will be created */
+  selectedTemplate = computed(() =>
+    this.catalog().templates.find(t => t.id === this.selectedTemplateId())
+  );
   /** Whether templates are loading */
   loadingTemplates = signal(true);
 
@@ -125,7 +146,8 @@ export class CreateProjectComponent implements OnInit {
   ngOnInit(): void {
     // Reset all state to ensure fresh start each time page is visited
     this.step.set(1);
-    this.selectedTemplateId.set('worldbuilding-empty');
+    this.selectedGroupId.set(DEFAULT_GROUP_ID);
+    this.selectedTemplateId.set(DEFAULT_TEMPLATE_ID);
     this.loadingTemplates.set(true);
     this.isSaving.set(false);
     this.resetForm();
@@ -164,7 +186,24 @@ export class CreateProjectComponent implements OnInit {
     void this.router.navigate(['/']);
   }
 
+  /**
+   * Pick a kind of project. Keeps the kind of template already chosen (a demo
+   * stays a demo) when the new kind has one, otherwise starts from its
+   * starter.
+   */
+  selectGroup(groupId: string): void {
+    if (groupId === this.selectedGroupId()) return;
+    const current = this.selectedTemplate();
+    this.selectedGroupId.set(groupId);
+    const templates = this.groupTemplates();
+    const next =
+      templates.find(t => t.variant === current?.variant) ?? templates[0];
+    if (next) this.selectedTemplateId.set(next.id);
+  }
+
   selectTemplate(templateId: string): void {
+    const template = this.catalog().templates.find(t => t.id === templateId);
+    if (template?.group) this.selectedGroupId.set(template.group);
     this.selectedTemplateId.set(templateId);
   }
 
@@ -178,20 +217,38 @@ export class CreateProjectComponent implements OnInit {
 
   private async loadTemplates(): Promise<void> {
     try {
-      const templates = await this.templateService.getTemplates();
-      this.templates.set(templates);
+      const catalog = await this.templateService.getCatalog();
+      this.catalog.set(catalog);
+      // Start on the default, or on the first template when it is not offered
+      const start =
+        catalog.templates.find(t => t.id === DEFAULT_TEMPLATE_ID) ??
+        catalog.templates[0];
+      if (start) this.selectTemplate(start.id);
     } catch (error) {
       console.error('Failed to load templates:', error);
       // Fallback to empty template only
-      this.templates.set([
-        {
-          id: 'empty',
-          name: 'Empty Project',
-          description: 'A blank slate to start from scratch.',
-          icon: 'description',
-          folder: 'empty',
-        },
-      ]);
+      this.catalog.set({
+        groups: [
+          {
+            id: 'empty',
+            name: 'Empty Project',
+            description: 'A blank slate to start from scratch.',
+            icon: 'description',
+          },
+        ],
+        templates: [
+          {
+            id: 'empty',
+            name: 'Empty Project',
+            description: 'A blank slate to start from scratch.',
+            icon: 'description',
+            folder: 'empty',
+            group: 'empty',
+            variant: 'starter',
+          },
+        ],
+      });
+      this.selectTemplate('empty');
     } finally {
       this.loadingTemplates.set(false);
     }
@@ -216,7 +273,7 @@ export class CreateProjectComponent implements OnInit {
       );
 
       this.snackBar.open(
-        this.transloco.translate('project.snackbar.projectImported'),
+        this.transloco.translate('project.snackbar.projectCreated'),
         this.transloco.translate('close'),
         { duration: 3000 }
       );

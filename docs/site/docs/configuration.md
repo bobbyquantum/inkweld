@@ -529,6 +529,16 @@ APP_MODE=BOTH      # Anything (default)
 - **`ONLINE`** hides Browser and Cloud Sync. Cloud Sync keeps writing in the browser and mirrors it to the user's own cloud storage, so it counts as a browser profile here.
 - **`LOCAL`** hides adding a server. Cloud Sync is still offered when the build has a provider configured.
 
+In the app these settings read as:
+
+| `APP_MODE`       | Users can add                   | Users cannot add                |
+| ---------------- | ------------------------------- | ------------------------------- |
+| `ONLINE`         | Server profiles                 | Browser and Cloud Sync profiles |
+| `LOCAL`          | Browser and Cloud Sync profiles | Server profiles                 |
+| `BOTH` (default) | All three                       | Nothing                         |
+
+`LOCAL` is a legacy name: it means "no Inkweld Server", not the old "Local Mode" label (now **Browser profile**).
+
 Profiles that already exist on a device are never removed or locked: someone who made a Browser profile before you switched to `ONLINE` can still open it, reconnect a Cloud Sync account that lost its credentials, and move its projects to a server. Only creating new profiles of a forbidden kind is refused.
 
 **Which server decides.** The policy comes from the server the app belongs to, not from whichever profile happens to be active:
@@ -891,7 +901,7 @@ wrangler secret put SESSION_SECRET --env production
 | `TLS_ENABLED`                                                       | `false`                           | Serve HTTPS from the Bun server                                                                                                                             |
 | `TLS_CERT_PATH`                                                     | `./certs/cert.pem`                | TLS certificate (Bun only)                                                                                                                                  |
 | `TLS_KEY_PATH`                                                      | `./certs/key.pem`                 | TLS private key (Bun only)                                                                                                                                  |
-| `INKWELD_VERSION`                                                   | `0.1.0`                           | Version string reported by the server                                                                                                                       |
+| `INKWELD_VERSION`                                                   | The release version               | Overrides the reported server version. Leave unset; the built-in value is updated with each release                                                         |
 | `LOG_LEVEL`                                                         | `debug`/`info`                    | Log verbosity (`debug`, `info`, `warn`, `error`, `none`)                                                                                                    |
 | `DB_PATH`                                                           | `<DATA_PATH>/inkweld.db`          | SQLite file path (Bun only)                                                                                                                                 |
 | `DATA_PATH`                                                         | `./data`                          | Data storage directory (Bun only)                                                                                                                           |

@@ -1,5 +1,11 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { computed, inject, Injectable, signal } from '@angular/core';
+import {
+  computed,
+  DestroyRef,
+  inject,
+  Injectable,
+  signal,
+} from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { Router } from '@angular/router';
 import {
@@ -21,6 +27,10 @@ import { AuthTokenService } from '../auth/auth-token.service';
 import { LoggerService } from '../core/logger.service';
 import { StorageContextService } from '../core/storage-context.service';
 import { StorageService } from '../local/storage.service';
+import {
+  type ReconnectAttemptResult,
+  ReconnectScheduler,
+} from '../sync/reconnect-scheduler';
 
 export class UserServiceError extends Error {
   constructor(
@@ -30,6 +40,7 @@ export class UserServiceError extends Error {
       | 'SERVER_ERROR'
       | 'LOGIN_FAILED'
       | 'ACCOUNT_PENDING'
+      | 'ACCOUNT_REJECTED'
       | 'ACCESS_DENIED',
     message: string
   ) {
@@ -61,6 +72,17 @@ export class UserService {
   private readonly logger = inject(LoggerService);
   private readonly authTokenService = inject(AuthTokenService);
   private readonly storageContext = inject(StorageContextService);
+
+  /**
+   * Re-checks the session once the server is reachable again, after a start
+   * that had to fall back to the cached user (opened offline). Without it a
+   * revoked or expired session would go unnoticed until the next reload.
+   */
+  private sessionRecheck: ReconnectScheduler | null = null;
+
+  constructor() {
+    inject(DestroyRef).onDestroy(() => this.stopSessionRecheck());
+  }
 
   private get userCacheConfig() {
     return {
@@ -210,10 +232,48 @@ export class UserService {
           'UserService',
           'Using cached user due to network error'
         );
+        this.startSessionRecheck();
       } else if (!canRecover) {
         if (await this.recoverFromRejectedSession(refreshErr)) return;
         throw refreshErr;
       }
+    }
+  }
+
+  private startSessionRecheck(): void {
+    if (this.sessionRecheck?.isActive) return;
+    this.sessionRecheck = new ReconnectScheduler({
+      attempt: () => this.recheckSession(),
+      log: message => this.logger.info('UserService', `${message} (session)`),
+    });
+    this.sessionRecheck.start();
+  }
+
+  private stopSessionRecheck(): void {
+    this.sessionRecheck?.stop();
+    this.sessionRecheck = null;
+  }
+
+  /** One attempt of {@link sessionRecheck}: fetch `/users/me` once. */
+  private async recheckSession(): Promise<ReconnectAttemptResult> {
+    if (!this.isAuthenticated() || !this.authTokenService.getToken()) {
+      return 'stop';
+    }
+    try {
+      const user = await firstValueFrom(this.userAPI.getCurrentUser());
+      await this.processUserResult(user);
+      return 'connected';
+    } catch (error) {
+      const userError = this.formatError(error);
+      if (
+        userError.code === 'NETWORK_ERROR' ||
+        userError.code === 'SERVER_ERROR'
+      ) {
+        return 'retry';
+      }
+      this.error.set(userError);
+      await this.recoverFromRejectedSession(userError);
+      return 'stop';
     }
   }
 
@@ -425,6 +485,7 @@ export class UserService {
   }
 
   async clearCurrentUser(): Promise<void> {
+    this.stopSessionRecheck();
     // Clear JWT token using AuthTokenService (handles prefixed key)
     this.authTokenService.clearToken();
 
@@ -526,50 +587,67 @@ export class UserService {
         return new UserServiceError('NETWORK_ERROR', 'Server unavailable');
       }
       if (httpError.status === 401) {
-        // Check for specific login failure case
-        const errorBody = httpError.error as
-          | {
-              message?: string;
-              error?: string;
-              statusCode?: number;
-            }
-          | undefined;
-
-        // Handle both error response formats
-        if (
-          errorBody?.error === 'Invalid credentials' ||
-          errorBody?.message === 'Invalid credentials' ||
-          (errorBody?.message === 'Invalid username or password' &&
-            errorBody.error === 'Unauthorized')
-        ) {
-          return new UserServiceError(
-            'LOGIN_FAILED',
-            'Invalid username or password'
-          );
-        }
-        // Other 401 errors are treated as session expired
-        return new UserServiceError('SESSION_EXPIRED', 'Session expired');
+        return this.unauthorizedError(httpError);
       }
       if (httpError.status === 403) {
-        // Check if this is a pending approval error
-        const errorBody = httpError.error as
-          | {
-              message: string;
-              error: string;
-              statusCode: number;
-            }
-          | undefined;
-
-        if (
-          errorBody?.message?.includes('pending approval') ||
-          errorBody?.message?.includes('disabled')
-        ) {
-          return new UserServiceError('ACCOUNT_PENDING', errorBody.message);
-        }
-        return new UserServiceError('ACCESS_DENIED', 'Access denied');
+        return this.forbiddenError(httpError);
       }
     }
     return new UserServiceError('SERVER_ERROR', 'Failed to load user data');
+  }
+
+  /** Map a 401: wrong credentials on sign-in, otherwise an expired session. */
+  private unauthorizedError(httpError: HttpErrorResponse): UserServiceError {
+    const errorBody = httpError.error as
+      | {
+          message?: string;
+          error?: string;
+          statusCode?: number;
+        }
+      | undefined;
+
+    // Handle both error response formats
+    if (
+      errorBody?.error === 'Invalid credentials' ||
+      errorBody?.message === 'Invalid credentials' ||
+      (errorBody?.message === 'Invalid username or password' &&
+        errorBody.error === 'Unauthorized')
+    ) {
+      return new UserServiceError(
+        'LOGIN_FAILED',
+        'Invalid username or password'
+      );
+    }
+    // Other 401 errors are treated as session expired
+    return new UserServiceError('SESSION_EXPIRED', 'Session expired');
+  }
+
+  /** Map a 403: a sign-in refusal for the account, or plain access denial. */
+  private forbiddenError(httpError: HttpErrorResponse): UserServiceError {
+    // Sign-in refusals carry a `code` (ACCOUNT_PENDING / ACCOUNT_REJECTED)
+    // next to the `error` text.
+    const errorBody = httpError.error as
+      { message?: string; error?: string; code?: string } | undefined;
+
+    if (errorBody?.code === 'ACCOUNT_REJECTED') {
+      return new UserServiceError(
+        'ACCOUNT_REJECTED',
+        errorBody.error ?? 'Account registration was not approved'
+      );
+    }
+    if (errorBody?.code === 'ACCOUNT_PENDING') {
+      return new UserServiceError(
+        'ACCOUNT_PENDING',
+        errorBody.error ?? 'Account pending approval'
+      );
+    }
+    if (
+      errorBody?.message?.includes('pending approval') ||
+      errorBody?.message?.includes('disabled')
+    ) {
+      return new UserServiceError('ACCOUNT_PENDING', errorBody.message);
+    }
+    return new UserServiceError('ACCESS_DENIED', 'Access denied');
   }
 
   private async getCachedUser(): Promise<User | undefined> {

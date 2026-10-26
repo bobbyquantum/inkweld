@@ -2,7 +2,7 @@
 id: client-mode
 title: Choosing Your Mode
 sidebar_label: Choosing Your Mode
-description: Choose between Browser, Cloud Sync and Realtime Sync when starting Inkweld.
+description: Choose between Browser, Cloud Sync and Inkweld Server when starting Inkweld.
 sidebar_position: 1
 ---
 
@@ -13,7 +13,7 @@ import ThemedImage from '@site/src/components/ThemedImage';
 When you first open Inkweld, you'll see the mode selection screen. This lets you choose how you want to use the application.
 
 :::tip[Pre-Configured Instances]
-Some Inkweld instances are pre-configured to automatically start in Realtime Sync. If your instance has a fixed server URL configured in its build and auto-connect enabled, you'll skip this screen and go directly to the login page. Hosted instances can also enable mode selection (the preview deployment does this) — in that case you'll see this screen even though a server URL is pre-filled.
+Some Inkweld instances are pre-configured to automatically start with a Server profile. If your instance has a fixed server URL configured in its build and auto-connect enabled, you'll skip this screen and go directly to the login page. Hosted instances can also enable mode selection (the preview deployment does this) — in that case you'll see this screen even though a server URL is pre-filled.
 :::
 
 <ThemedImage
@@ -23,26 +23,25 @@ Some Inkweld instances are pre-configured to automatically start in Realtime Syn
 
 ## Three Ways to Use Inkweld
 
-|                                         |      Browser      |             Cloud Sync             |          Realtime Sync          |
-| --------------------------------------- | :---------------: | :--------------------------------: | :-----------------------------: |
-| Where your writing lives                | This browser only |   Your own Dropbox or Nextcloud    |        An Inkweld server        |
-| Account needed                          |       None        | Your Dropbox or Nextcloud account  | Inkweld account on that server  |
-| Works offline                           |        ✅         |    ✅ (syncs when back online)     |   ✅ (syncs when back online)   |
-| Use on several devices                  |        ⬜         |                 ✅                 |               ✅                |
-| Real-time co-editing, presence, cursors |        ⬜         |                 ⬜                 |               ✅                |
-| Share projects with collaborators       |        ⬜         |                 ⬜                 |               ✅                |
-| Version history & snapshots             |     ✅ local      |             ✅ synced              |            ✅ synced            |
-| Media library & covers                  |        ✅         |                 ✅                 |               ✅                |
-| Publishing (PDF, EPUB, HTML…)           |        ✅         |                 ✅                 |               ✅                |
-| AI features, MCP access                 |        ⬜         |                 ⬜                 | ✅ (if the server enables them) |
-| Backup                                  |  Export archive   | Continuous mirror + export archive |     Server + export archive     |
-| Move to another mode later              |        ✅         |                 ✅                 |               ✅                |
-| Cost to run                             |       Free        |     Free (your storage quota)      |  Self-host, or a hosted server  |
+|                                         |      Browser      |                 Cloud Sync                  |         Inkweld Server          |
+| --------------------------------------- | :---------------: | :-----------------------------------------: | :-----------------------------: |
+| Where your writing lives                | This browser only | Your own Dropbox, Google Drive or Nextcloud |        An Inkweld Server        |
+| Account needed                          |       None        |  Your Dropbox, Google or Nextcloud account  | Inkweld account on that server  |
+| Works offline                           |        ✅         |         ✅ (syncs when back online)         |   ✅ (syncs when back online)   |
+| Use on several devices                  |        ⬜         |                     ✅                      |               ✅                |
+| Real-time co-editing, presence, cursors |        ⬜         |                     ⬜                      |               ✅                |
+| Share projects with collaborators       |        ⬜         |                     ⬜                      |               ✅                |
+| Version history & snapshots             |     ✅ local      |                  ✅ synced                  |            ✅ synced            |
+| Media library & covers                  |        ✅         |                     ✅                      |               ✅                |
+| Publishing (PDF, EPUB, HTML…)           |        ✅         |                     ✅                      |               ✅                |
+| AI features, MCP access                 |        ⬜         |                     ⬜                      | ✅ (if the server enables them) |
+| Backup                                  |  Export archive   |     Continuous mirror + export archive      |     Server + export archive     |
+| Move to another mode later              |        ✅         |                     ✅                      |               ✅                |
+| Cost to run                             |       Free        |          Free (your storage quota)          |  Self-host, or a hosted server  |
 
 ### Names you'll see
 
-- **Browser**, **Cloud Sync** and **Realtime Sync** are the three modes you choose from. The same names are used throughout the guide, and each profile you create is one of these three kinds.
-- **Offline Mode** and **Local Mode** are status labels in the sync bar at the bottom of the project tree. They are not modes you choose. **Offline Mode** means the server connection is down and your changes are being kept on this device until it returns. **Local Mode** means you are in Browser mode, so there is no server to sync with and nothing is waiting to sync.
+- **Browser**, **Cloud Sync** and **Inkweld Server** are the three ways to use Inkweld. Each profile you create is one of these kinds: a Browser profile, a Cloud Sync profile or a Server profile.
 
 ### Browser
 
@@ -59,14 +58,14 @@ Ideal for trying Inkweld, complete privacy, or writing on a single machine.
 
 **Keep writing across your devices using your own cloud storage.**
 
-- Inkweld saves into its own folder in your cloud account: Dropbox (where it can only see that folder) or your own Nextcloud server
+- Inkweld saves into its own folder in your cloud account: Dropbox (where it can only see that folder), Google Drive (a hidden app folder it cannot see past) or your own Nextcloud server
 - Your projects still live in the browser and work offline; changes sync a few seconds after you stop typing and whenever you open the app
 - Open Inkweld on another device, connect the same account, and your projects appear. Edits made on two devices before they sync are merged automatically
 - There is no Inkweld server and no Inkweld account involved
 
 Ideal for a single writer with a laptop and a phone, or anyone who wants an off-device copy without running a server.
 
-### Realtime Sync
+### Inkweld Server
 
 **Connect to an Inkweld server for collaboration.**
 
@@ -82,10 +81,11 @@ Ideal for writing teams, and for anyone who wants sync that keeps running while 
 Choose **Cloud Sync** (the button reads **Connect Cloud Storage**) and pick your provider.
 
 :::note
-**Nextcloud** is always offered. **Dropbox** appears only when the Inkweld you are using has been set up with a Dropbox app key, which is a choice made by whoever builds or hosts it. If you only see Nextcloud, ask whoever runs your Inkweld whether Dropbox can be enabled.
+**Nextcloud** is always offered. **Dropbox** and **Google Drive** appear only when the Inkweld you are using has been set up with an app key for them, which is a choice made by whoever builds or hosts it. If you only see Nextcloud, ask whoever runs your Inkweld whether Dropbox or Google Drive can be enabled.
 :::
 
 - **Dropbox:** you sign in on Dropbox's own page. Inkweld never sees your password; Dropbox hands back permission to use a single app folder.
+- **Google Drive:** you sign in on Google's own page. Inkweld never sees your password; Google hands back permission to use a hidden folder that only Inkweld can read. Google's sign-in lasts an hour at a time and Inkweld renews it in the background; if your browser blocks that, a Google window may briefly open on your next click, and sync waits (keeping your edits) until it does.
 - **Nextcloud:** you enter your server address, username and an app password. Your Nextcloud needs a one-time change to allow Inkweld to connect; see [Cloud Sync with Nextcloud](./nextcloud-sync).
 
 - **First device:** Inkweld finds an empty folder and asks for a display name and username, prefilled from your account.
@@ -94,10 +94,10 @@ Choose **Cloud Sync** (the button reads **Connect Cloud Storage**) and pick your
 The user menu shows the sync status and has a **Sync now** action.
 
 :::info[Permissions]
-With Dropbox, Inkweld asks only for access to its own folder (`Apps/Inkweld`) and cannot see or change anything else in your account. With Nextcloud, the app password grants your normal file access, but Inkweld only touches the `Inkweld` folder; keep the password dedicated to Inkweld so it can be revoked on its own. Both can be revoked at any time from the provider's security settings.
+With Dropbox, Inkweld asks only for access to its own folder (`Apps/Inkweld`) and cannot see or change anything else in your account. With Google Drive, Inkweld asks only for its hidden app data folder: it cannot see the rest of your Drive, and you cannot browse its files either (use **Export** for a copy you can open). Remove that data from Drive settings → **Manage apps** → **Delete hidden app data**. With Nextcloud, the app password grants your normal file access, but Inkweld only touches the `Inkweld` folder; keep the password dedicated to Inkweld so it can be revoked on its own. Both can be revoked at any time from the provider's security settings.
 :::
 
-## Setting Up Browser Mode
+## Setting Up a Browser Profile
 
 If you choose **Browser**, you'll create a local profile:
 
@@ -114,12 +114,12 @@ If you choose **Browser**, you'll create a local profile:
 On the mode screen click **Start in Browser**, fill in these two fields, then click **Create Browser profile** to begin. Your profile is saved locally and you'll be taken to your bookshelf.
 
 :::info[Data Storage]
-In Browser mode, your projects are stored in your browser's IndexedDB. Clearing browser data will remove your projects, so use the [**Export** feature](../organizing/import-export) to create backups.
+With a Browser profile, your projects are stored in your browser's IndexedDB. Clearing browser data will remove your projects, so use the [**Export** feature](../organizing/import-export) to create backups.
 :::
 
-## Connecting to a Server
+## Connecting to an Inkweld Server
 
-If you choose **Realtime Sync**, you'll enter your server's URL:
+If you choose **Inkweld Server**, you'll enter your server's URL:
 
 <ThemedImage
   src="/img/generated/setup-server"
@@ -136,7 +136,7 @@ If you're accessing a hosted Inkweld deployment (like one on Cloudflare Workers)
 
 ## Profiles: Switching, Adding and Upgrading
 
-Each way of using Inkweld is a **profile**: one author identity in one place. A Browser profile is a username stored in this browser only; a cloud profile is one cloud account; a server profile is one login on one Inkweld server. You can have as many of each as you like, for example two Browser profiles `testuserA` and `testuserB`, two cloud accounts, or ten author accounts across several servers. Every profile keeps its own projects and settings on the device.
+Each way of using Inkweld is a **profile**: one author identity in one place. A Browser profile is a username stored in this browser only; a Cloud Sync profile is one cloud account; a Server profile is one login on one Inkweld Server. You can have as many of each as you like, for example two Browser profiles `testuserA` and `testuserB`, two cloud accounts, or ten author accounts across several servers. Every profile keeps its own projects and settings on the device.
 
 ### Switching
 
@@ -148,7 +148,7 @@ A profile can move up when your needs grow. The user menu shows an upgrade butto
 
 From a Browser profile choose **Connect to sync**:
 
-- **Sync to your own cloud storage** (Dropbox or Nextcloud). Inkweld creates the cloud profile, copies every project, setting and cover across under the same username, and starts syncing. Your other devices can then connect to the same account.
+- **Sync to your own cloud storage** (Dropbox, Google Drive or Nextcloud). Inkweld creates the cloud profile, copies every project, setting and cover across under the same username (shown but not editable, so project addresses stay the same), removes the Browser copy, and starts syncing. Your other devices can then connect to the same account.
 - **Move to an Inkweld server.** Log in or register, and your projects are copied to that server profile. This adds live collaboration and sharing.
 
 A Cloud Sync profile can move to a server the same way with **Move to a server**. Nothing is deleted: the old profile stays in the list, with a note of where its projects went and under which username, until you remove it.
@@ -172,4 +172,4 @@ Logging in to a server profile as a different author automatically gives that au
 
 ## Next Steps
 
-If you chose a server, continue with [Account Setup](./account-setup) to create your account. In Browser or Cloud Sync mode there is no account to set up — go straight to [The Bookshelf](./dashboard).
+If you chose a server, continue with [Account Setup](./account-setup) to create your account. With a Browser or Cloud Sync profile there is no account to set up — go straight to [The Bookshelf](./dashboard).

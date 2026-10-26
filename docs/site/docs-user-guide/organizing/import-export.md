@@ -44,12 +44,12 @@ my-novel_2026-09-02_14-30-00.inkweld.zip
 
 ### Exporting while connected to a server
 
-In Realtime Sync, the export waits for the server copy to be complete first:
+With a Server profile, the export waits for the server copy to be complete first:
 
 1. **Sync check** — if any document still has unsynced changes, the export stops and lists those documents. Wait a moment for sync to finish, then try again.
 2. **Media download** — the cover and any images not yet cached locally are fetched from the server so the archive is complete.
 
-In Browser and Cloud Sync modes there is no server check; the archive is built straight from your browser's storage.
+With Browser and Cloud Sync profiles there is no server check; the archive is built straight from your browser's storage.
 
 ## Importing a project
 
@@ -70,11 +70,11 @@ The dialog shows the archive's title, when it was exported, and how many element
 
 Choose a **project slug** — the short name used in the project's URL. Inkweld pre-fills it from the archive and checks availability as you type.
 
-| Rule       |                                                                                      |
-| ---------- | ------------------------------------------------------------------------------------ |
-| Length     | 3–50 characters                                                                      |
-| Characters | Lowercase letters, numbers, and hyphens                                              |
-| Unique     | Must not match another project in your account (or in this browser, in Browser mode) |
+| Rule       |                                                                                            |
+| ---------- | ------------------------------------------------------------------------------------------ |
+| Length     | 3–50 characters                                                                            |
+| Characters | Lowercase letters, numbers, and hyphens                                                    |
+| Unique     | Must not match another project in your account (or in this browser, for a Browser profile) |
 
 ### Step 3 — Import
 
@@ -88,7 +88,7 @@ The new project appears on your Bookshelf. Elements keep their original internal
 
 ### Backups
 
-Export regularly and store the archive in cloud storage or on an external drive. In Browser mode this matters most: projects live only in your browser's storage, and clearing site data removes them. Cloud Sync keeps a continuous mirror in your own storage, but an archive is still the portable copy.
+Export regularly and store the archive in cloud storage or on an external drive. With a Browser profile this matters most: projects live only in your browser's storage, and clearing site data removes them. Cloud Sync keeps a continuous mirror in your own storage, but an archive is still the portable copy.
 
 ### Moving between instances
 
@@ -96,7 +96,7 @@ Export from one Inkweld server, import on another. Archives are self-contained a
 
 ### Moving between modes
 
-Export the project in Browser or Cloud Sync mode, switch mode (see [Choosing Your Mode](../getting-started/client-mode)), sign in if needed, and import. For several projects at once, the built-in migration under **Manage profiles…** in the account menu does the same thing without the intermediate files.
+Export the project from a Browser or Cloud Sync profile, switch profile (see [Choosing Your Mode](../getting-started/client-mode)), sign in if needed, and import. For several projects at once, the built-in migration under **Manage profiles…** in the account menu does the same thing without the intermediate files.
 
 ### Duplicating a project
 

@@ -16,6 +16,7 @@ import { autoReviewRejectionService } from '../services/auto-review-rejection.se
 import { openAILintService } from '../services/openai-lint.service';
 import { requireAuth } from '../middleware/auth';
 import { requireAiEnabled } from '../utils/ai-kill-switch';
+import { documentRuntime } from '../utils/document-runtime';
 import { logger } from '../services/logger.service';
 import { type AppContext } from '../types/context';
 import { ProjectPathParamsSchema } from '../schemas/common.schemas';
@@ -69,7 +70,7 @@ async function loadProjectContext(c: Context<AppContext>, requireWrite = true) {
     }
   }
 
-  return { project, db, username, slug, docId };
+  return { project, db, username, slug, docId, runtime: documentRuntime(c) };
 }
 
 // Schemas
@@ -170,7 +171,7 @@ const reviewRoute = createRoute({
 });
 
 lintReviewRoutes.openapi(reviewRoute, async (c) => {
-  const { db, username, slug, docId } = await loadProjectContext(c);
+  const { db, username, slug, docId, runtime } = await loadProjectContext(c);
 
   if (!(await openAILintService.isAiEnabled(db))) {
     return c.json(
@@ -184,7 +185,7 @@ lintReviewRoutes.openapi(reviewRoute, async (c) => {
     const { style, level } = ReviewRequestSchema.parse(body);
     const documentId = `${username}:${slug}:${docId}/`;
 
-    const result = await autoReviewService.reviewDocument(db, documentId, style, level);
+    const result = await autoReviewService.reviewDocument(db, documentId, style, level, runtime);
     return c.json(result, 200);
   } catch (error: unknown) {
     lintReviewLog.error('Error in review endpoint', error);
@@ -237,7 +238,7 @@ const acceptRoute = createRoute({
 });
 
 lintReviewRoutes.openapi(acceptRoute, async (c) => {
-  const { db, project, username, slug, docId } = await loadProjectContext(c);
+  const { db, project, username, slug, docId, runtime } = await loadProjectContext(c);
 
   try {
     const body = await c.req.json();
@@ -248,9 +249,14 @@ lintReviewRoutes.openapi(acceptRoute, async (c) => {
     const documentId = `${username}:${slug}:${docId}/`;
 
     // Read mark info before accepting (the mark is removed on accept).
-    const info = await autoReviewService.getSuggestionInfo(documentId, suggestionId);
+    const info = await autoReviewService.getSuggestionInfo(documentId, suggestionId, runtime);
 
-    const success = await autoReviewService.acceptSuggestion(documentId, suggestionId, replacement);
+    const success = await autoReviewService.acceptSuggestion(
+      documentId,
+      suggestionId,
+      replacement,
+      runtime
+    );
     if (!success) {
       return c.json({ error: 'Suggestion not found' }, 404);
     }
@@ -313,7 +319,7 @@ const rejectRoute = createRoute({
 });
 
 lintReviewRoutes.openapi(rejectRoute, async (c) => {
-  const { db, project, username, slug, docId } = await loadProjectContext(c);
+  const { db, project, username, slug, docId, runtime } = await loadProjectContext(c);
 
   try {
     const body = await c.req.json();
@@ -321,9 +327,9 @@ lintReviewRoutes.openapi(rejectRoute, async (c) => {
     const documentId = `${username}:${slug}:${docId}/`;
 
     // Read mark info before rejecting (the mark is removed on reject).
-    const info = await autoReviewService.getSuggestionInfo(documentId, suggestionId);
+    const info = await autoReviewService.getSuggestionInfo(documentId, suggestionId, runtime);
 
-    const success = await autoReviewService.rejectSuggestion(documentId, suggestionId);
+    const success = await autoReviewService.rejectSuggestion(documentId, suggestionId, runtime);
     if (!success) {
       return c.json({ error: 'Suggestion not found' }, 404);
     }
@@ -384,11 +390,11 @@ const clearRoute = createRoute({
 });
 
 lintReviewRoutes.openapi(clearRoute, async (c) => {
-  const { username, slug, docId } = await loadProjectContext(c);
+  const { username, slug, docId, runtime } = await loadProjectContext(c);
 
   try {
     const documentId = `${username}:${slug}:${docId}/`;
-    await autoReviewService.clearAllMarks(documentId);
+    await autoReviewService.clearAllMarks(documentId, runtime);
     return c.json({ success: true }, 200);
   } catch (error: unknown) {
     lintReviewLog.error('Error clearing marks', error);

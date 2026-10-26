@@ -205,6 +205,31 @@ describe('ApprovalPendingComponent', () => {
     });
   });
 
+  it('should show the not-approved message for a rejected registration', () => {
+    mockActivatedRoute.snapshot.queryParams = { status: 'rejected' };
+
+    component.ngOnInit();
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(component.rejected).toBe(true);
+    expect(
+      compiled.querySelector('[data-testid="approval-rejected"]')
+    ).toBeTruthy();
+    expect(compiled.querySelector('mat-card-title')?.textContent).toContain(
+      'Registration Not Approved'
+    );
+    expect(compiled.textContent).toContain('Test Server');
+    expect(compiled.textContent).not.toContain(
+      'Awaiting Administrator Approval'
+    );
+  });
+
+  it('should not treat a pending registration as rejected', () => {
+    component.ngOnInit();
+    expect(component.rejected).toBe(false);
+  });
+
   it('should render the component template correctly', () => {
     mockActivatedRoute.snapshot.queryParams = {
       username: 'testuser',

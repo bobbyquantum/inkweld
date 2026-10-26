@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  createDefaultPublishStyles,
+  DEFAULT_COLUMN_GAP,
+} from './publish-style';
+import {
   getPublishStylePreset,
   PUBLISH_STYLE_PRESETS,
   reflowablePresets,
@@ -43,6 +47,18 @@ describe('publish-style-presets', () => {
       expect(a.baseText).not.toBe(b.baseText);
       a.baseText.fontSize = 999;
       expect(b.baseText.fontSize).not.toBe(999);
+    }
+  });
+
+  it('every preset and the defaults build single-column pages', () => {
+    expect(createDefaultPublishStyles().page.columns).toBe(1);
+    expect(createDefaultPublishStyles().page.columnGap).toBe(
+      DEFAULT_COLUMN_GAP
+    );
+    for (const preset of PUBLISH_STYLE_PRESETS) {
+      const page = preset.build().page;
+      expect(page.columns).toBe(1);
+      expect(page.columnGap).toBe(DEFAULT_COLUMN_GAP);
     }
   });
 

@@ -1367,7 +1367,7 @@ export class AdminService extends BaseService {
 
   /**
    * Reject a user
-   * Reject a pending user (sets approved to false)
+   * Reject a pending user: the account stays unapproved, is marked rejected (so it leaves the pending list) and is signed out
    * @endpoint post /api/v1/admin/users/{userId}/reject
    * @param userId User ID
    * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.

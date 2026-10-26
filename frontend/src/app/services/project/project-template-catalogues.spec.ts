@@ -10,6 +10,7 @@ import demoWorldbuilding from '../../../../public/assets/project-templates/world
 import emptyGenerators from '../../../../public/assets/project-templates/worldbuilding-empty/generators.json';
 import emptyRelationshipTypes from '../../../../public/assets/project-templates/worldbuilding-empty/relationship-types.json';
 import emptySchemas from '../../../../public/assets/project-templates/worldbuilding-empty/schemas.json';
+import { worldbuildingDataProblems } from '../../../testing/worldbuilding-template-checks';
 import type { ArchiveWorldbuildingData } from '../../models/project-archive';
 import type { ElementTypeSchema } from '../../models/schema-types';
 
@@ -74,6 +75,36 @@ describe('worldbuilding template catalogues', () => {
         );
       }
     }
+  });
+
+  it('should only store demo data under fields its schema shows', () => {
+    expect(
+      worldbuildingDataProblems(demoWorldbuildingList, demoSchemaList)
+    ).toEqual([]);
+  });
+
+  it('should report a flat value that shadows a field group', () => {
+    const schema = demoSchemaList.find(s => s.id === 'region-v1')!;
+    expect(
+      worldbuildingDataProblems(
+        [
+          {
+            elementId: 'vales',
+            schemaId: 'region-v1',
+            data: {
+              description: 'Identity text is allowed',
+              politics: 'Shadows politics.*',
+              population: 'A field',
+              populace: 'Not a field',
+            },
+          },
+        ],
+        [schema]
+      )
+    ).toEqual([
+      'vales: flat "politics" shadows the politics.* field group',
+      'vales: "populace" is not a field of region-v1',
+    ]);
   });
 
   it("should give every demo element its schema's default appearance", () => {

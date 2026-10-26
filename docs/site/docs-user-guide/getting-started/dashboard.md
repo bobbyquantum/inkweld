@@ -38,10 +38,10 @@ Projects shared with you by other users display a **group icon** badge, making i
 The top bar gives you quick access to:
 
 - **Search** — Find projects by title (on a phone, tap the search icon first)
-- **Sync All** — In Realtime Sync, brings every project you have downloaded to this device up to date with the server (see below)
+- **Sync All** — With a Server profile, brings every project you have downloaded to this device up to date with the server (see below)
 - **Sort** — Choose how projects are ordered (see below)
 - **+ Create** — Opens a menu with **New Project** and **Import Project**. See [Creating Your First Project](./first-project) and [Import & Export](../organizing/import-export)
-- **User menu** — Your avatar opens a menu with your profile, theme buttons, **Settings**, **About Inkweld**, **Take a tour**, and (in Realtime Sync) **Messages** and **Log out**
+- **User menu** — Your avatar opens a menu with your profile, theme buttons, **Settings**, **About Inkweld**, **Take a tour**, and (with a Server profile) **Messages** and **Log out**
 
 ### Sorting
 
@@ -63,7 +63,7 @@ Each project cover has a **⋮** menu (**Project options**):
 
 ### Sync All
 
-In Realtime Sync, **Sync All** updates every project you have downloaded to this device. It first asks the server which documents have changed, so projects with nothing new are quick. While it runs the button shows a progress percentage; click it to cancel. The button is greyed out when you are offline or have no downloaded projects, and it is not available in Browser or Cloud Sync mode.
+With a Server profile, **Sync All** updates every project you have downloaded to this device. It first asks the server which documents have changed, so projects with nothing new are quick. While it runs the button shows a progress percentage; click it to cancel. The button is greyed out when you are offline or have no downloaded projects, and it is not available with a Browser or Cloud Sync profile.
 
 ### Pending Invitations
 
@@ -74,7 +74,7 @@ When someone invites you to collaborate, a **Pending Invitations** section appea
 Announcements are notices from your server's administrators.
 
 - Visitors who are not signed in see the latest announcements on the welcome page.
-- Once you are signed in (Realtime Sync), they arrive in your **Messages** page. Choose **Messages** in the user menu; a badge shows how many are unread. Click **Mark all as read** at the top to clear the badge.
+- Once you are signed in to a Server profile, they arrive in your **Messages** page. Choose **Messages** in the user menu; a badge shows how many are unread. Click **Mark all as read** at the top to clear the badge.
 
 ### About
 

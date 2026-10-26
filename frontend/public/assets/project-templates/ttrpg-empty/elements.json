@@ -1,0 +1,130 @@
+[
+  {
+    "id": "readme-ttrpg",
+    "name": "README",
+    "type": "ITEM",
+    "order": 0,
+    "level": 0,
+    "parentId": null,
+    "expandable": false,
+    "version": 0,
+    "metadata": {}
+  },
+  {
+    "id": "jCg1tqF0h65O0c1JVxAUe",
+    "name": "Adventure",
+    "type": "FOLDER",
+    "order": 1,
+    "level": 0,
+    "parentId": null,
+    "expandable": true,
+    "version": 0,
+    "metadata": {
+      "icon": "folder"
+    }
+  },
+  {
+    "id": "N1wXkjyb1nvmq7aGlGMqy",
+    "name": "Party",
+    "type": "FOLDER",
+    "order": 2,
+    "level": 0,
+    "parentId": null,
+    "expandable": true,
+    "version": 0,
+    "metadata": {
+      "icon": "folder"
+    }
+  },
+  {
+    "id": "ESyA9E8Tnk_REhqWPSJYg",
+    "name": "NPCs",
+    "type": "FOLDER",
+    "order": 3,
+    "level": 0,
+    "parentId": null,
+    "expandable": true,
+    "version": 0,
+    "metadata": {
+      "icon": "folder"
+    }
+  },
+  {
+    "id": "ReQEavcmWtQ46vgDL8Q5E",
+    "name": "Locations",
+    "type": "FOLDER",
+    "order": 4,
+    "level": 0,
+    "parentId": null,
+    "expandable": true,
+    "version": 0,
+    "metadata": {
+      "icon": "folder"
+    }
+  },
+  {
+    "id": "cESIfwjmVLtSRKMb9dgM3",
+    "name": "Factions",
+    "type": "FOLDER",
+    "order": 5,
+    "level": 0,
+    "parentId": null,
+    "expandable": true,
+    "version": 0,
+    "metadata": {
+      "icon": "folder"
+    }
+  },
+  {
+    "id": "mPa1vF77gSzlxyHKW3_Z9",
+    "name": "Bestiary",
+    "type": "FOLDER",
+    "order": 6,
+    "level": 0,
+    "parentId": null,
+    "expandable": true,
+    "version": 0,
+    "metadata": {
+      "icon": "folder"
+    }
+  },
+  {
+    "id": "IHX_QZuUtXTIjSCHpKJf2",
+    "name": "Quests",
+    "type": "FOLDER",
+    "order": 7,
+    "level": 0,
+    "parentId": null,
+    "expandable": true,
+    "version": 0,
+    "metadata": {
+      "icon": "folder"
+    }
+  },
+  {
+    "id": "m5C62lgnYv0PVMxgR3yMK",
+    "name": "Session Notes",
+    "type": "FOLDER",
+    "order": 8,
+    "level": 0,
+    "parentId": null,
+    "expandable": true,
+    "version": 0,
+    "metadata": {
+      "icon": "folder"
+    }
+  },
+  {
+    "id": "CorS8RWJ_VVSuELwt9617",
+    "name": "Player Guide",
+    "type": "FOLDER",
+    "order": 9,
+    "level": 0,
+    "parentId": null,
+    "expandable": true,
+    "version": 0,
+    "metadata": {
+      "icon": "folder"
+    }
+  }
+]

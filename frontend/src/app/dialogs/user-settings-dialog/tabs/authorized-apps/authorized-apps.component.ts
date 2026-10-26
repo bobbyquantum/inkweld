@@ -34,6 +34,7 @@ import {
 } from '@inkweld/index';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
+import { StorageContextService } from '@services/core/storage-context.service';
 import { firstValueFrom } from 'rxjs';
 
 @Component({
@@ -59,6 +60,7 @@ export class AuthorizedAppsComponent implements OnInit {
   private readonly dialogGateway = inject(DialogGatewayService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly transloco = inject(TranslocoService);
+  private readonly storageContext = inject(StorageContextService);
 
   readonly sessions = signal<PublicOAuthSession[]>([]);
   readonly expandedSession = signal<OAuthSessionDetails | null>(null);
@@ -108,6 +110,12 @@ export class AuthorizedAppsComponent implements OnInit {
   }
 
   async loadSessions(): Promise<void> {
+    // OAuth sessions only exist on an Inkweld Server; a Browser or Cloud Sync
+    // profile must never contact one.
+    if (!this.storageContext.isServerMode()) {
+      this.sessions.set([]);
+      return;
+    }
     this.isLoading.set(true);
     try {
       const sessions = await firstValueFrom(

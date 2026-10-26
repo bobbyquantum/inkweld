@@ -1,11 +1,21 @@
 import bcrypt from 'bcryptjs';
 import { sessionWatermarkNow } from '../utils/session-validity';
-import { eq, like, or, asc, and, sql } from 'drizzle-orm';
+import { eq, like, or, asc, and, sql, isNull } from 'drizzle-orm';
 import type { DatabaseInstance } from '../types/context';
 import { users, type User, type InsertUser, type ProfileVisibility } from '../db/schema';
 import { configService } from './config.service';
 
 const SALT_ROUNDS = 10;
+
+/**
+ * Why an account may not sign in. `code` lets clients tell a rejected
+ * registration from one still awaiting a decision; the messages are the ones
+ * the sign-in routes have always returned for disabled and pending accounts.
+ */
+export interface LoginRefusal {
+  error: string;
+  code: 'ACCOUNT_DISABLED' | 'ACCOUNT_PENDING' | 'ACCOUNT_REJECTED';
+}
 
 export interface PaginatedUsersResult {
   users: User[];
@@ -266,16 +276,19 @@ class UserService {
    * Approve user (admin only)
    */
   async approveUser(db: DatabaseInstance, userId: string): Promise<void> {
-    await db.update(users).set({ approved: true }).where(eq(users.id, userId));
+    await db.update(users).set({ approved: true, rejectedAt: null }).where(eq(users.id, userId));
   }
 
   /**
-   * Reject/unapprove user (admin only)
+   * Reject/unapprove user (admin only). The account is kept (Delete removes
+   * it) but marked rejected, so it leaves the pending list and its owner is
+   * told the registration was not approved instead of being kept waiting.
    */
   async rejectUser(db: DatabaseInstance, userId: string): Promise<void> {
+    const now = sessionWatermarkNow();
     await db
       .update(users)
-      .set({ approved: false, sessionsValidFrom: sessionWatermarkNow() })
+      .set({ approved: false, rejectedAt: now, sessionsValidFrom: now })
       .where(eq(users.id, userId));
   }
 
@@ -468,10 +481,15 @@ class UserService {
   }
 
   /**
-   * List pending users awaiting approval (admin only)
+   * List pending users awaiting approval (admin only). Rejected accounts are
+   * also unapproved but are not waiting for a decision, so they are left out.
    */
   listPending(db: DatabaseInstance): Promise<User[]> {
-    return db.select().from(users).where(eq(users.approved, false)).orderBy(users.username);
+    return db
+      .select()
+      .from(users)
+      .where(and(eq(users.approved, false), isNull(users.rejectedAt)))
+      .orderBy(users.username);
   }
 
   /**
@@ -531,6 +549,16 @@ class UserService {
    */
   canLogin(user: User): boolean {
     return user.enabled && user.approved;
+  }
+
+  /** Why {@link canLogin} refuses this user, or null when it does not. */
+  loginRefusal(user: User): LoginRefusal | null {
+    if (!user.enabled) return { error: 'Account is disabled', code: 'ACCOUNT_DISABLED' };
+    if (user.approved) return null;
+    if (user.rejectedAt !== null) {
+      return { error: 'Account registration was not approved', code: 'ACCOUNT_REJECTED' };
+    }
+    return { error: 'Account pending approval', code: 'ACCOUNT_PENDING' };
   }
 }
 

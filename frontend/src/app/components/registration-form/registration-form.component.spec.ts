@@ -5,7 +5,11 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { provideRouter } from '@angular/router';
-import { AuthenticationService, type User } from '@inkweld/index';
+import {
+  AuthenticationService,
+  type SystemFeatures,
+  type User,
+} from '@inkweld/index';
 import { SetupService } from '@services/core/setup.service';
 import { SystemConfigService } from '@services/core/system-config.service';
 import { UserService } from '@services/user/user.service';
@@ -814,6 +818,46 @@ describe('RegistrationFormComponent', () => {
       await component.submit();
 
       expect(component.isRegistering()).toBe(false);
+    });
+  });
+
+  describe('serverFeatures input (registering on another server)', () => {
+    const otherServer = (passwordLoginEnabled: boolean) =>
+      ({
+        passwordLoginEnabled,
+        requireEmail: true,
+        passwordPolicy: { ...DEFAULT_POLICY, minLength: 20 },
+      }) as unknown as SystemFeatures;
+
+    it("follows the other server's password setting over the active one", () => {
+      // The active profile allows passwords; the target server does not
+      component.serverFeatures = otherServer(false);
+
+      expect(component.isPasswordLoginEnabled()).toBe(false);
+      component.form.username().value.set('newuser');
+      component.form.email().value.set('new@example.com');
+      expect(component.form().valid()).toBe(true);
+    });
+
+    it("applies the other server's email and password rules", () => {
+      component.serverFeatures = otherServer(true);
+
+      expect(component.isRequireEmail()).toBe(true);
+      component.form.password().value.set('Short1!');
+      expect(
+        component.form
+          .password()
+          .errors()
+          .some(e => e.kind === 'minLength')
+      ).toBe(true);
+    });
+
+    it('falls back to the active server when cleared', () => {
+      component.serverFeatures = otherServer(false);
+      component.serverFeatures = null;
+
+      expect(component.isPasswordLoginEnabled()).toBe(true);
+      expect(component.isRequireEmail()).toBe(false);
     });
   });
 

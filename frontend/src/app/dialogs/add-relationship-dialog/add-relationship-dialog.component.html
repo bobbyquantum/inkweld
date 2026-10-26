@@ -28,9 +28,10 @@
       <div class="type-description">
         <mat-icon>{{ getTypeIcon(type) }}</mat-icon>
         <span>
-          {{ 'relationships.addDialog.thisElement' | transloco }}
-          <strong>{{ type.name }}</strong>
-          {{ 'relationships.addDialog.selectedTarget' | transloco }}
+          {{
+            'relationships.addDialog.typeSummary'
+              | transloco: { name: type.name }
+          }}
           @if (type.showInverse && type.inverseLabel) {
             <br />
             <span class="inverse-note">

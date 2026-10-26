@@ -37,6 +37,14 @@ export interface StorageService {
 
   deleteProjectDirectory(username: string, projectSlug: string): Promise<void>;
 
+  /**
+   * Move every file of a project to a new slug (project rename): media,
+   * covers, published files and, on the filesystem, the `.yjs` store. A
+   * failure leaves the files under the old slug, so the rename can be retried.
+   * Callers must release the project's LevelDB handle first.
+   */
+  moveProjectDirectory(username: string, oldSlug: string, newSlug: string): Promise<void>;
+
   saveUserAvatar(username: string, data: BinaryData): Promise<void>;
 
   getUserAvatar(username: string): Promise<Buffer | ArrayBuffer | null>;
@@ -130,6 +138,10 @@ class FileStorageAdapter implements StorageService {
     await this.fileStorage.deleteProjectDirectory(username, projectSlug);
   }
 
+  async moveProjectDirectory(username: string, oldSlug: string, newSlug: string): Promise<void> {
+    await this.fileStorage.renameProjectDirectory(username, oldSlug, newSlug);
+  }
+
   async saveUserAvatar(username: string, data: BinaryData): Promise<void> {
     const buffer = this.toBuffer(data);
     await this.fileStorage.saveUserAvatar(username, buffer);
@@ -221,6 +233,10 @@ class R2StorageAdapter implements StorageService {
 
   async deleteProjectDirectory(username: string, projectSlug: string): Promise<void> {
     await this.r2Storage.deleteProjectDirectory(username, projectSlug);
+  }
+
+  async moveProjectDirectory(username: string, oldSlug: string, newSlug: string): Promise<void> {
+    await this.r2Storage.moveProjectDirectory(username, oldSlug, newSlug);
   }
 
   async saveUserAvatar(username: string, data: BinaryData): Promise<void> {

@@ -111,9 +111,9 @@ what a visitor sees.
 
 ---
 
-## Browser and Cloud Sync modes
+## Browser and Cloud Sync profiles
 
-In Browser or Cloud Sync mode there is no server to hold a configuration, so Inkweld uses the
+With a Browser or Cloud Sync profile there is no server to hold a configuration, so Inkweld uses the
 bundled image and the built-in presets, with the choice kept in the browser. The
 same applies when the server is unreachable: the last resolved background is
 re-applied from local storage on startup, so a branded login page does not flash

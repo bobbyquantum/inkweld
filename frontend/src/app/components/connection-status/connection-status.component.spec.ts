@@ -47,9 +47,9 @@ describe('ConnectionStatusComponent', () => {
       fixture.componentRef.setInput('syncState', DocumentSyncState.Syncing);
       await fixture.whenStable();
 
-      // Should display as "Offline Mode" to reduce visual noise
+      // Should display as "Offline" to reduce visual noise
       const statusText = fixture.nativeElement.querySelector('.status-text');
-      expect(statusText?.textContent?.trim()).toBe('Offline Mode');
+      expect(statusText?.textContent?.trim()).toBe('Offline');
 
       // Should show cloud_off icon (not a spinner)
       const icon = fixture.nativeElement.querySelector('.status-icon');
@@ -68,7 +68,7 @@ describe('ConnectionStatusComponent', () => {
       await fixture.whenStable();
 
       const statusText = fixture.nativeElement.querySelector('.status-text');
-      expect(statusText?.textContent?.trim()).toBe('Offline Mode');
+      expect(statusText?.textContent?.trim()).toBe('Offline');
 
       const icon = fixture.nativeElement.querySelector('.status-icon');
       expect(icon?.textContent?.trim()).toBe('cloud_off');
@@ -256,13 +256,13 @@ describe('ConnectionStatusComponent', () => {
   });
 
   describe('local mode display', () => {
-    it('should display "Local Mode" when isLocalMode is true', async () => {
+    it('should display "Saved in this browser" when isLocalMode is true', async () => {
       fixture.componentRef.setInput('syncState', DocumentSyncState.Local);
       fixture.componentRef.setInput('isLocalMode', true);
       await fixture.whenStable();
 
       const statusText = fixture.nativeElement.querySelector('.status-text');
-      expect(statusText?.textContent?.trim()).toBe('Local Mode');
+      expect(statusText?.textContent?.trim()).toBe('Saved in this browser');
     });
 
     it('should show folder icon when in local mode', async () => {
@@ -291,7 +291,7 @@ describe('ConnectionStatusComponent', () => {
       await fixture.whenStable();
 
       expect(component.syncTooltip()).toBe(
-        'Working in local mode - changes saved to browser storage'
+        'Working in a Browser profile - changes saved to browser storage'
       );
     });
 
@@ -308,13 +308,13 @@ describe('ConnectionStatusComponent', () => {
       expect(fetchSpy).not.toHaveBeenCalled();
     });
 
-    it('should show "Offline Mode" when isLocalMode is false and state is Local', async () => {
+    it('should show "Offline" when isLocalMode is false and state is Local', async () => {
       fixture.componentRef.setInput('syncState', DocumentSyncState.Local);
       fixture.componentRef.setInput('isLocalMode', false);
       await fixture.whenStable();
 
       const statusText = fixture.nativeElement.querySelector('.status-text');
-      expect(statusText?.textContent?.trim()).toBe('Offline Mode');
+      expect(statusText?.textContent?.trim()).toBe('Offline');
     });
   });
 
@@ -329,7 +329,7 @@ describe('ConnectionStatusComponent', () => {
         '[data-testid="connection-strap"]'
       );
       expect(strap).toBeTruthy();
-      expect(strap?.textContent).toContain('Offline Mode');
+      expect(strap?.textContent).toContain('Offline');
     });
 
     it('should render the strap while reconnecting (Syncing)', async () => {
@@ -342,7 +342,7 @@ describe('ConnectionStatusComponent', () => {
         '[data-testid="connection-strap"]'
       );
       expect(strap).toBeTruthy();
-      expect(strap?.textContent).toContain('Offline Mode');
+      expect(strap?.textContent).toContain('Offline');
     });
 
     it('should render the strap when unavailable', async () => {

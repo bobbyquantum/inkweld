@@ -1,3 +1,7 @@
+<a class="skip-link" href="#main-content" (click)="skipToContent($event)">
+  {{ 'app.skipToContent' | transloco }}
+</a>
+
 <!-- Version Compatibility Warning Bar -->
 @if (versionCompatibility.syncBlocked()) {
   <mat-toolbar class="version-warning-bar" color="warn">

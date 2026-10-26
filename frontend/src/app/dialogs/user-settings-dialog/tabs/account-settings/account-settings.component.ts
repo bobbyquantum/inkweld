@@ -28,6 +28,7 @@ import { type UserAuthProvider } from '@inkweld/model/user';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { SystemConfigService } from '@services/core/system-config.service';
 import { StorageUsageService } from '@services/user/storage-usage.service';
+import { UnifiedUserService } from '@services/user/unified-user.service';
 import { UserService } from '@services/user/user.service';
 
 interface AccountSettingsFormValue {
@@ -65,6 +66,11 @@ interface AccountSettingsFormValue {
 })
 export class AccountSettingsComponent implements OnInit {
   readonly userService = inject(UserService);
+  /**
+   * Resolves to the local user in Browser and Cloud Sync profiles, so those
+   * read and save the name they were set up with and never call the server.
+   */
+  private readonly unifiedUserService = inject(UnifiedUserService);
   readonly systemConfig = inject(SystemConfigService);
   /** Exposed so the template can show the over-quota guidance. */
   readonly storageUsage = inject(StorageUsageService);
@@ -109,7 +115,7 @@ export class AccountSettingsComponent implements OnInit {
   );
 
   ngOnInit(): void {
-    const user = this.userService.currentUser();
+    const user = this.unifiedUserService.currentUser();
     this.model.set({
       displayName: user.name ?? '',
       email: user.email ?? '',
@@ -148,7 +154,7 @@ export class AccountSettingsComponent implements OnInit {
    */
   private collectChanges(): UpdateProfileRequest {
     const data: UpdateProfileRequest = {};
-    const currentUser = this.userService.currentUser();
+    const currentUser = this.unifiedUserService.currentUser();
     const values = this.model();
 
     const newName = values.displayName.trim();
@@ -214,7 +220,11 @@ export class AccountSettingsComponent implements OnInit {
         return;
       }
 
-      await this.userService.updateProfile(data);
+      if (this.isLocalMode()) {
+        await this.unifiedUserService.updateUser({ name: data.name });
+      } else {
+        await this.userService.updateProfile(data);
+      }
       this.snackBar.open(
         this.transloco.translate('settings.accountTab.profileUpdated'),
         this.transloco.translate('close'),

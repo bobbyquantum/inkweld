@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, spyOn } from 'bun:test';
 import { fal } from '@fal-ai/client';
 import {
   FalAiImageProvider,
+  applyProfileOptions,
   parseAspectRatioSize,
 } from '../src/services/image-providers/falai-provider';
 import { TEST_API_KEYS } from './test-credentials';
@@ -272,5 +273,25 @@ describe('FalAiImageProvider', () => {
       expect(sizes).toContain('9:16@4K');
       expect(sizes).toContain('1:1@1K');
     });
+  });
+});
+
+describe('applyProfileOptions', () => {
+  it('adds profile model config to the Fal input', () => {
+    const input: Record<string, unknown> = { prompt: 'a lighthouse', output_format: 'png' };
+    applyProfileOptions(input, { quality: 'medium', output_format: 'jpeg' });
+    expect(input).toEqual({ prompt: 'a lighthouse', output_format: 'jpeg', quality: 'medium' });
+  });
+
+  it('never replaces the prompt or copies undefined values', () => {
+    const input: Record<string, unknown> = { prompt: 'a lighthouse' };
+    applyProfileOptions(input, { prompt: 'something else', background: undefined });
+    expect(input).toEqual({ prompt: 'a lighthouse' });
+  });
+
+  it('leaves the input alone without options', () => {
+    const input: Record<string, unknown> = { prompt: 'a lighthouse' };
+    applyProfileOptions(input, undefined);
+    expect(input).toEqual({ prompt: 'a lighthouse' });
   });
 });

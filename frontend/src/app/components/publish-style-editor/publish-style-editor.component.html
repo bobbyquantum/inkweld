@@ -90,6 +90,47 @@
           </mat-form-field>
           <mat-form-field appearance="outline">
             <mat-label>{{
+              'publish.styleEditor.columns' | transloco
+            }}</mat-label>
+            <mat-select
+              [value]="pageColumns"
+              (selectionChange)="updatePage('columns', $event.value)"
+              data-testid="page-columns-select">
+              <mat-option [value]="1">{{
+                'publish.styleEditor.columnsOne' | transloco
+              }}</mat-option>
+              <mat-option [value]="2">{{
+                'publish.styleEditor.columnsTwo' | transloco
+              }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+          @if (pageColumns === 2) {
+            <mat-form-field appearance="outline">
+              <mat-label>{{
+                'publish.styleEditor.columnGap' | transloco
+              }}</mat-label>
+              <input
+                matInput
+                id="page-column-gap"
+                [attr.aria-label]="
+                  'publish.styleEditor.columnGapAria' | transloco
+                "
+                data-testid="page-column-gap"
+                type="number"
+                min="0"
+                max="2"
+                step="0.05"
+                [value]="pageColumnGap"
+                (change)="
+                  updatePage(
+                    'columnGap',
+                    parsePositiveNumber($event) ?? pageColumnGap
+                  )
+                " />
+            </mat-form-field>
+          }
+          <mat-form-field appearance="outline">
+            <mat-label>{{
               'publish.styleEditor.marginTop' | transloco
             }}</mat-label>
             <input

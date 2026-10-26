@@ -71,6 +71,15 @@ export class AuthTokenService {
   }
 
   /**
+   * Store a token for a specific configuration (used to put back a session
+   * that a sign-in on that profile replaced)
+   */
+  setTokenForConfig(configId: string, token: string): void {
+    const prefix = this.storageContext.getPrefixForConfig(configId);
+    localStorage.setItem(`${prefix}${this.TOKEN_KEY}`, token);
+  }
+
+  /**
    * Clear token for a specific configuration
    */
   clearTokenForConfig(configId: string): void {
@@ -86,7 +95,6 @@ export class AuthTokenService {
     const token = this.getTokenForConfig(fromConfigId);
     this.clearTokenForConfig(fromConfigId);
     if (token === null) return;
-    const prefix = this.storageContext.getPrefixForConfig(toConfigId);
-    localStorage.setItem(`${prefix}${this.TOKEN_KEY}`, token);
+    this.setTokenForConfig(toConfigId, token);
   }
 }

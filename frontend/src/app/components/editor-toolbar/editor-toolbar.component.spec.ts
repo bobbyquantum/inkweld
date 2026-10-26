@@ -194,6 +194,27 @@ describe('EditorToolbarComponent', () => {
     expect(component).toBeTruthy();
   });
 
+  it('gives every icon-only toolbar button an accessible name', () => {
+    const buttons = Array.from(
+      (
+        fixture.nativeElement as HTMLElement
+      ).querySelectorAll<HTMLButtonElement>('button')
+    );
+    const unnamed = buttons.filter(
+      button =>
+        !button.getAttribute('aria-label')?.trim() &&
+        !button.textContent?.replace(/\s+/g, '').length
+    );
+
+    expect(buttons.length).toBeGreaterThan(10);
+    expect(unnamed).toEqual([]);
+    expect(
+      fixture.nativeElement
+        .querySelector('[data-testid="toolbar-undo"]')
+        .getAttribute('aria-label')
+    ).toBe('Undo (Ctrl+Z)');
+  });
+
   describe('Text Formatting', () => {
     it('should toggle bold', () => {
       vi.useFakeTimers();

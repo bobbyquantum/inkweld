@@ -110,6 +110,12 @@ describe('FileStorageService', () => {
       expect(Buffer.compare(content, data)).toBe(0);
     });
 
+    it('creates a subdirectory named in the filename', async () => {
+      await service.saveProjectFile(testUser, testSlug, 'published/file-1', 'PDF bytes');
+      const content = await service.readProjectFile(testUser, testSlug, 'published/file-1');
+      expect(content.toString()).toBe('PDF bytes');
+    });
+
     it('should overwrite existing file', async () => {
       await service.saveProjectFile(testUser, testSlug, 'draft.txt', 'v1');
       await service.saveProjectFile(testUser, testSlug, 'draft.txt', 'v2');

@@ -23,6 +23,11 @@ interface MockProviderInstance {
   /** y-websocket's idle-timer timestamp; the guard bumps it on every message. */
   wsLastMessageReceived: number;
   destroy: ReturnType<typeof vi.fn>;
+  /**
+   * The original `destroy` spy. installWebSocketResilience wraps `destroy`
+   * to clear its keepalive, so assert on this one.
+   */
+  _destroySpy: ReturnType<typeof vi.fn>;
   awareness: { setLocalStateField: ReturnType<typeof vi.fn>; clientID: number };
   /** Options captured from the constructor's 4th argument. */
   _options: Record<string, unknown>;
@@ -72,6 +77,7 @@ const { MockWebsocketProvider, mockProviderInstances, resetMockInstances } =
       });
       disconnect = vi.fn();
       destroy = vi.fn();
+      _destroySpy = this.destroy;
       wsconnected = false;
       wsLastMessageReceived = 0;
       awareness = {
@@ -194,7 +200,7 @@ describe('authenticated-websocket-provider', () => {
       await expect(providerPromise).rejects.toThrow(
         'WebSocket authentication denied: invalid-token'
       );
-      expect(mockProvider.disconnect).toHaveBeenCalled();
+      expect(mockProvider._destroySpy).toHaveBeenCalled();
     });
 
     it('should reject on disconnect before auth', async () => {
@@ -217,6 +223,50 @@ describe('authenticated-websocket-provider', () => {
       await expect(providerPromise).rejects.toThrow(
         'WebSocket disconnected before authentication'
       );
+      expect(mockProvider._destroySpy).toHaveBeenCalled();
+    });
+
+    it('rejects when the socket closes before it ever opened', async () => {
+      const providerPromise = createAuthenticatedWebsocketProvider(
+        'ws://localhost:8333/api/v1/ws/yjs?documentId=test:doc:id',
+        '',
+        mockDoc,
+        'test-token'
+      );
+      const mockProvider = mockProviderInstances[0];
+
+      mockProvider._listeners.get('connection-close')?.forEach(cb => cb(null));
+
+      await expect(providerPromise).rejects.toThrow(
+        'WebSocket closed before authentication'
+      );
+      expect(mockProvider._destroySpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('destroys the provider when the first connection fails, so it stops retrying unauthenticated', async () => {
+      const providerPromise = createAuthenticatedWebsocketProvider(
+        'ws://localhost:8333/api/v1/ws/yjs?documentId=test:doc:id',
+        '',
+        mockDoc,
+        'test-token'
+      );
+      const mockProvider = mockProviderInstances[0];
+
+      // Offline: the socket errors without ever connecting.
+      mockProvider._listeners
+        .get('connection-error')
+        ?.forEach(cb => cb(new Event('error')));
+
+      await expect(providerPromise).rejects.toThrow(
+        'WebSocket connection error'
+      );
+      expect(mockProvider._destroySpy).toHaveBeenCalledTimes(1);
+
+      // A later error from the same (destroyed) provider changes nothing.
+      mockProvider._listeners
+        .get('connection-error')
+        ?.forEach(cb => cb(new Event('error')));
+      expect(mockProvider._destroySpy).toHaveBeenCalledTimes(1);
     });
 
     it('should reject with Error.message when connection-error is an Error object', async () => {

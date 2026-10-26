@@ -433,8 +433,45 @@ export class UnifiedProjectService {
     }
 
     await this.importTemplateMedia(username, slug, archive.media);
+    await this.applyTemplateCover(username, slug, archive.media);
 
     return { documentIds, worldbuildingIds };
+  }
+
+  /** Whether a template media file is the project's cover. */
+  private isCoverMedia(entry: ProjectArchive['media'][number]): boolean {
+    return entry.mediaId.startsWith('cover-');
+  }
+
+  /**
+   * Set the project's cover from the template's cover image, the way
+   * choosing one in the project settings does: upload it (the server, or
+   * local storage, names it) and record it as the project's cover.
+   */
+  private async applyTemplateCover(
+    username: string,
+    slug: string,
+    media: ProjectArchive['media']
+  ): Promise<void> {
+    const cover = media.find(entry => this.isCoverMedia(entry) && entry.blob);
+    if (!cover?.blob) return;
+    try {
+      const filename = await this.projectService.uploadProjectCover(
+        username,
+        slug,
+        cover.blob
+      );
+      await this.localElements.saveProjectMeta(username, slug, {
+        coverMediaId: filename.replace(/\.[^.]+$/, ''),
+      });
+    } catch (error) {
+      // The project is usable without a cover; don't fail creation over it.
+      this.logger.warn(
+        'UnifiedProject',
+        `Failed to set the template cover for ${username}/${slug}`,
+        error
+      );
+    }
   }
 
   private async importTemplateMedia(
@@ -446,7 +483,8 @@ export class UnifiedProjectService {
     const projectKey = `${username}/${slug}`;
     // Sequential: one IndexedDB write at a time for large blobs.
     await forEachSequential(media, async entry => {
-      if (!entry.blob) return;
+      // The cover is stored under the name the project gives it instead
+      if (!entry.blob || this.isCoverMedia(entry)) return;
       await this.localStorage.saveMedia(
         projectKey,
         entry.mediaId,

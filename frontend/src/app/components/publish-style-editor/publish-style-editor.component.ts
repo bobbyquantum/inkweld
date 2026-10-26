@@ -18,10 +18,12 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import {
   createDefaultPublishStyles,
+  DEFAULT_COLUMN_GAP,
   type DocNodeKey,
   type DocNodeStyles,
   type FontStyle,
   type FontWeight,
+  type PageColumns,
   type PageSize,
   type PageStyle,
   PUBLISH_FONT_TOKENS,
@@ -181,6 +183,15 @@ export class PublishStyleEditorComponent {
   }
 
   // ---- Page ----
+
+  /** Column count for the page; plans saved before columns existed have none. */
+  protected get pageColumns(): PageColumns {
+    return this.styles.page.columns === 2 ? 2 : 1;
+  }
+
+  protected get pageColumnGap(): number {
+    return this.styles.page.columnGap ?? DEFAULT_COLUMN_GAP;
+  }
 
   updatePage<K extends keyof PageStyle>(key: K, value: PageStyle[K]): void {
     this.emit({

@@ -26,6 +26,12 @@ import { type TimeSystem } from '../../models/time-system';
 import { LoggerService } from '../core/logger.service';
 
 /**
+ * What a template contains: a starter has the structure (element types,
+ * folders, publishing plans) and no content; a demo is filled in to explore.
+ */
+export type ProjectTemplateVariant = 'starter' | 'demo';
+
+/**
  * Template metadata for display in the UI.
  */
 export interface ProjectTemplateInfo {
@@ -39,13 +45,36 @@ export interface ProjectTemplateInfo {
   icon: string;
   /** Folder name in assets */
   folder: string;
+  /** The kind of project this belongs to; templates sharing one are offered together */
+  group?: string;
+  /** Whether it is a bare starter or a filled-in demo (defaults to a starter) */
+  variant?: ProjectTemplateVariant;
 }
 
 /**
- * Template index file structure.
+ * A kind of project, shown as one choice in the new project picker. Its
+ * templates (a starter, a demo) are offered once the kind is picked.
+ */
+export interface ProjectTemplateGroup {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+}
+
+/** The template index: kinds of project and the templates inside them. */
+export interface ProjectTemplateCatalog {
+  groups: ProjectTemplateGroup[];
+  templates: ProjectTemplateInfo[];
+}
+
+/**
+ * Template index file structure. `groups` is optional: an index without it
+ * lists every template as a kind of its own.
  */
 interface TemplateIndex {
   version: number;
+  groups?: ProjectTemplateGroup[];
   templates: ProjectTemplateInfo[];
 }
 
@@ -68,22 +97,31 @@ export class ProjectTemplateService {
 
   private readonly TEMPLATES_BASE_PATH = 'assets/project-templates/';
 
-  private cachedIndex: ProjectTemplateInfo[] | null = null;
+  private cachedCatalog: ProjectTemplateCatalog | null = null;
 
   /**
    * Get the list of available project templates.
    */
   async getTemplates(): Promise<ProjectTemplateInfo[]> {
-    if (this.cachedIndex) {
-      return this.cachedIndex;
+    return (await this.getCatalog()).templates;
+  }
+
+  /**
+   * Get the kinds of project and the templates in each. Every template
+   * belongs to a group; one with none, or with an unknown one, gets a group
+   * of its own, so an index written before groups existed still works.
+   */
+  async getCatalog(): Promise<ProjectTemplateCatalog> {
+    if (this.cachedCatalog) {
+      return this.cachedCatalog;
     }
 
     try {
       const index = await firstValueFrom(
         this.http.get<TemplateIndex>(`${this.TEMPLATES_BASE_PATH}index.json`)
       );
-      this.cachedIndex = index.templates;
-      return this.cachedIndex;
+      this.cachedCatalog = this.buildCatalog(index);
+      return this.cachedCatalog;
     } catch (error) {
       this.logger.error(
         'ProjectTemplateService',
@@ -92,6 +130,24 @@ export class ProjectTemplateService {
       );
       throw error;
     }
+  }
+
+  private buildCatalog(index: TemplateIndex): ProjectTemplateCatalog {
+    const declared = index.groups ?? [];
+    const known = new Set(declared.map(g => g.id));
+    const groups = [...declared];
+    const templates = index.templates.map(template => {
+      if (template.group && known.has(template.group)) return template;
+      groups.push({
+        id: template.id,
+        name: template.name,
+        description: template.description,
+        icon: template.icon,
+      });
+      known.add(template.id);
+      return { ...template, group: template.id };
+    });
+    return { groups, templates };
   }
 
   /**
@@ -200,7 +256,7 @@ export class ProjectTemplateService {
    * Clear the cached template index.
    */
   clearCache(): void {
-    this.cachedIndex = null;
+    this.cachedCatalog = null;
   }
 
   /**

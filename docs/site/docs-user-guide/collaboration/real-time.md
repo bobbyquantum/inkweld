@@ -41,14 +41,14 @@ Each collaborator's cursor appears in the document with their assigned color. Na
 
 The sync indicator shows the state of your connection to the server. When the sidebar is expanded, or on a phone, it appears as a slim strip at the bottom that shows up only when something needs your attention (you are offline, reconnecting or cannot connect). When the sidebar is collapsed, a cloud icon is always shown instead. Hover over either for details.
 
-| Status                | Icon        | Meaning                                                                                                       |
-| --------------------- | ----------- | ------------------------------------------------------------------------------------------------------------- |
-| **Connected**         | Cloud, tick | Full real-time sync active; hover to see "Project is synced with server"                                      |
-| **Offline Mode**      | Cloud, off  | No connection (or still connecting). Changes are saved locally and Inkweld keeps retrying                     |
-| **Connection Failed** | Error       | The server could not be reached; the tooltip includes the last error                                          |
-| **Local Mode**        | Folder      | You are working in Browser mode, so there is no server to connect to; this is normal (the strip stays hidden) |
+| Status                    | Icon        | Meaning                                                                                                       |
+| ------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------- |
+| **Connected**             | Cloud, tick | Full real-time sync active; hover to see "Project is synced with server"                                      |
+| **Offline**               | Cloud, off  | No connection (or still connecting). Changes are saved locally and Inkweld keeps retrying                     |
+| **Connection Failed**     | Error       | The server could not be reached; the tooltip includes the last error                                          |
+| **Saved in this browser** | Folder      | You are using a Browser profile, so there is no server to connect to; this is normal (the strip stays hidden) |
 
-While Inkweld is connecting, the status reads **Offline Mode** and the **Retry sync** button spins (its tooltip reads "Connecting to server..."). Brief drops of a few seconds, such as when you switch browser tabs, are not shown, so the indicator does not flicker. Press the sync button to retry right away. When you reconnect, local and remote changes merge automatically.
+While Inkweld is connecting, the status reads **Offline** and the **Retry sync** button spins (its tooltip reads "Connecting to server..."). Brief drops of a few seconds, such as when you switch browser tabs, are not shown, so the indicator does not flicker. Press the sync button to retry right away. When you reconnect, local and remote changes merge automatically.
 
 If your server limits storage and your account is over its allowance, a short warning appears next to the status. Editing and syncing keep working; only new uploads are paused. See [User Settings](../settings/user-settings).
 

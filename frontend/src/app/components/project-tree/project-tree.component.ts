@@ -877,6 +877,14 @@ export class ProjectTreeComponent implements OnDestroy {
   }
 
   /**
+   * Opens the new element dialog for the project root (from the context menu
+   * on the empty space below the tree).
+   */
+  public onCreateNewElementAtRoot(): void {
+    this.projectStateService.showNewElementDialog();
+  }
+
+  /**
    * Creates a new element inside a specific folder (from context menu).
    */
   public onCreateNewElementInFolder(folder: ProjectElement): void {

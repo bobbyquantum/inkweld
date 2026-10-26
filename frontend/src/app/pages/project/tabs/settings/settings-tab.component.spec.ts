@@ -1001,6 +1001,33 @@ describe('SettingsTabComponent', () => {
       expect(projectsService.updateProject).not.toHaveBeenCalled();
     });
 
+    it('offers renaming on a server profile', () => {
+      expect(
+        fixture.nativeElement.querySelector(
+          '[data-testid="rename-project-card"]'
+        )
+      ).not.toBeNull();
+    });
+
+    it('hides renaming and never calls the server outside a server profile', async () => {
+      (setupService.getMode as ReturnType<typeof vi.fn>).mockReturnValue(
+        'local'
+      );
+      fixture.destroy();
+      fixture = TestBed.createComponent(SettingsTabComponent);
+      component = fixture.componentInstance;
+      fixture.detectChanges();
+
+      expect(
+        fixture.nativeElement.querySelector(
+          '[data-testid="rename-project-card"]'
+        )
+      ).toBeNull();
+      component['renameModel'].set({ newProjectSlug: 'new-slug' });
+      await component.renameProject();
+      expect(projectsService.updateProject).not.toHaveBeenCalled();
+    });
+
     it('should not rename if no project', async () => {
       (projectStateService.project as ReturnType<typeof signal>).set(undefined);
       component['renameModel'].set({ newProjectSlug: 'new-slug' });

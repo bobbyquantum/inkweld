@@ -148,9 +148,9 @@ On top of the kill switch, every user makes their own **No AI / Allow AI** choic
 
 The user's choice can only turn AI off; it never overrides the kill switch. It hides image generation, the AI linting plugin and Auto-Review, and the project MCP settings. It also turns off WebMCP. The choice is stored in the user's browser and shared by every profile in it. It is not sent to the server, so the server-side enforcement above is unchanged.
 
-## Browser and Cloud Sync modes
+## Browser and Cloud Sync profiles
 
-When Inkweld is running in **Browser** or **Cloud Sync** mode (no Realtime Sync server connection), the AI kill switch is automatically enabled. This is because:
+When Inkweld is running with a **Browser or Cloud Sync profile** (no Inkweld Server connection), the AI kill switch is automatically enabled. This is because:
 
 1. AI features require server communication
 2. Local-only mode shouldn't send data to external services

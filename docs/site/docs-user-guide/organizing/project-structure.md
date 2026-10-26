@@ -153,12 +153,12 @@ At the bottom of the navigator, you'll find quick access to:
 
 The user menu appears in the top-right corner of the interface. Click your avatar (or initials) to access:
 
-- **Messages** — View system announcements (Realtime Sync)
+- **Messages** — View system announcements (Server profile)
 - **Admin** — Access the admin dashboard (if you're an administrator)
 - **Theme** — Switch between light, dark and follow-system
 - **Settings** — Configure application preferences (connection, display options)
 - **About**
-- **Log out** — Sign out of your account (Realtime Sync)
+- **Log out** — Sign out of your account (Server profile)
 
 If you use Browser or Cloud Sync, the menu also lets you switch or manage profiles and move up to a server; see [Local-First Design](./local-first-design).
 

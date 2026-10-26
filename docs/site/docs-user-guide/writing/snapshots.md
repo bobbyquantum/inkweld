@@ -99,9 +99,9 @@ Auto-snapshots are **enabled by default**. To toggle them:
 
 Both types are stored the same way and can be restored identically.
 
-## Snapshots in Browser mode
+## Snapshots in a Browser Profile
 
-Snapshots work fully in Browser mode (offline, no server). They are stored in your browser's IndexedDB alongside your project data. When connected to a server, snapshots sync automatically.
+Snapshots work fully with a Browser profile (no server). They are stored in your browser's IndexedDB alongside your project data. When connected to a server, snapshots sync automatically.
 
 ## Worldbuilding Snapshots
 

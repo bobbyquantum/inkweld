@@ -6,6 +6,7 @@ import {
 import { signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
+import { StorageContextService } from '@services/core/storage-context.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
 import { TagService } from '@services/tag/tag.service';
 import { IdentityImageService } from '@services/worldbuilding/identity-image.service';
@@ -27,8 +28,10 @@ describe('IdentityPanelComponent', () => {
     migrateInlineImage: ReturnType<typeof vi.fn>;
   };
   let _httpTestingController: HttpTestingController;
+  let serverMode = false;
 
   beforeEach(async () => {
+    serverMode = false;
     worldbuildingService = {
       getIdentityData: vi.fn().mockResolvedValue({}),
       saveIdentityData: vi.fn().mockResolvedValue(undefined),
@@ -62,6 +65,13 @@ describe('IdentityPanelComponent', () => {
         { provide: WorldbuildingService, useValue: worldbuildingService },
         { provide: LocalStorageService, useValue: localStorageService },
         { provide: DialogGatewayService, useValue: dialogGatewayService },
+        {
+          provide: StorageContextService,
+          useValue: {
+            getApiBaseUrl: () => 'http://test.local',
+            isServerMode: () => serverMode,
+          },
+        },
         {
           provide: TagService,
           useValue: {
@@ -239,6 +249,43 @@ describe('IdentityPanelComponent', () => {
       'test-project'
     );
 
+    vi.useRealTimers();
+  });
+
+  it('saves a pending description edit when the panel closes', async () => {
+    vi.useFakeTimers();
+    fixture.detectChanges();
+
+    component.onDescriptionChange('Typed just before leaving');
+    fixture.destroy();
+    await vi.advanceTimersByTimeAsync(600);
+
+    expect(worldbuildingService.saveIdentityData).toHaveBeenCalledTimes(1);
+    expect(worldbuildingService.saveIdentityData).toHaveBeenCalledWith(
+      'test-element-id',
+      { description: 'Typed just before leaving' },
+      'testuser',
+      'test-project'
+    );
+    vi.useRealTimers();
+  });
+
+  it('saves a pending description edit for the old element when switching', async () => {
+    vi.useFakeTimers();
+    fixture.detectChanges();
+
+    component.onDescriptionChange('For the first element');
+    fixture.componentRef.setInput('elementId', 'other-element-id');
+    fixture.detectChanges();
+    await vi.advanceTimersByTimeAsync(600);
+
+    expect(worldbuildingService.saveIdentityData).toHaveBeenCalledTimes(1);
+    expect(worldbuildingService.saveIdentityData).toHaveBeenCalledWith(
+      'test-element-id',
+      { description: 'For the first element' },
+      'testuser',
+      'test-project'
+    );
     vi.useRealTimers();
   });
 
@@ -583,6 +630,33 @@ describe('IdentityPanelComponent', () => {
     };
     const resolveImageUrl = (comp: IdentityPanelComponent, url: string) =>
       (comp as unknown as IdentityPanelPrivateApi).resolveImageUrl(url);
+
+    it('should download uncached media from the server profile', async () => {
+      serverMode = true;
+      localStorageService.getMediaUrl
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce('blob:downloaded');
+
+      const done = resolveImageUrl(component, 'media://img-elara.png');
+      await vi.waitFor(() =>
+        _httpTestingController
+          .expectOne(
+            'http://test.local/api/v1/media/testuser/test-project/img-elara.png'
+          )
+          .flush(new Blob(['x'], { type: 'image/png' }))
+      );
+      await done;
+
+      expect(component.resolvedImageUrl()).toBe('blob:downloaded');
+    });
+
+    it('should never contact the server outside a server profile', async () => {
+      await resolveImageUrl(component, 'media://img-elara.png');
+
+      _httpTestingController.expectNone(() => true);
+      _httpTestingController.verify();
+      expect(component.resolvedImageUrl()).toBeNull();
+    });
 
     it('should not delete media when a cached blob URL fails to fetch', async () => {
       // A cached URL exists but fetch() rejects (e.g. transient failure).

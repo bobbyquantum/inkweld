@@ -2,7 +2,7 @@
 import eslint from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import angular from 'angular-eslint';
-import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended';
+import eslintConfigPrettier from 'eslint-config-prettier';
 import unusedImportsPlugin from 'eslint-plugin-unused-imports';
 import simpleImportSortPlugin from 'eslint-plugin-simple-import-sort';
 import vitest from '@vitest/eslint-plugin';
@@ -250,7 +250,9 @@ export default tseslint.config(
       'no-restricted-syntax': 'off',
     },
   },
-  eslintPluginPrettierRecommended,
+  // Formatting is `bun fmt`'s job (`bun run format:check` in verify and CI).
+  // This only turns off ESLint rules that would fight the formatter.
+  eslintConfigPrettier,
   {
     languageOptions: {
       parserOptions: {

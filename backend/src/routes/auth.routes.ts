@@ -334,13 +334,9 @@ authRoutes.openapi(loginRoute, async (c) => {
   }
 
   // Check if user can login
-  if (!userService.canLogin(user)) {
-    if (!user.enabled) {
-      return c.json({ error: 'Account is disabled' }, 403);
-    }
-    if (!user.approved) {
-      return c.json({ error: 'Account pending approval' }, 403);
-    }
+  const refusal = userService.loginRefusal(user);
+  if (refusal) {
+    return c.json(refusal, 403);
   }
 
   // Create session and get JWT token
@@ -382,7 +378,7 @@ authRoutes.openapi(ingressLoginRoute, async (c) => {
 
   const result = await ingressAuthService.signIn(c.get('db'), haUser);
   if (!result.ok) {
-    return c.json({ error: result.error }, result.status);
+    return c.json({ error: result.error, code: result.code }, result.status);
   }
 
   const token = await authService.createSession(c, result.user);

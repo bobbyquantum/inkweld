@@ -300,6 +300,25 @@ describe('LoginDialogComponent', () => {
       expect(router.navigate).toHaveBeenCalledWith(['/approval-pending']);
     });
 
+    it('should show the rejected page on ACCOUNT_REJECTED error', async () => {
+      component.model.set({ username: 'testuser', password: 'password123' });
+
+      component.providersLoaded.set(true);
+      userService.login.mockRejectedValue(
+        new UserServiceError(
+          'ACCOUNT_REJECTED',
+          'Account registration was not approved'
+        )
+      );
+
+      await component.onLogin();
+
+      expect(dialogRef.close).toHaveBeenCalledWith(false);
+      expect(router.navigate).toHaveBeenCalledWith(['/approval-pending'], {
+        queryParams: { status: 'rejected' },
+      });
+    });
+
     it('should set isLoggingIn to true during login', async () => {
       component.model.set({ username: 'testuser', password: 'password123' });
 
@@ -375,6 +394,22 @@ describe('LoginDialogComponent', () => {
       expect(dialogRef.close).toHaveBeenCalledWith(false);
       expect(router.navigate).toHaveBeenCalledWith(['/approval-pending']);
       expect(component.passkeyError()).toBeNull();
+    });
+
+    it('redirects to the rejected page on ACCOUNT_REJECTED error', async () => {
+      passkeyService.login.mockRejectedValue(
+        new PasskeyError(
+          'ACCOUNT_REJECTED',
+          'Account registration was not approved'
+        )
+      );
+
+      await component.onPasskeyLogin();
+
+      expect(dialogRef.close).toHaveBeenCalledWith(false);
+      expect(router.navigate).toHaveBeenCalledWith(['/approval-pending'], {
+        queryParams: { status: 'rejected' },
+      });
     });
 
     it('shows passkeyError on ACCOUNT_DISABLED without navigating', async () => {
