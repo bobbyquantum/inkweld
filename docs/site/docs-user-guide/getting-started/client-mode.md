@@ -39,6 +39,10 @@ Some Inkweld instances are pre-configured to automatically start with a Server p
 | Move to another mode later              |        ✅         |                     ✅                      |               ✅                |
 | Cost to run                             |       Free        |          Free (your storage quota)          |  Self-host, or a hosted server  |
 
+### Names you'll see
+
+- **Browser**, **Cloud Sync** and **Inkweld Server** are the three ways to use Inkweld. Each profile you create is one of these kinds: a Browser profile, a Cloud Sync profile or a Server profile.
+
 ### Browser
 
 **Your projects live only in this browser.**

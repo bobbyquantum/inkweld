@@ -43,7 +43,7 @@ docker run -d \
 
 Then open `http://localhost:8333` in your browser.
 
-📖 **[Full deployment guide →](DEPLOY.md)**
+📖 **[Full deployment guide →](docs/site/docs/installation/index.md)**
 
 ---
 
