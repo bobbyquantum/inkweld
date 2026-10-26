@@ -72,7 +72,7 @@ export function setYMapPath(root: Y.Map<unknown>, parts: string[], value: unknow
     }
     container = child;
   }
-  container.set(parts[parts.length - 1], value);
+  container.set(parts.at(-1) as string, value);
 }
 
 /**

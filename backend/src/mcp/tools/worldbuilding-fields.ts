@@ -71,6 +71,48 @@ export interface WorldbuildingDefaults {
   identity: Record<string, unknown>;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/** Every `{ key, type }` field in a schema's tabs, skipping malformed entries. */
+function schemaFields(schema: unknown): Array<{ key: string; type: unknown }> {
+  const tabs = (schema as { tabs?: unknown } | null)?.tabs;
+  if (!Array.isArray(tabs)) return [];
+  return tabs.flatMap((tab) => {
+    const fields = (tab as { fields?: unknown } | null)?.fields;
+    if (!Array.isArray(fields)) return [];
+    return fields.flatMap((field) => {
+      const { key, type } = (field ?? {}) as { key?: unknown; type?: unknown };
+      return typeof key === 'string' && key ? [{ key, type }] : [];
+    });
+  });
+}
+
+/**
+ * Add one field's empty value to `defaults`. A key can't hold both a value and
+ * dotted child fields, so whichever is defined first wins and the skeleton can
+ * always be written; `nestedParents` records the keys claimed by dotted fields.
+ */
+function addFieldDefault(
+  defaults: Record<string, unknown>,
+  nestedParents: Set<string>,
+  key: string,
+  type: unknown
+): void {
+  const empty = type === 'array' ? [] : '';
+  const dot = key.indexOf('.');
+  if (dot <= 0) {
+    if (!nestedParents.has(key) && (defaults[key] ?? null) === null) defaults[key] = empty;
+    return;
+  }
+  const parent = key.slice(0, dot);
+  const existing = defaults[parent] ?? null;
+  if (existing !== null && !isRecord(existing)) return;
+  nestedParents.add(parent);
+  if (type === 'array' || !(key in defaults)) defaults[key] = empty;
+}
+
 /**
  * The empty field skeleton a new element of this schema starts with,
  * mirroring the frontend's `initializeWorldbuildingElement`: schema default
@@ -84,36 +126,15 @@ export function worldbuildingDefaults(schema: unknown): WorldbuildingDefaults {
     defaultAppearance?: unknown;
     defaultImage?: unknown;
   };
-  const worldbuilding: Record<string, unknown> = {};
-  const identity: Record<string, unknown> = {};
-  const isRecord = (v: unknown): v is Record<string, unknown> =>
-    typeof v === 'object' && v !== null && !Array.isArray(v);
-
-  if (isRecord(s.defaultValues)) Object.assign(worldbuilding, s.defaultValues);
-
-  // A key can't hold both a value and dotted child fields; whichever is
-  // defined first wins so the skeleton can always be written.
+  const worldbuilding: Record<string, unknown> = isRecord(s.defaultValues)
+    ? { ...s.defaultValues }
+    : {};
   const nestedParents = new Set<string>();
-  const tabs = (schema as { tabs?: unknown } | null)?.tabs;
-  for (const tab of Array.isArray(tabs) ? tabs : []) {
-    const fields = (tab as { fields?: unknown } | null)?.fields;
-    for (const field of Array.isArray(fields) ? fields : []) {
-      const { key, type } = (field ?? {}) as { key?: unknown; type?: unknown };
-      if (typeof key !== 'string' || !key || type === 'relationship') continue;
-      const empty = type === 'array' ? [] : '';
-      const dot = key.indexOf('.');
-      if (dot > 0) {
-        const parent = key.slice(0, dot);
-        const existing = worldbuilding[parent];
-        if (existing !== undefined && existing !== null && !isRecord(existing)) continue;
-        nestedParents.add(parent);
-        if (type === 'array' || !(key in worldbuilding)) worldbuilding[key] = empty;
-      } else if (!nestedParents.has(key) && (worldbuilding[key] ?? null) === null) {
-        worldbuilding[key] = empty;
-      }
-    }
+  for (const { key, type } of schemaFields(schema)) {
+    if (type !== 'relationship') addFieldDefault(worldbuilding, nestedParents, key, type);
   }
 
+  const identity: Record<string, unknown> = {};
   if (isRecord(s.defaultAppearance)) {
     for (const { path, value } of flattenToPaths(s.defaultAppearance, 'appearance')) {
       identity[path] = value;
