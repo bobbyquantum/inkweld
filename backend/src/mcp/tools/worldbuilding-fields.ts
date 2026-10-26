@@ -7,6 +7,7 @@
  * field whose key is also an identity key (`description` in older templates),
  * so a bare key is resolved against the element's schema first.
  */
+import { flattenToPaths } from '../../utils/yjs-map-path';
 
 /** Identity keys a bare field name can address when the schema doesn't claim it. */
 export const IDENTITY_FIELD_KEYS: ReadonlySet<string> = new Set(['description', 'image']);
@@ -61,4 +62,64 @@ export function routeWorldbuildingFields(
     }
   }
   return routed;
+}
+
+export interface WorldbuildingDefaults {
+  /** Template field defaults; dotted keys are nested fields. */
+  worldbuilding: Record<string, unknown>;
+  /** Identity defaults (`appearance` flattened to dotted keys, `image`). */
+  identity: Record<string, unknown>;
+}
+
+/**
+ * The empty field skeleton a new element of this schema starts with,
+ * mirroring the frontend's `initializeWorldbuildingElement`: schema default
+ * values, an empty value for every template field (a nested map for dotted
+ * keys, `[]` for arrays), and the schema's default appearance and image.
+ * Relationship fields live in the relationships store and are skipped.
+ */
+export function worldbuildingDefaults(schema: unknown): WorldbuildingDefaults {
+  const s = (schema ?? {}) as {
+    defaultValues?: unknown;
+    defaultAppearance?: unknown;
+    defaultImage?: unknown;
+  };
+  const worldbuilding: Record<string, unknown> = {};
+  const identity: Record<string, unknown> = {};
+  const isRecord = (v: unknown): v is Record<string, unknown> =>
+    typeof v === 'object' && v !== null && !Array.isArray(v);
+
+  if (isRecord(s.defaultValues)) Object.assign(worldbuilding, s.defaultValues);
+
+  // A key can't hold both a value and dotted child fields; whichever is
+  // defined first wins so the skeleton can always be written.
+  const nestedParents = new Set<string>();
+  const tabs = (schema as { tabs?: unknown } | null)?.tabs;
+  for (const tab of Array.isArray(tabs) ? tabs : []) {
+    const fields = (tab as { fields?: unknown } | null)?.fields;
+    for (const field of Array.isArray(fields) ? fields : []) {
+      const { key, type } = (field ?? {}) as { key?: unknown; type?: unknown };
+      if (typeof key !== 'string' || !key || type === 'relationship') continue;
+      const empty = type === 'array' ? [] : '';
+      const dot = key.indexOf('.');
+      if (dot > 0) {
+        const parent = key.slice(0, dot);
+        const existing = worldbuilding[parent];
+        if (existing !== undefined && existing !== null && !isRecord(existing)) continue;
+        nestedParents.add(parent);
+        if (type === 'array' || !(key in worldbuilding)) worldbuilding[key] = empty;
+      } else if (!nestedParents.has(key) && (worldbuilding[key] ?? null) === null) {
+        worldbuilding[key] = empty;
+      }
+    }
+  }
+
+  if (isRecord(s.defaultAppearance)) {
+    for (const { path, value } of flattenToPaths(s.defaultAppearance, 'appearance')) {
+      identity[path] = value;
+    }
+  }
+  if (typeof s.defaultImage === 'string' && s.defaultImage) identity.image = s.defaultImage;
+
+  return { worldbuilding, identity };
 }
