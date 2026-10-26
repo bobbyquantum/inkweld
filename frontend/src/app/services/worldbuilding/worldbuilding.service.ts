@@ -89,9 +89,9 @@ export class WorldbuildingService {
   private readonly storageContext = inject(StorageContextService);
 
   /** @internal Wrapped for testability — esbuild inlines local modules, so vi.mock can't intercept them */
-  private createAuthWsProvider = createAuthenticatedWebsocketProvider; // NOSONAR - writable for test overrides
+  private readonly createAuthWsProvider = createAuthenticatedWebsocketProvider;
   /** @internal */
-  private setupWsReauth = setupReauthentication; // NOSONAR - writable for test overrides
+  private readonly setupWsReauth = setupReauthentication;
 
   // Per-element worldbuilding data connections (each element has its own Yjs doc)
   private readonly connections = new Map<string, WorldbuildingConnection>();
