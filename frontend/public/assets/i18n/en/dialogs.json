@@ -512,7 +512,20 @@
     "title": "Update Available",
     "message": "A new version of Inkweld is available. Update now?",
     "confirm": "Update",
-    "cancel": "Later"
+    "cancel": "Later",
+    "messageVersion": "Inkweld {{version}} is ready to install (you have {{current}}). Update now?",
+    "messageHighlights": "Inkweld {{version}} is ready to install (you have {{current}}). What's new:",
+    "more": "…and {{count}} more changes in About → Changelog",
+    "titles": {
+      "major": "Major Update Available",
+      "minor": "New Features Available",
+      "patch": "Bug-Fix Update Available",
+      "stable": "Stable Release Available",
+      "alpha": "Alpha Update Available",
+      "beta": "Beta Update Available",
+      "rc": "Release Candidate Available",
+      "prerelease": "Pre-release Update Available"
+    }
   },
   "aiPreferenceInfo": {
     "title": "About No AI and Allow AI",

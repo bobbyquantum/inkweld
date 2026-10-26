@@ -26,6 +26,11 @@
 /assets/version.txt
   Cache-Control: no-cache
 
+# The in-app changelog (About → Changelog, linked from the "updated" notice)
+# changes with every release; an immutable copy would show stale notes
+/assets/CHANGELOG.md
+  Cache-Control: no-cache
+
 # WASM files are pre-compressed with Brotli to fit under Cloudflare's 25MB limit
 /assets/wasm/*.wasm
   Content-Encoding: br

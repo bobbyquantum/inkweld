@@ -103,7 +103,10 @@ release-please cuts releases (`.github/workflows/release-please.yml`,
   Commit title decides the bump (`fix` patch, `feat` minor, `!` major; during
   the 1.0 beta every release is the next `1.0.0-beta.N`) and the CHANGELOG
   line. `docs`/`refactor`/`test`/`build`/`ci`/`chore`/`style` are hidden and
-  never cause a release; Renovate uses `chore(deps)`.
+  never cause a release; Renovate uses `chore(deps)`. `feat`/`fix` titles
+  also show up as highlights in the in-app update dialog
+  (`frontend/scripts/write-sw-app-data.ts` writes them into `ngsw.json`
+  `appData`), so write them for users.
 - **Never bump versions by hand.** release-please updates the three
   `package.json` files and every line marked `// x-release-please-version`
   (`backend/src/config/env.ts`, `frontend/src/environments/environment*.ts`).
@@ -177,7 +180,7 @@ release-please cuts releases (`.github/workflows/release-please.yml`,
 | Angular conventions, tests, e2e, i18n, frontend-wide rules | `frontend/AGENTS.md` |
 | Hono conventions, migrations, AI kill switch, quotas, serving `index.html`, auth, rename, share links, sync manifest | `backend/AGENTS.md` |
 | Durable Object storage and revision tokens | `backend/src/durable-objects/AGENTS.md` |
-| Profile-scoped storage, project rename, APP_MODE, app backgrounds | `frontend/src/app/services/core/AGENTS.md` |
+| Profile-scoped storage, project rename, APP_MODE, app backgrounds, update dialog | `frontend/src/app/services/core/AGENTS.md` |
 | Starting offline, bulk sync planner | `frontend/src/app/services/sync/AGENTS.md` |
 | Canvas Yjs model | `frontend/src/app/services/canvas/AGENTS.md` |
 | Passkeys and policy acceptance (frontend) | `frontend/src/app/services/auth/AGENTS.md` |
