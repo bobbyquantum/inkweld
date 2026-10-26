@@ -58,25 +58,28 @@ export function parseVersion(version: string): ParsedVersion | null {
   };
 }
 
+function compareIdentifier(x: string | number, y: string | number): number {
+  if (x === y) return 0;
+  if (typeof x === 'number' && typeof y === 'number') return x - y;
+  // Numeric identifiers sort below alphanumeric ones.
+  if (typeof x === 'number') return -1;
+  if (typeof y === 'number') return 1;
+  return x < y ? -1 : 1;
+}
+
 function comparePrerelease(
   a: (string | number)[],
   b: (string | number)[]
 ): number {
   // A release outranks any of its pre-releases (1.0.0 > 1.0.0-beta.9).
   if (a.length === 0 || b.length === 0) return b.length - a.length;
-  for (let i = 0; i < Math.max(a.length, b.length); i++) {
-    if (i >= a.length) return -1;
-    if (i >= b.length) return 1;
-    const x = a[i];
-    const y = b[i];
-    if (x === y) continue;
-    if (typeof x === 'number' && typeof y === 'number') return x - y;
-    // Numeric identifiers sort below alphanumeric ones.
-    if (typeof x === 'number') return -1;
-    if (typeof y === 'number') return 1;
-    return x < y ? -1 : 1;
+  const shared = Math.min(a.length, b.length);
+  for (let i = 0; i < shared; i++) {
+    const diff = compareIdentifier(a[i], b[i]);
+    if (diff !== 0) return diff;
   }
-  return 0;
+  // A longer set of identifiers wins when the shared ones are equal.
+  return a.length - b.length;
 }
 
 /**
@@ -184,6 +187,21 @@ export function splitChangelog(text: string): ChangelogSection[] {
 
 const MAX_HIGHLIGHT_LENGTH = 120;
 
+/** Drop trailing whitespace and punctuation (a loop, not a backtracking regex). */
+function trimTrailingPunctuation(text: string): string {
+  let end = text.length;
+  while (end > 0 && ' \t\n,;:.'.includes(text[end - 1])) end--;
+  return text.slice(0, end);
+}
+
+/** The rest of `line` after a `marker` and whitespace, or null if it doesn't start that way. */
+function afterMarker(line: string, marker: RegExp): string | null {
+  const match = marker.exec(line);
+  if (!match) return null;
+  const rest = line.slice(match[0].length).trim();
+  return rest === '' ? null : rest;
+}
+
 /**
  * Turn one changelog bullet into a short plain-text line: drop
  * release-please's `**scope:**` prefix and trailing PR/commit links, unwrap
@@ -192,15 +210,15 @@ const MAX_HIGHLIGHT_LENGTH = 120;
 export function cleanHighlight(bullet: string): string {
   let text = bullet
     .replace(/^\*\*[^*]+:\*\*\s*/, '')
-    .replaceAll(/\s*\(\[[^\]]+\]\([^)]*\)\)/g, '')
-    .replaceAll(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+    .replaceAll(/\(\[[^[\]]+\]\([^()]*\)\)/g, '')
+    .replaceAll(/\[([^[\]]+)\]\([^()]*\)/g, '$1')
     .replaceAll(/(\*\*|__|`)/g, '')
     .replaceAll(/\s+/g, ' ')
     .trim();
   if (text.length > MAX_HIGHLIGHT_LENGTH) {
     const cut = text.slice(0, MAX_HIGHLIGHT_LENGTH - 1);
     const space = cut.lastIndexOf(' ');
-    text = `${(space > 40 ? cut.slice(0, space) : cut).replace(/[\s,;:.]+$/, '')}…`;
+    text = `${trimTrailingPunctuation(space > 40 ? cut.slice(0, space) : cut)}…`;
   }
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
@@ -216,20 +234,20 @@ function collectBullets(
   let group: { heading: string; bullets: string[] } | null = null;
   let inBullet = false;
   for (const line of markdown.split('\n')) {
-    const heading = /^###\s+(.+)$/.exec(line);
-    if (heading) {
-      group = { heading: heading[1].trim(), bullets: [] };
+    const heading = afterMarker(line, /^###\s/);
+    if (heading !== null) {
+      group = { heading, bullets: [] };
       groups.push(group);
       inBullet = false;
       continue;
     }
-    const bullet = /^[*-]\s+(.+)$/.exec(line);
-    if (bullet) {
+    const bullet = afterMarker(line, /^[*-]\s/);
+    if (bullet !== null) {
       if (!group) {
         group = { heading: '', bullets: [] };
         groups.push(group);
       }
-      group.bullets.push(bullet[1]);
+      group.bullets.push(bullet);
       inBullet = true;
       continue;
     }
