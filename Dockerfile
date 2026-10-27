@@ -39,6 +39,8 @@ COPY packages ./packages
 COPY frontend/bun.lock frontend/package.json ./frontend/
 # copy-changelog.mjs ships the repo-root changelog as an in-app asset
 COPY CHANGELOG.md ./
+# The approved commit scopes; the changelog page imports their icons
+COPY .github/commit-scopes.json ./.github/
 
 # Install workspace deps so `packages/inkweld-prosemirror/node_modules/{prosemirror-model,yjs}`
 # get linked. The root `postinstall` script chains into `frontend && backend && docs/site`
