@@ -10,19 +10,19 @@ titles.
 
 ### Features
 
-* **ci:** put each scope's emoji in the release notes ([#1682](https://github.com/bobbyquantum/inkweld/issues/1682)) ([3dfecf1](https://github.com/bobbyquantum/inkweld/commit/3dfecf1dd3f077ea1aa2ba421dd864671f4d7cf4))
-* **mcp:** create, edit and delete worldbuilding schemas ([#1677](https://github.com/bobbyquantum/inkweld/issues/1677)) ([250d5ad](https://github.com/bobbyquantum/inkweld/commit/250d5adb2e22473f2c893e0e36ff6be1faae8d71))
-* **project-tree:** open a context menu on the empty space below the tree ([#1673](https://github.com/bobbyquantum/inkweld/issues/1673)) ([f3225bd](https://github.com/bobbyquantum/inkweld/commit/f3225bdddb325c5485678b6d40f9069104a81347))
+* 👷 **ci:** put each scope's emoji in the release notes ([#1682](https://github.com/bobbyquantum/inkweld/issues/1682)) ([3dfecf1](https://github.com/bobbyquantum/inkweld/commit/3dfecf1dd3f077ea1aa2ba421dd864671f4d7cf4))
+* 🤖 **mcp:** create, edit and delete worldbuilding schemas ([#1677](https://github.com/bobbyquantum/inkweld/issues/1677)) ([250d5ad](https://github.com/bobbyquantum/inkweld/commit/250d5adb2e22473f2c893e0e36ff6be1faae8d71))
+* 🌳 **project-tree:** open a context menu on the empty space below the tree ([#1673](https://github.com/bobbyquantum/inkweld/issues/1673)) ([f3225bd](https://github.com/bobbyquantum/inkweld/commit/f3225bdddb325c5485678b6d40f9069104a81347))
 * show the version, update type and highlights when an update is ready ([#1680](https://github.com/bobbyquantum/inkweld/issues/1680)) ([6b8b56f](https://github.com/bobbyquantum/inkweld/commit/6b8b56f363afa1476e6f5206cfe7d001419d42c7))
 
 
 ### Bug Fixes
 
-* **home:** show projects created on another device without a reload ([#1671](https://github.com/bobbyquantum/inkweld/issues/1671)) ([09d82e1](https://github.com/bobbyquantum/inkweld/commit/09d82e1769cadcc9bba480e17fb9b3e1eb5969fb))
-* **mcp:** write nested worldbuilding fields on elements created over MCP ([#1679](https://github.com/bobbyquantum/inkweld/issues/1679)) ([b440a8b](https://github.com/bobbyquantum/inkweld/commit/b440a8bd15431badd7b455809ede70622bce1df0))
-* **settings:** let the templates list scroll on short screens ([#1678](https://github.com/bobbyquantum/inkweld/issues/1678)) ([f2e3bf9](https://github.com/bobbyquantum/inkweld/commit/f2e3bf93115222f6ba66b9e0193e2686658c1c8d))
-* **setup:** keep the username when upgrading a Browser profile to Cloud Sync ([#1670](https://github.com/bobbyquantum/inkweld/issues/1670)) ([bbf06d3](https://github.com/bobbyquantum/inkweld/commit/bbf06d3c159c916c7e1b2f8921a601aae320750b))
-* **worldbuilding:** re-authenticate worldbuilding sockets after a reconnect ([#1675](https://github.com/bobbyquantum/inkweld/issues/1675)) ([3a57444](https://github.com/bobbyquantum/inkweld/commit/3a574448a2334ba39994539da89b77b2e99cab87))
+* 🏠 **home:** show projects created on another device without a reload ([#1671](https://github.com/bobbyquantum/inkweld/issues/1671)) ([09d82e1](https://github.com/bobbyquantum/inkweld/commit/09d82e1769cadcc9bba480e17fb9b3e1eb5969fb))
+* 🤖 **mcp:** write nested worldbuilding fields on elements created over MCP ([#1679](https://github.com/bobbyquantum/inkweld/issues/1679)) ([b440a8b](https://github.com/bobbyquantum/inkweld/commit/b440a8bd15431badd7b455809ede70622bce1df0))
+* ⚙️ **settings:** let the templates list scroll on short screens ([#1678](https://github.com/bobbyquantum/inkweld/issues/1678)) ([f2e3bf9](https://github.com/bobbyquantum/inkweld/commit/f2e3bf93115222f6ba66b9e0193e2686658c1c8d))
+* 🚀 **setup:** keep the username when upgrading a Browser profile to Cloud Sync ([#1670](https://github.com/bobbyquantum/inkweld/issues/1670)) ([bbf06d3](https://github.com/bobbyquantum/inkweld/commit/bbf06d3c159c916c7e1b2f8921a601aae320750b))
+* 🌍 **worldbuilding:** re-authenticate worldbuilding sockets after a reconnect ([#1675](https://github.com/bobbyquantum/inkweld/issues/1675)) ([3a57444](https://github.com/bobbyquantum/inkweld/commit/3a574448a2334ba39994539da89b77b2e99cab87))
 
 ## [1.0.0-beta.1] - 2026-10-23
 
