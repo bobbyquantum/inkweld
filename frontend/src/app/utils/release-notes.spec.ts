@@ -158,6 +158,15 @@ describe('release-notes', () => {
       );
     });
 
+    it('strips the scope emoji with the scope', () => {
+      expect(cleanHighlight('📝 **editor:** keep the cursor')).toBe(
+        'Keep the cursor'
+      );
+      expect(cleanHighlight('☁️ **cloud-sync:** retry uploads')).toBe(
+        'Retry uploads'
+      );
+    });
+
     it('shortens long lines at a word boundary', () => {
       const long = `${'word '.repeat(40)}end`;
       const cleaned = cleanHighlight(long);

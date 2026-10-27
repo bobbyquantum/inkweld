@@ -163,6 +163,7 @@ with the newer schema.
 | `cleanup-pr-preview.yml`                                                                      | PR closed, or the `deploy:preview:frontend` label removed          | Deletes that PR's Pages deployments.                                                                              |
 | `docs.yml`                                                                                    | Push to `main` touching `docs/**`, `backend/openapi.json`; manual  | Builds this documentation site and publishes it to GitHub Pages.                                                  |
 | `validate-pr-title.yml`                                                                       | PR opened, edited, synchronized or reopened                        | Requires a Conventional Commit title (`feat`, `fix`, `docs`, `ci`, ...) with a lowercase subject.                 |
+| `validate-pr-scope.yml`                                                                       | PR opened, edited, synchronized or reopened                        | Requires the title's scope (if any) to be in `.github/commit-scopes.json`.                                        |
 | `deploy-cloudflare.yml`, `deploy-cloudflare-production.yml`, `deploy-cloudflare-reusable.yml` | Push to `main` / push to `production`                              | Hosted deploys, described in the section above.                                                                   |
 
 ## Image contents
@@ -232,6 +233,31 @@ Renovate titles every dependency update `chore(deps): …`, so dependency bumps
 stay out of the changelog and never cut a release on their own. Retitle a
 Renovate PR `fix(deps): …` before merging when the update fixes something
 users would notice.
+
+### Commit scopes
+
+A scope is optional, but when a title has one it must be in
+`.github/commit-scopes.json`, the approved list (`fix(editor): …`,
+`feat(publish): …`). The **Approved Commit Scope** job in
+`validate-pr-scope.yml` runs `scripts/check-pr-title.mjs` against it, and
+suggests the approved scope when a title uses a known alias (`tree` →
+`project-tree`).
+
+Each scope also has its own emoji, which goes in front of that scope's entries
+in the release notes: `* **editor:** keep the cursor` becomes
+`* 📝 **editor:** keep the cursor`. release-please has no option for this, so
+after it updates the release PR, `release-please.yml` runs
+`scripts/add-scope-emoji.mjs` on the PR: it commits the emoji into the newest
+`CHANGELOG.md` section and edits the PR description, which release-please
+turns into the GitHub release notes when the PR is merged. The in-app
+changelog (About → Changelog) shows them because it renders `CHANGELOG.md`;
+the update dialog's highlights drop them along with the scope. Older releases
+keep the emoji they shipped with.
+
+To add a scope, add it to `.github/commit-scopes.json` in the PR that needs it:
+the check runs on `pull_request` (read-only token) and reads the list from the
+PR. `bun run test:scripts` checks the list, including that each
+scope has a single emoji no other scope uses.
 
 ### What users see when a release lands
 

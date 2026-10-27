@@ -171,6 +171,13 @@ afterEach(async () => {
   }
   resetBaselineLocation();
 
+  // Undo navigator.onLine values set with Object.defineProperty, so jsdom's
+  // getter (always online) is back. A spec file that left it false made the
+  // next file in its worker run offline (cover-sync then skipped every sync).
+  if ('value' in (Object.getOwnPropertyDescriptor(navigator, 'onLine') ?? {})) {
+    delete (navigator as { onLine?: boolean }).onLine;
+  }
+
   // Ensure fake timers are restored so subsequent tests aren't affected
   vi.useRealTimers();
 
