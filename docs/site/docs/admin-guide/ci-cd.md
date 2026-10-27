@@ -241,7 +241,8 @@ A scope is optional, but when a title has one it must be in
 `feat(publish): …`). The **Approved Commit Scope** job in
 `validate-pr-scope.yml` runs `scripts/check-pr-title.mjs` against it, and
 suggests the approved scope when a title uses a known alias (`tree` →
-`project-tree`).
+`project-tree`). It skips release-please's own PR, whose
+`chore(main): release X.Y.Z` title uses the branch name as its scope.
 
 Each scope also has its own emoji, which goes in front of that scope's entries
 in the release notes: `* **editor:** keep the cursor` becomes
