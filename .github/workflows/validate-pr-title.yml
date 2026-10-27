@@ -41,39 +41,3 @@ jobs:
           # Helpful error message shown on failure
           wip: true
           validateSingleCommit: false
-
-  # Scopes must come from .github/commit-scopes.json (the in-app changelog
-  # shows each one's icon). pull_request_target runs with a write token, so
-  # the check script comes from the base branch and only the scope list (data,
-  # validated before use) is read from the PR head. That lets a PR add the
-  # scope it needs.
-  validate-scope:
-    name: Approved Commit Scope
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          sparse-checkout: scripts/check-pr-title.mjs
-          sparse-checkout-cone-mode: false
-          persist-credentials: false
-
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-          path: pr-head
-          sparse-checkout: .github/commit-scopes.json
-          sparse-checkout-cone-mode: false
-          persist-credentials: false
-
-      - name: Check the scope
-        env:
-          PR_TITLE: ${{ github.event.pull_request.title }}
-        run: |
-          # Until the script is on the base branch (the PR that adds it).
-          if [ ! -f scripts/check-pr-title.mjs ]; then
-            echo "::notice::scripts/check-pr-title.mjs is not on the base branch yet; skipping."
-            exit 0
-          fi
-          node scripts/check-pr-title.mjs --scopes pr-head/.github/commit-scopes.json

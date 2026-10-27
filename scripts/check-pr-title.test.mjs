@@ -2,7 +2,6 @@ import { describe, expect, it } from "bun:test";
 
 import {
   checkTitle,
-  ICON_DIR,
   parseScope,
   readManifest,
   validateManifest,
@@ -10,9 +9,9 @@ import {
 
 const manifest = {
   scopes: {
-    editor: { icon: "edit_note", description: "Editor", aliases: ["toolbar"] },
+    editor: { emoji: "📝", description: "Editor", aliases: ["toolbar"] },
     "project-tree": {
-      icon: "account_tree",
+      emoji: "🌳",
       description: "Tree",
       aliases: ["tree"],
     },
@@ -67,16 +66,18 @@ describe("validateManifest", () => {
   it("reports bad names, missing fields and alias clashes", () => {
     const errors = validateManifest({
       scopes: {
-        Editor: { icon: "edit_note", description: "Editor" },
-        sync: { icon: "", description: "", aliases: ["tree", "Editor"] },
-        tree2: { icon: "account_tree", description: "Tree", aliases: ["tree"] },
+        Editor: { emoji: "📝", description: "Editor" },
+        sync: { emoji: "🔄🔄", description: "", aliases: ["tree", "Editor"] },
+        tree2: { emoji: "📝", description: "Tree", aliases: ["tree"] },
+        tree3: { emoji: "☁️", description: "Tree" },
       },
     });
     expect(errors).toEqual([
       'Scope "Editor" must be lowercase kebab-case.',
       'Scope "sync" needs a description.',
-      'Scope "sync" needs a Material Symbols icon name.',
+      'Scope "sync" needs a single emoji.',
       'Alias "Editor" of "sync" is itself a scope.',
+      'Scopes "Editor" and "tree2" share the emoji 📝.',
       'Alias "tree" is listed under both "sync" and "tree2".',
     ]);
   });
@@ -87,8 +88,8 @@ describe("validateManifest", () => {
     ]);
   });
 
-  it("accepts the checked-in manifest, with every icon in Material Symbols", () => {
-    expect(validateManifest(readManifest(), ICON_DIR)).toEqual([]);
+  it("accepts the checked-in manifest", () => {
+    expect(validateManifest(readManifest())).toEqual([]);
   });
 
   it("approves the scope Renovate uses", () => {

@@ -194,40 +194,5 @@ All notable changes to this project will be documented in this file.
 
       expect(versions).toEqual([]);
     });
-
-    it('should put the scope icon in front of scoped release-please entries', async () => {
-      httpClientMock.get.mockReturnValue(
-        of(
-          [
-            '# Changelog',
-            '',
-            '## [1.0.1](https://example.com/compare) (2026-10-20)',
-            '',
-            '### Bug Fixes',
-            '',
-            '* **editor:** keep the cursor ([#1](https://example.com/1))',
-            '* **tree:** keep the order',
-            '* **unlisted:** something else',
-            '* an entry without a scope',
-            '',
-          ].join('\n')
-        )
-      );
-
-      const versions = await new Promise<ChangelogVersion[]>(resolve => {
-        service.getChangelog().subscribe(v => resolve(v));
-      });
-      const content = versions[0].content;
-
-      expect(content).toContain(
-        '<li><span class="material-symbols-outlined changelog-scope-icon" aria-hidden="true">edit_note</span><strong>editor:</strong> keep the cursor'
-      );
-      // An alias gets the icon of the scope it stands for.
-      expect(content).toContain(
-        'aria-hidden="true">account_tree</span><strong>tree:</strong>'
-      );
-      expect(content).toContain('<li><strong>unlisted:</strong>');
-      expect(content.match(/changelog-scope-icon/g)).toHaveLength(2);
-    });
   });
 });

@@ -32,8 +32,7 @@
       "@utils/*": ["./src/app/utils/*"],
       "@editor": ["./src/app/editor/index.ts"],
       "@themes/*": ["./src/themes/*"],
-      "@package": ["./package.json"],
-      "@commit-scopes": ["../.github/commit-scopes.json"]
+      "@package": ["./package.json"]
     },
 
     "module": "preserve"

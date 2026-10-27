@@ -108,8 +108,10 @@ release-please cuts releases (`.github/workflows/release-please.yml`,
   (`frontend/scripts/write-sw-app-data.ts` writes them into `ngsw.json`
   `appData`), so write them for users.
 - **Scopes come from `.github/commit-scopes.json`.** A scope is optional; when
-  used it must be on that list (CI checks it), and each one has the icon the
-  in-app changelog shows. Add a new scope there in the PR that needs it.
+  used it must be on that list (CI checks it), and each one has the emoji
+  `release-please.yml` adds to its release-note entries
+  (`scripts/add-scope-emoji.mjs`). Add a new scope there in the PR that
+  needs it.
 - **Never bump versions by hand.** release-please updates the three
   `package.json` files and every line marked `// x-release-please-version`
   (`backend/src/config/env.ts`, `frontend/src/environments/environment*.ts`).

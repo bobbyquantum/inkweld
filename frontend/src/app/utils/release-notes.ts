@@ -204,12 +204,13 @@ function afterMarker(line: string, marker: RegExp): string | null {
 
 /**
  * Turn one changelog bullet into a short plain-text line: drop
- * release-please's `**scope:**` prefix and trailing PR/commit links, unwrap
+ * release-please's `**scope:**` prefix (and the scope emoji in front of it,
+ * from scripts/add-scope-emoji.mjs) and trailing PR/commit links, unwrap
  * Markdown links and emphasis, and cut long lines at a word boundary.
  */
 export function cleanHighlight(bullet: string): string {
   let text = bullet
-    .replace(/^\*\*[^*]+:\*\*\s*/, '')
+    .replace(/^(?:\p{Extended_Pictographic}\uFE0F?\s+)?\*\*[^*]+:\*\*\s*/u, '')
     .replaceAll(/\(\[[^[\]]+\]\([^()]*\)\)/g, '')
     .replaceAll(/\[([^[\]]+)\]\([^()]*\)/g, '$1')
     .replaceAll(/(\*\*|__|`)/g, '')

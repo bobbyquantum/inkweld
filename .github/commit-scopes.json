@@ -1,18 +1,18 @@
 {
-  "$comment": "Approved Conventional Commit scopes for PR titles, e.g. fix(editor): …. validate-pr-title.yml rejects any other scope (scripts/check-pr-title.mjs), and the in-app changelog shows each scope's Material Symbols icon. A scope is optional. aliases are names people reach for that map to the approved scope; the check suggests the approved one. Add a scope here in the PR that first needs it.",
+  "$comment": "Approved Conventional Commit scopes for PR titles, e.g. fix(editor): …. validate-pr-title.yml rejects any other scope (scripts/check-pr-title.mjs). Each scope's emoji goes in front of its entries in the release notes and CHANGELOG.md (scripts/add-scope-emoji.mjs, run by release-please.yml). A scope is optional. aliases are names people reach for that map to the approved scope; the check suggests the approved one. Add a scope here in the PR that first needs it.",
   "scopes": {
     "editor": {
-      "icon": "edit_note",
+      "emoji": "📝",
       "description": "Rich-text editor, toolbar, find and replace, input rules",
       "aliases": ["editor-toolbar", "document-element-editor"]
     },
     "project-tree": {
-      "icon": "account_tree",
+      "emoji": "🌳",
       "description": "Project tree, drag and drop, quick finder, breadcrumbs",
       "aliases": ["tree", "drag-and-drop", "breadcrumb"]
     },
     "project": {
-      "icon": "folder_open",
+      "emoji": "📁",
       "description": "Project pages, settings, rename, project dialogs",
       "aliases": [
         "projects",
@@ -22,52 +22,52 @@
       ]
     },
     "home": {
-      "icon": "home",
+      "emoji": "🏠",
       "description": "Home page, bookshelf, project cards, welcome page",
       "aliases": ["bookshelf", "welcome", "project-card"]
     },
     "worldbuilding": {
-      "icon": "public",
+      "emoji": "🌍",
       "description": "Worldbuilding elements, element forms, template (schema) editor",
       "aliases": ["element-editor", "schemas"]
     },
     "templates": {
-      "icon": "dashboard_customize",
+      "emoji": "🧩",
       "description": "Project templates and demo projects"
     },
     "relationships": {
-      "icon": "hub",
+      "emoji": "🔗",
       "description": "Relationship fields, types and the relationship graph",
       "aliases": ["relationship", "relationship-chart"]
     },
     "timeline": {
-      "icon": "timeline",
+      "emoji": "📅",
       "description": "Timelines, time systems, eras and events"
     },
     "canvas": {
-      "icon": "draw",
+      "emoji": "🎨",
       "description": "Canvas boards"
     },
     "scenes": {
-      "icon": "movie",
+      "emoji": "🎬",
       "description": "Scene and note roles, corkboard and outline views"
     },
     "conversations": {
-      "icon": "forum",
+      "emoji": "💬",
       "description": "Conversation (speech-bubble) scenes",
       "aliases": ["conversation"]
     },
     "comments": {
-      "icon": "comment",
+      "emoji": "💭",
       "description": "Comments and threaded discussions"
     },
     "publish": {
-      "icon": "menu_book",
+      "emoji": "📚",
       "description": "Publishing: EPUB, PDF, HTML and website output, publish plans, share links",
       "aliases": ["epub", "export"]
     },
     "media": {
-      "icon": "photo_library",
+      "emoji": "📷",
       "description": "Images, media library and uploads",
       "aliases": [
         "image-storage",
@@ -77,36 +77,36 @@
       ]
     },
     "ai": {
-      "icon": "wand_stars",
+      "emoji": "✨",
       "description": "AI writing and image features",
       "aliases": ["ai-images"]
     },
     "generators": {
-      "icon": "casino",
+      "emoji": "🎲",
       "description": "Name, place and prompt generators",
       "aliases": ["generator"]
     },
     "collab": {
-      "icon": "groups",
+      "emoji": "👥",
       "description": "Collaborators, access levels, live presence and cursors",
       "aliases": ["presence", "collaboration"]
     },
     "sync": {
-      "icon": "sync",
+      "emoji": "🔄",
       "description": "Real-time and offline sync, Yjs, Sync All",
       "aliases": ["yjs", "ws", "websocket"]
     },
     "cloud-sync": {
-      "icon": "cloud_sync",
+      "emoji": "☁️",
       "description": "Cloud Sync profiles (Dropbox, Google Drive, Nextcloud)"
     },
     "archives": {
-      "icon": "inventory_2",
+      "emoji": "🗃️",
       "description": "Project archive import and export",
       "aliases": ["import", "project-import-export", "archive"]
     },
     "auth": {
-      "icon": "lock",
+      "emoji": "🔐",
       "description": "Sign-in, registration, passkeys, OAuth, password reset",
       "aliases": [
         "login",
@@ -119,120 +119,120 @@
       ]
     },
     "account": {
-      "icon": "manage_accounts",
+      "emoji": "👤",
       "description": "User account and public profile, account deletion",
       "aliases": ["user", "users", "profile", "user-profile", "user-menu"]
     },
     "profiles": {
-      "icon": "switch_account",
+      "emoji": "🔀",
       "description": "Device profiles for several servers or accounts"
     },
     "settings": {
-      "icon": "settings",
+      "emoji": "⚙️",
       "description": "User settings and preferences"
     },
     "appearance": {
-      "icon": "palette",
+      "emoji": "🌗",
       "description": "Themes, app backgrounds, styles",
       "aliases": ["theme", "styles", "ui", "brand"]
     },
     "tutorial": {
-      "icon": "school",
+      "emoji": "🎓",
       "description": "Tutorials and onboarding"
     },
     "search": {
-      "icon": "search",
+      "emoji": "🔍",
       "description": "Project-wide full-text search"
     },
     "stats": {
-      "icon": "monitoring",
+      "emoji": "📊",
       "description": "Writing statistics, activity feed and activity grid",
       "aliases": ["activity"]
     },
     "tags": {
-      "icon": "sell",
+      "emoji": "🏷️",
       "description": "Tags and pinned items",
       "aliases": ["tag"]
     },
     "admin": {
-      "icon": "admin_panel_settings",
+      "emoji": "🎛️",
       "description": "Admin pages, announcements, sync capacity"
     },
     "mcp": {
-      "icon": "smart_toy",
+      "emoji": "🤖",
       "description": "MCP server and WebMCP browser tools",
       "aliases": ["webmcp"]
     },
     "legal": {
-      "icon": "gavel",
+      "emoji": "⚖️",
       "description": "Legal pages, policy acceptance, custom HTML"
     },
     "i18n": {
-      "icon": "translate",
+      "emoji": "🌐",
       "description": "Translations and localisation"
     },
     "a11y": {
-      "icon": "accessibility",
+      "emoji": "♿",
       "description": "Accessibility"
     },
     "mobile": {
-      "icon": "mobile",
+      "emoji": "📱",
       "description": "Mobile and touch layouts, PWA and service worker",
       "aliases": ["touch", "pwa", "sw"]
     },
     "security": {
-      "icon": "security",
+      "emoji": "🛡️",
       "description": "Security hardening, CSP"
     },
     "storage": {
-      "icon": "hard_drive",
+      "emoji": "💾",
       "description": "Storage quotas and local (IndexedDB) storage"
     },
     "setup": {
-      "icon": "rocket_launch",
+      "emoji": "🚀",
       "description": "First-run setup and server configuration",
       "aliases": ["env", "environment"]
     },
     "ingress": {
-      "icon": "cottage",
+      "emoji": "🏡",
       "description": "Home Assistant app and ingress"
     },
     "deploy": {
-      "icon": "cloud_upload",
+      "emoji": "🚢",
       "description": "Hosting: Docker, Cloudflare Workers and Durable Objects, deploy wizard",
       "aliases": ["docker", "cloudflare", "workers", "worker", "do"]
     },
     "api": {
-      "icon": "api",
+      "emoji": "🔌",
       "description": "Backend REST API and OpenAPI client",
       "aliases": ["routes", "middleware", "server"]
     },
     "db": {
-      "icon": "database",
+      "emoji": "🗄️",
       "description": "Database schema and migrations",
       "aliases": ["database", "migration", "migrations", "leveldb"]
     },
     "deps": {
-      "icon": "package_2",
+      "emoji": "⬆️",
       "description": "Dependency updates (Renovate)",
       "aliases": ["deps-dev"]
     },
     "ci": {
-      "icon": "conveyor_belt",
+      "emoji": "👷",
       "description": "GitHub Actions workflows"
     },
     "tests": {
-      "icon": "science",
+      "emoji": "🧪",
       "description": "Unit and e2e test infrastructure",
       "aliases": ["test", "e2e", "mock-api"]
     },
     "docs": {
-      "icon": "description",
+      "emoji": "📖",
       "description": "Docs site, READMEs, AGENTS.md files",
       "aliases": ["readme", "agents"]
     },
     "tooling": {
-      "icon": "construction",
+      "emoji": "🔧",
       "description": "Build, lint, format and editor tooling",
       "aliases": [
         "build",

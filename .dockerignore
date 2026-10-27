@@ -21,9 +21,7 @@ backend/test-data
 
 # Development files
 .git
-.github/*
-# The in-app changelog's scope icons (frontend @commit-scopes)
-!.github/commit-scopes.json
+.github
 .vscode
 .devcontainer
 .env
