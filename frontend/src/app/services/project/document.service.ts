@@ -2457,6 +2457,9 @@ export class DocumentService {
           projectKey,
           mediaId
         );
+        // The src changed while this was resolving; the finally block picks
+        // up the newer one rather than overwriting it with this result.
+        if (img.getAttribute('src') !== src) return;
         if (blobUrl) {
           // Store the media ID for reference
           img.dataset['mediaId'] = mediaId;
@@ -2482,6 +2485,10 @@ export class DocumentService {
         );
       } finally {
         img.dataset['mediaResolving'] = 'false';
+        const currentSrc = img.getAttribute('src');
+        if (currentSrc !== src && currentSrc && isMediaUrl(currentSrc)) {
+          void resolveImageSrc(img);
+        }
       }
     };
 
