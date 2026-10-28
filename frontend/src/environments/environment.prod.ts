@@ -1,6 +1,6 @@
 export const environment = {
   production: true,
-  version: '1.0.0-beta.1', // x-release-please-version
+  version: '1.0.0-beta.2', // x-release-please-version
   apiUrl: '',
   wssUrl: '',
   /**
