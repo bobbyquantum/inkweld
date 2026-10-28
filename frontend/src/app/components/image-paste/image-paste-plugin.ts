@@ -13,6 +13,7 @@
  */
 
 import { forEachSequential } from '@inkweld/async';
+import { mediaIdFromReference } from '@utils/media-reference';
 import { type Node as ProseMirrorNode } from 'prosemirror-model';
 import { Plugin, PluginKey } from 'prosemirror-state';
 import { type EditorView } from 'prosemirror-view';
@@ -118,10 +119,18 @@ export function isMediaUrl(url: string): boolean {
 }
 
 /**
- * Extract the media ID from a media URL
+ * Extract the media ID from a media URL.
+ *
+ * Accepts both schemes used in project data: `media:<id>` (written by the
+ * editor's paste and insert-image paths) and `media://<id>.<ext>` (written by
+ * worldbuilding, the Media tab and the MCP tools). Both resolve to the id the
+ * local media library is keyed by.
  */
 export function extractMediaId(mediaUrl: string): string | null {
   if (!isMediaUrl(mediaUrl)) return null;
+  if (mediaUrl.startsWith('media://')) {
+    return mediaIdFromReference(mediaUrl) || null;
+  }
   return mediaUrl.slice(MEDIA_URL_PREFIX.length);
 }
 

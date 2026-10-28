@@ -877,6 +877,52 @@ describe('DocumentService', () => {
       setTimeoutSpy.mockRestore();
     });
 
+    it('should resolve media:// images through the server-aware resolver', async () => {
+      const dom = document.createElement('div');
+      const image = document.createElement('img');
+      image.setAttribute('src', 'media://generated-1793215040156.jpg');
+      dom.append(image);
+
+      const privateService = service as unknown as {
+        startMediaUrlObserver: (
+          view: { dom: HTMLElement },
+          documentId: string
+        ) => void;
+        localStorage: { getMediaUrl: ReturnType<typeof vi.fn> };
+        appearance: { resolveImageReference: ReturnType<typeof vi.fn> };
+      };
+      const setTimeoutSpy = vi
+        .spyOn(globalThis, 'setTimeout')
+        .mockImplementation((callback: TimerHandler) => {
+          (callback as () => void)();
+          return 1 as unknown as ReturnType<typeof setTimeout>;
+        });
+
+      privateService.localStorage = { getMediaUrl: vi.fn() };
+      privateService.appearance = {
+        resolveImageReference: vi
+          .fn()
+          .mockResolvedValue('blob:downloaded-media'),
+      };
+
+      privateService.startMediaUrlObserver({ dom }, testDocumentId);
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(
+        privateService.appearance.resolveImageReference
+      ).toHaveBeenCalledWith(
+        'media://generated-1793215040156.jpg',
+        'testuser',
+        'test-project'
+      );
+      expect(privateService.localStorage.getMediaUrl).not.toHaveBeenCalled();
+      expect(image.src).toContain('blob:downloaded-media');
+      expect(image.dataset['mediaId']).toBe('generated-1793215040156');
+
+      setTimeoutSpy.mockRestore();
+    });
+
     it('should fully clean up a populated document connection on disconnect', () => {
       const ydoc = new Y.Doc();
       const mediaObserver = {

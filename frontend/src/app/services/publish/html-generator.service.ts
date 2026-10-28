@@ -11,7 +11,6 @@ import {
   type PublishStyles,
 } from '@models/publish-style';
 import { isPublishableByDefault } from '@models/scene-metadata';
-import { mediaIdFromReference } from '@utils/media-reference';
 import { trimHyphens } from '@utils/string-utils';
 import { isWorldbuildingType } from '@utils/worldbuilding.utils';
 import { BehaviorSubject, type Observable, Subject } from 'rxjs';
@@ -135,7 +134,6 @@ export function sanitizeCssColor(value: unknown): string | null {
  */
 export function mediaIdFromSrc(src: unknown): string | null {
   if (typeof src !== 'string') return null;
-  if (src.startsWith('media://')) return mediaIdFromReference(src) || null;
   if (isMediaUrl(src)) return extractMediaId(src) || null;
   return null;
 }
