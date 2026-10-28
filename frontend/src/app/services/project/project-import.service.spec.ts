@@ -331,8 +331,8 @@ describe('ProjectImportService', () => {
       expect(service.suggestSlug('@#$%^&*()')).toBe('');
     });
 
-    it('should handle unicode characters', () => {
-      expect(service.suggestSlug('Café Project')).toBe('caf-project');
+    it('should keep the base letter of accented characters', () => {
+      expect(service.suggestSlug('Café Project')).toBe('cafe-project');
     });
 
     it('should handle numeric-only titles', () => {

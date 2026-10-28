@@ -306,6 +306,12 @@ describe('CreateProjectComponent', () => {
     expect(result).toBe(expectedSlug);
   });
 
+  it('should keep accented letters in the generated slug', () => {
+    expect(component.generateSlug('Café Dragons 🐉 Saga')).toBe(
+      'cafe-dragons-saga'
+    );
+  });
+
   it('should update slug when title changes', () => {
     const title = 'My Test Project';
 
@@ -358,6 +364,20 @@ describe('CreateProjectComponent', () => {
     expect(component.projectForm.slug().valid()).toBeTruthy();
 
     component.projectForm.slug().value.set('123-valid-slug');
+    expect(component.projectForm.slug().valid()).toBeTruthy();
+  });
+
+  it('should require a slug of at least 3 characters, like the server', () => {
+    component.projectForm.title().value.set('Io');
+    fixture.detectChanges();
+
+    expect(component.projectForm.slug().value()).toBe('io');
+    expect(component.projectForm.slug().valid()).toBeFalsy();
+    expect(component.projectForm.slug().errors()[0].message).toBe(
+      'The URL name needs at least 3 characters'
+    );
+
+    component.projectForm.slug().value.set('io-moon');
     expect(component.projectForm.slug().valid()).toBeTruthy();
   });
 

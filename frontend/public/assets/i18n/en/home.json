@@ -115,6 +115,7 @@
     "titleLabel": "Project Title",
     "slugLabel": "URL Name",
     "slugHint": "Used in the project link. Lowercase letters, numbers and hyphens.",
+    "slugMinLength": "The URL name needs at least 3 characters",
     "descriptionLabel": "Project Description",
     "projectUrl": "Project URL:",
     "submit": "Create Project"

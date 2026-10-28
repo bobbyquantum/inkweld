@@ -1,5 +1,6 @@
 import { effect, inject, Injectable, signal } from '@angular/core';
 import { type Project } from '@inkweld/index';
+import { slugify } from '@utils/string-utils';
 
 import { SetupService } from '../core/setup.service';
 import { StorageContextService } from '../core/storage-context.service';
@@ -518,12 +519,6 @@ export class LocalProjectService {
   }
 
   private generateSlug(title: string): string {
-    return title
-      .toLowerCase()
-      .replaceAll(/[^a-z0-9\s-]/g, '')
-      .replaceAll(/\s+/g, '-')
-      .replaceAll(/-+/g, '-')
-      .trim()
-      .substring(0, 50);
+    return slugify(title) || 'untitled-project';
   }
 }

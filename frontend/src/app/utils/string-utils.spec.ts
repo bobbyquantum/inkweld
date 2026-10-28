@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   normalizeServerUrl,
+  slugify,
   stripTrailingSlashes,
   trimHyphens,
 } from './string-utils';
@@ -105,5 +106,36 @@ describe('normalizeServerUrl', () => {
 
   it('returns an empty string for blank input', () => {
     expect(normalizeServerUrl('  ')).toBe('');
+  });
+});
+
+describe('slugify', () => {
+  it('turns words into lowercase hyphenated slugs', () => {
+    expect(slugify('My Test Project!')).toBe('my-test-project');
+    expect(slugify('  --Tom & Jerry--  ')).toBe('tom-jerry');
+  });
+
+  it('keeps the base letter of accented characters', () => {
+    expect(slugify('Café Dragons 🐉 Saga')).toBe('cafe-dragons-saga');
+    expect(slugify('Señor Müller')).toBe('senor-muller');
+  });
+
+  it('spells out letters that do not decompose', () => {
+    expect(slugify('Straße Ærø Łódź Œuvre')).toBe('strasse-aero-lodz-oeuvre');
+  });
+
+  it('drops apostrophes instead of splitting words', () => {
+    expect(slugify("Ender's Game")).toBe('enders-game');
+    expect(slugify('Ender’s Game')).toBe('enders-game');
+  });
+
+  it('returns an empty string when no Latin letters or digits remain', () => {
+    expect(slugify('東京物語')).toBe('');
+    expect(slugify('@#$%')).toBe('');
+  });
+
+  it('cuts at the maximum length without a trailing hyphen', () => {
+    expect(slugify(`${'a'.repeat(49)} b`)).toBe('a'.repeat(49));
+    expect(slugify('one two three', 7)).toBe('one-two');
   });
 });

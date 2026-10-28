@@ -24,13 +24,19 @@
       (click)="deleteAccount()"
       [disabled]="isDeleting()"
       data-testid="delete-account-button">
+      <!-- One node per branch, so the icon is projected into the button's
+           icon slot (NG8011) -->
       @if (isDeleting()) {
         <mat-spinner diameter="18" class="button-spinner"></mat-spinner>
-        {{ 'settings.deleteAccount.deleting' | transloco }}
       } @else {
         <mat-icon>delete_forever</mat-icon>
-        {{ 'settings.deleteAccount.button' | transloco }}
       }
+      {{
+        (isDeleting()
+          ? 'settings.deleteAccount.deleting'
+          : 'settings.deleteAccount.button'
+        ) | transloco
+      }}
     </button>
   </div>
 </section>

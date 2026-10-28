@@ -177,6 +177,7 @@
     "profileLabel": "Profile:",
     "loginRequired": "login required",
     "reconnectNeeded": "reconnect needed",
+    "syncNow": "Sync now",
     "addConnection": "Add profile…",
     "historyLabel": "History:",
     "upgradeProfile": "Connect to sync",

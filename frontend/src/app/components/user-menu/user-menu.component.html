@@ -61,10 +61,18 @@
                 <span class="profile-subtitle">
                   {{ display.subtitle }}
                   @if (!display.hasAuth && profile.type === 'server') {
-                    <span class="needs-login">(login required)</span>
+                    <span class="needs-login"
+                      >({{
+                        'settings.connectionTab.loginRequired' | transloco
+                      }})</span
+                    >
                   }
                   @if (!display.hasAuth && profile.type === 'cloud') {
-                    <span class="needs-login">(reconnect needed)</span>
+                    <span class="needs-login"
+                      >({{
+                        'settings.connectionTab.reconnectNeeded' | transloco
+                      }})</span
+                    >
                   }
                 </span>
               </div>
@@ -153,8 +161,8 @@
                 class="status-icon-action"
                 (click)="onSyncNow($event)"
                 [disabled]="cloudSync.status() === 'syncing'"
-                [matTooltip]="'Sync now'"
-                aria-label="Sync now"
+                [matTooltip]="'settings.connectionTab.syncNow' | transloco"
+                [attr.aria-label]="'settings.connectionTab.syncNow' | transloco"
                 data-testid="cloud-sync-now-button">
                 <mat-icon>sync</mat-icon>
               </button>

@@ -23,9 +23,7 @@
         [attr.aria-label]="'dialogs.createSnapshot.nameAria' | transloco" />
       <mat-hint>{{ 'dialogs.createSnapshot.nameHint' | transloco }}</mat-hint>
       @if (form.name().touched() && form.name().invalid()) {
-        @for (error of form.name().errors(); track error.message) {
-          <mat-error>{{ error.message }}</mat-error>
-        }
+        <mat-error>{{ form.name().errors()[0]?.message }}</mat-error>
       }
     </mat-form-field>
 
@@ -46,9 +44,7 @@
           'dialogs.createSnapshot.descriptionAria' | transloco
         "></textarea>
       @if (form.description().touched() && form.description().invalid()) {
-        @for (error of form.description().errors(); track error.message) {
-          <mat-error>{{ error.message }}</mat-error>
-        }
+        <mat-error>{{ form.description().errors()[0]?.message }}</mat-error>
       }
     </mat-form-field>
   </mat-dialog-content>

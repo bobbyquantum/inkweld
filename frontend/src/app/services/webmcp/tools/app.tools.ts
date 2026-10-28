@@ -9,6 +9,7 @@ import { ProjectStateService } from '@services/project/project-state.service';
 import { ProjectTemplateService } from '@services/project/project-template.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
 import { type ThemeOption, ThemeService } from '@themes/theme.service';
+import { slugify } from '@utils/string-utils';
 import { firstValueFrom } from 'rxjs';
 
 import { schema, ToolError, type WebMcpToolDefinition } from './tool';
@@ -17,13 +18,6 @@ import { waitUntil } from './wait';
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 const THEMES: readonly ThemeOption[] = ['light-theme', 'dark-theme', 'system'];
-
-function slugify(title: string): string {
-  return title
-    .toLowerCase()
-    .replaceAll(/[^a-z0-9]+/g, '-')
-    .replaceAll(/(^-|-$)/g, '');
-}
 
 function projectSummary(project: Project): Record<string, unknown> {
   return {
