@@ -24,7 +24,13 @@ LevelDB per project for Yjs documents (Durable Objects on Workers). The root
 - **Sessions** are JWT bearer tokens (HS256, 30 days), not cookies; revoke them
   by bumping `users.sessionsValidFrom`. CSRF protection covers every
   state-changing request.
-- **Per-project LevelDB**: each project has its own LevelDB instance.
+- **Per-project LevelDB**: each project has its own LevelDB instance, shared
+  by all its documents through `YjsService.getPersistenceForProject()`. Never
+  open a second handle for a project, and never `await` between looking the
+  handle up and storing a new one: a client opens many documents at once, and
+  a second handle can't take the LevelDB lock, so y-leveldb drops every write
+  through it with only a console warning. Close handles with
+  `releasePersistence()`, which waits for the lock before a reopen.
 - **Yjs document ids**: the backend/MCP use `username:slug:elements/` with a
   trailing slash, the frontend without. Not a bug; don't "fix" it.
 - **HTTP routes that edit a Yjs document** must work on both runtimes.
