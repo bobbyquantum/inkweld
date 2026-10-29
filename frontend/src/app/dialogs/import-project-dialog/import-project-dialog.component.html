@@ -117,9 +117,7 @@
         [placeholder]="'dialogs.importProject.slugPlaceholder' | transloco"
         [attr.aria-label]="'dialogs.importProject.slugAria' | transloco" />
       @if (form.slug().touched() && form.slug().invalid()) {
-        @for (error of form.slug().errors(); track error) {
-          <mat-error>{{ error.message }}</mat-error>
-        }
+        <mat-error>{{ form.slug().errors()[0]?.message }}</mat-error>
       }
       @if (isValidating()) {
         <mat-hint>{{

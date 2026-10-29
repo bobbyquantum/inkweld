@@ -9,7 +9,7 @@ import { type Generator } from '@models/generator';
 import { type MediaTag } from '@models/media-tag.model';
 import { type ElementTag, type TagDefinition } from '@models/tag.model';
 import JSZip from '@progress/jszip-esm';
-import { trimHyphens } from '@utils/string-utils';
+import { slugify } from '@utils/string-utils';
 import { firstValueFrom } from 'rxjs';
 
 import {
@@ -269,7 +269,7 @@ export class ProjectImportService {
         valid: false,
         available: false,
         error: 'Slug must be lowercase letters, numbers, and hyphens only',
-        suggestion: this.slugify(slug),
+        suggestion: slugify(slug),
       };
     }
 
@@ -313,7 +313,7 @@ export class ProjectImportService {
    * Generate a slug suggestion from a title.
    */
   suggestSlug(title: string): string {
-    return this.slugify(title);
+    return slugify(title);
   }
 
   /**
@@ -942,17 +942,5 @@ export class ProjectImportService {
       currentItem,
       totalItems,
     });
-  }
-
-  /**
-   * Convert a string to a URL-friendly slug.
-   */
-  private slugify(text: string): string {
-    return trimHyphens(
-      text
-        .toLowerCase()
-        .replaceAll(/[^\w\s-]/g, '')
-        .replaceAll(/[\s_-]+/g, '-')
-    ).slice(0, 50);
   }
 }

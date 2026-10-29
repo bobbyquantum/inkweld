@@ -31,9 +31,7 @@
           [attr.aria-label]="'dialogs.insertLink.linkTextAria' | transloco"
           data-testid="link-text-input" />
         @if (form.linkText().touched() && form.linkText().invalid()) {
-          @for (error of form.linkText().errors(); track error) {
-            <mat-error>{{ error.message }}</mat-error>
-          }
+          <mat-error>{{ form.linkText().errors()[0]?.message }}</mat-error>
         }
       </mat-form-field>
     }
@@ -52,9 +50,7 @@
         data-testid="link-url-input" />
       <mat-icon matSuffix>link</mat-icon>
       @if (form.href().touched() && form.href().invalid()) {
-        @for (error of form.href().errors(); track error) {
-          <mat-error>{{ error.message }}</mat-error>
-        }
+        <mat-error>{{ form.href().errors()[0]?.message }}</mat-error>
       }
     </mat-form-field>
 

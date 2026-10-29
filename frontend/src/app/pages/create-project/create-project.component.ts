@@ -8,7 +8,13 @@ import {
   signal,
   untracked,
 } from '@angular/core';
-import { form, FormField, pattern, required } from '@angular/forms/signals';
+import {
+  form,
+  FormField,
+  minLength,
+  pattern,
+  required,
+} from '@angular/forms/signals';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -20,7 +26,12 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
 import { UserMenuComponent } from '@components/user-menu/user-menu.component';
 import { type Project } from '@inkweld/index';
-import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
+import {
+  translateSignal,
+  TranslocoModule,
+  TranslocoService,
+} from '@jsverse/transloco';
+import { slugify } from '@utils/string-utils';
 
 import { ProjectActivationService } from '../../services/local/project-activation.service';
 import { UnifiedProjectService } from '../../services/local/unified-project.service';
@@ -103,9 +114,18 @@ export class CreateProjectComponent implements OnInit {
     description: '',
   });
 
+  /** Follows the active language, so the error never shows a bare key */
+  private readonly slugMinLengthMessage = translateSignal(
+    'home.createProjectPage.slugMinLength'
+  );
+
   readonly projectForm = form(this.model, schemaPath => {
     required(schemaPath.title, { message: 'Title is required' });
     required(schemaPath.slug, { message: 'Slug is required' });
+    // The server refuses shorter slugs; say so here instead of failing on create
+    minLength(schemaPath.slug, 3, {
+      message: () => this.slugMinLengthMessage(),
+    });
     pattern(schemaPath.slug, SLUG_PATTERN, {
       message: 'Slug can only contain lowercase letters, numbers, and hyphens',
     });
@@ -166,12 +186,7 @@ export class CreateProjectComponent implements OnInit {
     this.projectUrl.set('');
   }
 
-  generateSlug = (title: string): string => {
-    return title
-      .toLowerCase()
-      .replaceAll(/[^a-z0-9]+/g, '-')
-      .replaceAll(/(^-|-$)/g, '');
-  };
+  generateSlug = (title: string): string => slugify(title);
 
   updateProjectUrl = (): void => {
     const slug = this.model().slug;

@@ -157,9 +157,9 @@
               @if (
                 projectForm.title().touched() && projectForm.title().invalid()
               ) {
-                @for (error of projectForm.title().errors(); track error) {
-                  <mat-error>{{ error.message }}</mat-error>
-                }
+                <mat-error>{{
+                  projectForm.title().errors()[0]?.message
+                }}</mat-error>
               }
             </mat-form-field>
 
@@ -179,9 +179,9 @@
               @if (
                 projectForm.slug().touched() && projectForm.slug().invalid()
               ) {
-                @for (error of projectForm.slug().errors(); track error) {
-                  <mat-error>{{ error.message }}</mat-error>
-                }
+                <mat-error>{{
+                  projectForm.slug().errors()[0]?.message
+                }}</mat-error>
               }
             </mat-form-field>
 

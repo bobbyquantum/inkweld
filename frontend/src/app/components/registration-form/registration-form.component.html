@@ -105,7 +105,9 @@
   </mat-form-field>
 
   @if (isPasswordLoginEnabled()) {
-    <mat-form-field appearance="outline">
+    <!-- The requirements hint wraps to several lines in a narrow dialog;
+         dynamic sizing keeps it from overlapping the next field -->
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
       <mat-label>{{ 'auth.registration.passwordLabel' | transloco }}</mat-label>
       <input
         #passwordField

@@ -1,7 +1,7 @@
 import { computed, inject, Injectable, Injector } from '@angular/core';
 import { forEachSequential } from '@inkweld/async';
 import { type Element, type Project } from '@inkweld/index';
-import { trimHyphens } from '@utils/string-utils';
+import { slugify } from '@utils/string-utils';
 
 import { type ProjectArchive } from '../../models/project-archive';
 import { LoggerService } from '../core/logger.service';
@@ -310,12 +310,7 @@ export class UnifiedProjectService {
    * Generate a URL-safe slug from a title.
    */
   private generateSlug(title: string): string {
-    return (
-      trimHyphens(title.toLowerCase().replaceAll(/[^a-z0-9]+/g, '-')).substring(
-        0,
-        50
-      ) || 'untitled-project'
-    );
+    return slugify(title) || 'untitled-project';
   }
 
   /**
