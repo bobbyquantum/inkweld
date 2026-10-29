@@ -163,7 +163,7 @@ export class ActivityTabComponent {
   }
 
   protected formatTime(unixMs: number): string {
-    return formatRelativeDate(unixMs);
+    return formatRelativeDate(unixMs, this.transloco.getActiveLang());
   }
 
   protected iconFor(type: ActivityEventType): string {

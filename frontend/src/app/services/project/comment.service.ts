@@ -28,6 +28,8 @@ export interface CommentMessageResponse {
   threadId: string;
   authorId: string;
   authorName: string;
+  /** Loads the author's avatar; absent on threads built from local marks */
+  authorUsername?: string;
   text: string;
   createdAt: string;
   editedAt: string | null;
@@ -39,6 +41,8 @@ export interface CommentThreadResponse {
   projectId: string;
   authorId: string;
   authorName: string;
+  /** Loads the author's avatar; absent on threads built from local marks */
+  authorUsername?: string;
   resolved: boolean;
   resolvedBy: string | null;
   resolvedAt: string | null;
@@ -53,6 +57,8 @@ export interface CommentThreadSummary {
   projectId: string;
   authorId: string;
   authorName: string;
+  /** Loads the author's avatar; absent on threads built from local marks */
+  authorUsername?: string;
   resolved: boolean;
   createdAt: string;
   updatedAt: string;
@@ -68,6 +74,8 @@ export interface UnreadCount {
 export interface LocalCommentMessage {
   id: string;
   authorName: string;
+  /** Absent on messages written before it was recorded */
+  authorUsername?: string;
   text: string;
   createdAt: number;
 }
@@ -187,6 +195,7 @@ export class CommentService {
       const localMessage: LocalCommentMessage = {
         id: crypto.randomUUID(),
         authorName,
+        authorUsername: user?.username,
         text,
         createdAt: Date.now(),
       };
@@ -510,6 +519,7 @@ export class CommentService {
     messages.push({
       id: crypto.randomUUID(),
       authorName,
+      authorUsername: user?.username,
       text,
       createdAt: Date.now(),
     });

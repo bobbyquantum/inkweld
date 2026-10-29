@@ -68,7 +68,7 @@
         <div class="comment-popover__message">
           <div class="comment-popover__msg-header">
             <app-user-avatar
-              [username]="msg.authorName"
+              [username]="msg.authorUsername || msg.authorName"
               size="small"
               class="comment-popover__msg-avatar"></app-user-avatar>
             <span class="comment-popover__msg-author">{{

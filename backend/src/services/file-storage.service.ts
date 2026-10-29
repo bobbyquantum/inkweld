@@ -102,12 +102,7 @@ export class FileStorageService {
     const projectPath = this.getProjectPath(username, projectSlug);
     const filePath = path.join(projectPath, filename);
     this.ensureWithinBase(filePath, projectPath);
-    try {
-      await fs.access(filePath);
-      return true;
-    } catch {
-      return false;
-    }
+    return await this.pathExists(filePath);
   }
 
   /**
@@ -173,6 +168,15 @@ export class FileStorageService {
     return total;
   }
 
+  private async pathExists(target: string): Promise<boolean> {
+    try {
+      await fs.access(target);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   /**
    * Rename a project directory (when project slug changes)
    */
@@ -180,24 +184,13 @@ export class FileStorageService {
     const oldPath = this.getProjectPath(username, oldSlug);
     const newPath = this.getProjectPath(username, newSlug);
 
-    // Check if old path exists
-    try {
-      await fs.access(oldPath);
-    } catch {
-      // Old directory doesn't exist, nothing to rename
+    if (!(await this.pathExists(oldPath))) {
       logger.info('FileStorage', `No directory to rename: ${oldPath}`);
       return;
     }
 
-    // Check if new path already exists
-    try {
-      await fs.access(newPath);
+    if (await this.pathExists(newPath)) {
       throw new Error(`Target directory already exists: ${newPath}`);
-    } catch (error) {
-      // Expected - new path shouldn't exist
-      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
-        throw error;
-      }
     }
 
     // Rename the directory
@@ -235,13 +228,8 @@ export class FileStorageService {
    * Check if user has avatar
    */
   async hasUserAvatar(username: string): Promise<boolean> {
-    const avatarPath = this.getUserAvatarPath(username);
-    try {
-      await fs.access(avatarPath);
-      return true;
-    } catch {
-      return false;
-    }
+    // getUserAvatarPath throws on a bad username; keep that a rejection
+    return await this.pathExists(this.getUserAvatarPath(username));
   }
 
   /**

@@ -13,9 +13,9 @@ import { expandDimensionOptions } from '../src/services/fal-model-metadata.servi
 import {
   decodeXmlEntities,
   xmlContentToText,
-  sanitizeFilename,
   skipTopLevelWhitespace,
 } from '../src/utils/xml-utils';
+import { contentDisposition, sanitizeFilename } from '../src/utils/content-disposition';
 import { escapeHtml } from '../src/routes/document.routes';
 
 describe('decodeXmlEntities', () => {
@@ -119,6 +119,35 @@ describe('sanitizeFilename', () => {
 
   it('should handle multiple replaceable characters', () => {
     expect(sanitizeFilename('"bad\nfile\\name".pdf')).toBe('badfilename.pdf');
+  });
+});
+
+describe('contentDisposition', () => {
+  it('sends an ASCII name as a plain filename', () => {
+    expect(contentDisposition('attachment', 'novel.epub')).toBe(
+      'attachment; filename="novel.epub"'
+    );
+  });
+
+  it('keeps a non-ASCII name in filename*', () => {
+    expect(contentDisposition('attachment', "L'Été (v2).epub")).toBe(
+      'attachment; filename="L\'_t_ (v2).epub"; ' +
+        "filename*=UTF-8''L%27%C3%89t%C3%A9%20%28v2%29.epub"
+    );
+  });
+
+  it('never lets a line break or quote into the header', () => {
+    const header = contentDisposition('inline', 'a"\r\nSet-Cookie: x.png');
+    expect(header).not.toMatch(/[\r\n]/);
+    expect(header).toBe(
+      'inline; filename="aSet-Cookie: x.png"; ' + "filename*=UTF-8''a%22%0D%0ASet-Cookie%3A%20x.png"
+    );
+  });
+
+  it('survives a lone surrogate', () => {
+    expect(contentDisposition('attachment', 'a\uD800.txt')).toBe(
+      'attachment; filename="a_.txt"; filename*=UTF-8\'\'a%EF%BF%BD.txt'
+    );
   });
 });
 

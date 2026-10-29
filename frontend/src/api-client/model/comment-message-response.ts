@@ -12,7 +12,14 @@ export interface CommentMessageResponse {
   id: string;
   threadId: string;
   authorId: string;
+  /**
+   * Author\'s display name, or their username when none is set
+   */
   authorName: string;
+  /**
+   * Author\'s username (for the avatar)
+   */
+  authorUsername: string;
   text: string;
   createdAt: string;
   editedAt?: string | null;

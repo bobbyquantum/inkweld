@@ -14,7 +14,14 @@ export interface CommentThreadResponse {
   documentId: string;
   projectId: string;
   authorId: string;
+  /**
+   * Author\'s display name, or their username when none is set
+   */
   authorName: string;
+  /**
+   * Author\'s username (for the avatar)
+   */
+  authorUsername: string;
   resolved: boolean;
   resolvedBy?: string | null;
   resolvedAt?: string | null;
