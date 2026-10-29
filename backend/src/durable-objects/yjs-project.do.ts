@@ -49,7 +49,22 @@ import {
 } from '../utils/yjs-document-utils';
 import { YjsDocStorage, COMPACT_THRESHOLD, snapshotKey } from './yjs-do-storage';
 import { safeSend, safeClose } from '../utils/ws-guards';
-import { isActiveSiteAdmin, resolveProjectAccess } from '../utils/project-access';
+import {
+  isActiveSiteAdmin,
+  resolveProjectAccess,
+  resolveProjectRenameAccess,
+  type ProjectRenamePhase,
+} from '../utils/project-access';
+import { RENAME_NEXT_CURSOR_HEADER, RENAME_ROUTES } from '../utils/project-durable-object';
+import {
+  RENAME_LOCK_KEY,
+  RENAME_LOCK_TTL_MS,
+  decodeTransferRows,
+  encodeTransferPage,
+  isRenameLockActive,
+  readTransferPage,
+  writeTransferPage,
+} from './yjs-do-transfer';
 import {
   WS_CLOSE_FORBIDDEN,
   WS_CLOSE_INVALID_DOCUMENT,
@@ -249,6 +264,30 @@ function jsonResponse(body: unknown, status: number): Response {
   });
 }
 
+type RenameAction = keyof typeof RENAME_ROUTES;
+
+/**
+ * Which object each rename step runs on (the project's old slug or its new
+ * one) and on which side of the database update. See RENAME_ROUTES.
+ */
+const RENAME_STEPS: Readonly<
+  Record<RenameAction, { method: 'GET' | 'POST'; side: 'from' | 'to'; phase: ProjectRenamePhase }>
+> = {
+  lock: { method: 'POST', side: 'from', phase: 'pending' },
+  export: { method: 'GET', side: 'from', phase: 'pending' },
+  unlock: { method: 'POST', side: 'from', phase: 'pending' },
+  complete: { method: 'POST', side: 'from', phase: 'committed' },
+  discard: { method: 'POST', side: 'to', phase: 'pending' },
+  import: { method: 'POST', side: 'to', phase: 'pending' },
+};
+
+/** HTTP status for each reason a rename step is refused. */
+const RENAME_DENIAL_STATUS: Readonly<Record<string, number>> = {
+  'project-not-found': 404,
+  forbidden: 403,
+  conflict: 409,
+};
+
 /**
  * Multi-document Yjs Durable Object
  */
@@ -304,6 +343,16 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
    * `ArrayBufferView`) and remember to call `removeSocket` on close/error.
    */
   private readonly presence: ProjectPresenceService = new ProjectPresenceService();
+
+  /**
+   * Expiry (epoch ms) of the rename lock, mirrored from storage
+   * (RENAME_LOCK_KEY); `undefined` until first read. While it holds, this
+   * project's rows are being copied to the Durable Object of its new slug, so
+   * no socket, HTTP write or compaction may change them.
+   */
+  private renameLockUntil: number | undefined;
+  /** Compactions in flight, which a rename waits for before copying rows. */
+  private readonly pendingCompactions = new Set<Promise<void>>();
 
   constructor(state: DurableObjectState, env: YjsEnv['Bindings']) {
     super(state, env);
@@ -515,6 +564,19 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
         headers: { 'Content-Type': 'application/json' },
       });
     }
+    if (path.startsWith('/api/rename/')) {
+      try {
+        return await this.handleRenameApi(request, url, session, parsed);
+      } catch (error) {
+        projDOLog.error(`Rename step ${path} failed for ${this.projectId}`, error);
+        return jsonResponse({ error: 'Internal server error' }, 500);
+      }
+    }
+    // Reads load documents, and a load may compact, so everything waits.
+    // Deleting the project is always allowed.
+    if (path !== '/api/destroy' && (await this.isRenameLocked())) {
+      return jsonResponse({ error: 'Project is being renamed' }, 423);
+    }
     const access = await this.authorizeHttpAccess(method, path, session, parsed);
     if (access instanceof Response) return access;
     const { role } = access;
@@ -662,23 +724,180 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
    * starts empty instead of resurrecting the deleted content.
    */
   private async handleDestroyProject(): Promise<Response> {
-    for (const ws of this.state.getWebSockets()) {
-      this.cleanupConnection(ws);
-      safeSend(ws, 'access-denied:project-not-found');
-      safeClose(ws, WS_CLOSE_PROJECT_NOT_FOUND, 'Project deleted');
-    }
-    this.connections.clear();
-    this.documents.clear();
-    this.elementSnapshots.clear();
-    for (const timer of this.dedupeTimers.values()) clearTimeout(timer);
-    this.dedupeTimers.clear();
+    this.closeAllSockets('project-not-found', WS_CLOSE_PROJECT_NOT_FOUND, 'Project deleted');
+    this.dropDocuments();
 
     await this.state.storage.deleteAll();
+    // The wipe took the stored lock with it.
+    this.renameLockUntil = 0;
     projDOLog.info(`Project ${this.projectId} destroyed: storage wiped`);
     return new Response(JSON.stringify({ ok: true }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
+  }
+
+  /** Send `access-denied:<reason>` to every socket and close it. */
+  private closeAllSockets(reason: string, code: number, closeReason: string): void {
+    for (const ws of this.state.getWebSockets()) {
+      this.cleanupConnection(ws);
+      safeSend(ws, `access-denied:${reason}`);
+      safeClose(ws, code, closeReason);
+    }
+    this.connections.clear();
+  }
+
+  /** Forget every in-memory document (the next access reloads from storage). */
+  private dropDocuments(): void {
+    this.documents.clear();
+    this.elementSnapshots.clear();
+    for (const timer of this.dedupeTimers.values()) clearTimeout(timer);
+    this.dedupeTimers.clear();
+  }
+
+  /**
+   * `/api/rename/*`: one step of moving this project to a new slug, driven by
+   * the Worker's rename route (prepareProjectDurableObjectMove). This object
+   * is either the old one (`from`) or the new one (`to`); each step says which
+   * side it runs on and whether the database must still carry the old slug
+   * (`pending`) or already the new one (`committed`).
+   */
+  private async handleRenameApi(
+    request: Request,
+    url: URL,
+    session: SessionData,
+    parsed: { projectOwner: string; slug: string }
+  ): Promise<Response> {
+    const from = url.searchParams.get('from');
+    const to = url.searchParams.get('to');
+    if (!from || !to || from === to) {
+      return jsonResponse({ error: 'from and to slugs are required' }, 400);
+    }
+    const action = (Object.keys(RENAME_ROUTES) as RenameAction[]).find(
+      (name) => RENAME_ROUTES[name] === url.pathname && RENAME_STEPS[name].method === request.method
+    );
+    if (!action) {
+      return jsonResponse({ error: 'Not found' }, 404);
+    }
+    const step = RENAME_STEPS[action];
+    if (parsed.slug !== (step.side === 'from' ? from : to)) {
+      return jsonResponse({ error: `This step runs on the ${step.side} project` }, 400);
+    }
+    const db = this.getDb();
+    if (!db) {
+      return jsonResponse({ error: 'Database unavailable' }, 503);
+    }
+    const access = await resolveProjectRenameAccess(db, parsed.projectOwner, from, to, session);
+    if (!access.ok) {
+      projDOLog.warn(
+        `User ${session.username} denied rename ${action} for ${parsed.projectOwner}/${from} -> ${to}: ${access.reason}`
+      );
+      return jsonResponse({ error: access.reason }, RENAME_DENIAL_STATUS[access.reason] ?? 403);
+    }
+    if (access.phase !== step.phase) {
+      return jsonResponse({ error: `Rename is ${access.phase}` }, 409);
+    }
+
+    switch (action) {
+      case 'lock':
+        return this.handleRenameLock();
+      case 'export':
+        return this.handleRenameExport(url);
+      case 'unlock':
+        return this.handleRenameUnlock();
+      case 'import':
+        return this.handleRenameImport(
+          request,
+          `${parsed.projectOwner}:${from}`,
+          `${parsed.projectOwner}:${to}`
+        );
+      case 'complete':
+      case 'discard':
+        return this.handleDestroyProject();
+    }
+  }
+
+  /** Whether a rename currently holds this project's rows (see renameLockUntil). */
+  private async isRenameLocked(): Promise<boolean> {
+    if (this.renameLockUntil === undefined) {
+      try {
+        const stored = await this.state.storage.get(RENAME_LOCK_KEY);
+        this.renameLockUntil = typeof stored === 'number' ? stored : 0;
+      } catch (error) {
+        projDOLog.warn('Could not read the rename lock', { error: String(error) });
+        return false;
+      }
+    }
+    return isRenameLockActive(this.renameLockUntil, Date.now());
+  }
+
+  /** Take or extend the rename lock, in memory and in storage. */
+  private async holdRenameLock(): Promise<number> {
+    const until = Date.now() + RENAME_LOCK_TTL_MS;
+    this.renameLockUntil = until;
+    await this.state.storage.put(RENAME_LOCK_KEY, until);
+    return until;
+  }
+
+  /**
+   * POST /api/rename/lock - Freeze this project's rows for copying: take the
+   * lock, close every socket (clients retry, and find the project under its
+   * new slug once the rename is done), then let document loads and
+   * compactions in progress finish so no row changes under the copy.
+   */
+  private async handleRenameLock(): Promise<Response> {
+    const lockedUntil = await this.holdRenameLock();
+    this.closeAllSockets('error', WS_CLOSE_SERVER_ERROR, 'Project is being renamed');
+    // A load compacts the rows it replayed, so wait for loads first.
+    await Promise.allSettled([...this.documents.values()]);
+    this.dropDocuments();
+    await Promise.allSettled([...this.pendingCompactions]);
+    projDOLog.info(`Project ${this.projectId} locked for rename`);
+    return jsonResponse({ ok: true, lockedUntil }, 200);
+  }
+
+  /** POST /api/rename/unlock - The rename was abandoned; carry on as before. */
+  private async handleRenameUnlock(): Promise<Response> {
+    this.renameLockUntil = 0;
+    await this.state.storage.delete(RENAME_LOCK_KEY);
+    projDOLog.info(`Project ${this.projectId} unlocked: rename abandoned`);
+    return jsonResponse({ ok: true }, 200);
+  }
+
+  /**
+   * GET /api/rename/export?startAfter=<key> - One page of document rows,
+   * encoded by encodeTransferPage. The key to resume after comes back in
+   * RENAME_NEXT_CURSOR_HEADER; no header means this was the last page.
+   */
+  private async handleRenameExport(url: URL): Promise<Response> {
+    if (!(await this.isRenameLocked())) {
+      return jsonResponse({ error: 'Project is not locked for renaming' }, 409);
+    }
+    // Each page extends the lock, so a long copy cannot outlive it.
+    await this.holdRenameLock();
+    const page = await readTransferPage(this.state.storage, url.searchParams.get('startAfter'));
+    const headers: Record<string, string> = { 'Content-Type': 'application/octet-stream' };
+    if (page.next) headers[RENAME_NEXT_CURSOR_HEADER] = encodeURIComponent(page.next);
+    return new Response(encodeTransferPage(page), { status: 200, headers });
+  }
+
+  /**
+   * POST /api/rename/import - Write a page exported from the old object,
+   * moving each row from `fromId`'s keys to `toId`'s.
+   */
+  private async handleRenameImport(
+    request: Request,
+    fromId: string,
+    toId: string
+  ): Promise<Response> {
+    const rows = decodeTransferRows(new Uint8Array(await request.arrayBuffer()));
+    const result = await writeTransferPage(this.state.storage, rows, fromId, toId);
+    if (result.skipped > 0) {
+      projDOLog.warn(
+        `Rename import into ${toId} skipped ${result.skipped} row(s) not under ${fromId}`
+      );
+    }
+    return jsonResponse(result, 200);
   }
 
   /**
@@ -1690,7 +1909,24 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
    * Encode the current document state and compact storage. Fire-and-forget —
    * failures are logged but never propagate to callers.
    */
-  private async compactDocument(
+  private compactDocument(
+    documentId: string,
+    sharedDoc: WSSharedDoc,
+    knownKeys?: string[]
+  ): Promise<void> {
+    // Compaction rewrites rows; a rename copying them must not race it. It
+    // is only an optimization, so the next load after the rename compacts.
+    if (isRenameLockActive(this.renameLockUntil, Date.now())) {
+      return Promise.resolve();
+    }
+    const run = this.runCompaction(documentId, sharedDoc, knownKeys).finally(() => {
+      this.pendingCompactions.delete(run);
+    });
+    this.pendingCompactions.add(run);
+    return run;
+  }
+
+  private async runCompaction(
     documentId: string,
     sharedDoc: WSSharedDoc,
     knownKeys?: string[]
@@ -2548,6 +2784,14 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       const accessResult = await this.checkAccessWithDb(db, parsed, sessionData, ws);
       if (!accessResult) return;
       const { canWrite, projectDbId } = accessResult;
+
+      // A rename is copying this project's rows: any edit made now would be
+      // left behind. `error` makes the client retry later.
+      if (await this.isRenameLocked()) {
+        safeSend(ws, 'access-denied:error');
+        safeClose(ws, WS_CLOSE_SERVER_ERROR, 'Project is being renamed');
+        return;
+      }
 
       // Authentication successful!
       connInfo.authenticated = true;

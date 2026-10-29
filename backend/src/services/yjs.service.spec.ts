@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import * as Y from 'yjs';
 import { Level } from 'level';
 // @ts-expect-error - y-leveldb has types but package.json exports aren't properly configured
-import { getLevelUpdatesKeys, keyEncoding } from 'y-leveldb';
+import { LeveldbPersistence, getLevelUpdatesKeys, keyEncoding } from 'y-leveldb';
 
 import { config } from '../config/env';
 import { fileStorageService } from './file-storage.service';
@@ -544,6 +544,90 @@ describe('YjsService.destroyProject', () => {
     // Release the real handle so the temp directory can be removed.
     await real.destroy();
   }, 20000);
+});
+
+describe('YjsService.renameProjectDocuments', () => {
+  type Store = {
+    storeUpdate(name: string, update: Uint8Array): Promise<unknown>;
+    getYDoc(name: string): Promise<Y.Doc>;
+    getAllDocNames(): Promise<string[]>;
+    clearDocument(name: string): Promise<void>;
+    destroy(): Promise<void>;
+  };
+  const openStore = (): Store => new LeveldbPersistence(dbPath()) as Store;
+
+  /** Write one document per name, each holding its name as text. */
+  async function seed(names: string[]): Promise<void> {
+    const store = openStore();
+    await Promise.all(
+      names.map((name) => {
+        const doc = new Y.Doc();
+        doc.getText('t').insert(0, name);
+        return store.storeUpdate(name, Y.encodeStateAsUpdate(doc));
+      })
+    );
+    await store.destroy();
+  }
+
+  /** Every stored document name with its text. */
+  async function contents(): Promise<Record<string, string>> {
+    const store = openStore();
+    try {
+      const names = await store.getAllDocNames();
+      const docs = await Promise.all(names.map((name) => store.getYDoc(name)));
+      return Object.fromEntries(names.map((name, i) => [name, docs[i].getText('t').toString()]));
+    } finally {
+      await store.destroy();
+    }
+  }
+
+  it("renames the project's documents, trailing-slash ones included, and nothing else", async () => {
+    await seed([`${USERNAME}:${SLUG}:elements/`, `${USERNAME}:${SLUG}:doc-1`, 'other:proj2:x']);
+    const service = new YjsService();
+
+    await service.renameProjectDocuments({
+      username: USERNAME,
+      directorySlug: SLUG,
+      fromSlug: SLUG,
+      toSlug: 'renamed',
+    });
+
+    expect(await contents()).toEqual({
+      [`${USERNAME}:renamed:doc-1`]: `${USERNAME}:${SLUG}:doc-1`,
+      [`${USERNAME}:renamed:elements/`]: `${USERNAME}:${SLUG}:elements/`,
+      'other:proj2:x': 'other:proj2:x',
+    });
+    expect(internalsOf(service).persistences.has(PROJECT_KEY)).toBe(false);
+  });
+
+  it('moves documents back and rethrows when one fails part-way', async () => {
+    const names = [`${USERNAME}:${SLUG}:doc-1`, `${USERNAME}:${SLUG}:elements/`];
+    await seed(names);
+    const service = new YjsService();
+    // Open the project's store (the rename reuses it), then make clearing
+    // the second name fail.
+    const real = await (
+      service as unknown as {
+        getPersistenceForProject(u: string, s: string): Promise<Store>;
+      }
+    ).getPersistenceForProject(USERNAME, SLUG);
+    const clear = real.clearDocument.bind(real);
+    real.clearDocument = async (name: string) => {
+      if (name === names[1]) throw new Error('disk full');
+      return clear(name);
+    };
+
+    await expect(
+      service.renameProjectDocuments({
+        username: USERNAME,
+        directorySlug: SLUG,
+        fromSlug: SLUG,
+        toSlug: 'renamed',
+      })
+    ).rejects.toThrow('disk full');
+
+    expect(await contents()).toEqual({ [names[0]]: names[0], [names[1]]: names[1] });
+  });
 });
 
 describe('LEVELDB_COMPACT_THRESHOLD', () => {

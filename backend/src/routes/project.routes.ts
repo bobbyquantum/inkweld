@@ -3,8 +3,8 @@ import { requireAuth } from '../middleware/auth';
 import { projectService } from '../services/project.service';
 import { userService } from '../services/user.service';
 import { collaborationService } from '../services/collaboration.service';
-import { fileStorageService } from '../services/file-storage.service';
 import { getStorageService } from '../services/storage.service';
+import { moveProjectData } from '../services/project-rename.service';
 import { destroyProjectDurableObject } from '../utils/project-durable-object';
 import { yjsService } from '../services/yjs.service';
 import { getProjectStorageSize } from '../services/storage-size.service';
@@ -323,37 +323,36 @@ projectRoutes.openapi(updateProjectRoute, async (c) => {
     throw new ForbiddenError('Access denied');
   }
 
+  const newSlug = updates.slug && updates.slug !== slug ? updates.slug : null;
+  const saveUpdates = async () => {
+    if (newSlug) {
+      // Create alias for the old slug
+      await projectService.createSlugAlias(db, project.userId, slug, newSlug);
+
+      // Update any existing aliases pointing to the old slug
+      await projectService.updateAliasChain(db, project.userId, slug, newSlug);
+    }
+    await projectService.update(db, project.id, updates);
+  };
+
   // Handle slug change (project rename)
-  if (updates.slug && updates.slug !== slug) {
+  if (newSlug) {
     // Check if new slug already exists for this user
-    const existing = await projectService.findByUsernameAndSlug(db, username, updates.slug);
+    const existing = await projectService.findByUsernameAndSlug(db, username, newSlug);
     if (existing) {
       throw new BadRequestError('A project with this slug already exists');
     }
 
-    // Rename the project directory on disk
+    // Documents and files are stored under the slug, so they move first and
+    // the database is updated last; a failure leaves the project unrenamed.
     try {
-      await fileStorageService.renameProjectDirectory(username, slug, updates.slug);
+      await moveProjectData(c, username, slug, newSlug, saveUpdates);
     } catch {
-      throw new InternalError('Failed to rename project directory');
+      throw new InternalError('Failed to rename project');
     }
-
-    // Rename the Yjs documents (LevelDB migration)
-    try {
-      await yjsService.renameProject(username, slug, updates.slug);
-    } catch (error) {
-      // Log but don't fail - LevelDB will be recreated on next access
-      console.error('Failed to rename LevelDB documents:', error);
-    }
-
-    // Create alias for the old slug
-    await projectService.createSlugAlias(db, project.userId, slug, updates.slug);
-
-    // Update any existing aliases pointing to the old slug
-    await projectService.updateAliasChain(db, project.userId, slug, updates.slug);
+  } else {
+    await saveUpdates();
   }
-
-  await projectService.update(db, project.id, updates);
 
   const updated = await projectService.findById(db, project.id);
   if (!updated) {

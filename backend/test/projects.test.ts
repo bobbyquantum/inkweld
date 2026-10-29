@@ -225,6 +225,77 @@ describe('Projects', () => {
     });
   });
 
+  describe('PUT /api/v1/projects/:username/:slug (rename)', () => {
+    it('moves the documents and files to the new slug', async () => {
+      const slug = 'rename-with-content';
+      const newSlug = 'renamed-with-content';
+      // The data directory outlives the test run; start from nothing.
+      await fileStorageService.deleteProjectDirectory(testUsername, slug);
+      await fileStorageService.deleteProjectDirectory(testUsername, newSlug);
+      await client.request('/api/v1/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug, title: 'Has content' }),
+      });
+
+      // A file, the elements doc as WebSocket edits store it (`…/`) and a
+      // prose document as MCP writes it (bare id). LevelDB keys each by its
+      // full id, slug included.
+      await fileStorageService.saveProjectFile(testUsername, slug, 'note.txt', 'hello');
+      const elements = await yjsService.getDocument(`${testUsername}:${slug}:elements/`);
+      elements.doc.getArray('elements').insert(0, [{ id: 'doc-1', name: 'Chapter 1' }]);
+      const prose = await yjsService.getDocument(`${testUsername}:${slug}:doc-1`);
+      prose.doc.getText('body').insert(0, 'Server-only text');
+
+      const { response, json } = await client.request(`/api/v1/projects/${testUsername}/${slug}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug: newSlug }),
+      });
+      expect(response.status).toBe(200);
+      expect((await json()).slug).toBe(newSlug);
+
+      expect(existsSync(fileStorageService.getProjectPath(testUsername, slug))).toBe(false);
+      expect(await fileStorageService.projectFileExists(testUsername, newSlug, 'note.txt')).toBe(
+        true
+      );
+      const movedElements = await yjsService.getDocument(`${testUsername}:${newSlug}:elements/`);
+      expect(movedElements.doc.getArray('elements').toJSON()).toEqual([
+        { id: 'doc-1', name: 'Chapter 1' },
+      ]);
+      const movedProse = await yjsService.getDocument(`${testUsername}:${newSlug}:doc-1`);
+      expect(movedProse.doc.getText('body').toString()).toBe('Server-only text');
+
+      await client.request(`/api/v1/projects/${testUsername}/${newSlug}`, { method: 'DELETE' });
+    });
+
+    it('leaves the project where it was when the new slug is taken', async () => {
+      for (const slug of ['rename-source', 'rename-taken']) {
+        await client.request('/api/v1/projects', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ slug, title: slug }),
+        });
+      }
+      await fileStorageService.saveProjectFile(testUsername, 'rename-source', 'note.txt', 'hi');
+
+      const { response } = await client.request(`/api/v1/projects/${testUsername}/rename-source`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug: 'rename-taken' }),
+      });
+
+      expect(response.status).toBe(400);
+      expect(
+        await fileStorageService.projectFileExists(testUsername, 'rename-source', 'note.txt')
+      ).toBe(true);
+
+      for (const slug of ['rename-source', 'rename-taken']) {
+        await client.request(`/api/v1/projects/${testUsername}/${slug}`, { method: 'DELETE' });
+      }
+    });
+  });
+
   describe('DELETE /api/v1/projects/:username/:slug', () => {
     it('should delete project', async () => {
       // Create a project to delete

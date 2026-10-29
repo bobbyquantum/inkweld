@@ -103,8 +103,7 @@ export async function resolveProjectAccess(
   // token revoked by a password reset — kept syncing for the token's 30-day
   // life. Load the row once here so both WS runtimes and the DO HTTP API
   // apply the same rule.
-  const user = jwtUserId ? await deps.findUserById(db, jwtUserId) : undefined;
-  if (!user || !user.enabled || !user.approved || isSessionRevoked(user, session)) {
+  if (!(await isSessionUserActive(db, session, deps))) {
     return { ok: false, reason: 'forbidden' };
   }
 
@@ -121,6 +120,65 @@ export async function resolveProjectAccess(
     ok: true,
     access: { canWrite: access.canWrite, projectDbId: project.id, role: access.role },
   };
+}
+
+/** Whether the user behind the token is enabled, approved and not revoked. */
+async function isSessionUserActive(
+  db: D1DatabaseInstance,
+  session: SessionClaims,
+  deps: ProjectAccessDeps
+): Promise<boolean> {
+  const jwtUserId = session.userId ?? session.sub;
+  const user = jwtUserId ? await deps.findUserById(db, jwtUserId) : undefined;
+  return !!user && user.enabled && user.approved && !isSessionRevoked(user, session);
+}
+
+/**
+ * Where a rename stands in the database: `pending` while the project still
+ * has its old slug, `committed` once the row carries the new one.
+ */
+export type ProjectRenamePhase = 'pending' | 'committed';
+
+export type ProjectRenameAccessResult =
+  | { ok: true; phase: ProjectRenamePhase }
+  | { ok: false; reason: ProjectAccessDenialReason | 'conflict' };
+
+/**
+ * Authorize one step of moving a project's Durable Object from
+ * `owner:fromSlug` to `owner:toSlug` (project rename on Workers).
+ *
+ * The steps run on both objects and on both sides of the database update, so
+ * the project is looked up under either slug, and the result says which one
+ * it currently has. Only someone who may rename the project (the owner or an
+ * `admin` collaborator, as in the rename route) is admitted. When both slugs
+ * name a project, `toSlug` belongs to a different project and nothing may be
+ * moved into it or wiped.
+ */
+export async function resolveProjectRenameAccess(
+  db: D1DatabaseInstance,
+  projectOwner: string,
+  fromSlug: string,
+  toSlug: string,
+  session: SessionClaims,
+  deps: ProjectAccessDeps = defaultDeps
+): Promise<ProjectRenameAccessResult> {
+  const [atFrom, atTo] = await Promise.all([
+    deps.findByUsernameAndSlug(db, projectOwner, fromSlug),
+    deps.findByUsernameAndSlug(db, projectOwner, toSlug),
+  ]);
+  if (atFrom && atTo) return { ok: false, reason: 'conflict' };
+  const project = atFrom ?? atTo;
+  if (!project) return { ok: false, reason: 'project-not-found' };
+
+  if (!(await isSessionUserActive(db, session, deps))) {
+    return { ok: false, reason: 'forbidden' };
+  }
+  const jwtUserId = session.userId ?? session.sub;
+  if (project.userId !== jwtUserId) {
+    const access = await deps.checkAccess(db, project.id, jwtUserId);
+    if (!access.canAdmin) return { ok: false, reason: 'forbidden' };
+  }
+  return { ok: true, phase: atFrom ? 'pending' : 'committed' };
 }
 
 /**

@@ -37,6 +37,13 @@ export interface StorageService {
 
   deleteProjectDirectory(username: string, projectSlug: string): Promise<void>;
 
+  /**
+   * Move every file of a project to a new slug (project rename). Either all
+   * files end up under `toSlug` or the call throws with them still under
+   * `fromSlug`.
+   */
+  moveProjectDirectory(username: string, fromSlug: string, toSlug: string): Promise<void>;
+
   saveUserAvatar(username: string, data: BinaryData): Promise<void>;
 
   getUserAvatar(username: string): Promise<Buffer | ArrayBuffer | null>;
@@ -130,6 +137,10 @@ class FileStorageAdapter implements StorageService {
     await this.fileStorage.deleteProjectDirectory(username, projectSlug);
   }
 
+  async moveProjectDirectory(username: string, fromSlug: string, toSlug: string): Promise<void> {
+    await this.fileStorage.renameProjectDirectory(username, fromSlug, toSlug);
+  }
+
   async saveUserAvatar(username: string, data: BinaryData): Promise<void> {
     const buffer = this.toBuffer(data);
     await this.fileStorage.saveUserAvatar(username, buffer);
@@ -221,6 +232,10 @@ class R2StorageAdapter implements StorageService {
 
   async deleteProjectDirectory(username: string, projectSlug: string): Promise<void> {
     await this.r2Storage.deleteProjectDirectory(username, projectSlug);
+  }
+
+  async moveProjectDirectory(username: string, fromSlug: string, toSlug: string): Promise<void> {
+    await this.r2Storage.moveProjectDirectory(username, fromSlug, toSlug);
   }
 
   async saveUserAvatar(username: string, data: BinaryData): Promise<void> {

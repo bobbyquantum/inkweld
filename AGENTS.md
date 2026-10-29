@@ -732,6 +732,34 @@ in the app and from a public web page:
 - `/delete-account` is exempt from the policy-acceptance gate, so someone who
   won't accept new terms can still delete their account.
 
+### Project Rename (Server Data)
+
+Every server store keys a project by its slug, so `PUT /projects/:u/:s` with a
+new `slug` moves them all before the database update, in
+`moveProjectData` (`backend/src/services/project-rename.service.ts`). A
+failed step undoes the earlier ones, newest first, and the project keeps
+its old slug.
+
+- **Files**: `StorageService.moveProjectDirectory` (a directory rename on
+  Bun; on Workers, R2 has no rename, so objects are copied and the originals
+  deleted once every copy exists).
+- **Documents on Bun**: LevelDB names each document by its full id
+  (`u:slug:docId`, and `…/`), so after the directory moves
+  `yjsService.renameProjectDocuments` rewrites the names. Moving the
+  directory alone leaves the renamed project empty on the server.
+- **Documents on Workers**: the Durable Object is named `u:slug` and its
+  rows are keyed `doc:u:slug:…`. The Worker drives `/api/rename/*` on both
+  objects (`prepareProjectDurableObjectMove`): lock the old object (closes
+  sockets, refuses new ones and HTTP reads with 423, waits for compactions),
+  empty the new one, page the rows across with their keys rewritten
+  (`yjs-do-transfer.ts`), and wipe the old object once the database has the
+  new slug. Each step is authorized by `resolveProjectRenameAccess`, which
+  finds the project under either slug and refuses when both name a project.
+  The lock lapses after 5 minutes, so a rename that dies half-way cannot
+  leave a project unusable.
+- The client's local copy is moved separately by `renameProjectInContext`
+  (see "Local Document Storage Is Profile-Scoped").
+
 ### Sync Capacity (Per-User Storage Quotas)
 
 Each account has an allowance for the server storage of the projects it owns
