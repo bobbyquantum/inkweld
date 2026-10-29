@@ -23,11 +23,21 @@ import { projectService } from '../../services/project.service';
 import { type Element } from '../../schemas/element.schemas';
 import { buildVisualTree, treeToText } from './tree-helpers';
 import { getRelationships as runtimeGetRelationships } from './yjs-runtime';
-import { xmlToMarkdown } from '@inkweld/prosemirror/markdown';
-import { encodeInkweldUri } from '@inkweld/prosemirror/uri';
+import {
+  describeSection,
+  findSection,
+  sectionXml,
+  type SectionAddress,
+} from '@inkweld/prosemirror/xml';
 import { logger } from '../../services/logger.service';
 import { firstResultSequential } from '@inkweld/async';
 import { mapWithConcurrency } from '../../utils/concurrency';
+import {
+  openSectionedDocument,
+  parseSectionAddress,
+  sectionAddressProperties,
+  xmlToMarkdownOutput,
+} from './document-sections';
 
 const mcpSearchLog = logger.child('MCP-Search');
 
@@ -931,7 +941,7 @@ registerTool({
     name: 'get_document_content',
     title: 'Get Document Content',
     description:
-      'Get the prose content of a document element. Defaults to ProseMirror XML, the canonical Inkweld format. Use "markdown" for a human-friendly round-trippable form (lossy marks like comments and colors are preserved as inline HTML spans). Use "text" for plain text without structure.',
+      'Get the prose content of a document element. Defaults to ProseMirror XML, the canonical Inkweld format. Use "markdown" for a human-friendly round-trippable form (lossy marks like comments and colors are preserved as inline HTML spans). Use "text" for plain text without structure. Pass section or sectionIndex to read one section (a heading and everything under it, see get_document_outline) instead of the whole document; update_document_section with operation "replace" accepts the result back.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -946,6 +956,7 @@ registerTool({
           description:
             'Output format: "prosemirror_xml" (default) for the canonical XML representation, "markdown" for round-trippable Markdown, "text" for plain text.',
         },
+        ...sectionAddressProperties,
       },
       required: ['project', 'elementId'],
     },
@@ -988,6 +999,11 @@ registerTool({
       };
     }
 
+    const sectionAddress = parseSectionAddress(args);
+    if ('error' in sectionAddress) {
+      return { content: [{ type: 'text', text: `Error: ${sectionAddress.error}` }], isError: true };
+    }
+
     // Verify element exists and is a document type
     const elements = await getElements(ctx, username, slug);
     const element = elements.find((e) => e.id === elementId);
@@ -997,6 +1013,10 @@ registerTool({
         content: [{ type: 'text', text: `Error: element "${elementId}" not found` }],
         isError: true,
       };
+    }
+
+    if (sectionAddress.address) {
+      return readDocumentSection(ctx, result.project, element, sectionAddress.address, format);
     }
 
     // Get document content from Yjs
@@ -1041,25 +1061,7 @@ registerTool({
       }
 
       if (format === 'markdown') {
-        // Encode element_ref hrefs as project-scoped inkweld:// URIs so
-        // round-tripping through markdown preserves the project context.
-        // Attribute names match the shared element-ref schema spec
-        // (`elementType` / `relationshipNote`).
-        const markdown = xmlToMarkdown(xmlString, {
-          encodeElementRefHref: (attrs) => {
-            const refId = typeof attrs.elementId === 'string' ? attrs.elementId : '';
-            return encodeInkweldUri({
-              elementId: refId,
-              username,
-              slug,
-              params: {
-                type: typeof attrs.elementType === 'string' ? attrs.elementType : undefined,
-                note:
-                  typeof attrs.relationshipNote === 'string' ? attrs.relationshipNote : undefined,
-              },
-            });
-          },
-        });
+        const markdown = xmlToMarkdownOutput(xmlString, username, slug);
         return {
           content: [{ type: 'text', text: markdown }],
           structuredContent: {
@@ -1102,6 +1104,54 @@ registerTool({
     }
   },
 });
+
+/** get_document_content for one section: the heading and everything under it. */
+async function readDocumentSection(
+  ctx: McpContext,
+  project: ActiveProjectContext,
+  element: Element,
+  address: SectionAddress,
+  format: 'prosemirror_xml' | 'markdown' | 'text'
+): Promise<McpToolResult> {
+  const { username, slug } = project;
+  try {
+    const { blocks, sections } = await openSectionedDocument(ctx, username, slug, element.id);
+    const lookup = findSection(sections, address);
+    if ('error' in lookup) {
+      return { content: [{ type: 'text', text: `Error: ${lookup.error}` }], isError: true };
+    }
+    const { section } = lookup;
+    const xml = sectionXml(blocks, section);
+
+    let content = xml;
+    if (format === 'markdown') content = xmlToMarkdownOutput(xml, username, slug);
+    else if (format === 'text') content = extractTextFromXmlString(xml);
+
+    return {
+      content: [{ type: 'text', text: content || `(${describeSection(section)} is empty)` }],
+      structuredContent: {
+        elementId: element.id,
+        elementName: element.name,
+        format,
+        section: {
+          index: section.index,
+          level: section.level,
+          heading: section.index === 0 ? null : section.heading,
+          path: section.path.join(' > '),
+          blockCount: section.end - section.start,
+        },
+        content,
+      },
+    };
+  } catch (err) {
+    rethrowDocumentReadError(err);
+    mcpSearchLog.error('Error getting document section', err);
+    return {
+      content: [{ type: 'text', text: 'Error: could not retrieve document content' }],
+      isError: true,
+    };
+  }
+}
 
 /**
  * Extract plain text from a Yjs XmlFragment (ProseMirror content)

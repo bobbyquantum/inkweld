@@ -15,3 +15,10 @@ the backend/MCP.
 - Conversation nodes (`src/schema/conversation-spec.ts`) share the prose
   schema and stay one level deep; see
   `frontend/src/app/components/conversation/AGENTS.md`.
+- `src/xml/sections.ts` defines document sections for the MCP section tools
+  (`get_document_outline`, `update_document_section`, `get_document_content`
+  with `section`): only top-level headings start one, a section includes its
+  subsections, and section 0 is the text before the first heading. It works on
+  plain block descriptors (`readSectionBlocks(fragment)`), so the frontend can
+  reuse it without a second Yjs copy. Docs:
+  `docs/site/docs/developer/mcp-oauth.md` → "Editing part of a document".
