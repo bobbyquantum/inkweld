@@ -4195,7 +4195,12 @@
             "type": "string"
           },
           "authorName": {
-            "type": "string"
+            "type": "string",
+            "description": "Author's display name, or their username when none is set"
+          },
+          "authorUsername": {
+            "type": "string",
+            "description": "Author's username (for the avatar)"
           },
           "resolved": {
             "type": "boolean"
@@ -4227,6 +4232,7 @@
           "projectId",
           "authorId",
           "authorName",
+          "authorUsername",
           "resolved",
           "createdAt",
           "updatedAt",
@@ -4249,7 +4255,12 @@
             "type": "string"
           },
           "authorName": {
-            "type": "string"
+            "type": "string",
+            "description": "Author's display name, or their username when none is set"
+          },
+          "authorUsername": {
+            "type": "string",
+            "description": "Author's username (for the avatar)"
           },
           "resolved": {
             "type": "boolean"
@@ -4284,6 +4295,7 @@
           "projectId",
           "authorId",
           "authorName",
+          "authorUsername",
           "resolved",
           "createdAt",
           "updatedAt",
@@ -4303,7 +4315,12 @@
             "type": "string"
           },
           "authorName": {
-            "type": "string"
+            "type": "string",
+            "description": "Author's display name, or their username when none is set"
+          },
+          "authorUsername": {
+            "type": "string",
+            "description": "Author's username (for the avatar)"
           },
           "text": {
             "type": "string"
@@ -4323,6 +4340,7 @@
           "threadId",
           "authorId",
           "authorName",
+          "authorUsername",
           "text",
           "createdAt"
         ]

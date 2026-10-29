@@ -6,9 +6,26 @@ import { commentMessages, type CommentMessage } from '../db/schema/comment-messa
 import { commentReadStatus } from '../db/schema/comment-read-status';
 import { users } from '../db/schema/users';
 
-export interface CommentThreadWithMessages extends CommentThread {
+/** Who wrote a thread or message, as shown next to it. */
+export interface CommentAuthor {
+  /** Display name, or the username when the author has not set one */
   authorName: string;
-  messages: (CommentMessage & { authorName: string })[];
+  /** For loading the author's avatar */
+  authorUsername: string;
+}
+
+export type CommentMessageWithAuthor = CommentMessage & CommentAuthor;
+
+export interface CommentThreadWithMessages extends CommentThread, CommentAuthor {
+  messages: CommentMessageWithAuthor[];
+}
+
+/** Author columns joined onto every thread and message row. */
+const authorColumns = { name: users.name, username: users.username };
+
+function toAuthor(row: { name: string | null; username: string | null }): CommentAuthor {
+  const username = row.username ?? '';
+  return { authorName: row.name || username || 'Unknown', authorUsername: username };
 }
 
 export interface UnreadCount {
@@ -69,7 +86,7 @@ class CommentService {
     const threadRows = await (db as D1DatabaseInstance)
       .select({
         thread: commentThreads,
-        authorName: users.name,
+        ...authorColumns,
       })
       .from(commentThreads)
       .innerJoin(users, eq(commentThreads.authorId, users.id))
@@ -78,12 +95,12 @@ class CommentService {
 
     if (threadRows.length === 0) return undefined;
 
-    const { thread, authorName } = threadRows[0];
+    const [threadRow] = threadRows;
 
     const msgs = await (db as D1DatabaseInstance)
       .select({
         message: commentMessages,
-        authorName: users.name,
+        ...authorColumns,
       })
       .from(commentMessages)
       .innerJoin(users, eq(commentMessages.authorId, users.id))
@@ -91,12 +108,9 @@ class CommentService {
       .orderBy(commentMessages.createdAt);
 
     return {
-      ...thread,
-      authorName: authorName ?? 'Unknown',
-      messages: msgs.map((m) => ({
-        ...m.message,
-        authorName: m.authorName ?? 'Unknown',
-      })),
+      ...threadRow.thread,
+      ...toAuthor(threadRow),
+      messages: msgs.map((m) => ({ ...m.message, ...toAuthor(m) })),
     };
   }
 
@@ -111,7 +125,7 @@ class CommentService {
     const threads = await (db as D1DatabaseInstance)
       .select({
         thread: commentThreads,
-        authorName: users.name,
+        ...authorColumns,
       })
       .from(commentThreads)
       .innerJoin(users, eq(commentThreads.authorId, users.id))
@@ -126,23 +140,23 @@ class CommentService {
     const allMessages = await (db as D1DatabaseInstance)
       .select({
         message: commentMessages,
-        authorName: users.name,
+        ...authorColumns,
       })
       .from(commentMessages)
       .innerJoin(users, eq(commentMessages.authorId, users.id))
       .where(inArray(commentMessages.threadId, threadIds))
       .orderBy(commentMessages.createdAt);
 
-    const messagesByThread = new Map<string, (CommentMessage & { authorName: string })[]>();
+    const messagesByThread = new Map<string, CommentMessageWithAuthor[]>();
     for (const m of allMessages) {
       const list = messagesByThread.get(m.message.threadId) ?? [];
-      list.push({ ...m.message, authorName: m.authorName ?? 'Unknown' });
+      list.push({ ...m.message, ...toAuthor(m) });
       messagesByThread.set(m.message.threadId, list);
     }
 
     return threads.map((t) => ({
       ...t.thread,
-      authorName: t.authorName ?? 'Unknown',
+      ...toAuthor(t),
       messages: messagesByThread.get(t.thread.id) ?? [],
     }));
   }
@@ -153,11 +167,11 @@ class CommentService {
   async listByProjectId(
     db: DatabaseInstance,
     projectId: string
-  ): Promise<(CommentThread & { authorName: string; messageCount: number })[]> {
+  ): Promise<(CommentThread & CommentAuthor & { messageCount: number })[]> {
     const threads = await (db as D1DatabaseInstance)
       .select({
         thread: commentThreads,
-        authorName: users.name,
+        ...authorColumns,
         messageCount: sql<number>`(SELECT COUNT(*) FROM ${commentMessages} WHERE ${commentMessages.threadId} = ${commentThreads.id})`,
       })
       .from(commentThreads)
@@ -167,7 +181,7 @@ class CommentService {
 
     return threads.map((t) => ({
       ...t.thread,
-      authorName: t.authorName ?? 'Unknown',
+      ...toAuthor(t),
       messageCount: t.messageCount,
     }));
   }
@@ -182,7 +196,7 @@ class CommentService {
       authorId: string;
       text: string;
     }
-  ): Promise<CommentMessage & { authorName: string }> {
+  ): Promise<CommentMessageWithAuthor> {
     const now = Date.now();
     const messageId = crypto.randomUUID();
 
@@ -205,7 +219,7 @@ class CommentService {
     const result = await (db as D1DatabaseInstance)
       .select({
         message: commentMessages,
-        authorName: users.name,
+        ...authorColumns,
       })
       .from(commentMessages)
       .innerJoin(users, eq(commentMessages.authorId, users.id))
@@ -216,10 +230,7 @@ class CommentService {
       throw new Error('Failed to create comment message');
     }
 
-    return {
-      ...result[0].message,
-      authorName: result[0].authorName ?? 'Unknown',
-    };
+    return { ...result[0].message, ...toAuthor(result[0]) };
   }
 
   /**

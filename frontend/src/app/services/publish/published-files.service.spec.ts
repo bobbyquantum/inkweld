@@ -446,6 +446,28 @@ describe('PublishedFilesService', () => {
       expect(service.lastUploadRefusedForQuota()).toBe(false);
       expect(storageUsage.load).not.toHaveBeenCalled();
     });
+
+    it('keeps the server message for a 403 (the body is read once)', async () => {
+      // A real Response, whose body can only be read once
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue(
+          Response.json(
+            {
+              code: 'QUOTA_EXCEEDED',
+              error: 'Forbidden',
+              message: 'Sync capacity is full',
+            },
+            { status: 403 }
+          )
+        )
+      );
+
+      await service.savePublishedFile(mockProjectKey, mockBlob, request);
+
+      expect(service.lastUploadRefusedForQuota()).toBe(true);
+      expect(service.lastUploadError()).toBe('403 Sync capacity is full');
+    });
   });
 
   describe('upload failures', () => {
@@ -876,24 +898,47 @@ describe('PublishedFilesService', () => {
         expect.objectContaining({ method: 'DELETE' })
       );
     });
-  });
 
-  describe('clearProjectFiles', () => {
-    it('should clear all files for a project', async () => {
-      const files = [mockFile, { ...mockFile, id: 'file-2' }];
-      const key = `${mockProjectKey}:published-files`;
-      localStorage.setItem(key, JSON.stringify(files));
-      await service.loadFiles(mockProjectKey);
+    it('keeps the local copy when the server refuses the delete', async () => {
+      setupService.getMode.mockReturnValue('server');
+      vi.stubGlobal(
+        'fetch',
+        vi
+          .fn()
+          .mockResolvedValue(
+            Response.json({ error: 'Access denied' }, { status: 403 })
+          )
+      );
 
+      await expect(
+        service.deleteFile(mockProjectKey, 'file-1')
+      ).rejects.toThrow('403 Access denied');
+
+      expect(localStorageService.deleteMedia).not.toHaveBeenCalled();
+      const stored = JSON.parse(
+        localStorage.getItem(`${mockProjectKey}:published-files`) ?? '[]'
+      ) as unknown[];
+      expect(stored).toHaveLength(1);
+    });
+
+    it('deletes locally when the server never had the file', async () => {
+      setupService.getMode.mockReturnValue('server');
       localStorageService.deleteMedia.mockResolvedValue(undefined);
+      vi.stubGlobal(
+        'fetch',
+        vi
+          .fn()
+          .mockResolvedValue(
+            Response.json({ error: 'Not found' }, { status: 404 })
+          )
+      );
 
-      await service.clearProjectFiles(mockProjectKey);
+      await service.deleteFile(mockProjectKey, 'file-1');
 
-      expect(localStorageService.deleteMedia).toHaveBeenCalledTimes(2);
-
-      const storedValue = localStorage.getItem(key);
-      const stored = JSON.parse(storedValue ?? '[]') as unknown[];
-      expect(stored).toHaveLength(0);
+      expect(localStorageService.deleteMedia).toHaveBeenCalledWith(
+        mockProjectKey,
+        'published-file-1'
+      );
     });
   });
 });

@@ -7,7 +7,7 @@ import { getStorageService } from '../services/storage.service';
 import { PublishedFileErrorSchema } from '../schemas/published-file.schemas';
 import type { AppContext } from '../types/context';
 import { robotsTagFor } from '../utils/share-page';
-import { sanitizeFilename } from '../utils/xml-utils';
+import { contentDisposition } from '../utils/content-disposition';
 
 const shareRoutes = new OpenAPIHono<AppContext>();
 
@@ -73,13 +73,10 @@ shareRoutes.openapi(getSharedFileRoute, async (c) => {
     return c.json({ error: 'File content not found' }, 404);
   }
 
-  // Sanitize filename to prevent header injection (remove control chars, quotes, backslashes)
-  const safeFilename = sanitizeFilename(file.filename);
-
   return new Response(content, {
     headers: {
       'Content-Type': file.mimeType,
-      'Content-Disposition': `attachment; filename="${safeFilename}"`,
+      'Content-Disposition': contentDisposition('attachment', file.filename),
       'Content-Length': String(file.size),
       'X-Robots-Tag': robotsTagFor(file.sharePermission),
     },

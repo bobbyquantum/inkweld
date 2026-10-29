@@ -182,12 +182,30 @@ describe('Comments', () => {
       expect(response.status).toBe(200);
       const data = (await json()) as {
         id: string;
-        messages: { text: string }[];
+        messages: { text: string; authorName: string; authorUsername: string }[];
         authorName: string;
+        authorUsername: string;
       };
       expect(data.id).toBe(threadId);
       expect(data.messages[0].text).toBe('This is a comment on the first chapter.');
-      expect(data.authorName).toBeTruthy();
+      // The owner has no display name, so the username stands in for it
+      expect(data.authorName).toBe(ownerUsername);
+      expect(data.authorUsername).toBe(ownerUsername);
+      expect(data.messages[0].authorName).toBe(ownerUsername);
+      expect(data.messages[0].authorUsername).toBe(ownerUsername);
+    });
+
+    it('shows the display name when the author has one', async () => {
+      const db = getDatabase();
+      await db.update(users).set({ name: 'Comment Owner' }).where(eq(users.id, ownerUserId));
+      try {
+        const { json } = await ownerClient.request(`${commentsPath()}/threads/${threadId}`);
+        const data = (await json()) as { authorName: string; authorUsername: string };
+        expect(data.authorName).toBe('Comment Owner');
+        expect(data.authorUsername).toBe(ownerUsername);
+      } finally {
+        await db.update(users).set({ name: null }).where(eq(users.id, ownerUserId));
+      }
     });
 
     it('should return 404 for non-existent thread', async () => {
@@ -234,8 +252,9 @@ describe('Comments', () => {
       );
 
       expect(response.status).toBe(201);
-      const data = (await json()) as { id: string; text: string };
+      const data = (await json()) as { id: string; text: string; authorUsername: string };
       expect(data.text).toBe('This is a reply.');
+      expect(data.authorUsername).toBe(ownerUsername);
       replyMessageId = data.id;
     });
 

@@ -1,5 +1,4 @@
 import { inject, Injectable, signal } from '@angular/core';
-import { forEachSequential } from '@inkweld/async';
 import { nanoid } from 'nanoid';
 import { BehaviorSubject } from 'rxjs';
 
@@ -43,6 +42,32 @@ export function toWireRequest(request: CreatePublishedFileRequest): unknown {
       wordCount: metadata.wordCount ?? null,
     },
   };
+}
+
+/** JSON body of a failed API reply. */
+interface ApiErrorBody {
+  code?: string;
+  error?: string;
+  message?: string;
+}
+
+/**
+ * Read a failed reply's body, or null when it is not JSON. A body can only
+ * be read once, so read it here and pass it on.
+ */
+async function readErrorBody(response: Response): Promise<ApiErrorBody | null> {
+  return (await response.json().catch(() => null)) as ApiErrorBody | null;
+}
+
+/** "<status> <detail>" for a failed reply. */
+function describeFailure(
+  response: Response,
+  body: ApiErrorBody | null
+): string {
+  // Thrown domain errors carry the detail in `message` ("error" is just the
+  // status name); hand-written route replies only set `error`.
+  const detail = body?.message ?? body?.error ?? response.statusText;
+  return detail ? `${response.status} ${detail}` : `${response.status}`;
 }
 
 /** Rebuild the create request from a stored record (for upload retries). */
@@ -412,48 +437,25 @@ export class PublishedFilesService {
   }
 
   /**
-   * Delete a published file
+   * Delete a published file.
+   *
+   * In server mode the server copy goes first. If that fails the file, and
+   * any share link to it, is still live, so the local copy is kept and the
+   * error is thrown for the caller to report.
    */
   async deleteFile(projectKey: string, fileId: string): Promise<void> {
-    // Delete blob from offline storage
+    if (this.isOnline()) {
+      await this.deleteOnServer(projectKey, fileId);
+    }
+
     await this.localStorage.deleteMedia(
       projectKey,
       `${PUBLISHED_BLOB_PREFIX}${fileId}`
     );
 
-    // Update metadata
     const files = this.filesSubject.value.filter(f => f.id !== fileId);
     this.saveOfflineMetadata(projectKey, files);
     this.filesSubject.next(files);
-
-    // Delete on server if online
-    if (this.isOnline()) {
-      try {
-        await this.deleteOnServer(projectKey, fileId);
-      } catch (err) {
-        this.logger.warn('Failed to delete file on server', String(err));
-      }
-    }
-  }
-
-  /**
-   * Clear all published files for a project (used when deleting project)
-   */
-  async clearProjectFiles(projectKey: string): Promise<void> {
-    const files = this.filesSubject.value;
-
-    // Delete all blobs
-    // Sequential: one IndexedDB delete at a time.
-    await forEachSequential(files, file =>
-      this.localStorage.deleteMedia(
-        projectKey,
-        `${PUBLISHED_BLOB_PREFIX}${file.id}`
-      )
-    );
-
-    // Clear metadata
-    this.saveOfflineMetadata(projectKey, []);
-    this.filesSubject.next([]);
   }
 
   // ============================================
@@ -522,17 +524,6 @@ export class PublishedFilesService {
     }
   }
 
-  /** Flag a sync-capacity refusal (403 with `code: 'QUOTA_EXCEEDED'`). */
-  private async noteQuotaRefusal(response: Response): Promise<void> {
-    const body = (await response.json().catch(() => null)) as {
-      code?: string;
-    } | null;
-    if (body?.code === 'QUOTA_EXCEEDED') {
-      this.lastUploadRefusedForQuota.set(true);
-      void this.storageUsage.load();
-    }
-  }
-
   private async uploadToServer(
     projectKey: string,
     blob: Blob,
@@ -556,10 +547,12 @@ export class PublishedFilesService {
       );
 
       if (!response.ok) {
-        if (response.status === 403) {
-          await this.noteQuotaRefusal(response);
+        const body = await readErrorBody(response);
+        if (response.status === 403 && body?.code === 'QUOTA_EXCEEDED') {
+          this.lastUploadRefusedForQuota.set(true);
+          void this.storageUsage.load();
         }
-        this.lastUploadError.set(await this.describeFailure(response));
+        this.lastUploadError.set(describeFailure(response, body));
         return null;
       }
 
@@ -570,17 +563,6 @@ export class PublishedFilesService {
       );
       return null;
     }
-  }
-
-  private async describeFailure(response: Response): Promise<string> {
-    const body = (await response.json().catch(() => null)) as {
-      error?: string;
-      message?: string;
-    } | null;
-    // Thrown domain errors carry the detail in `message` ("error" is just the
-    // status name); hand-written route replies only set `error`.
-    const detail = body?.message ?? body?.error ?? response.statusText;
-    return detail ? `${response.status} ${detail}` : `${response.status}`;
   }
 
   private async downloadFromServer(
@@ -623,7 +605,7 @@ export class PublishedFilesService {
       }
     );
     if (!response.ok) {
-      throw new Error(await this.describeFailure(response));
+      throw new Error(describeFailure(response, await readErrorBody(response)));
     }
     return (await response.json()) as PublishedFile;
   }
@@ -633,7 +615,7 @@ export class PublishedFilesService {
     fileId: string
   ): Promise<void> {
     const [username, slug] = projectKey.split('/');
-    await fetch(
+    const response = await fetch(
       `${this.getServerUrl()}/api/v1/projects/${username}/${slug}/published/${fileId}`,
       {
         method: 'DELETE',
@@ -641,6 +623,10 @@ export class PublishedFilesService {
         credentials: 'include',
       }
     );
+    // 404: already deleted, or saved here while its upload failed
+    if (!response.ok && response.status !== 404) {
+      throw new Error(describeFailure(response, await readErrorBody(response)));
+    }
   }
 
   // ============================================

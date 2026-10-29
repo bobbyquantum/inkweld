@@ -39,7 +39,7 @@ export class ElementTreeService {
    * Validates whether a drop operation is allowed at the specified level.
    *
    * Rules:
-   * - Items (non-folders) cannot have children
+   * - Only folders can have children (the same rule getValidDropLevels uses)
    * - Folders can only have children one level deeper
    * - No negative levels allowed
    * - If no node above, only root level (0) or first level (1) allowed
@@ -59,20 +59,12 @@ export class ElementTreeService {
       return targetLevel <= 1;
     }
 
-    // Items can't have children
-    if (nodeAbove.type === ElementType.Item && targetLevel > nodeAbove.level) {
-      return false;
-    }
-
-    // Folders can only have children one level deeper
-    if (
-      nodeAbove.type === ElementType.Folder &&
-      targetLevel > nodeAbove.level + 1
-    ) {
-      return false;
-    }
-
-    return true;
+    // Only folders have children, and only one level below them
+    const deepest =
+      nodeAbove.type === ElementType.Folder
+        ? nodeAbove.level + 1
+        : nodeAbove.level;
+    return targetLevel <= deepest;
   }
 
   /**

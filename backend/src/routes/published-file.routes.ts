@@ -28,7 +28,7 @@ import {
   PublishedFileIdParamSchema,
 } from '../schemas/published-file.schemas';
 import type { AppContext } from '../types/context';
-import { sanitizeFilename } from '../utils/xml-utils';
+import { contentDisposition } from '../utils/content-disposition';
 
 const publishedFileRoutes = new OpenAPIHono<AppContext>();
 
@@ -377,13 +377,10 @@ publishedFileRoutes.openapi(getPublishedFileRoute, async (c) => {
     throw new NotFoundError('File content not found');
   }
 
-  // Sanitize filename to prevent header injection (remove control chars, quotes, backslashes)
-  const safeFilename = sanitizeFilename(file.filename);
-
   return new Response(content, {
     headers: {
       'Content-Type': file.mimeType,
-      'Content-Disposition': `attachment; filename="${safeFilename}"`,
+      'Content-Disposition': contentDisposition('attachment', file.filename),
       'Content-Length': String(file.size),
       'X-Content-Type-Options': 'nosniff',
     },
