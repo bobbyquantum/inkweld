@@ -124,7 +124,7 @@ export async function moveProjectData(
   } catch (error) {
     renameLog.error(`Renaming ${username}/${fromSlug} to ${toSlug} failed`, error);
     // Newest first, so each undo sees the state its step left behind.
-    await forEachSequential(done.reverse(), (step) =>
+    await forEachSequential(done.toReversed(), (step) =>
       step.undo().catch((undoError: unknown) => {
         renameLog.error(`Could not undo the ${step.name} step of renaming ${fromSlug}`, undoError);
       })

@@ -859,9 +859,9 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     const lockedUntil = await this.holdRenameLock();
     this.closeAllSockets('error', WS_CLOSE_SERVER_ERROR, 'Project is being renamed');
     // A load compacts the rows it replayed, so wait for loads first.
-    await Promise.allSettled([...this.documents.values()]);
+    await Promise.allSettled(this.documents.values());
     this.dropDocuments();
-    await Promise.allSettled([...this.pendingCompactions]);
+    await Promise.allSettled(this.pendingCompactions);
     projDOLog.info(`Project ${this.projectId} locked for rename`);
     return jsonResponse({ ok: true, lockedUntil }, 200);
   }
