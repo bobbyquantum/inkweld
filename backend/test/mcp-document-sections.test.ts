@@ -586,7 +586,7 @@ describe('on Cloudflare Workers', () => {
   it('reads the outline and a section from the document state', async () => {
     const { env, posted } = fakeProjectObject(docWith(BOOK));
     const outline = await call('get_document_outline', {}, { env, permissions: READ });
-    expect((outline.result?.structuredContent?.sections as unknown[]).length).toBe(6);
+    expect(outline.result?.structuredContent?.sections as unknown[]).toHaveLength(6);
 
     const section = await call(
       'get_document_content',

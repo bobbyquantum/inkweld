@@ -306,7 +306,9 @@ export function parseSectionEditArgs(
 
   const format = args.format ?? 'prosemirror_xml';
   if (format !== 'prosemirror_xml' && format !== 'markdown') {
-    return { error: `invalid format "${String(format)}". Use "prosemirror_xml" or "markdown".` };
+    return {
+      error: `invalid format ${JSON.stringify(format)}. Use "prosemirror_xml" or "markdown".`,
+    };
   }
 
   const op = operation as SectionOperation;
