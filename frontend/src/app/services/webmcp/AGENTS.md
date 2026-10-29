@@ -30,4 +30,8 @@ agent built into the browser can do what the user can do in the app. Docs:
   has it open, otherwise a headless IndexedDB copy that is synced with the
   server before and after on server profiles. Never replace the text of a
   headless copy without that pull: the server's newer content would survive
-  the replace.
+  the replace. Section edits (`update_document_section`) use
+  `DocumentAccess.editFragment()`, which changes only the edited range of
+  top-level blocks in one transaction; their arguments, errors and results
+  follow the server's `document-section.tools.ts` (helpers in
+  `tools/document-sections.ts`).

@@ -128,14 +128,19 @@ export function serializeYjsFragmentToXml(
 ): string {
   let xml = '';
   for (let i = 0; i < fragment.length; i++) {
-    const child = fragment.get(i);
-    if (child instanceof Y.XmlElement) {
-      xml += xmlElementToString(Y, child);
-    } else if (child instanceof Y.XmlText) {
-      xml += xmlTextToString(child);
-    }
+    xml += serializeYjsNodeToXml(Y, fragment.get(i));
   }
   return xml;
+}
+
+/**
+ * Serialize one child of a fragment (an element or a text run) the way
+ * `serializeYjsFragmentToXml` does; anything else serializes to ''.
+ */
+export function serializeYjsNodeToXml(Y: typeof YModule, node: unknown): string {
+  if (node instanceof Y.XmlElement) return xmlElementToString(Y, node);
+  if (node instanceof Y.XmlText) return xmlTextToString(node);
+  return '';
 }
 
 /**

@@ -161,6 +161,12 @@ describe('ToolArgs', () => {
     const empty = new ToolArgs('not an object');
     expect(empty.has('name')).toBe(false);
   });
+
+  it('hands out raw values unchecked', () => {
+    expect(args.raw('mixed')).toEqual(['a', 1]);
+    expect(args.raw('parent')).toBeNull();
+    expect(args.raw('missing')).toBeUndefined();
+  });
 });
 
 describe('schema', () => {

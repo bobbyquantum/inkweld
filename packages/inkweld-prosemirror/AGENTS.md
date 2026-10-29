@@ -20,5 +20,7 @@ the backend/MCP.
   with `section`): only top-level headings start one, a section includes its
   subsections, and section 0 is the text before the first heading. It works on
   plain block descriptors (`readSectionBlocks(fragment)`), so the frontend can
-  reuse it without a second Yjs copy. Docs:
+  reuse it without a second Yjs copy. The WebMCP tools pass
+  `serializeYjsNodeToXml` as its serializer so block XML is the canonical,
+  escaped form; the default is Yjs's own `toString()`. Docs:
   `docs/site/docs/developer/mcp-oauth.md` → "Editing part of a document".

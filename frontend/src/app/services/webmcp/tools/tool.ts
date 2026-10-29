@@ -126,6 +126,11 @@ export class ToolArgs {
     return this.input[name] !== undefined && this.input[name] !== null;
   }
 
+  /** The value as given, for an argument that needs its own checks. */
+  raw(name: string): unknown {
+    return this.input[name];
+  }
+
   string(name: string): string {
     const value = this.optionalString(name);
     if (value === undefined || value.trim() === '') {
