@@ -122,6 +122,7 @@ describe('slugify', () => {
 
   it('spells out letters that do not decompose', () => {
     expect(slugify('Straße Ærø Łódź Œuvre')).toBe('strasse-aero-lodz-oeuvre');
+    expect(slugify('Ħamrun Ŧiekŋa')).toBe('hamrun-tiekna');
   });
 
   it('drops apostrophes instead of splitting words', () => {

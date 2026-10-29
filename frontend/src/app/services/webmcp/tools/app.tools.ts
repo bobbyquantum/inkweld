@@ -16,6 +16,7 @@ import { schema, ToolError, type WebMcpToolDefinition } from './tool';
 import { waitUntil } from './wait';
 
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const SLUG_MIN_LENGTH = 3;
 
 const THEMES: readonly ThemeOption[] = ['light-theme', 'dark-theme', 'system'];
 
@@ -188,6 +189,12 @@ export function appTools(injector: Injector): WebMcpToolDefinition[] {
         if (!SLUG_PATTERN.test(slug)) {
           throw new ToolError(
             `"${slug}" is not a valid slug: use lowercase letters, digits and single hyphens.`
+          );
+        }
+        // The server refuses shorter slugs, and local mode would keep one
+        if (slug.length < SLUG_MIN_LENGTH) {
+          throw new ToolError(
+            `"${slug}" is too short: a slug needs at least ${SLUG_MIN_LENGTH} characters.`
           );
         }
         const project = await projects.createProject(

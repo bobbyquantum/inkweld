@@ -20,7 +20,10 @@ export function trimHyphens(s: string): string {
   return s.substring(start, end);
 }
 
-/** Latin letters that Unicode decomposition leaves alone. */
+/**
+ * Letters of Latin-1 and Latin Extended-A that Unicode decomposition leaves
+ * alone, so they would otherwise be dropped.
+ */
 const LETTER_FOLDS: Record<string, string> = {
   ß: 'ss',
   æ: 'ae',
@@ -31,6 +34,10 @@ const LETTER_FOLDS: Record<string, string> = {
   ð: 'd',
   þ: 'th',
   ı: 'i',
+  ħ: 'h',
+  ĸ: 'k',
+  ŋ: 'n',
+  ŧ: 't',
 };
 
 /**
@@ -44,7 +51,7 @@ const LETTER_FOLDS: Record<string, string> = {
 export function slugify(text: string, maxLength = 50): string {
   const ascii = text
     .toLowerCase()
-    .replaceAll(/[ßæœøłđðþı]/g, letter => LETTER_FOLDS[letter])
+    .replaceAll(/[ßæœøłđðþıħĸŋŧ]/g, letter => LETTER_FOLDS[letter])
     .normalize('NFKD')
     .replaceAll(/[\p{M}'’ʼ]/gu, '');
   const slug = trimHyphens(ascii.replaceAll(/[^a-z0-9]+/g, '-'));

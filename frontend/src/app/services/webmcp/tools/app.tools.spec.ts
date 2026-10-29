@@ -197,6 +197,12 @@ describe('app tools', () => {
     expect(createProject).not.toHaveBeenCalled();
   });
 
+  it('rejects a slug the server would refuse as too short', async () => {
+    const { error } = await callTool(tools, 'create_project', { title: 'É' });
+    expect(error).toContain('"e" is too short');
+    expect(createProject).not.toHaveBeenCalled();
+  });
+
   it('goes home', async () => {
     await callTool(tools, 'go_home');
     expect(navigate).toHaveBeenCalledWith(['/']);
