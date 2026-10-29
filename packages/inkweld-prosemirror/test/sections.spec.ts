@@ -12,6 +12,7 @@ import {
   readSectionBlocks,
   sectionEditRange,
   sectionXml,
+  serializeYjsNodeToXml,
   type DocumentSection,
   type SectionBlock,
 } from '../src/xml';
@@ -253,5 +254,19 @@ describe('readSectionBlocks', () => {
     const sections = outlineSections(blocks);
     expect(sections.map((s) => s.heading)).toEqual(['', 'Title', 'Numeric']);
     expect(sections[1]).toMatchObject({ start: 1, end: 5 });
+  });
+
+  it('takes the block XML from a custom serializer', () => {
+    const doc = new Y.Doc();
+    const fragment = doc.getXmlFragment('prosemirror');
+    const xml =
+      '<heading level="1">Fish &amp; Chips</heading><paragraph>Say <span data-mark="comment" commentId="c1">this</span> &lt;now&gt;</paragraph>';
+    fragment.insert(0, parseXmlToYjsNodes(Y, xml));
+    fragment.push([new Y.XmlText('stray')]);
+
+    const blocks = readSectionBlocks(fragment, (child) => serializeYjsNodeToXml(Y, child));
+    expect(blocks.map((block) => block.xml).join('')).toBe(xml + 'stray');
+    expect(outlineSections(blocks)[1].heading).toBe('Fish & Chips');
+    expect(serializeYjsNodeToXml(Y, 'not a node')).toBe('');
   });
 });

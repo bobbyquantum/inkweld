@@ -12,6 +12,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as Y from 'yjs';
 
 import { DocumentAccess } from './document-access';
+import { ToolError } from './tool';
 
 const DOC_ID = 'alice:novel:ch1';
 
@@ -92,6 +93,27 @@ describe('DocumentAccess', () => {
       expect(syncDocumentToServer).not.toHaveBeenCalled();
       expect(release).not.toHaveBeenCalled();
     });
+
+    it('edits part of the live doc in one update', async () => {
+      const doc = docWith(
+        '<paragraph>One</paragraph><paragraph>Two</paragraph>'
+      );
+      live.set(DOC_ID, doc);
+      const kept = doc.getXmlFragment('prosemirror').get(0);
+      const updates = vi.fn();
+      doc.on('update', updates);
+
+      const result = await access.editFragment(DOC_ID, fragment => {
+        fragment.delete(1, 1);
+        fragment.insert(1, [new Y.XmlElement('horizontal_rule')]);
+        return fragment.length;
+      });
+
+      expect(result).toBe(2);
+      expect(updates).toHaveBeenCalledTimes(1);
+      expect(doc.getXmlFragment('prosemirror').get(0)).toBe(kept);
+      expect(release).not.toHaveBeenCalled();
+    });
   });
 
   describe('without an editor', () => {
@@ -106,6 +128,7 @@ describe('DocumentAccess', () => {
     it('reads an unknown document as empty without creating it', async () => {
       exists = false;
       expect(await access.readXml(DOC_ID)).toBe('');
+      expect(await access.readFragment(DOC_ID, f => f.length)).toBe(0);
       expect(release).not.toHaveBeenCalled();
     });
 
@@ -132,7 +155,49 @@ describe('DocumentAccess', () => {
     it('leaves reporting to an editor that opened meanwhile', async () => {
       acquiredLive = true;
       await access.writeXml(DOC_ID, '<paragraph>New</paragraph>');
+      await access.editFragment(DOC_ID, fragment => fragment.delete(0, 1));
       expect(localEdits).toEqual([]);
+    });
+
+    it('edits part of the stored copy, flushes and reports it', async () => {
+      const result = await access.editFragment(DOC_ID, fragment => {
+        fragment.push([new Y.XmlElement('horizontal_rule')]);
+        return 'done';
+      });
+
+      expect(result).toBe('done');
+      expect(xmlOf(headless)).toBe(
+        '<paragraph>Stored</paragraph><horizontal_rule/>'
+      );
+      expect(flush).toHaveBeenCalled();
+      expect(release).toHaveBeenCalled();
+      expect(localEdits).toEqual([DOC_ID]);
+    });
+
+    it('saves nothing when the edit is refused', async () => {
+      await expect(
+        access.editFragment(DOC_ID, () => {
+          throw new ToolError('No such section.');
+        })
+      ).rejects.toThrow('No such section.');
+
+      expect(flush).not.toHaveBeenCalled();
+      expect(release).toHaveBeenCalled();
+      expect(localEdits).toEqual([]);
+    });
+
+    it('refuses to edit an import the editor has not applied yet', async () => {
+      headless = new Y.Doc();
+      headless
+        .getMap('importedContent')
+        .set('content', [{ type: 'paragraph' }]);
+      const edit = vi.fn();
+
+      await expect(access.editFragment(DOC_ID, edit)).rejects.toThrow(
+        'open_element'
+      );
+      expect(edit).not.toHaveBeenCalled();
+      expect(flush).not.toHaveBeenCalled();
     });
   });
 
@@ -148,6 +213,11 @@ describe('DocumentAccess', () => {
 
     it('pulls before and pushes after writing', async () => {
       await access.writeXml(DOC_ID, '<paragraph>New</paragraph>');
+      expect(syncDocumentToServer).toHaveBeenCalledTimes(2);
+    });
+
+    it('pulls before and pushes after a partial edit', async () => {
+      await access.editFragment(DOC_ID, fragment => fragment.delete(0, 1));
       expect(syncDocumentToServer).toHaveBeenCalledTimes(2);
     });
 

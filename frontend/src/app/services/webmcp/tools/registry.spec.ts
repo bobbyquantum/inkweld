@@ -92,6 +92,8 @@ describe('WebMcpRegistry', () => {
 
     expect(names()).toContain('get_project_tree');
     expect(names()).toContain('update_document_content');
+    expect(names()).toContain('get_document_outline');
+    expect(names()).toContain('update_document_section');
     expect(names()).toContain('delete_element');
 
     state.project.set(undefined);
@@ -114,14 +116,17 @@ describe('WebMcpRegistry', () => {
     TestBed.tick();
 
     expect(names()).toContain('get_document_content');
+    expect(names()).toContain('get_document_outline');
     expect(names()).toContain('open_element');
     expect(names()).not.toContain('update_document_content');
+    expect(names()).not.toContain('update_document_section');
     expect(names()).not.toContain('create_element');
 
     state.canWrite.set(true);
     TestBed.tick();
 
     expect(names()).toContain('update_document_content');
+    expect(names()).toContain('update_document_section');
   });
 
   it('re-registers when another project opens', () => {

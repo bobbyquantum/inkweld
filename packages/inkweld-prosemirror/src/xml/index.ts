@@ -27,7 +27,11 @@ export {
   type MarkMap,
   type YxmlNode,
 } from './parser';
-export { applyXmlToYjsFragment, serializeYjsFragmentToXml } from './serializer';
+export {
+  applyXmlToYjsFragment,
+  serializeYjsFragmentToXml,
+  serializeYjsNodeToXml,
+} from './serializer';
 export { xmlContentToText } from './text';
 export {
   SECTION_OPERATIONS,

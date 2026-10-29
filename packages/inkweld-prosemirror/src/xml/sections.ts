@@ -71,11 +71,17 @@ interface FragmentChildLike {
 /**
  * Describe the top-level children of a Y.XmlFragment (or anything with the
  * same shape). Y.XmlElement children carry `nodeName`; Y.XmlText does not.
+ * Each block's XML comes from `serialize`, by default Yjs's own `toString()`;
+ * pass `(child) => serializeYjsNodeToXml(Y, child)` for the canonical,
+ * escaped XML that `parseXmlToYjsNodes` reads back.
  */
-export function readSectionBlocks(fragment: { toArray(): unknown[] }): SectionBlock[] {
+export function readSectionBlocks(
+  fragment: { toArray(): unknown[] },
+  serialize: (child: unknown) => string = (child) => (child as FragmentChildLike).toString()
+): SectionBlock[] {
   return fragment.toArray().map((child) => {
     const node = child as FragmentChildLike;
-    const xml = node.toString();
+    const xml = serialize(child);
     if (typeof node.nodeName !== 'string') return { name: '#text', xml };
     if (node.nodeName !== 'heading') return { name: node.nodeName, xml };
     return { name: 'heading', level: headingLevel(node.getAttribute?.('level')), xml };

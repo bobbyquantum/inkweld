@@ -7,7 +7,7 @@ import {
   applyXmlToFragment,
   xmlFragmentToXmlString,
 } from '@utils/yjs-xml-serializer';
-import type * as Y from 'yjs';
+import * as Y from 'yjs';
 
 import { ToolError } from './tool';
 
@@ -53,33 +53,46 @@ export class DocumentAccess {
   }
 
   /** The document as Inkweld XML; empty string for an empty document. */
-  async readXml(documentId: string): Promise<string> {
+  readXml(documentId: string): Promise<string> {
+    return this.readFragment(documentId, xmlFragmentToXmlString);
+  }
+
+  /**
+   * Run `read` on the document's prose fragment. A document that was never
+   * stored reads as an empty fragment, without being created.
+   */
+  async readFragment<T>(
+    documentId: string,
+    read: (fragment: Y.XmlFragment) => T
+  ): Promise<T> {
     const live = this.liveDocs.getConnectedYDoc(documentId);
-    if (live)
-      return xmlFragmentToXmlString(live.getXmlFragment(PROSEMIRROR_FRAGMENT));
+    if (live) return read(live.getXmlFragment(PROSEMIRROR_FRAGMENT));
 
     await this.syncWithServer(documentId);
     const access = this.injector.get(YDocAccessService);
-    if (!(await access.documentExists(documentId))) return '';
+    if (!(await access.documentExists(documentId))) {
+      return read(new Y.Doc().getXmlFragment(PROSEMIRROR_FRAGMENT));
+    }
     const acquired = await access.acquireDocument(documentId);
     try {
-      return this.serialize(acquired.doc);
+      return read(this.storedFragment(acquired.doc));
     } finally {
       await acquired.release();
     }
   }
 
-  private serialize(doc: Y.Doc): string {
+  /** The prose of a stored copy, refusing one whose import is still pending. */
+  private storedFragment(doc: Y.Doc): Y.XmlFragment {
     const fragment = doc.getXmlFragment(PROSEMIRROR_FRAGMENT);
     if (
       fragment.length === 0 &&
       doc.getMap<unknown>('importedContent').get('content')
     ) {
       throw new ToolError(
-        'This document was imported and has not been opened yet. Call open_element on it once, then read it again.'
+        'This document was imported and has not been opened yet. Call open_element on it once, then try again.'
       );
     }
-    return xmlFragmentToXmlString(fragment);
+    return fragment;
   }
 
   /** Replace the whole document with `xml`. */
@@ -109,10 +122,60 @@ export class DocumentAccess {
     } finally {
       await acquired.release();
     }
+    await this.afterHeadlessWrite(documentId, acquired.live);
+  }
+
+  /**
+   * Change part of the document: `edit` runs in one transaction and deletes
+   * or inserts only the blocks it changes, so the rest of the text keeps its
+   * Yjs items (comments, concurrent edits). When `edit` throws before
+   * changing anything, a headless copy is neither saved nor pushed.
+   */
+  async editFragment<T>(
+    documentId: string,
+    edit: (fragment: Y.XmlFragment) => T
+  ): Promise<T> {
+    const live = this.liveDocs.getConnectedYDoc(documentId);
+    if (live) {
+      // The live doc's update listener reports this as a local edit.
+      return transactWithResult(live, () =>
+        edit(live.getXmlFragment(PROSEMIRROR_FRAGMENT))
+      );
+    }
+
+    await this.syncWithServer(documentId);
+    const acquired = await this.injector
+      .get(YDocAccessService)
+      .acquireDocument(documentId);
+    let result: T;
+    try {
+      const doc = acquired.doc;
+      const fragment = this.storedFragment(doc);
+      result = transactWithResult(doc, () => edit(fragment));
+      await acquired.flush();
+    } finally {
+      await acquired.release();
+    }
+    await this.afterHeadlessWrite(documentId, acquired.live);
+    return result;
+  }
+
+  private async afterHeadlessWrite(
+    documentId: string,
+    live: boolean
+  ): Promise<void> {
     // An editor that opened the document meanwhile reports its own edits and
     // syncs through its own connection.
-    if (acquired.live) return;
+    if (live) return;
     this.liveDocs.localEdit$.next(documentId);
     await this.syncWithServer(documentId);
   }
+}
+
+function transactWithResult<T>(doc: Y.Doc, run: () => T): T {
+  let result: T | undefined;
+  doc.transact(() => {
+    result = run();
+  });
+  return result as T;
 }
