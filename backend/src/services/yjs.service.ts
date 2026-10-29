@@ -28,6 +28,10 @@ interface LeveldbPersistence {
    * document content instead of full edit history.
    */
   flushDocument(docName: string): Promise<void>;
+  /** Names of every document stored in this database. */
+  getAllDocNames(): Promise<string[]>;
+  /** Remove a document's updates and state vector. */
+  clearDocument(docName: string): Promise<void>;
   destroy(): Promise<void>;
   /**
    * Run `f` inside y-leveldb's serialized transaction, handing it the raw
@@ -1006,9 +1010,10 @@ export class YjsService {
   }
 
   /**
-   * Rename a project - updates in-memory maps and persistence paths
-   * Note: The actual directory rename is done by fileStorageService.renameProjectDirectory
-   * This method handles the in-memory Yjs document and persistence references
+   * First step of a project rename: close the project's sockets and
+   * documents and release its LevelDB handle, so the project directory (which
+   * holds the store) can be moved. {@link renameProjectDocuments} then renames
+   * the documents inside the moved store (see project-data.service.ts).
    */
   async renameProject(username: string, oldSlug: string, newSlug: string): Promise<void> {
     const oldProjectKey = `${username}:${oldSlug}`;
@@ -1017,6 +1022,85 @@ export class YjsService {
     yjsLog.info(`Renaming project: ${oldProjectKey} -> ${newProjectKey}`);
     await this.teardownProject(oldProjectKey, 'Project renamed');
     yjsLog.info(`Project rename complete: ${oldProjectKey} -> ${newProjectKey}`);
+  }
+
+  /**
+   * Rename a project's documents inside its LevelDB store, which lives in the
+   * project directory of `directorySlug`. LevelDB keys every document by its
+   * full id (`username:slug:docId`, and `…/` for documents edited over a
+   * WebSocket), so once the directory has moved to a new slug the documents
+   * must move to names under that slug too, or the project opens empty.
+   *
+   * Each document's state is written under its new name before the old name
+   * is cleared. If a document fails, the ones already moved are moved back
+   * before the error is rethrown. The store is closed afterwards.
+   */
+  async renameProjectDocuments(move: {
+    username: string;
+    directorySlug: string;
+    fromSlug: string;
+    toSlug: string;
+  }): Promise<void> {
+    const { username, directorySlug, fromSlug, toSlug } = move;
+    const persistence = await this.getPersistenceForProject(username, directorySlug);
+    try {
+      const count = await this.moveDocumentNames(
+        persistence,
+        `${username}:${fromSlug}:`,
+        `${username}:${toSlug}:`
+      );
+      yjsLog.info(`Renamed ${count} document(s) from ${username}:${fromSlug} to ${toSlug}`);
+    } finally {
+      await this.teardownProject(`${username}:${directorySlug}`, 'Project renamed');
+    }
+  }
+
+  /** Move every document named `fromPrefix…` to `toPrefix…`; returns how many. */
+  private async moveDocumentNames(
+    persistence: LeveldbPersistence,
+    fromPrefix: string,
+    toPrefix: string
+  ): Promise<number> {
+    const names = (await persistence.getAllDocNames()).filter((name) =>
+      name.startsWith(fromPrefix)
+    );
+    const moved: string[] = [];
+    try {
+      // One at a time: each document is loaded whole into memory.
+      await forEachSequential(names, async (name) => {
+        const target = `${toPrefix}${name.slice(fromPrefix.length)}`;
+        await this.copyDocumentState(persistence, name, target);
+        moved.push(name);
+        await persistence.clearDocument(name);
+      });
+    } catch (error) {
+      // Put back what moved, one at a time like the move itself.
+      await forEachSequential(moved, async (name) => {
+        const target = `${toPrefix}${name.slice(fromPrefix.length)}`;
+        try {
+          await this.copyDocumentState(persistence, target, name);
+          await persistence.clearDocument(target);
+        } catch (restoreError) {
+          yjsLog.error(`Could not move ${target} back to ${name}`, restoreError);
+        }
+      });
+      throw error;
+    }
+    return names.length;
+  }
+
+  /** Merge the stored state of document `from` into document `to`. */
+  private async copyDocumentState(
+    persistence: LeveldbPersistence,
+    from: string,
+    to: string
+  ): Promise<void> {
+    const doc = await persistence.getYDoc(from);
+    try {
+      await persistence.storeUpdate(to, Y.encodeStateAsUpdate(doc));
+    } finally {
+      doc.destroy();
+    }
   }
 
   /**

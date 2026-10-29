@@ -3,13 +3,11 @@ import { requireAuth } from '../middleware/auth';
 import { projectService } from '../services/project.service';
 import { userService } from '../services/user.service';
 import { collaborationService } from '../services/collaboration.service';
-import { logger } from '../services/logger.service';
-import { getStorageService } from '../services/storage.service';
-import { destroyProjectDurableObject } from '../utils/project-durable-object';
-import { yjsService } from '../services/yjs.service';
+import { moveProjectData, removeProjectData } from '../services/project-data.service';
 import { getProjectStorageSize } from '../services/storage-size.service';
 import { quotaService } from '../services/quota.service';
 import { quotaStorageContext } from '../utils/quota-context';
+import { logger } from '../services/logger.service';
 import {
   UnauthorizedError,
   ForbiddenError,
@@ -17,7 +15,6 @@ import {
   BadRequestError,
   InternalError,
 } from '../errors';
-import type { Context } from 'hono';
 import type { AppContext } from '../types/context';
 import {
   ProjectSchema,
@@ -35,6 +32,7 @@ import {
 } from '../schemas/common.schemas';
 
 const projectRoutes = new OpenAPIHono<AppContext>();
+const projectLog = logger.child('Projects');
 
 // Apply auth middleware to all routes
 projectRoutes.use('*', requireAuth);
@@ -234,15 +232,33 @@ projectRoutes.openapi(createProjectRoute, async (c) => {
   // open more. Yjs editing of existing projects is deliberately never blocked.
   await quotaService.assertCanCreateProject(db, user, quotaStorageContext(c));
 
-  // Remove any tombstone for this slug (user is recreating a project)
-  await projectService.removeTombstone(db, userId, slug);
-
   const project = await projectService.create(db, {
     slug,
     title,
     description,
     userId,
   });
+
+  // A new project starts empty. Data can be left under a free slug: on
+  // Workers, a rename made before renames moved the Durable Object left the
+  // old object populated, and older deletes removed only the row. A project
+  // created there would open with those documents and files. This runs after
+  // the insert because the Durable Object only lets the project's owner wipe
+  // it, and so that a second create of the same slug fails on the unique
+  // index before it can wipe the first one's data. If the wipe fails the
+  // create fails too: an error is better than a project that opens with an
+  // earlier project's documents.
+  try {
+    await removeProjectData(c, user.username, slug);
+  } catch (error) {
+    projectLog.error(`Could not clear old data for new project ${user.username}/${slug}`, error);
+    await projectService.discardCreated(db, project.id);
+    throw new InternalError('Failed to create project');
+  }
+
+  // Remove any tombstone for this slug (user is recreating a project). Only
+  // now, so a failed create leaves the earlier project's deletion on record.
+  await projectService.removeTombstone(db, userId, slug);
 
   return c.json(
     {
@@ -298,62 +314,6 @@ const updateProjectRoute = createRoute({
   },
 });
 
-/**
- * Apply an update that changes the project's slug (project rename): move its
- * stored files to the new slug, update the row, and point the old slug at the
- * new one.
- */
-async function renameProjectSlug(
-  c: Context<AppContext>,
-  project: { id: string; userId: string; username: string },
-  slug: string,
-  newSlug: string,
-  updates: z.infer<typeof UpdateProjectRequestSchema>
-): Promise<void> {
-  const db = c.get('db');
-  const username = project.username;
-
-  // Check if new slug already exists for this user
-  const existing = await projectService.findByUsernameAndSlug(db, username, newSlug);
-  if (existing) {
-    throw new BadRequestError('A project with this slug already exists');
-  }
-
-  // Close the project's Yjs documents and release its LevelDB handle, whose
-  // store lives inside the project directory that is about to move.
-  try {
-    await yjsService.renameProject(username, slug, newSlug);
-  } catch (error) {
-    logger.error('Projects', 'Failed to close Yjs documents before rename', error);
-  }
-
-  // Media, covers and published files are keyed by slug: a directory rename
-  // on the filesystem, a copy to the new keys in R2.
-  const storage = getStorageService(c.get('storage'));
-  try {
-    await storage.moveProjectDirectory(username, slug, newSlug);
-  } catch (error) {
-    logger.error('Projects', `Failed to move project files ${slug} -> ${newSlug}`, error);
-    throw new InternalError('Failed to move project files');
-  }
-
-  try {
-    await projectService.update(db, project.id, updates);
-  } catch (error) {
-    // Leave the files where the project's slug says they are.
-    await storage.moveProjectDirectory(username, newSlug, slug).catch((moveError: unknown) => {
-      logger.error('Projects', `Failed to move project files back to ${slug}`, moveError);
-    });
-    throw error;
-  }
-
-  // Create alias for the old slug
-  await projectService.createSlugAlias(db, project.userId, slug, newSlug);
-
-  // Update any existing aliases pointing to the old slug
-  await projectService.updateAliasChain(db, project.userId, slug, newSlug);
-}
-
 projectRoutes.openapi(updateProjectRoute, async (c) => {
   const db = c.get('db');
   const username = c.req.param('username');
@@ -381,10 +341,34 @@ projectRoutes.openapi(updateProjectRoute, async (c) => {
   }
 
   const newSlug = updates.slug && updates.slug !== slug ? updates.slug : null;
-  if (newSlug) {
-    await renameProjectSlug(c, project, slug, newSlug, updates);
-  } else {
+  const saveUpdates = async () => {
+    if (newSlug) {
+      // Create alias for the old slug
+      await projectService.createSlugAlias(db, project.userId, slug, newSlug);
+
+      // Update any existing aliases pointing to the old slug
+      await projectService.updateAliasChain(db, project.userId, slug, newSlug);
+    }
     await projectService.update(db, project.id, updates);
+  };
+
+  // Handle slug change (project rename)
+  if (newSlug) {
+    // Check if new slug already exists for this user
+    const existing = await projectService.findByUsernameAndSlug(db, username, newSlug);
+    if (existing) {
+      throw new BadRequestError('A project with this slug already exists');
+    }
+
+    // Documents and files are stored under the slug, so they move first and
+    // the database is updated last; a failure leaves the project unrenamed.
+    try {
+      await moveProjectData(c, username, slug, newSlug, saveUpdates);
+    } catch {
+      throw new InternalError('Failed to rename project');
+    }
+  } else {
+    await saveUpdates();
   }
 
   const updated = await projectService.findById(db, project.id);
@@ -461,8 +445,7 @@ projectRoutes.openapi(deleteProjectRoute, async (c) => {
   // Remove the project's content before its DB row. Previously only the row
   // went: Yjs documents, media, covers and published files stayed on disk /
   // in R2 / in the Durable Object, and creating a project with the same slug
-  // adopted them all. Order matters on Bun/Node: the LevelDB handle must be
-  // closed before the directory that contains it is removed.
+  // adopted them all.
   // Measure first so the owner's sync capacity is credited with exactly what
   // the deletion frees. A failed measurement must not block the deletion; the
   // next reconcile corrects the counter.
@@ -471,9 +454,7 @@ projectRoutes.openapi(deleteProjectRoute, async (c) => {
     .then((size) => size.dataBytes + size.mediaBytes)
     .catch(() => 0);
 
-  await yjsService.destroyProject(username, slug);
-  await getStorageService(c.get('storage')).deleteProjectDirectory(username, slug);
-  await destroyProjectDurableObject(c, username, slug);
+  await removeProjectData(c, username, slug);
 
   await projectService.delete(db, project.id, project.userId, project.slug);
   await quotaService.recordDeletion(db, project.userId, freedBytes);

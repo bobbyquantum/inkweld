@@ -127,15 +127,34 @@ Details: `docs/site/docs/developer/legal-pages-and-custom-html.md` and
 
 ## Projects and storage
 
-- **Project rename** (`PUT /projects/:u/:s` with a new `slug`) moves the
-  project's stored files with `StorageService.moveProjectDirectory`: a
-  directory rename on disk, and in R2 a copy of every `<user>/<slug>/` object
-  followed by deleting the originals only after all copies succeed (a retry
-  skips objects already copied). If the database update then fails, the files
-  are moved back. **Anything new stored per project must live under that
-  prefix**, or move with it. Server-side Yjs documents are keyed by
-  `username:slug` (the LevelDB doc names, and the Durable Object's name on
-  Workers) and are not moved yet.
+- **Project rename** (`PUT /projects/:u/:s` with a new `slug`) moves
+  everything stored under the slug before the database update, in
+  `moveProjectData` (`services/project-data.service.ts`). A failed step undoes
+  the earlier ones, newest first, and the project keeps its old slug.
+  - Files: `StorageService.moveProjectDirectory`, a directory rename on disk,
+    and in R2 a copy of every `<user>/<slug>/` object followed by deleting the
+    originals only after all copies succeed (a retry skips objects already
+    copied). **Anything new stored per project must live under that prefix**,
+    or move with it.
+  - Documents on Bun: LevelDB names each document by its full id
+    (`u:slug:docId`, and `…/`), so after the directory moves
+    `yjsService.renameProjectDocuments` rewrites the names. Moving the
+    directory alone leaves the renamed project empty on the server.
+  - Documents on Workers: the Durable Object is copied to the object of the
+    new slug (`prepareProjectDurableObjectMove`, see
+    `src/durable-objects/AGENTS.md`) and the old object is wiped once the
+    database has the new slug.
+- **A new project starts empty**: `POST /projects` runs `removeProjectData`
+  (Yjs documents, project directory or R2 prefix, Durable Object; the same
+  helper delete and account deletion use) for the new slug right after
+  inserting the row. Renames from before documents moved left populated
+  Durable Objects and R2 objects under old slugs, and older deletes left whole
+  project directories, so a project created there would open with that data.
+  It runs after the insert because the Durable Object only lets the project's
+  owner wipe it, and because a duplicate create then fails on the unique index
+  before it can wipe the winner's data. If the wipe fails, the row is removed
+  without a tombstone (`discardCreated`) and the create returns 500; an
+  existing tombstone is only cleared once the wipe has succeeded.
 - **Share links**: the share page (`routes/share-page.routes.ts`) is served by
   the API server. Build its URL with `getPublicApiUrl(c)`, never `getBaseUrl`
   (SITE_URL is the frontend on split deployments). `share` is a reserved

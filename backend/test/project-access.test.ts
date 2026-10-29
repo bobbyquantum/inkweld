@@ -16,6 +16,7 @@ import { describe, it, expect } from 'bun:test';
 import {
   isActiveSiteAdmin,
   resolveProjectAccess,
+  resolveProjectRenameAccess,
   type ProjectAccessDeps,
 } from '../src/utils/project-access';
 
@@ -311,5 +312,122 @@ describe("isActiveSiteAdmin — who may wipe another user's project DO", () => {
 
   it('refuses without a database binding', async () => {
     expect(await isActiveSiteAdmin(null, { userId: 'admin-1', username: 'x' }, find)).toBe(false);
+  });
+});
+
+describe('resolveProjectRenameAccess — who may move a project to a new slug', () => {
+  const db = {} as never;
+  const owner = { userId: 'owner-1', username: 'alice' };
+
+  /** Projects keyed by slug, all owned by owner-1 like the shared fakes. */
+  function depsWithSlugs(slugs: string[]): ProjectAccessDeps {
+    return {
+      ...fakeDeps,
+      findByUsernameAndSlug: async (_db, username, slug) =>
+        slugs.includes(slug)
+          ? { id: `project-${slug}`, userId: 'owner-1', slug, username, title: 'T' }
+          : undefined,
+    } as ProjectAccessDeps;
+  }
+
+  it('reports pending while the project still has its old slug', async () => {
+    const result = await resolveProjectRenameAccess(
+      db,
+      'alice',
+      'old',
+      'new',
+      owner,
+      depsWithSlugs(['old'])
+    );
+    expect(result).toEqual({ ok: true, phase: 'pending' });
+  });
+
+  it('reports committed once the project has its new slug', async () => {
+    const result = await resolveProjectRenameAccess(
+      db,
+      'alice',
+      'old',
+      'new',
+      owner,
+      depsWithSlugs(['new'])
+    );
+    expect(result).toEqual({ ok: true, phase: 'committed' });
+  });
+
+  it('refuses when both slugs name a project, so another project is never overwritten', async () => {
+    const result = await resolveProjectRenameAccess(
+      db,
+      'alice',
+      'old',
+      'new',
+      owner,
+      depsWithSlugs(['old', 'new'])
+    );
+    expect(result).toEqual({ ok: false, reason: 'conflict' });
+  });
+
+  it('reports project-not-found when neither slug names a project', async () => {
+    const result = await resolveProjectRenameAccess(
+      db,
+      'alice',
+      'old',
+      'new',
+      owner,
+      depsWithSlugs([])
+    );
+    expect(result).toEqual({ ok: false, reason: 'project-not-found' });
+  });
+
+  it('admits an admin collaborator, like the rename route', async () => {
+    const deps = {
+      ...depsWithSlugs(['old']),
+      checkAccess: async () => ({
+        isOwner: false,
+        isCollaborator: true,
+        role: 'admin',
+        canRead: true,
+        canWrite: true,
+        canAdmin: true,
+      }),
+    } as ProjectAccessDeps;
+    const result = await resolveProjectRenameAccess(
+      db,
+      'alice',
+      'old',
+      'new',
+      { userId: 'admin-collab-1', username: 'bob' },
+      deps
+    );
+    expect(result).toEqual({ ok: true, phase: 'pending' });
+  });
+
+  it('refuses an editor and a disabled owner', async () => {
+    const deps = depsWithSlugs(['old']);
+    expect(
+      await resolveProjectRenameAccess(
+        db,
+        'alice',
+        'old',
+        'new',
+        { userId: 'editor-1', username: 'ed' },
+        deps
+      )
+    ).toEqual({ ok: false, reason: 'forbidden' });
+    expect(
+      await resolveProjectRenameAccess(
+        db,
+        'alice',
+        'old',
+        'new',
+        { userId: 'disabled-1', username: 'alice' },
+        {
+          ...deps,
+          findByUsernameAndSlug: async (_db, username, slug) =>
+            slug === 'old'
+              ? { id: 'p', userId: 'disabled-1', slug, username, title: 'T' }
+              : undefined,
+        } as ProjectAccessDeps
+      )
+    ).toEqual({ ok: false, reason: 'forbidden' });
   });
 });
