@@ -88,6 +88,7 @@ import {
   retryAfterInitialConnectFailure,
 } from '../sync/reconnect-scheduler';
 import { UnifiedUserService } from '../user/unified-user.service';
+import { AppearanceService } from '../worldbuilding/appearance.service';
 import { CommentService } from './comment.service';
 import { ConversationService } from './conversation.service';
 import { LiveDocumentRegistryService } from './live-document-registry.service';
@@ -228,6 +229,7 @@ export class DocumentService {
   private readonly localStorage = inject(LocalStorageService);
   private readonly elementRefService = inject(ElementRefService);
   private readonly conversationService = inject(ConversationService);
+  private readonly appearance = inject(AppearanceService);
   private readonly findInDocumentService = inject(FindInDocumentService);
   private readonly insertImageService = inject(InsertImageService);
   private readonly insertLinkService = inject(InsertLinkService);
@@ -2450,10 +2452,14 @@ export class DocumentService {
       }
 
       try {
-        const blobUrl = await this.localStorage.getMediaUrl(
+        const blobUrl = await this.resolveMediaBlobUrl(
+          src,
           projectKey,
           mediaId
         );
+        // The src changed while this was resolving; the finally block picks
+        // up the newer one rather than overwriting it with this result.
+        if (img.getAttribute('src') !== src) return;
         if (blobUrl) {
           // Store the media ID for reference
           img.dataset['mediaId'] = mediaId;
@@ -2479,6 +2485,10 @@ export class DocumentService {
         );
       } finally {
         img.dataset['mediaResolving'] = 'false';
+        const currentSrc = img.getAttribute('src');
+        if (currentSrc !== src && currentSrc && isMediaUrl(currentSrc)) {
+          void resolveImageSrc(img);
+        }
       }
     };
 
@@ -2520,6 +2530,26 @@ export class DocumentService {
       'DocumentService',
       `Media URL observer started for ${documentId}`
     );
+  }
+
+  /**
+   * Resolve an editor image's media reference to a blob URL.
+   *
+   * `media://<id>.<ext>` references (written by the MCP tools and other
+   * features) carry the server filename, so a cache miss downloads and caches
+   * the file. `media:<id>` references have no filename and are only looked up
+   * locally; media sync brings those down.
+   */
+  private resolveMediaBlobUrl(
+    src: string,
+    projectKey: string,
+    mediaId: string
+  ): Promise<string | null> {
+    if (!src.startsWith('media://')) {
+      return this.localStorage.getMediaUrl(projectKey, mediaId);
+    }
+    const [username, slug] = projectKey.split('/');
+    return this.appearance.resolveImageReference(src, username, slug);
   }
 
   private handleMediaMutations(
