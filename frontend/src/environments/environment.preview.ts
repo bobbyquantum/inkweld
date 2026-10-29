@@ -12,7 +12,7 @@
  */
 export const environment = {
   production: true,
-  version: '1.0.0-beta.2', // x-release-please-version
+  version: '1.0.0-beta.3', // x-release-please-version
   apiUrl: 'https://inkweld-backend-preview.YOUR_SUBDOMAIN.workers.dev',
   wssUrl: 'wss://inkweld-backend-preview.YOUR_SUBDOMAIN.workers.dev',
   /**
