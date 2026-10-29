@@ -135,6 +135,14 @@ class ProjectService {
   }
 
   /**
+   * Remove the row of a project whose creation did not finish. Unlike
+   * `delete`, it leaves no tombstone: the project never existed for anyone.
+   */
+  async discardCreated(db: DatabaseInstance, id: string): Promise<void> {
+    await db.delete(projects).where(eq(projects.id, id));
+  }
+
+  /**
    * Update a project
    */
   async update(

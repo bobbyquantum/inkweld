@@ -997,7 +997,7 @@ export class YjsService {
    * First step of a project rename: close the project's sockets and
    * documents and release its LevelDB handle, so the project directory (which
    * holds the store) can be moved. {@link renameProjectDocuments} then renames
-   * the documents inside the moved store (see project-rename.service.ts).
+   * the documents inside the moved store (see project-data.service.ts).
    */
   async renameProject(username: string, oldSlug: string, newSlug: string): Promise<void> {
     const oldProjectKey = `${username}:${oldSlug}`;

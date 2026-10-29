@@ -6,8 +6,8 @@ import * as Y from 'yjs';
 import type { AppContext } from '../src/types/context';
 
 /**
- * Project rename on Cloudflare Workers, run against real YjsProject Durable
- * Object instances (behind a fake namespace, each with in-memory storage) and
+ * Project rename and data removal on Cloudflare Workers, run against real
+ * YjsProject Durable Object instances (behind a fake namespace, each with in-memory storage) and
  * an in-memory R2 bucket. Same cloudflare:workers stub as the other
  * yjs-do-*.test.ts files.
  */
@@ -79,7 +79,8 @@ function memoryStorage() {
 type DoInstance = { fetch(request: Request): Promise<Response> };
 
 let YjsProject: new (state: unknown, env: unknown) => DoInstance;
-let moveProjectData: typeof import('../src/services/project-rename.service').moveProjectData;
+let moveProjectData: typeof import('../src/services/project-data.service').moveProjectData;
+let removeProjectData: typeof import('../src/services/project-data.service').removeProjectData;
 let projectService: { findByUsernameAndSlug: (...args: unknown[]) => Promise<unknown> };
 let collaborationService: { checkAccess: (...args: unknown[]) => Promise<unknown> };
 let userService: { findById: (...args: unknown[]) => Promise<unknown> };
@@ -161,7 +162,7 @@ function proseRows(text: string, more: string): { snapshot: Uint8Array; frame: U
   return { snapshot, frame: toUint8Array(encoder) };
 }
 
-describe('Project rename on Workers', () => {
+describe('Project data on Workers', () => {
   let token: string;
   /** The slug the fake database currently has for alice's project. */
   let slugInDatabase: string;
@@ -173,7 +174,7 @@ describe('Project rename on Workers', () => {
     ({ projectService } = await import('../src/services/project.service'));
     ({ collaborationService } = await import('../src/services/collaboration.service'));
     ({ userService } = await import('../src/services/user.service'));
-    ({ moveProjectData } = await import('../src/services/project-rename.service'));
+    ({ moveProjectData, removeProjectData } = await import('../src/services/project-data.service'));
     ({ YjsProject } = (await import('../src/durable-objects/yjs-project.do')) as unknown as {
       YjsProject: typeof YjsProject;
     });
@@ -276,6 +277,28 @@ describe('Project rename on Workers', () => {
 
     expect(objects.storage('alice:new').data.has('doc:alice:new:stale:snapshot')).toBe(false);
     expect(objects.storage('alice:new').data.size).toBe(3);
+  });
+
+  it("clears what an earlier project left under a new project's slug", async () => {
+    // A project created as alice/old, where a rename made before renames
+    // moved the Durable Object left the old object and files behind.
+    files.store.set('alice/old-two/media/keep.png', 'PNG');
+
+    await removeProjectData(context(), 'alice', 'old');
+
+    expect(objects.storage('alice:old').data.size).toBe(0);
+    expect(await documentXml('old')).toBe('');
+    expect([...files.store.keys()]).toEqual(['alice/old-two/media/keep.png']);
+  });
+
+  it('fails when the Durable Object will not be cleared', async () => {
+    // Only the project's owner may wipe its object, and only while it exists.
+    slugInDatabase = 'elsewhere';
+
+    await expect(removeProjectData(context(), 'alice', 'old')).rejects.toThrow(
+      'Failed to remove project documents (404)'
+    );
+    expect(objects.storage('alice:old').data.size).toBe(3);
   });
 
   it('puts everything back when the database update fails', async () => {

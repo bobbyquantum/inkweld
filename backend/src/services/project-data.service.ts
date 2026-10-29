@@ -1,5 +1,6 @@
 /**
- * Moving a project's server-side data when its slug changes.
+ * A project's server-side data outside the database: removing it and moving
+ * it when the slug changes.
  *
  * Every store keys a project by `username:slug`: the project directory (an R2
  * prefix on Workers) holds its media, covers and published files, and its Yjs
@@ -14,7 +15,10 @@
 import type { Context } from 'hono';
 import { forEachSequential } from '@inkweld/async';
 import type { AppContext } from '../types/context';
-import { prepareProjectDurableObjectMove } from '../utils/project-durable-object';
+import {
+  destroyProjectDurableObject,
+  prepareProjectDurableObjectMove,
+} from '../utils/project-durable-object';
 import { logger } from './logger.service';
 import { getStorageService } from './storage.service';
 import { yjsService } from './yjs.service';
@@ -29,6 +33,25 @@ interface RenameStep {
 }
 
 const nothingToUndo = (): Promise<void> => Promise.resolve();
+
+/**
+ * Remove everything stored for `username/slug` outside the database: its Yjs
+ * documents, its project directory (or R2 prefix) and, on Workers, its
+ * Durable Object. The Durable Object checks the caller's token against the
+ * project's row, so call this while the row exists.
+ *
+ * Order matters on Bun/Node: the LevelDB handle must be closed before the
+ * directory that contains it is removed.
+ */
+export async function removeProjectData(
+  c: Context<AppContext>,
+  username: string,
+  slug: string
+): Promise<void> {
+  await yjsService.destroyProject(username, slug);
+  await getStorageService(c.get('storage')).deleteProjectDirectory(username, slug);
+  await destroyProjectDurableObject(c, username, slug);
+}
 
 /**
  * Move `username/fromSlug`'s documents and files to `toSlug`, then run

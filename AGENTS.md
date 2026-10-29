@@ -705,8 +705,8 @@ in the app and from a public web page:
   themselves at once cannot both succeed. **Do not reserve by disabling the
   account**: the Durable Object refuses a disabled owner's token, which breaks
   the wipe on Workers. It then tears down each owned project exactly like
-  `DELETE /projects/:u/:s` (Yjs docs, storage directory, Durable Object, row +
-  tombstone) **before** deleting the user row — the row cascade alone would
+  `DELETE /projects/:u/:s` (`removeProjectData`: Yjs docs, storage directory,
+  Durable Object; then row + tombstone) **before** deleting the user row — the row cascade alone would
   leave project content on disk/R2 — then drops avatar/banner/background. On
   failure the admin flag is restored so the request can be retried.
 - The Durable Object's `POST /api/destroy` accepts the owner **or an active
@@ -732,11 +732,11 @@ in the app and from a public web page:
 - `/delete-account` is exempt from the policy-acceptance gate, so someone who
   won't accept new terms can still delete their account.
 
-### Project Rename (Server Data)
+### Project Rename and Create (Server Data)
 
 Every server store keys a project by its slug, so `PUT /projects/:u/:s` with a
 new `slug` moves them all before the database update, in
-`moveProjectData` (`backend/src/services/project-rename.service.ts`). A
+`moveProjectData` (`backend/src/services/project-data.service.ts`). A
 failed step undoes the earlier ones, newest first, and the project keeps
 its old slug.
 
@@ -759,6 +759,16 @@ its old slug.
   leave a project unusable.
 - The client's local copy is moved separately by `renameProjectInContext`
   (see "Local Document Storage Is Profile-Scoped").
+- **Create starts empty**: `POST /projects` runs `removeProjectData` for the
+  new slug right after inserting the row. Renames from before this move left
+  populated Durable Objects (and R2 objects) under old slugs on Workers, and
+  older deletes left whole project directories, so a project created there
+  would open with those documents. It runs after the insert because the
+  Durable Object only lets the project's owner wipe it, and because a
+  duplicate create then fails on the unique index before it can wipe the
+  winner's data. If the wipe fails, the row is removed without a tombstone
+  (`discardCreated`) and the create returns 500; an existing tombstone is
+  only cleared once the wipe has succeeded.
 
 ### Sync Capacity (Per-User Storage Quotas)
 

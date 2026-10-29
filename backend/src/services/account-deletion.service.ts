@@ -15,12 +15,11 @@
 import type { Context } from 'hono';
 import type { User } from '../db/schema';
 import type { AppContext } from '../types/context';
-import { destroyProjectDurableObject } from '../utils/project-durable-object';
 import { logger } from './logger.service';
+import { removeProjectData } from './project-data.service';
 import { projectService } from './project.service';
 import { getStorageService } from './storage.service';
 import { userService } from './user.service';
-import { yjsService } from './yjs.service';
 import { forEachSequential } from '@inkweld/async';
 
 export type DeleteAccountResult = 'deleted' | 'last-admin';
@@ -67,12 +66,9 @@ class AccountDeletionService {
     username: string
   ): Promise<void> {
     const db = c.get('db');
-    const storage = getStorageService(c.get('storage'));
     const owned = await projectService.findByUserId(db, userId);
     await forEachSequential(owned, async (project) => {
-      await yjsService.destroyProject(username, project.slug);
-      await storage.deleteProjectDirectory(username, project.slug);
-      await destroyProjectDurableObject(c, username, project.slug);
+      await removeProjectData(c, username, project.slug);
       await projectService.delete(db, project.id, userId, project.slug);
     });
   }

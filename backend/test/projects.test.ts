@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from 'bun:test';
+import { describe, it, expect, beforeAll, afterAll, spyOn } from 'bun:test';
 import { getDatabase } from '../src/db/index';
 import { users, projects } from '../src/db/schema/index';
 import { and, eq } from 'drizzle-orm';
@@ -86,6 +86,75 @@ describe('Projects', () => {
       expect(data).toHaveProperty('title', 'My Test Project');
       expect(data).toHaveProperty('slug', 'my-test-project');
       testProject = data;
+    });
+
+    it('starts a new project empty when data was left under its slug', async () => {
+      // What a delete from before deletes removed content leaves behind: the
+      // project directory, its LevelDB store and a file, but no row.
+      const slug = 'leftover-data';
+      const docId = `${testUsername}:${slug}:elements`;
+      await fileStorageService.saveProjectFile(testUsername, slug, 'note.txt', 'old');
+      const leftover = await yjsService.getDocument(docId);
+      leftover.doc.getArray('elements').insert(0, [{ id: 'e1', name: 'Old chapter' }]);
+      await yjsService.destroyProject(testUsername, slug);
+
+      const { response } = await client.request('/api/v1/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug, title: 'Fresh start' }),
+      });
+
+      expect(response.status).toBe(201);
+      expect(await fileStorageService.projectFileExists(testUsername, slug, 'note.txt')).toBe(
+        false
+      );
+      const fresh = await yjsService.getDocument(docId);
+      expect(fresh.doc.getArray('elements')).toHaveLength(0);
+
+      await client.request(`/api/v1/projects/${testUsername}/${slug}`, { method: 'DELETE' });
+    });
+
+    it('creates nothing when the old data cannot be cleared', async () => {
+      const slug = 'uncleared-data';
+      const tombstones = () =>
+        client
+          .request('/api/v1/projects/tombstones/check', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ projectKeys: [`${testUsername}/${slug}`] }),
+          })
+          .then(async ({ json }) => (await json()).tombstones);
+      const create = () =>
+        client.request('/api/v1/projects', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ slug, title: 'Second try' }),
+        });
+      await create();
+      await client.request(`/api/v1/projects/${testUsername}/${slug}`, { method: 'DELETE' });
+      expect(await tombstones()).toHaveLength(1);
+
+      const destroy = spyOn(yjsService, 'destroyProject').mockRejectedValueOnce(
+        new Error('store busy')
+      );
+      try {
+        const { response } = await create();
+        expect(response.status).toBe(500);
+      } finally {
+        destroy.mockRestore();
+      }
+
+      const rows = await getDatabase()
+        .select()
+        .from(projects)
+        .where(and(eq(projects.userId, testUserId), eq(projects.slug, slug)));
+      expect(rows).toHaveLength(0);
+      // The earlier project's deletion stays on record for other devices.
+      expect(await tombstones()).toHaveLength(1);
+      // A later attempt goes through.
+      expect((await create()).response.status).toBe(201);
+
+      await client.request(`/api/v1/projects/${testUsername}/${slug}`, { method: 'DELETE' });
     });
 
     it('should require authentication', async () => {
