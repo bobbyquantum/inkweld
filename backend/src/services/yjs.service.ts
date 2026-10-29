@@ -199,6 +199,12 @@ export class YjsService {
   private readonly pendingLoads = new Map<string, Promise<WSSharedDoc>>();
   // Map by project key (username:projectSlug) instead of documentId
   private readonly persistences = new Map<string, LeveldbPersistence>();
+  /**
+   * Handles taken out of `persistences` that are still closing, by project
+   * key. Each settles once the LevelDB lock is released; a new handle for the
+   * same project waits for it (see `getPersistenceForProject`).
+   */
+  private readonly closingPersistences = new Map<string, Promise<void>>();
   private readonly persistFailures = new Map<string, number>();
   /**
    * Per-document count of incremental updates persisted since the last
@@ -298,22 +304,8 @@ export class YjsService {
     yjsLog.debug(`Document ${doc.name} cleaned up after inactivity`);
 
     // Only close persistence if NO documents from this project are active
-    const projectKey = this.getProjectKey(doc.name);
-    const hasOtherDocsFromProject = Array.from(this.docs.keys()).some(
-      (docId) => this.getProjectKey(docId) === projectKey
-    );
-    if (!hasOtherDocsFromProject) {
-      const persistence = this.persistences.get(projectKey);
-      if (persistence) {
-        try {
-          await persistence.destroy();
-          this.persistences.delete(projectKey);
-          yjsLog.debug(`Closed LevelDB persistence for project ${projectKey}`);
-        } catch (error) {
-          yjsLog.error(`Error closing persistence for project ${projectKey}`, error);
-        }
-      }
-    }
+    // or still loading.
+    await this.closePersistenceIfUnused(this.getProjectKey(doc.name));
   }
 
   /**
@@ -391,17 +383,9 @@ export class YjsService {
 
     const [username, projectSlug] = parts;
     const projectKey = this.getProjectKey(documentId);
-    const dbPath = path.join(fileStorageService.getProjectPath(username, projectSlug), '.yjs');
 
-    // Get or create persistence instance for this PROJECT (not per document!)
-    let persistence = this.persistences.get(projectKey);
-
-    // Create new persistence if none exists for this project
-    if (!persistence) {
-      const LeveldbPersistenceCtor = await loadLeveldbPersistence();
-      persistence = new LeveldbPersistenceCtor(dbPath);
-      this.persistences.set(projectKey, persistence);
-    }
+    // One persistence instance per PROJECT (not per document!)
+    const persistence = await this.getPersistenceForProject(username, projectSlug);
 
     // Load existing state from persistence for THIS specific document
     try {
@@ -570,28 +554,63 @@ export class YjsService {
 
   /**
    * Return the project's LevelDB persistence handle, creating it if absent.
-   * Mirrors the project-keyed handle setup in {@link setupPersistence} so the
-   * revision manifest and the live document path share one connection.
+   * Document loads and the revision manifest share this one handle.
+   *
+   * Nothing is awaited between looking the handle up and storing a new one.
+   * A client opening a project connects many sockets at once, and each first
+   * open used to build its own LevelDB on the same path. Only one of them can
+   * take the LevelDB lock, so when one that failed to open was left in the
+   * map, every update for the project was silently dropped ("Database is not
+   * open"). A handle that is still closing holds the lock too: wait for it.
    */
   private async getPersistenceForProject(
     username: string,
     projectSlug: string
   ): Promise<LeveldbPersistence> {
     const projectKey = `${username}:${projectSlug}`;
-    const existing = this.persistences.get(projectKey);
-    if (existing) return existing;
-
-    const dbPath = path.join(fileStorageService.getProjectPath(username, projectSlug), '.yjs');
     const LeveldbPersistenceCtor = await loadLeveldbPersistence();
-    const persistence = new LeveldbPersistenceCtor(dbPath);
-    this.persistences.set(projectKey, persistence);
+    const closing = this.closingPersistences.get(projectKey);
+    if (closing && !this.persistences.has(projectKey)) {
+      await closing;
+      return this.getPersistenceForProject(username, projectSlug);
+    }
+
+    let persistence = this.persistences.get(projectKey);
+    if (!persistence) {
+      const dbPath = path.join(fileStorageService.getProjectPath(username, projectSlug), '.yjs');
+      persistence = new LeveldbPersistenceCtor(dbPath);
+      this.persistences.set(projectKey, persistence);
+    }
     return persistence;
   }
 
   /**
+   * Take a project's LevelDB handle out of use and close it. It leaves
+   * `persistences` at once, so no caller can pick up a handle that is
+   * closing, and stays in `closingPersistences` until its lock is released.
+   * Rejects when the close fails.
+   */
+  private releasePersistence(projectKey: string): Promise<void> {
+    const persistence = this.persistences.get(projectKey);
+    if (!persistence) return Promise.resolve();
+    this.persistences.delete(projectKey);
+    const closed = persistence.destroy();
+    const released: Promise<void> = closed
+      .catch(() => undefined)
+      .finally(() => {
+        if (this.closingPersistences.get(projectKey) === released) {
+          this.closingPersistences.delete(projectKey);
+        }
+      });
+    this.closingPersistences.set(projectKey, released);
+    return closed;
+  }
+
+  /**
    * Close a project's LevelDB handle if no live or in-flight document still
-   * references it. Used by {@link getDocumentRevisions} so a read-only manifest
-   * call does not leak an idle handle.
+   * references it: after the last document is evicted, and after a read-only
+   * manifest call ({@link getDocumentRevisions}) so it does not leak an idle
+   * handle.
    *
    * `pendingLoads` is checked alongside `docs`: a document being loaded by a
    * concurrent `getDocument` has not published to `docs` yet but is already
@@ -603,12 +622,10 @@ export class YjsService {
     const hasLiveDocs =
       Array.from(this.docs.keys()).some(belongsToProject) ||
       Array.from(this.pendingLoads.keys()).some(belongsToProject);
-    if (hasLiveDocs) return;
-    const persistence = this.persistences.get(projectKey);
-    if (!persistence) return;
+    if (hasLiveDocs || !this.persistences.has(projectKey)) return;
     try {
-      await persistence.destroy();
-      this.persistences.delete(projectKey);
+      await this.releasePersistence(projectKey);
+      yjsLog.debug(`Closed LevelDB persistence for project ${projectKey}`);
     } catch (error) {
       yjsLog.warn(`Error closing persistence for project ${projectKey}`, {
         error: String(error),
@@ -969,19 +986,18 @@ export class YjsService {
       doc.doc.destroy();
     });
 
-    // Close all persistence connections (one per project)
-    const persistenceCleanups = Array.from(this.persistences.entries()).map(
-      async ([projectKey, persistence]) => {
-        try {
-          await persistence.destroy();
-          yjsLog.debug(`Closed persistence for project ${projectKey}`);
-        } catch (error) {
-          yjsLog.error(`Error closing persistence for project ${projectKey}`, error);
-        }
+    // Close all persistence connections (one per project), and wait for any
+    // that were already closing
+    const persistenceCleanups = Array.from(this.persistences.keys()).map(async (projectKey) => {
+      try {
+        await this.releasePersistence(projectKey);
+        yjsLog.debug(`Closed persistence for project ${projectKey}`);
+      } catch (error) {
+        yjsLog.error(`Error closing persistence for project ${projectKey}`, error);
       }
-    );
+    });
 
-    await Promise.all(persistenceCleanups);
+    await Promise.all([...persistenceCleanups, ...this.closingPersistences.values()]);
 
     this.docs.clear();
     this.persistences.clear();
@@ -1049,17 +1065,18 @@ export class YjsService {
       this.pendingSinceCompact.delete(docId);
     }
 
-    // Close the LevelDB handle last, after no doc can write to it any more
-    const persistence = this.persistences.get(projectKey);
-    if (persistence) {
+    // Close the LevelDB handle last, after no doc can write to it any more,
+    // and wait for one an idle eviction was already closing: the caller moves
+    // or deletes the directory the store lives in.
+    if (this.persistences.has(projectKey)) {
       try {
-        await persistence.destroy();
+        await this.releasePersistence(projectKey);
         yjsLog.debug(`Closed persistence for ${projectKey}`);
       } catch (error) {
         yjsLog.error(`Error closing persistence for ${projectKey}`, error);
       }
-      this.persistences.delete(projectKey);
     }
+    await this.closingPersistences.get(projectKey);
   }
 }
 
