@@ -90,8 +90,7 @@ import {
 } from './tree-helpers';
 import { xmlContentToText } from '../../utils/xml-utils';
 import { schemaContentHash } from '../../utils/schema-hash';
-import { markdownToXml } from '@inkweld/prosemirror/markdown';
-import { decodeInkweldUri } from '@inkweld/prosemirror/uri';
+import { markdownInputToXml } from './document-sections';
 
 /**
  * Common project parameter schema for all mutation tools
@@ -1463,7 +1462,7 @@ registerTool({
   Conversation documents (element metadata format="conversation") hold one <speech> per spoken line, with descriptions as <paragraph> and scene breaks as <horizontal_rule/>: <speech speakerName="Mara" speakerId="el-123" extension="os"><parenthetical>not turning</parenthetical><dialogue>Then fix it.</dialogue></speech>. speakerName is required; speakerId (a worldbuilding element id) and the <parenthetical> (how the line is said) are optional. extension is optional and must be exactly "os" (off-screen) or "vo" (voice-over). Markdown input cannot express <speech>, so use prosemirror_xml for conversations.
 - "markdown": Standard CommonMark-style Markdown, plus GFM tables (including :--- / :---: / ---: column alignment). Lossy formatting (comments, text colors) can be expressed via inline <span data-mark="..."> elements. Element references use <code>[label](inkweld://username/slug/element/{id})</code> links.
 
-The content replaces the entire document. Use get_document_content first to read the current content if you need to make partial edits.`,
+The content replaces the entire document. To change one part of a long document, use update_document_section instead (get_document_outline lists the sections).`,
     inputSchema: {
       type: 'object',
       properties: {
@@ -1554,25 +1553,9 @@ The content replaces the entire document. Use get_document_content first to read
     }
 
     try {
-      // Convert markdown to canonical XML if needed. Element references in
-      // markdown links use the inkweld:// scheme and are decoded back to
-      // <element_ref> nodes, restoring `elementType` and `relationshipNote`
-      // from the URI's query string when present. (Matches the attribute
-      // names declared in the shared element-ref schema spec.)
-      let xmlContent = content;
-      if (format === 'markdown') {
-        xmlContent = markdownToXml(content, {
-          decodeElementRefHref: (href) => {
-            const decoded = decodeInkweldUri(href);
-            if (!decoded) return null;
-            return {
-              elementId: decoded.elementId,
-              elementType: decoded.params.type,
-              relationshipNote: decoded.params.note,
-            };
-          },
-        });
-      }
+      // Convert markdown to canonical XML if needed (inkweld:// links become
+      // <element_ref> nodes again).
+      const xmlContent = format === 'markdown' ? markdownInputToXml(content) : content;
 
       // Read the pre-update word count so the activity event records a real
       // delta instead of always 0. Best-effort: on failure the prior count
