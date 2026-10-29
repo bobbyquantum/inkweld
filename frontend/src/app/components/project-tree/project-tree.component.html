@@ -91,6 +91,8 @@
     #treeScroll
     role="tree"
     class="aria-tree"
+    data-testid="project-tree-scroll"
+    [cdkContextMenuTriggerFor]="rootContextMenu"
     (scroll)="onTreeScroll($event)"
     cdkDropList
     [cdkDropListData]="treeElements()"
@@ -235,6 +237,38 @@
     </button>
   }
 </div>
+
+<!-- Context menu for the empty space below the nodes. Node rows have their
+     own trigger, which stops the event before it reaches this one. -->
+<ng-template #rootContextMenu>
+  <div class="context-menu" cdkMenu data-testid="root-context-menu">
+    @if (projectStateService.canWrite()) {
+      <button
+        type="button"
+        class="context-menu-item"
+        cdkMenuItem
+        data-testid="root-context-menu-new-element"
+        [disabled]="isLoading()"
+        (click)="onCreateNewElementAtRoot()">
+        <mat-icon>add</mat-icon>
+        <span class="context-menu-item-title">{{
+          'project.tree.newElement' | transloco
+        }}</span>
+      </button>
+    }
+    <button
+      type="button"
+      class="context-menu-item"
+      cdkMenuItem
+      data-testid="root-context-menu-search"
+      (click)="openProjectSearch()">
+      <mat-icon>manage_search</mat-icon>
+      <span class="context-menu-item-title">{{
+        'project.tree.searchInProject' | transloco
+      }}</span>
+    </button>
+  </div>
+</ng-template>
 
 <!-- Context menu -->
 <ng-template #contextMenu let-node="node">

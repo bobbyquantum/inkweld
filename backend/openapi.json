@@ -77,6 +77,11 @@
           "approved": {
             "type": "boolean"
           },
+          "rejectedAt": {
+            "type": "number",
+            "nullable": true,
+            "description": "Unix seconds when an admin rejected the registration (null = not rejected). Only surfaced to admins."
+          },
           "enabled": {
             "type": "boolean"
           },
@@ -153,6 +158,10 @@
         "properties": {
           "error": {
             "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "description": "Machine-readable reason, when the route gives one (e.g. ACCOUNT_PENDING / ACCOUNT_REJECTED on sign-in)"
           }
         },
         "required": [
@@ -885,7 +894,7 @@
           },
           "version": {
             "type": "string",
-            "example": "0.1.0",
+            "example": "1.0.0",
             "description": "Server version"
           },
           "uptime": {
@@ -1681,7 +1690,7 @@
           },
           "version": {
             "type": "string",
-            "example": "0.1.0",
+            "example": "1.0.0",
             "description": "Server version"
           },
           "protocolVersion": {
@@ -2486,7 +2495,10 @@
             "description": "Number of images to generate"
           },
           "size": {
-            "$ref": "#/components/schemas/ImageSize"
+            "type": "string",
+            "maxLength": 40,
+            "example": "1024x1024",
+            "description": "Image size: pixels (\"1024x1024\"), an aspect ratio (\"16:9\"), an aspect ratio with a resolution (\"16:9@4K\") or \"auto\". Uses the profile default if not specified."
           },
           "quality": {
             "type": "string",
@@ -2522,43 +2534,6 @@
           "prompt",
           "profileId"
         ]
-      },
-      "ImageSize": {
-        "type": "string",
-        "enum": [
-          "256x256",
-          "512x512",
-          "1024x1024",
-          "1024x1536",
-          "1536x1024",
-          "1024x1792",
-          "1792x1024",
-          "832x1248",
-          "1248x832",
-          "864x1184",
-          "1184x864",
-          "896x1152",
-          "1152x896",
-          "768x1344",
-          "1344x768",
-          "1536x672",
-          "1920x1080",
-          "1080x1920",
-          "1600x2560",
-          "2560x1600",
-          "1:1",
-          "2:3",
-          "3:2",
-          "3:4",
-          "4:3",
-          "4:5",
-          "5:4",
-          "9:16",
-          "16:9",
-          "21:9",
-          "auto"
-        ],
-        "description": "Image size (uses profile default if not specified)"
       },
       "WorldbuildingContext": {
         "type": "object",
@@ -3376,6 +3351,14 @@
               "aspect_ratio",
               "unknown"
             ]
+          },
+          "usesAspectRatioOnly": {
+            "type": "boolean",
+            "description": "The model takes an aspect ratio instead of pixel dimensions"
+          },
+          "defaultSize": {
+            "type": "string",
+            "description": "Suggested default size, one of supportedSizes"
           }
         },
         "required": [
@@ -3389,7 +3372,8 @@
           "supportedSizes",
           "supportedAspectRatios",
           "supportedResolutions",
-          "sizeMode"
+          "sizeMode",
+          "usesAspectRatioOnly"
         ]
       },
       "WorkersAiModelsResponse": {
@@ -4195,7 +4179,12 @@
             "type": "string"
           },
           "authorName": {
-            "type": "string"
+            "type": "string",
+            "description": "Author's display name, or their username when none is set"
+          },
+          "authorUsername": {
+            "type": "string",
+            "description": "Author's username (for the avatar)"
           },
           "resolved": {
             "type": "boolean"
@@ -4227,6 +4216,7 @@
           "projectId",
           "authorId",
           "authorName",
+          "authorUsername",
           "resolved",
           "createdAt",
           "updatedAt",
@@ -4249,7 +4239,12 @@
             "type": "string"
           },
           "authorName": {
-            "type": "string"
+            "type": "string",
+            "description": "Author's display name, or their username when none is set"
+          },
+          "authorUsername": {
+            "type": "string",
+            "description": "Author's username (for the avatar)"
           },
           "resolved": {
             "type": "boolean"
@@ -4284,6 +4279,7 @@
           "projectId",
           "authorId",
           "authorName",
+          "authorUsername",
           "resolved",
           "createdAt",
           "updatedAt",
@@ -4303,7 +4299,12 @@
             "type": "string"
           },
           "authorName": {
-            "type": "string"
+            "type": "string",
+            "description": "Author's display name, or their username when none is set"
+          },
+          "authorUsername": {
+            "type": "string",
+            "description": "Author's username (for the avatar)"
           },
           "text": {
             "type": "string"
@@ -4323,6 +4324,7 @@
           "threadId",
           "authorId",
           "authorName",
+          "authorUsername",
           "text",
           "createdAt"
         ]
@@ -6433,6 +6435,11 @@
                       "approved": {
                         "type": "boolean"
                       },
+                      "rejectedAt": {
+                        "type": "number",
+                        "nullable": true,
+                        "description": "Unix seconds when an admin rejected the registration; null when not rejected"
+                      },
                       "enabled": {
                         "type": "boolean"
                       },
@@ -6449,6 +6456,7 @@
                       "username",
                       "email",
                       "approved",
+                      "rejectedAt",
                       "enabled",
                       "isAdmin",
                       "githubId"
@@ -6522,6 +6530,11 @@
                     "approved": {
                       "type": "boolean"
                     },
+                    "rejectedAt": {
+                      "type": "number",
+                      "nullable": true,
+                      "description": "Unix seconds when an admin rejected the registration; null when not rejected"
+                    },
                     "enabled": {
                       "type": "boolean"
                     },
@@ -6538,6 +6551,7 @@
                     "username",
                     "email",
                     "approved",
+                    "rejectedAt",
                     "enabled",
                     "isAdmin",
                     "githubId"
@@ -6585,7 +6599,7 @@
           "Admin"
         ],
         "summary": "Reject a user",
-        "description": "Reject a pending user (sets approved to false)",
+        "description": "Reject a pending user: the account stays unapproved, is marked rejected (so it leaves the pending list) and is signed out",
         "operationId": "adminRejectUser",
         "parameters": [
           {
@@ -6685,6 +6699,11 @@
                     "approved": {
                       "type": "boolean"
                     },
+                    "rejectedAt": {
+                      "type": "number",
+                      "nullable": true,
+                      "description": "Unix seconds when an admin rejected the registration; null when not rejected"
+                    },
                     "enabled": {
                       "type": "boolean"
                     },
@@ -6701,6 +6720,7 @@
                     "username",
                     "email",
                     "approved",
+                    "rejectedAt",
                     "enabled",
                     "isAdmin",
                     "githubId"
@@ -6783,6 +6803,11 @@
                     "approved": {
                       "type": "boolean"
                     },
+                    "rejectedAt": {
+                      "type": "number",
+                      "nullable": true,
+                      "description": "Unix seconds when an admin rejected the registration; null when not rejected"
+                    },
                     "enabled": {
                       "type": "boolean"
                     },
@@ -6799,6 +6824,7 @@
                     "username",
                     "email",
                     "approved",
+                    "rejectedAt",
                     "enabled",
                     "isAdmin",
                     "githubId"
@@ -6898,6 +6924,11 @@
                     "approved": {
                       "type": "boolean"
                     },
+                    "rejectedAt": {
+                      "type": "number",
+                      "nullable": true,
+                      "description": "Unix seconds when an admin rejected the registration; null when not rejected"
+                    },
                     "enabled": {
                       "type": "boolean"
                     },
@@ -6914,6 +6945,7 @@
                     "username",
                     "email",
                     "approved",
+                    "rejectedAt",
                     "enabled",
                     "isAdmin",
                     "githubId"
@@ -7018,6 +7050,11 @@
                     "approved": {
                       "type": "boolean"
                     },
+                    "rejectedAt": {
+                      "type": "number",
+                      "nullable": true,
+                      "description": "Unix seconds when an admin rejected the registration; null when not rejected"
+                    },
                     "enabled": {
                       "type": "boolean"
                     },
@@ -7041,6 +7078,7 @@
                     "username",
                     "email",
                     "approved",
+                    "rejectedAt",
                     "enabled",
                     "isAdmin",
                     "githubId",

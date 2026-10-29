@@ -1,4 +1,5 @@
 {
+  "projectsHeading": "Your projects",
   "searchProjects": "Search projects",
   "closeSearch": "Close search",
   "syncAll": "Sync All",
@@ -42,7 +43,7 @@
     "title": "Announcements"
   },
   "tooltips": {
-    "onlineOnly": "Only available in online mode",
+    "onlineOnly": "Needs an Inkweld Server",
     "offline": "Cannot sync while offline",
     "syncInProgress": "Sync in progress...",
     "noProjectsToSync": "No projects to sync",
@@ -51,6 +52,7 @@
   },
   "snackbar": {
     "noActivatedToSync": "No activated projects to sync",
+    "syncAllOffline": "You're offline, so Sync All can't run. Your changes are saved on this device; try again once you're back online.",
     "activatedSyncing": "\"{{title}}\" activated — syncing now",
     "activateFailed": "Failed to activate project",
     "deactivated": "\"{{title}}\" deactivated",
@@ -101,8 +103,11 @@
   "createProjectPage": {
     "pageTitle": "Create New Project",
     "backAria": "Go back to home",
-    "chooseTemplateTitle": "Choose a Template",
-    "chooseTemplateDescription": "Select a template to start your project",
+    "chooseTemplateTitle": "What are you making?",
+    "chooseTemplateDescription": "Pick a kind of project. You can change everything later.",
+    "startWith": "Start with",
+    "variantStarter": "Start empty",
+    "variantDemo": "Explore a demo",
     "chooseTemplateAria": "Choose a template",
     "loadingTemplates": "Loading templates...",
     "detailsTitle": "Project Details",
@@ -110,6 +115,7 @@
     "titleLabel": "Project Title",
     "slugLabel": "URL Name",
     "slugHint": "Used in the project link. Lowercase letters, numbers and hyphens.",
+    "slugMinLength": "The URL name needs at least 3 characters",
     "descriptionLabel": "Project Description",
     "projectUrl": "Project URL:",
     "submit": "Create Project"

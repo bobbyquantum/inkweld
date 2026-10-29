@@ -205,6 +205,52 @@ describe('SetupService', () => {
     });
   });
 
+  describe('fetchServerFeatures', () => {
+    it('reads the features of the given server, not the active one', async () => {
+      const features = { passkeysEnabled: true, passwordLoginEnabled: false };
+      (globalThis.fetch as Mock).mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(features),
+      });
+
+      const result = await service.fetchServerFeatures('target.example.com/');
+
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        'https://target.example.com/api/v1/config/features'
+      );
+      expect(result).toEqual(features);
+    });
+
+    it('returns null when the server answers with an error', async () => {
+      (globalThis.fetch as Mock).mockResolvedValue({ ok: false });
+
+      expect(
+        await service.fetchServerFeatures('https://target.example.com')
+      ).toBeNull();
+    });
+
+    it('returns null when the body is not an object', async () => {
+      (globalThis.fetch as Mock).mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve('nope'),
+      });
+
+      expect(
+        await service.fetchServerFeatures('https://target.example.com')
+      ).toBeNull();
+    });
+
+    it('returns null when the server is unreachable', async () => {
+      (globalThis.fetch as Mock).mockRejectedValue(
+        new TypeError('Failed to fetch')
+      );
+
+      expect(
+        await service.fetchServerFeatures('https://target.example.com')
+      ).toBeNull();
+    });
+  });
+
   describe('configureLocalMode', () => {
     it('should configure local mode successfully', () => {
       const userProfile = { name: 'Test User', username: 'testuser' };

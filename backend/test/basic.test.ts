@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'bun:test';
 import { startTestServer, stopTestServer, TestClient } from './server-test-helper';
+import { getDatabase } from '../src/db/index';
+import { configService } from '../src/services/config.service';
 
 let client: TestClient;
 
@@ -91,6 +93,29 @@ describe('Config', () => {
 
       // Default appMode should be BOTH
       expect(data.appMode).toBe('BOTH');
+    });
+
+    it('reports the admin-set approval and GitHub settings, not the env defaults', async () => {
+      const db = getDatabase();
+      try {
+        for (const value of ['true', 'false']) {
+          await configService.set(db, 'USER_APPROVAL_REQUIRED', value);
+          await configService.set(db, 'GITHUB_ENABLED', value);
+          const expected = value === 'true';
+
+          const features = await (await client.request('/api/v1/config/features')).json();
+          expect(features.userApprovalRequired).toBe(expected);
+          // Same value registration acts on.
+          expect(await configService.getBoolean(db, 'USER_APPROVAL_REQUIRED')).toBe(expected);
+
+          const appConfig = await (await client.request('/api/v1/config')).json();
+          expect(appConfig.userApprovalRequired).toBe(expected);
+          expect(appConfig.githubEnabled).toBe(expected);
+        }
+      } finally {
+        await configService.delete(db, 'USER_APPROVAL_REQUIRED');
+        await configService.delete(db, 'GITHUB_ENABLED');
+      }
     });
 
     it('should not have defaultServerName when not configured', async () => {

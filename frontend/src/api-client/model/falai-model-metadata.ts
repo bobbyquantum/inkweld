@@ -20,6 +20,14 @@ export interface FalaiModelMetadata {
   supportedAspectRatios: Array<string>;
   supportedResolutions: Array<string>;
   sizeMode: FalaiModelMetadataSizeMode;
+  /**
+   * The model takes an aspect ratio instead of pixel dimensions
+   */
+  usesAspectRatioOnly: boolean;
+  /**
+   * Suggested default size, one of supportedSizes
+   */
+  defaultSize?: string;
 }
 export enum FalaiModelMetadataStatus {
   Active = 'active',

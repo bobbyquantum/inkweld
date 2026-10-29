@@ -19,6 +19,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslocoModule } from '@jsverse/transloco';
+import { StorageContextService } from '@services/core/storage-context.service';
 import { Subject, takeUntil } from 'rxjs';
 
 import { AccountSettingsComponent } from './tabs/account-settings/account-settings.component';
@@ -73,7 +74,13 @@ export class UserSettingsDialogComponent implements OnInit, OnDestroy {
     { optional: true }
   );
 
-  selectedCategory: SettingsCategory = this.data?.selectedCategory ?? 'account';
+  /**
+   * Authorized apps are OAuth sessions on an Inkweld Server: Browser and
+   * Cloud Sync profiles have none, and must not ask a server for them.
+   */
+  readonly isServerMode = inject(StorageContextService).isServerMode;
+
+  selectedCategory: SettingsCategory = this.initialCategory();
   previousCategory: SettingsCategory = this.selectedCategory;
   // Signal required: BreakpointObserver does not notify the zoneless
   // scheduler (it wraps emissions in NgZone.run, a no-op in zoneless), so a
@@ -94,6 +101,14 @@ export class UserSettingsDialogComponent implements OnInit, OnDestroy {
   ngOnDestroy() {
     this.destroyed.next();
     this.destroyed.complete();
+  }
+
+  private initialCategory(): SettingsCategory {
+    const requested = this.data?.selectedCategory ?? 'account';
+    if (requested === 'authorized-apps' && !this.isServerMode()) {
+      return 'account';
+    }
+    return requested;
   }
 
   selectCategory(category: SettingsCategory) {

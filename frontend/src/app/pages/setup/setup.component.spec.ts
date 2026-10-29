@@ -168,6 +168,26 @@ describe('SetupComponent', () => {
     expect(component).toBeTruthy();
   });
 
+  it('has a main landmark and a page heading', () => {
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+
+    expect(el.querySelectorAll('main')).toHaveLength(1);
+    expect(el.querySelector('h1')?.textContent?.trim()).toBe(
+      'Welcome to Inkweld'
+    );
+  });
+
+  it('names the back button', () => {
+    mockSetupService.isConfigured.mockReturnValue(true);
+    fixture.detectChanges();
+
+    const back: HTMLButtonElement = fixture.nativeElement.querySelector(
+      '[data-testid="back-button"]'
+    );
+    expect(back.getAttribute('aria-label')).toBe('Back');
+  });
+
   it('links to the app privacy policy in a new tab', () => {
     mockSetupService.getServerUrl.mockReturnValue(null);
     fixture.detectChanges();
@@ -938,6 +958,98 @@ describe('SetupComponent', () => {
 
       expect(component['displayName']).toBe('Author A');
       expect(component['userName']).toBe('authora');
+    });
+
+    it('locks the username on the profile step so the same author moves', async () => {
+      sessionStorage.setItem('inkweld-profile-upgrade-source', 'local');
+      mockActivatedRoute.snapshot.queryParamMap.get.mockImplementation(
+        (key: string) => (key === 'cloud' ? 'dropbox' : null)
+      );
+      mockCloudSyncConnect.getPendingConnection.mockReturnValue(pending);
+
+      await init();
+
+      const el = fixture.nativeElement as HTMLElement;
+      const input = el.querySelector<HTMLInputElement>(
+        '[data-testid="cloud-username-input"]'
+      );
+      expect(input?.value).toBe('authora');
+      expect(input?.readOnly).toBe(true);
+      expect(
+        el.querySelector('[data-testid="cloud-username-hint"]')?.textContent
+      ).toContain('Kept from Author A');
+    });
+
+    it('offers the account name instead of the Browser placeholder name', async () => {
+      sessionStorage.setItem('inkweld-profile-upgrade-source', 'local');
+      mockStorageContext.getConfigById.mockReturnValue({
+        id: 'local',
+        type: 'local',
+        userProfile: { name: 'Local User', username: 'local' },
+      });
+      mockActivatedRoute.snapshot.queryParamMap.get.mockImplementation(
+        (key: string) => (key === 'cloud' ? 'dropbox' : null)
+      );
+      mockCloudSyncConnect.getPendingConnection.mockReturnValue(pending);
+
+      await init();
+
+      expect(component['displayName']).toBe('Bobby Quantum');
+      expect(component['userName']).toBe('local');
+      expect(component['upgradeUsername']()).toBe('local');
+    });
+
+    it('keeps the source username even if the field was edited', async () => {
+      sessionStorage.setItem('inkweld-profile-upgrade-source', 'local');
+      const originalLocation = globalThis.location;
+      Object.defineProperty(globalThis, 'location', {
+        value: { assign: vi.fn() },
+        writable: true,
+        configurable: true,
+      });
+      component['pendingCloudConnection'].set(pending);
+      component['upgradeUsername'].set('authora');
+      component['displayName'] = 'Author A';
+      component['userName'] = 'someone-else';
+
+      try {
+        await component['setupCloudProfile']();
+      } finally {
+        Object.defineProperty(globalThis, 'location', {
+          value: originalLocation,
+          writable: true,
+          configurable: true,
+        });
+      }
+
+      expect(mockCloudSyncConnect.finishNewConnection).toHaveBeenCalledWith(
+        pending,
+        { username: 'authora', name: 'Author A' }
+      );
+      expect(mockProfileManager.upgradeInto).toHaveBeenCalledWith(
+        'local',
+        'cloud-dropbox-x',
+        'authora',
+        []
+      );
+      // Same author: the Browser copy is removed, not left as a second profile
+      expect(mockProfileManager.disconnect).toHaveBeenCalledWith('local');
+    });
+
+    it('a plain cloud add leaves the username editable', async () => {
+      mockActivatedRoute.snapshot.queryParamMap.get.mockImplementation(
+        (key: string) => (key === 'cloud' ? 'dropbox' : null)
+      );
+      mockCloudSyncConnect.getPendingConnection.mockReturnValue(pending);
+
+      await init();
+
+      const input = (
+        fixture.nativeElement as HTMLElement
+      ).querySelector<HTMLInputElement>('[data-testid="cloud-username-input"]');
+      expect(component['upgradeUsername']()).toBeNull();
+      expect(input?.value).toBe('bobby-quantum');
+      expect(input?.readOnly).toBe(false);
     });
 
     it('copies the source profile into the new cloud profile and reloads', async () => {

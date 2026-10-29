@@ -1,5 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
+import { splitChangelog } from '@utils/release-notes';
 import { marked } from 'marked';
 import { map, type Observable } from 'rxjs';
 
@@ -23,39 +24,11 @@ export class ChangelogService {
   }
 
   private parseChangelog(text: string): ChangelogVersion[] {
-    const versions: ChangelogVersion[] = [];
-    // Split by ## but keep the delimiter or just split and handle
-    const sections = text.split(/^## /m);
-
-    // Skip the first section (header before the first ##)
-    for (let i = 1; i < sections.length; i++) {
-      const section = sections[i];
-      const lines = section.split('\n');
-      const header = lines[0].trim();
-      // Remove trailing horizontal rules and whitespace
-      const content = lines
-        .slice(1)
-        .join('\n')
-        .replace(/---\s*$/, '')
-        .trim();
-
-      // Match [version] - date or [Unreleased]
-      const versionMatch = /^\[([^\]]+)\](?: - (.*))?$/.exec(header);
-
-      if (versionMatch) {
-        const version = versionMatch[1];
-        const date = versionMatch[2] || '';
-        const isUnreleased = version.toLowerCase() === 'unreleased';
-
-        versions.push({
-          version,
-          date,
-          content: marked.parse(content) as string,
-          isUnreleased,
-        });
-      }
-    }
-
-    return versions;
+    return splitChangelog(text).map(({ version, date, markdown }) => ({
+      version,
+      date,
+      content: marked.parse(markdown) as string,
+      isUnreleased: version.toLowerCase() === 'unreleased',
+    }));
   }
 }

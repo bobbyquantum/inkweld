@@ -47,6 +47,7 @@
     "unpin": "Unpin",
     "pin": "Pin",
     "close": "Close",
+    "closeTabNamed": "Close {{name}}",
     "closeToRight": "Close to the Right",
     "closeOthers": "Close Others",
     "closeAll": "Close All",
@@ -178,12 +179,12 @@
     }
   },
   "connection": {
-    "localMode": "Local Mode",
+    "localMode": "Saved in this browser",
     "connected": "Connected",
-    "offlineMode": "Offline Mode",
+    "offlineMode": "Offline",
     "connectionFailed": "Connection Failed",
     "unknown": "Unknown",
-    "localTooltip": "Working in local mode - changes saved to browser storage",
+    "localTooltip": "Working in a Browser profile - changes saved to browser storage",
     "connectedTooltip": "Project is synced with server",
     "connectingTooltip": "Connecting to server...",
     "offlineTooltip": "Working offline (Last error: {{error}})",
@@ -218,6 +219,7 @@
   },
   "snackbar": {
     "projectImported": "Project imported successfully!",
+    "projectCreated": "Project created!",
     "view": "View",
     "projectExported": "Project exported successfully",
     "exportFailed": "Failed to export project",

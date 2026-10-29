@@ -1,0 +1,382 @@
+[
+  {
+    "id": "jCg1tqF0h65O0c1JVxAUe",
+    "name": "Adventure",
+    "type": "FOLDER",
+    "order": 0,
+    "level": 0,
+    "parentId": null,
+    "expandable": true,
+    "version": 0,
+    "metadata": {
+      "icon": "folder"
+    }
+  },
+  {
+    "id": "5whpcOBn55M9fhfsFCXVp",
+    "name": "GM Overview",
+    "type": "ITEM",
+    "order": 1,
+    "level": 1,
+    "parentId": "jCg1tqF0h65O0c1JVxAUe",
+    "expandable": false,
+    "version": 0,
+    "metadata": {
+      "icon": "auto_stories",
+      "role": "scene"
+    }
+  },
+  {
+    "id": "bG0MDb_oxZ8EYTr9s87AX",
+    "name": "Chapter 1 - Saltmere",
+    "type": "ITEM",
+    "order": 2,
+    "level": 1,
+    "parentId": "jCg1tqF0h65O0c1JVxAUe",
+    "expandable": false,
+    "version": 0,
+    "metadata": {
+      "icon": "auto_stories",
+      "role": "scene"
+    }
+  },
+  {
+    "id": "N1wXkjyb1nvmq7aGlGMqy",
+    "name": "Party",
+    "type": "FOLDER",
+    "order": 3,
+    "level": 0,
+    "parentId": null,
+    "expandable": true,
+    "version": 0,
+    "metadata": {
+      "icon": "folder"
+    }
+  },
+  {
+    "id": "4Q-YTftB3tyB6ct9sAOLI",
+    "name": "Pip Cobble",
+    "type": "WORLDBUILDING",
+    "schemaId": "ttrpg-player-character-v1",
+    "order": 4,
+    "level": 1,
+    "parentId": "N1wXkjyb1nvmq7aGlGMqy",
+    "expandable": false,
+    "version": 0,
+    "metadata": {
+      "icon": "description"
+    }
+  },
+  {
+    "id": "PVWD6-hBjTUEF0zojyMMf",
+    "name": "Isolde Marrow",
+    "type": "WORLDBUILDING",
+    "schemaId": "ttrpg-player-character-v1",
+    "order": 5,
+    "level": 1,
+    "parentId": "N1wXkjyb1nvmq7aGlGMqy",
+    "expandable": false,
+    "version": 0,
+    "metadata": {
+      "icon": "description"
+    }
+  },
+  {
+    "id": "KlE5FvISqx9O_8ghs4U45",
+    "name": "Brother Aldous Penhale",
+    "type": "WORLDBUILDING",
+    "schemaId": "ttrpg-player-character-v1",
+    "order": 6,
+    "level": 1,
+    "parentId": "N1wXkjyb1nvmq7aGlGMqy",
+    "expandable": false,
+    "version": 0,
+    "metadata": {
+      "icon": "description"
+    }
+  },
+  {
+    "id": "Pv5-vE9eT74F5Qo5cJb-V",
+    "name": "Wren Halloway",
+    "type": "WORLDBUILDING",
+    "schemaId": "ttrpg-player-character-v1",
+    "order": 7,
+    "level": 1,
+    "parentId": "N1wXkjyb1nvmq7aGlGMqy",
+    "expandable": false,
+    "version": 0,
+    "metadata": {
+      "icon": "description"
+    }
+  },
+  {
+    "id": "ESyA9E8Tnk_REhqWPSJYg",
+    "name": "NPCs",
+    "type": "FOLDER",
+    "order": 8,
+    "level": 0,
+    "parentId": null,
+    "expandable": true,
+    "version": 0,
+    "metadata": {
+      "icon": "folder"
+    }
+  },
+  {
+    "id": "v_kbkl32M8OzYh9zx_AzN",
+    "name": "Mother Brine",
+    "type": "WORLDBUILDING",
+    "schemaId": "ttrpg-npc-v1",
+    "order": 9,
+    "level": 1,
+    "parentId": "ESyA9E8Tnk_REhqWPSJYg",
+    "expandable": false,
+    "version": 0,
+    "metadata": {
+      "icon": "description"
+    }
+  },
+  {
+    "id": "Uu6P_362Yl8jxDJ9RnxFL",
+    "name": "Harbourmaster Osric Vell",
+    "type": "WORLDBUILDING",
+    "schemaId": "ttrpg-npc-v1",
+    "order": 10,
+    "level": 1,
+    "parentId": "ESyA9E8Tnk_REhqWPSJYg",
+    "expandable": false,
+    "version": 0,
+    "metadata": {
+      "icon": "description"
+    }
+  },
+  {
+    "id": "l2GoKWCSl2SYYUIiq5ntL",
+    "name": "Tilly Gorse",
+    "type": "WORLDBUILDING",
+    "schemaId": "ttrpg-npc-v1",
+    "order": 11,
+    "level": 1,
+    "parentId": "ESyA9E8Tnk_REhqWPSJYg",
+    "expandable": false,
+    "version": 0,
+    "metadata": {
+      "icon": "description"
+    }
+  },
+  {
+    "id": "ReQEavcmWtQ46vgDL8Q5E",
+    "name": "Locations",
+    "type": "FOLDER",
+    "order": 12,
+    "level": 0,
+    "parentId": null,
+    "expandable": true,
+    "version": 0,
+    "metadata": {
+      "icon": "folder"
+    }
+  },
+  {
+    "id": "QkGsXmPv-G8hzuuh6cBRF",
+    "name": "Saltmere",
+    "type": "WORLDBUILDING",
+    "schemaId": "ttrpg-location-v1",
+    "order": 13,
+    "level": 1,
+    "parentId": "ReQEavcmWtQ46vgDL8Q5E",
+    "expandable": false,
+    "version": 0,
+    "metadata": {
+      "icon": "description"
+    }
+  },
+  {
+    "id": "MyJqfT29Ukai-WeMmX-8T",
+    "name": "The Gull and Anchor",
+    "type": "WORLDBUILDING",
+    "schemaId": "ttrpg-location-v1",
+    "order": 14,
+    "level": 1,
+    "parentId": "ReQEavcmWtQ46vgDL8Q5E",
+    "expandable": false,
+    "version": 0,
+    "metadata": {
+      "icon": "description"
+    }
+  },
+  {
+    "id": "xpESK8Vyznq8ytnCjS0nm",
+    "name": "The Drowned Lighthouse",
+    "type": "WORLDBUILDING",
+    "schemaId": "ttrpg-location-v1",
+    "order": 15,
+    "level": 1,
+    "parentId": "ReQEavcmWtQ46vgDL8Q5E",
+    "expandable": false,
+    "version": 0,
+    "metadata": {
+      "icon": "description"
+    }
+  },
+  {
+    "id": "cESIfwjmVLtSRKMb9dgM3",
+    "name": "Factions",
+    "type": "FOLDER",
+    "order": 16,
+    "level": 0,
+    "parentId": null,
+    "expandable": true,
+    "version": 0,
+    "metadata": {
+      "icon": "folder"
+    }
+  },
+  {
+    "id": "wI3A6R1MNUauJUEjlp8xL",
+    "name": "The Drowned Lantern",
+    "type": "WORLDBUILDING",
+    "schemaId": "ttrpg-magic-item-v1",
+    "order": 17,
+    "level": 1,
+    "parentId": "cESIfwjmVLtSRKMb9dgM3",
+    "expandable": false,
+    "version": 0,
+    "metadata": {
+      "icon": "description"
+    }
+  },
+  {
+    "id": "vzHkwTd1KMkFbNSBD97LL",
+    "name": "Children of the Tide",
+    "type": "WORLDBUILDING",
+    "schemaId": "ttrpg-faction-v1",
+    "order": 18,
+    "level": 1,
+    "parentId": "cESIfwjmVLtSRKMb9dgM3",
+    "expandable": false,
+    "version": 0,
+    "metadata": {
+      "icon": "description"
+    }
+  },
+  {
+    "id": "mPa1vF77gSzlxyHKW3_Z9",
+    "name": "Bestiary",
+    "type": "FOLDER",
+    "order": 19,
+    "level": 0,
+    "parentId": null,
+    "expandable": true,
+    "version": 0,
+    "metadata": {
+      "icon": "folder"
+    }
+  },
+  {
+    "id": "Nu1LBYkAHOJ3g32JO-eCl",
+    "name": "Drowned Acolyte",
+    "type": "WORLDBUILDING",
+    "schemaId": "ttrpg-monster-v1",
+    "order": 20,
+    "level": 1,
+    "parentId": "mPa1vF77gSzlxyHKW3_Z9",
+    "expandable": false,
+    "version": 0,
+    "metadata": {
+      "icon": "description"
+    }
+  },
+  {
+    "id": "IHX_QZuUtXTIjSCHpKJf2",
+    "name": "Quests",
+    "type": "FOLDER",
+    "order": 21,
+    "level": 0,
+    "parentId": null,
+    "expandable": true,
+    "version": 0,
+    "metadata": {
+      "icon": "folder"
+    }
+  },
+  {
+    "id": "LDfALXAiPuw2W-Njm-1Pm",
+    "name": "The Missing Fishermen",
+    "type": "WORLDBUILDING",
+    "schemaId": "ttrpg-quest-v1",
+    "order": 22,
+    "level": 1,
+    "parentId": "IHX_QZuUtXTIjSCHpKJf2",
+    "expandable": false,
+    "version": 0,
+    "metadata": {
+      "icon": "description"
+    }
+  },
+  {
+    "id": "m5C62lgnYv0PVMxgR3yMK",
+    "name": "Session Notes",
+    "type": "FOLDER",
+    "order": 23,
+    "level": 0,
+    "parentId": null,
+    "expandable": true,
+    "version": 0,
+    "metadata": {
+      "icon": "folder"
+    }
+  },
+  {
+    "id": "wd6LXG2WZN-wi-2_WBc3d",
+    "name": "Session 1 Prep - Arrival at Saltmere",
+    "type": "ITEM",
+    "order": 24,
+    "level": 1,
+    "parentId": "m5C62lgnYv0PVMxgR3yMK",
+    "expandable": false,
+    "version": 0,
+    "metadata": {
+      "icon": "sticky_note_2",
+      "role": "note"
+    }
+  },
+  {
+    "id": "readme-001",
+    "name": "README",
+    "type": "ITEM",
+    "order": 25,
+    "level": 0,
+    "parentId": null,
+    "expandable": false,
+    "version": 0,
+    "metadata": {}
+  },
+  {
+    "id": "CorS8RWJ_VVSuELwt9617",
+    "name": "Player Guide",
+    "type": "FOLDER",
+    "order": 26,
+    "level": 0,
+    "parentId": null,
+    "expandable": true,
+    "version": 0,
+    "metadata": {
+      "icon": "folder"
+    }
+  },
+  {
+    "id": "tRhhY2dMcLMA5U0HhOIQp",
+    "name": "Welcome to Saltmere",
+    "type": "ITEM",
+    "order": 27,
+    "level": 1,
+    "parentId": "CorS8RWJ_VVSuELwt9617",
+    "expandable": false,
+    "version": 0,
+    "metadata": {
+      "icon": "auto_stories",
+      "role": "scene"
+    }
+  }
+]

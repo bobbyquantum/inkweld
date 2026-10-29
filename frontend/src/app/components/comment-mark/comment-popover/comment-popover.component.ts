@@ -16,7 +16,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TooltipAriaLabelDirective } from '@directives/tooltip-aria-label.directive';
-import { TranslocoModule } from '@jsverse/transloco';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { formatRelativeDate } from '@utils/date-format';
 
 import type {
@@ -50,6 +50,7 @@ interface CommentReplyFormValue {
 })
 export class CommentPopoverComponent {
   private readonly commentService = inject(CommentService);
+  private readonly transloco = inject(TranslocoService);
 
   /** The mark attributes of the clicked comment */
   attrs = input.required<CommentMarkAttrs>();
@@ -89,6 +90,7 @@ export class CommentPopoverComponent {
     Array<{
       id: string;
       authorName: string;
+      authorUsername?: string;
       text: string;
       createdAt: string | number;
     }>
@@ -284,6 +286,6 @@ export class CommentPopoverComponent {
   }
 
   formatDate(date: string | number): string {
-    return formatRelativeDate(date);
+    return formatRelativeDate(date, this.transloco.getActiveLang());
   }
 }

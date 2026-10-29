@@ -12,6 +12,7 @@ export const MCP_PERMISSIONS = {
   // Write permissions
   WRITE_ELEMENTS: 'write:elements',
   WRITE_WORLDBUILDING: 'write:worldbuilding',
+  WRITE_SCHEMAS: 'write:schemas',
 } as const;
 
 export type McpPermission = (typeof MCP_PERMISSIONS)[keyof typeof MCP_PERMISSIONS];

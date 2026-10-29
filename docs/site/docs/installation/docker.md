@@ -60,6 +60,34 @@ When the wizard asks for a database type, choose **SQLite**. It is the only data
 
 To run the published image instead, follow the manual steps below.
 
+## Deploy Script
+
+The repository includes `deploy.sh` (Linux and macOS) and `deploy.ps1` (Windows PowerShell). Both pull the published image from GitHub Container Registry, so they need no build tools.
+
+```bash
+export GITHUB_REPOSITORY_OWNER=your-github-username
+export SESSION_SECRET="$(openssl rand -hex 32)"
+export WEBAUTHN_RP_ID=your-domain.com
+export ALLOWED_ORIGINS=https://your-domain.com
+
+./deploy.sh
+
+# Or pin a version and port
+IMAGE_TAG=v1.0.0 PORT=8080 ./deploy.sh
+```
+
+On Windows PowerShell:
+
+```powershell
+$env:SESSION_SECRET = "<output of openssl rand -hex 32>"
+$env:WEBAUTHN_RP_ID = "your-domain.com"
+$env:ALLOWED_ORIGINS = "https://your-domain.com"
+
+.\deploy.ps1 -GitHubRepositoryOwner your-github-username -ImageTag v1.0.0 -Port 8080
+```
+
+`GITHUB_REPOSITORY_OWNER` is required. `IMAGE_TAG` defaults to `latest`; pin a specific tag in production so you control when upgrades happen. Set `WEBAUTHN_RP_ID` before anyone registers a passkey, because it cannot be changed afterwards.
+
 ## Manual Setup
 
 ### Prerequisites
@@ -147,7 +175,7 @@ You should see:
   "status": "ok",
   "timestamp": "2026-01-01T12:00:00.000Z",
   "uptime": 1.23,
-  "version": "0.1.0",
+  "version": "1.0.0-beta.1",
   "protocolVersion": 1,
   "minClientVersion": "0.1.0"
 }
@@ -204,7 +232,7 @@ Start with:
 docker compose up -d
 ```
 
-The repository also ships `compose.yaml` (builds the image from source) and `compose.deploy.yaml` (pulls the published image); see [DEPLOY.md](https://github.com/bobbyquantum/inkweld/blob/main/DEPLOY.md).
+The repository also ships `compose.yaml` (builds the image from source) and `compose.deploy.yaml` (pulls the published image); the deploy script above uses the second one.
 
 ## Reverse Proxy Setup
 

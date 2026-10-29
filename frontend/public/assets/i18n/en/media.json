@@ -39,7 +39,9 @@
     "deleteMediaTitle": "Delete Media",
     "addTagsTitle": "Add Tags",
     "addTagsDesc": "Tag \"{{name}}\" with elements or project tags.",
-    "deleteServerFailed": "Couldn't delete this file from the server. Check your connection and try again."
+    "deleteServerFailed": "Couldn't delete this file from the server. Check your connection and try again.",
+    "usedAsIdentityImage": "Image of element \"{{name}}\"",
+    "usedAsBackground": "Background of element \"{{name}}\""
   },
   "filterPanel": {
     "title": "Filters",

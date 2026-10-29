@@ -110,7 +110,7 @@ export class WritingStatsWidgetComponent implements OnInit {
   }
 
   protected formatTime(unixMs: number): string {
-    return formatRelativeDate(unixMs);
+    return formatRelativeDate(unixMs, this.transloco.getActiveLang());
   }
 
   protected eventSummary(event: UserActivityEvent): string {

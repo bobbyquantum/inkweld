@@ -1,8 +1,13 @@
 {
   "updateNow": "Update Now",
+  "skipToContent": "Skip to content",
   "sessionExpiredMessage": "Your session has expired. Please re-authenticate or continue offline.",
   "reAuthenticate": "Re-authenticate",
   "continueOffline": "Continue Offline",
+  "whatsNew": {
+    "updated": "Updated to Inkweld {{version}}",
+    "action": "What's new"
+  },
   "notFound": {
     "title": "404 - Page Not Found",
     "message": "The page you are looking for does not exist.",
@@ -24,5 +29,9 @@
     "itemSettings": "All app settings and preferences",
     "clearing": "Clearing data...",
     "proceed": "Proceed and Clear Data"
+  },
+  "setup": {
+    "upgradeIntro": "Your projects from {{source}} will be copied into {{provider}} and kept in sync from now on. The Browser copy is removed once they are safely copied.",
+    "upgradeUsernameHint": "Kept from {{source}}, so your project addresses stay the same."
   }
 }

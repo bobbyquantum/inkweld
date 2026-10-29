@@ -20,6 +20,7 @@ import type {
   ProjectActivityEvent,
 } from '@models/activity-event';
 import { LoggerService } from '@services/core/logger.service';
+import { StorageContextService } from '@services/core/storage-context.service';
 import { ElementNavigationService } from '@services/project/element-navigation.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { ActivityFeedService } from '@services/stats/activity-feed.service';
@@ -61,6 +62,7 @@ import { firstValueFrom } from 'rxjs';
 export class ActivityTabComponent {
   private readonly projectState = inject(ProjectStateService);
   private readonly activityFeed = inject(ActivityFeedService);
+  private readonly storageContext = inject(StorageContextService);
   private readonly elementNavigation = inject(ElementNavigationService);
   private readonly logger = inject(LoggerService);
   private readonly transloco = inject(TranslocoService);
@@ -110,6 +112,9 @@ export class ActivityTabComponent {
     const token = ++this.requestToken;
     const project = this.projectState.project();
     if (!project?.username || !project.slug) return;
+    // The feed lives on the server. The tab is hidden for Browser and Cloud
+    // Sync profiles, but a saved tab or URL can still open it.
+    if (this.storageContext.isLocalMode()) return;
 
     this.loading.set(true);
     this.error.set(null);
@@ -138,6 +143,7 @@ export class ActivityTabComponent {
     const before = this.nextBefore();
     const project = this.projectState.project();
     if (before === null || !project?.username || !project.slug) return;
+    if (this.storageContext.isLocalMode()) return;
 
     this.loadingMore.set(true);
     try {
@@ -157,7 +163,7 @@ export class ActivityTabComponent {
   }
 
   protected formatTime(unixMs: number): string {
-    return formatRelativeDate(unixMs);
+    return formatRelativeDate(unixMs, this.transloco.getActiveLang());
   }
 
   protected iconFor(type: ActivityEventType): string {

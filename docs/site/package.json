@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
+    "preinstall": "node -e \"var ua=process.env.npm_config_user_agent||'';if(ua.startsWith('npm/')&&!process.env.INKWELD_BUN_POSTINSTALL){console.error('\\n\\u274c Use bun install, not npm install.\\n   npm creates a package-lock.json that conflicts with bun.lock.\\n   Run from repo root: bun install\\n');process.exit(1)}\"",
     "docusaurus": "docusaurus",
     "start": "bun run gen-api-docs && docusaurus start",
     "build": "bun run gen-api-docs && bun run generate-screenshots && docusaurus build",
@@ -16,7 +17,8 @@
     "write-translations": "docusaurus write-translations",
     "write-heading-ids": "docusaurus write-heading-ids",
     "typecheck": "tsc",
-    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,md,mdx,json,css}\"",
+    "format": "bun fmt \"**/*.{js,jsx,ts,tsx,md,mdx,json,css}\"",
+    "format:check": "bun fmt --check \"**/*.{js,jsx,ts,tsx,md,mdx,json,css}\"",
     "gen-api-docs": "bun run copy-openapi && docusaurus gen-api-docs inkweld",
     "clean-api-docs": "docusaurus clean-api-docs inkweld",
     "gen-api-docs:all": "bun run copy-openapi && docusaurus gen-api-docs all"
@@ -39,7 +41,6 @@
     "@docusaurus/module-type-aliases": "3.10.2",
     "@docusaurus/tsconfig": "3.10.2",
     "@docusaurus/types": "3.10.2",
-    "prettier": "^3.7.4",
     "typescript": "~6.0.0"
   },
   "browserslist": {
@@ -57,5 +58,5 @@
   "engines": {
     "node": ">=22.0"
   },
-  "packageManager": "bun@1.4.3"
+  "packageManager": "bun@1.4.4"
 }

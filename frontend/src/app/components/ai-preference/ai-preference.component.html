@@ -1,0 +1,29 @@
+<div
+  class="ai-preference"
+  [class.ai-preference--floating]="floating()"
+  data-testid="ai-preference">
+  <mat-button-toggle-group
+    class="ai-choice"
+    [value]="selected()"
+    (change)="choose($event.value)"
+    [attr.aria-label]="'settings.generalTab.aiTitle' | transloco">
+    @for (option of options; track option.value) {
+      <mat-button-toggle
+        [value]="option.value"
+        [attr.data-testid]="'ai-preference-' + option.value">
+        {{ option.label | transloco }}
+      </mat-button-toggle>
+    }
+  </mat-button-toggle-group>
+  <button
+    mat-icon-button
+    type="button"
+    class="ai-preference__help"
+    appTooltipAriaLabel
+    [matTooltip]="'settings.generalTab.aiHelp' | transloco"
+    [attr.aria-label]="'settings.generalTab.aiHelp' | transloco"
+    data-testid="ai-preference-help"
+    (click)="openInfo()">
+    <mat-icon>help_outline</mat-icon>
+  </button>
+</div>

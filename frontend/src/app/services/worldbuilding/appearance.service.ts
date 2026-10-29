@@ -63,6 +63,12 @@ export class AppearanceService {
   private readonly http = inject(HttpClient);
   private readonly storageContext = inject(StorageContextService);
 
+  /** In-flight `media://` resolutions, keyed by "projectKey:mediaId". */
+  private readonly pendingResolutions = new Map<
+    string,
+    Promise<string | null>
+  >();
+
   /**
    * Resolve an image reference to a loadable URL.
    *
@@ -72,18 +78,41 @@ export class AppearanceService {
    * collaborator or a fresh browser can render it. Non-`media://` references
    * (http/https/data/blob) are returned as-is when they use a safe scheme.
    * Returns `null` when the reference cannot be resolved to a renderable URL.
+   *
+   * Concurrent calls for the same media share one resolution: saving a
+   * download revokes the cached blob URL, so a second download of the same
+   * image would break the URL the first caller already rendered.
    */
-  async resolveImageReference(
+  resolveImageReference(
     reference: string,
     username: string,
     slug: string
   ): Promise<string | null> {
     if (!reference.startsWith('media://')) {
-      return /^(https?:|blob:|data:image\/)/i.test(reference)
-        ? reference
-        : null;
+      return Promise.resolve(
+        /^(https?:|blob:|data:image\/)/i.test(reference) ? reference : null
+      );
     }
 
+    const key = `${username}/${slug}:${mediaIdFromReference(reference)}`;
+    const pending = this.pendingResolutions.get(key);
+    if (pending) return pending;
+
+    const resolution = this.resolveMediaReference(
+      reference,
+      username,
+      slug
+    ).finally(() => this.pendingResolutions.delete(key));
+    this.pendingResolutions.set(key, resolution);
+    return resolution;
+  }
+
+  /** Resolve a `media://` reference from the cache, else the server. */
+  private async resolveMediaReference(
+    reference: string,
+    username: string,
+    slug: string
+  ): Promise<string | null> {
     const filename = mediaReferenceFilename(reference);
     const mediaId = mediaIdFromReference(reference);
     const projectKey = `${username}/${slug}`;
@@ -97,7 +126,11 @@ export class AppearanceService {
         return cachedUrl;
       }
 
-      if (!username || !slug) return null;
+      // Only an Inkweld Server has a copy to download; a Browser or Cloud
+      // Sync profile must never contact one.
+      if (!username || !slug || !this.storageContext.isServerMode()) {
+        return null;
+      }
 
       const apiUrl = `${this.storageContext.getApiBaseUrl()}/api/v1/media/${username}/${slug}/${filename}`;
       const blob = await firstValueFrom(

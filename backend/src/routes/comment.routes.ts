@@ -2,9 +2,14 @@ import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi';
 import { requireAuth } from '../middleware/auth';
 import { projectService } from '../services/project.service';
 import { collaborationService } from '../services/collaboration.service';
-import { commentService } from '../services/comment.service';
+import {
+  commentService,
+  type CommentMessageWithAuthor,
+  type CommentThreadWithMessages,
+} from '../services/comment.service';
 import { activityService } from '../services/activity.service';
 import { UnauthorizedError, ForbiddenError, NotFoundError } from '../errors';
+import type { CommentThread } from '../db/schema/comment-threads';
 import { type AppContext, type DatabaseInstance } from '../types/context';
 import {
   CommentThreadSchema,
@@ -46,6 +51,31 @@ function toIsoOrNull(ts: number | null | undefined): string | null {
   return ts ? new Date(ts).toISOString() : null;
 }
 
+/** A thread's timestamps as the API returns them (ISO strings). */
+function threadTimestamps(thread: CommentThread) {
+  return {
+    createdAt: new Date(thread.createdAt).toISOString(),
+    updatedAt: new Date(thread.updatedAt).toISOString(),
+    resolvedAt: toIsoOrNull(thread.resolvedAt),
+  };
+}
+
+function toMessageJson(message: CommentMessageWithAuthor) {
+  return {
+    ...message,
+    createdAt: new Date(message.createdAt).toISOString(),
+    editedAt: toIsoOrNull(message.editedAt),
+  };
+}
+
+function toThreadWithMessagesJson(thread: CommentThreadWithMessages) {
+  return {
+    ...thread,
+    ...threadTimestamps(thread),
+    messages: thread.messages.map(toMessageJson),
+  };
+}
+
 // ────────────────────────────────────────────────────────────
 // List threads for a project (summaries)
 // ────────────────────────────────────────────────────────────
@@ -78,12 +108,7 @@ commentRoutes.openapi(listProjectCommentsRoute, async (c) => {
   const threads = await commentService.listByProjectId(db, project.id);
 
   return c.json(
-    threads.map((t) => ({
-      ...t,
-      createdAt: new Date(t.createdAt).toISOString(),
-      updatedAt: new Date(t.updatedAt).toISOString(),
-      resolvedAt: toIsoOrNull(t.resolvedAt),
-    })),
+    threads.map((t) => ({ ...t, ...threadTimestamps(t) })),
     200
   );
 });
@@ -125,20 +150,7 @@ commentRoutes.openapi(listDocumentCommentsRoute, async (c) => {
   const documentId = `${username}:${slug}:${documentName}`;
   const threads = await commentService.listByDocumentId(db, project.id, documentId);
 
-  return c.json(
-    threads.map((t) => ({
-      ...t,
-      createdAt: new Date(t.createdAt).toISOString(),
-      updatedAt: new Date(t.updatedAt).toISOString(),
-      resolvedAt: toIsoOrNull(t.resolvedAt),
-      messages: t.messages.map((m) => ({
-        ...m,
-        createdAt: new Date(m.createdAt).toISOString(),
-        editedAt: m.editedAt ? new Date(m.editedAt).toISOString() : null,
-      })),
-    })),
-    200
-  );
+  return c.json(threads.map(toThreadWithMessagesJson), 200);
 });
 
 // ────────────────────────────────────────────────────────────
@@ -178,20 +190,7 @@ commentRoutes.openapi(getThreadRoute, async (c) => {
 
   if (thread?.projectId !== project.id) throw new NotFoundError('Thread not found');
 
-  return c.json(
-    {
-      ...thread,
-      createdAt: new Date(thread.createdAt).toISOString(),
-      updatedAt: new Date(thread.updatedAt).toISOString(),
-      resolvedAt: toIsoOrNull(thread.resolvedAt),
-      messages: thread.messages.map((m) => ({
-        ...m,
-        createdAt: new Date(m.createdAt).toISOString(),
-        editedAt: m.editedAt ? new Date(m.editedAt).toISOString() : null,
-      })),
-    },
-    200
-  );
+  return c.json(toThreadWithMessagesJson(thread), 200);
 });
 
 // ────────────────────────────────────────────────────────────
@@ -252,20 +251,7 @@ commentRoutes.openapi(createThreadRoute, async (c) => {
     },
   });
 
-  return c.json(
-    {
-      ...thread,
-      createdAt: new Date(thread.createdAt).toISOString(),
-      updatedAt: new Date(thread.updatedAt).toISOString(),
-      resolvedAt: toIsoOrNull(thread.resolvedAt),
-      messages: thread.messages.map((m) => ({
-        ...m,
-        createdAt: new Date(m.createdAt).toISOString(),
-        editedAt: m.editedAt ? new Date(m.editedAt).toISOString() : null,
-      })),
-    },
-    201
-  );
+  return c.json(toThreadWithMessagesJson(thread), 201);
 });
 
 // ────────────────────────────────────────────────────────────
@@ -330,14 +316,7 @@ commentRoutes.openapi(addMessageRoute, async (c) => {
     },
   });
 
-  return c.json(
-    {
-      ...message,
-      createdAt: new Date(message.createdAt).toISOString(),
-      editedAt: message.editedAt ? new Date(message.editedAt).toISOString() : null,
-    },
-    201
-  );
+  return c.json(toMessageJson(message), 201);
 });
 
 // ────────────────────────────────────────────────────────────

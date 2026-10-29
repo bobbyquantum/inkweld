@@ -34,7 +34,7 @@ const OFFLINE_DISPLAY_DEBOUNCE_MS = 4000;
  * Component to display the connection status for project sync and media sync.
  * Shows appropriate icons and status text based on the current state.
  *
- * Design: While connecting, we show "Offline Mode" with a spinning retry button
+ * Design: While connecting, we show "Offline" with a spinning retry button
  * rather than a prominent "Connecting..." state, to avoid visual distraction
  * during repeated connection attempts.
  *
@@ -236,7 +236,7 @@ export class ConnectionStatusComponent {
 
   /** Get the status text for display */
   syncStatusText = computed(() => {
-    // In local mode, always show "Local Mode" regardless of sync state
+    // In local mode, always show "Saved in this browser" regardless of sync state
     if (this.isLocalMode()) {
       return this.transloco.translate('project.connection.localMode');
     }

@@ -18,6 +18,7 @@ function formatUserResponse(user: User) {
     username: user.username ?? '',
     email: user.email ?? '',
     approved: user.approved,
+    rejectedAt: user.rejectedAt,
     enabled: user.enabled,
     isAdmin: user.isAdmin,
     githubId: user.githubId,
@@ -36,6 +37,9 @@ const AdminUserSchema = z.object({
   username: z.string(),
   email: z.string(),
   approved: z.boolean(),
+  rejectedAt: z.number().nullable().openapi({
+    description: 'Unix seconds when an admin rejected the registration; null when not rejected',
+  }),
   enabled: z.boolean(),
   isAdmin: z.boolean(),
   githubId: z.string().nullable(),
@@ -98,7 +102,8 @@ const rejectUserRoute = createRoute({
   path: '/users/{userId}/reject',
   tags: ['Admin'],
   summary: 'Reject a user',
-  description: 'Reject a pending user (sets approved to false)',
+  description:
+    'Reject a pending user: the account stays unapproved, is marked rejected (so it leaves the pending list) and is signed out',
   operationId: 'adminRejectUser',
   request: {
     params: UserIdParamsSchema,

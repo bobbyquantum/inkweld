@@ -5,16 +5,12 @@ import {
 } from '@components/image-paste/image-paste-plugin';
 import { firstResultSequential, forEachSequential } from '@inkweld/async';
 import { type Element, ElementType } from '@inkweld/index';
-import {
-  type BackgroundSetting,
-  isBackgroundEmpty,
-} from '@models/element-appearance';
+import { type BackgroundSetting } from '@models/element-appearance';
 import {
   createDefaultPublishStyles,
   type PublishStyles,
 } from '@models/publish-style';
 import { isPublishableByDefault } from '@models/scene-metadata';
-import { mediaIdFromReference } from '@utils/media-reference';
 import { trimHyphens } from '@utils/string-utils';
 import { isWorldbuildingType } from '@utils/worldbuilding.utils';
 import { BehaviorSubject, type Observable, Subject } from 'rxjs';
@@ -45,6 +41,13 @@ import { chapterHeadingFor, withChapterHeading } from './chapter-heading';
 import { flattenConversation } from './conversation-publish';
 import { IconSvgService } from './icon-svg.service';
 import { PublishCssEmitterService } from './publish-css-emitter.service';
+import {
+  packFieldRows,
+  printBackground,
+  splitLongText,
+} from './publish-entry-format';
+import { shrinkImageToJpeg } from './publish-image-shrink';
+import { PublishStyleResolverService } from './publish-style-resolver.service';
 import { countHtmlWords } from './publish-word-count';
 import { smartenDocument, typographyLanguageFor } from './typography';
 import {
@@ -52,6 +55,9 @@ import {
   type RenderedWorldbuildingField,
   WorldbuildingPublishRendererService,
 } from './worldbuilding-publish-renderer.service';
+
+/** Images larger than this are shrunk before being embedded as data URLs. */
+const HTML_IMAGE_SHRINK_THRESHOLD_BYTES = 512 * 1024;
 
 function clampLevel(n: number): 1 | 2 | 3 | 4 | 5 | 6 {
   if (!Number.isFinite(n)) return 1;
@@ -128,7 +134,6 @@ export function sanitizeCssColor(value: unknown): string | null {
  */
 export function mediaIdFromSrc(src: unknown): string | null {
   if (typeof src !== 'string') return null;
-  if (src.startsWith('media://')) return mediaIdFromReference(src) || null;
   if (isMediaUrl(src)) return extractMediaId(src) || null;
   return null;
 }
@@ -190,6 +195,7 @@ export class HtmlGeneratorService {
   private readonly coverSourceService = inject(CoverSourceService);
   private readonly localStorage = inject(LocalStorageService);
   private readonly cssEmitter = inject(PublishCssEmitterService);
+  private readonly styleResolver = inject(PublishStyleResolverService);
   private readonly iconSvg = inject(IconSvgService);
   private readonly worldbuildingRenderer = inject(
     WorldbuildingPublishRendererService
@@ -215,6 +221,8 @@ export class HtmlGeneratorService {
 
   /** media id → resolved href (or null when unavailable) for the current run. */
   private readonly resolvedImages = new Map<string, string | null>();
+  /** Large `data:` images already shrunk in this run, by source. */
+  private readonly shrunkDataUrls = new Map<string, string>();
 
   /** icon name → inline SVG (or null when unavailable) for the current run. */
   private readonly resolvedIcons = new Map<string, string | null>();
@@ -330,6 +338,7 @@ export class HtmlGeneratorService {
 
   resetRenderState(): void {
     this.resolvedImages.clear();
+    this.shrunkDataUrls.clear();
     this.resolvedIcons.clear();
     this.resetHeadingIds();
     this.pendingWarnings = [];
@@ -370,7 +379,9 @@ export class HtmlGeneratorService {
     try {
       const coverBlob = await this.loadCoverBlob(project);
       if (coverBlob) {
-        this.coverImageData = await this.blobToBase64(coverBlob);
+        this.coverImageData = await this.blobToBase64(
+          await this.shrinkForEmbedding(coverBlob)
+        );
       }
     } catch (error) {
       this.logger.warn('HtmlGenerator', 'Failed to load cover', error);
@@ -410,6 +421,17 @@ export class HtmlGeneratorService {
     return found ?? null;
   }
 
+  /**
+   * A single-page HTML file carries its images as data URLs, so a large
+   * image (generated art is often a multi-megabyte PNG) is scaled down and
+   * re-encoded as JPEG first. Small images keep their format, and so any
+   * transparency.
+   */
+  private async shrinkForEmbedding(blob: Blob): Promise<Blob> {
+    if (blob.size <= HTML_IMAGE_SHRINK_THRESHOLD_BYTES) return blob;
+    return (await shrinkImageToJpeg(blob))?.blob ?? blob;
+  }
+
   private blobToBase64(blob: Blob): Promise<string> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -426,6 +448,10 @@ export class HtmlGeneratorService {
     const elements = this.projectStateService.elements();
     const sections: string[] = [];
     let chapterNumber = 0;
+
+    if (this.coverImageData && plan.options.coverFullBleed) {
+      sections.push(this.generateFullBleedCover());
+    }
 
     // Sequential: chapter numbers depend on the items before them, and images
     // are resolved into a shared cache in document order.
@@ -467,7 +493,13 @@ export class HtmlGeneratorService {
         return Promise.resolve(this.processSeparator(item, plan.options));
 
       case PublishPlanItemType.Frontmatter:
-        return Promise.resolve(this.processFrontmatter(item, plan.metadata));
+        return Promise.resolve(
+          this.processFrontmatter(
+            item,
+            plan.metadata,
+            plan.options.coverFullBleed
+          )
+        );
 
       case PublishPlanItemType.TableOfContents:
         return Promise.resolve(
@@ -601,7 +633,36 @@ export class HtmlGeneratorService {
       }
       return this.resolvedImages.get(mediaId) ?? null;
     }
-    return isPassthroughImageSrc(src) ? src : null;
+    if (!isPassthroughImageSrc(src)) return null;
+    return this.isLargeDataUrl(src) ? this.shrinkDataUrl(src) : src;
+  }
+
+  /**
+   * A `data:` image over the embedding threshold. Identity images made by
+   * the image generator are stored this way, often as multi-megabyte PNGs.
+   */
+  private isLargeDataUrl(src: string): boolean {
+    // Base64 carries 3 bytes in 4 characters.
+    return (
+      /^data:image\//i.test(src) &&
+      (src.length * 3) / 4 > HTML_IMAGE_SHRINK_THRESHOLD_BYTES
+    );
+  }
+
+  /** Shrink a large `data:` image once per run, keeping it if that fails. */
+  private async shrinkDataUrl(src: string): Promise<string> {
+    const cached = this.shrunkDataUrls.get(src);
+    if (cached) return cached;
+    let href = src;
+    try {
+      const blob = await (await fetch(src)).blob();
+      const shrunk = await this.shrinkForEmbedding(blob);
+      if (shrunk !== blob) href = await this.blobToBase64(shrunk);
+    } catch (error) {
+      this.logger.warn('HtmlGenerator', 'Failed to shrink an image', error);
+    }
+    this.shrunkDataUrls.set(src, href);
+    return href;
   }
 
   /**
@@ -613,27 +674,24 @@ export class HtmlGeneratorService {
   private async resolveEntryBackground(
     setting: BackgroundSetting | undefined
   ): Promise<{ css: string; isImage: boolean } | null> {
-    if (!setting || isBackgroundEmpty(setting)) return null;
-    const value =
-      setting.mode === 'manual' ? setting.light || setting.dark : setting.value;
-    if (!value) return null;
-    switch (setting.type) {
+    // The light-theme look, auto-adjusted exactly as in the editor.
+    const background = printBackground(setting);
+    if (!background) return null;
+    switch (background.type) {
       case 'color': {
-        const color = sanitizeCssColor(value);
+        const color = sanitizeCssColor(background.color);
         return color ? { css: color, isImage: false } : null;
       }
       case 'gradient': {
-        const gradient = sanitizeCssGradient(value);
+        const gradient = sanitizeCssGradient(background.css);
         return gradient ? { css: gradient, isImage: false } : null;
       }
       case 'image': {
-        const href = await this.resolveImageHref(value);
+        const href = await this.resolveImageHref(background.src);
         return href
           ? { css: `url("${href.replaceAll('"', '%22')}")`, isImage: true }
           : null;
       }
-      default:
-        return null;
     }
   }
 
@@ -672,12 +730,23 @@ export class HtmlGeneratorService {
       );
     }
     parts.push('</header>');
+    // The image sits beside the description (centred on its own when there
+    // is none), as in the PDF.
     if (imageHref) {
+      const introClass = entry.description
+        ? 'ink-wb-entry-intro'
+        : 'ink-wb-entry-intro ink-wb-entry-intro-image-only';
       parts.push(
+        `<div class="${introClass}">`,
         `<img class="ink-wb-entry-image" src="${esc(imageHref)}" alt="${esc(entry.title)}" loading="lazy" />`
       );
-    }
-    if (entry.description) {
+      if (entry.description) {
+        parts.push(
+          `<p class="ink-wb-entry-description">${esc(entry.description)}</p>`
+        );
+      }
+      parts.push('</div>');
+    } else if (entry.description) {
       parts.push(
         `<p class="ink-wb-entry-description">${esc(entry.description)}</p>`
       );
@@ -690,9 +759,13 @@ export class HtmlGeneratorService {
         `<h4 class="ink-wb-tab-heading">${this.renderIcon(tab.icon)}${esc(tab.label)}</h4>`,
         '<dl class="ink-wb-fields">'
       );
-      for (const f of tab.fields) {
-        parts.push(this.renderWorldbuildingField(f));
-      }
+      const spans = tab.fields.map(f => fieldSpanOf(f));
+      const starts = packFieldRows(spans);
+      tab.fields.forEach((f, index) => {
+        // A full-width field starts its own row in CSS anyway.
+        const rowStart = starts[index] > 0 && spans[index] < 12;
+        parts.push(this.renderWorldbuildingField(f, rowStart));
+      });
       parts.push('</dl>', '</section>');
     }
     parts.push('</article>');
@@ -704,7 +777,10 @@ export class HtmlGeneratorService {
    * sized by the schema's layout span. Relationship values link to the
    * target's page when the current export has one.
    */
-  private renderWorldbuildingField(f: RenderedWorldbuildingField): string {
+  private renderWorldbuildingField(
+    f: RenderedWorldbuildingField,
+    rowStart = false
+  ): string {
     const esc = (v: string): string => this.escapeHtml(v);
     const span = Number(f.span);
     const spanClass =
@@ -725,15 +801,47 @@ export class HtmlGeneratorService {
         })
         .join(', ');
     } else {
-      value = esc(f.displayValue);
+      value = this.longTextHtml(f) ?? esc(f.displayValue);
     }
+    // Starts a new grid row even though it would fit on this one, so a run
+    // of same-width fields (ability scores) stays together.
+    const rowClass = rowStart ? ' ink-wb-row-start' : '';
 
     return [
-      `<div class="ink-wb-field${typeClass}${spanClass}">`,
+      `<div class="ink-wb-field${typeClass}${spanClass}${rowClass}">`,
       `<dt class="ink-wb-field-label">${esc(f.label)}</dt>`,
       `<dd class="ink-wb-field-value">${value}</dd>`,
       '</div>',
     ].join('');
+  }
+
+  /**
+   * A multi-line long-text value as paragraphs and bullets, with stat-block
+   * lead-ins ("Gaff Hook.") in bold italic; null for any other value.
+   */
+  private longTextHtml(f: RenderedWorldbuildingField): string | null {
+    const lines = f.type === 'textarea' ? splitLongText(f.displayValue) : null;
+    if (!lines) return null;
+    const esc = (v: string): string => this.escapeHtml(v);
+    const out: string[] = [];
+    let inList = false;
+    for (const line of lines) {
+      if (line.kind === 'bullet') {
+        if (!inList) out.push('<ul>');
+        inList = true;
+        out.push(`<li>${esc(line.text)}</li>`);
+        continue;
+      }
+      if (inList) out.push('</ul>');
+      inList = false;
+      out.push(
+        line.lead
+          ? `<p><strong><em>${esc(line.lead)}</em></strong> ${esc(line.text)}</p>`
+          : `<p>${esc(line.text)}</p>`
+      );
+    }
+    if (inList) out.push('</ul>');
+    return `<div class="ink-wb-long">${out.join('')}</div>`;
   }
 
   /**
@@ -850,6 +958,19 @@ export class HtmlGeneratorService {
   ): Promise<string> {
     const parts: string[] = [];
     const children = this.getChildElements(element, elements);
+    // A folder of worldbuilding entries (NPCs, Locations…) is titled with
+    // its name, as in the PDF. Folders of documents bring their own
+    // chapter headings.
+    if (
+      children.length > 0 &&
+      children.every(child => isWorldbuildingType(child.type))
+    ) {
+      const anchor = this.uniqueHeadingId(element.name);
+      this.renderedHeadings.push({ level: 1, id: anchor, text: element.name });
+      parts.push(
+        `<h2 class="ink-wb-section-title" id="${anchor}">${this.escapeHtml(element.name)}</h2>`
+      );
+    }
     // Sequential: sections keep the project's reading order.
     await forEachSequential(children, async child => {
       if (
@@ -894,11 +1015,12 @@ export class HtmlGeneratorService {
 
   private processFrontmatter(
     item: FrontmatterItem,
-    metadata: PublishMetadata
+    metadata: PublishMetadata,
+    coverFullBleed = false
   ): string {
     switch (item.contentType) {
       case FrontmatterType.TitlePage:
-        return this.generateTitlePage(metadata);
+        return this.generateTitlePage(metadata, coverFullBleed);
       case FrontmatterType.Copyright:
         return this.generateCopyrightPage(metadata);
       case FrontmatterType.Dedication:
@@ -910,10 +1032,18 @@ export class HtmlGeneratorService {
     }
   }
 
-  private generateTitlePage(metadata: PublishMetadata): string {
+  /** The cover as a full-width page of its own, opening the document. */
+  private generateFullBleedCover(): string {
+    return `<section class="cover-page"><img src="${this.coverImageData}" alt="Cover" class="cover-image-full" /></section>`;
+  }
+
+  private generateTitlePage(
+    metadata: PublishMetadata,
+    fullBleed = false
+  ): string {
     const parts: string[] = ['<section class="title-page">'];
 
-    if (this.coverImageData) {
+    if (this.coverImageData && !fullBleed) {
       parts.push(
         `<img src="${this.coverImageData}" alt="Cover" class="cover-image" />`
       );
@@ -1054,7 +1184,7 @@ export class HtmlGeneratorService {
       mediaId
     );
     if (!blob) return null;
-    return await this.blobToBase64(blob);
+    return await this.blobToBase64(await this.shrinkForEmbedding(blob));
   }
 
   private nodeAttrs(node: ProseMirrorNode): Record<string, unknown> | null {
@@ -1450,6 +1580,12 @@ export class HtmlGeneratorService {
     styles: PublishStyles
   ): string {
     const stylesheet = this.cssEmitter.emitHtmlStylesheet(styles);
+    // Two-column pages need one wrapper to carry `column-count`; the
+    // stylesheet only styles it when the page style asks for two columns.
+    const body =
+      this.styleResolver.resolvePage(styles).columns === 2
+        ? `<div class="ink-columns">\n${content}\n</div>`
+        : content;
     return `<!DOCTYPE html>
 <html lang="${metadata.language || 'en'}">
 <head>
@@ -1463,7 +1599,7 @@ ${stylesheet}
   </style>
 </head>
 <body>
-${content}
+${body}
 </body>
 </html>`;
   }
@@ -1675,4 +1811,10 @@ ${content}
     );
     return `${safeName || 'document'}.html`;
   }
+}
+
+/** Columns (of 12) a field spans: its schema span, or the full width. */
+function fieldSpanOf(f: RenderedWorldbuildingField): number {
+  const n = Number(f.span);
+  return Number.isInteger(n) && n >= 1 && n <= 12 ? n : 12;
 }

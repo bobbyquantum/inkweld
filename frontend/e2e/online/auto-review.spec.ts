@@ -141,6 +141,8 @@ async function fillEditorAndReview(page: Page, text: string): Promise<void> {
 // ---------------------------------------------------------------------------
 
 test.describe('AI Auto-Review — Online Mode', () => {
+  // AI is opt-in per user; these tests are about a user who allowed it.
+  test.use({ allowAi: true });
   // Serial mode: each auto-review test creates a project, types text, calls
   // the mock LLM, and waits for Yjs sync. Running 16+ tests in parallel
   // overwhelms the single-threaded backend's Yjs processing, causing 60s
@@ -564,11 +566,17 @@ test.describe('AI Auto-Review — Online Mode', () => {
     const { token } = (await loginResponse.json()) as {
       token: string;
     };
+    const configUrl = `${apiUrl}/api/v1/admin/config/AI_TEXT_ENABLED`;
+    const headers = { Authorization: `Bearer ${token}` };
 
-    await page.request.put(`${apiUrl}/api/v1/admin/config/AI_TEXT_ENABLED`, {
-      headers: { Authorization: `Bearer ${token}` },
-      data: { value: 'false' },
-    });
+    // Remember the flag so it can be put back exactly. Forcing it to 'true'
+    // afterwards turned AI on for backends where it was off (Wrangler), so a
+    // retry of this serial suite ran the real AI tests there.
+    const original = (await (
+      await page.request.get(configUrl, { headers })
+    ).json()) as { value: string; source: string };
+
+    await page.request.put(configUrl, { headers, data: { value: 'false' } });
 
     try {
       // Create project first (AI may still appear due to cached signal).
@@ -577,6 +585,7 @@ test.describe('AI Auto-Review — Online Mode', () => {
       // Reload to force the SPA to re-fetch system features — the cached
       // signal still holds the previous `aiAutoReview: true` until then.
       await page.reload({ waitUntil: 'domcontentloaded' });
+      await expect(page.getByTestId('project-tree')).toBeVisible();
 
       // Re-navigate to the README document since reload resets state.
       await page.getByTestId('element-README').click();
@@ -589,11 +598,14 @@ test.describe('AI Auto-Review — Online Mode', () => {
         timeout: 30_000,
       });
     } finally {
-      // Restore the flag for subsequent tests.
-      await page.request.put(`${apiUrl}/api/v1/admin/config/AI_TEXT_ENABLED`, {
-        headers: { Authorization: `Bearer ${token}` },
-        data: { value: 'true' },
-      });
+      // Restore the flag for subsequent tests: the stored value, or no
+      // override at all when it came from the environment or the default.
+      await (original.source === 'database'
+        ? page.request.put(configUrl, {
+            headers,
+            data: { value: original.value },
+          })
+        : page.request.delete(configUrl, { headers }));
     }
   });
 });

@@ -25,7 +25,7 @@ Most jobs run in parallel on Ubuntu runners. Use `bun install --frozen-lockfile`
 | Job                                                 | What it does                                                                                                                                                                                                                                   |
 | --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **OpenAPI Spec + Client Freshness**                 | Regenerates `backend/openapi.json` and the Angular client (`frontend/src/api-client/**`) and fails if the committed files differ. Fix with `cd backend && bun run generate:openapi && bun run generate:angular-client` (needs a Java runtime). |
-| **Lint**                                            | `bun run lint` (code formatting and lint rules).                                                                                                                                                                                               |
+| **Lint**                                            | `bun run format:check` (`bun fmt --check` on frontend, backend and docs sources), then `bun run lint` (ESLint rules; ESLint does not check formatting).                                                                                        |
 | **Type Check**                                      | `bun run typecheck`: `bun check` over every TypeScript project (frontend app, specs, e2e and Storybook, backend, shared packages). It is the only check on specs, e2e and the backend.                                                         |
 | **Unit Tests (Shared Packages)**                    | Coverage runs for `packages/inkweld-prosemirror`, `inkweld-presence` and `inkweld-async`.                                                                                                                                                      |
 | **Unit Tests (Frontend) - Shard 1/1**               | Vitest. One shard; raise `shardTotal` in `ci.yml` to split it across runners.                                                                                                                                                                  |
@@ -51,16 +51,39 @@ Pull requests run everything except the four Docker jobs.
 
 `:latest` is **not** published from `main`. It only moves when a release is tagged (below) or someone runs the manual publish workflow with the latest option.
 
+### Release Please (`.github/workflows/release-please.yml`)
+
+Runs on every push to `main` and keeps a release PR open (titled
+`chore(main): release X.Y.Z`). The PR bumps the version and prepends a
+CHANGELOG entry built from the Conventional Commit titles merged since the
+last release. Merging it tags `vX.Y.Z`, creates the GitHub release, and calls
+the release workflow below. See [Releasing](#releasing).
+
+Configuration lives in `release-please-config.json` and
+`.release-please-manifest.json` at the repository root.
+
 ### Release Workflow (`.github/workflows/release.yml`)
+
+Builds the multi-arch (amd64 + arm64) release image from a `vX.Y.Z` tag.
 
 #### Release triggers
 
-- A published GitHub release
-- A pushed git tag that matches `v*`
+- Called by Release Please after it creates a release
+- A `v*` tag pushed by hand (used for v1.0.0-beta.1)
 
-#### What it publishes
+Tags that Release Please creates with the workflow's `GITHUB_TOKEN` do not
+trigger other workflows, which is why it calls this one directly; the tag
+push trigger therefore never builds the same release twice. Creating a GitHub
+release does not trigger it.
 
-Builds the `Dockerfile` image once and pushes it to GHCR as `v1.2.3` (the tag), `1.2.3`, `1.2`, `1` and `latest`. It does not re-run the test suite; tag a commit that has already passed CI on `main`.
+#### Published tags
+
+For `v1.2.3`: `1.2.3`, `1.2`, `1` and `latest`.
+
+For a pre-release such as `v1.0.0-beta.2`: `1.0.0-beta.2` and the channel
+`beta`. Until the first stable `vX.Y.Z` tag exists, a pre-release also moves
+`latest`, so the documented `ghcr.io/bobbyquantum/inkweld:latest` works
+during the 1.0 beta. After that, `latest` only follows stable releases.
 
 ### Cloudflare deploys (`deploy-cloudflare*.yml`)
 
@@ -140,6 +163,7 @@ with the newer schema.
 | `cleanup-pr-preview.yml`                                                                      | PR closed, or the `deploy:preview:frontend` label removed          | Deletes that PR's Pages deployments.                                                                              |
 | `docs.yml`                                                                                    | Push to `main` touching `docs/**`, `backend/openapi.json`; manual  | Builds this documentation site and publishes it to GitHub Pages.                                                  |
 | `validate-pr-title.yml`                                                                       | PR opened, edited, synchronized or reopened                        | Requires a Conventional Commit title (`feat`, `fix`, `docs`, `ci`, ...) with a lowercase subject.                 |
+| `validate-pr-scope.yml`                                                                       | PR opened, edited, synchronized or reopened                        | Requires the title's scope (if any) to be in `.github/commit-scopes.json`.                                        |
 | `deploy-cloudflare.yml`, `deploy-cloudflare-production.yml`, `deploy-cloudflare-reusable.yml` | Push to `main` / push to `production`                              | Hosted deploys, described in the section above.                                                                   |
 
 ## Image contents
@@ -187,11 +211,199 @@ full list.
 6. The Docker jobs publish the `:dev` image and preview.inkweld.app is redeployed
 7. When preview looks right, promote to inkweld.app by fast-forwarding `production`
 
-## Release workflow
+## Releasing
 
-1. Create a GitHub release or push a tag (e.g., `v1.0.0`)
-2. The release workflow pushes the versioned images and moves `latest`
-3. Clients can pin exact tags (`1.0.0`, `v1.0.0`), a minor (`1.0`), or a floating major (`1`)
+Inkweld follows [Semantic Versioning](https://semver.org/). Versions are
+driven by squash-merged PR titles, which must be
+[Conventional Commits](https://www.conventionalcommits.org/) (enforced by the
+**Validate PR Title** check):
+
+| PR title                                                    | Version bump | In the changelog     |
+| ----------------------------------------------------------- | ------------ | -------------------- |
+| `fix: …`                                                    | patch        | Bug Fixes            |
+| `feat: …`                                                   | minor        | Features             |
+| `feat!: …` or a `BREAKING CHANGE:` footer                   | major        | Breaking changes     |
+| `perf: …`, `revert: …`                                      | patch        | Performance, Reverts |
+| `docs`, `refactor`, `test`, `build`, `ci`, `chore`, `style` | none         | hidden               |
+
+During the 1.0 beta every release is the next beta instead (see
+[1.0 beta](#10-beta)).
+
+Renovate titles every dependency update `chore(deps): …`, so dependency bumps
+stay out of the changelog and never cut a release on their own. Retitle a
+Renovate PR `fix(deps): …` before merging when the update fixes something
+users would notice.
+
+### Commit scopes
+
+A scope is optional, but when a title has one it must be in
+`.github/commit-scopes.json`, the approved list (`fix(editor): …`,
+`feat(publish): …`). The **Approved Commit Scope** job in
+`validate-pr-scope.yml` runs `scripts/check-pr-title.mjs` against it, and
+suggests the approved scope when a title uses a known alias (`tree` →
+`project-tree`). It skips release-please's own PR, whose
+`chore(main): release X.Y.Z` title uses the branch name as its scope.
+
+Each scope also has its own emoji, which goes in front of that scope's entries
+in the release notes: `* **editor:** keep the cursor` becomes
+`* 📝 **editor:** keep the cursor`. release-please has no option for this, so
+after it updates the release PR, `release-please.yml` runs
+`scripts/add-scope-emoji.mjs` on the PR: it commits the emoji into the newest
+`CHANGELOG.md` section and edits the PR description, which release-please
+turns into the GitHub release notes when the PR is merged. The in-app
+changelog (About → Changelog) shows them because it renders `CHANGELOG.md`;
+the update dialog's highlights drop them along with the scope. Older releases
+keep the emoji they shipped with.
+
+To add a scope, add it to `.github/commit-scopes.json` in the PR that needs it:
+the check runs on `pull_request` (read-only token) and reads the list from the
+PR. `bun run test:scripts` checks the list, including that each
+scope has a single emoji no other scope uses.
+
+### What users see when a release lands
+
+PR titles also reach users inside the app. After `ng build`,
+`frontend/scripts/write-sw-app-data.ts` writes the version (from the root
+`package.json`) and up to five highlights for each of the last ten
+`CHANGELOG.md` releases (Features first, release-please's scope and links
+removed) into the `appData` of `ngsw.json`. Every frontend build that runs
+`copy-licenses.mjs` runs it too. When the service worker finds the new build,
+the update dialog in the open app reads that `appData`:
+
+- The title says what kind of update it is: a beta, a stable release, or a
+  major, minor or patch update.
+- It lists the highlights of every release since the version the user is
+  running, then "…and N more changes".
+- A preview build between releases keeps the released version, and a build
+  without `appData` gets the plain "Update Available" prompt.
+
+After an update, the app shows a one-time "Updated to Inkweld X · What's new"
+notice with a link to About → Changelog, once per browser. It skips that
+notice when the user already saw the highlights in the update dialog, and on a
+browser's first run. `assets/CHANGELOG.md` is served `no-cache` (in
+`_headers` and the Bun server) so the changelog page is never out of date.
+
+### 1.0 beta
+
+Inkweld is feature complete for 1.0, and the betas are for testing and bug
+fixing. `release-please-config.json` sets `"versioning": "prerelease"`,
+`"prerelease": true` and `"prerelease-type": "beta"`, so every release PR
+during the beta is the next beta (`1.0.0-beta.1` → `1.0.0-beta.2`), whatever
+the commit types, and its GitHub release is marked as a pre-release.
+
+#### First beta (v1.0.0-beta.1)
+
+v1.0.0-beta.1 is released by hand with the curated notes in `CHANGELOG.md`:
+
+1. **Squash-merge** the PR that sets the version to `1.0.0-beta.1` (a rebase
+   merge would put its individual commits on `main`, and a `fix:` among them
+   would open a beta.2 release PR). Release Please runs on that merge but
+   finds no releasable commits (`bootstrap-sha` in
+   `release-please-config.json` points at the commit before it), so it does
+   not open a release PR yet.
+2. If it was not filled in before merging, replace the `YYYY-MM-DD`
+   placeholder in the `## [1.0.0-beta.1]` heading of `CHANGELOG.md` with the
+   release date (a `docs:` PR, which Release Please ignores).
+3. Tag the squash commit of that PR (not whatever `main` points at later)
+   and push the tag. This runs the release workflow and publishes the Docker
+   image:
+
+   ```bash
+   git fetch origin
+   SHA=$(gh pr view <PR number> --json mergeCommit -q .mergeCommit.oid)
+   git tag -a v1.0.0-beta.1 "$SHA" -m "v1.0.0-beta.1"
+   git push origin v1.0.0-beta.1
+   ```
+
+4. Create the GitHub pre-release from the existing tag, with the body of the
+   `## [1.0.0-beta.1]` CHANGELOG entry as its notes:
+
+   ```bash
+   gh release create v1.0.0-beta.1 --verify-tag --prerelease \
+     --title "v1.0.0-beta.1" --notes-file <notes.md>
+   ```
+
+Release Please finds the previous release by its GitHub release, so it needs
+the v1.0.0-beta.1 release to exist. If it opens a release PR before then
+(because a `feat:` or `fix:` PR was merged first), close that PR; it is
+recreated correctly on the next push to `main`.
+
+#### Releasing 1.0.0
+
+When the beta is done, merge a PR that sets `"prerelease": false` in
+`release-please-config.json` (leave `"versioning": "prerelease"` in place).
+The release PR then proposes `1.0.0` instead of the next beta (if nothing
+user-facing has merged since the last beta, put a `Release-As: 1.0.0` footer
+in that PR's squash commit message so the release PR opens). Before merging
+that release PR, edit its CHANGELOG entry into an overview of 1.0.0 (the beta
+entries stay below it). From then on, versions bump normally (`fix` →
+1.0.1, `feat` → 1.1.0). To run another beta series later, set
+`"prerelease": true` again and add a `Release-As: 1.1.0-beta.1` footer to the
+commit that starts it.
+
+### Releases after the first beta
+
+1. Merge PRs to `main` as usual. Release Please keeps the release PR up to
+   date with the next version and the generated changelog entry.
+2. Review the release PR and edit its CHANGELOG entry if needed.
+3. Merge it. Release Please tags `vX.Y.Z`, creates the GitHub release, and the
+   release workflow publishes the Docker image.
+
+The release PR is opened with `GITHUB_TOKEN`, so pull-request workflows (CI,
+PR title validation) do not run on it. It only changes version strings and
+`CHANGELOG.md`, and the merge to `main` runs CI as usual.
+
+To force a specific version, add a `Release-As: X.Y.Z` footer to a commit
+merged to `main`.
+
+### Where the version lives
+
+Release Please updates all of these in the release PR. Do not bump them by
+hand:
+
+- `package.json`, `frontend/package.json`, `backend/package.json`
+- `backend/src/config/env.ts` and `frontend/src/environments/environment*.ts`,
+  on the lines marked `// x-release-please-version`. A new hardcoded version
+  needs the same marker and an entry under `extra-files` in
+  `release-please-config.json`.
+
+The hosted Cloudflare builds write their environment file with
+`frontend/scripts/write-hosted-environment.mjs`, which reads the version from
+the root `package.json`; the PR preview reads `frontend/package.json`. The in-app changelog (About → Changelog) reads
+`CHANGELOG.md`, so its `## [X.Y.Z]` headings must keep the format Release
+Please writes.
+
+The OpenAPI `info.version` is the API contract version, not the app version,
+and is not tied to releases.
+
+### Deploying inkweld.app
+
+Publishing a release does not deploy the hosted instance. inkweld.app is
+deployed from the `production` branch: once the release commit has been
+checked on preview, fast-forward `production` to it (see
+[Promoting a release](#promoting-a-release)):
+
+```bash
+git fetch origin
+git push origin vX.Y.Z^{commit}:production
+```
+
+### Repository settings
+
+Release Please needs **Settings → Actions → General → Allow GitHub Actions to
+create and approve pull requests** to open its release PR.
+
+## Wrangler version pin
+
+`backend/package.json` pins `wrangler` to an **exact** `4.116.0` (no caret), and Renovate is disabled for it in `renovate.json`. Do not change it to a range.
+
+- **Why**: wrangler ≥ 4.121 pulls miniflare 5.x-alpha, where any transient ProxyWorker disconnect ("Network connection lost.") makes `wrangler dev` exit with an **empty** `[ERROR]` mid-run, and every test after it fails with `ECONNREFUSED ::1:9333`. This flaked the `e2e-wrangler` job constantly after the 2026-08-12 lockfile maintenance (#1300). It does not reproduce on dev machines; CI runner contention provides the dropped connections.
+- **Upstream**: cloudflare/workers-sdk#15317 (also #15203, #4562). 4.116.0 is the last release on the miniflare 4.x line.
+- **The pin alone is not enough**: 4.116.0 has the same defect at a lower frequency (two crashes on 2026-08-25 while pinned). The mechanism: a client aborting an in-flight request rejects the ProxyWorker's internal proxy fetch with "Network connection lost."; the ProxyWorker posts a `type: "error"` message; `DevEnv.handleErrorEvent` re-emits it as a fatal `"error"` event; the dev command's `await events.once(devEnv, "teardown")` rejects (Node's `events.once` rejects on `"error"`), and the process exits.
+- **Local patch**: `backend/patches/wrangler@4.116.0.patch` (applied through `patchedDependencies` in `backend/package.json`) makes "Error inside ProxyWorker" events non-fatal. They log as `Non-fatal error in ProxyController: ...` warnings, the affected request fails, and the server keeps running. It also fixes `castErrorCause` so the cause's message and stack reach the log instead of an empty `[ERROR]`. To reproduce, send POSTs with a partial body and reset the socket mid-request: unpatched wrangler dies on the first one, patched wrangler logs a warning and keeps serving.
+- **Unpin when** #15317 ships a fixed release: restore `"wrangler": "^<ver>"`, re-lock, drop the patch (`backend/patches/` + `patchedDependencies`), and re-enable the Renovate rule. If you bump wrangler while the patch is still needed, regenerate it against the new version (`bun patch wrangler`); a stale version key in `patchedDependencies` fails the install.
+- The wrangler e2e job sets `WRANGLER_LOG=debug` + `WRANGLER_LOG_PATH` and uploads wrangler's diagnostic log as an artifact (`wrangler-diag-log-shard-*`). The real crash cause only appears there, not in the console's empty `[ERROR]`.
+- **Retries (since 2026-09-09)**: `playwright.wrangler.config.ts` retries once in CI like the online/local/docker configs. It used to be `retries: 0` so a backend crash would surface immediately, but with the crash fixed the only thing that caught was one-off frontend flakes (a page that never rendered after `goto`, a UI race) that hit the other jobs at the same rate and pass there on retry. Don't set it back to 0 to find bugs: every e2e job traces the first attempt of each test (`trace: 'retain-on-first-failure'`) and uploads `frontend/test-results/` as `playwright-test-results-*` even when the job is green. Open a flaky test's trace with `npx playwright show-trace <trace.zip>`.
 
 ## Troubleshooting CI failures
 

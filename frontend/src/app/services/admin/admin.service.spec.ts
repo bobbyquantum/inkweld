@@ -354,10 +354,28 @@ describe('AdminService', () => {
       );
       expect(service.error()?.code).toBe('NOT_FOUND');
     });
+
+    it('should approve a user that was rejected earlier', async () => {
+      const rejectedUser: AdminUser = {
+        ...PENDING_USERS[0],
+        rejectedAt: 1_790_000_000,
+      };
+      const approvedUser: AdminUser = {
+        ...rejectedUser,
+        approved: true,
+        rejectedAt: null,
+      };
+      apiMock.adminApproveUser.mockReturnValue(of(approvedUser));
+      service['users'].set([...TEST_USERS, rejectedUser]);
+
+      await service.approveUser('3');
+
+      expect(service.users().find(u => u.id === '3')).toEqual(approvedUser);
+    });
   });
 
   describe('rejectUser', () => {
-    it('should reject user and remove from state', async () => {
+    it('should drop a rejected user from pending but keep it as rejected', async () => {
       apiMock.adminRejectUser.mockReturnValue(of(undefined));
 
       service['pendingUsers'].set([...PENDING_USERS]);
@@ -366,7 +384,11 @@ describe('AdminService', () => {
       await service.rejectUser('3');
 
       expect(service.pendingUsers().find(u => u.id === '3')).toBeUndefined();
-      expect(service.users().find(u => u.id === '3')).toBeUndefined();
+      const rejected = service.users().find(u => u.id === '3');
+      expect(rejected?.approved).toBe(false);
+      expect(rejected?.rejectedAt).toEqual(expect.any(Number));
+      // Other users are untouched.
+      expect(service.users().filter(u => u.id !== '3')).toEqual(TEST_USERS);
     });
 
     it('should handle errors', async () => {

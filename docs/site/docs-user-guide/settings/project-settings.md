@@ -82,7 +82,7 @@ Click **Project Settings** at the bottom of the project sidebar to open the sett
 
 ## Sync
 
-The Sync section shows how much of the project is stored where, and lets you repair this device's copy. Server storage and media sync only work in **Realtime Sync** mode; in Browser or Cloud Sync mode a note at the top says so.
+The Sync section shows how much of the project is stored where, and lets you repair this device's copy. Server storage and media sync only work with an **Inkweld Server** profile; with a Browser or Cloud Sync profile a note at the top says so.
 
 ### Server Storage
 
@@ -109,7 +109,7 @@ Images and other media are downloaded to each device separately from the text. T
 Documents and worldbuilding entries are cached in your browser so the project works offline. If a document will not sync or looks corrupted, **Reset Local Data** deletes this project's cached copy on this device and reloads it from the server. Other projects, other devices and other profiles on this device are not touched.
 
 :::warning
-Anything you changed on this device that has not reached the server yet is lost. Only reset when the server holds the copy you want. **The button is also shown in Browser mode, where this device's copy is the only one: resetting there deletes the project's content for good.**
+Anything you changed on this device that has not reached the server yet is lost. Only reset when the server holds the copy you want. **The button is also shown for a Browser profile, where this device's copy is the only one: resetting there deletes the project's content for good.**
 :::
 
 ## MCP
@@ -122,7 +122,7 @@ The MCP section connects AI assistants and other tools to your project through t
 
 No API key is needed. See [Connecting AI Tools](../ai-mcp/mcp-clients) for step-by-step instructions for each tool.
 
-MCP needs **Realtime Sync**: in Browser or Cloud Sync mode the section explains that a server connection is required. If the server administrator has turned AI features off, the section is hidden.
+MCP needs an **Inkweld Server** profile: with a Browser or Cloud Sync profile the section explains that a server connection is required. If the server administrator has turned AI features off, the section is hidden.
 
 ## Renaming a Project (Changing the URL)
 
@@ -137,6 +137,8 @@ Changing the project URL has important consequences:
   :::
 
 ### To Rename Your Project
+
+Renaming is available on an **Inkweld Server** profile, where the server moves the project to its new URL. Browser and Cloud Sync profiles don't show the rename card; to change a project's URL there, export it and import it under the new name.
 
 1. Open your project and click **Project Settings** at the bottom of the sidebar
 2. Open the **Danger Zone** section

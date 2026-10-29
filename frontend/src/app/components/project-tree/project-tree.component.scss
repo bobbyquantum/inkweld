@@ -375,3 +375,24 @@
     opacity: 0.4;
   }
 }
+
+// Touch screens: rows and buttons at least 44px tall (M3 asks for 48dp
+// touch targets), whatever the density setting. Mouse users keep the
+// compact rows above.
+@media (pointer: coarse) {
+  .project-tree-container,
+  .project-tree-container.dense {
+    .aria-tree [role='treeitem'],
+    .create-footer {
+      min-height: 44px;
+    }
+
+    .pinned-section .pinned-item {
+      min-height: 44px;
+    }
+
+    .aria-tree .mat-mdc-icon-button {
+      --mat-icon-button-state-layer-size: 40px;
+    }
+  }
+}

@@ -1,18 +1,17 @@
 import type { R2Bucket } from '@cloudflare/workers-types';
 import type { SlotNamespace } from './storage.service';
-import { forEachConcurrent, forEachPage, forEachSequential } from '@inkweld/async';
 import { logger } from './logger.service';
-
-const r2Log = logger.child('R2Storage');
+import { forEachConcurrent, forEachPage, forEachSequential } from '@inkweld/async';
 
 /** Maximum number of keys R2 accepts in a single `delete` call. */
 const R2_DELETE_BATCH_SIZE = 1000;
 
 /**
- * Objects copied at once when moving a project. Workers allow six open
- * connections per request; each copy streams one download into one upload.
+ * Objects copied at once when a project moves to a new slug. Each copy holds
+ * one file in memory, so this bounds the Worker's memory as well as the
+ * number of in-flight subrequests.
  */
-const R2_COPY_CONCURRENCY = 3;
+const R2_COPY_CONCURRENCY = 4;
 
 /** Binary payloads accepted for R2 uploads. */
 type BinaryData = Buffer | ArrayBuffer | Uint8Array;
@@ -140,78 +139,69 @@ export class R2StorageService {
    * Delete all files in a project directory
    */
   async deleteProjectDirectory(username: string, projectSlug: string): Promise<void> {
-    const objects = await this.listAll(`${username}/${projectSlug}/`);
+    const prefix = `${username}/${projectSlug}/`;
+    const objects = await this.listAll(prefix);
     await this.deleteKeys(objects.map((obj) => obj.key));
   }
 
   /**
-   * Delete keys in batches: one R2 call removes up to 1000 keys, and each call
-   * counts against the Worker's subrequest limit (1000 to Cloudflare services
-   * on the Free plan), so a per-key delete fails partway through on large
-   * projects.
+   * Move every file of a project to a new slug (project rename). R2 has no
+   * rename, so each object is copied to its new key with its content type and
+   * custom metadata, and the originals are deleted only once every copy has
+   * succeeded: a failure partway leaves the project complete under the old
+   * slug. A retry skips the objects an earlier attempt already copied (same
+   * size and etag), so it makes progress even when the attempt before it ran
+   * out of subrequests. Removing the originals is best effort; once the copies
+   * exist, a leftover under the old slug is not worth failing the rename for.
    */
+  async moveProjectDirectory(username: string, oldSlug: string, newSlug: string): Promise<void> {
+    this.validateKeyComponent(username, 'username');
+    this.validateKeyComponent(oldSlug, 'project slug');
+    this.validateKeyComponent(newSlug, 'project slug');
+    if (oldSlug === newSlug) return;
+
+    const oldPrefix = `${username}/${oldSlug}/`;
+    const newPrefix = `${username}/${newSlug}/`;
+    const sources = await this.listAll(oldPrefix);
+    if (sources.length === 0) return;
+
+    const copied = new Map((await this.listAll(newPrefix)).map((obj) => [obj.key, obj]));
+    await forEachConcurrent(sources, R2_COPY_CONCURRENCY, async (source) => {
+      const targetKey = newPrefix + source.key.slice(oldPrefix.length);
+      const existing = copied.get(targetKey);
+      if (existing?.size === source.size && existing.etag === source.etag) return;
+      const object = await this.bucket.get(source.key);
+      // Deleted since the listing: nothing to carry over.
+      if (!object) return;
+      await this.bucket.put(targetKey, await object.arrayBuffer(), {
+        httpMetadata: object.httpMetadata,
+        customMetadata: object.customMetadata,
+      });
+    });
+
+    try {
+      await this.deleteKeys(sources.map((obj) => obj.key));
+    } catch (error) {
+      logger.error(
+        'R2Storage',
+        `Copied ${oldPrefix} to ${newPrefix} but could not remove it`,
+        error
+      );
+    }
+  }
+
+  /** Delete keys in batches of at most {@link R2_DELETE_BATCH_SIZE}. */
   private async deleteKeys(keys: string[]): Promise<void> {
+    // Delete in batches: one R2 call removes up to 1000 keys, and each call
+    // counts against the Worker's subrequest limit (1000 to Cloudflare
+    // services on the Free plan), so a per-key delete fails partway through
+    // on large projects.
     const batches: string[][] = [];
     for (let i = 0; i < keys.length; i += R2_DELETE_BATCH_SIZE) {
       batches.push(keys.slice(i, i + R2_DELETE_BATCH_SIZE));
     }
     // Sequential: keeps the number of in-flight subrequests low.
     await forEachSequential(batches, (batch) => this.bucket.delete(batch));
-  }
-
-  /**
-   * Move every object under `username/fromSlug/` to `username/toSlug/`
-   * (project rename). R2 has no rename, so each object is copied, keeping its
-   * HTTP and custom metadata, and the originals are deleted only once every
-   * copy exists. If a copy fails, the copies made so far are removed and the
-   * error rethrown, leaving the project where it was.
-   *
-   * Each object costs a download and an upload subrequest, so a project with
-   * several hundred files can hit the Worker's subrequest limit; that fails
-   * the move cleanly rather than half-way.
-   */
-  async moveProjectDirectory(username: string, fromSlug: string, toSlug: string): Promise<void> {
-    this.validateKeyComponent(username, 'username');
-    this.validateKeyComponent(fromSlug, 'project slug');
-    this.validateKeyComponent(toSlug, 'project slug');
-    const fromPrefix = `${username}/${fromSlug}/`;
-    const toPrefix = `${username}/${toSlug}/`;
-
-    // No project owns the target yet, so anything there was left by a project
-    // deleted or renamed before its files were cleaned up. Clear it so it
-    // cannot surface as this project's files.
-    await this.deleteProjectDirectory(username, toSlug);
-
-    const objects = await this.listAll(fromPrefix);
-    let failed = false;
-    let failure: unknown;
-    await forEachConcurrent(objects, R2_COPY_CONCURRENCY, async (obj) => {
-      if (failed) return;
-      try {
-        const source = await this.bucket.get(obj.key);
-        // Deleted since the listing: nothing to carry over.
-        if (!source) return;
-        await this.bucket.put(`${toPrefix}${obj.key.slice(fromPrefix.length)}`, source.body, {
-          httpMetadata: source.httpMetadata,
-          customMetadata: source.customMetadata,
-        });
-      } catch (error) {
-        failed = true;
-        failure = error;
-      }
-    });
-    if (failed) {
-      await this.deleteProjectDirectory(username, toSlug).catch((error: unknown) => {
-        r2Log.error(`Could not remove partial copy of ${fromPrefix} at ${toPrefix}`, error);
-      });
-      throw failure;
-    }
-
-    // Every file is under the new prefix. A failure from here on only leaves
-    // stale originals behind, which must not undo the move.
-    await this.deleteKeys(objects.map((obj) => obj.key)).catch((error: unknown) => {
-      r2Log.error(`Moved ${fromPrefix} to ${toPrefix} but could not delete the originals`, error);
-    });
   }
 
   /**

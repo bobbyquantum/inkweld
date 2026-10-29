@@ -140,9 +140,7 @@
               data-testid="edit-project-title-input"
               [attr.aria-label]="'dialogs.editProject.titleAria' | transloco" />
             @if (form.title().touched() && form.title().invalid()) {
-              @for (error of form.title().errors(); track error.message) {
-                <mat-error>{{ error.message }}</mat-error>
-              }
+              <mat-error>{{ form.title().errors()[0]?.message }}</mat-error>
             }
           </mat-form-field>
 

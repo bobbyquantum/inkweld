@@ -16,7 +16,9 @@ import { CloudSyncEngineService } from '@services/cloud-sync/cloud-sync-engine.s
 import { BackgroundService } from '@services/core/background.service';
 import { SetupService } from '@services/core/setup.service';
 import { UpdateService } from '@services/core/update.service';
+import { WhatsNewService } from '@services/core/whats-new.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
+import { WebMcpService } from '@services/webmcp/webmcp.service';
 import { Subject } from 'rxjs';
 import { type Mock, type MockedObject, vi } from 'vitest';
 
@@ -95,6 +97,7 @@ describe('AppComponent', () => {
         { provide: SetupService, useValue: setupService },
         { provide: BackgroundService, useValue: backgroundService },
         { provide: PolicyAcceptanceService, useValue: { start: vi.fn() } },
+        { provide: WebMcpService, useValue: { start: vi.fn() } },
         {
           provide: Configuration,
           useValue: {},
@@ -107,6 +110,10 @@ describe('AppComponent', () => {
         },
         {
           provide: UpdateService,
+          useValue: { initialize: vi.fn() },
+        },
+        {
+          provide: WhatsNewService,
           useValue: { initialize: vi.fn() },
         },
         {
@@ -160,9 +167,32 @@ describe('AppComponent', () => {
     expect(themeService.initTheme).toHaveBeenCalled();
   });
 
+  it("should announce what's new on init", () => {
+    expect(TestBed.inject(WhatsNewService).initialize).toHaveBeenCalled();
+  });
+
   it('should have a router outlet', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('router-outlet')).not.toBeNull();
+  });
+
+  it('skip link moves focus to the main landmark', () => {
+    const main = document.createElement('main');
+    document.body.appendChild(main);
+    try {
+      const link: HTMLAnchorElement =
+        fixture.nativeElement.querySelector('.skip-link');
+      expect(link.textContent?.trim()).toBe('Skip to content');
+
+      const event = new MouseEvent('click', { cancelable: true });
+      link.dispatchEvent(event);
+
+      expect(event.defaultPrevented).toBe(true);
+      expect(main.getAttribute('tabindex')).toBe('-1');
+      expect(document.activeElement).toBe(main);
+    } finally {
+      main.remove();
+    }
   });
 
   describe('Authentication Error Bar', () => {

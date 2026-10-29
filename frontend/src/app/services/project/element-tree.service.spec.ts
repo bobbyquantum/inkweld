@@ -68,6 +68,19 @@ describe('ElementTreeService', () => {
       });
     });
 
+    it('should not nest under any other non-folder element', () => {
+      for (const type of [
+        ElementType.Worldbuilding,
+        ElementType.Canvas,
+        ElementType.Timeline,
+        ElementType.RelationshipChart,
+      ]) {
+        const element = createElement('1', 'Element', 1, type);
+        expect(service.isValidDrop(element, 1)).toBe(true);
+        expect(service.isValidDrop(element, 2)).toBe(false);
+      }
+    });
+
     describe('when nodeAbove is a Folder', () => {
       const folder = createElement('1', 'Folder', 1, ElementType.Folder);
 

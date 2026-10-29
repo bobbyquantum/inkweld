@@ -27,6 +27,8 @@ import { createDefaultPublishStyles } from '@models/publish-style';
 import { $typst } from '@myriaddreamin/typst.ts';
 import { $typst as $typstSnippet } from '@myriaddreamin/typst.ts/contrib/snippet';
 import { CoverSourceService } from '@services/project/cover-source.service';
+import { base64ToBlob } from '@utils/base64-utils';
+import JSZip from 'jszip';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createCoverSourceMock } from '../../../testing/cover-source.mock';
@@ -147,6 +149,40 @@ const SAMPLE_ENTRY: RenderedWorldbuildingEntry = {
   ],
 };
 
+// Identity images are stored as media references (never inline base64).
+const PIXEL_PNG =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+const MEDIA_ENTRY: RenderedWorldbuildingEntry = {
+  ...SAMPLE_ENTRY,
+  imageRef: 'media://identity-abc.png',
+};
+
+/** Serve the identity image from the (mocked) local media library. */
+function serveIdentityImage(mocks: ReturnType<typeof makeMocks>): void {
+  mocks.localStorage.getMedia.mockImplementation((key: string, id: string) =>
+    Promise.resolve(
+      key === 'tester/wb-cov' && id === 'identity-abc'
+        ? base64ToBlob(PIXEL_PNG)
+        : null
+    )
+  );
+  mocks.wbRenderer.renderItem.mockResolvedValue([MEDIA_ENTRY]);
+}
+
+function wbItemPlan(format: PublishFormat): PublishPlan {
+  const plan = basePlan(format);
+  plan.items = [
+    {
+      id: 'wb-1',
+      type: PublishPlanItemType.Worldbuilding,
+      categories: [],
+      format: 'appendix',
+      title: 'Cast',
+    },
+  ];
+  return plan;
+}
+
 function basePlan(format: PublishFormat): PublishPlan {
   return {
     id: 'plan-1',
@@ -256,6 +292,30 @@ describe('MarkdownGeneratorService – worldbuilding paths', () => {
     expect(mocks.wbRenderer.renderItem).toHaveBeenCalled();
   });
 
+  it('inlines a media:// identity image from the media library', async () => {
+    serveIdentityImage(mocks);
+
+    const result = await service.generateMarkdown(
+      wbItemPlan(PublishFormat.MARKDOWN)
+    );
+    const text = await result.file!.text();
+
+    expect(text).toContain(`![Sample Entry](${PIXEL_PNG})`);
+    expect(text).not.toContain('media://');
+  });
+
+  it('drops a media:// identity image that is not available', async () => {
+    mocks.wbRenderer.renderItem.mockResolvedValue([MEDIA_ENTRY]);
+
+    const result = await service.generateMarkdown(
+      wbItemPlan(PublishFormat.MARKDOWN)
+    );
+    const text = await result.file!.text();
+
+    expect(text).toContain('### Sample Entry');
+    expect(text).not.toContain('![Sample Entry]');
+  });
+
   it('renders an Element item pointing at a WORLDBUILDING element (inline)', async () => {
     const plan = basePlan(PublishFormat.MARKDOWN);
     plan.items = [
@@ -326,6 +386,18 @@ describe('HtmlGeneratorService – worldbuilding + marks', () => {
     expect(html).toContain('ink-wb-schema-character');
     expect(html).toContain('ink-wb-entry-image');
     expect(html).toContain('Sample Entry');
+  });
+
+  it('embeds a media:// identity image', async () => {
+    serveIdentityImage(mocks);
+
+    const result = await service.generateHtml(wbItemPlan(PublishFormat.HTML));
+    const html = await result.file!.text();
+
+    expect(html).toContain(
+      `<img class="ink-wb-entry-image" src="${PIXEL_PNG}"`
+    );
+    expect(html).not.toContain('media://');
   });
 
   it('renders an inline WORLDBUILDING element via Element item', async () => {
@@ -434,11 +506,33 @@ describe('HtmlGeneratorService – worldbuilding + marks', () => {
 // ---------------------------------------------------------------------------
 
 describe('EpubGeneratorService – worldbuilding paths', () => {
+  let mocks: ReturnType<typeof makeMocks>;
   let service: EpubGeneratorService;
 
   beforeEach(() => {
-    configure([EpubGeneratorService]);
+    mocks = configure([EpubGeneratorService]);
     service = TestBed.inject(EpubGeneratorService);
+  });
+
+  it('packages a media:// identity image into the book', async () => {
+    serveIdentityImage(mocks);
+
+    const result = await service.generateEpub(wbItemPlan(PublishFormat.EPUB));
+    expect(result.success).toBe(true);
+    const zip = await JSZip.loadAsync(await result.file!.arrayBuffer());
+    const images = Object.keys(zip.files).filter(
+      name => name.startsWith('OEBPS/images/') && !zip.files[name].dir
+    );
+    const chapters = await Promise.all(
+      Object.keys(zip.files)
+        .filter(name => name.endsWith('.xhtml'))
+        .map(name => zip.file(name)!.async('string'))
+    );
+    const chapter = chapters.find(text => text.includes('ink-wb-entry-image'));
+
+    expect(images).toHaveLength(1);
+    expect(chapter).toContain(`src="${images[0].slice('OEBPS/'.length)}"`);
+    expect(chapter).not.toContain('media://');
   });
 
   it('renders a Worldbuilding plan item as a chapter', async () => {

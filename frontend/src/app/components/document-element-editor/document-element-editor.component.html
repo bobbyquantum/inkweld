@@ -69,8 +69,15 @@
               <span class="reading-time">· {{ readingTime() }}</span>
             }
             <button
-              class="tag-icons"
+              class="tag-icons touch-target"
               (click)="openTagsDialog()"
+              [attr.aria-label]="
+                (elementTagNames()
+                  ? 'editor.document.manageTagsWithNames'
+                  : 'editor.document.manageTags'
+                ) | transloco: { tags: elementTagNames() }
+              "
+              data-testid="status-bar-tags-button"
               [matTooltip]="'editor.document.manageTags' | transloco"
               matTooltipShowDelay="800"
               type="button">
@@ -99,7 +106,7 @@
           <span class="status-actions">
             <button
               type="button"
-              class="status-chip zen-btn"
+              class="status-chip zen-btn touch-target"
               (click)="enterZenMode()"
               [matTooltip]="'editor.document.zenModeHint' | transloco"
               matTooltipShowDelay="600"
@@ -111,7 +118,7 @@
             </button>
             <button
               type="button"
-              class="status-chip snapshots-btn"
+              class="status-chip snapshots-btn touch-target"
               (click)="openSnapshotsDialog()"
               [matTooltip]="'editor.document.snapshots' | transloco"
               matTooltipShowDelay="600"

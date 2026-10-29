@@ -304,6 +304,8 @@ test.describe('Image Generation - Admin Profile Management', () => {
 });
 
 test.describe('Image Generation - User Dialog Flow', () => {
+  // AI is opt-in per user; these tests are about a user who allowed it.
+  test.use({ allowAi: true });
   // Run serially to ensure beforeAll completes before tests.
   test.describe.configure({ mode: 'serial' });
 

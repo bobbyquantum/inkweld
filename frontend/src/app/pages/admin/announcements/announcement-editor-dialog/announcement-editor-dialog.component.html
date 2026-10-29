@@ -14,9 +14,7 @@
         [placeholder]="'admin.announcementEditor.titlePlaceholder' | transloco"
         data-testid="announcement-title-input" />
       @if (form.title().touched() && form.title().invalid()) {
-        @for (error of form.title().errors(); track error) {
-          <mat-error>{{ error.message }}</mat-error>
-        }
+        <mat-error>{{ form.title().errors()[0]?.message }}</mat-error>
       }
     </mat-form-field>
 
@@ -35,9 +33,7 @@
         rows="6"
         data-testid="announcement-content-input"></textarea>
       @if (form.content().touched() && form.content().invalid()) {
-        @for (error of form.content().errors(); track error) {
-          <mat-error>{{ error.message }}</mat-error>
-        }
+        <mat-error>{{ form.content().errors()[0]?.message }}</mat-error>
       }
     </mat-form-field>
 

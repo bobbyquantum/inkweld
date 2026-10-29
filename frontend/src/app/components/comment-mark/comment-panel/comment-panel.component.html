@@ -53,7 +53,7 @@
             data-testid="comment-panel-thread">
             <div class="comment-panel__thread-header">
               <app-user-avatar
-                [username]="thread.authorName"
+                [username]="thread.authorUsername || thread.authorName"
                 size="small"
                 class="comment-panel__thread-avatar"></app-user-avatar>
               <span class="comment-panel__thread-author">{{
@@ -107,7 +107,7 @@
                   <div class="comment-panel__message">
                     <div class="comment-panel__msg-header">
                       <app-user-avatar
-                        [username]="msg.authorName"
+                        [username]="msg.authorUsername || msg.authorName"
                         size="small"
                         class="comment-panel__msg-avatar"></app-user-avatar>
                       <span class="comment-panel__msg-author">{{

@@ -1,24 +1,28 @@
+const MINUTE = 60_000;
+const HOUR = 60 * MINUTE;
+const DAY = 24 * HOUR;
+const WEEK = 7 * DAY;
+
 /**
- * Formats a date as a human-readable relative string (e.g. "just now", "5m ago", "3d ago").
- * Falls back to locale date string for dates older than 7 days.
+ * Formats a date relative to now ("now", "5m ago", "3d ago") in `locale`,
+ * the app's active language. Dates a week old or more show as a date; an
+ * unparseable date shows as an empty string.
  */
-export function formatRelativeDate(date: string | number): string {
-  try {
-    const d = new Date(date);
-    const now = new Date();
-    const diff = now.getTime() - d.getTime();
+export function formatRelativeDate(
+  date: string | number,
+  locale?: string
+): string {
+  const d = new Date(date);
+  const diff = Date.now() - d.getTime();
+  if (Number.isNaN(diff)) return '';
 
-    // Less than 1 minute
-    if (diff < 60_000) return 'just now';
-    // Less than 1 hour
-    if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m ago`;
-    // Less than 1 day
-    if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h ago`;
-    // Less than 7 days
-    if (diff < 604_800_000) return `${Math.floor(diff / 86_400_000)}d ago`;
-
-    return d.toLocaleDateString();
-  } catch {
-    return '';
-  }
+  const relative = new Intl.RelativeTimeFormat(locale, {
+    style: 'narrow',
+    numeric: 'auto',
+  });
+  if (diff < MINUTE) return relative.format(0, 'second');
+  if (diff < HOUR) return relative.format(-Math.floor(diff / MINUTE), 'minute');
+  if (diff < DAY) return relative.format(-Math.floor(diff / HOUR), 'hour');
+  if (diff < WEEK) return relative.format(-Math.floor(diff / DAY), 'day');
+  return d.toLocaleDateString(locale);
 }

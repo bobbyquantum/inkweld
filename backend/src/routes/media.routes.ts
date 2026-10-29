@@ -10,6 +10,7 @@ import {
   sanitizeUploadFilename,
 } from '../utils/upload';
 import { getStorageService } from '../services/storage.service';
+import { contentDisposition } from '../utils/content-disposition';
 import { projectService } from '../services/project.service';
 import { collaborationService } from '../services/collaboration.service';
 import { quotaService } from '../services/quota.service';
@@ -373,9 +374,6 @@ mediaRoutes.openapi(getMediaRoute, async (c) => {
 
   const uint8Array = new Uint8Array(data);
 
-  // Sanitize filename to prevent header injection (remove control chars, quotes, backslashes)
-  const safeFilename = filename.replaceAll(/["\\\r\n]/g, '').replaceAll(/[^\x20-\x7E]/g, '_');
-
   // Serve potentially dangerous content types as attachment instead of inline
   const dangerousTypes = ['image/svg+xml', 'text/html', 'application/xhtml+xml', 'text/xml'];
   const disposition = dangerousTypes.includes(contentType) ? 'attachment' : 'inline';
@@ -383,7 +381,7 @@ mediaRoutes.openapi(getMediaRoute, async (c) => {
   return c.body(uint8Array, 200, {
     'Content-Type': contentType,
     'Content-Length': uint8Array.length.toString(),
-    'Content-Disposition': `${disposition}; filename="${safeFilename}"`,
+    'Content-Disposition': contentDisposition(disposition, filename),
     'X-Content-Type-Options': 'nosniff',
   });
 });

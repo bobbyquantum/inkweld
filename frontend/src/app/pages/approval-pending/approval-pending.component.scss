@@ -58,6 +58,11 @@
 .approval-icon {
   background: var(--sys-primary);
   color: var(--sys-on-primary);
+
+  &.rejected {
+    background: var(--sys-error);
+    color: var(--sys-on-error);
+  }
   display: flex;
   align-items: center;
   justify-content: center;

@@ -183,10 +183,12 @@ export class LoginDialogComponent {
       }
     } catch (error: unknown) {
       if (error instanceof UserServiceError) {
-        // Check for pending approval
-        if (error.code === 'ACCOUNT_PENDING') {
-          this.dialogRef.close(false);
-          void this.router.navigate(['/approval-pending']);
+        // Pending or rejected registration: show the approval page
+        if (
+          error.code === 'ACCOUNT_PENDING' ||
+          error.code === 'ACCOUNT_REJECTED'
+        ) {
+          this.goToApprovalPage(error.code === 'ACCOUNT_REJECTED');
           return;
         }
 
@@ -277,11 +279,22 @@ export class LoginDialogComponent {
     // proved possession of the passkey — the only thing missing is
     // admin approval, and the pending page tells them that clearly.
     if (result.shouldRedirect) {
-      this.dialogRef.close(false);
-      void this.router.navigate(['/approval-pending']);
+      this.goToApprovalPage(result.rejected === true);
       return;
     }
     this.passkeyError.set(result.message);
+  }
+
+  /** Close the dialog and show the pending (or rejected) registration page. */
+  private goToApprovalPage(rejected: boolean): void {
+    this.dialogRef.close(false);
+    if (rejected) {
+      void this.router.navigate(['/approval-pending'], {
+        queryParams: { status: 'rejected' },
+      });
+    } else {
+      void this.router.navigate(['/approval-pending']);
+    }
   }
 
   /**

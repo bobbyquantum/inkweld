@@ -15,6 +15,7 @@ import { parseXmlToYjsNodes } from '@inkweld/prosemirror/xml';
 import { xmlContentToText } from '../../utils/xml-utils';
 import { YjsWorkerService, type YjsWorkerContext } from '../../services/yjs-worker.service';
 import { logger } from '../../services/logger.service';
+import { expandWorldbuildingPaths, setYMapPath, yMapPathConflict } from '../../utils/yjs-map-path';
 
 const yjsRuntimeLog = logger.child('Yjs-Runtime');
 
@@ -199,6 +200,14 @@ export async function updateWorldbuilding(
 ): Promise<void> {
   const docId = `${username}:${slug}:${elementId}/`;
 
+  // A dotted key addresses a nested Y.Map (`description.terrain`), on both
+  // runtimes. Template fields also merge a plain-object value into the nested
+  // map, as the frontend does; the schema map keeps its snapshot object whole.
+  const pathUpdates =
+    mapName === 'worldbuilding'
+      ? expandWorldbuildingPaths(updates)
+      : Object.entries(updates).map(([path, value]) => ({ path, value }));
+
   if (isCloudflareWorkers(ctx)) {
     // Cloudflare Workers: use DO HTTP API
     const workerCtx: YjsWorkerContext = {
@@ -207,22 +216,25 @@ export async function updateWorldbuilding(
     };
     const workerService = new YjsWorkerService(workerCtx);
 
-    // Convert updates to path-based format (the DO creates the root map by name)
-    const pathPrefix = `${mapName}.`;
-    const pathUpdates = Object.entries(updates).map(([key, value]) => ({
-      path: `${pathPrefix}${key}`,
-      value,
-    }));
-    await workerService.applyUpdates(docId, pathUpdates);
+    // The DO creates the root map by name and any missing nested maps
+    await workerService.applyUpdates(
+      docId,
+      pathUpdates.map(({ path, value }) => ({ path: `${mapName}.${path}`, value }))
+    );
   } else {
     // Bun: use LevelDB service
     const { yjsService } = await import('../../services/yjs.service');
     const sharedDoc = await yjsService.getDocument(docId);
     const targetMap = sharedDoc.doc.getMap(mapName);
 
+    const conflict = pathUpdates
+      .map(({ path }) => yMapPathConflict(targetMap, path.split('.')))
+      .find((reason) => reason !== null);
+    if (conflict) throw new Error(conflict);
+
     sharedDoc.doc.transact(() => {
-      for (const [key, value] of Object.entries(updates)) {
-        targetMap.set(key, value);
+      for (const { path, value } of pathUpdates) {
+        setYMapPath(targetMap, path.split('.'), value);
       }
     });
   }

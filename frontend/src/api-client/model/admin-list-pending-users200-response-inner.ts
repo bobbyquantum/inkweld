@@ -13,6 +13,10 @@ export interface AdminListPendingUsers200ResponseInner {
   username: string;
   email: string;
   approved: boolean;
+  /**
+   * Unix seconds when an admin rejected the registration; null when not rejected
+   */
+  rejectedAt: number | null;
   enabled: boolean;
   isAdmin: boolean;
   githubId: string | null;

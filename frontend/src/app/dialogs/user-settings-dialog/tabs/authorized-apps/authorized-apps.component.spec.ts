@@ -4,7 +4,7 @@ import {
   withXhr,
 } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
-import { provideZonelessChangeDetection } from '@angular/core';
+import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import {
@@ -17,6 +17,7 @@ import {
   type PublicOAuthSession,
 } from '@inkweld/index';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
+import { StorageContextService } from '@services/core/storage-context.service';
 import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -78,8 +79,10 @@ describe('AuthorizedAppsComponent', () => {
     openConfirmationDialog: ReturnType<typeof vi.fn>;
   };
   let snackBarMock: { open: ReturnType<typeof vi.fn> };
+  const isServerMode = signal(true);
 
   beforeEach(async () => {
+    isServerMode.set(true);
     oauthServiceMock = {
       listOAuthSessions: vi.fn().mockReturnValue(of([])),
       getOAuthSessionDetails: vi
@@ -122,6 +125,7 @@ describe('AuthorizedAppsComponent', () => {
         { provide: ProjectsService, useValue: projectsServiceMock },
         { provide: DialogGatewayService, useValue: dialogGatewayMock },
         { provide: MatSnackBar, useValue: snackBarMock },
+        { provide: StorageContextService, useValue: { isServerMode } },
       ],
     }).compileComponents();
 
@@ -131,6 +135,17 @@ describe('AuthorizedAppsComponent', () => {
 
   it('should create', () => {
     expect(component).toBeTruthy();
+  });
+
+  it('should not contact the server outside a server profile', async () => {
+    isServerMode.set(false);
+
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(oauthServiceMock.listOAuthSessions).not.toHaveBeenCalled();
+    expect(snackBarMock.open).not.toHaveBeenCalled();
+    expect(component.sessions()).toEqual([]);
   });
 
   it('should load sessions on init', async () => {

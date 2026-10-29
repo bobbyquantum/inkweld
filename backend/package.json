@@ -1,6 +1,6 @@
 {
   "name": "inkweld-backend",
-  "version": "0.1.0",
+  "version": "1.0.0-beta.2",
   "description": "Inkweld backend API built with Hono",
   "author": "bobbyquantum",
   "private": true,
@@ -25,7 +25,8 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "typecheck": "bun check",
-    "format": "prettier --write \"src/**/*.ts\"",
+    "format": "bun fmt \"{src,test,scripts}/**/*.ts\" \"*.ts\"",
+    "format:check": "bun fmt --check \"{src,test,scripts}/**/*.ts\" \"*.ts\"",
     "generate:openapi": "bun run scripts/generate-openapi.ts",
     "generate:angular-client": "bun run scripts/generate-angular-client.ts",
     "init:d1-local": "bun run scripts/init-d1-local.ts",
@@ -60,15 +61,13 @@
     "@eslint/js": "^10.0.0",
     "@openapitools/openapi-generator-cli": "^2.27.0",
     "@types/better-sqlite3": "^9.0.0",
-    "@types/bun": "1.4.3",
+    "@types/bun": "1.4.4",
     "@types/mime-types": "^3.0.1",
     "@types/node": "^26.0.0",
     "@types/nodemailer": "^8.0.0",
     "@types/ws": "^8.18.1",
     "eslint": "^10.0.0",
     "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-prettier": "^5.5.4",
-    "prettier": "^3.7.4",
     "typescript": "^6.0.0",
     "typescript-eslint": "^8.51.0",
     "wrangler": "4.116.0"
@@ -76,7 +75,7 @@
   "optionalDependencies": {
     "better-sqlite3": "^13.0.0"
   },
-  "packageManager": "bun@1.4.3",
+  "packageManager": "bun@1.4.4",
   "patchedDependencies": {
     "wrangler@4.116.0": "patches/wrangler@4.116.0.patch"
   }

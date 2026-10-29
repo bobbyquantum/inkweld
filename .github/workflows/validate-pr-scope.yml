@@ -1,0 +1,34 @@
+name: Validate PR Scope
+
+# A PR title's scope must come from .github/commit-scopes.json (the release
+# notes show each one's emoji). This runs on pull_request, not the
+# pull_request_target of validate-pr-title.yml: it needs no write token, so it
+# checks out the PR itself and a PR can add the scope it needs.
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  validate-scope:
+    name: Approved Commit Scope
+    # release-please titles its own PR `chore(main): release X.Y.Z`; `main` is
+    # its branch name, not a scope.
+    if: ${{ !startsWith(github.head_ref, 'release-please--') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          sparse-checkout: |
+            scripts/check-pr-title.mjs
+            .github/commit-scopes.json
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+
+      - name: Check the scope
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: node scripts/check-pr-title.mjs

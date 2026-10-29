@@ -13,6 +13,7 @@ import { type IndexeddbPersistence } from 'y-indexeddb';
 import { type WebsocketProvider } from 'y-websocket';
 import * as Y from 'yjs';
 
+import templateDocuments from '../../../../public/assets/project-templates/worldbuilding-empty/documents.json';
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { DocumentSyncState } from '../../models/document-sync-state';
 import { AuthTokenService } from '../auth/auth-token.service';
@@ -364,6 +365,14 @@ describe('DocumentService', () => {
       expect(testFragment.toJSON()).toBe(
         '<paragraph>New <strong>bold</strong> text</paragraph>'
       );
+      // bold is a mark on the text, not a <strong> element
+      const paragraph = testFragment.get(0) as Y.XmlElement;
+      expect(paragraph.firstChild).toBeInstanceOf(Y.XmlText);
+      expect((paragraph.firstChild as Y.XmlText).toDelta()).toEqual([
+        { insert: 'New ' },
+        { insert: 'bold', attributes: { strong: {} } },
+        { insert: ' text' },
+      ]);
     });
 
     it('should apply an XML import as a single Yjs transaction', () => {
@@ -484,7 +493,7 @@ describe('DocumentService', () => {
       service.importXmlString(
         ydoc,
         fragment,
-        '<paragraph>Hello <text strong="true">world</text></paragraph>'
+        '<paragraph>Hello <strong>world</strong></paragraph>'
       );
       connectionMap.set(testDocumentId, {
         ydoc,
@@ -512,8 +521,8 @@ describe('DocumentService', () => {
             { type: 'text', text: 'Hello ' },
             {
               type: 'text',
-              attrs: { strong: true },
-              content: [{ type: 'text', text: 'world' }],
+              text: 'world',
+              marks: [{ type: 'strong', attrs: {} }],
             },
           ],
         },
@@ -566,27 +575,183 @@ describe('DocumentService', () => {
       expect(toXml([])).toBeNull();
     });
 
-    it('should convert DOM nodes into Yjs nodes and skip empty whitespace', () => {
-      const domNodeToYjsNode = (
-        service as unknown as {
-          domNodeToYjsNode: (node: Node) => Y.XmlElement | Y.XmlText | null;
-        }
-      ).domNodeToYjsNode.bind(service);
-      const parsed = new DOMParser().parseFromString(
-        '<root><paragraph data-id="123">Hello <elementRef refId="x"></elementRef></paragraph>   </root>',
-        'text/html'
-      );
-      const root = parsed.body.firstElementChild as HTMLElement;
-      const paragraphNode = root.childNodes[0];
-      const whitespaceNode = root.childNodes[1];
+    describe('imported text formatting', () => {
+      const toXml = (content: unknown) =>
+        (
+          service as unknown as {
+            prosemirrorJsonToXml: (content: unknown) => string | null;
+          }
+        ).prosemirrorJsonToXml(content);
 
-      const yParagraph = domNodeToYjsNode(paragraphNode);
+      const para = (...content: unknown[]) => [{ type: 'paragraph', content }];
 
-      expect(yParagraph).toBeInstanceOf(Y.XmlElement);
-      expect((yParagraph as Y.XmlElement).nodeName).toBe('PARAGRAPH');
-      expect((paragraphNode as HTMLElement).dataset['id']).toBe('123');
-      expect(whitespaceNode.textContent).toBe('   ');
-      expect(domNodeToYjsNode(whitespaceNode)).toBeNull();
+      it('wraps marked text in mark tags, first mark outermost', () => {
+        expect(
+          toXml(
+            para(
+              { type: 'text', text: 'plain ' },
+              {
+                type: 'text',
+                text: 'both',
+                marks: [{ type: 'strong' }, { type: 'em' }],
+              },
+              { type: 'text', text: 'code', marks: [{ type: 'code' }] }
+            )
+          )
+        ).toBe(
+          '<paragraph>plain <strong><em>both</em></strong><code>code</code></paragraph>'
+        );
+      });
+
+      it('writes links with their attributes, escaped', () => {
+        expect(
+          toXml(
+            para({
+              type: 'text',
+              text: 'docs',
+              marks: [
+                {
+                  type: 'link',
+                  attrs: { href: 'https://x.test/?a=1&b="2"', title: null },
+                },
+              ],
+            })
+          )
+        ).toBe(
+          '<paragraph><a href="https://x.test/?a=1&amp;b=&quot;2&quot;">docs</a></paragraph>'
+        );
+      });
+
+      it('keeps marks without an HTML tag as data-mark spans', () => {
+        expect(
+          toXml(
+            para({
+              type: 'text',
+              text: 'red',
+              marks: [{ type: 'text_color', attrs: { color: '#f00' } }],
+            })
+          )
+        ).toBe(
+          '<paragraph><span data-mark="text_color" color="#f00">red</span></paragraph>'
+        );
+      });
+
+      it('reads the older mark names bold and italic as strong and em', () => {
+        expect(
+          toXml(
+            para({
+              type: 'text',
+              text: 'old',
+              marks: [{ type: 'bold' }, { type: 'italic' }],
+            })
+          )
+        ).toBe('<paragraph><bold><italic>old</italic></bold></paragraph>');
+      });
+
+      const importJson = (content: unknown): Y.XmlFragment => {
+        const ydoc = new Y.Doc();
+        const fragment = ydoc.getXmlFragment('prosemirror');
+        const xml = toXml(content);
+        service.importXmlString(ydoc, fragment, xml ?? '');
+        return fragment;
+      };
+      const deltaOf = (fragment: Y.XmlFragment): unknown =>
+        ((fragment.get(0) as Y.XmlElement).firstChild as Y.XmlText).toDelta();
+
+      it('keeps strong, em, code and links as marks on the imported text', () => {
+        const fragment = importJson(
+          para(
+            { type: 'text', text: 'a ' },
+            {
+              type: 'text',
+              text: 'b',
+              marks: [{ type: 'strong' }, { type: 'em' }],
+            },
+            { type: 'text', text: ' ' },
+            { type: 'text', text: 'c', marks: [{ type: 'code' }] },
+            { type: 'text', text: ' ' },
+            {
+              type: 'text',
+              text: 'd',
+              marks: [{ type: 'link', attrs: { href: 'https://x.test' } }],
+            }
+          )
+        );
+
+        expect(deltaOf(fragment)).toEqual([
+          { insert: 'a ' },
+          { insert: 'b', attributes: { strong: {}, em: {} } },
+          { insert: ' ' },
+          { insert: 'c', attributes: { code: {} } },
+          { insert: ' ' },
+          { insert: 'd', attributes: { link: { href: 'https://x.test' } } },
+        ]);
+      });
+
+      it('maps the older mark names onto the editor marks', () => {
+        const fragment = importJson(
+          para({
+            type: 'text',
+            text: 'old',
+            marks: [{ type: 'bold' }, { type: 'italic' }],
+          })
+        );
+
+        expect(deltaOf(fragment)).toEqual([
+          { insert: 'old', attributes: { strong: {}, em: {} } },
+        ]);
+      });
+
+      it('shows the bold text of the worldbuilding starter README as bold', () => {
+        const readme = templateDocuments.find(
+          d => d.elementId === 'readme-001'
+        );
+        const fragment = importJson(readme?.content);
+
+        const deltas: unknown[] = [];
+        const collect = (node: Y.XmlElement | Y.XmlText | Y.XmlFragment) => {
+          if (node instanceof Y.XmlText) deltas.push(node.toDelta() as unknown);
+          else
+            (node.toArray() as (Y.XmlElement | Y.XmlText)[]).forEach(collect);
+        };
+        collect(fragment);
+        const strong = JSON.stringify(deltas);
+        expect(strong).toContain('"strong":{}');
+      });
+
+      it('keeps the marks of text around an inline node and in nested blocks', () => {
+        const fragment = importJson([
+          {
+            type: 'bullet_list',
+            content: [
+              {
+                type: 'list_item',
+                content: para(
+                  { type: 'text', text: 'Bold', marks: [{ type: 'strong' }] },
+                  { type: 'elementRef', attrs: { elementId: 'e1' } },
+                  { type: 'text', text: 'after', marks: [{ type: 'em' }] }
+                ),
+              },
+            ],
+          },
+        ]);
+
+        const item = (fragment.get(0) as Y.XmlElement)
+          .firstChild as Y.XmlElement;
+        const paragraph = item.firstChild as Y.XmlElement;
+        const [before, ref, after] = paragraph.toArray() as [
+          Y.XmlText,
+          Y.XmlElement,
+          Y.XmlText,
+        ];
+        expect(before.toDelta()).toEqual([
+          { insert: 'Bold', attributes: { strong: {} } },
+        ]);
+        expect(ref.nodeName).toBe('elementRef');
+        expect(after.toDelta()).toEqual([
+          { insert: 'after', attributes: { em: {} } },
+        ]);
+      });
     });
 
     it('should keep sync state local when websocket setup cannot proceed', async () => {
@@ -708,6 +873,94 @@ describe('DocumentService', () => {
           }
         ).mediaObserver
       ).toBeInstanceOf(MutationObserver);
+
+      setTimeoutSpy.mockRestore();
+    });
+
+    it('should resolve media:// images through the server-aware resolver', async () => {
+      const dom = document.createElement('div');
+      const image = document.createElement('img');
+      image.setAttribute('src', 'media://generated-1793215040156.jpg');
+      dom.append(image);
+
+      const privateService = service as unknown as {
+        startMediaUrlObserver: (
+          view: { dom: HTMLElement },
+          documentId: string
+        ) => void;
+        localStorage: { getMediaUrl: ReturnType<typeof vi.fn> };
+        appearance: { resolveImageReference: ReturnType<typeof vi.fn> };
+      };
+      const setTimeoutSpy = vi
+        .spyOn(globalThis, 'setTimeout')
+        .mockImplementation((callback: TimerHandler) => {
+          (callback as () => void)();
+          return 1 as unknown as ReturnType<typeof setTimeout>;
+        });
+
+      privateService.localStorage = { getMediaUrl: vi.fn() };
+      privateService.appearance = {
+        resolveImageReference: vi
+          .fn()
+          .mockResolvedValue('blob:downloaded-media'),
+      };
+
+      privateService.startMediaUrlObserver({ dom }, testDocumentId);
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(
+        privateService.appearance.resolveImageReference
+      ).toHaveBeenCalledWith(
+        'media://generated-1793215040156.jpg',
+        'testuser',
+        'test-project'
+      );
+      expect(privateService.localStorage.getMediaUrl).not.toHaveBeenCalled();
+      expect(image.src).toContain('blob:downloaded-media');
+      expect(image.dataset['mediaId']).toBe('generated-1793215040156');
+
+      setTimeoutSpy.mockRestore();
+    });
+
+    it('should not overwrite an image whose src changed while resolving', async () => {
+      const dom = document.createElement('div');
+      const image = document.createElement('img');
+      image.setAttribute('src', 'media://old.jpg');
+      dom.append(image);
+
+      const privateService = service as unknown as {
+        startMediaUrlObserver: (
+          view: { dom: HTMLElement },
+          documentId: string
+        ) => void;
+        appearance: { resolveImageReference: ReturnType<typeof vi.fn> };
+      };
+      const setTimeoutSpy = vi
+        .spyOn(globalThis, 'setTimeout')
+        .mockImplementation((callback: TimerHandler) => {
+          (callback as () => void)();
+          return 1 as unknown as ReturnType<typeof setTimeout>;
+        });
+
+      let finishOld: (url: string) => void = () => {};
+      privateService.appearance = {
+        resolveImageReference: vi.fn((reference: string) =>
+          reference === 'media://old.jpg'
+            ? new Promise<string>(resolve => (finishOld = resolve))
+            : Promise.resolve('blob:new')
+        ),
+      };
+
+      privateService.startMediaUrlObserver({ dom }, testDocumentId);
+      image.setAttribute('src', 'media://new.jpg');
+      finishOld('blob:old');
+      await vi.waitFor(() => expect(image.src).toContain('blob:new'));
+
+      expect(image.dataset['mediaId']).toBe('new');
+      expect(
+        privateService.appearance.resolveImageReference
+      ).toHaveBeenCalledWith('media://new.jpg', 'testuser', 'test-project');
 
       setTimeoutSpy.mockRestore();
     });
@@ -1358,6 +1611,133 @@ describe('DocumentService', () => {
 
       // disconnect() threw, but destroy() must still have run.
       expect(mockWebSocketProvider.destroy).toHaveBeenCalled();
+    });
+  });
+
+  describe('opened offline', () => {
+    const offlineError = new Error(
+      'WebSocket connection error: Connection error'
+    );
+
+    function setOnline(online: boolean): void {
+      Object.defineProperty(navigator, 'onLine', {
+        value: online,
+        configurable: true,
+      });
+    }
+
+    /** Register a connection and run its first (background) connect. */
+    async function openDocument(): Promise<DocumentConnection> {
+      const ydoc = new Y.Doc();
+      const connection: DocumentConnection = {
+        ydoc,
+        provider: null,
+        type: ydoc.getXmlFragment('prosemirror'),
+        indexeddbProvider: _mockIndexedDbProvider,
+        broadcastProvider: mockBroadcastProvider,
+      };
+      const editorWithView = {
+        ...mockEditor,
+        view: {
+          ...mockEditor.view,
+          dom: { parentNode: {} },
+          state: {
+            ...mockEditor.view.state,
+            plugins: [],
+            reconfigure: vi.fn().mockReturnValue({}),
+          },
+          updateState: vi.fn(),
+        },
+      } as unknown as DeepMockProxy<Editor>;
+      service.initializeSyncStatus(testDocumentId);
+      (
+        service as unknown as { connections: Map<string, unknown> }
+      ).connections.set(testDocumentId, connection);
+      await (
+        service as unknown as {
+          connectWebSocketInBackground: (
+            websocketUrl: string | null,
+            documentId: string,
+            doc: Y.Doc,
+            editor: Editor,
+            connection: DocumentConnection
+          ) => Promise<void>;
+        }
+      ).connectWebSocketInBackground(
+        'ws://localhost:8333',
+        testDocumentId,
+        ydoc,
+        editorWithView,
+        connection
+      );
+      return connection;
+    }
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      service.disconnect(testDocumentId);
+      setOnline(true);
+      vi.useRealTimers();
+    });
+
+    it('connects once the network comes back, so offline edits reach the server', async () => {
+      setOnline(false);
+      mockCreateAuthWsProvider
+        .mockRejectedValueOnce(offlineError)
+        .mockResolvedValue(mockWebSocketProvider);
+
+      const connection = await openDocument();
+      expect(connection.provider).toBeNull();
+      expect(service.getSyncStatusSignal(testDocumentId)()).toBe(
+        DocumentSyncState.Local
+      );
+
+      await vi.advanceTimersByTimeAsync(10 * 60_000);
+      expect(mockCreateAuthWsProvider).toHaveBeenCalledTimes(1);
+
+      setOnline(true);
+      globalThis.dispatchEvent(new Event('online'));
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(mockCreateAuthWsProvider).toHaveBeenCalledTimes(2);
+      // The handshake binds the same Y.Doc, so y-websocket's sync sends the
+      // edits made while offline.
+      expect(mockCreateAuthWsProvider.mock.calls[1][2]).toBe(connection.ydoc);
+      expect(connection.provider).toBe(mockWebSocketProvider);
+      expect(service.getSyncStatusSignal(testDocumentId)()).toBe(
+        DocumentSyncState.Synced
+      );
+      expect(connection.initialConnectRetry?.isActive).toBe(false);
+    });
+
+    it('stops retrying once the document is closed', async () => {
+      mockCreateAuthWsProvider.mockRejectedValue(offlineError);
+
+      await openDocument();
+      service.disconnect(testDocumentId);
+
+      globalThis.dispatchEvent(new Event('online'));
+      await vi.advanceTimersByTimeAsync(10 * 60_000);
+      expect(mockCreateAuthWsProvider).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not retry a hard denial', async () => {
+      mockCreateAuthWsProvider.mockRejectedValue(
+        new Error('WebSocket authentication denied: forbidden')
+      );
+
+      const connection = await openDocument();
+
+      expect(service.getSyncStatusSignal(testDocumentId)()).toBe(
+        DocumentSyncState.Unavailable
+      );
+      expect(connection.initialConnectRetry).toBeUndefined();
+      globalThis.dispatchEvent(new Event('online'));
+      await vi.advanceTimersByTimeAsync(10 * 60_000);
+      expect(mockCreateAuthWsProvider).toHaveBeenCalledTimes(1);
     });
   });
 

@@ -1,0 +1,7199 @@
+[
+  {
+    "id": "ttrpg-player-character-v1",
+    "name": "Player Character",
+    "icon": "person",
+    "description": "A player character (PC) - one per player at the table.",
+    "version": 54,
+    "isNew": false,
+    "tabs": [
+      {
+        "key": "general",
+        "label": "Character",
+        "fields": [
+          {
+            "key": "player",
+            "label": "Player",
+            "type": "text",
+            "id": "field_4ad984e0-ea03-4554-a1f7-1a825d6b5e98",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "Who plays this character?"
+          },
+          {
+            "id": "field_5b38a39b-f35e-4e96-a8df-cfb4567c125e",
+            "key": "speciesspeciesspecies",
+            "label": "Species",
+            "type": "text",
+            "placeholder": "",
+            "layout": {
+              "span": 6
+            }
+          },
+          {
+            "id": "field_d629287d-02e8-4b57-ab2e-209f11a0d0f1",
+            "key": "class",
+            "label": "Class",
+            "type": "select",
+            "placeholder": "",
+            "layout": {
+              "span": 6
+            },
+            "options": [
+              "Barbarian",
+              "Bard",
+              "Cleric",
+              "Druid",
+              "Fighter",
+              "Monk",
+              "Paladin",
+              "Ranger",
+              "Rogue",
+              "Sorcerer",
+              "Warlock",
+              "Wizard"
+            ]
+          },
+          {
+            "id": "field_da6287b9-fbd0-4807-9e9a-f449d0f8ee38",
+            "key": "subclass",
+            "label": "Subclass",
+            "type": "text",
+            "placeholder": "",
+            "layout": {
+              "span": 6
+            }
+          },
+          {
+            "id": "field_76fa81bc-65c5-47a2-a900-40613f455023",
+            "key": "level",
+            "label": "Level",
+            "type": "number",
+            "placeholder": "",
+            "layout": {
+              "span": 3
+            }
+          },
+          {
+            "id": "field_c79cf971-bc6c-4de4-85a1-108093e5c381",
+            "key": "background",
+            "label": "Background",
+            "type": "text",
+            "placeholder": "",
+            "layout": {
+              "span": 5
+            }
+          },
+          {
+            "id": "field_ea15803a-0832-4ca5-b92c-41f812bbfbda",
+            "key": "alignment",
+            "label": "Alignment",
+            "type": "select",
+            "placeholder": "",
+            "layout": {
+              "span": 4
+            },
+            "options": [
+              "Lawful Good",
+              "Neutral Good",
+              "Chaotic Good",
+              "Lawful Neutral",
+              "True Neutral",
+              "Chaotic Neutral",
+              "Lawful Evil",
+              "Neutral Evil",
+              "Chaotic Evil"
+            ]
+          }
+        ]
+      },
+      {
+        "key": "tab_d532de0b-84b9-466b-8289-a129474b5abc",
+        "label": "Abilities & Combat",
+        "icon": "article",
+        "order": 1,
+        "fields": [
+          {
+            "id": "field_9798375f-a80a-4483-9db0-a9b7fc09db27",
+            "key": "str",
+            "label": "STR",
+            "type": "number",
+            "placeholder": "",
+            "layout": {
+              "span": 2
+            }
+          },
+          {
+            "id": "field_b150b0d0-9933-4512-8534-56ecf4e91b61",
+            "key": "dex",
+            "label": "DEX",
+            "type": "number",
+            "placeholder": "",
+            "layout": {
+              "span": 2
+            }
+          },
+          {
+            "id": "field_b82b6587-7c60-4657-a7d0-7f850316300a",
+            "key": "con",
+            "label": "CON",
+            "type": "number",
+            "placeholder": "",
+            "layout": {
+              "span": 2
+            }
+          },
+          {
+            "id": "field_559cb543-8407-48fb-b84b-c1dc884d249a",
+            "key": "int",
+            "label": "INT",
+            "type": "number",
+            "placeholder": "",
+            "layout": {
+              "span": 2
+            }
+          },
+          {
+            "id": "field_4cfcdf67-8ab0-4016-b91c-d3aa0f4de776",
+            "key": "wis",
+            "label": "WIS",
+            "type": "number",
+            "placeholder": "",
+            "layout": {
+              "span": 2
+            }
+          },
+          {
+            "id": "field_7eb6ea78-5802-4c12-ab54-567a7e2307b8",
+            "key": "cha",
+            "label": "CHA",
+            "type": "number",
+            "placeholder": "",
+            "layout": {
+              "span": 2
+            }
+          },
+          {
+            "id": "field_f4e72f1b-4910-4b9a-894a-42d3affaa408",
+            "key": "ac",
+            "label": "Armor Class",
+            "type": "number",
+            "placeholder": "",
+            "layout": {
+              "span": 4
+            }
+          },
+          {
+            "id": "field_9bf92490-5fbd-4481-a1ed-1b04838b50c8",
+            "key": "maxHp",
+            "label": "Max HP",
+            "type": "number",
+            "placeholder": "",
+            "layout": {
+              "span": 4
+            }
+          },
+          {
+            "id": "field_6f5ea0a9-4738-4c83-bd91-4d8de3bdcb44",
+            "key": "speed",
+            "label": "Speed (ft)",
+            "type": "number",
+            "placeholder": "",
+            "layout": {
+              "span": 4
+            }
+          },
+          {
+            "id": "field_6ca6be95-0c00-4e43-ba07-4c3f6ea67125",
+            "key": "savingThrows",
+            "label": "Saving Throw Proficiencies",
+            "type": "multiselect",
+            "placeholder": "",
+            "layout": {
+              "span": 12
+            },
+            "options": [
+              "Strength",
+              "Dexterity",
+              "Constitution",
+              "Intelligence",
+              "Wisdom",
+              "Charisma"
+            ]
+          },
+          {
+            "id": "field_9eca2fd6-f9f6-4c78-a411-893689b391c4",
+            "key": "skills",
+            "label": "Skill Proficiencies",
+            "type": "multiselect",
+            "placeholder": "",
+            "layout": {
+              "span": 12
+            },
+            "options": [
+              "Acrobatics",
+              "Animal Handling",
+              "Arcana",
+              "Athletics",
+              "Deception",
+              "History",
+              "Insight",
+              "Intimidation",
+              "Investigation",
+              "Medicine",
+              "Nature",
+              "Perception",
+              "Performance",
+              "Persuasion",
+              "Religion",
+              "Sleight of Hand",
+              "Stealth",
+              "Survival"
+            ]
+          }
+        ]
+      },
+      {
+        "key": "tab_cca238b1-25be-4035-86f6-1baa7a96a78d",
+        "label": "Story",
+        "icon": "article",
+        "order": 2,
+        "fields": [
+          {
+            "id": "field_0cc3199d-72c9-427c-afe7-1946ebffa5e2",
+            "key": "personality",
+            "label": "Personality & Ideals",
+            "type": "textarea",
+            "placeholder": "",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3
+          },
+          {
+            "id": "field_5f007745-4df4-4e47-9d10-2aea187de1a0",
+            "key": "bonds",
+            "label": "Bonds & Flaws",
+            "type": "textarea",
+            "placeholder": "",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3
+          },
+          {
+            "id": "field_16fd5a0f-d32e-4c1d-be7b-f9861a0a4eca",
+            "key": "backstory",
+            "label": "Backstory",
+            "type": "textarea",
+            "placeholder": "",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3
+          },
+          {
+            "id": "field_d0c51df5-9d29-44ad-8307-2cd90cc41d5f",
+            "key": "dmSecrets",
+            "label": "DM Secrets",
+            "type": "textarea",
+            "placeholder": "",
+            "layout": {
+              "span": 12
+            },
+            "description": "Hooks and secrets the player doesn't know yet.",
+            "rows": 3
+          }
+        ]
+      }
+    ],
+    "createdAt": "2026-10-14T00:05:32.522Z",
+    "updatedAt": "2026-10-14T00:05:32.522Z"
+  },
+  {
+    "id": "ttrpg-monster-v1",
+    "name": "Monster",
+    "icon": "article",
+    "description": "A 5e creature stat block. Link NPCs and encounters to these.",
+    "version": 41,
+    "isNew": false,
+    "tabs": [
+      {
+        "key": "general",
+        "label": "Stat Block",
+        "fields": [
+          {
+            "id": "field_36989fd3-8329-41b3-9eae-b5f77c174ec0",
+            "key": "size",
+            "label": "Size",
+            "type": "select",
+            "placeholder": "",
+            "layout": {
+              "span": 4
+            },
+            "options": [
+              "Tiny",
+              "Small",
+              "Medium",
+              "Large",
+              "Huge",
+              "Gargantuan"
+            ]
+          },
+          {
+            "id": "field_21d808c7-e1cc-4aac-8688-d68f7b425ee2",
+            "key": "creatureType",
+            "label": "Creature Type",
+            "type": "select",
+            "placeholder": "",
+            "layout": {
+              "span": 4
+            },
+            "options": [
+              "Aberration",
+              "Beast",
+              "Celestial",
+              "Construct",
+              "Dragon",
+              "Elemental",
+              "Fey",
+              "Fiend",
+              "Giant",
+              "Humanoid",
+              "Monstrosity",
+              "Ooze",
+              "Plant",
+              "Undead"
+            ]
+          },
+          {
+            "id": "field_fb4ed22a-d406-4324-924a-0f3b100d8baa",
+            "key": "cr",
+            "label": "Challenge Rating",
+            "type": "text",
+            "placeholder": "e.g. 1/4, 2, 13",
+            "layout": {
+              "span": 4
+            }
+          },
+          {
+            "id": "field_39ec9b8d-39c5-4526-a05e-f9c83ce37347",
+            "key": "ac",
+            "label": "Armor Class",
+            "type": "number",
+            "placeholder": "",
+            "layout": {
+              "span": 3
+            }
+          },
+          {
+            "id": "field_4cb7c566-abf4-4c55-8aa2-0ce28744d377",
+            "key": "hp",
+            "label": "Hit Points",
+            "type": "text",
+            "placeholder": "e.g. 52 (8d10 + 8)",
+            "layout": {
+              "span": 5
+            }
+          },
+          {
+            "id": "field_27733ecf-df49-416e-bca8-af6d605b0c88",
+            "key": "speed",
+            "label": "Speed",
+            "type": "text",
+            "placeholder": "e.g. 30 ft., swim 40 ft.",
+            "layout": {
+              "span": 4
+            }
+          },
+          {
+            "id": "field_de05c57b-c48a-443c-8ed5-115cc8f1437c",
+            "key": "str",
+            "label": "STR",
+            "type": "number",
+            "placeholder": "",
+            "layout": {
+              "span": 2
+            }
+          },
+          {
+            "id": "field_08938baa-0671-49ac-9ff4-0ddde567a4c7",
+            "key": "dex",
+            "label": "DEX",
+            "type": "number",
+            "placeholder": "",
+            "layout": {
+              "span": 2
+            }
+          },
+          {
+            "id": "field_4b9374cd-ff50-4d59-a9b8-51d0f8fe2448",
+            "key": "con",
+            "label": "CON",
+            "type": "number",
+            "placeholder": "",
+            "layout": {
+              "span": 2
+            }
+          },
+          {
+            "id": "field_f65d785e-1283-4ec2-86c2-9bd8a76b09cb",
+            "key": "int",
+            "label": "INT",
+            "type": "number",
+            "placeholder": "",
+            "layout": {
+              "span": 2
+            }
+          },
+          {
+            "id": "field_62ac5bba-2a02-4b86-acb5-89afac5d0768",
+            "key": "wis",
+            "label": "WIS",
+            "type": "number",
+            "placeholder": "",
+            "layout": {
+              "span": 2
+            }
+          },
+          {
+            "id": "field_d00037b5-9b5a-4bd4-aa13-f7e0170417ba",
+            "key": "cha",
+            "label": "CHA",
+            "type": "number",
+            "placeholder": "",
+            "layout": {
+              "span": 2
+            }
+          },
+          {
+            "id": "field_f4d642f3-0601-4ead-8c10-809991938be8",
+            "key": "senses",
+            "label": "Senses",
+            "type": "text",
+            "placeholder": "",
+            "layout": {
+              "span": 6
+            }
+          },
+          {
+            "id": "field_bef5f23e-162e-4b6e-bd48-f4b3012755e1",
+            "key": "languages",
+            "label": "Languages",
+            "type": "text",
+            "placeholder": "",
+            "layout": {
+              "span": 6
+            }
+          }
+        ]
+      },
+      {
+        "key": "tab_8be72c67-3f98-4cb3-8a90-1392b6c8d288",
+        "label": "Traits & Actions",
+        "icon": "article",
+        "order": 1,
+        "fields": [
+          {
+            "id": "field_4c2f17fa-be58-4e15-aa1b-aff673afbb58",
+            "key": "traits",
+            "label": "Traits",
+            "type": "textarea",
+            "placeholder": "",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3
+          },
+          {
+            "id": "field_3d6081e6-1408-4fcd-968f-fa7b12ee72b5",
+            "key": "actions",
+            "label": "Actions",
+            "type": "textarea",
+            "placeholder": "",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3
+          },
+          {
+            "id": "field_3127a981-31ec-4e4a-aa80-de1a1a459934",
+            "key": "reactions",
+            "label": "Reactions & Legendary Actions",
+            "type": "textarea",
+            "placeholder": "",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3
+          }
+        ]
+      }
+    ],
+    "createdAt": "2026-10-14T00:20:05.550Z",
+    "updatedAt": "2026-10-14T00:20:05.550Z"
+  },
+  {
+    "id": "ttrpg-faction-v1",
+    "name": "Faction",
+    "icon": "article",
+    "description": "Guilds, cults, noble houses and other organisations.",
+    "version": 5,
+    "isNew": false,
+    "tabs": [
+      {
+        "key": "general",
+        "label": "Faction",
+        "fields": [
+          {
+            "key": "attitude",
+            "label": "Attitude to Party",
+            "type": "select",
+            "id": "field_d5295951-4081-48a3-94d2-1b1fbf985ace",
+            "layout": {
+              "span": 12
+            },
+            "options": [
+              "Allied",
+              "Friendly",
+              "Neutral",
+              "Wary",
+              "Hostile"
+            ]
+          },
+          {
+            "key": "goals",
+            "label": "Goals & Methods",
+            "type": "textarea",
+            "id": "field_5fc8360a-d835-41ea-b133-a32a665da39b",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3
+          }
+        ]
+      }
+    ],
+    "createdAt": "2026-10-14T00:25:11.495Z",
+    "updatedAt": "2026-10-14T00:25:11.496Z"
+  },
+  {
+    "id": "ttrpg-location-v1",
+    "name": "Location",
+    "icon": "article",
+    "description": "Regions, towns, dungeons and rooms. Nest them with Part Of.",
+    "version": 11,
+    "isNew": false,
+    "tabs": [
+      {
+        "key": "general",
+        "label": "Location",
+        "fields": [
+          {
+            "key": "locationType",
+            "label": "Location Type",
+            "type": "select",
+            "id": "field_9c3835b2-84a3-4b32-84ff-3fc07faf152f",
+            "layout": {
+              "span": 12
+            },
+            "options": [
+              "Region",
+              "Settlement",
+              "District",
+              "Building",
+              "Dungeon",
+              "Room / Area",
+              "Wilderness"
+            ]
+          },
+          {
+            "key": "readAloud",
+            "label": "Read-Aloud Text",
+            "type": "textarea",
+            "id": "field_616d6a54-69e6-4a72-92fc-6854b452a63b",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3
+          },
+          {
+            "id": "field_12a75798-27bd-4739-b634-3f99713fe0a4",
+            "key": "partOf",
+            "label": "Part Of",
+            "type": "relationship",
+            "placeholder": "",
+            "layout": {
+              "span": 12
+            },
+            "targetSchemaId": "ttrpg-location-v1",
+            "multiple": false,
+            "inverseLabel": "Contains",
+            "relationshipTypeId": "fieldrel-tBCnG4RU_K"
+          },
+          {
+            "id": "field_22cbe397-9bdd-4c70-b0ad-aae03b46eca9",
+            "key": "encounters",
+            "label": "Encounters",
+            "type": "relationship",
+            "placeholder": "",
+            "layout": {
+              "span": 12
+            },
+            "targetSchemaId": "ttrpg-monster-v1",
+            "multiple": true,
+            "inverseLabel": "Found In",
+            "relationshipTypeId": "fieldrel-S4NkIllk-5"
+          },
+          {
+            "id": "field_816a28c0-e71f-4514-9e1a-68458254bedc",
+            "key": "dmNotes",
+            "label": "DM Notes",
+            "type": "textarea",
+            "placeholder": "",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3
+          }
+        ]
+      }
+    ],
+    "createdAt": "2026-10-14T00:26:06.034Z",
+    "updatedAt": "2026-10-14T00:26:06.034Z"
+  },
+  {
+    "id": "ttrpg-npc-v1",
+    "name": "NPC",
+    "icon": "article",
+    "description": "Non-player characters: allies, villains, shopkeepers.",
+    "version": 15,
+    "isNew": false,
+    "tabs": [
+      {
+        "key": "general",
+        "label": "NPC",
+        "fields": [
+          {
+            "key": "role",
+            "label": "Role / Occupation",
+            "type": "text",
+            "id": "field_f1dbbc2a-4949-4bad-bc38-894647c2ffcc",
+            "layout": {
+              "span": 6
+            }
+          },
+          {
+            "key": "voice",
+            "label": "Voice & Mannerisms",
+            "type": "textarea",
+            "id": "field_4b5b92d9-5baf-4f3c-acea-a2cb389e11d3",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3
+          },
+          {
+            "id": "field_30e209b7-1a8f-4b18-8a17-9903f602d356",
+            "key": "disposition",
+            "label": "Disposition",
+            "type": "select",
+            "placeholder": "",
+            "layout": {
+              "span": 6
+            },
+            "options": [
+              "Friendly",
+              "Indifferent",
+              "Suspicious",
+              "Hostile"
+            ]
+          },
+          {
+            "id": "field_f28dcfb4-a48d-4750-969b-009173e0945e",
+            "key": "faction",
+            "label": "Faction",
+            "type": "relationship",
+            "placeholder": "",
+            "layout": {
+              "span": 12
+            },
+            "targetSchemaId": "ttrpg-faction-v1",
+            "multiple": false,
+            "inverseLabel": "Members",
+            "relationshipTypeId": "fieldrel-dDh1rksubl"
+          },
+          {
+            "id": "field_943ffac8-9fa8-4182-8277-ff59137b910c",
+            "key": "location",
+            "label": "Usually Found At",
+            "type": "relationship",
+            "placeholder": "",
+            "layout": {
+              "span": 12
+            },
+            "targetSchemaId": "ttrpg-location-v1",
+            "multiple": false,
+            "inverseLabel": "Residents",
+            "relationshipTypeId": "fieldrel-wRMilj90ti"
+          },
+          {
+            "id": "field_09d50ccf-7fdc-4992-b188-da6d02c0ad2f",
+            "key": "statBlock",
+            "label": "Stat Block",
+            "type": "relationship",
+            "placeholder": "",
+            "layout": {
+              "span": 12
+            },
+            "targetSchemaId": "ttrpg-monster-v1",
+            "multiple": false,
+            "inverseLabel": "Used by NPCs",
+            "relationshipTypeId": "fieldrel-jdrs9ko0nD"
+          },
+          {
+            "id": "field_a62f482f-5d42-4a51-91d6-c753cb835729",
+            "key": "secrets",
+            "label": "Secrets & Motives",
+            "type": "textarea",
+            "placeholder": "",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3
+          }
+        ]
+      }
+    ],
+    "createdAt": "2026-10-14T00:28:44.499Z",
+    "updatedAt": "2026-10-14T00:28:44.499Z"
+  },
+  {
+    "id": "ttrpg-quest-v1",
+    "name": "Quest",
+    "icon": "article",
+    "description": "Quests, hooks and plot threads the party can follow.",
+    "version": 12,
+    "isNew": false,
+    "tabs": [
+      {
+        "key": "general",
+        "label": "Quest",
+        "fields": [
+          {
+            "key": "status",
+            "label": "Status",
+            "type": "select",
+            "id": "field_f89fdfea-b7d9-4821-8758-1637e829ffdd",
+            "layout": {
+              "span": 6
+            },
+            "options": [
+              "Rumoured",
+              "Active",
+              "Completed",
+              "Failed"
+            ]
+          },
+          {
+            "key": "summary",
+            "label": "Summary",
+            "type": "textarea",
+            "id": "field_166f3ffe-af0d-4e15-ad5c-629db5adbd79",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3
+          },
+          {
+            "id": "field_22172c9a-0ce9-4625-b33f-72136b7fa7d0",
+            "key": "questGiver",
+            "label": "Quest Giver",
+            "type": "relationship",
+            "placeholder": "",
+            "layout": {
+              "span": 12
+            },
+            "targetSchemaId": "ttrpg-npc-v1",
+            "multiple": false,
+            "inverseLabel": "Quests Given",
+            "relationshipTypeId": "fieldrel-ZA8m-hkTTZ"
+          },
+          {
+            "id": "field_51e1e5f3-c25b-4c7b-821e-33588013d95e",
+            "key": "where",
+            "label": "Where",
+            "type": "relationship",
+            "placeholder": "",
+            "layout": {
+              "span": 12
+            },
+            "targetSchemaId": "ttrpg-location-v1",
+            "multiple": false,
+            "inverseLabel": "Quests Here",
+            "relationshipTypeId": "fieldrel-XXUiKr8KYM"
+          },
+          {
+            "id": "field_3b4dacea-e2c0-4598-940a-92d189e11621",
+            "key": "reward",
+            "label": "Reward",
+            "type": "text",
+            "placeholder": "",
+            "layout": {
+              "span": 12
+            }
+          }
+        ]
+      }
+    ],
+    "createdAt": "2026-10-14T00:31:20.135Z",
+    "updatedAt": "2026-10-14T00:31:20.135Z"
+  },
+  {
+    "id": "ttrpg-magic-item-v1",
+    "name": "Magic Item",
+    "icon": "article",
+    "description": "Wondrous items, weapons, armour and artifacts.",
+    "version": 9,
+    "isNew": false,
+    "tabs": [
+      {
+        "key": "general",
+        "label": "Item",
+        "fields": [
+          {
+            "key": "rarity",
+            "label": "Rarity",
+            "type": "select",
+            "id": "field_9c66c698-a33c-42b9-965f-e6004750d47f",
+            "layout": {
+              "span": 6
+            },
+            "options": [
+              "Common",
+              "Uncommon",
+              "Rare",
+              "Very Rare",
+              "Legendary",
+              "Artifact"
+            ]
+          },
+          {
+            "key": "properties",
+            "label": "Properties",
+            "type": "textarea",
+            "id": "field_29b3d39d-dbc5-4027-af46-3b61060be4ae",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3
+          },
+          {
+            "id": "field_2dff644e-fa0d-44d6-87c5-3144a7867ae6",
+            "key": "attunement",
+            "label": "Requires Attunement",
+            "type": "checkbox",
+            "placeholder": "",
+            "layout": {
+              "span": 6
+            }
+          },
+          {
+            "id": "field_cb84e83e-fb21-46a6-b8be-400ed165eb7b",
+            "key": "itemTags",
+            "label": "Item Type Tags",
+            "type": "array",
+            "placeholder": "",
+            "layout": {
+              "span": 12
+            }
+          }
+        ]
+      }
+    ],
+    "createdAt": "2026-10-14T00:32:56.743Z",
+    "updatedAt": "2026-10-14T00:32:56.743Z"
+  },
+  {
+    "id": "character-v1",
+    "name": "Character",
+    "icon": "person",
+    "description": "A character in your story or world",
+    "nameGeneratorId": "gen-character-names",
+    "version": 1,
+    "tabs": [
+      {
+        "key": "basic",
+        "label": "Basic Info",
+        "icon": "info",
+        "fields": [
+          {
+            "key": "fullName",
+            "label": "Full Name",
+            "type": "text",
+            "layout": {
+              "span": 12
+            },
+            "validation": {
+              "required": true
+            },
+            "placeholder": "Character's full name",
+            "generatorId": "gen-character-names"
+          },
+          {
+            "key": "age",
+            "label": "Age",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "e.g., 35, Ancient, Young Adult"
+          },
+          {
+            "key": "gender",
+            "label": "Gender",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "e.g., Male, Female, Non-binary"
+          },
+          {
+            "key": "species",
+            "label": "Species",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "e.g., Human, Elf, Dragon"
+          },
+          {
+            "key": "occupation",
+            "label": "Occupation",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "e.g., Knight, Scholar, Merchant"
+          },
+          {
+            "key": "summary",
+            "label": "Summary",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Brief character summary..."
+          },
+          {
+            "key": "notes",
+            "label": "Notes",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 5,
+            "placeholder": "Additional notes about the character..."
+          }
+        ],
+        "order": 1
+      },
+      {
+        "key": "appearance",
+        "label": "Appearance",
+        "icon": "visibility",
+        "fields": [
+          {
+            "key": "appearance.height",
+            "label": "Height",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "e.g., 6'2\", 180cm, Tall"
+          },
+          {
+            "key": "appearance.weight",
+            "label": "Weight",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "e.g., 180lbs, Athletic, Heavy"
+          },
+          {
+            "key": "appearance.eyeColor",
+            "label": "Eye Color",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "e.g., Blue, Brown, Heterochromia"
+          },
+          {
+            "key": "appearance.hairColor",
+            "label": "Hair Color",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "e.g., Black, Blonde, Silver"
+          },
+          {
+            "key": "appearance.distinguishingFeatures",
+            "label": "Distinguishing Features",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Scars, tattoos, unique physical traits..."
+          },
+          {
+            "key": "appearance.clothing",
+            "label": "Clothing Style",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Typical clothing and style..."
+          }
+        ],
+        "order": 2
+      },
+      {
+        "key": "personality",
+        "label": "Personality",
+        "icon": "psychology",
+        "fields": [
+          {
+            "key": "personality.traits",
+            "label": "Personality Traits",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a trait",
+            "description": "Key personality characteristics"
+          },
+          {
+            "key": "personality.strengths",
+            "label": "Strengths",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a strength"
+          },
+          {
+            "key": "personality.weaknesses",
+            "label": "Weaknesses",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a weakness"
+          },
+          {
+            "key": "personality.fears",
+            "label": "Fears",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a fear"
+          },
+          {
+            "key": "personality.goals",
+            "label": "Goals",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a goal"
+          },
+          {
+            "key": "personality.motivations",
+            "label": "Motivations",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a motivation"
+          }
+        ],
+        "order": 3
+      },
+      {
+        "key": "background",
+        "label": "Background",
+        "icon": "history_edu",
+        "fields": [
+          {
+            "key": "background.dateOfBirth",
+            "label": "Date of Birth",
+            "type": "date",
+            "layout": {
+              "span": 6
+            },
+            "description": "The character's date of birth in the project's time system."
+          },
+          {
+            "key": "background.birthplace",
+            "label": "Birthplace",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "Where was the character born?"
+          },
+          {
+            "key": "background.family",
+            "label": "Family",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Family members, relationships..."
+          },
+          {
+            "key": "background.education",
+            "label": "Education",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Educational background, training..."
+          },
+          {
+            "key": "background.history",
+            "label": "History",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 6,
+            "placeholder": "Character's backstory and important events..."
+          }
+        ],
+        "order": 4
+      },
+      {
+        "key": "abilities",
+        "label": "Abilities",
+        "icon": "stars",
+        "fields": [
+          {
+            "key": "abilities.skills",
+            "label": "Skills",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a skill",
+            "description": "Learned skills and proficiencies"
+          },
+          {
+            "key": "abilities.powers",
+            "label": "Powers & Magic",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a power",
+            "description": "Magical abilities, supernatural powers"
+          },
+          {
+            "key": "abilities.equipment",
+            "label": "Equipment & Items",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add equipment",
+            "description": "Important items and equipment"
+          }
+        ],
+        "order": 5
+      },
+      {
+        "key": "family",
+        "label": "Family",
+        "icon": "family_restroom",
+        "order": 6,
+        "fields": [
+          {
+            "key": "mother",
+            "label": "Mother",
+            "type": "relationship",
+            "targetSchemaId": "character-v1",
+            "inverseLabel": "Child of",
+            "relationshipTypeId": "fieldrel-character-mother",
+            "layout": {
+              "span": 12
+            }
+          },
+          {
+            "key": "father",
+            "label": "Father",
+            "type": "relationship",
+            "targetSchemaId": "character-v1",
+            "inverseLabel": "Child of",
+            "relationshipTypeId": "fieldrel-character-father",
+            "layout": {
+              "span": 12
+            }
+          }
+        ]
+      }
+    ],
+    "defaultValues": {},
+    "defaultAppearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #e3d6f5 0%, #e7c0ed 55%, #e3abd0 100%)",
+        "dark": "linear-gradient(160deg, #1c112c 0%, #39193e 55%, #522342 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f7f4fb 0%, #f4eaf6 55%, #f1dfeb 100%)",
+        "dark": "linear-gradient(160deg, #130d1c 0%, #231325 55%, #2e1927 100%)"
+      }
+    }
+  },
+  {
+    "id": "location-v1",
+    "name": "Location",
+    "icon": "place",
+    "description": "A place or location in your world",
+    "version": 1,
+    "tabs": [
+      {
+        "key": "basic",
+        "label": "Overview",
+        "icon": "info",
+        "fields": [
+          {
+            "key": "name",
+            "label": "Location Name",
+            "type": "text",
+            "layout": {
+              "span": 12
+            },
+            "validation": {
+              "required": true
+            },
+            "placeholder": "Name of the location"
+          },
+          {
+            "key": "type",
+            "label": "Type",
+            "type": "select",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "Select location type",
+            "options": [
+              "City",
+              "Town",
+              "Village",
+              "Kingdom",
+              "Landmark",
+              "Building",
+              "Natural Feature",
+              "Other"
+            ]
+          },
+          {
+            "key": "population",
+            "label": "Population",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "e.g., 5000, Large, Uninhabited"
+          },
+          {
+            "key": "climate",
+            "label": "Climate",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "e.g., Temperate, Tropical, Arctic"
+          },
+          {
+            "key": "region",
+            "label": "Region/Area",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "What region is this in?"
+          },
+          {
+            "key": "summary",
+            "label": "Summary",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Brief description of the location..."
+          },
+          {
+            "key": "notes",
+            "label": "Notes",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 5,
+            "placeholder": "Additional notes..."
+          }
+        ],
+        "order": 1
+      },
+      {
+        "key": "description",
+        "label": "Description",
+        "icon": "description",
+        "fields": [
+          {
+            "key": "appearance",
+            "label": "Visual Appearance",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 5,
+            "placeholder": "What does this location look like?"
+          },
+          {
+            "key": "landmarks",
+            "label": "Notable Landmarks",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a landmark",
+            "description": "Important features or landmarks"
+          },
+          {
+            "key": "atmosphere",
+            "label": "Atmosphere",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "What does it feel like to be here?"
+          }
+        ],
+        "order": 2
+      },
+      {
+        "key": "culture",
+        "label": "Culture & Society",
+        "icon": "groups",
+        "fields": [
+          {
+            "key": "culture.government",
+            "label": "Government",
+            "type": "text",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "e.g., Democracy, Monarchy, Tribal"
+          },
+          {
+            "key": "culture.economy",
+            "label": "Economy",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Main industries, trade, wealth..."
+          },
+          {
+            "key": "culture.customs",
+            "label": "Customs & Traditions",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a custom or tradition"
+          },
+          {
+            "key": "culture.languages",
+            "label": "Languages",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a language"
+          }
+        ],
+        "order": 3
+      },
+      {
+        "key": "history",
+        "label": "History",
+        "icon": "history",
+        "fields": [
+          {
+            "key": "history.founded",
+            "label": "Founded",
+            "type": "text",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "When was this location established?"
+          },
+          {
+            "key": "history.events",
+            "label": "Major Events",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a historical event",
+            "description": "Important events in this location's history"
+          },
+          {
+            "key": "history.background",
+            "label": "Background",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 6,
+            "placeholder": "Historical context and background..."
+          }
+        ],
+        "order": 4
+      }
+    ],
+    "defaultValues": {},
+    "defaultAppearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #d6f5e6 0%, #c0ede5 55%, #abdae3 100%)",
+        "dark": "linear-gradient(160deg, #112c1f 0%, #193e37 55%, #234a52 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f4fbf7 0%, #eaf6f4 55%, #dfeef1 100%)",
+        "dark": "linear-gradient(160deg, #0d1c14 0%, #132522 55%, #192b2e 100%)"
+      }
+    }
+  },
+  {
+    "id": "wb-item-v1",
+    "name": "Item",
+    "icon": "category",
+    "description": "An object, artifact, weapon, food, or other item in your world",
+    "version": 1,
+    "tabs": [
+      {
+        "key": "basic",
+        "label": "Properties",
+        "icon": "info",
+        "fields": [
+          {
+            "key": "name",
+            "label": "Item Name",
+            "type": "text",
+            "layout": {
+              "span": 12
+            },
+            "validation": {
+              "required": true
+            },
+            "placeholder": "Name of the item"
+          },
+          {
+            "key": "type",
+            "label": "Item Type",
+            "type": "select",
+            "layout": {
+              "span": 6
+            },
+            "options": [
+              "Artifact",
+              "Weapon",
+              "Armour",
+              "Tool",
+              "Clothing",
+              "Food",
+              "Currency",
+              "Treasure",
+              "Common Item",
+              "Other"
+            ]
+          },
+          {
+            "key": "rarity",
+            "label": "Rarity",
+            "type": "select",
+            "layout": {
+              "span": 6
+            },
+            "options": [
+              "Common",
+              "Uncommon",
+              "Rare",
+              "Very Rare",
+              "Legendary",
+              "Unique"
+            ]
+          },
+          {
+            "key": "materials",
+            "label": "Materials",
+            "type": "text",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "What is it made of?"
+          },
+          {
+            "key": "value",
+            "label": "Value",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "e.g., 50 gold, Priceless"
+          },
+          {
+            "key": "owner",
+            "label": "Owner",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "Who owns or carries it?"
+          },
+          {
+            "key": "description",
+            "label": "Description",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 4,
+            "placeholder": "Physical description and details..."
+          }
+        ],
+        "order": 1
+      },
+      {
+        "key": "origin",
+        "label": "Origin & History",
+        "icon": "history",
+        "fields": [
+          {
+            "key": "origin.created",
+            "label": "Created",
+            "type": "text",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "When and where was it made?"
+          },
+          {
+            "key": "origin.creator",
+            "label": "Creator",
+            "type": "text",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Who created it?"
+          },
+          {
+            "key": "origin.history",
+            "label": "History",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 5,
+            "placeholder": "Its story, travels, previous owners..."
+          }
+        ],
+        "order": 2
+      },
+      {
+        "key": "uses",
+        "label": "Uses & Properties",
+        "icon": "build",
+        "fields": [
+          {
+            "key": "uses.purpose",
+            "label": "Purpose",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "What is it used for?"
+          },
+          {
+            "key": "uses.properties",
+            "label": "Special Properties",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a property",
+            "description": "Magical or unusual properties"
+          },
+          {
+            "key": "uses.effects",
+            "label": "Effects",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Effects when used, costs, side effects..."
+          }
+        ],
+        "order": 3
+      },
+      {
+        "key": "variants",
+        "label": "Variants",
+        "icon": "content_copy",
+        "fields": [
+          {
+            "key": "variants.related",
+            "label": "Related Variants",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a variant"
+          },
+          {
+            "key": "variants.notes",
+            "label": "Notes",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Additional notes..."
+          }
+        ],
+        "order": 4
+      }
+    ],
+    "defaultValues": {},
+    "defaultAppearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(150deg, #f5e8d6 0%, #ede0c0 55%, #e3dbab 100%)",
+        "dark": "linear-gradient(150deg, #2c2111 0%, #3e3419 55%, #524c23 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(150deg, #fbf8f4 0%, #f6f2ea 55%, #f1eedf 100%)",
+        "dark": "linear-gradient(150deg, #1c160d 0%, #252013 55%, #2e2c19 100%)"
+      }
+    }
+  },
+  {
+    "id": "species-v1",
+    "name": "Species",
+    "icon": "pets",
+    "description": "A plant, animal, sapient race, or other living species",
+    "version": 1,
+    "tabs": [
+      {
+        "key": "basic",
+        "label": "Basic Info",
+        "icon": "info",
+        "fields": [
+          {
+            "key": "name",
+            "label": "Species Name",
+            "type": "text",
+            "layout": {
+              "span": 12
+            },
+            "validation": {
+              "required": true
+            },
+            "placeholder": "Name of the species"
+          },
+          {
+            "key": "classification",
+            "label": "Classification",
+            "type": "select",
+            "layout": {
+              "span": 6
+            },
+            "options": [
+              "Mammal",
+              "Reptile",
+              "Amphibian",
+              "Bird",
+              "Fish",
+              "Insect",
+              "Plant",
+              "Fungi",
+              "Elemental",
+              "Construct",
+              "Undead",
+              "Spirit",
+              "Other"
+            ]
+          },
+          {
+            "key": "sapient",
+            "label": "Sapient",
+            "type": "checkbox",
+            "layout": {
+              "span": 6
+            },
+            "description": "Intelligent, self-aware species"
+          },
+          {
+            "key": "lifespan",
+            "label": "Lifespan",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "e.g., 80 years, Immortal, Centuries"
+          },
+          {
+            "key": "habitat",
+            "label": "Habitat",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "e.g., Forests, Deep ocean, Deserts"
+          },
+          {
+            "key": "diet",
+            "label": "Diet",
+            "type": "select",
+            "layout": {
+              "span": 6
+            },
+            "options": [
+              "Carnivore",
+              "Herbivore",
+              "Omnivore",
+              "Scavenger",
+              "Photosynthetic",
+              "Magical",
+              "Other"
+            ]
+          },
+          {
+            "key": "rarity",
+            "label": "Rarity",
+            "type": "select",
+            "layout": {
+              "span": 6
+            },
+            "options": [
+              "Common",
+              "Uncommon",
+              "Rare",
+              "Endangered",
+              "Extinct",
+              "Legendary"
+            ]
+          },
+          {
+            "key": "summary",
+            "label": "Summary",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Brief summary of the species..."
+          }
+        ],
+        "order": 1
+      },
+      {
+        "key": "appearance",
+        "label": "Appearance",
+        "icon": "visibility",
+        "fields": [
+          {
+            "key": "appearance.size",
+            "label": "Size",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "e.g., Small, 2m tall, Massive"
+          },
+          {
+            "key": "appearance.physiology",
+            "label": "Physiology",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 4,
+            "placeholder": "Body structure, distinguishing physical traits..."
+          },
+          {
+            "key": "appearance.coloring",
+            "label": "Coloring & Markings",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Typical colors, patterns, markings..."
+          },
+          {
+            "key": "appearance.variations",
+            "label": "Variations",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Subspecies, regional variations..."
+          }
+        ],
+        "order": 2
+      },
+      {
+        "key": "behaviour",
+        "label": "Behaviour & Culture",
+        "icon": "groups",
+        "fields": [
+          {
+            "key": "behaviour.socialStructure",
+            "label": "Social Structure",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "How they organise themselves..."
+          },
+          {
+            "key": "behaviour.behaviour",
+            "label": "Behaviour",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Temperament, habits, instincts..."
+          },
+          {
+            "key": "behaviour.culture",
+            "label": "Culture",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 4,
+            "placeholder": "For sapient species: customs, values, arts..."
+          },
+          {
+            "key": "behaviour.language",
+            "label": "Language",
+            "type": "text",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "How they communicate..."
+          },
+          {
+            "key": "behaviour.domestication",
+            "label": "Domestication",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 2,
+            "placeholder": "Can they be tamed or domesticated?"
+          }
+        ],
+        "order": 3
+      },
+      {
+        "key": "relations",
+        "label": "Relations",
+        "icon": "account_tree",
+        "fields": [
+          {
+            "key": "relations.subspecies",
+            "label": "Subspecies",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a subspecies"
+          },
+          {
+            "key": "relations.related",
+            "label": "Related Species",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a related species"
+          },
+          {
+            "key": "relations.notes",
+            "label": "Notes",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Additional notes..."
+          }
+        ],
+        "order": 4
+      }
+    ],
+    "defaultValues": {},
+    "defaultAppearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #e3f5d6 0%, #c0edc2 55%, #abe3c7 100%)",
+        "dark": "linear-gradient(160deg, #1c2c11 0%, #193e1b 55%, #23523b 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f7fbf4 0%, #eaf6ea 55%, #dff1e8 100%)",
+        "dark": "linear-gradient(160deg, #131c0d 0%, #132514 55%, #192e24 100%)"
+      }
+    }
+  },
+  {
+    "id": "organization-v1",
+    "name": "Organization",
+    "icon": "account_balance",
+    "description": "A country, religion, guild, company, clan, or other group",
+    "version": 1,
+    "tabs": [
+      {
+        "key": "basic",
+        "label": "Basic Info",
+        "icon": "info",
+        "fields": [
+          {
+            "key": "name",
+            "label": "Organization Name",
+            "type": "text",
+            "layout": {
+              "span": 12
+            },
+            "validation": {
+              "required": true
+            },
+            "placeholder": "Name of the organization"
+          },
+          {
+            "key": "type",
+            "label": "Organization Type",
+            "type": "select",
+            "layout": {
+              "span": 6
+            },
+            "options": [
+              "Country",
+              "Government",
+              "Religion",
+              "Pantheon",
+              "Cult",
+              "Guild",
+              "Company",
+              "Clan/Dynasty",
+              "University",
+              "Military",
+              "Adventuring Party",
+              "Secret Society",
+              "Other"
+            ]
+          },
+          {
+            "key": "motto",
+            "label": "Motto",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "Official motto or slogan"
+          },
+          {
+            "key": "founding",
+            "label": "Founded",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "When was it founded?"
+          },
+          {
+            "key": "size",
+            "label": "Size",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "e.g., 500 members, Continental power"
+          },
+          {
+            "key": "alignment",
+            "label": "Alignment",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "e.g., Lawful Neutral, Chaotic Good"
+          },
+          {
+            "key": "summary",
+            "label": "Summary",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Brief summary..."
+          }
+        ],
+        "order": 1
+      },
+      {
+        "key": "leadership",
+        "label": "Leadership",
+        "icon": "military_tech",
+        "fields": [
+          {
+            "key": "leadership.leader",
+            "label": "Leader",
+            "type": "text",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Current leader or ruling body"
+          },
+          {
+            "key": "leadership.hierarchy",
+            "label": "Hierarchy",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 4,
+            "placeholder": "Structure of leadership, ranks..."
+          },
+          {
+            "key": "leadership.prominent",
+            "label": "Prominent Members",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a prominent member"
+          }
+        ],
+        "order": 2
+      },
+      {
+        "key": "structure",
+        "label": "Structure",
+        "icon": "account_tree",
+        "fields": [
+          {
+            "key": "structure.ranks",
+            "label": "Ranks",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a rank"
+          },
+          {
+            "key": "structure.divisions",
+            "label": "Divisions & Departments",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a division"
+          },
+          {
+            "key": "structure.membership",
+            "label": "Membership",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Who joins, how, requirements..."
+          }
+        ],
+        "order": 3
+      },
+      {
+        "key": "holdings",
+        "label": "Holdings & Territory",
+        "icon": "terrain",
+        "fields": [
+          {
+            "key": "holdings.territory",
+            "label": "Territory",
+            "type": "text",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Where is it based?"
+          },
+          {
+            "key": "holdings.bases",
+            "label": "Bases & Holdings",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a base or holding"
+          },
+          {
+            "key": "holdings.resources",
+            "label": "Resources & Wealth",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Income sources, assets..."
+          }
+        ],
+        "order": 4
+      },
+      {
+        "key": "agenda",
+        "label": "Goals & Agenda",
+        "icon": "flag",
+        "fields": [
+          {
+            "key": "agenda.goals",
+            "label": "Goals",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a goal"
+          },
+          {
+            "key": "agenda.activities",
+            "label": "Activities",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "What does it actually do?"
+          },
+          {
+            "key": "agenda.secrets",
+            "label": "Secrets",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Hidden agendas, dark secrets..."
+          }
+        ],
+        "order": 5
+      },
+      {
+        "key": "history",
+        "label": "History",
+        "icon": "history",
+        "fields": [
+          {
+            "key": "history.background",
+            "label": "Background",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 5,
+            "placeholder": "Founding story, major events..."
+          },
+          {
+            "key": "history.majorEvents",
+            "label": "Major Events",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add an event"
+          }
+        ],
+        "order": 6
+      }
+    ],
+    "defaultValues": {},
+    "defaultAppearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #d6e3f5 0%, #c0c5ed 55%, #b4abe3 100%)",
+        "dark": "linear-gradient(160deg, #111c2c 0%, #191e3e 55%, #2b2352 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f4f7fb 0%, #eaebf6 55%, #e2dff1 100%)",
+        "dark": "linear-gradient(160deg, #0d131c 0%, #131525 55%, #1d192e 100%)"
+      }
+    }
+  },
+  {
+    "id": "deity-v1",
+    "name": "Deity",
+    "icon": "ac_unit",
+    "description": "A god, goddess, or divine being worshipped in your world",
+    "version": 1,
+    "tabs": [
+      {
+        "key": "basic",
+        "label": "Basic Info",
+        "icon": "info",
+        "fields": [
+          {
+            "key": "name",
+            "label": "Deity Name",
+            "type": "text",
+            "layout": {
+              "span": 12
+            },
+            "validation": {
+              "required": true
+            },
+            "placeholder": "Name of the deity"
+          },
+          {
+            "key": "domains",
+            "label": "Domains",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a domain",
+            "description": "Aspects of the world this deity governs (e.g., War, Harvest)"
+          },
+          {
+            "key": "portfolio",
+            "label": "Portfolio",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "What this deity embodies and oversees..."
+          },
+          {
+            "key": "rank",
+            "label": "Rank",
+            "type": "select",
+            "layout": {
+              "span": 6
+            },
+            "options": [
+              "Supreme Deity",
+              "Greater Deity",
+              "Lesser Deity",
+              "Demi-god",
+              "Avatar",
+              "Other"
+            ]
+          },
+          {
+            "key": "alignment",
+            "label": "Alignment",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "e.g., Lawful Good, Chaotic Evil"
+          },
+          {
+            "key": "symbol",
+            "label": "Holy Symbol",
+            "type": "text",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Sacred symbol or iconography..."
+          },
+          {
+            "key": "summary",
+            "label": "Summary",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Brief summary..."
+          }
+        ],
+        "order": 1
+      },
+      {
+        "key": "worship",
+        "label": "Worship",
+        "icon": "church",
+        "fields": [
+          {
+            "key": "worship.followers",
+            "label": "Followers",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Who worships this deity?"
+          },
+          {
+            "key": "worship.rituals",
+            "label": "Rituals & Practices",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a ritual"
+          },
+          {
+            "key": "worship.sacredPlaces",
+            "label": "Sacred Places",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a sacred place"
+          },
+          {
+            "key": "worship.holyTexts",
+            "label": "Holy Texts",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a holy text"
+          },
+          {
+            "key": "worship.tenets",
+            "label": "Tenets & Dogma",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 4,
+            "placeholder": "Core beliefs, commandments..."
+          }
+        ],
+        "order": 2
+      },
+      {
+        "key": "relations",
+        "label": "Relations",
+        "icon": "account_tree",
+        "fields": [
+          {
+            "key": "relations.family",
+            "label": "Divine Family",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Parent deities, children, consorts..."
+          },
+          {
+            "key": "relations.allies",
+            "label": "Allies",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add an ally"
+          },
+          {
+            "key": "relations.enemies",
+            "label": "Enemies",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add an enemy"
+          },
+          {
+            "key": "relations.avatars",
+            "label": "Avatars & Manifestations",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add an avatar"
+          }
+        ],
+        "order": 3
+      },
+      {
+        "key": "history",
+        "label": "History",
+        "icon": "history",
+        "fields": [
+          {
+            "key": "history.origin",
+            "label": "Origin",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "How did this deity come to be?"
+          },
+          {
+            "key": "history.myths",
+            "label": "Myths & Legends",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 4,
+            "placeholder": "Stories told about this deity..."
+          },
+          {
+            "key": "history.notes",
+            "label": "Notes",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Additional notes..."
+          }
+        ],
+        "order": 4
+      }
+    ],
+    "defaultValues": {},
+    "defaultAppearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(170deg, #f5edd6 0%, #edd6c0 55%, #e3b9ab 100%)",
+        "dark": "linear-gradient(170deg, #2c2511 0%, #3e2b19 55%, #522f23 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(170deg, #fbf9f4 0%, #f6f0ea 55%, #f1e4df 100%)",
+        "dark": "linear-gradient(170deg, #1c180d 0%, #251c13 55%, #2e1e19 100%)"
+      }
+    }
+  },
+  {
+    "id": "language-v1",
+    "name": "Language",
+    "icon": "forum",
+    "description": "A spoken, written, or constructed language (conlang)",
+    "version": 1,
+    "tabs": [
+      {
+        "key": "basic",
+        "label": "Basic Info",
+        "icon": "info",
+        "fields": [
+          {
+            "key": "name",
+            "label": "Language Name",
+            "type": "text",
+            "layout": {
+              "span": 12
+            },
+            "validation": {
+              "required": true
+            },
+            "placeholder": "Name of the language"
+          },
+          {
+            "key": "family",
+            "label": "Language Family",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "e.g., Elvish, Germanic, Isolate"
+          },
+          {
+            "key": "script",
+            "label": "Script",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "Writing system used"
+          },
+          {
+            "key": "speakers",
+            "label": "Speakers",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "e.g., 2 million, Dwarven nations"
+          },
+          {
+            "key": "status",
+            "label": "Status",
+            "type": "select",
+            "layout": {
+              "span": 6
+            },
+            "options": [
+              "Living",
+              "Dead",
+              "Sacred",
+              "Trade",
+              "Secret",
+              "Constructed",
+              "Endangered",
+              "Other"
+            ]
+          },
+          {
+            "key": "summary",
+            "label": "Summary",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Brief summary..."
+          }
+        ],
+        "order": 1
+      },
+      {
+        "key": "phonology",
+        "label": "Phonology",
+        "icon": "record_voice_over",
+        "fields": [
+          {
+            "key": "phonology.consonants",
+            "label": "Consonants",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Consonant inventory..."
+          },
+          {
+            "key": "phonology.vowels",
+            "label": "Vowels",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 2,
+            "placeholder": "Vowel inventory..."
+          },
+          {
+            "key": "phonology.tones",
+            "label": "Tones & Stress",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 2,
+            "placeholder": "Tone, stress, rhythm..."
+          },
+          {
+            "key": "phonology.notes",
+            "label": "Phonology Notes",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Additional phonological details..."
+          }
+        ],
+        "order": 2
+      },
+      {
+        "key": "grammar",
+        "label": "Grammar",
+        "icon": "menu_book",
+        "fields": [
+          {
+            "key": "grammar.structure",
+            "label": "Sentence Structure",
+            "type": "text",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "e.g., SVO, VSO, Free order"
+          },
+          {
+            "key": "grammar.nouns",
+            "label": "Nouns",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Cases, gender, number..."
+          },
+          {
+            "key": "grammar.verbs",
+            "label": "Verbs",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Conjugation, tense, aspect..."
+          },
+          {
+            "key": "grammar.notes",
+            "label": "Grammar Notes",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Additional grammatical rules..."
+          }
+        ],
+        "order": 3
+      },
+      {
+        "key": "vocabulary",
+        "label": "Vocabulary",
+        "icon": "translate",
+        "fields": [
+          {
+            "key": "vocabulary.words",
+            "label": "Dictionary",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a word (word — meaning)"
+          },
+          {
+            "key": "vocabulary.phrases",
+            "label": "Common Phrases",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a phrase"
+          },
+          {
+            "key": "vocabulary.naming",
+            "label": "Naming Conventions",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "How names are formed..."
+          }
+        ],
+        "order": 4
+      }
+    ],
+    "defaultValues": {},
+    "defaultAppearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #d6f0f5 0%, #c0d6ed 55%, #abb4e3 100%)",
+        "dark": "linear-gradient(160deg, #11282c 0%, #192b3e 55%, #232b52 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f4fafb 0%, #eaf0f6 55%, #dfe2f1 100%)",
+        "dark": "linear-gradient(160deg, #0d191c 0%, #131c25 55%, #191d2e 100%)"
+      }
+    }
+  },
+  {
+    "id": "material-v1",
+    "name": "Material",
+    "icon": "science",
+    "description": "A raw material or substance unique or important to your world",
+    "version": 1,
+    "tabs": [
+      {
+        "key": "basic",
+        "label": "Basic Info",
+        "icon": "info",
+        "fields": [
+          {
+            "key": "name",
+            "label": "Material Name",
+            "type": "text",
+            "layout": {
+              "span": 12
+            },
+            "validation": {
+              "required": true
+            },
+            "placeholder": "Name of the material"
+          },
+          {
+            "key": "type",
+            "label": "Material Type",
+            "type": "select",
+            "layout": {
+              "span": 6
+            },
+            "options": [
+              "Metal",
+              "Stone",
+              "Crystal",
+              "Wood",
+              "Fabric",
+              "Liquid",
+              "Gas",
+              "Organic",
+              "Magical",
+              "Other"
+            ]
+          },
+          {
+            "key": "rarity",
+            "label": "Rarity",
+            "type": "select",
+            "layout": {
+              "span": 6
+            },
+            "options": [
+              "Common",
+              "Uncommon",
+              "Rare",
+              "Very Rare",
+              "Legendary",
+              "Unique"
+            ]
+          },
+          {
+            "key": "origin",
+            "label": "Origin",
+            "type": "text",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Where does it come from?"
+          },
+          {
+            "key": "summary",
+            "label": "Summary",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Brief summary..."
+          }
+        ],
+        "order": 1
+      },
+      {
+        "key": "properties",
+        "label": "Properties",
+        "icon": "tune",
+        "fields": [
+          {
+            "key": "properties.hardness",
+            "label": "Hardness & Durability",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "e.g., Harder than steel, Fragile"
+          },
+          {
+            "key": "properties.density",
+            "label": "Density & Weight",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "e.g., Lighter than air, Heavy"
+          },
+          {
+            "key": "properties.magical",
+            "label": "Magical Properties",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Inherent magical qualities..."
+          },
+          {
+            "key": "properties.reactivity",
+            "label": "Reactivity",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 2,
+            "placeholder": "Reactions to elements, magic, conditions..."
+          },
+          {
+            "key": "properties.other",
+            "label": "Other Properties",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 2,
+            "placeholder": "Conductivity, malleability, taste..."
+          }
+        ],
+        "order": 2
+      },
+      {
+        "key": "uses",
+        "label": "Uses",
+        "icon": "build",
+        "fields": [
+          {
+            "key": "uses.applications",
+            "label": "Applications",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add an application",
+            "description": "What is it used to make or do?"
+          },
+          {
+            "key": "uses.trade",
+            "label": "Trade & Value",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 2,
+            "placeholder": "Economic importance, trade value..."
+          },
+          {
+            "key": "uses.cultural",
+            "label": "Cultural Significance",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 2,
+            "placeholder": "Religious, ceremonial, or social meaning..."
+          }
+        ],
+        "order": 3
+      },
+      {
+        "key": "sources",
+        "label": "Sources",
+        "icon": "terrain",
+        "fields": [
+          {
+            "key": "sources.locations",
+            "label": "Locations",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a location",
+            "description": "Where it can be found or mined"
+          },
+          {
+            "key": "sources.extraction",
+            "label": "Extraction",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 2,
+            "placeholder": "How it is obtained, dangers involved..."
+          }
+        ],
+        "order": 4
+      }
+    ],
+    "defaultValues": {},
+    "defaultAppearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(150deg, #f5e0d6 0%, #edd6c0 55%, #e3d0ab 100%)",
+        "dark": "linear-gradient(150deg, #2c1a11 0%, #3e2b19 55%, #524223 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(150deg, #fbf6f4 0%, #f6f0ea 55%, #f1ebdf 100%)",
+        "dark": "linear-gradient(150deg, #1c120d 0%, #251c13 55%, #2e2719 100%)"
+      }
+    }
+  },
+  {
+    "id": "technology-v1",
+    "name": "Technology",
+    "icon": "router",
+    "description": "A technology, invention, or scientific field in your world",
+    "version": 1,
+    "tabs": [
+      {
+        "key": "basic",
+        "label": "Basic Info",
+        "icon": "info",
+        "fields": [
+          {
+            "key": "name",
+            "label": "Technology Name",
+            "type": "text",
+            "layout": {
+              "span": 12
+            },
+            "validation": {
+              "required": true
+            },
+            "placeholder": "Name of the technology"
+          },
+          {
+            "key": "field",
+            "label": "Field",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "e.g., Transportation, Communication, Weapons"
+          },
+          {
+            "key": "era",
+            "label": "Era",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "When was it developed / used?"
+          },
+          {
+            "key": "inventors",
+            "label": "Inventors",
+            "type": "text",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Who developed it?"
+          },
+          {
+            "key": "summary",
+            "label": "Summary",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Brief summary..."
+          }
+        ],
+        "order": 1
+      },
+      {
+        "key": "principles",
+        "label": "Principles",
+        "icon": "lightbulb",
+        "fields": [
+          {
+            "key": "principles.howItWorks",
+            "label": "How It Works",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 5,
+            "placeholder": "The underlying principles and mechanism..."
+          },
+          {
+            "key": "principles.components",
+            "label": "Components",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a component"
+          },
+          {
+            "key": "principles.materials",
+            "label": "Materials",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a material"
+          }
+        ],
+        "order": 2
+      },
+      {
+        "key": "applications",
+        "label": "Applications",
+        "icon": "build",
+        "fields": [
+          {
+            "key": "applications.uses",
+            "label": "Uses",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a use"
+          },
+          {
+            "key": "applications.impact",
+            "label": "Societal Impact",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "How it changed society..."
+          },
+          {
+            "key": "applications.limitations",
+            "label": "Limitations & Risks",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Drawbacks, dangers, costs..."
+          }
+        ],
+        "order": 3
+      },
+      {
+        "key": "history",
+        "label": "History",
+        "icon": "history",
+        "fields": [
+          {
+            "key": "history.discovery",
+            "label": "Discovery & Development",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 4,
+            "placeholder": "The story of its creation..."
+          },
+          {
+            "key": "history.milestones",
+            "label": "Milestones",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a milestone"
+          }
+        ],
+        "order": 4
+      }
+    ],
+    "defaultValues": {},
+    "defaultAppearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #d6ebf5 0%, #c0e7ed 55%, #abe3de 100%)",
+        "dark": "linear-gradient(160deg, #11232c 0%, #19393e 55%, #23524e 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f4f8fb 0%, #eaf4f6 55%, #dff1ef 100%)",
+        "dark": "linear-gradient(160deg, #0d171c 0%, #132325 55%, #192e2d 100%)"
+      }
+    }
+  },
+  {
+    "id": "magic-system-v1",
+    "name": "Magic System",
+    "icon": "flash_on",
+    "description": "The rules, sources, and mechanics of magic in your world",
+    "version": 1,
+    "tabs": [
+      {
+        "key": "basic",
+        "label": "Basic Info",
+        "icon": "info",
+        "fields": [
+          {
+            "key": "name",
+            "label": "System Name",
+            "type": "text",
+            "layout": {
+              "span": 12
+            },
+            "validation": {
+              "required": true
+            },
+            "placeholder": "Name of the magic system"
+          },
+          {
+            "key": "type",
+            "label": "Type",
+            "type": "select",
+            "layout": {
+              "span": 6
+            },
+            "options": [
+              "Hard Magic",
+              "Soft Magic",
+              "Ritual",
+              "Innate",
+              "Learned",
+              "Divine",
+              "Natural",
+              "Other"
+            ]
+          },
+          {
+            "key": "source",
+            "label": "Source",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "Where does magic come from?"
+          },
+          {
+            "key": "prevalence",
+            "label": "Prevalence",
+            "type": "select",
+            "layout": {
+              "span": 6
+            },
+            "options": [
+              "Ubiquitous",
+              "Common",
+              "Rare",
+              "Very Rare",
+              "Legendary",
+              "Secret"
+            ]
+          },
+          {
+            "key": "summary",
+            "label": "Summary",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Brief summary..."
+          }
+        ],
+        "order": 1
+      },
+      {
+        "key": "rules",
+        "label": "Rules & Mechanics",
+        "icon": "rule",
+        "fields": [
+          {
+            "key": "rules.mechanics",
+            "label": "Mechanics",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 5,
+            "placeholder": "How magic is performed, cost, limits..."
+          },
+          {
+            "key": "rules.costs",
+            "label": "Costs",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a cost",
+            "description": "Energy, materials, sacrifices..."
+          },
+          {
+            "key": "rules.limits",
+            "label": "Limits",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a limit"
+          },
+          {
+            "key": "rules.schools",
+            "label": "Schools & Traditions",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a school"
+          }
+        ],
+        "order": 2
+      },
+      {
+        "key": "practitioners",
+        "label": "Practitioners",
+        "icon": "groups",
+        "fields": [
+          {
+            "key": "practitioners.who",
+            "label": "Who Can Use It",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 2,
+            "placeholder": "Who can learn or use magic?"
+          },
+          {
+            "key": "practitioners.training",
+            "label": "Training",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 2,
+            "placeholder": "How is it learned?"
+          },
+          {
+            "key": "practitioners.institutions",
+            "label": "Institutions",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add an institution"
+          }
+        ],
+        "order": 3
+      },
+      {
+        "key": "history",
+        "label": "History",
+        "icon": "history",
+        "fields": [
+          {
+            "key": "history.origin",
+            "label": "Origin",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "How did magic come to be?"
+          },
+          {
+            "key": "history.events",
+            "label": "Major Events",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add an event"
+          },
+          {
+            "key": "history.notes",
+            "label": "Notes",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Additional notes..."
+          }
+        ],
+        "order": 4
+      }
+    ],
+    "defaultValues": {},
+    "defaultAppearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #ebd6f5 0%, #c7c0ed 55%, #abbee3 100%)",
+        "dark": "linear-gradient(160deg, #23112c 0%, #1f193e 55%, #233352 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f8f4fb 0%, #eceaf6 55%, #dfe5f1 100%)",
+        "dark": "linear-gradient(160deg, #170d1c 0%, #161325 55%, #19202e 100%)"
+      }
+    }
+  },
+  {
+    "id": "spell-v1",
+    "name": "Spell",
+    "icon": "auto_awesome",
+    "description": "A specific spell, ritual, or magical effect",
+    "version": 1,
+    "tabs": [
+      {
+        "key": "basic",
+        "label": "Basic Info",
+        "icon": "info",
+        "fields": [
+          {
+            "key": "name",
+            "label": "Spell Name",
+            "type": "text",
+            "layout": {
+              "span": 12
+            },
+            "validation": {
+              "required": true
+            },
+            "placeholder": "Name of the spell"
+          },
+          {
+            "key": "school",
+            "label": "School",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "e.g., Evocation, Illusion, Divination"
+          },
+          {
+            "key": "level",
+            "label": "Level",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "e.g., Cantrip, 3rd Circle, Grand Ritual"
+          },
+          {
+            "key": "castingTime",
+            "label": "Casting Time",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "e.g., 1 action, 1 hour"
+          },
+          {
+            "key": "range",
+            "label": "Range",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "e.g., 30 feet, Touch, Line of sight"
+          },
+          {
+            "key": "duration",
+            "label": "Duration",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "e.g., Instantaneous, 1 hour"
+          },
+          {
+            "key": "components",
+            "label": "Components",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "e.g., Verbal, Somatic, Material"
+          },
+          {
+            "key": "summary",
+            "label": "Summary",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Brief summary..."
+          }
+        ],
+        "order": 1
+      },
+      {
+        "key": "effect",
+        "label": "Effect",
+        "icon": "bolt",
+        "fields": [
+          {
+            "key": "effect.description",
+            "label": "Description",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 5,
+            "placeholder": "What the spell does..."
+          },
+          {
+            "key": "effect.higherLevels",
+            "label": "Higher Level Effects",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Scaling or empowered effects..."
+          }
+        ],
+        "order": 2
+      },
+      {
+        "key": "requirements",
+        "label": "Requirements",
+        "icon": "gavel",
+        "fields": [
+          {
+            "key": "requirements.prerequisites",
+            "label": "Prerequisites",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a prerequisite"
+          },
+          {
+            "key": "requirements.costs",
+            "label": "Costs & Sacrifices",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a cost"
+          },
+          {
+            "key": "requirements.sideEffects",
+            "label": "Side Effects",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Drawbacks, risks, backlash..."
+          },
+          {
+            "key": "requirements.variations",
+            "label": "Variations",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a variation"
+          }
+        ],
+        "order": 3
+      }
+    ],
+    "defaultValues": {},
+    "defaultAppearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f5d6f5 0%, #dec0ed 55%, #beabe3 100%)",
+        "dark": "linear-gradient(160deg, #2c112c 0%, #31193e 55%, #332352 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #fbf4fb 0%, #f2eaf6 55%, #e5dff1 100%)",
+        "dark": "linear-gradient(160deg, #1c0d1c 0%, #1f1325 55%, #20192e 100%)"
+      }
+    }
+  },
+  {
+    "id": "condition-v1",
+    "name": "Condition",
+    "icon": "sick",
+    "description": "A disease, curse, mutation, or magical condition",
+    "version": 1,
+    "tabs": [
+      {
+        "key": "basic",
+        "label": "Basic Info",
+        "icon": "info",
+        "fields": [
+          {
+            "key": "name",
+            "label": "Condition Name",
+            "type": "text",
+            "layout": {
+              "span": 12
+            },
+            "validation": {
+              "required": true
+            },
+            "placeholder": "Name of the condition"
+          },
+          {
+            "key": "type",
+            "label": "Type",
+            "type": "select",
+            "layout": {
+              "span": 6
+            },
+            "options": [
+              "Disease",
+              "Curse",
+              "Mutation",
+              "Transformation",
+              "Affliction",
+              "Blessing",
+              "State of Being",
+              "Other"
+            ]
+          },
+          {
+            "key": "origin",
+            "label": "Origin",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "e.g., Contagious, Congenital, Magical"
+          },
+          {
+            "key": "contagious",
+            "label": "Contagious",
+            "type": "checkbox",
+            "layout": {
+              "span": 6
+            },
+            "description": "Can it spread between individuals?"
+          },
+          {
+            "key": "rarity",
+            "label": "Rarity",
+            "type": "select",
+            "layout": {
+              "span": 6
+            },
+            "options": [
+              "Common",
+              "Uncommon",
+              "Rare",
+              "Very Rare",
+              "Unique",
+              "Extinct"
+            ]
+          },
+          {
+            "key": "summary",
+            "label": "Summary",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Brief summary..."
+          }
+        ],
+        "order": 1
+      },
+      {
+        "key": "effects",
+        "label": "Effects",
+        "icon": "coronavirus",
+        "fields": [
+          {
+            "key": "effects.symptoms",
+            "label": "Symptoms",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a symptom"
+          },
+          {
+            "key": "effects.stages",
+            "label": "Stages",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a stage",
+            "description": "Progression over time"
+          },
+          {
+            "key": "effects.duration",
+            "label": "Duration",
+            "type": "text",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "e.g., 2 weeks, Permanent, Cyclical"
+          }
+        ],
+        "order": 2
+      },
+      {
+        "key": "causes",
+        "label": "Causes & Transmission",
+        "icon": "science",
+        "fields": [
+          {
+            "key": "causes.causes",
+            "label": "Causes",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a cause"
+          },
+          {
+            "key": "causes.transmission",
+            "label": "Transmission",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "How it spreads..."
+          },
+          {
+            "key": "causes.treatment",
+            "label": "Treatment & Cure",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Cures, treatments, resistance..."
+          }
+        ],
+        "order": 3
+      },
+      {
+        "key": "history",
+        "label": "History",
+        "icon": "history",
+        "fields": [
+          {
+            "key": "history.background",
+            "label": "Background",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 4,
+            "placeholder": "History, notable outbreaks, cultural views..."
+          },
+          {
+            "key": "history.notableCases",
+            "label": "Notable Cases",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a notable case"
+          }
+        ],
+        "order": 4
+      }
+    ],
+    "defaultValues": {},
+    "defaultAppearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f5d6db 0%, #edc1c0 55%, #e3b6ab 100%)",
+        "dark": "linear-gradient(160deg, #2c1115 0%, #3e1a19 55%, #522d23 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #fbf4f5 0%, #f6eaea 55%, #f1e3df 100%)",
+        "dark": "linear-gradient(160deg, #1c0d10 0%, #251313 55%, #2e1d19 100%)"
+      }
+    }
+  },
+  {
+    "id": "profession-v1",
+    "name": "Profession",
+    "icon": "work",
+    "description": "A job, trade, or profession in your world",
+    "version": 1,
+    "tabs": [
+      {
+        "key": "basic",
+        "label": "Basic Info",
+        "icon": "info",
+        "fields": [
+          {
+            "key": "name",
+            "label": "Profession Name",
+            "type": "text",
+            "layout": {
+              "span": 12
+            },
+            "validation": {
+              "required": true
+            },
+            "placeholder": "Name of the profession"
+          },
+          {
+            "key": "field",
+            "label": "Field",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "e.g., Combat, Craft, Magic, Service"
+          },
+          {
+            "key": "status",
+            "label": "Social Status",
+            "type": "select",
+            "layout": {
+              "span": 6
+            },
+            "options": [
+              "Low",
+              "Working Class",
+              "Middle Class",
+              "High",
+              "Nobility",
+              "Outcast",
+              "Other"
+            ]
+          },
+          {
+            "key": "demand",
+            "label": "Demand",
+            "type": "select",
+            "layout": {
+              "span": 6
+            },
+            "options": [
+              "Always in demand",
+              "Seasonal",
+              "Niche",
+              "Dying out",
+              "Forbidden",
+              "Other"
+            ]
+          },
+          {
+            "key": "summary",
+            "label": "Summary",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Brief summary..."
+          }
+        ],
+        "order": 1
+      },
+      {
+        "key": "duties",
+        "label": "Duties & Skills",
+        "icon": "build",
+        "fields": [
+          {
+            "key": "duties.description",
+            "label": "Description",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 4,
+            "placeholder": "What does this profession involve?"
+          },
+          {
+            "key": "duties.skills",
+            "label": "Required Skills",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a skill"
+          },
+          {
+            "key": "duties.tools",
+            "label": "Tools & Equipment",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a tool"
+          },
+          {
+            "key": "duties.dangers",
+            "label": "Risks & Dangers",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a risk"
+          }
+        ],
+        "order": 2
+      },
+      {
+        "key": "training",
+        "label": "Training",
+        "icon": "school",
+        "fields": [
+          {
+            "key": "training.requirements",
+            "label": "Requirements",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 2,
+            "placeholder": "Who can enter this profession?"
+          },
+          {
+            "key": "training.path",
+            "label": "Training Path",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Apprenticeship, education, initiation..."
+          },
+          {
+            "key": "training.guilds",
+            "label": "Guilds & Associations",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a guild"
+          }
+        ],
+        "order": 3
+      },
+      {
+        "key": "notables",
+        "label": "Notable Practitioners",
+        "icon": "stars",
+        "fields": [
+          {
+            "key": "notables.practitioners",
+            "label": "Notable Practitioners",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a practitioner"
+          },
+          {
+            "key": "notables.notes",
+            "label": "Notes",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Additional notes..."
+          }
+        ],
+        "order": 4
+      }
+    ],
+    "defaultValues": {},
+    "defaultAppearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f5e6d6 0%, #ede1c0 55%, #e3e3ab 100%)",
+        "dark": "linear-gradient(160deg, #2c1f11 0%, #3e3419 55%, #525223 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #fbf7f4 0%, #f6f3ea 55%, #f1f1df 100%)",
+        "dark": "linear-gradient(160deg, #1c140d 0%, #252113 55%, #2e2e19 100%)"
+      }
+    }
+  },
+  {
+    "id": "title-v1",
+    "name": "Title",
+    "icon": "military_tech",
+    "description": "A rank, title, or honour held by characters",
+    "version": 1,
+    "tabs": [
+      {
+        "key": "basic",
+        "label": "Basic Info",
+        "icon": "info",
+        "fields": [
+          {
+            "key": "name",
+            "label": "Title Name",
+            "type": "text",
+            "layout": {
+              "span": 12
+            },
+            "validation": {
+              "required": true
+            },
+            "placeholder": "Name of the title"
+          },
+          {
+            "key": "rank",
+            "label": "Rank",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "e.g., Highest, Junior, 3rd order"
+          },
+          {
+            "key": "grantedBy",
+            "label": "Granted By",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "Who bestows this title?"
+          },
+          {
+            "key": "precedence",
+            "label": "Precedence",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "Where does it sit in hierarchy?"
+          },
+          {
+            "key": "origin",
+            "label": "Origin",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "When and why was it created?"
+          },
+          {
+            "key": "summary",
+            "label": "Summary",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Brief summary..."
+          }
+        ],
+        "order": 1
+      },
+      {
+        "key": "privileges",
+        "label": "Privileges & Obligations",
+        "icon": "gavel",
+        "fields": [
+          {
+            "key": "privileges.privileges",
+            "label": "Privileges",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a privilege"
+          },
+          {
+            "key": "privileges.obligations",
+            "label": "Obligations",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add an obligation"
+          },
+          {
+            "key": "privileges.address",
+            "label": "Forms of Address",
+            "type": "text",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "e.g., Your Grace, Lord, Honourable"
+          }
+        ],
+        "order": 2
+      },
+      {
+        "key": "history",
+        "label": "History",
+        "icon": "history",
+        "fields": [
+          {
+            "key": "history.conferral",
+            "label": "Conferral Process",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "How the title is passed on..."
+          },
+          {
+            "key": "history.holders",
+            "label": "Notable Holders",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a notable holder"
+          },
+          {
+            "key": "history.notes",
+            "label": "Notes",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Additional notes..."
+          }
+        ],
+        "order": 3
+      }
+    ],
+    "defaultValues": {},
+    "defaultAppearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(170deg, #f5edd6 0%, #edc9c0 55%, #e3abbe 100%)",
+        "dark": "linear-gradient(170deg, #2c2511 0%, #3e2119 55%, #522333 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(170deg, #fbf9f4 0%, #f6ecea 55%, #f1dfe5 100%)",
+        "dark": "linear-gradient(170deg, #1c180d 0%, #251713 55%, #2e1920 100%)"
+      }
+    }
+  },
+  {
+    "id": "tradition-v1",
+    "name": "Tradition",
+    "icon": "today",
+    "description": "A festival, ceremony, ritual, game, or cultural tradition",
+    "version": 1,
+    "tabs": [
+      {
+        "key": "basic",
+        "label": "Basic Info",
+        "icon": "info",
+        "fields": [
+          {
+            "key": "name",
+            "label": "Tradition Name",
+            "type": "text",
+            "layout": {
+              "span": 12
+            },
+            "validation": {
+              "required": true
+            },
+            "placeholder": "Name of the tradition"
+          },
+          {
+            "key": "type",
+            "label": "Type",
+            "type": "select",
+            "layout": {
+              "span": 6
+            },
+            "options": [
+              "Festival",
+              "Ceremony",
+              "Ritual",
+              "Holiday",
+              "Game",
+              "Sport",
+              "Social Custom",
+              "Cooking Tradition",
+              "Belief System",
+              "Other"
+            ]
+          },
+          {
+            "key": "season",
+            "label": "Season / Date",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "When does it happen?"
+          },
+          {
+            "key": "significance",
+            "label": "Significance",
+            "type": "text",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Why is it important?"
+          },
+          {
+            "key": "summary",
+            "label": "Summary",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Brief summary..."
+          }
+        ],
+        "order": 1
+      },
+      {
+        "key": "practice",
+        "label": "Practice",
+        "icon": "celebration",
+        "fields": [
+          {
+            "key": "practice.participants",
+            "label": "Participants",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 2,
+            "placeholder": "Who takes part?"
+          },
+          {
+            "key": "practice.procedure",
+            "label": "Procedure",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 5,
+            "placeholder": "What happens during it..."
+          },
+          {
+            "key": "practice.items",
+            "label": "Items & Symbols",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add an item"
+          },
+          {
+            "key": "practice.observances",
+            "label": "Rules & Observances",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Do's and don'ts, taboos..."
+          }
+        ],
+        "order": 2
+      },
+      {
+        "key": "history",
+        "label": "History",
+        "icon": "history",
+        "fields": [
+          {
+            "key": "history.origin",
+            "label": "Origin",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "How did it begin?"
+          },
+          {
+            "key": "history.variations",
+            "label": "Variations",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a variation",
+            "description": "Regional or cultural variations"
+          },
+          {
+            "key": "history.notes",
+            "label": "Notes",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Additional notes..."
+          }
+        ],
+        "order": 3
+      }
+    ],
+    "defaultValues": {},
+    "defaultAppearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f5dbd6 0%, #edc0c3 55%, #e3abbe 100%)",
+        "dark": "linear-gradient(160deg, #2c1511 0%, #3e191c 55%, #522333 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #fbf5f4 0%, #f6eaeb 55%, #f1dfe5 100%)",
+        "dark": "linear-gradient(160deg, #1c100d 0%, #251315 55%, #2e1920 100%)"
+      }
+    }
+  },
+  {
+    "id": "ethnicity-v1",
+    "name": "Ethnicity",
+    "icon": "face",
+    "description": "A culture, ethnicity, or subculture sharing ancestry or customs",
+    "version": 1,
+    "tabs": [
+      {
+        "key": "basic",
+        "label": "Basic Info",
+        "icon": "info",
+        "fields": [
+          {
+            "key": "name",
+            "label": "Culture Name",
+            "type": "text",
+            "layout": {
+              "span": 12
+            },
+            "validation": {
+              "required": true
+            },
+            "placeholder": "Name of the culture or ethnicity"
+          },
+          {
+            "key": "region",
+            "label": "Region",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "Where do they live?"
+          },
+          {
+            "key": "population",
+            "label": "Population",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "Approximate population"
+          },
+          {
+            "key": "languages",
+            "label": "Languages",
+            "type": "array",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "Add a language"
+          },
+          {
+            "key": "status",
+            "label": "Status",
+            "type": "select",
+            "layout": {
+              "span": 6
+            },
+            "options": [
+              "Dominant",
+              "Minority",
+              "Nomadic",
+              "Diaspora",
+              "Persecuted",
+              "Isolated",
+              "Other"
+            ]
+          },
+          {
+            "key": "summary",
+            "label": "Summary",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Brief summary..."
+          }
+        ],
+        "order": 1
+      },
+      {
+        "key": "culture",
+        "label": "Culture",
+        "icon": "groups",
+        "fields": [
+          {
+            "key": "culture.appearance",
+            "label": "Appearance & Dress",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Typical clothing, adornment, appearance..."
+          },
+          {
+            "key": "culture.values",
+            "label": "Values & Beliefs",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Core values, worldviews, ethics..."
+          },
+          {
+            "key": "culture.customs",
+            "label": "Customs",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a custom"
+          },
+          {
+            "key": "culture.cuisine",
+            "label": "Cuisine",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 2,
+            "placeholder": "Food and drink..."
+          },
+          {
+            "key": "culture.arts",
+            "label": "Arts & Music",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 2,
+            "placeholder": "Art, music, literature, crafts..."
+          },
+          {
+            "key": "culture.family",
+            "label": "Family & Society",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Family structure, social roles..."
+          }
+        ],
+        "order": 2
+      },
+      {
+        "key": "history",
+        "label": "History",
+        "icon": "history",
+        "fields": [
+          {
+            "key": "history.origin",
+            "label": "Origin",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Origins and migration..."
+          },
+          {
+            "key": "history.relations",
+            "label": "Relations with Others",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Interactions with other cultures..."
+          },
+          {
+            "key": "history.notes",
+            "label": "Notes",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Additional notes..."
+          }
+        ],
+        "order": 3
+      }
+    ],
+    "defaultValues": {},
+    "defaultAppearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f5e3d6 0%, #edcbc0 55%, #e3b0ab 100%)",
+        "dark": "linear-gradient(160deg, #2c1c11 0%, #3e2219 55%, #522723 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #fbf7f4 0%, #f6edea 55%, #f1e1df 100%)",
+        "dark": "linear-gradient(160deg, #1c130d 0%, #251813 55%, #2e1b19 100%)"
+      }
+    }
+  },
+  {
+    "id": "conflict-v1",
+    "name": "Conflict",
+    "icon": "gavel",
+    "description": "A war, battle, feud, or other conflict between parties",
+    "version": 1,
+    "tabs": [
+      {
+        "key": "basic",
+        "label": "Basic Info",
+        "icon": "info",
+        "fields": [
+          {
+            "key": "name",
+            "label": "Conflict Name",
+            "type": "text",
+            "layout": {
+              "span": 12
+            },
+            "validation": {
+              "required": true
+            },
+            "placeholder": "Name of the conflict"
+          },
+          {
+            "key": "type",
+            "label": "Type",
+            "type": "select",
+            "layout": {
+              "span": 6
+            },
+            "options": [
+              "War",
+              "Battle",
+              "Siege",
+              "Skirmish",
+              "Feud",
+              "Rebellion",
+              "Civil War",
+              "Debate",
+              "Dispute",
+              "Other"
+            ]
+          },
+          {
+            "key": "startDate",
+            "label": "Start",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "When did it begin?"
+          },
+          {
+            "key": "endDate",
+            "label": "End",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "When did it end?"
+          },
+          {
+            "key": "status",
+            "label": "Status",
+            "type": "select",
+            "layout": {
+              "span": 6
+            },
+            "options": [
+              "Ongoing",
+              "Concluded",
+              "Stalemate",
+              "Cold",
+              "Unknown"
+            ]
+          },
+          {
+            "key": "outcome",
+            "label": "Outcome",
+            "type": "text",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "e.g., Decisive victory, Ceasefire, Mutual destruction"
+          },
+          {
+            "key": "summary",
+            "label": "Summary",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Brief summary..."
+          }
+        ],
+        "order": 1
+      },
+      {
+        "key": "causes",
+        "label": "Causes & Parties",
+        "icon": "groups",
+        "fields": [
+          {
+            "key": "causes.causes",
+            "label": "Causes",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a cause"
+          },
+          {
+            "key": "causes.factions",
+            "label": "Factions & Parties",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a faction"
+          },
+          {
+            "key": "causes.stakes",
+            "label": "Stakes",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 2,
+            "placeholder": "What is being fought over?"
+          }
+        ],
+        "order": 2
+      },
+      {
+        "key": "course",
+        "label": "Course of Events",
+        "icon": "timeline",
+        "fields": [
+          {
+            "key": "course.majorEvents",
+            "label": "Major Events",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add an event",
+            "description": "Key battles and turning points"
+          },
+          {
+            "key": "course.tactics",
+            "label": "Tactics & Warfare",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "How it was fought..."
+          },
+          {
+            "key": "course.casualties",
+            "label": "Casualties & Cost",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 2,
+            "placeholder": "Human and material cost..."
+          }
+        ],
+        "order": 3
+      },
+      {
+        "key": "aftermath",
+        "label": "Aftermath",
+        "icon": "history",
+        "fields": [
+          {
+            "key": "aftermath.consequences",
+            "label": "Consequences",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a consequence"
+          },
+          {
+            "key": "aftermath.treaties",
+            "label": "Treaties & Agreements",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 2,
+            "placeholder": "How it was settled..."
+          },
+          {
+            "key": "aftermath.legacy",
+            "label": "Legacy",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Long-term impact and memory..."
+          }
+        ],
+        "order": 4
+      }
+    ],
+    "defaultValues": {},
+    "defaultAppearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(170deg, #f5d6d6 0%, #edc9c0 55%, #e3c2ab 100%)",
+        "dark": "linear-gradient(170deg, #2c1111 0%, #3e2119 55%, #523723 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(170deg, #fbf4f4 0%, #f6ecea 55%, #f1e7df 100%)",
+        "dark": "linear-gradient(170deg, #1c0d0d 0%, #251713 55%, #2e2219 100%)"
+      }
+    }
+  },
+  {
+    "id": "myth-v1",
+    "name": "Myth",
+    "icon": "auto_stories",
+    "description": "A myth, legend, prophecy, or folk tale in your world",
+    "version": 1,
+    "tabs": [
+      {
+        "key": "basic",
+        "label": "Basic Info",
+        "icon": "info",
+        "fields": [
+          {
+            "key": "name",
+            "label": "Myth Name",
+            "type": "text",
+            "layout": {
+              "span": 12
+            },
+            "validation": {
+              "required": true
+            },
+            "placeholder": "Name of the myth or legend"
+          },
+          {
+            "key": "type",
+            "label": "Type",
+            "type": "select",
+            "layout": {
+              "span": 6
+            },
+            "options": [
+              "Creation Myth",
+              "Legend",
+              "Urban Legend",
+              "Prophecy",
+              "Folk Tale",
+              "Fable",
+              "Epic",
+              "Other"
+            ]
+          },
+          {
+            "key": "originEra",
+            "label": "Origin Era",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "When did it originate?"
+          },
+          {
+            "key": "veracity",
+            "label": "Veracity",
+            "type": "select",
+            "layout": {
+              "span": 6
+            },
+            "options": [
+              "True",
+              "Partly True",
+              "Unknown",
+              "False",
+              "Disputed"
+            ]
+          },
+          {
+            "key": "spread",
+            "label": "Spread",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "Where is it told?"
+          },
+          {
+            "key": "summary",
+            "label": "Summary",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Brief summary..."
+          }
+        ],
+        "order": 1
+      },
+      {
+        "key": "narrative",
+        "label": "Narrative",
+        "icon": "menu_book",
+        "fields": [
+          {
+            "key": "narrative.story",
+            "label": "The Story",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 6,
+            "placeholder": "The tale itself..."
+          },
+          {
+            "key": "narrative.characters",
+            "label": "Characters",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a character"
+          },
+          {
+            "key": "narrative.elements",
+            "label": "Symbolic Elements",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add an element",
+            "description": "Symbols, motifs, themes"
+          }
+        ],
+        "order": 2
+      },
+      {
+        "key": "significance",
+        "label": "Significance",
+        "icon": "public",
+        "fields": [
+          {
+            "key": "significance.cultural",
+            "label": "Cultural Significance",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "What it means to the people..."
+          },
+          {
+            "key": "significance.variations",
+            "label": "Variations",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a variation"
+          },
+          {
+            "key": "significance.truth",
+            "label": "Underlying Truth",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Any real events or truths behind it..."
+          }
+        ],
+        "order": 3
+      }
+    ],
+    "defaultValues": {},
+    "defaultAppearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #dbd6f5 0%, #d6c0ed 55%, #daabe3 100%)",
+        "dark": "linear-gradient(160deg, #15112c 0%, #2b193e 55%, #4a2352 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f5f4fb 0%, #f0eaf6 55%, #eedff1 100%)",
+        "dark": "linear-gradient(160deg, #100d1c 0%, #1c1325 55%, #2b192e 100%)"
+      }
+    }
+  },
+  {
+    "id": "vehicle-v1",
+    "name": "Vehicle",
+    "icon": "directions_car",
+    "description": "A vehicle: carriage, ship, airship, or other conveyance",
+    "version": 1,
+    "tabs": [
+      {
+        "key": "basic",
+        "label": "Basic Info",
+        "icon": "info",
+        "fields": [
+          {
+            "key": "name",
+            "label": "Vehicle Name",
+            "type": "text",
+            "layout": {
+              "span": 12
+            },
+            "validation": {
+              "required": true
+            },
+            "placeholder": "Name of the vehicle"
+          },
+          {
+            "key": "type",
+            "label": "Type",
+            "type": "select",
+            "layout": {
+              "span": 6
+            },
+            "options": [
+              "Cart/Carriage",
+              "Ship",
+              "Boat",
+              "Airships",
+              "Spaceship",
+              "Train",
+              "Mount/Animal",
+              "Magical",
+              "Other"
+            ]
+          },
+          {
+            "key": "capacity",
+            "label": "Capacity",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "e.g., 20 passengers, 100 tons"
+          },
+          {
+            "key": "speed",
+            "label": "Speed",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "e.g., 30 mph, FTL, Wind-dependent"
+          },
+          {
+            "key": "propulsion",
+            "label": "Propulsion",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "e.g., Sails, Steam, Magic, Oars"
+          },
+          {
+            "key": "era",
+            "label": "Era",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "When was it used?"
+          },
+          {
+            "key": "summary",
+            "label": "Summary",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Brief summary..."
+          }
+        ],
+        "order": 1
+      },
+      {
+        "key": "details",
+        "label": "Details",
+        "icon": "build",
+        "fields": [
+          {
+            "key": "details.crew",
+            "label": "Crew",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 2,
+            "placeholder": "Who operates it?"
+          },
+          {
+            "key": "details.cargo",
+            "label": "Cargo & Facilities",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "What it carries, onboard facilities..."
+          },
+          {
+            "key": "details.armament",
+            "label": "Armament",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 2,
+            "placeholder": "Weapons or defenses..."
+          },
+          {
+            "key": "details.construction",
+            "label": "Construction",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Materials, builders, cost..."
+          }
+        ],
+        "order": 2
+      },
+      {
+        "key": "history",
+        "label": "History",
+        "icon": "history",
+        "fields": [
+          {
+            "key": "history.notable",
+            "label": "Notable Examples",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a notable example"
+          },
+          {
+            "key": "history.notes",
+            "label": "Notes",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Additional notes..."
+          }
+        ],
+        "order": 3
+      }
+    ],
+    "defaultValues": {},
+    "defaultAppearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #d6e5f5 0%, #c0deed 55%, #abdae3 100%)",
+        "dark": "linear-gradient(160deg, #111f2c 0%, #19313e 55%, #234a52 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f4f7fb 0%, #eaf2f6 55%, #dfeef1 100%)",
+        "dark": "linear-gradient(160deg, #0d141c 0%, #131f25 55%, #192b2e 100%)"
+      }
+    }
+  },
+  {
+    "id": "event-v1",
+    "name": "Event",
+    "icon": "event",
+    "description": "A significant historical event: coronation, disaster, treaty, discovery",
+    "version": 1,
+    "tabs": [
+      {
+        "key": "basic",
+        "label": "Basic Info",
+        "icon": "info",
+        "fields": [
+          {
+            "key": "name",
+            "label": "Event Name",
+            "type": "text",
+            "layout": {
+              "span": 12
+            },
+            "validation": {
+              "required": true
+            },
+            "placeholder": "Name of the event"
+          },
+          {
+            "key": "type",
+            "label": "Type",
+            "type": "select",
+            "layout": {
+              "span": 6
+            },
+            "options": [
+              "Coronation",
+              "Disaster",
+              "Treaty",
+              "Discovery",
+              "Revolution",
+              "Festival",
+              "Funeral",
+              "Battle",
+              "Meeting",
+              "Natural Event",
+              "Other"
+            ]
+          },
+          {
+            "key": "date",
+            "label": "Date",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "When did it happen?"
+          },
+          {
+            "key": "duration",
+            "label": "Duration",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "e.g., 3 days, Instantaneous"
+          },
+          {
+            "key": "location",
+            "label": "Location",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "Where did it happen?"
+          },
+          {
+            "key": "summary",
+            "label": "Summary",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Brief summary..."
+          }
+        ],
+        "order": 1
+      },
+      {
+        "key": "details",
+        "label": "Details",
+        "icon": "description",
+        "fields": [
+          {
+            "key": "details.description",
+            "label": "Description",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 5,
+            "placeholder": "What happened..."
+          },
+          {
+            "key": "details.participants",
+            "label": "Participants",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a participant"
+          },
+          {
+            "key": "details.causes",
+            "label": "Causes",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a cause"
+          },
+          {
+            "key": "details.consequences",
+            "label": "Consequences",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a consequence"
+          }
+        ],
+        "order": 2
+      },
+      {
+        "key": "significance",
+        "label": "Significance",
+        "icon": "public",
+        "fields": [
+          {
+            "key": "significance.impact",
+            "label": "Impact",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Why does it matter?"
+          },
+          {
+            "key": "significance.remembered",
+            "label": "How It Is Remembered",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Commemorations, interpretations..."
+          }
+        ],
+        "order": 3
+      }
+    ],
+    "defaultValues": {},
+    "defaultAppearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f5f2d6 0%, #ede0c0 55%, #e3c7ab 100%)",
+        "dark": "linear-gradient(160deg, #2c2a11 0%, #3e3319 55%, #523b23 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #fbfaf4 0%, #f6f2ea 55%, #f1e8df 100%)",
+        "dark": "linear-gradient(160deg, #1c1a0d 0%, #252013 55%, #2e2419 100%)"
+      }
+    }
+  },
+  {
+    "id": "lore-v1",
+    "name": "Lore",
+    "icon": "menu_book",
+    "description": "An in-world document: book, scroll, inscription, or recording",
+    "version": 1,
+    "tabs": [
+      {
+        "key": "basic",
+        "label": "Basic Info",
+        "icon": "info",
+        "fields": [
+          {
+            "key": "name",
+            "label": "Document Title",
+            "type": "text",
+            "layout": {
+              "span": 12
+            },
+            "validation": {
+              "required": true
+            },
+            "placeholder": "Title of the document"
+          },
+          {
+            "key": "type",
+            "label": "Type",
+            "type": "select",
+            "layout": {
+              "span": 6
+            },
+            "options": [
+              "Book",
+              "Scroll",
+              "Inscription",
+              "Letter",
+              "Tome",
+              "Tablet",
+              "Recording",
+              "Codex",
+              "Other"
+            ]
+          },
+          {
+            "key": "author",
+            "label": "Author",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "Who wrote it?"
+          },
+          {
+            "key": "language",
+            "label": "Language",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "What language is it in?"
+          },
+          {
+            "key": "date",
+            "label": "Date",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "When was it written?"
+          },
+          {
+            "key": "copies",
+            "label": "Extant Copies",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "e.g., 3 known copies, Unique"
+          },
+          {
+            "key": "summary",
+            "label": "Summary",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Brief summary..."
+          }
+        ],
+        "order": 1
+      },
+      {
+        "key": "content",
+        "label": "Content",
+        "icon": "description",
+        "fields": [
+          {
+            "key": "content.summary",
+            "label": "Content Summary",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 5,
+            "placeholder": "What does it say..."
+          },
+          {
+            "key": "content.excerpts",
+            "label": "Excerpts",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add an excerpt"
+          },
+          {
+            "key": "content.themes",
+            "label": "Themes",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a theme"
+          }
+        ],
+        "order": 2
+      },
+      {
+        "key": "significance",
+        "label": "Significance",
+        "icon": "public",
+        "fields": [
+          {
+            "key": "significance.importance",
+            "label": "Importance",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Why is it significant?"
+          },
+          {
+            "key": "significance.location",
+            "label": "Where Found",
+            "type": "text",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Where is it kept or found?"
+          },
+          {
+            "key": "significance.notes",
+            "label": "Notes",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Additional notes..."
+          }
+        ],
+        "order": 3
+      }
+    ],
+    "defaultValues": {},
+    "defaultAppearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f5ebd6 0%, #edd8c0 55%, #e3c2ab 100%)",
+        "dark": "linear-gradient(160deg, #2c2311 0%, #3e2d19 55%, #523723 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #fbf8f4 0%, #f6f0ea 55%, #f1e7df 100%)",
+        "dark": "linear-gradient(160deg, #1c170d 0%, #251d13 55%, #2e2219 100%)"
+      }
+    }
+  },
+  {
+    "id": "building-v1",
+    "name": "Building",
+    "icon": "home_work",
+    "description": "A specific building or structure in your world",
+    "nameGeneratorId": "gen-tavern-names",
+    "version": 1,
+    "tabs": [
+      {
+        "key": "basic",
+        "label": "Basic Info",
+        "icon": "info",
+        "fields": [
+          {
+            "key": "name",
+            "label": "Building Name",
+            "type": "text",
+            "layout": {
+              "span": 12
+            },
+            "validation": {
+              "required": true
+            },
+            "placeholder": "Name of the building",
+            "generatorId": "gen-tavern-names"
+          },
+          {
+            "key": "type",
+            "label": "Type",
+            "type": "select",
+            "layout": {
+              "span": 6
+            },
+            "options": [
+              "House",
+              "Palace",
+              "Temple",
+              "Tavern",
+              "Shop",
+              "Forge",
+              "Library",
+              "Castle",
+              "Tower",
+              "Dungeon",
+              "Other"
+            ]
+          },
+          {
+            "key": "built",
+            "label": "Built",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "When was it built?"
+          },
+          {
+            "key": "architect",
+            "label": "Architect / Builder",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "Who built it?"
+          },
+          {
+            "key": "floors",
+            "label": "Floors / Size",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "e.g., 3 floors, Massive"
+          },
+          {
+            "key": "function",
+            "label": "Function",
+            "type": "text",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "What is it used for?"
+          },
+          {
+            "key": "summary",
+            "label": "Summary",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Brief summary..."
+          }
+        ],
+        "order": 1
+      },
+      {
+        "key": "description",
+        "label": "Description",
+        "icon": "description",
+        "fields": [
+          {
+            "key": "description.appearance",
+            "label": "Appearance",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 4,
+            "placeholder": "What does it look like?"
+          },
+          {
+            "key": "description.materials",
+            "label": "Materials",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a material"
+          },
+          {
+            "key": "description.interior",
+            "label": "Interior",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Rooms, layout, features..."
+          },
+          {
+            "key": "description.landmarks",
+            "label": "Notable Features",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a feature"
+          }
+        ],
+        "order": 2
+      },
+      {
+        "key": "occupants",
+        "label": "Occupants",
+        "icon": "groups",
+        "fields": [
+          {
+            "key": "occupants.tenants",
+            "label": "Occupants & Tenants",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add an occupant"
+          },
+          {
+            "key": "occupants.owner",
+            "label": "Owner",
+            "type": "text",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Who owns it?"
+          },
+          {
+            "key": "occupants.notes",
+            "label": "Notes",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Additional notes..."
+          }
+        ],
+        "order": 3
+      },
+      {
+        "key": "history",
+        "label": "History",
+        "icon": "history",
+        "fields": [
+          {
+            "key": "history.background",
+            "label": "History",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 4,
+            "placeholder": "Its story over the years..."
+          },
+          {
+            "key": "history.events",
+            "label": "Notable Events",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add an event"
+          }
+        ],
+        "order": 4
+      }
+    ],
+    "defaultValues": {},
+    "defaultAppearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f5ded6 0%, #edd1c0 55%, #e3c9ab 100%)",
+        "dark": "linear-gradient(160deg, #2c1811 0%, #3e2719 55%, #523c23 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #fbf6f4 0%, #f6eeea 55%, #f1e9df 100%)",
+        "dark": "linear-gradient(160deg, #1c110d 0%, #251a13 55%, #2e2419 100%)"
+      }
+    }
+  },
+  {
+    "id": "settlement-v1",
+    "name": "Settlement",
+    "icon": "location_city",
+    "description": "A city, town, village, or other populated settlement",
+    "nameGeneratorId": "gen-settlement-names",
+    "version": 1,
+    "tabs": [
+      {
+        "key": "basic",
+        "label": "Basic Info",
+        "icon": "info",
+        "fields": [
+          {
+            "key": "name",
+            "label": "Settlement Name",
+            "type": "text",
+            "layout": {
+              "span": 12
+            },
+            "validation": {
+              "required": true
+            },
+            "placeholder": "Name of the settlement",
+            "generatorId": "gen-settlement-names"
+          },
+          {
+            "key": "type",
+            "label": "Type",
+            "type": "select",
+            "layout": {
+              "span": 6
+            },
+            "options": [
+              "Metropolis",
+              "City",
+              "Town",
+              "Village",
+              "Hamlet",
+              "Outpost",
+              "Colony",
+              "Nomadic Camp",
+              "Space Station",
+              "Other"
+            ]
+          },
+          {
+            "key": "population",
+            "label": "Population",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "e.g., 50,000, Several thousand"
+          },
+          {
+            "key": "founded",
+            "label": "Founded",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "When was it founded?"
+          },
+          {
+            "key": "status",
+            "label": "Status",
+            "type": "select",
+            "layout": {
+              "span": 6
+            },
+            "options": [
+              "Thriving",
+              "Declining",
+              "Prosperous",
+              "Abandoned",
+              "Under Siege",
+              "Other"
+            ]
+          },
+          {
+            "key": "summary",
+            "label": "Summary",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Brief summary..."
+          }
+        ],
+        "order": 1
+      },
+      {
+        "key": "geography",
+        "label": "Geography",
+        "icon": "map",
+        "fields": [
+          {
+            "key": "geography.location",
+            "label": "Location",
+            "type": "text",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Where is it located?"
+          },
+          {
+            "key": "geography.climate",
+            "label": "Climate",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "e.g., Temperate, Arctic"
+          },
+          {
+            "key": "geography.terrain",
+            "label": "Terrain",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "e.g., Coastal, Mountain, Plains"
+          },
+          {
+            "key": "geography.layout",
+            "label": "Layout",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Districts, streets, notable areas..."
+          },
+          {
+            "key": "geography.landmarks",
+            "label": "Landmarks",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a landmark"
+          }
+        ],
+        "order": 2
+      },
+      {
+        "key": "society",
+        "label": "Society",
+        "icon": "groups",
+        "fields": [
+          {
+            "key": "society.government",
+            "label": "Government",
+            "type": "text",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "e.g., Council, Mayor, Feudal lord"
+          },
+          {
+            "key": "society.economy",
+            "label": "Economy",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Industries, trade, currency..."
+          },
+          {
+            "key": "society.population",
+            "label": "Demographics",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 2,
+            "placeholder": "Who lives here?"
+          },
+          {
+            "key": "society.culture",
+            "label": "Culture & Customs",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a custom"
+          },
+          {
+            "key": "society.laws",
+            "label": "Laws & Order",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 2,
+            "placeholder": "Notable laws, crime, guards..."
+          },
+          {
+            "key": "society.leaders",
+            "label": "Leaders",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a leader"
+          }
+        ],
+        "order": 3
+      },
+      {
+        "key": "history",
+        "label": "History",
+        "icon": "history",
+        "fields": [
+          {
+            "key": "history.founding",
+            "label": "Founding Story",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "How was it founded?"
+          },
+          {
+            "key": "history.events",
+            "label": "Major Events",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add an event"
+          },
+          {
+            "key": "history.notes",
+            "label": "Notes",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Additional notes..."
+          }
+        ],
+        "order": 4
+      }
+    ],
+    "defaultValues": {},
+    "defaultAppearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f5e8d6 0%, #ebedc0 55%, #c7e3ab 100%)",
+        "dark": "linear-gradient(160deg, #2c2111 0%, #3c3e19 55%, #3b5223 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #fbf8f4 0%, #f5f6ea 55%, #e8f1df 100%)",
+        "dark": "linear-gradient(160deg, #1c160d 0%, #242513 55%, #242e19 100%)"
+      }
+    }
+  },
+  {
+    "id": "geographic-feature-v1",
+    "name": "Geographic Feature",
+    "icon": "terrain",
+    "description": "A natural feature: mountain, river, ocean, canyon, or other formation",
+    "nameGeneratorId": "gen-landmark-names",
+    "version": 1,
+    "tabs": [
+      {
+        "key": "basic",
+        "label": "Basic Info",
+        "icon": "info",
+        "fields": [
+          {
+            "key": "name",
+            "label": "Feature Name",
+            "type": "text",
+            "layout": {
+              "span": 12
+            },
+            "validation": {
+              "required": true
+            },
+            "placeholder": "Name of the feature",
+            "generatorId": "gen-landmark-names"
+          },
+          {
+            "key": "type",
+            "label": "Type",
+            "type": "select",
+            "layout": {
+              "span": 6
+            },
+            "options": [
+              "Mountain",
+              "River",
+              "Ocean",
+              "Sea",
+              "Lake",
+              "Canyon",
+              "Forest",
+              "Desert",
+              "Swamp",
+              "Glacier",
+              "Volcano",
+              "Cave",
+              "Other"
+            ]
+          },
+          {
+            "key": "location",
+            "label": "Location",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "Where is it?"
+          },
+          {
+            "key": "size",
+            "label": "Size",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "e.g., 500 km long, Towering"
+          },
+          {
+            "key": "significanceSummary",
+            "label": "Significance",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "Why is it notable?"
+          },
+          {
+            "key": "summary",
+            "label": "Summary",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Brief summary..."
+          }
+        ],
+        "order": 1
+      },
+      {
+        "key": "description",
+        "label": "Description",
+        "icon": "description",
+        "fields": [
+          {
+            "key": "description.appearance",
+            "label": "Appearance",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 4,
+            "placeholder": "What does it look like?"
+          },
+          {
+            "key": "description.character",
+            "label": "Character",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Dangers, wildlife, atmosphere..."
+          },
+          {
+            "key": "description.features",
+            "label": "Notable Features",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a feature"
+          }
+        ],
+        "order": 2
+      },
+      {
+        "key": "significance",
+        "label": "Significance",
+        "icon": "public",
+        "fields": [
+          {
+            "key": "significance.cultural",
+            "label": "Cultural Significance",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Myths, holy sites, boundaries..."
+          },
+          {
+            "key": "significance.resources",
+            "label": "Resources",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a resource"
+          },
+          {
+            "key": "significance.notes",
+            "label": "Notes",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Additional notes..."
+          }
+        ],
+        "order": 3
+      }
+    ],
+    "defaultValues": {},
+    "defaultAppearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #d6f5db 0%, #c0edd6 55%, #abe3da 100%)",
+        "dark": "linear-gradient(160deg, #112c15 0%, #193e2b 55%, #23524a 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f4fbf5 0%, #eaf6f0 55%, #dff1ee 100%)",
+        "dark": "linear-gradient(160deg, #0d1c10 0%, #13251c 55%, #192e2b 100%)"
+      }
+    }
+  },
+  {
+    "id": "region-v1",
+    "name": "Region",
+    "icon": "map",
+    "description": "A geographic region or territory within your world",
+    "version": 1,
+    "tabs": [
+      {
+        "key": "basic",
+        "label": "Basic Info",
+        "icon": "info",
+        "fields": [
+          {
+            "key": "name",
+            "label": "Region Name",
+            "type": "text",
+            "layout": {
+              "span": 12
+            },
+            "validation": {
+              "required": true
+            },
+            "placeholder": "Name of the region"
+          },
+          {
+            "key": "type",
+            "label": "Type",
+            "type": "select",
+            "layout": {
+              "span": 6
+            },
+            "options": [
+              "Continent",
+              "Subcontinent",
+              "Province",
+              "Territory",
+              "Biome Region",
+              "Coastal",
+              "Other"
+            ]
+          },
+          {
+            "key": "climate",
+            "label": "Climate",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "e.g., Tropical, Continental"
+          },
+          {
+            "key": "terrain",
+            "label": "Terrain",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "e.g., Rolling hills, Plains, Tundra"
+          },
+          {
+            "key": "population",
+            "label": "Population",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "Who and how many live here?"
+          },
+          {
+            "key": "summary",
+            "label": "Summary",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Brief summary..."
+          }
+        ],
+        "order": 1
+      },
+      {
+        "key": "description",
+        "label": "Description",
+        "icon": "description",
+        "fields": [
+          {
+            "key": "description.overview",
+            "label": "Overview",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 4,
+            "placeholder": "What is this region like?"
+          },
+          {
+            "key": "description.features",
+            "label": "Natural Features",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a feature"
+          },
+          {
+            "key": "description.settlements",
+            "label": "Settlements",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a settlement"
+          },
+          {
+            "key": "description.resources",
+            "label": "Resources",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a resource"
+          }
+        ],
+        "order": 2
+      },
+      {
+        "key": "politics",
+        "label": "Politics",
+        "icon": "account_balance",
+        "fields": [
+          {
+            "key": "politics.control",
+            "label": "Control & Rulers",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 2,
+            "placeholder": "Who controls this region?"
+          },
+          {
+            "key": "politics.relations",
+            "label": "Relations",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Relations with neighbouring regions..."
+          },
+          {
+            "key": "politics.notes",
+            "label": "Notes",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Additional notes..."
+          }
+        ],
+        "order": 3
+      },
+      {
+        "key": "history",
+        "label": "History",
+        "icon": "history",
+        "fields": [
+          {
+            "key": "history.background",
+            "label": "History",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 4,
+            "placeholder": "Its story over the ages..."
+          },
+          {
+            "key": "history.events",
+            "label": "Major Events",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add an event"
+          }
+        ],
+        "order": 4
+      }
+    ],
+    "defaultValues": {},
+    "defaultAppearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #d6f5ed 0%, #c0edd1 55%, #abe3ab 100%)",
+        "dark": "linear-gradient(160deg, #112c25 0%, #193e27 55%, #235223 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f4fbf9 0%, #eaf6ee 55%, #dff1df 100%)",
+        "dark": "linear-gradient(160deg, #0d1c18 0%, #13251a 55%, #192e19 100%)"
+      }
+    }
+  },
+  {
+    "id": "country-v1",
+    "name": "Country",
+    "icon": "flag",
+    "description": "A country or nation with its own government and identity",
+    "version": 1,
+    "tabs": [
+      {
+        "key": "basic",
+        "label": "Basic Info",
+        "icon": "info",
+        "fields": [
+          {
+            "key": "name",
+            "label": "Country Name",
+            "type": "text",
+            "layout": {
+              "span": 12
+            },
+            "validation": {
+              "required": true
+            },
+            "placeholder": "Name of the country"
+          },
+          {
+            "key": "government",
+            "label": "Government",
+            "type": "select",
+            "layout": {
+              "span": 6
+            },
+            "options": [
+              "Monarchy",
+              "Republic",
+              "Democracy",
+              "Theocracy",
+              "Empire",
+              "Tribal",
+              "Oligarchy",
+              "Magocracy",
+              "Other"
+            ]
+          },
+          {
+            "key": "capital",
+            "label": "Capital",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "Capital city"
+          },
+          {
+            "key": "ruler",
+            "label": "Ruler",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "Current ruler or head of state"
+          },
+          {
+            "key": "population",
+            "label": "Population",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "Total population"
+          },
+          {
+            "key": "motto",
+            "label": "Motto",
+            "type": "text",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "National motto"
+          },
+          {
+            "key": "summary",
+            "label": "Summary",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Brief summary..."
+          }
+        ],
+        "order": 1
+      },
+      {
+        "key": "geography",
+        "label": "Geography",
+        "icon": "map",
+        "fields": [
+          {
+            "key": "geography.location",
+            "label": "Location",
+            "type": "text",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Where is it?"
+          },
+          {
+            "key": "geography.borders",
+            "label": "Borders",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 2,
+            "placeholder": "Neighbours and borders..."
+          },
+          {
+            "key": "geography.terrain",
+            "label": "Terrain & Climate",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Physical geography..."
+          },
+          {
+            "key": "geography.regions",
+            "label": "Regions",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a region"
+          }
+        ],
+        "order": 2
+      },
+      {
+        "key": "society",
+        "label": "Society",
+        "icon": "groups",
+        "fields": [
+          {
+            "key": "society.demographics",
+            "label": "Demographics",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 2,
+            "placeholder": "Who lives here?"
+          },
+          {
+            "key": "society.languages",
+            "label": "Languages",
+            "type": "array",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "Add a language"
+          },
+          {
+            "key": "society.religions",
+            "label": "Religions",
+            "type": "array",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "Add a religion"
+          },
+          {
+            "key": "society.economy",
+            "label": "Economy",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Industries, trade, resources..."
+          },
+          {
+            "key": "society.culture",
+            "label": "Culture",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Values, customs, arts..."
+          },
+          {
+            "key": "society.military",
+            "label": "Military",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 2,
+            "placeholder": "Armed forces, strength..."
+          }
+        ],
+        "order": 3
+      },
+      {
+        "key": "politics",
+        "label": "Politics",
+        "icon": "account_balance",
+        "fields": [
+          {
+            "key": "politics.government",
+            "label": "Government Structure",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "How is it governed?"
+          },
+          {
+            "key": "politics.foreignRelations",
+            "label": "Foreign Relations",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Allies, enemies, treaties..."
+          },
+          {
+            "key": "politics.factions",
+            "label": "Factions",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a faction"
+          },
+          {
+            "key": "politics.laws",
+            "label": "Laws",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 2,
+            "placeholder": "Notable laws..."
+          }
+        ],
+        "order": 4
+      },
+      {
+        "key": "history",
+        "label": "History",
+        "icon": "history",
+        "fields": [
+          {
+            "key": "history.founding",
+            "label": "Founding",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "How was it founded?"
+          },
+          {
+            "key": "history.timeline",
+            "label": "Timeline",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a historical milestone"
+          },
+          {
+            "key": "history.notes",
+            "label": "Notes",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Additional notes..."
+          }
+        ],
+        "order": 5
+      }
+    ],
+    "defaultValues": {},
+    "defaultAppearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #d6dbf5 0%, #c0d2ed 55%, #abd0e3 100%)",
+        "dark": "linear-gradient(160deg, #11152c 0%, #19283e 55%, #234252 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f4f5fb 0%, #eaeff6 55%, #dfebf1 100%)",
+        "dark": "linear-gradient(160deg, #0d101c 0%, #131b25 55%, #19272e 100%)"
+      }
+    }
+  },
+  {
+    "id": "landmark-v1",
+    "name": "Landmark",
+    "icon": "location_on",
+    "description": "A notable man-made or natural landmark",
+    "version": 1,
+    "tabs": [
+      {
+        "key": "basic",
+        "label": "Basic Info",
+        "icon": "info",
+        "fields": [
+          {
+            "key": "name",
+            "label": "Landmark Name",
+            "type": "text",
+            "layout": {
+              "span": 12
+            },
+            "validation": {
+              "required": true
+            },
+            "placeholder": "Name of the landmark"
+          },
+          {
+            "key": "type",
+            "label": "Type",
+            "type": "select",
+            "layout": {
+              "span": 6
+            },
+            "options": [
+              "Monument",
+              "Statue",
+              "Tower",
+              "Bridge",
+              "Obelisk",
+              "Natural Arch",
+              "Ancient Ruin",
+              "Garden",
+              "Other"
+            ]
+          },
+          {
+            "key": "location",
+            "label": "Location",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "Where is it?"
+          },
+          {
+            "key": "built",
+            "label": "Built",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "When was it made?"
+          },
+          {
+            "key": "builder",
+            "label": "Builder",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "Who built it?"
+          },
+          {
+            "key": "summary",
+            "label": "Summary",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Brief summary..."
+          }
+        ],
+        "order": 1
+      },
+      {
+        "key": "description",
+        "label": "Description",
+        "icon": "description",
+        "fields": [
+          {
+            "key": "description.appearance",
+            "label": "Appearance",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 4,
+            "placeholder": "What does it look like?"
+          },
+          {
+            "key": "description.significance",
+            "label": "Significance",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Why is it significant?"
+          },
+          {
+            "key": "description.notes",
+            "label": "Notes",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Additional notes..."
+          }
+        ],
+        "order": 2
+      },
+      {
+        "key": "history",
+        "label": "History",
+        "icon": "history",
+        "fields": [
+          {
+            "key": "history.background",
+            "label": "History",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 4,
+            "placeholder": "Its story..."
+          },
+          {
+            "key": "history.events",
+            "label": "Notable Events",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add an event"
+          }
+        ],
+        "order": 3
+      }
+    ],
+    "defaultValues": {},
+    "defaultAppearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f5edd6 0%, #c0edc2 55%, #abd0e3 100%)",
+        "dark": "linear-gradient(160deg, #2c2511 0%, #193e1b 55%, #234252 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #fbf9f4 0%, #eaf6ea 55%, #dfebf1 100%)",
+        "dark": "linear-gradient(160deg, #1c180d 0%, #132514 55%, #19272e 100%)"
+      }
+    }
+  },
+  {
+    "id": "planet-v1",
+    "name": "Planet",
+    "icon": "public",
+    "description": "A planet, moon, or world body in space",
+    "version": 1,
+    "tabs": [
+      {
+        "key": "basic",
+        "label": "Basic Info",
+        "icon": "info",
+        "fields": [
+          {
+            "key": "name",
+            "label": "Planet Name",
+            "type": "text",
+            "layout": {
+              "span": 12
+            },
+            "validation": {
+              "required": true
+            },
+            "placeholder": "Name of the planet"
+          },
+          {
+            "key": "system",
+            "label": "System",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "Star system or region"
+          },
+          {
+            "key": "type",
+            "label": "Type",
+            "type": "select",
+            "layout": {
+              "span": 6
+            },
+            "options": [
+              "Terrestrial",
+              "Gas Giant",
+              "Ocean World",
+              "Desert World",
+              "Ice World",
+              "Moon",
+              "Artificial",
+              "Other"
+            ]
+          },
+          {
+            "key": "size",
+            "label": "Size",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "Relative size or gravity"
+          },
+          {
+            "key": "inhabitants",
+            "label": "Inhabitants",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "Who lives here?"
+          },
+          {
+            "key": "summary",
+            "label": "Summary",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Brief summary..."
+          }
+        ],
+        "order": 1
+      },
+      {
+        "key": "description",
+        "label": "Description",
+        "icon": "description",
+        "fields": [
+          {
+            "key": "description.terrain",
+            "label": "Terrain & Geography",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Landforms, oceans, features..."
+          },
+          {
+            "key": "description.climate",
+            "label": "Climate",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 2,
+            "placeholder": "Weather, seasons..."
+          },
+          {
+            "key": "description.ecosystem",
+            "label": "Ecosystem",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Life forms, biomes..."
+          },
+          {
+            "key": "description.civilization",
+            "label": "Civilization",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Societies, technology, history..."
+          }
+        ],
+        "order": 2
+      },
+      {
+        "key": "astronomy",
+        "label": "Astronomy",
+        "icon": "nights_stay",
+        "fields": [
+          {
+            "key": "astronomy.orbit",
+            "label": "Orbit & Rotation",
+            "type": "text",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Day length, year length, orbit..."
+          },
+          {
+            "key": "astronomy.moons",
+            "label": "Moons",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a moon"
+          },
+          {
+            "key": "astronomy.notes",
+            "label": "Notes",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Additional notes..."
+          }
+        ],
+        "order": 3
+      }
+    ],
+    "defaultValues": {},
+    "defaultAppearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #d6e0f5 0%, #c7c0ed 55%, #d0abe3 100%)",
+        "dark": "linear-gradient(160deg, #111a2c 0%, #1f193e 55%, #422352 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f4f6fb 0%, #eceaf6 55%, #ebdff1 100%)",
+        "dark": "linear-gradient(160deg, #0d121c 0%, #161325 55%, #27192e 100%)"
+      }
+    }
+  },
+  {
+    "id": "plane-v1",
+    "name": "Plane",
+    "icon": "blur_on",
+    "description": "A plane of existence, dimension, or parallel world",
+    "version": 1,
+    "tabs": [
+      {
+        "key": "basic",
+        "label": "Basic Info",
+        "icon": "info",
+        "fields": [
+          {
+            "key": "name",
+            "label": "Plane Name",
+            "type": "text",
+            "layout": {
+              "span": 12
+            },
+            "validation": {
+              "required": true
+            },
+            "placeholder": "Name of the plane"
+          },
+          {
+            "key": "type",
+            "label": "Type",
+            "type": "select",
+            "layout": {
+              "span": 6
+            },
+            "options": [
+              "Elemental",
+              "Divine",
+              "Infernal",
+              "Astral",
+              "Ethereal",
+              "Shadow",
+              "Material",
+              "Dream",
+              "Pocket Dimension",
+              "Other"
+            ]
+          },
+          {
+            "key": "accessibility",
+            "label": "Accessibility",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "How is it reached?"
+          },
+          {
+            "key": "inhabitantsOverview",
+            "label": "Inhabitants",
+            "type": "text",
+            "layout": {
+              "span": 6
+            },
+            "placeholder": "Who lives here?"
+          },
+          {
+            "key": "summary",
+            "label": "Summary",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Brief summary..."
+          }
+        ],
+        "order": 1
+      },
+      {
+        "key": "nature",
+        "label": "Nature",
+        "icon": "description",
+        "fields": [
+          {
+            "key": "nature.physical",
+            "label": "Physical Nature",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 4,
+            "placeholder": "Geography, environment, rules..."
+          },
+          {
+            "key": "nature.time",
+            "label": "Time & Space",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 2,
+            "placeholder": "How time and space behave..."
+          },
+          {
+            "key": "nature.magic",
+            "label": "Magic & Powers",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "How magic works here..."
+          },
+          {
+            "key": "nature.dangers",
+            "label": "Dangers",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a danger"
+          }
+        ],
+        "order": 2
+      },
+      {
+        "key": "inhabitants",
+        "label": "Inhabitants",
+        "icon": "groups",
+        "fields": [
+          {
+            "key": "inhabitants.societies",
+            "label": "Societies",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Who lives here and how..."
+          },
+          {
+            "key": "inhabitants.settlements",
+            "label": "Settlements",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add a settlement"
+          },
+          {
+            "key": "inhabitants.notes",
+            "label": "Notes",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Additional notes..."
+          }
+        ],
+        "order": 3
+      },
+      {
+        "key": "portals",
+        "label": "Portals & Travel",
+        "icon": "explore",
+        "fields": [
+          {
+            "key": "portals.entrances",
+            "label": "Entrances",
+            "type": "array",
+            "layout": {
+              "span": 12
+            },
+            "placeholder": "Add an entrance"
+          },
+          {
+            "key": "portals.rules",
+            "label": "Travel Rules",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "How travel to and from works..."
+          },
+          {
+            "key": "portals.notes",
+            "label": "Notes",
+            "type": "textarea",
+            "layout": {
+              "span": 12
+            },
+            "rows": 3,
+            "placeholder": "Additional notes..."
+          }
+        ],
+        "order": 4
+      }
+    ],
+    "defaultValues": {},
+    "defaultAppearance": {
+      "menu": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #f5d6f5 0%, #c0c0ed 55%, #abe3e3 100%)",
+        "dark": "linear-gradient(160deg, #2c112c 0%, #19193e 55%, #235252 100%)"
+      },
+      "content": {
+        "type": "gradient",
+        "mode": "manual",
+        "light": "linear-gradient(160deg, #fbf4fb 0%, #eaeaf6 55%, #dff1f1 100%)",
+        "dark": "linear-gradient(160deg, #1c0d1c 0%, #131325 55%, #192e2e 100%)"
+      }
+    }
+  }
+]

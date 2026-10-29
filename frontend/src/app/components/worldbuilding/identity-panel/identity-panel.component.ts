@@ -10,6 +10,7 @@ import {
   type OnDestroy,
   output,
   signal,
+  untracked,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -23,6 +24,10 @@ import { type ElementAppearance } from '@models/element-appearance';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { StorageContextService } from '@services/core/storage-context.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
+import {
+  IdentityImageService,
+  isInlineImage,
+} from '@services/worldbuilding/identity-image.service';
 import {
   type WorldbuildingIdentity,
   WorldbuildingService,
@@ -86,6 +91,7 @@ export class IdentityPanelComponent implements OnDestroy {
   private readonly http = inject(HttpClient);
   private readonly storageContext = inject(StorageContextService);
   private readonly localStorage = inject(LocalStorageService);
+  private readonly identityImages = inject(IdentityImageService);
 
   // State
   identity = signal<WorldbuildingIdentity>({});
@@ -121,22 +127,31 @@ export class IdentityPanelComponent implements OnDestroy {
     value: string;
     elementId: string;
   }>();
+  /**
+   * A description edit still waiting out the debounce. Saved straight away
+   * when the panel closes or moves to another element, so an edit is never
+   * lost by opening something else within half a second of typing.
+   */
+  private pendingDescription: { value: string; elementId: string } | null =
+    null;
   private unsubscribeObserver: (() => void) | null = null;
   private elementSequence = 0;
   /** Tracks whether a realtime update arrived for a given element sequence. */
   private readonly receivedRealtime: Record<number, boolean> = {};
+  /** Elements whose inline image is being moved to media right now. */
+  private readonly migratingElements = new Set<string>();
 
   constructor() {
     // Setup description debounce
     this.descriptionChange$
       .pipe(debounceTime(500), takeUntil(this.destroy$))
-      .subscribe(({ value, elementId }) => {
-        void this.saveDescription(value, elementId);
-      });
+      .subscribe(() => this.flushPendingDescription());
 
     // Load identity data when elementId changes
     effect(() => {
       const id = this.elementId();
+      // An edit typed for the previous element is saved before switching.
+      untracked(() => this.flushPendingDescription());
       if (this.readOnly()) {
         this.isIdentityLoading.set(false);
         return;
@@ -160,6 +175,7 @@ export class IdentityPanelComponent implements OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.flushPendingDescription();
     this.destroy$.next();
     this.destroy$.complete();
     if (this.unsubscribeObserver) {
@@ -229,7 +245,13 @@ export class IdentityPanelComponent implements OnDestroy {
         }
       }
 
-      // Not cached or cache was invalid - download from server
+      // Not cached or cache was invalid - download from server. Only an
+      // Inkweld Server has a copy; a Browser or Cloud Sync profile must never
+      // contact one.
+      if (!this.storageContext.isServerMode()) {
+        this.resolvedImageUrl.set(null);
+        return;
+      }
       this.isLoadingImage.set(true);
       const apiUrl = `${this.storageContext.getApiBaseUrl()}/api/v1/media/${username}/${slug}/${filename}`;
 
@@ -276,12 +298,29 @@ export class IdentityPanelComponent implements OnDestroy {
         this.identity.set(data);
         this.description.set(data.description ?? '');
         this.appearance.set(data.appearance);
+        this.migrateInlineImage(elementId, data);
       }
     } finally {
       if (sequence === this.elementSequence) {
         this.isIdentityLoading.set(false);
       }
     }
+  }
+
+  /**
+   * Older elements carry their image inline as a data URL; move it to
+   * project media. The realtime observer picks up the replaced value.
+   */
+  private migrateInlineImage(
+    elementId: string,
+    data: WorldbuildingIdentity
+  ): void {
+    if (!data.image || !isInlineImage(data.image)) return;
+    if (!this.canWrite() || this.migratingElements.has(elementId)) return;
+    this.migratingElements.add(elementId);
+    void this.identityImages
+      .migrateInlineImage(elementId, this.username(), this.slug())
+      .finally(() => this.migratingElements.delete(elementId));
   }
 
   private async setupRealtimeSync(
@@ -300,6 +339,7 @@ export class IdentityPanelComponent implements OnDestroy {
         if (sequence !== this.elementSequence) return;
         this.receivedRealtime[sequence] = true;
         this.identity.set(data);
+        this.migrateInlineImage(elementId, data);
         this.appearance.set(data.appearance);
         // Only update description if different to avoid cursor jumps
         if (data.description !== this.description()) {
@@ -321,7 +361,17 @@ export class IdentityPanelComponent implements OnDestroy {
 
   onDescriptionChange(value: string): void {
     this.description.set(value);
-    this.descriptionChange$.next({ value, elementId: this.elementId() });
+    const change = { value, elementId: this.elementId() };
+    this.pendingDescription = change;
+    this.descriptionChange$.next(change);
+  }
+
+  /** Save a description edit still waiting out the debounce, if any. */
+  private flushPendingDescription(): void {
+    const pending = this.pendingDescription;
+    if (!pending) return;
+    this.pendingDescription = null;
+    void this.saveDescription(pending.value, pending.elementId);
   }
 
   private async saveDescription(
@@ -418,15 +468,24 @@ export class IdentityPanelComponent implements OnDestroy {
 
     if (result.removed) {
       await this.clearImage();
-    } else if (result.imageData) {
-      // Save the new image
+    } else if (result.imageData || result.imageBlob || result.mediaId) {
+      // Store the image as project media and keep only a reference in the
+      // identity map (never the base64 itself).
+      const elementId = this.elementId();
+      const image = await this.identityImages.toIdentityImage(
+        `${username}/${slug}`,
+        result
+      );
+      if (!image) return;
       await this.worldbuildingService.saveIdentityData(
-        this.elementId(),
-        { image: result.imageData },
+        elementId,
+        { image },
         username,
         slug
       );
-      this.identity.set({ ...this.identity(), image: result.imageData });
+      if (elementId === this.elementId()) {
+        this.identity.set({ ...this.identity(), image });
+      }
     }
   }
 

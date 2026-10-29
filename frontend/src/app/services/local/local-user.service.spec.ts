@@ -68,6 +68,8 @@ describe('LocalUserService', () => {
       prefixDbName: vi.fn((name: string) => `local:${name}`),
       prefixDocumentId: vi.fn((id: string) => `local:${id}`),
       getPrefix: vi.fn().mockReturnValue('local:'),
+      getActiveConfig: vi.fn().mockReturnValue(null),
+      updateConfigUserProfile: vi.fn(),
     } as unknown as MockedObject<StorageContextService>;
 
     TestBed.configureTestingModule({
@@ -149,6 +151,38 @@ describe('LocalUserService', () => {
       expect(mockStorage[PREFIXED_USER_KEY]).toBe(
         JSON.stringify({ ...mockUser, ...updates })
       );
+    });
+
+    it("should rename the active local profile's user", () => {
+      storageContextService.getActiveConfig.mockReturnValue({
+        id: 'local',
+        type: 'local',
+        userProfile: { name: 'Local User', username: 'localuser' },
+      } as ReturnType<StorageContextService['getActiveConfig']>);
+      service.setLocalUser(mockUser);
+
+      service.updateLocalUser({ name: 'Renamed' });
+
+      expect(
+        storageContextService.updateConfigUserProfile
+      ).toHaveBeenCalledWith('local', {
+        name: 'Renamed',
+        username: 'localuser',
+      });
+    });
+
+    it('should leave a server profile untouched', () => {
+      storageContextService.getActiveConfig.mockReturnValue({
+        id: 'srv',
+        type: 'server',
+        userProfile: { name: 'Server User', username: 'srvuser' },
+      } as ReturnType<StorageContextService['getActiveConfig']>);
+
+      service.updateLocalUser({ name: 'Renamed' });
+
+      expect(
+        storageContextService.updateConfigUserProfile
+      ).not.toHaveBeenCalled();
     });
   });
 

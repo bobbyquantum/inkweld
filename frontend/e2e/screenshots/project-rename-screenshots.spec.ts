@@ -1,10 +1,10 @@
 /**
- * Project Rename Feature Screenshot Tests
+ * Project Danger Zone Screenshot Tests
  *
- * Captures screenshots demonstrating the project rename feature.
- * Consolidated 9 → 2 tests (one per color scheme); each captures the
- * collapsed rename card, expanded form, filled form, danger zone
- * overview, and delete card via test.step.
+ * Captures the Danger Zone of a Browser profile's project settings: an
+ * overview and the delete card, one test per color scheme. Renaming moves a
+ * project on the server, so the rename card only appears on an Inkweld Server
+ * profile and is not captured here.
  */
 
 import { type Page } from '@playwright/test';
@@ -37,70 +37,29 @@ async function setupProjectAndSettings(
   // Click on the Danger Zone section in sidenav
   await page.getByTestId('nav-danger').click();
 
-  // Wait for danger zone content
-  await expect(page.getByTestId('rename-project-card')).toBeVisible();
+  // Wait for danger zone content. A Browser profile cannot rename.
   await expect(page.getByTestId('delete-project-card')).toBeVisible();
+  await expect(page.getByTestId('rename-project-card')).toHaveCount(0);
 }
 
-async function captureAllRenameScreenshots(
+async function captureDangerZoneScreenshots(
   page: Page,
   screenshotsDir: string,
   suffix: 'light' | 'dark'
 ): Promise<void> {
-  const renameCard = page.locator('[data-testid="rename-project-card"]');
-  const deleteCard = page.locator('[data-testid="delete-project-card"]');
+  const dangerZone = page.getByTestId('danger-zone-section');
+  const deleteCard = page.getByTestId('delete-project-card');
 
-  // Captured first, while the rename card is still collapsed, so the
-  // overview shows both cards as a user first sees them.
   await test.step('danger zone overview', async () => {
-    await expect(renameCard).toBeVisible();
-    await expect(deleteCard).toBeVisible();
+    await expect(dangerZone).toBeVisible();
 
     await captureElementScreenshot(
       page,
-      [renameCard, deleteCard],
+      [dangerZone],
       join(screenshotsDir, `danger-zone-overview-${suffix}.png`),
       16
     );
   });
-
-  await test.step('rename card collapsed', async () => {
-    await captureElementScreenshot(
-      page,
-      [renameCard],
-      join(screenshotsDir, `project-rename-card-${suffix}.png`),
-      16
-    );
-  });
-
-  await test.step('rename form expanded (empty)', async () => {
-    await page.click('[data-testid="rename-project-button"]');
-    await expect(page.getByTestId('new-slug-input')).toBeVisible();
-
-    await captureElementScreenshot(
-      page,
-      [renameCard],
-      join(screenshotsDir, `project-rename-form-${suffix}.png`),
-      16
-    );
-  });
-
-  // Light mode also captured a "filled" variant.
-  if (suffix === 'light') {
-    await test.step('rename form with new slug entered', async () => {
-      await page.fill('[data-testid="new-slug-input"]', 'my-new-project-name');
-      await expect(page.getByTestId('new-slug-input')).toHaveValue(
-        'my-new-project-name'
-      );
-
-      await captureElementScreenshot(
-        page,
-        [renameCard],
-        join(screenshotsDir, `project-rename-filled-${suffix}.png`),
-        16
-      );
-    });
-  }
 
   await test.step('delete card', async () => {
     await deleteCard.scrollIntoViewIfNeeded();
@@ -115,28 +74,26 @@ async function captureAllRenameScreenshots(
   });
 }
 
-test.describe('Project Rename Feature Screenshots', () => {
+test.describe('Project Danger Zone Screenshots', () => {
   const screenshotsDir = getScreenshotsDir();
 
   test.beforeAll(async () => {
     await ensureDirectory(screenshotsDir);
   });
 
-  test('project rename screenshots — light mode', async ({
+  test('danger zone screenshots — light mode', async ({
     offlinePage: page,
   }) => {
     await setupProjectAndSettings(page, 'rename-light', 'Rename Demo');
-    await captureAllRenameScreenshots(page, screenshotsDir, 'light');
+    await captureDangerZoneScreenshots(page, screenshotsDir, 'light');
     await expect(page.getByTestId('delete-project-card')).toBeVisible();
   });
 
-  test('project rename screenshots — dark mode', async ({
-    offlinePage: page,
-  }) => {
+  test('danger zone screenshots — dark mode', async ({ offlinePage: page }) => {
     await setupProjectAndSettings(page, 'rename-dark', 'Rename Demo');
     await page.emulateMedia({ colorScheme: 'dark' });
     await page.evaluate(() => document.fonts.ready);
-    await captureAllRenameScreenshots(page, screenshotsDir, 'dark');
+    await captureDangerZoneScreenshots(page, screenshotsDir, 'dark');
     await expect(page.getByTestId('delete-project-card')).toBeVisible();
   });
 });

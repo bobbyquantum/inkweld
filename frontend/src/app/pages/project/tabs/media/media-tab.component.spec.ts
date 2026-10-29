@@ -22,12 +22,13 @@ import { MediaProjectTagService } from '@services/project/media-project-tag.serv
 import { ProjectStateService } from '@services/project/project-state.service';
 import { TagService } from '@services/tag/tag.service';
 import { of } from 'rxjs';
-import { vi } from 'vitest';
+import { type Mock, vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
 import { DocumentSyncState } from '../../../../models/document-sync-state';
 import { FileSizePipe } from '../../../../pipes/file-size.pipe';
 import { DocumentService } from '../../../../services/project/document.service';
+import { WorldbuildingService } from '../../../../services/worldbuilding/worldbuilding.service';
 import { type MediaItem, MediaTabComponent } from './media-tab.component';
 
 describe('MediaTabComponent', () => {
@@ -42,6 +43,9 @@ describe('MediaTabComponent', () => {
   let mediaProjectTagService: Partial<MediaProjectTagService>;
   let tagService: Partial<TagService>;
   let documentService: Partial<DocumentService>;
+  let worldbuildingService: {
+    getIdentityData: Mock<WorldbuildingService['getIdentityData']>;
+  };
 
   const mockProject = {
     username: 'testuser',
@@ -135,6 +139,12 @@ describe('MediaTabComponent', () => {
       getDocumentContent: vi.fn().mockResolvedValue([]),
     };
 
+    worldbuildingService = {
+      getIdentityData: vi
+        .fn<WorldbuildingService['getIdentityData']>()
+        .mockResolvedValue({}),
+    };
+
     await TestBed.configureTestingModule({
       imports: [
         translocoTestProvider(),
@@ -158,6 +168,7 @@ describe('MediaTabComponent', () => {
         { provide: MediaProjectTagService, useValue: mediaProjectTagService },
         { provide: TagService, useValue: tagService },
         { provide: DocumentService, useValue: documentService },
+        { provide: WorldbuildingService, useValue: worldbuildingService },
       ],
     }).compileComponents();
 
@@ -768,6 +779,58 @@ describe('MediaTabComponent', () => {
       // Should not throw; usages list should not include the canvas
       const usages = await getUsagesFor(TARGET_MEDIA_ID);
       expect(usages ?? []).not.toContain('Placed on canvas "Bad Canvas"');
+    });
+
+    it('should detect a worldbuilding identity image', async () => {
+      (projectStateService.elements as ReturnType<typeof signal>).set([
+        { id: 'wb-1', name: 'Elara', type: 'WORLDBUILDING', sortIndex: 0 },
+        { id: 'wb-2', name: 'Other', type: 'WORLDBUILDING', sortIndex: 1 },
+      ] as never[]);
+      worldbuildingService.getIdentityData.mockImplementation((id: string) =>
+        Promise.resolve(
+          id === 'wb-1'
+            ? { image: `media://${TARGET_MEDIA_ID}.png` }
+            : { image: 'media://img-other.png' }
+        )
+      );
+
+      const usages = await getUsagesFor(TARGET_MEDIA_ID);
+
+      expect(worldbuildingService.getIdentityData).toHaveBeenCalledWith(
+        'wb-1',
+        'testuser',
+        'test-project'
+      );
+      expect(usages).toEqual(['Image of element "Elara"']);
+    });
+
+    it('should detect a worldbuilding background image', async () => {
+      (projectStateService.elements as ReturnType<typeof signal>).set([
+        { id: 'wb-1', name: 'Elara', type: 'WORLDBUILDING', sortIndex: 0 },
+      ] as never[]);
+      worldbuildingService.getIdentityData.mockResolvedValue({
+        image: 'data:image/png;base64,abc',
+        appearance: {
+          content: {
+            type: 'image',
+            mode: 'manual',
+            dark: `media://${TARGET_MEDIA_ID}.jpg`,
+          },
+        },
+      });
+
+      const usages = await getUsagesFor(TARGET_MEDIA_ID);
+
+      expect(usages).toEqual(['Background of element "Elara"']);
+    });
+
+    it('should skip worldbuilding elements that cannot be read', async () => {
+      (projectStateService.elements as ReturnType<typeof signal>).set([
+        { id: 'wb-1', name: 'Elara', type: 'WORLDBUILDING', sortIndex: 0 },
+      ] as never[]);
+      worldbuildingService.getIdentityData.mockRejectedValue(new Error('x'));
+
+      expect(await getUsagesFor(TARGET_MEDIA_ID)).toBeUndefined();
     });
 
     it('should detect document embedded image usage', async () => {

@@ -30,6 +30,20 @@ export {
 export { applyXmlToYjsFragment, serializeYjsFragmentToXml } from './serializer';
 export { xmlContentToText } from './text';
 export {
+  SECTION_OPERATIONS,
+  describeSection,
+  findSection,
+  outlineSections,
+  readSectionBlocks,
+  sectionEditRange,
+  sectionXml,
+  type DocumentSection,
+  type SectionAddress,
+  type SectionBlock,
+  type SectionLookup,
+  type SectionOperation,
+} from './sections';
+export {
   parseXmlToAst,
   parseAttrValue as parseAstAttrValue,
   type AstElement,

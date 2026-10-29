@@ -7,6 +7,7 @@ import type {
   ProjectActivityResponse,
 } from '@models/activity-event';
 import { LoggerService } from '@services/core/logger.service';
+import { StorageContextService } from '@services/core/storage-context.service';
 import { ElementNavigationService } from '@services/project/element-navigation.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { ActivityFeedService } from '@services/stats/activity-feed.service';
@@ -50,7 +51,8 @@ describe('ActivityTabComponent', () => {
 
   const setup = async (
     initial?: ProjectActivityResponse | Error,
-    proj: { username?: string; slug?: string } | null = project
+    proj: { username?: string; slug?: string } | null = project,
+    localMode = false
   ) => {
     activityFeed = mockDeep<ActivityFeedService>();
     statsService = mockDeep<WritingStatsService>();
@@ -87,6 +89,10 @@ describe('ActivityTabComponent', () => {
         { provide: WritingStatsService, useValue: statsService },
         { provide: ProjectStateService, useValue: projectState },
         { provide: LoggerService, useValue: logger },
+        {
+          provide: StorageContextService,
+          useValue: { isLocalMode: signal(localMode) },
+        },
       ],
     }).compileComponents();
 
@@ -125,6 +131,12 @@ describe('ActivityTabComponent', () => {
   it('does nothing when no project is loaded', async () => {
     await setup(undefined, null);
     expect(activityFeed.getProjectActivity).not.toHaveBeenCalled();
+  });
+
+  it('never asks the server for a Browser or Cloud Sync profile', async () => {
+    await setup({ events: [makeEvent('a')], nextBefore: 1 }, project, true);
+    expect(activityFeed.getProjectActivity).not.toHaveBeenCalled();
+    expect(statsService.getProjectStats).not.toHaveBeenCalled();
   });
 
   it('shows the empty state when there are no events', async () => {

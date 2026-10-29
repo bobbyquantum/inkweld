@@ -44,6 +44,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { RouterLink } from '@angular/router';
 import {
   AuthenticationService,
+  type SystemFeatures,
   type User,
   type UsernameAvailability,
 } from '@inkweld/index';
@@ -140,14 +141,39 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
   private readonly viewContainerRef = inject(ViewContainerRef);
   private readonly systemConfig = inject(SystemConfigService);
 
-  readonly isRequireEmail = this.systemConfig.isRequireEmailEnabled;
+  /**
+   * Features of the server the account is created on, when that is not the
+   * active profile's server (moving projects to a server). Without it the
+   * form follows the active server's configuration.
+   */
+  @Input()
+  set serverFeatures(value: SystemFeatures | null | undefined) {
+    this.serverFeaturesSignal.set(value ?? null);
+  }
+  private readonly serverFeaturesSignal = signal<SystemFeatures | null>(null);
+
+  readonly isRequireEmail = computed(() => {
+    const features = this.serverFeaturesSignal();
+    return features
+      ? (features.requireEmail ?? false)
+      : this.systemConfig.isRequireEmailEnabled();
+  });
   /**
    * Whether classic password login is enabled. When false, the form hides
    * the password fields and submits without a password — the user is then
    * expected to enrol a passkey via the parent's post-registration flow.
    */
-  readonly isPasswordLoginEnabled = this.systemConfig.isPasswordLoginEnabled;
-  private readonly policy = this.systemConfig.passwordPolicy;
+  readonly isPasswordLoginEnabled = computed(() => {
+    const features = this.serverFeaturesSignal();
+    return features
+      ? (features.passwordLoginEnabled ?? false)
+      : this.systemConfig.isPasswordLoginEnabled();
+  });
+  private readonly policy = computed(
+    () =>
+      this.serverFeaturesSignal()?.passwordPolicy ??
+      this.systemConfig.passwordPolicy()
+  );
   readonly hasPrivacyPolicy = this.systemConfig.hasPrivacyPolicy;
   readonly hasTerms = this.systemConfig.hasTerms;
 

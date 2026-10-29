@@ -1,11 +1,26 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import * as Y from 'yjs';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { LoggerService } from '../core/logger.service';
 import { StorageContextService } from '../core/storage-context.service';
 import { DocumentImportService } from './document-import.service';
+
+/**
+ * Keep the docs the service writes from being destroyed, so a test can read
+ * back what reached the (mocked) IndexedDB provider.
+ */
+function captureWrittenDocs(): Y.Doc[] {
+  const docs: Y.Doc[] = [];
+  vi.spyOn(Y.Doc.prototype, 'destroy').mockImplementation(function (
+    this: Y.Doc
+  ) {
+    docs.push(this);
+  });
+  return docs;
+}
 
 // y-indexeddb is mocked globally in setup-vitest.ts with full on/off support.
 // Real yjs is used here (not mocked) because vi.mock('yjs') is unreliable with
@@ -32,6 +47,10 @@ describe('DocumentImportService', () => {
     });
 
     service = TestBed.inject(DocumentImportService);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   describe('writeDocumentContent', () => {
@@ -226,6 +245,179 @@ describe('DocumentImportService', () => {
         'DocumentImport',
         expect.stringContaining('wb-elem-dot')
       );
+    });
+
+    describe('grouped fields', () => {
+      /** The element's data map, as the editor stores a Character. */
+      function editorCharacter(): Y.Doc {
+        const doc = new Y.Doc();
+        const data = doc.getMap<unknown>('worldbuilding');
+        doc.transact(() => {
+          data.set('name', 'Mira');
+          const appearance = new Y.Map<unknown>();
+          data.set('appearance', appearance);
+          appearance.set('height', '172cm tall');
+          const marks = new Y.Array<unknown>();
+          marks.push(['scar', 'tattoo']);
+          appearance.set('marks', marks);
+          const voice = new Y.Map<unknown>();
+          data.set('voice', voice);
+          voice.set('accent', 'Coastal');
+          const traits = new Y.Array<unknown>();
+          traits.push(['brave']);
+          data.set('traits', traits);
+        });
+        return doc;
+      }
+
+      async function importData(
+        data: Record<string, unknown>
+      ): Promise<Y.Map<unknown>> {
+        const docs = captureWrittenDocs();
+        await service.writeWorldbuildingData(
+          { elementId: 'wb-grouped', schemaId: 'character-v1', data },
+          'testuser',
+          'project-slug'
+        );
+        expect(docs).toHaveLength(1);
+        return docs[0].getMap<unknown>('worldbuilding');
+      }
+
+      it('restores the nested groups an export writes', async () => {
+        const source = editorCharacter();
+        const sourceData = source.getMap<unknown>('worldbuilding');
+        // What export writes to worldbuilding.json: nested plain objects
+        const exported = JSON.parse(
+          JSON.stringify(sourceData.toJSON())
+        ) as Record<string, unknown>;
+        expect(exported['appearance']).toEqual({
+          height: '172cm tall',
+          marks: ['scar', 'tattoo'],
+        });
+
+        const imported = await importData(exported);
+
+        const appearance = imported.get('appearance');
+        expect(appearance).toBeInstanceOf(Y.Map);
+        expect((appearance as Y.Map<unknown>).get('height')).toBe('172cm tall');
+        expect((appearance as Y.Map<unknown>).get('marks')).toBeInstanceOf(
+          Y.Array
+        );
+        expect(imported.get('traits')).toBeInstanceOf(Y.Array);
+        const { schemaId, ...rest } = imported.toJSON();
+        expect(schemaId).toBe('character-v1');
+        expect(rest).toEqual(sourceData.toJSON());
+      });
+
+      it('restores dot-notation keys into the same nested groups', async () => {
+        const imported = await importData({
+          'appearance.height': '180cm',
+          'appearance.marks': ['scar'],
+          'voice.accent': 'Coastal',
+          name: 'Test Character',
+        });
+
+        expect(imported.get('appearance')).toBeInstanceOf(Y.Map);
+        expect(imported.toJSON()).toMatchObject({
+          name: 'Test Character',
+          appearance: { height: '180cm', marks: ['scar'] },
+          voice: { accent: 'Coastal' },
+        });
+      });
+
+      it('merges nested objects and dot-notation keys for one group', async () => {
+        const imported = await importData({
+          appearance: { height: '172cm tall' },
+          'appearance.build': 'Wiry',
+        });
+
+        expect(imported.toJSON()['appearance']).toEqual({
+          height: '172cm tall',
+          build: 'Wiry',
+        });
+      });
+
+      it('keeps objects inside a group as plain values', async () => {
+        const imported = await importData({
+          casting: { notes: { draft: 'first pass' } },
+        });
+
+        const casting = imported.get('casting') as Y.Map<unknown>;
+        expect(casting).toBeInstanceOf(Y.Map);
+        expect(casting.get('notes')).toEqual({ draft: 'first pass' });
+      });
+
+      it('keeps the group when its flat identity key comes after it', async () => {
+        const docs = captureWrittenDocs();
+        await service.writeWorldbuildingData(
+          {
+            elementId: 'wb-flat-last',
+            schemaId: 'region-v1',
+            data: {
+              'description.overview': 'The breadbasket of the realm.',
+              description: 'The fertile lowlands.',
+            },
+          },
+          'testuser',
+          'project-slug'
+        );
+
+        const [written] = docs;
+        expect(
+          written.getMap<unknown>('worldbuilding').get('description')
+        ).toBeInstanceOf(Y.Map);
+        expect(written.getMap<unknown>('worldbuilding').toJSON()).toMatchObject(
+          { description: { overview: 'The breadbasket of the realm.' } }
+        );
+        expect(written.getMap<unknown>('identity').get('description')).toBe(
+          'The fertile lowlands.'
+        );
+      });
+    });
+
+    it('keeps a field group when a flat identity key shares its name', async () => {
+      // Exports write the identity description as a flat `description` next
+      // to a schema's `description.*` group; the flat value must not replace
+      // the group (which emptied the Description tab).
+      // Keep the written document alive past the service's destroy().
+      const destroyed: Y.Doc[] = [];
+      const destroy = vi
+        .spyOn(Y.Doc.prototype, 'destroy')
+        .mockImplementation(function (this: Y.Doc) {
+          destroyed.push(this);
+        });
+      try {
+        await service.writeWorldbuildingData(
+          {
+            elementId: 'wb-elem-group',
+            schemaId: 'region-v1',
+            data: {
+              description: 'The fertile lowlands.',
+              'description.overview': 'The breadbasket of the realm.',
+              'description.features': ['The Moonveil River'],
+              name: 'The Silver Vales',
+            },
+          },
+          'testuser',
+          'project-slug'
+        );
+      } finally {
+        destroy.mockRestore();
+      }
+
+      const [written] = destroyed;
+      const data = written.getMap<unknown>('worldbuilding');
+      const group = data.get('description');
+      expect(group).toBeInstanceOf(Y.Map);
+      expect((group as Y.Map<unknown>).toJSON()).toEqual({
+        overview: 'The breadbasket of the realm.',
+        features: ['The Moonveil River'],
+      });
+      expect(data.get('name')).toBe('The Silver Vales');
+      expect(written.getMap<unknown>('identity').get('description')).toBe(
+        'The fertile lowlands.'
+      );
+      written.destroy();
     });
   });
 });

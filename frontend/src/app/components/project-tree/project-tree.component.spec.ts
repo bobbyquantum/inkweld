@@ -998,6 +998,59 @@ describe('ProjectTreeComponent', () => {
     expect(createButton).toBeFalsy();
   });
 
+  describe('root context menu (empty tree space)', () => {
+    const rightClick = (selector: string) =>
+      (fixture.nativeElement as HTMLElement)
+        .querySelector(selector)
+        ?.dispatchEvent(
+          new MouseEvent('contextmenu', {
+            bubbles: true,
+            cancelable: true,
+            button: 2,
+          })
+        );
+    const openMenu = (testId: string) =>
+      document.querySelector(`[data-testid="${testId}"]`);
+
+    afterEach(() => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    });
+
+    it('opens on a right-click below the nodes', () => {
+      rightClick('[data-testid="project-tree-scroll"]');
+      fixture.detectChanges();
+
+      expect(openMenu('root-context-menu')).toBeTruthy();
+      expect(openMenu('context-menu')).toBeNull();
+    });
+
+    it('leaves a right-click on a node to the node menu', () => {
+      rightClick('[role="treeitem"]');
+      fixture.detectChanges();
+
+      expect(openMenu('context-menu')).toBeTruthy();
+      expect(openMenu('root-context-menu')).toBeNull();
+    });
+
+    it('creates a new element at the root', () => {
+      component.selectedItem = component.treeElements()[0];
+
+      component.onCreateNewElementAtRoot();
+
+      expect(projectStateService.showNewElementDialog).toHaveBeenCalledWith();
+    });
+
+    it('offers only search when the user cannot write', () => {
+      canWriteSignal.set(false);
+      fixture.detectChanges();
+      rightClick('[data-testid="project-tree-scroll"]');
+      fixture.detectChanges();
+
+      expect(openMenu('root-context-menu-new-element')).toBeNull();
+      expect(openMenu('root-context-menu-search')).toBeTruthy();
+    });
+  });
+
   describe('Home Navigation', () => {
     it('should navigate to home when goHome is called', () => {
       component.goHome();

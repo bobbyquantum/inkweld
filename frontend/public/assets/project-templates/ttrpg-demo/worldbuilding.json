@@ -1,0 +1,2589 @@
+[
+  {
+    "elementId": "4Q-YTftB3tyB6ct9sAOLI",
+    "schemaId": "ttrpg-player-character-v1",
+    "data": {
+      "schemaId": "ttrpg-player-character-v1",
+      "player": "Pregenerated",
+      "speciesspeciesspecies": "Halfling",
+      "class": "Ranger",
+      "subclass": "Hunter",
+      "level": "1",
+      "background": "Fisher",
+      "alignment": "Neutral Good",
+      "str": "10",
+      "dex": "16",
+      "con": "14",
+      "int": "10",
+      "wis": "14",
+      "cha": "10",
+      "ac": "14",
+      "maxHp": "12",
+      "speed": "25",
+      "savingThrows": [],
+      "skills": [],
+      "personality": "Cheerful, stubborn and endlessly hungry. You don't leave family out on the tide.",
+      "bonds": "Grandson of Old Cobb, one of the missing fishermen. Afraid of deep water, though he'd never admit it.",
+      "backstory": "Pip learned to read the tides, the weather and the birds from his grandfather. He knows every gully on the mudflats and every rock on the causeway - and he knows Old Cobb would never have walked out to the lighthouse on his own.",
+      "dmSecrets": "Old Cobb did not go willingly; he saw the cult drown the lighthouse keeper forty years ago and has kept silent ever since.",
+      "id": "4Q-YTftB3tyB6ct9sAOLI",
+      "name": "Pip Cobble",
+      "createdDate": "2026-10-15T19:44:48.451Z",
+      "lastModified": "2026-10-15T19:44:59.848Z",
+      "image": "media://img-pip-cobble",
+      "description": "Halfling ranger and tide-reader, out to bring his grandfather Old Cobb home."
+    },
+    "schema": {
+      "id": "ttrpg-player-character-v1",
+      "name": "Player Character",
+      "icon": "person",
+      "description": "A player character (PC) - one per player at the table.",
+      "version": 54,
+      "isNew": false,
+      "tabs": [
+        {
+          "key": "general",
+          "label": "Character",
+          "fields": [
+            {
+              "key": "player",
+              "label": "Player",
+              "type": "text",
+              "id": "field_4ad984e0-ea03-4554-a1f7-1a825d6b5e98",
+              "layout": {
+                "span": 6
+              },
+              "placeholder": "Who plays this character?"
+            },
+            {
+              "id": "field_5b38a39b-f35e-4e96-a8df-cfb4567c125e",
+              "key": "speciesspeciesspecies",
+              "label": "Species",
+              "type": "text",
+              "placeholder": "",
+              "layout": {
+                "span": 6
+              }
+            },
+            {
+              "id": "field_d629287d-02e8-4b57-ab2e-209f11a0d0f1",
+              "key": "class",
+              "label": "Class",
+              "type": "select",
+              "placeholder": "",
+              "layout": {
+                "span": 6
+              },
+              "options": [
+                "Barbarian",
+                "Bard",
+                "Cleric",
+                "Druid",
+                "Fighter",
+                "Monk",
+                "Paladin",
+                "Ranger",
+                "Rogue",
+                "Sorcerer",
+                "Warlock",
+                "Wizard"
+              ]
+            },
+            {
+              "id": "field_da6287b9-fbd0-4807-9e9a-f449d0f8ee38",
+              "key": "subclass",
+              "label": "Subclass",
+              "type": "text",
+              "placeholder": "",
+              "layout": {
+                "span": 6
+              }
+            },
+            {
+              "id": "field_76fa81bc-65c5-47a2-a900-40613f455023",
+              "key": "level",
+              "label": "Level",
+              "type": "number",
+              "placeholder": "",
+              "layout": {
+                "span": 3
+              }
+            },
+            {
+              "id": "field_c79cf971-bc6c-4de4-85a1-108093e5c381",
+              "key": "background",
+              "label": "Background",
+              "type": "text",
+              "placeholder": "",
+              "layout": {
+                "span": 5
+              }
+            },
+            {
+              "id": "field_ea15803a-0832-4ca5-b92c-41f812bbfbda",
+              "key": "alignment",
+              "label": "Alignment",
+              "type": "select",
+              "placeholder": "",
+              "layout": {
+                "span": 4
+              },
+              "options": [
+                "Lawful Good",
+                "Neutral Good",
+                "Chaotic Good",
+                "Lawful Neutral",
+                "True Neutral",
+                "Chaotic Neutral",
+                "Lawful Evil",
+                "Neutral Evil",
+                "Chaotic Evil"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "tab_d532de0b-84b9-466b-8289-a129474b5abc",
+          "label": "Abilities & Combat",
+          "icon": "article",
+          "order": 1,
+          "fields": [
+            {
+              "id": "field_9798375f-a80a-4483-9db0-a9b7fc09db27",
+              "key": "str",
+              "label": "STR",
+              "type": "number",
+              "placeholder": "",
+              "layout": {
+                "span": 2
+              }
+            },
+            {
+              "id": "field_b150b0d0-9933-4512-8534-56ecf4e91b61",
+              "key": "dex",
+              "label": "DEX",
+              "type": "number",
+              "placeholder": "",
+              "layout": {
+                "span": 2
+              }
+            },
+            {
+              "id": "field_b82b6587-7c60-4657-a7d0-7f850316300a",
+              "key": "con",
+              "label": "CON",
+              "type": "number",
+              "placeholder": "",
+              "layout": {
+                "span": 2
+              }
+            },
+            {
+              "id": "field_559cb543-8407-48fb-b84b-c1dc884d249a",
+              "key": "int",
+              "label": "INT",
+              "type": "number",
+              "placeholder": "",
+              "layout": {
+                "span": 2
+              }
+            },
+            {
+              "id": "field_4cfcdf67-8ab0-4016-b91c-d3aa0f4de776",
+              "key": "wis",
+              "label": "WIS",
+              "type": "number",
+              "placeholder": "",
+              "layout": {
+                "span": 2
+              }
+            },
+            {
+              "id": "field_7eb6ea78-5802-4c12-ab54-567a7e2307b8",
+              "key": "cha",
+              "label": "CHA",
+              "type": "number",
+              "placeholder": "",
+              "layout": {
+                "span": 2
+              }
+            },
+            {
+              "id": "field_f4e72f1b-4910-4b9a-894a-42d3affaa408",
+              "key": "ac",
+              "label": "Armor Class",
+              "type": "number",
+              "placeholder": "",
+              "layout": {
+                "span": 4
+              }
+            },
+            {
+              "id": "field_9bf92490-5fbd-4481-a1ed-1b04838b50c8",
+              "key": "maxHp",
+              "label": "Max HP",
+              "type": "number",
+              "placeholder": "",
+              "layout": {
+                "span": 4
+              }
+            },
+            {
+              "id": "field_6f5ea0a9-4738-4c83-bd91-4d8de3bdcb44",
+              "key": "speed",
+              "label": "Speed (ft)",
+              "type": "number",
+              "placeholder": "",
+              "layout": {
+                "span": 4
+              }
+            },
+            {
+              "id": "field_6ca6be95-0c00-4e43-ba07-4c3f6ea67125",
+              "key": "savingThrows",
+              "label": "Saving Throw Proficiencies",
+              "type": "multiselect",
+              "placeholder": "",
+              "layout": {
+                "span": 12
+              },
+              "options": [
+                "Strength",
+                "Dexterity",
+                "Constitution",
+                "Intelligence",
+                "Wisdom",
+                "Charisma"
+              ]
+            },
+            {
+              "id": "field_9eca2fd6-f9f6-4c78-a411-893689b391c4",
+              "key": "skills",
+              "label": "Skill Proficiencies",
+              "type": "multiselect",
+              "placeholder": "",
+              "layout": {
+                "span": 12
+              },
+              "options": [
+                "Acrobatics",
+                "Animal Handling",
+                "Arcana",
+                "Athletics",
+                "Deception",
+                "History",
+                "Insight",
+                "Intimidation",
+                "Investigation",
+                "Medicine",
+                "Nature",
+                "Perception",
+                "Performance",
+                "Persuasion",
+                "Religion",
+                "Sleight of Hand",
+                "Stealth",
+                "Survival"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "tab_cca238b1-25be-4035-86f6-1baa7a96a78d",
+          "label": "Story",
+          "icon": "article",
+          "order": 2,
+          "fields": [
+            {
+              "id": "field_0cc3199d-72c9-427c-afe7-1946ebffa5e2",
+              "key": "personality",
+              "label": "Personality & Ideals",
+              "type": "textarea",
+              "placeholder": "",
+              "layout": {
+                "span": 12
+              },
+              "rows": 3
+            },
+            {
+              "id": "field_5f007745-4df4-4e47-9d10-2aea187de1a0",
+              "key": "bonds",
+              "label": "Bonds & Flaws",
+              "type": "textarea",
+              "placeholder": "",
+              "layout": {
+                "span": 12
+              },
+              "rows": 3
+            },
+            {
+              "id": "field_16fd5a0f-d32e-4c1d-be7b-f9861a0a4eca",
+              "key": "backstory",
+              "label": "Backstory",
+              "type": "textarea",
+              "placeholder": "",
+              "layout": {
+                "span": 12
+              },
+              "rows": 3
+            },
+            {
+              "id": "field_d0c51df5-9d29-44ad-8307-2cd90cc41d5f",
+              "key": "dmSecrets",
+              "label": "DM Secrets",
+              "type": "textarea",
+              "placeholder": "",
+              "layout": {
+                "span": 12
+              },
+              "description": "Hooks and secrets the player doesn't know yet.",
+              "rows": 3
+            }
+          ]
+        }
+      ],
+      "createdAt": "2026-10-14T00:05:32.522Z",
+      "updatedAt": "2026-10-14T00:05:32.522Z"
+    },
+    "schemaBaseHash": "5f75d57a"
+  },
+  {
+    "elementId": "PVWD6-hBjTUEF0zojyMMf",
+    "schemaId": "ttrpg-player-character-v1",
+    "data": {
+      "schemaId": "ttrpg-player-character-v1",
+      "player": "Pregenerated",
+      "speciesspeciesspecies": "Half-Elf",
+      "class": "Wizard",
+      "subclass": "School of Divination",
+      "level": "1",
+      "background": "Sage",
+      "alignment": "Neutral Good",
+      "str": "8",
+      "dex": "14",
+      "con": "13",
+      "int": "16",
+      "wis": "12",
+      "cha": "11",
+      "ac": "12",
+      "maxHp": "7",
+      "speed": "30",
+      "savingThrows": [],
+      "skills": [],
+      "personality": "Precise, curious and a little too pleased when she is right. Knowledge drowned is knowledge stolen.",
+      "bonds": "Has spent three years reconstructing the lost parish records of Old Saltmere. Will take terrible risks for a primary source.",
+      "backstory": "A scholar from the university at Carrow, Isolde came to Saltmere to map the drowned town before the sea takes the last of it. The low tide is the chance of a lifetime - and the green light is a mystery she cannot leave alone.",
+      "dmSecrets": "Her great-grandmother was the last lighthouse keeper's wife. Mother Brine knows, and has been very kind to her.",
+      "id": "PVWD6-hBjTUEF0zojyMMf",
+      "name": "Isolde Marrow",
+      "createdDate": "2026-10-15T19:43:05.785Z",
+      "lastModified": "2026-10-15T19:43:17.306Z",
+      "image": "media://img-isolde-marrow",
+      "description": "Half-elf diviner and antiquarian, in Saltmere to map the drowned town while the tide is out."
+    },
+    "schema": {
+      "id": "ttrpg-player-character-v1",
+      "name": "Player Character",
+      "icon": "person",
+      "description": "A player character (PC) - one per player at the table.",
+      "version": 54,
+      "isNew": false,
+      "tabs": [
+        {
+          "key": "general",
+          "label": "Character",
+          "fields": [
+            {
+              "key": "player",
+              "label": "Player",
+              "type": "text",
+              "id": "field_4ad984e0-ea03-4554-a1f7-1a825d6b5e98",
+              "layout": {
+                "span": 6
+              },
+              "placeholder": "Who plays this character?"
+            },
+            {
+              "id": "field_5b38a39b-f35e-4e96-a8df-cfb4567c125e",
+              "key": "speciesspeciesspecies",
+              "label": "Species",
+              "type": "text",
+              "placeholder": "",
+              "layout": {
+                "span": 6
+              }
+            },
+            {
+              "id": "field_d629287d-02e8-4b57-ab2e-209f11a0d0f1",
+              "key": "class",
+              "label": "Class",
+              "type": "select",
+              "placeholder": "",
+              "layout": {
+                "span": 6
+              },
+              "options": [
+                "Barbarian",
+                "Bard",
+                "Cleric",
+                "Druid",
+                "Fighter",
+                "Monk",
+                "Paladin",
+                "Ranger",
+                "Rogue",
+                "Sorcerer",
+                "Warlock",
+                "Wizard"
+              ]
+            },
+            {
+              "id": "field_da6287b9-fbd0-4807-9e9a-f449d0f8ee38",
+              "key": "subclass",
+              "label": "Subclass",
+              "type": "text",
+              "placeholder": "",
+              "layout": {
+                "span": 6
+              }
+            },
+            {
+              "id": "field_76fa81bc-65c5-47a2-a900-40613f455023",
+              "key": "level",
+              "label": "Level",
+              "type": "number",
+              "placeholder": "",
+              "layout": {
+                "span": 3
+              }
+            },
+            {
+              "id": "field_c79cf971-bc6c-4de4-85a1-108093e5c381",
+              "key": "background",
+              "label": "Background",
+              "type": "text",
+              "placeholder": "",
+              "layout": {
+                "span": 5
+              }
+            },
+            {
+              "id": "field_ea15803a-0832-4ca5-b92c-41f812bbfbda",
+              "key": "alignment",
+              "label": "Alignment",
+              "type": "select",
+              "placeholder": "",
+              "layout": {
+                "span": 4
+              },
+              "options": [
+                "Lawful Good",
+                "Neutral Good",
+                "Chaotic Good",
+                "Lawful Neutral",
+                "True Neutral",
+                "Chaotic Neutral",
+                "Lawful Evil",
+                "Neutral Evil",
+                "Chaotic Evil"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "tab_d532de0b-84b9-466b-8289-a129474b5abc",
+          "label": "Abilities & Combat",
+          "icon": "article",
+          "order": 1,
+          "fields": [
+            {
+              "id": "field_9798375f-a80a-4483-9db0-a9b7fc09db27",
+              "key": "str",
+              "label": "STR",
+              "type": "number",
+              "placeholder": "",
+              "layout": {
+                "span": 2
+              }
+            },
+            {
+              "id": "field_b150b0d0-9933-4512-8534-56ecf4e91b61",
+              "key": "dex",
+              "label": "DEX",
+              "type": "number",
+              "placeholder": "",
+              "layout": {
+                "span": 2
+              }
+            },
+            {
+              "id": "field_b82b6587-7c60-4657-a7d0-7f850316300a",
+              "key": "con",
+              "label": "CON",
+              "type": "number",
+              "placeholder": "",
+              "layout": {
+                "span": 2
+              }
+            },
+            {
+              "id": "field_559cb543-8407-48fb-b84b-c1dc884d249a",
+              "key": "int",
+              "label": "INT",
+              "type": "number",
+              "placeholder": "",
+              "layout": {
+                "span": 2
+              }
+            },
+            {
+              "id": "field_4cfcdf67-8ab0-4016-b91c-d3aa0f4de776",
+              "key": "wis",
+              "label": "WIS",
+              "type": "number",
+              "placeholder": "",
+              "layout": {
+                "span": 2
+              }
+            },
+            {
+              "id": "field_7eb6ea78-5802-4c12-ab54-567a7e2307b8",
+              "key": "cha",
+              "label": "CHA",
+              "type": "number",
+              "placeholder": "",
+              "layout": {
+                "span": 2
+              }
+            },
+            {
+              "id": "field_f4e72f1b-4910-4b9a-894a-42d3affaa408",
+              "key": "ac",
+              "label": "Armor Class",
+              "type": "number",
+              "placeholder": "",
+              "layout": {
+                "span": 4
+              }
+            },
+            {
+              "id": "field_9bf92490-5fbd-4481-a1ed-1b04838b50c8",
+              "key": "maxHp",
+              "label": "Max HP",
+              "type": "number",
+              "placeholder": "",
+              "layout": {
+                "span": 4
+              }
+            },
+            {
+              "id": "field_6f5ea0a9-4738-4c83-bd91-4d8de3bdcb44",
+              "key": "speed",
+              "label": "Speed (ft)",
+              "type": "number",
+              "placeholder": "",
+              "layout": {
+                "span": 4
+              }
+            },
+            {
+              "id": "field_6ca6be95-0c00-4e43-ba07-4c3f6ea67125",
+              "key": "savingThrows",
+              "label": "Saving Throw Proficiencies",
+              "type": "multiselect",
+              "placeholder": "",
+              "layout": {
+                "span": 12
+              },
+              "options": [
+                "Strength",
+                "Dexterity",
+                "Constitution",
+                "Intelligence",
+                "Wisdom",
+                "Charisma"
+              ]
+            },
+            {
+              "id": "field_9eca2fd6-f9f6-4c78-a411-893689b391c4",
+              "key": "skills",
+              "label": "Skill Proficiencies",
+              "type": "multiselect",
+              "placeholder": "",
+              "layout": {
+                "span": 12
+              },
+              "options": [
+                "Acrobatics",
+                "Animal Handling",
+                "Arcana",
+                "Athletics",
+                "Deception",
+                "History",
+                "Insight",
+                "Intimidation",
+                "Investigation",
+                "Medicine",
+                "Nature",
+                "Perception",
+                "Performance",
+                "Persuasion",
+                "Religion",
+                "Sleight of Hand",
+                "Stealth",
+                "Survival"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "tab_cca238b1-25be-4035-86f6-1baa7a96a78d",
+          "label": "Story",
+          "icon": "article",
+          "order": 2,
+          "fields": [
+            {
+              "id": "field_0cc3199d-72c9-427c-afe7-1946ebffa5e2",
+              "key": "personality",
+              "label": "Personality & Ideals",
+              "type": "textarea",
+              "placeholder": "",
+              "layout": {
+                "span": 12
+              },
+              "rows": 3
+            },
+            {
+              "id": "field_5f007745-4df4-4e47-9d10-2aea187de1a0",
+              "key": "bonds",
+              "label": "Bonds & Flaws",
+              "type": "textarea",
+              "placeholder": "",
+              "layout": {
+                "span": 12
+              },
+              "rows": 3
+            },
+            {
+              "id": "field_16fd5a0f-d32e-4c1d-be7b-f9861a0a4eca",
+              "key": "backstory",
+              "label": "Backstory",
+              "type": "textarea",
+              "placeholder": "",
+              "layout": {
+                "span": 12
+              },
+              "rows": 3
+            },
+            {
+              "id": "field_d0c51df5-9d29-44ad-8307-2cd90cc41d5f",
+              "key": "dmSecrets",
+              "label": "DM Secrets",
+              "type": "textarea",
+              "placeholder": "",
+              "layout": {
+                "span": 12
+              },
+              "description": "Hooks and secrets the player doesn't know yet.",
+              "rows": 3
+            }
+          ]
+        }
+      ],
+      "createdAt": "2026-10-14T00:05:32.522Z",
+      "updatedAt": "2026-10-14T00:05:32.522Z"
+    },
+    "schemaBaseHash": "5f75d57a"
+  },
+  {
+    "elementId": "KlE5FvISqx9O_8ghs4U45",
+    "schemaId": "ttrpg-player-character-v1",
+    "data": {
+      "schemaId": "ttrpg-player-character-v1",
+      "player": "Pregenerated",
+      "speciesspeciesspecies": "Dwarf",
+      "class": "Cleric",
+      "subclass": "Life Domain",
+      "level": "1",
+      "background": "Acolyte",
+      "alignment": "Lawful Good",
+      "str": "14",
+      "dex": "8",
+      "con": "15",
+      "int": "10",
+      "wis": "16",
+      "cha": "12",
+      "ac": "18",
+      "maxHp": "11",
+      "speed": "30",
+      "savingThrows": [],
+      "skills": [],
+      "personality": "Patient, gruff and kind. Every soul deserves a light to steer by.",
+      "bonds": "His younger brother Jory is one of the missing fishermen. He blames himself for not coming home sooner.",
+      "backstory": "Aldous left Saltmere at sixteen to serve in the chapel of the Harbour Keeper, a small god of safe returns. He came home on the morning coach to find his brother's boat beached on the mud and his brother gone.",
+      "dmSecrets": "Jory is still alive in the lighthouse - but he has started to wear the shell token willingly.",
+      "id": "KlE5FvISqx9O_8ghs4U45",
+      "name": "Brother Aldous Penhale",
+      "createdDate": "2026-10-15T19:42:12.744Z",
+      "lastModified": "2026-10-15T19:42:24.255Z",
+      "image": "media://img-brother-aldous-penhale",
+      "description": "Dwarf cleric of the Harbour Keeper, home to find his brother Jory among the missing."
+    },
+    "schema": {
+      "id": "ttrpg-player-character-v1",
+      "name": "Player Character",
+      "icon": "person",
+      "description": "A player character (PC) - one per player at the table.",
+      "version": 54,
+      "isNew": false,
+      "tabs": [
+        {
+          "key": "general",
+          "label": "Character",
+          "fields": [
+            {
+              "key": "player",
+              "label": "Player",
+              "type": "text",
+              "id": "field_4ad984e0-ea03-4554-a1f7-1a825d6b5e98",
+              "layout": {
+                "span": 6
+              },
+              "placeholder": "Who plays this character?"
+            },
+            {
+              "id": "field_5b38a39b-f35e-4e96-a8df-cfb4567c125e",
+              "key": "speciesspeciesspecies",
+              "label": "Species",
+              "type": "text",
+              "placeholder": "",
+              "layout": {
+                "span": 6
+              }
+            },
+            {
+              "id": "field_d629287d-02e8-4b57-ab2e-209f11a0d0f1",
+              "key": "class",
+              "label": "Class",
+              "type": "select",
+              "placeholder": "",
+              "layout": {
+                "span": 6
+              },
+              "options": [
+                "Barbarian",
+                "Bard",
+                "Cleric",
+                "Druid",
+                "Fighter",
+                "Monk",
+                "Paladin",
+                "Ranger",
+                "Rogue",
+                "Sorcerer",
+                "Warlock",
+                "Wizard"
+              ]
+            },
+            {
+              "id": "field_da6287b9-fbd0-4807-9e9a-f449d0f8ee38",
+              "key": "subclass",
+              "label": "Subclass",
+              "type": "text",
+              "placeholder": "",
+              "layout": {
+                "span": 6
+              }
+            },
+            {
+              "id": "field_76fa81bc-65c5-47a2-a900-40613f455023",
+              "key": "level",
+              "label": "Level",
+              "type": "number",
+              "placeholder": "",
+              "layout": {
+                "span": 3
+              }
+            },
+            {
+              "id": "field_c79cf971-bc6c-4de4-85a1-108093e5c381",
+              "key": "background",
+              "label": "Background",
+              "type": "text",
+              "placeholder": "",
+              "layout": {
+                "span": 5
+              }
+            },
+            {
+              "id": "field_ea15803a-0832-4ca5-b92c-41f812bbfbda",
+              "key": "alignment",
+              "label": "Alignment",
+              "type": "select",
+              "placeholder": "",
+              "layout": {
+                "span": 4
+              },
+              "options": [
+                "Lawful Good",
+                "Neutral Good",
+                "Chaotic Good",
+                "Lawful Neutral",
+                "True Neutral",
+                "Chaotic Neutral",
+                "Lawful Evil",
+                "Neutral Evil",
+                "Chaotic Evil"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "tab_d532de0b-84b9-466b-8289-a129474b5abc",
+          "label": "Abilities & Combat",
+          "icon": "article",
+          "order": 1,
+          "fields": [
+            {
+              "id": "field_9798375f-a80a-4483-9db0-a9b7fc09db27",
+              "key": "str",
+              "label": "STR",
+              "type": "number",
+              "placeholder": "",
+              "layout": {
+                "span": 2
+              }
+            },
+            {
+              "id": "field_b150b0d0-9933-4512-8534-56ecf4e91b61",
+              "key": "dex",
+              "label": "DEX",
+              "type": "number",
+              "placeholder": "",
+              "layout": {
+                "span": 2
+              }
+            },
+            {
+              "id": "field_b82b6587-7c60-4657-a7d0-7f850316300a",
+              "key": "con",
+              "label": "CON",
+              "type": "number",
+              "placeholder": "",
+              "layout": {
+                "span": 2
+              }
+            },
+            {
+              "id": "field_559cb543-8407-48fb-b84b-c1dc884d249a",
+              "key": "int",
+              "label": "INT",
+              "type": "number",
+              "placeholder": "",
+              "layout": {
+                "span": 2
+              }
+            },
+            {
+              "id": "field_4cfcdf67-8ab0-4016-b91c-d3aa0f4de776",
+              "key": "wis",
+              "label": "WIS",
+              "type": "number",
+              "placeholder": "",
+              "layout": {
+                "span": 2
+              }
+            },
+            {
+              "id": "field_7eb6ea78-5802-4c12-ab54-567a7e2307b8",
+              "key": "cha",
+              "label": "CHA",
+              "type": "number",
+              "placeholder": "",
+              "layout": {
+                "span": 2
+              }
+            },
+            {
+              "id": "field_f4e72f1b-4910-4b9a-894a-42d3affaa408",
+              "key": "ac",
+              "label": "Armor Class",
+              "type": "number",
+              "placeholder": "",
+              "layout": {
+                "span": 4
+              }
+            },
+            {
+              "id": "field_9bf92490-5fbd-4481-a1ed-1b04838b50c8",
+              "key": "maxHp",
+              "label": "Max HP",
+              "type": "number",
+              "placeholder": "",
+              "layout": {
+                "span": 4
+              }
+            },
+            {
+              "id": "field_6f5ea0a9-4738-4c83-bd91-4d8de3bdcb44",
+              "key": "speed",
+              "label": "Speed (ft)",
+              "type": "number",
+              "placeholder": "",
+              "layout": {
+                "span": 4
+              }
+            },
+            {
+              "id": "field_6ca6be95-0c00-4e43-ba07-4c3f6ea67125",
+              "key": "savingThrows",
+              "label": "Saving Throw Proficiencies",
+              "type": "multiselect",
+              "placeholder": "",
+              "layout": {
+                "span": 12
+              },
+              "options": [
+                "Strength",
+                "Dexterity",
+                "Constitution",
+                "Intelligence",
+                "Wisdom",
+                "Charisma"
+              ]
+            },
+            {
+              "id": "field_9eca2fd6-f9f6-4c78-a411-893689b391c4",
+              "key": "skills",
+              "label": "Skill Proficiencies",
+              "type": "multiselect",
+              "placeholder": "",
+              "layout": {
+                "span": 12
+              },
+              "options": [
+                "Acrobatics",
+                "Animal Handling",
+                "Arcana",
+                "Athletics",
+                "Deception",
+                "History",
+                "Insight",
+                "Intimidation",
+                "Investigation",
+                "Medicine",
+                "Nature",
+                "Perception",
+                "Performance",
+                "Persuasion",
+                "Religion",
+                "Sleight of Hand",
+                "Stealth",
+                "Survival"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "tab_cca238b1-25be-4035-86f6-1baa7a96a78d",
+          "label": "Story",
+          "icon": "article",
+          "order": 2,
+          "fields": [
+            {
+              "id": "field_0cc3199d-72c9-427c-afe7-1946ebffa5e2",
+              "key": "personality",
+              "label": "Personality & Ideals",
+              "type": "textarea",
+              "placeholder": "",
+              "layout": {
+                "span": 12
+              },
+              "rows": 3
+            },
+            {
+              "id": "field_5f007745-4df4-4e47-9d10-2aea187de1a0",
+              "key": "bonds",
+              "label": "Bonds & Flaws",
+              "type": "textarea",
+              "placeholder": "",
+              "layout": {
+                "span": 12
+              },
+              "rows": 3
+            },
+            {
+              "id": "field_16fd5a0f-d32e-4c1d-be7b-f9861a0a4eca",
+              "key": "backstory",
+              "label": "Backstory",
+              "type": "textarea",
+              "placeholder": "",
+              "layout": {
+                "span": 12
+              },
+              "rows": 3
+            },
+            {
+              "id": "field_d0c51df5-9d29-44ad-8307-2cd90cc41d5f",
+              "key": "dmSecrets",
+              "label": "DM Secrets",
+              "type": "textarea",
+              "placeholder": "",
+              "layout": {
+                "span": 12
+              },
+              "description": "Hooks and secrets the player doesn't know yet.",
+              "rows": 3
+            }
+          ]
+        }
+      ],
+      "createdAt": "2026-10-14T00:05:32.522Z",
+      "updatedAt": "2026-10-14T00:05:32.522Z"
+    },
+    "schemaBaseHash": "5f75d57a"
+  },
+  {
+    "elementId": "Pv5-vE9eT74F5Qo5cJb-V",
+    "schemaId": "ttrpg-player-character-v1",
+    "data": {
+      "schemaId": "ttrpg-player-character-v1",
+      "player": "Pregenerated",
+      "speciesspeciesspecies": "Human",
+      "class": "Rogue",
+      "subclass": "",
+      "level": "1",
+      "background": "Sailor",
+      "alignment": "Chaotic Good",
+      "str": "8",
+      "dex": "16",
+      "con": "12",
+      "int": "13",
+      "wis": "10",
+      "cha": "14",
+      "ac": "14",
+      "maxHp": "9",
+      "speed": "30",
+      "savingThrows": [],
+      "skills": [],
+      "personality": "Quick, cheerful and impossible to keep in one place. Believes nobody should drown for someone else's profit.",
+      "bonds": "Owes Harbourmaster Vell for keeping her out of the stocks. Can't resist climbing anything tall - including lighthouses.",
+      "backstory": "Wren grew up in the rigging of smugglers' cutters running brandy past Saltmere. When her last ship went down she washed ashore with nothing but a knife and a debt. She has worked the quays ever since, and Jory Penhale was the only fisherman who never cheated her.",
+      "dmSecrets": "Wren once carried a sealed crate for Mother Brine across the causeway at low tide. It was heavy, wet and humming.",
+      "id": "Pv5-vE9eT74F5Qo5cJb-V",
+      "name": "Wren Halloway",
+      "createdDate": "2026-10-15T19:40:13.584Z",
+      "lastModified": "2026-10-15T19:41:06.571Z",
+      "image": "media://img-wren-halloway",
+      "description": "Human rogue and former smuggler's rigger. Quick hands, quicker grin, and a debt to the harbourmaster."
+    },
+    "schema": {
+      "id": "ttrpg-player-character-v1",
+      "name": "Player Character",
+      "icon": "person",
+      "description": "A player character (PC) - one per player at the table.",
+      "version": 54,
+      "isNew": false,
+      "tabs": [
+        {
+          "key": "general",
+          "label": "Character",
+          "fields": [
+            {
+              "key": "player",
+              "label": "Player",
+              "type": "text",
+              "id": "field_4ad984e0-ea03-4554-a1f7-1a825d6b5e98",
+              "layout": {
+                "span": 6
+              },
+              "placeholder": "Who plays this character?"
+            },
+            {
+              "id": "field_5b38a39b-f35e-4e96-a8df-cfb4567c125e",
+              "key": "speciesspeciesspecies",
+              "label": "Species",
+              "type": "text",
+              "placeholder": "",
+              "layout": {
+                "span": 6
+              }
+            },
+            {
+              "id": "field_d629287d-02e8-4b57-ab2e-209f11a0d0f1",
+              "key": "class",
+              "label": "Class",
+              "type": "select",
+              "placeholder": "",
+              "layout": {
+                "span": 6
+              },
+              "options": [
+                "Barbarian",
+                "Bard",
+                "Cleric",
+                "Druid",
+                "Fighter",
+                "Monk",
+                "Paladin",
+                "Ranger",
+                "Rogue",
+                "Sorcerer",
+                "Warlock",
+                "Wizard"
+              ]
+            },
+            {
+              "id": "field_da6287b9-fbd0-4807-9e9a-f449d0f8ee38",
+              "key": "subclass",
+              "label": "Subclass",
+              "type": "text",
+              "placeholder": "",
+              "layout": {
+                "span": 6
+              }
+            },
+            {
+              "id": "field_76fa81bc-65c5-47a2-a900-40613f455023",
+              "key": "level",
+              "label": "Level",
+              "type": "number",
+              "placeholder": "",
+              "layout": {
+                "span": 3
+              }
+            },
+            {
+              "id": "field_c79cf971-bc6c-4de4-85a1-108093e5c381",
+              "key": "background",
+              "label": "Background",
+              "type": "text",
+              "placeholder": "",
+              "layout": {
+                "span": 5
+              }
+            },
+            {
+              "id": "field_ea15803a-0832-4ca5-b92c-41f812bbfbda",
+              "key": "alignment",
+              "label": "Alignment",
+              "type": "select",
+              "placeholder": "",
+              "layout": {
+                "span": 4
+              },
+              "options": [
+                "Lawful Good",
+                "Neutral Good",
+                "Chaotic Good",
+                "Lawful Neutral",
+                "True Neutral",
+                "Chaotic Neutral",
+                "Lawful Evil",
+                "Neutral Evil",
+                "Chaotic Evil"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "tab_d532de0b-84b9-466b-8289-a129474b5abc",
+          "label": "Abilities & Combat",
+          "icon": "article",
+          "order": 1,
+          "fields": [
+            {
+              "id": "field_9798375f-a80a-4483-9db0-a9b7fc09db27",
+              "key": "str",
+              "label": "STR",
+              "type": "number",
+              "placeholder": "",
+              "layout": {
+                "span": 2
+              }
+            },
+            {
+              "id": "field_b150b0d0-9933-4512-8534-56ecf4e91b61",
+              "key": "dex",
+              "label": "DEX",
+              "type": "number",
+              "placeholder": "",
+              "layout": {
+                "span": 2
+              }
+            },
+            {
+              "id": "field_b82b6587-7c60-4657-a7d0-7f850316300a",
+              "key": "con",
+              "label": "CON",
+              "type": "number",
+              "placeholder": "",
+              "layout": {
+                "span": 2
+              }
+            },
+            {
+              "id": "field_559cb543-8407-48fb-b84b-c1dc884d249a",
+              "key": "int",
+              "label": "INT",
+              "type": "number",
+              "placeholder": "",
+              "layout": {
+                "span": 2
+              }
+            },
+            {
+              "id": "field_4cfcdf67-8ab0-4016-b91c-d3aa0f4de776",
+              "key": "wis",
+              "label": "WIS",
+              "type": "number",
+              "placeholder": "",
+              "layout": {
+                "span": 2
+              }
+            },
+            {
+              "id": "field_7eb6ea78-5802-4c12-ab54-567a7e2307b8",
+              "key": "cha",
+              "label": "CHA",
+              "type": "number",
+              "placeholder": "",
+              "layout": {
+                "span": 2
+              }
+            },
+            {
+              "id": "field_f4e72f1b-4910-4b9a-894a-42d3affaa408",
+              "key": "ac",
+              "label": "Armor Class",
+              "type": "number",
+              "placeholder": "",
+              "layout": {
+                "span": 4
+              }
+            },
+            {
+              "id": "field_9bf92490-5fbd-4481-a1ed-1b04838b50c8",
+              "key": "maxHp",
+              "label": "Max HP",
+              "type": "number",
+              "placeholder": "",
+              "layout": {
+                "span": 4
+              }
+            },
+            {
+              "id": "field_6f5ea0a9-4738-4c83-bd91-4d8de3bdcb44",
+              "key": "speed",
+              "label": "Speed (ft)",
+              "type": "number",
+              "placeholder": "",
+              "layout": {
+                "span": 4
+              }
+            },
+            {
+              "id": "field_6ca6be95-0c00-4e43-ba07-4c3f6ea67125",
+              "key": "savingThrows",
+              "label": "Saving Throw Proficiencies",
+              "type": "multiselect",
+              "placeholder": "",
+              "layout": {
+                "span": 12
+              },
+              "options": [
+                "Strength",
+                "Dexterity",
+                "Constitution",
+                "Intelligence",
+                "Wisdom",
+                "Charisma"
+              ]
+            },
+            {
+              "id": "field_9eca2fd6-f9f6-4c78-a411-893689b391c4",
+              "key": "skills",
+              "label": "Skill Proficiencies",
+              "type": "multiselect",
+              "placeholder": "",
+              "layout": {
+                "span": 12
+              },
+              "options": [
+                "Acrobatics",
+                "Animal Handling",
+                "Arcana",
+                "Athletics",
+                "Deception",
+                "History",
+                "Insight",
+                "Intimidation",
+                "Investigation",
+                "Medicine",
+                "Nature",
+                "Perception",
+                "Performance",
+                "Persuasion",
+                "Religion",
+                "Sleight of Hand",
+                "Stealth",
+                "Survival"
+              ]
+            }
+          ]
+        },
+        {
+          "key": "tab_cca238b1-25be-4035-86f6-1baa7a96a78d",
+          "label": "Story",
+          "icon": "article",
+          "order": 2,
+          "fields": [
+            {
+              "id": "field_0cc3199d-72c9-427c-afe7-1946ebffa5e2",
+              "key": "personality",
+              "label": "Personality & Ideals",
+              "type": "textarea",
+              "placeholder": "",
+              "layout": {
+                "span": 12
+              },
+              "rows": 3
+            },
+            {
+              "id": "field_5f007745-4df4-4e47-9d10-2aea187de1a0",
+              "key": "bonds",
+              "label": "Bonds & Flaws",
+              "type": "textarea",
+              "placeholder": "",
+              "layout": {
+                "span": 12
+              },
+              "rows": 3
+            },
+            {
+              "id": "field_16fd5a0f-d32e-4c1d-be7b-f9861a0a4eca",
+              "key": "backstory",
+              "label": "Backstory",
+              "type": "textarea",
+              "placeholder": "",
+              "layout": {
+                "span": 12
+              },
+              "rows": 3
+            },
+            {
+              "id": "field_d0c51df5-9d29-44ad-8307-2cd90cc41d5f",
+              "key": "dmSecrets",
+              "label": "DM Secrets",
+              "type": "textarea",
+              "placeholder": "",
+              "layout": {
+                "span": 12
+              },
+              "description": "Hooks and secrets the player doesn't know yet.",
+              "rows": 3
+            }
+          ]
+        }
+      ],
+      "createdAt": "2026-10-14T00:05:32.522Z",
+      "updatedAt": "2026-10-14T00:05:32.522Z"
+    },
+    "schemaBaseHash": "5f75d57a"
+  },
+  {
+    "elementId": "v_kbkl32M8OzYh9zx_AzN",
+    "schemaId": "ttrpg-npc-v1",
+    "data": {
+      "schemaId": "ttrpg-npc-v1",
+      "role": "High priestess of the Children of the Tide; runs the salting house",
+      "voice": "Wet, patient whisper. Smells of brine. Ends sentences with 'as the tide wills'. Never blinks first.",
+      "disposition": "Suspicious",
+      "secrets": "She drowned the lighthouse keeper to wake the Lantern. Believes the drowned town of Old Saltmere can be raised if the light shines on the night of the black tide.",
+      "id": "v_kbkl32M8OzYh9zx_AzN",
+      "name": "Mother Brine",
+      "createdDate": "2026-10-14T00:36:00.586Z",
+      "lastModified": "2026-10-14T00:36:58.745Z",
+      "description": "Kindly old salt-wife who feeds stray cats. Secretly leads the tide cult.",
+      "image": "media://img-mother-brine"
+    },
+    "schema": {
+      "id": "ttrpg-npc-v1",
+      "name": "NPC",
+      "icon": "article",
+      "description": "Non-player characters: allies, villains, shopkeepers.",
+      "version": 15,
+      "isNew": false,
+      "tabs": [
+        {
+          "key": "general",
+          "label": "NPC",
+          "fields": [
+            {
+              "key": "role",
+              "label": "Role / Occupation",
+              "type": "text",
+              "id": "field_f1dbbc2a-4949-4bad-bc38-894647c2ffcc",
+              "layout": {
+                "span": 6
+              }
+            },
+            {
+              "key": "voice",
+              "label": "Voice & Mannerisms",
+              "type": "textarea",
+              "id": "field_4b5b92d9-5baf-4f3c-acea-a2cb389e11d3",
+              "layout": {
+                "span": 12
+              },
+              "rows": 3
+            },
+            {
+              "id": "field_30e209b7-1a8f-4b18-8a17-9903f602d356",
+              "key": "disposition",
+              "label": "Disposition",
+              "type": "select",
+              "placeholder": "",
+              "layout": {
+                "span": 6
+              },
+              "options": [
+                "Friendly",
+                "Indifferent",
+                "Suspicious",
+                "Hostile"
+              ]
+            },
+            {
+              "id": "field_f28dcfb4-a48d-4750-969b-009173e0945e",
+              "key": "faction",
+              "label": "Faction",
+              "type": "relationship",
+              "placeholder": "",
+              "layout": {
+                "span": 12
+              },
+              "targetSchemaId": "ttrpg-faction-v1",
+              "multiple": false,
+              "inverseLabel": "Members",
+              "relationshipTypeId": "fieldrel-dDh1rksubl"
+            },
+            {
+              "id": "field_943ffac8-9fa8-4182-8277-ff59137b910c",
+              "key": "location",
+              "label": "Usually Found At",
+              "type": "relationship",
+              "placeholder": "",
+              "layout": {
+                "span": 12
+              },
+              "targetSchemaId": "ttrpg-location-v1",
+              "multiple": false,
+              "inverseLabel": "Residents",
+              "relationshipTypeId": "fieldrel-wRMilj90ti"
+            },
+            {
+              "id": "field_09d50ccf-7fdc-4992-b188-da6d02c0ad2f",
+              "key": "statBlock",
+              "label": "Stat Block",
+              "type": "relationship",
+              "placeholder": "",
+              "layout": {
+                "span": 12
+              },
+              "targetSchemaId": "ttrpg-monster-v1",
+              "multiple": false,
+              "inverseLabel": "Used by NPCs",
+              "relationshipTypeId": "fieldrel-jdrs9ko0nD"
+            },
+            {
+              "id": "field_a62f482f-5d42-4a51-91d6-c753cb835729",
+              "key": "secrets",
+              "label": "Secrets & Motives",
+              "type": "textarea",
+              "placeholder": "",
+              "layout": {
+                "span": 12
+              },
+              "rows": 3
+            }
+          ]
+        }
+      ],
+      "createdAt": "2026-10-14T00:28:44.499Z",
+      "updatedAt": "2026-10-14T00:28:44.499Z"
+    },
+    "schemaBaseHash": "37836104"
+  },
+  {
+    "elementId": "Uu6P_362Yl8jxDJ9RnxFL",
+    "schemaId": "ttrpg-npc-v1",
+    "data": {
+      "schemaId": "ttrpg-npc-v1",
+      "role": "Harbourmaster of Saltmere; keeps the boat register and the town purse",
+      "voice": "Slow, heavy voice. Taps the ledger when he is worried. Calls everyone “friend” and means it.",
+      "disposition": "Friendly",
+      "secrets": "",
+      "id": "Uu6P_362Yl8jxDJ9RnxFL",
+      "name": "Harbourmaster Osric Vell",
+      "createdDate": "2026-10-14T00:37:11.713Z",
+      "lastModified": "2026-10-16T09:28:28.528Z",
+      "image": "media://img-harbourmaster-osric-vell",
+      "description": "Tired, honest harbourmaster offering 50 gp for the three missing fishermen."
+    },
+    "schema": {
+      "id": "ttrpg-npc-v1",
+      "name": "NPC",
+      "icon": "article",
+      "description": "Non-player characters: allies, villains, shopkeepers.",
+      "version": 15,
+      "isNew": false,
+      "tabs": [
+        {
+          "key": "general",
+          "label": "NPC",
+          "fields": [
+            {
+              "key": "role",
+              "label": "Role / Occupation",
+              "type": "text",
+              "id": "field_f1dbbc2a-4949-4bad-bc38-894647c2ffcc",
+              "layout": {
+                "span": 6
+              }
+            },
+            {
+              "key": "voice",
+              "label": "Voice & Mannerisms",
+              "type": "textarea",
+              "id": "field_4b5b92d9-5baf-4f3c-acea-a2cb389e11d3",
+              "layout": {
+                "span": 12
+              },
+              "rows": 3
+            },
+            {
+              "id": "field_30e209b7-1a8f-4b18-8a17-9903f602d356",
+              "key": "disposition",
+              "label": "Disposition",
+              "type": "select",
+              "placeholder": "",
+              "layout": {
+                "span": 6
+              },
+              "options": [
+                "Friendly",
+                "Indifferent",
+                "Suspicious",
+                "Hostile"
+              ]
+            },
+            {
+              "id": "field_f28dcfb4-a48d-4750-969b-009173e0945e",
+              "key": "faction",
+              "label": "Faction",
+              "type": "relationship",
+              "placeholder": "",
+              "layout": {
+                "span": 12
+              },
+              "targetSchemaId": "ttrpg-faction-v1",
+              "multiple": false,
+              "inverseLabel": "Members",
+              "relationshipTypeId": "fieldrel-dDh1rksubl"
+            },
+            {
+              "id": "field_943ffac8-9fa8-4182-8277-ff59137b910c",
+              "key": "location",
+              "label": "Usually Found At",
+              "type": "relationship",
+              "placeholder": "",
+              "layout": {
+                "span": 12
+              },
+              "targetSchemaId": "ttrpg-location-v1",
+              "multiple": false,
+              "inverseLabel": "Residents",
+              "relationshipTypeId": "fieldrel-wRMilj90ti"
+            },
+            {
+              "id": "field_09d50ccf-7fdc-4992-b188-da6d02c0ad2f",
+              "key": "statBlock",
+              "label": "Stat Block",
+              "type": "relationship",
+              "placeholder": "",
+              "layout": {
+                "span": 12
+              },
+              "targetSchemaId": "ttrpg-monster-v1",
+              "multiple": false,
+              "inverseLabel": "Used by NPCs",
+              "relationshipTypeId": "fieldrel-jdrs9ko0nD"
+            },
+            {
+              "id": "field_a62f482f-5d42-4a51-91d6-c753cb835729",
+              "key": "secrets",
+              "label": "Secrets & Motives",
+              "type": "textarea",
+              "placeholder": "",
+              "layout": {
+                "span": 12
+              },
+              "rows": 3
+            }
+          ]
+        }
+      ],
+      "createdAt": "2026-10-14T00:28:44.499Z",
+      "updatedAt": "2026-10-14T00:28:44.499Z"
+    },
+    "schemaBaseHash": "37836104"
+  },
+  {
+    "elementId": "l2GoKWCSl2SYYUIiq5ntL",
+    "schemaId": "ttrpg-npc-v1",
+    "data": {
+      "schemaId": "ttrpg-npc-v1",
+      "role": "Serves tables at the Gull and Anchor; daughter of the missing Wat Trebarra",
+      "voice": "Quick, blunt and furious. Never sits down. Spins her father’s shell token between her fingers.",
+      "disposition": "Friendly",
+      "secrets": "",
+      "id": "l2GoKWCSl2SYYUIiq5ntL",
+      "name": "Tilly Gorse",
+      "createdDate": "2026-10-14T00:37:24.365Z",
+      "lastModified": "2026-10-16T09:28:34.212Z",
+      "image": "media://img-tilly-gorse",
+      "description": "Fierce fourteen-year-old barmaid who found a cult token in her missing father’s coat."
+    },
+    "schema": {
+      "id": "ttrpg-npc-v1",
+      "name": "NPC",
+      "icon": "article",
+      "description": "Non-player characters: allies, villains, shopkeepers.",
+      "version": 15,
+      "isNew": false,
+      "tabs": [
+        {
+          "key": "general",
+          "label": "NPC",
+          "fields": [
+            {
+              "key": "role",
+              "label": "Role / Occupation",
+              "type": "text",
+              "id": "field_f1dbbc2a-4949-4bad-bc38-894647c2ffcc",
+              "layout": {
+                "span": 6
+              }
+            },
+            {
+              "key": "voice",
+              "label": "Voice & Mannerisms",
+              "type": "textarea",
+              "id": "field_4b5b92d9-5baf-4f3c-acea-a2cb389e11d3",
+              "layout": {
+                "span": 12
+              },
+              "rows": 3
+            },
+            {
+              "id": "field_30e209b7-1a8f-4b18-8a17-9903f602d356",
+              "key": "disposition",
+              "label": "Disposition",
+              "type": "select",
+              "placeholder": "",
+              "layout": {
+                "span": 6
+              },
+              "options": [
+                "Friendly",
+                "Indifferent",
+                "Suspicious",
+                "Hostile"
+              ]
+            },
+            {
+              "id": "field_f28dcfb4-a48d-4750-969b-009173e0945e",
+              "key": "faction",
+              "label": "Faction",
+              "type": "relationship",
+              "placeholder": "",
+              "layout": {
+                "span": 12
+              },
+              "targetSchemaId": "ttrpg-faction-v1",
+              "multiple": false,
+              "inverseLabel": "Members",
+              "relationshipTypeId": "fieldrel-dDh1rksubl"
+            },
+            {
+              "id": "field_943ffac8-9fa8-4182-8277-ff59137b910c",
+              "key": "location",
+              "label": "Usually Found At",
+              "type": "relationship",
+              "placeholder": "",
+              "layout": {
+                "span": 12
+              },
+              "targetSchemaId": "ttrpg-location-v1",
+              "multiple": false,
+              "inverseLabel": "Residents",
+              "relationshipTypeId": "fieldrel-wRMilj90ti"
+            },
+            {
+              "id": "field_09d50ccf-7fdc-4992-b188-da6d02c0ad2f",
+              "key": "statBlock",
+              "label": "Stat Block",
+              "type": "relationship",
+              "placeholder": "",
+              "layout": {
+                "span": 12
+              },
+              "targetSchemaId": "ttrpg-monster-v1",
+              "multiple": false,
+              "inverseLabel": "Used by NPCs",
+              "relationshipTypeId": "fieldrel-jdrs9ko0nD"
+            },
+            {
+              "id": "field_a62f482f-5d42-4a51-91d6-c753cb835729",
+              "key": "secrets",
+              "label": "Secrets & Motives",
+              "type": "textarea",
+              "placeholder": "",
+              "layout": {
+                "span": 12
+              },
+              "rows": 3
+            }
+          ]
+        }
+      ],
+      "createdAt": "2026-10-14T00:28:44.499Z",
+      "updatedAt": "2026-10-14T00:28:44.499Z"
+    },
+    "schemaBaseHash": "37836104"
+  },
+  {
+    "elementId": "QkGsXmPv-G8hzuuh6cBRF",
+    "schemaId": "ttrpg-location-v1",
+    "data": {
+      "schemaId": "ttrpg-location-v1",
+      "locationType": "",
+      "readAloud": "Saltmere smells of tar and old fish. Slate roofs climb the cliff above a harbour that is no longer a harbour: the sea has drawn back half a mile, and every boat in town lies tilted on the black mud. Far out across the flats, the old lighthouse leans against the sky.",
+      "dmNotes": "",
+      "id": "QkGsXmPv-G8hzuuh6cBRF",
+      "name": "Saltmere",
+      "createdDate": "2026-10-14T00:37:53.283Z",
+      "lastModified": "2026-10-16T09:28:39.998Z",
+      "image": "media://img-saltmere",
+      "description": "A hard little fishing town on a grey northern coast, half of it drowned forty years ago."
+    },
+    "schema": {
+      "id": "ttrpg-location-v1",
+      "name": "Location",
+      "icon": "article",
+      "description": "Regions, towns, dungeons and rooms. Nest them with Part Of.",
+      "version": 11,
+      "isNew": false,
+      "tabs": [
+        {
+          "key": "general",
+          "label": "Location",
+          "fields": [
+            {
+              "key": "locationType",
+              "label": "Location Type",
+              "type": "select",
+              "id": "field_9c3835b2-84a3-4b32-84ff-3fc07faf152f",
+              "layout": {
+                "span": 12
+              },
+              "options": [
+                "Region",
+                "Settlement",
+                "District",
+                "Building",
+                "Dungeon",
+                "Room / Area",
+                "Wilderness"
+              ]
+            },
+            {
+              "key": "readAloud",
+              "label": "Read-Aloud Text",
+              "type": "textarea",
+              "id": "field_616d6a54-69e6-4a72-92fc-6854b452a63b",
+              "layout": {
+                "span": 12
+              },
+              "rows": 3
+            },
+            {
+              "id": "field_12a75798-27bd-4739-b634-3f99713fe0a4",
+              "key": "partOf",
+              "label": "Part Of",
+              "type": "relationship",
+              "placeholder": "",
+              "layout": {
+                "span": 12
+              },
+              "targetSchemaId": "ttrpg-location-v1",
+              "multiple": false,
+              "inverseLabel": "Contains",
+              "relationshipTypeId": "fieldrel-tBCnG4RU_K"
+            },
+            {
+              "id": "field_22cbe397-9bdd-4c70-b0ad-aae03b46eca9",
+              "key": "encounters",
+              "label": "Encounters",
+              "type": "relationship",
+              "placeholder": "",
+              "layout": {
+                "span": 12
+              },
+              "targetSchemaId": "ttrpg-monster-v1",
+              "multiple": true,
+              "inverseLabel": "Found In",
+              "relationshipTypeId": "fieldrel-S4NkIllk-5"
+            },
+            {
+              "id": "field_816a28c0-e71f-4514-9e1a-68458254bedc",
+              "key": "dmNotes",
+              "label": "DM Notes",
+              "type": "textarea",
+              "placeholder": "",
+              "layout": {
+                "span": 12
+              },
+              "rows": 3
+            }
+          ]
+        }
+      ],
+      "createdAt": "2026-10-14T00:26:06.034Z",
+      "updatedAt": "2026-10-14T00:26:06.034Z"
+    },
+    "schemaBaseHash": "6fe405d5"
+  },
+  {
+    "elementId": "MyJqfT29Ukai-WeMmX-8T",
+    "schemaId": "ttrpg-location-v1",
+    "data": {
+      "schemaId": "ttrpg-location-v1",
+      "locationType": "Building",
+      "readAloud": "Low beams, a smoking hearth and a ship’s figurehead glaring down over the bar. Talk stops when strangers come in. In the corner, three tankards stand full and untouched on an empty table.",
+      "dmNotes": "",
+      "id": "MyJqfT29Ukai-WeMmX-8T",
+      "name": "The Gull and Anchor",
+      "createdDate": "2026-10-14T00:37:56.316Z",
+      "lastModified": "2026-10-16T09:29:11.716Z",
+      "image": "media://img-the-gull-and-anchor",
+      "description": "The fishermen’s tavern on the quay, where the three missing men drank their last."
+    },
+    "schema": {
+      "id": "ttrpg-location-v1",
+      "name": "Location",
+      "icon": "article",
+      "description": "Regions, towns, dungeons and rooms. Nest them with Part Of.",
+      "version": 11,
+      "isNew": false,
+      "tabs": [
+        {
+          "key": "general",
+          "label": "Location",
+          "fields": [
+            {
+              "key": "locationType",
+              "label": "Location Type",
+              "type": "select",
+              "id": "field_9c3835b2-84a3-4b32-84ff-3fc07faf152f",
+              "layout": {
+                "span": 12
+              },
+              "options": [
+                "Region",
+                "Settlement",
+                "District",
+                "Building",
+                "Dungeon",
+                "Room / Area",
+                "Wilderness"
+              ]
+            },
+            {
+              "key": "readAloud",
+              "label": "Read-Aloud Text",
+              "type": "textarea",
+              "id": "field_616d6a54-69e6-4a72-92fc-6854b452a63b",
+              "layout": {
+                "span": 12
+              },
+              "rows": 3
+            },
+            {
+              "id": "field_12a75798-27bd-4739-b634-3f99713fe0a4",
+              "key": "partOf",
+              "label": "Part Of",
+              "type": "relationship",
+              "placeholder": "",
+              "layout": {
+                "span": 12
+              },
+              "targetSchemaId": "ttrpg-location-v1",
+              "multiple": false,
+              "inverseLabel": "Contains",
+              "relationshipTypeId": "fieldrel-tBCnG4RU_K"
+            },
+            {
+              "id": "field_22cbe397-9bdd-4c70-b0ad-aae03b46eca9",
+              "key": "encounters",
+              "label": "Encounters",
+              "type": "relationship",
+              "placeholder": "",
+              "layout": {
+                "span": 12
+              },
+              "targetSchemaId": "ttrpg-monster-v1",
+              "multiple": true,
+              "inverseLabel": "Found In",
+              "relationshipTypeId": "fieldrel-S4NkIllk-5"
+            },
+            {
+              "id": "field_816a28c0-e71f-4514-9e1a-68458254bedc",
+              "key": "dmNotes",
+              "label": "DM Notes",
+              "type": "textarea",
+              "placeholder": "",
+              "layout": {
+                "span": 12
+              },
+              "rows": 3
+            }
+          ]
+        }
+      ],
+      "createdAt": "2026-10-14T00:26:06.034Z",
+      "updatedAt": "2026-10-14T00:26:06.034Z"
+    },
+    "schemaBaseHash": "6fe405d5"
+  },
+  {
+    "elementId": "xpESK8Vyznq8ytnCjS0nm",
+    "schemaId": "ttrpg-location-v1",
+    "data": {
+      "schemaId": "ttrpg-location-v1",
+      "locationType": "Dungeon",
+      "readAloud": "The tide is out, and for the first time in forty years the causeway stands bare. At its end the lighthouse leans like a drunk, barnacled to the gallery rail - and at its top, impossibly, a green light is burning.",
+      "dmNotes": "",
+      "id": "xpESK8Vyznq8ytnCjS0nm",
+      "name": "The Drowned Lighthouse",
+      "createdDate": "2026-10-14T00:37:59.375Z",
+      "lastModified": "2026-10-14T00:38:53.203Z",
+      "image": "media://img-the-drowned-lighthouse"
+    },
+    "schema": {
+      "id": "ttrpg-location-v1",
+      "name": "Location",
+      "icon": "article",
+      "description": "Regions, towns, dungeons and rooms. Nest them with Part Of.",
+      "version": 11,
+      "isNew": false,
+      "tabs": [
+        {
+          "key": "general",
+          "label": "Location",
+          "fields": [
+            {
+              "key": "locationType",
+              "label": "Location Type",
+              "type": "select",
+              "id": "field_9c3835b2-84a3-4b32-84ff-3fc07faf152f",
+              "layout": {
+                "span": 12
+              },
+              "options": [
+                "Region",
+                "Settlement",
+                "District",
+                "Building",
+                "Dungeon",
+                "Room / Area",
+                "Wilderness"
+              ]
+            },
+            {
+              "key": "readAloud",
+              "label": "Read-Aloud Text",
+              "type": "textarea",
+              "id": "field_616d6a54-69e6-4a72-92fc-6854b452a63b",
+              "layout": {
+                "span": 12
+              },
+              "rows": 3
+            },
+            {
+              "id": "field_12a75798-27bd-4739-b634-3f99713fe0a4",
+              "key": "partOf",
+              "label": "Part Of",
+              "type": "relationship",
+              "placeholder": "",
+              "layout": {
+                "span": 12
+              },
+              "targetSchemaId": "ttrpg-location-v1",
+              "multiple": false,
+              "inverseLabel": "Contains",
+              "relationshipTypeId": "fieldrel-tBCnG4RU_K"
+            },
+            {
+              "id": "field_22cbe397-9bdd-4c70-b0ad-aae03b46eca9",
+              "key": "encounters",
+              "label": "Encounters",
+              "type": "relationship",
+              "placeholder": "",
+              "layout": {
+                "span": 12
+              },
+              "targetSchemaId": "ttrpg-monster-v1",
+              "multiple": true,
+              "inverseLabel": "Found In",
+              "relationshipTypeId": "fieldrel-S4NkIllk-5"
+            },
+            {
+              "id": "field_816a28c0-e71f-4514-9e1a-68458254bedc",
+              "key": "dmNotes",
+              "label": "DM Notes",
+              "type": "textarea",
+              "placeholder": "",
+              "layout": {
+                "span": 12
+              },
+              "rows": 3
+            }
+          ]
+        }
+      ],
+      "createdAt": "2026-10-14T00:26:06.034Z",
+      "updatedAt": "2026-10-14T00:26:06.034Z"
+    },
+    "schemaBaseHash": "6fe405d5"
+  },
+  {
+    "elementId": "wI3A6R1MNUauJUEjlp8xL",
+    "schemaId": "ttrpg-magic-item-v1",
+    "data": {
+      "schemaId": "ttrpg-magic-item-v1",
+      "rarity": "Artifact",
+      "properties": "Requires attunement by a creature that has drowned and returned.\nThe Lantern's lens is a great green sea-glass eye salvaged from Old Saltmere's church. Lit, it sheds dim green light in a 120-foot cone. Water in the cone recedes from the shore for as long as the light burns.\nThe Black Tide. On the night of the black tide, a creature attuned to the Lantern can shine it on drowned ground and speak the names of the dead buried there. Each named creature rises as a drowned acolyte loyal to the bearer.\nCurse. Each dawn the bearer must succeed on a DC 13 Wisdom saving throw or walk into the sea at the next high tide.",
+      "attunement": "",
+      "itemTags": [],
+      "id": "wI3A6R1MNUauJUEjlp8xL",
+      "name": "The Drowned Lantern",
+      "createdDate": "2026-10-15T20:00:04.329Z",
+      "lastModified": "2026-10-15T20:00:20.882Z",
+      "image": "media://img-the-drowned-lantern",
+      "description": "The green-glass lantern at the top of the lighthouse. It shines into the past - and the past is waking up."
+    },
+    "appearance": {
+      "content": {
+        "type": "gradient",
+        "mode": "auto",
+        "value": "linear-gradient(160deg, #dcefe6 0%, #a9d3bf 100%)",
+        "intensity": 25
+      }
+    },
+    "schema": {
+      "id": "ttrpg-magic-item-v1",
+      "name": "Magic Item",
+      "icon": "article",
+      "description": "Wondrous items, weapons, armour and artifacts.",
+      "version": 9,
+      "isNew": false,
+      "tabs": [
+        {
+          "key": "general",
+          "label": "Item",
+          "fields": [
+            {
+              "key": "rarity",
+              "label": "Rarity",
+              "type": "select",
+              "id": "field_9c66c698-a33c-42b9-965f-e6004750d47f",
+              "layout": {
+                "span": 6
+              },
+              "options": [
+                "Common",
+                "Uncommon",
+                "Rare",
+                "Very Rare",
+                "Legendary",
+                "Artifact"
+              ]
+            },
+            {
+              "key": "properties",
+              "label": "Properties",
+              "type": "textarea",
+              "id": "field_29b3d39d-dbc5-4027-af46-3b61060be4ae",
+              "layout": {
+                "span": 12
+              },
+              "rows": 3
+            },
+            {
+              "id": "field_2dff644e-fa0d-44d6-87c5-3144a7867ae6",
+              "key": "attunement",
+              "label": "Requires Attunement",
+              "type": "checkbox",
+              "placeholder": "",
+              "layout": {
+                "span": 6
+              }
+            },
+            {
+              "id": "field_cb84e83e-fb21-46a6-b8be-400ed165eb7b",
+              "key": "itemTags",
+              "label": "Item Type Tags",
+              "type": "array",
+              "placeholder": "",
+              "layout": {
+                "span": 12
+              }
+            }
+          ]
+        }
+      ],
+      "createdAt": "2026-10-14T00:32:56.743Z",
+      "updatedAt": "2026-10-14T00:32:56.743Z"
+    },
+    "schemaBaseHash": "3d68f8ed"
+  },
+  {
+    "elementId": "vzHkwTd1KMkFbNSBD97LL",
+    "schemaId": "ttrpg-faction-v1",
+    "data": {
+      "schemaId": "ttrpg-faction-v1",
+      "attitude": "Hostile",
+      "goals": "Raise drowned Old Saltmere on the night of the black tide.\n- Recruit the desperate with the promise of lost family returned.\n- Mark members with a carved spiral shell token.\n- Drown those who refuse, and bring them back as acolytes.",
+      "id": "vzHkwTd1KMkFbNSBD97LL",
+      "name": "Children of the Tide",
+      "createdDate": "2026-10-14T00:37:37.981Z",
+      "lastModified": "2026-10-16T09:28:51.063Z",
+      "image": "media://img-children-of-the-tide",
+      "description": "A secret sea cult that worships the tide and serves Mother Brine."
+    },
+    "appearance": {
+      "content": {
+        "type": "image",
+        "mode": "auto",
+        "value": "media://img-children-of-the-tide",
+        "intensity": 25
+      }
+    },
+    "schema": {
+      "id": "ttrpg-faction-v1",
+      "name": "Faction",
+      "icon": "article",
+      "description": "Guilds, cults, noble houses and other organisations.",
+      "version": 5,
+      "isNew": false,
+      "tabs": [
+        {
+          "key": "general",
+          "label": "Faction",
+          "fields": [
+            {
+              "key": "attitude",
+              "label": "Attitude to Party",
+              "type": "select",
+              "id": "field_d5295951-4081-48a3-94d2-1b1fbf985ace",
+              "layout": {
+                "span": 12
+              },
+              "options": [
+                "Allied",
+                "Friendly",
+                "Neutral",
+                "Wary",
+                "Hostile"
+              ]
+            },
+            {
+              "key": "goals",
+              "label": "Goals & Methods",
+              "type": "textarea",
+              "id": "field_5fc8360a-d835-41ea-b133-a32a665da39b",
+              "layout": {
+                "span": 12
+              },
+              "rows": 3
+            }
+          ]
+        }
+      ],
+      "createdAt": "2026-10-14T00:25:11.495Z",
+      "updatedAt": "2026-10-14T00:25:11.496Z"
+    },
+    "schemaBaseHash": "26e23428"
+  },
+  {
+    "elementId": "Nu1LBYkAHOJ3g32JO-eCl",
+    "schemaId": "ttrpg-monster-v1",
+    "data": {
+      "schemaId": "ttrpg-monster-v1",
+      "size": "",
+      "creatureType": "",
+      "cr": "1",
+      "ac": "13",
+      "hp": "27 (6d8)",
+      "speed": "30 ft., swim 30 ft.",
+      "str": "12",
+      "dex": "10",
+      "con": "14",
+      "int": "9",
+      "wis": "13",
+      "cha": "11",
+      "senses": "darkvision 60 ft., passive Perception 11",
+      "languages": "Common, Aquan",
+      "traits": "Amphibious. The acolyte can breathe air and water.\nTide-Touched. While standing in water, the acolyte has advantage on saving throws against being knocked prone.",
+      "actions": "Gaff Hook. Melee Weapon Attack: +3 to hit, reach 5 ft., one target. Hit: 5 (1d8 + 1) piercing damage, and the target is grappled (escape DC 11).\nDrown (Recharge 5-6). One creature grappled by the acolyte must succeed on a DC 12 Constitution saving throw or take 7 (2d6) bludgeoning damage as seawater fills its lungs.",
+      "reactions": "",
+      "id": "Nu1LBYkAHOJ3g32JO-eCl",
+      "name": "Drowned Acolyte",
+      "createdDate": "2026-10-14T00:39:07.014Z",
+      "lastModified": "2026-10-14T00:39:37.785Z",
+      "image": "media://img-drowned-acolyte"
+    },
+    "appearance": {
+      "content": {
+        "type": "color",
+        "mode": "manual",
+        "light": "#f7efd9",
+        "dark": "#2b2418"
+      }
+    },
+    "schema": {
+      "id": "ttrpg-monster-v1",
+      "name": "Monster",
+      "icon": "article",
+      "description": "A 5e creature stat block. Link NPCs and encounters to these.",
+      "version": 41,
+      "isNew": false,
+      "tabs": [
+        {
+          "key": "general",
+          "label": "Stat Block",
+          "fields": [
+            {
+              "id": "field_36989fd3-8329-41b3-9eae-b5f77c174ec0",
+              "key": "size",
+              "label": "Size",
+              "type": "select",
+              "placeholder": "",
+              "layout": {
+                "span": 4
+              },
+              "options": [
+                "Tiny",
+                "Small",
+                "Medium",
+                "Large",
+                "Huge",
+                "Gargantuan"
+              ]
+            },
+            {
+              "id": "field_21d808c7-e1cc-4aac-8688-d68f7b425ee2",
+              "key": "creatureType",
+              "label": "Creature Type",
+              "type": "select",
+              "placeholder": "",
+              "layout": {
+                "span": 4
+              },
+              "options": [
+                "Aberration",
+                "Beast",
+                "Celestial",
+                "Construct",
+                "Dragon",
+                "Elemental",
+                "Fey",
+                "Fiend",
+                "Giant",
+                "Humanoid",
+                "Monstrosity",
+                "Ooze",
+                "Plant",
+                "Undead"
+              ]
+            },
+            {
+              "id": "field_fb4ed22a-d406-4324-924a-0f3b100d8baa",
+              "key": "cr",
+              "label": "Challenge Rating",
+              "type": "text",
+              "placeholder": "e.g. 1/4, 2, 13",
+              "layout": {
+                "span": 4
+              }
+            },
+            {
+              "id": "field_39ec9b8d-39c5-4526-a05e-f9c83ce37347",
+              "key": "ac",
+              "label": "Armor Class",
+              "type": "number",
+              "placeholder": "",
+              "layout": {
+                "span": 3
+              }
+            },
+            {
+              "id": "field_4cb7c566-abf4-4c55-8aa2-0ce28744d377",
+              "key": "hp",
+              "label": "Hit Points",
+              "type": "text",
+              "placeholder": "e.g. 52 (8d10 + 8)",
+              "layout": {
+                "span": 5
+              }
+            },
+            {
+              "id": "field_27733ecf-df49-416e-bca8-af6d605b0c88",
+              "key": "speed",
+              "label": "Speed",
+              "type": "text",
+              "placeholder": "e.g. 30 ft., swim 40 ft.",
+              "layout": {
+                "span": 4
+              }
+            },
+            {
+              "id": "field_de05c57b-c48a-443c-8ed5-115cc8f1437c",
+              "key": "str",
+              "label": "STR",
+              "type": "number",
+              "placeholder": "",
+              "layout": {
+                "span": 2
+              }
+            },
+            {
+              "id": "field_08938baa-0671-49ac-9ff4-0ddde567a4c7",
+              "key": "dex",
+              "label": "DEX",
+              "type": "number",
+              "placeholder": "",
+              "layout": {
+                "span": 2
+              }
+            },
+            {
+              "id": "field_4b9374cd-ff50-4d59-a9b8-51d0f8fe2448",
+              "key": "con",
+              "label": "CON",
+              "type": "number",
+              "placeholder": "",
+              "layout": {
+                "span": 2
+              }
+            },
+            {
+              "id": "field_f65d785e-1283-4ec2-86c2-9bd8a76b09cb",
+              "key": "int",
+              "label": "INT",
+              "type": "number",
+              "placeholder": "",
+              "layout": {
+                "span": 2
+              }
+            },
+            {
+              "id": "field_62ac5bba-2a02-4b86-acb5-89afac5d0768",
+              "key": "wis",
+              "label": "WIS",
+              "type": "number",
+              "placeholder": "",
+              "layout": {
+                "span": 2
+              }
+            },
+            {
+              "id": "field_d00037b5-9b5a-4bd4-aa13-f7e0170417ba",
+              "key": "cha",
+              "label": "CHA",
+              "type": "number",
+              "placeholder": "",
+              "layout": {
+                "span": 2
+              }
+            },
+            {
+              "id": "field_f4d642f3-0601-4ead-8c10-809991938be8",
+              "key": "senses",
+              "label": "Senses",
+              "type": "text",
+              "placeholder": "",
+              "layout": {
+                "span": 6
+              }
+            },
+            {
+              "id": "field_bef5f23e-162e-4b6e-bd48-f4b3012755e1",
+              "key": "languages",
+              "label": "Languages",
+              "type": "text",
+              "placeholder": "",
+              "layout": {
+                "span": 6
+              }
+            }
+          ]
+        },
+        {
+          "key": "tab_8be72c67-3f98-4cb3-8a90-1392b6c8d288",
+          "label": "Traits & Actions",
+          "icon": "article",
+          "order": 1,
+          "fields": [
+            {
+              "id": "field_4c2f17fa-be58-4e15-aa1b-aff673afbb58",
+              "key": "traits",
+              "label": "Traits",
+              "type": "textarea",
+              "placeholder": "",
+              "layout": {
+                "span": 12
+              },
+              "rows": 3
+            },
+            {
+              "id": "field_3d6081e6-1408-4fcd-968f-fa7b12ee72b5",
+              "key": "actions",
+              "label": "Actions",
+              "type": "textarea",
+              "placeholder": "",
+              "layout": {
+                "span": 12
+              },
+              "rows": 3
+            },
+            {
+              "id": "field_3127a981-31ec-4e4a-aa80-de1a1a459934",
+              "key": "reactions",
+              "label": "Reactions & Legendary Actions",
+              "type": "textarea",
+              "placeholder": "",
+              "layout": {
+                "span": 12
+              },
+              "rows": 3
+            }
+          ]
+        }
+      ],
+      "createdAt": "2026-10-14T00:20:05.550Z",
+      "updatedAt": "2026-10-14T00:20:05.550Z"
+    },
+    "schemaBaseHash": "1501d3de"
+  },
+  {
+    "elementId": "LDfALXAiPuw2W-Njm-1Pm",
+    "schemaId": "ttrpg-quest-v1",
+    "data": {
+      "schemaId": "ttrpg-quest-v1",
+      "status": "Active",
+      "summary": "Jory Penhale, Wat Trebarra and Old Cobb went drinking at the Gull and Anchor three nights ago and never came home. All three wore the shell token of the Children of the Tide. Their boats are still beached on the mud. Harbourmaster Osric Vell will pay 50 gold pieces to anyone who brings them back - alive, or at least accounted for.",
+      "reward": "50 gp from Harbourmaster Osric Vell",
+      "id": "LDfALXAiPuw2W-Njm-1Pm",
+      "name": "The Missing Fishermen",
+      "createdDate": "2026-10-15T19:58:23.360Z",
+      "lastModified": "2026-10-15T19:58:37.536Z",
+      "image": "media://img-the-missing-fishermen",
+      "description": "Three fishermen vanished the night the tide went out. Find them before the black tide."
+    },
+    "schema": {
+      "id": "ttrpg-quest-v1",
+      "name": "Quest",
+      "icon": "article",
+      "description": "Quests, hooks and plot threads the party can follow.",
+      "version": 12,
+      "isNew": false,
+      "tabs": [
+        {
+          "key": "general",
+          "label": "Quest",
+          "fields": [
+            {
+              "key": "status",
+              "label": "Status",
+              "type": "select",
+              "id": "field_f89fdfea-b7d9-4821-8758-1637e829ffdd",
+              "layout": {
+                "span": 6
+              },
+              "options": [
+                "Rumoured",
+                "Active",
+                "Completed",
+                "Failed"
+              ]
+            },
+            {
+              "key": "summary",
+              "label": "Summary",
+              "type": "textarea",
+              "id": "field_166f3ffe-af0d-4e15-ad5c-629db5adbd79",
+              "layout": {
+                "span": 12
+              },
+              "rows": 3
+            },
+            {
+              "id": "field_22172c9a-0ce9-4625-b33f-72136b7fa7d0",
+              "key": "questGiver",
+              "label": "Quest Giver",
+              "type": "relationship",
+              "placeholder": "",
+              "layout": {
+                "span": 12
+              },
+              "targetSchemaId": "ttrpg-npc-v1",
+              "multiple": false,
+              "inverseLabel": "Quests Given",
+              "relationshipTypeId": "fieldrel-ZA8m-hkTTZ"
+            },
+            {
+              "id": "field_51e1e5f3-c25b-4c7b-821e-33588013d95e",
+              "key": "where",
+              "label": "Where",
+              "type": "relationship",
+              "placeholder": "",
+              "layout": {
+                "span": 12
+              },
+              "targetSchemaId": "ttrpg-location-v1",
+              "multiple": false,
+              "inverseLabel": "Quests Here",
+              "relationshipTypeId": "fieldrel-XXUiKr8KYM"
+            },
+            {
+              "id": "field_3b4dacea-e2c0-4598-940a-92d189e11621",
+              "key": "reward",
+              "label": "Reward",
+              "type": "text",
+              "placeholder": "",
+              "layout": {
+                "span": 12
+              }
+            }
+          ]
+        }
+      ],
+      "createdAt": "2026-10-14T00:31:20.135Z",
+      "updatedAt": "2026-10-14T00:31:20.135Z"
+    },
+    "schemaBaseHash": "16f4077f"
+  }
+]

@@ -29,13 +29,21 @@ import { chunk, forEachSequential } from '@inkweld/async';
 import { DocumentsService } from '@inkweld/index';
 import { type PresenceSession } from '@inkweld/presence';
 import {
+  escapeXmlAttr,
+  LINK_ATTR_NAMES,
+  MARK_TO_TAG,
+  TAG_TO_MARK,
+} from '@inkweld/prosemirror/xml';
+import {
   HARD_DENIAL_REASONS,
   LONG_BACKOFF_DENIAL_REASONS,
   parseAccessDeniedReason,
   rateLimitBackoff,
   withJitter,
 } from '@services/sync/access-denial';
+import { countDocumentWords } from '@utils/word-count';
 import { yjsStateDigest } from '@utils/yjs-state-digest';
+import { applyXmlToFragment } from '@utils/yjs-xml-serializer';
 import { keymap } from 'prosemirror-keymap';
 import { type Node as ProseMirrorModelNode } from 'prosemirror-model';
 import { Plugin, PluginKey } from 'prosemirror-state';
@@ -73,7 +81,14 @@ import {
   WS_MAX_BACKOFF_TIME,
 } from '../sync/authenticated-websocket-provider';
 import { BroadcastSyncProvider } from '../sync/broadcast-sync.provider';
+import {
+  initialConnectDenialReason,
+  type ReconnectAttemptResult,
+  ReconnectScheduler,
+  retryAfterInitialConnectFailure,
+} from '../sync/reconnect-scheduler';
 import { UnifiedUserService } from '../user/unified-user.service';
+import { AppearanceService } from '../worldbuilding/appearance.service';
 import { CommentService } from './comment.service';
 import { ConversationService } from './conversation.service';
 import { LiveDocumentRegistryService } from './live-document-registry.service';
@@ -170,15 +185,26 @@ export interface DocumentConnection {
    * its connection is torn down.
    */
   onlineHandler?: () => void;
+  /**
+   * Retries the first WebSocket handshake when it failed (the document was
+   * opened offline). Stopped once a socket is up or the connection closes.
+   */
+  initialConnectRetry?: ReconnectScheduler;
 }
 
 /**
  * Represents a ProseMirror JSON node for conversion to XML.
  */
+interface ProseMirrorMark {
+  type: string;
+  attrs?: Record<string, unknown>;
+}
+
 interface ProseMirrorNode {
   type: string;
   text?: string;
   attrs?: Record<string, unknown>;
+  marks?: ProseMirrorMark[];
   content?: ProseMirrorNode[];
 }
 
@@ -203,6 +229,7 @@ export class DocumentService {
   private readonly localStorage = inject(LocalStorageService);
   private readonly elementRefService = inject(ElementRefService);
   private readonly conversationService = inject(ConversationService);
+  private readonly appearance = inject(AppearanceService);
   private readonly findInDocumentService = inject(FindInDocumentService);
   private readonly insertImageService = inject(InsertImageService);
   private readonly insertLinkService = inject(InsertLinkService);
@@ -661,92 +688,10 @@ export class DocumentService {
    * proper propagation through Yjs to all clients.
    */
   importXmlString(ydoc: Y.Doc, fragment: Y.XmlFragment, xmlString: string) {
-    // Ensure the string has a single root element by wrapping it.
-    const wrapped = `<root>${xmlString}</root>`;
-    const parser = new DOMParser();
-    const dom = parser.parseFromString(wrapped, 'text/xml');
-    const root = dom.documentElement;
-
-    // Begin a Yjs transaction to update the fragment.
-    Y.transact(ydoc, () => {
-      // Clear existing content
-      fragment.delete(0, fragment.length);
-      this.logger.debug('DocumentService', 'Cleared previous doc');
-      // Traverse each child element of our temporary root.
-      for (const node of Array.from(root.childNodes)) {
-        const yNode = this.domNodeToYjsNode(node);
-        if (yNode) {
-          // Append the created node to the fragment using forward CRDT operation.
-          fragment.push([yNode]);
-        }
-      }
-    });
-  }
-
-  /**
-   * Recursively convert a DOM Node to a Yjs XmlElement or XmlText.
-   * Properly handles nested elements and attributes.
-   */
-  private domNodeToYjsNode(node: Node): Y.XmlElement | Y.XmlText | null {
-    if (node.nodeType === Node.TEXT_NODE) {
-      return this.textNodeToYjs(node);
-    }
-
-    if (node.nodeType === Node.ELEMENT_NODE) {
-      return this.elementNodeToYjs(node as Element);
-    }
-
-    return null;
-  }
-
-  private textNodeToYjs(node: Node): Y.XmlText | null {
-    const text = node.textContent || '';
-    if (text.trim() === '' && text !== ' ') {
-      return null;
-    }
-    const yText = new Y.XmlText();
-    yText.insert(0, text);
-    return yText;
-  }
-
-  private elementNodeToYjs(element: Element): Y.XmlElement {
-    const yElement = new Y.XmlElement(element.nodeName);
-
-    // Copy all attributes, parsing JSON values
-    for (const attr of Array.from(element.attributes)) {
-      yElement.setAttribute(attr.name, this.parseAttrValue(attr.value));
-    }
-
-    // Recursively process children
-    const children: (Y.XmlElement | Y.XmlText)[] = [];
-    for (const child of Array.from(element.childNodes)) {
-      const childNode = this.domNodeToYjsNode(child);
-      if (childNode) {
-        children.push(childNode);
-      }
-    }
-
-    if (children.length > 0) {
-      yElement.insert(0, children);
-    }
-
-    return yElement;
-  }
-
-  private parseAttrValue(raw: string): string {
-    try {
-      const parsed = JSON.parse(raw) as unknown;
-      if (
-        typeof parsed === 'object' ||
-        typeof parsed === 'number' ||
-        typeof parsed === 'boolean'
-      ) {
-        return parsed as unknown as string;
-      }
-    } catch {
-      // Keep as string if not valid JSON
-    }
-    return raw;
+    // The shared parser keeps formatting (<strong>, <em>, <a>, …) as marks on
+    // the text, which is how y-prosemirror stores it, and replaces the
+    // fragment's content in one transaction.
+    applyXmlToFragment(ydoc, fragment, xmlString);
   }
 
   /**
@@ -798,8 +743,8 @@ export class DocumentService {
 
     // Text node
     if (node.type === 'text' && typeof node.text === 'string') {
-      // Escape XML special characters
-      return this.escapeXml(node.text);
+      // Escape XML special characters, then wrap in the text's formatting
+      return this.wrapInMarks(this.escapeXml(node.text), node.marks);
     }
 
     // Element node
@@ -826,6 +771,44 @@ export class DocumentService {
       .map(child => this.prosemirrorNodeToXml(child))
       .join('');
     return `<${tagName}${attrStr}>${childXml}</${tagName}>`;
+  }
+
+  /**
+   * Wraps serialized text in tags for its marks (first mark outermost), in
+   * the form the shared XML importer reads back as formatting: `<strong>`,
+   * `<em>`, `<a href>`, and `<span data-mark>` for marks with no HTML tag.
+   * Legacy names (`bold`, `italic`) are valid tags there and read as
+   * strong and em.
+   */
+  private wrapInMarks(xml: string, marks?: ProseMirrorMark[]): string {
+    let result = xml;
+    for (const mark of [...(marks ?? [])].reverse()) {
+      const tag =
+        MARK_TO_TAG[mark.type] ?? (mark.type in TAG_TO_MARK ? mark.type : null);
+      const attrs = Object.entries(mark.attrs ?? {}).filter(
+        ([, value]) => value !== null && value !== undefined
+      );
+      if (tag === 'a') {
+        const linkAttrs = LINK_ATTR_NAMES.flatMap(name => {
+          const value = mark.attrs?.[name];
+          return value === null || value === undefined
+            ? []
+            : [
+                ` ${name}="${escapeXmlAttr(this.serializeXmlAttrValue(value))}"`,
+              ];
+        });
+        result = `<a${linkAttrs.join('')}>${result}</a>`;
+      } else if (tag) {
+        result = `<${tag}>${result}</${tag}>`;
+      } else {
+        const markAttrs = attrs.map(
+          ([key, value]) =>
+            ` ${key}="${escapeXmlAttr(this.serializeXmlAttrValue(value))}"`
+        );
+        result = `<span data-mark="${escapeXmlAttr(mark.type)}"${markAttrs.join('')}>${result}</span>`;
+      }
+    }
+    return result;
   }
 
   /**
@@ -1189,8 +1172,7 @@ export class DocumentService {
           if (!doc || typeof doc.textBetween !== 'function') return;
           const prevDoc = prevState.doc;
           if (prevDoc && doc !== prevDoc) {
-            const text = doc.textBetween(0, doc.content.size, ' ');
-            const count = text.trim().split(/\s+/).filter(Boolean).length;
+            const count = countDocumentWords(doc);
             this.logger.debug(
               'DocumentService',
               `word count updated: ${count} for ${documentId}`
@@ -1278,12 +1260,7 @@ export class DocumentService {
     // Initial word count update
     try {
       if (view.state.doc && typeof view.state.doc.textBetween === 'function') {
-        const text = view.state.doc.textBetween(
-          0,
-          view.state.doc.content.size,
-          ' '
-        );
-        const initialCount = text.trim().split(/\s+/).filter(Boolean).length;
+        const initialCount = countDocumentWords(view.state.doc);
         this.logger.debug(
           'DocumentService',
           `initial word count: ${initialCount} for ${documentId}`
@@ -1302,6 +1279,11 @@ export class DocumentService {
   /**
    * Connects to WebSocket in background (non-blocking).
    * When successful, updates the connection's provider and adds presence tracking.
+   *
+   * If the first handshake fails for a reason that can clear (offline, server
+   * unreachable, throttled), keeps retrying through a {@link ReconnectScheduler}
+   * on the connection: until a socket has been up there is no provider whose
+   * own reconnect loop or 'online' handler could take over.
    */
   private async connectWebSocketInBackground(
     websocketUrl: string | null,
@@ -1310,6 +1292,51 @@ export class DocumentService {
     editor: Editor,
     connection: DocumentConnection
   ): Promise<void> {
+    const outcome = await this.tryConnectWebSocket(
+      websocketUrl,
+      documentId,
+      ydoc,
+      editor,
+      connection
+    );
+    if (
+      outcome === 'connected' ||
+      outcome === 'stop' ||
+      this.connections.get(documentId) !== connection
+    ) {
+      return;
+    }
+    connection.initialConnectRetry?.stop();
+    const scheduler = new ReconnectScheduler({
+      attempt: () =>
+        this.connections.get(documentId) === connection
+          ? this.tryConnectWebSocket(
+              websocketUrl,
+              documentId,
+              ydoc,
+              editor,
+              connection
+            )
+          : Promise.resolve('stop'),
+      log: message =>
+        this.logger.info('DocumentService', `${message} (${documentId})`),
+    });
+    connection.initialConnectRetry = scheduler;
+    scheduler.start();
+  }
+
+  /**
+   * One attempt at the authenticated WebSocket for an open document. On
+   * success wires the provider into the connection (status, reconnect and
+   * presence handling) and returns `connected`.
+   */
+  private async tryConnectWebSocket(
+    websocketUrl: string | null,
+    documentId: string,
+    ydoc: Y.Doc,
+    editor: Editor,
+    connection: DocumentConnection
+  ): Promise<ReconnectAttemptResult> {
     if (!websocketUrl) {
       // No WebSocket URL available - staying in offline mode
       this.logger.info(
@@ -1317,7 +1344,7 @@ export class DocumentService {
         `No WebSocket URL configured, document ${documentId} will remain in offline mode`
       );
       this.updateSyncStatus(documentId, DocumentSyncState.Local);
-      return;
+      return 'stop';
     }
 
     // Update state to Syncing while establishing WebSocket connection
@@ -1338,7 +1365,7 @@ export class DocumentService {
         'No auth token available for WebSocket connection'
       );
       this.updateSyncStatus(documentId, DocumentSyncState.Local);
-      return;
+      return 'stop';
     }
 
     // Check version compatibility before connecting to WebSocket
@@ -1349,7 +1376,7 @@ export class DocumentService {
         `Sync blocked due to version incompatibility for document ${documentId} - working in local mode only`
       );
       this.updateSyncStatus(documentId, DocumentSyncState.Local);
-      return;
+      return 'stop';
     }
 
     const wsUrl = `${websocketUrl}/api/v1/ws/yjs?documentId=${formattedDocId}`;
@@ -1519,7 +1546,7 @@ export class DocumentService {
             error
           );
         }
-        return;
+        return 'stop';
       }
 
       // Update the connection object with the provider
@@ -1560,13 +1587,22 @@ export class DocumentService {
         connection.type
       );
     } catch (error) {
+      // Closed while the handshake ran: nothing left to retry for.
+      if (this.connections.get(documentId) !== connection) return 'stop';
       this.logger.error(
         'DocumentService',
         'Failed to establish authenticated WebSocket connection',
         error
       );
-      this.updateSyncStatus(documentId, DocumentSyncState.Local);
-      return;
+      const reason = initialConnectDenialReason(error);
+      const outcome = retryAfterInitialConnectFailure(error);
+      this.updateSyncStatus(
+        documentId,
+        reason !== null && outcome === 'stop'
+          ? DocumentSyncState.Unavailable
+          : DocumentSyncState.Local
+      );
+      return outcome;
     }
 
     // Set up WebSocket-specific handlers now that provider is connected
@@ -1853,6 +1889,7 @@ export class DocumentService {
       connection.onlineHandler = handleOnline;
       globalThis.addEventListener('online', handleOnline);
     }
+    return 'connected';
   }
 
   /**
@@ -2264,9 +2301,12 @@ export class DocumentService {
    * Called from both disconnect paths so every document teardown also drops
    * its global listener — previously the listener (and its closure over the
    * provider / Y.Doc / IndexedDB provider) leaked for the lifetime of the
-   * page and could reconnect a destroyed provider.
+   * page and could reconnect a destroyed provider. Also stops a pending
+   * first-handshake retry, for the same reason.
    */
   private removeOnlineHandler(connection: DocumentConnection): void {
+    connection.initialConnectRetry?.stop();
+    connection.initialConnectRetry = undefined;
     const handler = connection.onlineHandler;
     if (handler) {
       globalThis.removeEventListener('online', handler);
@@ -2412,10 +2452,14 @@ export class DocumentService {
       }
 
       try {
-        const blobUrl = await this.localStorage.getMediaUrl(
+        const blobUrl = await this.resolveMediaBlobUrl(
+          src,
           projectKey,
           mediaId
         );
+        // The src changed while this was resolving; the finally block picks
+        // up the newer one rather than overwriting it with this result.
+        if (img.getAttribute('src') !== src) return;
         if (blobUrl) {
           // Store the media ID for reference
           img.dataset['mediaId'] = mediaId;
@@ -2441,6 +2485,10 @@ export class DocumentService {
         );
       } finally {
         img.dataset['mediaResolving'] = 'false';
+        const currentSrc = img.getAttribute('src');
+        if (currentSrc !== src && currentSrc && isMediaUrl(currentSrc)) {
+          void resolveImageSrc(img);
+        }
       }
     };
 
@@ -2482,6 +2530,26 @@ export class DocumentService {
       'DocumentService',
       `Media URL observer started for ${documentId}`
     );
+  }
+
+  /**
+   * Resolve an editor image's media reference to a blob URL.
+   *
+   * `media://<id>.<ext>` references (written by the MCP tools and other
+   * features) carry the server filename, so a cache miss downloads and caches
+   * the file. `media:<id>` references have no filename and are only looked up
+   * locally; media sync brings those down.
+   */
+  private resolveMediaBlobUrl(
+    src: string,
+    projectKey: string,
+    mediaId: string
+  ): Promise<string | null> {
+    if (!src.startsWith('media://')) {
+      return this.localStorage.getMediaUrl(projectKey, mediaId);
+    }
+    const [username, slug] = projectKey.split('/');
+    return this.appearance.resolveImageReference(src, username, slug);
   }
 
   private handleMediaMutations(

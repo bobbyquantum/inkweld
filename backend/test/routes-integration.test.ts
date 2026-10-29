@@ -140,6 +140,74 @@ describe('Admin Routes', () => {
       expect(data.message).toBe('User rejected');
     });
 
+    it('keeps a rejected user out of the pending list but in the user list', async () => {
+      await adminClient.request(`/api/v1/admin/users/${pendingUserId}/reject`, {
+        method: 'POST',
+      });
+
+      const pending = (await (
+        await adminClient.request('/api/v1/admin/users/pending')
+      ).json()) as Array<{ id: string }>;
+      expect(pending.some((u) => u.id === pendingUserId)).toBe(false);
+
+      const list = (await (
+        await adminClient.request('/api/v1/users?search=pendinguser')
+      ).json()) as {
+        users: Array<{ id: string; approved: boolean; rejectedAt: number | null }>;
+      };
+      const entry = list.users.find((u) => u.id === pendingUserId);
+      expect(entry?.approved).toBe(false);
+      expect(typeof entry?.rejectedAt).toBe('number');
+
+      const row = (await db.select().from(users).where(eq(users.id, pendingUserId)))[0];
+      expect(row.rejectedAt).not.toBeNull();
+    });
+
+    it('lists a not-yet-decided user as pending with no rejection', async () => {
+      const pending = (await (
+        await adminClient.request('/api/v1/admin/users/pending')
+      ).json()) as Array<{ id: string; rejectedAt: number | null }>;
+      const entry = pending.find((u) => u.id === pendingUserId);
+      expect(entry).toBeDefined();
+      expect(entry?.rejectedAt).toBeNull();
+    });
+
+    it('approves a user that was rejected earlier', async () => {
+      await adminClient.request(`/api/v1/admin/users/${pendingUserId}/reject`, {
+        method: 'POST',
+      });
+      const { response, json } = await adminClient.request(
+        `/api/v1/admin/users/${pendingUserId}/approve`,
+        { method: 'POST' }
+      );
+      expect(response.status).toBe(200);
+      const data = (await json()) as { approved: boolean; rejectedAt: number | null };
+      expect(data.approved).toBe(true);
+      expect(data.rejectedAt).toBeNull();
+    });
+
+    it('tells a rejected sign-in apart from a pending one', async () => {
+      const signIn = async () => {
+        const res = await fetch(`${testServer.baseUrl}/api/v1/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: 'pendinguser', password: 'pending123' }),
+        });
+        return { status: res.status, body: (await res.json()) as { code?: string } };
+      };
+
+      const pending = await signIn();
+      expect(pending.status).toBe(403);
+      expect(pending.body.code).toBe('ACCOUNT_PENDING');
+
+      await adminClient.request(`/api/v1/admin/users/${pendingUserId}/reject`, {
+        method: 'POST',
+      });
+      const rejected = await signIn();
+      expect(rejected.status).toBe(403);
+      expect(rejected.body.code).toBe('ACCOUNT_REJECTED');
+    });
+
     it('should disable a user', async () => {
       const { response, json } = await adminClient.request(
         `/api/v1/admin/users/${pendingUserId}/disable`,

@@ -1,5 +1,10 @@
-import { describe, it, expect, beforeEach } from 'bun:test';
-import { FalAiImageProvider } from '../src/services/image-providers/falai-provider';
+import { describe, it, expect, beforeEach, afterEach, spyOn } from 'bun:test';
+import { fal } from '@fal-ai/client';
+import {
+  FalAiImageProvider,
+  applyProfileOptions,
+  parseAspectRatioSize,
+} from '../src/services/image-providers/falai-provider';
 import { TEST_API_KEYS } from './test-credentials';
 
 describe('FalAiImageProvider', () => {
@@ -102,6 +107,99 @@ describe('FalAiImageProvider', () => {
     });
   });
 
+  describe('request size parameters', () => {
+    let subscribe: ReturnType<typeof spyOn>;
+
+    beforeEach(() => {
+      provider.configure({ apiKey: TEST_API_KEYS.FALAI, enabled: true });
+      subscribe = spyOn(fal, 'subscribe').mockResolvedValue({
+        data: { images: [{ url: 'https://example.com/out.png' }] },
+        requestId: 'req-1',
+      } as never);
+    });
+
+    afterEach(() => {
+      subscribe.mockRestore();
+    });
+
+    async function inputFor(
+      model: string,
+      size: string,
+      usesAspectRatioOnly?: boolean
+    ): Promise<Record<string, unknown>> {
+      await provider.generate({
+        prompt: 'a lighthouse',
+        profileId: 'p1',
+        provider: 'falai',
+        model,
+        size,
+        usesAspectRatioOnly,
+      });
+      const [, options] = subscribe.mock.calls.at(-1) as [
+        string,
+        { input: Record<string, unknown> },
+      ];
+      return options.input;
+    }
+
+    it('sends aspect_ratio + resolution for a scanned model with a K resolution', async () => {
+      const input = await inputFor('google/nano-banana-2.1', '16:9@2K');
+      expect(input.aspect_ratio).toBe('16:9');
+      expect(input.resolution).toBe('2K');
+      expect(input.image_size).toBeUndefined();
+    });
+
+    it('passes non-K resolutions through unchanged', async () => {
+      const input = await inputFor('blackforestlabs/flux-3/text-to-image', '1:1@512sq');
+      expect(input.aspect_ratio).toBe('1:1');
+      expect(input.resolution).toBe('512sq');
+    });
+
+    it('omits resolution when the size is a bare ratio', async () => {
+      const input = await inputFor('krea/v2/large/text-to-image', '2.35:1', true);
+      expect(input.aspect_ratio).toBe('2.35:1');
+      expect('resolution' in input).toBe(false);
+      expect(input.image_size).toBeUndefined();
+    });
+
+    it('converts pixel sizes to a ratio for aspect-ratio-only profiles', async () => {
+      const input = await inputFor('krea/v2/large/text-to-image', '1920x1080', true);
+      expect(input.aspect_ratio).toBe('16:9');
+      expect('resolution' in input).toBe(false);
+    });
+
+    it('keeps sending image_size for dimension models', async () => {
+      const input = await inputFor('openai/gpt-image-2', '1536x1024');
+      expect(input.image_size).toEqual({ width: 1536, height: 1024 });
+      expect(input.aspect_ratio).toBeUndefined();
+    });
+
+    it('keeps stored sizes for built-in aspect-ratio models working', async () => {
+      const input = await inputFor('fal-ai/nano-banana-pro', '9:16@4K');
+      expect(input).toMatchObject({ aspect_ratio: '9:16', resolution: '4K' });
+      const fromPixels = await inputFor('fal-ai/nano-banana-pro', '1024x1024');
+      expect(fromPixels).toMatchObject({ aspect_ratio: '1:1', resolution: '2K' });
+    });
+  });
+
+  describe('parseAspectRatioSize', () => {
+    it('parses ratio@resolution sizes', () => {
+      expect(parseAspectRatioSize('16:9@4K')).toEqual({ ratio: '16:9', resolution: '4K' });
+      expect(parseAspectRatioSize('1:1@512sq')).toEqual({ ratio: '1:1', resolution: '512sq' });
+      expect(parseAspectRatioSize('2.35:1@2k')).toEqual({ ratio: '2.35:1', resolution: '2k' });
+    });
+
+    it('parses bare ratios without a resolution', () => {
+      expect(parseAspectRatioSize('16:9')).toEqual({ ratio: '16:9' });
+    });
+
+    it('rejects pixel sizes and auto', () => {
+      expect(parseAspectRatioSize('1024x1024')).toBeNull();
+      expect(parseAspectRatioSize('auto')).toBeNull();
+      expect(parseAspectRatioSize('16:9@')).toBeNull();
+    });
+  });
+
   describe('default model properties', () => {
     it('should have models with expected properties', () => {
       const models = provider.getModels();
@@ -175,5 +273,25 @@ describe('FalAiImageProvider', () => {
       expect(sizes).toContain('9:16@4K');
       expect(sizes).toContain('1:1@1K');
     });
+  });
+});
+
+describe('applyProfileOptions', () => {
+  it('adds profile model config to the Fal input', () => {
+    const input: Record<string, unknown> = { prompt: 'a lighthouse', output_format: 'png' };
+    applyProfileOptions(input, { quality: 'medium', output_format: 'jpeg' });
+    expect(input).toEqual({ prompt: 'a lighthouse', output_format: 'jpeg', quality: 'medium' });
+  });
+
+  it('never replaces the prompt or copies undefined values', () => {
+    const input: Record<string, unknown> = { prompt: 'a lighthouse' };
+    applyProfileOptions(input, { prompt: 'something else', background: undefined });
+    expect(input).toEqual({ prompt: 'a lighthouse' });
+  });
+
+  it('leaves the input alone without options', () => {
+    const input: Record<string, unknown> = { prompt: 'a lighthouse' };
+    applyProfileOptions(input, undefined);
+    expect(input).toEqual({ prompt: 'a lighthouse' });
   });
 });

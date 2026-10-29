@@ -11,6 +11,7 @@ import {
   type Project,
   ProjectsService,
 } from '@inkweld/index';
+import { LIGHT_PAGE } from '@models/canvas.model';
 import {
   type ElementRelationship,
   type RelationshipTypeDefinition,
@@ -1817,6 +1818,52 @@ describe('ProjectStateService', () => {
         mockDialogGatewayService.openCanvasSetupDialog
       ).not.toHaveBeenCalled();
       expect(service.elements().some(e => e.name === 'Notes')).toBe(true);
+    });
+  });
+
+  describe('createElement', () => {
+    beforeEach(async () => {
+      await service.loadProject('testuser', 'test-project');
+    });
+
+    it('applies the preset without any dialog', () => {
+      const created = service.createElement(ElementType.Item, 'Opening', {
+        preset: 'scene',
+      });
+
+      expect(created?.name).toBe('Opening');
+      expect(created?.metadata).toMatchObject({ role: 'scene' });
+      expect(
+        mockDialogGatewayService.openNewElementDialog
+      ).not.toHaveBeenCalled();
+    });
+
+    it('seeds a canvas with a light page when no setup is given', () => {
+      const created = service.createElement(ElementType.Canvas, 'Sketch');
+
+      const [elementId, contents] =
+        vi.mocked(mockSyncProvider.seedCanvasContents).mock.lastCall ?? [];
+      expect(elementId).toBe(created?.id);
+      expect(contents?.background).toBe(LIGHT_PAGE.background);
+      expect(contents?.frames).toBeUndefined();
+    });
+
+    it('creates a map canvas with its base layer', () => {
+      const created = service.createElement(ElementType.Canvas, 'World', {
+        preset: 'map',
+      });
+
+      const contents = vi.mocked(mockSyncProvider.seedCanvasContents).mock
+        .lastCall?.[1];
+      expect(contents?.layers[0].name).toBe('Base map');
+      expect(
+        service.elements().find(e => e.id === created?.id)?.metadata
+      ).toMatchObject({ icon: 'map' });
+    });
+
+    it('returns undefined without a project', () => {
+      service.project.set(undefined);
+      expect(service.createElement(ElementType.Item, 'Lost')).toBeUndefined();
     });
   });
 

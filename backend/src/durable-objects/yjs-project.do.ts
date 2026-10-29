@@ -35,6 +35,7 @@ import { WSSharedDoc } from 'y-durableobjects';
 import * as Y from 'yjs';
 import { logger } from '../services/logger.service';
 import { stripTrailingSlashes } from '../utils/string-utils';
+import { setYMapPath, yMapPathConflict } from '../utils/yjs-map-path';
 import { parseXmlToYjsNodes } from '@inkweld/prosemirror/xml';
 import { makeD1Database, type D1DatabaseInstance } from '../db/d1';
 import { writingSessionService } from '../services/writing-session.service';
@@ -140,7 +141,14 @@ interface ConnectionInfo {
   authenticated: boolean; // Whether this connection has been authenticated
   canWrite: boolean; // Resolved from collaboration access; viewers cannot send updates
   sharedDoc?: WSSharedDoc; // Document (only set after auth)
-  pendingMessages: ArrayBuffer[]; // Binary messages queued before auth
+  /**
+   * True from the moment auth succeeds until the document is loaded and this
+   * socket registered on it. `authenticated` is already sent to the client in
+   * that window, so frames keep being queued in `pendingMessages` rather than
+   * reaching a connection that has no `sharedDoc` yet.
+   */
+  loadingDocument?: boolean;
+  pendingMessages: ArrayBuffer[]; // Binary messages queued before the document is ready
   /** Bytes currently held in pendingMessages (bounded, see utils/ws-preauth.ts). */
   pendingBytes?: number;
   unsubscribe?: () => void; // Cleanup function for document subscription
@@ -658,6 +666,8 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
         return this.handleMutateElements(request, documentId);
       case 'GET /api/document':
         return this.handleGetDocument(documentId);
+      case 'GET /api/document-state':
+        return this.handleGetDocumentState(documentId);
       case 'POST /api/document':
         return this.handleUpdateDocument(request, documentId);
       case 'GET /api/stats':
@@ -1094,6 +1104,21 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
   }
 
   /**
+   * GET /api/document-state - The document's full Yjs state
+   * (`Y.encodeStateAsUpdate`) as binary. A Worker route that has to edit a
+   * document the way the Bun runtime edits its live copy (formatting marks,
+   * text replacement) loads this into a local Y.Doc, edits it, and sends back
+   * only its changes through `POST /api/document` with `yUpdate`.
+   */
+  private async handleGetDocumentState(documentId: string): Promise<Response> {
+    const sharedDoc = await this.getOrCreateDocument(documentId);
+    return new Response(Y.encodeStateAsUpdate(sharedDoc), {
+      status: 200,
+      headers: { 'Content-Type': 'application/octet-stream' },
+    });
+  }
+
+  /**
    * GET /api/document - Return document content as JSON
    */
   private async handleGetDocument(documentId: string): Promise<Response> {
@@ -1360,6 +1385,22 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     } else if (body.updates && body.updates.length > 0) {
       // Apply structured updates
       const updates = body.updates;
+      // Refuse the whole batch up front if a nested path runs into a non-map
+      // value, so the agent gets the reason and nothing is half applied.
+      const conflict = updates
+        .map(({ path }) => {
+          const parts = path.split('.');
+          return parts.length > 2
+            ? yMapPathConflict(sharedDoc.getMap(parts[0]), parts.slice(1))
+            : null;
+        })
+        .find((reason) => reason !== null);
+      if (conflict) {
+        return new Response(JSON.stringify({ error: conflict }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
       // WSSharedDoc extends Y.Doc, so sharedDoc IS the doc
       sharedDoc.transact(() => {
         for (const update of updates) {
@@ -1389,21 +1430,12 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
 
     // Get or create the root container
     const rootKey = parts[0];
-    let container = doc.getMap(rootKey);
+    const container = doc.getMap(rootKey);
 
-    // Navigate to the target, creating intermediate maps as needed
-    for (let i = 1; i < parts.length - 1; i++) {
-      const key = parts[i];
-      if (!container.has(key)) {
-        container.set(key, new Map());
-      }
-      container = container.get(key);
-    }
-
-    // Set the final value
-    const finalKey = parts.at(-1);
     if (parts.length > 1) {
-      container.set(finalKey, value);
+      // Creates missing intermediate Y.Maps (e.g. `description` for
+      // `worldbuilding.description.terrain` on an element made over MCP).
+      setYMapPath(container, parts.slice(1), value);
     } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
       // Root level - value should be a plain object to merge
       for (const [k, v] of Object.entries(value)) {
@@ -2416,7 +2448,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
   }
 
   private handleBinaryMessage(ws: WebSocket, connInfo: ConnectionInfo, message: ArrayBuffer): void {
-    if (!connInfo.authenticated) {
+    if (!connInfo.authenticated || connInfo.loadingDocument) {
       const queuedBytes = connInfo.pendingBytes ?? 0;
       if (!preAuthQueueAccepts(connInfo.pendingMessages.length, queuedBytes, message.byteLength)) {
         projDOLog.warn(`Pre-auth queue overflow for ${connInfo.documentId}; closing`);
@@ -2487,13 +2519,16 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
   }
 
   /**
-   * Replay frames queued while the auth handshake was in flight, through the
-   * same gate as live frames (viewer write-block, presence routing). The queue
-   * is cleared first so a frame that throws cannot be replayed.
+   * Replay frames queued while the auth handshake and document load were in
+   * flight, in arrival order, through the same gate as live frames (viewer
+   * write-block, presence routing). The queue is cleared first so a frame
+   * that throws cannot be replayed.
    */
   private drainPendingMessages(ws: WebSocket, connInfo: ConnectionInfo): void {
     const queued = connInfo.pendingMessages;
     connInfo.pendingMessages = [];
+    connInfo.pendingBytes = 0;
+    connInfo.loadingDocument = false;
     for (const data of queued) {
       this.dispatchAuthenticatedFrame(ws, connInfo, data);
     }
@@ -2580,19 +2615,32 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
   }
 
   /**
-   * Open a writing session for this connection if the user can write and
-   * the document id maps to a trackable element. Failures are swallowed.
+   * The word count a writing session for this connection starts from, or
+   * null when no session would be opened (read-only user, or a document id
+   * that does not map to a trackable element).
    */
-  private async tryStartSession(connInfo: ConnectionInfo, projectId: string): Promise<void> {
+  private sessionStartWordCount(connInfo: ConnectionInfo): number | null {
+    if (!connInfo.canWrite || !connInfo.userId) return null;
+    if (!this.parseTrackableElementId(connInfo.documentId)) return null;
+    return this.readWordCount(connInfo.sharedDoc);
+  }
+
+  /**
+   * Open a writing session for this connection, starting from the baseline
+   * taken by `sessionStartWordCount` (null: no session). Failures are swallowed.
+   */
+  private async tryStartSession(
+    connInfo: ConnectionInfo,
+    projectId: string,
+    startWordCount: number | null
+  ): Promise<void> {
     try {
-      if (!connInfo.canWrite) return;
-      if (!connInfo.userId) return;
+      if (startWordCount === null || !connInfo.userId) return;
       const elementId = this.parseTrackableElementId(connInfo.documentId);
       if (!elementId) return;
       const db = this.getDb();
       if (!db) return;
 
-      const startWordCount = this.readWordCount(connInfo.sharedDoc);
       const id = await writingSessionService.start(db, {
         projectId,
         elementId,
@@ -2793,8 +2841,10 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
         return;
       }
 
-      // Authentication successful!
+      // Authentication successful! Frames keep queueing until the document
+      // is loaded and drained below (see `loadingDocument`).
       connInfo.authenticated = true;
+      connInfo.loadingDocument = true;
       connInfo.userId = sessionData.userId;
       connInfo.username = sessionData.username;
       connInfo.canWrite = canWrite;
@@ -2858,9 +2908,26 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
 
       this.registerWebSocketForDocument(ws, sharedDoc, connInfo.documentId);
 
+      // If this is the elements doc, attach the snapshot-diff observer so
+      // element creates/renames/deletes are recorded as activity events.
+      if (db && projectDbId && isElementsDoc(connInfo.documentId)) {
+        this.watchElementsDocDO(sharedDoc, connInfo.documentId, projectDbId, db);
+      }
+
+      // The writing session's baseline is taken before the queued frames are
+      // applied, so edits sent during auth count towards this session.
+      const startWordCount = this.sessionStartWordCount(connInfo);
+
+      // Process binary messages that arrived during auth and the document
+      // load (including any sent after the client saw `authenticated`). This
+      // runs before the writing-session database call below: frames arriving
+      // during that await go straight to the document instead of filling the
+      // bounded queue.
+      this.drainPendingMessages(ws, connInfo);
+
       // Open a writing session for this connection (best-effort).
       if (projectDbId) {
-        await this.tryStartSession(connInfo, projectDbId);
+        await this.tryStartSession(connInfo, projectDbId, startWordCount);
       }
 
       // Re-serialize the attachment now that tryStartSession may have populated
@@ -2883,15 +2950,6 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
         trackedElementName: connInfo.trackedElementName,
       });
 
-      // If this is the elements doc, attach the snapshot-diff observer so
-      // element creates/renames/deletes are recorded as activity events.
-      if (db && projectDbId && isElementsDoc(connInfo.documentId)) {
-        this.watchElementsDocDO(sharedDoc, connInfo.documentId, projectDbId, db);
-      }
-
-      // Process any binary messages that arrived during auth.
-      this.drainPendingMessages(ws, connInfo);
-
       projDOLog.debug(
         `Yjs sync started for ${connInfo.documentId} (${this.documents.size} docs in DO)`
       );
@@ -2899,6 +2957,14 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       projDOLog.error(`Auth error for ${connInfo.documentId}:`, error);
       safeSend(ws, 'access-denied:error');
       safeClose(ws, WS_CLOSE_SERVER_ERROR, 'Authentication error');
+    } finally {
+      // Every path that returns before the drain (socket gone, rate-limited,
+      // error) leaves a connection that will never sync: release its queue.
+      if (connInfo.loadingDocument) {
+        connInfo.loadingDocument = false;
+        connInfo.pendingMessages = [];
+        connInfo.pendingBytes = 0;
+      }
     }
   }
 

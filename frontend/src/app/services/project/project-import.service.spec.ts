@@ -26,7 +26,12 @@ import { LocalSnapshotService } from '../local/local-snapshot.service';
 import { LocalStorageService } from '../local/local-storage.service';
 import { ElementSyncProviderFactory } from '../sync/element-sync-provider.factory';
 import { DocumentImportService } from './document-import.service';
+import { ProjectService } from './project.service';
 import { ProjectImportService } from './project-import.service';
+
+/** Bytes that start like a real file of each type, for media sniffing. */
+const PNG_BYTES = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 1, 2]);
+const JPEG_BYTES = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3, 4]);
 
 /**
  * Helper to create a real ZIP file from a ProjectArchive for testing.
@@ -34,7 +39,7 @@ import { ProjectImportService } from './project-import.service';
  */
 async function createTestArchive(
   archive: ProjectArchive,
-  extraFiles: Record<string, string> = {}
+  extraFiles: Record<string, string | Uint8Array> = {}
 ): Promise<File> {
   const zip = new JSZip();
   for (const [name, content] of Object.entries(extraFiles)) {
@@ -88,6 +93,7 @@ describe('ProjectImportService', () => {
   let localSnapshots: DeepMockProxy<LocalSnapshotService>;
   let projectsService: DeepMockProxy<ProjectsService>;
   let documentImport: DeepMockProxy<DocumentImportService>;
+  let projectService: DeepMockProxy<ProjectService>;
 
   const mockManifest: ArchiveManifest = {
     version: ARCHIVE_VERSION,
@@ -165,6 +171,7 @@ describe('ProjectImportService', () => {
     localSnapshots = mockDeep<LocalSnapshotService>();
     projectsService = mockDeep<ProjectsService>();
     documentImport = mockDeep<DocumentImportService>();
+    projectService = mockDeep<ProjectService>();
 
     // Setup default mocks
     syncFactory.isLocalMode.mockReturnValue(true);
@@ -198,6 +205,10 @@ describe('ProjectImportService', () => {
     );
 
     http.post.mockReturnValue(of({}));
+    projectService.uploadProjectCover.mockResolvedValue(
+      'cover-1800000000000.jpg'
+    );
+    localElements.saveProjectMeta.mockResolvedValue(undefined);
 
     TestBed.configureTestingModule({
       imports: [translocoTestProvider()],
@@ -215,6 +226,7 @@ describe('ProjectImportService', () => {
         { provide: LocalSnapshotService, useValue: localSnapshots },
         { provide: ProjectsService, useValue: projectsService },
         { provide: DocumentImportService, useValue: documentImport },
+        { provide: ProjectService, useValue: projectService },
       ],
     });
 
@@ -319,8 +331,8 @@ describe('ProjectImportService', () => {
       expect(service.suggestSlug('@#$%^&*()')).toBe('');
     });
 
-    it('should handle unicode characters', () => {
-      expect(service.suggestSlug('Café Project')).toBe('caf-project');
+    it('should keep the base letter of accented characters', () => {
+      expect(service.suggestSlug('Café Project')).toBe('cafe-project');
     });
 
     it('should handle numeric-only titles', () => {
@@ -487,40 +499,159 @@ describe('ProjectImportService', () => {
       }
     );
 
-    it('uploads a cover-* media file as the project cover in server mode', async () => {
-      syncFactory.isLocalMode.mockReturnValue(false);
-      const archiveWithCover: ProjectArchive = {
+    describe('media', () => {
+      const coverArchive: ProjectArchive = {
         ...mockArchive,
+        project: { ...mockProject, hasCover: true },
         media: [
           {
-            mediaId: 'cover-1700000000000',
-            filename: 'cover.jpg',
+            mediaId: 'cover-1600000000000',
             mimeType: 'image/jpeg',
-            size: 4,
-            archivePath: 'media/cover.jpg',
+            size: JPEG_BYTES.length,
+            archivePath: 'media/cover-1600000000000.jpg',
+          },
+          {
+            mediaId: 'cover-1700000000000',
+            mimeType: 'image/jpeg',
+            size: JPEG_BYTES.length,
+            archivePath: 'media/cover-1700000000000.jpg',
           },
           {
             mediaId: 'img-1',
-            filename: 'image.png',
+            filename: 'map.png',
             mimeType: 'image/png',
-            size: 4,
-            archivePath: 'media/image.png',
+            size: PNG_BYTES.length,
+            archivePath: 'media/img-1.png',
           },
         ],
       };
-      const file = await createTestArchive(archiveWithCover, {
-        'media/cover.jpg': 'jpeg',
-        'media/image.png': 'png!',
+      const coverFiles = {
+        'media/cover-1600000000000.jpg': JPEG_BYTES,
+        'media/cover-1700000000000.jpg': JPEG_BYTES,
+        'media/img-1.png': PNG_BYTES,
+      };
+
+      /** The blob saved for a media id. */
+      function savedBlob(mediaId: string): Blob | undefined {
+        return localStorage.saveMedia.mock.calls.find(
+          ([, id]) => id === mediaId
+        )?.[2];
+      }
+
+      it('stores media with the type the archive recorded', async () => {
+        const file = await createTestArchive(coverArchive, coverFiles);
+
+        await service.importProject(file, { slug: 'imported-project' });
+
+        expect(localStorage.saveMedia).toHaveBeenCalledWith(
+          'testuser/imported-project',
+          'img-1',
+          expect.any(Blob),
+          'map.png'
+        );
+        const image = savedBlob('img-1');
+        expect(image?.type).toBe('image/png');
+        expect(image?.size).toBe(PNG_BYTES.length);
       });
 
-      await service.importProject(file, { slug: 'imported-project' });
+      it('sniffs the type when the archive only says octet-stream', async () => {
+        const archive: ProjectArchive = {
+          ...mockArchive,
+          media: [
+            {
+              mediaId: 'img-sniffed',
+              mimeType: 'application/octet-stream',
+              size: PNG_BYTES.length,
+              archivePath: 'media/img-sniffed',
+            },
+            {
+              mediaId: 'img-by-extension',
+              mimeType: '',
+              size: 4,
+              archivePath: 'media/img-by-extension.webp',
+            },
+          ],
+        };
+        const file = await createTestArchive(archive, {
+          'media/img-sniffed': PNG_BYTES,
+          'media/img-by-extension.webp': 'data',
+        });
 
-      expect(localStorage.saveMedia).toHaveBeenCalledTimes(2);
-      expect(http.post).toHaveBeenCalledTimes(1);
-      expect(http.post).toHaveBeenCalledWith(
-        '/api/v1/projects/testuser/imported-project/cover',
-        expect.any(FormData)
+        await service.importProject(file, { slug: 'imported-project' });
+
+        expect(savedBlob('img-sniffed')?.type).toBe('image/png');
+        expect(savedBlob('img-by-extension')?.type).toBe('image/webp');
+      });
+
+      it.each([
+        ['offline', true],
+        ['server', false],
+      ])(
+        'makes the newest cover the project cover in %s mode',
+        async (_mode, isLocal) => {
+          syncFactory.isLocalMode.mockReturnValue(isLocal);
+          const file = await createTestArchive(coverArchive, coverFiles);
+
+          await service.importProject(file, { slug: 'imported-project' });
+
+          expect(projectService.uploadProjectCover).toHaveBeenCalledTimes(1);
+          const [username, slug, cover] =
+            projectService.uploadProjectCover.mock.calls[0];
+          expect([username, slug]).toEqual(['testuser', 'imported-project']);
+          expect(cover.type).toBe('image/jpeg');
+          expect(localElements.saveProjectMeta).toHaveBeenCalledWith(
+            'testuser',
+            'imported-project',
+            { coverMediaId: 'cover-1800000000000' }
+          );
+          // The cover is stored under the id the upload gave it; the older
+          // cover is kept as ordinary media.
+          expect(savedBlob('cover-1700000000000')).toBeUndefined();
+          expect(savedBlob('cover-1600000000000')?.type).toBe('image/jpeg');
+          expect(http.post).not.toHaveBeenCalled();
+        }
       );
+
+      it('restores an untimestamped cover from an older archive', async () => {
+        const archive: ProjectArchive = {
+          ...mockArchive,
+          media: [
+            {
+              mediaId: 'cover',
+              mimeType: 'application/octet-stream',
+              size: JPEG_BYTES.length,
+              archivePath: 'media/cover',
+            },
+          ],
+        };
+        const file = await createTestArchive(archive, {
+          'media/cover': JPEG_BYTES,
+        });
+
+        await service.importProject(file, { slug: 'imported-project' });
+
+        const [, , cover] = projectService.uploadProjectCover.mock.calls[0];
+        expect(cover.type).toBe('image/jpeg');
+      });
+
+      it('still imports the project when the cover cannot be set', async () => {
+        projectService.uploadProjectCover.mockRejectedValue(
+          new Error('upload failed')
+        );
+        const file = await createTestArchive(coverArchive, coverFiles);
+
+        const result = await service.importProject(file, {
+          slug: 'imported-project',
+        });
+
+        expect(result).toEqual(mockCreatedProject);
+        expect(localElements.saveProjectMeta).not.toHaveBeenCalledWith(
+          'testuser',
+          'imported-project',
+          expect.objectContaining({ coverMediaId: expect.anything() })
+        );
+        expect(savedBlob('img-1')).toBeDefined();
+      });
     });
 
     it('should import elements', async () => {

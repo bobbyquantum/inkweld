@@ -21,6 +21,44 @@ export function trimHyphens(s: string): string {
 }
 
 /**
+ * Letters of Latin-1 and Latin Extended-A that Unicode decomposition leaves
+ * alone, so they would otherwise be dropped.
+ */
+const LETTER_FOLDS: Record<string, string> = {
+  ß: 'ss',
+  æ: 'ae',
+  œ: 'oe',
+  ø: 'o',
+  ł: 'l',
+  đ: 'd',
+  ð: 'd',
+  þ: 'th',
+  ı: 'i',
+  ħ: 'h',
+  ĸ: 'k',
+  ŋ: 'n',
+  ŧ: 't',
+};
+
+/**
+ * Turn a title into a URL slug: lowercase ASCII letters and digits in
+ * hyphen-separated words, at most `maxLength` characters. Accented letters
+ * keep their base letter ("Café Müller" → "cafe-muller"), apostrophes are
+ * dropped ("Ender's Game" → "enders-game") and anything else separates words.
+ * Returns '' when nothing is left (a title in a non-Latin script, say), so
+ * callers can fall back to a default.
+ */
+export function slugify(text: string, maxLength = 50): string {
+  const ascii = text
+    .toLowerCase()
+    .replaceAll(/[ßæœøłđðþıħĸŋŧ]/g, letter => LETTER_FOLDS[letter])
+    .normalize('NFKD')
+    .replaceAll(/[\p{M}'’ʼ]/gu, '');
+  const slug = trimHyphens(ascii.replaceAll(/[^a-z0-9]+/g, '-'));
+  return trimHyphens(slug.slice(0, maxLength));
+}
+
+/**
  * Normalize a server URL typed by a user: trims it, drops trailing slashes and
  * adds a protocol when missing (http for localhost / 127.0.0.1, https for
  * everything else).

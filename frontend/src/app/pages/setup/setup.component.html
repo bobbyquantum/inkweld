@@ -1,5 +1,5 @@
 <div class="setup-container">
-  <div class="setup-content">
+  <main id="main-content" class="setup-content">
     <mat-card class="setup-card" data-testid="setup-card">
       <mat-card-header>
         <mat-card-title>
@@ -7,6 +7,7 @@
             <button
               mat-icon-button
               (click)="goBack()"
+              [attr.aria-label]="'back' | transloco"
               class="title-icon-button"
               data-testid="back-button">
               <mat-icon>arrow_back</mat-icon>
@@ -14,13 +15,15 @@
           } @else {
             <mat-icon class="title-icon">settings</mat-icon>
           }
-          @if (upgradeSourceName()) {
-            Connect to sync
-          } @else if (canReturnToApp()) {
-            Add a profile
-          } @else {
-            Welcome to Inkweld
-          }
+          <h1 class="setup-title">
+            @if (upgradeSourceName()) {
+              Connect to sync
+            } @else if (canReturnToApp()) {
+              Add a profile
+            } @else {
+              Welcome to Inkweld
+            }
+          </h1>
         </mat-card-title>
         <mat-card-subtitle>
           @if (configLoading()) {
@@ -122,7 +125,7 @@
                 (click)="chooseServerMode()"
                 data-testid="server-mode-button">
                 <mat-icon class="option-icon">hub</mat-icon>
-                <h3>Realtime Sync</h3>
+                <h3>Inkweld Server</h3>
                 <p>
                   Connect to an Inkweld server for live collaboration, shared
                   projects, and sync that runs even when your browser is closed.
@@ -450,9 +453,11 @@
             </div>
             <p class="field-hint profile-intro">
               @if (upgradeSourceName(); as source) {
-                Your projects from {{ source }} will be copied into
-                {{ pendingProviderName() }} under the profile below, then kept
-                in sync. Keep the username so project addresses stay the same.
+                {{
+                  'app.setup.upgradeIntro'
+                    | transloco
+                      : { source: source, provider: pendingProviderName() }
+                }}
               } @else if (pendingCloudConnection()?.existingProfiles?.length) {
                 This profile will keep its own projects, separate from the other
                 authors in this account.
@@ -493,17 +498,27 @@
                 <input
                   matInput
                   id="setup-cloud-username-input"
-                  [value]="userName"
+                  [value]="upgradeUsername() ?? userName"
+                  [readonly]="upgradeUsername() !== null"
                   (input)="userName = $any($event.target).value"
                   data-testid="cloud-username-input"
                   [attr.aria-label]="
                     'settings.connectionTab.usernameAria' | transloco
                   " />
-                <mat-icon matSuffix>person</mat-icon>
+                <mat-icon matSuffix>{{
+                  upgradeUsername() === null ? 'person' : 'lock'
+                }}</mat-icon>
               </mat-form-field>
-              <p class="field-hint">
-                Used in project addresses, and as your username if you later
-                move to an Inkweld server.
+              <p class="field-hint" data-testid="cloud-username-hint">
+                @if (upgradeUsername() !== null) {
+                  {{
+                    'app.setup.upgradeUsernameHint'
+                      | transloco: { source: upgradeSourceName() }
+                  }}
+                } @else {
+                  Used in project addresses, and as your username if you later
+                  move to an Inkweld server.
+                }
               </p>
             </div>
           </div>
@@ -585,10 +600,12 @@
         >{{ 'auth.legal.privacyPolicy' | transloco }}</a
       >
     </p>
-  </div>
+  </main>
 
-  <!-- Theme toggle in bottom right corner -->
-  <div class="theme-toggle-container">
+  <!-- The No AI / Allow AI choice in the bottom left corner, the theme
+       toggle in the bottom right -->
+  <div class="setup-corner-controls">
+    <app-ai-preference [floating]="true" />
     <app-theme-toggle></app-theme-toggle>
   </div>
 </div>

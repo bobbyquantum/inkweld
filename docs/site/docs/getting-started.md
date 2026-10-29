@@ -1,6 +1,6 @@
 ---
 id: getting-started
-title: Getting Started
+title: Developer Setup
 description: Set up the Inkweld monorepo, run the dev servers, and understand the workflow before you deploy.
 sidebar_position: 2
 ---
@@ -21,7 +21,7 @@ sidebar_position: 2
  bun install
 ```
 
-This installs all dependencies for the root, Angular frontend, Bun backend, and the shared `packages/*`. Always install from the repo root with `bun install`; never run `npm install` inside `frontend/` or `backend/` (a guard script will refuse). The `npm run ...` scripts used below are fine, they only invoke tools.
+This installs all dependencies for the root, Angular frontend, Bun backend, and the shared `packages/*`. Always install from the repo root with `bun install`; never run `npm install` inside `frontend/`, `backend/` or `docs/site/` (a guard script will refuse). The `npm run ...` scripts used below are fine, they only invoke tools.
 
 ## Configure environment files
 
@@ -89,7 +89,7 @@ That launches the Bun backend on port `8333` and the Angular dev server on port 
  npm run e2e
 ```
 
-Frontend unit tests use Vitest (`npm test`), while end-to-end coverage runs through Playwright. Its fixtures live next to the specs, one set per category: `frontend/e2e/local/fixtures.ts` (offline mode, no backend), `frontend/e2e/online/fixtures.ts` (real backend), `frontend/e2e/mcp/fixtures.ts` and `frontend/e2e/screenshots/fixtures.ts`. `npm run e2e` runs the local and online suites; see `frontend/e2e/README.md`. Backend tests run via `bun test`.
+Frontend unit tests use Vitest (`npm test`), while end-to-end coverage runs through Playwright. Its fixtures live next to the specs, one set per category: `frontend/e2e/local/fixtures.ts` (Browser profile, no backend), `frontend/e2e/online/fixtures.ts` (real backend), `frontend/e2e/mcp/fixtures.ts` and `frontend/e2e/screenshots/fixtures.ts`. `npm run e2e` runs the local and online suites; see `frontend/e2e/README.md`. Backend tests run via `bun test`.
 
 `npm run typecheck` runs `bun check` (a fast TypeScript port) over every project, including specs, e2e tests and the backend, which Vitest, Playwright and `bun test` do not type check. CI runs it as the Type Check job. A git pre-commit hook (Husky + lint-staged) formats staged files automatically.
 

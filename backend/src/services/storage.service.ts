@@ -38,11 +38,12 @@ export interface StorageService {
   deleteProjectDirectory(username: string, projectSlug: string): Promise<void>;
 
   /**
-   * Move every file of a project to a new slug (project rename). Either all
-   * files end up under `toSlug` or the call throws with them still under
-   * `fromSlug`.
+   * Move every file of a project to a new slug (project rename): media,
+   * covers, published files and, on the filesystem, the `.yjs` store. A
+   * failure leaves the files under the old slug, so the rename can be retried.
+   * Callers must release the project's LevelDB handle first.
    */
-  moveProjectDirectory(username: string, fromSlug: string, toSlug: string): Promise<void>;
+  moveProjectDirectory(username: string, oldSlug: string, newSlug: string): Promise<void>;
 
   saveUserAvatar(username: string, data: BinaryData): Promise<void>;
 
@@ -137,8 +138,8 @@ class FileStorageAdapter implements StorageService {
     await this.fileStorage.deleteProjectDirectory(username, projectSlug);
   }
 
-  async moveProjectDirectory(username: string, fromSlug: string, toSlug: string): Promise<void> {
-    await this.fileStorage.renameProjectDirectory(username, fromSlug, toSlug);
+  async moveProjectDirectory(username: string, oldSlug: string, newSlug: string): Promise<void> {
+    await this.fileStorage.renameProjectDirectory(username, oldSlug, newSlug);
   }
 
   async saveUserAvatar(username: string, data: BinaryData): Promise<void> {
@@ -234,8 +235,8 @@ class R2StorageAdapter implements StorageService {
     await this.r2Storage.deleteProjectDirectory(username, projectSlug);
   }
 
-  async moveProjectDirectory(username: string, fromSlug: string, toSlug: string): Promise<void> {
-    await this.r2Storage.moveProjectDirectory(username, fromSlug, toSlug);
+  async moveProjectDirectory(username: string, oldSlug: string, newSlug: string): Promise<void> {
+    await this.r2Storage.moveProjectDirectory(username, oldSlug, newSlug);
   }
 
   async saveUserAvatar(username: string, data: BinaryData): Promise<void> {

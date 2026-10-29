@@ -41,13 +41,52 @@ describe('PublishTypstEmitterService', () => {
     expect(b).toContain('#set page(');
   });
 
+  describe('keeping titles with their content', () => {
+    it('keeps headings and entry titles with what follows them', () => {
+      const out = emit();
+      expect(out).toMatch(/#let doc-heading-1\(body\) = block\(sticky: true,/);
+      expect(out).toMatch(/#let wb-tab[\s\S]*block\(sticky: true, above: 8pt/);
+      expect(out).toMatch(
+        /#let wb-entry[\s\S]*#block\(sticky: true, below: 6pt\)/
+      );
+    });
+
+    it('defines the 12-column field grid used by worldbuilding entries', () => {
+      const out = emit();
+      expect(out).toContain(
+        '#let wb-fields(..cells) = grid(columns: (1fr,) * 12, column-gutter: 8pt, row-gutter: 6pt, ..cells)'
+      );
+      expect(out).toMatch(
+        /#let wb-cell\(label, value\) = block\(breakable: false\)\[#block\(below: 2pt\)/
+      );
+    });
+
+    it('does not indent paragraphs inside a field value', () => {
+      expect(emit()).toContain(
+        '#set par(first-line-indent: 0pt, spacing: 0.7em);#value'
+      );
+    });
+
+    it('lists chapters and entries in the outline without showing a second title', () => {
+      const out = emit();
+      expect(out).toContain(
+        '#let outline-entry(level, body) = place(hide(heading(level: level, outlined: true, bookmarked: true, body)))'
+      );
+      expect(out).toMatch(/#let chapter-title[\s\S]*#outline-entry\(1, body\)/);
+      expect(out).toMatch(
+        /#let wb-entry[\s\S]*#block\(sticky: true, below: 6pt\)\[#outline-entry\(2, title\)/
+      );
+    });
+  });
+
   describe('page size handling', () => {
     it('emits paper:"us-letter" for us-letter', () => {
       const out = emit(s => {
         s.page.size = 'us-letter';
       });
       expect(out).toContain('paper: "us-letter"');
-      expect(out).not.toContain('width:');
+      const pageSetup = out.slice(0, out.indexOf(')') + 1);
+      expect(pageSetup).not.toContain('width:');
     });
 
     it('emits explicit width/height for us-trade (custom)', () => {
@@ -79,6 +118,108 @@ describe('PublishTypstEmitterService', () => {
         (s.page as { size: string }).size = 'unknown';
       });
       expect(out).toContain('paper: "us-letter"');
+    });
+  });
+
+  describe('page columns', () => {
+    it('emits no column setting for a single-column page (the default)', () => {
+      const out = emit();
+      expect(out).not.toContain('columns: 2');
+      expect(out).not.toContain('#set columns(');
+      expect(out).not.toContain('scope: "parent"');
+    });
+
+    it('treats a plan saved without columns as one column', () => {
+      const out = emit(s => {
+        delete s.page.columns;
+        delete s.page.columnGap;
+      });
+      expect(out).not.toContain('columns: 2');
+      expect(out).not.toContain('#set columns(');
+    });
+
+    it('ignores unsupported column counts', () => {
+      const out = emit(s => {
+        (s.page as { columns?: number }).columns = 3;
+      });
+      expect(out).not.toContain('columns: 2');
+    });
+
+    it('sets two page columns and the gutter when columns is 2', () => {
+      const out = emit(s => {
+        s.page.columns = 2;
+        s.page.columnGap = 0.3;
+      });
+      expect(out).toMatch(/numbering: [^\n]*,\n {2}columns: 2,\n\)/);
+      expect(out).toContain('#set columns(gutter: 0.3in)');
+    });
+
+    it('uses the default gutter when the gap is missing or invalid', () => {
+      const missing = emit(s => {
+        s.page.columns = 2;
+        delete s.page.columnGap;
+      });
+      expect(missing).toContain('#set columns(gutter: 0.25in)');
+      const invalid = emit(s => {
+        s.page.columns = 2;
+        s.page.columnGap = -1;
+      });
+      expect(invalid).toContain('#set columns(gutter: 0.25in)');
+    });
+
+    it('spans a page-breaking chapter title across both columns', () => {
+      const out = emit(s => {
+        s.page.columns = 2;
+        s.structure.chapterTitle.pageBreakBefore = true;
+      });
+      expect(out).toMatch(
+        /#let chapter-title[\s\S]*place\(top, float: true, scope: "parent"/
+      );
+    });
+
+    it('keeps a chapter title in the flow when it does not start a page', () => {
+      const out = emit(s => {
+        s.page.columns = 2;
+        s.structure.chapterTitle.pageBreakBefore = false;
+      });
+      const chapter = out.slice(out.indexOf('#let chapter-title'));
+      expect(
+        chapter.slice(0, chapter.indexOf('#let scene-break'))
+      ).not.toContain('place(');
+    });
+
+    it('spans a page-opening worldbuilding section title across both columns', () => {
+      const out = emit(s => {
+        s.page.columns = 2;
+      });
+      expect(out).toMatch(
+        /#let wb-section-title\(body, float: false\) = if float \{ place\(top, float: true, scope: "parent"/
+      );
+    });
+
+    it('keeps any other worldbuilding section title in the flow', () => {
+      // A parent-scope float is lifted to the top of the current page, so a
+      // folder title after a chapter's opening would land above the
+      // chapter's text. Only `float: true` (after a page break) floats.
+      const out = emit(s => {
+        s.page.columns = 2;
+      });
+      const line = out
+        .split('\n')
+        .find(l => l.startsWith('#let wb-section-title'))!;
+      const flow = line.slice(line.indexOf('} else {'));
+      expect(flow).toMatch(/^\} else \{ block\(sticky: true/);
+      expect(flow).not.toContain('place(');
+    });
+
+    it('accepts the float argument in one column too, and never floats', () => {
+      const line = emit()
+        .split('\n')
+        .find(l => l.startsWith('#let wb-section-title'))!;
+      expect(line).toMatch(
+        /^#let wb-section-title\(body, float: false\) = block\(sticky: true/
+      );
+      expect(line).not.toContain('place(top');
     });
   });
 
@@ -320,36 +461,71 @@ describe('PublishTypstEmitterService', () => {
   });
 
   describe('worldbuilding helpers', () => {
-    it('emits stroke:none when borderWidth is zero/unset', () => {
+    it('does not box entries in print', () => {
+      const out = emit();
+      const entry = out.slice(
+        out.indexOf('#let wb-entry('),
+        out.indexOf('#let wb-tab')
+      );
+      expect(entry).toContain(
+        '#let wb-entry(title, body, fill: none, bg-image: none) = {'
+      );
+      // A panel (fill or image) is padded; a plain entry is not boxed.
+      expect(entry).toContain('inset: if panel { pad } else { 0pt }');
+      expect(entry).not.toContain('stroke:');
+    });
+
+    it('sets an image background behind the entry under a light veil', () => {
+      const out = emit();
+      expect(out).toContain(
+        'place(image(bg-image, width: size.width, height: h, fit: "cover"))'
+      );
+      expect(out).toContain('fill: white.transparentize(22%)');
+    });
+
+    it('draws no rule under entry titles when borderWidth is zero/unset', () => {
       const out = emit(s => {
         s.worldbuilding.entryBox = {
           ...s.worldbuilding.entryBox,
           borderWidth: 0,
         };
       });
-      expect(out).toContain('stroke: none');
+      const entry = out.slice(out.indexOf('#let wb-entry'));
+      expect(entry.slice(0, entry.indexOf('#let wb-tab'))).not.toContain(
+        '#line('
+      );
     });
 
-    it('emits stroke with sanitized color when borderWidth is set', () => {
+    it('rules entry titles in the title colour, scaled from the border width', () => {
       const out = emit(s => {
         s.worldbuilding.entryBox = {
           ...s.worldbuilding.entryBox,
           borderWidth: 2,
-          borderColor: '#aabbcc',
+        };
+        s.worldbuilding.entryTitle = {
+          ...s.worldbuilding.entryTitle,
+          color: '#aabbcc',
         };
       });
-      expect(out).toContain('2pt + rgb("#aabbcc")');
+      expect(out).toContain(
+        '#line(length: 100%, stroke: 3pt + rgb("#aabbcc"))'
+      );
     });
 
-    it('falls back to safe color when borderColor is invalid', () => {
+    it('falls back to a safe colour for the title rule', () => {
       const out = emit(s => {
         s.worldbuilding.entryBox = {
           ...s.worldbuilding.entryBox,
-          borderWidth: 1,
-          borderColor: 'javascript:bad',
+          borderWidth: 0.5,
+        };
+        s.worldbuilding.entryTitle = {
+          ...s.worldbuilding.entryTitle,
+          color: 'javascript:bad',
         };
       });
-      expect(out).toContain('1pt + rgb("#111111")');
+      expect(out).toContain(
+        '#line(length: 100%, stroke: 0.75pt + rgb("#111111"))'
+      );
     });
   });
 });

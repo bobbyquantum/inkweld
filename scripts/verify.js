@@ -98,6 +98,9 @@ const fastParallelSteps = [
   // Type-aware lint does not report compile errors, so type check every
   // project too. `bun check` covers all of them in a couple of seconds.
   { name: "typecheck", command: "npm", args: ["run", "typecheck"] },
+  // ESLint no longer runs Prettier, so formatting is checked here, with the
+  // same `bun fmt` that formats the code.
+  { name: "format:check", command: "npm", args: ["run", "format:check"] },
   { name: "lint:frontend", command: "npm", args: ["run", "lint:frontend"] },
   { name: "lint:backend", command: "npm", args: ["run", "lint:backend"] },
 ];
@@ -106,6 +109,7 @@ const fastParallelSteps = [
 // Frontend, backend, and shared package tests can run in parallel.
 const unitTestSteps = [
   { name: "test:packages", command: "npm", args: ["run", "test:packages"] },
+  { name: "test:scripts", command: "npm", args: ["run", "test:scripts"] },
   { name: "test:frontend", command: "npm", args: ["run", "test:frontend"] },
   { name: "test:backend", command: "npm", args: ["run", "test:backend"] },
 ];

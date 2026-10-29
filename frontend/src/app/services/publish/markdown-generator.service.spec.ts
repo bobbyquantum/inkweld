@@ -15,6 +15,7 @@ import {
   SeparatorStyle,
 } from '../../models/publish-plan';
 import { LoggerService } from '../core/logger.service';
+import { LocalStorageService } from '../local/local-storage.service';
 import { DocumentService } from '../project/document.service';
 import { ProjectStateService } from '../project/project-state.service';
 import {
@@ -1223,6 +1224,71 @@ describe('MarkdownGeneratorService', () => {
       expect(result.success).toBe(true);
       const text = await result.file!.text();
       expect(text).toContain('![A sunset](https://example.com/photo.jpg)');
+    });
+
+    describe('project images', () => {
+      const plan: PublishPlan = {
+        ...mockPlan,
+        items: [
+          {
+            id: 'item-1',
+            type: PublishPlanItemType.Element,
+            elementId: 'doc-1',
+            includeChildren: false,
+            isChapter: true,
+          },
+        ],
+      };
+
+      it('inlines a media: document image as a data URL', async () => {
+        const getMedia = vi
+          .spyOn(TestBed.inject(LocalStorageService), 'getMedia')
+          .mockResolvedValue(new Blob(['png'], { type: 'image/png' }));
+        documentServiceMock.getDocumentContent.mockResolvedValue([
+          { type: 'image', attrs: { src: 'media:img-map', alt: 'Map' } },
+          { type: 'image', attrs: { src: 'media:img-map', alt: 'Again' } },
+        ]);
+
+        const result = await service.generateMarkdown(plan);
+
+        expect(result.success).toBe(true);
+        const text = await result.file!.text();
+        expect(text).not.toContain('media:');
+        expect(text).toContain('![Map](data:image/png;base64,cG5n)');
+        expect(text).toContain('![Again](data:image/png;base64,cG5n)');
+        // One load per image, however often it is used.
+        expect(getMedia).toHaveBeenCalledTimes(1);
+        expect(getMedia).toHaveBeenCalledWith(
+          'testuser/test-project',
+          'img-map'
+        );
+        expect(result.warnings).toEqual([]);
+      });
+
+      it('drops a media: image that cannot be loaded and warns', async () => {
+        vi.spyOn(
+          TestBed.inject(LocalStorageService),
+          'getMedia'
+        ).mockResolvedValue(null);
+        documentServiceMock.getDocumentContent.mockResolvedValue([
+          {
+            type: 'paragraph',
+            content: [
+              { type: 'text', text: 'Before ' },
+              { type: 'image', attrs: { src: 'media:gone', alt: 'Gone' } },
+            ],
+          },
+        ]);
+
+        const result = await service.generateMarkdown(plan);
+
+        expect(result.success).toBe(true);
+        const text = await result.file!.text();
+        expect(text).toContain('Before');
+        expect(text).not.toContain('media:');
+        expect(text).not.toContain('![Gone]');
+        expect(result.warnings).toEqual(['Image gone could not be loaded']);
+      });
     });
 
     it('should render image nodes with title', async () => {

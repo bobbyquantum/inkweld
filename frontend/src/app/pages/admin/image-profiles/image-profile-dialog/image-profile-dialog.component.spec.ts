@@ -12,10 +12,13 @@ import {
   AIImageGenerationService,
   AIProvidersService,
   CreateImageModelProfileRequestProvider,
+  type FalaiModelMetadata,
+  FalaiModelMetadataSizeMode,
+  FalaiModelMetadataStatus,
   type ImageModelInfo,
   ImageProviderType,
 } from 'api-client';
-import { of, throwError } from 'rxjs';
+import { of, Subject, throwError } from 'rxjs';
 import { vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../../../testing/transloco-test-provider';
@@ -34,6 +37,7 @@ describe('ImageProfileDialogComponent', () => {
     getOpenRouterImageModels: ReturnType<typeof vi.fn>;
     getFalaiModels: ReturnType<typeof vi.fn>;
     getWorkersAiImageModels: ReturnType<typeof vi.fn>;
+    getFalaiModelMetadata: ReturnType<typeof vi.fn>;
   };
 
   const mockProviders: AdminListImageProviders200ResponseInner[] = [
@@ -95,6 +99,7 @@ describe('ImageProfileDialogComponent', () => {
       getWorkersAiImageModels: vi
         .fn()
         .mockReturnValue(of({ models: mockImageModels, cached: false })),
+      getFalaiModelMetadata: vi.fn(),
     };
 
     await TestBed.configureTestingModule({
@@ -416,6 +421,237 @@ describe('ImageProfileDialogComponent', () => {
       const event = { target: { value: 'test search' } } as unknown as Event;
       component.onModelSearchInput(event);
       expect(component.modelSearchTerm()).toBe('test search');
+    });
+
+    it('should keep filtering by text typed while the list was loading', async () => {
+      const response = new Subject<{ models: unknown[]; cached: boolean }>();
+      mockAiProvidersService.getOpenRouterImageModels.mockReturnValue(response);
+      component.form.provider().value.set('openrouter');
+      const loading = component.loadModelsForProvider();
+
+      component.onModelSearchInput({
+        target: { value: 'stability' },
+      } as unknown as Event);
+      response.next({ models: mockModels, cached: false });
+      response.complete();
+      await loading;
+
+      expect(component.filteredModels().map(m => m.id)).toEqual([
+        'stability-ai/sdxl',
+      ]);
+    });
+
+    it('should list every model in provider order when nothing is typed', async () => {
+      const many = Array.from({ length: 120 }, (_, i) => ({
+        id: `vendor/model-${i}`,
+        name: `Model ${120 - i}`,
+      }));
+      mockAiProvidersService.getOpenRouterImageModels.mockReturnValue(
+        of({ models: many, cached: false })
+      );
+      component.form.provider().value.set('openrouter');
+      await component.loadModelsForProvider();
+
+      const listed = component.filteredModels();
+      expect(listed).toHaveLength(120);
+      expect(listed[0].id).toBe('vendor/model-0');
+    });
+
+    it('should load the model list only once on focus', async () => {
+      component.form.provider().value.set('openrouter');
+      component.ensureModelsLoaded();
+      await vi.waitFor(() => {
+        expect(component.availableModels()).toHaveLength(3);
+      });
+      component.ensureModelsLoaded();
+
+      expect(
+        mockAiProvidersService.getOpenRouterImageModels
+      ).toHaveBeenCalledTimes(1);
+    });
+
+    it('should name the profile after the selected model when the name is empty', () => {
+      component.form.provider().value.set('openrouter');
+      component.selectModel(mockModels[1]);
+      expect(component.model().name).toBe('FLUX Schnell');
+    });
+
+    it('should keep a name the admin already entered', () => {
+      component.form.provider().value.set('openrouter');
+      component.form.name().value.set('Covers');
+      component.selectModel(mockModels[1]);
+      expect(component.model().name).toBe('Covers');
+    });
+  });
+
+  describe('Fal.ai model metadata', () => {
+    const falModel = (id: string, name: string): ImageModelInfo => ({
+      id,
+      name,
+      provider: ImageProviderType.Falai,
+      supportedSizes: [],
+      supportsQuality: false,
+      supportsStyle: false,
+      maxImages: 4,
+    });
+
+    const metadata = (
+      overrides: Partial<FalaiModelMetadata>
+    ): FalaiModelMetadata => ({
+      id: 'google/nano-banana-2.1',
+      name: 'Nano Banana 2.1',
+      description: '',
+      category: 'text-to-image',
+      status: FalaiModelMetadataStatus.Active,
+      supportsImageInput: false,
+      supportsCustomResolutions: false,
+      supportedSizes: ['16:9@1K', '16:9@2K', '1:1@1K', '1:1@2K'],
+      supportedAspectRatios: ['16:9', '1:1'],
+      supportedResolutions: ['1K', '2K'],
+      sizeMode: FalaiModelMetadataSizeMode.AspectRatio,
+      usesAspectRatioOnly: true,
+      defaultSize: '1:1@1K',
+      ...overrides,
+    });
+
+    beforeEach(async () => {
+      await createComponent({ mode: 'create', providers: mockProviders });
+      component.form.provider().value.set('falai');
+      component.onProviderChange();
+    });
+
+    it('should fill sizes and size flags for an aspect-ratio model', async () => {
+      mockAiProvidersService.getFalaiModelMetadata.mockReturnValue(
+        of(metadata({}))
+      );
+
+      component.selectModel(
+        falModel('google/nano-banana-2.1', 'Nano Banana 2.1')
+      );
+      await vi.waitFor(() => {
+        expect(component.isLoadingModelMetadata()).toBe(false);
+      });
+
+      expect(mockAiProvidersService.getFalaiModelMetadata).toHaveBeenCalledWith(
+        'google/nano-banana-2.1'
+      );
+      const value = component.model();
+      expect(value.name).toBe('Nano Banana 2.1');
+      expect(value.supportedSizes).toEqual([
+        '16:9@1K',
+        '16:9@2K',
+        '1:1@1K',
+        '1:1@2K',
+      ]);
+      expect(value.defaultSize).toBe('1:1@1K');
+      expect(value.usesAspectRatioOnly).toBe(true);
+      expect(value.supportsCustomResolutions).toBe(false);
+    });
+
+    it('should mark a dimensions model as supporting custom resolutions', async () => {
+      mockAiProvidersService.getFalaiModelMetadata.mockReturnValue(
+        of(
+          metadata({
+            id: 'openai/gpt-image-2',
+            sizeMode: FalaiModelMetadataSizeMode.Dimensions,
+            usesAspectRatioOnly: false,
+            supportsCustomResolutions: true,
+            supportedSizes: ['1024x1024', '1536x1024'],
+            defaultSize: undefined,
+          })
+        )
+      );
+
+      component.selectModel(falModel('openai/gpt-image-2', 'GPT Image 2'));
+      await vi.waitFor(() => {
+        expect(component.model().supportedSizes).toEqual([
+          '1024x1024',
+          '1536x1024',
+        ]);
+      });
+
+      expect(component.model().defaultSize).toBe('1024x1024');
+      expect(component.model().usesAspectRatioOnly).toBe(false);
+      expect(component.model().supportsCustomResolutions).toBe(true);
+    });
+
+    it('should leave sizes alone when the schema has no size input', async () => {
+      component.model.update(m => ({ ...m, supportedSizes: ['1024x1024'] }));
+      mockAiProvidersService.getFalaiModelMetadata.mockReturnValue(
+        of(
+          metadata({
+            sizeMode: FalaiModelMetadataSizeMode.Unknown,
+            supportedSizes: [],
+            usesAspectRatioOnly: false,
+          })
+        )
+      );
+
+      component.selectModel(falModel('vendor/odd-model', 'Odd'));
+      await vi.waitFor(() => {
+        expect(component.isLoadingModelMetadata()).toBe(false);
+      });
+
+      expect(component.model().supportedSizes).toEqual(['1024x1024']);
+      expect(component.model().usesAspectRatioOnly).toBe(false);
+    });
+
+    it('should ignore a late answer for a model that is no longer selected', async () => {
+      const first = new Subject<FalaiModelMetadata>();
+      mockAiProvidersService.getFalaiModelMetadata
+        .mockReturnValueOnce(first)
+        .mockReturnValueOnce(
+          of(
+            metadata({
+              id: 'krea/v2/large/text-to-image',
+              supportedSizes: ['1:1', '16:9'],
+              defaultSize: '1:1',
+            })
+          )
+        );
+
+      component.selectModel(
+        falModel('google/nano-banana-2.1', 'Nano Banana 2.1')
+      );
+      component.selectModel(
+        falModel('krea/v2/large/text-to-image', 'Krea 2 Large')
+      );
+      await vi.waitFor(() => {
+        expect(component.model().supportedSizes).toEqual(['1:1', '16:9']);
+      });
+
+      first.next(metadata({}));
+      first.complete();
+
+      expect(component.model().supportedSizes).toEqual(['1:1', '16:9']);
+      expect(component.isLoadingModelMetadata()).toBe(false);
+    });
+
+    it('should keep the form usable when the schema cannot be read', async () => {
+      const consoleSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => undefined);
+      mockAiProvidersService.getFalaiModelMetadata.mockReturnValue(
+        throwError(() => new Error('502'))
+      );
+
+      component.selectModel(falModel('vendor/model', 'Vendor Model'));
+      await vi.waitFor(() => {
+        expect(component.isLoadingModelMetadata()).toBe(false);
+      });
+
+      expect(component.model().modelId).toBe('vendor/model');
+      expect(component.model().supportedSizes).toEqual([]);
+      consoleSpy.mockRestore();
+    });
+
+    it('should not read model metadata for other providers', () => {
+      component.form.provider().value.set('openrouter');
+      component.onProviderChange();
+      component.selectModel(mockModels[0]);
+      expect(
+        mockAiProvidersService.getFalaiModelMetadata
+      ).not.toHaveBeenCalled();
     });
   });
 });

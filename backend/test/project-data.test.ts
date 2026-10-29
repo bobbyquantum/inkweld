@@ -4,6 +4,7 @@ import { createEncoder, toUint8Array, writeVarUint } from 'lib0/encoding';
 import { writeUpdate } from 'y-protocols/sync';
 import * as Y from 'yjs';
 import type { AppContext } from '../src/types/context';
+import { createObjectBucket } from './r2-bucket-mock';
 
 /**
  * Project rename and data removal on Cloudflare Workers, run against real
@@ -118,31 +119,6 @@ function durableObjects() {
   return { namespace, instance, storage };
 }
 
-/** In-memory R2 bucket with just what the storage service uses. */
-function memoryBucket(objects: Record<string, string>) {
-  const store = new Map(Object.entries(objects));
-  const bucket = {
-    async list(opts: { prefix?: string }) {
-      const keys = [...store.keys()].filter((key) => key.startsWith(opts.prefix ?? '')).sort();
-      return {
-        objects: keys.map((key) => ({ key, size: store.get(key)?.length ?? 0 })),
-        truncated: false,
-      };
-    },
-    async get(key: string) {
-      const body = store.get(key);
-      return body === undefined ? null : { body, httpMetadata: {}, customMetadata: {} };
-    },
-    async put(key: string, body: string) {
-      store.set(key, body);
-    },
-    async delete(keys: string | string[]) {
-      for (const key of Array.isArray(keys) ? keys : [keys]) store.delete(key);
-    },
-  };
-  return { bucket, store };
-}
-
 /** A prose document's snapshot plus one later edit stored as an update row. */
 function proseRows(text: string, more: string): { snapshot: Uint8Array; frame: Uint8Array } {
   const doc = new Y.Doc();
@@ -167,7 +143,7 @@ describe('Project data on Workers', () => {
   /** The slug the fake database currently has for alice's project. */
   let slugInDatabase: string;
   let objects: ReturnType<typeof durableObjects>;
-  let files: ReturnType<typeof memoryBucket>;
+  let files: ReturnType<typeof createObjectBucket>;
 
   beforeAll(async () => {
     closeCodes = await import('../src/utils/ws-close-codes');
@@ -204,7 +180,9 @@ describe('Project data on Workers', () => {
     old.data.set('doc:alice:old:doc-1:snapshot', snapshot);
     old.data.set('doc:alice:old:doc-1:update:1700000000000:00000000:aa', frame);
     old.data.set('doc:alice:old:elements:snapshot', Y.encodeStateAsUpdate(new Y.Doc()));
-    files = memoryBucket({ 'alice/old/media/pic.png': 'PNG', 'alice/old/cover.jpg': 'JPG' });
+    files = createObjectBucket();
+    files.seed('alice/old/media/pic.png', 'PNG', 'image/png');
+    files.seed('alice/old/cover.jpg', 'JPG', 'image/jpeg');
   });
 
   afterEach(() => {
@@ -282,7 +260,7 @@ describe('Project data on Workers', () => {
   it("clears what an earlier project left under a new project's slug", async () => {
     // A project created as alice/old, where a rename made before renames
     // moved the Durable Object left the old object and files behind.
-    files.store.set('alice/old-two/media/keep.png', 'PNG');
+    files.seed('alice/old-two/media/keep.png', 'PNG');
 
     await removeProjectData(context(), 'alice', 'old');
 
@@ -321,18 +299,14 @@ describe('Project data on Workers', () => {
   });
 
   it('puts the documents back when moving the files fails', async () => {
-    const put = files.bucket.put;
-    files.bucket.put = async () => {
-      throw new Error('R2 down');
-    };
+    files.options.failPutAfter = 0;
 
     await expect(
       moveProjectData(context(), 'alice', 'old', 'new', async () => {
         slugInDatabase = 'new';
       })
-    ).rejects.toThrow('R2 down');
+    ).rejects.toThrow('Too many subrequests');
 
-    files.bucket.put = put;
     expect(slugInDatabase).toBe('old');
     expect(objects.storage('alice:new').data.size).toBe(0);
     expect(objects.storage('alice:old').data.size).toBe(3);

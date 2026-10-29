@@ -6,8 +6,10 @@ import {
 import { signal } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
+import { StorageContextService } from '@services/core/storage-context.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
 import { TagService } from '@services/tag/tag.service';
+import { IdentityImageService } from '@services/worldbuilding/identity-image.service';
 import type { WorldbuildingIdentity } from '@services/worldbuilding/worldbuilding.service';
 import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.service';
 import { type MockedObject, vi } from 'vitest';
@@ -21,9 +23,15 @@ describe('IdentityPanelComponent', () => {
   let worldbuildingService: MockedObject<WorldbuildingService>;
   let localStorageService: MockedObject<LocalStorageService>;
   let dialogGatewayService: MockedObject<DialogGatewayService>;
+  let identityImageService: {
+    toIdentityImage: ReturnType<typeof vi.fn>;
+    migrateInlineImage: ReturnType<typeof vi.fn>;
+  };
   let _httpTestingController: HttpTestingController;
+  let serverMode = false;
 
   beforeEach(async () => {
+    serverMode = false;
     worldbuildingService = {
       getIdentityData: vi.fn().mockResolvedValue({}),
       saveIdentityData: vi.fn().mockResolvedValue(undefined),
@@ -43,14 +51,27 @@ describe('IdentityPanelComponent', () => {
       openWorldbuildingImageDialog: vi.fn().mockResolvedValue(null),
     } as unknown as MockedObject<DialogGatewayService>;
 
+    identityImageService = {
+      toIdentityImage: vi.fn().mockResolvedValue('media://identity-abc.png'),
+      migrateInlineImage: vi.fn().mockResolvedValue(null),
+    };
+
     await TestBed.configureTestingModule({
       imports: [translocoTestProvider(), IdentityPanelComponent],
       providers: [
+        { provide: IdentityImageService, useValue: identityImageService },
         provideHttpClient(withXhr()),
         provideHttpClientTesting(),
         { provide: WorldbuildingService, useValue: worldbuildingService },
         { provide: LocalStorageService, useValue: localStorageService },
         { provide: DialogGatewayService, useValue: dialogGatewayService },
+        {
+          provide: StorageContextService,
+          useValue: {
+            getApiBaseUrl: () => 'http://test.local',
+            isServerMode: () => serverMode,
+          },
+        },
         {
           provide: TagService,
           useValue: {
@@ -231,6 +252,43 @@ describe('IdentityPanelComponent', () => {
     vi.useRealTimers();
   });
 
+  it('saves a pending description edit when the panel closes', async () => {
+    vi.useFakeTimers();
+    fixture.detectChanges();
+
+    component.onDescriptionChange('Typed just before leaving');
+    fixture.destroy();
+    await vi.advanceTimersByTimeAsync(600);
+
+    expect(worldbuildingService.saveIdentityData).toHaveBeenCalledTimes(1);
+    expect(worldbuildingService.saveIdentityData).toHaveBeenCalledWith(
+      'test-element-id',
+      { description: 'Typed just before leaving' },
+      'testuser',
+      'test-project'
+    );
+    vi.useRealTimers();
+  });
+
+  it('saves a pending description edit for the old element when switching', async () => {
+    vi.useFakeTimers();
+    fixture.detectChanges();
+
+    component.onDescriptionChange('For the first element');
+    fixture.componentRef.setInput('elementId', 'other-element-id');
+    fixture.detectChanges();
+    await vi.advanceTimersByTimeAsync(600);
+
+    expect(worldbuildingService.saveIdentityData).toHaveBeenCalledTimes(1);
+    expect(worldbuildingService.saveIdentityData).toHaveBeenCalledWith(
+      'test-element-id',
+      { description: 'For the first element' },
+      'testuser',
+      'test-project'
+    );
+    vi.useRealTimers();
+  });
+
   describe('viewImage', () => {
     it('should open image viewer dialog when image URL is available', async () => {
       fixture.detectChanges();
@@ -275,23 +333,61 @@ describe('IdentityPanelComponent', () => {
       });
     });
 
-    it('should update identity when dialog returns image data', async () => {
+    it('should store the image as media and save only its reference', async () => {
       fixture.componentRef.setInput('username', 'testuser');
       fixture.componentRef.setInput('slug', 'testproject');
       fixture.detectChanges();
 
-      dialogGatewayService.openWorldbuildingImageDialog.mockResolvedValue({
-        imageData: 'data:image/png;base64,abc123',
-      });
+      const result = { imageData: 'data:image/png;base64,abc123' };
+      dialogGatewayService.openWorldbuildingImageDialog.mockResolvedValue(
+        result
+      );
+
+      await component.onImageClick();
+
+      expect(identityImageService.toIdentityImage).toHaveBeenCalledWith(
+        'testuser/testproject',
+        result
+      );
+      expect(worldbuildingService.saveIdentityData).toHaveBeenCalledWith(
+        'test-element-id',
+        { image: 'media://identity-abc.png' },
+        'testuser',
+        'testproject'
+      );
+      expect(component.identity().image).toBe('media://identity-abc.png');
+    });
+
+    it('should pass an existing media item through to the image service', async () => {
+      fixture.detectChanges();
+      const result = { mediaId: 'generated-1-0', imageData: 'data:x' };
+      dialogGatewayService.openWorldbuildingImageDialog.mockResolvedValue(
+        result
+      );
+      identityImageService.toIdentityImage.mockResolvedValue(
+        'media://generated-1-0.png'
+      );
 
       await component.onImageClick();
 
       expect(worldbuildingService.saveIdentityData).toHaveBeenCalledWith(
         'test-element-id',
-        { image: 'data:image/png;base64,abc123' },
+        { image: 'media://generated-1-0.png' },
         'testuser',
-        'testproject'
+        'test-project'
       );
+    });
+
+    it('should not save when the image cannot be stored', async () => {
+      fixture.detectChanges();
+      dialogGatewayService.openWorldbuildingImageDialog.mockResolvedValue({
+        imageData: 'data:image/png;base64,abc123',
+      });
+      identityImageService.toIdentityImage.mockResolvedValue(undefined);
+
+      await component.onImageClick();
+
+      expect(worldbuildingService.saveIdentityData).not.toHaveBeenCalled();
     });
 
     it('should remove image when dialog returns removed flag', async () => {
@@ -311,6 +407,59 @@ describe('IdentityPanelComponent', () => {
         'testuser',
         'testproject'
       );
+    });
+  });
+
+  describe('inline image migration', () => {
+    const inline = 'data:image/png;base64,abc123';
+
+    it('should move an inline image to media when the element loads', async () => {
+      worldbuildingService.getIdentityData.mockResolvedValue({ image: inline });
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      expect(identityImageService.migrateInlineImage).toHaveBeenCalledWith(
+        'test-element-id',
+        'testuser',
+        'test-project'
+      );
+    });
+
+    it('should migrate when the inline image arrives over realtime sync', async () => {
+      let emit: ((data: WorldbuildingIdentity) => void) | undefined;
+      worldbuildingService.observeIdentityChanges.mockImplementation(
+        (_id, callback) => {
+          emit = callback;
+          return Promise.resolve(() => {});
+        }
+      );
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      emit?.({ image: inline });
+      emit?.({ image: inline });
+
+      // A second update while the first migration runs is not a new one.
+      expect(identityImageService.migrateInlineImage).toHaveBeenCalledTimes(1);
+    });
+
+    it('should leave media references and viewers alone', async () => {
+      worldbuildingService.getIdentityData.mockResolvedValue({ image: inline });
+      fixture.componentRef.setInput('canWrite', false);
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      expect(identityImageService.migrateInlineImage).not.toHaveBeenCalled();
+    });
+
+    it('should not migrate a media reference', async () => {
+      worldbuildingService.getIdentityData.mockResolvedValue({
+        image: 'media://identity-abc.png',
+      });
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      expect(identityImageService.migrateInlineImage).not.toHaveBeenCalled();
     });
   });
 
@@ -481,6 +630,33 @@ describe('IdentityPanelComponent', () => {
     };
     const resolveImageUrl = (comp: IdentityPanelComponent, url: string) =>
       (comp as unknown as IdentityPanelPrivateApi).resolveImageUrl(url);
+
+    it('should download uncached media from the server profile', async () => {
+      serverMode = true;
+      localStorageService.getMediaUrl
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce('blob:downloaded');
+
+      const done = resolveImageUrl(component, 'media://img-elara.png');
+      await vi.waitFor(() =>
+        _httpTestingController
+          .expectOne(
+            'http://test.local/api/v1/media/testuser/test-project/img-elara.png'
+          )
+          .flush(new Blob(['x'], { type: 'image/png' }))
+      );
+      await done;
+
+      expect(component.resolvedImageUrl()).toBe('blob:downloaded');
+    });
+
+    it('should never contact the server outside a server profile', async () => {
+      await resolveImageUrl(component, 'media://img-elara.png');
+
+      _httpTestingController.expectNone(() => true);
+      _httpTestingController.verify();
+      expect(component.resolvedImageUrl()).toBeNull();
+    });
 
     it('should not delete media when a cached blob URL fails to fetch', async () => {
       // A cached URL exists but fetch() rejects (e.g. transient failure).

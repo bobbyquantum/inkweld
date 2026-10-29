@@ -1,0 +1,55 @@
+<h2 mat-dialog-title>{{ 'dialogs.aiPreferenceInfo.title' | transloco }}</h2>
+<mat-dialog-content>
+  <p>{{ 'dialogs.aiPreferenceInfo.intro' | transloco }}</p>
+
+  <section class="choice">
+    <mat-icon class="choice__icon" aria-hidden="true">block</mat-icon>
+    <div>
+      <h3>{{ 'settings.generalTab.aiNone' | transloco }}</h3>
+      <p>{{ 'dialogs.aiPreferenceInfo.none' | transloco }}</p>
+    </div>
+  </section>
+
+  <section class="choice">
+    <mat-icon class="choice__icon" aria-hidden="true">auto_awesome</mat-icon>
+    <div>
+      <h3>{{ 'settings.generalTab.aiAllow' | transloco }}</h3>
+      <p>{{ 'dialogs.aiPreferenceInfo.allow' | transloco }}</p>
+      <ul>
+        <li>
+          <strong>{{
+            'dialogs.aiPreferenceInfo.serverTitle' | transloco
+          }}</strong>
+          {{ 'dialogs.aiPreferenceInfo.server' | transloco }}
+        </li>
+        <li>
+          <strong>{{
+            'dialogs.aiPreferenceInfo.browserTitle' | transloco
+          }}</strong>
+          {{ 'dialogs.aiPreferenceInfo.browser' | transloco }}
+        </li>
+      </ul>
+      <p
+        class="webmcp-status"
+        [class.webmcp-status--available]="webMcpSupported()"
+        data-testid="ai-preference-info-webmcp">
+        <mat-icon aria-hidden="true">{{
+          webMcpSupported() ? 'check_circle' : 'info'
+        }}</mat-icon>
+        <span>{{
+          (webMcpSupported()
+            ? 'dialogs.aiPreferenceInfo.webMcpAvailable'
+            : 'dialogs.aiPreferenceInfo.webMcpUnavailable'
+          ) | transloco
+        }}</span>
+      </p>
+    </div>
+  </section>
+
+  <p class="footnote">{{ 'dialogs.aiPreferenceInfo.footnote' | transloco }}</p>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button mat-dialog-close data-testid="ai-preference-info-close">
+    {{ 'close' | transloco }}
+  </button>
+</mat-dialog-actions>

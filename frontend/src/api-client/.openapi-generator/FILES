@@ -138,7 +138,6 @@ model/image-model.ts
 model/image-models-response.ts
 model/image-provider-status.ts
 model/image-provider-type.ts
-model/image-size.ts
 model/invitation-status.ts
 model/invite-collaborator-request.ts
 model/json-rpc-request-id.ts

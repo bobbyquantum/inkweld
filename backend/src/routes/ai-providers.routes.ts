@@ -8,6 +8,12 @@ import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi';
 import { requireAuth, requireAdmin } from '../middleware/auth';
 import { configService } from '../services/config.service';
 import { imageGenerationService } from '../services/image-generation.service';
+import {
+  fetchFalModelWithSchema,
+  listFalModelCatalog,
+  parseModelSchema,
+  type ParsedFalModelInfo,
+} from '../services/fal-model-metadata.service';
 import { logger } from '../services/logger.service';
 import { stripTrailingSlashes } from '../utils/string-utils';
 import {
@@ -959,89 +965,51 @@ aiProvidersRoutes.openapi(getFalaiModelsRoute, async (c) => {
   // Get Fal.ai API key (optional - API works without it but with rate limits)
   const apiKeyConfig = await configService.get(db, 'AI_FALAI_API_KEY');
 
+  let listing: Awaited<ReturnType<typeof listFalModelCatalog>>;
   try {
-    // Build URL with query parameters
-    const url = new URL('https://api.fal.ai/v1/models');
-    url.searchParams.set('category', category);
-    url.searchParams.set('status', 'active');
-    url.searchParams.set('limit', '100');
-    if (searchQuery) {
-      url.searchParams.set('q', searchQuery);
-    }
-
-    // Fetch models from Fal.ai
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
-
-    // Add API key if available (grants higher rate limits)
-    if (apiKeyConfig.value) {
-      headers['Authorization'] = `Key ${apiKeyConfig.value}`;
-    }
-
-    const response = await fetch(url.toString(), { headers });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      providerLog.error('Failed to fetch models', { status: response.status, error: errorText });
-      return c.json({ error: `Fal.ai API error: ${response.status}` }, 502);
-    }
-
-    const data = (await response.json()) as {
-      models: Array<{
-        endpoint_id: string;
-        metadata?: {
-          display_name?: string;
-          description?: string;
-          category?: string;
-          status?: string;
-        };
-      }>;
-      has_more?: boolean;
-    };
-
-    // Transform models
-    const models = data.models
-      .map((m) => ({
-        id: m.endpoint_id,
-        name: m.metadata?.display_name || m.endpoint_id.split('/').pop() || m.endpoint_id,
-        description: m.metadata?.description,
-        category: m.metadata?.category,
-        provider: 'falai' as const,
-      }))
-      .sort((a, b) => a.name.localeCompare(b.name));
-
-    // Update cache for this category (only for non-search requests)
-    if (useCache) {
-      falaiModelsCacheByCategory[category] = {
-        models,
-        timestamp: Date.now(),
-      };
-    }
-
-    return c.json(
-      {
-        models,
-        cached: false,
-        lastUpdated: new Date().toISOString(),
-      },
-      200
-    );
+    listing = await listFalModelCatalog({
+      category,
+      q: searchQuery,
+      apiKey: apiKeyConfig.value || undefined,
+    });
   } catch (err) {
     providerLog.error(' Error fetching models:', err);
     return c.json({ error: 'Failed to fetch models from Fal.ai' }, 502);
   }
+  if (!listing.complete) {
+    providerLog.warn('Fal.ai model list is incomplete; a later page failed');
+  }
+
+  // Keep Fal's order: it lists the most-used models first.
+  const models = listing.models.map((m) => ({
+    id: m.endpoint_id,
+    name: m.metadata?.display_name || m.endpoint_id.split('/').pop() || m.endpoint_id,
+    description: m.metadata?.description,
+    category: m.metadata?.category,
+    provider: 'falai' as const,
+  }));
+
+  // Update cache for this category (only for complete, non-search results)
+  if (useCache && listing.complete) {
+    falaiModelsCacheByCategory[category] = {
+      models,
+      timestamp: Date.now(),
+    };
+  }
+
+  return c.json(
+    {
+      models,
+      cached: false,
+      lastUpdated: new Date().toISOString(),
+    },
+    200
+  );
 });
 
 // ============================================================================
 // Fal.ai Model Metadata (with OpenAPI schema for sizes/resolutions)
 // ============================================================================
-
-import {
-  fetchFalModelWithSchema,
-  parseModelSchema,
-  type ParsedFalModelInfo,
-} from '../services/fal-model-metadata.service';
 
 // Get detailed Fal.ai model metadata
 const getFalaiModelMetadataRoute = createRoute({

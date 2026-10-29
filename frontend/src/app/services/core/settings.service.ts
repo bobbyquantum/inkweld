@@ -4,6 +4,21 @@ import { StorageContextService } from './storage-context.service';
 
 const SETTINGS_BASE_KEY = 'userSettings';
 
+/**
+ * Unprefixed localStorage key for the user's "No AI / Allow AI" choice. It
+ * belongs to the browser, not to a profile: /setup offers it before any
+ * profile exists, and the browser's own agent (WebMCP) is per browser.
+ */
+export const AI_PREFERENCE_KEY = 'inkweld-ai';
+
+function readAiAllowed(): boolean {
+  try {
+    return localStorage.getItem(AI_PREFERENCE_KEY) === 'allow';
+  } catch {
+    return false;
+  }
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -85,6 +100,23 @@ export class SettingsService {
    */
   readonly markdownShortcuts = this._markdownShortcuts.asReadonly();
 
+  /**
+   * Internal writable signal backing the "No AI / Allow AI" choice. Updates
+   * must go through {@link setAiAllowed}.
+   */
+  private readonly _aiAllowed = signal<boolean>(readAiAllowed());
+
+  /**
+   * The user's own consent to AI features, on top of the admin's AI kill
+   * switch: AI runs only when the server allows it *and* the user has chosen
+   * "Allow AI". Defaults to `false` ("No AI"): every AI feature is opt-in.
+   * It covers the server's AI features (image generation, Auto-Review, MCP
+   * access) through `SystemConfigService`, and the WebMCP tools for the
+   * browser's own agent, which need no server. Stored per browser under
+   * {@link AI_PREFERENCE_KEY}, shared by every profile.
+   */
+  readonly aiAllowed = this._aiAllowed.asReadonly();
+
   getSetting<T>(key: string, defaultValue: T): T {
     const settings = this.getSettings();
     const value = settings[key];
@@ -118,6 +150,20 @@ export class SettingsService {
     this._markdownShortcuts.set(value);
     try {
       this.setSetting<boolean>('markdownShortcuts', value);
+    } catch {
+      // Storage can be unavailable (private mode/quota); keep UI reactive.
+    }
+  }
+
+  /**
+   * Record the user's "No AI / Allow AI" choice. `SystemConfigService` and
+   * `WebMcpService` follow the signal.
+   */
+  setAiAllowed(value: boolean): void {
+    this._aiAllowed.set(value);
+    try {
+      if (value) localStorage.setItem(AI_PREFERENCE_KEY, 'allow');
+      else localStorage.removeItem(AI_PREFERENCE_KEY);
     } catch {
       // Storage can be unavailable (private mode/quota); keep UI reactive.
     }

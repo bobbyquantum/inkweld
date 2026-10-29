@@ -232,6 +232,17 @@ describe('Image Paste Utility Functions', () => {
         const mediaUrl = createMediaUrl(complexId);
         expect(extractMediaId(mediaUrl)).toBe(complexId);
       });
+
+      it('should extract the library id from a media:// reference', () => {
+        expect(extractMediaId('media://generated-1793215040156.jpg')).toBe(
+          'generated-1793215040156'
+        );
+        expect(extractMediaId('media://cover')).toBe('cover');
+      });
+
+      it('should return null for an empty media:// reference', () => {
+        expect(extractMediaId('media://')).toBeNull();
+      });
     });
 
     describe('createMediaUrl', () => {

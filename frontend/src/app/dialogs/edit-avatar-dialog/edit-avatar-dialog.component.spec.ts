@@ -24,6 +24,7 @@ describe('EditAvatarDialogComponent', () => {
   let localStorageMock: { saveUserAvatar: ReturnType<typeof vi.fn> };
   let unifiedUserServiceMock: {
     currentUser: ReturnType<typeof vi.fn>;
+    updateUser: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(async () => {
@@ -40,6 +41,7 @@ describe('EditAvatarDialogComponent', () => {
       currentUser: vi
         .fn()
         .mockReturnValue({ username: 'testuser', hasAvatar: false }),
+      updateUser: vi.fn().mockResolvedValue(undefined),
     };
 
     await TestBed.configureTestingModule({
@@ -158,6 +160,11 @@ describe('EditAvatarDialogComponent', () => {
         'testuser',
         blob
       );
+      // The local user gets the avatar; the server user is left alone.
+      expect(unifiedUserServiceMock.updateUser).toHaveBeenCalledWith({
+        hasAvatar: true,
+      });
+      expect(userServiceMock.setCurrentUser).not.toHaveBeenCalled();
       expect(dialogRefMock.close).toHaveBeenCalledWith(true);
     });
 

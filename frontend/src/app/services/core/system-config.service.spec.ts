@@ -1,4 +1,4 @@
-import { provideZonelessChangeDetection } from '@angular/core';
+import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { ConfigurationService } from '@inkweld/api/configuration.service';
 import {
@@ -9,6 +9,7 @@ import { of, throwError } from 'rxjs';
 import { type Mock, type MockedObject, vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { SettingsService } from './settings.service';
 import { SetupService } from './setup.service';
 import { SystemConfigService } from './system-config.service';
 
@@ -18,6 +19,10 @@ describe('SystemConfigService', () => {
   let mockSetupService: MockedObject<SetupService>;
   let consoleSpy: any;
   let consoleWarnSpy: any;
+  // The user's "No AI / Allow AI" choice; these specs run as a user who
+  // allowed AI unless a test says otherwise.
+  const aiAllowed = signal(true);
+  const mockSettingsService = { aiAllowed };
 
   const mockSystemFeatures: SystemFeatures = {
     aiKillSwitch: false,
@@ -46,6 +51,7 @@ describe('SystemConfigService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    aiAllowed.set(true);
 
     // Mock ConfigurationService
     mockConfigService = {
@@ -73,6 +79,7 @@ describe('SystemConfigService', () => {
         SystemConfigService,
         { provide: ConfigurationService, useValue: mockConfigService },
         { provide: SetupService, useValue: mockSetupService },
+        { provide: SettingsService, useValue: mockSettingsService },
       ],
     });
 
@@ -122,6 +129,7 @@ describe('SystemConfigService', () => {
           SystemConfigService,
           { provide: ConfigurationService, useValue: mockConfigService },
           { provide: SetupService, useValue: offlineSetupService },
+          { provide: SettingsService, useValue: mockSettingsService },
         ],
       });
 
@@ -177,6 +185,7 @@ describe('SystemConfigService', () => {
           SystemConfigService,
           { provide: ConfigurationService, useValue: mockConfigService },
           { provide: SetupService, useValue: mockSetupService },
+          { provide: SettingsService, useValue: mockSettingsService },
         ],
       });
 
@@ -231,6 +240,72 @@ describe('SystemConfigService', () => {
           resolve();
         }, 10);
       });
+    });
+  });
+
+  describe('after a load that failed offline', () => {
+    function createFailingService(mode: string): SystemConfigService {
+      TestBed.resetTestingModule();
+      mockSetupService.getMode.mockReturnValue(mode as never);
+      (mockConfigService.getSystemFeatures as Mock)
+        .mockReset()
+        .mockReturnValueOnce(throwError(() => new Error('Failed to fetch')))
+        .mockReturnValue(of(mockSystemFeatures));
+      TestBed.configureTestingModule({
+        providers: [
+          provideZonelessChangeDetection(),
+          SystemConfigService,
+          { provide: ConfigurationService, useValue: mockConfigService },
+          { provide: SetupService, useValue: mockSetupService },
+          { provide: SettingsService, useValue: mockSettingsService },
+        ],
+      });
+      return TestBed.inject(SystemConfigService);
+    }
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      TestBed.resetTestingModule();
+      vi.useRealTimers();
+    });
+
+    it('loads the features again once the network is back', async () => {
+      const offlineService = createFailingService('server');
+      expect(offlineService.isAiKillSwitchEnabled()).toBe(true);
+      expect(mockConfigService.getSystemFeatures).toHaveBeenCalledTimes(1);
+
+      globalThis.dispatchEvent(new Event('online'));
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(mockConfigService.getSystemFeatures).toHaveBeenCalledTimes(2);
+      expect(offlineService.systemFeatures()).toEqual(mockSystemFeatures);
+
+      // Done: no further requests.
+      await vi.advanceTimersByTimeAsync(10 * 60_000);
+      expect(mockConfigService.getSystemFeatures).toHaveBeenCalledTimes(2);
+    });
+
+    it('never retries once the profile is not a server profile', async () => {
+      createFailingService('server');
+      mockSetupService.getMode.mockReturnValue('local');
+
+      globalThis.dispatchEvent(new Event('online'));
+      await vi.advanceTimersByTimeAsync(10 * 60_000);
+
+      expect(mockConfigService.getSystemFeatures).toHaveBeenCalledTimes(1);
+    });
+
+    it('stops retrying when the service is destroyed', async () => {
+      createFailingService('server');
+      TestBed.resetTestingModule();
+
+      globalThis.dispatchEvent(new Event('online'));
+      await vi.advanceTimersByTimeAsync(10 * 60_000);
+
+      expect(mockConfigService.getSystemFeatures).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -334,6 +409,7 @@ describe('SystemConfigService', () => {
           SystemConfigService,
           { provide: ConfigurationService, useValue: mockConfigService },
           { provide: SetupService, useValue: mockSetupService },
+          { provide: SettingsService, useValue: mockSettingsService },
         ],
       });
 
@@ -363,6 +439,7 @@ describe('SystemConfigService', () => {
           SystemConfigService,
           { provide: ConfigurationService, useValue: mockConfigService },
           { provide: SetupService, useValue: mockSetupService },
+          { provide: SettingsService, useValue: mockSettingsService },
         ],
       });
 
@@ -390,6 +467,7 @@ describe('SystemConfigService', () => {
           SystemConfigService,
           { provide: ConfigurationService, useValue: mockConfigService },
           { provide: SetupService, useValue: mockSetupService },
+          { provide: SettingsService, useValue: mockSettingsService },
         ],
       });
 
@@ -415,6 +493,7 @@ describe('SystemConfigService', () => {
           SystemConfigService,
           { provide: ConfigurationService, useValue: mockConfigService },
           { provide: SetupService, useValue: mockSetupService },
+          { provide: SettingsService, useValue: mockSettingsService },
         ],
       });
 
@@ -440,6 +519,7 @@ describe('SystemConfigService', () => {
           SystemConfigService,
           { provide: ConfigurationService, useValue: mockConfigService },
           { provide: SetupService, useValue: mockSetupService },
+          { provide: SettingsService, useValue: mockSettingsService },
         ],
       });
 
@@ -465,6 +545,7 @@ describe('SystemConfigService', () => {
           SystemConfigService,
           { provide: ConfigurationService, useValue: mockConfigService },
           { provide: SetupService, useValue: mockSetupService },
+          { provide: SettingsService, useValue: mockSettingsService },
         ],
       });
 
@@ -494,6 +575,7 @@ describe('SystemConfigService', () => {
           SystemConfigService,
           { provide: ConfigurationService, useValue: mockConfigService },
           { provide: SetupService, useValue: mockSetupService },
+          { provide: SettingsService, useValue: mockSettingsService },
         ],
       });
 
@@ -521,6 +603,7 @@ describe('SystemConfigService', () => {
           SystemConfigService,
           { provide: ConfigurationService, useValue: mockConfigService },
           { provide: SetupService, useValue: mockSetupService },
+          { provide: SettingsService, useValue: mockSettingsService },
         ],
       });
 
@@ -556,6 +639,7 @@ describe('SystemConfigService', () => {
           SystemConfigService,
           { provide: ConfigurationService, useValue: mockConfigService },
           { provide: SetupService, useValue: localSetupService },
+          { provide: SettingsService, useValue: mockSettingsService },
         ],
       });
 
@@ -584,6 +668,7 @@ describe('SystemConfigService', () => {
           SystemConfigService,
           { provide: ConfigurationService, useValue: mockConfigService },
           { provide: SetupService, useValue: mockSetupService },
+          { provide: SettingsService, useValue: mockSettingsService },
         ],
       });
 
@@ -634,6 +719,7 @@ describe('SystemConfigService', () => {
           SystemConfigService,
           { provide: ConfigurationService, useValue: mockConfigService },
           { provide: SetupService, useValue: mockSetupService },
+          { provide: SettingsService, useValue: mockSettingsService },
         ],
       });
 
@@ -728,6 +814,42 @@ describe('SystemConfigService', () => {
     });
   });
 
+  describe("the user's AI choice", () => {
+    it('turns AI off for a user who has not allowed it', async () => {
+      await new Promise(resolve => setTimeout(resolve, 10));
+      expect(service.isAiOffForUser()).toBe(false);
+      expect(service.isAiAutoReviewEnabled()).toBe(true);
+      expect(service.isAiImageGenerationEnabled()).toBe(true);
+
+      aiAllowed.set(false);
+      expect(service.isAiOffForUser()).toBe(true);
+      expect(service.isAiAutoReviewEnabled()).toBe(false);
+      expect(service.isAiImageGenerationEnabled()).toBe(false);
+      // The server's own switch is unchanged.
+      expect(service.isAiKillSwitchEnabled()).toBe(false);
+    });
+
+    it('cannot turn AI on while the kill switch is on', async () => {
+      (mockConfigService.getSystemFeatures as Mock).mockReturnValue(
+        of({ ...mockSystemFeatures, aiKillSwitch: true })
+      );
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [
+          provideZonelessChangeDetection(),
+          SystemConfigService,
+          { provide: ConfigurationService, useValue: mockConfigService },
+          { provide: SetupService, useValue: mockSetupService },
+          { provide: SettingsService, useValue: mockSettingsService },
+        ],
+      });
+      const testService = TestBed.inject(SystemConfigService);
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      expect(testService.isAiOffForUser()).toBe(true);
+    });
+  });
+
   describe('getAiImageGenerationStatus', () => {
     it('should return disabled when config is loading', () => {
       // Create a fresh service that hasn't loaded config yet
@@ -743,6 +865,7 @@ describe('SystemConfigService', () => {
           SystemConfigService,
           { provide: ConfigurationService, useValue: mockConfigService },
           { provide: SetupService, useValue: mockSetupService },
+          { provide: SettingsService, useValue: mockSettingsService },
         ],
       });
 
@@ -775,6 +898,7 @@ describe('SystemConfigService', () => {
           SystemConfigService,
           { provide: ConfigurationService, useValue: mockConfigService },
           { provide: SetupService, useValue: mockSetupService },
+          { provide: SettingsService, useValue: mockSettingsService },
         ],
       });
 
@@ -815,6 +939,7 @@ describe('SystemConfigService', () => {
           SystemConfigService,
           { provide: ConfigurationService, useValue: mockConfigService },
           { provide: SetupService, useValue: offlineSetupService },
+          { provide: SettingsService, useValue: mockSettingsService },
         ],
       });
 
@@ -838,6 +963,7 @@ describe('SystemConfigService', () => {
           SystemConfigService,
           { provide: ConfigurationService, useValue: mockConfigService },
           { provide: SetupService, useValue: mockSetupService },
+          { provide: SettingsService, useValue: mockSettingsService },
         ],
       });
 

@@ -29,7 +29,10 @@ describe('AppearanceService', () => {
     dispatchEvent: vi.fn(),
   });
 
+  let serverMode = true;
+
   beforeEach(() => {
+    serverMode = true;
     themeSubject = new BehaviorSubject<'light-theme' | 'dark-theme' | 'system'>(
       'light-theme'
     );
@@ -53,7 +56,10 @@ describe('AppearanceService', () => {
         { provide: LocalStorageService, useValue: localStorageService },
         {
           provide: StorageContextService,
-          useValue: { getApiBaseUrl: () => 'http://test.local' },
+          useValue: {
+            getApiBaseUrl: () => 'http://test.local',
+            isServerMode: () => serverMode,
+          },
         },
       ],
     });
@@ -348,6 +354,52 @@ describe('AppearanceService', () => {
         expect.any(Blob),
         'bg.png'
       );
+      httpMock.verify();
+    });
+
+    it('should share one download between concurrent calls for the same media', async () => {
+      vi.mocked(localStorageService.getMediaUrl)
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce('blob:shared');
+      vi.mocked(localStorageService.saveMedia).mockResolvedValue(undefined);
+
+      const first = service.resolveImageReference(
+        'media://bg.png',
+        'user',
+        'slug'
+      );
+      const second = service.resolveImageReference(
+        'media://bg.png',
+        'user',
+        'slug'
+      );
+      expect(second).toBe(first);
+
+      await Promise.resolve();
+      httpMock
+        .expectOne('http://test.local/api/v1/media/user/slug/bg.png')
+        .flush(new Blob(['x'], { type: 'image/png' }));
+
+      await expect(first).resolves.toBe('blob:shared');
+      await expect(second).resolves.toBe('blob:shared');
+      expect(localStorageService.saveMedia).toHaveBeenCalledTimes(1);
+      httpMock.verify();
+
+      // Once settled, a later call resolves afresh.
+      vi.mocked(localStorageService.getMediaUrl).mockResolvedValue('blob:3');
+      await expect(
+        service.resolveImageReference('media://bg.png', 'user', 'slug')
+      ).resolves.toBe('blob:3');
+    });
+
+    it('should never contact the server outside a server profile', async () => {
+      serverMode = false;
+      vi.mocked(localStorageService.getMediaUrl).mockResolvedValue(null);
+
+      await expect(
+        service.resolveImageReference('media://bg.png', 'user', 'slug')
+      ).resolves.toBeNull();
+      httpMock.expectNone(() => true);
       httpMock.verify();
     });
 

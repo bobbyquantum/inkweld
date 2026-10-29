@@ -10,9 +10,7 @@
       cdkFocusInitial
       data-testid="frame-custom-name" />
     @if (form.name().touched() && form.name().invalid()) {
-      @for (error of form.name().errors(); track error.message) {
-        <mat-error>{{ error.message }}</mat-error>
-      }
+      <mat-error>{{ form.name().errors()[0]?.message }}</mat-error>
     }
   </mat-form-field>
 

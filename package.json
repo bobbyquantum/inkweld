@@ -1,6 +1,6 @@
 {
   "name": "inkweld",
-  "version": "0.1.0",
+  "version": "1.0.0-beta.2",
   "description": "Inkweld - Collaborative creative writing platform",
   "author": "bobbyquantum",
   "license": "MIT",
@@ -18,12 +18,13 @@
     "build:frontend": "cd frontend && bun run clean && bun run build",
     "build:backend": "cd backend && bun run build",
     "build:prod": "cd frontend && bun run clean && bun run build && git rev-parse --short HEAD > dist/browser/assets/version.txt && bun run compress-wasm && cd ../backend && bun run generate:frontend-imports && bun run build",
-    "build:preview": "cd frontend && bun run clean && bun run ng build --configuration=preview && node scripts/copy-licenses.mjs && git rev-parse --short HEAD > dist/browser/assets/version.txt && bun run compress-wasm && cd ../backend && bun run generate:frontend-imports && bun run build",
-    "build:cloudflare": "cd frontend && bun run clean && bun run ng build --configuration=cloudflare && node scripts/copy-licenses.mjs && git rev-parse --short HEAD > dist/browser/assets/version.txt && bun run compress-wasm && cd ../backend && bun run generate:frontend-imports && bun run build",
+    "build:preview": "cd frontend && bun run clean && bun run ng build --configuration=preview && node scripts/copy-licenses.mjs && bun scripts/write-sw-app-data.ts && git rev-parse --short HEAD > dist/browser/assets/version.txt && bun run compress-wasm && cd ../backend && bun run generate:frontend-imports && bun run build",
+    "build:cloudflare": "cd frontend && bun run clean && bun run ng build --configuration=cloudflare && node scripts/copy-licenses.mjs && bun scripts/write-sw-app-data.ts && git rev-parse --short HEAD > dist/browser/assets/version.txt && bun run compress-wasm && cd ../backend && bun run generate:frontend-imports && bun run build",
     "build:binary": "cd backend && bun run build:binary:full",
     "build:image": "docker build -t inkweld:latest .",
     "build:image:prod": "docker build -t inkweld:prod .",
-    "test": "npm run test:packages && npm run test:frontend && npm run test:backend",
+    "test": "npm run test:packages && npm run test:scripts && npm run test:frontend && npm run test:backend",
+    "test:scripts": "bun test scripts",
     "test:packages": "cd packages/inkweld-prosemirror && bun run test && cd ../inkweld-presence && bun run test && cd ../inkweld-async && bun run test",
     "test:packages:coverage": "cd packages/inkweld-prosemirror && bun run test:coverage && cd ../inkweld-presence && bun run test:coverage && cd ../inkweld-async && bun run test:coverage",
     "test:frontend": "cd frontend && npm test",
@@ -41,9 +42,13 @@
     "lint:fix:frontend": "cd frontend && npm run lint:fix",
     "lint:fix:backend": "cd backend && bun run lint:fix",
     "format": "npm run format:frontend && npm run format:backend && npm run format:docs",
-    "format:frontend": "cd frontend && prettier --write \"src/**/*.{ts,html,scss}\" \".storybook/**/*.ts\"",
+    "format:frontend": "cd frontend && bun fmt \"src/**/*.{ts,html,scss}\" \"e2e/**/*.ts\" \".storybook/**/*.ts\"",
     "format:backend": "cd backend && bun run format",
     "format:docs": "cd docs/site && bun run format",
+    "format:check": "npm run format:check:frontend && npm run format:check:backend && npm run format:check:docs",
+    "format:check:frontend": "cd frontend && bun fmt --check \"src/**/*.{ts,html,scss}\" \"e2e/**/*.ts\" \".storybook/**/*.ts\"",
+    "format:check:backend": "cd backend && bun run format:check",
+    "format:check:docs": "cd docs/site && bun run format:check",
     "typecheck": "npm run typecheck:packages && npm run typecheck:frontend && npm run typecheck:backend",
     "typecheck:packages": "bun check -p packages/inkweld-async && bun check -p packages/inkweld-presence && bun check -p packages/inkweld-prosemirror",
     "typecheck:frontend": "cd frontend && bun check -b",
@@ -51,8 +56,8 @@
     "verify": "node scripts/verify.js",
     "verify:e2e": "VERIFY_MODE=e2e node scripts/verify.js",
     "verify:full": "VERIFY_MODE=full node scripts/verify.js",
-    "verify:frontend": "cd frontend && npm run lint && npm test && npm run e2e:ci",
-    "verify:backend": "cd backend && bun run lint && bun test",
+    "verify:frontend": "npm run format:check:frontend && cd frontend && npm run lint && npm test && npm run e2e:ci",
+    "verify:backend": "npm run format:check:backend && cd backend && bun run lint && bun test",
     "verify:docs": "cd docs/site && bun run build",
     "verify:docs:lite": "cd docs/site && bun run build:no-screenshots",
     "docs": "cd docs/site && bun start",
@@ -89,26 +94,28 @@
     "@commitlint/config-conventional": "^21.0.0",
     "concurrently": "^10.0.0",
     "husky": "^9.1.7",
-    "lint-staged": "^17.0.0",
-    "prettier": "^3.8.1"
+    "lint-staged": "^17.0.0"
   },
   "lint-staged": {
     "frontend/src/!(api-client)/**/*.{ts,html,scss}": [
-      "prettier --write --config frontend/.prettierrc.json"
+      "bun fmt"
+    ],
+    "frontend/e2e/**/*.ts": [
+      "bun fmt"
     ],
     "frontend/.storybook/**/*.ts": [
-      "prettier --write --config frontend/.prettierrc.json"
+      "bun fmt"
     ],
-    "backend/src/**/*.ts": [
-      "prettier --write --config backend/.prettierrc",
+    "backend/{src,test,scripts}/**/*.ts": [
+      "bun fmt",
       "./backend/node_modules/.bin/eslint --fix --no-warn-ignored"
     ],
-    "docs/site/**/*.{ts,md,mdx}": [
-      "prettier --write --config docs/site/.prettierrc"
+    "docs/site/**/*.{js,jsx,ts,tsx,md,mdx,json,css}": [
+      "bun fmt"
     ]
   },
   "engines": {
     "node": ">=22.0.0"
   },
-  "packageManager": "bun@1.4.3"
+  "packageManager": "bun@1.4.4"
 }

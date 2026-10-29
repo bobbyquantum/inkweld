@@ -13,10 +13,14 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TooltipAriaLabelDirective } from '@directives/tooltip-aria-label.directive';
-import { TranslocoModule } from '@jsverse/transloco';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { formatRelativeDate } from '@utils/date-format';
 
-import type { CommentThreadResponse } from '../../../services/project/comment.service';
+import type {
+  CommentMessageResponse,
+  CommentThreadResponse,
+  LocalCommentMessage,
+} from '../../../services/project/comment.service';
 import { CommentService } from '../../../services/project/comment.service';
 import { UserAvatarComponent } from '../../user-avatar/user-avatar.component';
 import type { CommentMarkAttrs } from '../comment-mark-schema';
@@ -43,6 +47,7 @@ interface PositionedThread extends CommentThreadResponse {
 })
 export class CommentPanelComponent {
   private readonly commentService = inject(CommentService);
+  private readonly transloco = inject(TranslocoService);
 
   /** Project coordinates */
   username = input.required<string>();
@@ -187,28 +192,16 @@ export class CommentPanelComponent {
   private buildLocalThreads(): void {
     const marks = this.commentMarks();
     const threads: CommentThreadResponse[] = marks.map(m => {
-      let messages: Array<{
-        id: string;
-        threadId: string;
-        authorId: string;
-        authorName: string;
-        text: string;
-        createdAt: string;
-        editedAt: null;
-      }> = [];
+      let messages: CommentMessageResponse[] = [];
       if (m.messages) {
         try {
-          const local = JSON.parse(m.messages) as Array<{
-            id: string;
-            authorName: string;
-            text: string;
-            createdAt: number;
-          }>;
+          const local = JSON.parse(m.messages) as LocalCommentMessage[];
           messages = local.map(lm => ({
             id: lm.id,
             threadId: m.commentId,
             authorId: '',
             authorName: lm.authorName,
+            authorUsername: lm.authorUsername,
             text: lm.text,
             createdAt: new Date(lm.createdAt).toISOString(),
             editedAt: null,
@@ -223,6 +216,8 @@ export class CommentPanelComponent {
         projectId: '',
         authorId: '',
         authorName: m.authorName,
+        // The thread's author wrote its first message
+        authorUsername: messages[0]?.authorUsername,
         resolved: m.resolved,
         resolvedBy: null,
         resolvedAt: null,
@@ -363,7 +358,7 @@ export class CommentPanelComponent {
   }
 
   formatDate(date: string): string {
-    return formatRelativeDate(date);
+    return formatRelativeDate(date, this.transloco.getActiveLang());
   }
 
   /**

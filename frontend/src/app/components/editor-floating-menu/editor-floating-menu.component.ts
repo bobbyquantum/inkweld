@@ -13,6 +13,7 @@ import {
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { type Editor } from '@bobbyquantum/ngx-editor';
+import { TooltipAriaLabelDirective } from '@directives/tooltip-aria-label.directive';
 import { TranslocoModule } from '@jsverse/transloco';
 import { toggleMark } from 'prosemirror-commands';
 import { type MarkType } from 'prosemirror-model';
@@ -32,6 +33,7 @@ type Command = (
 @Component({
   selector: 'app-editor-floating-menu',
   imports: [
+    TooltipAriaLabelDirective,
     MatIconModule,
     MatTooltipModule,
     Toolbar,

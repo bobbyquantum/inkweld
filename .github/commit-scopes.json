@@ -1,0 +1,249 @@
+{
+  "$comment": "Approved Conventional Commit scopes for PR titles, e.g. fix(editor): …. validate-pr-title.yml rejects any other scope (scripts/check-pr-title.mjs). Each scope's emoji goes in front of its entries in the release notes and CHANGELOG.md (scripts/add-scope-emoji.mjs, run by release-please.yml). A scope is optional. aliases are names people reach for that map to the approved scope; the check suggests the approved one. Add a scope here in the PR that first needs it.",
+  "scopes": {
+    "editor": {
+      "emoji": "📝",
+      "description": "Rich-text editor, toolbar, find and replace, input rules",
+      "aliases": ["editor-toolbar", "document-element-editor"]
+    },
+    "project-tree": {
+      "emoji": "🌳",
+      "description": "Project tree, drag and drop, quick finder, breadcrumbs",
+      "aliases": ["tree", "drag-and-drop", "breadcrumb"]
+    },
+    "project": {
+      "emoji": "📁",
+      "description": "Project pages, settings, rename, project dialogs",
+      "aliases": [
+        "projects",
+        "project-state",
+        "edit-project-dialog",
+        "rename-dialog"
+      ]
+    },
+    "home": {
+      "emoji": "🏠",
+      "description": "Home page, bookshelf, project cards, welcome page",
+      "aliases": ["bookshelf", "welcome", "project-card"]
+    },
+    "worldbuilding": {
+      "emoji": "🌍",
+      "description": "Worldbuilding elements, element forms, template (schema) editor",
+      "aliases": ["element-editor", "schemas"]
+    },
+    "templates": {
+      "emoji": "🧩",
+      "description": "Project templates and demo projects"
+    },
+    "relationships": {
+      "emoji": "🔗",
+      "description": "Relationship fields, types and the relationship graph",
+      "aliases": ["relationship", "relationship-chart"]
+    },
+    "timeline": {
+      "emoji": "📅",
+      "description": "Timelines, time systems, eras and events"
+    },
+    "canvas": {
+      "emoji": "🎨",
+      "description": "Canvas boards"
+    },
+    "scenes": {
+      "emoji": "🎬",
+      "description": "Scene and note roles, corkboard and outline views"
+    },
+    "conversations": {
+      "emoji": "💬",
+      "description": "Conversation (speech-bubble) scenes",
+      "aliases": ["conversation"]
+    },
+    "comments": {
+      "emoji": "💭",
+      "description": "Comments and threaded discussions"
+    },
+    "publish": {
+      "emoji": "📚",
+      "description": "Publishing: EPUB, PDF, HTML and website output, publish plans, share links",
+      "aliases": ["epub", "export"]
+    },
+    "media": {
+      "emoji": "📷",
+      "description": "Images, media library and uploads",
+      "aliases": [
+        "image-storage",
+        "uploads",
+        "media-selector",
+        "image-element-editor"
+      ]
+    },
+    "ai": {
+      "emoji": "✨",
+      "description": "AI writing and image features",
+      "aliases": ["ai-images"]
+    },
+    "generators": {
+      "emoji": "🎲",
+      "description": "Name, place and prompt generators",
+      "aliases": ["generator"]
+    },
+    "collab": {
+      "emoji": "👥",
+      "description": "Collaborators, access levels, live presence and cursors",
+      "aliases": ["presence", "collaboration"]
+    },
+    "sync": {
+      "emoji": "🔄",
+      "description": "Real-time and offline sync, Yjs, Sync All",
+      "aliases": ["yjs", "ws", "websocket"]
+    },
+    "cloud-sync": {
+      "emoji": "☁️",
+      "description": "Cloud Sync profiles (Dropbox, Google Drive, Nextcloud)"
+    },
+    "archives": {
+      "emoji": "🗃️",
+      "description": "Project archive import and export",
+      "aliases": ["import", "project-import-export", "archive"]
+    },
+    "auth": {
+      "emoji": "🔐",
+      "description": "Sign-in, registration, passkeys, OAuth, password reset",
+      "aliases": [
+        "login",
+        "register",
+        "oauth",
+        "webauthn",
+        "passkeys",
+        "reset-password",
+        "xsrf"
+      ]
+    },
+    "account": {
+      "emoji": "👤",
+      "description": "User account and public profile, account deletion",
+      "aliases": ["user", "users", "profile", "user-profile", "user-menu"]
+    },
+    "profiles": {
+      "emoji": "🔀",
+      "description": "Device profiles for several servers or accounts"
+    },
+    "settings": {
+      "emoji": "⚙️",
+      "description": "User settings and preferences"
+    },
+    "appearance": {
+      "emoji": "🌗",
+      "description": "Themes, app backgrounds, styles",
+      "aliases": ["theme", "styles", "ui", "brand"]
+    },
+    "tutorial": {
+      "emoji": "🎓",
+      "description": "Tutorials and onboarding"
+    },
+    "search": {
+      "emoji": "🔍",
+      "description": "Project-wide full-text search"
+    },
+    "stats": {
+      "emoji": "📊",
+      "description": "Writing statistics, activity feed and activity grid",
+      "aliases": ["activity"]
+    },
+    "tags": {
+      "emoji": "🏷️",
+      "description": "Tags and pinned items",
+      "aliases": ["tag"]
+    },
+    "admin": {
+      "emoji": "🎛️",
+      "description": "Admin pages, announcements, sync capacity"
+    },
+    "mcp": {
+      "emoji": "🤖",
+      "description": "MCP server and WebMCP browser tools",
+      "aliases": ["webmcp"]
+    },
+    "legal": {
+      "emoji": "⚖️",
+      "description": "Legal pages, policy acceptance, custom HTML"
+    },
+    "i18n": {
+      "emoji": "🌐",
+      "description": "Translations and localisation"
+    },
+    "a11y": {
+      "emoji": "♿",
+      "description": "Accessibility"
+    },
+    "mobile": {
+      "emoji": "📱",
+      "description": "Mobile and touch layouts, PWA and service worker",
+      "aliases": ["touch", "pwa", "sw"]
+    },
+    "security": {
+      "emoji": "🛡️",
+      "description": "Security hardening, CSP"
+    },
+    "storage": {
+      "emoji": "💾",
+      "description": "Storage quotas and local (IndexedDB) storage"
+    },
+    "setup": {
+      "emoji": "🚀",
+      "description": "First-run setup and server configuration",
+      "aliases": ["env", "environment"]
+    },
+    "ingress": {
+      "emoji": "🏡",
+      "description": "Home Assistant app and ingress"
+    },
+    "deploy": {
+      "emoji": "🚢",
+      "description": "Hosting: Docker, Cloudflare Workers and Durable Objects, deploy wizard",
+      "aliases": ["docker", "cloudflare", "workers", "worker", "do"]
+    },
+    "api": {
+      "emoji": "🔌",
+      "description": "Backend REST API and OpenAPI client",
+      "aliases": ["routes", "middleware", "server"]
+    },
+    "db": {
+      "emoji": "🗄️",
+      "description": "Database schema and migrations",
+      "aliases": ["database", "migration", "migrations", "leveldb"]
+    },
+    "deps": {
+      "emoji": "⬆️",
+      "description": "Dependency updates (Renovate)",
+      "aliases": ["deps-dev"]
+    },
+    "ci": {
+      "emoji": "👷",
+      "description": "GitHub Actions workflows"
+    },
+    "tests": {
+      "emoji": "🧪",
+      "description": "Unit and e2e test infrastructure",
+      "aliases": ["test", "e2e", "mock-api"]
+    },
+    "docs": {
+      "emoji": "📖",
+      "description": "Docs site, READMEs, AGENTS.md files",
+      "aliases": ["readme", "agents"]
+    },
+    "tooling": {
+      "emoji": "🔧",
+      "description": "Build, lint, format and editor tooling",
+      "aliases": [
+        "build",
+        "lint",
+        "format",
+        "tsconfig",
+        "husky",
+        "vscode",
+        "renovate",
+        "package"
+      ]
+    }
+  }
+}

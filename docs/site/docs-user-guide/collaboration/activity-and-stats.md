@@ -12,7 +12,7 @@ import ThemedImage from '@site/src/components/ThemedImage';
 Inkweld keeps a running log of meaningful actions inside each project, and aggregates your daily word counts so you can see how your writing has progressed over time.
 
 :::info[Online-only feature]
-Activity and writing statistics are recorded server-side and require a hosted Inkweld instance. They are **not available in local-only mode** — the profile-page widget and activity grid and the project Activity tab are hidden when no server is configured.
+Activity and writing statistics are recorded server-side and require a hosted Inkweld instance. They are **not available with a Browser profile** — the profile-page widget and activity grid and the project Activity tab are hidden when no server is configured.
 
 The writing-statistics widget and the project Activity tab are only shown to signed-in users. The profile activity grid follows the owner's [profile visibility](../settings/user-settings.md#public-profile): when set to public it is visible to anyone, including visitors who are not signed in.
 :::
