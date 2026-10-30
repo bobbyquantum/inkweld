@@ -62,8 +62,8 @@ async function goOffline(page: Page): Promise<void> {
   await context.setOffline(true);
 }
 
-/** Generates and downloads the open plan's PDF, and returns the file's bytes. */
-async function exportPdf(page: Page): Promise<Buffer> {
+/** Generates and downloads the open plan's PDF, and returns its size in bytes. */
+async function exportPdf(page: Page): Promise<number> {
   await page.getByTestId('nav-publish').click();
   await expect(page.getByTestId('generate-button')).toContainText('PDF');
   await page.getByTestId('generate-button').click();
@@ -79,7 +79,7 @@ async function exportPdf(page: Page): Promise<Buffer> {
   await expect(
     page.getByTestId('publish-complete-dialog-title')
   ).not.toBeVisible();
-  return pdf;
+  return pdf.length;
 }
 
 test.describe('Service worker offline support', () => {
@@ -156,15 +156,15 @@ test.describe('Service worker offline support', () => {
     await waitForElementsDocPersisted(page, username, slug, [bookTitle]);
 
     // The first export is what caches the WASM modules and the fonts
-    const onlinePdf = await exportPdf(page);
+    const onlineSize = await exportPdf(page);
 
     await goOffline(page);
     await page.reload();
     await expect(page.getByTestId('publish-plan-container')).toBeVisible();
-    const offlinePdf = await exportPdf(page);
+    const offlineSize = await exportPdf(page);
 
     // The same plan gives a PDF of the same size. An offline run that lost the
     // document's text would still produce a valid PDF, just a much smaller one.
-    expect(offlinePdf.length).toBe(onlinePdf.length);
+    expect(offlineSize).toBe(onlineSize);
   });
 });
