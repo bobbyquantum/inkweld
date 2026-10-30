@@ -51,10 +51,14 @@ Never run `npm install` here; install from the repo root with `bun install`.
   does, the loop never yields to the event loop: no timer fires again, not even
   the test timeout, and the worker runs out of heap. Confine the mock to one
   synchronous call (`runWithImmediateTimers` in `document.service.spec.ts`).
-- **`URL.revokeObjectURL` is one mock per worker** (`setup-vitest.ts`), and a
-  delayed revoke from an earlier spec file can land in your test. After an
-  `await`, assert on your own URL (`not.toHaveBeenCalledWith(url)`), not
-  `not.toHaveBeenCalled()`.
+- **A delayed `URL.revokeObjectURL` from an earlier spec file can land in your
+  test.** `setup-vitest.ts` replaces the mock for each spec file, but the late
+  call looks up the global when it runs, so it reaches the current mock. After
+  an `await`, assert on a URL only your test uses
+  (`not.toHaveBeenCalledWith(url)`), not `not.toHaveBeenCalled()`. The default
+  `URL.createObjectURL` mock returns `blob:mock-url` for every caller, so give
+  your test its own value first
+  (`vi.spyOn(URL, 'createObjectURL').mockReturnValue(...)`).
 
 ## E2E tests (Playwright)
 

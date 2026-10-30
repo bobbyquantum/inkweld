@@ -307,8 +307,8 @@ describe('ProjectCoverComponent', () => {
   });
 
   describe('cleanup', () => {
-    // These check the test's own URLs, not "never called": the mock is shared by
-    // the worker, and PublishService revokes its download URL a second later, so
+    // These check the test's own URLs, not "never called". PublishService revokes
+    // its download URL a second later through the global URL.revokeObjectURL, so
     // that call from an earlier spec file can land in one of these tests.
     it('should NOT revoke blob URL on destroy (service manages URL lifecycle)', async () => {
       // The LocalStorageService manages blob URL lifecycle and caches them
