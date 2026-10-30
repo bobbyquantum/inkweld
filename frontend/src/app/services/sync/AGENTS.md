@@ -13,6 +13,9 @@ with `ReconnectScheduler` (`reconnect-scheduler.ts`: equal-jitter backoff to
 stops on a hard denial or teardown). `SystemConfigService` (features),
 `UserService` (`/users/me`) and `VersionCompatibilityService` (`/health`)
 re-run a fetch that failed at startup the same way, only for server profiles.
+These three check `destroyRef.destroyed` before starting a scheduler: the fetch
+can fail after the service is gone (a spec's TestBed reset), and nothing would
+ever stop a scheduler started then.
 An unreachable `/health` leaves compatibility unknown; never store it as
 incompatible, or `syncBlocked` keeps every connection local after the network
 is back. `createAuthenticatedWebsocketProvider` destroys its provider on any

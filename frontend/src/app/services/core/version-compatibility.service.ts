@@ -129,6 +129,7 @@ export interface ProjectCompatibilityResult {
 export class VersionCompatibilityService {
   private readonly storageContext = inject(StorageContextService);
   private readonly updateService = inject(UpdateService);
+  private readonly destroyRef = inject(DestroyRef);
 
   /** Signal indicating if a compatibility check is in progress */
   readonly checking = signal(false);
@@ -145,7 +146,7 @@ export class VersionCompatibilityService {
   private recheck: ReconnectScheduler | null = null;
 
   constructor() {
-    inject(DestroyRef).onDestroy(() => this.stopRecheck());
+    this.destroyRef.onDestroy(() => this.stopRecheck());
   }
 
   /**
@@ -217,7 +218,9 @@ export class VersionCompatibilityService {
   }
 
   private startRecheck(profile: ServerConfig): void {
-    if (this.recheck?.isActive) return;
+    // The first check can fail after the service is gone, and nothing would
+    // stop a recheck started then.
+    if (this.destroyRef.destroyed || this.recheck?.isActive) return;
     this.recheck = new ReconnectScheduler({
       attempt: async () => {
         const result = await this.checkAndUpdateProfileCompatibility(profile);

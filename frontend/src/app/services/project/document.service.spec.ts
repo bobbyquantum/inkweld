@@ -392,6 +392,31 @@ describe('DocumentService', () => {
   });
 
   describe('Helper methods and accessors', () => {
+    /**
+     * Runs `action` with `setTimeout` calling its callback on the spot, so work
+     * it defers with a zero-delay timer has started by the time it returns.
+     *
+     * Only for synchronous code: never hold this spy across an `await`. Spec
+     * files in a worker share globals, so a real timer left by an earlier test
+     * can fire during the wait. If that timer reschedules itself through the
+     * spy, as a ReconnectScheduler whose attempt fails at once does, the loop
+     * never yields to the event loop: no timer fires again, not even the test
+     * timeout, and the worker runs out of heap.
+     */
+    function runWithImmediateTimers(action: () => void): void {
+      const setTimeoutSpy = vi
+        .spyOn(globalThis, 'setTimeout')
+        .mockImplementation((callback: TimerHandler) => {
+          (callback as () => void)();
+          return 1 as unknown as ReturnType<typeof setTimeout>;
+        });
+      try {
+        action();
+      } finally {
+        setTimeoutSpy.mockRestore();
+      }
+    }
+
     it('should expose active connections and connected document ids', () => {
       const otherDocumentId = 'testuser:test-project:other-doc';
       const ydoc = new Y.Doc();
@@ -842,12 +867,6 @@ describe('DocumentService', () => {
           ) => Promise<string | null>;
         };
       };
-      const setTimeoutSpy = vi
-        .spyOn(globalThis, 'setTimeout')
-        .mockImplementation((callback: TimerHandler) => {
-          (callback as () => void)();
-          return 1 as unknown as ReturnType<typeof setTimeout>;
-        });
 
       privateService.localStorage = {
         getMediaUrl: vi.fn().mockResolvedValue('blob:resolved-media'),
@@ -860,7 +879,9 @@ describe('DocumentService', () => {
         broadcastProvider: mockBroadcastProvider,
       });
 
-      privateService.startMediaUrlObserver({ dom }, testDocumentId);
+      runWithImmediateTimers(() =>
+        privateService.startMediaUrlObserver({ dom }, testDocumentId)
+      );
       await Promise.resolve();
       await Promise.resolve();
 
@@ -873,8 +894,6 @@ describe('DocumentService', () => {
           }
         ).mediaObserver
       ).toBeInstanceOf(MutationObserver);
-
-      setTimeoutSpy.mockRestore();
     });
 
     it('should resolve media:// images through the server-aware resolver', async () => {
@@ -891,12 +910,6 @@ describe('DocumentService', () => {
         localStorage: { getMediaUrl: ReturnType<typeof vi.fn> };
         appearance: { resolveImageReference: ReturnType<typeof vi.fn> };
       };
-      const setTimeoutSpy = vi
-        .spyOn(globalThis, 'setTimeout')
-        .mockImplementation((callback: TimerHandler) => {
-          (callback as () => void)();
-          return 1 as unknown as ReturnType<typeof setTimeout>;
-        });
 
       privateService.localStorage = { getMediaUrl: vi.fn() };
       privateService.appearance = {
@@ -905,7 +918,9 @@ describe('DocumentService', () => {
           .mockResolvedValue('blob:downloaded-media'),
       };
 
-      privateService.startMediaUrlObserver({ dom }, testDocumentId);
+      runWithImmediateTimers(() =>
+        privateService.startMediaUrlObserver({ dom }, testDocumentId)
+      );
       await Promise.resolve();
       await Promise.resolve();
 
@@ -919,8 +934,6 @@ describe('DocumentService', () => {
       expect(privateService.localStorage.getMediaUrl).not.toHaveBeenCalled();
       expect(image.src).toContain('blob:downloaded-media');
       expect(image.dataset['mediaId']).toBe('generated-1793215040156');
-
-      setTimeoutSpy.mockRestore();
     });
 
     it('should not overwrite an image whose src changed while resolving', async () => {
@@ -936,12 +949,6 @@ describe('DocumentService', () => {
         ) => void;
         appearance: { resolveImageReference: ReturnType<typeof vi.fn> };
       };
-      const setTimeoutSpy = vi
-        .spyOn(globalThis, 'setTimeout')
-        .mockImplementation((callback: TimerHandler) => {
-          (callback as () => void)();
-          return 1 as unknown as ReturnType<typeof setTimeout>;
-        });
 
       let finishOld: (url: string) => void = () => {};
       privateService.appearance = {
@@ -952,8 +959,20 @@ describe('DocumentService', () => {
         ),
       };
 
-      privateService.startMediaUrlObserver({ dom }, testDocumentId);
+      runWithImmediateTimers(() =>
+        privateService.startMediaUrlObserver({ dom }, testDocumentId)
+      );
       image.setAttribute('src', 'media://new.jpg');
+      // The observer handles that change on a zero-delay timer: let it queue the
+      // timer, then let the timer fire. The old src is still resolving, so it
+      // leaves the busy image alone, and only the old resolve finishing can pick
+      // up the new src.
+      await Promise.resolve();
+      await new Promise(resolve => setTimeout(resolve));
+      expect(
+        privateService.appearance.resolveImageReference
+      ).toHaveBeenCalledTimes(1);
+
       finishOld('blob:old');
       await vi.waitFor(() => expect(image.src).toContain('blob:new'));
 
@@ -961,8 +980,6 @@ describe('DocumentService', () => {
       expect(
         privateService.appearance.resolveImageReference
       ).toHaveBeenCalledWith('media://new.jpg', 'testuser', 'test-project');
-
-      setTimeoutSpy.mockRestore();
     });
 
     it('should fully clean up a populated document connection on disconnect', () => {

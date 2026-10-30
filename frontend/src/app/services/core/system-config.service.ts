@@ -101,6 +101,7 @@ export class SystemConfigService {
   private readonly setupService = inject(SetupService);
   private readonly logger = inject(LoggerService);
   private readonly settings = inject(SettingsService);
+  private readonly destroyRef = inject(DestroyRef);
 
   private readonly systemFeaturesSignal = signal<SystemFeatures>({
     aiKillSwitch: true, // Default to ON (AI disabled) for safety
@@ -242,7 +243,7 @@ export class SystemConfigService {
   private featuresRetry: ReconnectScheduler | null = null;
 
   constructor() {
-    inject(DestroyRef).onDestroy(() => this.stopFeaturesRetry());
+    this.destroyRef.onDestroy(() => this.stopFeaturesRetry());
     this.loadSystemFeatures();
   }
 
@@ -299,7 +300,9 @@ export class SystemConfigService {
   }
 
   private startFeaturesRetry(): void {
-    if (this.featuresRetry?.isActive) return;
+    // The load can fail after the service is gone. Nothing would stop a retry
+    // started then, and every attempt would fail at once on the dead injector.
+    if (this.destroyRef.destroyed || this.featuresRetry?.isActive) return;
     this.featuresRetry = new ReconnectScheduler({
       attempt: () => this.retryFeatures(),
       log: message => this.logger.info('SystemConfig', `${message} (features)`),
