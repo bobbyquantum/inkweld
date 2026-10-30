@@ -134,7 +134,7 @@
     "eslint-config-prettier": "10.1.8",
     "eslint-plugin-simple-import-sort": "14.0.0",
     "eslint-plugin-unused-imports": "4.4.1",
-    "fake-indexeddb": "6.2.6",
+    "fake-indexeddb": "6.2.7",
     "http-server": "^14.1.1",
     "jsdom": "^30.0.0",
     "jszip": "^3.10.1",
