@@ -281,7 +281,16 @@ After an update, the app shows a one-time "Updated to Inkweld X · What's new"
 notice with a link to About → Changelog, once per browser. It skips that
 notice when the user already saw the highlights in the update dialog, and on a
 browser's first run. `assets/CHANGELOG.md` is served `no-cache` (in
-`_headers` and the Bun server) so the changelog page is never out of date.
+`_headers` and the Bun server), and the app fetches it as
+`assets/CHANGELOG.md?v=<version>`, so the changelog page is never out of
+date. The query matters because releases up to 1.0.0-beta.1 served the file
+`immutable` for a year: browsers that opened the changelog then would keep
+showing that copy.
+
+Nothing in a release needs doing by hand for the in-app changelog:
+release-please writes the new section into `CHANGELOG.md` in the release PR,
+merging it pushes to `main` and deploys the preview, and every install copies
+the file into the frontend (`frontend/scripts/copy-changelog.mjs`).
 
 ### 1.0 beta
 

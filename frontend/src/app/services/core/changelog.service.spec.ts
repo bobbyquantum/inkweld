@@ -4,8 +4,13 @@ import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 
+import { environment } from '../../../environments/environment';
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
-import { ChangelogService, type ChangelogVersion } from './changelog.service';
+import {
+  CHANGELOG_URL,
+  ChangelogService,
+  type ChangelogVersion,
+} from './changelog.service';
 
 describe('ChangelogService', () => {
   let service: ChangelogService;
@@ -68,10 +73,17 @@ All notable changes to this project will be documented in this file.
         service.getChangelog().subscribe(v => resolve(v));
       });
 
-      expect(httpClientMock.get).toHaveBeenCalledWith('assets/CHANGELOG.md', {
+      expect(httpClientMock.get).toHaveBeenCalledWith(CHANGELOG_URL, {
         responseType: 'text',
       });
       expect(versions.length).toBeGreaterThan(0);
+    });
+
+    it('should key the changelog URL to the app version', () => {
+      // A new URL per release skips copies browsers cached as immutable.
+      expect(CHANGELOG_URL).toBe(
+        `assets/CHANGELOG.md?v=${encodeURIComponent(environment.version)}`
+      );
     });
 
     it('should parse unreleased version correctly', async () => {
