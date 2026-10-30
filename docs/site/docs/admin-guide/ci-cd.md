@@ -70,6 +70,9 @@ Builds the multi-arch (amd64 + arm64) release image from a `vX.Y.Z` tag.
 
 - Called by Release Please after it creates a release
 - A `v*` tag pushed by hand (used for v1.0.0-beta.1)
+- Run by hand with an existing tag, to build a release whose image was never
+  published. The floating tags below move to that release, so only use this for
+  the newest one.
 
 Tags that Release Please creates with the workflow's `GITHUB_TOKEN` do not
 trigger other workflows, which is why it calls this one directly; the tag
