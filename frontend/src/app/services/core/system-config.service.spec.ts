@@ -5,7 +5,7 @@ import {
   type SystemFeatures,
   SystemFeaturesAppMode,
 } from '@inkweld/model/system-features';
-import { of, throwError } from 'rxjs';
+import { type Observable, of, Subject, throwError } from 'rxjs';
 import { type Mock, type MockedObject, vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
@@ -244,12 +244,17 @@ describe('SystemConfigService', () => {
   });
 
   describe('after a load that failed offline', () => {
-    function createFailingService(mode: string): SystemConfigService {
+    function createFailingService(
+      mode: string,
+      firstResponse: Observable<SystemFeatures> = throwError(
+        () => new Error('Failed to fetch')
+      )
+    ): SystemConfigService {
       TestBed.resetTestingModule();
       mockSetupService.getMode.mockReturnValue(mode as never);
       (mockConfigService.getSystemFeatures as Mock)
         .mockReset()
-        .mockReturnValueOnce(throwError(() => new Error('Failed to fetch')))
+        .mockReturnValueOnce(firstResponse)
         .mockReturnValue(of(mockSystemFeatures));
       TestBed.configureTestingModule({
         providers: [
@@ -301,6 +306,18 @@ describe('SystemConfigService', () => {
     it('stops retrying when the service is destroyed', async () => {
       createFailingService('server');
       TestBed.resetTestingModule();
+
+      globalThis.dispatchEvent(new Event('online'));
+      await vi.advanceTimersByTimeAsync(10 * 60_000);
+
+      expect(mockConfigService.getSystemFeatures).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not start retrying when the load fails after the service is destroyed', async () => {
+      const response = new Subject<SystemFeatures>();
+      createFailingService('server', response);
+      TestBed.resetTestingModule();
+      response.error(new Error('Failed to fetch'));
 
       globalThis.dispatchEvent(new Event('online'));
       await vi.advanceTimersByTimeAsync(10 * 60_000);

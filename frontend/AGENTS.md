@@ -10,7 +10,7 @@ end).
 ```bash
 npm run dev          # Dev server (localhost:4200)
 npm test             # Vitest. NEVER `bun test`: Bun's runner can't run Angular tests
-npm test -- <file-pattern>
+npm test -- --include=<path>
 npm run lint         # npm run lint:fix to auto-fix
 npm run e2e          # Playwright (npm run e2e:ci in CI mode)
 npm run storybook    # Component workbench (localhost:6006)
@@ -44,6 +44,17 @@ Never run `npm install` here; install from the repo root with `bun install`.
   translates.
 - The API client returns `Observable<HttpEvent<T>>`; in tests, use an `obs()`
   helper returning `Observable<any>` for mock return values.
+- **Never hold a `setTimeout` mock that runs its callback on the spot across an
+  `await`.** Spec files in a worker share globals (`isolate: false`), so a real
+  timer left by an earlier test can fire during the wait. If it reschedules
+  itself through the mock, as a `ReconnectScheduler` whose attempt fails at once
+  does, the loop never yields to the event loop: no timer fires again, not even
+  the test timeout, and the worker runs out of heap. Confine the mock to one
+  synchronous call (`runWithImmediateTimers` in `document.service.spec.ts`).
+- **`URL.revokeObjectURL` is one mock per worker** (`setup-vitest.ts`), and a
+  delayed revoke from an earlier spec file can land in your test. After an
+  `await`, assert on your own URL (`not.toHaveBeenCalledWith(url)`), not
+  `not.toHaveBeenCalled()`.
 
 ## E2E tests (Playwright)
 

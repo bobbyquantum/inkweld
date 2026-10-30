@@ -307,6 +307,9 @@ describe('ProjectCoverComponent', () => {
   });
 
   describe('cleanup', () => {
+    // These check the test's own URLs, not "never called": the mock is shared by
+    // the worker, and PublishService revokes its download URL a second later, so
+    // that call from an earlier spec file can land in one of these tests.
     it('should NOT revoke blob URL on destroy (service manages URL lifecycle)', async () => {
       // The LocalStorageService manages blob URL lifecycle and caches them
       // for reuse across components. The component should NOT revoke URLs
@@ -326,7 +329,7 @@ describe('ProjectCoverComponent', () => {
       fixture.destroy();
 
       // Should NOT revoke - service manages URL lifecycle
-      expect(revokeObjectURLSpy).not.toHaveBeenCalled();
+      expect(revokeObjectURLSpy).not.toHaveBeenCalledWith(mockBlobUrl);
     });
 
     it('should clear local state when project changes but NOT revoke URL', async () => {
@@ -356,7 +359,8 @@ describe('ProjectCoverComponent', () => {
       await fixture.whenStable();
 
       // Should NOT have revoked URL - service manages lifecycle
-      expect(revokeObjectURLSpy).not.toHaveBeenCalled();
+      expect(revokeObjectURLSpy).not.toHaveBeenCalledWith(mockBlobUrl1);
+      expect(revokeObjectURLSpy).not.toHaveBeenCalledWith(mockBlobUrl2);
       // But should have new URL set
       expect(component.coverUrl).toBe(mockBlobUrl2);
     });
