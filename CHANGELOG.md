@@ -10,7 +10,7 @@ titles.
 
 ### Bug Fixes
 
-* **mcp:** disconnect apps when an account is disabled or its password is reset ([#1706](https://github.com/bobbyquantum/inkweld/issues/1706)) ([5a9e7f5](https://github.com/bobbyquantum/inkweld/commit/5a9e7f5bee82c8e985055437d8089e8a780bd493))
+* 🤖 **mcp:** disconnect apps when an account is disabled or its password is reset ([#1706](https://github.com/bobbyquantum/inkweld/issues/1706)) ([5a9e7f5](https://github.com/bobbyquantum/inkweld/commit/5a9e7f5bee82c8e985055437d8089e8a780bd493))
 
 ## [1.0.0-beta.3](https://github.com/bobbyquantum/inkweld/compare/v1.0.0-beta.2...v1.0.0-beta.3) (2026-10-29)
 
