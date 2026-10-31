@@ -844,22 +844,30 @@ class McpOAuthService {
   }
 
   /**
-   * Revoke every OAuth session of a user, when their account ends all its
-   * sessions. isSessionRevoked() refuses those sessions from then on either
-   * way; this takes them off Authorized Apps and removes their project grants.
+   * Revoke every OAuth session of a user and cancel their unused authorization
+   * codes, when their account ends all its sessions. isSessionRevoked() refuses
+   * those sessions from then on either way; this takes them off Authorized Apps
+   * and removes their project grants.
+   *
+   * Grants go first and every step can run twice, so if a write fails no grant
+   * outlives its session, and calling this again finishes the job.
    */
   async revokeUserSessions(db: DatabaseInstance, userId: string, reason: string): Promise<void> {
-    await db
-      .update(mcpOAuthSessions)
-      .set({ revokedAt: Date.now(), revokedReason: reason })
-      .where(and(eq(mcpOAuthSessions.userId, userId), isNull(mcpOAuthSessions.revokedAt)));
-
     // A row with a session is an agent's grant; the user's own invitations have none.
     await db
       .delete(projectCollaborators)
       .where(
         and(eq(projectCollaborators.userId, userId), isNotNull(projectCollaborators.mcpSessionId))
       );
+
+    // The watermark is in whole seconds, so it can't stop a code from this same
+    // second. Someone holding a stolen login could keep making codes to catch it.
+    await db.delete(mcpOAuthCodes).where(eq(mcpOAuthCodes.userId, userId));
+
+    await db
+      .update(mcpOAuthSessions)
+      .set({ revokedAt: Date.now(), revokedReason: reason })
+      .where(and(eq(mcpOAuthSessions.userId, userId), isNull(mcpOAuthSessions.revokedAt)));
 
     oauthLog.info(`Revoked all OAuth sessions of user ${userId}: ${reason}`);
   }

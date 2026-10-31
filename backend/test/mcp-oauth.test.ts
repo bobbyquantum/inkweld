@@ -1,4 +1,13 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from 'bun:test';
+import {
+  describe,
+  it,
+  expect,
+  beforeAll,
+  afterAll,
+  beforeEach,
+  afterEach,
+  setSystemTime,
+} from 'bun:test';
 import { drizzle, type BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite';
 import { migrate } from 'drizzle-orm/bun-sqlite/migrator';
 import { Database as BunDatabase } from 'bun:sqlite';
@@ -1189,6 +1198,52 @@ describe('MCP OAuth Service - an account ends its sessions', () => {
       // Linking the agent again is all it takes.
       const relinked = await link();
       expect(await mcpOAuthService.isSessionRevoked(db, relinked.sessionId)).toBe(false);
+    });
+
+    it('cancels an authorization code from the same second', async () => {
+      // The watermark is in whole seconds, so it would let this code through.
+      setSystemTime(new Date(nowSeconds() * 1000 + 100));
+      try {
+        const code = await createCode();
+
+        await userService.invalidateSessions(db, userId);
+
+        await expect(exchange(code)).rejects.toMatchObject({ code: 'invalid_grant' });
+      } finally {
+        setSystemTime();
+      }
+    });
+
+    it('leaves no grant behind if it fails part way, and can run again', async () => {
+      const { sessionId } = await link();
+      // Callers move the watermark first, so the session is refused by now.
+      await db
+        .update(users)
+        .set({ sessionsValidFrom: nowSeconds() + 60 })
+        .where(eq(users.id, userId));
+      const failsToUpdate = new Proxy(db, {
+        get: (target, key, receiver) =>
+          key === 'update'
+            ? () => {
+                throw new Error('write failed');
+              }
+            : Reflect.get(target, key, receiver),
+      });
+
+      await expect(
+        mcpOAuthService.revokeUserSessions(failsToUpdate, userId, 'Account disabled')
+      ).rejects.toThrow('write failed');
+
+      const grants = await db
+        .select()
+        .from(projectCollaborators)
+        .where(eq(projectCollaborators.userId, userId));
+      expect(grants).toEqual([]);
+      expect(await mcpOAuthService.isSessionRevoked(db, sessionId)).toBe(true);
+
+      await mcpOAuthService.revokeUserSessions(db, userId, 'Account disabled');
+
+      expect((await storedSession(sessionId)).revokedReason).toBe('Account disabled');
     });
 
     it('leaves sessions alone when an enabled account is enabled', async () => {

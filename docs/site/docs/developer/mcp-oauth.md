@@ -263,9 +263,9 @@ The OAuth consent page and the Authorized Apps management tab both use the share
 
 ### When the Account Changes
 
-An app's access ends with the account's sessions. Disabling or rejecting an account, a password reset and a passkey recovery revoke all of its OAuth sessions and their project grants (`mcpOAuthService.revokeUserSessions`, called from `userService`). Enabling the account again doesn't restore them; the app has to be authorized again.
+An app's access ends with the account's sessions. Disabling or rejecting an account, a password reset and a passkey recovery revoke all of its OAuth sessions and their project grants, and cancel its unused authorization codes (`mcpOAuthService.revokeUserSessions`, called from `userService`). Enabling the account again doesn't restore them; the app has to be authorized again.
 
-Every MCP request, token refresh and authorization code exchange also checks the account itself: `enabled`, `approved` and `users.sessionsValidFrom`, in `mcpOAuthService.isSessionRevoked`. So a session is refused even if nothing revoked it, such as one that was already open when its account was disabled by an earlier release. A session like that stays listed under Authorized Apps until the app is authorized again or the user removes it.
+Every MCP request, token refresh and authorization code exchange also checks the account itself: `enabled`, `approved` and `users.sessionsValidFrom` (`accountAllows` in `services/mcp-oauth.service.ts`, which `isSessionRevoked` uses). So a session is refused even if nothing revoked it, such as one that was already open when its account was disabled by an earlier release. A session like that stays listed under Authorized Apps until the app is authorized again or the user removes it.
 
 ## Configuration
 
