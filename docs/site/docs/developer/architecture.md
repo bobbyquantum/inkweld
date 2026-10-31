@@ -426,7 +426,7 @@ sequenceDiagram
 ### Tokens, Not Server Sessions
 
 - **JWT bearer tokens** - sign-in returns `{ user, token }`; the client stores the token (`AuthTokenService`) and sends `Authorization: Bearer <token>`. Tokens are HS256-signed with `DATABASE_KEY` / `SESSION_SECRET` and last 30 days. WebSockets authenticate with the same token as their first message.
-- **Revocation** - because tokens are stateless, each user has a `sessionsValidFrom` watermark. It is bumped by password reset, passkey recovery, and admin disable/unapprove; any token issued before it is rejected (`utils/session-validity.ts`, also enforced by the Durable Object).
+- **Revocation** - because tokens are stateless, each user has a `sessionsValidFrom` watermark. It is bumped by password reset, passkey recovery, and admin disable/unapprove; any token issued before it is rejected (`utils/session-validity.ts`, also enforced by the Durable Object). MCP OAuth sessions answer to it too, see [When the Account Changes](./mcp-oauth.md#when-the-account-changes).
 - **Enrolment tokens** - a newly registered user awaiting approval gets a 15-minute token that can only enrol a passkey.
 - **MCP** uses separate OAuth 2.1 access tokens scoped to per-project grants; see [MCP & OAuth](./mcp-oauth.md).
 - **Optional GitHub OAuth** sign-in.

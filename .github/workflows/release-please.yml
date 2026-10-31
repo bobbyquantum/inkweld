@@ -50,10 +50,15 @@ jobs:
 
       - name: Add scope emoji to the release PR
         if: steps.release.outputs.pr
+        # A step's env is evaluated even when its `if` skips it, and fromJSON
+        # fails on the empty output of a run with no release PR, which fails the
+        # job. So the PR number is read in the script instead.
         env:
           GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ fromJSON(steps.release.outputs.pr).number }}
+          RELEASE_PR: ${{ steps.release.outputs.pr }}
         run: |
+          PR_NUMBER="$(jq -r .number <<< "$RELEASE_PR")"
+
           node scripts/add-scope-emoji.mjs --changelog CHANGELOG.md
           if ! git diff --quiet; then
             git config user.name "github-actions[bot]"
@@ -71,11 +76,12 @@ jobs:
           fi
 
   # A tag created with GITHUB_TOKEN does not trigger release.yml's tag push,
-  # so the release build is called directly.
+  # so the release build is called directly. It also runs if a later step of
+  # the job above fails: once the tag exists, the release still needs its image.
   docker-release:
     name: Docker release
     needs: release-please
-    if: needs.release-please.outputs.releases_created == 'true'
+    if: ${{ !cancelled() && needs.release-please.outputs.releases_created == 'true' }}
     permissions:
       contents: read
       packages: write

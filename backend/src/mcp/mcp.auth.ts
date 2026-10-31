@@ -127,7 +127,8 @@ async function handleOAuthJwt(
     );
   }
 
-  // Check if session has been revoked
+  // Check if session has been revoked, or its account has ended it. A token can
+  // be up to an hour old, and nothing else on this path looks at the account.
   const db = c.get('db');
   const revoked = await mcpOAuthService.isSessionRevoked(db, payload.session_id);
   if (revoked) {

@@ -43,6 +43,7 @@ import { logger } from './logger.service';
 import { projectService } from './project.service';
 import { config } from '../config/env';
 import { generateSecureRandom, hashString, verifyPkce } from '../utils/oauth-crypto';
+import { isSessionRevoked as predatesSessionWatermark } from '../utils/session-validity';
 import {
   OAuthError,
   type ClientRegistrationResult,
@@ -70,6 +71,23 @@ function maxDynamicClients(): number {
   const raw = typeof process !== 'undefined' ? process.env['MCP_MAX_DYNAMIC_CLIENTS'] : undefined;
   const parsed = raw ? Number.parseInt(raw, 10) : Number.NaN;
   return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_MAX_DYNAMIC_CLIENTS;
+}
+
+/**
+ * Whether an account lets a session or authorization code created at
+ * `createdAtMs` act for it. These outlive a login and pass through none of the
+ * login checks, so they answer here to the same things: the account can still
+ * sign in, and has not ended its sessions since (users.sessionsValidFrom).
+ */
+function accountAllows(
+  user: { enabled: boolean; approved: boolean; sessionsValidFrom: number },
+  createdAtMs: number
+): boolean {
+  return (
+    user.enabled &&
+    user.approved &&
+    !predatesSessionWatermark(user, { iat: Math.floor(createdAtMs / 1000) })
+  );
 }
 
 /**
@@ -474,6 +492,11 @@ class McpOAuthService {
       throw new OAuthError('server_error', 'User not found');
     }
 
+    // The account can have changed in the minutes since the user gave consent.
+    if (!accountAllows(user, authCode.createdAt)) {
+      throw new OAuthError('invalid_grant', 'Authorization code has been revoked');
+    }
+
     // Create session and collaborator entries
     const session = await this.createSession(
       db,
@@ -648,8 +671,8 @@ class McpOAuthService {
       throw new OAuthError('invalid_grant', 'Invalid refresh token');
     }
 
-    // Check if session is revoked
-    if (session.revokedAt) {
+    // Check if session is revoked, or its account has ended it
+    if (await this.isSessionRevoked(db, session.id)) {
       throw new OAuthError('invalid_grant', 'Session has been revoked');
     }
 
@@ -821,17 +844,55 @@ class McpOAuthService {
   }
 
   /**
-   * Check if an OAuth session has been revoked
+   * Revoke every OAuth session of a user and cancel their unused authorization
+   * codes, when their account ends all its sessions. isSessionRevoked() refuses
+   * those sessions from then on either way; this takes them off Authorized Apps
+   * and removes their project grants.
+   *
+   * Grants go first and every step can run twice, so if a write fails no grant
+   * outlives its session, and calling this again finishes the job.
+   */
+  async revokeUserSessions(db: DatabaseInstance, userId: string, reason: string): Promise<void> {
+    // A row with a session is an agent's grant; the user's own invitations have none.
+    await db
+      .delete(projectCollaborators)
+      .where(
+        and(eq(projectCollaborators.userId, userId), isNotNull(projectCollaborators.mcpSessionId))
+      );
+
+    // The watermark is in whole seconds, so it can't stop a code from this same
+    // second. Someone holding a stolen login could keep making codes to catch it.
+    await db.delete(mcpOAuthCodes).where(eq(mcpOAuthCodes.userId, userId));
+
+    await db
+      .update(mcpOAuthSessions)
+      .set({ revokedAt: Date.now(), revokedReason: reason })
+      .where(and(eq(mcpOAuthSessions.userId, userId), isNull(mcpOAuthSessions.revokedAt)));
+
+    oauthLog.info(`Revoked all OAuth sessions of user ${userId}: ${reason}`);
+  }
+
+  /**
+   * Check if an OAuth session has been revoked, or its account has ended it
    */
   async isSessionRevoked(db: DatabaseInstance, sessionId: string): Promise<boolean> {
     const [session] = await (db as D1DatabaseInstance)
-      .select({ revokedAt: mcpOAuthSessions.revokedAt })
+      .select({
+        revokedAt: mcpOAuthSessions.revokedAt,
+        createdAt: mcpOAuthSessions.createdAt,
+        enabled: users.enabled,
+        approved: users.approved,
+        sessionsValidFrom: users.sessionsValidFrom,
+      })
       .from(mcpOAuthSessions)
+      .innerJoin(users, eq(mcpOAuthSessions.userId, users.id))
       .where(eq(mcpOAuthSessions.id, sessionId))
       .limit(1);
 
     // Session not found or has been revoked
-    return session?.revokedAt !== null;
+    if (session?.revokedAt !== null) return true;
+
+    return !accountAllows(session, session.createdAt);
   }
 
   /**

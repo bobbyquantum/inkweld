@@ -72,6 +72,7 @@ export class UserService {
   private readonly logger = inject(LoggerService);
   private readonly authTokenService = inject(AuthTokenService);
   private readonly storageContext = inject(StorageContextService);
+  private readonly destroyRef = inject(DestroyRef);
 
   /**
    * Re-checks the session once the server is reachable again, after a start
@@ -81,7 +82,7 @@ export class UserService {
   private sessionRecheck: ReconnectScheduler | null = null;
 
   constructor() {
-    inject(DestroyRef).onDestroy(() => this.stopSessionRecheck());
+    this.destroyRef.onDestroy(() => this.stopSessionRecheck());
   }
 
   private get userCacheConfig() {
@@ -241,7 +242,9 @@ export class UserService {
   }
 
   private startSessionRecheck(): void {
-    if (this.sessionRecheck?.isActive) return;
+    // The refresh can fail after the service is gone, and nothing would stop a
+    // recheck started then.
+    if (this.destroyRef.destroyed || this.sessionRecheck?.isActive) return;
     this.sessionRecheck = new ReconnectScheduler({
       attempt: () => this.recheckSession(),
       log: message => this.logger.info('UserService', `${message} (session)`),

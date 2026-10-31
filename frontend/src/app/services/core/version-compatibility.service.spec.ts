@@ -381,6 +381,29 @@ describe('VersionCompatibilityService', () => {
       expect(fetchMock).toHaveBeenCalledTimes(2);
     });
 
+    it('does not start checking again when the first check fails after the service is destroyed', async () => {
+      let failFirstCheck: (error: Error) => void = () => {};
+      const fetchMock = vi
+        .fn()
+        .mockReturnValueOnce(
+          new Promise((_, reject) => {
+            failFirstCheck = reject;
+          })
+        )
+        .mockResolvedValue(healthy);
+      globalThis.fetch = fetchMock;
+
+      const initialized = service.initialize();
+      TestBed.resetTestingModule();
+      failFirstCheck(new TypeError('Failed to fetch'));
+      await initialized;
+
+      globalThis.dispatchEvent(new Event('online'));
+      await vi.advanceTimersByTimeAsync(10 * 60_000);
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
     it('does not check a Browser profile at all', async () => {
       const fetchMock = vi.fn();
       globalThis.fetch = fetchMock;

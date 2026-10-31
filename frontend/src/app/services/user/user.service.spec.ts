@@ -17,7 +17,7 @@ import { Router } from '@angular/router';
 import { UserSettingsDialogComponent } from '@dialogs/user-settings-dialog/user-settings-dialog.component';
 import { AuthenticationService, type User } from '@inkweld/index';
 import { UsersService } from '@inkweld/index';
-import { of, throwError } from 'rxjs';
+import { of, Subject, throwError } from 'rxjs';
 import { type Mock, vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
@@ -341,6 +341,30 @@ describe('UserService', () => {
 
         globalThis.dispatchEvent(new Event('online'));
         await vi.waitFor(() => expect(service.isAuthenticated()).toBe(false));
+      });
+
+      it('does not start a re-check when the refresh fails after the service is destroyed', async () => {
+        TestBed.inject(AuthTokenService).setToken('cached-token');
+        await service.loadCurrentUser();
+        const response = new Subject<User>();
+        userServiceMock.getCurrentUser.mockReturnValue(response);
+        const refreshed = service.loadCurrentUser();
+        await vi.waitFor(() => expect(response.observed).toBe(true));
+        userServiceMock.getCurrentUser.mockClear();
+
+        TestBed.resetTestingModule();
+        response.error(
+          new HttpErrorResponse({
+            error: new Error('offline'),
+            status: 0,
+            statusText: 'Network Error',
+          })
+        );
+        await refreshed;
+
+        globalThis.dispatchEvent(new Event('online'));
+        await Promise.resolve();
+        expect(userServiceMock.getCurrentUser).not.toHaveBeenCalled();
       });
     });
 

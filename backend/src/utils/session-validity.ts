@@ -1,7 +1,8 @@
 /**
  * Session-token revocation check shared by the HTTP auth middleware
  * (auth.service.getUserFromSession), the Bun WebSocket auth path
- * (routes/yjs.routes.ts) and the Durable Object (via utils/project-access).
+ * (routes/yjs.routes.ts), the Durable Object (via utils/project-access) and
+ * MCP OAuth sessions (services/mcp-oauth.service).
  *
  * Sessions are stateless JWTs, so revocation is a per-user watermark:
  * `users.sessionsValidFrom` (unix seconds) is bumped whenever every existing

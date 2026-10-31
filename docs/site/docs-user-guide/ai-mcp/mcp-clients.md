@@ -147,5 +147,6 @@ Any MCP client that supports Streamable HTTP (protocol `2026-07-28`) can connect
 
 - **"MCP access is disabled by the AI kill switch" / "MCP access is disabled by the administrator"**: your server's administrator has turned off AI features or MCP access. Ask them to enable MCP access in the admin settings (and make sure the AI kill switch is off).
 - **A tool can read but not change anything**: the project was shared with **View only**. Open **User Settings → Authorized Apps** and change the project to **View and edit**.
+- **An app that was working asks you to authorize it again**: a password reset, a passkey recovery or an administrator disabling your account disconnects all your apps. Once you can sign in, authorize the app again.
 - **OAuth sign-in loop**: make sure your browser can reach the server's authorization page and that you're not blocking third-party cookies on the domain.
 - **Connection refused / 404**: confirm the server is running and that the path is exactly `/api/v1/ai/mcp`.
