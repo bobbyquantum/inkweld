@@ -20,6 +20,18 @@
         "vitest": "^5.0.0",
       },
     },
+    "packages/inkweld-canvas": {
+      "name": "@inkweld/canvas",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@vitest/coverage-v8": "^5.0.0",
+        "vitest": "^5.0.0",
+        "yjs": "13.6.33",
+      },
+      "peerDependencies": {
+        "yjs": "13.6.33",
+      },
+    },
     "packages/inkweld-presence": {
       "name": "@inkweld/presence",
       "version": "0.1.0",
@@ -99,6 +111,8 @@
     "@conventional-changelog/template": ["@conventional-changelog/template@1.4.0", "", {}, "sha512-aalGyl7dbB5PArRebDIX43ZvBlXrYm9uWzGJ26t+4SzJVPsOuvfILGGbw5X4yX7i50YEmJ8zvbiWnqH/AAnZqg=="],
 
     "@inkweld/async": ["@inkweld/async@workspace:packages/inkweld-async"],
+
+    "@inkweld/canvas": ["@inkweld/canvas@workspace:packages/inkweld-canvas"],
 
     "@inkweld/presence": ["@inkweld/presence@workspace:packages/inkweld-presence"],
 

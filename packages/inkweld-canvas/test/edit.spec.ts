@@ -1,11 +1,5 @@
 import { describe, expect, it } from 'vitest';
 
-import type {
-  CanvasFrame,
-  CanvasLayer,
-  CanvasObject,
-  CanvasPath,
-} from './canvas.model';
 import {
   applyCanvasEdit,
   type CanvasContents,
@@ -13,7 +7,15 @@ import {
   emptyCanvasContents,
   isEmptyCanvasEdit,
   parseCanvasContents,
-} from './canvas-edit';
+  resolveCanvasContents,
+  seedCanvasEdit,
+} from '../src/edit';
+import type {
+  CanvasFrame,
+  CanvasLayer,
+  CanvasObject,
+  CanvasPath,
+} from '../src/model';
 
 function makeLayer(id = 'L1'): CanvasLayer {
   return { id, name: id, visible: true, locked: false, opacity: 1, order: 0 };
@@ -41,7 +43,7 @@ function makePath(id: string, x = 0): CanvasPath {
 
 function contents(
   objects: CanvasObject[],
-  layers = [makeLayer()]
+  layers = [makeLayer()],
 ): CanvasContents {
   return { layers, objects };
 }
@@ -150,12 +152,12 @@ describe('diffCanvasContents', () => {
     const a = makePath('a');
 
     expect(
-      diffCanvasContents(contents([a], layers), contents([a], layers)).layers
+      diffCanvasContents(contents([a], layers), contents([a], layers)).layers,
     ).toBeUndefined();
 
     const renamed = [{ ...layers[0], name: 'Renamed' }];
     expect(
-      diffCanvasContents(contents([a], layers), contents([a], renamed)).layers
+      diffCanvasContents(contents([a], layers), contents([a], renamed)).layers,
     ).toEqual(renamed);
   });
 });
@@ -166,7 +168,7 @@ describe('applyCanvasEdit', () => {
     const b = makePath('b');
 
     const result = applyCanvasEdit(contents([a]), { upserts: [b] });
-    expect(result.objects.map(o => o.id)).toEqual(['a', 'b']);
+    expect(result.objects.map((o) => o.id)).toEqual(['a', 'b']);
   });
 
   it('replaces an existing object in place', () => {
@@ -175,7 +177,7 @@ describe('applyCanvasEdit', () => {
     const movedA = { ...a, x: 99 };
 
     const result = applyCanvasEdit(contents([a, b]), { upserts: [movedA] });
-    expect(result.objects.map(o => o.id)).toEqual(['a', 'b']);
+    expect(result.objects.map((o) => o.id)).toEqual(['a', 'b']);
     expect(result.objects[0]).toBe(movedA);
   });
 
@@ -184,13 +186,13 @@ describe('applyCanvasEdit', () => {
     const b = makePath('b');
 
     const result = applyCanvasEdit(contents([a, b]), { deletes: ['a'] });
-    expect(result.objects.map(o => o.id)).toEqual(['b']);
+    expect(result.objects.map((o) => o.id)).toEqual(['b']);
   });
 
   it('ignores deletes for objects that are already gone', () => {
     const a = makePath('a');
     const result = applyCanvasEdit(contents([a]), { deletes: ['nope'] });
-    expect(result.objects.map(o => o.id)).toEqual(['a']);
+    expect(result.objects.map((o) => o.id)).toEqual(['a']);
   });
 
   it('applies an explicit order', () => {
@@ -201,7 +203,7 @@ describe('applyCanvasEdit', () => {
     const result = applyCanvasEdit(contents([a, b, c]), {
       order: ['c', 'a', 'b'],
     });
-    expect(result.objects.map(o => o.id)).toEqual(['c', 'a', 'b']);
+    expect(result.objects.map((o) => o.id)).toEqual(['c', 'a', 'b']);
   });
 
   it('keeps objects the order forgot', () => {
@@ -209,13 +211,13 @@ describe('applyCanvasEdit', () => {
     const b = makePath('b');
 
     const result = applyCanvasEdit(contents([a, b]), { order: ['b'] });
-    expect(result.objects.map(o => o.id)).toEqual(['b', 'a']);
+    expect(result.objects.map((o) => o.id)).toEqual(['b', 'a']);
   });
 
   it('ignores ids in the order that no longer exist', () => {
     const a = makePath('a');
     const result = applyCanvasEdit(contents([a]), { order: ['ghost', 'a'] });
-    expect(result.objects.map(o => o.id)).toEqual(['a']);
+    expect(result.objects.map((o) => o.id)).toEqual(['a']);
   });
 
   it('replaces the layer list when given one', () => {
@@ -237,8 +239,8 @@ describe('applyCanvasEdit', () => {
     const after = contents([c, { ...a, x: 5 }]);
 
     const result = applyCanvasEdit(before, diffCanvasContents(before, after));
-    expect(result.objects.map(o => o.id)).toEqual(['c', 'a']);
-    expect(result.objects.find(o => o.id === 'a')?.x).toBe(5);
+    expect(result.objects.map((o) => o.id)).toEqual(['c', 'a']);
+    expect(result.objects.find((o) => o.id === 'a')?.x).toBe(5);
   });
 });
 
@@ -285,7 +287,7 @@ describe('frames', () => {
 
   it('apply leaves frames absent when neither side has them', () => {
     expect(
-      applyCanvasEdit(contents([]), { upserts: [] }).frames
+      applyCanvasEdit(contents([]), { upserts: [] }).frames,
     ).toBeUndefined();
   });
 
@@ -371,14 +373,91 @@ describe('page settings', () => {
         objects: [],
         background: '#123456',
         inkColor: '#abcdef',
-      })
+      }),
     );
     expect(parsed?.background).toBe('#123456');
     expect(parsed?.inkColor).toBe('#abcdef');
 
     const bad = parseCanvasContents(
-      JSON.stringify({ layers, objects: [], background: 42 })
+      JSON.stringify({ layers, objects: [], background: 42 }),
     );
     expect(bad?.background).toBeUndefined();
+  });
+});
+
+describe('seedCanvasEdit', () => {
+  it('describes the whole canvas, in z-order', () => {
+    const contents: CanvasContents = {
+      layers: [
+        {
+          id: 'l',
+          name: 'L',
+          visible: true,
+          locked: false,
+          opacity: 1,
+          order: 0,
+        },
+      ],
+      objects: [
+        { id: 'a', type: 'pin', layerId: 'l' } as CanvasObject,
+        { id: 'b', type: 'pin', layerId: 'l' } as CanvasObject,
+      ],
+      background: '#000000',
+    };
+    const edit = seedCanvasEdit(contents);
+    expect(edit.layers).toBe(contents.layers);
+    expect(edit.upserts).toBe(contents.objects);
+    expect(edit.order).toEqual(['a', 'b']);
+    expect(edit.background).toBe('#000000');
+  });
+});
+
+describe('resolveCanvasContents', () => {
+  const populated: CanvasContents = {
+    layers: [
+      {
+        id: 'l',
+        name: 'L',
+        visible: true,
+        locked: false,
+        opacity: 1,
+        order: 0,
+      },
+    ],
+    objects: [],
+  };
+
+  it('prefers synced contents once they hold anything', () => {
+    const result = resolveCanvasContents(
+      populated,
+      JSON.stringify({ layers: [], objects: [{ id: 'old' }] }),
+    );
+    expect(result).toEqual({ contents: populated, needsSeed: false });
+  });
+
+  it('seeds from metadata when nothing is synced yet', () => {
+    const result = resolveCanvasContents(null, JSON.stringify(populated));
+    expect(result.needsSeed).toBe(true);
+    expect(result.contents.layers[0].id).toBe('l');
+  });
+
+  it('seeds from metadata over an empty synced canvas', () => {
+    const result = resolveCanvasContents(
+      emptyCanvasContents(),
+      JSON.stringify(populated),
+    );
+    expect(result.needsSeed).toBe(true);
+  });
+
+  it('is empty, with nothing to seed, for a new canvas', () => {
+    expect(resolveCanvasContents(null, undefined)).toEqual({
+      contents: emptyCanvasContents(),
+      needsSeed: false,
+    });
+    expect(resolveCanvasContents(null, 'not json').needsSeed).toBe(false);
+    expect(
+      resolveCanvasContents(null, JSON.stringify(emptyCanvasContents()))
+        .needsSeed,
+    ).toBe(false);
   });
 });

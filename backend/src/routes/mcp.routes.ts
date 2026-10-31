@@ -23,8 +23,7 @@ import {
   META_KEYS,
   getRequestMeta,
 } from '../mcp';
-import { configService } from '../services/config.service';
-import { isAiKillSwitchOn } from '../utils/ai-kill-switch';
+import { mcpUnavailableReason } from '../mcp/mcp-availability';
 
 const mcpRoutes = new OpenAPIHono<AppContext>();
 
@@ -274,20 +273,9 @@ mcpRoutes.use('/', async (c, next) => {
   if (c.req.method !== 'POST') {
     return next();
   }
-  const db = c.get('db');
-  const killSwitchOn = await isAiKillSwitchOn(db);
-  const mcpEnabled = await configService.getBoolean(db, 'MCP_ENABLED');
-  if (killSwitchOn || !mcpEnabled) {
-    return c.json(
-      createErrorResponse(
-        0,
-        JSON_RPC_ERRORS.INVALID_REQUEST,
-        killSwitchOn
-          ? 'MCP access is disabled by the AI kill switch'
-          : 'MCP access is disabled by the administrator'
-      ),
-      403
-    );
+  const unavailable = await mcpUnavailableReason(c.get('db'));
+  if (unavailable) {
+    return c.json(createErrorResponse(0, JSON_RPC_ERRORS.INVALID_REQUEST, unavailable), 403);
   }
   return next();
 });

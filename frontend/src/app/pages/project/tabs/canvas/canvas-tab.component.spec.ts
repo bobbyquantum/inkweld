@@ -34,6 +34,7 @@ import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { LoggerService } from '@services/core/logger.service';
 import { TutorialService } from '@services/core/tutorial.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
+import { MediaSyncService } from '@services/local/media-sync.service';
 import { PresenceService } from '@services/presence/presence.service';
 import { CoverSourceService } from '@services/project/cover-source.service';
 import { ProjectService } from '@services/project/project.service';
@@ -75,6 +76,7 @@ describe('CanvasTabComponent', () => {
   let fixture: ComponentFixture<CanvasTabComponent>;
   let mockDialog: { open: ReturnType<typeof vi.fn> };
   let mockCanvasRenderer: any;
+  const mediaSyncVersion = signal(0);
   const mockPresenceService = {
     setActiveLocation: vi.fn(),
     setSelection: vi.fn(),
@@ -308,6 +310,7 @@ describe('CanvasTabComponent', () => {
     r.syncPage = vi.fn();
     r.setFrameEditing = vi.fn();
     r.updateFrameOverlayScale = vi.fn();
+    r.retryFailedImages = vi.fn();
     r.resolveImageSrc = CanvasRendererService.prototype.resolveImageSrc.bind(r);
     r.initStage = vi.fn(() => ({ zoomLevel: 1 }));
     r.destroyStage = vi.fn();
@@ -332,6 +335,10 @@ describe('CanvasTabComponent', () => {
         { provide: BreakpointObserver, useValue: mockBreakpointObserver },
         { provide: TutorialService, useValue: mockTutorialService },
         { provide: LocalStorageService, useValue: mockLocalStorageService },
+        {
+          provide: MediaSyncService,
+          useValue: { mediaSyncVersion },
+        },
         { provide: LoggerService, useValue: mockLogger },
         { provide: RelationshipService, useValue: mockRelationshipService },
         { provide: ProjectService, useValue: mockProjectService },
@@ -388,6 +395,16 @@ describe('CanvasTabComponent', () => {
 
     fixture.destroy();
     expect(mockPresenceService.setActiveLocation).toHaveBeenCalledWith(null);
+  });
+
+  it('tries failed images again when media arrives', () => {
+    fixture.detectChanges();
+    mockCanvasRenderer.retryFailedImages.mockClear();
+
+    mediaSyncVersion.update(version => version + 1);
+    TestBed.tick();
+
+    expect(mockCanvasRenderer.retryFailedImages).toHaveBeenCalledTimes(1);
   });
 
   it('should set element name from project elements', () => {

@@ -10,7 +10,9 @@ import type {
   CanvasText,
 } from '@models/canvas.model';
 import { LoggerService } from '@services/core/logger.service';
+import { SetupService } from '@services/core/setup.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
+import { MediaSyncService } from '@services/local/media-sync.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import Konva from 'konva';
 import {
@@ -120,6 +122,8 @@ describe('CanvasRendererService', () => {
   let mockProjectState: any;
   let mockLocalStorage: any;
   let mockLogger: any;
+  let mockSetup: any;
+  let mockMediaSync: any;
 
   beforeAll(() => {
     // Install a minimal 2D context stub so Konva node constructors work in jsdom.
@@ -133,6 +137,8 @@ describe('CanvasRendererService', () => {
     mockProjectState = { project: signal(null) };
     mockLocalStorage = { getMediaUrl: vi.fn() };
     mockLogger = { warn: vi.fn() };
+    mockSetup = { getMode: vi.fn(() => 'server') };
+    mockMediaSync = { fetchMissingMedia: vi.fn().mockResolvedValue(false) };
 
     TestBed.configureTestingModule({
       imports: [translocoTestProvider()],
@@ -142,6 +148,8 @@ describe('CanvasRendererService', () => {
         { provide: ProjectStateService, useValue: mockProjectState },
         { provide: LocalStorageService, useValue: mockLocalStorage },
         { provide: LoggerService, useValue: mockLogger },
+        { provide: SetupService, useValue: mockSetup },
+        { provide: MediaSyncService, useValue: mockMediaSync },
       ],
     });
     service = TestBed.inject(CanvasRendererService);
@@ -225,6 +233,64 @@ describe('CanvasRendererService', () => {
       const result = await service.resolveImageSrc('media://notfound');
       expect(result).toBe('');
       expect(mockLogger.warn).toHaveBeenCalled();
+    });
+
+    describe('when this browser does not have the media yet', () => {
+      beforeEach(() => {
+        mockProjectState.project = signal({
+          username: 'alice',
+          slug: 'myproject',
+        });
+      });
+
+      it('fetches it from the server, such as an image an agent placed', async () => {
+        mockLocalStorage.getMediaUrl
+          .mockResolvedValueOnce(null)
+          .mockResolvedValueOnce('blob:http://localhost/fetched');
+        mockMediaSync.fetchMissingMedia.mockResolvedValue(true);
+
+        const result = await service.resolveImageSrc('media://img-1.png');
+
+        expect(result).toBe('blob:http://localhost/fetched');
+        expect(mockMediaSync.fetchMissingMedia).toHaveBeenCalledWith(
+          'alice/myproject',
+          'img-1.png'
+        );
+        expect(mockLogger.warn).not.toHaveBeenCalled();
+      });
+
+      it('gives up when the server does not have it either', async () => {
+        mockLocalStorage.getMediaUrl.mockResolvedValue(null);
+        expect(await service.resolveImageSrc('media://gone.png')).toBe('');
+        expect(mockLocalStorage.getMediaUrl).toHaveBeenCalledTimes(1);
+        expect(mockLogger.warn).toHaveBeenCalled();
+      });
+
+      it('never asks a server in local mode', async () => {
+        mockSetup.getMode.mockReturnValue('local');
+        mockLocalStorage.getMediaUrl.mockResolvedValue(null);
+        expect(await service.resolveImageSrc('media://img-1.png')).toBe('');
+        expect(mockMediaSync.fetchMissingMedia).not.toHaveBeenCalled();
+      });
+
+      it('never asks a server in cloud mode', async () => {
+        mockSetup.getMode.mockReturnValue('cloud');
+        mockLocalStorage.getMediaUrl.mockResolvedValue(null);
+        expect(await service.resolveImageSrc('media://img-1.png')).toBe('');
+        expect(mockMediaSync.fetchMissingMedia).not.toHaveBeenCalled();
+      });
+
+      it('cannot ask for a reference without a filename', async () => {
+        mockLocalStorage.getMediaUrl.mockResolvedValue(null);
+        expect(await service.resolveImageSrc('media:img-1')).toBe('');
+        expect(mockMediaSync.fetchMissingMedia).not.toHaveBeenCalled();
+      });
+
+      it('survives a failure while fetching', async () => {
+        mockLocalStorage.getMediaUrl.mockResolvedValue(null);
+        mockMediaSync.fetchMissingMedia.mockRejectedValue(new Error('offline'));
+        expect(await service.resolveImageSrc('media://img-1.png')).toBe('');
+      });
     });
 
     it('returns resolved URL from LocalStorage when media found', async () => {
@@ -598,6 +664,175 @@ describe('CanvasRendererService', () => {
     it('initStage creates a Konva.Stage', () => {
       service.initStage(container, [makeLayer()], [], null, makeHandlers());
       expect(service.stage).not.toBeNull();
+    });
+
+    describe('an image whose file is not here yet', () => {
+      const image = makeImage({
+        id: 'art',
+        layerId: 'L1',
+        src: 'media://art.png',
+      });
+
+      /** Loads whatever it is given, unless the address says otherwise. */
+      class TestImage {
+        onload: (() => void) | null = null;
+        onerror: (() => void) | null = null;
+        crossOrigin = '';
+        set src(address: string) {
+          queueMicrotask(() =>
+            address.includes('broken') ? this.onerror?.() : this.onload?.()
+          );
+        }
+      }
+
+      function open(objects: CanvasImage[]): void {
+        vi.stubGlobal('Image', TestImage);
+        mockProjectState.project.set({ username: 'alice', slug: 'novel' });
+        service.initStage(
+          container,
+          [makeLayer()],
+          objects,
+          null,
+          makeHandlers()
+        );
+      }
+
+      function imageIn(id: string): Konva.Node | undefined {
+        const node = service.konvaNodes.get(id) as Konva.Group;
+        return node.findOne('Image');
+      }
+
+      it('shows once a retry finds it', async () => {
+        mockLocalStorage.getMediaUrl.mockResolvedValue(null);
+        open([image]);
+        await service.whenImagesSettled();
+        expect(imageIn('art')).toBeUndefined();
+
+        mockLocalStorage.getMediaUrl.mockResolvedValue('blob:art');
+        service.retryFailedImages();
+
+        await vi.waitFor(() => expect(imageIn('art')).toBeDefined());
+      });
+
+      it('keeps waiting if a retry finds nothing either', async () => {
+        mockLocalStorage.getMediaUrl.mockResolvedValue(null);
+        open([image]);
+        await service.whenImagesSettled();
+
+        service.retryFailedImages();
+        await vi.waitFor(() =>
+          expect(mockLocalStorage.getMediaUrl).toHaveBeenCalledTimes(2)
+        );
+        await vi.waitFor(() =>
+          expect(mockMediaSync.fetchMissingMedia).toHaveBeenCalledTimes(2)
+        );
+        await Promise.resolve();
+        expect(imageIn('art')).toBeUndefined();
+
+        mockLocalStorage.getMediaUrl.mockResolvedValue('blob:art');
+        await vi.waitFor(() => {
+          service.retryFailedImages();
+          expect(imageIn('art')).toBeDefined();
+        });
+      });
+
+      it('tries nothing for an image that has loaded', async () => {
+        mockLocalStorage.getMediaUrl.mockResolvedValue('blob:art');
+        open([image]);
+        await vi.waitFor(() => expect(imageIn('art')).toBeDefined());
+
+        mockLocalStorage.getMediaUrl.mockClear();
+        service.retryFailedImages();
+
+        expect(mockLocalStorage.getMediaUrl).not.toHaveBeenCalled();
+      });
+
+      it('tries nothing for an image taken off the canvas', async () => {
+        mockLocalStorage.getMediaUrl.mockResolvedValue(null);
+        open([image]);
+        await service.whenImagesSettled();
+        service.syncKonvaFromConfig([makeLayer()], [], null, makeHandlers());
+
+        mockLocalStorage.getMediaUrl.mockClear();
+        service.retryFailedImages();
+
+        expect(mockLocalStorage.getMediaUrl).not.toHaveBeenCalled();
+      });
+
+      it('keeps one retry for an object, whose node was rebuilt', async () => {
+        mockLocalStorage.getMediaUrl.mockResolvedValue(null);
+        open([image]);
+        await service.whenImagesSettled();
+
+        // A new source means a new node, whose load fails as well.
+        const other = { ...image, src: 'media://other.png' };
+        service.syncKonvaFromConfig(
+          [makeLayer()],
+          [other],
+          null,
+          makeHandlers()
+        );
+        await service.whenImagesSettled();
+        await vi.waitFor(() =>
+          expect(mockMediaSync.fetchMissingMedia).toHaveBeenCalledTimes(2)
+        );
+        await vi.waitFor(() =>
+          expect(mockLocalStorage.getMediaUrl).toHaveBeenCalledTimes(2)
+        );
+
+        mockLocalStorage.getMediaUrl.mockClear();
+        mockLocalStorage.getMediaUrl.mockResolvedValue('blob:other');
+        await vi.waitFor(() => {
+          service.retryFailedImages();
+          expect(mockLocalStorage.getMediaUrl).toHaveBeenCalled();
+        });
+
+        expect(mockLocalStorage.getMediaUrl).toHaveBeenCalledTimes(1);
+        expect(mockLocalStorage.getMediaUrl).toHaveBeenCalledWith(
+          'alice/novel',
+          expect.stringContaining('other')
+        );
+      });
+
+      it('does not keep a retry for a node removed while it was loading', async () => {
+        let finishLoading: (url: string | null) => void = () => {};
+        mockLocalStorage.getMediaUrl.mockReturnValueOnce(
+          new Promise(resolve => {
+            finishLoading = resolve;
+          })
+        );
+        open([image]);
+        service.syncKonvaFromConfig([makeLayer()], [], null, makeHandlers());
+
+        finishLoading(null);
+        await service.whenImagesSettled();
+        await vi.waitFor(() =>
+          expect(mockMediaSync.fetchMissingMedia).toHaveBeenCalled()
+        );
+        await Promise.resolve();
+
+        mockLocalStorage.getMediaUrl.mockClear();
+        service.retryFailedImages();
+
+        expect(mockLocalStorage.getMediaUrl).not.toHaveBeenCalled();
+      });
+
+      it('tries nothing for an address that is not project media', async () => {
+        const resolve = vi.spyOn(service, 'resolveImageSrc');
+        open([
+          makeImage({
+            id: 'web',
+            layerId: 'L1',
+            src: 'https://example.com/broken.png',
+          }),
+        ]);
+        await service.whenImagesSettled();
+        await vi.waitFor(() => expect(resolve).toHaveBeenCalledTimes(1));
+
+        service.retryFailedImages();
+
+        expect(resolve).toHaveBeenCalledTimes(1);
+      });
     });
 
     it('initStage returns zoomLevel 1 when no savedViewport', () => {

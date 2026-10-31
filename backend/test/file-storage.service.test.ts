@@ -122,6 +122,51 @@ describe('FileStorageService', () => {
       const content = await service.readProjectFile(testUser, testSlug, 'draft.txt');
       expect(content.toString()).toBe('v2');
     });
+  });
+
+  describe('createProjectFile', () => {
+    it('stores a file that is not there, creating a subdirectory if needed', async () => {
+      expect(await service.createProjectFile(testUser, testSlug, 'new/a.txt', 'first')).toBe(true);
+      const content = await service.readProjectFile(testUser, testSlug, 'new/a.txt');
+      expect(content.toString()).toBe('first');
+    });
+
+    it('leaves a file that is there alone', async () => {
+      await service.saveProjectFile(testUser, testSlug, 'a.txt', 'first');
+      expect(await service.createProjectFile(testUser, testSlug, 'a.txt', 'second')).toBe(false);
+      const content = await service.readProjectFile(testUser, testSlug, 'a.txt');
+      expect(content.toString()).toBe('first');
+    });
+
+    it('lets one of several overlapping calls store it', async () => {
+      const versions = Array.from({ length: 10 }, (_, i) => `version ${i}`);
+      const results = await Promise.all(
+        versions.map((data) => service.createProjectFile(testUser, testSlug, 'a.txt', data))
+      );
+      expect(results.filter(Boolean)).toHaveLength(1);
+      const content = await service.readProjectFile(testUser, testSlug, 'a.txt');
+      expect(content.toString()).toBe(versions[results.indexOf(true)]);
+    });
+
+    it('does not let a failed write hold the name', async () => {
+      function* failsPartWay() {
+        yield Buffer.from('half a file');
+        throw Object.assign(new Error('disk full'), { code: 'ENOSPC' });
+      }
+
+      await expect(
+        service.createProjectFile(testUser, testSlug, 'a.txt', failsPartWay() as never)
+      ).rejects.toThrow('disk full');
+
+      expect(await service.projectFileExists(testUser, testSlug, 'a.txt')).toBe(false);
+      expect(await service.createProjectFile(testUser, testSlug, 'a.txt', 'whole')).toBe(true);
+    });
+
+    it('still refuses a filename that escapes the project', async () => {
+      await expect(
+        service.createProjectFile(testUser, testSlug, '../outside.txt', 'x')
+      ).rejects.toThrow('Path traversal');
+    });
 
     it('should reject path traversal in filename on save', async () => {
       await expect(

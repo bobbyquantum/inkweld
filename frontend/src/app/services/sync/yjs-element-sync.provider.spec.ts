@@ -780,6 +780,28 @@ describe('YjsElementSyncProvider', () => {
       expect(provider.getCanvasContents('canvas-1')).toBeNull();
     });
 
+    it('echoes an external edit to an open canvas, but not its own', () => {
+      attachDoc();
+      (
+        provider as unknown as { setupDocumentObserver(): void }
+      ).setupDocumentObserver();
+      const seen: (string[] | undefined)[] = [];
+      provider
+        .canvasContents$('canvas-1')
+        .subscribe(contents => seen.push(contents.objects.map(o => o.id)));
+      seen.length = 0;
+
+      provider.applyCanvasEdit('canvas-1', { upserts: [makePath('own')] });
+      expect(seen).toEqual([]);
+
+      provider.applyCanvasEdit(
+        'canvas-1',
+        { upserts: [makePath('agent')] },
+        { external: true }
+      );
+      expect(seen).toEqual([['own', 'agent']]);
+    });
+
     it('stores and reads page colours, leaving them absent until set', () => {
       attachDoc();
       provider.applyCanvasEdit('canvas-1', { layers });

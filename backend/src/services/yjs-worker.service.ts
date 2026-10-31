@@ -262,9 +262,14 @@ export class YjsWorkerService {
   /**
    * Apply a raw Yjs update (base64-encoded) to a document via the DO HTTP API.
    * This is used for updating ProseMirror XmlFragment content, which cannot be
-   * expressed as simple path-based updates.
+   * expressed as simple path-based updates. `mirrorCanvas` has the DO mirror a
+   * canvas onto its element afterwards: see `CommitOptions` in yjs-document-access.
    */
-  async applyYjsUpdate(docId: string, base64Update: string): Promise<void> {
+  async applyYjsUpdate(
+    docId: string,
+    base64Update: string,
+    options: { mirrorCanvas?: string } = {}
+  ): Promise<void> {
     const parts = stripTrailingSlashes(docId).split(':');
     if (parts.length < 2) {
       throw new Error(`Invalid docId format: ${docId}`);
@@ -281,7 +286,7 @@ export class YjsWorkerService {
           Authorization: `Bearer ${this.ctx.authToken}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ yUpdate: base64Update }),
+        body: JSON.stringify({ yUpdate: base64Update, mirrorCanvas: options.mirrorCanvas }),
       })
     );
 

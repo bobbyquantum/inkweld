@@ -34,6 +34,19 @@ LevelDB per project for Yjs documents (Durable Objects on Workers). The root
   a second handle can't take the LevelDB lock, so y-leveldb drops every write
   through it with only a console warning. Close handles with
   `releasePersistence()`, which waits for the lock before a reopen.
+- **MCP canvas tools** (`mcp/tools/canvas.tools.ts`) only do the storage; what
+  they accept and return is in `@inkweld/canvas`, shared with WebMCP. An edit
+  must also mirror the canvas onto its element's `canvasConfig` metadata, which
+  archives, templates and the media-usage scan read: `commit({ mirrorCanvas })`,
+  which on Workers leaves it to the Durable Object. Mirroring on a Worker's copy
+  misses other edits, and overlapping copies leave the element in the project
+  several times.
+- **MCP upload URLs** (`routes/mcp-upload.routes.ts`) authenticate by the token
+  in the path, since the caller is an agent's HTTP tool. Anything added there
+  must re-check what the token was issued against. A URL works once because
+  `createProjectFile` only stores a file that isn't there; checking first is not
+  enough. A tool's links for its caller use `ctx.requestOrigin`, not BASE_URL,
+  which can be out of date. Details: `docs/site/docs/developer/mcp-oauth.md`.
 - **Yjs document ids**: the backend/MCP use `username:slug:elements/` with a
   trailing slash, the frontend without. Not a bug; don't "fix" it.
 - **HTTP routes that edit a Yjs document** must work on both runtimes.
@@ -74,8 +87,8 @@ per-user override (`NULL` = instance default `SYNC_QUOTA_DEFAULT_BYTES`,
   `GET /users/me/storage` response carries `enabled`.
 - **Every write that adds project storage goes through
   `quotaService.assertCanStore()`** (media upload, cover upload, published
-  file, MCP `apply_image`), and project creation through
-  `assertCanCreateProject()`. A new storage write path must do the same, and
+  file, MCP `apply_image` and `create_media_upload` URLs), and project creation
+  through `assertCanCreateProject()`. A new storage write path must do the same, and
   pass `replacedBytes` when it overwrites a file so only the growth is charged.
   Deletions credit the counter (`recordDeletion`): media `DELETE`, cover
   delete, published-file delete, project delete (measured before teardown).
@@ -88,6 +101,10 @@ per-user override (`NULL` = instance default `SYNC_QUOTA_DEFAULT_BYTES`,
   against real storage first. Specs that need the fast path stamp the counter
   with `quotaService.persistUsage()`, and reset with
   `quotaService.clearReconcileCooldown()`.
+- **Overlapping writes**: `assertCanStore` counts a write in the same SQL
+  statement that checks it fits, and a reconcile doesn't store its figure over a
+  counter that moved while it measured. Keep it in the database: a promise or
+  lock shared between requests isn't safe on Workers.
 - A refusal is **403 with `code: 'QUOTA_EXCEEDED'`** (and `reason`), so the
   client can tell it apart from an access-control 403.
 

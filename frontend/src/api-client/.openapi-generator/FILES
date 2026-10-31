@@ -156,6 +156,7 @@ model/login-request.ts
 model/login-response.ts
 model/mark-comments-seen-request.ts
 model/mcp-error.ts
+model/mcp-media-upload-response.ts
 model/media-error.ts
 model/media-item.ts
 model/media-list-response.ts
@@ -251,6 +252,7 @@ model/update-o-auth-session-settings-request.ts
 model/update-profile-request.ts
 model/update-project-request.ts
 model/update-published-file-request.ts
+model/upload-mcp-media403-response.ts
 model/upload-project-cover403-response.ts
 model/upload-project-media200-response.ts
 model/upload-project-media403-response.ts

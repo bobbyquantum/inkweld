@@ -153,6 +153,22 @@ describe('Storage Service', () => {
     });
   });
 
+  describe('FileStorageAdapter - createProjectFile', () => {
+    it('stores the file once, from any of the data types', async () => {
+      const username = 'storagetest';
+      const slug = 'adapter-test';
+
+      const bytes = new TextEncoder().encode('first');
+      expect(await service.createProjectFile(username, slug, 'once.txt', bytes)).toBe(true);
+      expect(await service.createProjectFile(username, slug, 'once.txt', Buffer.from('no'))).toBe(
+        false
+      );
+
+      const stored = await service.readProjectFile(username, slug, 'once.txt');
+      expect(Buffer.from(stored as Buffer).toString()).toBe('first');
+    });
+  });
+
   describe('FileStorageAdapter - User avatars', () => {
     const username = 'storagetest';
 
@@ -238,6 +254,19 @@ describe('R2StorageAdapter', () => {
     it('saveProjectFile delegates to R2 put', async () => {
       await storage.saveProjectFile('user', 'proj', 'f.txt', Buffer.from('hi'), 'text/plain');
       expect(mockR2.put).toHaveBeenCalledTimes(1);
+    });
+
+    it('createProjectFile asks R2 for a put that only creates, and reports the result', async () => {
+      mockR2.put.mockImplementationOnce(() => Promise.resolve({ key: 'user/proj/f.txt' }));
+      expect(await storage.createProjectFile('user', 'proj', 'f.txt', Buffer.from('hi'))).toBe(
+        true
+      );
+      expect(mockR2.put.mock.calls[0][2].onlyIf).toEqual({ etagDoesNotMatch: '*' });
+
+      mockR2.put.mockImplementationOnce(() => Promise.resolve(null));
+      expect(await storage.createProjectFile('user', 'proj', 'f.txt', Buffer.from('hi'))).toBe(
+        false
+      );
     });
 
     it('readProjectFile delegates to R2 get', async () => {
