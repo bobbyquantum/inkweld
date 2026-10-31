@@ -7,6 +7,20 @@
     min-width: unset;
   }
 }
+.font-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+
+  mat-form-field {
+    flex: 1 1 100px;
+    min-width: 0;
+  }
+
+  .font-family {
+    flex: 2 1 180px;
+  }
+}
 .color-section {
   margin-top: 8px;
 }

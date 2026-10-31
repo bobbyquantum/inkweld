@@ -21,6 +21,7 @@ import { CanvasClipboardService } from '@services/canvas/canvas-clipboard.servic
 import { CanvasColorService } from '@services/canvas/canvas-color.service';
 import { CanvasContextMenuService } from '@services/canvas/canvas-context-menu.service';
 import { CanvasDrawingService } from '@services/canvas/canvas-drawing.service';
+import { CanvasEffectsService } from '@services/canvas/canvas-effects.service';
 import { CanvasExportService } from '@services/canvas/canvas-export.service';
 import { CanvasKeyboardService } from '@services/canvas/canvas-keyboard.service';
 import { CanvasLayerService } from '@services/canvas/canvas-layer.service';
@@ -351,6 +352,7 @@ describe('CanvasTabComponent', () => {
             CanvasLayerActionsService,
             CanvasZoomService,
             CanvasColorService,
+            CanvasEffectsService,
             CanvasClipboardService,
             CanvasContextMenuService,
             CanvasKeyboardService,
@@ -1644,6 +1646,46 @@ describe('CanvasTabComponent', () => {
       const event = new MouseEvent('click');
       component['onDeleteObject']('pin-linked', event);
       expect(mockCanvasService.removeObject).toHaveBeenCalledWith('pin-linked');
+    });
+  });
+
+  describe('onEditObjectEffects', () => {
+    it('does nothing when no object is selected', () => {
+      component['selectedObjectId'].set(null);
+      component['onEditObjectEffects']();
+      expect(mockDialog.open).not.toHaveBeenCalled();
+    });
+
+    it('opens the effects dialog and saves what it returns', () => {
+      const rect: CanvasShape = {
+        id: 'rect-1',
+        layerId: 'layer-1',
+        type: 'shape',
+        shapeType: 'rect',
+        x: 0,
+        y: 0,
+        rotation: 0,
+        scaleX: 1,
+        scaleY: 1,
+        visible: true,
+        locked: false,
+        width: 10,
+        height: 10,
+        stroke: '#000000',
+        strokeWidth: 1,
+      };
+      mockCanvasService.activeConfig.set({ ...defaultConfig, objects: [rect] });
+      component['selectedObjectId'].set('rect-1');
+      mockDialog.open.mockReturnValue({
+        afterClosed: () => of({ blendMode: 'multiply' }),
+      });
+
+      component['onEditObjectEffects']();
+
+      expect(mockDialog.open.mock.calls[0][1].data).toEqual({ object: rect });
+      expect(mockCanvasService.updateObject).toHaveBeenCalledWith('rect-1', {
+        blendMode: 'multiply',
+      });
     });
   });
 

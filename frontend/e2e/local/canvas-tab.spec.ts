@@ -485,6 +485,112 @@ test.describe('Canvas Tab', () => {
     });
   });
 
+  test('typography and effects: fonts, spacing, shadow, blend, outline', async ({
+    localPageWithProject: page,
+  }) => {
+    await createCanvasAndOpen(page);
+    const toolbar = page.getByTestId('canvas-toolbar');
+    const stage = page.getByTestId('canvas-stage');
+    const textAt = { x: 300, y: 200 };
+    // Inside the text, whose corner is where the page was clicked.
+    const insideText = { x: 330, y: 225 };
+
+    await test.step('text takes a shipped font, size and spacing', async () => {
+      await toolbar.getByTestId('text-tool').click();
+      await stage.click({ position: textAt });
+
+      await page.getByTestId('canvas-text-input').fill('Title');
+      await page.getByTestId('canvas-text-font').click();
+      await page.getByRole('option', { name: 'EB Garamond' }).click();
+      await page.getByTestId('canvas-text-style').click();
+      await page.getByRole('option', { name: 'Bold', exact: true }).click();
+      await page.getByTestId('canvas-text-size').fill('64');
+      await page.getByTestId('canvas-text-line-height').fill('1.4');
+      await page.getByTestId('canvas-text-letter-spacing').fill('3');
+      await page.getByTestId('canvas-text-confirm').click();
+
+      await expect(page.getByTestId('object-item')).toHaveCount(1);
+    });
+
+    await test.step('double-clicking the text reopens it with those settings', async () => {
+      await toolbar.getByTestId('select-tool').click();
+      await stage.dblclick({ position: insideText });
+
+      await expect(page.getByTestId('canvas-text-font')).toContainText(
+        'EB Garamond'
+      );
+      await expect(page.getByTestId('canvas-text-style')).toContainText('Bold');
+      await expect(page.getByTestId('canvas-text-size')).toHaveValue('64');
+      await expect(page.getByTestId('canvas-text-line-height')).toHaveValue(
+        '1.4'
+      );
+      await expect(page.getByTestId('canvas-text-letter-spacing')).toHaveValue(
+        '3'
+      );
+      await page.keyboard.press('Escape');
+    });
+
+    await test.step('effects change what is drawn and are kept', async () => {
+      const before = await stage.screenshot();
+
+      await stage.click({ button: 'right', position: insideText });
+      await page.getByTestId('context-effects').click();
+      await page
+        .getByTestId('canvas-effects-shadow')
+        .getByRole('switch')
+        .click();
+      await page.getByTestId('canvas-effects-shadow-blur').fill('20');
+      await page.getByTestId('canvas-effects-shadow-offset-x').fill('6');
+      await page.getByTestId('canvas-effects-shadow-opacity').fill('50');
+      await page.getByTestId('canvas-effects-blend').click();
+      await page.getByRole('option', { name: 'Multiply' }).click();
+      await page.getByTestId('canvas-effects-outline-width').fill('2');
+      await page.getByTestId('canvas-effects-apply').click();
+      await expect(page.getByTestId('canvas-effects-apply')).toHaveCount(0);
+
+      await expect
+        .poll(async () => (await stage.screenshot()).equals(before))
+        .toBe(false);
+
+      await stage.click({ button: 'right', position: insideText });
+      await page.getByTestId('context-effects').click();
+      await expect(page.getByTestId('canvas-effects-shadow-blur')).toHaveValue(
+        '20'
+      );
+      await expect(
+        page.getByTestId('canvas-effects-shadow-offset-x')
+      ).toHaveValue('6');
+      await expect(
+        page.getByTestId('canvas-effects-shadow-opacity')
+      ).toHaveValue('50');
+      await expect(page.getByTestId('canvas-effects-blend')).toContainText(
+        'Multiply'
+      );
+      await expect(
+        page.getByTestId('canvas-effects-outline-width')
+      ).toHaveValue('2');
+    });
+
+    await test.step('turning the shadow off clears it', async () => {
+      await page
+        .getByTestId('canvas-effects-shadow')
+        .getByRole('switch')
+        .click();
+      await expect(page.getByTestId('canvas-effects-shadow-blur')).toHaveCount(
+        0
+      );
+      await page.getByTestId('canvas-effects-apply').click();
+      await expect(page.getByTestId('canvas-effects-apply')).toHaveCount(0);
+
+      await stage.click({ button: 'right', position: insideText });
+      await page.getByTestId('context-effects').click();
+      await expect(
+        page.getByTestId('canvas-effects-shadow').getByRole('switch')
+      ).toHaveAttribute('aria-checked', 'false');
+      await page.keyboard.press('Escape');
+    });
+  });
+
   test('toolbar overflow: groups collapse into the chevron menu', async ({
     localPageWithProject: page,
   }) => {

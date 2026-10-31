@@ -18,9 +18,11 @@ export async function callTool(
   const tool = tools.find(t => t.name === name);
   if (!tool) throw new Error(`No tool named ${name}`);
   const result = (await toModelContextTool(tool).execute(input)) as ToolResult;
+  const first = result.content[0];
+  const text = first?.type === 'text' ? first.text : undefined;
   return {
-    data: result.structuredContent ?? result.content[0]?.text,
-    error: result.isError ? result.content[0]?.text : undefined,
+    data: result.structuredContent ?? text,
+    error: result.isError ? text : undefined,
   };
 }
 

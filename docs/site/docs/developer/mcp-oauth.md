@@ -69,6 +69,7 @@ statelessly.
 | `get_document_content`    | Get prose content from a document element, or one section  |
 | `get_document_outline`    | List a document's heading-based sections                   |
 | `get_canvas`              | Read a canvas: page colours, layers, frames and objects    |
+| `render_canvas`           | See a canvas as an image: a frame, an area or all of it    |
 | `get_relationships_graph` | Get all relationships as a graph structure                 |
 | `get_project_metadata`    | Get project metadata and settings                          |
 | `get_publish_plans`       | Get saved publish/export configurations                    |
@@ -92,6 +93,7 @@ statelessly.
 | `update_document_section` | Replace, add to or delete one section of a document                 |
 | `edit_canvas`             | Add, change, delete and restack objects on a canvas                 |
 | `create_media_upload`     | Get a short-lived URL for uploading an image file                   |
+| `save_canvas_image`       | Draw a canvas and keep the PNG in the project's media               |
 | `create_relationship`     | Create relationships between elements                               |
 | `delete_relationship`     | Remove a relationship                                               |
 | `tag_element`             | Add, remove, or set tags on an element                              |
@@ -132,13 +134,23 @@ Only the blocks in the edited range are deleted and inserted, in one Yjs transac
 - **Locks are respected.** Locked objects, and anything but pins on locked layers, are refused until unlocked; an update can unlock an object and a delete can follow it in the same edit. Restacking is not refused, since moving anything else past a locked object changes its place in the stack anyway. Removing a layer requires deleting or moving its artwork in the same edit; pins move to another layer, as they do in the app.
 - **Links are kept up to date.** A pin or region's `linkedElementId` creates the relationship behind it, and changing the link or deleting the object removes that relationship.
 - **Going back:** the result's `undo` holds `edit_canvas` arguments that reverse the edit, unless they would be over 64 KB or the edit set something with no earlier value, such as a first page colour. There is no other way back from an agent's edit: `create_snapshot` covers documents and worldbuilding, not canvases, and an edit from elsewhere clears the app's undo history for that canvas, as any collaborator's does.
-- **Agents cannot see the result yet.** There is no render tool, and objects have fixed coordinates, so overlaps and text overflow are not reported. A user can check the canvas in the app; an agent with browser access can screenshot it.
+- **Seeing the result:** `render_canvas` (`read:elements`) returns a PNG of the canvas-size frame, another frame, any area or all content, at up to 2048 pixels along the longest side. Objects have fixed coordinates, so overlaps and text that does not fit only show up in the image. `save_canvas_image` (`write:elements`) keeps the same PNG as project media and returns its `mediaUrl`, which `apply_image` can make the project cover. It goes through the storage quota; `render_canvas` stores nothing.
+- **Design fields:** every object takes `shadow` and `blendMode` except pins, images take `fit` and `cornerRadius`, and text takes `lineHeight`, `letterSpacing`, `stroke` and `strokeWidth`. People edit them in the canvas's **Effects** dialog and the text dialog. Text in one of `CANVAS_BUNDLED_FONTS` has the same font and line breaks in the app and in a server render; any other family depends on the viewer's machine, and the render says so in its warnings.
 
 The edit goes into the `canvases` map of the project's elements document one object at a time, so it merges with anyone drawing at the same time and an open canvas tab shows it. The tool also rewrites the element's `canvasConfig` metadata, because browsers only mirror their own edits there and archives, templates and the media-usage scan read it. A canvas that so far only exists in that metadata (restored from an archive) is seeded first, or its contents would be lost.
 
 Images use project media. `create_media_upload` (`write:elements`) takes a `format` (`png`, `jpeg`, `webp` or `gif`) and returns an `uploadUrl` and the `mediaUrl` the file will have. The agent sends the file with a plain `PUT`, for example `curl --fail --upload-file picture.png "<uploadUrl>"`, so the bytes never pass through its conversation the way `apply_image`'s `base64Data` does. The URL's token is the only credential. It names one new file, expires after 15 minutes and is signed with a key derived for this purpose alone, so it cannot pass as a session or OAuth token. The route (`routes/mcp-upload.routes.ts`) checks again that MCP is enabled, the session is not revoked and the user can still write to the project, checks the file's magic bytes against the format, charges the project owner's sync capacity, and refuses a second upload to the same URL.
 
 A browser fetches such an image from the server when a canvas needs it, rather than waiting for the next background media sync (`CanvasRendererService.resolveImageSrc`).
+
+##### How the server draws a canvas
+
+Konva, which draws canvases in the app, needs a browser's 2D context, so `services/canvas-render/` takes another route: `buildSvgDocument` from `@inkweld/canvas` makes an SVG, and [resvg](https://github.com/thx/resvg-js), running as WebAssembly, turns it into a PNG. That runs on Bun, Node and Workers.
+
+- **It is a close preview, not a pixel match.** Fonts, line breaks and spacing are the same as in the app, because `text-layout.ts` follows Konva's wrapping and the server measures with the files the app ships. Kerning and antialiasing differ. The browser tool of the same name draws with the app's own renderer instead, so it is exact.
+- **Fonts** come from `backend/assets/canvas-fonts.pack.bin`, which holds the Latin subsets of the fonts in `frontend/public/assets/fonts`. Characters outside them show as boxes, with a warning; the app falls back to the viewer's fonts for them. A family that does not ship with Inkweld gets the closest one that does, also with a warning.
+- **Images** are read from the project's media and embedded in the SVG, up to 16 MB each and 40 MB per render. The server never fetches an external URL on a canvas's say-so, since anyone who can edit the project could point it anywhere. resvg cannot decode WebP or AVIF, so they are converted with Sharp, which Workers does not have. Anything that cannot be drawn becomes a grey box and a warning, not a failed render.
+- **Cost:** a render takes about a second of CPU, on the request's thread on Bun and against the Worker's CPU limit on Workers, where the free plan's limit is too low for it. The rasteriser and fonts add about 1.5 MB gzipped to the Worker. A runtime that registers neither gets a tool result saying rendering is not available, and everything else keeps working.
 
 #### Schema (Template) Operations
 

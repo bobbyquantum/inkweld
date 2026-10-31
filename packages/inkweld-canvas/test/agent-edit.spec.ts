@@ -437,6 +437,215 @@ describe('adding objects', () => {
   });
 });
 
+describe('design fields', () => {
+  it('takes text spacing and an outline', () => {
+    const { contents } = plan(canvas(), {
+      add: [
+        {
+          id: 't',
+          type: 'text',
+          text: 'Title',
+          lineHeight: 1.3,
+          letterSpacing: 4,
+          stroke: '#000000',
+          strokeWidth: 2,
+        },
+      ],
+    });
+    expect(objectIn(contents, 't')).toMatchObject({
+      lineHeight: 1.3,
+      letterSpacing: 4,
+      stroke: '#000000',
+      strokeWidth: 2,
+    });
+  });
+
+  it('adds no spacing or outline unless asked', () => {
+    const { contents } = plan(canvas(), {
+      add: [{ id: 't', type: 'text', text: 'Title' }],
+    });
+    expect(objectIn(contents, 't')['lineHeight']).toBeUndefined();
+    expect(objectIn(contents, 't')['stroke']).toBeUndefined();
+  });
+
+  it('takes how an image fills its box', () => {
+    const { contents } = plan(canvas(), {
+      add: [
+        {
+          id: 'i',
+          type: 'image',
+          src: 'media://a.png',
+          width: 10,
+          height: 10,
+          fit: 'cover',
+          cornerRadius: 5,
+        },
+      ],
+    });
+    expect(objectIn(contents, 'i')).toMatchObject({
+      fit: 'cover',
+      cornerRadius: 5,
+    });
+  });
+
+  it('takes a shadow and a blend mode on all but pins', () => {
+    const shadow = { color: '#000000', blur: 4, offsetX: 1, offsetY: 2 };
+    const { contents } = plan(canvas(), {
+      add: [
+        {
+          id: 'r',
+          type: 'shape',
+          shapeType: 'rect',
+          width: 1,
+          height: 1,
+          shadow: { ...shadow, opacity: 0.5 },
+          blendMode: 'multiply',
+        },
+        { id: 't', type: 'text', text: 'a', shadow },
+        { id: 'p', type: 'path', points: [0, 0, 1, 1], blendMode: 'screen' },
+        {
+          id: 'i',
+          type: 'image',
+          src: 'media://a.png',
+          width: 1,
+          height: 1,
+          blendMode: 'overlay',
+        },
+      ],
+    });
+    expect(objectIn(contents, 'r')).toMatchObject({
+      blendMode: 'multiply',
+      shadow: { opacity: 0.5 },
+    });
+    expect(objectIn(contents, 't')['shadow']).toEqual(shadow);
+    expect(
+      refusal(canvas(), {
+        add: [{ type: 'pin', label: 'a', shadow }],
+      }),
+    ).toContain('shadow is not a field');
+  });
+
+  it('clears them with null', () => {
+    const start = canvas([
+      {
+        ...textObject,
+        lineHeight: 2,
+        letterSpacing: 1,
+        stroke: '#000',
+        strokeWidth: 1,
+        blendMode: 'multiply',
+        shadow: { color: '#000', blur: 1, offsetX: 0, offsetY: 0 },
+      },
+    ]);
+    const { contents } = plan(start, {
+      update: [
+        {
+          id: 't',
+          lineHeight: null,
+          letterSpacing: null,
+          stroke: null,
+          strokeWidth: null,
+          blendMode: null,
+          shadow: null,
+        },
+      ],
+    });
+    const after = objectIn(contents, 't');
+    for (const key of [
+      'lineHeight',
+      'letterSpacing',
+      'stroke',
+      'strokeWidth',
+      'blendMode',
+      'shadow',
+    ]) {
+      expect(after[key], key).toBeUndefined();
+    }
+  });
+
+  it.each<[string, Record<string, unknown>, string]>([
+    [
+      'a bad line height',
+      { type: 'text', text: 'a', lineHeight: 0 },
+      'lineHeight',
+    ],
+    [
+      'huge letter spacing',
+      { type: 'text', text: 'a', letterSpacing: 5000 },
+      'letterSpacing',
+    ],
+    [
+      'an outline colour that breaks SVG',
+      { type: 'text', text: 'a', stroke: '"' },
+      'stroke',
+    ],
+    [
+      'an unknown fit',
+      { type: 'image', src: 'media://a.png', width: 1, height: 1, fit: 'zoom' },
+      'fit must be',
+    ],
+    [
+      'a negative radius',
+      {
+        type: 'image',
+        src: 'media://a.png',
+        width: 1,
+        height: 1,
+        cornerRadius: -1,
+      },
+      'cornerRadius',
+    ],
+    [
+      'an unknown blend mode',
+      { type: 'text', text: 'a', blendMode: 'dissolve' },
+      'blendMode must be',
+    ],
+    [
+      'a shadow that is not an object',
+      { type: 'text', text: 'a', shadow: 'big' },
+      'shadow must be an object',
+    ],
+    [
+      'a shadow missing a field',
+      {
+        type: 'text',
+        text: 'a',
+        shadow: { color: '#000', blur: 1, offsetX: 0 },
+      },
+      'shadow.offsetY is required',
+    ],
+    [
+      'a shadow with an unknown field',
+      {
+        type: 'text',
+        text: 'a',
+        shadow: { color: '#000', blur: 1, offsetX: 0, offsetY: 0, spread: 1 },
+      },
+      'shadow.spread is not a field',
+    ],
+    [
+      'a shadow colour that breaks SVG',
+      {
+        type: 'text',
+        text: 'a',
+        shadow: { color: '"', blur: 1, offsetX: 0, offsetY: 0 },
+      },
+      'shadow.color',
+    ],
+    [
+      'a shadow with a bad blur',
+      {
+        type: 'text',
+        text: 'a',
+        shadow: { color: '#000', blur: -1, offsetX: 0, offsetY: 0 },
+      },
+      'shadow.blur',
+    ],
+  ])('refuses %s', (_name, object, message) => {
+    expect(refusal(canvas(), { add: [object] })).toContain(message);
+  });
+});
+
 describe('choosing a layer', () => {
   it('creates the first layer of a canvas that has none', () => {
     const { contents, edit } = plan(

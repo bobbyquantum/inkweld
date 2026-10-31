@@ -306,6 +306,248 @@ describe('CanvasRendererService', () => {
     });
   });
 
+  // ─── Design fields ───────────────────────────────────────────────────────
+
+  describe('design fields', () => {
+    const base = {
+      id: 'o',
+      layerId: 'l',
+      x: 0,
+      y: 0,
+      rotation: 0,
+      scaleX: 1,
+      scaleY: 1,
+      visible: true,
+      locked: false,
+    };
+    const text: CanvasText = {
+      ...base,
+      type: 'text',
+      text: 'Hello',
+      fontSize: 20,
+      fontFamily: 'Lato',
+      fontStyle: 'bold',
+      fill: '#000',
+      width: 0,
+      align: 'left',
+    };
+    const shadow = {
+      color: '#123',
+      blur: 8,
+      offsetX: 2,
+      offsetY: 3,
+      opacity: 0.5,
+    };
+
+    it('turns a shadow and a blend mode into Konva attributes', () => {
+      expect(
+        CanvasRendererService.effectAttrs({
+          ...text,
+          shadow,
+          blendMode: 'multiply',
+        })
+      ).toEqual({
+        shadowEnabled: true,
+        shadowColor: '#123',
+        shadowBlur: 8,
+        shadowOffsetX: 2,
+        shadowOffsetY: 3,
+        shadowOpacity: 0.5,
+        shadowForStrokeEnabled: true,
+        globalCompositeOperation: 'multiply',
+      });
+    });
+
+    it('resets them when there are none', () => {
+      expect(CanvasRendererService.effectAttrs(text)).toMatchObject({
+        shadowEnabled: false,
+        shadowColor: undefined,
+        shadowOpacity: 1,
+        shadowForStrokeEnabled: false,
+        globalCompositeOperation: 'source-over',
+      });
+    });
+
+    it('draws text with its spacing, outline and effects', () => {
+      const node = CanvasRendererService.createTextNode(
+        {
+          ...text,
+          lineHeight: 1.5,
+          letterSpacing: 4,
+          stroke: '#fff',
+          strokeWidth: 2,
+          shadow,
+          blendMode: 'screen',
+        },
+        { id: 'o' }
+      );
+      expect(node.lineHeight()).toBe(1.5);
+      expect(node.letterSpacing()).toBe(4);
+      expect(node.stroke()).toBe('#fff');
+      expect(node.strokeWidth()).toBe(2);
+      expect(node.fillAfterStrokeEnabled()).toBe(true);
+      expect(node.shadowBlur()).toBe(8);
+      expect(node.globalCompositeOperation()).toBe('screen');
+    });
+
+    it('updates them in place, and takes them away again', () => {
+      const node = CanvasRendererService.createTextNode(
+        { ...text, lineHeight: 2, letterSpacing: 4, shadow },
+        { id: 'o' }
+      );
+      CanvasRendererService.applyStyle(node, text);
+      expect(node.lineHeight()).toBe(1);
+      expect(node.letterSpacing()).toBe(0);
+      expect(node.shadowEnabled()).toBe(false);
+    });
+
+    it('applies effects to shapes and paths', () => {
+      const rect = new Konva.Rect({ id: 'r' });
+      CanvasRendererService.applyStyle(rect, {
+        ...base,
+        type: 'shape',
+        shapeType: 'rect',
+        width: 10,
+        height: 10,
+        stroke: '#000',
+        strokeWidth: 1,
+        blendMode: 'overlay',
+      });
+      expect(rect.globalCompositeOperation()).toBe('overlay');
+
+      const path: CanvasPath = {
+        ...base,
+        type: 'path',
+        points: [0, 0, 1, 1],
+        stroke: '#000',
+        strokeWidth: 1,
+        closed: false,
+        tension: 0,
+      };
+      const line = CanvasRendererService.createPathNode(
+        { ...path, shadow },
+        {}
+      );
+      expect(line.shadowForStrokeEnabled()).toBe(true);
+      CanvasRendererService.applyStyle(line, path);
+      expect(line.shadowForStrokeEnabled()).toBe(false);
+    });
+
+    it('fits a loaded picture to its box when the object changes', () => {
+      const image: CanvasImage = {
+        ...base,
+        type: 'image',
+        src: 'x',
+        width: 100,
+        height: 100,
+        fit: 'cover',
+        cornerRadius: 9,
+        blendMode: 'multiply',
+      };
+      const picture = Object.assign(document.createElement('img'), {});
+      Object.defineProperty(picture, 'naturalWidth', { value: 400 });
+      Object.defineProperty(picture, 'naturalHeight', { value: 100 });
+      const group = new Konva.Group();
+      const kImage = new Konva.Image({ image: picture });
+      group.add(kImage);
+
+      CanvasRendererService.applyStyle(group, image);
+
+      expect(kImage.cropX()).toBe(150);
+      expect(kImage.cropWidth()).toBe(100);
+      expect(kImage.cornerRadius()).toBe(9);
+      expect(kImage.globalCompositeOperation()).toBe('multiply');
+    });
+
+    it('rounds the placeholder as well', () => {
+      const group = new Konva.Group();
+      const placeholder = new Konva.Rect();
+      group.add(placeholder);
+      CanvasRendererService.applyStyle(group, {
+        ...base,
+        type: 'image',
+        src: 'x',
+        width: 40,
+        height: 30,
+        cornerRadius: 5,
+      });
+      expect(placeholder.width()).toBe(40);
+      expect(placeholder.cornerRadius()).toBe(5);
+    });
+
+    describe('web fonts', () => {
+      const original = Object.getOwnPropertyDescriptor(document, 'fonts');
+
+      function stubFonts(fonts: Partial<FontFaceSet>): void {
+        Object.defineProperty(document, 'fonts', {
+          configurable: true,
+          value: fonts,
+        });
+      }
+
+      afterEach(() => {
+        if (original) Object.defineProperty(document, 'fonts', original);
+        else delete (document as { fonts?: unknown }).fonts;
+      });
+
+      it('lays text out again when its font arrives', async () => {
+        let arrive: (faces: FontFace[]) => void = () => {};
+        const load = vi.fn(
+          () =>
+            new Promise<FontFace[]>(resolve => {
+              arrive = resolve;
+            })
+        );
+        stubFonts({ check: () => false, load: load });
+
+        const node = CanvasRendererService.createTextNode(text, {});
+        const relayout = vi.spyOn(
+          node as unknown as { _setTextData(): void },
+          '_setTextData'
+        );
+        expect(load).toHaveBeenCalledWith('normal bold 20px "Lato"');
+
+        arrive([{} as FontFace]);
+        await Promise.resolve();
+        await Promise.resolve();
+        expect(relayout).toHaveBeenCalled();
+      });
+
+      it('leaves text alone when the font is not one it can load', async () => {
+        stubFonts({
+          check: () => false,
+          load: vi.fn(() => Promise.resolve([])),
+        });
+        const node = CanvasRendererService.createTextNode(text, {});
+        const relayout = vi.spyOn(
+          node as unknown as { _setTextData(): void },
+          '_setTextData'
+        );
+        await Promise.resolve();
+        await Promise.resolve();
+        expect(relayout).not.toHaveBeenCalled();
+      });
+
+      it('does not ask for a font that is already there', () => {
+        const load = vi.fn();
+        stubFonts({ check: () => true, load: load as never });
+        CanvasRendererService.createTextNode(text, {});
+        expect(load).not.toHaveBeenCalled();
+      });
+
+      it('survives a font that fails to load', async () => {
+        stubFonts({
+          check: () => false,
+          load: vi.fn(() => Promise.reject(new Error('blocked'))),
+        });
+        expect(() =>
+          CanvasRendererService.createTextNode(text, {})
+        ).not.toThrow();
+        await Promise.resolve();
+      });
+    });
+  });
+
   // ─── getObjectStructure (static) ─────────────────────────────────────────
 
   describe('getObjectStructure (static)', () => {

@@ -2,6 +2,8 @@
  * Node.js-specific app configuration using better-sqlite3
  * This file imports Node-compatible modules and should only be used in Node.js runtime
  */
+import { registerCanvasRenderAssets } from './services/canvas-render/assets';
+import { fileCanvasRenderAssets } from './services/canvas-render/assets.file';
 import { OpenAPIHono } from '@hono/zod-openapi';
 import { cors } from 'hono/cors';
 import { csrf } from 'hono/csrf';
@@ -21,6 +23,8 @@ import { setupBetterSqliteDatabase } from './db/better-sqlite';
 // Import common route registration (no WebSocket/Yjs routes - Node doesn't support those easily)
 import { registerCommonRoutes } from './config/routes';
 import { isCrossOriginPath, registerOpenOriginRoutes } from './middleware/open-origin';
+
+registerCanvasRenderAssets(fileCanvasRenderAssets);
 
 const app = new OpenAPIHono<BetterSqliteAppContext>();
 

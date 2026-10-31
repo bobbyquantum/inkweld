@@ -1,0 +1,27 @@
+.section-toggle {
+  display: block;
+  margin-bottom: 16px;
+}
+.field-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+
+  mat-form-field {
+    flex: 1 1 90px;
+    min-width: 0;
+  }
+}
+.full-width {
+  width: 100%;
+}
+.color-section {
+  margin-bottom: 16px;
+}
+.color-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--sys-on-surface-variant);
+  margin-bottom: 8px;
+}

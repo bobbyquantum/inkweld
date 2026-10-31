@@ -41,6 +41,48 @@ export interface CanvasLayer {
 /** Discriminator for CanvasObject subtypes */
 export type CanvasObjectType = 'image' | 'text' | 'path' | 'shape' | 'pin';
 
+/** A drop shadow. Blur and offsets are in canvas units. */
+export interface CanvasShadow {
+  /** CSS color */
+  color: string;
+  blur: number;
+  offsetX: number;
+  offsetY: number;
+  /** 0–1. Undefined means fully opaque. */
+  opacity?: number;
+}
+
+/** How an object mixes with what is below it on its layer. */
+export const CANVAS_BLEND_MODES = [
+  'multiply',
+  'screen',
+  'overlay',
+  'darken',
+  'lighten',
+  'color-dodge',
+  'color-burn',
+  'hard-light',
+  'soft-light',
+  'difference',
+  'exclusion',
+] as const;
+
+export type CanvasBlendMode = (typeof CANVAS_BLEND_MODES)[number];
+
+/**
+ * Fonts that ship with Inkweld: every browser gets them from the app, and the
+ * server has the same files, so text in these looks the same everywhere. Any
+ * other family depends on what is installed on the machine showing the canvas.
+ */
+export const CANVAS_BUNDLED_FONTS = [
+  'EB Garamond',
+  'Source Serif 4',
+  'Source Sans 3',
+  'Lato',
+  'Source Code Pro',
+  'Courier Prime',
+] as const;
+
 /** Base properties shared by all canvas objects */
 interface CanvasObjectBase {
   /** Unique object ID */
@@ -67,6 +109,10 @@ interface CanvasObjectBase {
   name?: string;
   /** Object opacity (0–1). Undefined means fully opaque. */
   opacity?: number;
+  /** Drop shadow. Not drawn on pins, which have their own. */
+  shadow?: CanvasShadow;
+  /** Undefined means normal. Not applied to pins. */
+  blendMode?: CanvasBlendMode;
 }
 
 // ─── Image Object ────────────────────────────────────────────────────────────
@@ -91,7 +137,16 @@ export interface CanvasImage extends CanvasObjectBase {
    * objects on their layer. Several backgrounds can tile one large map.
    */
   isBackground?: boolean;
+  /**
+   * How the picture fills the width × height box. `fill` (the default)
+   * stretches it, `cover` crops it to fill the box, `contain` fits it inside.
+   */
+  fit?: CanvasImageFit;
+  /** Rounds the corners of the box. */
+  cornerRadius?: number;
 }
+
+export type CanvasImageFit = 'fill' | 'cover' | 'contain';
 
 // ─── Text Object ─────────────────────────────────────────────────────────────
 
@@ -112,6 +167,14 @@ export interface CanvasText extends CanvasObjectBase {
   width: number;
   /** Text alignment */
   align: 'left' | 'center' | 'right';
+  /** Line spacing as a multiple of the font size. Undefined means 1. */
+  lineHeight?: number;
+  /** Extra space between characters, in canvas units. */
+  letterSpacing?: number;
+  /** Outline color (CSS color string), drawn behind the fill. */
+  stroke?: string;
+  /** Outline width. */
+  strokeWidth?: number;
 }
 
 // ─── Path Object ─────────────────────────────────────────────────────────────

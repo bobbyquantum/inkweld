@@ -80,7 +80,8 @@ per-user override (`NULL` = instance default `SYNC_QUOTA_DEFAULT_BYTES`,
   `GET /users/me/storage` response carries `enabled`.
 - **Every write that adds project storage goes through
   `quotaService.assertCanStore()`** (media upload, cover upload, published
-  file, MCP `apply_image` and `create_media_upload` URLs), and project creation
+  file, MCP `apply_image`, `create_media_upload` URLs and `save_canvas_image`),
+  and project creation
   through `assertCanCreateProject()`. A new storage write path must do the same, and
   pass `replacedBytes` when it overwrites a file so only the growth is charged.
   Deletions credit the counter (`recordDeletion`): media `DELETE`, cover
@@ -118,6 +119,26 @@ Details: `docs/site/docs/developer/legal-pages-and-custom-html.md` and
   `INGRESS_TRUSTED_PROXY`). Don't switch it to `getClientIp()` /
   `X-Forwarded-For`. An ingress session is only valid for the Home Assistant
   user making the request (`ingressSessionMatches`).
+
+## Rendering canvases on the server
+
+`render_canvas` and `save_canvas_image` draw through `services/canvas-render/`.
+Docs: `docs/site/docs/developer/mcp-oauth.md`.
+
+- **The WebAssembly and the fonts reach each runtime differently**, so an entry
+  point registers them: `registerCanvasRenderAssets` in `bun-app.ts` and
+  `node-app.ts` (`assets.file.ts`, `with { type: 'file' }`) and in
+  `cloudflare-runner.ts` (`assets.worker.ts`, Wrangler bundles the `.wasm` as a
+  compiled module, since Workers cannot compile at run time). Nothing registered
+  means the tools answer "not available".
+- **`resvg` and its render result must be `free()`d.** WebAssembly memory is not
+  garbage collected.
+- **Rebuild the font pack** with `bun scripts/build-canvas-font-pack.ts` after
+  changing `CANVAS_BUNDLED_FONTS` or the font files. It checks the files against
+  `frontend/scripts/font-digests.json`.
+- **Never fetch an image from a URL stored in a canvas**, and check a stored
+  `media:` reference with `isMediaReference` before using it as a filename:
+  anyone with edit access can store any value, through the sync socket as well.
 
 ## Auth and accounts
 

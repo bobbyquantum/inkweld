@@ -30,12 +30,12 @@ What each level lets the connected tool do:
 | Search elements and worldbuilding data, and read relationships                      |    Yes    |             Yes             |
 | Read the worldbuilding templates (schemas) the project uses                         |    Yes    |             Yes             |
 | Read the media library, image profiles and publish plans                            |    Yes    |             Yes             |
-| Read canvases (drawings, maps, mood boards)                                         |    Yes    |             Yes             |
+| Read canvases (drawings, maps, mood boards), and see them as images                 |    Yes    |             Yes             |
 | Create, rename, move, reorder, sort, tag and delete elements, and take snapshots    |    No     |             Yes             |
 | Replace the whole element tree in one step                                          |    No     |             Yes             |
 | Edit document text                                                                  |    No     |             Yes             |
 | Edit worldbuilding fields and relationships, and apply images to worldbuilding data |    No     |             Yes             |
-| Edit canvases, and upload images to the media library                               |    No     |             Yes             |
+| Edit canvases, upload images, and save canvas images to the media library           |    No     |             Yes             |
 
 :::warning
 With **View and edit** or **Full access**, a tool can replace every element in the project in a single call. Only grant edit access to tools you trust, and keep [snapshots](../writing/snapshots) or an [export](../organizing/import-export) of important work.

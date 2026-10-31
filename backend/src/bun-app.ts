@@ -9,6 +9,8 @@ import { csrf } from 'hono/csrf';
 import { prettyJSON } from 'hono/pretty-json';
 import { secureHeaders } from 'hono/secure-headers';
 import { requestLogger } from './middleware/request-logger';
+import { registerCanvasRenderAssets } from './services/canvas-render/assets';
+import { fileCanvasRenderAssets } from './services/canvas-render/assets.file';
 import { logger } from './services/logger.service';
 import { getInkweldAppClientOrigins } from './services/inkweld-app-client.service';
 import { websocket } from 'hono/bun';
@@ -64,6 +66,8 @@ try {
     // Not in embedded mode, that's fine
   }
 }
+
+registerCanvasRenderAssets(fileCanvasRenderAssets);
 
 const app = new OpenAPIHono<BunSqliteAppContext>();
 

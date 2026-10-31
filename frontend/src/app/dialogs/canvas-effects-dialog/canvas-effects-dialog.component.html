@@ -1,0 +1,131 @@
+<h2 mat-dialog-title>{{ 'canvas.effectsDialog.title' | transloco }}</h2>
+<mat-dialog-content>
+  <mat-slide-toggle
+    class="section-toggle"
+    data-testid="canvas-effects-shadow"
+    [formField]="form.shadowOn">
+    {{ 'canvas.effectsDialog.shadow' | transloco }}
+  </mat-slide-toggle>
+
+  @if (model().shadowOn) {
+    <div class="field-row">
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'canvas.effectsDialog.blur' | transloco }}</mat-label>
+        <input
+          matInput
+          type="number"
+          step="1"
+          data-testid="canvas-effects-shadow-blur"
+          [formField]="form.shadowBlur" />
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'canvas.effectsDialog.offsetX' | transloco }}</mat-label>
+        <input
+          matInput
+          type="number"
+          step="1"
+          data-testid="canvas-effects-shadow-offset-x"
+          [formField]="form.shadowOffsetX" />
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'canvas.effectsDialog.offsetY' | transloco }}</mat-label>
+        <input
+          matInput
+          type="number"
+          step="1"
+          data-testid="canvas-effects-shadow-offset-y"
+          [formField]="form.shadowOffsetY" />
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>{{ 'canvas.effectsDialog.opacity' | transloco }}</mat-label>
+        <input
+          matInput
+          type="number"
+          step="5"
+          data-testid="canvas-effects-shadow-opacity"
+          [formField]="form.shadowOpacityPercent" />
+      </mat-form-field>
+    </div>
+    <div class="color-section">
+      <span class="color-label">{{
+        'canvas.effectsDialog.shadowColor' | transloco
+      }}</span>
+      <app-color-swatches
+        [selectedColor]="shadowColor()"
+        (colorChange)="shadowColor.set($event)" />
+    </div>
+  }
+
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>{{ 'canvas.effectsDialog.blendMode' | transloco }}</mat-label>
+    <mat-select data-testid="canvas-effects-blend" [formField]="form.blendMode">
+      @for (mode of blendModes; track mode.value) {
+        <mat-option [value]="mode.value">{{
+          mode.labelKey | transloco
+        }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  @if (isImage) {
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>{{ 'canvas.effectsDialog.fit' | transloco }}</mat-label>
+      <mat-select data-testid="canvas-effects-fit" [formField]="form.fit">
+        @for (fit of imageFits; track fit.value) {
+          <mat-option [value]="fit.value">{{
+            fit.labelKey | transloco
+          }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+  }
+
+  @if (hasCorners) {
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>{{
+        'canvas.effectsDialog.cornerRadius' | transloco
+      }}</mat-label>
+      <input
+        matInput
+        type="number"
+        step="1"
+        data-testid="canvas-effects-corner-radius"
+        [formField]="form.cornerRadius" />
+    </mat-form-field>
+  }
+
+  @if (isText) {
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>{{
+        'canvas.effectsDialog.outlineWidth' | transloco
+      }}</mat-label>
+      <input
+        matInput
+        type="number"
+        step="0.5"
+        data-testid="canvas-effects-outline-width"
+        [formField]="form.outlineWidth" />
+    </mat-form-field>
+    @if (model().outlineWidth > 0) {
+      <div class="color-section">
+        <span class="color-label">{{
+          'canvas.effectsDialog.outlineColor' | transloco
+        }}</span>
+        <app-color-swatches
+          [selectedColor]="outlineColor()"
+          (colorChange)="outlineColor.set($event)" />
+      </div>
+    }
+  }
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onCancel()">{{ 'cancel' | transloco }}</button>
+  <button
+    mat-button
+    color="primary"
+    data-testid="canvas-effects-apply"
+    [disabled]="form().invalid()"
+    (click)="onApply()">
+    {{ 'canvas.effectsDialog.apply' | transloco }}
+  </button>
+</mat-dialog-actions>

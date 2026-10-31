@@ -183,7 +183,7 @@ release-please cuts releases (`.github/workflows/release-please.yml`,
 | Topic | Location |
 |---|---|
 | Angular conventions, tests, e2e, i18n, frontend-wide rules | `frontend/AGENTS.md` |
-| Hono conventions, migrations, AI kill switch, quotas, serving `index.html`, auth, rename, share links, sync manifest | `backend/AGENTS.md` |
+| Hono conventions, migrations, AI kill switch, quotas, serving `index.html`, canvas rendering, auth, rename, share links, sync manifest | `backend/AGENTS.md` |
 | Durable Object storage and revision tokens | `backend/src/durable-objects/AGENTS.md` |
 | Profile-scoped storage, project rename, APP_MODE, app backgrounds, update dialog | `frontend/src/app/services/core/AGENTS.md` |
 | Starting offline, bulk sync planner | `frontend/src/app/services/sync/AGENTS.md` |

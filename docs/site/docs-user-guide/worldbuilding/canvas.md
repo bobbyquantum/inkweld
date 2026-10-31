@@ -253,6 +253,7 @@ Right-click anywhere on the canvas (or on a selected object) to open the context
 | **Duplicate**                                      | Duplicate the selected object in place                   |
 | **Delete**                                         | Remove the selected object                               |
 | **Bring / Send** (front, back…)                    | Change the object's order within its layer               |
+| **Effects…**                                       | Shadow, blend mode and more (see [Effects](#effects))    |
 | **Send to Layer**                                  | Move the selected object to a different layer            |
 | **Set as background** / **Detach from background** | Toggle whether an image is a map backdrop (images only)  |
 | **Link to element…** / **Unlink element**          | Turn a shape into a clickable region, or remove the link |
@@ -260,6 +261,24 @@ Right-click anywhere on the canvas (or on a selected object) to open the context
 | **Open linked element**                            | Open the element a pin or region points at               |
 
 Standard keyboard shortcuts also work: `Ctrl+C` / `Cmd+C` to copy, `Ctrl+X` / `Cmd+X` to cut, `Ctrl+V` / `Cmd+V` to paste, `Ctrl+D` / `Cmd+D` to duplicate, and `Delete` to remove.
+
+## Text
+
+Click with the **Text** tool to add text, and double-click it later to change it. Besides the words and the colour you can set the font, style, size, line height and letter spacing.
+
+The first fonts in the list ship with Inkweld, so they look the same on every device. The others are whatever the device showing the canvas has installed, so text in them can wrap differently from one screen to the next. Use a shipped font for anything with a careful layout, like a cover.
+
+## Effects
+
+Right-click an object and choose **Effects…**:
+
+| Setting           | Applies to            | What it does                                                      |
+| ----------------- | --------------------- | ----------------------------------------------------------------- |
+| **Drop shadow**   | Everything but pins   | A shadow with its own colour, blur, offset and opacity            |
+| **Blend mode**    | Everything but pins   | How the object mixes with what is below it on its layer           |
+| **Image fit**     | Images                | Stretch the picture to its box, crop it to fill, or fit it inside |
+| **Corner radius** | Images and rectangles | Rounds the corners                                                |
+| **Outline**       | Text                  | A coloured line around the letters, set by its width (0 for none) |
 
 ## Undo & Redo
 
@@ -280,7 +299,7 @@ Click the **download** button in the sidebar header (or the collapsed sidebar st
 - **Whole canvas** — fitted around all visible content, or exactly the canvas-size frame when one exists:
   - **Export as PNG** — standard 2× resolution raster image
   - **Export as PNG (High-res)** — 3× resolution for print or high-DPI displays
-  - **Export as SVG** — scalable vector format; ideal for further editing in tools like Inkscape or Illustrator (images from the media library are replaced with a placeholder)
+  - **Export as SVG** — scalable vector format; ideal for further editing in tools like Inkscape or Illustrator (images from the media library are replaced with a placeholder, and text needs its font installed where you open the file)
 - **A frame** — each frame in the list has its own **Export PNG**, **Export PNG (2x)**, and **Export SVG**, cropped exactly to the frame's rectangle. The same options are available from the frame's **⋮** menu.
 
 Only visible layers are included. Visible pins are always included, and frame outlines and selection handles never are. Shape gradients are preserved in SVG.

@@ -54,7 +54,7 @@ const elementIdProperty = {
   description: 'ID of the CANVAS element. Create one with create_element, type CANVAS.',
 } as const;
 
-function errorResult(message: string): McpToolResult {
+export function errorResult(message: string): McpToolResult {
   return { content: [{ type: 'text', text: `Error: ${message}` }], isError: true };
 }
 
@@ -67,7 +67,7 @@ interface OpenCanvas {
 }
 
 /** Open the project's elements document and find a canvas in it. */
-async function openCanvas(
+export async function openCanvas(
   ctx: McpContext,
   username: string,
   slug: string,
@@ -90,9 +90,15 @@ async function openCanvas(
   return { editable, element, elements, contents, needsSeed };
 }
 
-function requireElementId(args: Record<string, unknown>): string {
+export function readElementId(args: Record<string, unknown>): string {
   return (typeof args.elementId === 'string' ? args.elementId : '').trim();
 }
+
+/** The arguments every canvas tool takes. */
+export const canvasToolProperties = {
+  project: projectProperty,
+  elementId: elementIdProperty,
+};
 
 // ============================================
 // get_canvas tool
@@ -106,8 +112,7 @@ registerTool({
     inputSchema: {
       type: 'object',
       properties: {
-        project: projectProperty,
-        elementId: elementIdProperty,
+        ...canvasToolProperties,
         ...GET_CANVAS_PROPERTIES,
       },
       required: ['project', 'elementId'],
@@ -124,7 +129,7 @@ registerTool({
     if ('error' in result) return result.error;
     const { username, slug } = result.project;
 
-    const elementId = requireElementId(args);
+    const elementId = readElementId(args);
     if (!elementId) return errorResult('elementId is required');
 
     try {
@@ -189,8 +194,7 @@ To place an image from a file on disk, call create_media_upload first, upload th
     inputSchema: {
       type: 'object',
       properties: {
-        project: projectProperty,
-        elementId: elementIdProperty,
+        ...canvasToolProperties,
         ...EDIT_CANVAS_PROPERTIES,
       },
       required: ['project', 'elementId'],
@@ -207,7 +211,7 @@ To place an image from a file on disk, call create_media_upload first, upload th
     if ('error' in result) return result.error;
     const { username, slug, projectId } = result.project;
 
-    const elementId = requireElementId(args);
+    const elementId = readElementId(args);
     if (!elementId) return errorResult('elementId is required');
 
     try {
