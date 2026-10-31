@@ -91,6 +91,12 @@ describe('getRequestOrigin', () => {
     ).toBe('https://inkweld.example.com');
   });
 
+  it('keeps a port the proxy names', async () => {
+    expect(await origin({ 'x-forwarded-host': 'inkweld.example.com:8443' })).toBe(
+      'http://inkweld.example.com:8443'
+    );
+  });
+
   it('ignores a scheme it does not know', async () => {
     expect(await origin({ 'x-forwarded-proto': 'gopher' })).toBe('http://internal:8333');
   });

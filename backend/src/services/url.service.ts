@@ -47,7 +47,11 @@ export async function getBaseUrl(db: DatabaseInstance): Promise<string> {
 export function getRequestOrigin(c: Context): string {
   const url = new URL(c.req.url);
   const forwardedHost = c.req.header('x-forwarded-host')?.split(',')[0]?.trim();
-  if (forwardedHost) url.host = forwardedHost;
+  if (forwardedHost) {
+    // Setting a host without a port would keep the internal one.
+    url.port = '';
+    url.host = forwardedHost;
+  }
   const forwardedProto = c.req.header('x-forwarded-proto')?.split(',')[0]?.trim();
   if (forwardedProto === 'https' || forwardedProto === 'http') {
     url.protocol = `${forwardedProto}:`;
