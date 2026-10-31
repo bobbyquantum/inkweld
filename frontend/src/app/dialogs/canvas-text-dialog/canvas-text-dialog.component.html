@@ -18,6 +18,65 @@
     }
   </mat-form-field>
 
+  <div class="font-row">
+    <mat-form-field appearance="outline" class="font-family">
+      <mat-label>{{ 'canvas.textDialog.fontLabel' | transloco }}</mat-label>
+      <mat-select [formField]="form.fontFamily" data-testid="canvas-text-font">
+        @for (font of fonts; track font) {
+          <mat-option [value]="font">
+            <span [style.font-family]="'&quot;' + font + '&quot;'">{{
+              font
+            }}</span>
+          </mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field appearance="outline" class="font-style">
+      <mat-label>{{ 'canvas.textDialog.styleLabel' | transloco }}</mat-label>
+      <mat-select [formField]="form.fontStyle" data-testid="canvas-text-style">
+        @for (style of fontStyles; track style.value) {
+          <mat-option [value]="style.value">{{
+            style.labelKey | transloco
+          }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+  </div>
+
+  <div class="font-row">
+    <mat-form-field appearance="outline">
+      <mat-label>{{ 'canvas.textDialog.sizeLabel' | transloco }}</mat-label>
+      <input
+        matInput
+        type="number"
+        step="1"
+        [formField]="form.fontSize"
+        data-testid="canvas-text-size" />
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>{{
+        'canvas.textDialog.lineHeightLabel' | transloco
+      }}</mat-label>
+      <input
+        matInput
+        type="number"
+        step="0.1"
+        [formField]="form.lineHeight"
+        data-testid="canvas-text-line-height" />
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>{{
+        'canvas.textDialog.letterSpacingLabel' | transloco
+      }}</mat-label>
+      <input
+        matInput
+        type="number"
+        step="1"
+        [formField]="form.letterSpacing"
+        data-testid="canvas-text-letter-spacing" />
+    </mat-form-field>
+  </div>
+
   <div class="color-section">
     <span class="color-label">{{
       'canvas.textDialog.textColor' | transloco

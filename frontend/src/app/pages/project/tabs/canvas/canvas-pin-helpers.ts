@@ -1,31 +1,12 @@
 import {
-  CANVAS_AREA_RELATIONSHIP_TYPE,
-  CANVAS_PIN_RELATIONSHIP_TYPE,
-  type CanvasPin,
-} from '@models/canvas.model';
+  type CanvasLinkKind,
+  canvasLinkRelationshipType,
+} from '@inkweld/canvas';
+import { type CanvasPin } from '@models/canvas.model';
 import type { RelationshipCategory } from '@models/element-ref.model';
 import type { RelationshipService } from '@services/relationship/relationship.service';
 
-/** The two kinds of canvas → element link. */
-export type CanvasLinkKind = 'pin' | 'area';
-
-const LINK_TYPES: Record<
-  CanvasLinkKind,
-  { id: string; name: string; inverseLabel: string; icon: string }
-> = {
-  pin: {
-    id: CANVAS_PIN_RELATIONSHIP_TYPE,
-    name: 'Pinned on canvas',
-    inverseLabel: 'Has pin',
-    icon: 'push_pin',
-  },
-  area: {
-    id: CANVAS_AREA_RELATIONSHIP_TYPE,
-    name: 'Mapped area on canvas',
-    inverseLabel: 'Has mapped area',
-    icon: 'highlight_alt',
-  },
-};
+export type { CanvasLinkKind } from '@inkweld/canvas';
 
 /**
  * Create a formal ElementRelationship linking a canvas element to the
@@ -35,14 +16,23 @@ export function createLinkRelationship(
   relationshipService: RelationshipService,
   sourceElementId: string,
   targetElementId: string,
-  kind: CanvasLinkKind
+  kind: CanvasLinkKind,
+  relationshipId?: string
 ): string {
   ensureCanvasLinkRelationshipType(relationshipService, kind);
-  const rel = relationshipService.addRelationship(
-    sourceElementId,
-    targetElementId,
-    LINK_TYPES[kind].id
-  );
+  const typeId = canvasLinkRelationshipType(kind).id;
+  const rel = relationshipId
+    ? relationshipService.addRelationship(
+        sourceElementId,
+        targetElementId,
+        typeId,
+        { id: relationshipId }
+      )
+    : relationshipService.addRelationship(
+        sourceElementId,
+        targetElementId,
+        typeId
+      );
   return rel.id;
 }
 
@@ -65,18 +55,11 @@ export function ensureCanvasLinkRelationshipType(
   relationshipService: RelationshipService,
   kind: CanvasLinkKind
 ): void {
-  const def = LINK_TYPES[kind];
-  if (relationshipService.getTypeById(def.id)) return;
+  const type = canvasLinkRelationshipType(kind);
+  if (relationshipService.getTypeById(type.id)) return;
   relationshipService.addRawType({
-    id: def.id,
-    name: def.name,
-    inverseLabel: def.inverseLabel,
-    showInverse: true,
-    category: 'Spatial' as RelationshipCategory,
-    icon: def.icon,
-    isBuiltIn: false,
-    sourceEndpoint: { allowedSchemas: [] },
-    targetEndpoint: { allowedSchemas: [] },
+    ...type,
+    category: type.category as RelationshipCategory,
   });
 }
 

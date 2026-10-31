@@ -5,6 +5,7 @@ import {
   toModelContextTool,
   ToolArgs,
   ToolError,
+  ToolImage,
   toolSuccess,
   type WebMcpToolDefinition,
 } from './tool';
@@ -176,5 +177,18 @@ describe('schema', () => {
       properties: { a: { type: 'string' } },
     });
     expect(schema({}, ['a']).required).toEqual(['a']);
+  });
+});
+
+describe('ToolImage', () => {
+  it('becomes an image result, with its details readable as text too', () => {
+    const details = { shows: 'Cover' };
+    expect(toolSuccess(new ToolImage('AQID', 'image/png', details))).toEqual({
+      content: [
+        { type: 'text', text: JSON.stringify(details) },
+        { type: 'image', data: 'AQID', mimeType: 'image/png' },
+      ],
+      structuredContent: details,
+    });
   });
 });

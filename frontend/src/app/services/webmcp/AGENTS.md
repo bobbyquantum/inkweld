@@ -26,6 +26,10 @@ agent built into the browser can do what the user can do in the app. Docs:
 - **Errors are results**: throw `ToolError`; `toModelContextTool` turns it
   into an `isError` result, because a rejected promise reaches the agent
   without its message.
+- **Canvases**: `tools/canvas.tools.ts` is a thin layer over `@inkweld/canvas`,
+  which holds the descriptions, validation and results shared with the server's
+  `canvas.tools.ts`. Change them there. Details: `services/canvas/AGENTS.md`.
+  `render_canvas` returns its PNG as image content (`ToolImage` in `tools/tool.ts`).
 - **Documents** go through `DocumentAccess`: the live Y.Doc when an editor
   has it open, otherwise a headless IndexedDB copy that is synced with the
   server before and after on server profiles. Never replace the text of a

@@ -11,7 +11,7 @@ import {
   sampleWidthFactor,
   simplifyIndices,
   simplifyPath,
-} from './ink-stroke';
+} from '../src/ink-stroke';
 
 /** Pull [x, y] pairs out of a flat coordinate array. */
 function pairs(flat: number[]): [number, number][] {
@@ -237,13 +237,13 @@ describe('buildPathData', () => {
 
   it('emits straight segments when tension is zero', () => {
     expect(buildPathData([0, 0, 10, 0, 10, 10], 0, false)).toBe(
-      'M 0,0 L 10,0 L 10,10'
+      'M 0,0 L 10,0 L 10,10',
     );
   });
 
   it('closes the path when asked', () => {
     expect(buildPathData([0, 0, 10, 0, 10, 10], 0, true)).toBe(
-      'M 0,0 L 10,0 L 10,10 Z'
+      'M 0,0 L 10,0 L 10,10 Z',
     );
   });
 

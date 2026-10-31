@@ -23,6 +23,7 @@ import aiImageRoutes from '../routes/ai-image.routes';
 import { aiTextRoutes } from '../routes/ai-text.routes';
 import { aiProvidersRoutes } from '../routes/ai-providers.routes';
 import mcpRoutes from '../routes/mcp.routes';
+import mcpUploadRoutes from '../routes/mcp-upload.routes';
 import { collaborationRoutes } from '../routes/collaboration.routes';
 import mediaRoutes from '../routes/media.routes';
 import { commentRoutes } from '../routes/comment.routes';
@@ -139,6 +140,7 @@ export function registerCommonRoutes(app: any): void {
   app.route('/api/v1/ai/text', aiTextRoutes);
   app.route('/api/v1/ai/providers', aiProvidersRoutes);
   app.route('/api/v1/ai/mcp', mcpRoutes);
+  app.route('/api/v1/ai/mcp/uploads', mcpUploadRoutes);
 
   // Image model profiles
   app.route('/api/v1/ai/image-profiles', imageProfileUserRoutes);

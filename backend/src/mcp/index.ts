@@ -20,3 +20,6 @@ import './tools/mutation.tools';
 import './tools/document-section.tools';
 import './tools/schema.tools';
 import './tools/image.tools';
+import './tools/canvas.tools';
+import './tools/canvas-render.tools';
+import './tools/media-upload.tools';

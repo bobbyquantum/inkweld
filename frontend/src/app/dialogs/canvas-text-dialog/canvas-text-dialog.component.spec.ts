@@ -5,6 +5,7 @@ import {
   MatDialogModule,
   MatDialogRef,
 } from '@angular/material/dialog';
+import { CANVAS_BUNDLED_FONTS } from '@inkweld/canvas';
 import { type MockedObject, vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
@@ -22,6 +23,9 @@ describe('CanvasTextDialogComponent', () => {
     title: 'Add Text',
     text: 'Hello',
     color: '#333333',
+    fontFamily: 'Arial',
+    fontStyle: 'normal',
+    fontSize: 18,
   };
 
   beforeEach(async () => {
@@ -73,7 +77,49 @@ describe('CanvasTextDialogComponent', () => {
     expect(mockDialogRef.close).toHaveBeenCalledWith({
       text: 'New text',
       color: '#FF0000',
+      fontFamily: 'Arial',
+      fontStyle: 'normal',
+      fontSize: 18,
+      lineHeight: undefined,
+      letterSpacing: undefined,
     });
+  });
+
+  it('should offer the fonts Inkweld ships, and the one the text has', () => {
+    const fonts = component['fonts'];
+    for (const font of CANVAS_BUNDLED_FONTS) expect(fonts).toContain(font);
+    expect(fonts).toContain('Arial');
+    expect(new Set(fonts).size).toBe(fonts.length);
+  });
+
+  it('should return the typography that was chosen', () => {
+    component['form'].fontFamily().value.set('EB Garamond');
+    component['form'].fontStyle().value.set('bold italic');
+    component['form'].fontSize().value.set(72);
+    component['form'].lineHeight().value.set(1.4);
+    component['form'].letterSpacing().value.set(6);
+    component['onConfirm']();
+
+    expect(mockDialogRef.close).toHaveBeenCalledWith(
+      expect.objectContaining({
+        fontFamily: 'EB Garamond',
+        fontStyle: 'bold italic',
+        fontSize: 72,
+        lineHeight: 1.4,
+        letterSpacing: 6,
+      })
+    );
+  });
+
+  it.each([
+    ['a font size of zero', 'fontSize', 0],
+    ['a line height of zero', 'lineHeight', 0],
+    ['a huge line height', 'lineHeight', 11],
+    ['huge letter spacing', 'letterSpacing', 2000],
+  ] as const)('should not close with %s', (_name, field, value) => {
+    component['form'][field]().value.set(value);
+    component['onConfirm']();
+    expect(mockDialogRef.close).not.toHaveBeenCalled();
   });
 
   it('should not close on confirm when text is empty', () => {

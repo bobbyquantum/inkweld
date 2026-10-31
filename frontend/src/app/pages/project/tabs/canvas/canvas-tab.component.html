@@ -962,6 +962,16 @@
       <span>{{ 'canvas.contextMenu.sendToBack' | transloco }}</span>
     </button>
   }
+  @if (selectedObjectId() && !selectedPin()) {
+    <mat-divider></mat-divider>
+    <button
+      mat-menu-item
+      data-testid="context-effects"
+      (click)="onEditObjectEffects()">
+      <mat-icon>auto_awesome</mat-icon>
+      <span>{{ 'canvas.contextMenu.effects' | transloco }}</span>
+    </button>
+  }
   @if (selectedObjectId() && sortedLayers().length > 1 && !selectedPin()) {
     <mat-divider></mat-divider>
     <button

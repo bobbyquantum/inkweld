@@ -164,6 +164,9 @@ export class MediaSyncService {
    */
   readonly mediaSyncVersion = signal(0);
 
+  /** Files being fetched on demand, so images sharing one fetch it once. */
+  private readonly missingMediaFetches = new Map<string, Promise<boolean>>();
+
   /**
    * Get the sync state signal for a project
    */
@@ -342,6 +345,47 @@ export class MediaSyncService {
         error: `Failed to download ${filename}`,
       }));
       throw error;
+    }
+  }
+
+  /**
+   * Fetch one file this browser does not have yet, such as an image an agent
+   * just uploaded and placed, without waiting for the next background sync.
+   * Resolves to whether it arrived. A failure touches no sync state: a missing
+   * image is not a sync error.
+   */
+  fetchMissingMedia(projectKey: string, filename: string): Promise<boolean> {
+    const key = `${projectKey}/${filename}`;
+    const running = this.missingMediaFetches.get(key);
+    if (running) return running;
+
+    const fetch = this.downloadMissingMedia(projectKey, filename).finally(() =>
+      this.missingMediaFetches.delete(key)
+    );
+    this.missingMediaFetches.set(key, fetch);
+    return fetch;
+  }
+
+  private async downloadMissingMedia(
+    projectKey: string,
+    filename: string
+  ): Promise<boolean> {
+    try {
+      const blob = await firstValueFrom(
+        this.http.get(`${this.getMediaUrl(projectKey)}/${filename}`, {
+          responseType: 'blob',
+        })
+      );
+      await this.localStorage.saveMedia(
+        projectKey,
+        this.filenameToMediaId(filename),
+        blob,
+        filename
+      );
+      this.mediaSyncVersion.update(v => v + 1);
+      return true;
+    } catch {
+      return false;
     }
   }
 

@@ -152,6 +152,22 @@ export class ImageService {
   }
 
   /**
+   * Convert an image to PNG, or null where sharp is not available (Workers) or
+   * cannot read it.
+   */
+  async convertToPng(buffer: Buffer): Promise<Buffer | null> {
+    const sharp = await getSharp();
+    if (!sharp) return null;
+    try {
+      return await sharp(buffer, { limitInputPixels: MAX_BACKGROUND_INPUT_PIXELS })
+        .png()
+        .toBuffer();
+    } catch {
+      return null;
+    }
+  }
+
+  /**
    * Process avatar image
    */
   async processAvatar(buffer: Buffer): Promise<Buffer> {

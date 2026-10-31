@@ -211,6 +211,7 @@ Entry points per runtime are `bun-app.ts` / `bun-runner.ts`, `node-app.ts` / `no
 | `@inkweld/prosemirror` (`packages/inkweld-prosemirror`) | ProseMirror schema _specs_, Yjs XML serialisation and Markdown/XML conversion |
 | `@inkweld/presence` (`packages/inkweld-presence`)       | Binary presence protocol multiplexed onto the elements Yjs WebSocket          |
 | `@inkweld/async` (`packages/inkweld-async`)             | Sequential/paginated/bounded-concurrency promise helpers                      |
+| `@inkweld/canvas` (`packages/inkweld-canvas`)           | Canvas data model, Yjs layout and the canvas tools' shared edit planning      |
 
 ## Real-Time Collaboration (Yjs)
 
@@ -736,7 +737,7 @@ graph TD
     BE --> BETest["test/"]
     BE --> BEMig["drizzle/ (migrations)"]
 
-    PK --> PKP["inkweld-prosemirror<br/>inkweld-presence<br/>inkweld-async"]
+    PK --> PKP["inkweld-prosemirror<br/>inkweld-presence<br/>inkweld-async<br/>inkweld-canvas"]
 
     style Root fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
     style FE fill:#fff3e0,stroke:#f57c00,stroke-width:2px

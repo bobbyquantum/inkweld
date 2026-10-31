@@ -31,6 +31,15 @@ LevelDB per project for Yjs documents (Durable Objects on Workers). The root
   a second handle can't take the LevelDB lock, so y-leveldb drops every write
   through it with only a console warning. Close handles with
   `releasePersistence()`, which waits for the lock before a reopen.
+- **MCP canvas tools** (`mcp/tools/canvas.tools.ts`) only do the storage; what
+  they accept and return is in `@inkweld/canvas`, shared with WebMCP. An edit
+  must also mirror the canvas onto its element's `canvasConfig` metadata, which
+  archives, templates and the media-usage scan read.
+- **MCP upload URLs** (`routes/mcp-upload.routes.ts`) authenticate by the token
+  in the path, since the caller is an agent's HTTP tool. Anything added there
+  must re-check what the token was issued against. A tool's links for its caller
+  use `ctx.requestOrigin`, not BASE_URL, which can be out of date. Details:
+  `docs/site/docs/developer/mcp-oauth.md`.
 - **Yjs document ids**: the backend/MCP use `username:slug:elements/` with a
   trailing slash, the frontend without. Not a bug; don't "fix" it.
 - **HTTP routes that edit a Yjs document** must work on both runtimes.
@@ -71,8 +80,9 @@ per-user override (`NULL` = instance default `SYNC_QUOTA_DEFAULT_BYTES`,
   `GET /users/me/storage` response carries `enabled`.
 - **Every write that adds project storage goes through
   `quotaService.assertCanStore()`** (media upload, cover upload, published
-  file, MCP `apply_image`), and project creation through
-  `assertCanCreateProject()`. A new storage write path must do the same, and
+  file, MCP `apply_image`, `create_media_upload` URLs and `save_canvas_image`),
+  and project creation
+  through `assertCanCreateProject()`. A new storage write path must do the same, and
   pass `replacedBytes` when it overwrites a file so only the growth is charged.
   Deletions credit the counter (`recordDeletion`): media `DELETE`, cover
   delete, published-file delete, project delete (measured before teardown).
@@ -109,6 +119,26 @@ Details: `docs/site/docs/developer/legal-pages-and-custom-html.md` and
   `INGRESS_TRUSTED_PROXY`). Don't switch it to `getClientIp()` /
   `X-Forwarded-For`. An ingress session is only valid for the Home Assistant
   user making the request (`ingressSessionMatches`).
+
+## Rendering canvases on the server
+
+`render_canvas` and `save_canvas_image` draw through `services/canvas-render/`.
+Docs: `docs/site/docs/developer/mcp-oauth.md`.
+
+- **The WebAssembly and the fonts reach each runtime differently**, so an entry
+  point registers them: `registerCanvasRenderAssets` in `bun-app.ts` and
+  `node-app.ts` (`assets.file.ts`, `with { type: 'file' }`) and in
+  `cloudflare-runner.ts` (`assets.worker.ts`, Wrangler bundles the `.wasm` as a
+  compiled module, since Workers cannot compile at run time). Nothing registered
+  means the tools answer "not available".
+- **`resvg` and its render result must be `free()`d.** WebAssembly memory is not
+  garbage collected.
+- **Rebuild the font pack** with `bun scripts/build-canvas-font-pack.ts` after
+  changing `CANVAS_BUNDLED_FONTS` or the font files. It checks the files against
+  `frontend/scripts/font-digests.json`.
+- **Never fetch an image from a URL stored in a canvas**, and check a stored
+  `media:` reference with `isMediaReference` before using it as a filename:
+  anyone with edit access can store any value, through the sync socket as well.
 
 ## Auth and accounts
 

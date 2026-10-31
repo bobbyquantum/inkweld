@@ -136,6 +136,31 @@ describe('CanvasPlacementService', () => {
       );
     });
 
+    it('uses the typography chosen in the dialog', () => {
+      dialog.open.mockReturnValue({
+        afterClosed: () =>
+          of({
+            text: 'Hello',
+            color: '#111',
+            fontFamily: 'EB Garamond',
+            fontStyle: 'bold',
+            fontSize: 64,
+            lineHeight: 1.1,
+            letterSpacing: 3,
+          }),
+      });
+      service.placeText(handlers, settings);
+      expect(canvasService.addObject).toHaveBeenCalledWith(
+        expect.objectContaining({
+          fontFamily: 'EB Garamond',
+          fontStyle: 'bold',
+          fontSize: 64,
+          lineHeight: 1.1,
+          letterSpacing: 3,
+        })
+      );
+    });
+
     it('offers the drawing colour rather than the shape fill', () => {
       dialog.open.mockReturnValue({ afterClosed: () => of(undefined) });
       service.placeText(handlers, {
@@ -209,6 +234,55 @@ describe('CanvasPlacementService', () => {
   });
 
   describe('openTextEditDialog', () => {
+    it('offers the text its typography, and saves what comes back', () => {
+      dialog.open.mockReturnValue({
+        afterClosed: () =>
+          of({
+            text: 'New',
+            color: '#222',
+            fontFamily: 'Lato',
+            fontStyle: 'bold',
+            fontSize: 40,
+            lineHeight: 1.2,
+            letterSpacing: 2,
+          }),
+      });
+      const obj = {
+        id: 't1',
+        text: 'Old',
+        fill: '#000',
+        fontFamily: 'EB Garamond',
+        fontStyle: 'italic',
+        fontSize: 20,
+        lineHeight: 1.5,
+        letterSpacing: 1,
+      } as CanvasText;
+      const node = { text: vi.fn(), fill: vi.fn() } as unknown as Konva.Text;
+      service.openTextEditDialog(obj, node);
+      expect(dialog.open).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            fontFamily: 'EB Garamond',
+            fontStyle: 'italic',
+            fontSize: 20,
+            lineHeight: 1.5,
+            letterSpacing: 1,
+          }),
+        })
+      );
+      expect(canvasService.updateObject).toHaveBeenCalledWith(
+        't1',
+        expect.objectContaining({
+          fontFamily: 'Lato',
+          fontStyle: 'bold',
+          fontSize: 40,
+          lineHeight: 1.2,
+          letterSpacing: 2,
+        })
+      );
+    });
+
     it('updates text node and object on confirm', () => {
       dialog.open.mockReturnValue({
         afterClosed: () => of({ text: 'New', color: '#222' }),

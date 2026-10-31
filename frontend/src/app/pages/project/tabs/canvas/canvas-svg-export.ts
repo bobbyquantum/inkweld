@@ -1,371 +1,39 @@
 import {
-  type CanvasConfig,
-  type CanvasImage,
-  type CanvasLayer,
-  type CanvasObject,
-  type CanvasPath,
-  type CanvasPin,
-  type CanvasShape,
-  type CanvasText,
-  isBackgroundImage,
-} from '@models/canvas.model';
+  buildSvgDocument,
+  type CanvasFontSpec,
+  type MeasuredText,
+  type SvgExportRegion,
+  type SvgOptions,
+  type SvgSource,
+  type TextMeasurer,
+} from '@inkweld/canvas';
 
-import {
-  isGradientFill,
-  linearGradientLine,
-  parseCssGradient,
-  svgEsc,
-} from './canvas-utils';
-import { buildInkOutline, buildPathData } from './ink-stroke';
-
-let svgIdCounter = 0;
-
-/** Bounding box result for SVG viewBox computation */
-export interface SvgViewBox {
-  vX: number;
-  vY: number;
-  vW: number;
-  vH: number;
-}
-
-/** Mutable bounding box used during viewBox computation */
-interface Bounds {
-  minX: number;
-  minY: number;
-  maxX: number;
-  maxY: number;
-}
+export { buildSvgDocument, type SvgExportRegion } from '@inkweld/canvas';
 
 /**
- * Expand bounding box to include all points of a path object.
- *
- * Points describe the centreline, but the ink sits either side of it — and a
- * pressure stroke can swell past half the nominal width — so the reach has to
- * be added or a wide stroke at the edge of the drawing gets clipped.
+ * Measure text with the browser's own fonts, as the canvas does, so an
+ * exported SVG wraps where the canvas wraps. Null without a 2D context, in
+ * which case the SVG builder falls back to an estimate.
  */
-function expandBoundsForPath(b: Bounds, obj: CanvasObject): void {
-  const path = obj as CanvasPath;
-  const pts = path.points;
-  const reach = (path.strokeWidth / 2) * (path.pressures?.length ? 1.4 : 1);
-
-  for (let i = 0; i < pts.length - 1; i += 2) {
-    b.minX = Math.min(b.minX, obj.x + (pts[i] ?? 0) - reach);
-    b.minY = Math.min(b.minY, obj.y + (pts[i + 1] ?? 0) - reach);
-    b.maxX = Math.max(b.maxX, obj.x + (pts[i] ?? 0) + reach);
-    b.maxY = Math.max(b.maxY, obj.y + (pts[i + 1] ?? 0) + reach);
-  }
-}
-
-/** Expand bounding box to include scaled points of a line/arrow shape */
-function expandBoundsForLineShape(b: Bounds, obj: CanvasShape): void {
-  const pts = obj.points ?? [];
-  for (let i = 0; i < pts.length - 1; i += 2) {
-    const px = obj.x + (pts[i] ?? 0) * (obj.scaleX || 1);
-    const py = obj.y + (pts[i + 1] ?? 0) * (obj.scaleY || 1);
-    b.minX = Math.min(b.minX, px);
-    b.minY = Math.min(b.minY, py);
-    b.maxX = Math.max(b.maxX, px);
-    b.maxY = Math.max(b.maxY, py);
-  }
-}
-
-/** Expand bounding box to include the scaled width/height of an object */
-function expandBoundsForBox(b: Bounds, obj: CanvasObject): void {
-  const w = ('width' in obj ? obj.width : 30) * (obj.scaleX || 1);
-  const h = ('height' in obj ? obj.height : 30) * (obj.scaleY || 1);
-  b.minX = Math.min(b.minX, obj.x);
-  b.minY = Math.min(b.minY, obj.y);
-  b.maxX = Math.max(b.maxX, obj.x + w);
-  b.maxY = Math.max(b.maxY, obj.y + h);
-}
-
-/** Type guard: true if the object is a line or arrow shape with points */
-function isLineOrArrowShape(obj: CanvasObject): obj is CanvasShape {
-  return (
-    obj.type === 'shape' &&
-    (obj.shapeType === 'line' || obj.shapeType === 'arrow') &&
-    !!obj.points?.length
-  );
-}
-
-/** Expand bounds by one object, dispatching on its geometry kind. */
-function expandBoundsForObject(b: Bounds, obj: CanvasObject): void {
-  if (obj.type === 'path') {
-    expandBoundsForPath(b, obj);
-  } else if (isLineOrArrowShape(obj)) {
-    expandBoundsForLineShape(b, obj);
-  } else {
-    expandBoundsForBox(b, obj);
-  }
-}
-
-/** Compute SVG viewBox from visible objects across visible layers */
-export function computeSvgViewBox(
-  config: CanvasConfig,
-  visibleLayers: CanvasLayer[]
-): SvgViewBox {
-  const b: Bounds = {
-    minX: Infinity,
-    minY: Infinity,
-    maxX: -Infinity,
-    maxY: -Infinity,
-  };
-
-  const visibleLayerIds = new Set(visibleLayers.map(l => l.id));
-  for (const obj of config.objects) {
-    if (!obj.visible) continue;
-    // Pins are annotations rendered above every layer, regardless of layer
-    // visibility — everything else follows its layer.
-    if (obj.type !== 'pin' && !visibleLayerIds.has(obj.layerId)) continue;
-    expandBoundsForObject(b, obj);
-  }
-
-  const PAD = 20;
-  return {
-    vX: (Number.isFinite(b.minX) ? b.minX : 0) - PAD,
-    vY: (Number.isFinite(b.minY) ? b.minY : 0) - PAD,
-    vW:
-      (Number.isFinite(b.maxX) && b.maxX > b.minX ? b.maxX - b.minX : 800) +
-      PAD * 2,
-    vH:
-      (Number.isFinite(b.maxY) && b.maxY > b.minY ? b.maxY - b.minY : 600) +
-      PAD * 2,
+export function browserTextMeasurer(): TextMeasurer | undefined {
+  const context = document.createElement('canvas').getContext('2d');
+  if (!context) return undefined;
+  return (text: string, font: CanvasFontSpec): MeasuredText => {
+    const style = font.italic ? 'italic' : 'normal';
+    const weight = font.bold ? 'bold' : 'normal';
+    context.font = `${style} ${weight} ${font.size}px "${font.family}"`;
+    const metrics = context.measureText(text);
+    return {
+      width: metrics.width,
+      ascent: metrics.fontBoundingBoxAscent ?? font.size * 0.8,
+      descent: metrics.fontBoundingBoxDescent ?? font.size * 0.2,
+    };
   };
 }
 
-/** Build the SVG transform attribute for an object */
-function buildTransformAttr(obj: CanvasObject): string {
-  const transforms: string[] = [`translate(${obj.x},${obj.y})`];
-  if (obj.rotation) transforms.push(`rotate(${obj.rotation})`);
-  if (obj.scaleX !== 1 || obj.scaleY !== 1)
-    transforms.push(`scale(${obj.scaleX},${obj.scaleY})`);
-  return `transform="${transforms.join(' ')}"`;
-}
-
-/** Convert a CanvasObject to an SVG element string */
-export function canvasObjectToSvgElement(obj: CanvasObject): string {
-  const tf = buildTransformAttr(obj);
-  const element = canvasObjectToSvgShape(obj, tf);
-
-  const opacity = obj.opacity ?? 1;
-  if (!element || opacity >= 1) return element;
-  return `<g opacity="${opacity}">${element}</g>`;
-}
-
-function canvasObjectToSvgShape(obj: CanvasObject, tf: string): string {
-  switch (obj.type) {
-    case 'shape':
-      return canvasShapeToSvg(obj, tf);
-    case 'text':
-      return canvasTextToSvg(obj, tf);
-    case 'path':
-      return canvasPathToSvg(obj, tf);
-    case 'image':
-      return canvasImageToSvg(obj, tf);
-    case 'pin':
-      return canvasPinToSvg(obj, tf);
-    default:
-      return '';
-  }
-}
-
-/**
- * SVG `<defs>` + fill reference for a CSS gradient fill, or null for plain
- * colors. Gradient coordinates use objectBoundingBox fractions so they track
- * the shape without knowing its absolute geometry.
- */
-function svgGradientFill(
-  fill: string
-): { defs: string; fillRef: string } | null {
-  const gradient = parseCssGradient(fill);
-  if (!gradient) return null;
-
-  const id = `grad-${++svgIdCounter}`;
-  const stops = gradient.stops
-    .map(
-      stop =>
-        `<stop offset="${Math.round(stop.offset * 1000) / 10}%" stop-color="${svgEsc(stop.color)}"/>`
-    )
-    .join('');
-
-  if (gradient.type === 'linear') {
-    const { start, end } = linearGradientLine(gradient.angle, 1, 1, {
-      x: 0.5,
-      y: 0.5,
-    });
-    const defs = `<defs><linearGradient id="${id}" x1="${start.x}" y1="${start.y}" x2="${end.x}" y2="${end.y}">${stops}</linearGradient></defs>`;
-    return { defs, fillRef: `url(#${id})` };
-  }
-
-  const defs = `<defs><radialGradient id="${id}" cx="0.5" cy="0.5" r="0.7071">${stops}</radialGradient></defs>`;
-  return { defs, fillRef: `url(#${id})` };
-}
-
-/** Convert a CanvasShape to its SVG element string */
-export function canvasShapeToSvg(obj: CanvasShape, tf: string): string {
-  const gradient = isGradientFill(obj.fill) ? svgGradientFill(obj.fill) : null;
-  const fill = gradient?.fillRef ?? obj.fill ?? 'none';
-  const gradientDefs = gradient?.defs ?? '';
-  const base = `fill="${fill}" stroke="${obj.stroke}" stroke-width="${obj.strokeWidth}"`;
-  const dash = obj.dash?.length
-    ? ` stroke-dasharray="${obj.dash.join(',')}"`
-    : '';
-
-  switch (obj.shapeType) {
-    case 'rect': {
-      const cr = obj.cornerRadius ? ` rx="${obj.cornerRadius}"` : '';
-      return `${gradientDefs}<rect ${tf} width="${obj.width}" height="${obj.height}" ${base}${dash}${cr}/>`;
-    }
-    case 'ellipse': {
-      const rx = obj.width / 2;
-      const ry = obj.height / 2;
-      return `${gradientDefs}<ellipse ${tf} cx="${rx}" cy="${ry}" rx="${rx}" ry="${ry}" ${base}${dash}/>`;
-    }
-    case 'line': {
-      const pts: number[] = obj.points ?? [0, 0, obj.width, 0];
-      return `<line ${tf} x1="${pts[0]}" y1="${pts[1]}" x2="${pts[2]}" y2="${pts[3]}" stroke="${obj.stroke}" stroke-width="${obj.strokeWidth}"${dash}/>`;
-    }
-    case 'arrow': {
-      const pts: number[] = obj.points ?? [0, 0, obj.width, 0];
-      const mid = `arrow-${++svgIdCounter}`;
-      const marker = `<defs><marker id="${mid}" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto"><polygon points="0 0,10 3.5,0 7" fill="${obj.stroke}"/></marker></defs>`;
-      const line = `<line ${tf} x1="${pts[0]}" y1="${pts[1]}" x2="${pts[2]}" y2="${pts[3]}" stroke="${obj.stroke}" stroke-width="${obj.strokeWidth}" marker-end="url(#${mid})"${dash}/>`;
-      return marker + line;
-    }
-    case 'polygon': {
-      const pts: number[] = obj.points ?? [];
-      const ptStr: string[] = [];
-      for (let i = 0; i < pts.length; i += 2)
-        ptStr.push(`${pts[i]},${pts[i + 1]}`);
-      return `${gradientDefs}<polygon ${tf} points="${ptStr.join(' ')}" ${base}${dash}/>`;
-    }
-    default:
-      return '';
-  }
-}
-
-/** Convert a CanvasText to an SVG text element with alignment */
-export function canvasTextToSvg(obj: CanvasText, tf: string): string {
-  const bold = obj.fontStyle.includes('bold') ? 'bold' : 'normal';
-  const italic = obj.fontStyle.includes('italic') ? 'italic' : 'normal';
-  const anchorMap: Record<string, string> = {
-    center: 'middle',
-    right: 'end',
-  };
-  const anchor = anchorMap[obj.align] ?? 'start';
-  const textXMap: Record<string, number> = {
-    center: obj.width / 2,
-    right: obj.width,
-  };
-  const textX = textXMap[obj.align] ?? 0;
-  const style = `font-size:${obj.fontSize}px;font-family:${obj.fontFamily};font-weight:${bold};font-style:${italic}`;
-  return `<text ${tf} x="${textX}" fill="${obj.fill}" style="${style}" text-anchor="${anchor}" dominant-baseline="text-before-edge">${svgEsc(obj.text)}</text>`;
-}
-
-/** Convert a CanvasPath to an SVG polyline element */
-export function canvasPathToSvg(obj: CanvasPath, tf: string): string {
-  if (obj.points.length < 4) return '';
-
-  // Pressure ink is a filled outline, matching how it renders on the canvas.
-  if (obj.pressures?.length) {
-    const outline = buildInkOutline(obj.points, obj.pressures, obj.strokeWidth);
-    const d = buildPathData(outline, 0, true);
-    if (!d) return '';
-    return `<path ${tf} d="${d}" fill="${obj.stroke}" stroke="none"/>`;
-  }
-
-  const d = buildPathData(obj.points, obj.tension, obj.closed);
-  if (!d) return '';
-  const fill = obj.closed && obj.fill ? obj.fill : 'none';
-  return `<path ${tf} d="${d}" fill="${fill}" stroke="${obj.stroke}" stroke-width="${obj.strokeWidth}" stroke-linecap="round" stroke-linejoin="round"/>`;
-}
-
-/** Convert a CanvasImage to an SVG image or placeholder rect */
-export function canvasImageToSvg(obj: CanvasImage, tf: string): string {
-  if (obj.src.startsWith('media:')) {
-    return `<rect ${tf} width="${obj.width}" height="${obj.height}" fill="#ccc" stroke="#999" stroke-width="1"/>`;
-  }
-  return `<image ${tf} href="${obj.src}" width="${obj.width}" height="${obj.height}"/>`;
-}
-
-/** Convert a CanvasPin to an SVG circle marker with label */
-export function canvasPinToSvg(obj: CanvasPin, tf: string): string {
-  const label = obj.label
-    ? `<text y="24" text-anchor="middle" font-size="12" fill="${obj.color}">${svgEsc(obj.label)}</text>`
-    : '';
-  return `<g ${tf}><circle r="12" fill="${obj.color}" stroke="#fff" stroke-width="2"/>${label}</g>`;
-}
-
-/** A rectangular export region in canvas world coordinates. */
-export interface SvgExportRegion {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
-
-/**
- * Build a complete SVG document string from a canvas config.
- * Returns the SVG markup as a string.
- *
- * With a `region` (canvas size or crop frame) the viewBox is exactly that
- * rect — the SVG viewBox crops overhanging content naturally. Otherwise the
- * viewBox is fitted around the visible content as before.
- */
-export function buildSvgDocument(
-  config: CanvasConfig,
-  region?: SvgExportRegion
-): string {
-  const visibleLayers = [...config.layers]
-    .sort((a, b) => a.order - b.order)
-    .filter(l => l.visible);
-
-  const { vX, vY, vW, vH } = region
-    ? { vX: region.x, vY: region.y, vW: region.width, vH: region.height }
-    : computeSvgViewBox(config, visibleLayers);
-
-  const lines: string[] = [
-    `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"`,
-    `  width="${vW}" height="${vH}" viewBox="${vX} ${vY} ${vW} ${vH}">`,
-  ];
-
-  // The page colour is part of the drawing: without it, light ink on a dark
-  // page becomes light ink on whatever the viewer's background happens to be.
-  if (config.background) {
-    lines.push(
-      `  <rect id="page" x="${vX}" y="${vY}" width="${vW}" height="${vH}" fill="${svgEsc(config.background)}"/>`
-    );
-  }
-
-  for (const layer of visibleLayers) {
-    const layerObjs = config.objects.filter(
-      o => o.layerId === layer.id && o.visible && o.type !== 'pin'
-    );
-    // Match the renderer: backgrounds always draw below the layer's objects.
-    const objs = [
-      ...layerObjs.filter(o => isBackgroundImage(o)),
-      ...layerObjs.filter(o => !isBackgroundImage(o)),
-    ];
-    if (!objs.length) continue;
-    lines.push(`  <g id="${svgEsc(layer.id)}" opacity="${layer.opacity}">`);
-    for (const obj of objs) {
-      lines.push('    ' + canvasObjectToSvgElement(obj));
-    }
-    lines.push('  </g>');
-  }
-
-  // Pins render above every layer, independent of layer visibility.
-  const pins = config.objects.filter(o => o.type === 'pin' && o.visible);
-  if (pins.length > 0) {
-    lines.push('  <g id="annotations">');
-    for (const pin of pins) {
-      lines.push('    ' + canvasObjectToSvgElement(pin));
-    }
-    lines.push('  </g>');
-  }
-
-  lines.push('</svg>');
-  return lines.join('\n');
+/** The options for an SVG this browser makes. */
+export function browserSvgOptions(): SvgOptions {
+  return { measureText: browserTextMeasurer() };
 }
 
 /**
@@ -373,11 +41,11 @@ export function buildSvgDocument(
  * Handles blob creation and browser download trigger.
  */
 export function downloadSvg(
-  config: CanvasConfig,
+  config: SvgSource,
   elementName: string,
   region?: SvgExportRegion
 ): void {
-  const svgContent = buildSvgDocument(config, region);
+  const svgContent = buildSvgDocument(config, region, browserSvgOptions());
   const blob = new Blob([svgContent], { type: 'image/svg+xml' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');

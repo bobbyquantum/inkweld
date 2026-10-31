@@ -65,6 +65,7 @@ import { StorageService } from '../local/storage.service';
 import { UnifiedProjectService } from '../local/unified-project.service';
 import { ensureSceneRelationshipTypes } from '../relationship/scene-relationship-types';
 import {
+  type ApplyCanvasEditOptions,
   ElementSyncProviderFactory,
   type IElementSyncProvider,
   type ProjectMeta,
@@ -940,12 +941,16 @@ export class ProjectStateService implements OnDestroy {
   }
 
   /** Apply a granular canvas change (added, changed and removed objects). */
-  applyCanvasEdit(elementId: string, edit: CanvasEdit): void {
+  applyCanvasEdit(
+    elementId: string,
+    edit: CanvasEdit,
+    options?: ApplyCanvasEditOptions
+  ): void {
     if (!this.syncProvider) {
       this.logger.warn('ProjectState', 'Cannot edit canvas - no sync provider');
       return;
     }
-    this.syncProvider.applyCanvasEdit(elementId, edit);
+    this.syncProvider.applyCanvasEdit(elementId, edit, options);
   }
 
   /** Seed a canvas that has no synced contents yet (e.g. from an archive). */

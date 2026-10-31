@@ -349,6 +349,12 @@ interface McpContextBase {
     YJS_PROJECTS?: DurableObjectNamespace;
     [key: string]: unknown;
   };
+  /**
+   * The origin this request arrived on. A tool building a link for its caller
+   * should use this rather than BASE_URL: the caller has just proven it can
+   * reach this address, whereas a setting can be out of date.
+   */
+  requestOrigin?: string;
 }
 
 /**

@@ -171,6 +171,59 @@ test.describe('WebMCP', () => {
       await expect(page.getByTestId('element-Captain Mara')).toBeVisible();
     });
 
+    await test.step('a canvas open in a tab shows what the agent draws', async () => {
+      const canvas = await callOk(page, 'create_element', {
+        type: 'CANVAS',
+        name: 'Agent Map',
+        open: true,
+      });
+      await expect(page.getByTestId('canvas-container')).toBeVisible();
+      const objects = page
+        .getByTestId('canvas-sidebar')
+        .getByTestId('object-item');
+      await expect(objects).toHaveCount(0);
+
+      const edit = await callOk(page, 'edit_canvas', {
+        elementId: canvas.id,
+        add: [
+          {
+            id: 'coast',
+            name: 'Coast',
+            type: 'shape',
+            shapeType: 'rect',
+            width: 200,
+            height: 100,
+          },
+        ],
+      });
+      expect(edit.created).toEqual(['coast']);
+      await expect(objects.filter({ hasText: 'Coast' })).toBeVisible();
+
+      const read = await callOk(page, 'get_canvas', { elementId: canvas.id });
+      expect(read.objectCount).toBe(1);
+
+      const rendered = await callTool(page, 'render_canvas', {
+        elementId: canvas.id,
+        maxSize: 300,
+      });
+      expect(rendered.isError, rendered.content[0]?.text).toBeFalsy();
+      expect(rendered.structuredContent.image.width).toBe(300);
+      const image = rendered.content[1] as unknown as {
+        type: string;
+        data: string;
+        mimeType: string;
+      };
+      expect(image.type).toBe('image');
+      expect(image.mimeType).toBe('image/png');
+      expect(image.data.length).toBeGreaterThan(100);
+
+      await callOk(page, 'edit_canvas', {
+        elementId: canvas.id,
+        ...(edit.undo as Record<string, unknown>),
+      });
+      await expect(objects).toHaveCount(0);
+    });
+
     await test.step('the tree and errors read the way an agent needs', async () => {
       const tree = await callOk(page, 'get_project_tree');
       expect(tree.elements.map((e: { name: string }) => e.name)).toEqual(

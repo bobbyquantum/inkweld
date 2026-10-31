@@ -65,6 +65,7 @@ import {
   type DrawingHandlers,
   type DrawInput,
 } from '@services/canvas/canvas-drawing.service';
+import { CanvasEffectsService } from '@services/canvas/canvas-effects.service';
 import { CanvasExportService } from '@services/canvas/canvas-export.service';
 import { CanvasKeyboardService } from '@services/canvas/canvas-keyboard.service';
 import { CanvasLayerService } from '@services/canvas/canvas-layer.service';
@@ -188,6 +189,7 @@ function sameFrames(a: CanvasFrame[], b: CanvasFrame[]): boolean {
     CanvasLayerActionsService,
     CanvasZoomService,
     CanvasColorService,
+    CanvasEffectsService,
     CanvasClipboardService,
     CanvasContextMenuService,
     CanvasKeyboardService,
@@ -206,6 +208,7 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
   private readonly canvasLayerActions = inject(CanvasLayerActionsService);
   private readonly canvasZoom = inject(CanvasZoomService);
   private readonly canvasColor = inject(CanvasColorService);
+  private readonly canvasEffects = inject(CanvasEffectsService);
   private readonly canvasClipboard = inject(CanvasClipboardService);
   private readonly canvasContextMenu = inject(CanvasContextMenuService);
   private readonly canvasKeyboard = inject(CanvasKeyboardService);
@@ -1309,6 +1312,12 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
     const objId = this.selectedObjectId();
     if (!objId) return;
     this.canvasColor.openEditColorsDialog(objId);
+  }
+
+  /** Open the effects dialog for the currently-selected object. */
+  protected onEditObjectEffects(): void {
+    const objId = this.selectedObjectId();
+    if (objId) this.canvasEffects.openEffectsDialog(objId);
   }
 
   protected async onAddImage(): Promise<void> {
