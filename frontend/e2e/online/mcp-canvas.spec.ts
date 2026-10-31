@@ -1,6 +1,11 @@
 import { openProjectFromGrid } from '../common/test-helpers';
 import { mcpCallTool, performOAuthFlow } from '../mcp/fixtures';
-import { expect, getApiBaseUrl, test } from './fixtures';
+import {
+  type AuthenticatedPage,
+  expect,
+  getApiBaseUrl,
+  test,
+} from './fixtures';
 
 /** A real 1×1 PNG, so the browser can decode what the agent uploads. */
 const PIXEL_PNG = Buffer.from(
@@ -14,19 +19,10 @@ interface ToolResult {
   content?: { text: string }[];
 }
 
-/**
- * An agent working on a canvas over MCP while the user has it open: the server
- * tools and the browser have to agree on the Yjs layout, an open tab has to
- * show the edits as they arrive, and an image the browser has never seen has
- * to load.
- */
-test('an agent draws on a canvas the user has open', async ({
-  authenticatedPage: page,
-}, testInfo) => {
-  test.slow();
+/** A new project with an agent authorized on it, to make tool calls with. */
+async function agentOnNewProject(page: AuthenticatedPage, slug: string) {
   const apiBase = getApiBaseUrl();
   const { username } = page.testCredentials;
-  const slug = `agent-canvas-${Date.now()}`;
 
   const authToken = await page.evaluate(() =>
     localStorage.getItem('srv:server-1:auth_token')
@@ -35,7 +31,7 @@ test('an agent draws on a canvas the user has open', async ({
 
   const created = await page.request.post(`${apiBase}/api/v1/projects`, {
     headers: { Authorization: `Bearer ${authToken}` },
-    data: { title: 'Agent Canvas', slug },
+    data: { title: slug, slug },
   });
   expect(created.ok()).toBeTruthy();
 
@@ -46,7 +42,7 @@ test('an agent draws on a canvas the user has open', async ({
     'editor'
   );
 
-  async function tool(name: string, args: Record<string, unknown>) {
+  return async function tool(name: string, args: Record<string, unknown>) {
     const response = await mcpCallTool(page.request, accessToken, name, {
       project: `${username}/${slug}`,
       ...args,
@@ -54,8 +50,22 @@ test('an agent draws on a canvas the user has open', async ({
     expect(response.error).toBeUndefined();
     const result = response.result as ToolResult;
     expect(result.isError, result.content?.[0]?.text).toBeUndefined();
-    return result.structuredContent as Record<string, unknown>;
-  }
+    return (result.structuredContent ??
+      JSON.parse(result.content?.[0]?.text ?? '{}')) as Record<string, unknown>;
+  };
+}
+
+/**
+ * An agent working on a canvas over MCP while the user has it open: the server
+ * tools and the browser have to agree on the Yjs layout, an open tab has to
+ * show the edits as they arrive, and an image the browser has never seen has
+ * to load.
+ */
+test('an agent draws on a canvas the user has open', async ({
+  authenticatedPage: page,
+}, testInfo) => {
+  test.slow();
+  const tool = await agentOnNewProject(page, `agent-canvas-${Date.now()}`);
 
   const { element } = (await tool('create_element', {
     name: 'Agent Map',
@@ -190,5 +200,64 @@ test('an agent draws on a canvas the user has open', async ({
     await tool('edit_canvas', { elementId, ...undo });
     await expect(objects).toHaveCount(3);
     await expect(objects.filter({ hasText: 'Art' })).toHaveCount(0);
+  });
+});
+
+/**
+ * Agents send tool calls in parallel. On Workers each call edits its own copy
+ * of the elements document, so this is what shows they merge there as well.
+ */
+test('tool calls made at the same moment all land', async ({
+  authenticatedPage: page,
+}) => {
+  test.slow();
+  const tool = await agentOnNewProject(page, `agent-overlap-${Date.now()}`);
+  const { element } = (await tool('create_element', {
+    name: 'Agent Overlap',
+    type: 'CANVAS',
+  })) as { element: { id: string } };
+  const elementId = element.id;
+  const ids = ['four', 'one', 'three', 'two'];
+  const idsOf = (objects: unknown) =>
+    (objects as { id: string }[]).map(object => object.id).sort();
+
+  await test.step('edits of a canvas nothing has started', async () => {
+    await Promise.all(
+      ids.map(id =>
+        tool('edit_canvas', {
+          elementId,
+          add: [{ id, type: 'pin', label: id }],
+        })
+      )
+    );
+
+    const canvas = await tool('get_canvas', { elementId });
+    expect(idsOf(canvas['objects'])).toEqual(ids);
+    expect(canvas['layers']).toHaveLength(1);
+  });
+
+  await test.step('the element holds them all, and is there once', async () => {
+    const full = (await tool('get_element_full', { elementId })) as {
+      element: { metadata: { canvasConfig: string } };
+    };
+    const mirrored = JSON.parse(full.element.metadata.canvasConfig) as {
+      objects: unknown;
+    };
+    expect(idsOf(mirrored.objects)).toEqual(ids);
+
+    const tree = JSON.stringify(await tool('get_project_tree', {}));
+    expect(tree.split(elementId)).toHaveLength(2);
+  });
+
+  await test.step('an upload URL used twice stores one file', async () => {
+    const upload = await tool('create_media_upload', { format: 'png' });
+    const responses = await Promise.all(
+      [1, 2].map(() =>
+        page.request.put(upload['uploadUrl'] as string, { data: PIXEL_PNG })
+      )
+    );
+    expect(responses.map(response => response.status()).sort()).toEqual([
+      200, 409,
+    ]);
   });
 });

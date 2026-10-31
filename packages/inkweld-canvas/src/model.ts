@@ -34,6 +34,26 @@ export interface CanvasLayer {
   order: number;
 }
 
+/** The id of the first layer of every new canvas. */
+export const FIRST_LAYER_ID = 'layer-1';
+
+/**
+ * The layer a new canvas starts with. It is the same for every writer: the
+ * layer list is stored whole, so if two writers each made their own while
+ * starting a canvas at once, one list would win and the other writer's objects
+ * would be left on a layer that does not exist.
+ */
+export function firstCanvasLayer(): CanvasLayer {
+  return {
+    id: FIRST_LAYER_ID,
+    name: 'Layer 1',
+    visible: true,
+    locked: false,
+    opacity: 1,
+    order: 0,
+  };
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Canvas Objects
 // ─────────────────────────────────────────────────────────────────────────────

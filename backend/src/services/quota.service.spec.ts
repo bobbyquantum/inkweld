@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'bun:test';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, spyOn } from 'bun:test';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -562,6 +562,71 @@ describe('quotaService.assertCanStore', () => {
   it('is a no-op for an owner that no longer exists', async () => {
     await enableEnforcement();
     await quotaService.assertCanStore(db, 'missing-user', 500, 'media_upload');
+  });
+
+  describe('with writes that overlap', () => {
+    async function fiveWritesOf400Bytes(): Promise<PromiseSettledResult<void>[]> {
+      return Promise.allSettled(
+        Array.from({ length: 5 }, () =>
+          quotaService.assertCanStore(db, USER_ID, 400, 'media_upload')
+        )
+      );
+    }
+
+    function outcomes(results: PromiseSettledResult<void>[]): {
+      accepted: number;
+      refused: number;
+    } {
+      const refusals = results.filter((r) => r.status === 'rejected');
+      for (const refusal of refusals) {
+        expect(refusal.reason).toBeInstanceOf(QuotaExceededError);
+      }
+      return { accepted: results.length - refusals.length, refused: refusals.length };
+    }
+
+    it('lets them share the space left, rather than each having all of it', async () => {
+      await enableEnforcement();
+      await db.update(users).set({ syncQuotaBytes: 1000 }).where(eq(users.id, USER_ID));
+      // A fresh measurement, so the fast path applies.
+      await quotaService.persistUsage(db, USER_ID, 0);
+
+      expect(outcomes(await fiveWritesOf400Bytes())).toEqual({ accepted: 2, refused: 3 });
+      expect(await counter()).toBe(800);
+    });
+
+    it('does the same when they all have to measure first', async () => {
+      await enableEnforcement();
+      await db.update(users).set({ syncQuotaBytes: 1000 }).where(eq(users.id, USER_ID));
+
+      expect(outcomes(await fiveWritesOf400Bytes())).toEqual({ accepted: 2, refused: 3 });
+      expect(await counter()).toBe(800);
+    });
+
+    it('does not let a measurement wipe out a write accepted in the meantime', async () => {
+      await seedProject('one');
+      await seedData(USERNAME, 'one', 100);
+      await enableEnforcement();
+      await db.update(users).set({ syncQuotaBytes: 1000 }).where(eq(users.id, USER_ID));
+      const owner = (await db.select().from(users).where(eq(users.id, USER_ID)))[0];
+
+      // A second request, which read the same counter, gets its write in while
+      // this one is still measuring.
+      const computeUsage = quotaService.computeUsage.bind(quotaService);
+      const compute = spyOn(quotaService, 'computeUsage').mockImplementation(
+        async (...args: Parameters<typeof computeUsage>) => {
+          const measured = await computeUsage(...args);
+          await db.update(users).set({ storageUsedBytes: 700 }).where(eq(users.id, USER_ID));
+          return measured;
+        }
+      );
+      try {
+        await quotaService.checkEnforcement(db, owner, 0);
+      } finally {
+        compute.mockRestore();
+      }
+
+      expect(await counter()).toBe(700);
+    });
   });
 });
 

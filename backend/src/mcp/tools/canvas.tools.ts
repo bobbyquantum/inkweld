@@ -18,7 +18,6 @@ import {
   EDIT_CANVAS_PROPERTIES,
   GET_CANVAS_DESCRIPTION,
   GET_CANVAS_PROPERTIES,
-  mirrorCanvasToElement,
   planCanvasEdit,
   readCanvasContents,
   resolveCanvasContents,
@@ -242,11 +241,10 @@ To place an image from a file on disk, call create_media_upload first, upload th
           plan.relationshipsToRemove,
           new Date().toISOString()
         );
-        // Browsers only mirror their own edits, so this one is mirrored here
-        // for the archives, templates and media-usage scan that read it.
-        mirrorCanvasToElement(doc, elementId);
       });
-      await editable.commit();
+      // Browsers only mirror their own edits, so this one is mirrored too, for
+      // the archives, templates and media-usage scan that read it.
+      await editable.commit({ mirrorCanvas: elementId });
 
       await activityService.recordOrCoalesceEdit(db, {
         projectId,

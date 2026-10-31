@@ -16,6 +16,7 @@ import { mcpSigningSecret } from '../src/mcp/mcp.auth';
 import { isCrossOriginPath } from '../src/middleware/open-origin';
 import { pathForLogging } from '../src/middleware/request-logger';
 import { configService } from '../src/services/config.service';
+import { quotaService } from '../src/services/quota.service';
 import { getStorageService } from '../src/services/storage.service';
 import { mcpOAuthService } from '../src/services/mcp-oauth.service';
 import { startTestServer, stopTestServer, enablePasswordLoginForTests } from './server-test-helper';
@@ -262,6 +263,23 @@ describe('uploading', () => {
     expect(((await again.json()) as { error: string }).error).toContain('already been used');
   });
 
+  it('works once for requests made at the same moment, keeping the one it took', async () => {
+    const upload = await createUpload();
+    const bodies = Array.from({ length: 8 }, (_, i) => new Uint8Array([...PNG, i]));
+
+    const responses = await Promise.all(bodies.map((body) => put(upload.uploadUrl, body)));
+
+    const statuses = responses.map((res) => res.status);
+    expect(statuses.filter((status) => status === 200)).toHaveLength(1);
+    expect(statuses.filter((status) => status === 409)).toHaveLength(bodies.length - 1);
+    const stored = await getStorageService().readProjectFile(
+      USERNAME,
+      SLUG,
+      upload.mediaUrl.substring('media://'.length)
+    );
+    expect(new Uint8Array(stored as Buffer)).toEqual(bodies[statuses.indexOf(200)]);
+  });
+
   it('refuses a file of a different format than it was created for', async () => {
     const upload = await createUpload();
     const res = await put(upload.uploadUrl, JPEG);
@@ -393,6 +411,25 @@ describe('sync capacity', () => {
     } finally {
       await db.update(users).set({ syncQuotaBytes: null }).where(eq(users.id, USER_ID));
       await configService.delete(db, 'SYNC_QUOTA_ENABLED');
+    }
+  });
+
+  it('counts a file once, however many requests raced to store it', async () => {
+    await configService.set(db, 'SYNC_QUOTA_ENABLED', 'true');
+    // Recently measured, so the counter is what decides.
+    await quotaService.persistUsage(db, USER_ID, 0);
+    try {
+      const upload = await createUpload();
+      await Promise.all(Array.from({ length: 8 }, () => put(upload.uploadUrl)));
+
+      const [{ storageUsedBytes }] = await db
+        .select({ storageUsedBytes: users.storageUsedBytes })
+        .from(users)
+        .where(eq(users.id, USER_ID));
+      expect(storageUsedBytes).toBe(PNG.byteLength);
+    } finally {
+      await configService.delete(db, 'SYNC_QUOTA_ENABLED');
+      quotaService.clearReconcileCooldown(USER_ID);
     }
   });
 });

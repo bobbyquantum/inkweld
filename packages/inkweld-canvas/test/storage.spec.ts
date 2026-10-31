@@ -143,6 +143,164 @@ describe('writeCanvasEdit', () => {
   });
 });
 
+describe('two writers starting the same canvas', () => {
+  function bothStart(): { left: Y.Doc; right: Y.Doc } {
+    const left = new Y.Doc();
+    const right = new Y.Doc();
+    writeCanvasEdit(Y, left, 'c', {
+      layers: [LAYER],
+      upserts: [pin('from-left')],
+    });
+    writeCanvasEdit(Y, right, 'c', {
+      layers: [LAYER],
+      upserts: [pin('from-right')],
+    });
+    return { left, right };
+  }
+
+  function sync(left: Y.Doc, right: Y.Doc): void {
+    Y.applyUpdate(right, Y.encodeStateAsUpdate(left));
+    Y.applyUpdate(left, Y.encodeStateAsUpdate(right));
+  }
+
+  const BOTH = ['from-left', 'from-right'];
+
+  it('keeps what each of them wrote', () => {
+    const { left, right } = bothStart();
+    sync(left, right);
+
+    expect(ids(readCanvasContents(left, 'c')).sort()).toEqual(BOTH);
+    expect(ids(readCanvasContents(right, 'c'))).toEqual(
+      ids(readCanvasContents(left, 'c')),
+    );
+  });
+
+  it('keeps writing to the same canvas afterwards', () => {
+    const { left, right } = bothStart();
+    sync(left, right);
+
+    writeCanvasEdit(Y, left, 'c', { upserts: [pin('later')] });
+    sync(left, right);
+
+    expect(ids(readCanvasContents(right, 'c')).sort()).toEqual([
+      ...BOTH,
+      'later',
+    ]);
+  });
+
+  it('merges the same through every form a server stores updates in', () => {
+    const { left, right } = bothStart();
+    const merged = new Y.Doc();
+    Y.applyUpdate(
+      merged,
+      Y.mergeUpdates([
+        Y.encodeStateAsUpdate(left),
+        Y.encodeStateAsUpdate(right),
+      ]),
+    );
+    const reread = new Y.Doc();
+    Y.applyUpdateV2(reread, Y.encodeStateAsUpdateV2(merged));
+
+    expect(ids(readCanvasContents(reread, 'c')).sort()).toEqual(BOTH);
+  });
+
+  it('sends the creation in the same update as the edit', () => {
+    const doc = new Y.Doc();
+    const updates: Uint8Array[] = [];
+    doc.on('update', (update: Uint8Array) => updates.push(update));
+
+    doc.transact(() =>
+      writeCanvasEdit(Y, doc, 'c', { layers: [LAYER], upserts: [pin('a')] }),
+    );
+
+    expect(updates).toHaveLength(1);
+    const peer = new Y.Doc();
+    Y.applyUpdate(peer, updates[0]);
+    expect(ids(readCanvasContents(peer, 'c'))).toEqual(['a']);
+  });
+
+  it("leaves each writer's client id alone, and uses its own for the edit", () => {
+    const { left, right } = bothStart();
+    const clients = [left.clientID, right.clientID];
+    sync(left, right);
+
+    // Yjs replaces a client id it thinks another writer is using.
+    expect([left.clientID, right.clientID]).toEqual(clients);
+    const state = Y.decodeStateVector(Y.encodeStateVector(left));
+    expect(state.get(left.clientID)).toBeGreaterThan(0);
+    expect(state.get(right.clientID)).toBeGreaterThan(0);
+    // Theirs, and the one they share for creating the canvas: above the range
+    // of a real client id, so it can never be mistaken for one.
+    const shared = [...state.keys()].filter((id) => !clients.includes(id));
+    expect(shared).toHaveLength(1);
+    expect(shared[0]).toBeGreaterThan(2 ** 32);
+    expect(Number.isSafeInteger(shared[0])).toBe(true);
+  });
+
+  it('counts as a local change, for whatever watches the document', () => {
+    const doc = new Y.Doc();
+    let local: boolean | undefined;
+    doc.on('afterTransaction', (transaction: Y.Transaction) => {
+      local = transaction.local;
+    });
+    writeCanvasEdit(Y, doc, 'c', { upserts: [pin('a')] });
+    expect(local).toBe(true);
+  });
+
+  it('gives different canvases their own, in any order', () => {
+    const left = new Y.Doc();
+    const right = new Y.Doc();
+    writeCanvasEdit(Y, left, 'map', { upserts: [pin('on-map')] });
+    writeCanvasEdit(Y, left, 'cover', { upserts: [pin('on-cover')] });
+    writeCanvasEdit(Y, right, 'cover', { upserts: [pin('also-on-cover')] });
+    sync(left, right);
+
+    expect(ids(readCanvasContents(right, 'map'))).toEqual(['on-map']);
+    expect(ids(readCanvasContents(right, 'cover')).sort()).toEqual([
+      'also-on-cover',
+      'on-cover',
+    ]);
+  });
+
+  it('can start a canvas again after it was deleted', () => {
+    const doc = new Y.Doc();
+    writeCanvasEdit(Y, doc, 'c', { upserts: [pin('first')] });
+    doc.getMap(CANVASES_KEY).delete('c');
+    expect(readCanvasContents(doc, 'c')).toBeNull();
+
+    writeCanvasEdit(Y, doc, 'c', { upserts: [pin('second')] });
+
+    expect(ids(readCanvasContents(doc, 'c'))).toEqual(['second']);
+    const peer = new Y.Doc();
+    Y.applyUpdate(peer, Y.encodeStateAsUpdate(doc));
+    expect(ids(readCanvasContents(peer, 'c'))).toEqual(['second']);
+  });
+
+  it('writes into a map that is already there, however it was made', () => {
+    // What every canvas from an earlier release holds.
+    const earlier = new Y.Doc();
+    const canvas = new Y.Map<unknown>();
+    earlier.getMap(CANVASES_KEY).set('c', canvas);
+    canvas.set('layers', '[]');
+    canvas.set('objects', new Y.Map<string>());
+    canvas.set('order', new Y.Array<string>());
+    const state = Y.decodeStateVector(Y.encodeStateVector(earlier));
+
+    const doc = new Y.Doc();
+    Y.applyUpdate(doc, Y.encodeStateAsUpdate(earlier));
+    writeCanvasEdit(Y, doc, 'c', { upserts: [pin('a')] });
+    Y.applyUpdate(earlier, Y.encodeStateAsUpdate(doc));
+
+    expect(ids(readCanvasContents(earlier, 'c'))).toEqual(['a']);
+    const clients = [
+      ...Y.decodeStateVector(Y.encodeStateVector(doc)).keys(),
+    ].sort((a, b) => a - b);
+    expect(clients).toEqual(
+      [...state.keys(), doc.clientID].sort((a, b) => a - b),
+    );
+  });
+});
+
 describe('mirrorCanvasToElement', () => {
   function docWithElement() {
     const doc = new Y.Doc();

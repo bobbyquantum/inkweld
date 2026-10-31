@@ -36,6 +36,7 @@ import * as Y from 'yjs';
 import { logger } from '../services/logger.service';
 import { stripTrailingSlashes } from '../utils/string-utils';
 import { setYMapPath, yMapPathConflict } from '../utils/yjs-map-path';
+import { mirrorCanvasToElement } from '@inkweld/canvas';
 import { parseXmlToYjsNodes } from '@inkweld/prosemirror/xml';
 import { makeD1Database, type D1DatabaseInstance } from '../db/d1';
 import { writingSessionService } from '../services/writing-session.service';
@@ -1328,6 +1329,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     const body = (await request.json()) as {
       updates?: Array<{ path: string; value: unknown }>;
       yUpdate?: string;
+      mirrorCanvas?: string;
       prosemirrorXml?: string;
       relationships?: { action: 'replace' | 'add'; items: unknown[] };
     };
@@ -1357,6 +1359,10 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       // 'update' event still fires, so the change persists and broadcasts.
       const update = Uint8Array.from(atob(body.yUpdate), (c) => c.codePointAt(0) ?? 0);
       Y.applyUpdate(sharedDoc, update);
+      // Here rather than on the caller's copy, which can predate other edits:
+      // see CommitOptions in services/yjs-document-access.ts.
+      const canvasId = body.mirrorCanvas;
+      if (canvasId) sharedDoc.transact(() => mirrorCanvasToElement(sharedDoc, canvasId));
     } else if (body.relationships) {
       // Apply relationship array mutations
       const { action, items } = body.relationships;

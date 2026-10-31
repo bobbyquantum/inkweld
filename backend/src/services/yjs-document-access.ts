@@ -12,6 +12,7 @@
  *   them. Edits made by others in between merge like any concurrent edit.
  */
 
+import { mirrorCanvasToElement } from '@inkweld/canvas';
 import * as Y from 'yjs';
 import type { DurableObjectNamespace } from '../types/cloudflare';
 import { YjsWorkerService } from './yjs-worker.service';
@@ -25,10 +26,20 @@ export interface DocumentRuntime {
   authToken?: string;
 }
 
+export interface CommitOptions {
+  /**
+   * A canvas whose contents to mirror onto its element's metadata, once these
+   * edits are in. It is done on the document that holds them merged with
+   * everyone else's: a Worker's copy may predate them, and two copies that each
+   * rewrote the element would leave it in the project twice.
+   */
+  mirrorCanvas?: string;
+}
+
 export interface EditableDocument {
   doc: Y.Doc;
   /** Persist the edits made to `doc`. A no-op when nothing changed. */
-  commit(): Promise<void>;
+  commit(options?: CommitOptions): Promise<void>;
 }
 
 /** Open `documentId` for editing on whichever runtime `runtime` describes. */
@@ -42,8 +53,14 @@ export async function openEditableDocument(
   }
 
   const { yjsService } = await import('./yjs.service');
-  const sharedDoc = await yjsService.getDocument(documentId);
-  return { doc: sharedDoc.doc, commit: () => Promise.resolve() };
+  const { doc } = await yjsService.getDocument(documentId);
+  return {
+    doc,
+    commit: ({ mirrorCanvas } = {}) => {
+      if (mirrorCanvas) doc.transact(() => mirrorCanvasToElement(doc, mirrorCanvas));
+      return Promise.resolve();
+    },
+  };
 }
 
 async function openWorkerDocument(
@@ -63,10 +80,10 @@ async function openWorkerDocument(
 
   return {
     doc,
-    commit: async () => {
+    commit: async ({ mirrorCanvas } = {}) => {
       if (!changed) return;
       const update = Y.encodeStateAsUpdate(doc, sentState);
-      await worker.applyYjsUpdate(documentId, toBase64(update));
+      await worker.applyYjsUpdate(documentId, toBase64(update), { mirrorCanvas });
       sentState = Y.encodeStateVector(doc);
       changed = false;
     },

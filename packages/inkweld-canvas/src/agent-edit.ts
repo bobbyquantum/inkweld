@@ -34,6 +34,7 @@ import {
   type CanvasFrame,
   type CanvasLayer,
   type CanvasObject,
+  firstCanvasLayer,
   LIGHT_PAGE,
 } from './model';
 
@@ -230,20 +231,9 @@ class CanvasEditPlanner {
     }
     if (this.layers.length === 0) {
       // Never opened in the app, so nothing has made its first layer yet.
-      this.layers = [this.newLayer('Layer 1', 0)];
+      this.layers = [firstCanvasLayer()];
       this.layersChanged = true;
     }
-  }
-
-  private newLayer(name: string, order: number): CanvasLayer {
-    return {
-      id: this.options.createId(),
-      name,
-      visible: true,
-      locked: false,
-      opacity: 1,
-      order,
-    };
   }
 
   private parseLayer(

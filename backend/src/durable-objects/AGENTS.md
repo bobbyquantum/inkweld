@@ -24,6 +24,10 @@ compacted snapshots. Overview: `docs/site/docs/developer/architecture.md` →
   account deletion would leave the object, and a re-registered username would
   inherit its documents. The object also refuses a disabled owner's token, so
   account deletion must never reserve the account by disabling it.
+- `POST /api/document` with `yUpdate` can also carry `mirrorCanvas`, a canvas to
+  mirror onto its element once the update is applied. The object has the merged
+  document, which a Worker's copy doesn't (`CommitOptions` in
+  `services/yjs-document-access.ts`).
 - The object's name is `username:slug` and its rows are keyed
   `doc:username:slug:…`, so a rename copies them to the object of the new
   slug. The Worker drives `/api/rename/*` on both objects

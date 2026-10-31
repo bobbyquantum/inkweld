@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import * as Y from 'yjs';
 
 import {
   type CanvasEditOptions,
@@ -10,13 +11,16 @@ import {
 } from '../src/agent-edit';
 import { CanvasInputError, MAX_POINTS } from '../src/agent-fields';
 import { applyCanvasEdit, type CanvasContents } from '../src/edit';
-import type {
-  CanvasLayer,
-  CanvasObject,
-  CanvasPin,
-  CanvasShape,
-  CanvasText,
+import {
+  type CanvasLayer,
+  type CanvasObject,
+  type CanvasPin,
+  type CanvasShape,
+  type CanvasText,
+  FIRST_LAYER_ID,
+  firstCanvasLayer,
 } from '../src/model';
+import { readCanvasContents, writeCanvasEdit } from '../src/storage';
 
 function options(): CanvasEditOptions {
   let next = 0;
@@ -443,17 +447,31 @@ describe('choosing a layer', () => {
       { layers: [], objects: [] },
       { add: [{ type: 'pin', label: 'a' }] },
     );
-    expect(edit.layers).toEqual([
-      {
-        id: 'id1',
-        name: 'Layer 1',
-        visible: true,
-        locked: false,
-        opacity: 1,
-        order: 0,
-      },
+    expect(edit.layers).toEqual([firstCanvasLayer()]);
+    expect(objectIn(contents, 'id1')['layerId']).toBe(FIRST_LAYER_ID);
+  });
+
+  it('puts two first edits made at once on the same layer', () => {
+    const start = (id: string): Y.Doc => {
+      const doc = new Y.Doc();
+      const result = plan(
+        { layers: [], objects: [] },
+        { add: [{ id, type: 'pin', label: id }] },
+      );
+      writeCanvasEdit(Y, doc, 'c', result.edit);
+      return doc;
+    };
+    const left = start('from-left');
+    const right = start('from-right');
+    Y.applyUpdate(right, Y.encodeStateAsUpdate(left));
+    Y.applyUpdate(left, Y.encodeStateAsUpdate(right));
+
+    const contents = readCanvasContents(left, 'c') as CanvasContents;
+    expect(contents.layers).toEqual([firstCanvasLayer()]);
+    expect(contents.objects.map((o) => o.layerId)).toEqual([
+      FIRST_LAYER_ID,
+      FIRST_LAYER_ID,
     ]);
-    expect(objectIn(contents, 'id2')['layerId']).toBe('id1');
   });
 
   it('defaults to the topmost layer that is visible and unlocked', () => {

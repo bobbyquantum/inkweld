@@ -70,6 +70,39 @@ export class FileStorageService {
     filename: string,
     data: Buffer | string
   ): Promise<string> {
+    const filePath = await this.prepareProjectFilePath(username, projectSlug, filename);
+    await fs.writeFile(filePath, data);
+    return filePath;
+  }
+
+  /**
+   * Store a file only if there is none by that name, in one step, so of two
+   * overlapping calls exactly one stores it. Resolves to whether this one did.
+   */
+  async createProjectFile(
+    username: string,
+    projectSlug: string,
+    filename: string,
+    data: Buffer | string
+  ): Promise<boolean> {
+    const filePath = await this.prepareProjectFilePath(username, projectSlug, filename);
+    try {
+      await fs.writeFile(filePath, data, { flag: 'wx' });
+      return true;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'EEXIST') return false;
+      // Half a file would hold the name, and nothing could store the whole one.
+      await fs.rm(filePath, { force: true });
+      throw error;
+    }
+  }
+
+  /** The path to write a project file to, with its directories in place. */
+  private async prepareProjectFilePath(
+    username: string,
+    projectSlug: string,
+    filename: string
+  ): Promise<string> {
     await this.ensureProjectDirectory(username, projectSlug);
     const projectPath = this.getProjectPath(username, projectSlug);
     const filePath = path.join(projectPath, filename);
@@ -77,7 +110,6 @@ export class FileStorageService {
     // Filenames may name a subdirectory (published files live in
     // `published/<id>`), which a project's first such write must create.
     await fs.mkdir(path.dirname(filePath), { recursive: true });
-    await fs.writeFile(filePath, data);
     return filePath;
   }
 

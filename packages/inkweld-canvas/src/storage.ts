@@ -124,6 +124,34 @@ function replaceOrder(order: YjsTypes.Array<string>, ids: string[]): void {
   order.insert(0, ids);
 }
 
+/**
+ * The Yjs client id a canvas's map is created under: a hash of the canvas's id,
+ * above the 32 bits of a real client's random id. Stored documents depend on it,
+ * so it can never change.
+ */
+function canvasCreatorId(elementId: string): number {
+  let low = 0x811c9dc5;
+  let high = 0x1b873593;
+  for (const char of elementId) {
+    const code = char.codePointAt(0) ?? 0;
+    low = Math.imul(low ^ code, 0x01000193);
+    high = Math.imul(high ^ code, 0x5bd1e995);
+  }
+  return 2 ** 32 * ((high >>> 11) | 1) + (low >>> 0);
+}
+
+/**
+ * Get a canvas's map, creating it if needed.
+ *
+ * Yjs keeps one value per key, so if two writers each made their own map for a
+ * canvas before they had synced, everything in the losing map would be thrown
+ * away. So the map is created under an id only the canvas decides: every writer
+ * makes the same items, which Yjs merges into one map holding both sets of
+ * objects. The items and their order are part of that, so never change them.
+ *
+ * Those ids can only be used once. A canvas that was deleted and started again
+ * is created under the writer's own id, like one from an earlier release.
+ */
 function ensureCanvasMap(
   Y: YjsConstructors,
   doc: YjsTypes.Doc,
@@ -134,10 +162,20 @@ function ensureCanvasMap(
   if (existing) return existing;
 
   const canvas = new Y.Map<unknown>();
-  canvases.set(elementId, canvas);
-  canvas.set('layers', '[]');
-  canvas.set('objects', new Y.Map<string>());
-  canvas.set('order', new Y.Array<string>());
+  const creator = canvasCreatorId(elementId);
+  const ownClientId = doc.clientID;
+  // Back to the writer's own id before the transaction ends and observers run.
+  doc.transact(() => {
+    if (!doc.store.clients.has(creator)) doc.clientID = creator;
+    try {
+      canvases.set(elementId, canvas);
+      canvas.set('layers', '[]');
+      canvas.set('objects', new Y.Map<string>());
+      canvas.set('order', new Y.Array<string>());
+    } finally {
+      doc.clientID = ownClientId;
+    }
+  });
   return canvas;
 }
 

@@ -21,7 +21,7 @@
  * never refuses.
  */
 
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import type { R2Bucket } from '@cloudflare/workers-types';
 import type { DatabaseInstance } from '../types/context';
 import { users } from '../db/schema/users';
@@ -203,27 +203,50 @@ class QuotaService {
    */
   async reconcile(
     db: DatabaseInstance,
-    user: { id: string; username?: string | null },
+    user: { id: string; username?: string | null; storageUsedBytes?: number | null },
     r2?: R2Bucket,
     env?: QuotaStorageEnv,
     authToken = ''
   ): Promise<number> {
     const { usedBytes } = await this.computeUsage(db, user, r2, env, authToken);
-    await this.persistUsage(db, user.id, usedBytes);
+    await this.persistUsage(db, user.id, usedBytes, user.storageUsedBytes);
     return usedBytes;
   }
 
   /**
    * Store an authoritative figure (from {@link reconcile} or a caller that
    * already ran {@link computeUsage}) and start the refusal cooldown.
+   *
+   * `counterWhenMeasured` is the counter as it was read before measuring. If it
+   * has moved since, a write was counted that the measurement may have missed,
+   * and storing the figure would lose it. The counter then stays as it is, and
+   * the next gated write measures again.
    */
-  async persistUsage(db: DatabaseInstance, userId: string, usedBytes: number): Promise<void> {
-    this.lastReconciledAt.set(userId, Date.now());
+  async persistUsage(
+    db: DatabaseInstance,
+    userId: string,
+    usedBytes: number,
+    counterWhenMeasured?: number | null
+  ): Promise<void> {
+    let counterMoved = false;
     try {
-      await db.update(users).set({ storageUsedBytes: usedBytes }).where(eq(users.id, userId));
+      const updated = await db
+        .update(users)
+        .set({ storageUsedBytes: usedBytes })
+        .where(
+          and(
+            eq(users.id, userId),
+            typeof counterWhenMeasured === 'number'
+              ? eq(users.storageUsedBytes, counterWhenMeasured)
+              : undefined
+          )
+        )
+        .returning();
+      counterMoved = updated.length === 0;
     } catch (error) {
       quotaLog.warn(`Failed to persist reconciled usage for user ${userId}`, { error });
     }
+    if (!counterMoved) this.lastReconciledAt.set(userId, Date.now());
   }
 
   /** Forget the cooldown (tests, and after an admin changes an allowance). */
@@ -252,6 +275,34 @@ class QuotaService {
         .where(eq(users.id, userId));
     } catch (error) {
       quotaLog.warn(`Failed to adjust usage counter for user ${userId}`, { error });
+    }
+  }
+
+  /**
+   * Count a write against the allowance, if it still fits. One statement does
+   * both, so writes that overlap cannot each fit into the same free space. Never
+   * throws, for the same reason as {@link adjustUsage}.
+   */
+  private async reserveUsage(
+    db: DatabaseInstance,
+    userId: string,
+    bytes: number,
+    quotaBytes: number
+  ): Promise<boolean> {
+    if (bytes === 0) return true;
+    const delta = Math.trunc(bytes);
+    try {
+      const reserved = await db
+        .update(users)
+        .set({ storageUsedBytes: sql`${users.storageUsedBytes} + ${delta}` })
+        .where(
+          and(eq(users.id, userId), sql`${users.storageUsedBytes} + ${delta} <= ${quotaBytes}`)
+        )
+        .returning();
+      return reserved.length > 0;
+    } catch (error) {
+      quotaLog.warn(`Failed to count a write for user ${userId}`, { error });
+      return true;
     }
   }
 
@@ -376,7 +427,10 @@ class QuotaService {
       storage.env,
       storage.authToken ?? ''
     );
-    if (usage.usedBytes + growth > usage.quotaBytes) {
+    // Counting it is the last check: another write may have taken the space
+    // since the figures above were read. Reconcile corrects any drift.
+    const fits = usage.usedBytes + growth <= usage.quotaBytes;
+    if (!fits || !(await this.reserveUsage(db, ownerId, growth, usage.quotaBytes))) {
       throw new QuotaExceededError({
         usedBytes: usage.usedBytes,
         quotaBytes: usage.quotaBytes,
@@ -385,8 +439,6 @@ class QuotaService {
         message: 'This would exceed the account’s sync capacity.',
       });
     }
-    // Count the accepted write optimistically; reconcile corrects any drift.
-    await this.adjustUsage(db, ownerId, growth);
   }
 
   /**

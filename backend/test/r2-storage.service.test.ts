@@ -190,3 +190,30 @@ describe('R2StorageService.moveProjectDirectory', () => {
     );
   });
 });
+
+describe('R2StorageService.createProjectFile', () => {
+  it('stores a file that is not there, with its content type', async () => {
+    const r2 = createObjectBucket();
+    const service = new R2StorageService(r2.bucket);
+
+    const first = new TextEncoder().encode('first');
+    expect(await service.createProjectFile('alice', 'novel', 'a.png', first, 'image/png')).toBe(
+      true
+    );
+
+    const stored = await r2.bucket.head('alice/novel/a.png');
+    expect(stored?.httpMetadata?.contentType).toBe('image/png');
+    expect(r2.text('alice/novel/a.png')).toBe('first');
+  });
+
+  it('leaves a file that is there alone', async () => {
+    const r2 = createObjectBucket();
+    const service = new R2StorageService(r2.bucket);
+    r2.seed('alice/novel/a.png', 'first');
+
+    const second = new TextEncoder().encode('second');
+    expect(await service.createProjectFile('alice', 'novel', 'a.png', second)).toBe(false);
+
+    expect(r2.text('alice/novel/a.png')).toBe('first');
+  });
+});

@@ -151,9 +151,8 @@ mcpUploadRoutes.openapi(uploadRoute, async (c) => {
   }
 
   const storage = getStorageService(c.get('storage'));
-  if (await storage.projectFileExists(owner, slug, filename)) {
-    return c.json({ error: 'This upload URL has already been used.' }, 409);
-  }
+  const alreadyUsed = () => c.json({ error: 'This upload URL has already been used.' }, 409);
+  if (await storage.projectFileExists(owner, slug, filename)) return alreadyUsed();
 
   await quotaService.assertCanStore(db, project.userId, data.byteLength, 'media_upload', {
     r2: c.get('storage'),
@@ -162,7 +161,12 @@ mcpUploadRoutes.openapi(uploadRoute, async (c) => {
     // this caller has no session of its own.
     authToken: await mintDoJwt(username, userId, env),
   });
-  await storage.saveProjectFile(owner, slug, filename, data, mimeType);
+  // Requests can all get this far together; storing the file is what decides
+  // which one used the URL. The others were counted for nothing.
+  if (!(await storage.createProjectFile(owner, slug, filename, data, mimeType))) {
+    await quotaService.recordDeletion(db, project.userId, data.byteLength);
+    return alreadyUsed();
+  }
 
   return c.json({ mediaUrl: `media://${filename}`, size: data.byteLength, mimeType }, 200);
 });

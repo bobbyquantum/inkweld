@@ -14,6 +14,7 @@ import {
   type CanvasPageSettings,
   type CanvasShapeType,
   DARK_PAGE,
+  firstCanvasLayer,
   LIGHT_PAGE,
 } from '@inkweld/canvas';
 import { nanoid } from 'nanoid';
@@ -36,6 +37,7 @@ export {
   canvasSizeFrame,
   type CanvasText,
   DARK_PAGE,
+  firstCanvasLayer,
   isBackgroundImage,
   isLinkableObject,
   LIGHT_PAGE,
@@ -223,7 +225,7 @@ export function createDefaultCanvasConfig(
 ): CanvasConfig {
   return {
     elementId,
-    layers: [createDefaultLayer('Layer 1', 0)],
+    layers: [firstCanvasLayer()],
     objects: [],
     background: page.background,
     inkColor: page.inkColor,

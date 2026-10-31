@@ -101,6 +101,8 @@ export class CanvasRendererService {
   private _annotationsLayer: Konva.Layer | null = null;
   /** Image loads still in flight, see {@link whenImagesSettled}. */
   private readonly _pendingImageLoads = new Set<Promise<void>>();
+  /** How to try again for media that had no file, see {@link retryFailedImages}. */
+  private readonly _failedImages = new Set<() => void>();
   private readonly _frameNodes = new Map<string, Konva.Group>();
   private _frameTransformer: Konva.Transformer | null = null;
   private _editingFrameId: string | null = null;
@@ -257,6 +259,16 @@ export class CanvasRendererService {
   whenImagesSettled(): Promise<void> {
     if (this._pendingImageLoads.size === 0) return Promise.resolve();
     return Promise.all(this._pendingImageLoads).then(() => undefined);
+  }
+
+  /**
+   * Try again for images whose media had no file, now that some has arrived.
+   * Nothing else would: the node only changes when the object does.
+   */
+  retryFailedImages(): void {
+    const retries = [...this._failedImages];
+    this._failedImages.clear();
+    for (const retry of retries) retry();
   }
 
   /** Track one image node's load until it settles. */
@@ -1005,7 +1017,10 @@ export class CanvasRendererService {
           commonAttrs,
           src => this.resolveImageSrc(src),
           undefined,
-          this.trackImageLoad()
+          this.trackImageLoad(),
+          retry => {
+            if (isMediaUrl(obj.src)) this._failedImages.add(retry);
+          }
         );
         break;
       case 'text':
@@ -1137,12 +1152,17 @@ export class CanvasRendererService {
     if (container) container.style.cursor = cursor;
   }
 
+  /**
+   * A placeholder that becomes the image once it has loaded. `onFailed` gets a
+   * function to try again with, for a caller that learns the file has arrived.
+   */
   static createImageNode(
     obj: CanvasImage,
     attrs: Konva.NodeConfig,
     resolveSrc: (src: string) => Promise<string>,
     warnLogger?: (msg: string) => void,
-    onSettled?: () => void
+    onSettled?: () => void,
+    onFailed?: (retry: () => void) => void
   ): Konva.Group {
     const log = warnLogger ?? (() => {});
     const settle = onSettled ?? (() => {});
@@ -1157,46 +1177,55 @@ export class CanvasRendererService {
     });
     group.add(placeholder);
 
-    void resolveSrc(obj.src).then(
-      resolvedSrc => {
-        const imageObj = new Image();
-        if (resolvedSrc.startsWith('http')) {
-          imageObj.crossOrigin = 'anonymous';
+    function showFailure(): void {
+      placeholder.fill('#ffcdd2');
+      group.getLayer()?.batchDraw();
+      settle();
+      // A node taken off the canvas since then has nothing left to show.
+      onFailed?.(() => {
+        if (group.getLayer()) load();
+      });
+    }
+
+    function load(): void {
+      void resolveSrc(obj.src).then(
+        resolvedSrc => {
+          const imageObj = new Image();
+          if (resolvedSrc.startsWith('http')) {
+            imageObj.crossOrigin = 'anonymous';
+          }
+          const fail = (): void => {
+            log(
+              `Failed to load image: ${obj.id} src=${obj.src} resolved=${resolvedSrc}`
+            );
+            showFailure();
+          };
+          imageObj.onload = () => {
+            const kImage = new Konva.Image({
+              image: imageObj,
+              width: obj.width,
+              height: obj.height,
+            });
+            placeholder.destroy();
+            group.add(kImage);
+            group.getLayer()?.batchDraw();
+            settle();
+          };
+          imageObj.onerror = fail;
+          if (!resolvedSrc) {
+            // Nothing to load (media missing locally) — don't wait on it.
+            fail();
+            return;
+          }
+          imageObj.src = resolvedSrc;
+        },
+        err => {
+          log(`Failed to resolve image src: ${obj.src} ${err}`);
+          showFailure();
         }
-        const fail = (): void => {
-          log(
-            `Failed to load image: ${obj.id} src=${obj.src} resolved=${resolvedSrc}`
-          );
-          placeholder.fill('#ffcdd2');
-          group.getLayer()?.batchDraw();
-          settle();
-        };
-        imageObj.onload = () => {
-          const kImage = new Konva.Image({
-            image: imageObj,
-            width: obj.width,
-            height: obj.height,
-          });
-          placeholder.destroy();
-          group.add(kImage);
-          group.getLayer()?.batchDraw();
-          settle();
-        };
-        imageObj.onerror = fail;
-        if (!resolvedSrc) {
-          // Nothing to load (media missing locally) — don't wait on it.
-          fail();
-          return;
-        }
-        imageObj.src = resolvedSrc;
-      },
-      err => {
-        log(`Failed to resolve image src: ${obj.src} ${err}`);
-        placeholder.fill('#ffcdd2');
-        group.getLayer()?.batchDraw();
-        settle();
-      }
-    );
+      );
+    }
+    load();
 
     return group;
   }
@@ -1451,6 +1480,7 @@ export class CanvasRendererService {
     this._annotationsLayer = null;
     this._contentInteractive = true;
     this._pendingImageLoads.clear();
+    this._failedImages.clear();
   }
 
   async resolveImageSrc(src: string): Promise<string> {

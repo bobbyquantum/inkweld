@@ -4,7 +4,12 @@
  * runtime with a spied `yjsService`, Workers with a faked Durable Object.
  */
 import { describe, it, expect, afterEach, spyOn } from 'bun:test';
-import { readCanvasContents, writeCanvasEdit, type CanvasContents } from '@inkweld/canvas';
+import {
+  mirrorCanvasToElement,
+  readCanvasContents,
+  writeCanvasEdit,
+  type CanvasContents,
+} from '@inkweld/canvas';
 import * as Y from 'yjs';
 import '../src/mcp';
 import { handleMcpRequest } from '../src/mcp/mcp.handler';
@@ -532,12 +537,14 @@ function fakeProjectObject(serverDoc: Y.Doc, afterStateRead?: () => void) {
       return new Response(state, { status: 200 });
     }
     if (url.pathname === '/api/document' && request.method === 'POST') {
-      const body = (await request.json()) as { yUpdate: string };
+      const body = (await request.json()) as { yUpdate: string; mirrorCanvas?: string };
       posted.push(body.yUpdate);
       Y.applyUpdate(
         serverDoc,
         Uint8Array.from(atob(body.yUpdate), (c) => c.codePointAt(0) ?? 0)
       );
+      // As the real object does: yjs-do-mirror-canvas.test.ts.
+      if (body.mirrorCanvas) mirrorCanvasToElement(serverDoc, body.mirrorCanvas);
       return new Response(JSON.stringify({ success: true }), { status: 200 });
     }
     return new Response('unexpected', { status: 500 });
@@ -608,8 +615,53 @@ describe('on Cloudflare Workers', () => {
         .objects.map((o) => o.id)
         .sort()
     ).toEqual(['agent', 'drawn']);
-    // The mirror holds what this edit saw; the next browser edit refreshes it.
-    expect(element(server)?.metadata?.canvasConfig).toContain('"agent"');
+    // The mirror holds the merged canvas, not just what this edit saw.
+    const mirrored = JSON.parse(element(server)?.metadata?.canvasConfig ?? '{}') as CanvasContents;
+    expect(mirrored).toEqual(stored(server));
+  });
+
+  it('merges overlapping edits of a canvas nobody has started', async () => {
+    stubActivity();
+    const server = elementsDoc();
+    const { env } = fakeProjectObject(server);
+
+    const results = await Promise.all(
+      ['one', 'two', 'three'].map((id) =>
+        call('edit_canvas', { add: [{ id, type: 'pin', label: id }] }, { env })
+      )
+    );
+
+    expect(results.map((json) => json.result?.isError)).toEqual([undefined, undefined, undefined]);
+    const contents = stored(server);
+    expect(contents.objects.map((o) => o.id).sort()).toEqual(['one', 'three', 'two']);
+    expect(new Set(contents.objects.map((o) => o.layerId))).toEqual(
+      new Set(contents.layers.map((l) => l.id))
+    );
+
+    // One element, not one copy per edit, holding everything that was drawn.
+    const copies = server
+      .getArray<{ id: string; metadata?: Record<string, string> }>('elements')
+      .toArray()
+      .filter((e) => e.id === 'map');
+    expect(copies).toHaveLength(1);
+    expect(JSON.parse(copies[0].metadata?.canvasConfig ?? '{}')).toEqual(contents);
+  });
+
+  it('leaves the element out of the update, for the object to mirror', async () => {
+    stubActivity();
+    const server = elementsDoc();
+    const fromTheAgent = new Y.Doc();
+    Y.applyUpdate(fromTheAgent, Y.encodeStateAsUpdate(server));
+    const { env, posted } = fakeProjectObject(server);
+
+    await call('edit_canvas', { add: [{ id: 'a', type: 'pin', label: 'a' }] }, { env });
+
+    Y.applyUpdate(
+      fromTheAgent,
+      Uint8Array.from(atob(posted[0]), (c) => c.codePointAt(0) ?? 0)
+    );
+    expect(stored(fromTheAgent).objects.map((o) => o.id)).toEqual(['a']);
+    expect(element(fromTheAgent)?.metadata).toBeUndefined();
   });
 
   it('posts nothing for an invalid edit', async () => {
