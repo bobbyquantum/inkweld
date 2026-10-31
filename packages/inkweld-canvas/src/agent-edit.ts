@@ -144,7 +144,8 @@ class CanvasEditPlanner {
   private readonly deleted: string[] = [];
   private readonly linksToCreate: PlannedCanvasLink[] = [];
   private readonly relationshipsToRemove: string[] = [];
-  private readonly placedMedia: string[] = [];
+  /** By object, so an object deleted later in the edit no longer counts. */
+  private readonly placedMedia = new Map<string, string>();
 
   constructor(
     private readonly current: CanvasContents,
@@ -188,7 +189,7 @@ class CanvasEditPlanner {
       deleted: this.deleted,
       linksToCreate: this.linksToCreate,
       relationshipsToRemove: this.relationshipsToRemove,
-      placedMedia: this.placedMedia,
+      placedMedia: [...new Set(this.placedMedia.values())],
       undo: this.buildUndo(),
     };
   }
@@ -328,6 +329,18 @@ class CanvasEditPlanner {
     return this.layers.find((l) => l.id === object.layerId);
   }
 
+  /**
+   * A layer holds its objects still for as long as it stays locked. They can
+   * change in the edit that unlocks it, and in the edit that locks it, which is
+   * what undoing the first of those does.
+   */
+  private holdsObjects(layer: CanvasLayer): boolean {
+    return (
+      layer.locked &&
+      this.current.layers.some((l) => l.id === layer.id && l.locked)
+    );
+  }
+
   /** Respect the user's locks. An explicit unlock in the same update is fine. */
   private assertUnlocked(
     object: CanvasObject,
@@ -341,7 +354,7 @@ class CanvasEditPlanner {
     }
     const layer = this.layerOf(object);
     // Pins sit on an annotations overlay; their layerId is vestigial.
-    if (layer?.locked && object.type !== 'pin') {
+    if (layer && this.holdsObjects(layer) && object.type !== 'pin') {
       fail(
         `${label}: object "${object.id}" is on locked layer "${layer.name}"; unlock the layer with the layers argument`,
       );
@@ -360,6 +373,7 @@ class CanvasEditPlanner {
       }
       this.objects.delete(id);
       this.touched.delete(id);
+      this.placedMedia.delete(id);
       this.deleted.push(id);
     }
     const gone = new Set(ids);
@@ -432,7 +446,7 @@ class CanvasEditPlanner {
       const known = this.layers.map((l) => `${l.id} (${l.name})`).join(', ');
       fail(`${label}.layerId: no such layer. Layers: ${known}`);
     }
-    if (layer.locked && type !== 'pin') {
+    if (this.holdsObjects(layer) && type !== 'pin') {
       fail(`${label}.layerId: layer "${layer.name}" is locked`);
     }
     return layer.id;
@@ -492,7 +506,7 @@ class CanvasEditPlanner {
       src !== previous?.['src'] &&
       isMediaReference(src)
     ) {
-      this.placedMedia.push(src);
+      this.placedMedia.set(next['id'] as string, src);
     }
   }
 

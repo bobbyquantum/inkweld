@@ -22,7 +22,7 @@ Object types and what add needs (everything else has a default):
 - pin: label. Optional icon (a Material icon name), color, note, linkedElementId (links the pin to that element).
 All objects also take id, layerId (default: the topmost visible, unlocked layer), x, y, rotation, scaleX, scaleY, visible, locked, name, opacity.
 
-Update merges the fields you send into the object; null removes an optional field. Changing or deleting a locked object is refused until an update unlocks it, which may be in the same edit, and so is anything but a pin on a locked layer until the layer is unlocked. Restacking is not refused. Pass layers or frames as the complete list you want; an entry with a known id keeps the fields you leave out. A layer's position in the list is its stacking order, and removing a layer requires deleting or moving its objects in the same edit.
+Update merges the fields you send into the object; null removes an optional field. Changing or deleting a locked object, or anything but a pin on a locked layer, is refused until you unlock it, which can be in the same edit: update sets an object's locked to false, and layers sets a layer's. Restacking is not refused. Pass layers or frames as the complete list you want; an entry with a known id keeps the fields you leave out. A layer's position in the list is its stacking order, and removing a layer requires deleting or moving its objects in the same edit.
 
 The result's undo holds arguments for edit_canvas that reverse this edit. Keep it if the user may want to go back: this is the only way to undo an agent's edit, and the app's own undo does not cover it.`;
 
