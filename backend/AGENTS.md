@@ -31,6 +31,14 @@ LevelDB per project for Yjs documents (Durable Objects on Workers). The root
   a second handle can't take the LevelDB lock, so y-leveldb drops every write
   through it with only a console warning. Close handles with
   `releasePersistence()`, which waits for the lock before a reopen.
+- **MCP canvas tools** (`mcp/tools/canvas.tools.ts`) only do the storage; what
+  they accept and return is in `@inkweld/canvas`, shared with WebMCP. An edit
+  must also mirror the canvas onto its element's `canvasConfig` metadata, which
+  archives, templates and the media-usage scan read.
+- **MCP upload URLs** (`routes/mcp-upload.routes.ts`) authenticate by the token
+  in the path, since the caller is an agent's HTTP tool. Anything added there
+  must re-check what the token was issued against. Details:
+  `docs/site/docs/developer/mcp-oauth.md`.
 - **Yjs document ids**: the backend/MCP use `username:slug:elements/` with a
   trailing slash, the frontend without. Not a bug; don't "fix" it.
 - **HTTP routes that edit a Yjs document** must work on both runtimes.
@@ -71,8 +79,8 @@ per-user override (`NULL` = instance default `SYNC_QUOTA_DEFAULT_BYTES`,
   `GET /users/me/storage` response carries `enabled`.
 - **Every write that adds project storage goes through
   `quotaService.assertCanStore()`** (media upload, cover upload, published
-  file, MCP `apply_image`), and project creation through
-  `assertCanCreateProject()`. A new storage write path must do the same, and
+  file, MCP `apply_image` and `create_media_upload` URLs), and project creation
+  through `assertCanCreateProject()`. A new storage write path must do the same, and
   pass `replacedBytes` when it overwrites a file so only the growth is charged.
   Deletions credit the counter (`recordDeletion`): media `DELETE`, cover
   delete, published-file delete, project delete (measured before teardown).

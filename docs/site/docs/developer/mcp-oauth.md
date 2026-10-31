@@ -68,6 +68,7 @@ statelessly.
 | `get_element_full`        | Get complete element data including worldbuilding          |
 | `get_document_content`    | Get prose content from a document element, or one section  |
 | `get_document_outline`    | List a document's heading-based sections                   |
+| `get_canvas`              | Read a canvas: page colours, layers, frames and objects    |
 | `get_relationships_graph` | Get all relationships as a graph structure                 |
 | `get_project_metadata`    | Get project metadata and settings                          |
 | `get_publish_plans`       | Get saved publish/export configurations                    |
@@ -89,6 +90,8 @@ statelessly.
 | `update_worldbuilding`    | Update worldbuilding data for an element                            |
 | `update_document_content` | Replace prose content of a document element                         |
 | `update_document_section` | Replace, add to or delete one section of a document                 |
+| `edit_canvas`             | Add, change, delete and restack objects on a canvas                 |
+| `create_media_upload`     | Get a short-lived URL for uploading an image file                   |
 | `create_relationship`     | Create relationships between elements                               |
 | `delete_relationship`     | Remove a relationship                                               |
 | `tag_element`             | Add, remove, or set tags on an element                              |
@@ -119,6 +122,23 @@ When creating a worldbuilding entry via `create_element`, pass `schemaId` along 
 A section is named by `section`, its heading text (case and leading `#`s are ignored; a path such as `Part Two > Chapter 1` picks one of several headings with the same text), or by `sectionIndex` from the outline. When both are given they must name the same section, which catches an index that went stale because the document changed. An ambiguous or unknown heading is an error that lists the candidates, and nothing is written.
 
 Only the blocks in the edited range are deleted and inserted, in one Yjs transaction, so the rest of the document keeps its Yjs items. On Workers the tool loads the document's full state from the Durable Object and sends back only its change as a Yjs update, so an edit made elsewhere in the meantime merges. The result reports the blocks removed and added, the word counts, and a note when the edit changed the number of headings (later indexes moved) or a `replace` dropped the section's heading. The section logic itself lives in `packages/inkweld-prosemirror/src/xml/sections.ts`.
+
+#### Working on a canvas
+
+`get_canvas` (`read:elements`) and `edit_canvas` (`write:elements`) read and change the contents of a `CANVAS` element. Create one with `create_element`. What they accept and return is shared with the WebMCP tools in `packages/inkweld-canvas`, and their tool descriptions document the fields.
+
+- **Reading** returns the page colours, layers, frames and objects, back to front. Hand-drawn strokes can run to megabytes of points, so objects are summarised by default: a path or polygon reports `pointCount` and `bounds` instead of its points, and long text and inline images are cut. `objectIds` returns specific objects whole; `layerId`, `offset` and `limit` page through the rest.
+- **Editing** takes `add`, `update` (a merge; `null` removes an optional field), `delete`, `moveToFront`, `moveToBack`, `layers`, `frames`, `background` and `inkColor`. The whole request is validated first, so a bad edit changes nothing.
+- **Locks are respected.** Locked objects and objects on locked layers are refused until unlocked. Removing a layer requires deleting or moving its artwork in the same edit; pins move to another layer, as they do in the app.
+- **Links are kept up to date.** A pin or region's `linkedElementId` creates the relationship behind it, and changing the link or deleting the object removes that relationship.
+- **Going back:** the result's `undo` holds `edit_canvas` arguments that reverse the edit, unless they would be over 64 KB. There is no other way back from an agent's edit: `create_snapshot` covers documents and worldbuilding, not canvases, and an edit from elsewhere clears the app's undo history for that canvas, as any collaborator's does.
+- **Agents cannot see the result yet.** There is no render tool, and objects have fixed coordinates, so overlaps and text overflow are not reported. A user can check the canvas in the app; an agent with browser access can screenshot it.
+
+The edit goes into the `canvases` map of the project's elements document one object at a time, so it merges with anyone drawing at the same time and an open canvas tab shows it. The tool also rewrites the element's `canvasConfig` metadata, because browsers only mirror their own edits there and archives, templates and the media-usage scan read it. A canvas that so far only exists in that metadata (restored from an archive) is seeded first, or its contents would be lost.
+
+Images use project media. `create_media_upload` (`write:elements`) takes a `format` (`png`, `jpeg`, `webp` or `gif`) and returns an `uploadUrl` and the `mediaUrl` the file will have. The agent sends the file with a plain `PUT`, for example `curl --fail --upload-file picture.png "<uploadUrl>"`, so the bytes never pass through its conversation the way `apply_image`'s `base64Data` does. The URL's token is the only credential. It names one new file, expires after 15 minutes and is signed with a key derived for this purpose alone, so it cannot pass as a session or OAuth token. The route (`routes/mcp-upload.routes.ts`) checks again that MCP is enabled, the session is not revoked and the user can still write to the project, checks the file's magic bytes against the format, charges the project owner's sync capacity, and refuses a second upload to the same URL.
+
+A browser fetches such an image from the server when a canvas needs it, rather than waiting for the next background media sync (`CanvasRendererService.resolveImageSrc`).
 
 #### Schema (Template) Operations
 

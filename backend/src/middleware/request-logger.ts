@@ -41,6 +41,14 @@ const SKIP_PATHS = new Set<string>([
   '/ngsw-worker.js',
 ]);
 
+/** Paths whose last segment is a credential: an MCP upload URL's token. */
+const TOKEN_IN_PATH_PREFIX = '/api/v1/ai/mcp/uploads/';
+
+/** The path as it may appear in the logs, with any credential taken out. */
+export function pathForLogging(path: string): string {
+  return path.startsWith(TOKEN_IN_PATH_PREFIX) ? `${TOKEN_IN_PATH_PREFIX}<token>` : path;
+}
+
 /**
  * Check if a path should skip detailed logging
  * (still logs errors, just not routine requests)
@@ -91,7 +99,7 @@ export function requestLogger(options: RequestLoggerOptions = {}): MiddlewareHan
   return async (c, next) => {
     const start = performance.now();
     const method = c.req.method;
-    const path = c.req.path;
+    const path = pathForLogging(c.req.path);
     const _url = c.req.url;
 
     // Generate or use existing correlation ID

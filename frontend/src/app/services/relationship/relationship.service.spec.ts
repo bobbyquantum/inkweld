@@ -196,6 +196,17 @@ describe('RelationshipService', () => {
   });
 
   describe('relationship CRUD', () => {
+    it('should use the id it is given, for an object that refers to it', () => {
+      const relationship = service.addRelationship(
+        'canvas-1',
+        'char-2',
+        'canvas-pin',
+        { id: 'planned-id' }
+      );
+
+      expect(relationship.id).toBe('planned-id');
+    });
+
     it('should add a relationship', () => {
       const relationship = service.addRelationship(
         'char-1',

@@ -185,6 +185,41 @@ describe('MediaSyncService', () => {
     });
   });
 
+  describe('fetchMissingMedia', () => {
+    it('saves the file under its media id and reports success', async () => {
+      const blob = new Blob(['test'], { type: 'image/png' });
+      httpMock.get.mockReturnValue(of(blob));
+
+      await expect(
+        service.fetchMissingMedia(TEST_PROJECT_KEY, 'img-1.png')
+      ).resolves.toBe(true);
+
+      expect(httpMock.get).toHaveBeenCalledWith(
+        expect.stringContaining('/img-1.png'),
+        { responseType: 'blob' }
+      );
+      expect(localStorageMock.saveMedia).toHaveBeenCalledWith(
+        TEST_PROJECT_KEY,
+        'img-1',
+        blob,
+        'img-1.png'
+      );
+    });
+
+    it('reports failure without touching the sync state', async () => {
+      httpMock.get.mockReturnValue(throwError(() => new Error('404')));
+      const state = service.getSyncState(TEST_PROJECT_KEY);
+      const before = state();
+
+      await expect(
+        service.fetchMissingMedia(TEST_PROJECT_KEY, 'gone.png')
+      ).resolves.toBe(false);
+
+      expect(state()).toEqual(before);
+      expect(localStorageMock.saveMedia).not.toHaveBeenCalled();
+    });
+  });
+
   describe('downloadFromServer', () => {
     it('should download and save file', async () => {
       const blob = new Blob(['test'], { type: 'image/jpeg' });

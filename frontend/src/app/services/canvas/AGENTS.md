@@ -10,6 +10,19 @@ delta instead of a rewrite of the whole element array.
 - The element's `canvasConfig` metadata is still written, but only after
   drawing pauses — it is the interchange format for archives, templates and
   the media-usage scan, not the live editing surface.
+- The stored model, the Yjs layout and the mirroring live in `@inkweld/canvas`
+  (`packages/inkweld-canvas`), so the sync provider and the backend's MCP tools
+  write the same thing. `canvas.model.ts` and `canvas-edit.ts` re-export it.
+- **Agents edit canvases** (`get_canvas` / `edit_canvas`, on the server and in
+  WebMCP). A browser only mirrors its own edits to `canvasConfig`, so the server
+  tool mirrors its own too; a writer that adds a third path must do the same,
+  and seed from the metadata first (`resolveCanvasContents`), or a canvas
+  restored from an archive loses its contents on the first edit.
+- `applyCanvasEdit(..., { external: true })` reports the change through
+  `canvasContents$` like another peer's. Without it, a tab holding that canvas
+  would not show an edit made elsewhere in the same browser.
+- **`resolveImageSrc` fetches missing media from the server** on a server
+  profile: an agent can upload an image and place it while a tab is open.
 - `IElementSyncProvider` also exposes `listCanvasElementIds()` and
   `deleteCanvas(elementId)` so that deleting an element can unlink the
   pins/regions that point at it and drop its canvas map.

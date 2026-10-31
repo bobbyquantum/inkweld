@@ -41,6 +41,6 @@ export function registerOpenOriginRoutes(app: AppWithUse): void {
   );
   app.use(
     '/api/v1/ai/mcp/*',
-    cors({ origin: '*', allowMethods: ['GET', 'POST', 'DELETE', 'OPTIONS'] })
+    cors({ origin: '*', allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'] })
   );
 }

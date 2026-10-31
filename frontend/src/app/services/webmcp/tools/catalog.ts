@@ -2,6 +2,7 @@
 import type { Injector } from '@angular/core';
 
 import { appTools } from './app.tools';
+import { canvasTools } from './canvas.tools';
 import { documentTools } from './document.tools';
 import { elementTools } from './element.tools';
 import { ProjectToolContext } from './project-context';
@@ -23,6 +24,7 @@ export function buildProjectTools(injector: Injector): WebMcpToolDefinition[] {
   return [
     ...elementTools(injector, ctx),
     ...documentTools(injector, ctx),
+    ...canvasTools(injector, ctx),
     ...worldbuildingTools(injector, ctx),
     ...relationshipTools(injector, ctx),
     ...tagTools(injector, ctx),

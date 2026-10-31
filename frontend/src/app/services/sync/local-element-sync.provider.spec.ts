@@ -477,6 +477,29 @@ describe('LocalElementSyncProvider', () => {
       ).toBeDefined();
     });
 
+    it('echoes an external edit to an open canvas, but not its own', async () => {
+      await provider.connect(config);
+      provider.updateElements([canvasElement]);
+      const seen: string[][] = [];
+      provider
+        .canvasContents$('canvas-1')
+        .subscribe(contents => seen.push(contents.objects.map(o => o.id)));
+      seen.length = 0;
+
+      provider.applyCanvasEdit('canvas-1', {
+        layers,
+        upserts: [makePath('own')],
+      });
+      expect(seen).toEqual([]);
+
+      provider.applyCanvasEdit(
+        'canvas-1',
+        { upserts: [makePath('agent')] },
+        { external: true }
+      );
+      expect(seen).toEqual([['own', 'agent']]);
+    });
+
     it('applies successive edits on top of each other', async () => {
       await provider.connect(config);
       provider.updateElements([canvasElement]);

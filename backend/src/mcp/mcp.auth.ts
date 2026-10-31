@@ -10,6 +10,7 @@ import type { AppContext } from '../types/context';
 import type { DurableObjectNamespace } from '../types/cloudflare';
 import { mcpOAuthService, type CloudflareEnv } from '../services/mcp-oauth.service';
 import { config } from '../config/env';
+import { getPublicApiUrl } from '../services/url.service';
 import { getClientIp } from '../utils/client-ip';
 import type { McpContext, McpOAuthContext, McpOAuthGrant } from './mcp.types';
 import { createErrorResponse, JSON_RPC_ERRORS } from './mcp.types';
@@ -54,6 +55,22 @@ function extractToken(c: Context): string | null {
 }
 
 /**
+ * The secret the MCP layer signs its own tokens with. Mirrors the resolution
+ * in YjsProject.getSecret() and McpOAuthService.getSecret().
+ */
+export function mcpSigningSecret(env: Record<string, unknown> | undefined): string {
+  const secret =
+    (env?.DATABASE_KEY as string | undefined) ||
+    (env?.SESSION_SECRET as string | undefined) ||
+    config.databaseKey;
+
+  if (!secret || secret.length < 32) {
+    throw new Error('DATABASE_KEY must be at least 32 characters for JWT signing');
+  }
+  return secret;
+}
+
+/**
  * Mint a short-lived JWT compatible with the Durable Object's verifyToken().
  *
  * OAuth access tokens are deliberately rejected by the DO because they are
@@ -75,17 +92,9 @@ function extractToken(c: Context): string | null {
 export async function mintDoJwt(
   username: string,
   userId: string,
-  env: Record<string, unknown>
+  env: Record<string, unknown> | undefined
 ): Promise<string> {
-  // Mirror the secret resolution in YjsProject.getSecret() and McpOAuthService.getSecret()
-  const secret =
-    (env.DATABASE_KEY as string | undefined) ||
-    (env.SESSION_SECRET as string | undefined) ||
-    config.databaseKey;
-
-  if (!secret || secret.length < 32) {
-    throw new Error('DATABASE_KEY must be at least 32 characters for JWT signing');
-  }
+  const secret = mcpSigningSecret(env);
 
   const now = Math.floor(Date.now() / 1000);
   const payload: Record<string, unknown> = {
@@ -159,6 +168,7 @@ async function handleOAuthJwt(
     clientIp,
     authToken: doAuthToken,
     env,
+    publicApiUrl: getPublicApiUrl(c),
   };
 }
 

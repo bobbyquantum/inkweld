@@ -23,11 +23,17 @@ import { CustomHttpParameterCodec } from '../encoder';
 import { Observable } from 'rxjs';
 
 // @ts-ignore
+import { ErrorResponse } from '../model/error-response';
+// @ts-ignore
 import { JsonRpcRequest } from '../model/json-rpc-request';
 // @ts-ignore
 import { JsonRpcResponse } from '../model/json-rpc-response';
 // @ts-ignore
 import { MCPError } from '../model/mcp-error';
+// @ts-ignore
+import { McpMediaUploadResponse } from '../model/mcp-media-upload-response';
+// @ts-ignore
+import { UploadMcpMedia403Response } from '../model/upload-mcp-media403-response';
 
 // @ts-ignore
 import { BASE_PATH, COLLECTION_FORMATS } from '../variables';
@@ -390,5 +396,133 @@ export class MCPService extends BaseService {
         : {}),
       reportProgress: reportProgress,
     });
+  }
+
+  /**
+   * Upload an image through a create_media_upload URL
+   * Stores the request body as the one image file the token names. The token comes from the create_media_upload MCP tool, works once and expires after a few minutes.
+   * @endpoint put /api/v1/ai/mcp/uploads/{token}
+   * @param token The token from create_media_upload
+   * @param body
+   * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
+   * @param reportProgress flag to report request and response progress.
+   */
+  public uploadMcpMedia(
+    token: string,
+    body?: Blob,
+    observe?: 'body',
+    reportProgress?: boolean,
+    options?: {
+      httpHeaderAccept?: 'application/json';
+      context?: HttpContext;
+      transferCache?: boolean;
+    }
+  ): Observable<McpMediaUploadResponse>;
+  public uploadMcpMedia(
+    token: string,
+    body?: Blob,
+    observe?: 'response',
+    reportProgress?: boolean,
+    options?: {
+      httpHeaderAccept?: 'application/json';
+      context?: HttpContext;
+      transferCache?: boolean;
+    }
+  ): Observable<HttpResponse<McpMediaUploadResponse>>;
+  public uploadMcpMedia(
+    token: string,
+    body?: Blob,
+    observe?: 'events',
+    reportProgress?: boolean,
+    options?: {
+      httpHeaderAccept?: 'application/json';
+      context?: HttpContext;
+      transferCache?: boolean;
+    }
+  ): Observable<HttpEvent<McpMediaUploadResponse>>;
+  public uploadMcpMedia(
+    token: string,
+    body?: Blob,
+    observe: any = 'body',
+    reportProgress: boolean = false,
+    options?: {
+      httpHeaderAccept?: 'application/json';
+      context?: HttpContext;
+      transferCache?: boolean;
+    }
+  ): Observable<any> {
+    if (token === null || token === undefined) {
+      throw new Error(
+        'Required parameter token was null or undefined when calling uploadMcpMedia.'
+      );
+    }
+
+    let localVarHeaders = this.defaultHeaders;
+
+    // authentication (bearerAuth) required
+    localVarHeaders = this.configuration.addCredentialToHeaders(
+      'bearerAuth',
+      'Authorization',
+      localVarHeaders,
+      'Bearer '
+    );
+
+    const localVarHttpHeaderAcceptSelected: string | undefined =
+      options?.httpHeaderAccept ??
+      this.configuration.selectHeaderAccept(['application/json']);
+    if (localVarHttpHeaderAcceptSelected !== undefined) {
+      localVarHeaders = localVarHeaders.set(
+        'Accept',
+        localVarHttpHeaderAcceptSelected
+      );
+    }
+
+    const localVarHttpContext: HttpContext =
+      options?.context ?? new HttpContext();
+
+    const localVarTransferCache: boolean = options?.transferCache ?? true;
+
+    // to determine the Content-Type header
+    const consumes: string[] = ['application/octet-stream'];
+    const httpContentTypeSelected: string | undefined =
+      this.configuration.selectHeaderContentType(consumes);
+    if (httpContentTypeSelected !== undefined) {
+      localVarHeaders = localVarHeaders.set(
+        'Content-Type',
+        httpContentTypeSelected
+      );
+    }
+
+    let responseType_: 'text' | 'json' | 'blob' = 'json';
+    if (localVarHttpHeaderAcceptSelected) {
+      if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
+        responseType_ = 'text';
+      } else if (
+        this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)
+      ) {
+        responseType_ = 'json';
+      } else {
+        responseType_ = 'blob';
+      }
+    }
+
+    let localVarPath = `/api/v1/ai/mcp/uploads/${this.configuration.encodeParam({ name: 'token', value: token, in: 'path', style: 'simple', explode: false, dataType: 'string', dataFormat: undefined })}`;
+    const { basePath, withCredentials } = this.configuration;
+    return this.httpClient.request<McpMediaUploadResponse>(
+      'put',
+      `${basePath}${localVarPath}`,
+      {
+        context: localVarHttpContext,
+        body: body,
+        responseType: <any>responseType_,
+        ...(withCredentials ? { withCredentials } : {}),
+        headers: localVarHeaders,
+        observe: observe,
+        ...(localVarTransferCache !== undefined
+          ? { transferCache: localVarTransferCache }
+          : {}),
+        reportProgress: reportProgress,
+      }
+    );
   }
 }

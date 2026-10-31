@@ -1001,7 +1001,7 @@ registerTool({
         base64Data: {
           type: 'string',
           description:
-            'Base64-encoded image data (required for source=upload). Supports raw base64 or data: URL format.',
+            'Base64-encoded image data (required for source=upload). Supports raw base64 or data: URL format. These bytes pass through the conversation, so this suits only a very small image; for a file on disk, use create_media_upload and source=media.',
         },
         // --- media source params ---
         mediaUrl: {

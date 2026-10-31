@@ -349,6 +349,8 @@ interface McpContextBase {
     YJS_PROJECTS?: DurableObjectNamespace;
     [key: string]: unknown;
   };
+  /** Public URL of this API server, for links a tool hands to its caller */
+  publicApiUrl?: string;
 }
 
 /**

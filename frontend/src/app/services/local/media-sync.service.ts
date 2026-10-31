@@ -346,6 +346,34 @@ export class MediaSyncService {
   }
 
   /**
+   * Fetch one file this browser does not have yet, such as an image an agent
+   * just uploaded and placed, without waiting for the next background sync.
+   * Resolves to whether it arrived. A failure touches no sync state: a missing
+   * image is not a sync error.
+   */
+  async fetchMissingMedia(
+    projectKey: string,
+    filename: string
+  ): Promise<boolean> {
+    try {
+      const blob = await firstValueFrom(
+        this.http.get(`${this.getMediaUrl(projectKey)}/${filename}`, {
+          responseType: 'blob',
+        })
+      );
+      await this.localStorage.saveMedia(
+        projectKey,
+        this.filenameToMediaId(filename),
+        blob,
+        filename
+      );
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
    * Download all missing media from the server
    */
   async downloadAllFromServer(projectKey: string): Promise<void> {
