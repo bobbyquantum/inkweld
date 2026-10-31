@@ -280,16 +280,18 @@ class QuotaService {
 
   /**
    * Count a write against the allowance, if it still fits. One statement does
-   * both, so writes that overlap cannot each fit into the same free space. Never
-   * throws, for the same reason as {@link adjustUsage}.
+   * both, so writes that overlap cannot each fit into the same free space.
+   * Resolves to the bytes counted, or null if the write does not fit. Never
+   * throws, for the same reason as {@link adjustUsage}: if the counter cannot be
+   * written the write goes ahead, with nothing counted.
    */
   private async reserveUsage(
     db: DatabaseInstance,
     userId: string,
     bytes: number,
     quotaBytes: number
-  ): Promise<boolean> {
-    if (bytes === 0) return true;
+  ): Promise<number | null> {
+    if (bytes === 0) return 0;
     const delta = Math.trunc(bytes);
     try {
       const reserved = await db
@@ -299,10 +301,10 @@ class QuotaService {
           and(eq(users.id, userId), sql`${users.storageUsedBytes} + ${delta} <= ${quotaBytes}`)
         )
         .returning();
-      return reserved.length > 0;
+      return reserved.length > 0 ? delta : null;
     } catch (error) {
       quotaLog.warn(`Failed to count a write for user ${userId}`, { error });
-      return true;
+      return 0;
     }
   }
 
@@ -434,7 +436,8 @@ class QuotaService {
     // Counting it is the last check: another write may have taken the space
     // since the figures above were read. Reconcile corrects any drift.
     const fits = usage.usedBytes + growth <= usage.quotaBytes;
-    if (!fits || !(await this.reserveUsage(db, ownerId, growth, usage.quotaBytes))) {
+    const counted = fits ? await this.reserveUsage(db, ownerId, growth, usage.quotaBytes) : null;
+    if (counted === null) {
       throw new QuotaExceededError({
         usedBytes: usage.usedBytes,
         quotaBytes: usage.quotaBytes,
@@ -443,7 +446,7 @@ class QuotaService {
         message: 'This would exceed the account’s sync capacity.',
       });
     }
-    return growth;
+    return counted;
   }
 
   /**

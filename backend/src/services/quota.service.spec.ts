@@ -538,6 +538,25 @@ describe('quotaService.assertCanStore', () => {
     expect(await counter()).toBe(0);
   });
 
+  it('lets a write through, counting nothing, when the counter cannot be written', async () => {
+    await enableEnforcement();
+    await db.update(users).set({ syncQuotaBytes: 10_000 }).where(eq(users.id, USER_ID));
+    // A fresh measurement, so the fast path applies and nothing else writes.
+    await quotaService.persistUsage(db, USER_ID, 100);
+    const counterStuck = new Proxy(db, {
+      get: (target, key) =>
+        key === 'update'
+          ? () => {
+              throw new Error('database is read-only');
+            }
+          : Reflect.get(target, key),
+    });
+
+    expect(await quotaService.assertCanStore(counterStuck, USER_ID, 500, 'media_upload')).toBe(0);
+
+    expect(await counter()).toBe(100);
+  });
+
   it('charges only the growth when a write replaces an existing file', async () => {
     await enableEnforcement();
     await db.update(users).set({ syncQuotaBytes: 10_000 }).where(eq(users.id, USER_ID));

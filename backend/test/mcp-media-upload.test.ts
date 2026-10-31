@@ -461,6 +461,26 @@ describe('sync capacity', () => {
     }
   });
 
+  it('gives back nothing if the write fails and counting it had failed too', async () => {
+    await quotaService.persistUsage(db, USER_ID, 1000);
+    const count = spyOn(quotaService, 'assertCanStore').mockResolvedValueOnce(0);
+    const write = spyOn(FileStorageService.prototype, 'createProjectFile').mockRejectedValueOnce(
+      new Error('disk full')
+    );
+    try {
+      const upload = await createUpload();
+
+      expect((await put(upload.uploadUrl)).status).toBe(500);
+
+      expect(count).toHaveBeenCalledTimes(1);
+      expect(await usedBytes()).toBe(1000);
+    } finally {
+      count.mockRestore();
+      write.mockRestore();
+      quotaService.clearReconcileCooldown(USER_ID);
+    }
+  });
+
   it('gives back nothing while capacity is not enforced, having counted nothing', async () => {
     await quotaService.persistUsage(db, USER_ID, 1000);
     try {
