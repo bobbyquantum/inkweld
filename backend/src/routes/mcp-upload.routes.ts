@@ -21,7 +21,6 @@ import { mcpOAuthService } from '../services/mcp-oauth.service';
 import { projectService } from '../services/project.service';
 import { quotaService } from '../services/quota.service';
 import { getStorageService } from '../services/storage.service';
-import { userService } from '../services/user.service';
 import type { AppContext, DatabaseInstance } from '../types/context';
 import { MAX_MEDIA_UPLOAD_BYTES, rejectEmptyUpload } from '../utils/upload';
 
@@ -95,19 +94,13 @@ const uploadRoute = createRoute({
   },
 });
 
-/**
- * Whether this user can still sign in, and a session still grants them write
- * access to the project. Disabling an account does not revoke its sessions, and
- * the owner of a project always has access to it.
- */
+/** Whether a session still grants this user write access to the project. */
 async function canStillWrite(
   db: DatabaseInstance,
   sessionId: string,
   userId: string,
   projectId: string
 ): Promise<boolean> {
-  const user = await userService.findById(db, userId);
-  if (!user || !userService.canLogin(user)) return false;
   const access = await collaborationService.checkAccess(db, projectId, userId);
   if (!access.canWrite) return false;
   const grants = await mcpOAuthService.getSessionGrants(db, sessionId);
@@ -154,19 +147,29 @@ mcpUploadRoutes.openapi(uploadRoute, async (c) => {
   const alreadyUsed = () => c.json({ error: 'This upload URL has already been used.' }, 409);
   if (await storage.projectFileExists(owner, slug, filename)) return alreadyUsed();
 
-  await quotaService.assertCanStore(db, project.userId, data.byteLength, 'media_upload', {
-    r2: c.get('storage'),
-    env: env as never,
-    // The size endpoint of the Durable Object wants the caller's token, and
-    // this caller has no session of its own.
-    authToken: await mintDoJwt(username, userId, env),
-  });
+  const counted = await quotaService.assertCanStore(
+    db,
+    project.userId,
+    data.byteLength,
+    'media_upload',
+    {
+      r2: c.get('storage'),
+      env: env as never,
+      // The size endpoint of the Durable Object wants the caller's token, and
+      // this caller has no session of its own.
+      authToken: await mintDoJwt(username, userId, env),
+    }
+  );
+
   // Requests can all get this far together; storing the file is what decides
-  // which one used the URL. The others were counted for nothing.
-  if (!(await storage.createProjectFile(owner, slug, filename, data, mimeType))) {
-    await quotaService.recordDeletion(db, project.userId, data.byteLength);
-    return alreadyUsed();
+  // which one used the URL. One that stores nothing gives back what it counted.
+  let stored = false;
+  try {
+    stored = await storage.createProjectFile(owner, slug, filename, data, mimeType);
+  } finally {
+    if (!stored) await quotaService.recordDeletion(db, project.userId, counted);
   }
+  if (!stored) return alreadyUsed();
 
   return c.json({ mediaUrl: `media://${filename}`, size: data.byteLength, mimeType }, 200);
 });

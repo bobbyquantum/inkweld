@@ -101,8 +101,8 @@ export class CanvasRendererService {
   private _annotationsLayer: Konva.Layer | null = null;
   /** Image loads still in flight, see {@link whenImagesSettled}. */
   private readonly _pendingImageLoads = new Set<Promise<void>>();
-  /** How to try again for media that had no file, see {@link retryFailedImages}. */
-  private readonly _failedImages = new Set<() => void>();
+  /** Per object, how to try again for media with no file: {@link retryFailedImages}. */
+  private readonly _failedImages = new Map<string, () => void>();
   private readonly _frameNodes = new Map<string, Konva.Group>();
   private _frameTransformer: Konva.Transformer | null = null;
   private _editingFrameId: string | null = null;
@@ -266,7 +266,7 @@ export class CanvasRendererService {
    * Nothing else would: the node only changes when the object does.
    */
   retryFailedImages(): void {
-    const retries = [...this._failedImages];
+    const retries = [...this._failedImages.values()];
     this._failedImages.clear();
     for (const retry of retries) retry();
   }
@@ -384,6 +384,7 @@ export class CanvasRendererService {
           this.detachFromTransformer(node);
           this._konvaNodes.delete(objId);
           this._objectStructures.delete(objId);
+          this._failedImages.delete(objId);
         }
       }
       kLayer.destroy();
@@ -425,6 +426,7 @@ export class CanvasRendererService {
       node.destroy();
       this._konvaNodes.delete(id);
       this._objectStructures.delete(id);
+      this._failedImages.delete(id);
     }
   }
 
@@ -445,6 +447,7 @@ export class CanvasRendererService {
       this.detachFromTransformer(node);
       node.destroy();
       this._konvaNodes.delete(obj.id);
+      this._failedImages.delete(obj.id);
       node = null;
     }
 
@@ -793,6 +796,7 @@ export class CanvasRendererService {
     this._konvaLayers.clear();
     this._konvaNodes.clear();
     this._objectStructures.clear();
+    this._failedImages.clear();
 
     this.buildKonvaLayers(layers);
     this.buildKonvaObjects(objects, handlers);
@@ -1019,7 +1023,7 @@ export class CanvasRendererService {
           undefined,
           this.trackImageLoad(),
           retry => {
-            if (isMediaUrl(obj.src)) this._failedImages.add(retry);
+            if (isMediaUrl(obj.src)) this._failedImages.set(obj.id, retry);
           }
         );
         break;
@@ -1182,9 +1186,7 @@ export class CanvasRendererService {
       group.getLayer()?.batchDraw();
       settle();
       // A node taken off the canvas since then has nothing left to show.
-      onFailed?.(() => {
-        if (group.getLayer()) load();
-      });
+      if (group.getLayer()) onFailed?.(load);
     }
 
     function load(): void {

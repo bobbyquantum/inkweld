@@ -523,9 +523,19 @@ describe('quotaService.assertCanStore', () => {
     await enableEnforcement();
     await db.update(users).set({ syncQuotaBytes: 10_000 }).where(eq(users.id, USER_ID));
 
-    await quotaService.assertCanStore(db, USER_ID, 1234, 'media_upload');
+    expect(await quotaService.assertCanStore(db, USER_ID, 1234, 'media_upload')).toBe(1234);
 
     expect(await counter()).toBe(1234);
+  });
+
+  it('reports counting nothing when it counted nothing', async () => {
+    expect(await quotaService.assertCanStore(db, USER_ID, 1234, 'media_upload')).toBe(0);
+
+    await enableEnforcement();
+    await db.update(users).set({ syncQuotaBytes: 10_000 }).where(eq(users.id, USER_ID));
+    expect(await quotaService.assertCanStore(db, 'missing-user', 500, 'media_upload')).toBe(0);
+    expect(await quotaService.assertCanStore(db, USER_ID, 500, 'media_upload', {}, 500)).toBe(0);
+    expect(await counter()).toBe(0);
   });
 
   it('charges only the growth when a write replaces an existing file', async () => {
@@ -565,7 +575,7 @@ describe('quotaService.assertCanStore', () => {
   });
 
   describe('with writes that overlap', () => {
-    async function fiveWritesOf400Bytes(): Promise<PromiseSettledResult<void>[]> {
+    async function fiveWritesOf400Bytes(): Promise<PromiseSettledResult<number>[]> {
       return Promise.allSettled(
         Array.from({ length: 5 }, () =>
           quotaService.assertCanStore(db, USER_ID, 400, 'media_upload')
@@ -573,7 +583,7 @@ describe('quotaService.assertCanStore', () => {
       );
     }
 
-    function outcomes(results: PromiseSettledResult<void>[]): {
+    function outcomes(results: PromiseSettledResult<number>[]): {
       accepted: number;
       refused: number;
     } {

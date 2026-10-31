@@ -751,7 +751,65 @@ describe('CanvasRendererService', () => {
         mockLocalStorage.getMediaUrl.mockResolvedValue(null);
         open([image]);
         await service.whenImagesSettled();
-        service.konvaNodes.get('art')?.destroy();
+        service.syncKonvaFromConfig([makeLayer()], [], null, makeHandlers());
+
+        mockLocalStorage.getMediaUrl.mockClear();
+        service.retryFailedImages();
+
+        expect(mockLocalStorage.getMediaUrl).not.toHaveBeenCalled();
+      });
+
+      it('keeps one retry for an object, whose node was rebuilt', async () => {
+        mockLocalStorage.getMediaUrl.mockResolvedValue(null);
+        open([image]);
+        await service.whenImagesSettled();
+
+        // A new source means a new node, whose load fails as well.
+        const other = { ...image, src: 'media://other.png' };
+        service.syncKonvaFromConfig(
+          [makeLayer()],
+          [other],
+          null,
+          makeHandlers()
+        );
+        await service.whenImagesSettled();
+        await vi.waitFor(() =>
+          expect(mockMediaSync.fetchMissingMedia).toHaveBeenCalledTimes(2)
+        );
+        await vi.waitFor(() =>
+          expect(mockLocalStorage.getMediaUrl).toHaveBeenCalledTimes(2)
+        );
+
+        mockLocalStorage.getMediaUrl.mockClear();
+        mockLocalStorage.getMediaUrl.mockResolvedValue('blob:other');
+        await vi.waitFor(() => {
+          service.retryFailedImages();
+          expect(mockLocalStorage.getMediaUrl).toHaveBeenCalled();
+        });
+
+        expect(mockLocalStorage.getMediaUrl).toHaveBeenCalledTimes(1);
+        expect(mockLocalStorage.getMediaUrl).toHaveBeenCalledWith(
+          'alice/novel',
+          expect.stringContaining('other')
+        );
+      });
+
+      it('does not keep a retry for a node removed while it was loading', async () => {
+        let finishLoading: (url: string | null) => void = () => {};
+        mockLocalStorage.getMediaUrl.mockReturnValueOnce(
+          new Promise(resolve => {
+            finishLoading = resolve;
+          })
+        );
+        open([image]);
+        service.syncKonvaFromConfig([makeLayer()], [], null, makeHandlers());
+
+        finishLoading(null);
+        await service.whenImagesSettled();
+        await vi.waitFor(() =>
+          expect(mockMediaSync.fetchMissingMedia).toHaveBeenCalled()
+        );
+        await Promise.resolve();
 
         mockLocalStorage.getMediaUrl.mockClear();
         service.retryFailedImages();

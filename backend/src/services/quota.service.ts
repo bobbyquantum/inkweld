@@ -405,6 +405,10 @@ class QuotaService {
    *
    * `replacedBytes` is the size of a file this write overwrites, so replacing
    * an image with one of the same size is not counted twice.
+   *
+   * Resolves to the bytes it counted, for a caller that can tell it stored
+   * nothing to give back with {@link recordDeletion}. That is 0 when it counted
+   * nothing, as when enforcement is off.
    */
   async assertCanStore(
     db: DatabaseInstance,
@@ -413,10 +417,10 @@ class QuotaService {
     reason: Exclude<QuotaExceededReason, 'project_create'>,
     storage: QuotaStorageContext = {},
     replacedBytes = 0
-  ): Promise<void> {
-    if (!(await this.isEnabled(db))) return;
+  ): Promise<number> {
+    if (!(await this.isEnabled(db))) return 0;
     const owner = await this.loadOwner(db, ownerId);
-    if (!owner) return;
+    if (!owner) return 0;
 
     const growth = Math.max(0, bytes - Math.max(0, replacedBytes));
     const usage = await this.checkEnforcement(
@@ -439,6 +443,7 @@ class QuotaService {
         message: 'This would exceed the account’s sync capacity.',
       });
     }
+    return growth;
   }
 
   /**

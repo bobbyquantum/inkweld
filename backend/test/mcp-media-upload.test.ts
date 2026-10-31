@@ -3,7 +3,7 @@
  * an agent asks for a URL over MCP, sends the file with a plain HTTP request,
  * and places the result on a canvas.
  */
-import { describe, it, expect, beforeAll, beforeEach, afterAll, afterEach } from 'bun:test';
+import { describe, it, expect, beforeAll, beforeEach, afterAll, afterEach, spyOn } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { eq } from 'drizzle-orm';
@@ -16,6 +16,7 @@ import { mcpSigningSecret } from '../src/mcp/mcp.auth';
 import { isCrossOriginPath } from '../src/middleware/open-origin';
 import { pathForLogging } from '../src/middleware/request-logger';
 import { configService } from '../src/services/config.service';
+import { FileStorageService } from '../src/services/file-storage.service';
 import { quotaService } from '../src/services/quota.service';
 import { getStorageService } from '../src/services/storage.service';
 import { mcpOAuthService } from '../src/services/mcp-oauth.service';
@@ -125,6 +126,14 @@ function claims(filename = 'img-direct.png') {
 }
 
 const UPLOADS = () => `${baseUrl}/api/v1/ai/mcp/uploads`;
+
+async function usedBytes(): Promise<number> {
+  const [{ storageUsedBytes }] = await db
+    .select({ storageUsedBytes: users.storageUsedBytes })
+    .from(users)
+    .where(eq(users.id, USER_ID));
+  return storageUsedBytes;
+}
 
 beforeAll(async () => {
   const server = await startTestServer();
@@ -392,7 +401,8 @@ describe('a disabled account', () => {
     const { token } = await signMediaUploadToken(claims('img-disabled.png'), {});
     await db.update(users).set({ enabled: false }).where(eq(users.id, USER_ID));
 
-    expect((await put(`${UPLOADS()}/${token}`)).status).toBe(403);
+    // Its sessions no longer count, whether or not they have been revoked yet.
+    expect((await put(`${UPLOADS()}/${token}`)).status).toBe(401);
     expect(await getStorageService().projectFileExists(USERNAME, SLUG, 'img-disabled.png')).toBe(
       false
     );
@@ -422,13 +432,44 @@ describe('sync capacity', () => {
       const upload = await createUpload();
       await Promise.all(Array.from({ length: 8 }, () => put(upload.uploadUrl)));
 
-      const [{ storageUsedBytes }] = await db
-        .select({ storageUsedBytes: users.storageUsedBytes })
-        .from(users)
-        .where(eq(users.id, USER_ID));
-      expect(storageUsedBytes).toBe(PNG.byteLength);
+      expect(await usedBytes()).toBe(PNG.byteLength);
     } finally {
       await configService.delete(db, 'SYNC_QUOTA_ENABLED');
+      quotaService.clearReconcileCooldown(USER_ID);
+    }
+  });
+
+  it('gives back what an upload counted if the file could not be stored', async () => {
+    await configService.set(db, 'SYNC_QUOTA_ENABLED', 'true');
+    await quotaService.persistUsage(db, USER_ID, 0);
+    const write = spyOn(FileStorageService.prototype, 'createProjectFile').mockRejectedValueOnce(
+      new Error('disk full')
+    );
+    try {
+      const upload = await createUpload();
+
+      expect((await put(upload.uploadUrl)).status).toBe(500);
+      expect(await usedBytes()).toBe(0);
+
+      // Nothing was stored, so the URL still works.
+      expect((await put(upload.uploadUrl)).status).toBe(200);
+      expect(await usedBytes()).toBe(PNG.byteLength);
+    } finally {
+      write.mockRestore();
+      await configService.delete(db, 'SYNC_QUOTA_ENABLED');
+      quotaService.clearReconcileCooldown(USER_ID);
+    }
+  });
+
+  it('gives back nothing while capacity is not enforced, having counted nothing', async () => {
+    await quotaService.persistUsage(db, USER_ID, 1000);
+    try {
+      const upload = await createUpload();
+      const responses = await Promise.all(Array.from({ length: 8 }, () => put(upload.uploadUrl)));
+
+      expect(responses.filter((res) => res.status === 409)).toHaveLength(7);
+      expect(await usedBytes()).toBe(1000);
+    } finally {
       quotaService.clearReconcileCooldown(USER_ID);
     }
   });
