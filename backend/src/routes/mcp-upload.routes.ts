@@ -21,6 +21,7 @@ import { mcpOAuthService } from '../services/mcp-oauth.service';
 import { projectService } from '../services/project.service';
 import { quotaService } from '../services/quota.service';
 import { getStorageService } from '../services/storage.service';
+import { userService } from '../services/user.service';
 import type { AppContext, DatabaseInstance } from '../types/context';
 import { MAX_MEDIA_UPLOAD_BYTES, rejectEmptyUpload } from '../utils/upload';
 
@@ -33,6 +34,9 @@ const uploadRoute = createRoute({
   method: 'put',
   path: '/:token',
   operationId: 'uploadMcpMedia',
+  // The token in the path is the only credential, so opt out of the global
+  // bearerAuth requirement: the caller is an agent with a plain HTTP client.
+  security: [],
   tags: ['MCP'],
   summary: 'Upload an image through a create_media_upload URL',
   description:
@@ -91,13 +95,19 @@ const uploadRoute = createRoute({
   },
 });
 
-/** Whether a session still grants this user write access to the project. */
+/**
+ * Whether this user can still sign in, and a session still grants them write
+ * access to the project. Disabling an account does not revoke its sessions, and
+ * the owner of a project always has access to it.
+ */
 async function canStillWrite(
   db: DatabaseInstance,
   sessionId: string,
   userId: string,
   projectId: string
 ): Promise<boolean> {
+  const user = await userService.findById(db, userId);
+  if (!user || !userService.canLogin(user)) return false;
   const access = await collaborationService.checkAccess(db, projectId, userId);
   if (!access.canWrite) return false;
   const grants = await mcpOAuthService.getSessionGrants(db, sessionId);
@@ -107,8 +117,7 @@ async function canStillWrite(
   );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Handler types are complex with OpenAPI error responses
-mcpUploadRoutes.openapi(uploadRoute, async (c): Promise<any> => {
+mcpUploadRoutes.openapi(uploadRoute, async (c) => {
   const db = c.get('db');
   const env = c.env as Record<string, unknown> | undefined;
 

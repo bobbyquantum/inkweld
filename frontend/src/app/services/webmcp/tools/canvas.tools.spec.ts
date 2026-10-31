@@ -6,6 +6,9 @@ import {
   emptyCanvasContents,
 } from '@inkweld/canvas';
 import { ElementType } from '@inkweld/index';
+import { SetupService } from '@services/core/setup.service';
+import { LocalStorageService } from '@services/local/local-storage.service';
+import { MediaSyncService } from '@services/local/media-sync.service';
 import { CoverSourceService } from '@services/project/cover-source.service';
 import { ElementTreeService } from '@services/project/element-tree.service';
 import { ProjectStateService } from '@services/project/project-state.service';
@@ -44,9 +47,15 @@ describe('canvas tools', () => {
     removeRelationships: ReturnType<typeof vi.fn>;
   };
   let coverSource: { notifyCanvasChanged: ReturnType<typeof vi.fn> };
+  let hasMedia: ReturnType<typeof vi.fn>;
+  let fetchMissingMedia: ReturnType<typeof vi.fn>;
+  let mode: string;
 
   beforeEach(() => {
     canvases = new Map();
+    hasMedia = vi.fn().mockResolvedValue(false);
+    fetchMissingMedia = vi.fn().mockResolvedValue(false);
+    mode = 'server';
     state = Object.assign(
       createProjectStateFake([
         element('map', 'World Map', ElementType.Canvas),
@@ -80,6 +89,9 @@ describe('canvas tools', () => {
         { provide: ElementTreeService, useClass: ElementTreeService },
         { provide: RelationshipService, useValue: relationships },
         { provide: CoverSourceService, useValue: coverSource },
+        { provide: LocalStorageService, useValue: { hasMedia } },
+        { provide: MediaSyncService, useValue: { fetchMissingMedia } },
+        { provide: SetupService, useValue: { getMode: () => mode } },
       ],
     });
     tools = canvasTools(injector, new ProjectToolContext(injector));
@@ -173,6 +185,60 @@ describe('canvas tools', () => {
         { external: true }
       );
       expect(canvases.get('map')?.objects[0]).toMatchObject({ id: 'title' });
+    });
+
+    describe('placing an image', () => {
+      const place = (src: string) =>
+        callTool(tools, 'edit_canvas', {
+          elementId: 'map',
+          add: [{ id: 'img', type: 'image', src, width: 10, height: 10 }],
+        });
+
+      it('accepts one this browser has, without asking the server', async () => {
+        hasMedia.mockResolvedValue(true);
+
+        const { error } = await place('media://img-1.png');
+
+        expect(error).toBeUndefined();
+        expect(hasMedia).toHaveBeenCalledWith(expect.any(String), 'img-1');
+        expect(fetchMissingMedia).not.toHaveBeenCalled();
+      });
+
+      it('fetches one this browser does not have yet', async () => {
+        fetchMissingMedia.mockResolvedValue(true);
+
+        const { error } = await place('media://img-1.png');
+
+        expect(error).toBeUndefined();
+        expect(fetchMissingMedia).toHaveBeenCalledWith(
+          expect.any(String),
+          'img-1.png'
+        );
+      });
+
+      it('refuses one that is nowhere, writing nothing', async () => {
+        const { error } = await place('media://typo.png');
+
+        expect(error).toContain('typo.png');
+        expect(state.applyCanvasEdit).not.toHaveBeenCalled();
+      });
+
+      it('does not ask a server when there is none', async () => {
+        mode = 'local';
+
+        const { error } = await place('media://typo.png');
+
+        expect(error).toContain('typo.png');
+        expect(fetchMissingMedia).not.toHaveBeenCalled();
+      });
+
+      it('cannot fetch an id-only reference, which names no file', async () => {
+        const { error } = await place('media:img-1');
+
+        expect(error).toContain('media:img-1');
+        expect(hasMedia).toHaveBeenCalledWith(expect.any(String), 'img-1');
+        expect(fetchMissingMedia).not.toHaveBeenCalled();
+      });
     });
 
     it('tells the live cover about the new contents', async () => {

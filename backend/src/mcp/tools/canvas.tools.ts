@@ -151,8 +151,7 @@ registerTool({
 
 /**
  * The placed media files that are not in the project. An agent's typo would
- * otherwise only show up as an image that never loads. `media:<id>` references
- * carry no filename to check, and only come from the app's own placements.
+ * otherwise only show up as an image that never loads.
  */
 async function findMissingMedia(
   ctx: McpContext,
@@ -163,13 +162,21 @@ async function findMissingMedia(
   const storage = getStorageService(
     ctx.env?.STORAGE as Parameters<typeof getStorageService>[0] | undefined
   );
-  const uploaded = references.filter((ref) => ref.startsWith('media://'));
   const found = await Promise.all(
-    uploaded.map((ref) =>
-      storage.projectFileExists(username, slug, ref.substring('media://'.length))
-    )
+    references.map(async (ref) => {
+      if (ref.startsWith('media://')) {
+        return storage.projectFileExists(username, slug, ref.substring('media://'.length));
+      }
+      // `media:<id>` is a file with that name and any extension.
+      const files = await storage.listProjectFiles(
+        username,
+        slug,
+        `${ref.substring('media:'.length)}.`
+      );
+      return files.length > 0;
+    })
   );
-  return uploaded.filter((_, index) => !found[index]);
+  return references.filter((_, index) => !found[index]);
 }
 
 registerTool({

@@ -140,7 +140,7 @@ class CanvasEditPlanner {
 
   private readonly touched = new Set<string>();
   private readonly created: string[] = [];
-  private readonly updated: string[] = [];
+  private updated: string[] = [];
   private readonly deleted: string[] = [];
   private readonly linksToCreate: PlannedCanvasLink[] = [];
   private readonly relationshipsToRemove: string[] = [];
@@ -170,8 +170,9 @@ class CanvasEditPlanner {
     this.applyPage(args);
     this.applyLayers(args['layers']);
     this.applyFrames(args['frames']);
-    this.applyDeletes(args['delete']);
+    // Updates first, so a delete can follow an unlock in the same edit.
     this.applyUpdates(args['update']);
+    this.applyDeletes(args['delete']);
     this.applyAdds(args['add']);
     this.settleRemovedLayers();
     this.restack(args['moveToBack'], 'moveToBack');
@@ -358,10 +359,12 @@ class CanvasEditPlanner {
         this.relationshipsToRemove.push(relationshipId);
       }
       this.objects.delete(id);
+      this.touched.delete(id);
       this.deleted.push(id);
     }
     const gone = new Set(ids);
     this.order = this.order.filter((id) => !gone.has(id));
+    this.updated = this.updated.filter((id) => !gone.has(id));
   }
 
   private applyUpdates(raw: unknown): void {
@@ -606,14 +609,20 @@ class CanvasEditPlanner {
         withoutRelationship(this.before.get(id)),
       );
     }
-    const patches = this.updated
-      .filter((id) => this.before.has(id))
-      .map((id) =>
-        undoPatch(
-          asRecord(this.before.get(id) as CanvasObject),
-          asRecord(this.objects.get(id) as CanvasObject),
+    const patches = [
+      // Otherwise the delete above would be refused for what it is deleting.
+      ...this.created
+        .filter((id) => this.objects.get(id)?.locked)
+        .map((id) => ({ id, locked: false })),
+      ...this.updated
+        .filter((id) => this.before.has(id))
+        .map((id) =>
+          undoPatch(
+            asRecord(this.before.get(id) as CanvasObject),
+            asRecord(this.objects.get(id) as CanvasObject),
+          ),
         ),
-      );
+    ];
     if (patches.length > 0) undo['update'] = patches;
     // A canvas that had no layers keeps the first one it was given.
     if (this.layersChanged && this.current.layers.length > 0) {
@@ -699,7 +708,7 @@ export function describeCanvasEdit(
     ...(plan.undo
       ? { undo: plan.undo }
       : {
-          note: 'This edit is too large to reverse with undo arguments; none are included.',
+          note: 'No undo arguments are included: this edit is too large to reverse that way, or there is no earlier value to return to, as with a first page colour or a first layer.',
         }),
   };
 }

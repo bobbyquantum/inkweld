@@ -423,13 +423,31 @@ describe('placing images', () => {
     expect(readCanvasContents(doc, 'map')).toBeNull();
   });
 
-  it('does not look up an id-only reference, which names no file', async () => {
+  it('finds an id-only reference by its name, whatever the extension', async () => {
     const { doc } = seedBun();
-    const exists = spyOn(FileStorageService.prototype, 'projectFileExists');
-    spies.push(exists);
-    await call('edit_canvas', { add: [image('media:img-legacy')] });
-    expect(exists).not.toHaveBeenCalled();
+    const list = spyOn(FileStorageService.prototype, 'listProjectFiles').mockResolvedValue([
+      { filename: 'img-legacy.png', size: 1 },
+    ] as never);
+    spies.push(list);
+
+    const json = await call('edit_canvas', { add: [image('media:img-legacy')] });
+
+    expect(json.result?.isError).toBeUndefined();
+    expect(list).toHaveBeenCalledWith('alice', 'novel', 'img-legacy.');
     expect(stored(doc).objects).toHaveLength(1);
+  });
+
+  it('refuses an id-only reference to nothing, writing nothing', async () => {
+    const { doc } = seedBun();
+    spies.push(
+      spyOn(FileStorageService.prototype, 'listProjectFiles').mockResolvedValue([] as never)
+    );
+
+    const json = await call('edit_canvas', { add: [image('media:made-up')] });
+
+    expect(json.result?.isError).toBe(true);
+    expect(json.result?.content?.[0]?.text).toContain('media:made-up');
+    expect(readCanvasContents(doc, 'map')).toBeNull();
   });
 
   it('points to the upload tool from its description', async () => {
@@ -463,7 +481,7 @@ describe('links', () => {
     expect(doc.getArray<{ id: string }>('customRelationshipTypes').get(0).id).toBe('canvas-pin');
 
     await call('edit_canvas', { delete: ['pin'] });
-    expect(relationships.length).toBe(0);
+    expect(relationships).toHaveLength(0);
   });
 
   it('refuses a link to an element that does not exist', async () => {

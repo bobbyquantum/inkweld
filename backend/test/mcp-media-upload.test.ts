@@ -4,6 +4,8 @@
  * and places the result on a canvas.
  */
 import { describe, it, expect, beforeAll, beforeEach, afterAll, afterEach } from 'bun:test';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { eq } from 'drizzle-orm';
 import { sign } from 'hono/jwt';
 import { getDatabase } from '../src/db/index';
@@ -363,6 +365,22 @@ describe('who may upload', () => {
   });
 });
 
+describe('a disabled account', () => {
+  afterEach(async () => {
+    await db.update(users).set({ enabled: true }).where(eq(users.id, USER_ID));
+  });
+
+  it('cannot use a URL it was given before', async () => {
+    const { token } = await signMediaUploadToken(claims('img-disabled.png'), {});
+    await db.update(users).set({ enabled: false }).where(eq(users.id, USER_ID));
+
+    expect((await put(`${UPLOADS()}/${token}`)).status).toBe(403);
+    expect(await getStorageService().projectFileExists(USERNAME, SLUG, 'img-disabled.png')).toBe(
+      false
+    );
+  });
+});
+
 describe('sync capacity', () => {
   it('refuses an upload over the allowance, with the code clients look for', async () => {
     await configService.set(db, 'SYNC_QUOTA_ENABLED', 'true');
@@ -380,6 +398,13 @@ describe('sync capacity', () => {
 });
 
 describe('the route', () => {
+  it('asks for no bearer token in the API description', () => {
+    const spec = JSON.parse(readFileSync(join(import.meta.dir, '../openapi.json'), 'utf8')) as {
+      paths: Record<string, { put?: { security?: unknown[] } }>;
+    };
+    expect(spec.paths['/api/v1/ai/mcp/uploads/{token}']?.put?.security).toEqual([]);
+  });
+
   it('keeps the token out of the logs, while it can still be used', () => {
     expect(pathForLogging('/api/v1/ai/mcp/uploads/eyJhbGciOi.abc.def')).toBe(
       '/api/v1/ai/mcp/uploads/<token>'

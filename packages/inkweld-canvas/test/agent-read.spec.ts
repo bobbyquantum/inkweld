@@ -136,6 +136,21 @@ describe('describeCanvas', () => {
     });
   });
 
+  it('turns the bounds with the object', () => {
+    const turned: CanvasPath = {
+      ...stroke,
+      points: [0, 0, 20, 0],
+      x: 10,
+      y: 20,
+      rotation: 90,
+      scaleX: 1,
+      scaleY: 1,
+    };
+    const result = view(canvas([turned]));
+    const [summary] = result['objects'] as Record<string, unknown>[];
+    expect(summary['bounds']).toEqual({ x: 10, y: 20, width: 0, height: 20 });
+  });
+
   it('summarises points as a count and bounds in canvas coordinates', () => {
     const [summary] = view(canvas([stroke])).objects;
     expect(summary['points']).toBeUndefined();
@@ -201,6 +216,7 @@ describe('describeCanvas', () => {
     [{ limit: 1.5 }, 'limit'],
     [{ offset: -1 }, 'offset'],
     [{ layerId: 'nope' }, 'layerId'],
+    [{ layerId: 7 }, 'layerId must be a string'],
     [{ objectIds: 'stroke' }, 'objectIds'],
     [{ objectIds: [1] }, 'objectIds'],
     [{ objectIds: Array(MAX_OBJECT_IDS + 1).fill('a') }, 'objectIds'],

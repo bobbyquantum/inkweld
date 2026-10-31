@@ -271,7 +271,7 @@ action rather than unpicking it piece by piece.
 
 Undo restores objects and their positions. If you delete a linked pin or region and undo, the pin comes back with its link, but the relationship entry shown on the element's Relationships tab is not recreated — re-link it if you need the backlink.
 
-A change made by someone else clears your undo history for that canvas, because undoing an older step could remove their work. That includes AI tools. To go back after an AI tool has edited a canvas, ask it to reverse the edit; it is given what it needs to do so.
+A change made by someone else clears your undo history for that canvas, because undoing an older step could remove their work. That includes AI tools. To go back after an AI tool has edited a canvas, ask it to reverse the edit. It is given what it needs to do so, unless the edit was very large.
 
 ## Exporting
 

@@ -24,19 +24,37 @@ function withoutManagedFields(object: CanvasObject): Record<string, unknown> {
   return view;
 }
 
-/** The area a list of relative points covers, in canvas coordinates. */
+/** Rotating leaves floating-point noise that an agent has no use for. */
+function tidy(value: number): number {
+  return Math.round(value * 1000) / 1000;
+}
+
+/**
+ * The area a list of relative points covers, in canvas coordinates. As in the
+ * app, an object scales first and then rotates around its own x and y.
+ */
 function pointBounds(view: Record<string, unknown>, points: number[]) {
   const scaleX = view['scaleX'] as number;
   const scaleY = view['scaleY'] as number;
-  const xs = points.filter((_, i) => i % 2 === 0).map((n) => n * scaleX);
-  const ys = points.filter((_, i) => i % 2 === 1).map((n) => n * scaleY);
+  const angle =
+    (((view['rotation'] as number | undefined) ?? 0) * Math.PI) / 180;
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  const xs: number[] = [];
+  const ys: number[] = [];
+  for (let i = 0; i + 1 < points.length; i += 2) {
+    const x = points[i] * scaleX;
+    const y = points[i + 1] * scaleY;
+    xs.push(x * cos - y * sin);
+    ys.push(x * sin + y * cos);
+  }
   const left = Math.min(...xs);
   const top = Math.min(...ys);
   return {
-    x: (view['x'] as number) + left,
-    y: (view['y'] as number) + top,
-    width: Math.max(...xs) - left,
-    height: Math.max(...ys) - top,
+    x: tidy((view['x'] as number) + left),
+    y: tidy((view['y'] as number) + top),
+    width: tidy(Math.max(...xs) - left),
+    height: tidy(Math.max(...ys) - top),
   };
 }
 
@@ -115,11 +133,13 @@ function selectObjects(
   const limit = readLimit(args['limit']);
   const offset = readOffset(args['offset']);
   let matching = contents.objects;
-  if (args['layerId'] !== undefined && args['layerId'] !== null) {
-    if (!contents.layers.some((l) => l.id === args['layerId'])) {
-      fail(`layerId: no such layer "${String(args['layerId'])}"`);
+  const layerId = args['layerId'];
+  if (layerId !== undefined && layerId !== null) {
+    if (typeof layerId !== 'string') fail('layerId must be a string');
+    if (!contents.layers.some((l) => l.id === layerId)) {
+      fail(`layerId: no such layer "${layerId}"`);
     }
-    matching = matching.filter((o) => o.layerId === args['layerId']);
+    matching = matching.filter((o) => o.layerId === layerId);
   }
   const hasMore = offset + limit < matching.length;
   return {

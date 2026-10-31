@@ -205,7 +205,7 @@ const BASE_DEFAULTS = {
   locked: false,
 };
 
-const BASE_CLEARABLE = ['name', 'opacity'];
+const BASE_CLEARABLE = new Set(['name', 'opacity']);
 
 /** Everything {@link planCanvasEdit} needs to know about one object type. */
 export interface ObjectSpec {
@@ -250,7 +250,11 @@ function finishShape(object: Record<string, unknown>, label: string): void {
   if (kind === 'polygon' && (list?.length ?? 0) < 6) {
     fail(`${label}: a polygon needs points with at least three corners`);
   }
-  if ((kind === 'rect' || kind === 'ellipse') && !object['height']) {
+  // Drawn from these alone: points do not give a rectangle or ellipse its area.
+  if (
+    (kind === 'rect' || kind === 'ellipse') &&
+    (!object['width'] || !object['height'])
+  ) {
     fail(`${label}: a ${String(kind)} needs width and height`);
   }
   if (!object['width'] && !list) {
@@ -376,7 +380,7 @@ export function fieldCheck(
 }
 
 export function isClearable(spec: ObjectSpec, key: string): boolean {
-  return spec.clearable.includes(key) || BASE_CLEARABLE.includes(key);
+  return spec.clearable.includes(key) || BASE_CLEARABLE.has(key);
 }
 
 export function baseDefaults(): Record<string, unknown> {

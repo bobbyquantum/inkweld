@@ -1,7 +1,7 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { Observable, of, throwError } from 'rxjs';
+import { Observable, of, Subject, throwError } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
@@ -204,6 +204,32 @@ describe('MediaSyncService', () => {
         blob,
         'img-1.png'
       );
+    });
+
+    it('tells whoever shows media that a file arrived', async () => {
+      httpMock.get.mockReturnValue(of(new Blob(['test'])));
+      const before = service.mediaSyncVersion();
+
+      await service.fetchMissingMedia(TEST_PROJECT_KEY, 'img-1.png');
+
+      expect(service.mediaSyncVersion()).toBe(before + 1);
+    });
+
+    it('fetches a file once for images that share it, and again later', async () => {
+      const response = new Subject<Blob>();
+      httpMock.get.mockReturnValue(response);
+
+      const first = service.fetchMissingMedia(TEST_PROJECT_KEY, 'img-1.png');
+      const second = service.fetchMissingMedia(TEST_PROJECT_KEY, 'img-1.png');
+      response.next(new Blob(['test']));
+      response.complete();
+
+      await expect(Promise.all([first, second])).resolves.toEqual([true, true]);
+      expect(httpMock.get).toHaveBeenCalledTimes(1);
+
+      httpMock.get.mockReturnValue(of(new Blob(['test'])));
+      await service.fetchMissingMedia(TEST_PROJECT_KEY, 'img-1.png');
+      expect(httpMock.get).toHaveBeenCalledTimes(2);
     });
 
     it('reports failure without touching the sync state', async () => {

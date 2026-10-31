@@ -380,6 +380,16 @@ describe('adding objects', () => {
       'needs width and height',
     ],
     [
+      'a rect whose points give it no width',
+      { type: 'shape', shapeType: 'rect', points: [0, 0, 0, 10] },
+      'needs width and height',
+    ],
+    [
+      'an ellipse of no width',
+      { type: 'shape', shapeType: 'ellipse', width: 0, height: 5 },
+      'needs width and height',
+    ],
+    [
       'a line without size',
       { type: 'shape', shapeType: 'line' },
       'needs width and height',
@@ -627,6 +637,17 @@ describe('locks', () => {
       update: [{ id: 't', locked: false, x: 1 }],
     });
     expect(objectIn(contents, 't')).toMatchObject({ locked: false, x: 1 });
+  });
+
+  it('deletes an object that the same edit unlocks', () => {
+    const { contents, deleted, updated, edit } = plan(canvas([locked, rect]), {
+      update: [{ id: 't', locked: false }],
+      delete: ['t'],
+    });
+    expect(contents.objects.map((o) => o.id)).toEqual(['r']);
+    expect(deleted).toEqual(['t']);
+    expect(updated).toEqual([]);
+    expect(edit.upserts).toBeUndefined();
   });
 
   it('refuses objects on a locked layer until the layer is unlocked', () => {
@@ -1063,6 +1084,19 @@ describe('undo', () => {
     expect(done.undo).toEqual({ delete: ['a'] });
   });
 
+  it('can take back an object that was added locked', () => {
+    const added = plan(canvas([textObject]), {
+      add: [{ id: 'a', type: 'pin', label: 'a', locked: true }],
+    });
+    expect(added.undo).toEqual({
+      delete: ['a'],
+      update: [{ id: 'a', locked: false }],
+    });
+
+    const undone = plan(added.contents, added.undo as Record<string, unknown>);
+    expect(undone.contents.objects.map((o) => o.id)).toEqual(['t']);
+  });
+
   it('is left out when it would be too large', () => {
     const huge = {
       ...textObject,
@@ -1096,6 +1130,13 @@ describe('describeCanvasEdit', () => {
     const summary = describeCanvasEdit('canvas', 'Map', done);
     expect(summary['undo']).toBeUndefined();
     expect(summary['note']).toContain('too large');
+  });
+
+  it('does not blame the size when there is nothing to go back to', () => {
+    const done = plan(canvas(), { background: '#ffffff' });
+    const summary = describeCanvasEdit('canvas', 'Map', done);
+    expect(summary['undo']).toBeUndefined();
+    expect(summary['note']).toContain('no earlier value');
   });
 });
 
