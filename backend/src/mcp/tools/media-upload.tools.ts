@@ -67,7 +67,7 @@ Then use mediaUrl wherever an image goes: as src of an image in edit_canvas, or 
     if (!extension) {
       return errorResult(`format must be one of: ${Object.keys(FORMAT_EXTENSIONS).join(', ')}`);
     }
-    if (!ctx.publicApiUrl) return errorResult('this server cannot issue upload URLs');
+    if (!ctx.requestOrigin) return errorResult('this server cannot issue upload URLs');
 
     const filename = `img-${nanoid()}.${extension}`;
     const { token, expiresAt } = await signMediaUploadToken(
@@ -84,7 +84,7 @@ Then use mediaUrl wherever an image goes: as src of an image in edit_canvas, or 
     );
 
     const payload = {
-      uploadUrl: `${ctx.publicApiUrl}/api/v1/ai/mcp/uploads/${token}`,
+      uploadUrl: `${ctx.requestOrigin}/api/v1/ai/mcp/uploads/${token}`,
       method: 'PUT',
       mediaUrl: `media://${filename}`,
       expiresAt: expiresAt.toISOString(),

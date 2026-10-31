@@ -187,6 +187,18 @@ describe('create_media_upload', () => {
     expect(upload.maxBytes).toBeGreaterThan(0);
   });
 
+  it('points at the address the agent reached, whatever BASE_URL says', async () => {
+    const configured = process.env.BASE_URL;
+    process.env.BASE_URL = 'https://stale.example.com';
+    try {
+      const upload = await createUpload();
+      expect(upload.uploadUrl).toStartWith(`${UPLOADS()}/`);
+    } finally {
+      if (configured === undefined) delete process.env.BASE_URL;
+      else process.env.BASE_URL = configured;
+    }
+  });
+
   it('refuses a format the upload route would not accept', async () => {
     const result = await callTool('create_media_upload', { format: 'svg' });
     expect(result.isError).toBe(true);

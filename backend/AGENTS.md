@@ -37,7 +37,8 @@ LevelDB per project for Yjs documents (Durable Objects on Workers). The root
   archives, templates and the media-usage scan read.
 - **MCP upload URLs** (`routes/mcp-upload.routes.ts`) authenticate by the token
   in the path, since the caller is an agent's HTTP tool. Anything added there
-  must re-check what the token was issued against. Details:
+  must re-check what the token was issued against. A tool's links for its caller
+  use `ctx.requestOrigin`, not BASE_URL, which can be out of date. Details:
   `docs/site/docs/developer/mcp-oauth.md`.
 - **Yjs document ids**: the backend/MCP use `username:slug:elements/` with a
   trailing slash, the frontend without. Not a bug; don't "fix" it.

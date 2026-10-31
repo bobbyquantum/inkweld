@@ -10,7 +10,7 @@ import type { AppContext } from '../types/context';
 import type { DurableObjectNamespace } from '../types/cloudflare';
 import { mcpOAuthService, type CloudflareEnv } from '../services/mcp-oauth.service';
 import { config } from '../config/env';
-import { getPublicApiUrl } from '../services/url.service';
+import { getRequestOrigin } from '../services/url.service';
 import { getClientIp } from '../utils/client-ip';
 import type { McpContext, McpOAuthContext, McpOAuthGrant } from './mcp.types';
 import { createErrorResponse, JSON_RPC_ERRORS } from './mcp.types';
@@ -168,7 +168,7 @@ async function handleOAuthJwt(
     clientIp,
     authToken: doAuthToken,
     env,
-    publicApiUrl: getPublicApiUrl(c),
+    requestOrigin: getRequestOrigin(c),
   };
 }
 
