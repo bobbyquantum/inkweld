@@ -66,15 +66,15 @@ function chooseRegion(
   args: Record<string, unknown>,
   measure: TextMeasurer,
 ): Pick<CanvasRenderPlan, 'region' | 'regionName' | 'isFrame'> {
-  if (args['frameId'] !== undefined && args['frameId'] !== null) {
-    const frame = contents.frames?.find((f) => f.id === args['frameId']);
+  const frameId = args['frameId'];
+  if (frameId !== undefined && frameId !== null) {
+    if (typeof frameId !== 'string') fail('frameId must be a string');
+    const frame = contents.frames?.find((f) => f.id === frameId);
     if (!frame) {
       const known = (contents.frames ?? [])
         .map((f) => `${f.id} (${f.name})`)
         .join(', ');
-      fail(
-        `frameId: no such frame "${String(args['frameId'])}". Frames: ${known || 'none'}`,
-      );
+      fail(`frameId: no such frame "${frameId}". Frames: ${known || 'none'}`);
     }
     return { region: frame, regionName: frame.name, isFrame: true };
   }

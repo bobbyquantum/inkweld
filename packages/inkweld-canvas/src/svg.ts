@@ -496,7 +496,8 @@ export function canvasImageToSvg(
   if (!radius) return image('');
 
   const clip = `image-clip-${++svgIdCounter}`;
-  return `<defs><clipPath id="${clip}"><rect ${size} rx="${radius}"/></clipPath></defs>${image(` clip-path="url(#${clip})"`)}`;
+  const clipped = image(` clip-path="url(#${clip})"`);
+  return `<defs><clipPath id="${clip}"><rect ${size} rx="${radius}"/></clipPath></defs>${clipped}`;
 }
 
 function defaultImageSource(src: string): string | null {

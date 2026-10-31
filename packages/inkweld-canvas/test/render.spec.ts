@@ -169,6 +169,7 @@ describe('planCanvasRender', () => {
 
   it.each<[string, Record<string, unknown>, string]>([
     ['an unknown frame', { frameId: 'nope' }, 'no such frame'],
+    ['a frame id that is not text', { frameId: 7 }, 'must be a string'],
     ['a region of the wrong type', { region: 'all' }, 'region must be'],
     ['a region missing a side', { region: { x: 0, y: 0 } }, 'numeric'],
     [
