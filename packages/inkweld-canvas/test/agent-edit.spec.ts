@@ -688,6 +688,14 @@ describe('choosing a layer', () => {
     ).toContain('every layer is hidden or locked');
   });
 
+  it('takes a layer that only this edit locks', () => {
+    const { contents } = plan(canvas(), {
+      layers: [{ id: 'l1', locked: true }],
+      add: [{ id: 'a', type: 'text', text: 'a', layerId: 'l1' }],
+    });
+    expect(objectIn(contents, 'a')).toMatchObject({ layerId: 'l1' });
+  });
+
   it('refuses a locked layer for artwork, but not for a pin', () => {
     const current: CanvasContents = {
       layers: [LAYER, { ...TOP, locked: true }],
@@ -878,6 +886,38 @@ describe('locks', () => {
 });
 
 describe('deleting objects', () => {
+  it('does not ask after media on an object it deletes', () => {
+    const image: CanvasObject = {
+      ...textObject,
+      id: 'i',
+      type: 'image',
+      src: 'media://old.png',
+      width: 10,
+      height: 10,
+    } as unknown as CanvasObject;
+
+    const { placedMedia } = plan(canvas([image]), {
+      update: [{ id: 'i', src: 'media://typo.png' }],
+      delete: ['i'],
+    });
+
+    expect(placedMedia).toEqual([]);
+  });
+
+  it('asks once about media that several objects place', () => {
+    const add = (id: string) => ({
+      id,
+      type: 'image',
+      src: 'media://a.png',
+      width: 10,
+      height: 10,
+    });
+
+    const { placedMedia } = plan(canvas(), { add: [add('i'), add('j')] });
+
+    expect(placedMedia).toEqual(['media://a.png']);
+  });
+
   it('removes them and reports them', () => {
     const { contents, deleted, edit } = plan(canvas([textObject, rect]), {
       delete: ['t'],
@@ -1291,6 +1331,52 @@ describe('undo', () => {
       { add: [{ id: 'a', type: 'pin', label: 'a' }] },
     );
     expect(done.undo).toEqual({ delete: ['a'] });
+  });
+
+  describe('around a layer lock', () => {
+    const lockedLayer: CanvasContents = {
+      layers: [{ ...LAYER, locked: true }],
+      objects: [textObject],
+    };
+    const lockedRect = {
+      id: 'r',
+      type: 'shape',
+      shapeType: 'rect',
+      width: 5,
+      height: 6,
+      locked: true,
+    };
+
+    it('can take back an edit that unlocked a layer to work on it', () => {
+      const done = plan(lockedLayer, {
+        layers: [{ id: 'l1', locked: false }],
+        update: [{ id: 't', x: 99 }],
+        add: [lockedRect],
+      });
+      expect(comparable(undo(lockedLayer, done))).toEqual(
+        comparable(lockedLayer),
+      );
+    });
+
+    it('can take back an edit that deleted from a layer it unlocked', () => {
+      const done = plan(lockedLayer, {
+        layers: [{ id: 'l1', locked: false }],
+        delete: ['t'],
+      });
+      expect(comparable(undo(lockedLayer, done))).toEqual(
+        comparable(lockedLayer),
+      );
+    });
+
+    it('can take back an edit that worked on a layer and locked it', () => {
+      const start = canvas([textObject]);
+      const done = plan(start, {
+        layers: [{ id: 'l1', locked: true }],
+        update: [{ id: 't', x: 99 }],
+        add: [{ ...lockedRect, layerId: 'l1' }],
+      });
+      expect(comparable(undo(start, done))).toEqual(comparable(start));
+    });
   });
 
   it('can take back an object that was added locked', () => {
