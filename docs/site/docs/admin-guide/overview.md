@@ -45,7 +45,9 @@ Manage user accounts:
   registration was not approved, instead of being shown the "awaiting
   approval" page
 - Search all users by username or email
-- Enable or disable accounts, and grant or remove admin status
+- Enable or disable accounts, and grant or remove admin status. Disabling an
+  account signs it out everywhere and disconnects its apps, such as AI agents
+  over MCP; enabling it again does not reconnect them
 - Delete accounts, including every project the user owns (users can also
   delete their own account from Settings → Account or `/delete-account`). The
   last enabled administrator cannot be deleted

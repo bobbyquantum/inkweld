@@ -14,6 +14,7 @@ import { eq } from 'drizzle-orm';
 import * as bcrypt from 'bcryptjs';
 import { configService } from '../src/services/config.service';
 import { mcpOAuthService } from '../src/services/mcp-oauth.service';
+import { userService } from '../src/services/user.service';
 import { startTestServer, stopTestServer, enablePasswordLoginForTests } from './server-test-helper';
 
 let testServer: { port: number; baseUrl: string };
@@ -217,5 +218,106 @@ describe('MCP stateless endpoint (2026-07-28)', () => {
     } finally {
       await configService.set(db, 'AI_KILL_SWITCH', 'false');
     }
+  });
+});
+
+describe('MCP access follows the account', () => {
+  const AGENT_USERNAME = 'mcpagentowner';
+  let agentUserId: string;
+
+  /** An account with an agent linked, and that agent's tokens. */
+  async function linkAgent() {
+    await db.delete(users).where(eq(users.username, AGENT_USERNAME));
+    agentUserId = crypto.randomUUID();
+    await db.insert(users).values({
+      id: agentUserId,
+      username: AGENT_USERNAME,
+      email: `${AGENT_USERNAME}@example.com`,
+      approved: true,
+      enabled: true,
+      isAdmin: false,
+    });
+    const client = await mcpOAuthService.registerClient(db, {
+      clientName: 'Account test agent',
+      redirectUris: ['http://localhost:3000/callback'],
+    });
+    const { tokens } = await mcpOAuthService.createSession(db, {
+      userId: agentUserId,
+      clientId: client.clientId,
+      grants: [],
+      issuer: testServer.baseUrl,
+    });
+    return { tokens, clientId: client.clientId };
+  }
+
+  function discover(token: string) {
+    return postMcp(rpcBody('server/discover'), {
+      ...standardHeaders('server/discover'),
+      Authorization: `Bearer ${token}`,
+    });
+  }
+
+  function refresh(refreshToken: string, clientId: string) {
+    return fetch(`${testServer.baseUrl}/oauth/token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        grant_type: 'refresh_token',
+        refresh_token: refreshToken,
+        client_id: clientId,
+      }),
+    });
+  }
+
+  async function expectTurnedAway(
+    tokens: { accessToken: string; refreshToken: string },
+    clientId: string
+  ) {
+    const res = await discover(tokens.accessToken);
+    expect(res.status).toBe(401);
+    // A client answers this by trying to authorize again, which is where the
+    // person finds out why: the sign-in page refuses a disabled account.
+    expect(res.headers.get('WWW-Authenticate')).toContain('resource_metadata');
+
+    const refreshed = await refresh(tokens.refreshToken, clientId);
+    expect(refreshed.status).toBe(400);
+    expect(((await refreshed.json()) as { error: string }).error).toBe('invalid_grant');
+  }
+
+  afterAll(async () => {
+    await db.delete(users).where(eq(users.username, AGENT_USERNAME));
+  });
+
+  it('lets a linked agent in while the account is in good standing', async () => {
+    const { tokens } = await linkAgent();
+    expect((await discover(tokens.accessToken)).status).toBe(200);
+  });
+
+  it('turns the agent away once an admin disables the account', async () => {
+    const { tokens, clientId } = await linkAgent();
+    await userService.setUserEnabled(db, agentUserId, false);
+    await expectTurnedAway(tokens, clientId);
+  });
+
+  it('keeps it away after the account is enabled again', async () => {
+    const { tokens, clientId } = await linkAgent();
+    await userService.setUserEnabled(db, agentUserId, false);
+    await userService.setUserEnabled(db, agentUserId, true);
+    await expectTurnedAway(tokens, clientId);
+  });
+
+  it('turns away the agent of an account that was disabled before sessions were revoked', async () => {
+    const { tokens, clientId } = await linkAgent();
+    await db.update(users).set({ enabled: false }).where(eq(users.id, agentUserId));
+    await expectTurnedAway(tokens, clientId);
+  });
+
+  it('turns away an agent linked before the password was reset', async () => {
+    const { tokens, clientId } = await linkAgent();
+    await db
+      .update(users)
+      .set({ sessionsValidFrom: Math.floor(Date.now() / 1000) + 60 })
+      .where(eq(users.id, agentUserId));
+    await expectTurnedAway(tokens, clientId);
   });
 });
