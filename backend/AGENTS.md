@@ -23,7 +23,10 @@ LevelDB per project for Yjs documents (Durable Objects on Workers). The root
   earlier one (root `AGENTS.md`, "Releases and versioning").
 - **Sessions** are JWT bearer tokens (HS256, 30 days), not cookies; revoke them
   by bumping `users.sessionsValidFrom`. CSRF protection covers every
-  state-changing request.
+  state-changing request. MCP OAuth sessions outlive a login, so they check the
+  same watermark and `enabled`/`approved` on every request and refresh
+  (`mcpOAuthService.isSessionRevoked`). A new way to end a user's sessions also
+  calls `mcpOAuthService.revokeUserSessions`, as `userService` does.
 - **Per-project LevelDB**: each project has its own LevelDB instance, shared
   by all its documents through `YjsService.getPersistenceForProject()`. Never
   open a second handle for a project, and never `await` between looking the

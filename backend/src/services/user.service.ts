@@ -4,6 +4,7 @@ import { eq, like, or, asc, and, sql, isNull } from 'drizzle-orm';
 import type { DatabaseInstance } from '../types/context';
 import { users, type User, type InsertUser, type ProfileVisibility } from '../db/schema';
 import { configService } from './config.service';
+import { mcpOAuthService } from './mcp-oauth.service';
 
 const SALT_ROUNDS = 10;
 
@@ -258,6 +259,7 @@ class UserService {
       .update(users)
       .set({ password: hashedPassword, sessionsValidFrom: sessionWatermarkNow() })
       .where(eq(users.id, userId));
+    await mcpOAuthService.revokeUserSessions(db, userId, 'Password changed');
   }
 
   /**
@@ -270,6 +272,7 @@ class UserService {
       .update(users)
       .set({ sessionsValidFrom: sessionWatermarkNow() })
       .where(eq(users.id, userId));
+    await mcpOAuthService.revokeUserSessions(db, userId, 'Sessions invalidated');
   }
 
   /**
@@ -290,6 +293,7 @@ class UserService {
       .update(users)
       .set({ approved: false, rejectedAt: now, sessionsValidFrom: now })
       .where(eq(users.id, userId));
+    await mcpOAuthService.revokeUserSessions(db, userId, 'Account rejected');
   }
 
   /**
@@ -301,6 +305,7 @@ class UserService {
       .update(users)
       .set(enabled ? { enabled } : { enabled, sessionsValidFrom: sessionWatermarkNow() })
       .where(eq(users.id, userId));
+    if (!enabled) await mcpOAuthService.revokeUserSessions(db, userId, 'Account disabled');
   }
 
   /**

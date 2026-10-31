@@ -6,6 +6,7 @@ import { eq } from 'drizzle-orm';
 import { join } from 'node:path';
 import * as schema from '../src/db/schema';
 import { mcpOAuthService, OAuthError } from '../src/services/mcp-oauth.service';
+import { userService } from '../src/services/user.service';
 import { mcpOAuthClients } from '../src/db/schema/mcp-oauth-clients';
 import { mcpOAuthCodes } from '../src/db/schema/mcp-oauth-codes';
 import { mcpOAuthSessions } from '../src/db/schema/mcp-oauth-sessions';
@@ -973,6 +974,230 @@ describe('MCP OAuth Service - refresh token rotation', () => {
       .from(mcpOAuthSessions)
       .where(eq(mcpOAuthSessions.id, sessionId));
     expect(session.revokedAt).toBeNull();
+  });
+});
+
+describe('MCP OAuth Service - an account ends its sessions', () => {
+  const ISSUER = 'http://localhost:8333';
+  const REDIRECT_URI = 'http://localhost:3000/callback';
+  const CODE_VERIFIER = 'test-code-verifier-that-is-long-enough-for-pkce';
+
+  let userId: string;
+
+  function nowSeconds() {
+    return Math.floor(Date.now() / 1000);
+  }
+
+  // Set on the row with nothing revoked, which is how an account looks if it
+  // was disabled or reset before OAuth sessions took notice of it.
+  const refusedAccounts: [string, () => Partial<typeof users.$inferInsert>][] = [
+    ['disabled', () => ({ enabled: false })],
+    ['no longer approved', () => ({ approved: false })],
+    ['past its session watermark', () => ({ sessionsValidFrom: nowSeconds() + 60 })],
+  ];
+
+  beforeEach(async () => {
+    userId = crypto.randomUUID();
+    await db.insert(users).values({
+      id: userId,
+      username: `ended-${userId}`,
+      email: `${userId}@example.com`,
+      password: 'hash',
+      approved: true,
+      enabled: true,
+      isAdmin: false,
+    });
+  });
+
+  afterEach(async () => {
+    await db.delete(users).where(eq(users.id, userId));
+  });
+
+  function link(clientId = testClientId, projectId = testProjectId) {
+    return mcpOAuthService.createSession(db, {
+      userId,
+      clientId,
+      grants: [{ projectId, role: 'editor' }],
+      issuer: ISSUER,
+    });
+  }
+
+  function refresh(refreshToken: string) {
+    return mcpOAuthService.refreshTokens(db, refreshToken, testClientId, undefined, ISSUER);
+  }
+
+  async function storedSession(sessionId: string) {
+    const [session] = await db
+      .select()
+      .from(mcpOAuthSessions)
+      .where(eq(mcpOAuthSessions.id, sessionId));
+    return session;
+  }
+
+  async function createCode() {
+    return mcpOAuthService.createAuthorizationCode(db, {
+      userId,
+      clientId: testClientId,
+      redirectUri: REDIRECT_URI,
+      codeChallenge: await computeCodeChallenge(CODE_VERIFIER),
+      codeChallengeMethod: 'S256',
+      grants: [{ projectId: testProjectId, role: 'editor' }],
+    });
+  }
+
+  function exchange(code: string) {
+    return mcpOAuthService.exchangeAuthorizationCode(db, {
+      code,
+      codeVerifier: CODE_VERIFIER,
+      clientId: testClientId,
+      redirectUri: REDIRECT_URI,
+      issuer: ISSUER,
+    });
+  }
+
+  describe('checks the account each time', () => {
+    it.each(refusedAccounts)('refuses a session when the account is %s', async (_, change) => {
+      const { sessionId, tokens } = await link();
+      await db.update(users).set(change()).where(eq(users.id, userId));
+
+      expect(await mcpOAuthService.isSessionRevoked(db, sessionId)).toBe(true);
+      await expect(refresh(tokens.refreshToken)).rejects.toThrow('Session has been revoked');
+      // Refused before the rotation, so nothing about the session changed.
+      expect((await storedSession(sessionId)).previousRefreshTokenHash).toBeNull();
+    });
+
+    it.each(refusedAccounts)(
+      'refuses an authorization code when the account is %s',
+      async (_, change) => {
+        const code = await createCode();
+        await db.update(users).set(change()).where(eq(users.id, userId));
+
+        await expect(exchange(code)).rejects.toMatchObject({ code: 'invalid_grant' });
+
+        const sessions = await db
+          .select()
+          .from(mcpOAuthSessions)
+          .where(eq(mcpOAuthSessions.userId, userId));
+        expect(sessions).toEqual([]);
+      }
+    );
+
+    it('keeps a session made after the account last ended its sessions', async () => {
+      await db
+        .update(users)
+        .set({ sessionsValidFrom: nowSeconds() - 60 })
+        .where(eq(users.id, userId));
+
+      const { sessionId, tokens } = await link();
+
+      expect(await mcpOAuthService.isSessionRevoked(db, sessionId)).toBe(false);
+      expect((await refresh(tokens.refreshToken)).accessToken).toBeDefined();
+    });
+
+    it('compares the watermark in seconds with a creation time in milliseconds', async () => {
+      const { sessionId } = await link();
+      const watermark = nowSeconds();
+      await db.update(users).set({ sessionsValidFrom: watermark }).where(eq(users.id, userId));
+      const createdAt = (ms: number) =>
+        db
+          .update(mcpOAuthSessions)
+          .set({ createdAt: ms })
+          .where(eq(mcpOAuthSessions.id, sessionId));
+
+      await createdAt(watermark * 1000 - 1);
+      expect(await mcpOAuthService.isSessionRevoked(db, sessionId)).toBe(true);
+
+      // A login token issued within the watermark's second survives it too.
+      await createdAt(watermark * 1000 + 500);
+      expect(await mcpOAuthService.isSessionRevoked(db, sessionId)).toBe(false);
+    });
+
+    it('accepts an authorization code from an account in good standing', async () => {
+      const tokens = await exchange(await createCode());
+      expect(tokens.accessToken).toBeDefined();
+    });
+  });
+
+  describe('revokes them when it happens', () => {
+    const endings: [string, string, () => Promise<void>][] = [
+      [
+        'disabling the account',
+        'Account disabled',
+        () => userService.setUserEnabled(db, userId, false),
+      ],
+      ['rejecting the account', 'Account rejected', () => userService.rejectUser(db, userId)],
+      [
+        'a password reset',
+        'Password changed',
+        () => userService.updatePassword(db, userId, 'a-new-password'),
+      ],
+      [
+        'a passkey recovery',
+        'Sessions invalidated',
+        () => userService.invalidateSessions(db, userId),
+      ],
+    ];
+
+    it.each(endings)('%s', async (_, reason, end) => {
+      const first = await link();
+      const second = await link(testClient2Id, testProject2Id);
+      const someoneElse = await mcpOAuthService.createSession(db, {
+        userId: testUserId,
+        clientId: testClientId,
+        grants: [{ projectId: testProjectId, role: 'viewer' }],
+        issuer: ISSUER,
+      });
+      // Being invited to a project is not something an agent was given.
+      await db.insert(projectCollaborators).values({
+        projectId: testProject2Id,
+        userId,
+        collaboratorType: 'user',
+        role: 'editor',
+        status: 'accepted',
+        invitedAt: Date.now(),
+      });
+
+      await end();
+
+      for (const { sessionId } of [first, second]) {
+        const session = await storedSession(sessionId);
+        expect(session.revokedAt).not.toBeNull();
+        expect(session.revokedReason).toBe(reason);
+      }
+      // Authorized Apps shows the truth without waiting for the agent to call.
+      expect(await mcpOAuthService.getUserSessions(db, userId)).toEqual([]);
+
+      const rows = await db
+        .select()
+        .from(projectCollaborators)
+        .where(eq(projectCollaborators.userId, userId));
+      expect(rows.map((row) => row.collaboratorType)).toEqual(['user']);
+
+      expect((await storedSession(someoneElse.sessionId)).revokedAt).toBeNull();
+      expect(await mcpOAuthService.getSessionGrants(db, someoneElse.sessionId)).toHaveLength(1);
+    });
+
+    it('does not bring sessions back when the account is enabled again', async () => {
+      const { sessionId, tokens } = await link();
+
+      await userService.setUserEnabled(db, userId, false);
+      await userService.setUserEnabled(db, userId, true);
+
+      expect(await mcpOAuthService.isSessionRevoked(db, sessionId)).toBe(true);
+      await expect(refresh(tokens.refreshToken)).rejects.toThrow('Session has been revoked');
+
+      // Linking the agent again is all it takes.
+      const relinked = await link();
+      expect(await mcpOAuthService.isSessionRevoked(db, relinked.sessionId)).toBe(false);
+    });
+
+    it('leaves sessions alone when an enabled account is enabled', async () => {
+      const { sessionId } = await link();
+
+      await userService.setUserEnabled(db, userId, true);
+
+      expect(await mcpOAuthService.isSessionRevoked(db, sessionId)).toBe(false);
+    });
   });
 });
 
