@@ -390,7 +390,7 @@ function controlPoints(
  */
 export function pathHullPoints(points: number[], tension: number): number[] {
   const count = Math.floor(points.length / 2);
-  if (!(tension > 0) || count < 3) return points;
+  if (!tension || tension < 0 || count < 3) return points;
   const hull = [...points];
   for (let i = 1; i < count - 1; i++) {
     hull.push(

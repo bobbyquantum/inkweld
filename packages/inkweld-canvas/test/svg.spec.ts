@@ -1579,12 +1579,12 @@ describe('matching the canvas', () => {
         width: 150,
         height: 150,
       });
-      expect(canvasObjectBounds({ ...corner, tension: 0 })).toEqual({
-        x: 0,
-        y: 0,
-        width: 100,
-        height: 100,
-      });
+      const straight = { x: 0, y: 0, width: 100, height: 100 };
+      expect(canvasObjectBounds({ ...corner, tension: 0 })).toEqual(straight);
+      expect(canvasObjectBounds({ ...corner, tension: -1 })).toEqual(straight);
+      // Stored data can be missing any field.
+      const untensioned = { ...corner, tension: undefined as unknown as number };
+      expect(canvasObjectBounds(untensioned)).toEqual(straight);
     });
 
     it('casts a shadow the same way, whatever the object has turned to', () => {
