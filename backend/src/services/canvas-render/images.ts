@@ -127,13 +127,7 @@ async function prepareMediaImage(src: string, media: CanvasMediaSource): Promise
   return prepareBytes(Buffer.from(data), isSvg(filename));
 }
 
-/** The fewest bytes an inline image's body could decode to. */
-function fewestBytesIn(body: string, isBase64: boolean): number {
-  return isBase64 ? body.replaceAll(/\s/g, '').length * 0.75 - 2 : body.length / 3;
-}
-
-function inlineBytes(body: string, isBase64: boolean): Buffer | null {
-  if (isBase64) return Buffer.from(body, 'base64');
+function percentDecoded(body: string): Buffer | null {
   try {
     return Buffer.from(decodeURIComponent(body));
   } catch {
@@ -144,13 +138,19 @@ function inlineBytes(body: string, isBase64: boolean): Buffer | null {
 function prepareInlineImage(src: string): Promise<PreparedImage> | PreparedImage {
   const header = /^data:image\/(png|jpeg|gif|svg\+xml)(;[^,]*)?,/.exec(src);
   if (!header) return { problem: 'is an inline format that cannot be drawn here' };
-  const isBase64 = header[2]?.endsWith(';base64') ?? false;
   const body = src.substring(header[0].length);
-  // A stored image can be any length, so don't decode one that can't fit.
-  if (fewestBytesIn(body, isBase64) > MAX_RENDER_IMAGE_BYTES) return TOO_LARGE;
-  const data = inlineBytes(body, isBase64);
-  if (!data) return { problem: 'cannot be read' };
-  return prepareBytes(data, header[1] === 'svg+xml');
+  const svg = header[1] === 'svg+xml';
+
+  // A stored image can be any length, so don't decode one that can't fit, going
+  // by the fewest bytes each encoding could decode to.
+  if (header[2]?.endsWith(';base64')) {
+    const fewestBytes = body.replaceAll(/\s/g, '').length * 0.75 - 2;
+    if (fewestBytes > MAX_RENDER_IMAGE_BYTES) return TOO_LARGE;
+    return prepareBytes(Buffer.from(body, 'base64'), svg);
+  }
+  if (body.length / 3 > MAX_RENDER_IMAGE_BYTES) return TOO_LARGE;
+  const data = percentDecoded(body);
+  return data ? prepareBytes(data, svg) : { problem: 'cannot be read' };
 }
 
 function prepareImage(
