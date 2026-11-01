@@ -2,17 +2,27 @@ import type { Injector } from '@angular/core';
 import { extractMediaId } from '@components/image-paste/image-paste-plugin';
 import {
   CANVAS_CONFIG_META_KEY,
+  canvasLayoutWarnings,
   describeCanvas,
   describeCanvasEdit,
+  describeCanvasRender,
   EDIT_CANVAS_DESCRIPTION,
   EDIT_CANVAS_PROPERTIES,
   GET_CANVAS_DESCRIPTION,
   GET_CANVAS_PROPERTIES,
+  LIGHT_PAGE,
   planCanvasEdit,
+  planCanvasRender,
+  RENDER_CANVAS_DESCRIPTION,
+  RENDER_CANVAS_PROPERTIES,
   resolveCanvasContents,
   seedCanvasEdit,
 } from '@inkweld/canvas';
 import type { Element } from '@inkweld/index';
+import {
+  CanvasRasterizerService,
+  loadCanvasFonts,
+} from '@services/canvas/canvas-rasterizer.service';
 import { SetupService } from '@services/core/setup.service';
 import { isLocalOrCloudMode } from '@services/core/storage-context.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
@@ -22,18 +32,32 @@ import { RelationshipService } from '@services/relationship/relationship.service
 import { nanoid } from 'nanoid';
 
 import { createLinkRelationship } from '../../../pages/project/tabs/canvas/canvas-pin-helpers';
+import { browserTextMeasurer } from '../../../pages/project/tabs/canvas/canvas-svg-export';
 import { mediaReferenceFilename } from '../../../utils/media-reference';
 import type { ProjectToolContext } from './project-context';
 import {
   schema,
   type ToolArgs,
   ToolError,
+  ToolImage,
   type WebMcpToolDefinition,
 } from './tool';
 
 /** The named arguments as a plain object, for the shared canvas logic. */
 function pick(args: ToolArgs, names: string[]): Record<string, unknown> {
   return Object.fromEntries(names.map(name => [name, args.raw(name)]));
+}
+
+/** The base64 of a blob, without the `data:` prefix. */
+async function blobToBase64(blob: Blob): Promise<string> {
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  let binary = '';
+  // Chunked: spreading a whole image would overflow the argument list.
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCodePoint(...bytes.subarray(i, i + chunkSize));
+  }
+  return btoa(binary);
 }
 
 /**
@@ -98,6 +122,57 @@ export function canvasTools(
         );
         if ('error' in result) throw new ToolError(String(result['error']));
         return result;
+      },
+    },
+    {
+      name: 'render_canvas',
+      title: 'Render canvas',
+      description: `${RENDER_CANVAS_DESCRIPTION}
+
+The image is drawn by the app itself, so it is exactly what the user sees.`,
+      inputSchema: schema(
+        { elementId: { type: 'string' }, ...RENDER_CANVAS_PROPERTIES },
+        ['elementId']
+      ),
+      readOnly: true,
+      untrustedContent: true,
+      run: async args => {
+        const element = ctx.canvas(args.string('elementId'));
+        const { contents } = readCanvas(element);
+
+        // Before planning, so text is measured in the fonts it will be drawn in.
+        await loadCanvasFonts(contents);
+        const measure = browserTextMeasurer();
+        const plan = planCanvasRender(
+          contents,
+          pick(args, Object.keys(RENDER_CANVAS_PROPERTIES)),
+          measure
+        );
+        if ('error' in plan) throw new ToolError(plan.error);
+
+        const image = await injector
+          .get(CanvasRasterizerService)
+          .renderRegion(contents, plan.region, {
+            pixelRatio: plan.scale,
+            mimeType: 'image/png',
+            background: contents.background ?? LIGHT_PAGE.background,
+          });
+        if (!image) {
+          throw new ToolError(
+            'The browser could not draw this canvas. It may be too large, or use an image it cannot read.'
+          );
+        }
+
+        return new ToolImage(
+          await blobToBase64(image),
+          'image/png',
+          describeCanvasRender(
+            element.id,
+            element.name,
+            plan,
+            canvasLayoutWarnings(contents, plan, measure)
+          )
+        );
       },
     },
     {

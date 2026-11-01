@@ -4,7 +4,7 @@
  * and in exported SVG, so nothing is written without passing these checks.
  */
 
-import type { CanvasObjectType } from './model';
+import { CANVAS_BLEND_MODES, type CanvasObjectType } from './model';
 
 /** A problem with an agent's input. The message goes back to the agent. */
 export class CanvasInputError extends Error {
@@ -182,6 +182,40 @@ export function isMediaReference(value: string): boolean {
   return /^media:(\/\/)?[\w.\- ()[\]]+$/.test(value) && !value.includes('..');
 }
 
+const shadowFields: Record<string, FieldCheck> = {
+  color,
+  blur: number(0, 1000),
+  offsetX: number(-MAX_SIZE, MAX_SIZE),
+  offsetY: number(-MAX_SIZE, MAX_SIZE),
+  opacity: number(0, 1),
+};
+
+const shadow: FieldCheck = (value, label) => {
+  if (!isRecord(value)) {
+    fail(`${label} must be an object with color, blur, offsetX and offsetY`);
+  }
+  for (const key of Object.keys(value)) {
+    if (!shadowFields[key]) {
+      fail(
+        `${label}.${key} is not a field here. Valid: ${Object.keys(shadowFields).join(', ')}`,
+      );
+    }
+  }
+  for (const key of ['color', 'blur', 'offsetX', 'offsetY']) {
+    if (value[key] === undefined) fail(`${label}.${key} is required`);
+  }
+  for (const [key, check] of Object.entries(shadowFields)) {
+    if (value[key] !== undefined) check(value[key], `${label}.${key}`);
+  }
+};
+
+/** Shadow and blend mode, which everything but a pin can have. */
+const effects: Record<string, FieldCheck> = {
+  shadow,
+  blendMode: choice(CANVAS_BLEND_MODES),
+};
+const EFFECTS_CLEARABLE = ['shadow', 'blendMode'];
+
 /** Numbers and flags every object has. */
 const BASE_FIELDS: Record<string, FieldCheck> = {
   x: number(-MAX_COORDINATE, MAX_COORDINATE),
@@ -273,9 +307,12 @@ const OBJECT_SPECS: Record<CanvasObjectType, ObjectSpec> = {
       width: positive(MAX_SIZE),
       height: positive(MAX_SIZE),
       isBackground: boolean,
+      fit: choice(['fill', 'cover', 'contain']),
+      cornerRadius: number(0, MAX_SIZE),
+      ...effects,
     },
     required: ['src', 'width', 'height'],
-    clearable: ['isBackground'],
+    clearable: ['isBackground', 'fit', 'cornerRadius', ...EFFECTS_CLEARABLE],
     defaults: () => ({}),
   },
   text: {
@@ -287,9 +324,19 @@ const OBJECT_SPECS: Record<CanvasObjectType, ObjectSpec> = {
       fill: color,
       width: number(0, MAX_SIZE),
       align: choice(['left', 'center', 'right']),
+      lineHeight: number(0.1, 10),
+      letterSpacing: number(-1000, 1000),
+      ...stroke,
+      ...effects,
     },
     required: ['text'],
-    clearable: [],
+    clearable: [
+      'lineHeight',
+      'letterSpacing',
+      'stroke',
+      'strokeWidth',
+      ...EFFECTS_CLEARABLE,
+    ],
     defaults: (inkColor) => ({
       fontSize: 18,
       fontFamily: 'Arial',
@@ -308,9 +355,10 @@ const OBJECT_SPECS: Record<CanvasObjectType, ObjectSpec> = {
       fill,
       tension: number(0, 1),
       pressures,
+      ...effects,
     },
     required: ['points'],
-    clearable: ['fill', 'pressures'],
+    clearable: ['fill', 'pressures', ...EFFECTS_CLEARABLE],
     defaults: (inkColor) => ({
       stroke: inkColor,
       strokeWidth: 3,
@@ -330,9 +378,17 @@ const OBJECT_SPECS: Record<CanvasObjectType, ObjectSpec> = {
       cornerRadius: number(0, MAX_SIZE),
       dash,
       linkedElementId: text(200, 1),
+      ...effects,
     },
     required: ['shapeType'],
-    clearable: ['points', 'fill', 'cornerRadius', 'dash', 'linkedElementId'],
+    clearable: [
+      'points',
+      'fill',
+      'cornerRadius',
+      'dash',
+      'linkedElementId',
+      ...EFFECTS_CLEARABLE,
+    ],
     defaults: (inkColor) => ({ stroke: inkColor, strokeWidth: 3 }),
     finish: finishShape,
   },

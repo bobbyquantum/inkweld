@@ -202,6 +202,21 @@ test.describe('WebMCP', () => {
       const read = await callOk(page, 'get_canvas', { elementId: canvas.id });
       expect(read.objectCount).toBe(1);
 
+      const rendered = await callTool(page, 'render_canvas', {
+        elementId: canvas.id,
+        maxSize: 300,
+      });
+      expect(rendered.isError, rendered.content[0]?.text).toBeFalsy();
+      expect(rendered.structuredContent.image.width).toBe(300);
+      const image = rendered.content[1] as unknown as {
+        type: string;
+        data: string;
+        mimeType: string;
+      };
+      expect(image.type).toBe('image');
+      expect(image.mimeType).toBe('image/png');
+      expect(image.data.length).toBeGreaterThan(100);
+
       await callOk(page, 'edit_canvas', {
         elementId: canvas.id,
         ...(edit.undo as Record<string, unknown>),

@@ -16,7 +16,7 @@ const PIXEL_PNG = Buffer.from(
 interface ToolResult {
   structuredContent?: Record<string, unknown>;
   isError?: boolean;
-  content?: { text: string }[];
+  content?: { type: string; text?: string; data?: string; mimeType?: string }[];
 }
 
 /** A new project with an agent authorized on it, to make tool calls with. */
@@ -42,7 +42,8 @@ async function agentOnNewProject(page: AuthenticatedPage, slug: string) {
     'editor'
   );
 
-  return async function tool(name: string, args: Record<string, unknown>) {
+  /** The whole answer, for a tool that returns more than JSON. */
+  async function callTool(name: string, args: Record<string, unknown>) {
     const response = await mcpCallTool(page.request, accessToken, name, {
       project: `${username}/${slug}`,
       ...args,
@@ -50,9 +51,16 @@ async function agentOnNewProject(page: AuthenticatedPage, slug: string) {
     expect(response.error).toBeUndefined();
     const result = response.result as ToolResult;
     expect(result.isError, result.content?.[0]?.text).toBeUndefined();
+    return result;
+  }
+
+  async function tool(name: string, args: Record<string, unknown>) {
+    const result = await callTool(name, args);
     return (result.structuredContent ??
       JSON.parse(result.content?.[0]?.text ?? '{}')) as Record<string, unknown>;
-  };
+  }
+
+  return { callTool, tool };
 }
 
 /**
@@ -65,7 +73,10 @@ test('an agent draws on a canvas the user has open', async ({
   authenticatedPage: page,
 }, testInfo) => {
   test.slow();
-  const tool = await agentOnNewProject(page, `agent-canvas-${Date.now()}`);
+  const { callTool, tool } = await agentOnNewProject(
+    page,
+    `agent-canvas-${Date.now()}`
+  );
 
   const { element } = (await tool('create_element', {
     name: 'Agent Map',
@@ -103,8 +114,9 @@ test('an agent draws on a canvas the user has open', async ({
           x: 80,
           y: 80,
           fontSize: 64,
-          fontFamily: 'Georgia',
+          fontFamily: 'EB Garamond',
           fontStyle: 'bold',
+          letterSpacing: 2,
           fill: '#3B2F1E',
         },
         { id: 'town', type: 'pin', label: 'Harbour Town', x: 400, y: 340 },
@@ -185,6 +197,33 @@ test('an agent draws on a canvas the user has open', async ({
     await expect(objects).toHaveCount(4);
   });
 
+  await test.step('the agent can see what it drew, without a browser', async () => {
+    const result = await callTool('render_canvas', { elementId, maxSize: 400 });
+
+    const image = result.content?.find(c => c.type === 'image');
+    expect(image?.mimeType).toBe('image/png');
+    const png = Buffer.from(image?.data ?? '', 'base64');
+    expect(png.subarray(1, 4).toString()).toBe('PNG');
+
+    expect(result.structuredContent).toMatchObject({
+      shows: 'Page',
+      image: { width: 400, height: 300 },
+    });
+    // The uploaded image and the bundled font both drew as stored.
+    expect(result.structuredContent?.['warnings']).toBeUndefined();
+  });
+
+  await test.step('a render can be kept as project media', async () => {
+    const saved = await tool('save_canvas_image', {
+      elementId,
+      maxSize: 200,
+    });
+    const media = await tool('list_project_media', {});
+    expect(JSON.stringify(media)).toContain(
+      (saved['mediaUrl'] as string).substring('media://'.length)
+    );
+  });
+
   await test.step('what the agent drew survives a reload', async () => {
     await page.reload();
     await page.getByTestId('element-Agent Map').click();
@@ -211,7 +250,7 @@ test('tool calls made at the same moment all land', async ({
   authenticatedPage: page,
 }) => {
   test.slow();
-  const tool = await agentOnNewProject(page, `agent-overlap-${Date.now()}`);
+  const { tool } = await agentOnNewProject(page, `agent-overlap-${Date.now()}`);
   const { element } = (await tool('create_element', {
     name: 'Agent Overlap',
     type: 'CANVAS',

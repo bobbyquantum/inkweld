@@ -2,6 +2,7 @@ import { inject, Injectable, Injector } from '@angular/core';
 import type { CanvasContents } from '@models/canvas-edit';
 import { LoggerService } from '@services/core/logger.service';
 
+import { canvasFontQuery } from '../../pages/project/tabs/canvas/canvas-utils';
 import {
   dataUrlToBlob,
   type RasterOptions,
@@ -98,11 +99,13 @@ export class CanvasRasterizerService {
       renderer.stage?.position({ x: -rect.x, y: -rect.y });
 
       await withTimeout(
-        Promise.all([renderer.whenImagesSettled(), loadFonts(contents)]).then(
-          () => undefined
-        ),
+        Promise.all([
+          renderer.whenImagesSettled(),
+          loadCanvasFonts(contents),
+        ]).then(() => undefined),
         ASSET_SETTLE_TIMEOUT_MS
       );
+      renderer.refreshTextLayout();
 
       const stage = renderer.stage;
       if (!stage) return null;
@@ -137,15 +140,13 @@ export class CanvasRasterizerService {
 }
 
 /** Ask the browser to load every font family the canvas text uses. */
-async function loadFonts(contents: CanvasContents): Promise<void> {
+export async function loadCanvasFonts(contents: CanvasContents): Promise<void> {
   const fonts = (document as { fonts?: FontFaceSet }).fonts;
   if (!fonts?.load) return;
   const specs = new Set<string>();
   for (const obj of contents.objects) {
     if (obj.type !== 'text' || !obj.visible) continue;
-    const style = obj.fontStyle.includes('italic') ? 'italic' : 'normal';
-    const weight = obj.fontStyle.includes('bold') ? 'bold' : 'normal';
-    specs.add(`${style} ${weight} ${obj.fontSize}px "${obj.fontFamily}"`);
+    specs.add(canvasFontQuery(obj));
   }
   await Promise.all([...specs].map(spec => fonts.load(spec).catch(() => [])));
 }

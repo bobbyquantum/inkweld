@@ -128,6 +128,9 @@ export class CanvasPlacementService {
       // Text takes the drawing colour, not the shape fill — the fill defaults
       // to white, which put invisible labels on the canvas.
       color: settings.stroke,
+      fontFamily: settings.fontFamily,
+      fontStyle: 'normal',
+      fontSize: settings.fontSize,
     };
     const dialogRef = this.dialog.open(CanvasTextDialogComponent, {
       data,
@@ -151,9 +154,11 @@ export class CanvasPlacementService {
           visible: true,
           locked: false,
           text: result.text,
-          fontSize: settings.fontSize,
-          fontFamily: settings.fontFamily,
-          fontStyle: 'normal',
+          fontSize: result.fontSize,
+          fontFamily: result.fontFamily,
+          fontStyle: result.fontStyle,
+          lineHeight: result.lineHeight,
+          letterSpacing: result.letterSpacing,
           fill: result.color,
           width: 200,
           align: 'left',
@@ -207,6 +212,11 @@ export class CanvasPlacementService {
       text: obj.text,
       color: obj.fill,
       confirmLabel: 'Save',
+      fontFamily: obj.fontFamily,
+      fontStyle: obj.fontStyle,
+      fontSize: obj.fontSize,
+      lineHeight: obj.lineHeight,
+      letterSpacing: obj.letterSpacing,
     };
     const dialogRef = this.dialog.open(CanvasTextDialogComponent, {
       data,
@@ -222,6 +232,11 @@ export class CanvasPlacementService {
           text: result.text,
           fill: result.color,
           name: result.text.substring(0, 30),
+          fontFamily: result.fontFamily,
+          fontStyle: result.fontStyle,
+          fontSize: result.fontSize,
+          lineHeight: result.lineHeight,
+          letterSpacing: result.letterSpacing,
         });
       });
   }

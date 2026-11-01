@@ -49,12 +49,33 @@ export class ToolError extends Error {
  * as the MCP-B extension (which forward it as-is).
  */
 export interface ToolResult {
-  content: { type: 'text'; text: string }[];
+  content: (
+    | { type: 'text'; text: string }
+    | { type: 'image'; data: string; mimeType: string }
+  )[];
   structuredContent?: unknown;
   isError?: boolean;
 }
 
+/** What a tool returns to show the agent an image, with details about it. */
+export class ToolImage {
+  constructor(
+    readonly data: string,
+    readonly mimeType: string,
+    readonly details: Record<string, unknown>
+  ) {}
+}
+
 export function toolSuccess(data: unknown): ToolResult {
+  if (data instanceof ToolImage) {
+    return {
+      content: [
+        { type: 'text', text: JSON.stringify(data.details) },
+        { type: 'image', data: data.data, mimeType: data.mimeType },
+      ],
+      structuredContent: data.details,
+    };
+  }
   const value = data ?? { ok: true };
   if (typeof value === 'string') {
     return { content: [{ type: 'text', text: value }] };
