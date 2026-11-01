@@ -248,15 +248,57 @@ test.describe('Error Handling and Edge Cases', () => {
     test('should handle long-running session without memory leaks', async ({
       authenticatedPage: page,
     }) => {
-      // Navigate through various pages multiple times
-      for (let i = 0; i < 10; i++) {
-        await page.goto('/');
-        await page.goto('/create-project');
-        await page.goto('/');
+      // Stay inside the app: a full page load starts over with an empty heap,
+      // so it can't show a leak.
+      const visitCreateProjectAndCancel = async () => {
+        await page.getByTestId('create-new-project-button').click();
+        await page.getByTestId('create-new-project-menu-item').click();
+        await page.getByTestId('cancel-button-step1').click();
+        await expect(page).toHaveURL('/');
+        await expect(
+          page.getByTestId('create-new-project-button')
+        ).toBeVisible();
+      };
+
+      const cdp = await page.context().newCDPSession(page);
+      await cdp.send('Performance.enable');
+      const liveCounts = async () => {
+        await cdp.send('HeapProfiler.collectGarbage');
+        const { metrics } = await cdp.send('Performance.getMetrics');
+        const metric = (name: string) =>
+          metrics.find(m => m.name === name)?.value ?? 0;
+        return {
+          nodes: metric('Nodes'),
+          listeners: metric('JSEventListeners'),
+        };
+      };
+
+      // The first visits load the page's code and fill caches, so measure
+      // from there.
+      await visitCreateProjectAndCancel();
+      await visitCreateProjectAndCancel();
+      const before = await liveCounts();
+
+      // One visit at a time, the way a person moves around the app
+      for (let visit = 0; visit < 10; visit++) {
+        await visitCreateProjectAndCancel();
       }
 
-      // Should still be responsive
-      await expect(page).toHaveURL('/');
+      // These stay flat in a healthy app, give or take a few dozen nodes that
+      // come and go. A page kept alive by something would add hundreds of nodes
+      // a visit. Polled so that a page still being torn down isn't counted.
+      await expect
+        .poll(async () => (await liveCounts()).nodes, {
+          message: 'DOM nodes still alive after the visits',
+          timeout: 10_000,
+        })
+        .toBeLessThan(before.nodes + 100);
+      await expect
+        .poll(async () => (await liveCounts()).listeners, {
+          message: 'event listeners still alive after the visits',
+          timeout: 10_000,
+        })
+        .toBeLessThan(before.listeners + 5);
     });
   });
 });

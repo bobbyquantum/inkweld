@@ -68,6 +68,6 @@ The backend starts with these environment variables:
 
 ## Important Notes
 
-1. **Sequential**: Tests run one at a time due to database state
+1. **Parallel**: All tests share one backend and run at the same time (`fullyParallel`), so a spec that changes an instance-wide setting starts its own backend (`e2e/common/isolated-backend.ts`)
 2. **Fresh State**: Each test gets a fresh browser context
 3. **Unique Users**: Use unique usernames (e.g., `testuser-${Date.now()}`) to avoid conflicts

@@ -3,6 +3,8 @@ import { type Browser, type Page } from '@playwright/test';
 import {
   canStartIsolatedBackend,
   type IsolatedBackend,
+  openAppOn,
+  signInAsAdmin,
   startIsolatedBackend,
 } from '../common/isolated-backend';
 import { expect, test } from './fixtures';
@@ -71,30 +73,7 @@ async function setUserQuota(userId: string, bytes: number | null) {
 
 /** A fresh browser context, signed in to the private backend. */
 async function openSignedIn(browser: Browser, username: string): Promise<Page> {
-  const context = await browser.newContext();
-  const page = await context.newPage();
-  await page.addInitScript((serverUrl: string) => {
-    const now = Date.now();
-    localStorage.setItem(
-      'inkweld-app-config',
-      JSON.stringify({
-        version: 2,
-        activeConfigId: 'server-1',
-        configurations: [
-          {
-            id: 'server-1',
-            type: 'server',
-            displayName: 'Quota Test Server',
-            serverUrl,
-            addedAt: now,
-            lastUsedAt: now,
-          },
-        ],
-      })
-    );
-    localStorage.setItem('inkweld-tutorial-autostart', 'off');
-  }, backend.url);
-
+  const page = await openAppOn(browser, backend);
   await page.goto('/');
   await page.getByTestId('welcome-login-button').click();
   const dialog = page.getByTestId('login-dialog');
@@ -119,7 +98,7 @@ test.describe('Sync capacity (SYNC_QUOTA_ENABLED)', () => {
       SYNC_QUOTA_ENABLED: 'true',
       USER_APPROVAL_REQUIRED: 'false',
     });
-    adminToken = await login(backend.admin.username, backend.admin.password);
+    adminToken = await signInAsAdmin(backend);
   });
 
   test.afterAll(async () => {

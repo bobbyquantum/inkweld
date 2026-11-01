@@ -134,7 +134,8 @@ export default (async () => {
           // (the fixtures register/login users via the password API). Backend
           // production defaults are now passwordless-first per NIST SP 800-63B
           // Rev. 4, so the test backend has to opt back in. The dedicated
-          // `passwordless.spec.ts` flips this off via the admin API per-test.
+          // `passwordless.spec.ts` turns it off on a private backend of its own
+          // (e2e/common/isolated-backend.ts), never on this shared one.
           PASSWORD_LOGIN_ENABLED: 'true',
           // Enable email-based passkey recovery so the recovery e2e tests can
           // hit the request endpoint. They don't actually consume the magic

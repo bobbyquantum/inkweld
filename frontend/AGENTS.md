@@ -70,7 +70,12 @@ Read `e2e/BEST_PRACTICES.md` before writing one.
 - Local-mode suites fail on any `/api/` request.
 - A spec that changes an instance-wide setting must start its own backend with
   `e2e/common/isolated-backend.ts` (online config, `E2E_BACKEND_RUNTIME=bun`),
-  or it breaks specs running in parallel.
+  or it breaks specs running in parallel. Restoring the setting afterwards is
+  not enough: an account registered while `PASSWORD_LOGIN_ENABLED` is off has no
+  password, and the spec that registered it fails much later.
+- A test can take twice as long in a full parallel run as it does alone, so one
+  that passes alone can still run past the 30 s default. Check a long test in a
+  full run, and give it `test.slow()` if it really needs the time.
 - The online backend opts into `PASSWORD_LOGIN_ENABLED=true` and
   `EMAIL_RECOVERY_ENABLED=true` (`playwright.online.config.ts`) because the
   fixtures use the password API.
