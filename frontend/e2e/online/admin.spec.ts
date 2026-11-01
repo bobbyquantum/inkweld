@@ -209,22 +209,23 @@ test.describe('Admin settings: user approval (USER_APPROVAL_REQUIRED)', () => {
     await expect(page.getByTestId('user-menu-button')).toBeVisible();
     await page.goto('/admin/settings');
 
-    const toggle = page.getByTestId('setting-toggle-user-approval');
-    const checked = /mat-mdc-slide-toggle-checked/;
+    const toggle = page
+      .getByTestId('setting-toggle-user-approval')
+      .getByRole('switch');
     await expect(toggle).toBeVisible();
-    await expect(toggle).not.toHaveClass(checked);
+    await expect(toggle).not.toBeChecked();
 
+    const saved = page.waitForResponse(
+      response =>
+        response.request().method() === 'PUT' &&
+        response.url().endsWith('/admin/config/USER_APPROVAL_REQUIRED')
+    );
     await toggle.click();
-    await expect(
-      page
-        .locator('.mat-mdc-snack-bar-label')
-        .filter({ hasText: /Setting saved/i })
-        .first()
-    ).toBeVisible();
-    await expect(toggle).toHaveClass(checked);
+    expect((await saved).ok(), 'save the setting').toBe(true);
+    await expect(toggle).toBeChecked();
 
     await page.reload();
-    await expect(toggle).toHaveClass(checked);
+    await expect(toggle).toBeChecked();
 
     const registration = await fetch(`${backend.url}/api/v1/auth/register`, {
       method: 'POST',

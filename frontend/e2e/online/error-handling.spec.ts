@@ -278,6 +278,9 @@ test.describe('Error Handling and Edge Cases', () => {
       await visitCreateProjectAndCancel();
       await visitCreateProjectAndCancel();
       const before = await liveCounts();
+      // A count Chromium stopped reporting would read as 0 and pass below.
+      expect(before.nodes).toBeGreaterThan(0);
+      expect(before.listeners).toBeGreaterThan(0);
 
       // One visit at a time, the way a person moves around the app
       for (let visit = 0; visit < 10; visit++) {
