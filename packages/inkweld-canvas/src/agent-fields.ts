@@ -195,7 +195,7 @@ const shadow: FieldCheck = (value, label) => {
     fail(`${label} must be an object with color, blur, offsetX and offsetY`);
   }
   for (const key of Object.keys(value)) {
-    if (!shadowFields[key]) {
+    if (!Object.hasOwn(shadowFields, key)) {
       fail(
         `${label}.${key} is not a field here. Valid: ${Object.keys(shadowFields).join(', ')}`,
       );
@@ -422,8 +422,9 @@ export function fieldCheck(
   key: string,
   label: string,
 ): FieldCheck {
-  const check = spec.fields[key] ?? BASE_FIELDS[key];
-  if (check) return check;
+  // Own fields only: every object also has a `constructor`, for one.
+  if (Object.hasOwn(spec.fields, key)) return spec.fields[key];
+  if (Object.hasOwn(BASE_FIELDS, key)) return BASE_FIELDS[key];
   const valid = [
     'id',
     'layerId',

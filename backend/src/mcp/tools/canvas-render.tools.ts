@@ -195,37 +195,40 @@ Takes the same arguments as render_canvas. Use a larger maxSize for an image peo
     if (!elementId) return errorResult('elementId is required');
 
     return withRenderErrors('save the canvas image', async () => {
+      // A grant outlives its project, and the file would be left with no owner.
+      const project = await projectService.findById(db, projectId);
+      if (!project) return errorResult('this project no longer exists');
+
       const outcome = await renderForTool(ctx, username, slug, elementId, args);
       if ('error' in outcome) return errorResult(outcome.error);
 
-      const project = await projectService.findById(db, projectId);
-      const counted = project
-        ? await quotaService.assertCanStore(
-            db,
-            project.userId,
-            outcome.png.byteLength,
-            'media_upload',
-            {
-              r2: ctx.env?.STORAGE as never,
-              env: ctx.env as never,
-              authToken: ctx.authToken,
-            }
-          )
-        : 0;
+      const counted = await quotaService.assertCanStore(
+        db,
+        project.userId,
+        outcome.png.byteLength,
+        'media_upload',
+        {
+          r2: ctx.env?.STORAGE as never,
+          env: ctx.env as never,
+          authToken: ctx.authToken,
+        }
+      );
       const filename = `img-${nanoid()}.png`;
+      let stored = false;
       try {
-        await projectStorage(ctx).saveProjectFile(
+        // This cleans up after a write that fails part way, so giving back what
+        // was counted below leaves the counter right.
+        stored = await projectStorage(ctx).createProjectFile(
           username,
           slug,
           filename,
           outcome.png,
           'image/png'
         );
-      } catch (err) {
-        // Nothing was stored, so nothing should stay counted for it.
-        if (project) await quotaService.recordDeletion(db, project.userId, counted);
-        throw err;
+      } finally {
+        if (!stored) await quotaService.recordDeletion(db, project.userId, counted);
       }
+      if (!stored) return errorResult('could not save the canvas image. Try again.');
 
       const summary = {
         ...outcome.details,

@@ -215,7 +215,8 @@ test.describe('WebMCP', () => {
       };
       expect(image.type).toBe('image');
       expect(image.mimeType).toBe('image/png');
-      expect(image.data.length).toBeGreaterThan(100);
+      const png = Buffer.from(image.data, 'base64');
+      expect(png.subarray(1, 4).toString()).toBe('PNG');
 
       await callOk(page, 'edit_canvas', {
         elementId: canvas.id,

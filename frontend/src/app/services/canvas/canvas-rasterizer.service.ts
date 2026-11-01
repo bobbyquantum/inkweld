@@ -26,6 +26,14 @@ const NOOP_HANDLERS: CanvasNodeHandlers = {
   onDblClickText: () => {},
 };
 
+/** What a caller of `renderRegion` can ask for besides the image. */
+export interface RegionRenderHooks {
+  /** Skips drawing once nobody is waiting for the image. */
+  signal?: AbortSignal;
+  /** Told which image objects could not be loaded and show a placeholder. */
+  onFailedImages?: (objectIds: string[]) => void;
+}
+
 /**
  * Renders a region of any canvas to an image without the canvas tab being
  * open: builds a throwaway Konva stage in an offscreen container from the
@@ -50,9 +58,14 @@ export class CanvasRasterizerService {
   renderRegion(
     contents: CanvasContents,
     rect: RasterRect,
-    options: RasterOptions = {}
+    options: RasterOptions = {},
+    hooks: RegionRenderHooks = {}
   ): Promise<Blob | null> {
-    const run = this.queue.then(() => this.renderNow(contents, rect, options));
+    const run = this.queue.then(() =>
+      hooks.signal?.aborted
+        ? null
+        : this.renderNow(contents, rect, options, hooks)
+    );
     // Keep the chain alive even when a render fails.
     this.queue = run.catch(() => undefined);
     return run;
@@ -61,7 +74,8 @@ export class CanvasRasterizerService {
   private async renderNow(
     contents: CanvasContents,
     rect: RasterRect,
-    options: RasterOptions
+    options: RasterOptions,
+    hooks: RegionRenderHooks
   ): Promise<Blob | null> {
     if (typeof document === 'undefined') return null;
 
@@ -105,6 +119,8 @@ export class CanvasRasterizerService {
         ]).then(() => undefined),
         ASSET_SETTLE_TIMEOUT_MS
       );
+      if (hooks.signal?.aborted) return null;
+      hooks.onFailedImages?.(renderer.failedImageIds());
       renderer.refreshTextLayout();
 
       const stage = renderer.stage;
@@ -149,6 +165,11 @@ export async function loadCanvasFonts(contents: CanvasContents): Promise<void> {
     specs.add(canvasFontQuery(obj));
   }
   await Promise.all([...specs].map(spec => fonts.load(spec).catch(() => [])));
+}
+
+/** {@link loadCanvasFonts}, up to a limit: a font's request can stay pending. */
+export function settleCanvasFonts(contents: CanvasContents): Promise<void> {
+  return withTimeout(loadCanvasFonts(contents), ASSET_SETTLE_TIMEOUT_MS);
 }
 
 function withTimeout(promise: Promise<void>, ms: number): Promise<void> {

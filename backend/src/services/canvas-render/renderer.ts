@@ -14,11 +14,10 @@ import {
   type CanvasContents,
   canvasLayoutWarnings,
   type CanvasObject,
-  canvasPaintedBounds,
+  canvasObjectsShown,
   type CanvasRenderPlan,
   canvasTextFont,
   LIGHT_PAGE,
-  rectsOverlap,
 } from '@inkweld/canvas';
 import { initWasm, Resvg } from '@resvg/resvg-wasm';
 import { canvasRenderAssets } from './assets';
@@ -69,24 +68,6 @@ export async function loadCanvasFontSet(): Promise<CanvasFontSet> {
   return new CanvasFontSet(entries, faces);
 }
 
-/**
- * What this render shows. Nothing else needs drawing, and an image left in would
- * be embedded in the SVG, however far off the area it was.
- */
-function objectsShown(
-  contents: CanvasContents,
-  plan: CanvasRenderPlan,
-  fonts: CanvasFontSet
-): CanvasObject[] {
-  const layers = new Set(contents.layers.filter((l) => l.visible).map((l) => l.id));
-  return contents.objects.filter((obj) => {
-    // Pins draw whatever their layer does.
-    if (!obj.visible || (obj.type !== 'pin' && !layers.has(obj.layerId))) return false;
-    const bounds = canvasPaintedBounds(obj, fonts.measure);
-    return bounds !== null && rectsOverlap(bounds, plan.region);
-  });
-}
-
 /** What in the text shown this font set cannot show as it is stored. */
 function textWarnings(objects: readonly CanvasObject[], fonts: CanvasFontSet): string[] {
   const warnings = new Set<string>();
@@ -116,7 +97,9 @@ export async function renderCanvasToPng(
   media: CanvasMediaSource
 ): Promise<CanvasRenderResult> {
   await ensureRasteriser();
-  const shown = objectsShown(contents, plan, fonts);
+  // Nothing else needs drawing, and an image left in would be embedded in the
+  // SVG, however far off the area it was.
+  const shown = canvasObjectsShown(contents, plan.region, fonts.measure);
   const images = await loadCanvasImages(shown, media);
 
   const svg = buildSvgDocument(

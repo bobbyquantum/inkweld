@@ -6,9 +6,10 @@
 
 import { fail, isRecord, CanvasInputError } from './agent-fields';
 import type { CanvasContents } from './edit';
-import { canvasSizeFrame, isBackgroundImage } from './model';
+import { canvasSizeFrame, type CanvasObject, isBackgroundImage } from './model';
 import {
   canvasObjectBounds,
+  canvasPaintedBounds,
   computeSvgViewBox,
   type CanvasRect,
   rectsOverlap,
@@ -193,6 +194,27 @@ export function canvasLayoutWarnings(
     ...warnings.slice(0, MAX_LAYOUT_WARNINGS),
     `And ${extra} more objects like these.`,
   ];
+}
+
+/**
+ * What a render of this area draws: what is visible, on a visible layer and in
+ * the area, counting its shadow. Pins draw whatever their layer does.
+ */
+export function canvasObjectsShown(
+  contents: CanvasContents,
+  region: CanvasRect,
+  measure: TextMeasurer = estimateTextSize,
+): CanvasObject[] {
+  const layers = new Set(
+    contents.layers.filter((l) => l.visible).map((l) => l.id),
+  );
+  return contents.objects.filter((obj) => {
+    if (!obj.visible || (obj.type !== 'pin' && !layers.has(obj.layerId))) {
+      return false;
+    }
+    const bounds = canvasPaintedBounds(obj, measure);
+    return bounds !== null && rectsOverlap(bounds, region);
+  });
 }
 
 /** The result an agent gets with the image: the same fields from both tools. */

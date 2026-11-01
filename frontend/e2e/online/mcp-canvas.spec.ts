@@ -19,6 +19,30 @@ interface ToolResult {
   content?: { type: string; text?: string; data?: string; mimeType?: string }[];
 }
 
+/** The pixels of part of a PNG, read in the browser, which can decode it. */
+function pixelsOf(
+  page: AuthenticatedPage,
+  png: Buffer,
+  area: { x: number; y: number; width: number; height: number }
+): Promise<number[]> {
+  return page.evaluate(
+    async ({ base64, area }) => {
+      const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+      const bitmap = await createImageBitmap(
+        new Blob([bytes], { type: 'image/png' })
+      );
+      const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+      const context = canvas.getContext(
+        '2d'
+      ) as OffscreenCanvasRenderingContext2D;
+      context.drawImage(bitmap, 0, 0);
+      const { x, y, width, height } = area;
+      return Array.from(context.getImageData(x, y, width, height).data);
+    },
+    { base64: png.toString('base64'), area }
+  );
+}
+
 /** A new project with an agent authorized on it, to make tool calls with. */
 async function agentOnNewProject(page: AuthenticatedPage, slug: string) {
   const apiBase = getApiBaseUrl();
@@ -211,6 +235,23 @@ test('an agent draws on a canvas the user has open', async ({
     });
     // The uploaded image and the bundled font both drew as stored.
     expect(result.structuredContent?.['warnings']).toBeUndefined();
+
+    const colourAt = async (x: number, y: number) =>
+      (await pixelsOf(page, png, { x, y, width: 1, height: 1 })).slice(0, 3);
+    expect(await colourAt(5, 5), 'the page colour').toEqual([245, 239, 224]);
+    expect(await colourAt(30, 270), 'the panel').toEqual([255, 255, 255]);
+    expect(await colourAt(320, 80), 'the uploaded image').toEqual([255, 0, 0]);
+    // The title, in its dark ink, on the panel.
+    const title = await pixelsOf(page, png, {
+      x: 40,
+      y: 40,
+      width: 200,
+      height: 32,
+    });
+    const darkPixels = title.filter(
+      (value, index) => index % 4 === 0 && value < 100
+    );
+    expect(darkPixels.length, 'the title').toBeGreaterThan(50);
   });
 
   await test.step('a render can be kept as project media', async () => {
@@ -222,6 +263,14 @@ test('an agent draws on a canvas the user has open', async ({
     expect(JSON.stringify(media)).toContain(
       (saved['mediaUrl'] as string).substring('media://'.length)
     );
+
+    const stored = await callTool('get_media_content', {
+      mediaUrl: saved['mediaUrl'],
+    });
+    const image = stored.content?.find(c => c.type === 'image');
+    expect(image?.mimeType).toBe('image/png');
+    const bytes = Buffer.from(image?.data ?? '', 'base64');
+    expect(bytes.subarray(1, 4).toString()).toBe('PNG');
   });
 
   await test.step('what the agent drew survives a reload', async () => {

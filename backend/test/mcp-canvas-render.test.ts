@@ -3,7 +3,7 @@
  * and the bundled fonts. The image's pixels are read back with sharp, because
  * "it returned a PNG" would pass for a blank page.
  */
-import { describe, it, expect, beforeAll, afterEach, spyOn } from 'bun:test';
+import { describe, it, expect, beforeAll, afterEach, mock, spyOn } from 'bun:test';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -14,6 +14,7 @@ import {
   type CanvasObject,
   type CanvasText,
 } from '@inkweld/canvas';
+import { Resvg } from '@resvg/resvg-wasm';
 import sharp from 'sharp';
 import * as Y from 'yjs';
 import '../src/mcp';
@@ -169,6 +170,15 @@ function seed(edit: CanvasEdit = {}): Y.Doc {
         : Promise.reject(new Error(`unexpected doc ${docId}`))) as never)
   );
   return doc;
+}
+
+function stubProject() {
+  spies.push(
+    spyOn(projectService, 'findById').mockResolvedValue({
+      id: 'id-novel',
+      userId: 'owner',
+    } as never)
+  );
 }
 
 function imageOf(json: ToolJson): Buffer {
@@ -535,6 +545,22 @@ describe('render_canvas', () => {
       expect(resolve('media://a.png')).toBeNull();
     });
 
+    it('holds an inline image to the same size limit as a file', async () => {
+      const png = await sharp({
+        create: { width: 4, height: 4, channels: 3, background: '#ff0000' },
+      })
+        .png()
+        .toBuffer();
+      const big = Buffer.concat([png, Buffer.alloc(MAX_RENDER_IMAGE_BYTES)]);
+      const src = `data:image/png;base64,${big.toString('base64')}`;
+      const { resolve, warnings } = await loadCanvasImages([image(src)], {
+        read: () => Promise.resolve(null),
+        findByMediaId: () => Promise.resolve(null),
+      });
+      expect(warnings[0]).toContain('An inline image is too large');
+      expect(resolve(src)).toBeNull();
+    });
+
     it('turns a failed lookup into a grey box too', async () => {
       spies.push(
         spyOn(FileStorageService.prototype, 'listProjectFiles').mockRejectedValue(
@@ -874,6 +900,7 @@ describe('render_canvas', () => {
       expect(refused.result?.isError).toBe(true);
       expect(refused.result?.content?.[0]?.text).toContain('Too many renders');
 
+      stubProject();
       const notSaved = await call('save_canvas_image', { maxSize: 64 }, WRITE);
       expect(notSaved.result?.content?.[0]?.text).toContain('Too many renders');
     });
@@ -906,6 +933,30 @@ describe('render_canvas', () => {
     }
   });
 
+  it('frees what it takes from the rasteriser', async () => {
+    const realRender = Resvg.prototype.render;
+    const renderedFree = mock();
+    const treeFree = spyOn(Resvg.prototype, 'free');
+    spies.push(
+      treeFree,
+      spyOn(Resvg.prototype, 'render').mockImplementation(function (this: Resvg) {
+        const rendered = realRender.call(this);
+        const free = rendered.free.bind(rendered);
+        rendered.free = () => {
+          renderedFree();
+          free();
+        };
+        return rendered;
+      })
+    );
+    seed({ frames: [PAGE] });
+
+    imageOf(await call('render_canvas', { maxSize: 64 }));
+
+    expect(renderedFree).toHaveBeenCalledTimes(1);
+    expect(treeFree).toHaveBeenCalledTimes(1);
+  });
+
   it('frees its memory: many renders do not grow without bound', async () => {
     seed({ frames: [PAGE], upserts: [text('t', { fontSize: 20 })] });
     // One at a time: each has to be freed before the next, not all held at once.
@@ -917,22 +968,13 @@ describe('render_canvas', () => {
 });
 
 describe('save_canvas_image', () => {
-  function stubProject() {
-    spies.push(
-      spyOn(projectService, 'findById').mockResolvedValue({
-        id: 'id-novel',
-        userId: 'owner',
-      } as never)
-    );
-  }
-
   it('stores the image as media, for use elsewhere', async () => {
     stubProject();
     spies.push(spyOn(quotaService, 'assertCanStore').mockResolvedValue(1234));
     const credit = spyOn(quotaService, 'recordDeletion').mockResolvedValue(undefined);
     spies.push(credit);
-    const save = spyOn(FileStorageService.prototype, 'saveProjectFile').mockResolvedValue(
-      undefined as never
+    const save = spyOn(FileStorageService.prototype, 'createProjectFile').mockResolvedValue(
+      true as never
     );
     spies.push(save);
     seed({ frames: [PAGE], background: '#ff0000' });
@@ -954,7 +996,7 @@ describe('save_canvas_image', () => {
     const credit = spyOn(quotaService, 'recordDeletion').mockResolvedValue(undefined);
     spies.push(credit);
     spies.push(
-      spyOn(FileStorageService.prototype, 'saveProjectFile').mockRejectedValue(
+      spyOn(FileStorageService.prototype, 'createProjectFile').mockRejectedValue(
         new Error('disk full')
       )
     );
@@ -968,6 +1010,37 @@ describe('save_canvas_image', () => {
     expect(credit.mock.calls[0]?.slice(1)).toEqual(['owner', 1234]);
   });
 
+  it('gives back what it counted when the name turns out to be taken', async () => {
+    stubProject();
+    spies.push(spyOn(quotaService, 'assertCanStore').mockResolvedValue(1234));
+    const credit = spyOn(quotaService, 'recordDeletion').mockResolvedValue(undefined);
+    spies.push(
+      credit,
+      spyOn(FileStorageService.prototype, 'createProjectFile').mockResolvedValue(false as never)
+    );
+    seed({ frames: [PAGE] });
+
+    const json = await call('save_canvas_image', {}, WRITE);
+
+    expect(json.result?.isError).toBe(true);
+    expect(credit.mock.calls[0]?.slice(1)).toEqual(['owner', 1234]);
+  });
+
+  it('stores nothing for a project that no longer exists', async () => {
+    spies.push(spyOn(projectService, 'findById').mockResolvedValue(undefined as never));
+    const charge = spyOn(quotaService, 'assertCanStore');
+    const save = spyOn(FileStorageService.prototype, 'createProjectFile');
+    spies.push(charge, save);
+    seed({ frames: [PAGE] });
+
+    const json = await call('save_canvas_image', {}, WRITE);
+
+    expect(json.result?.isError).toBe(true);
+    expect(json.result?.content?.[0]?.text).toContain('no longer exists');
+    expect(charge).not.toHaveBeenCalled();
+    expect(save).not.toHaveBeenCalled();
+  });
+
   it('charges sync capacity, and stores nothing when it is full', async () => {
     stubProject();
     spies.push(
@@ -975,7 +1048,7 @@ describe('save_canvas_image', () => {
         new QuotaExceededError({ usedBytes: 9, quotaBytes: 9, reason: 'media_upload' })
       )
     );
-    const save = spyOn(FileStorageService.prototype, 'saveProjectFile');
+    const save = spyOn(FileStorageService.prototype, 'createProjectFile');
     spies.push(save);
     seed({ frames: [PAGE] });
 
@@ -995,6 +1068,7 @@ describe('save_canvas_image', () => {
   });
 
   it('passes on what a render refuses', async () => {
+    stubProject();
     seed({ frames: [PAGE] });
     const json = await call('save_canvas_image', { frameId: 'nope' }, WRITE);
     expect(json.result?.content?.[0]?.text).toContain('no such frame');
@@ -1025,10 +1099,11 @@ describe('the bundled fonts', () => {
     const digests = JSON.parse(
       readFileSync(join(import.meta.dir, '../../frontend/scripts/font-digests.json'), 'utf8')
     ) as Record<string, string>;
-    const pinned = new Set(Object.values(digests));
-    entries.forEach((_, index) => {
+    entries.forEach((entry, index) => {
+      const family = entry.family.toLowerCase().replaceAll(' ', '-');
+      const face = `${entry.bold ? 700 : 400}-${entry.italic ? 'italic' : 'normal'}`;
       const digest = createHash('sha256').update(faceBytes(index)).digest('hex');
-      expect(pinned.has(digest)).toBe(true);
+      expect(digest).toBe(digests[`${family}-latin-${face}.ttf`]);
     });
   });
 

@@ -23,7 +23,9 @@
       <mat-label>{{ 'canvas.textDialog.fontLabel' | transloco }}</mat-label>
       <mat-select [formField]="form.fontFamily" data-testid="canvas-text-font">
         @for (font of fonts; track font) {
-          <mat-option [value]="font">
+          <mat-option
+            [value]="font"
+            [attr.data-testid]="'canvas-text-font-' + font">
             <span [style.font-family]="'&quot;' + font + '&quot;'">{{
               font
             }}</span>
@@ -35,9 +37,11 @@
       <mat-label>{{ 'canvas.textDialog.styleLabel' | transloco }}</mat-label>
       <mat-select [formField]="form.fontStyle" data-testid="canvas-text-style">
         @for (style of fontStyles; track style.value) {
-          <mat-option [value]="style.value">{{
-            style.labelKey | transloco
-          }}</mat-option>
+          <mat-option
+            [value]="style.value"
+            [attr.data-testid]="'canvas-text-style-' + style.value"
+            >{{ style.labelKey | transloco }}</mat-option
+          >
         }
       </mat-select>
     </mat-form-field>

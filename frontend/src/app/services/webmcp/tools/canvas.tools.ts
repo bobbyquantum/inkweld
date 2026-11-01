@@ -3,6 +3,7 @@ import { extractMediaId } from '@components/image-paste/image-paste-plugin';
 import {
   CANVAS_CONFIG_META_KEY,
   canvasLayoutWarnings,
+  canvasObjectsShown,
   describeCanvas,
   describeCanvasEdit,
   describeCanvasRender,
@@ -21,7 +22,7 @@ import {
 import type { Element } from '@inkweld/index';
 import {
   CanvasRasterizerService,
-  loadCanvasFonts,
+  settleCanvasFonts,
 } from '@services/canvas/canvas-rasterizer.service';
 import { SetupService } from '@services/core/setup.service';
 import { isLocalOrCloudMode } from '@services/core/storage-context.service';
@@ -129,34 +130,49 @@ export function canvasTools(
       title: 'Render canvas',
       description: `${RENDER_CANVAS_DESCRIPTION}
 
-The image is drawn by the app itself, so it is exactly what the user sees.`,
+The image is drawn by the app itself, so it is exactly what the user sees. That includes a font this browser does not have, which it replaces without a warning, as it can't tell; the fonts that ship with Inkweld are the same everywhere.`,
       inputSchema: schema(
         { elementId: { type: 'string' }, ...RENDER_CANVAS_PROPERTIES },
         ['elementId']
       ),
       readOnly: true,
       untrustedContent: true,
-      run: async args => {
+      run: async (args, signal) => {
         const element = ctx.canvas(args.string('elementId'));
         const { contents } = readCanvas(element);
+        const input = pick(args, Object.keys(RENDER_CANVAS_PROPERTIES));
+
+        // Bad arguments should not have to wait for fonts to find that out.
+        const refused = planCanvasRender(
+          contents,
+          input,
+          browserTextMeasurer()
+        );
+        if ('error' in refused) throw new ToolError(refused.error);
 
         // Before planning, so text is measured in the fonts it will be drawn in.
-        await loadCanvasFonts(contents);
+        await settleCanvasFonts(contents);
         const measure = browserTextMeasurer();
-        const plan = planCanvasRender(
-          contents,
-          pick(args, Object.keys(RENDER_CANVAS_PROPERTIES)),
-          measure
-        );
+        const plan = planCanvasRender(contents, input, measure);
         if ('error' in plan) throw new ToolError(plan.error);
 
-        const image = await injector
-          .get(CanvasRasterizerService)
-          .renderRegion(contents, plan.region, {
+        let failedImages: string[] = [];
+        const image = await injector.get(CanvasRasterizerService).renderRegion(
+          contents,
+          plan.region,
+          {
             pixelRatio: plan.scale,
             mimeType: 'image/png',
             background: contents.background ?? LIGHT_PAGE.background,
-          });
+          },
+          {
+            signal,
+            onFailedImages: ids => {
+              failedImages = ids;
+            },
+          }
+        );
+        if (signal.aborted) throw new ToolError('The render was cancelled.');
         if (!image) {
           throw new ToolError(
             'The browser could not draw this canvas. It may be too large, or use an image it cannot read.'
@@ -166,12 +182,15 @@ The image is drawn by the app itself, so it is exactly what the user sees.`,
         return new ToolImage(
           await blobToBase64(image),
           'image/png',
-          describeCanvasRender(
-            element.id,
-            element.name,
-            plan,
-            canvasLayoutWarnings(contents, plan, measure)
-          )
+          describeCanvasRender(element.id, element.name, plan, [
+            ...canvasLayoutWarnings(contents, plan, measure),
+            ...canvasObjectsShown(contents, plan.region, measure)
+              .filter(obj => failedImages.includes(obj.id))
+              .map(
+                obj =>
+                  `Image "${obj.name ?? obj.id}" could not be loaded, so it shows as a placeholder.`
+              ),
+          ])
         );
       },
     },

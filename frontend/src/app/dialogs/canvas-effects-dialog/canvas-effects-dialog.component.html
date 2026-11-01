@@ -60,9 +60,11 @@
     <mat-label>{{ 'canvas.effectsDialog.blendMode' | transloco }}</mat-label>
     <mat-select data-testid="canvas-effects-blend" [formField]="form.blendMode">
       @for (mode of blendModes; track mode.value) {
-        <mat-option [value]="mode.value">{{
-          mode.labelKey | transloco
-        }}</mat-option>
+        <mat-option
+          [value]="mode.value"
+          [attr.data-testid]="'canvas-effects-blend-' + mode.value"
+          >{{ mode.labelKey | transloco }}</mat-option
+        >
       }
     </mat-select>
   </mat-form-field>

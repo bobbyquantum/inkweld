@@ -103,8 +103,11 @@ export class CanvasRendererService {
   private _annotationsLayer: Konva.Layer | null = null;
   /** Image loads still in flight, see {@link whenImagesSettled}. */
   private readonly _pendingImageLoads = new Set<Promise<void>>();
-  /** Per object, how to try again for media with no file: {@link retryFailedImages}. */
-  private readonly _failedImages = new Map<string, () => void>();
+  /** Per object, images showing a placeholder: {@link retryFailedImages}. */
+  private readonly _failedImages = new Map<
+    string,
+    { src: string; retry: () => void }
+  >();
   private readonly _frameNodes = new Map<string, Konva.Group>();
   private _frameTransformer: Konva.Transformer | null = null;
   private _editingFrameId: string | null = null;
@@ -268,9 +271,19 @@ export class CanvasRendererService {
    * Nothing else would: the node only changes when the object does.
    */
   retryFailedImages(): void {
-    const retries = [...this._failedImages.values()];
-    this._failedImages.clear();
+    const retries: (() => void)[] = [];
+    for (const [id, { src, retry }] of this._failedImages) {
+      // Only project media can turn up later.
+      if (!isMediaUrl(src)) continue;
+      this._failedImages.delete(id);
+      retries.push(retry);
+    }
     for (const retry of retries) retry();
+  }
+
+  /** The image objects showing a placeholder, as they could not be loaded. */
+  failedImageIds(): string[] {
+    return [...this._failedImages.keys()];
   }
 
   /** Track one image node's load until it settles. */
@@ -1114,9 +1127,7 @@ export class CanvasRendererService {
           src => this.resolveImageSrc(src),
           undefined,
           this.trackImageLoad(),
-          retry => {
-            if (isMediaUrl(obj.src)) this._failedImages.set(obj.id, retry);
-          }
+          retry => this._failedImages.set(obj.id, { src: obj.src, retry })
         );
         break;
       case 'text':

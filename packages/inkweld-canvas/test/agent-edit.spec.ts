@@ -492,6 +492,26 @@ describe('design fields', () => {
     });
   });
 
+  it.each(['constructor', 'toString', '__proto__'])(
+    'refuses %s, which only exists on every object',
+    (name) => {
+      // JSON.parse makes even __proto__ an ordinary key, as a tool's input has.
+      const field = (fields: string): unknown => JSON.parse(`{${fields}}`);
+      const shadow = field(
+        `"color":"#000","blur":1,"offsetX":0,"offsetY":0,"${name}":"x"`,
+      );
+      const canvas: CanvasContents = { layers: [LAYER], objects: [] };
+      expect(
+        refusal(canvas, { add: [{ id: 'a', type: 'text', text: 'a', shadow }] }),
+      ).toContain(`shadow.${name} is not a field`);
+      expect(
+        refusal(canvas, {
+          add: [field(`"id":"a","type":"pin","label":"a","${name}":"x"`)],
+        }),
+      ).toContain(`${name} is not a field`);
+    },
+  );
+
   it('takes a shadow and a blend mode on all but pins', () => {
     const shadow = { color: '#000000', blur: 4, offsetX: 1, offsetY: 2 };
     const { contents } = plan(canvas(), {

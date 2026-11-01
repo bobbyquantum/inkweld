@@ -10,6 +10,7 @@ import type {
 } from '../src/model';
 import {
   canvasLayoutWarnings,
+  canvasObjectsShown,
   type CanvasRenderPlan,
   DEFAULT_RENDER_SIZE,
   describeCanvasRender,
@@ -350,6 +351,47 @@ describe('canvasLayoutWarnings', () => {
     const result = warnings(many);
     expect(result).toHaveLength(13);
     expect(result.at(-1)).toBe('And 3 more objects like these.');
+  });
+});
+
+describe('canvasObjectsShown', () => {
+  const area = { x: 0, y: 0, width: 200, height: 200 };
+  const hidden = { ...LAYER, id: 'hidden', visible: false };
+  const pin: CanvasObject = {
+    ...base,
+    id: 'p',
+    layerId: 'hidden',
+    type: 'pin',
+    label: 'Town',
+    icon: 'place',
+    color: '#f00',
+  };
+  const shown = (objects: CanvasObject[]) =>
+    canvasObjectsShown({ layers: [LAYER, hidden], objects }, area).map(
+      (obj) => obj.id,
+    );
+
+  it('keeps what is visible and in the area', () => {
+    expect(shown([rect('a')])).toEqual(['a']);
+  });
+
+  it('leaves out what the render does not draw', () => {
+    expect(
+      shown([
+        rect('hidden', { visible: false }),
+        rect('hidden-layer', { layerId: 'hidden' }),
+        rect('elsewhere', { x: 1000 }),
+      ]),
+    ).toEqual([]);
+  });
+
+  it('keeps a pin on a hidden layer, which draws whatever its layer does', () => {
+    expect(shown([pin])).toEqual(['p']);
+  });
+
+  it('keeps what only reaches the area by its shadow', () => {
+    const shadow = { color: '#000', blur: 0, offsetX: -900, offsetY: 0 };
+    expect(shown([rect('a', { x: 1000, shadow })])).toEqual(['a']);
   });
 });
 

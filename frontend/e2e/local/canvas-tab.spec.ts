@@ -501,9 +501,9 @@ test.describe('Canvas Tab', () => {
 
       await page.getByTestId('canvas-text-input').fill('Title');
       await page.getByTestId('canvas-text-font').click();
-      await page.getByRole('option', { name: 'EB Garamond' }).click();
+      await page.getByTestId('canvas-text-font-EB Garamond').click();
       await page.getByTestId('canvas-text-style').click();
-      await page.getByRole('option', { name: 'Bold', exact: true }).click();
+      await page.getByTestId('canvas-text-style-bold').click();
       await page.getByTestId('canvas-text-size').fill('64');
       await page.getByTestId('canvas-text-line-height').fill('1.4');
       await page.getByTestId('canvas-text-letter-spacing').fill('3');
@@ -531,7 +531,17 @@ test.describe('Canvas Tab', () => {
     });
 
     await test.step('effects change what is drawn and are kept', async () => {
-      const before = await stage.screenshot();
+      // Once it has stopped changing, or a web font arriving late would pass
+      // for an effect below.
+      let before = await stage.screenshot();
+      await expect
+        .poll(async () => {
+          const latest = await stage.screenshot();
+          const settled = latest.equals(before);
+          before = latest;
+          return settled;
+        })
+        .toBe(true);
 
       await stage.click({ button: 'right', position: insideText });
       await page.getByTestId('context-effects').click();
@@ -543,7 +553,7 @@ test.describe('Canvas Tab', () => {
       await page.getByTestId('canvas-effects-shadow-offset-x').fill('6');
       await page.getByTestId('canvas-effects-shadow-opacity').fill('50');
       await page.getByTestId('canvas-effects-blend').click();
-      await page.getByRole('option', { name: 'Multiply' }).click();
+      await page.getByTestId('canvas-effects-blend-multiply').click();
       await page.getByTestId('canvas-effects-outline-width').fill('2');
       await page.getByTestId('canvas-effects-apply').click();
       await expect(page.getByTestId('canvas-effects-apply')).toHaveCount(0);

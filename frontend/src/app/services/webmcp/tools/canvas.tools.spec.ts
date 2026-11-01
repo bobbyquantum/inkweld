@@ -14,7 +14,15 @@ import { CoverSourceService } from '@services/project/cover-source.service';
 import { ElementTreeService } from '@services/project/element-tree.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { RelationshipService } from '@services/relationship/relationship.service';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  type Mock,
+  vi,
+} from 'vitest';
 
 import {
   callTool,
@@ -52,7 +60,9 @@ describe('canvas tools', () => {
     removeRelationships: ReturnType<typeof vi.fn>;
   };
   let coverSource: { notifyCanvasChanged: ReturnType<typeof vi.fn> };
-  let rasterizer: { renderRegion: ReturnType<typeof vi.fn> };
+  let rasterizer: {
+    renderRegion: Mock<CanvasRasterizerService['renderRegion']>;
+  };
   let hasMedia: ReturnType<typeof vi.fn>;
   let fetchMissingMedia: ReturnType<typeof vi.fn>;
   let mode: string;
@@ -90,7 +100,7 @@ describe('canvas tools', () => {
     };
     coverSource = { notifyCanvasChanged: vi.fn() };
     rasterizer = {
-      renderRegion: vi.fn(() =>
+      renderRegion: vi.fn<CanvasRasterizerService['renderRegion']>(() =>
         Promise.resolve(new Blob([new Uint8Array([1, 2, 3])]))
       ),
     };
@@ -212,7 +222,8 @@ describe('canvas tools', () => {
           pixelRatio: 0.8,
           mimeType: 'image/png',
           background: '#FFFFFF',
-        })
+        }),
+        expect.anything()
       );
       expect(result.isError).toBeUndefined();
       expect(result.content[1]).toEqual({
@@ -238,8 +249,131 @@ describe('canvas tools', () => {
       expect(rasterizer.renderRegion).toHaveBeenCalledWith(
         expect.anything(),
         expect.anything(),
-        expect.objectContaining({ background: '#101010' })
+        expect.objectContaining({ background: '#101010' }),
+        expect.anything()
       );
+    });
+
+    describe('images and waiting', () => {
+      const image = (id: string, x = 0) => ({
+        id,
+        layerId: 'l1',
+        type: 'image' as const,
+        name: `Picture ${id}`,
+        src: `media://${id}.png`,
+        x,
+        y: 0,
+        rotation: 0,
+        scaleX: 1,
+        scaleY: 1,
+        visible: true,
+        locked: false,
+        width: 100,
+        height: 100,
+      });
+      const fontsDescriptor = Object.getOwnPropertyDescriptor(
+        document,
+        'fonts'
+      );
+
+      afterEach(() => {
+        if (fontsDescriptor) {
+          Object.defineProperty(document, 'fonts', fontsDescriptor);
+        } else {
+          delete (document as { fonts?: unknown }).fonts;
+        }
+      });
+
+      it('says which images in the area could not be loaded', async () => {
+        canvases.set('map', {
+          layers: [LAYER],
+          frames: [FRAME],
+          objects: [image('here'), image('there', 5000)],
+        });
+        rasterizer.renderRegion.mockImplementation(
+          (_contents, _rect, _options, hooks) => {
+            hooks?.onFailedImages?.(['here', 'there']);
+            return Promise.resolve(new Blob([new Uint8Array([1, 2, 3])]));
+          }
+        );
+
+        const result = await render();
+
+        const { warnings } = result.structuredContent as {
+          warnings: string[];
+        };
+        expect(warnings).toContain(
+          'Image "Picture here" could not be loaded, so it shows as a placeholder.'
+        );
+        expect(warnings.join(' ')).not.toContain('Picture there" could');
+      });
+
+      it('passes on a cancellation, and reports it as one', async () => {
+        canvases.set('map', { layers: [LAYER], objects: [], frames: [FRAME] });
+        const controller = new AbortController();
+        rasterizer.renderRegion.mockImplementation(() => {
+          controller.abort();
+          return Promise.resolve(null);
+        });
+        const tool = tools.find(t => t.name === 'render_canvas');
+
+        const result = (await toModelContextTool(
+          tool as WebMcpToolDefinition
+        ).execute(
+          { elementId: 'map' },
+          { signal: controller.signal }
+        )) as ToolResult;
+
+        expect(rasterizer.renderRegion).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.anything(),
+          expect.anything(),
+          expect.objectContaining({ signal: controller.signal })
+        );
+        expect(result.isError).toBe(true);
+        expect(result.content[0]).toMatchObject({
+          text: expect.stringContaining('cancelled'),
+        });
+      });
+
+      it('answers bad arguments without waiting for fonts', async () => {
+        Object.defineProperty(document, 'fonts', {
+          configurable: true,
+          value: { load: () => new Promise(() => undefined) },
+        });
+        canvases.set('map', {
+          layers: [LAYER],
+          frames: [FRAME],
+          objects: [
+            {
+              id: 't',
+              layerId: 'l1',
+              type: 'text',
+              text: 'Title',
+              x: 0,
+              y: 0,
+              rotation: 0,
+              scaleX: 1,
+              scaleY: 1,
+              visible: true,
+              locked: false,
+              fontSize: 20,
+              fontFamily: 'Lato',
+              fontStyle: 'normal',
+              fill: '#000',
+              width: 0,
+              align: 'left',
+            },
+          ],
+        });
+
+        const result = await render({ maxSize: 1 });
+
+        expect(result.isError).toBe(true);
+        expect(result.content[0]).toMatchObject({
+          text: expect.stringContaining('maxSize'),
+        });
+      });
     });
 
     it('warns about what runs off the page', async () => {
