@@ -46,3 +46,5 @@ The policy is built in `backend/src/utils/csp.ts`.
 ## Compressed WASM
 
 `compress-wasm.js` Brotli-compresses every `.wasm` in place, so the server detects compressed WASM by its missing `\0asm` magic (`wasmContentEncoding`) rather than by file name.
+
+Its hash in `ngsw.json` stays the one `ng build` recorded for the uncompressed file. The file is served with `Content-Encoding: br`, so the service worker hashes the decoded bytes. A hash of the compressed bytes fails that check, which leaves the WASM uncached (no PDF export offline) and puts the service worker in `EXISTING_CLIENTS_ONLY`, so new tabs can't open offline until it restarts.

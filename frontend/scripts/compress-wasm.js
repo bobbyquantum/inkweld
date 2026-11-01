@@ -1,15 +1,18 @@
 /**
  * Compresses static assets with Brotli for deployment.
  *
- * 1. For WASM files > 25MB: REPLACES the original with compressed version (for Cloudflare Pages limit).
+ * 1. For WASM files: REPLACES the original with compressed version (for Cloudflare Pages 25MB limit).
  * 2. For other assets: Creates a .br sidecar file for servers that support pre-compressed assets.
+ *
+ * Usage: node compress-wasm.js [dist directory, default ../dist/browser]
  */
 const fs = require('node:fs');
 const path = require('node:path');
 const zlib = require('node:zlib');
-const crypto = require('node:crypto');
 
-const DIST_DIR = path.join(__dirname, '..', 'dist', 'browser');
+const DIST_DIR = process.argv[2]
+  ? path.resolve(process.argv[2])
+  : path.join(__dirname, '..', 'dist', 'browser');
 const NGSW_PATH = path.join(DIST_DIR, 'ngsw.json');
 const SIZE_LIMIT_MB = 25;
 
@@ -41,17 +44,11 @@ function findFiles(dir) {
   return results;
 }
 
-function updateNgswHash(ngsw, filePath, compressed) {
-  if (!ngsw?.hashTable) return;
-  const relativePath = '/' + path.relative(DIST_DIR, filePath).replaceAll('\\', '/');
-  if (ngsw.hashTable[relativePath]) {
-    const newHash = crypto.createHash('sha1').update(compressed).digest('hex');
-    ngsw.hashTable[relativePath] = newHash;
-    console.log(`  Updated hash in ngsw.json for ${relativePath}`);
-  }
-}
-
-function compressWasm(filePath, sizeMB, compressed, ngsw) {
+// ngsw.json keeps the hash ng build recorded for the uncompressed file. The file
+// is served with Content-Encoding: br, so the service worker hashes the decoded
+// bytes; a hash of the compressed bytes would fail that check, leaving the file
+// uncached and the service worker in degraded mode.
+function compressWasm(filePath, sizeMB, compressed) {
   console.log(`\n${path.relative(DIST_DIR, filePath)}: ${sizeMB.toFixed(2)} MB`);
   if (sizeMB > SIZE_LIMIT_MB) {
     console.log(`  ⚠️  Exceeds ${SIZE_LIMIT_MB}MB limit - REPLACING original...`);
@@ -59,7 +56,6 @@ function compressWasm(filePath, sizeMB, compressed, ngsw) {
     console.log(`  ✓ Compressing in-place...`);
   }
   fs.writeFileSync(filePath, compressed);
-  updateNgswHash(ngsw, filePath, compressed);
 }
 
 function compressAssets() {
@@ -68,7 +64,7 @@ function compressAssets() {
     process.exit(0);
   }
 
-  // Load ngsw.json if it exists to update hashes for in-place replacements
+  // Load ngsw.json if it exists to remove the hashes of edge-modified URLs below
   let ngsw = null;
   if (fs.existsSync(NGSW_PATH)) {
     ngsw = JSON.parse(fs.readFileSync(NGSW_PATH, 'utf8'));
@@ -106,7 +102,7 @@ function compressAssets() {
     // If it's a WASM file, we REPLACE it in-place
     // This ensures we stay under Cloudflare's 25MB limit and simplifies headers
     if (ext === '.wasm') {
-      compressWasm(filePath, sizeMB, compressed, ngsw);
+      compressWasm(filePath, sizeMB, compressed);
       replacedCount++;
     } else {
       // Otherwise, create a .br sidecar file
@@ -137,7 +133,7 @@ function compressAssets() {
     try {
       const updatedNgswContent = JSON.stringify(ngsw, null, 2);
       fs.writeFileSync(NGSW_PATH, updatedNgswContent);
-      console.log('\n✅ Updated ngsw.json with new hashes');
+      console.log('\n✅ Updated ngsw.json');
 
       const compressedNgsw = zlib.brotliCompressSync(Buffer.from(updatedNgswContent), {
         params: { [zlib.constants.BROTLI_PARAM_QUALITY]: zlib.constants.BROTLI_MAX_QUALITY },

@@ -58,9 +58,11 @@ Inkweld offers flexible deployment options to suit different needs, from quick l
 | **Ease of Setup**    | ⭐⭐⭐⭐⭐   | ⭐⭐⭐⭐            | ⭐⭐⭐        |
 | **Scalability**      | ⭐⭐⭐       | ⭐⭐⭐⭐⭐          | ⭐⭐⭐        |
 | **Cost**             | Your hosting | Free tier available | Your hosting  |
-| **Offline Support**  | ✅ Full      | ⚠️ Limited          | ✅ Full       |
+| **Offline Support**  | ✅ Full      | ✅ Full             | ✅ Full       |
 | **Real-time Collab** | ✅ WebSocket | ✅ Durable Objects  | ✅ WebSocket  |
 | **Best For**         | Most users   | Global teams        | Custom setups |
+
+Offline support comes from the app itself, so it works the same on all three: you keep writing without a connection, and your changes sync once the server is back in reach. What differs is where that server is. A Docker or native server on your local network can keep syncing between your devices without internet, while a Cloudflare deployment needs an internet connection to sync.
 
 Running Inkweld as a Home Assistant app? See [Home Assistant](/docs/installation/home-assistant).
 
