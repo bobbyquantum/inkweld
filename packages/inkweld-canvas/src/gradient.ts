@@ -55,13 +55,38 @@ interface PendingStop {
   offset: number | null;
 }
 
+/**
+ * CSS angles of the `to <side or corner>` directions. CSS aims a corner so the
+ * gradient's middle meets the other two, which depends on the box and is only
+ * this angle on a square; a parsed gradient does not know its box.
+ */
+const DIRECTION_ANGLES: Readonly<Record<string, number>> = {
+  top: 0,
+  'top right': 45,
+  right: 90,
+  'bottom right': 135,
+  bottom: 180,
+  'bottom left': 225,
+  left: 270,
+  'top left': 315,
+};
+
+/** The angle of a `to ...` direction, with its words in either order. */
+function directionAngle(direction: string): number {
+  const words = direction.toLowerCase().trim().split(/\s+/).slice(1);
+  const vertical = words.filter((word) => word === 'top' || word === 'bottom');
+  const horizontal = words.filter((word) => word === 'left' || word === 'right');
+  return DIRECTION_ANGLES[[...vertical, ...horizontal].join(' ')] ?? 180;
+}
+
 /** CSS angle from the first gradient argument, or null when it's a stop. */
 function parseGradientAngle(first: string | undefined): number | null {
   if (!first) return null;
   const angleMatch = /^(-?\d+(?:\.\d+)?)deg$/.exec(first);
   if (angleMatch) return Number.parseFloat(angleMatch[1]);
-  // Direction/shape prefixes we don't model; skip the argument.
-  if (/^(to |circle|ellipse|closest|farthest|at )/.test(first)) return 180;
+  if (/^to\s/i.test(first)) return directionAngle(first);
+  // Shape prefixes we don't model; skip the argument.
+  if (/^(circle|ellipse|closest|farthest|at )/.test(first)) return 180;
   return null;
 }
 
@@ -106,7 +131,7 @@ function normalizeStopOffsets(stops: PendingStop[]): GradientStop[] {
 
 /**
  * Parse a CSS `linear-gradient(...)` / `radial-gradient(...)` string.
- * Tolerant: unknown prefixes (`to right`, `circle at center`) are skipped,
+ * Tolerant: prefixes it does not model (`circle at center`) are skipped,
  * stops without explicit positions are distributed evenly. Returns null for
  * anything that doesn't yield at least two stops.
  */

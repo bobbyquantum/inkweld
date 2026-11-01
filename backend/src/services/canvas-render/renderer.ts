@@ -4,17 +4,21 @@
  * the shared SVG builder and rasterises the result with resvg, which runs as
  * WebAssembly on every runtime we support.
  *
- * It is a close preview rather than a pixel match: same fonts and layout, but
- * not the same kerning or antialiasing as a browser.
+ * It is a close preview rather than a pixel match: same fonts and spacing, but
+ * not the same kerning or antialiasing as a browser, so a line very close to
+ * its width can break differently.
  */
 
 import {
   buildSvgDocument,
   type CanvasContents,
   canvasLayoutWarnings,
-  canvasTextFont,
+  type CanvasObject,
+  canvasPaintedBounds,
   type CanvasRenderPlan,
+  canvasTextFont,
   LIGHT_PAGE,
+  rectsOverlap,
 } from '@inkweld/canvas';
 import { initWasm, Resvg } from '@resvg/resvg-wasm';
 import { canvasRenderAssets } from './assets';
@@ -65,11 +69,29 @@ export async function loadCanvasFontSet(): Promise<CanvasFontSet> {
   return new CanvasFontSet(entries, faces);
 }
 
-/** What in the canvas's text this font set cannot show as it is stored. */
-function textWarnings(contents: CanvasContents, fonts: CanvasFontSet): string[] {
+/**
+ * What this render shows. Nothing else needs drawing, and an image left in would
+ * be embedded in the SVG, however far off the area it was.
+ */
+function objectsShown(
+  contents: CanvasContents,
+  plan: CanvasRenderPlan,
+  fonts: CanvasFontSet
+): CanvasObject[] {
+  const layers = new Set(contents.layers.filter((l) => l.visible).map((l) => l.id));
+  return contents.objects.filter((obj) => {
+    // Pins draw whatever their layer does.
+    if (!obj.visible || (obj.type !== 'pin' && !layers.has(obj.layerId))) return false;
+    const bounds = canvasPaintedBounds(obj, fonts.measure);
+    return bounds !== null && rectsOverlap(bounds, plan.region);
+  });
+}
+
+/** What in the text shown this font set cannot show as it is stored. */
+function textWarnings(objects: readonly CanvasObject[], fonts: CanvasFontSet): string[] {
   const warnings = new Set<string>();
-  for (const obj of contents.objects) {
-    if (obj.type !== 'text' || !obj.visible) continue;
+  for (const obj of objects) {
+    if (obj.type !== 'text') continue;
     const substituted = fontSubstitutionWarning(fonts, obj.fontFamily);
     if (substituted) warnings.add(substituted);
     const missing = fonts.missingCharacters(obj.text, canvasTextFont(obj));
@@ -94,12 +116,13 @@ export async function renderCanvasToPng(
   media: CanvasMediaSource
 ): Promise<CanvasRenderResult> {
   await ensureRasteriser();
-  const images = await loadCanvasImages(contents, media);
+  const shown = objectsShown(contents, plan, fonts);
+  const images = await loadCanvasImages(shown, media);
 
   const svg = buildSvgDocument(
     {
       layers: contents.layers,
-      objects: contents.objects,
+      objects: shown,
       background: contents.background ?? LIGHT_PAGE.background,
     },
     plan.region,
@@ -113,7 +136,7 @@ export async function renderCanvasToPng(
 
   const warnings = [
     ...canvasLayoutWarnings(contents, plan, fonts.measure),
-    ...textWarnings(contents, fonts),
+    ...textWarnings(shown, fonts),
     ...images.warnings,
   ];
 

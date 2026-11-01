@@ -17,6 +17,7 @@ import { registerTool } from '../mcp.handler';
 import type { McpContext, McpToolResult } from '../mcp.types';
 import { MCP_PERMISSIONS } from '../mcp-permissions';
 import { QuotaExceededError } from '../../errors';
+import { createRateWindow, rateLimitsDisabled } from '../../middleware/rate-limit';
 import type { CanvasMediaSource } from '../../services/canvas-render/images';
 import {
   type CanvasRenderResult,
@@ -34,6 +35,14 @@ import { canvasToolProperties, errorResult, openCanvas, readElementId } from './
 import { parseProjectParam } from './search.tools';
 
 const mcpRenderLog = logger.child('MCP-CanvasRender');
+
+/**
+ * A render holds the thread for about a second on Bun and Node, so an agent in a
+ * loop could stall everyone else on the server. Per account and per process: on
+ * Workers, where a process does not last, each request has its own CPU limit.
+ */
+export const MAX_RENDERS_PER_MINUTE = 30;
+const renderWindow = createRateWindow(60_000, MAX_RENDERS_PER_MINUTE);
 
 function projectStorage(ctx: McpContext) {
   return getStorageService(ctx.env?.STORAGE as Parameters<typeof getStorageService>[0] | undefined);
@@ -65,6 +74,13 @@ async function renderForTool(
   elementId: string,
   args: Record<string, unknown>
 ): Promise<CanvasRenderOutcome | { error: string }> {
+  const waitSeconds = rateLimitsDisabled() ? null : renderWindow.take(ctx.userId);
+  if (waitSeconds !== null) {
+    return {
+      error: `Too many renders: an account can draw ${MAX_RENDERS_PER_MINUTE} a minute. Try again in ${waitSeconds} seconds.`,
+    };
+  }
+
   const canvas = await openCanvas(ctx, username, slug, elementId);
   if ('error' in canvas) return canvas;
 
@@ -120,7 +136,7 @@ registerTool({
     title: 'Render Canvas',
     description: `${RENDER_CANVAS_DESCRIPTION}
 
-The server draws this image as a close preview: text in the fonts that ship with Inkweld matches the app, but kerning and antialiasing differ slightly. A web browser's own render is the final word.`,
+The server draws this image as a close preview: text in the fonts that ship with Inkweld matches the app, but kerning and antialiasing differ slightly, so a line very close to its width can break differently. A web browser's own render is the final word. An account can draw ${MAX_RENDERS_PER_MINUTE} images a minute, counting save_canvas_image.`,
     inputSchema,
     annotations: { readOnlyHint: true },
   },

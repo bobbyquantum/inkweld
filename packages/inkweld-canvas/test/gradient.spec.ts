@@ -75,6 +75,35 @@ describe('gradient fills', () => {
     expect(parsed!.stops).toHaveLength(2);
   });
 
+  it.each<[string, number]>([
+    ['to top', 0],
+    ['to right', 90],
+    ['to bottom', 180],
+    ['to left', 270],
+    ['to top right', 45],
+    ['to right top', 45],
+    ['to bottom right', 135],
+    ['to right bottom', 135],
+    ['to bottom left', 225],
+    ['to left bottom', 225],
+    ['to top left', 315],
+    ['to left top', 315],
+    ['TO  Right', 90],
+  ])('reads "%s" as %d degrees', (direction, angle) => {
+    expect(
+      parseCssGradient(`linear-gradient(${direction}, #fff, #000)`),
+    ).toMatchObject({
+      angle,
+      stops: [{ color: '#fff' }, { color: '#000' }],
+    });
+  });
+
+  it('points down for a direction it cannot read, as for none', () => {
+    const parsed = parseCssGradient('linear-gradient(to nowhere, #fff, #000)');
+    expect(parsed?.angle).toBe(180);
+    expect(parsed?.stops).toHaveLength(2);
+  });
+
   it('rejects non-gradients and single-stop bodies', () => {
     expect(parseCssGradient('#fff')).toBeNull();
     expect(parseCssGradient('linear-gradient(#fff)')).toBeNull();

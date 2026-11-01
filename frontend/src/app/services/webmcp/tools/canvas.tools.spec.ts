@@ -253,7 +253,7 @@ describe('canvas tools', () => {
             type: 'shape',
             shapeType: 'rect',
             x: 450,
-            y: 0,
+            y: 10,
             rotation: 0,
             scaleX: 1,
             scaleY: 1,

@@ -21,15 +21,20 @@ import { QuotaExceededError } from '../src/errors';
 import { handleMcpRequest } from '../src/mcp/mcp.handler';
 import { MCP_PROTOCOL_VERSION, META_KEYS } from '../src/mcp/mcp.types';
 import { MCP_PERMISSIONS } from '../src/mcp/mcp-permissions';
+import { MAX_RENDERS_PER_MINUTE } from '../src/mcp/tools/canvas-render.tools';
 import { registerCanvasRenderAssets } from '../src/services/canvas-render/assets';
 import { fileCanvasRenderAssets } from '../src/services/canvas-render/assets.file';
 import { CanvasFontSet, readFontPack } from '../src/services/canvas-render/font-set';
 import {
+  loadCanvasImages,
   MAX_RENDER_IMAGE_BYTES,
+  MAX_RENDER_IMAGE_PIXELS,
   MAX_RENDER_TOTAL_IMAGE_BYTES,
+  MAX_RENDER_TOTAL_IMAGE_PIXELS,
 } from '../src/services/canvas-render/images';
 import { parseFontMetrics, readFontFamily } from '../src/services/canvas-render/ttf';
 import { FileStorageService } from '../src/services/file-storage.service';
+import { imageService } from '../src/services/image.service';
 import { projectService } from '../src/services/project.service';
 import { quotaService } from '../src/services/quota.service';
 import { yjsService } from '../src/services/yjs.service';
@@ -355,6 +360,86 @@ describe('render_canvas', () => {
     expect(await pixelAt(png, 205, 5)).toEqual([255, 0, 0]);
   });
 
+  it('casts a shadow however far it falls from its object', async () => {
+    seed({
+      frames: [PAGE],
+      background: '#ffffff',
+      upserts: [
+        {
+          ...rect('r', 0, 0, '#ff0000'),
+          shadow: { color: '#0000ff', blur: 0, offsetX: 200, offsetY: 100 },
+        },
+      ],
+    });
+    const png = imageOf(await call('render_canvas', { maxSize: 400 }));
+    expect(await pixelAt(png, 50, 50)).toEqual([255, 0, 0]);
+    expect(await pixelAt(png, 250, 150)).toEqual([0, 0, 255]);
+  });
+
+  it('casts a shadow from a line, which has no height', async () => {
+    seed({
+      frames: [PAGE],
+      background: '#ffffff',
+      upserts: [
+        {
+          ...base,
+          id: 'l',
+          y: 50,
+          type: 'shape',
+          shapeType: 'line',
+          width: 300,
+          height: 0,
+          stroke: '#ff0000',
+          strokeWidth: 10,
+          shadow: { color: '#0000ff', blur: 0, offsetX: 0, offsetY: 50 },
+        },
+      ],
+    });
+    const png = imageOf(await call('render_canvas', { maxSize: 400 }));
+    expect(await pixelAt(png, 150, 50)).toEqual([255, 0, 0]);
+    expect(await pixelAt(png, 150, 100)).toEqual([0, 0, 255]);
+  });
+
+  it('runs a gradient in the direction it names', async () => {
+    seed({
+      frames: [PAGE],
+      background: '#ffffff',
+      upserts: [
+        {
+          ...rect('g', 0, 0, 'linear-gradient(to right, #ff0000, #0000ff)'),
+          width: 400,
+          height: 100,
+          stroke: '#000000',
+        },
+      ],
+    });
+    const png = imageOf(await call('render_canvas', { maxSize: 400 }));
+    const [leftRed, , leftBlue] = await pixelAt(png, 5, 50);
+    const [rightRed, , rightBlue] = await pixelAt(png, 395, 50);
+    expect(leftRed).toBeGreaterThan(240);
+    expect(leftBlue).toBeLessThan(15);
+    expect(rightRed).toBeLessThan(15);
+    expect(rightBlue).toBeGreaterThan(240);
+  });
+
+  it('draws an SVG from media', async () => {
+    spies.push(
+      spyOn(FileStorageService.prototype, 'readProjectFile').mockResolvedValue(
+        Buffer.from(
+          '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><rect width="10" height="10" fill="#ff0000"/></svg>'
+        ) as never
+      )
+    );
+    seed({
+      frames: [PAGE],
+      background: '#ffffff',
+      upserts: [{ ...base, id: 'i', type: 'image', src: 'media://a.svg', width: 100, height: 100 }],
+    });
+    const json = await call('render_canvas', { maxSize: 400 });
+    expect(warningsOf(json)).toEqual([]);
+    expect(await pixelAt(imageOf(json), 50, 50)).toEqual([255, 0, 0]);
+  });
+
   it('looks up an image by id when its reference has no extension', async () => {
     const red = await sharp({
       create: { width: 4, height: 4, channels: 3, background: '#ff0000' },
@@ -441,6 +526,224 @@ describe('render_canvas', () => {
       expect(warningsOf(json)[0]).toContain('grey box');
     });
 
+    it('turns a failed read into a grey box, as a rejecting R2 read would be', async () => {
+      const { resolve, warnings } = await loadCanvasImages([image('media://a.png')], {
+        read: () => Promise.reject(new Error('storage is down')),
+        findByMediaId: () => Promise.resolve(null),
+      });
+      expect(warnings[0]).toContain('could not be read');
+      expect(resolve('media://a.png')).toBeNull();
+    });
+
+    it('turns a failed lookup into a grey box too', async () => {
+      spies.push(
+        spyOn(FileStorageService.prototype, 'listProjectFiles').mockRejectedValue(
+          new Error('storage is down')
+        )
+      );
+      seed({ frames: [PAGE], upserts: [image('media:img-1')] });
+      const json = await call('render_canvas');
+      imageOf(json);
+      expect(warningsOf(json)[0]).toContain('could not be read');
+    });
+
+    it('says when an SVG cannot be read, rather than leaving a gap', async () => {
+      spies.push(
+        spyOn(FileStorageService.prototype, 'readProjectFile').mockResolvedValue(
+          Buffer.from('this is not xml') as never
+        )
+      );
+      seed({ frames: [PAGE], background: '#ffffff', upserts: [image('media://a.svg')] });
+      const json = await call('render_canvas', { maxSize: 400 });
+      expect(warningsOf(json)[0]).toContain('grey box');
+      expect(await pixelAt(imageOf(json), 25, 25)).toEqual([204, 204, 204]);
+    });
+
+    it('says the same of an inline SVG', async () => {
+      seed({
+        frames: [PAGE],
+        upserts: [
+          image(`data:image/svg+xml;base64,${Buffer.from('not xml').toString('base64')}`),
+          { ...image('data:image/svg+xml,%3Csvg'), id: 'j' },
+          { ...image('data:image/svg+xml,%E0%A4%A'), id: 'k' },
+        ],
+      });
+      const warnings = warningsOf(await call('render_canvas'));
+      expect(warnings).toHaveLength(3);
+      for (const warning of warnings) expect(warning).toContain('grey box');
+    });
+
+    it('draws an inline SVG in either encoding', async () => {
+      const svg =
+        '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><rect width="10" height="10" fill="#ff0000"/></svg>';
+      seed({
+        frames: [PAGE],
+        background: '#ffffff',
+        upserts: [
+          image(`data:image/svg+xml,${encodeURIComponent(svg)}`),
+          {
+            ...image(`data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`),
+            id: 'j',
+            x: 100,
+          },
+        ],
+      });
+      const json = await call('render_canvas', { maxSize: 400 });
+      expect(warningsOf(json)).toEqual([]);
+      expect(await pixelAt(imageOf(json), 25, 25)).toEqual([255, 0, 0]);
+      expect(await pixelAt(imageOf(json), 125, 25)).toEqual([255, 0, 0]);
+    });
+
+    describe('with far more pixels than its file size suggests', () => {
+      const side = Math.ceil(Math.sqrt(MAX_RENDER_IMAGE_PIXELS)) + 100;
+
+      /** A flat image, so it is tiny on disk and huge once decoded. */
+      const huge = () =>
+        sharp({
+          create: { width: side, height: side, channels: 3, background: '#ff0000' },
+        })
+          .png()
+          .toBuffer();
+
+      it('brings it down to size where sharp is available', async () => {
+        const convert = spyOn(imageService, 'convertToPng');
+        spies.push(
+          convert,
+          spyOn(FileStorageService.prototype, 'readProjectFile').mockResolvedValue(
+            (await huge()) as never
+          )
+        );
+        seed({ frames: [PAGE], background: '#ffffff', upserts: [image('media://huge.png')] });
+        const json = await call('render_canvas', { maxSize: 400 });
+        expect(warningsOf(json)).toEqual([]);
+        expect(convert).toHaveBeenCalledTimes(1);
+        const smaller = (await convert.mock.results[0]?.value) as Buffer;
+        const { width, height } = await sharp(smaller).metadata();
+        expect(Math.max(width, height)).toBe(2048);
+        expect(await pixelAt(imageOf(json), 25, 25)).toEqual([255, 0, 0]);
+      });
+
+      it('leaves it out where sharp is not, without decoding it', async () => {
+        spies.push(
+          spyOn(imageService, 'convertToPng').mockResolvedValue(null),
+          spyOn(FileStorageService.prototype, 'readProjectFile').mockResolvedValue(
+            (await huge()) as never
+          )
+        );
+        seed({ frames: [PAGE], background: '#ffffff', upserts: [image('media://huge.png')] });
+        const json = await call('render_canvas', { maxSize: 400 });
+        expect(warningsOf(json)[0]).toContain('too large');
+        expect(await pixelAt(imageOf(json), 25, 25)).toEqual([204, 204, 204]);
+      });
+
+      it('does the same for an inline image', async () => {
+        spies.push(spyOn(imageService, 'convertToPng').mockResolvedValue(null));
+        const inline = `data:image/png;base64,${(await huge()).toString('base64')}`;
+        seed({ frames: [PAGE], upserts: [image(inline)] });
+        const warnings = warningsOf(await call('render_canvas'));
+        expect(warnings[0]).toContain('An inline image is too large');
+      });
+    });
+
+    it('says when a file only starts like an image', async () => {
+      spies.push(
+        spyOn(FileStorageService.prototype, 'readProjectFile').mockResolvedValue(
+          Buffer.concat([Buffer.from([0xff, 0xd8, 0xff]), Buffer.alloc(20)]) as never
+        )
+      );
+      seed({ frames: [PAGE], upserts: [image('media://broken.jpg')] });
+      expect(warningsOf(await call('render_canvas'))[0]).toContain('grey box');
+    });
+
+    it('counts an image once for each place it is drawn', async () => {
+      const side = Math.floor(Math.sqrt(MAX_RENDER_IMAGE_PIXELS));
+      const copies = Math.ceil(MAX_RENDER_TOTAL_IMAGE_PIXELS / MAX_RENDER_IMAGE_PIXELS) + 1;
+      const big = await sharp({
+        create: { width: side, height: side, channels: 3, background: '#ff0000' },
+      })
+        .png()
+        .toBuffer();
+      spies.push(
+        spyOn(FileStorageService.prototype, 'readProjectFile').mockResolvedValue(big as never)
+      );
+      seed({
+        frames: [PAGE],
+        upserts: Array.from({ length: copies }, (_, i) => ({
+          ...image('media://big.png'),
+          id: `i${i}`,
+        })),
+      });
+      const warnings = warningsOf(await call('render_canvas'));
+      expect(warnings).toHaveLength(1);
+      expect(warnings[0]).toContain('past what one render');
+    });
+
+    it('reads only the images in the area it draws', async () => {
+      const png = await sharp({
+        create: { width: 4, height: 4, channels: 3, background: '#ff0000' },
+      })
+        .png()
+        .toBuffer();
+      const read = spyOn(FileStorageService.prototype, 'readProjectFile').mockResolvedValue(
+        png as never
+      );
+      spies.push(read);
+      seed({
+        frames: [PAGE],
+        upserts: [image('media://here.png'), { ...image('media://there.png'), id: 'j', x: 1000 }],
+      });
+      const json = await call('render_canvas');
+      expect(read.mock.calls.map((args) => args[2])).toEqual(['here.png']);
+      expect(warningsOf(json)).toEqual(['image "j" is entirely outside Page.']);
+    });
+
+    it('does not let images it leaves out use up what a render can hold', async () => {
+      const png = await sharp({
+        create: { width: 4, height: 4, channels: 3, background: '#ff0000' },
+      })
+        .png()
+        .toBuffer();
+      const big = Buffer.concat([png, Buffer.alloc(MAX_RENDER_IMAGE_BYTES - png.length)]);
+      spies.push(
+        spyOn(FileStorageService.prototype, 'readProjectFile').mockImplementation((async (
+          _u: string,
+          _s: string,
+          file: string
+        ) => (file === 'wanted.png' ? png : big)) as never)
+      );
+      seed({
+        frames: [PAGE],
+        background: '#ffffff',
+        upserts: [
+          ...Array.from({ length: 4 }, (_, i) => ({
+            ...image(`media://away${i}.png`),
+            id: `away${i}`,
+            x: 1000,
+          })),
+          { ...image('media://wanted.png'), id: 'wanted' },
+        ],
+      });
+      const json = await call('render_canvas', { maxSize: 400 });
+      expect(warningsOf(json).join(' ')).not.toContain('past what one render');
+      expect(await pixelAt(imageOf(json), 25, 25)).toEqual([255, 0, 0]);
+    });
+
+    it('has nothing to say about text it does not draw', async () => {
+      const lost = { text: '日本', fontFamily: 'Georgia', fontSize: 20 };
+      const hidden = { ...LAYER, id: 'hidden', visible: false, order: 1 };
+      seed({
+        frames: [PAGE],
+        layers: [LAYER, hidden],
+        upserts: [
+          text('hidden-layer', { ...lost, layerId: 'hidden' }),
+          text('elsewhere', { ...lost, x: 1000 }),
+        ],
+      });
+      expect(warningsOf(await call('render_canvas'))).toEqual([
+        'text "elsewhere" is entirely outside Page.',
+      ]);
+    });
+
     it('says when an image is too large to hold', async () => {
       spies.push(
         spyOn(FileStorageService.prototype, 'readProjectFile').mockResolvedValue(
@@ -504,6 +807,16 @@ describe('render_canvas', () => {
       expect(warningsOf(await call('render_canvas'))[0]).toContain('cannot be drawn');
     });
 
+    it('names the font it used from further down a stack', async () => {
+      seed({
+        frames: [PAGE],
+        upserts: [text('t', { fontFamily: 'Missing Font, Lato', fontSize: 20 })],
+      });
+      const warnings = warningsOf(await call('render_canvas'));
+      expect(warnings[0]).toContain('"Missing Font, Lato"');
+      expect(warnings[0]).toContain('uses Lato');
+    });
+
     it('names a font that is not one of ours, and what it used', async () => {
       seed({ frames: [PAGE], upserts: [text('t', { fontFamily: 'Georgia', fontSize: 20 })] });
       const warnings = warningsOf(await call('render_canvas'));
@@ -540,6 +853,40 @@ describe('render_canvas', () => {
     const json = await call('render_canvas', args);
     expect(json.result?.isError).toBe(true);
     expect(json.result?.content?.[0]?.text).toContain(message);
+  });
+
+  describe('how often it draws', () => {
+    const nodeEnv = process.env['NODE_ENV'];
+
+    afterEach(() => {
+      process.env['NODE_ENV'] = nodeEnv;
+    });
+
+    it('refuses an account past its limit, and saving counts too', async () => {
+      seed({ frames: [PAGE] });
+      process.env['NODE_ENV'] = 'production';
+      const renders = await Promise.all(
+        Array.from({ length: MAX_RENDERS_PER_MINUTE }, () => call('render_canvas', { maxSize: 64 }))
+      );
+      for (const json of renders) expect(json.result?.isError).toBeUndefined();
+
+      const refused = await call('render_canvas', { maxSize: 64 });
+      expect(refused.result?.isError).toBe(true);
+      expect(refused.result?.content?.[0]?.text).toContain('Too many renders');
+
+      const notSaved = await call('save_canvas_image', { maxSize: 64 }, WRITE);
+      expect(notSaved.result?.content?.[0]?.text).toContain('Too many renders');
+    });
+
+    it('does not count while limits are off, as they are for tests', async () => {
+      seed({ frames: [PAGE] });
+      const results = await Promise.all(
+        Array.from({ length: MAX_RENDERS_PER_MINUTE + 1 }, () =>
+          call('render_canvas', { maxSize: 64 })
+        )
+      );
+      for (const json of results) expect(json.result?.isError).toBeUndefined();
+    });
   });
 
   it('says when a canvas has nothing to show', async () => {
@@ -733,6 +1080,10 @@ describe('the bundled fonts', () => {
     ['Comic Sans MS', 'Source Sans 3'],
     ['Nonesuch', 'Source Sans 3'],
     ['', 'Source Sans 3'],
+    ['Missing Font, Lato', 'Lato'],
+    ['Georgia, "EB Garamond", serif', 'EB Garamond'],
+    ['Nonesuch, serif', 'Source Serif 4'],
+    ["'Nonesuch', monospace", 'Source Code Pro'],
   ])('draws %s in %s', (requested, expected) => {
     expect(new CanvasFontSet(entries, faces).familyFor(requested)).toBe(expected);
   });

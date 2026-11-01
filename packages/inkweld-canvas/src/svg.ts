@@ -81,6 +81,22 @@ export interface CanvasRect {
  */
 const PIN_REACH = 15;
 
+/** The space an arrow's head takes up either side of its line. */
+const ARROW_HEAD_REACH = 5;
+
+/** How far a shadow's blur shows: three standard deviations, each half a blur. */
+const SHADOW_FADE = 1.5;
+
+/** Whether two areas share any space. Touching edges do not count. */
+export function rectsOverlap(a: CanvasRect, b: CanvasRect): boolean {
+  return (
+    a.x < b.x + b.width &&
+    a.x + a.width > b.x &&
+    a.y < b.y + b.height &&
+    a.y + a.height > b.y
+  );
+}
+
 /**
  * The box around an area once its object has turned, which it does around its
  * own x and y. It touches the corners of a turned rectangle, so anything past
@@ -108,13 +124,63 @@ function rotatedBounds(obj: CanvasObject, rect: CanvasRect): CanvasRect {
   };
 }
 
-/** The area an object covers. Null when it draws nothing. */
+/** The area an object's ink covers. Null when it draws nothing. */
 export function canvasObjectBounds(
   obj: CanvasObject,
   measure: TextMeasurer = estimateTextSize,
 ): CanvasRect | null {
   const rect = unrotatedBounds(obj, measure);
   return rect && obj.rotation ? rotatedBounds(obj, rect) : rect;
+}
+
+/**
+ * The area an object changes on the page: its ink and its shadow, which falls
+ * in the page's directions however the object has turned.
+ */
+export function canvasPaintedBounds(
+  obj: CanvasObject,
+  measure: TextMeasurer = estimateTextSize,
+): CanvasRect | null {
+  const rect = canvasObjectBounds(obj, measure);
+  if (!rect || obj.type === 'pin' || !obj.shadow) return rect;
+  const { blur, offsetX, offsetY } = obj.shadow;
+  const fade = blur * SHADOW_FADE;
+  const left = Math.min(rect.x, rect.x + offsetX - fade);
+  const top = Math.min(rect.y, rect.y + offsetY - fade);
+  const right = rect.x + rect.width;
+  const bottom = rect.y + rect.height;
+  return {
+    x: left,
+    y: top,
+    width: Math.max(right, right + offsetX + fade) - left,
+    height: Math.max(bottom, bottom + offsetY + fade) - top,
+  };
+}
+
+/**
+ * A box in an object's own coordinates, as it lands on the page. A negative
+ * scale flips it back across the position, which a drag past the opposite edge
+ * does. `reach` is ink past the box, which scales with the object.
+ */
+function placedBox(obj: CanvasObject, box: CanvasRect, reach = 0): CanvasRect {
+  const scaleX = obj.scaleX || 1;
+  const scaleY = obj.scaleY || 1;
+  const x1 = obj.x + (box.x - reach) * scaleX;
+  const x2 = obj.x + (box.x + box.width + reach) * scaleX;
+  const y1 = obj.y + (box.y - reach) * scaleY;
+  const y2 = obj.y + (box.y + box.height + reach) * scaleY;
+  return {
+    x: Math.min(x1, x2),
+    y: Math.min(y1, y2),
+    width: Math.abs(x2 - x1),
+    height: Math.abs(y2 - y1),
+  };
+}
+
+/** How far a stroke centred on an edge reaches past it, if it shows at all. */
+function strokeReach(stroke: string | undefined, strokeWidth = 0): number {
+  if (!stroke || stroke === 'none' || stroke === 'transparent') return 0;
+  return strokeWidth / 2;
 }
 
 /**
@@ -141,12 +207,7 @@ function unrotatedBounds(
         height: PIN_REACH * 2,
       };
     default:
-      return {
-        x: obj.x,
-        y: obj.y,
-        width: obj.width * (obj.scaleX || 1),
-        height: obj.height * (obj.scaleY || 1),
-      };
+      return placedBox(obj, { x: 0, y: 0, width: obj.width, height: obj.height });
   }
 }
 
@@ -156,8 +217,6 @@ function pointsBounds(
   reach: number,
 ): CanvasRect | null {
   if (points.length < 2) return null;
-  const scaleX = obj.scaleX || 1;
-  const scaleY = obj.scaleY || 1;
   const b: Bounds = {
     minX: Infinity,
     minY: Infinity,
@@ -165,19 +224,20 @@ function pointsBounds(
     maxY: -Infinity,
   };
   for (let i = 0; i < points.length - 1; i += 2) {
-    const x = obj.x + (points[i] ?? 0) * scaleX;
-    const y = obj.y + (points[i + 1] ?? 0) * scaleY;
-    b.minX = Math.min(b.minX, x - reach);
-    b.minY = Math.min(b.minY, y - reach);
-    b.maxX = Math.max(b.maxX, x + reach);
-    b.maxY = Math.max(b.maxY, y + reach);
+    const x = points[i] ?? 0;
+    const y = points[i + 1] ?? 0;
+    b.minX = Math.min(b.minX, x);
+    b.minY = Math.min(b.minY, y);
+    b.maxX = Math.max(b.maxX, x);
+    b.maxY = Math.max(b.maxY, y);
   }
-  return {
+  const box = {
     x: b.minX,
     y: b.minY,
     width: b.maxX - b.minX,
     height: b.maxY - b.minY,
   };
+  return placedBox(obj, box, reach);
 }
 
 function pathBounds(obj: CanvasPath): CanvasRect | null {
@@ -186,28 +246,36 @@ function pathBounds(obj: CanvasPath): CanvasRect | null {
 }
 
 function shapeBounds(obj: CanvasShape): CanvasRect | null {
-  if (obj.shapeType === 'line' || obj.shapeType === 'arrow') {
-    return pointsBounds(obj, obj.points ?? [0, 0, obj.width, 0], 0);
+  const reach = strokeReach(obj.stroke, obj.strokeWidth);
+  if (obj.shapeType === 'line') {
+    return pointsBounds(obj, obj.points ?? [0, 0, obj.width, 0], reach);
+  }
+  if (obj.shapeType === 'arrow') {
+    return pointsBounds(
+      obj,
+      obj.points ?? [0, 0, obj.width, 0],
+      Math.max(reach, ARROW_HEAD_REACH),
+    );
   }
   if (obj.shapeType === 'polygon') {
-    return pointsBounds(obj, obj.points ?? [], 0);
+    return pointsBounds(obj, obj.points ?? [], reach);
   }
-  const width = obj.width * (obj.scaleX || 1);
-  const height = obj.height * (obj.scaleY || 1);
+  const { width, height } = obj;
   // Ellipses draw around their origin; everything else from the top-left.
-  return obj.shapeType === 'ellipse'
-    ? { x: obj.x - width / 2, y: obj.y - height / 2, width, height }
-    : { x: obj.x, y: obj.y, width, height };
+  const box =
+    obj.shapeType === 'ellipse'
+      ? { x: -width / 2, y: -height / 2, width, height }
+      : { x: 0, y: 0, width, height };
+  return placedBox(obj, box, reach);
 }
 
 function textBounds(obj: CanvasText, measure: TextMeasurer): CanvasRect {
-  const layout = layoutCanvasText(obj, measure);
-  return {
-    x: obj.x,
-    y: obj.y,
-    width: layout.width * (obj.scaleX || 1),
-    height: layout.height * (obj.scaleY || 1),
-  };
+  const { width, height } = layoutCanvasText(obj, measure);
+  return placedBox(
+    obj,
+    { x: 0, y: 0, width, height },
+    strokeReach(obj.stroke, obj.strokeWidth),
+  );
 }
 
 /** Compute SVG viewBox from visible objects across visible layers */
@@ -229,7 +297,7 @@ export function computeSvgViewBox(
     // Pins are annotations rendered above every layer, regardless of layer
     // visibility — everything else follows its layer.
     if (obj.type !== 'pin' && !visibleLayerIds.has(obj.layerId)) continue;
-    const rect = canvasObjectBounds(obj, options.measureText);
+    const rect = canvasPaintedBounds(obj, options.measureText);
     if (!rect) continue;
     b.minX = Math.min(b.minX, rect.x);
     b.minY = Math.min(b.minY, rect.y);
@@ -260,16 +328,26 @@ function buildTransformAttr(obj: CanvasObject): string {
 }
 
 /** Shadow and blend mode, which the canvas applies outside the object's transform. */
-function objectEffects(obj: CanvasObject): { defs: string; attrs: string } {
+function objectEffects(
+  obj: CanvasObject,
+  options: SvgOptions,
+): { defs: string; attrs: string } {
   // Pins are annotations with a fixed look.
   if (obj.type === 'pin') return { defs: '', attrs: '' };
   let defs = '';
   let attrs = '';
-  if (obj.shadow) {
+  const painted = obj.shadow ? canvasPaintedBounds(obj, options.measureText) : null;
+  if (obj.shadow && painted) {
     const { color, blur, offsetX, offsetY, opacity } = obj.shadow;
     const id = `shadow-${++svgIdCounter}`;
+    // The filter cuts off anything outside its area, the object included. The
+    // margin is for text that comes out wider than measured, in an export read
+    // without the font. An area in page units also works for a line, whose
+    // height is no use as a base for percentages.
+    const margin = Math.max(painted.width, painted.height) / 2;
+    const area = `filterUnits="userSpaceOnUse" x="${painted.x - margin}" y="${painted.y - margin}" width="${painted.width + margin * 2}" height="${painted.height + margin * 2}"`;
     // A canvas shadow's blur is twice the standard deviation of its Gaussian.
-    defs = `<defs><filter id="${id}" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="${offsetX}" dy="${offsetY}" stdDeviation="${blur / 2}" flood-color="${svgEsc(color)}" flood-opacity="${opacity ?? 1}"/></filter></defs>`;
+    defs = `<defs><filter id="${id}" ${area}><feDropShadow dx="${offsetX}" dy="${offsetY}" stdDeviation="${blur / 2}" flood-color="${svgEsc(color)}" flood-opacity="${opacity ?? 1}"/></filter></defs>`;
     attrs += ` filter="url(#${id})"`;
   }
   if (obj.blendMode) {
@@ -287,7 +365,7 @@ export function canvasObjectToSvgElement(
   const element = canvasObjectToSvgShape(obj, tf, options);
   if (!element) return element;
 
-  const { defs, attrs } = objectEffects(obj);
+  const { defs, attrs } = objectEffects(obj, options);
   const opacity = obj.opacity ?? 1;
   const opacityAttr = opacity < 1 ? ` opacity="${opacity}"` : '';
   if (!attrs && !opacityAttr) return element;
@@ -317,14 +395,21 @@ function canvasObjectToSvgShape(
 
 /**
  * SVG `<defs>` + fill reference for a CSS gradient fill, or null for plain
- * colors. Gradient coordinates use objectBoundingBox fractions so they track
- * the shape without knowing its absolute geometry.
+ * colors. Laid out in the shape's own units as on the canvas: fractions of its
+ * box would stretch the gradient's direction along with the box.
  */
 function svgGradientFill(
+  obj: CanvasShape,
   fill: string,
 ): { defs: string; fillRef: string } | null {
   const gradient = parseCssGradient(fill);
   if (!gradient) return null;
+
+  // Ellipses draw around their origin; everything else from the top-left.
+  const center =
+    obj.shapeType === 'ellipse'
+      ? { x: 0, y: 0 }
+      : { x: obj.width / 2, y: obj.height / 2 };
 
   const id = `grad-${++svgIdCounter}`;
   const stops = gradient.stops
@@ -335,15 +420,18 @@ function svgGradientFill(
     .join('');
 
   if (gradient.type === 'linear') {
-    const { start, end } = linearGradientLine(gradient.angle, 1, 1, {
-      x: 0.5,
-      y: 0.5,
-    });
-    const defs = `<defs><linearGradient id="${id}" x1="${start.x}" y1="${start.y}" x2="${end.x}" y2="${end.y}">${stops}</linearGradient></defs>`;
+    const { start, end } = linearGradientLine(
+      gradient.angle,
+      obj.width,
+      obj.height,
+      center,
+    );
+    const defs = `<defs><linearGradient id="${id}" gradientUnits="userSpaceOnUse" x1="${start.x}" y1="${start.y}" x2="${end.x}" y2="${end.y}">${stops}</linearGradient></defs>`;
     return { defs, fillRef: `url(#${id})` };
   }
 
-  const defs = `<defs><radialGradient id="${id}" cx="0.5" cy="0.5" r="0.7071">${stops}</radialGradient></defs>`;
+  const radius = Math.hypot(obj.width, obj.height) / 2;
+  const defs = `<defs><radialGradient id="${id}" gradientUnits="userSpaceOnUse" cx="${center.x}" cy="${center.y}" r="${radius}">${stops}</radialGradient></defs>`;
   return { defs, fillRef: `url(#${id})` };
 }
 
@@ -371,7 +459,9 @@ function canvasLineToSvg(obj: CanvasShape, tf: string, dash: string): string {
 
 /** Convert a CanvasShape to its SVG element string */
 export function canvasShapeToSvg(obj: CanvasShape, tf: string): string {
-  const gradient = isGradientFill(obj.fill) ? svgGradientFill(obj.fill) : null;
+  const gradient = isGradientFill(obj.fill)
+    ? svgGradientFill(obj, obj.fill)
+    : null;
   const fill = gradient?.fillRef ?? svgEsc(obj.fill ?? 'none');
   const gradientDefs = gradient?.defs ?? '';
   const base = `fill="${fill}" stroke="${svgEsc(obj.stroke)}" stroke-width="${obj.strokeWidth}"`;

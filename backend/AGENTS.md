@@ -150,6 +150,12 @@ Docs: `docs/site/docs/developer/mcp-oauth.md`.
 - **Never fetch an image from a URL stored in a canvas**, and check a stored
   `media:` reference with `isMediaReference` before using it as a filename:
   anyone with edit access can store any value, through the sync socket as well.
+- **Check an image's pixels, not just its file size** (`readImageSize`): a 1.5 MB
+  PNG of one colour can decode to gigabytes, and WebAssembly memory never shrinks.
+- **Text outside `CANVAS_BUNDLED_FONTS` isn't the only difference from the app**:
+  the server's measurements have no kerning, so a line very close to its width
+  can break differently. `text-layout.ts` follows Konva's search on purpose,
+  including what it does when letter spacing makes widths shrink.
 
 ## Auth and accounts
 

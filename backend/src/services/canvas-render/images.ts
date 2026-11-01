@@ -3,9 +3,13 @@
  * embedded in the SVG and can only decode PNG, JPEG, GIF and SVG.
  */
 
-import { type CanvasContents, type CanvasImage, isMediaReference } from '@inkweld/canvas';
-import { imageService, sniffImageType } from '../image.service';
+import { type CanvasObject, isMediaReference, MAX_RENDER_SIZE } from '@inkweld/canvas';
+import { Resvg } from '@resvg/resvg-wasm';
+import { imageService, readImageSize, sniffImageType } from '../image.service';
+import { logger } from '../logger.service';
 import { mapWithConcurrency } from '../../utils/concurrency';
+
+const imageLog = logger.child('CanvasRenderImages');
 
 /** Project media, as the renderer can reach it. */
 export interface CanvasMediaSource {
@@ -18,6 +22,15 @@ export interface CanvasMediaSource {
 /** Beyond these a render could run out of memory on Workers. */
 export const MAX_RENDER_IMAGE_BYTES = 16 * 1024 * 1024;
 export const MAX_RENDER_TOTAL_IMAGE_BYTES = 40 * 1024 * 1024;
+
+/**
+ * A file's size says little about the image in it: a 1.5 MB PNG of one colour
+ * can hold 400 million pixels. Each takes 4 bytes once decoded, in WebAssembly
+ * memory that never shrinks, so one such image would keep a server process at
+ * gigabytes until it restarts, and hold its thread for seconds.
+ */
+export const MAX_RENDER_IMAGE_PIXELS = 16 * 1024 * 1024;
+export const MAX_RENDER_TOTAL_IMAGE_PIXELS = 100 * 1024 * 1024;
 
 const DIRECT_FORMATS = new Set(['image/png', 'image/jpeg', 'image/gif']);
 const READ_CONCURRENCY = 4;
@@ -37,33 +50,90 @@ async function findFile(src: string, media: CanvasMediaSource): Promise<string |
 }
 
 /** A placed image, in a form the rasteriser can draw. */
-type PreparedImage = { uri: string; bytes: number } | { problem: string };
+type PreparedImage = { uri: string; bytes: number; pixels: number } | { problem: string };
+
+const TOO_LARGE: PreparedImage = { problem: 'is too large to draw here' };
+
+/** resvg leaves a gap for an embedded SVG it cannot parse, and says nothing. */
+function parsesAsSvg(data: Uint8Array): boolean {
+  try {
+    new Resvg(data).free();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function pixelsIn(data: Buffer, type: string): number {
+  const size = readImageSize(data, type);
+  return size ? size.width * size.height : 0;
+}
+
+async function prepareBytes(data: Buffer, svg: boolean): Promise<PreparedImage> {
+  if (data.byteLength > MAX_RENDER_IMAGE_BYTES) return TOO_LARGE;
+  if (svg) {
+    return parsesAsSvg(data)
+      ? { uri: dataUri('image/svg+xml', data), bytes: data.byteLength, pixels: 0 }
+      : { problem: 'is not an SVG that can be read' };
+  }
+
+  const type = sniffImageType(data);
+  const direct = type !== null && DIRECT_FORMATS.has(type);
+  if (direct) {
+    const pixels = pixelsIn(data, type);
+    if (pixels === 0) return { problem: 'is a damaged image file' };
+    if (pixels <= MAX_RENDER_IMAGE_PIXELS) {
+      return { uri: dataUri(type, data), bytes: data.byteLength, pixels };
+    }
+  }
+  // WebP and AVIF, or too many pixels to decode here. Sharp can convert them
+  // where it runs, which is not Workers. No render shows more than this.
+  const converted = await imageService.convertToPng(data, MAX_RENDER_SIZE);
+  if (converted) {
+    return {
+      uri: dataUri('image/png', converted),
+      bytes: converted.byteLength,
+      pixels: pixelsIn(converted, 'image/png'),
+    };
+  }
+  return direct
+    ? TOO_LARGE
+    : { problem: `is ${type ?? 'an unknown format'}, which cannot be drawn here` };
+}
 
 async function prepareMediaImage(src: string, media: CanvasMediaSource): Promise<PreparedImage> {
   // Anyone who can edit the project can store any reference, through the sync
   // socket as well as the tools, so a stored one must not reach outside it.
   if (!isMediaReference(src)) return { problem: 'is not a valid media reference' };
-  const filename = await findFile(src, media);
-  const data = filename ? await media.read(filename) : null;
+  let filename: string | null;
+  let data: Uint8Array | null;
+  try {
+    filename = await findFile(src, media);
+    data = filename ? await media.read(filename) : null;
+  } catch (error) {
+    imageLog.warn(`Could not read canvas image ${src}`, { error });
+    return { problem: 'could not be read' };
+  }
   if (!filename || !data) return { problem: "is not in the project's media" };
-  if (data.byteLength > MAX_RENDER_IMAGE_BYTES) {
-    return { problem: 'is too large to draw here' };
-  }
+  return prepareBytes(Buffer.from(data), isSvg(filename));
+}
 
-  if (isSvg(filename)) {
-    return { uri: dataUri('image/svg+xml', data), bytes: data.byteLength };
+function inlineBytes(body: string, isBase64: boolean): Buffer | null {
+  if (isBase64) return Buffer.from(body, 'base64');
+  try {
+    return Buffer.from(decodeURIComponent(body));
+  } catch {
+    return null;
   }
-  const buffer = Buffer.from(data);
-  const type = sniffImageType(buffer);
-  if (type && DIRECT_FORMATS.has(type)) {
-    return { uri: dataUri(type, data), bytes: data.byteLength };
-  }
-  // WebP and AVIF. Sharp can convert them where it runs, which is not Workers.
-  const converted = await imageService.convertToPng(buffer);
-  if (converted) {
-    return { uri: dataUri('image/png', converted), bytes: converted.byteLength };
-  }
-  return { problem: `is ${type ?? 'an unknown format'}, which cannot be drawn here` };
+}
+
+function prepareInlineImage(src: string): Promise<PreparedImage> | PreparedImage {
+  const header = /^data:image\/(png|jpeg|gif|svg\+xml)(;[^,]*)?,/.exec(src);
+  if (!header) return { problem: 'is an inline format that cannot be drawn here' };
+  const isBase64 = header[2]?.endsWith(';base64') ?? false;
+  const data = inlineBytes(src.substring(header[0].length), isBase64);
+  if (!data) return { problem: 'cannot be read' };
+  return prepareBytes(data, header[1] === 'svg+xml');
 }
 
 function prepareImage(
@@ -71,12 +141,7 @@ function prepareImage(
   media: CanvasMediaSource
 ): Promise<PreparedImage> | PreparedImage {
   if (src.startsWith('media:')) return prepareMediaImage(src, media);
-  if (/^data:image\/(png|jpeg|gif|svg\+xml)[;,]/.test(src)) {
-    return { uri: src, bytes: src.length };
-  }
-  if (src.startsWith('data:')) {
-    return { problem: 'is an inline format that cannot be drawn here' };
-  }
+  if (src.startsWith('data:')) return prepareInlineImage(src);
   // The server fetches nothing on a canvas's say-so: that would let anyone
   // with edit access make it request any address it can reach.
   return { problem: 'is an external URL, which the server does not fetch' };
@@ -88,16 +153,20 @@ export interface CanvasImageSources {
   warnings: string[];
 }
 
-/** Load every image the canvas shows. A failure costs a placeholder, not the render. */
+/**
+ * Load the images among the objects a render draws. A failure costs a
+ * placeholder, not the render.
+ */
 export async function loadCanvasImages(
-  contents: CanvasContents,
+  objects: readonly CanvasObject[],
   media: CanvasMediaSource
 ): Promise<CanvasImageSources> {
-  const visibleLayers = new Set(contents.layers.filter((l) => l.visible).map((l) => l.id));
-  const images = contents.objects.filter(
-    (o): o is CanvasImage => o.type === 'image' && o.visible && visibleLayers.has(o.layerId)
-  );
-  const sources = [...new Set(images.map((image) => image.src))];
+  // Each place an image is drawn embeds and decodes a copy of its own.
+  const placements = new Map<string, number>();
+  for (const obj of objects) {
+    if (obj.type === 'image') placements.set(obj.src, (placements.get(obj.src) ?? 0) + 1);
+  }
+  const sources = [...placements.keys()];
 
   const prepared = await mapWithConcurrency(sources, READ_CONCURRENCY, async (src) =>
     prepareImage(src, media)
@@ -105,7 +174,8 @@ export async function loadCanvasImages(
 
   const uris = new Map<string, string>();
   const warnings: string[] = [];
-  let total = 0;
+  let totalBytes = 0;
+  let totalPixels = 0;
   const note = (src: string, problem: string): void => {
     const label = src.startsWith('data:') ? 'An inline image' : `Image ${src}`;
     warnings.push(`${label} ${problem}, so it shows as a grey box.`);
@@ -114,12 +184,18 @@ export async function loadCanvasImages(
     const image = prepared[index];
     if ('problem' in image) {
       note(src, image.problem);
-    } else if (total + image.bytes > MAX_RENDER_TOTAL_IMAGE_BYTES) {
-      note(src, 'is past what one render can hold');
-    } else {
-      total += image.bytes;
-      uris.set(src, image.uri);
+      return;
     }
+    const copies = placements.get(src) ?? 1;
+    const bytes = totalBytes + image.bytes * copies;
+    const pixels = totalPixels + image.pixels * copies;
+    if (bytes > MAX_RENDER_TOTAL_IMAGE_BYTES || pixels > MAX_RENDER_TOTAL_IMAGE_PIXELS) {
+      note(src, 'is past what one render can hold');
+      return;
+    }
+    totalBytes = bytes;
+    totalPixels = pixels;
+    uris.set(src, image.uri);
   });
 
   return { resolve: (src) => uris.get(src) ?? null, warnings };

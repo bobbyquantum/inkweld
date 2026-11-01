@@ -7,7 +7,12 @@
 import { fail, isRecord, CanvasInputError } from './agent-fields';
 import type { CanvasContents } from './edit';
 import { canvasSizeFrame, isBackgroundImage } from './model';
-import { canvasObjectBounds, computeSvgViewBox, type CanvasRect } from './svg';
+import {
+  canvasObjectBounds,
+  computeSvgViewBox,
+  type CanvasRect,
+  rectsOverlap,
+} from './svg';
 import { estimateTextSize, type TextMeasurer } from './text-layout';
 
 export const DEFAULT_RENDER_SIZE = 1024;
@@ -90,12 +95,17 @@ function chooseRegion(
   const page = canvasSizeFrame(contents.frames);
   if (page) return { region: page, regionName: page.name, isFrame: true };
 
-  if (!contents.objects.some((o) => o.visible)) {
+  const layers = contents.layers.filter((l) => l.visible);
+  const layerIds = new Set(layers.map((l) => l.id));
+  // Pins draw whatever their layer does.
+  const shows = contents.objects.some(
+    (o) => o.visible && (o.type === 'pin' || layerIds.has(o.layerId)),
+  );
+  if (!shows) {
     fail(
       'This canvas has nothing to show yet: it has no visible objects and no frame of kind "canvas".',
     );
   }
-  const layers = contents.layers.filter((l) => l.visible);
   const { vX, vY, vW, vH } = computeSvgViewBox(contents, layers, {
     measureText: measure,
   });
@@ -121,6 +131,7 @@ export function planCanvasRender(
     const chosen = chooseRegion(contents, args, measure);
     const { width, height } = chosen.region;
     const scale = maxSize / Math.max(width, height);
+    if (!Number.isFinite(scale)) fail('That area is too small to draw.');
     return {
       ...chosen,
       scale,
@@ -142,21 +153,12 @@ function extendsPast(inner: CanvasRect, outer: CanvasRect): string[] {
   return edges;
 }
 
-function overlaps(a: CanvasRect, b: CanvasRect): boolean {
-  return (
-    a.x < b.x + b.width &&
-    a.x + a.width > b.x &&
-    a.y < b.y + b.height &&
-    a.y + a.height > b.y
-  );
-}
-
 /**
  * Problems a glance at the image can miss. Objects have fixed positions and
  * nothing flows, so text that grew or an object placed off the page goes
  * unreported otherwise. Only meaningful for a frame: that is what objects are
- * meant to stay inside. Rotated objects are skipped, as their bounds are only
- * approximate here.
+ * meant to stay inside. A shadow does not count: one fading out past the edge
+ * of a page is normal, and the warnings would bury the ones worth acting on.
  */
 export function canvasLayoutWarnings(
   contents: CanvasContents,
@@ -174,7 +176,7 @@ export function canvasLayoutWarnings(
     const bounds = canvasObjectBounds(obj, measure);
     if (!bounds) continue;
     const name = `${obj.type} "${obj.name ?? obj.id}"`;
-    if (!overlaps(bounds, plan.region)) {
+    if (!rectsOverlap(bounds, plan.region)) {
       warnings.push(`${name} is entirely outside ${plan.regionName}.`);
       continue;
     }

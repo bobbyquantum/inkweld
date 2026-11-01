@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { linearGradientLine } from '../src/gradient';
 import {
   type CanvasConfig,
   type CanvasImage,
@@ -16,11 +17,13 @@ import {
   canvasImageToSvg,
   canvasObjectBounds,
   canvasObjectToSvgElement,
+  canvasPaintedBounds,
   canvasPathToSvg,
   canvasPinToSvg,
   canvasShapeToSvg,
   canvasTextToSvg,
   computeSvgViewBox,
+  rectsOverlap,
 } from '../src/svg';
 import type { TextMeasurer } from '../src/text-layout';
 
@@ -102,7 +105,7 @@ describe('computeSvgViewBox', () => {
       width: 200,
       height: 150,
       stroke: '#000',
-      strokeWidth: 1,
+      strokeWidth: 0,
     };
     const config = makeConfig([obj]);
     const result = computeSvgViewBox(config, [defaultLayer]);
@@ -146,8 +149,9 @@ describe('computeSvgViewBox', () => {
     };
     const config = makeConfig([obj]);
     const result = computeSvgViewBox(config, [defaultLayer]);
-    expect(result.vX).toBe(-20);
-    expect(result.vY).toBe(-20);
+    // Its head reaches 5 past its line, then 20 of padding.
+    expect(result.vX).toBe(-25);
+    expect(result.vY).toBe(-25);
   });
 
   it('should factor in scaleX/scaleY for shapes', () => {
@@ -163,7 +167,7 @@ describe('computeSvgViewBox', () => {
       width: 50,
       height: 50,
       stroke: '#000',
-      strokeWidth: 1,
+      strokeWidth: 0,
     };
     const config = makeConfig([obj]);
     const result = computeSvgViewBox(config, [defaultLayer]);
@@ -557,7 +561,7 @@ describe('computeSvgViewBox with turned objects', () => {
       width: 100,
       height: 50,
       stroke: '#000',
-      strokeWidth: 1,
+      strokeWidth: 0,
     } satisfies CanvasObject;
 
     const result = computeSvgViewBox(makeConfig([turned]), [defaultLayer]);
@@ -1160,6 +1164,65 @@ describe('matching the canvas', () => {
     });
   });
 
+  describe('gradients', () => {
+    const shape = (extra: Partial<CanvasShape>): CanvasShape => ({
+      ...baseObj,
+      type: 'shape',
+      shapeType: 'rect',
+      width: 200,
+      height: 100,
+      fill: 'linear-gradient(45deg, #fff, #000)',
+      stroke: '#000',
+      strokeWidth: 0,
+      ...extra,
+    });
+    const attributes = (svg: string, element: string): Record<string, number> => {
+      const tag = new RegExp(`<${element} [^>]*>`).exec(svg)?.[0] ?? '';
+      expect(tag).toContain('gradientUnits="userSpaceOnUse"');
+      return Object.fromEntries(
+        [...tag.matchAll(/ (\w+)="(-?[\d.]+)"/g)].map(([, name, value]) => [
+          name,
+          Number(value),
+        ]),
+      );
+    };
+
+    it('runs across the shape as the canvas does, whatever its proportions', () => {
+      const line = attributes(
+        canvasShapeToSvg(shape({}), ''),
+        'linearGradient',
+      );
+      const { start, end } = linearGradientLine(45, 200, 100, { x: 100, y: 50 });
+      expect(line['x1']).toBeCloseTo(start.x);
+      expect(line['y1']).toBeCloseTo(start.y);
+      expect(line['x2']).toBeCloseTo(end.x);
+      expect(line['y2']).toBeCloseTo(end.y);
+    });
+
+    it('centres on an ellipse, which draws around its origin', () => {
+      const line = attributes(
+        canvasShapeToSvg(shape({ shapeType: 'ellipse' }), ''),
+        'linearGradient',
+      );
+      const { start } = linearGradientLine(45, 200, 100, { x: 0, y: 0 });
+      expect(line['x1']).toBeCloseTo(start.x);
+      expect(line['y1']).toBeCloseTo(start.y);
+    });
+
+    it('reaches the corners with a radial gradient, as the canvas does', () => {
+      const circle = attributes(
+        canvasShapeToSvg(
+          shape({ fill: 'radial-gradient(circle, #fff, #000)' }),
+          '',
+        ),
+        'radialGradient',
+      );
+      expect(circle['cx']).toBe(100);
+      expect(circle['cy']).toBe(50);
+      expect(circle['r']).toBeCloseTo(Math.hypot(200, 100) / 2);
+    });
+  });
+
   describe('effects', () => {
     const rect: CanvasShape = {
       ...baseObj,
@@ -1180,6 +1243,38 @@ describe('matching the canvas', () => {
       expect(svg).toContain('flood-color="#123"');
       expect(svg).toContain('flood-opacity="1"');
       expect(svg).toContain('filter="url(#');
+    });
+
+    it('leaves room for a shadow however far it falls', () => {
+      const svg = canvasObjectToSvgElement({
+        ...rect,
+        shadow: { ...shadow, offsetX: 400 },
+      });
+      const area = /filterUnits="userSpaceOnUse" x="([^"]+)" y="[^"]+" width="([^"]+)"/.exec(
+        svg,
+      );
+      expect(area).not.toBeNull();
+      const [, x, width] = area as RegExpExecArray;
+      expect(Number(x) + Number(width)).toBeGreaterThanOrEqual(410);
+    });
+
+    it('gives a line a shadow, though it has no height to take a share of', () => {
+      const svg = canvasObjectToSvgElement({
+        ...rect,
+        shapeType: 'line',
+        height: 0,
+        shadow,
+      });
+      expect(svg).toContain('filterUnits="userSpaceOnUse"');
+    });
+
+    it('casts nothing from an object that draws nothing', () => {
+      const svg = canvasObjectToSvgElement({
+        ...rect,
+        shapeType: 'polygon',
+        shadow,
+      });
+      expect(svg).not.toContain('<filter');
     });
 
     it('applies a blend mode', () => {
@@ -1275,7 +1370,7 @@ describe('matching the canvas', () => {
           width: 40,
           height: 20,
           stroke: '#000',
-          strokeWidth: 1,
+          strokeWidth: 0,
         }),
       ).toEqual({ x: 80, y: 90, width: 40, height: 20 });
     });
@@ -1305,7 +1400,7 @@ describe('matching the canvas', () => {
           height: 0,
           points: [0, 0, 10, 0, 5, 8],
           stroke: '#000',
-          strokeWidth: 1,
+          strokeWidth: 0,
         }),
       ).toEqual({ x: 10, y: 10, width: 10, height: 8 });
       expect(
@@ -1316,9 +1411,154 @@ describe('matching the canvas', () => {
           width: 30,
           height: 0,
           stroke: '#000',
-          strokeWidth: 1,
+          strokeWidth: 0,
         })?.width,
       ).toBe(30);
+    });
+
+    const shape = (extra: Partial<CanvasShape>): CanvasShape => ({
+      ...baseObj,
+      type: 'shape',
+      shapeType: 'rect',
+      width: 40,
+      height: 20,
+      stroke: '#000',
+      strokeWidth: 0,
+      ...extra,
+    });
+
+    it('draws back from the position of a flipped object', () => {
+      const image: CanvasImage = {
+        ...baseObj,
+        x: 100,
+        y: 100,
+        type: 'image',
+        src: 'x',
+        width: 40,
+        height: 20,
+      };
+      expect(canvasObjectBounds({ ...image, scaleX: -1 })).toEqual({
+        x: 60,
+        y: 100,
+        width: 40,
+        height: 20,
+      });
+      expect(canvasObjectBounds(shape({ x: 100, y: 100, scaleY: -2 }))).toEqual(
+        { x: 100, y: 60, width: 40, height: 40 },
+      );
+      expect(
+        canvasObjectBounds(
+          shape({ x: 100, y: 100, shapeType: 'ellipse', scaleX: -1 }),
+        ),
+      ).toEqual({ x: 80, y: 90, width: 40, height: 20 });
+      expect(canvasObjectBounds({ ...text, x: 200, scaleX: -1 }, fixed)).toEqual(
+        expect.objectContaining({ x: 70, width: 130 }),
+      );
+    });
+
+    it('takes in half a stroke, which scales with its object', () => {
+      expect(canvasObjectBounds(shape({ strokeWidth: 4 }))).toEqual({
+        x: -2,
+        y: -2,
+        width: 44,
+        height: 24,
+      });
+      expect(canvasObjectBounds(shape({ strokeWidth: 4, scaleX: 3 }))).toEqual({
+        x: -6,
+        y: -2,
+        width: 132,
+        height: 24,
+      });
+      expect(
+        canvasObjectBounds(shape({ shapeType: 'line', strokeWidth: 8 })),
+      ).toEqual({ x: -4, y: -4, width: 48, height: 8 });
+      expect(
+        canvasObjectBounds(
+          shape({ shapeType: 'polygon', points: [0, 0, 10, 0], strokeWidth: 8 }),
+        ),
+      ).toEqual({ x: -4, y: -4, width: 18, height: 8 });
+    });
+
+    it('leaves out a stroke that does not show', () => {
+      for (const stroke of ['transparent', 'none', '']) {
+        expect(canvasObjectBounds(shape({ stroke, strokeWidth: 4 }))).toEqual({
+          x: 0,
+          y: 0,
+          width: 40,
+          height: 20,
+        });
+      }
+    });
+
+    it('takes in the head of an arrow, however thin its line', () => {
+      expect(
+        canvasObjectBounds(shape({ shapeType: 'arrow', strokeWidth: 2 })),
+      ).toEqual({ x: -5, y: -5, width: 50, height: 10 });
+      expect(
+        canvasObjectBounds(shape({ shapeType: 'arrow', strokeWidth: 30 })),
+      ).toEqual({ x: -15, y: -15, width: 70, height: 30 });
+    });
+
+    it('takes in the outline of text', () => {
+      expect(
+        canvasObjectBounds(
+          { ...text, width: 80, stroke: '#000', strokeWidth: 6 },
+          fixed,
+        ),
+      ).toEqual({ x: -3, y: -3, width: 86, height: 46 });
+    });
+
+    it('paints as far as a shadow reaches, faded out at 1.5 blurs', () => {
+      const object = shape({
+        x: 100,
+        y: 100,
+        shadow: { color: '#000', blur: 10, offsetX: 50, offsetY: -30 },
+      });
+      expect(canvasObjectBounds(object)).toEqual({
+        x: 100,
+        y: 100,
+        width: 40,
+        height: 20,
+      });
+      expect(canvasPaintedBounds(object)).toEqual({
+        x: 100,
+        y: 55,
+        width: 105,
+        height: 65,
+      });
+      expect(canvasPaintedBounds(shape({ x: 7 }))?.x).toBe(7);
+    });
+
+    it('casts a shadow the same way, whatever the object has turned to', () => {
+      const object = shape({
+        rotation: 90,
+        shadow: { color: '#000', blur: 0, offsetX: 100, offsetY: 0 },
+      });
+      const painted = canvasPaintedBounds(object);
+      expect(painted?.x).toBeCloseTo(-20);
+      expect(painted?.width).toBeCloseTo(120);
+      expect(painted?.height).toBeCloseTo(40);
+    });
+
+    it('fits the view around what a shadow paints', () => {
+      const { vX, vW } = computeSvgViewBox(
+        makeConfig([
+          shape({
+            layerId: 'layer-1',
+            shadow: { color: '#000', blur: 0, offsetX: 300, offsetY: 0 },
+          }),
+        ]),
+        [defaultLayer],
+      );
+      expect(vX).toBe(-20);
+      expect(vW).toBe(380);
+    });
+
+    it('tells overlapping areas from those that only touch', () => {
+      const area = { x: 0, y: 0, width: 10, height: 10 };
+      expect(rectsOverlap(area, { ...area, x: 9 })).toBe(true);
+      expect(rectsOverlap(area, { ...area, x: 10 })).toBe(false);
+      expect(rectsOverlap(area, { ...area, y: -10 })).toBe(false);
     });
 
     it('has nothing for a polygon without points', () => {

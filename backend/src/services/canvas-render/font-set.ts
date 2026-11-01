@@ -60,9 +60,9 @@ const SUBSTITUTES: readonly [RegExp, string][] = [
 
 const DEFAULT_FAMILY = 'Source Sans 3';
 
-/** The first name in a CSS font stack, without its quotes. */
-function firstFamily(family: string): string {
-  return (family.split(',')[0] ?? family).trim().replaceAll(/^["']|["']$/g, '');
+/** The names in a CSS font stack, without their quotes. */
+function stackNames(family: string): string[] {
+  return family.split(',').map((name) => name.trim().replaceAll(/^["']|["']$/g, ''));
 }
 
 export class CanvasFontSet {
@@ -76,16 +76,21 @@ export class CanvasFontSet {
     for (const entry of entries) this.families.add(entry.family);
   }
 
-  /** The shipped family a canvas's font is drawn in. */
+  /**
+   * The shipped family a canvas's font is drawn in. A browser takes the first
+   * name in a stack that it has, and here that is the first one that ships.
+   */
   familyFor(requested: string): string {
-    const name = firstFamily(requested);
-    const shipped = [...this.families].find(
-      (family) => family.toLowerCase() === name.toLowerCase()
-    );
-    if (shipped) return shipped;
-    const lower = name.toLowerCase();
-    const match = SUBSTITUTES.find(([pattern]) => pattern.test(lower));
-    return match ? match[1] : DEFAULT_FAMILY;
+    const names = stackNames(requested).map((name) => name.toLowerCase());
+    for (const name of names) {
+      const shipped = [...this.families].find((family) => family.toLowerCase() === name);
+      if (shipped) return shipped;
+    }
+    for (const name of names) {
+      const match = SUBSTITUTES.find(([pattern]) => pattern.test(name));
+      if (match) return match[1];
+    }
+    return DEFAULT_FAMILY;
   }
 
   private face(font: CanvasFontSpec): LoadedFace {
@@ -148,6 +153,6 @@ export class CanvasFontSet {
 /** Why a family is not drawn as named, in words, or null when it is. */
 export function fontSubstitutionWarning(fonts: CanvasFontSet, requested: string): string | null {
   const family = fonts.familyFor(requested);
-  if (family.toLowerCase() === firstFamily(requested).toLowerCase()) return null;
+  if (family.toLowerCase() === stackNames(requested)[0]?.toLowerCase()) return null;
   return `The font "${requested}" is not one that ships with Inkweld, so this image uses ${family}. In the app it depends on what the viewer has installed, and text may wrap differently. For the same result everywhere, use ${CANVAS_BUNDLED_FONTS.join(', ')}.`;
 }

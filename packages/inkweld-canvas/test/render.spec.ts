@@ -121,7 +121,7 @@ describe('planCanvasRender', () => {
   });
 
   it('fits around the content on a canvas without a frame', () => {
-    const result = plan(canvas([rect('a', { x: 100, y: 200 })]));
+    const result = plan(canvas([rect('a', { x: 100, y: 200, strokeWidth: 0 })]));
     expect(result.regionName).toBe('all content');
     expect(result.isFrame).toBe(false);
     // 20 units of room all round.
@@ -133,7 +133,7 @@ describe('planCanvasRender', () => {
     const result = plan({
       layers: [LAYER, hidden],
       objects: [
-        rect('a', { x: 100, y: 100 }),
+        rect('a', { x: 100, y: 100, strokeWidth: 0 }),
         rect('b', { layerId: 'hidden', x: 5000, y: 5000 }),
       ],
     });
@@ -167,8 +167,35 @@ describe('planCanvasRender', () => {
     ).toEqual({ error: expect.stringContaining('nothing to show') });
   });
 
+  it('has nothing to show when all of it is on hidden layers', () => {
+    const hidden = { ...LAYER, visible: false };
+    expect(
+      planCanvasRender({ layers: [hidden], objects: [rect('a')] }, {}),
+    ).toEqual({ error: expect.stringContaining('nothing to show') });
+  });
+
+  it('shows a pin on a hidden layer, which draws whatever its layer does', () => {
+    const hidden = { ...LAYER, visible: false };
+    const pin: CanvasObject = {
+      ...base,
+      id: 'p',
+      type: 'pin',
+      label: 'Town',
+      icon: 'place',
+      color: '#f00',
+    };
+    expect(
+      planCanvasRender({ layers: [hidden], objects: [pin] }, {}),
+    ).toMatchObject({ regionName: 'all content' });
+  });
+
   it.each<[string, Record<string, unknown>, string]>([
     ['an unknown frame', { frameId: 'nope' }, 'no such frame'],
+    [
+      'a region too small to scale',
+      { region: { x: 0, y: 0, width: 1e-320, height: 1e-320 } },
+      'too small',
+    ],
     ['a frame id that is not text', { frameId: 7 }, 'must be a string'],
     ['a region of the wrong type', { region: 'all' }, 'region must be'],
     ['a region missing a side', { region: { x: 0, y: 0 } }, 'numeric'],
@@ -257,6 +284,28 @@ describe('canvasLayoutWarnings', () => {
       'shape "a" runs past the left of Cover.',
     ]);
     expect(warnings([rect('a', { x: 100, y: 10, rotation: 90 })])).toEqual([]);
+  });
+
+  it('counts a stroke the edge of the page cuts off', () => {
+    expect(warnings([rect('a', { x: 0, y: 10, strokeWidth: 4 })])).toEqual([
+      'shape "a" runs past the left of Cover.',
+    ]);
+    expect(warnings([rect('a', { x: 2, y: 10, strokeWidth: 4 })])).toEqual([]);
+    expect(
+      warnings([rect('a', { x: 0, y: 10, stroke: 'transparent', strokeWidth: 4 })]),
+    ).toEqual([]);
+  });
+
+  it('judges a flipped object by where it ends up', () => {
+    expect(warnings([rect('a', { x: 50, y: 10, scaleX: -1 })])).toEqual([
+      'shape "a" runs past the left of Cover.',
+    ]);
+    expect(warnings([rect('a', { x: 150, y: 10, scaleX: -1 })])).toEqual([]);
+  });
+
+  it('leaves a shadow fading past the page alone', () => {
+    const shadow = { color: '#000', blur: 40, offsetX: 500, offsetY: 0 };
+    expect(warnings([rect('a', { x: 10, y: 10, shadow })])).toEqual([]);
   });
 
   it('skips what is not drawn', () => {

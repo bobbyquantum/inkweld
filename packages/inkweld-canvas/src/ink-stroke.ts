@@ -348,7 +348,7 @@ export function buildInkOutline(
     points[0],
     points[1],
     startNormal,
-    { x: -startTangent.x, y: -startTangent.y },
+    startTangent,
     radiusAt(0),
     -1,
   );

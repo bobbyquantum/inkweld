@@ -11,7 +11,7 @@ import profileRoutes from '../routes/profile.routes';
 import projectRoutes from '../routes/project.routes';
 import healthRoutes from '../routes/health.routes';
 import configRoutes from '../routes/config.routes';
-import { rateLimit } from '../middleware/rate-limit';
+import { rateLimit, rateLimitsDisabled } from '../middleware/rate-limit';
 
 import imageRoutes from '../routes/image.routes';
 import snapshotRoutes from '../routes/snapshot.routes';
@@ -59,13 +59,10 @@ import activityRoutes from '../routes/activity.routes';
  * Applied on the parent app *before* sub-routers so they run for every
  * matching request regardless of how the sub-router dispatches internally.
  *
- * Gated behind either INKWELD_DISABLE_RATE_LIMIT (for Docker e2e compiled
- * binaries where Bun --minify constant-folds process.env.NODE_ENV) or
- * NODE_ENV=test (for local `bun test`). Bracket notation prevents the
- * minifier from inlining the value at build time.
+ * Off when {@link rateLimitsDisabled}.
  */
 export function registerRateLimits(app: { use: (path: string, ...mw: unknown[]) => void }): void {
-  if (process.env['INKWELD_DISABLE_RATE_LIMIT'] !== 'true' && process.env['NODE_ENV'] !== 'test') {
+  if (!rateLimitsDisabled()) {
     // Password login — 5 attempts per minute per IP
     app.use('/api/v1/auth/login', rateLimit({ windowMs: 60_000, max: 5 }));
 
