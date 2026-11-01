@@ -4,6 +4,16 @@ import { splitChangelog } from '@utils/release-notes';
 import { marked } from 'marked';
 import { map, type Observable } from 'rxjs';
 
+import { environment } from '../../../environments/environment';
+
+/**
+ * The changelog's URL, keyed to the running version. Releases up to
+ * 1.0.0-beta.1 served `assets/CHANGELOG.md` as `immutable` for a year, so
+ * browsers that opened it then keep that copy without asking the server; a
+ * URL that changes with each release never hits that stale entry.
+ */
+export const CHANGELOG_URL = `assets/CHANGELOG.md?v=${encodeURIComponent(environment.version)}`;
+
 export interface ChangelogVersion {
   version: string;
   date: string;
@@ -19,7 +29,7 @@ export class ChangelogService {
 
   getChangelog(): Observable<ChangelogVersion[]> {
     return this.http
-      .get('assets/CHANGELOG.md', { responseType: 'text' })
+      .get(CHANGELOG_URL, { responseType: 'text' })
       .pipe(map(text => this.parseChangelog(text)));
   }
 
