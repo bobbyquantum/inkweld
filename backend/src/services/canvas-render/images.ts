@@ -17,6 +17,8 @@ export interface CanvasMediaSource {
   read(filename: string): Promise<Uint8Array | null>;
   /** The name of the file with this media id and any extension, if any. */
   findByMediaId(mediaId: string): Promise<string | null>;
+  /** The size of the file at this name, or null when that cannot be told. */
+  sizeOf(filename: string): Promise<number | null>;
 }
 
 /** Beyond these a render could run out of memory on Workers. */
@@ -76,6 +78,7 @@ function pixelsIn(data: Buffer, type: string): number {
 async function prepareBytes(data: Buffer, svg: boolean): Promise<PreparedImage> {
   if (data.byteLength > MAX_RENDER_IMAGE_BYTES) return TOO_LARGE;
   if (svg) {
+    // Its pixels need no counting: resvg draws no image inside an embedded SVG.
     return parsesAsSvg(data)
       ? { mimeType: 'image/svg+xml', data, pixels: 0 }
       : { problem: 'is not an SVG that can be read' };
@@ -112,6 +115,9 @@ async function prepareMediaImage(src: string, media: CanvasMediaSource): Promise
   let data: Uint8Array | null;
   try {
     filename = await findFile(src, media);
+    // Before reading, as media can be far larger than a render will hold.
+    const size = filename ? await media.sizeOf(filename) : null;
+    if (size !== null && size > MAX_RENDER_IMAGE_BYTES) return TOO_LARGE;
     data = filename ? await media.read(filename) : null;
   } catch (error) {
     imageLog.warn(`Could not read canvas image ${src}`, { error });
@@ -119,6 +125,11 @@ async function prepareMediaImage(src: string, media: CanvasMediaSource): Promise
   }
   if (!filename || !data) return { problem: "is not in the project's media" };
   return prepareBytes(Buffer.from(data), isSvg(filename));
+}
+
+/** The fewest bytes an inline image's body could decode to. */
+function fewestBytesIn(body: string, isBase64: boolean): number {
+  return isBase64 ? body.replaceAll(/\s/g, '').length * 0.75 - 2 : body.length / 3;
 }
 
 function inlineBytes(body: string, isBase64: boolean): Buffer | null {
@@ -135,10 +146,8 @@ function prepareInlineImage(src: string): Promise<PreparedImage> | PreparedImage
   if (!header) return { problem: 'is an inline format that cannot be drawn here' };
   const isBase64 = header[2]?.endsWith(';base64') ?? false;
   const body = src.substring(header[0].length);
-  // The fewest bytes this could decode to. A stored image can be any length.
-  if ((isBase64 ? body.length * 0.75 - 2 : body.length / 3) > MAX_RENDER_IMAGE_BYTES) {
-    return TOO_LARGE;
-  }
+  // A stored image can be any length, so don't decode one that can't fit.
+  if (fewestBytesIn(body, isBase64) > MAX_RENDER_IMAGE_BYTES) return TOO_LARGE;
   const data = inlineBytes(body, isBase64);
   if (!data) return { problem: 'cannot be read' };
   return prepareBytes(data, header[1] === 'svg+xml');

@@ -234,7 +234,15 @@ test.describe('WebMCP', () => {
           bitmap.width,
           bitmap.height
         );
-        return data.filter((value, index) => value !== data[index % 4]).length;
+        let drawn = 0;
+        for (let i = 0; i < data.length; i += 4) {
+          const same =
+            data[i] === data[0] &&
+            data[i + 1] === data[1] &&
+            data[i + 2] === data[2];
+          if (!same) drawn++;
+        }
+        return drawn;
       }, image.data);
       expect(drawnPixels).toBeGreaterThan(100);
 

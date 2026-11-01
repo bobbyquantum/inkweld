@@ -77,9 +77,13 @@ const GENERIC_FAMILIES = new Set([
   'fangsong',
 ]);
 
-/** The names in a CSS font stack, without their quotes. */
+/** The names in a CSS font stack, as written. */
 function stackNames(family: string): string[] {
-  return family.split(',').map((name) => name.trim().replaceAll(/^["']|["']$/g, ''));
+  return family.split(',').map((name) => name.trim());
+}
+
+function withoutQuotes(name: string): string {
+  return name.replaceAll(/^["']|["']$/g, '');
 }
 
 export class CanvasFontSet {
@@ -99,8 +103,9 @@ export class CanvasFontSet {
    */
   familyFor(requested: string): string {
     const stack = stackNames(requested).map((name) => name.toLowerCase());
+    // Before taking quotes off: quoted, it is only the name of some family.
     const generic = stack.findIndex((name) => GENERIC_FAMILIES.has(name));
-    const names = generic === -1 ? stack : stack.slice(0, generic + 1);
+    const names = (generic === -1 ? stack : stack.slice(0, generic + 1)).map(withoutQuotes);
     for (const name of names) {
       const shipped = [...this.families].find((family) => family.toLowerCase() === name);
       if (shipped) return shipped;
@@ -172,6 +177,7 @@ export class CanvasFontSet {
 /** Why a family is not drawn as named, in words, or null when it is. */
 export function fontSubstitutionWarning(fonts: CanvasFontSet, requested: string): string | null {
   const family = fonts.familyFor(requested);
-  if (family.toLowerCase() === stackNames(requested)[0]?.toLowerCase()) return null;
+  const first = withoutQuotes(stackNames(requested)[0] ?? '');
+  if (family.toLowerCase() === first.toLowerCase()) return null;
   return `The font "${requested}" is not one that ships with Inkweld, so this image uses ${family}. In the app it depends on what the viewer has installed, and text may wrap differently. For the same result everywhere, use ${CANVAS_BUNDLED_FONTS.join(', ')}.`;
 }

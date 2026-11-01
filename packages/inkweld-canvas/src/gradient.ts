@@ -190,16 +190,20 @@ export function canvasGradientBox(shape: {
   if (shapeType !== 'polygon' || !points || points.length < 2) {
     return { width, height, center: { x: width / 2, y: height / 2 } };
   }
-  const xs = points.filter((_, index) => index % 2 === 0);
-  const ys = points.filter((_, index) => index % 2 === 1);
-  const left = Math.min(...xs);
-  const top = Math.min(...ys);
-  const spanX = Math.max(...xs) - left;
-  const spanY = Math.max(...ys) - top;
+  let left = Infinity;
+  let top = Infinity;
+  let right = -Infinity;
+  let bottom = -Infinity;
+  for (let i = 0; i < points.length - 1; i += 2) {
+    left = Math.min(left, points[i]);
+    right = Math.max(right, points[i]);
+    top = Math.min(top, points[i + 1]);
+    bottom = Math.max(bottom, points[i + 1]);
+  }
   return {
-    width: spanX,
-    height: spanY,
-    center: { x: left + spanX / 2, y: top + spanY / 2 },
+    width: right - left,
+    height: bottom - top,
+    center: { x: (left + right) / 2, y: (top + bottom) / 2 },
   };
 }
 

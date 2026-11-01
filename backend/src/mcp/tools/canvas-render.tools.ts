@@ -37,36 +37,49 @@ import { parseProjectParam } from './search.tools';
 const mcpRenderLog = logger.child('MCP-CanvasRender');
 
 /**
- * A render holds the thread for about a second on Bun and Node, so an agent in a
- * loop could stall everyone else on the server. Per account and per process: on
- * Workers, where a process does not last, each request has its own CPU limit.
+ * A render holds the thread for about a second, so an agent in a loop could stall
+ * everyone else on the server. Per account and per process, which on Workers means
+ * per isolate: there the limits are only a rough guide, and each request also has
+ * its own CPU limit.
  */
 export const MAX_RENDERS_PER_MINUTE = 30;
 const renderWindow = createRateWindow(60_000, MAX_RENDERS_PER_MINUTE);
 
 /** And not all of those at once, or they would hold the thread one after another. */
 export const MAX_RENDERS_IN_PROGRESS = 4;
-const rendersInProgress = new Map<string, number>();
+export const MAX_RENDERS_IN_PROGRESS_ON_SERVER = 8;
 
 /**
- * Hold one of the account's places while `run` goes on, or null when they are
- * taken. Not on Workers: a request cancelled there never reaches its `finally`,
- * so the count would only grow, and a render there holds up nobody else anyway.
+ * How long a place is held for a render that does not finish. A request cancelled
+ * on Workers never reaches its `finally`, and a read from storage can stall, so
+ * without this such a render would hold its place for good.
  */
+export const RENDER_PLACE_LIFETIME_MS = 60_000;
+
+const rendersInProgress = new Set<{ userId: string; startedAt: number }>();
+
+/** Hold a place for a render while `run` goes on, or null when none is free. */
 export async function withRenderPlace<T>(
   ctx: McpContext,
   run: () => Promise<T>
 ): Promise<T | null> {
-  if (ctx.env?.YJS_PROJECTS || rateLimitsDisabled()) return run();
-  const held = rendersInProgress.get(ctx.userId) ?? 0;
-  if (held >= MAX_RENDERS_IN_PROGRESS) return null;
-  rendersInProgress.set(ctx.userId, held + 1);
+  if (rateLimitsDisabled()) return run();
+
+  const now = Date.now();
+  let mine = 0;
+  for (const render of rendersInProgress) {
+    if (now - render.startedAt > RENDER_PLACE_LIFETIME_MS) rendersInProgress.delete(render);
+    else if (render.userId === ctx.userId) mine++;
+  }
+  if (mine >= MAX_RENDERS_IN_PROGRESS) return null;
+  if (rendersInProgress.size >= MAX_RENDERS_IN_PROGRESS_ON_SERVER) return null;
+
+  const place = { userId: ctx.userId, startedAt: now };
+  rendersInProgress.add(place);
   try {
     return await run();
   } finally {
-    const left = (rendersInProgress.get(ctx.userId) ?? 1) - 1;
-    if (left > 0) rendersInProgress.set(ctx.userId, left);
-    else rendersInProgress.delete(ctx.userId);
+    rendersInProgress.delete(place);
   }
 }
 
@@ -84,6 +97,10 @@ function mediaSource(ctx: McpContext, username: string, slug: string): CanvasMed
     findByMediaId: async (mediaId) => {
       const files = await storage.listProjectFiles(username, slug, `${mediaId}.`);
       return files[0]?.filename ?? null;
+    },
+    sizeOf: async (filename) => {
+      const files = await storage.listProjectFiles(username, slug, filename);
+      return files.find((file) => file.filename === filename)?.size ?? null;
     },
   };
 }
@@ -103,9 +120,7 @@ async function renderForTool(
   const outcome = await withRenderPlace(ctx, () =>
     drawForTool(ctx, username, slug, elementId, args)
   );
-  return (
-    outcome ?? { error: 'Too many renders at once: wait for the others to finish, then try again.' }
-  );
+  return outcome ?? { error: 'Too many renders at once: try again in a moment.' };
 }
 
 async function drawForTool(
@@ -175,7 +190,7 @@ registerTool({
     title: 'Render Canvas',
     description: `${RENDER_CANVAS_DESCRIPTION}
 
-The server draws this image as a close preview: text in the fonts that ship with Inkweld matches the app, but kerning and antialiasing differ slightly, so a line very close to its width can break differently. A web browser's own render is the final word. Drawing is limited to about ${MAX_RENDERS_PER_MINUTE} images a minute per account, counting save_canvas_image, and ${MAX_RENDERS_IN_PROGRESS} at once.`,
+The server draws this image as a close preview: text in the fonts that ship with Inkweld matches the app, but kerning and antialiasing differ slightly, so a line very close to its width can break differently. A web browser's own render is the final word. Drawing is limited to about ${MAX_RENDERS_PER_MINUTE} images a minute per account, counting save_canvas_image, and a few at once.`,
     inputSchema,
     annotations: { readOnlyHint: true },
   },

@@ -24,7 +24,9 @@ import { MCP_PROTOCOL_VERSION, META_KEYS } from '../src/mcp/mcp.types';
 import { MCP_PERMISSIONS } from '../src/mcp/mcp-permissions';
 import {
   MAX_RENDERS_IN_PROGRESS,
+  MAX_RENDERS_IN_PROGRESS_ON_SERVER,
   MAX_RENDERS_PER_MINUTE,
+  RENDER_PLACE_LIFETIME_MS,
   withRenderPlace,
 } from '../src/mcp/tools/canvas-render.tools';
 import { registerCanvasRenderAssets } from '../src/services/canvas-render/assets';
@@ -179,6 +181,13 @@ function seed(edit: CanvasEdit = {}): Y.Doc {
   );
   return doc;
 }
+
+/** A media source with nothing in it, for images that never reach it. */
+const NO_MEDIA = {
+  read: () => Promise.resolve(null),
+  findByMediaId: () => Promise.resolve(null),
+  sizeOf: () => Promise.resolve(null),
+};
 
 function stubProject() {
   spies.push(
@@ -564,8 +573,8 @@ describe('render_canvas', () => {
 
     it('turns a failed read into a grey box, as a rejecting R2 read would be', async () => {
       const { resolve, warnings } = await loadCanvasImages([image('media://a.png')], {
+        ...NO_MEDIA,
         read: () => Promise.reject(new Error('storage is down')),
-        findByMediaId: () => Promise.resolve(null),
       });
       expect(warnings[0]).toContain('could not be read');
       expect(resolve('media://a.png')).toBeNull();
@@ -579,10 +588,7 @@ describe('render_canvas', () => {
         .toBuffer();
       const big = Buffer.concat([png, Buffer.alloc(MAX_RENDER_IMAGE_BYTES)]);
       const src = `data:image/png;base64,${big.toString('base64')}`;
-      const { resolve, warnings } = await loadCanvasImages([image(src)], {
-        read: () => Promise.resolve(null),
-        findByMediaId: () => Promise.resolve(null),
-      });
+      const { resolve, warnings } = await loadCanvasImages([image(src)], NO_MEDIA);
       expect(warnings[0]).toContain('An inline image is too large');
       expect(resolve(src)).toBeNull();
     });
@@ -759,14 +765,75 @@ describe('render_canvas', () => {
       expect(read.mock.calls.length).toBeLessThan(count / 2);
     });
 
+    it('does not read a file it can tell is too large', async () => {
+      const read = spyOn(FileStorageService.prototype, 'readProjectFile');
+      spies.push(
+        read,
+        spyOn(FileStorageService.prototype, 'listProjectFiles').mockResolvedValue([
+          { filename: 'huge.png', size: MAX_RENDER_IMAGE_BYTES + 1 },
+        ] as never)
+      );
+      seed({ frames: [PAGE], upserts: [image('media://huge.png')] });
+      const warnings = warningsOf(await call('render_canvas'));
+      expect(warnings[0]).toContain('too large');
+      expect(read).not.toHaveBeenCalled();
+    });
+
+    it('still reads a file when storage cannot say how large it is', async () => {
+      const png = await sharp({
+        create: { width: 4, height: 4, channels: 3, background: '#ff0000' },
+      })
+        .png()
+        .toBuffer();
+      spies.push(
+        spyOn(FileStorageService.prototype, 'readProjectFile').mockResolvedValue(png as never),
+        spyOn(FileStorageService.prototype, 'listProjectFiles').mockResolvedValue([] as never)
+      );
+      seed({ frames: [PAGE], background: '#ffffff', upserts: [image('media://a.png')] });
+      const json = await call('render_canvas', { maxSize: 400 });
+      expect(warningsOf(json)).toEqual([]);
+      expect(await pixelAt(imageOf(json), 25, 25)).toEqual([255, 0, 0]);
+    });
+
+    it('does not count the line breaks of a wrapped inline image', async () => {
+      const png = await sharp({
+        create: { width: 4, height: 4, channels: 3, background: '#ff0000' },
+      })
+        .png()
+        .toBuffer();
+      // Fits as bytes, and would not if its line breaks counted.
+      const data = Buffer.concat([png, Buffer.alloc(MAX_RENDER_IMAGE_BYTES - png.length - 1000)]);
+      const wrapped = data.toString('base64').replaceAll(/.{76}/g, '$&\n');
+      const src = `data:image/png;base64,${wrapped}`;
+      const { resolve, warnings } = await loadCanvasImages([image(src)], NO_MEDIA);
+      expect(warnings).toEqual([]);
+      expect(resolve(src)).not.toBeNull();
+    });
+
+    it('does not decode a picture inside an SVG, so its pixels need no counting', async () => {
+      const side = Math.ceil(Math.sqrt(MAX_RENDER_IMAGE_PIXELS)) + 100;
+      const huge = await sharp({
+        create: { width: side, height: side, channels: 3, background: '#ff0000' },
+      })
+        .png()
+        .toBuffer();
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><image width="10" height="10" href="data:image/png;base64,${huge.toString('base64')}"/></svg>`;
+      spies.push(
+        spyOn(FileStorageService.prototype, 'readProjectFile').mockResolvedValue(
+          Buffer.from(svg) as never
+        )
+      );
+      seed({ frames: [PAGE], background: '#ffffff', upserts: [image('media://holds-a-png.svg')] });
+      const json = await call('render_canvas', { maxSize: 400 });
+      expect(warningsOf(json)).toEqual([]);
+      expect(await pixelAt(imageOf(json), 25, 25)).toEqual([255, 255, 255]);
+    });
+
     it('does not decode an inline image it can tell is too long', async () => {
       const decode = spyOn(Buffer, 'from');
       spies.push(decode);
       const src = `data:image/png;base64,${'A'.repeat((MAX_RENDER_IMAGE_BYTES * 4) / 3 + 8)}`;
-      const { warnings } = await loadCanvasImages([image(src)], {
-        read: () => Promise.resolve(null),
-        findByMediaId: () => Promise.resolve(null),
-      });
+      const { warnings } = await loadCanvasImages([image(src)], NO_MEDIA);
       expect(warnings[0]).toContain('An inline image is too large');
       expect(decode).not.toHaveBeenCalled();
     });
@@ -1041,12 +1108,58 @@ describe('render_canvas', () => {
       expect(await withRenderPlace(ctx, () => Promise.resolve('ran'))).toBe('ran');
     });
 
-    it('keeps no count on Workers, where a cancelled request never finishes', async () => {
+    it('takes back a place from a render that never finishes', async () => {
       process.env['NODE_ENV'] = 'production';
-      const ctx = { userId: 'worker', env: { YJS_PROJECTS: {} } } as never;
+      const ctx = { userId: 'stalled' } as never;
       const never = new Promise<string>(() => undefined);
-      for (let i = 0; i <= MAX_RENDERS_IN_PROGRESS; i++) void withRenderPlace(ctx, () => never);
+      for (let i = 0; i < MAX_RENDERS_IN_PROGRESS; i++) void withRenderPlace(ctx, () => never);
+      expect(await withRenderPlace(ctx, () => Promise.resolve('ran'))).toBeNull();
+
+      const later = Date.now() + RENDER_PLACE_LIFETIME_MS + 1;
+      spies.push(spyOn(Date, 'now').mockReturnValue(later));
       expect(await withRenderPlace(ctx, () => Promise.resolve('ran'))).toBe('ran');
+    });
+
+    it('limits renders across accounts as well', async () => {
+      process.env['NODE_ENV'] = 'production';
+      const releases: Array<() => void> = [];
+      const held = Array.from({ length: MAX_RENDERS_IN_PROGRESS_ON_SERVER }, (_, i) =>
+        withRenderPlace(
+          { userId: `busy-${i}` } as never,
+          () => new Promise<void>((resolve) => releases.push(resolve))
+        )
+      );
+      try {
+        const other = { userId: 'one-more' } as never;
+        expect(await withRenderPlace(other, () => Promise.resolve('ran'))).toBeNull();
+      } finally {
+        for (const release of releases) release();
+        await Promise.all(held);
+      }
+      const other = { userId: 'one-more' } as never;
+      expect(await withRenderPlace(other, () => Promise.resolve('ran'))).toBe('ran');
+    });
+
+    it('refuses a save while the account holds all its places', async () => {
+      account = 'burst-save';
+      seed({ frames: [PAGE] });
+      stubProject();
+      process.env['NODE_ENV'] = 'production';
+      const releases: Array<() => void> = [];
+      const held = Array.from({ length: MAX_RENDERS_IN_PROGRESS }, () =>
+        withRenderPlace(
+          { userId: account } as never,
+          () => new Promise<void>((resolve) => releases.push(resolve))
+        )
+      );
+      try {
+        const saved = await call('save_canvas_image', { maxSize: 64 }, WRITE);
+        expect(saved.result?.isError).toBe(true);
+        expect(saved.result?.content?.[0]?.text).toContain('at once');
+      } finally {
+        for (const release of releases) release();
+        await Promise.all(held);
+      }
     });
 
     it('does not count while limits are off, as they are for tests', async () => {
@@ -1307,6 +1420,7 @@ describe('the bundled fonts', () => {
     ['Georgia, monospace, Lato', 'Source Serif 4'],
     ['Nonesuch, monospace, Lato', 'Source Code Pro'],
     ['Arial, EB Garamond', 'EB Garamond'],
+    ['"serif", Lato', 'Lato'],
     ["'Nonesuch', monospace", 'Source Code Pro'],
   ])('draws %s in %s', (requested, expected) => {
     expect(new CanvasFontSet(entries, faces).familyFor(requested)).toBe(expected);

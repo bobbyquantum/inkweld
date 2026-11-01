@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  canvasGradientBox,
   isGradientFill,
   linearGradientLine,
   parseCssGradient,
@@ -107,6 +108,22 @@ describe('gradient fills', () => {
   it('rejects non-gradients and single-stop bodies', () => {
     expect(parseCssGradient('#fff')).toBeNull();
     expect(parseCssGradient('linear-gradient(#fff)')).toBeNull();
+  });
+
+  it('runs a diagonal line from bottom left to top right', () => {
+    const { start, end } = linearGradientLine(45, 200, 100, { x: 200, y: 150 });
+    expect(start.x).toBeCloseTo(125);
+    expect(start.y).toBeCloseTo(225);
+    expect(end.x).toBeCloseTo(275);
+    expect(end.y).toBeCloseTo(75);
+  });
+
+  it('finds the box of a polygon too long to spread into arguments', () => {
+    const count = 500_000;
+    const points = Array.from({ length: count }, (_, i) => (i % 2 ? i % 7 : i % 11));
+    expect(
+      canvasGradientBox({ shapeType: 'polygon', width: 0, height: 0, points }),
+    ).toEqual({ width: 10, height: 6, center: { x: 5, y: 3 } });
   });
 
   it('computes the gradient line across a box', () => {
