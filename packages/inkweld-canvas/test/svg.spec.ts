@@ -1199,6 +1199,26 @@ describe('matching the canvas', () => {
       expect(line['y2']).toBeCloseTo(end.y);
     });
 
+    it('runs across a polygon where its points are, not its stored size', () => {
+      const line = attributes(
+        canvasShapeToSvg(
+          shape({
+            shapeType: 'polygon',
+            points: [100, 100, 300, 100, 300, 200],
+            width: 10,
+            height: 10,
+          }),
+          '',
+        ),
+        'linearGradient',
+      );
+      const { start, end } = linearGradientLine(45, 200, 100, { x: 200, y: 150 });
+      expect(line['x1']).toBeCloseTo(start.x);
+      expect(line['y1']).toBeCloseTo(start.y);
+      expect(line['x2']).toBeCloseTo(end.x);
+      expect(line['y2']).toBeCloseTo(end.y);
+    });
+
     it('centres on an ellipse, which draws around its origin', () => {
       const line = attributes(
         canvasShapeToSvg(shape({ shapeType: 'ellipse' }), ''),
@@ -1527,6 +1547,44 @@ describe('matching the canvas', () => {
         height: 65,
       });
       expect(canvasPaintedBounds(shape({ x: 7 }))?.x).toBe(7);
+    });
+
+    it('leaves out a shadow with no opacity', () => {
+      const object = shape({
+        shadow: { color: '#000', blur: 10, offsetX: 500, offsetY: 0, opacity: 0 },
+      });
+      expect(canvasPaintedBounds(object)).toEqual(canvasObjectBounds(object));
+    });
+
+    it('has nothing for an object scaled away, which draws nothing', () => {
+      expect(canvasObjectBounds(shape({ scaleX: 0 }))).toBeNull();
+      expect(canvasObjectBounds(shape({ scaleY: 0 }))).toBeNull();
+      const lost = shape({ x: 5000, y: 5000, scaleX: 0, layerId: 'layer-1' });
+      expect(computeSvgViewBox(makeConfig([lost]), [defaultLayer]).vX).toBe(-20);
+    });
+
+    it('takes in where a smoothed path curves past its points', () => {
+      const corner: CanvasPath = {
+        ...baseObj,
+        type: 'path',
+        points: [0, 0, 100, 0, 100, 100],
+        stroke: '#000',
+        strokeWidth: 0,
+        tension: 1,
+        closed: false,
+      };
+      expect(canvasObjectBounds(corner)).toEqual({
+        x: 0,
+        y: -50,
+        width: 150,
+        height: 150,
+      });
+      expect(canvasObjectBounds({ ...corner, tension: 0 })).toEqual({
+        x: 0,
+        y: 0,
+        width: 100,
+        height: 100,
+      });
     });
 
     it('casts a shadow the same way, whatever the object has turned to', () => {

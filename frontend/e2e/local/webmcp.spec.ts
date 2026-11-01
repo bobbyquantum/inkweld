@@ -217,6 +217,26 @@ test.describe('WebMCP', () => {
       expect(image.mimeType).toBe('image/png');
       const png = Buffer.from(image.data, 'base64');
       expect(png.subarray(1, 4).toString()).toBe('PNG');
+      // The corner is page, and a blank image would be nothing but that.
+      const drawnPixels = await page.evaluate(async base64 => {
+        const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+        const bitmap = await createImageBitmap(
+          new Blob([bytes], { type: 'image/png' })
+        );
+        const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+        const context = canvas.getContext(
+          '2d'
+        ) as OffscreenCanvasRenderingContext2D;
+        context.drawImage(bitmap, 0, 0);
+        const { data } = context.getImageData(
+          0,
+          0,
+          bitmap.width,
+          bitmap.height
+        );
+        return data.filter((value, index) => value !== data[index % 4]).length;
+      }, image.data);
+      expect(drawnPixels).toBeGreaterThan(100);
 
       await callOk(page, 'edit_canvas', {
         elementId: canvas.id,

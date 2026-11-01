@@ -6,12 +6,13 @@
  */
 
 import {
+  canvasGradientBox,
   isGradientFill,
   linearGradientLine,
   parseCssGradient,
   svgEsc,
 } from './gradient';
-import { buildInkOutline, buildPathData } from './ink-stroke';
+import { buildInkOutline, buildPathData, pathHullPoints } from './ink-stroke';
 import {
   type CanvasConfig,
   type CanvasImage,
@@ -129,6 +130,7 @@ export function canvasObjectBounds(
   obj: CanvasObject,
   measure: TextMeasurer = estimateTextSize,
 ): CanvasRect | null {
+  if (obj.scaleX === 0 || obj.scaleY === 0) return null;
   const rect = unrotatedBounds(obj, measure);
   return rect && obj.rotation ? rotatedBounds(obj, rect) : rect;
 }
@@ -142,7 +144,9 @@ export function canvasPaintedBounds(
   measure: TextMeasurer = estimateTextSize,
 ): CanvasRect | null {
   const rect = canvasObjectBounds(obj, measure);
-  if (!rect || obj.type === 'pin' || !obj.shadow) return rect;
+  if (!rect || obj.type === 'pin' || !obj.shadow || obj.shadow.opacity === 0) {
+    return rect;
+  }
   const { blur, offsetX, offsetY } = obj.shadow;
   const fade = blur * SHADOW_FADE;
   const left = Math.min(rect.x, rect.x + offsetX - fade);
@@ -241,8 +245,14 @@ function pointsBounds(
 }
 
 function pathBounds(obj: CanvasPath): CanvasRect | null {
-  const reach = (obj.strokeWidth / 2) * (obj.pressures?.length ? 1.4 : 1);
-  return pointsBounds(obj, obj.points, reach);
+  if (obj.pressures?.length) {
+    return pointsBounds(obj, obj.points, (obj.strokeWidth / 2) * 1.4);
+  }
+  return pointsBounds(
+    obj,
+    pathHullPoints(obj.points, obj.tension),
+    obj.strokeWidth / 2,
+  );
 }
 
 function shapeBounds(obj: CanvasShape): CanvasRect | null {
@@ -405,11 +415,7 @@ function svgGradientFill(
   const gradient = parseCssGradient(fill);
   if (!gradient) return null;
 
-  // Ellipses draw around their origin; everything else from the top-left.
-  const center =
-    obj.shapeType === 'ellipse'
-      ? { x: 0, y: 0 }
-      : { x: obj.width / 2, y: obj.height / 2 };
+  const { width, height, center } = canvasGradientBox(obj);
 
   const id = `grad-${++svgIdCounter}`;
   const stops = gradient.stops
@@ -422,15 +428,15 @@ function svgGradientFill(
   if (gradient.type === 'linear') {
     const { start, end } = linearGradientLine(
       gradient.angle,
-      obj.width,
-      obj.height,
+      width,
+      height,
       center,
     );
     const defs = `<defs><linearGradient id="${id}" gradientUnits="userSpaceOnUse" x1="${start.x}" y1="${start.y}" x2="${end.x}" y2="${end.y}">${stops}</linearGradient></defs>`;
     return { defs, fillRef: `url(#${id})` };
   }
 
-  const radius = Math.hypot(obj.width, obj.height) / 2;
+  const radius = Math.hypot(width, height) / 2;
   const defs = `<defs><radialGradient id="${id}" gradientUnits="userSpaceOnUse" cx="${center.x}" cy="${center.y}" r="${radius}">${stops}</radialGradient></defs>`;
   return { defs, fillRef: `url(#${id})` };
 }

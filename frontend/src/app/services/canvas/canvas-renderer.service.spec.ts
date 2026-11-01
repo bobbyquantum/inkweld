@@ -459,6 +459,23 @@ describe('CanvasRendererService', () => {
       expect(kImage.globalCompositeOperation()).toBe('multiply');
     });
 
+    it("runs a polygon's gradient across its points, not its stored size", () => {
+      const node = new Konva.Line();
+      CanvasRendererService.applyShapeFill(node, {
+        ...base,
+        type: 'shape',
+        shapeType: 'polygon',
+        points: [100, 100, 300, 100, 300, 200],
+        width: 10,
+        height: 10,
+        fill: 'linear-gradient(90deg, #fff, #000)',
+        stroke: '#000',
+        strokeWidth: 0,
+      });
+      expect(node.fillLinearGradientStartPoint()).toEqual({ x: 100, y: 150 });
+      expect(node.fillLinearGradientEndPoint()).toEqual({ x: 300, y: 150 });
+    });
+
     it('rounds the placeholder as well', () => {
       const group = new Konva.Group();
       const placeholder = new Konva.Rect();

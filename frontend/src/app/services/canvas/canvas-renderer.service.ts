@@ -26,6 +26,7 @@ import Konva from 'konva';
 
 import {
   canvasFontQuery,
+  canvasGradientBox,
   imageFitAttrs,
   isGradientFill,
   linearGradientLine,
@@ -938,19 +939,15 @@ export class CanvasRendererService {
       return;
     }
 
-    // Ellipses draw around their origin; everything else from the top-left.
-    const center =
-      obj.shapeType === 'ellipse'
-        ? { x: 0, y: 0 }
-        : { x: obj.width / 2, y: obj.height / 2 };
+    const { width, height, center } = canvasGradientBox(obj);
     const stops: (number | string)[] = [];
     for (const stop of gradient.stops) stops.push(stop.offset, stop.color);
 
     if (gradient.type === 'linear') {
       const { start, end } = linearGradientLine(
         gradient.angle,
-        obj.width,
-        obj.height,
+        width,
+        height,
         center
       );
       node.setAttrs({
@@ -970,7 +967,7 @@ export class CanvasRendererService {
       fillRadialGradientStartPoint: center,
       fillRadialGradientEndPoint: center,
       fillRadialGradientStartRadius: 0,
-      fillRadialGradientEndRadius: Math.hypot(obj.width, obj.height) / 2,
+      fillRadialGradientEndRadius: Math.hypot(width, height) / 2,
       fillRadialGradientColorStops: stops,
       fillLinearGradientColorStops: undefined,
     });

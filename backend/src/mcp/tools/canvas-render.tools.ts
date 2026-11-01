@@ -44,6 +44,32 @@ const mcpRenderLog = logger.child('MCP-CanvasRender');
 export const MAX_RENDERS_PER_MINUTE = 30;
 const renderWindow = createRateWindow(60_000, MAX_RENDERS_PER_MINUTE);
 
+/** And not all of those at once, or they would hold the thread one after another. */
+export const MAX_RENDERS_IN_PROGRESS = 4;
+const rendersInProgress = new Map<string, number>();
+
+/**
+ * Hold one of the account's places while `run` goes on, or null when they are
+ * taken. Not on Workers: a request cancelled there never reaches its `finally`,
+ * so the count would only grow, and a render there holds up nobody else anyway.
+ */
+export async function withRenderPlace<T>(
+  ctx: McpContext,
+  run: () => Promise<T>
+): Promise<T | null> {
+  if (ctx.env?.YJS_PROJECTS || rateLimitsDisabled()) return run();
+  const held = rendersInProgress.get(ctx.userId) ?? 0;
+  if (held >= MAX_RENDERS_IN_PROGRESS) return null;
+  rendersInProgress.set(ctx.userId, held + 1);
+  try {
+    return await run();
+  } finally {
+    const left = (rendersInProgress.get(ctx.userId) ?? 1) - 1;
+    if (left > 0) rendersInProgress.set(ctx.userId, left);
+    else rendersInProgress.delete(ctx.userId);
+  }
+}
+
 function projectStorage(ctx: McpContext) {
   return getStorageService(ctx.env?.STORAGE as Parameters<typeof getStorageService>[0] | undefined);
 }
@@ -74,11 +100,24 @@ async function renderForTool(
   elementId: string,
   args: Record<string, unknown>
 ): Promise<CanvasRenderOutcome | { error: string }> {
+  const outcome = await withRenderPlace(ctx, () =>
+    drawForTool(ctx, username, slug, elementId, args)
+  );
+  return (
+    outcome ?? { error: 'Too many renders at once: wait for the others to finish, then try again.' }
+  );
+}
+
+async function drawForTool(
+  ctx: McpContext,
+  username: string,
+  slug: string,
+  elementId: string,
+  args: Record<string, unknown>
+): Promise<CanvasRenderOutcome | { error: string }> {
   const waitSeconds = rateLimitsDisabled() ? null : renderWindow.take(ctx.userId);
   if (waitSeconds !== null) {
-    return {
-      error: `Too many renders: an account can draw ${MAX_RENDERS_PER_MINUTE} a minute. Try again in ${waitSeconds} seconds.`,
-    };
+    return { error: `Too many renders: try again in ${waitSeconds} seconds.` };
   }
 
   const canvas = await openCanvas(ctx, username, slug, elementId);
@@ -136,7 +175,7 @@ registerTool({
     title: 'Render Canvas',
     description: `${RENDER_CANVAS_DESCRIPTION}
 
-The server draws this image as a close preview: text in the fonts that ship with Inkweld matches the app, but kerning and antialiasing differ slightly, so a line very close to its width can break differently. A web browser's own render is the final word. An account can draw ${MAX_RENDERS_PER_MINUTE} images a minute, counting save_canvas_image.`,
+The server draws this image as a close preview: text in the fonts that ship with Inkweld matches the app, but kerning and antialiasing differ slightly, so a line very close to its width can break differently. A web browser's own render is the final word. Drawing is limited to about ${MAX_RENDERS_PER_MINUTE} images a minute per account, counting save_canvas_image, and ${MAX_RENDERS_IN_PROGRESS} at once.`,
     inputSchema,
     annotations: { readOnlyHint: true },
   },

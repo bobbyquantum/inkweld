@@ -385,6 +385,30 @@ function controlPoints(
 }
 
 /**
+ * A path's points and its curves' control points. A curve stays within its
+ * control points, so these bound a smoothed path where its points alone do not.
+ */
+export function pathHullPoints(points: number[], tension: number): number[] {
+  const count = Math.floor(points.length / 2);
+  if (!(tension > 0) || count < 3) return points;
+  const hull = [...points];
+  for (let i = 1; i < count - 1; i++) {
+    hull.push(
+      ...controlPoints(
+        points[(i - 1) * 2],
+        points[(i - 1) * 2 + 1],
+        points[i * 2],
+        points[i * 2 + 1],
+        points[(i + 1) * 2],
+        points[(i + 1) * 2 + 1],
+        tension,
+      ),
+    );
+  }
+  return hull;
+}
+
+/**
  * Build an SVG path `d` string for a polyline, optionally smoothed with the
  * same tension model Konva applies on the canvas.
  */

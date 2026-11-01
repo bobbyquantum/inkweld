@@ -128,6 +128,7 @@ export function imageFitAttrs(
 }
 
 export {
+  canvasGradientBox,
   type GradientStop,
   isGradientFill,
   linearGradientLine,

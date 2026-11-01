@@ -22,7 +22,11 @@ import { QuotaExceededError } from '../src/errors';
 import { handleMcpRequest } from '../src/mcp/mcp.handler';
 import { MCP_PROTOCOL_VERSION, META_KEYS } from '../src/mcp/mcp.types';
 import { MCP_PERMISSIONS } from '../src/mcp/mcp-permissions';
-import { MAX_RENDERS_PER_MINUTE } from '../src/mcp/tools/canvas-render.tools';
+import {
+  MAX_RENDERS_IN_PROGRESS,
+  MAX_RENDERS_PER_MINUTE,
+  withRenderPlace,
+} from '../src/mcp/tools/canvas-render.tools';
 import { registerCanvasRenderAssets } from '../src/services/canvas-render/assets';
 import { fileCanvasRenderAssets } from '../src/services/canvas-render/assets.file';
 import { CanvasFontSet, readFontPack } from '../src/services/canvas-render/font-set';
@@ -54,6 +58,9 @@ interface ToolJson {
   error?: { message: string };
 }
 
+/** Whose account a call is made as. */
+let account = 'u1';
+
 async function rpc(
   method: string,
   params: Record<string, unknown>,
@@ -61,7 +68,7 @@ async function rpc(
 ): Promise<ToolJson> {
   const mcpContext = {
     type: 'oauth',
-    userId: 'u1',
+    userId: account,
     username: 'alice',
     grants: [
       { projectId: 'id-novel', username: 'alice', slug: 'novel', role: 'editor', permissions },
@@ -157,6 +164,7 @@ const spies: Array<{ mockRestore: () => void }> = [];
 
 afterEach(() => {
   while (spies.length > 0) spies.pop()?.mockRestore();
+  account = 'u1';
 });
 
 function seed(edit: CanvasEdit = {}): Y.Doc {
@@ -305,6 +313,24 @@ describe('render_canvas', () => {
     // Several lines down, within the width, and nothing past it.
     expect(await inkIn(png, { left: 0, top: 60, width: 200, height: 40 })).toBeGreaterThan(100);
     expect(await inkIn(png, { left: 210, top: 0, width: 190, height: 300 })).toBe(0);
+  });
+
+  it('spaces letters by the letter spacing', async () => {
+    const page = { left: 150, top: 0, width: 250, height: 100 };
+    const narrow = { text: 'IIII', fontFamily: 'Lato', fontSize: 40 };
+
+    seed({ frames: [PAGE], background: '#ffffff', upserts: [text('t', narrow)] });
+    const plain = imageOf(await call('render_canvas', { maxSize: 400 }));
+    expect(await inkIn(plain, page)).toBe(0);
+    spies.pop()?.mockRestore();
+
+    seed({
+      frames: [PAGE],
+      background: '#ffffff',
+      upserts: [text('t', { ...narrow, letterSpacing: 60 })],
+    });
+    const spaced = imageOf(await call('render_canvas', { maxSize: 400 }));
+    expect(await inkIn(spaced, page)).toBeGreaterThan(0);
   });
 
   it('spaces lines by the line height', async () => {
@@ -699,9 +725,85 @@ describe('render_canvas', () => {
           id: `i${i}`,
         })),
       });
-      const warnings = warningsOf(await call('render_canvas'));
+      const json = await call('render_canvas', { maxSize: 400 });
+      const warnings = warningsOf(json);
       expect(warnings).toHaveLength(1);
       expect(warnings[0]).toContain('past what one render');
+      expect(await pixelAt(imageOf(json), 25, 25)).toEqual([204, 204, 204]);
+    });
+
+    it('stops reading images once a render is full', async () => {
+      const png = await sharp({
+        create: { width: 4, height: 4, channels: 3, background: '#ff0000' },
+      })
+        .png()
+        .toBuffer();
+      const big = Buffer.concat([png, Buffer.alloc(MAX_RENDER_IMAGE_BYTES - png.length)]);
+      const read = spyOn(FileStorageService.prototype, 'readProjectFile').mockResolvedValue(
+        big as never
+      );
+      spies.push(read);
+      const count = 20;
+      seed({
+        frames: [PAGE],
+        upserts: Array.from({ length: count }, (_, i) => ({
+          ...image(`media://big${i}.png`),
+          id: `i${i}`,
+        })),
+      });
+
+      const warnings = warningsOf(await call('render_canvas'));
+
+      // Two fit. What was already being read when the third did not is all that is left.
+      expect(warnings).toHaveLength(count - 2);
+      expect(read.mock.calls.length).toBeLessThan(count / 2);
+    });
+
+    it('does not decode an inline image it can tell is too long', async () => {
+      const decode = spyOn(Buffer, 'from');
+      spies.push(decode);
+      const src = `data:image/png;base64,${'A'.repeat((MAX_RENDER_IMAGE_BYTES * 4) / 3 + 8)}`;
+      const { warnings } = await loadCanvasImages([image(src)], {
+        read: () => Promise.resolve(null),
+        findByMediaId: () => Promise.resolve(null),
+      });
+      expect(warnings[0]).toContain('An inline image is too large');
+      expect(decode).not.toHaveBeenCalled();
+    });
+
+    describe('with a GIF too big for the decoder, which would leave a gap', () => {
+      const gif = () =>
+        sharp({
+          create: { width: 4000, height: 4000, channels: 3, background: '#ff0000' },
+          limitInputPixels: false,
+        })
+          .gif()
+          .toBuffer();
+
+      it('brings it down to size where sharp is available', async () => {
+        spies.push(
+          spyOn(FileStorageService.prototype, 'readProjectFile').mockResolvedValue(
+            (await gif()) as never
+          )
+        );
+        seed({ frames: [PAGE], background: '#ffffff', upserts: [image('media://big.gif')] });
+        const json = await call('render_canvas', { maxSize: 400 });
+        expect(warningsOf(json)).toEqual([]);
+        expect(await pixelAt(imageOf(json), 25, 25)).toEqual([255, 0, 0]);
+      });
+
+      it('shows a grey box where sharp is not', async () => {
+        spies.push(
+          spyOn(imageService, 'convertToPng').mockResolvedValue(null),
+          spyOn(FileStorageService.prototype, 'readProjectFile').mockResolvedValue(
+            (await gif()) as never
+          )
+        );
+        seed({ frames: [PAGE], background: '#ffffff', upserts: [image('media://big.gif')] });
+        const json = await call('render_canvas', { maxSize: 400 });
+        expect(warningsOf(json)[0]).toContain('too large');
+        expect(await pixelAt(imageOf(json), 25, 25)).toEqual([204, 204, 204]);
+      });
     });
 
     it('reads only the images in the area it draws', async () => {
@@ -891,8 +993,11 @@ describe('render_canvas', () => {
     it('refuses an account past its limit, and saving counts too', async () => {
       seed({ frames: [PAGE] });
       process.env['NODE_ENV'] = 'production';
-      const renders = await Promise.all(
-        Array.from({ length: MAX_RENDERS_PER_MINUTE }, () => call('render_canvas', { maxSize: 64 }))
+      // One at a time, so that it is the limit per minute they meet.
+      const renders = await mapWithConcurrency(
+        Array.from({ length: MAX_RENDERS_PER_MINUTE }),
+        1,
+        () => call('render_canvas', { maxSize: 64 })
       );
       for (const json of renders) expect(json.result?.isError).toBeUndefined();
 
@@ -903,6 +1008,45 @@ describe('render_canvas', () => {
       stubProject();
       const notSaved = await call('save_canvas_image', { maxSize: 64 }, WRITE);
       expect(notSaved.result?.content?.[0]?.text).toContain('Too many renders');
+    });
+
+    it("runs only a few of an account's renders at once", async () => {
+      account = 'burst';
+      seed({ frames: [PAGE] });
+      process.env['NODE_ENV'] = 'production';
+
+      const results = await Promise.all(
+        Array.from({ length: MAX_RENDERS_IN_PROGRESS + 3 }, () =>
+          call('render_canvas', { maxSize: 64 })
+        )
+      );
+
+      const refused = results.filter((json) => json.result?.isError);
+      expect(refused).toHaveLength(3);
+      expect(refused[0]?.result?.content?.[0]?.text).toContain('at once');
+
+      // Their places are free again once they have finished.
+      const later = await call('render_canvas', { maxSize: 64 });
+      expect(later.result?.isError).toBeUndefined();
+    });
+
+    it('gives a place back when a render fails', async () => {
+      process.env['NODE_ENV'] = 'production';
+      const ctx = { userId: 'failing' } as never;
+      await Promise.all(
+        Array.from({ length: MAX_RENDERS_IN_PROGRESS }, () =>
+          withRenderPlace(ctx, () => Promise.reject(new Error('no'))).catch(() => null)
+        )
+      );
+      expect(await withRenderPlace(ctx, () => Promise.resolve('ran'))).toBe('ran');
+    });
+
+    it('keeps no count on Workers, where a cancelled request never finishes', async () => {
+      process.env['NODE_ENV'] = 'production';
+      const ctx = { userId: 'worker', env: { YJS_PROJECTS: {} } } as never;
+      const never = new Promise<string>(() => undefined);
+      for (let i = 0; i <= MAX_RENDERS_IN_PROGRESS; i++) void withRenderPlace(ctx, () => never);
+      expect(await withRenderPlace(ctx, () => Promise.resolve('ran'))).toBe('ran');
     });
 
     it('does not count while limits are off, as they are for tests', async () => {
@@ -1158,6 +1302,11 @@ describe('the bundled fonts', () => {
     ['Missing Font, Lato', 'Lato'],
     ['Georgia, "EB Garamond", serif', 'EB Garamond'],
     ['Nonesuch, serif', 'Source Serif 4'],
+    ['serif, EB Garamond', 'Source Serif 4'],
+    ['sans-serif, Lato', 'Source Sans 3'],
+    ['Georgia, monospace, Lato', 'Source Serif 4'],
+    ['Nonesuch, monospace, Lato', 'Source Code Pro'],
+    ['Arial, EB Garamond', 'EB Garamond'],
     ["'Nonesuch', monospace", 'Source Code Pro'],
   ])('draws %s in %s', (requested, expected) => {
     expect(new CanvasFontSet(entries, faces).familyFor(requested)).toBe(expected);

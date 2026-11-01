@@ -32,6 +32,9 @@ export const MAX_RENDER_TOTAL_IMAGE_BYTES = 40 * 1024 * 1024;
 export const MAX_RENDER_IMAGE_PIXELS = 16 * 1024 * 1024;
 export const MAX_RENDER_TOTAL_IMAGE_PIXELS = 100 * 1024 * 1024;
 
+/** resvg's GIF decoder refuses a frame past 50 MB, and leaves a gap with no error. */
+const MAX_RENDER_GIF_PIXELS = 12_500_000;
+
 const DIRECT_FORMATS = new Set(['image/png', 'image/jpeg', 'image/gif']);
 const READ_CONCURRENCY = 4;
 
@@ -50,9 +53,10 @@ async function findFile(src: string, media: CanvasMediaSource): Promise<string |
 }
 
 /** A placed image, in a form the rasteriser can draw. */
-type PreparedImage = { uri: string; bytes: number; pixels: number } | { problem: string };
+type PreparedImage = { mimeType: string; data: Uint8Array; pixels: number } | { problem: string };
 
 const TOO_LARGE: PreparedImage = { problem: 'is too large to draw here' };
+const PAST_THE_BUDGET = 'is past what one render can hold';
 
 /** resvg leaves a gap for an embedded SVG it cannot parse, and says nothing. */
 function parsesAsSvg(data: Uint8Array): boolean {
@@ -73,7 +77,7 @@ async function prepareBytes(data: Buffer, svg: boolean): Promise<PreparedImage> 
   if (data.byteLength > MAX_RENDER_IMAGE_BYTES) return TOO_LARGE;
   if (svg) {
     return parsesAsSvg(data)
-      ? { uri: dataUri('image/svg+xml', data), bytes: data.byteLength, pixels: 0 }
+      ? { mimeType: 'image/svg+xml', data, pixels: 0 }
       : { problem: 'is not an SVG that can be read' };
   }
 
@@ -82,17 +86,16 @@ async function prepareBytes(data: Buffer, svg: boolean): Promise<PreparedImage> 
   if (direct) {
     const pixels = pixelsIn(data, type);
     if (pixels === 0) return { problem: 'is a damaged image file' };
-    if (pixels <= MAX_RENDER_IMAGE_PIXELS) {
-      return { uri: dataUri(type, data), bytes: data.byteLength, pixels };
-    }
+    const limit = type === 'image/gif' ? MAX_RENDER_GIF_PIXELS : MAX_RENDER_IMAGE_PIXELS;
+    if (pixels <= limit) return { mimeType: type, data, pixels };
   }
   // WebP and AVIF, or too many pixels to decode here. Sharp can convert them
   // where it runs, which is not Workers. No render shows more than this.
   const converted = await imageService.convertToPng(data, MAX_RENDER_SIZE);
   if (converted) {
     return {
-      uri: dataUri('image/png', converted),
-      bytes: converted.byteLength,
+      mimeType: 'image/png',
+      data: converted,
       pixels: pixelsIn(converted, 'image/png'),
     };
   }
@@ -131,7 +134,12 @@ function prepareInlineImage(src: string): Promise<PreparedImage> | PreparedImage
   const header = /^data:image\/(png|jpeg|gif|svg\+xml)(;[^,]*)?,/.exec(src);
   if (!header) return { problem: 'is an inline format that cannot be drawn here' };
   const isBase64 = header[2]?.endsWith(';base64') ?? false;
-  const data = inlineBytes(src.substring(header[0].length), isBase64);
+  const body = src.substring(header[0].length);
+  // The fewest bytes this could decode to. A stored image can be any length.
+  if ((isBase64 ? body.length * 0.75 - 2 : body.length / 3) > MAX_RENDER_IMAGE_BYTES) {
+    return TOO_LARGE;
+  }
+  const data = inlineBytes(body, isBase64);
   if (!data) return { problem: 'cannot be read' };
   return prepareBytes(data, header[1] === 'svg+xml');
 }
@@ -168,34 +176,35 @@ export async function loadCanvasImages(
   }
   const sources = [...placements.keys()];
 
-  const prepared = await mapWithConcurrency(sources, READ_CONCURRENCY, async (src) =>
-    prepareImage(src, media)
-  );
-
   const uris = new Map<string, string>();
-  const warnings: string[] = [];
   let totalBytes = 0;
   let totalPixels = 0;
-  const note = (src: string, problem: string): void => {
-    const label = src.startsWith('data:') ? 'An inline image' : `Image ${src}`;
-    warnings.push(`${label} ${problem}, so it shows as a grey box.`);
-  };
-  sources.forEach((src, index) => {
-    const image = prepared[index];
-    if ('problem' in image) {
-      note(src, image.problem);
-      return;
-    }
+  let full = false;
+
+  // Decided as each one arrives, so a canvas of large images only ever holds what
+  // fits. Once one does not, the rest are not read, even any small enough to fit.
+  const problems = await mapWithConcurrency(sources, READ_CONCURRENCY, async (src) => {
+    if (full) return PAST_THE_BUDGET;
+    const image = await prepareImage(src, media);
+    if ('problem' in image) return image.problem;
     const copies = placements.get(src) ?? 1;
-    const bytes = totalBytes + image.bytes * copies;
+    const bytes = totalBytes + image.data.byteLength * copies;
     const pixels = totalPixels + image.pixels * copies;
     if (bytes > MAX_RENDER_TOTAL_IMAGE_BYTES || pixels > MAX_RENDER_TOTAL_IMAGE_PIXELS) {
-      note(src, 'is past what one render can hold');
-      return;
+      full = true;
+      return PAST_THE_BUDGET;
     }
     totalBytes = bytes;
     totalPixels = pixels;
-    uris.set(src, image.uri);
+    uris.set(src, dataUri(image.mimeType, image.data));
+    return null;
+  });
+
+  const warnings = sources.flatMap((src, index) => {
+    const problem = problems[index];
+    if (!problem) return [];
+    const label = src.startsWith('data:') ? 'An inline image' : `Image ${src}`;
+    return [`${label} ${problem}, so it shows as a grey box.`];
   });
 
   return { resolve: (src) => uris.get(src) ?? null, warnings };

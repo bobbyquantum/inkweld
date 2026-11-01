@@ -174,6 +174,35 @@ export function linearGradientLine(
   };
 }
 
+/**
+ * The box a shape's gradient spans, in the shape's own units. A polygon's comes
+ * from its points, as an edit to them leaves its width and height as they were.
+ * Ellipses draw around their origin; everything else from the top-left.
+ */
+export function canvasGradientBox(shape: {
+  shapeType: string;
+  width: number;
+  height: number;
+  points?: number[];
+}): { width: number; height: number; center: { x: number; y: number } } {
+  const { shapeType, width, height, points } = shape;
+  if (shapeType === 'ellipse') return { width, height, center: { x: 0, y: 0 } };
+  if (shapeType !== 'polygon' || !points || points.length < 2) {
+    return { width, height, center: { x: width / 2, y: height / 2 } };
+  }
+  const xs = points.filter((_, index) => index % 2 === 0);
+  const ys = points.filter((_, index) => index % 2 === 1);
+  const left = Math.min(...xs);
+  const top = Math.min(...ys);
+  const spanX = Math.max(...xs) - left;
+  const spanY = Math.max(...ys) - top;
+  return {
+    width: spanX,
+    height: spanY,
+    center: { x: left + spanX / 2, y: top + spanY / 2 },
+  };
+}
+
 /** Escape special XML/HTML characters for SVG output */
 export function svgEsc(s: string): string {
   return s.replaceAll(
