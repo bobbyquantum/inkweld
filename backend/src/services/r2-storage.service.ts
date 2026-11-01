@@ -77,6 +77,26 @@ export class R2StorageService {
   }
 
   /**
+   * Store a file only if there is none by that name, in one step, so of two
+   * overlapping calls exactly one stores it. Resolves to whether this one did.
+   */
+  async createProjectFile(
+    username: string,
+    projectSlug: string,
+    filename: string,
+    data: BinaryData,
+    contentType?: string
+  ): Promise<boolean> {
+    const key = this.getProjectFileKey(username, projectSlug, filename);
+    const stored = await this.bucket.put(key, data, {
+      // No etag at all, or R2 stores nothing and returns null.
+      onlyIf: { etagDoesNotMatch: '*' },
+      ...(contentType ? { httpMetadata: { contentType } } : {}),
+    });
+    return stored !== null;
+  }
+
+  /**
    * Read a file from R2 storage
    */
   async readProjectFile(

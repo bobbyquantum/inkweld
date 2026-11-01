@@ -18,6 +18,7 @@ import {
   type CanvasPin,
   type CanvasText,
   createDefaultCanvasConfig,
+  firstCanvasLayer,
   LIGHT_PAGE,
 } from '../../models/canvas.model';
 import { LoggerService } from '../core/logger.service';
@@ -501,6 +502,18 @@ describe('CanvasService', () => {
       expect(mockProjectState.seedCanvasContents).toHaveBeenCalledWith(
         'canvas-1',
         expect.objectContaining({ objects: expect.any(Array) })
+      );
+    });
+
+    it('starts a new canvas on the first layer every writer starts it on', () => {
+      mockElements.set([makeElement({ id: 'canvas-1' })]);
+
+      const config = service.loadConfig('canvas-1');
+
+      expect(config.layers).toEqual([firstCanvasLayer()]);
+      expect(mockProjectState.seedCanvasContents).toHaveBeenCalledWith(
+        'canvas-1',
+        expect.objectContaining({ layers: [firstCanvasLayer()] })
       );
     });
 

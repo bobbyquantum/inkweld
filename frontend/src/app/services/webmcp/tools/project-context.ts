@@ -101,6 +101,17 @@ export class ProjectToolContext {
     return element;
   }
 
+  /** An element that must be a canvas. */
+  canvas(elementId: string): Element {
+    const element = this.element(elementId);
+    if (element.type !== ElementType.Canvas) {
+      throw new ToolError(
+        `"${element.name}" is a ${element.type}, not a CANVAS element.`
+      );
+    }
+    return element;
+  }
+
   requireWrite(): void {
     this.project();
     if (!this.state.canWrite()) {

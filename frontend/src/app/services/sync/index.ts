@@ -1,5 +1,6 @@
 // Element Sync Provider abstraction
 export type {
+  ApplyCanvasEditOptions,
   IElementSyncProvider,
   ProjectMeta,
   SyncConnectionConfig,

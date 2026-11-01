@@ -2040,6 +2040,14 @@ registerTool({
         };
       }
 
+      // A canvas has no document to capture, so this would report success and
+      // save nothing; an agent relying on it could not get its work back.
+      if (element.type === 'CANVAS') {
+        return toErrorResult(
+          'Error: snapshots cover documents and worldbuilding, not canvases. To be able to reverse a canvas edit, keep the undo arguments edit_canvas returns.'
+        );
+      }
+
       // Get document content - we need to read ProseMirror content
       const docContent = await extractSnapshotContent(ctx, username, slug, elementId, element.type);
 

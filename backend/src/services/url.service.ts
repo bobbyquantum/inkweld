@@ -39,6 +39,27 @@ export async function getBaseUrl(db: DatabaseInstance): Promise<string> {
 }
 
 /**
+ * The origin a request arrived on, as the caller sees it: a proxy in front of
+ * Bun may terminate TLS or rewrite the host, and says so in `X-Forwarded-*`.
+ * A caller that lies here only misleads itself, so this must only be used for
+ * what goes back to the same caller.
+ */
+export function getRequestOrigin(c: Context): string {
+  const url = new URL(c.req.url);
+  const forwardedHost = c.req.header('x-forwarded-host')?.split(',')[0]?.trim();
+  if (forwardedHost) {
+    // Setting a host without a port would keep the internal one.
+    url.port = '';
+    url.host = forwardedHost;
+  }
+  const forwardedProto = c.req.header('x-forwarded-proto')?.split(',')[0]?.trim();
+  if (forwardedProto === 'https' || forwardedProto === 'http') {
+    url.protocol = `${forwardedProto}:`;
+  }
+  return url.origin;
+}
+
+/**
  * Resolve the public URL of this API server, for links that the server itself
  * must answer (e.g. `/share/:token`).
  *
@@ -47,18 +68,11 @@ export async function getBaseUrl(db: DatabaseInstance): Promise<string> {
  *
  * Priority order:
  * 1. BASE_URL (Workers binding or environment variable)
- * 2. The origin the request arrived on, honouring X-Forwarded-Proto so a
- *    TLS-terminating proxy in front of Bun still yields an https URL
+ * 2. The origin the request arrived on ({@link getRequestOrigin})
  */
 export function getPublicApiUrl(c: Context): string {
   const configured =
     (c.env as Record<string, string | undefined> | undefined)?.BASE_URL || process.env.BASE_URL;
   if (configured?.trim()) return stripTrailingSlashes(configured.trim());
-
-  const url = new URL(c.req.url);
-  const forwardedProto = c.req.header('x-forwarded-proto')?.split(',')[0]?.trim();
-  if (forwardedProto === 'https' || forwardedProto === 'http') {
-    url.protocol = `${forwardedProto}:`;
-  }
-  return url.origin;
+  return getRequestOrigin(c);
 }

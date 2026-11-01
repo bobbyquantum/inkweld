@@ -60,18 +60,25 @@ export function createObjectBucket(pageSize = 1000) {
     put(
       key: string,
       data: ArrayBuffer | Uint8Array,
-      opts?: { httpMetadata?: { contentType?: string }; customMetadata?: Record<string, string> }
+      opts?: {
+        httpMetadata?: { contentType?: string };
+        customMetadata?: Record<string, string>;
+        onlyIf?: { etagDoesNotMatch?: string };
+      }
     ) {
       if (puts >= options.failPutAfter) return Promise.reject(new Error('Too many subrequests'));
       puts++;
+      // The one condition project storage uses. R2 returns null when it fails.
+      if (opts?.onlyIf?.etagDoesNotMatch === '*' && store.has(key)) return Promise.resolve(null);
       const body = new Uint8Array(data instanceof Uint8Array ? data : new Uint8Array(data));
+      const etag = etagOf(body);
       store.set(key, {
         body,
-        etag: etagOf(body),
+        etag,
         httpMetadata: opts?.httpMetadata,
         customMetadata: opts?.customMetadata,
       });
-      return Promise.resolve();
+      return Promise.resolve({ key, etag });
     },
     delete(keys: string | string[]) {
       if (options.failDelete) return Promise.reject(new Error('delete failed'));

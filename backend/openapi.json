@@ -3518,6 +3518,28 @@
           "method"
         ]
       },
+      "McpMediaUploadResponse": {
+        "type": "object",
+        "properties": {
+          "mediaUrl": {
+            "type": "string",
+            "example": "media://img-abc.png"
+          },
+          "size": {
+            "type": "number",
+            "description": "Bytes stored"
+          },
+          "mimeType": {
+            "type": "string",
+            "example": "image/png"
+          }
+        },
+        "required": [
+          "mediaUrl",
+          "size",
+          "mimeType"
+        ]
+      },
       "PublicImageModelProfile": {
         "type": "object",
         "properties": {
@@ -12340,6 +12362,111 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/v1/ai/mcp/uploads/{token}": {
+      "put": {
+        "operationId": "uploadMcpMedia",
+        "security": [],
+        "tags": [
+          "MCP"
+        ],
+        "summary": "Upload an image through a create_media_upload URL",
+        "description": "Stores the request body as the one image file the token names. The token comes from the create_media_upload MCP tool, works once and expires after a few minutes.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "description": "The token from create_media_upload"
+            },
+            "required": true,
+            "description": "The token from create_media_upload",
+            "name": "token",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "File stored",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/McpMediaUploadResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Empty, not a supported image, or not the format the upload was created for",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The URL is invalid or has expired, or its session was revoked",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "MCP is disabled, access was withdrawn, or sync capacity is exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/QuotaExceededError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "This URL has already been used",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "File too large"
           }
         }
       }

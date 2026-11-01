@@ -23,6 +23,16 @@ import { type PublishPlan } from '../../models/publish-plan';
 import { type ElementTypeSchema } from '../../models/schema-types';
 import { type TimeSystem } from '../../models/time-system';
 
+/** How a canvas edit reaches the rest of the app. */
+export interface ApplyCanvasEditOptions {
+  /**
+   * The writer is not the editor holding this canvas (it is an agent), so
+   * `canvasContents$` must report the change like another peer's edit, or an
+   * open canvas tab would not show it.
+   */
+  external?: boolean;
+}
+
 /**
  * Local presence fields that can be set on a sync provider. These are
  * broadcast to other peers via the project-level presence protocol. Providers
@@ -441,7 +451,8 @@ export interface IElementSyncProvider {
 
   /**
    * Observable of one canvas's contents, emitting when another peer changes
-   * it. Local edits are not echoed back: the caller already has that state.
+   * it. Local edits are not echoed back unless marked `external`: otherwise
+   * the caller already has that state.
    */
   canvasContents$(elementId: string): Observable<CanvasContents>;
 
@@ -452,7 +463,11 @@ export interface IElementSyncProvider {
    * once keep both strokes; single-writer providers may persist the canvas
    * however they like.
    */
-  applyCanvasEdit(elementId: string, edit: CanvasEdit): void;
+  applyCanvasEdit(
+    elementId: string,
+    edit: CanvasEdit,
+    options?: ApplyCanvasEditOptions
+  ): void;
 
   /**
    * Populate a canvas that has no synced contents yet, e.g. from its

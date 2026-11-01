@@ -15,8 +15,8 @@ tool hasn't loaded them already. Longer design notes are in the developer docs
   Drizzle ORM on SQLite/D1, LevelDB per project (Durable Objects on Workers).
   Rules: `backend/AGENTS.md`.
 - **Real-time**: Yjs CRDTs over WebSocket, offline-first with IndexedDB.
-- **Shared packages** (`packages/`): `inkweld-async`, `inkweld-presence`,
-  `inkweld-prosemirror`.
+- **Shared packages** (`packages/`): `inkweld-async`, `inkweld-canvas`,
+  `inkweld-presence`, `inkweld-prosemirror`.
 
 ## Rules for every change
 

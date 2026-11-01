@@ -25,6 +25,18 @@ export interface StorageService {
     contentType?: string
   ): Promise<void>;
 
+  /**
+   * Store a file only if there is none by that name, in one step, so of two
+   * overlapping calls exactly one stores it. Resolves to whether this one did.
+   */
+  createProjectFile(
+    username: string,
+    projectSlug: string,
+    filename: string,
+    data: BinaryData,
+    contentType?: string
+  ): Promise<boolean>;
+
   readProjectFile(
     username: string,
     projectSlug: string,
@@ -108,6 +120,17 @@ class FileStorageAdapter implements StorageService {
   ): Promise<void> {
     const buffer = this.toBuffer(data);
     await this.fileStorage.saveProjectFile(username, projectSlug, filename, buffer);
+  }
+
+  async createProjectFile(
+    username: string,
+    projectSlug: string,
+    filename: string,
+    data: BinaryData,
+    _contentType?: string
+  ): Promise<boolean> {
+    const buffer = this.toBuffer(data);
+    return await this.fileStorage.createProjectFile(username, projectSlug, filename, buffer);
   }
 
   async readProjectFile(
@@ -209,6 +232,22 @@ class R2StorageAdapter implements StorageService {
     contentType?: string
   ): Promise<void> {
     await this.r2Storage.saveProjectFile(username, projectSlug, filename, data, contentType);
+  }
+
+  async createProjectFile(
+    username: string,
+    projectSlug: string,
+    filename: string,
+    data: BinaryData,
+    contentType?: string
+  ): Promise<boolean> {
+    return await this.r2Storage.createProjectFile(
+      username,
+      projectSlug,
+      filename,
+      data,
+      contentType
+    );
   }
 
   async readProjectFile(

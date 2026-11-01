@@ -82,6 +82,7 @@ import { CanvasStageEventsService } from '@services/canvas/canvas-stage-events.s
 import { CanvasZoomService } from '@services/canvas/canvas-zoom.service';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
 import { TutorialService } from '@services/core/tutorial.service';
+import { MediaSyncService } from '@services/local/media-sync.service';
 import { PresenceService } from '@services/presence/presence.service';
 import { CoverSourceService } from '@services/project/cover-source.service';
 import { ElementNavigationService } from '@services/project/element-navigation.service';
@@ -203,6 +204,7 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
   private readonly projectState = inject(ProjectStateService);
   private readonly canvasService = inject(CanvasService);
   private readonly canvasRenderer = inject(CanvasRendererService);
+  private readonly mediaSync = inject(MediaSyncService);
   private readonly canvasLayerActions = inject(CanvasLayerActionsService);
   private readonly canvasZoom = inject(CanvasZoomService);
   private readonly canvasColor = inject(CanvasColorService);
@@ -658,6 +660,12 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
           this.nodeHandlers
         );
       }
+    });
+
+    // An image placed before its file reached this browser shows once it does.
+    effect(() => {
+      this.mediaSync.mediaSyncVersion();
+      untracked(() => this.canvasRenderer.retryFailedImages());
     });
 
     // Mirror frames into the overlay whenever they, the visibility toggle,

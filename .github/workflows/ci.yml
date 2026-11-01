@@ -195,6 +195,9 @@ jobs:
       - name: Run inkweld-async tests with coverage
         run: cd packages/inkweld-async && bun run test:coverage
 
+      - name: Run inkweld-canvas tests with coverage
+        run: cd packages/inkweld-canvas && bun run test:coverage
+
       - name: Run repo script tests (commit scopes)
         run: bun run test:scripts
 
@@ -220,6 +223,14 @@ jobs:
         with:
           name: async-coverage
           path: packages/inkweld-async/coverage/lcov.info
+          retention-days: 1
+
+      - name: Upload canvas package coverage
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: canvas-coverage
+          path: packages/inkweld-canvas/coverage/lcov.info
           retention-days: 1
 
   # ===========================================
@@ -422,6 +433,13 @@ jobs:
         with:
           name: async-coverage
           path: packages/inkweld-async/coverage
+        continue-on-error: true
+
+      - name: Download canvas package coverage
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: canvas-coverage
+          path: packages/inkweld-canvas/coverage
         continue-on-error: true
 
       - name: SonarCloud Scan

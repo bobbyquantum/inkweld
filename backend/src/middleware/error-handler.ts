@@ -2,7 +2,7 @@ import { type ErrorHandler } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import { logger } from '../services/logger.service';
-import { getRequestCorrelationId } from './request-logger';
+import { getRequestCorrelationId, pathForLogging } from './request-logger';
 
 const log = logger.child('ErrorHandler');
 
@@ -98,7 +98,7 @@ export function shouldExposeErrorDetails(env: unknown): boolean {
 export const errorHandler: ErrorHandler = (err, c) => {
   // Get correlation ID from request context
   const correlationId = getRequestCorrelationId(c);
-  const path = c.req.path;
+  const path = pathForLogging(c.req.path);
   const method = c.req.method;
 
   // Don't log expected client errors (400/401/403/404) - they're normal flow

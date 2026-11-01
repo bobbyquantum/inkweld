@@ -129,7 +129,8 @@ Otherwise the server measures real usage from storage first. This means a
 counter that has drifted high can never wrongly block someone with room to
 spare, a counter that has drifted low can't wave uploads through for long, and
 a burst of uploads (or a client retrying a refused one) costs one measurement
-rather than one each.
+rather than one each. Uploads that arrive together share the space that is left:
+each is counted as it is accepted, so they can't all fit into the same free space.
 
 Opening the account settings meter or an admin storage view also recomputes
 and saves the true figure.

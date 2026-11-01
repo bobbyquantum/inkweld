@@ -1,0 +1,25 @@
+{
+  "name": "@inkweld/canvas",
+  "version": "0.1.0",
+  "description": "Canvas data model, Yjs storage layout and agent edit planning shared by the Inkweld frontend and backend.",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "//deps": "yjs is a peerDependency (the host provides it) and a devDependency (for this package's own typecheck and tests). Source only imports its types: callers pass their own Y, as with @inkweld/prosemirror, so there is never a second copy of Yjs at runtime.",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "peerDependencies": {
+    "yjs": "13.6.33"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^5.0.0",
+    "vitest": "^5.0.0",
+    "yjs": "13.6.33"
+  }
+}

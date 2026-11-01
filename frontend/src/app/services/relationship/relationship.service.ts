@@ -123,6 +123,8 @@ export class RelationshipService {
     targetElementId: string,
     relationshipTypeId: string,
     options?: {
+      /** Use this id, for an object that already refers to the relationship. */
+      id?: string;
       note?: string;
       displayText?: string;
       documentContext?: DocumentReferenceContext;
@@ -130,7 +132,7 @@ export class RelationshipService {
   ): ElementRelationship {
     const now = new Date().toISOString();
     const relationship: ElementRelationship = {
-      id: nanoid(),
+      id: options?.id ?? nanoid(),
       sourceElementId,
       targetElementId,
       relationshipTypeId,

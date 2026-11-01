@@ -1,5 +1,4 @@
 import { effect, inject, Injectable, untracked } from '@angular/core';
-import { type Element } from '@inkweld/index';
 import {
   applyCanvasEdit as applyEdit,
   CANVAS_CONFIG_META_KEY,
@@ -7,7 +6,9 @@ import {
   type CanvasEdit,
   emptyCanvasContents,
   parseCanvasContents,
-} from '@models/canvas-edit';
+  seedCanvasEdit,
+} from '@inkweld/canvas';
+import { type Element } from '@inkweld/index';
 import {
   type ElementRelationship,
   type RelationshipTypeDefinition,
@@ -25,6 +26,7 @@ import { type TimeSystem } from '../../models/time-system';
 import { LoggerService } from '../core/logger.service';
 import { LocalProjectElementsService } from '../local/local-project-elements.service';
 import {
+  type ApplyCanvasEditOptions,
   type IElementSyncProvider,
   type LocalPresenceFields,
   type PresenceSession,
@@ -230,7 +232,11 @@ export class LocalElementSyncProvider implements IElementSyncProvider {
     );
   }
 
-  applyCanvasEdit(elementId: string, edit: CanvasEdit): void {
+  applyCanvasEdit(
+    elementId: string,
+    edit: CanvasEdit,
+    options?: ApplyCanvasEditOptions
+  ): void {
     const elements = this.elementsSubject.getValue();
     const index = elements.findIndex(e => e.id === elementId);
     if (index === -1) {
@@ -256,7 +262,9 @@ export class LocalElementSyncProvider implements IElementSyncProvider {
       },
     };
 
-    this.canvasEchoGuard.add(elementId);
+    // An external writer's change must reach an open canvas tab, so only the
+    // tab's own edits are muted.
+    if (!options?.external) this.canvasEchoGuard.add(elementId);
     try {
       this.updateElements(updated);
     } finally {
@@ -266,14 +274,7 @@ export class LocalElementSyncProvider implements IElementSyncProvider {
 
   seedCanvasContents(elementId: string, contents: CanvasContents): void {
     if (this.getCanvasContents(elementId)) return;
-    this.applyCanvasEdit(elementId, {
-      layers: contents.layers,
-      frames: contents.frames,
-      background: contents.background,
-      inkColor: contents.inkColor,
-      upserts: contents.objects,
-      order: contents.objects.map(o => o.id),
-    });
+    this.applyCanvasEdit(elementId, seedCanvasEdit(contents));
   }
 
   listCanvasElementIds(): string[] {
