@@ -52,7 +52,7 @@ LevelDB per project for Yjs documents (Durable Objects on Workers). The root
 - **HTTP routes that edit a Yjs document** must work on both runtimes.
   `yjsService` is Bun-only: on Workers it opens LevelDB and crashes the request
   with `indexedDB is not defined`. Use `openEditableDocument(documentId,
-  documentRuntime(c))` (`services/yjs-document-access.ts`). On Bun it returns
+documentRuntime(c))` (`services/yjs-document-access.ts`). On Bun it returns
   the live document. On Workers it loads a copy from the project DO's
   `GET /api/document-state`, and `commit()` sends only that copy's changes back
   as a `yUpdate`. AI auto-review uses it.
@@ -68,7 +68,7 @@ errors), `mcp/` (Model Context Protocol), `routes/`, `schemas/` (Zod/OpenAPI),
 enforced on the server, not only by the UI hiding buttons. **Every new endpoint
 that sends content to an AI provider must be gated** with `requireAiEnabled`
 from `src/utils/ai-kill-switch.ts` (a 403 with `code: 'AI_DISABLED'`),
-registered with `.use(path, …)` *before* the route handler. Use
+registered with `.use(path, …)` _before_ the route handler. Use
 `isAiKillSwitchOn(db)` / `resolveAiKillSwitch(value)` instead of reading the
 config key yourself — they apply the env lock. Admin configuration endpoints
 stay open so AI can be set up before the switch is turned off.
@@ -166,6 +166,13 @@ Docs: `docs/site/docs/developer/mcp-oauth.md`.
   `docs/site/docs/developer/passkeys.md`.
 - `PASSWORD_LOGIN_ENABLED` and `EMAIL_RECOVERY_ENABLED` default to `false`
   (passwordless-first). The online e2e backend opts into both.
+- **OIDC** (`routes/oidc-auth.routes.ts`, `services/oidc-auth.service.ts`):
+  accounts are keyed by issuer and subject, never linked by email. Compare `iss`
+  with the issuer discovery returned, not `new URL().href`, which adds a slash
+  that providers such as Pocket ID don't publish. `OIDC_ONLY` is enforced on the
+  server, so a new route that signs someone in or creates an account must refuse
+  while it is on. Only a fresh instance elects an admin. Details:
+  `docs/site/docs/configuration.md`.
 - **Account deletion** (`account-deletion.service.ts`, shared by self-service
   and admin deletion) reserves with `userService.reserveForDeletion()` — never
   by disabling the account, which breaks the Durable Object wipe — and tears

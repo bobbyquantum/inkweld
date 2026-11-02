@@ -461,9 +461,18 @@ OIDC_CALLBACK_URL=https://inkweld.example.com/api/v1/auth/oidc
 
 Set `OIDC_ONLY=true` to require OIDC for sign-in. This also disables password,
 passkey, GitHub and Home Assistant ingress sign-in and disables local
-registration. The first OIDC user becomes the instance administrator. Accounts
-are identified by the provider's issuer and subject; email addresses are not
-used to link to other accounts.
+registration. On a fresh instance, the first OIDC user becomes the
+administrator. Accounts are identified by the provider's issuer and subject;
+email addresses are not used to link to other accounts, and only an address the
+provider marks as verified is stored.
+
+To switch an instance that already has accounts, set `OIDC_ENABLED=true` first,
+sign in with OIDC, and have an existing administrator promote that account. Only
+then set `OIDC_ONLY=true`. Otherwise nobody can administer the instance: existing
+accounts can no longer sign in, and no OIDC user becomes administrator
+automatically. A value saved through the admin API overrides the environment, so
+`OIDC_ONLY=false` in the environment does not undo it; remove the `OIDC_ONLY` row
+from the `config` table instead.
 
 Use an HTTPS issuer and callback URL in production. HTTP is accepted only for
 localhost development. Set the callback URL explicitly when using a reverse
@@ -472,8 +481,11 @@ that prefix in `SITE_URL` so the callback returns to the correct app URL.
 `OIDC_ONLY=true` skips the optional default password-admin seed; the first
 OIDC sign-in bootstraps the administrator account.
 
-Set all four provider settings before enabling either OIDC mode in Admin Settings.
-Incomplete or invalid settings are rejected by the admin API, and Bun/Node
+OIDC has no Admin Settings page yet, so configure it through the environment or
+the admin API (`PUT /api/v1/admin/config/{key}`). Cloudflare Workers cannot read
+these settings from Worker variables, so an `OIDC_ONLY` variable has no effect
+there; use the admin API. Set all four provider settings before enabling either
+OIDC mode. Incomplete or invalid settings are rejected by the admin API, and Bun/Node
 startup fails with a configuration error if OIDC-only was enabled through the
 environment without them. Configuration failures never re-enable another login
 method automatically. While OIDC is enabled, changes and deletions must preserve
