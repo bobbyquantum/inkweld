@@ -621,9 +621,8 @@ export async function authenticateUser(
   const retryDelay = 500;
 
   if (isRegister) {
-    // Register via API with retry for transient approval-required errors and network issues
-    // This can happen when another test temporarily toggles USER_APPROVAL_REQUIRED
-    // or when the server is under heavy load during parallel tests
+    // Register via API with retry for network issues, which can happen when
+    // the server is under heavy load during parallel tests
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       const usernameToTry =
         attempt > 1 ? `${username}-retry${attempt}` : username;
@@ -668,14 +667,8 @@ export async function authenticateUser(
       };
 
       if (registerData.requiresApproval) {
-        if (attempt < maxRetries) {
-          // Wait and retry - the admin test may be temporarily toggling the setting
-          await new Promise(r => setTimeout(r, retryDelay * attempt));
-          continue;
-        }
         throw new Error(
-          `Registration requires approval after ${maxRetries} attempts - ` +
-            `USER_APPROVAL_REQUIRED may be incorrectly set. ` +
+          `Registration requires approval - USER_APPROVAL_REQUIRED may be incorrectly set. ` +
             `Message: ${registerData.message}`
         );
       }

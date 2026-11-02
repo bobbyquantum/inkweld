@@ -1,8 +1,8 @@
-import { type Browser, type Page } from '@playwright/test';
-
 import {
   canStartIsolatedBackend,
   type IsolatedBackend,
+  openAppOn,
+  signInAsAdmin,
   startIsolatedBackend,
 } from '../common/isolated-backend';
 import { expect, test } from './fixtures';
@@ -44,34 +44,6 @@ async function setPolicyText(text: string): Promise<void> {
   expect(res.ok, 'update policy text').toBe(true);
 }
 
-/** A fresh browser context whose app config points at the private backend. */
-async function openApp(browser: Browser): Promise<Page> {
-  const context = await browser.newContext();
-  const page = await context.newPage();
-  await page.addInitScript((serverUrl: string) => {
-    const now = Date.now();
-    localStorage.setItem(
-      'inkweld-app-config',
-      JSON.stringify({
-        version: 2,
-        activeConfigId: 'server-1',
-        configurations: [
-          {
-            id: 'server-1',
-            type: 'server',
-            displayName: 'Policy Test Server',
-            serverUrl,
-            addedAt: now,
-            lastUsedAt: now,
-          },
-        ],
-      })
-    );
-    localStorage.setItem('inkweld-tutorial-autostart', 'off');
-  }, backend.url);
-  return page;
-}
-
 test.describe('Policy acceptance (REQUIRE_POLICY_ACCEPTANCE)', () => {
   // Skipped outside the online config: the instance-wide flag would break the
   // parallel specs sharing the default backend, so this suite needs a private
@@ -88,11 +60,7 @@ test.describe('Policy acceptance (REQUIRE_POLICY_ACCEPTANCE)', () => {
       TERMS_OF_SERVICE_CONTENT: '# Terms v1',
       REQUIRE_POLICY_ACCEPTANCE: 'true',
     });
-    const login = await api('/api/v1/auth/login', {
-      method: 'POST',
-      body: backend.admin,
-    });
-    adminToken = ((await login.json()) as { token: string }).token;
+    adminToken = await signInAsAdmin(backend);
   });
 
   test.afterAll(async () => {
@@ -111,7 +79,7 @@ test.describe('Policy acceptance (REQUIRE_POLICY_ACCEPTANCE)', () => {
   test('a new user must tick the box, then is asked again after the policy changes', async ({
     browser,
   }) => {
-    const page = await openApp(browser);
+    const page = await openAppOn(browser, backend);
     const username = `policy-user-${Date.now().toString(36)}`;
 
     await test.step('register with the agreement checkbox', async () => {
@@ -197,7 +165,7 @@ test.describe('Policy acceptance (REQUIRE_POLICY_ACCEPTANCE)', () => {
     browser,
   }) => {
     // The bootstrapped admin was created without going through registration.
-    const page = await openApp(browser);
+    const page = await openAppOn(browser, backend);
     await page.goto('/');
     await page.getByTestId('welcome-login-button').click();
     const login = page.getByTestId('login-dialog');

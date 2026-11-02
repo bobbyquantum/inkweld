@@ -102,6 +102,10 @@ test.describe('Relationships Tab', () => {
   test('relationship types CRUD lifecycle, validation, and constraints', async ({
     authenticatedPage: page,
   }) => {
+    // Twelve scenarios on one project, most of them a dialog round trip of about
+    // 2 s. That is 24 s on an idle machine and about 40 s in a full parallel run.
+    test.slow();
+
     // ---- One-time setup: project + navigation -------------------------------
     await page.goto('/');
     const slug = `rel-test-${Date.now()}`;

@@ -127,8 +127,9 @@ try {
 
   // Existing online/docker e2e fixtures register and log in via the password
   // API. Production defaults are passwordless-first (NIST SP 800-63B Rev. 4),
-  // so the wrangler test backend has to opt back in. The dedicated
-  // passwordless.spec.ts flips this off via the admin API per-test.
+  // so the wrangler test backend has to opt back in. The part of
+  // passwordless.spec.ts that turns it off needs a private Bun backend, so it
+  // only runs in the online config.
   await $`npx wrangler d1 execute inkweld_local --local --command "INSERT OR REPLACE INTO config (key, value, encrypted, category, description, created_at, updated_at) VALUES ('PASSWORD_LOGIN_ENABLED', 'true', 0, 'auth', 'Allow username/password login', ${now}, ${now})"`.quiet();
   console.log('   ✅ PASSWORD_LOGIN_ENABLED = true');
 

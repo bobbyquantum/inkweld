@@ -1,8 +1,14 @@
 import { type Page } from '@playwright/test';
 
+import {
+  canStartIsolatedBackend,
+  type IsolatedBackend,
+  openAppOn,
+  signInAsAdmin,
+  startIsolatedBackend,
+} from '../common/isolated-backend';
+import { TEST_PASSWORDS } from '../common/test-credentials';
 import { expect, test } from './fixtures';
-
-const API_BASE = process.env['API_BASE_URL'] ?? 'http://localhost:9333';
 
 /**
  * Helper to navigate to admin page via user menu.
@@ -48,23 +54,17 @@ async function waitForAdminPageLoaded(page: Page): Promise<void> {
   }
 }
 
-/**
- * Admin Settings tests modify global config (USER_APPROVAL_REQUIRED) which
- * can race with parallel registration tests. The settings toggle step
- * restores immediately, but we still serialise this whole file's admin
- * test for safety.
- */
 test.describe('Admin Dashboard', () => {
   test.describe.configure({ mode: 'serial' });
 
   /**
    * Single admin user does the full admin dashboard tour: access control,
    * dashboard display, user list, navigation, user-management safeguards,
-   * and the settings toggle (with immediate restore).
+   * and the settings page.
    *
    * Replaces 11 separate adminPage-based tests.
    */
-  test('admin dashboard: access, display, user list, settings toggle', async ({
+  test('admin dashboard: access, display, user list, settings page', async ({
     adminPage,
   }) => {
     await test.step('admin link is visible in user menu', async () => {
@@ -155,68 +155,12 @@ test.describe('Admin Dashboard', () => {
       expect(emptyVisible || listVisible).toBe(true);
     });
 
-    await test.step('settings page exposes user-approval toggle that persists, then restores', async () => {
-      const token = await adminPage.evaluate(() =>
-        localStorage.getItem('srv:server-1:auth_token')
-      );
-
-      // Belt-and-braces: ensure starting state before we mutate.
-      await adminPage.request.put(
-        `${API_BASE}/api/v1/admin/config/USER_APPROVAL_REQUIRED`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          data: { value: 'false' },
-        }
-      );
-
+    await test.step('settings page exposes the user-approval toggle', async () => {
       await adminPage.locator('[data-testid="admin-nav-settings"]').click();
       await adminPage.waitForURL('**/admin/settings');
-
-      const toggle = adminPage.locator(
-        '[data-testid="setting-toggle-user-approval"]'
-      );
-      await expect(toggle).toBeVisible();
-
-      const isInitiallyChecked = await toggle.evaluate(el =>
-        el.classList.contains('mat-mdc-slide-toggle-checked')
-      );
-      expect(isInitiallyChecked).toBe(false);
-
-      await toggle.click();
-
-      const snackbar = adminPage
-        .locator('.mat-mdc-snack-bar-label')
-        .filter({ hasText: /Setting saved/i })
-        .first();
-      await expect(snackbar).toBeVisible();
-
-      const isNowChecked = await toggle.evaluate(el =>
-        el.classList.contains('mat-mdc-slide-toggle-checked')
-      );
-      expect(isNowChecked).toBe(true);
-
-      // Restore IMMEDIATELY to minimise impact on parallel tests.
-      await adminPage.request.put(
-        `${API_BASE}/api/v1/admin/config/USER_APPROVAL_REQUIRED`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          data: { value: 'false' },
-        }
-      );
-
-      await adminPage.reload();
-      await expect(toggle).toBeVisible();
-
-      const isRestoredChecked = await toggle.evaluate(el =>
-        el.classList.contains('mat-mdc-slide-toggle-checked')
-      );
-      expect(isRestoredChecked).toBe(false);
+      await expect(
+        adminPage.locator('[data-testid="setting-toggle-user-approval"]')
+      ).toBeVisible();
     });
 
     await test.step('back link navigates home', async () => {
@@ -225,6 +169,79 @@ test.describe('Admin Dashboard', () => {
       await adminPage.locator('[data-testid="admin-back-link"]').click();
       await adminPage.waitForURL('/');
     });
+  });
+});
+
+/**
+ * USER_APPROVAL_REQUIRED is instance-wide: while it is on, every registration
+ * on the same backend comes back pending, however quickly it is put back. So
+ * switching it happens on a private backend.
+ */
+test.describe('Admin settings: user approval (USER_APPROVAL_REQUIRED)', () => {
+  // Skipped outside the online config: the instance-wide flag needs a private
+  // Bun backend, which only that config can start.
+  test.skip(
+    !canStartIsolatedBackend(),
+    'Needs a private Bun backend; only the online config can start one'
+  );
+
+  let backend: IsolatedBackend;
+
+  test.beforeAll(async () => {
+    backend = await startIsolatedBackend();
+  });
+
+  test.afterAll(async () => {
+    await backend?.stop();
+  });
+
+  test('turning it on persists, and new accounts then wait for approval', async ({
+    browser,
+  }) => {
+    const page = await openAppOn(
+      browser,
+      backend,
+      await signInAsAdmin(backend)
+    );
+    // The admin route sends a browser with no cached user home, so load the
+    // home page first, as the adminPage fixture does.
+    await page.goto('/');
+    await expect(page.getByTestId('user-menu-button')).toBeVisible();
+    await page.goto('/admin/settings');
+
+    const toggle = page
+      .getByTestId('setting-toggle-user-approval')
+      .getByRole('switch');
+    await expect(toggle).toBeVisible();
+    await expect(toggle).not.toBeChecked();
+
+    const saved = page.waitForResponse(
+      response =>
+        response.request().method() === 'PUT' &&
+        response.url().endsWith('/admin/config/USER_APPROVAL_REQUIRED')
+    );
+    await toggle.click();
+    expect((await saved).ok(), 'save the setting').toBe(true);
+    await expect(toggle).toBeChecked();
+
+    await page.reload();
+    await expect(toggle).toBeChecked();
+
+    const registration = await fetch(`${backend.url}/api/v1/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: `pending-${Date.now().toString(36)}`,
+        password: TEST_PASSWORDS.VALID,
+      }),
+    });
+    expect(registration.ok, 'register while approval is required').toBe(true);
+    expect(
+      ((await registration.json()) as { requiresApproval: boolean })
+        .requiresApproval
+    ).toBe(true);
+
+    await page.context().close();
   });
 });
 

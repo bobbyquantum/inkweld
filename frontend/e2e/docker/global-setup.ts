@@ -107,8 +107,8 @@ export default async function globalSetup(): Promise<void> {
     // Existing e2e suite assumes classic password login is on. Production
     // images now default to PASSWORD_LOGIN_ENABLED=false (passwordless-first
     // per NIST SP 800-63B Rev. 4) so the test container has to opt back in.
-    // The dedicated `passwordless.spec.ts` flips this off via the admin
-    // settings UI rather than rebuilding the container.
+    // The part of `passwordless.spec.ts` that turns it off needs a private
+    // Bun backend, so it only runs in the online config.
     '-e',
     'PASSWORD_LOGIN_ENABLED=true',
     // Enable email-based passkey recovery so the recovery e2e tests can hit

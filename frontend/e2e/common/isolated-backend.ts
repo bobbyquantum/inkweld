@@ -3,6 +3,8 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
+import { type Browser, type Page } from '@playwright/test';
+
 import { getFreePort } from './free-port';
 import { TEST_PASSWORDS, TEST_SESSION_SECRETS } from './test-credentials';
 
@@ -13,8 +15,8 @@ import { TEST_PASSWORDS, TEST_SESSION_SECRETS } from './test-credentials';
  * the specs running in parallel against the shared e2e backend — e.g.
  * REQUIRE_POLICY_ACCEPTANCE, which makes every API registration without an
  * accepted policy fail and puts a blocking dialog in front of every session.
- * The shared frontend dev server is reused; point a browser context at
- * `url` through the app config and it talks only to this backend.
+ * The shared frontend dev server is reused; a browser context from `openAppOn`
+ * talks only to this backend.
  *
  * Only available where the e2e run can start Bun itself (the `online`
  * config sets E2E_BACKEND_RUNTIME=bun); callers should skip otherwise.
@@ -86,4 +88,58 @@ export async function startIsolatedBackend(
   }
   await stop();
   throw new Error(`Isolated backend did not become healthy:\n${output}`);
+}
+
+/** Sign in as the private backend's admin and return the session token. */
+export async function signInAsAdmin(backend: IsolatedBackend): Promise<string> {
+  const res = await fetch(`${backend.url}/api/v1/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(backend.admin),
+  });
+  if (!res.ok) {
+    throw new Error(`Admin sign-in failed: ${res.status} ${await res.text()}`);
+  }
+  return ((await res.json()) as { token: string }).token;
+}
+
+/**
+ * A fresh browser context whose app config points at the private backend, so
+ * it never touches the shared one. With a token, the page starts signed in.
+ */
+export async function openAppOn(
+  browser: Browser,
+  backend: IsolatedBackend,
+  token?: string
+): Promise<Page> {
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  await page.addInitScript(
+    ({ serverUrl, authToken }) => {
+      const now = Date.now();
+      localStorage.setItem(
+        'inkweld-app-config',
+        JSON.stringify({
+          version: 2,
+          activeConfigId: 'server-1',
+          configurations: [
+            {
+              id: 'server-1',
+              type: 'server',
+              displayName: 'Isolated Test Server',
+              serverUrl,
+              addedAt: now,
+              lastUsedAt: now,
+            },
+          ],
+        })
+      );
+      if (authToken) {
+        localStorage.setItem('srv:server-1:auth_token', authToken);
+      }
+      localStorage.setItem('inkweld-tutorial-autostart', 'off');
+    },
+    { serverUrl: backend.url, authToken: token }
+  );
+  return page;
 }
