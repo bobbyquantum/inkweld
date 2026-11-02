@@ -22,6 +22,7 @@ describe('OIDC authentication service', () => {
   const db = drizzle(sqlite, { schema });
   let issuerServer: ReturnType<typeof Bun.serve>;
   let issuer = '';
+  let publishedIssuer: string | null = null;
   let authorizationParameters: URLSearchParams | null = null;
   let nonceOverride: string | null = null;
   let tokenRequests = 0;
@@ -58,7 +59,7 @@ describe('OIDC authentication service', () => {
           discoveryRequests++;
           if (discoveryUnavailable) return new Response('Unavailable', { status: 503 });
           return Response.json({
-            issuer,
+            issuer: publishedIssuer ?? issuer,
             authorization_endpoint: `${issuer}authorize`,
             token_endpoint: `${issuer}token`,
             jwks_uri: `${issuer}jwks`,
@@ -88,7 +89,7 @@ describe('OIDC authentication service', () => {
           );
           const payload = base64Url(
             JSON.stringify({
-              iss: issuer,
+              iss: publishedIssuer ?? issuer,
               sub: 'oidc-subject-1',
               aud: 'inkweld-test-client',
               exp: now + 300,
@@ -155,6 +156,32 @@ describe('OIDC authentication service', () => {
       'OIDC authorization state is invalid or expired'
     );
     expect(tokenRequests).toBe(1);
+  });
+
+  it('accepts a provider whose issuer has no trailing slash', async () => {
+    // Pocket ID, Google and Authelia publish `https://id.example.com`, which
+    // `new URL()` normalizes to a different string.
+    publishedIssuer = issuer.slice(0, -1);
+    await configService.set(db, 'OIDC_ISSUER_URL', publishedIssuer);
+    // A different secret forces fresh discovery instead of the cached metadata.
+    await configService.set(db, 'OIDC_CLIENT_SECRET', 'no-trailing-slash');
+    try {
+      const authorizationUrl = await oidcAuthService.createAuthorizationUrl(db);
+      authorizationParameters = authorizationUrl.searchParams;
+      const state = authorizationParameters.get('state')!;
+      const callback = new URL('http://internal/api/v1/auth/oidc');
+      callback.searchParams.set('code', 'one-time-code');
+      callback.searchParams.set('state', state);
+
+      const result = await oidcAuthService.completeAuthorization(db, state, callback);
+
+      expect(result.issuer).toBe(publishedIssuer);
+      expect(result.claims.iss).toBe(publishedIssuer);
+    } finally {
+      publishedIssuer = null;
+      await configService.set(db, 'OIDC_ISSUER_URL', issuer);
+      await configService.set(db, 'OIDC_CLIENT_SECRET', 'oidc-test-secret');
+    }
   });
 
   it('invalidates cached discovery when client settings change', async () => {

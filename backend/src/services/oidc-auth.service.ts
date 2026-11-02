@@ -118,7 +118,9 @@ class OidcAuthService {
       })
       .then((configuration) => ({
         configuration,
-        issuer: issuer.href,
+        // The provider's own spelling. Discovery compares issuers after URL
+        // normalization, which adds a slash, but `iss` has to match this exactly.
+        issuer: configuration.serverMetadata().issuer,
         callbackUrl: callbackUrl.href,
       }));
     this.cachedClient = { key, expiresAt: Date.now() + CLIENT_CACHE_TTL_MS, client };
