@@ -152,7 +152,9 @@ oidcAuthRoutes.get('/oidc', async (c) => {
     if (!user.approved && user.rejectedAt === null && !userApprovalRequired) {
       await userService.approveUser(db, user.id);
     }
-    await userService.setUserAdminIfNoneExists(db, user.id);
+    // Only a fresh instance elects an admin, as the other sign-up paths do. An
+    // instance that lost its last admin must not hand the role to the next sign-in.
+    if (userCount === 0) await userService.setUserAdminIfNoneExists(db, user.id);
 
     const updatedUser = (await userService.findById(db, user.id)) ?? user;
     if (!userService.canLogin(updatedUser)) {

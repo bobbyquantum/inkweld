@@ -162,6 +162,27 @@ describe('OIDC callbacks', () => {
     expect((await userService.findById(db, active.id))?.isAdmin).toBe(true);
   });
 
+  it('elects an admin only on a fresh instance, not whenever none is left', async () => {
+    await configService.set(db, 'USER_APPROVAL_REQUIRED', 'false');
+    const first = await callback('first');
+    expect(first.headers.get('location')).toContain('code=');
+    const firstUser = await userService.findByOidcIdentity(
+      db,
+      'https://issuer.example.test/',
+      'first'
+    );
+    expect(firstUser?.isAdmin).toBe(true);
+
+    // The last admin steps down; neither they nor anyone else gets it back by signing in.
+    await userService.setUserAdmin(db, firstUser!.id, false);
+    await callback('first');
+    await callback('second');
+    expect((await userService.findById(db, firstUser!.id))?.isAdmin).toBe(false);
+    expect(
+      await userService.findByOidcIdentity(db, 'https://issuer.example.test/', 'second')
+    ).toMatchObject({ isAdmin: false, approved: true });
+  });
+
   it('refuses OIDC-only activation without complete settings and protects active settings', async () => {
     const admin = await userService.create(db, { username: 'admin-user' }, { autoApprove: true });
     mocks.push(
