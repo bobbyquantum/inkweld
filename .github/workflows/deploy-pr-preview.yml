@@ -15,7 +15,9 @@ concurrency:
 jobs:
   deploy:
     name: Deploy PR #${{ github.event.pull_request.number }} Preview
-    if: contains(github.event.pull_request.labels.*.name, 'deploy:preview:frontend')
+    # Skip pull requests from forks even when labelled: GitHub withholds the
+    # Cloudflare secrets from their runs, so the deploy step could only fail.
+    if: contains(github.event.pull_request.labels.*.name, 'deploy:preview:frontend') && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     # No GitHub environment here: the preview environment only allows main to
     # deploy. DROPBOX_APP_KEY is therefore read as a repository variable.
