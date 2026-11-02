@@ -249,6 +249,45 @@ export class SystemConfigService {
    */
   private featuresRetry: ReconnectScheduler | null = null;
 
+  private cachedOidcOnly(serverUrl: string | null): boolean {
+    if (!serverUrl) return false;
+    try {
+      return localStorage.getItem(`inkweld-oidc-only:${serverUrl}`) === 'true';
+    } catch (error) {
+      this.logger.warn(
+        'SystemConfig',
+        'Could not read cached OIDC-only policy',
+        error
+      );
+      return false;
+    }
+  }
+
+  private cacheOidcOnly(serverUrl: string | null, oidcOnly: boolean): void {
+    if (!serverUrl) return;
+    try {
+      localStorage.setItem(`inkweld-oidc-only:${serverUrl}`, String(oidcOnly));
+    } catch (error) {
+      this.logger.warn(
+        'SystemConfig',
+        'Could not cache OIDC-only policy',
+        error
+      );
+    }
+  }
+
+  private unavailableFeatures(serverUrl: string | null): SystemFeatures {
+    return this.cachedOidcOnly(serverUrl)
+      ? {
+          ...SERVER_UNAVAILABLE_DEFAULTS,
+          oidcOnly: true,
+          passwordLoginEnabled: false,
+          passkeysEnabled: false,
+          emailRecoveryEnabled: false,
+        }
+      : SERVER_UNAVAILABLE_DEFAULTS;
+  }
+
   constructor() {
     this.destroyRef.onDestroy(() => this.stopFeaturesRetry());
     this.loadSystemFeatures();
@@ -272,12 +311,17 @@ export class SystemConfigService {
       return;
     }
 
+    const serverUrl = this.setupService.getServerUrl();
+    if (this.cachedOidcOnly(serverUrl)) {
+      this.systemFeaturesSignal.set(this.unavailableFeatures(serverUrl));
+    }
     this.configApiService
       .getSystemFeatures()
       .pipe(
         tap(features => {
           this.logger.info('SystemConfig', 'Loaded system features:', features);
           this.systemFeaturesSignal.set(features);
+          this.cacheOidcOnly(serverUrl, features.oidcOnly ?? false);
           this.configLoadedSuccessfully.set(true); // HTTP API worked
           this.isLoaded.set(true);
         }),
@@ -287,7 +331,7 @@ export class SystemConfigService {
             error
           );
           // Use server unavailable defaults - operates in degraded local mode
-          this.systemFeaturesSignal.set(SERVER_UNAVAILABLE_DEFAULTS);
+          this.systemFeaturesSignal.set(this.unavailableFeatures(serverUrl));
           this.configLoadedSuccessfully.set(false); // HTTP API failed
           this.isLoaded.set(true);
           this.startFeaturesRetry();
@@ -326,12 +370,14 @@ export class SystemConfigService {
   private async retryFeatures(): Promise<ReconnectAttemptResult> {
     // Browser and Cloud Sync profiles have no server to ask.
     if (this.setupService.getMode() !== 'server') return 'stop';
+    const serverUrl = this.setupService.getServerUrl();
     try {
       const features = await firstValueFrom(
         this.configApiService.getSystemFeatures()
       );
       this.logger.info('SystemConfig', 'Loaded system features:', features);
       this.systemFeaturesSignal.set(features);
+      this.cacheOidcOnly(serverUrl, features.oidcOnly ?? false);
       this.configLoadedSuccessfully.set(true);
       return 'connected';
     } catch {

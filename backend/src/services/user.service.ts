@@ -390,7 +390,11 @@ class UserService {
       .where(
         and(
           eq(users.id, userId),
-          sql`NOT EXISTS (SELECT 1 FROM ${users} WHERE ${users.isAdmin} = 1)`
+          eq(users.enabled, true),
+          eq(users.approved, true),
+          isNull(users.rejectedAt),
+          sql`NOT EXISTS (SELECT 1 FROM ${users} WHERE ${users.isAdmin} = 1
+            AND ${users.enabled} = 1 AND ${users.approved} = 1 AND ${users.rejectedAt} IS NULL)`
         )
       );
   }

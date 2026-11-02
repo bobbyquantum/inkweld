@@ -3,8 +3,18 @@ import * as oidc from 'openid-client';
 import { oidcLoginTransactions } from '../db/schema/oidc-login-transactions';
 import type { DatabaseInstance } from '../types/context';
 import { configService } from './config.service';
+import { logger } from './logger.service';
 
 const TRANSACTION_TTL_MS = 10 * 60 * 1000;
+const CLIENT_CACHE_TTL_MS = 10 * 60 * 1000;
+export const OIDC_SETTING_KEYS = [
+  'OIDC_ISSUER_URL',
+  'OIDC_CLIENT_ID',
+  'OIDC_CLIENT_SECRET',
+  'OIDC_CALLBACK_URL',
+] as const;
+type OidcSetting = (typeof OIDC_SETTING_KEYS)[number];
+type OidcClient = { configuration: oidc.Configuration; issuer: string; callbackUrl: string };
 
 async function hash(value: string): Promise<string> {
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
@@ -32,17 +42,17 @@ function parseConfiguredUrl(value: string, key: string): URL {
 }
 
 class OidcAuthService {
-  private async getClient(db: DatabaseInstance) {
-    const config = await configService.getMany(db, [
-      'OIDC_ISSUER_URL',
-      'OIDC_CLIENT_ID',
-      'OIDC_CLIENT_SECRET',
-      'OIDC_CALLBACK_URL',
-    ] as const);
-    const issuerValue = config.OIDC_ISSUER_URL.value.trim();
-    const clientId = config.OIDC_CLIENT_ID.value.trim();
-    const clientSecret = config.OIDC_CLIENT_SECRET.value;
-    const callbackValue = config.OIDC_CALLBACK_URL.value.trim();
+  private cachedClient?: { key: string; expiresAt: number; client: Promise<OidcClient> };
+
+  async validateConfiguration(
+    db: DatabaseInstance,
+    overrides: Partial<Record<OidcSetting, string>> = {}
+  ) {
+    const config = await configService.getMany(db, OIDC_SETTING_KEYS);
+    const issuerValue = (overrides.OIDC_ISSUER_URL ?? config.OIDC_ISSUER_URL.value).trim();
+    const clientId = (overrides.OIDC_CLIENT_ID ?? config.OIDC_CLIENT_ID.value).trim();
+    const clientSecret = overrides.OIDC_CLIENT_SECRET ?? config.OIDC_CLIENT_SECRET.value;
+    const callbackValue = (overrides.OIDC_CALLBACK_URL ?? config.OIDC_CALLBACK_URL.value).trim();
 
     if (!issuerValue || !clientId || !clientSecret || !callbackValue) {
       throw new Error(
@@ -52,12 +62,48 @@ class OidcAuthService {
 
     const issuer = parseConfiguredUrl(issuerValue, 'OIDC_ISSUER_URL');
     const callbackUrl = parseConfiguredUrl(callbackValue, 'OIDC_CALLBACK_URL');
-    const configuration = await oidc.discovery(issuer, clientId, clientSecret, undefined, {
-      timeout: 10,
-      execute: isLoopback(issuer) ? [oidc.allowInsecureRequests] : [],
-    });
+    return { issuer, clientId, clientSecret, callbackUrl };
+  }
 
-    return { configuration, issuer: issuer.href, callbackUrl: callbackUrl.href };
+  private async getClient(db: DatabaseInstance): Promise<OidcClient> {
+    const { issuer, clientId, clientSecret, callbackUrl } = await this.validateConfiguration(db);
+    const key = await hash(JSON.stringify([issuer.href, clientId, clientSecret, callbackUrl.href]));
+    if (this.cachedClient?.key === key && this.cachedClient.expiresAt > Date.now()) {
+      return this.cachedClient.client;
+    }
+    const client = oidc
+      .discovery(issuer, clientId, clientSecret, undefined, {
+        timeout: 10,
+        execute: isLoopback(issuer) ? [oidc.allowInsecureRequests] : [],
+      })
+      .then((configuration) => ({
+        configuration,
+        issuer: issuer.href,
+        callbackUrl: callbackUrl.href,
+      }));
+    this.cachedClient = { key, expiresAt: Date.now() + CLIENT_CACHE_TTL_MS, client };
+    try {
+      return await client;
+    } catch (error) {
+      if (this.cachedClient?.client === client) this.cachedClient = undefined;
+      throw error;
+    }
+  }
+
+  async cleanupTransactions(db: DatabaseInstance): Promise<void> {
+    await db.delete(oidcLoginTransactions).where(lt(oidcLoginTransactions.expiresAt, Date.now()));
+  }
+
+  scheduleCleanup(db: DatabaseInstance): void {
+    const run = () =>
+      this.cleanupTransactions(db).catch((error) => {
+        logger.warn('OIDCAuth', 'Authorization transaction cleanup failed', {
+          error: String(error),
+        });
+      });
+    void run();
+    const timer = setInterval(run, 60 * 60 * 1000);
+    timer.unref();
   }
 
   async createAuthorizationUrl(db: DatabaseInstance): Promise<URL> {

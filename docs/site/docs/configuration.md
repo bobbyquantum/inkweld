@@ -472,6 +472,29 @@ that prefix in `SITE_URL` so the callback returns to the correct app URL.
 `OIDC_ONLY=true` skips the optional default password-admin seed; the first
 OIDC sign-in bootstraps the administrator account.
 
+Set all four provider settings before enabling OIDC-only mode in Admin Settings.
+Incomplete or invalid settings are rejected by the admin API, and Bun/Node
+startup fails with a configuration error if OIDC-only was enabled through the
+environment without them. Configuration failures never re-enable another login
+method automatically.
+
+OIDC authorization callbacks require a short-lived HttpOnly, SameSite=Lax cookie
+from the browser that started sign-in. Finish sign-in in that same browser;
+starting a new OIDC sign-in replaces any earlier pending browser transaction.
+Discovery metadata is cached for up to ten minutes and refreshed when provider
+settings change.
+
+The frontend remembers the last OIDC-only policy per server. If fetching server
+configuration fails, it keeps alternative login controls hidden for a previously
+known OIDC-only server. Unknown servers retain the existing degraded-mode
+defaults; the backend still enforces the configured authentication policy.
+
+Bun and Node periodically remove expired authorization transactions, including
+when OIDC has been disabled. On Cloudflare Workers, configure an hourly Cron
+Trigger (`0 * * * *`) for the scheduled cleanup handler; the Wrangler example
+includes this trigger. Expired transactions are also removed on new sign-in
+attempts on every runtime.
+
 ---
 
 ## Home Assistant Ingress

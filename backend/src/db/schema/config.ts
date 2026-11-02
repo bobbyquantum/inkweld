@@ -185,7 +185,7 @@ export const CONFIG_KEYS = {
   },
   OIDC_CALLBACK_URL: {
     category: 'auth' as ConfigCategory,
-    description: 'OpenID Connect callback URL (derived from the request if unset)',
+    description: 'OpenID Connect callback URL (required; must match the provider registration)',
     encrypted: false,
     envVar: 'OIDC_CALLBACK_URL',
     type: 'string' as const,

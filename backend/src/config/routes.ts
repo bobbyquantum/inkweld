@@ -5,6 +5,7 @@
  */
 
 // Import COMMON routes that work across all runtimes
+import type { MiddlewareHandler } from 'hono';
 import authRoutes from '../routes/auth.routes';
 import userRoutes from '../routes/user.routes';
 import profileRoutes from '../routes/profile.routes';
@@ -65,11 +66,14 @@ import activityRoutes from '../routes/activity.routes';
  * NODE_ENV=test (for local `bun test`). Bracket notation prevents the
  * minifier from inlining the value at build time.
  */
-export function registerRateLimits(app: { use: (path: string, ...mw: unknown[]) => void }): void {
+export function registerRateLimits(app: {
+  use: (path: string, ...mw: MiddlewareHandler[]) => unknown;
+}): void {
   if (process.env['INKWELD_DISABLE_RATE_LIMIT'] !== 'true' && process.env['NODE_ENV'] !== 'test') {
     // Password login — 5 attempts per minute per IP
     app.use('/api/v1/auth/login', rateLimit({ windowMs: 60_000, max: 5 }));
-    app.use('/api/v1/auth/oidc', rateLimit({ windowMs: 60_000, max: 20 }));
+    const oidcLimiter = rateLimit({ windowMs: 60_000, max: 20 });
+    app.use('/api/v1/auth/oidc/*', oidcLimiter);
 
     // Registration — 3 attempts per minute per IP (prevents spam sign-ups)
     app.use('/api/v1/auth/register', rateLimit({ windowMs: 60_000, max: 3 }));

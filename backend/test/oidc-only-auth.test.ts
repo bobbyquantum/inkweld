@@ -32,6 +32,17 @@ describe('OIDC-only authentication mode', () => {
     expect(await json()).toEqual({ providers: { github: false, oidc: true } });
   });
 
+  it('disables alternate sign-in methods in the public features response', async () => {
+    const { response, json } = await client.request('/api/v1/config/features');
+    expect(response.status).toBe(200);
+    expect(await json()).toMatchObject({
+      oidcOnly: true,
+      passwordLoginEnabled: false,
+      passkeysEnabled: false,
+      emailRecoveryEnabled: false,
+    });
+  });
+
   it('rejects password login and local registration', async () => {
     const login = await client.request('/api/v1/auth/login', {
       method: 'POST',

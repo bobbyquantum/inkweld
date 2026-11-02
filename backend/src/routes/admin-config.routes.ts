@@ -1,6 +1,7 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { requireAdmin } from '../middleware/auth';
 import { configService } from '../services/config.service';
+import { oidcAuthService, OIDC_SETTING_KEYS } from '../services/oidc-auth.service';
 import { imageGenerationService } from '../services/image-generation.service';
 import { clearInkweldAppClientCache } from '../services/inkweld-app-client.service';
 import type { AppContext } from '../types/context';
@@ -263,6 +264,21 @@ adminConfigRoutes.openapi(setConfigRoute, async (c) => {
     return c.json({ error: `Invalid boolean value for ${key}: ${value}` }, 400);
   }
 
+  if (
+    (configKey === 'OIDC_ONLY' && ['true', '1'].includes(value)) ||
+    (OIDC_SETTING_KEYS.some((key) => key === configKey) &&
+      (await configService.getBoolean(db, 'OIDC_ONLY')))
+  ) {
+    try {
+      await oidcAuthService.validateConfiguration(db, { [configKey]: value });
+    } catch (error) {
+      return c.json(
+        { error: error instanceof Error ? error.message : 'Invalid OIDC configuration' },
+        400
+      );
+    }
+  }
+
   await configService.set(db, configKey, value);
 
   // Invalidate image generation cache when AI-related config changes
@@ -329,6 +345,21 @@ adminConfigRoutes.openapi(deleteConfigRoute, async (c) => {
   }
 
   const configKey = key as keyof typeof CONFIG_KEYS;
+  const fallback = process.env[CONFIG_KEYS[configKey].envVar] ?? '';
+  if (
+    (configKey === 'OIDC_ONLY' && ['true', '1'].includes(fallback)) ||
+    (OIDC_SETTING_KEYS.some((key) => key === configKey) &&
+      (await configService.getBoolean(db, 'OIDC_ONLY')))
+  ) {
+    try {
+      await oidcAuthService.validateConfiguration(db, { [configKey]: fallback });
+    } catch (error) {
+      return c.json(
+        { error: error instanceof Error ? error.message : 'Invalid OIDC configuration' },
+        400
+      );
+    }
+  }
   await configService.delete(db, configKey);
   if (configKey === 'ALLOW_INKWELD_APP_CLIENT') clearInkweldAppClientCache();
 

@@ -44,11 +44,17 @@
 # ========================================
 
 name = "inkweld-backend"
+
+[env.production.triggers]
+crons = ["0 * * * *"]
 main = "src/cloudflare-runner.ts"
 compatibility_date = "2025-01-01"
 compatibility_flags = ["nodejs_compat"]
 
 workers_dev = true
+
+[triggers]
+crons = ["0 * * * *"]
 
 [build]
 command = ""
@@ -104,6 +110,9 @@ new_sqlite_classes = ["YjsProject"]
 
 [env.preview]
 name = "inkweld-backend-preview"
+
+[env.preview.triggers]
+crons = ["0 * * * *"]
 
 # Custom domain for preview backend (optional)
 # Uncomment and set your domain. Requires domain to be added to Cloudflare.

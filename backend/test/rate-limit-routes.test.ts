@@ -149,4 +149,23 @@ describe('registerRateLimits', () => {
       expect(res.status).toBe(200);
     }
   });
+
+  it('shares the OIDC limit between authorization and code exchange', async () => {
+    process.env['NODE_ENV'] = 'production';
+    delete process.env['INKWELD_DISABLE_RATE_LIMIT'];
+    const app = new Hono();
+    registerRateLimits(app);
+    app.get('/api/v1/auth/oidc', (c) => c.json({ ok: true }));
+    app.post('/api/v1/auth/oidc/exchange-code', (c) => c.json({ ok: true }));
+    const allowed = await Promise.all(
+      Array.from({ length: 20 }, (_, i) =>
+        app.request(i % 2 ? '/api/v1/auth/oidc' : '/api/v1/auth/oidc/exchange-code', {
+          method: i % 2 ? 'GET' : 'POST',
+        })
+      )
+    );
+    allowed.forEach((response) => expect(response.status).toBe(200));
+    const blocked = await app.request('/api/v1/auth/oidc/exchange-code', { method: 'POST' });
+    expect(blocked.status).toBe(429);
+  });
 });

@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
+import { afterAll, beforeAll, describe, expect, it, spyOn } from 'bun:test';
 import { Database as BunDatabase } from 'bun:sqlite';
 import { drizzle } from 'drizzle-orm/bun-sqlite';
 import { migrate } from 'drizzle-orm/bun-sqlite/migrator';
@@ -25,8 +25,10 @@ describe('OIDC authentication service', () => {
   let authorizationParameters: URLSearchParams | null = null;
   let nonceOverride: string | null = null;
   let tokenRequests = 0;
+  let discoveryRequests = 0;
+  let discoveryUnavailable = false;
   let keyPair: CryptoKeyPair;
-  let publicJwk: JsonWebKey;
+  let publicJwk: JsonWebKey & { kid: string; use: string };
 
   beforeAll(async () => {
     migrate(db, { migrationsFolder: join(import.meta.dir, '../drizzle') });
@@ -53,6 +55,8 @@ describe('OIDC authentication service', () => {
       fetch: async (request) => {
         const url = new URL(request.url);
         if (url.pathname === '/.well-known/openid-configuration') {
+          discoveryRequests++;
+          if (discoveryUnavailable) return new Response('Unavailable', { status: 503 });
           return Response.json({
             issuer,
             authorization_endpoint: `${issuer}authorize`,
@@ -70,13 +74,12 @@ describe('OIDC authentication service', () => {
         if (url.pathname === '/token' && request.method === 'POST') {
           const form = await request.formData();
           const verifier = form.get('code_verifier');
-          if (typeof verifier !== 'string' || !authorizationParameters) {
+          const challenge = authorizationParameters?.get('code_challenge');
+          if (typeof verifier !== 'string' || !authorizationParameters || !challenge) {
             return Response.json({ error: 'invalid_request' }, { status: 400 });
           }
           const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
-          expect(base64Url(new Uint8Array(digest))).toBe(
-            authorizationParameters.get('code_challenge')
-          );
+          expect(base64Url(new Uint8Array(digest))).toBe(challenge);
 
           tokenRequests++;
           const now = Math.floor(Date.now() / 1000);
@@ -139,16 +142,67 @@ describe('OIDC authentication service', () => {
     const callback = new URL('http://internal/api/v1/auth/oidc');
     callback.searchParams.set('code', 'one-time-code');
     callback.searchParams.set('state', state!);
+    discoveryUnavailable = true;
     const result = await oidcAuthService.completeAuthorization(db, state!, callback);
+    discoveryUnavailable = false;
 
     expect(result.issuer).toBe(issuer);
     expect(result.claims.sub).toBe('oidc-subject-1');
     expect(result.claims.email_verified).toBe(true);
     expect(tokenRequests).toBe(1);
+    expect(discoveryRequests).toBe(1);
     await expect(oidcAuthService.completeAuthorization(db, state!, callback)).rejects.toThrow(
       'OIDC authorization state is invalid or expired'
     );
     expect(tokenRequests).toBe(1);
+  });
+
+  it('invalidates cached discovery when client settings change', async () => {
+    const before = discoveryRequests;
+    await configService.set(db, 'OIDC_CLIENT_ID', 'changed-client');
+    const url = await oidcAuthService.createAuthorizationUrl(db);
+    expect(url.searchParams.get('client_id')).toBe('changed-client');
+    expect(discoveryRequests).toBe(before + 1);
+    await configService.set(db, 'OIDC_CLIENT_ID', 'inkweld-test-client');
+  });
+
+  it('refreshes discovery after ten minutes', async () => {
+    await oidcAuthService.createAuthorizationUrl(db);
+    const before = discoveryRequests;
+    const now = Date.now();
+    const clock = spyOn(Date, 'now').mockReturnValue(now + 10 * 60 * 1000 + 1);
+    try {
+      await oidcAuthService.createAuthorizationUrl(db);
+      expect(discoveryRequests).toBe(before + 1);
+    } finally {
+      clock.mockRestore();
+    }
+  });
+
+  it('purges expired authorization transactions even without a new sign-in', async () => {
+    await db.insert(schema.oidcLoginTransactions).values({
+      stateHash: 'expired',
+      nonce: 'expired',
+      codeVerifier: 'expired',
+      expiresAt: Date.now() - 1,
+    });
+    await oidcAuthService.cleanupTransactions(db);
+    const rows = await db
+      .select()
+      .from(schema.oidcLoginTransactions)
+      .where(eq(schema.oidcLoginTransactions.stateHash, 'expired'));
+    expect(rows).toHaveLength(0);
+  });
+
+  it('rejects missing and insecure OIDC settings before enabling OIDC-only', async () => {
+    await expect(
+      oidcAuthService.validateConfiguration(db, { OIDC_CLIENT_SECRET: '' })
+    ).rejects.toThrow('are required');
+    await expect(
+      oidcAuthService.validateConfiguration(db, {
+        OIDC_CALLBACK_URL: 'http://public.example/callback',
+      })
+    ).rejects.toThrow('must use HTTPS');
   });
 
   it('rejects a token with a mismatched nonce', async () => {
