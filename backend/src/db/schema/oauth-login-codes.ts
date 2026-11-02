@@ -25,6 +25,8 @@ export const oauthLoginCodes = sqliteTable(
     userId: text('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
+    /** Provider whose callback minted this code; exchanges must match it. */
+    provider: text('provider').notNull().default('github'),
     /** SHA-256 hash of the raw code (never store raw codes) */
     codeHash: text('code_hash').notNull(),
     /** Unix timestamp (ms) when the code expires */

@@ -8,12 +8,14 @@
   </div>
 
   <mat-dialog-content [class.mobile]="isMobile">
-    <app-registration-form
-      (registered)="onRegistered($event)"
-      (registrationError)="onRegistrationError($event)">
-    </app-registration-form>
+    @if (systemConfig.isConfigLoaded() && !systemConfig.isOidcOnly()) {
+      <app-registration-form
+        (registered)="onRegistered($event)"
+        (registrationError)="onRegistrationError($event)">
+      </app-registration-form>
 
-    <mat-divider></mat-divider>
+      <mat-divider></mat-divider>
+    }
 
     <div class="oauth-container">
       <app-oauth-provider-list
@@ -21,14 +23,16 @@
         (loaded)="onProvidersLoaded()"></app-oauth-provider-list>
     </div>
 
-    <button
-      mat-raised-button
-      color="primary"
-      type="button"
-      (click)="onLoginClick()"
-      class="login-button">
-      {{ 'auth.registerDialog.haveAccount' | transloco }}
-    </button>
+    @if (systemConfig.isConfigLoaded() && !systemConfig.isOidcOnly()) {
+      <button
+        mat-raised-button
+        color="primary"
+        type="button"
+        (click)="onLoginClick()"
+        class="login-button">
+        {{ 'auth.registerDialog.haveAccount' | transloco }}
+      </button>
+    }
 
     <app-legal-links />
   </mat-dialog-content>

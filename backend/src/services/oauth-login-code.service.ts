@@ -29,7 +29,7 @@ class OauthLoginCodeService {
    * Issue a code for `userId`. Returns the raw code to put in the redirect;
    * only its hash is stored. Expired rows are pruned opportunistically.
    */
-  async issue(db: DatabaseInstance, userId: string): Promise<string> {
+  async issue(db: DatabaseInstance, userId: string, provider = 'github'): Promise<string> {
     const now = Date.now();
     try {
       await db.delete(oauthLoginCodes).where(lt(oauthLoginCodes.expiresAt, now));
@@ -39,6 +39,7 @@ class OauthLoginCodeService {
     const code = randomCode();
     await db.insert(oauthLoginCodes).values({
       userId,
+      provider,
       codeHash: await sha256Hex(code),
       expiresAt: now + LOGIN_CODE_TTL_MS,
       createdAt: now,
@@ -51,13 +52,19 @@ class OauthLoginCodeService {
    * null when the code is unknown, already used or expired. Marking it used
    * is a conditional update, so two concurrent redemptions cannot both win.
    */
-  async redeem(db: DatabaseInstance, code: string): Promise<string | null> {
+  async redeem(db: DatabaseInstance, code: string, provider = 'github'): Promise<string | null> {
     const now = Date.now();
     const codeHash = await sha256Hex(code);
     const claimed = await db
       .update(oauthLoginCodes)
       .set({ usedAt: now })
-      .where(and(eq(oauthLoginCodes.codeHash, codeHash), isNull(oauthLoginCodes.usedAt)))
+      .where(
+        and(
+          eq(oauthLoginCodes.codeHash, codeHash),
+          eq(oauthLoginCodes.provider, provider),
+          isNull(oauthLoginCodes.usedAt)
+        )
+      )
       .returning();
     const row = claimed[0];
     if (!row) return null;

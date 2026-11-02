@@ -73,6 +73,8 @@ describe('LoginDialogComponent', () => {
     // signal values (passwordLogin: false), which would hide the password
     // form and break the existing tests that exercise it.
     const systemConfigStub = {
+      isConfigLoaded: signal(true).asReadonly(),
+      isOidcOnly: signal(false).asReadonly(),
       isEmailEnabled: signal(false).asReadonly(),
       isPasswordLoginEnabled: signal(true).asReadonly(),
       isEmailRecoveryEnabled: signal(false).asReadonly(),

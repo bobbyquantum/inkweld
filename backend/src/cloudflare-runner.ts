@@ -5,6 +5,9 @@
 import { registerCanvasRenderAssets } from './services/canvas-render/assets';
 import { workerCanvasRenderAssets } from './services/canvas-render/assets.worker';
 import workerApp from './worker-app';
+import type { D1Database, ScheduledController } from '@cloudflare/workers-types';
+import { makeD1Database } from './db/d1';
+import { oidcAuthService } from './services/oidc-auth.service';
 
 registerCanvasRenderAssets(workerCanvasRenderAssets);
 
@@ -12,4 +15,9 @@ registerCanvasRenderAssets(workerCanvasRenderAssets);
 export { YjsProject } from './durable-objects/yjs-project.do';
 
 // Export main app as default
-export default workerApp;
+export default {
+  fetch: workerApp.fetch,
+  async scheduled(_event: ScheduledController, env: { DB: D1Database }): Promise<void> {
+    await oidcAuthService.cleanupTransactions(makeD1Database(env.DB));
+  },
+};

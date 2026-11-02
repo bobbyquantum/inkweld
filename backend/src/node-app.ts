@@ -13,6 +13,8 @@ import { requestLogger } from './middleware/request-logger';
 import { logger } from './services/logger.service';
 import { getInkweldAppClientOrigins } from './services/inkweld-app-client.service';
 import { config } from './config/env';
+import { configService } from './services/config.service';
+import { oidcAuthService } from './services/oidc-auth.service';
 import { errorHandler } from './middleware/error-handler';
 import {
   betterSqliteDatabaseMiddleware,
@@ -135,7 +137,11 @@ app.notFound((c) => {
 async function bootstrap() {
   try {
     const dbPath = process.env.DB_PATH || './data/inkweld.db';
-    await setupBetterSqliteDatabase(dbPath);
+    const db = await setupBetterSqliteDatabase(dbPath);
+    if (await configService.getBoolean(db, 'OIDC_ONLY')) {
+      await oidcAuthService.validateConfiguration(db);
+    }
+    oidcAuthService.scheduleCleanup(db);
     logger.info('Bootstrap', 'Better-sqlite3 database initialized');
 
     const port = config.port;

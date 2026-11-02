@@ -42,6 +42,7 @@ import {
 } from './middleware/database.bun-sqlite.middleware';
 import { setupBunDatabase, getBunDatabase } from './db/bun-sqlite';
 import { passkeyService } from './services/passkey.service';
+import { oidcAuthService } from './services/oidc-auth.service';
 import { configService } from './services/config.service';
 import { getIngressPath, isIngressRequest } from './utils/ingress';
 
@@ -438,6 +439,10 @@ async function bootstrap() {
     // endpoint is anonymous and creates a row per call — without a sweeper,
     // the table grows unbounded under load or hostile traffic.
     schedulePasskeyChallengeCleanup();
+    if (await configService.getBoolean(getBunDatabase(), 'OIDC_ONLY')) {
+      await oidcAuthService.validateConfiguration(getBunDatabase());
+    }
+    oidcAuthService.scheduleCleanup(getBunDatabase());
 
     const port = config.port;
     logger.info('Server', `Inkweld backend (Bun) ready on port ${port}`);

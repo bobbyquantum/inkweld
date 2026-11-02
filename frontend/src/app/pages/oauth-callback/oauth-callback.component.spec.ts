@@ -110,6 +110,18 @@ describe('OAuthCallbackComponent', () => {
         { code: 'code-123' }
       );
     });
+
+    it('exchanges OIDC codes through the provider-specific endpoint', async () => {
+      queryParams.set('code', 'oidc-one-time-code');
+      queryParams.set('provider', 'oidc');
+      createComponent();
+      await flushPromises();
+
+      expect(mockHttp.post).toHaveBeenCalledWith(
+        'http://localhost:8333/api/v1/auth/oidc/exchange-code',
+        { code: 'oidc-one-time-code' }
+      );
+    });
   });
 
   describe('error handling', () => {

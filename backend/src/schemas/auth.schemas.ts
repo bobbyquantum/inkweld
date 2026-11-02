@@ -151,6 +151,7 @@ export const OAuthProvidersResponseSchema = z
   .object({
     providers: z.object({
       github: z.boolean(),
+      oidc: z.boolean(),
     }),
   })
   .openapi('OAuthProvidersResponse');

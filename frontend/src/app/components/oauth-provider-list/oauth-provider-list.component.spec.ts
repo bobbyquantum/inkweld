@@ -56,7 +56,7 @@ describe('OAuthProviderListComponent', () => {
     beforeEach(() => {
       // Set up default mock behavior for UI tests
       authService.listOAuthProviders.mockReturnValue(
-        of({ providers: { github: false } })
+        of({ providers: { github: false, oidc: false } })
       );
       fixture.detectChanges();
     });
@@ -75,11 +75,11 @@ describe('OAuthProviderListComponent', () => {
 
       // Reset and try another provider
       component.githubEnabled.set(false);
-      component.googleEnabled.set(true);
+      component.oidcEnabled.set(true);
       expect(component.hasAnyProviderEnabled()).toBe(true);
 
       // Disable all providers
-      component.googleEnabled.set(false);
+      component.oidcEnabled.set(false);
       expect(component.hasAnyProviderEnabled()).toBe(false);
     });
 
@@ -101,7 +101,7 @@ describe('OAuthProviderListComponent', () => {
   describe('initialization', () => {
     it('should load OAuth2 providers on init', async () => {
       authService.listOAuthProviders.mockReturnValue(
-        of({ providers: { github: true, google: true } })
+        of({ providers: { github: true, oidc: true } })
       );
 
       // Initial state should be empty
@@ -119,10 +119,10 @@ describe('OAuthProviderListComponent', () => {
 
       // After loading completes
       expect(authService.listOAuthProviders).toHaveBeenCalled();
-      expect(component.enabledProviders()).toEqual(['github', 'google']);
+      expect(component.enabledProviders()).toEqual(['github', 'oidc']);
       expect(component.isLoadingProviders()).toBeFalsy();
       expect(component.githubEnabled()).toBeTruthy();
-      expect(component.googleEnabled()).toBeTruthy();
+      expect(component.oidcEnabled()).toBeTruthy();
       expect(component.facebookEnabled()).toBeFalsy();
     });
 
@@ -151,7 +151,7 @@ describe('OAuthProviderListComponent', () => {
       expect(component.isLoadingProviders()).toBeFalsy();
       expect(component.enabledProviders()).toEqual([]);
       expect(component.githubEnabled()).toBeFalsy();
-      expect(component.googleEnabled()).toBeFalsy();
+      expect(component.oidcEnabled()).toBeFalsy();
     });
   });
 
@@ -187,6 +187,24 @@ describe('OAuthProviderListComponent', () => {
       );
     });
 
+    it('should display and start OIDC sign-in', async () => {
+      authService.listOAuthProviders.mockReturnValue(
+        of({ providers: { github: false, oidc: true } })
+      );
+      fixture.detectChanges();
+      await Promise.resolve();
+      await Promise.resolve();
+      fixture.detectChanges();
+
+      expect(
+        fixture.nativeElement.querySelector(
+          '[data-testid="oauth-provider-oidc"]'
+        )
+      ).not.toBeNull();
+      component.signInWithProvider('oidc');
+      expect(mockLocation.href).toBe('http://localhost:8333/api/v1/auth/oidc');
+    });
+
     it('should redirect to the configured server, not the build-time apiUrl', () => {
       vi.spyOn(
         TestBed.inject(StorageContextService),
@@ -199,7 +217,14 @@ describe('OAuthProviderListComponent', () => {
     });
 
     it('should handle different OAuth providers', () => {
-      const providers = ['github', 'google', 'facebook', 'discord', 'apple'];
+      const providers = [
+        'github',
+        'oidc',
+        'google',
+        'facebook',
+        'discord',
+        'apple',
+      ];
 
       providers.forEach(provider => {
         component.signInWithProvider(provider);
