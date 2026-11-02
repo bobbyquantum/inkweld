@@ -4,7 +4,8 @@ name: Release Please
 # x-release-please-version lines) and prepends a CHANGELOG entry built from
 # the Conventional Commit titles merged since the last release. Merging that
 # PR tags vX.Y.Z, creates the GitHub release, and builds the Docker image
-# through release.yml. See docs/site/docs/admin-guide/ci-cd.md#releasing.
+# through release.yml. It also thanks first-time contributors in that release.
+# See docs/site/docs/admin-guide/ci-cd.md#releasing.
 #
 # Needs "Allow GitHub Actions to create and approve pull requests"
 # (Settings → Actions → General) to open the release PR.
@@ -88,3 +89,29 @@ jobs:
     uses: ./.github/workflows/release.yml
     with:
       tag: ${{ needs.release-please.outputs.tag_name }}
+
+  # release-please's notes name no one. This adds GitHub's own list of
+  # first-time contributors (its "New Contributors" section) to the release;
+  # scripts/thank-new-contributors.mjs explains how. A thank-you must never get
+  # in the way of a release, so this job is a sibling of docker-release rather
+  # than a step before it, and continue-on-error keeps its failure from failing
+  # the run. If it fails, run the script by hand to add the section later.
+  thank-contributors:
+    name: Thank new contributors
+    needs: release-please
+    if: ${{ !cancelled() && needs.release-please.outputs.releases_created == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    continue-on-error: true
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Add the New Contributors section to the release notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.release-please.outputs.tag_name }}
+        run: node scripts/thank-new-contributors.mjs --tag "$RELEASE_TAG"
