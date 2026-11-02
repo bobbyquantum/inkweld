@@ -188,4 +188,86 @@ describe('OIDC callbacks', () => {
     ).toBe(400);
     expect(await configService.getBoolean(db, 'OIDC_ONLY')).toBe(true);
   });
+
+  it('validates normal OIDC activation and protects settings until both modes are disabled', async () => {
+    const admin = await userService.create(db, { username: 'admin-user' }, { autoApprove: true });
+    mocks.push(
+      spyOn(authService, 'getUserFromSession').mockResolvedValue({ ...admin, isAdmin: true })
+    );
+    const set = (key: string, value: string) =>
+      app.request(`/api/v1/admin/config/${key}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ value }),
+      });
+    await configService.set(db, 'OIDC_ENABLED', 'false');
+    expect((await set('OIDC_ENABLED', 'true')).status).toBe(400);
+    expect(await configService.getBoolean(db, 'OIDC_ENABLED')).toBe(false);
+    await Promise.all([
+      configService.set(db, 'OIDC_ISSUER_URL', 'https://issuer.example.test/'),
+      configService.set(db, 'OIDC_CLIENT_ID', 'client-id'),
+      configService.set(db, 'OIDC_CLIENT_SECRET', 'client-secret'),
+      configService.set(db, 'OIDC_CALLBACK_URL', 'https://app.example.test/api/v1/auth/oidc'),
+    ]);
+    expect((await set('OIDC_ENABLED', '1')).status).toBe(200);
+    expect((await set('OIDC_CLIENT_SECRET', '')).status).toBe(400);
+    expect(
+      (await app.request('/api/v1/admin/config/OIDC_CLIENT_SECRET', { method: 'DELETE' })).status
+    ).toBe(400);
+    expect((await set('OIDC_CLIENT_SECRET', 'rotated-secret')).status).toBe(200);
+    expect((await configService.get(db, 'OIDC_CLIENT_SECRET')).value).toBe('rotated-secret');
+    expect((await set('OIDC_ENABLED', 'false')).status).toBe(200);
+    expect(
+      (await app.request('/api/v1/admin/config/OIDC_CLIENT_SECRET', { method: 'DELETE' })).status
+    ).toBe(200);
+  });
+
+  it.each(['activate', 'delete'] as const)(
+    'rejects a stale %s after another writer changes the validated configuration',
+    async (operation) => {
+      const admin = await userService.create(db, { username: 'admin-user' }, { autoApprove: true });
+      mocks.push(
+        spyOn(authService, 'getUserFromSession').mockResolvedValue({ ...admin, isAdmin: true })
+      );
+      await Promise.all([
+        configService.set(db, 'OIDC_ENABLED', 'false'),
+        configService.set(db, 'OIDC_ONLY', 'false'),
+        configService.set(db, 'OIDC_ISSUER_URL', 'https://issuer.example.test/'),
+        configService.set(db, 'OIDC_CLIENT_ID', 'client-id'),
+        configService.set(db, 'OIDC_CLIENT_SECRET', 'client-secret'),
+        configService.set(db, 'OIDC_CALLBACK_URL', 'https://app.example.test/api/v1/auth/oidc'),
+      ]);
+      const update = configService.updateValidated.bind(configService);
+      mocks.push(
+        spyOn(configService, 'updateValidated').mockImplementation(
+          (database, key, value, keys, validate) =>
+            update(database, key, value, keys, (values) => {
+              validate(values);
+              // Simulate a competing process committing after validation but before the write.
+              if (operation === 'activate') {
+                sqlite.run("DELETE FROM config WHERE key = 'OIDC_CLIENT_SECRET'");
+              } else {
+                sqlite.run("UPDATE config SET value = 'true' WHERE key = 'OIDC_ONLY'");
+              }
+            })
+        )
+      );
+      const response =
+        operation === 'activate'
+          ? await app.request('/api/v1/admin/config/OIDC_ONLY', {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ value: 'true' }),
+            })
+          : await app.request('/api/v1/admin/config/OIDC_CLIENT_SECRET', { method: 'DELETE' });
+      expect(response.status).toBe(400);
+      expect(await response.json()).toMatchObject({
+        error: 'OIDC configuration changed concurrently; reload and retry',
+      });
+      expect(await configService.getBoolean(db, 'OIDC_ONLY')).toBe(operation === 'delete');
+      if (operation === 'delete') {
+        expect((await configService.get(db, 'OIDC_CLIENT_SECRET')).value).toBe('client-secret');
+      }
+    }
+  );
 });

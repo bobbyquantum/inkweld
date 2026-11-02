@@ -296,7 +296,8 @@ configRoutes.openapi(getFeaturesRoute, async (c) => {
     passwordLoginEnabled:
       isTruthy(cfg.PASSWORD_LOGIN_ENABLED.value) && !isTruthy(cfg.OIDC_ONLY.value),
     oidcOnly: isTruthy(cfg.OIDC_ONLY.value),
-    emailRecoveryEnabled: isTruthy(cfg.EMAIL_RECOVERY_ENABLED.value),
+    emailRecoveryEnabled:
+      isTruthy(cfg.EMAIL_RECOVERY_ENABLED.value) && !isTruthy(cfg.OIDC_ONLY.value),
     // MCP access as a whole (default ON). The AI kill switch takes precedence.
     mcpEnabled: isTruthy(cfg.MCP_ENABLED.value),
     // Legal documents. The URLs are only present for externally-hosted

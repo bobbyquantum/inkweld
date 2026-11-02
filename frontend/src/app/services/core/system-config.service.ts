@@ -249,6 +249,7 @@ export class SystemConfigService {
    */
   private featuresRetry: ReconnectScheduler | null = null;
 
+  /** Read only this server's last policy; unavailable storage cannot establish a policy. */
   private cachedOidcOnly(serverUrl: string | null): boolean {
     if (!serverUrl) return false;
     try {
@@ -263,6 +264,7 @@ export class SystemConfigService {
     }
   }
 
+  /** Persist successful server policy responses without sharing them across profiles. */
   private cacheOidcOnly(serverUrl: string | null, oidcOnly: boolean): void {
     if (!serverUrl) return;
     try {
@@ -276,6 +278,7 @@ export class SystemConfigService {
     }
   }
 
+  /** Keep alternate login controls hidden for a known OIDC-only server during outages. */
   private unavailableFeatures(serverUrl: string | null): SystemFeatures {
     return this.cachedOidcOnly(serverUrl)
       ? {

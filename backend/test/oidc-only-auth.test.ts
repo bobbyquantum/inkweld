@@ -24,6 +24,7 @@ describe('OIDC-only authentication mode', () => {
     await configService.delete(db, 'GITHUB_ENABLED');
     await configService.delete(db, 'PASSWORD_LOGIN_ENABLED');
     await configService.delete(db, 'PASSKEYS_ENABLED');
+    await configService.delete(db, 'EMAIL_RECOVERY_ENABLED');
     await stopTestServer();
   });
 
@@ -57,6 +58,18 @@ describe('OIDC-only authentication mode', () => {
       body: JSON.stringify({ username: 'local-user', password: 'Password123!' }),
     });
     expect(registration.response.status).toBe(403);
+  });
+
+  it('hides email recovery even when the underlying setting is enabled', async () => {
+    const db = getDatabase();
+    await configService.set(db, 'EMAIL_RECOVERY_ENABLED', 'true');
+    try {
+      const { response, json } = await client.request('/api/v1/config/features');
+      expect(response.status).toBe(200);
+      expect(await json()).toMatchObject({ oidcOnly: true, emailRecoveryEnabled: false });
+    } finally {
+      await configService.delete(db, 'EMAIL_RECOVERY_ENABLED');
+    }
   });
 
   it('rejects passkey, password-recovery, GitHub and ingress sign-in', async () => {

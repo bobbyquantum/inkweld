@@ -45,8 +45,6 @@
 
 name = "inkweld-backend"
 
-[env.production.triggers]
-crons = ["0 * * * *"]
 main = "src/cloudflare-runner.ts"
 compatibility_date = "2025-01-01"
 compatibility_flags = ["nodejs_compat"]
@@ -167,6 +165,9 @@ script_name = "inkweld-backend-preview"
 
 [env.production]
 name = "inkweld-backend-prod"
+
+[env.production.triggers]
+crons = ["0 * * * *"]
 
 # Custom domain for production backend (optional)
 # Uncomment and set your domain. Requires domain to be added to Cloudflare.

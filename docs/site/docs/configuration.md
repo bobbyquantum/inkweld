@@ -472,11 +472,14 @@ that prefix in `SITE_URL` so the callback returns to the correct app URL.
 `OIDC_ONLY=true` skips the optional default password-admin seed; the first
 OIDC sign-in bootstraps the administrator account.
 
-Set all four provider settings before enabling OIDC-only mode in Admin Settings.
+Set all four provider settings before enabling either OIDC mode in Admin Settings.
 Incomplete or invalid settings are rejected by the admin API, and Bun/Node
 startup fails with a configuration error if OIDC-only was enabled through the
 environment without them. Configuration failures never re-enable another login
-method automatically.
+method automatically. While OIDC is enabled, changes and deletions must preserve
+a complete configuration, including any environment fallback. Concurrent OIDC
+configuration changes are checked atomically in the database; a conflicting
+request is rejected and must be retried after reloading the settings.
 
 OIDC authorization callbacks require a short-lived HttpOnly, SameSite=Lax cookie
 from the browser that started sign-in. Finish sign-in in that same browser;

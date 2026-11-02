@@ -19,6 +19,7 @@ function callbackRedirect(baseUrl: string, params: Record<string, string>): stri
   return `${baseUrl}/oauth/callback?${query.toString()}`;
 }
 
+/** Normalize provider profile data into a non-reserved local username stem. */
 function usernameBase(value: string): string {
   const username = value
     .toLowerCase()
@@ -32,6 +33,7 @@ function usernameBase(value: string): string {
   return 'oidc-user';
 }
 
+/** Prefer a short deterministic suffix; insertion still handles concurrent collisions. */
 async function availableUsername(db: AppContext['Variables']['db'], base: string): Promise<string> {
   // Sequential checks ensure the lowest available suffix is selected.
   for (let suffix = 0; suffix < 100; suffix++) {
