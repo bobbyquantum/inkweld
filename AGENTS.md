@@ -174,6 +174,10 @@ release-please cuts releases (`.github/workflows/release-please.yml`,
   ceremonies use `rpFromRequest(c)`. (`docs/site/docs/developer/passkeys.md`)
 - **Wrangler is pinned to exactly 4.116.0 with a local patch.** Don't change it
   to a range. (`backend/AGENTS.md`)
+- **Pull requests from forks get no secrets.** A `pull_request` job that reads
+  one other than `GITHUB_TOKEN` must skip forks, with
+  `github.event.pull_request.head.repo.full_name == github.repository`; never
+  use `pull_request_target` for it. (`docs/site/docs/admin-guide/ci-cd.md`)
 - **Reserved usernames** (`privacy`, `terms`, `share`, `delete-account`) back
   real routes; frontend ones stay above the `:username` route.
 - **Mirrored lists** must stay in step: `schemaContentHash` (frontend and

@@ -10,7 +10,10 @@ permissions:
 jobs:
   cleanup:
     name: Cleanup PR #${{ github.event.pull_request.number }} Preview
-    if: github.event.action == 'closed' || github.event.label.name == 'deploy:preview:frontend'
+    # Skip pull requests from forks: they never have a preview to clean up (see
+    # deploy-pr-preview.yml), and GitHub withholds the Cloudflare secrets from
+    # their runs, so the wrangler calls below would only fail on every close.
+    if: github.event.pull_request.head.repo.full_name == github.repository && (github.event.action == 'closed' || github.event.label.name == 'deploy:preview:frontend')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7

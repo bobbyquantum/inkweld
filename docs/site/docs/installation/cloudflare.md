@@ -283,6 +283,7 @@ Per-PR previews give every labeled pull request its own frontend deployment on C
 - The workflow writes a frontend-only `environment.preview.ts` (empty `apiUrl`/`wssUrl`), builds the Angular app, and deploys it to Cloudflare Pages on the `pr-<number>` branch (stable URL).
 - It comments the preview URL back on the PR.
 - `.github/workflows/cleanup-pr-preview.yml` lists that branch's Pages deployments and deletes each one when the PR is closed or the label is removed. Cloudflare does not allow deleting the latest deployment for a branch, so the branch's most recent preview URL may remain reachable after cleanup.
+- Pull requests from forks are skipped, labelled or not: GitHub does not give their workflow runs the Cloudflare secrets.
 
 ### Required configuration
 
