@@ -194,8 +194,25 @@ full list.
 ## Build optimizations
 
 - Docker layer caching via the `actions/cache` integration
-- Bun dependency caching for both frontend and backend
+- No Bun dependency cache, on purpose: a cold install is faster than restoring one (see [Dependency installs](#dependency-installs))
 - Frontend build artifacts cached between stages to avoid duplicate work
+
+## Dependency installs
+
+Every job that installs dependencies runs `bun install --frozen-lockfile` with no dependency cache. That goes for `ci.yml`, `docs.yml` and the Cloudflare deploy and PR preview workflows, and it is deliberate.
+
+CI used to cache `~/.bun/install/cache` as `Linux-bun-<lockfile hash>` with `restore-keys: Linux-bun-`, so every new lockfile started from the previous lockfile's cache and added to it. Bun never prunes that directory, so the cache only grew. By November 2026 it was 2.4 GB compressed and 10.8 GB unpacked (667,000 files), and 84% of the package data in it was old versions that the lockfile no longer used: 18 versions of `@cloudflare/workerd-linux-64` alone took 2.3 GB. Restoring it needed 13.2 GB of free disk, the archive plus the unpacked files.
+
+GitHub only guarantees 14 GB of free disk on a standard runner. Most `ubuntu-latest` runners are Azure VMs with a 145 GB disk and 85 GB free, but about 1 in 40 (6 of 250 in a survey on 2026-11-02) is an AWS `m8id.xlarge` VM with a 72 GB disk and 13.1 GB free. The restore needed slightly more than that, so on those runners it filled the disk and the job died 70-120 s in, at the cache step, with `System.IO.IOException: No space left on device` for the runner's own `_diag/Worker_*.log`. The failure was intermittent and a re-run passed, which made it look like a flake.
+
+The cache was not paying for itself either. Measured on runners with the same image:
+
+|                       | Cache step | `bun install` | Disk                                    |
+| --------------------- | ---------- | ------------- | --------------------------------------- |
+| Old cache, 2.4 GB     | 48-87 s    | 3-6 s         | 13.2 GB at the peak, 10.8 GB afterwards |
+| No cache (cold start) | none       | 7-12 s        | 1.9 GB                                  |
+
+If a dependency cache ever comes back, key it on the lockfile hash alone, with no `restore-keys`, so it can only hold what the current lockfile needs (380 MB compressed, 1.8 GB unpacked today), and check that restoring it beats a cold install.
 
 ## Monitoring builds
 
@@ -420,6 +437,7 @@ create and approve pull requests** to open its release PR.
 ## Troubleshooting CI failures
 
 - Inspect the failing job logs in GitHub Actions
+- A job that dies early with no log at all (the log API answers 404) may have run out of disk. Read the error from the job's annotations with `gh api repos/<owner>/<repo>/check-runs/<job id>/annotations`; a full disk shows as `System.IO.IOException: No space left on device` for the runner's own `_diag/Worker_*.log`. A standard runner only guarantees 14 GB of free disk, so keep what a job writes well under that (see [Dependency installs](#dependency-installs)).
 - Ensure `npm test` (frontend), `bun test` (backend), `bun run lint`, `bun run typecheck` and `docker build` pass locally
 - Verify that secrets (GHCR token, etc.) exist in repository settings
 - Re-run failed jobs from the Actions UI once the issue is fixed
