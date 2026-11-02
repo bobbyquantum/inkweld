@@ -347,7 +347,12 @@ jobs:
     # get uploaded, so the scan would report 0% coverage on new code and post
     # a false quality gate failure to the PR.
     # Also skip SonarCloud analysis for Renovate dependency PRs (machine-generated).
-    if: ${{ !cancelled() && !startsWith(github.head_ref, 'renovate/') }}
+    # And skip it for pull requests from forks: GitHub withholds secrets from
+    # `pull_request` runs on forks, so SONAR_TOKEN is empty and the scan fails
+    # with "Not authorized". Don't switch to `pull_request_target` to get the
+    # token - that would run the fork's code with the secrets. A fork's change
+    # is scanned once it lands on main.
+    if: ${{ !cancelled() && !startsWith(github.head_ref, 'renovate/') && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
     # Configure the 15-minute wait timer on the sonarcloud-analysis environment.
     environment:
       name: sonarcloud-analysis

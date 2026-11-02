@@ -31,7 +31,7 @@ Most jobs run in parallel on Ubuntu runners. Use `bun install --frozen-lockfile`
 | **Unit Tests (Frontend) - Shard 1/1**               | Vitest. One shard; raise `shardTotal` in `ci.yml` to split it across runners.                                                                                                                                                                  |
 | **Unit Tests (Frontend) - Coverage**                | Merges the shards' coverage reports (runs even if a shard failed, unless the run was cancelled).                                                                                                                                               |
 | **Unit Tests (Backend)**                            | Bun test runner with an in-memory database and coverage.                                                                                                                                                                                       |
-| **SonarCloud Code Analysis**                        | Scans with the merged coverage. Skipped for Renovate dependency PRs, and waits on the `sonarcloud-analysis` environment.                                                                                                                       |
+| **SonarCloud Code Analysis**                        | Scans with the merged coverage. Skipped for Renovate dependency PRs and for pull requests from forks, and waits on the `sonarcloud-analysis` environment.                                                                                      |
 | **E2E Tests (Local)**                               | Playwright against the frontend in local (offline) mode.                                                                                                                                                                                       |
 | **E2E Tests (Online) - 2 shards**                   | Playwright against a Bun backend.                                                                                                                                                                                                              |
 | **E2E Tests (Wrangler) - 3 shards**                 | Playwright against the backend running as a Cloudflare Worker under `wrangler dev` (local D1).                                                                                                                                                 |
@@ -42,6 +42,8 @@ Most jobs run in parallel on Ubuntu runners. Use `bun install --frozen-lockfile`
 | **Create Docker Manifest**                          | Pushes to `main` only. Combines the two platform images into the multi-arch `:dev` tag.                                                                                                                                                        |
 
 Pull requests run everything except the four Docker jobs.
+
+Pull requests from forks also skip the jobs that need a secret. GitHub does not pass secrets to `pull_request` runs on forks (they get only a read-only `GITHUB_TOKEN`), so SonarCloud (`SONAR_TOKEN`) and the two PR preview workflows (Cloudflare tokens) would only fail there; a fork's change is scanned by SonarCloud once it lands on `main`. Give a new job that reads a secret other than `GITHUB_TOKEN` the same guard, `github.event.pull_request.head.repo.full_name == github.repository`, as an `&&` operand of its `if:` (a job that also runs on push puts it behind `github.event_name != 'pull_request' ||`, as SonarCloud does). `scripts/workflow-fork-safety.test.mjs` fails when a job on `pull_request` lacks it. Do not switch the job to `pull_request_target` to get the secret: that runs the fork's code with it.
 
 #### Docker tags published from `main`
 
@@ -56,8 +58,9 @@ Pull requests run everything except the four Docker jobs.
 Runs on every push to `main` and keeps a release PR open (titled
 `chore(main): release X.Y.Z`). The PR bumps the version and prepends a
 CHANGELOG entry built from the Conventional Commit titles merged since the
-last release. Merging it tags `vX.Y.Z`, creates the GitHub release, and calls
-the release workflow below. See [Releasing](#releasing).
+last release. Merging it tags `vX.Y.Z`, creates the GitHub release, thanks its
+[new contributors](#thanking-new-contributors), and calls the release workflow
+below. See [Releasing](#releasing).
 
 Configuration lives in `release-please-config.json` and
 `.release-please-manifest.json` at the repository root.
@@ -279,6 +282,27 @@ To add a scope, add it to `.github/commit-scopes.json` in the PR that needs it:
 the check runs on `pull_request` (read-only token) and reads the list from the
 PR. `bun run test:scripts` checks the list, including that each
 scope has a single emoji no other scope uses.
+
+### Thanking new contributors
+
+release-please's notes name no one, so once it creates a release, the **Thank
+new contributors** job of `release-please.yml` runs
+`scripts/thank-new-contributors.mjs`. It asks GitHub's generate-notes API
+(which only returns text and saves nothing) for the notes of the new tag
+against the previous release, the highest version below it with prereleases
+included, and appends the `## New Contributors` section to the GitHub release
+(one line per person, bots left out). The rest of the release stays as it is,
+and the thanks are not added to `CHANGELOG.md`, the in-app changelog or the
+update dialog. A release without first-time contributors, or one that already
+has the section, is left alone, so running it twice adds nothing twice. The job
+is best effort: if it fails, the Docker release still runs and the workflow
+run still succeeds. To add the section afterwards, or to see what it would
+add, run the script with `gh` signed in (drop `--dry-run` to edit the
+release):
+
+```bash
+node scripts/thank-new-contributors.mjs --repo bobbyquantum/inkweld --tag vX.Y.Z --dry-run
+```
 
 ### What users see when a release lands
 
