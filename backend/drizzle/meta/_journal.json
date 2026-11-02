@@ -22,6 +22,13 @@
       "when": 1792482444705,
       "tag": "0002_user_rejected_at",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1793608736146,
+      "tag": "0003_chubby_clint_barton",
+      "breakpoints": true
     }
   ]
 }

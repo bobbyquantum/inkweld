@@ -445,6 +445,35 @@ See the [GitHub OAuth guide](./admin-guide/github-oauth) for details.
 
 ---
 
+## OpenID Connect (OIDC)
+
+Inkweld supports one standards-based OpenID Connect provider per instance.
+Configure its issuer and client credentials, then enable `OIDC_ENABLED`.
+The callback URL must be registered with your provider.
+
+```bash
+OIDC_ENABLED=true
+OIDC_ISSUER_URL=https://identity.example.com/realms/inkweld
+OIDC_CLIENT_ID=inkweld
+OIDC_CLIENT_SECRET=your-client-secret
+OIDC_CALLBACK_URL=https://inkweld.example.com/api/v1/auth/oidc
+```
+
+Set `OIDC_ONLY=true` to require OIDC for sign-in. This also disables password,
+passkey, GitHub and Home Assistant ingress sign-in and disables local
+registration. The first OIDC user becomes the instance administrator. Accounts
+are identified by the provider's issuer and subject; email addresses are not
+used to link to other accounts.
+
+Use an HTTPS issuer and callback URL in production. HTTP is accepted only for
+localhost development. Set the callback URL explicitly when using a reverse
+proxy or a path prefix. If the frontend is served below a path prefix, include
+that prefix in `SITE_URL` so the callback returns to the correct app URL.
+`OIDC_ONLY=true` skips the optional default password-admin seed; the first
+OIDC sign-in bootstraps the administrator account.
+
+---
+
 ## Home Assistant Ingress
 
 Used by the Inkweld Home Assistant app, which serves the UI in the HA sidebar
@@ -925,6 +954,12 @@ wrangler secret put SESSION_SECRET --env production
 | `GITHUB_CLIENT_ID`                                                  | -                                 | GitHub OAuth client ID                                                                                                                                      |
 | `GITHUB_CLIENT_SECRET`                                              | -                                 | GitHub OAuth client secret                                                                                                                                  |
 | `GITHUB_CALLBACK_URL`                                               | Derived from request              | GitHub OAuth callback URL (`/api/v1/auth/github`)                                                                                                           |
+| `OIDC_ENABLED`                                                      | `false`                           | Enable OpenID Connect sign-in                                                                                                                               |
+| `OIDC_ONLY`                                                         | `false`                           | Require OIDC and disable all other sign-in methods                                                                                                          |
+| `OIDC_ISSUER_URL`                                                   | -                                 | OIDC issuer URL used for discovery                                                                                                                          |
+| `OIDC_CLIENT_ID`                                                    | -                                 | OIDC client ID                                                                                                                                              |
+| `OIDC_CLIENT_SECRET`                                                | -                                 | OIDC client secret                                                                                                                                          |
+| `OIDC_CALLBACK_URL`                                                 | -                                 | Registered OIDC callback URL (`/api/v1/auth/oidc`)                                                                                                          |
 | `INGRESS_ENABLED`                                                   | `false`                           | Trust Home Assistant ingress headers                                                                                                                        |
 | `INGRESS_TRUSTED_PROXY`                                             | -                                 | IP of the Home Assistant ingress proxy                                                                                                                      |
 | `INGRESS_ADMINS`                                                    | -                                 | HA usernames that are Inkweld admins                                                                                                                        |

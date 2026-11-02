@@ -44,6 +44,7 @@ import {
 } from '../routes/announcement.routes';
 import oauthRoutes from '../routes/oauth.routes';
 import githubAuthRoutes from '../routes/github-auth.routes';
+import oidcAuthRoutes from '../routes/oidc-auth.routes';
 import robotsRoutes from '../routes/robots.routes';
 import webauthnRelatedOriginsRoutes from '../routes/webauthn-related-origins.routes';
 import passwordResetRoutes from '../routes/password-reset.routes';
@@ -68,6 +69,7 @@ export function registerRateLimits(app: { use: (path: string, ...mw: unknown[]) 
   if (process.env['INKWELD_DISABLE_RATE_LIMIT'] !== 'true' && process.env['NODE_ENV'] !== 'test') {
     // Password login — 5 attempts per minute per IP
     app.use('/api/v1/auth/login', rateLimit({ windowMs: 60_000, max: 5 }));
+    app.use('/api/v1/auth/oidc', rateLimit({ windowMs: 60_000, max: 20 }));
 
     // Registration — 3 attempts per minute per IP (prevents spam sign-ups)
     app.use('/api/v1/auth/register', rateLimit({ windowMs: 60_000, max: 3 }));
@@ -192,6 +194,7 @@ export function registerCommonRoutes(app: any): void {
 
   // GitHub OAuth (login via GitHub, no auth required)
   app.route('/api/v1/auth', githubAuthRoutes);
+  app.route('/api/v1/auth', oidcAuthRoutes);
 
   // Admin email settings (test email)
   app.route('/api/v1/admin/email', adminEmailRoutes);

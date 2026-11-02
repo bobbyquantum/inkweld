@@ -45,6 +45,16 @@
           {{ 'auth.oauth.github' | transloco }}
         </button>
       }
+      @if (oidcEnabled()) {
+        <button
+          type="button"
+          mat-raised-button
+          data-testid="oauth-provider-oidc"
+          (click)="signInWithProvider('oidc')">
+          <mat-icon>verified_user</mat-icon>
+          {{ 'auth.oauth.oidc' | transloco }}
+        </button>
+      }
       @if (appleEnabled()) {
         <button
           type="button"

@@ -273,10 +273,14 @@
             "properties": {
               "github": {
                 "type": "boolean"
+              },
+              "oidc": {
+                "type": "boolean"
               }
             },
             "required": [
-              "github"
+              "github",
+              "oidc"
             ]
           }
         },
@@ -1870,6 +1874,11 @@
             "example": false,
             "description": "Whether username/password authentication is enabled. When false the app is fully passwordless: /login, /forgot-password, /reset-password and registration password fields are all disabled. The frontend uses this to hide password UI entirely."
           },
+          "oidcOnly": {
+            "type": "boolean",
+            "example": false,
+            "description": "Whether OIDC is the only supported sign-in method. When true, password, passkey, GitHub and Home Assistant ingress sign-in are disabled."
+          },
           "emailRecoveryEnabled": {
             "type": "boolean",
             "example": false,
@@ -1923,6 +1932,7 @@
           "passwordPolicy",
           "passkeysEnabled",
           "passwordLoginEnabled",
+          "oidcOnly",
           "emailRecoveryEnabled",
           "mcpEnabled",
           "hasPrivacyPolicy",
@@ -5397,6 +5407,16 @@
           },
           "400": {
             "description": "Invalid input or username already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Registration is only available through OpenID Connect",
             "content": {
               "application/json": {
                 "schema": {

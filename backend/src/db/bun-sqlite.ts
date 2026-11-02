@@ -102,6 +102,12 @@ async function seedDefaultAdmin(database: BunDatabaseInstance): Promise<void> {
     return;
   }
 
+  const { configService } = await import('../services/config.service.js');
+  if (await configService.getBoolean(database, 'OIDC_ONLY')) {
+    dbLogger.info('Skipping default password admin because OIDC-only authentication is enabled');
+    return;
+  }
+
   const { username, password } = config.defaultAdmin;
 
   // Import userService dynamically to avoid circular dependency

@@ -132,6 +132,9 @@ class ConfigService {
         return 'true';
       case 'GITHUB_ENABLED':
         return 'false';
+      case 'OIDC_ENABLED':
+      case 'OIDC_ONLY':
+        return 'false';
       case 'PASSKEYS_ENABLED':
         return 'true'; // Passkeys enabled by default
       case 'PASSWORD_LOGIN_ENABLED':

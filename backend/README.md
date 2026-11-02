@@ -8,7 +8,7 @@ The Inkweld backend is a lightweight Hono API server designed to be easy to depl
 - Runs on Bun runtime (also compatible with Node.js and Cloudflare Workers)
 - Drizzle ORM for database operations (SQLite/D1)
 - Passkeys (WebAuthn) — passwordless sign-in, passwordless-first by default
-- Session authentication with JWT bearer tokens (plus passkeys and optional GitHub OAuth)
+- Session authentication with JWT bearer tokens (plus passkeys, GitHub OAuth and OIDC)
 - Zod + OpenAPI for request/response validation and auto-generated API docs
 - WebSocket support for real-time collaboration (Yjs)
 - LevelDB for per-project document storage

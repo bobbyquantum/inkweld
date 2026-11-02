@@ -50,6 +50,7 @@ export class OAuthProviderListComponent implements OnInit {
   enabledProviders = signal<string[]>([]);
 
   githubEnabled = signal(false);
+  oidcEnabled = signal(false);
   googleEnabled = signal(false);
   facebookEnabled = signal(false);
   discordEnabled = signal(false);
@@ -61,6 +62,7 @@ export class OAuthProviderListComponent implements OnInit {
   hasAnyProviderEnabled(): boolean {
     return (
       this.githubEnabled() ||
+      this.oidcEnabled() ||
       this.googleEnabled() ||
       this.facebookEnabled() ||
       this.discordEnabled() ||
@@ -103,6 +105,7 @@ export class OAuthProviderListComponent implements OnInit {
 
       // Update individual provider signals
       this.githubEnabled.set(providers.includes('github'));
+      this.oidcEnabled.set(providers.includes('oidc'));
       this.googleEnabled.set(providers.includes('google'));
       this.facebookEnabled.set(providers.includes('facebook'));
       this.discordEnabled.set(providers.includes('discord'));

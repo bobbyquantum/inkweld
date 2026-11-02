@@ -99,6 +99,12 @@ const SystemFeaturesSchema = z
         'passwordless: /login, /forgot-password, /reset-password and registration password ' +
         'fields are all disabled. The frontend uses this to hide password UI entirely.',
     }),
+    oidcOnly: z.boolean().openapi({
+      example: false,
+      description:
+        'Whether OIDC is the only supported sign-in method. When true, password, passkey, ' +
+        'GitHub and Home Assistant ingress sign-in are disabled.',
+    }),
     emailRecoveryEnabled: z.boolean().openapi({
       example: false,
       description:
@@ -226,6 +232,7 @@ configRoutes.openapi(getFeaturesRoute, async (c) => {
       'REQUIRE_EMAIL',
       'PASSKEYS_ENABLED',
       'PASSWORD_LOGIN_ENABLED',
+      'OIDC_ONLY',
       'EMAIL_RECOVERY_ENABLED',
       'MCP_ENABLED',
     ] as const),
@@ -283,10 +290,12 @@ configRoutes.openapi(getFeaturesRoute, async (c) => {
     emailEnabled: isTruthy(cfg.EMAIL_ENABLED.value),
     requireEmail: isTruthy(cfg.REQUIRE_EMAIL.value),
     passwordPolicy,
-    passkeysEnabled: isTruthy(cfg.PASSKEYS_ENABLED.value),
+    passkeysEnabled: isTruthy(cfg.PASSKEYS_ENABLED.value) && !isTruthy(cfg.OIDC_ONLY.value),
     // Whether password login + email-recovery flows are available. These two
     // flags drive the "passwordless mode" UX in the frontend.
-    passwordLoginEnabled: isTruthy(cfg.PASSWORD_LOGIN_ENABLED.value),
+    passwordLoginEnabled:
+      isTruthy(cfg.PASSWORD_LOGIN_ENABLED.value) && !isTruthy(cfg.OIDC_ONLY.value),
+    oidcOnly: isTruthy(cfg.OIDC_ONLY.value),
     emailRecoveryEnabled: isTruthy(cfg.EMAIL_RECOVERY_ENABLED.value),
     // MCP access as a whole (default ON). The AI kill switch takes precedence.
     mcpEnabled: isTruthy(cfg.MCP_ENABLED.value),

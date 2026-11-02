@@ -43,6 +43,7 @@ export class OAuthCallbackComponent implements OnInit {
   private async handleCallback(): Promise<void> {
     const code = this.route.snapshot.queryParamMap.get('code');
     const error = this.route.snapshot.queryParamMap.get('error');
+    const provider = this.route.snapshot.queryParamMap.get('provider');
 
     if (error) {
       this.errorMessage.set(this.getErrorMessage(error));
@@ -60,9 +61,11 @@ export class OAuthCallbackComponent implements OnInit {
       // Exchange the one-time code for a JWT token
       const baseUrl =
         this.setupService.getServerUrl() || globalThis.location.origin;
+      const exchangePath =
+        provider === 'oidc' ? 'oidc/exchange-code' : 'exchange-code';
       const response = await firstValueFrom(
         this.http.post<{ token: string }>(
-          `${baseUrl}/api/v1/auth/exchange-code`,
+          `${baseUrl}/api/v1/auth/${exchangePath}`,
           { code }
         )
       );

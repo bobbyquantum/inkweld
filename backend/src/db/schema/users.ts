@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
 /**
  * Who may see a profile (or one section of it).
@@ -10,93 +10,99 @@ import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
 export const PROFILE_VISIBILITY_LEVELS = ['public', 'members', 'private'] as const;
 export type ProfileVisibility = (typeof PROFILE_VISIBILITY_LEVELS)[number];
 
-export const users = sqliteTable('users', {
-  id: text('id')
-    .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
-  username: text('username').unique(),
-  name: text('name'),
-  email: text('email'),
-  password: text('password'),
-  githubId: text('githubId').unique(),
-  /**
-   * Home Assistant user id, for accounts signed in through HA ingress (see
-   * services/ingress-auth.service.ts). The id is stable across HA username
-   * changes, so the link is made on it rather than on the name.
-   */
-  homeAssistantUserId: text('homeAssistantUserId').unique(),
-  enabled: integer('enabled', { mode: 'boolean' }).notNull().default(false),
-  approved: integer('approved', { mode: 'boolean' }).notNull().default(false),
-  /**
-   * Unix seconds when an admin rejected the registration, or NULL. A rejected
-   * account stays unapproved (it is not deleted) but is no longer listed as
-   * pending. Approving the account clears it.
-   */
-  rejectedAt: integer('rejectedAt'),
-  isAdmin: integer('isAdmin', { mode: 'boolean' }).notNull().default(false),
-  /**
-   * Unix seconds. Session JWTs issued before this instant are rejected.
-   * Bumped on password reset, passkey recovery and admin disable/unapprove so
-   * a stateless 30-day token can be revoked without a session table.
-   */
-  sessionsValidFrom: integer('sessionsValidFrom').notNull().default(0),
-  hasAvatar: integer('hasAvatar', { mode: 'boolean' }).notNull().default(false),
-  // Whether the user has uploaded a personal background image (mirrors
-  // hasAvatar: the bytes live in storage, this flag saves a storage round-trip
-  // when rendering).
-  hasBackground: integer('hasBackground', { mode: 'boolean' }).notNull().default(false),
-  // Free-form per-user UI preferences as a JSON object. Kept as one column
-  // rather than a table per preference so device-independent settings can be
-  // added without a migration each time. See UserPreferences in
-  // services/user-preferences.service.ts for the shape.
-  preferences: text('preferences'),
-  /**
-   * Whether the user has uploaded a profile banner (mirrors hasAvatar: the
-   * bytes live in the `banners` storage slot, this flag saves a round-trip).
-   */
-  hasBanner: integer('hasBanner', { mode: 'boolean' }).notNull().default(false),
-  /** Short free-form profile blurb shown on the public profile page. */
-  bio: text('bio'),
-  /** Gates the whole profile page. */
-  profileVisibility: text('profileVisibility')
-    .notNull()
-    .default('private')
-    .$type<ProfileVisibility>(),
-  /**
-   * Per-section levels. The effective level of a section is the stricter of
-   * the profile level and the section level, so these can only narrow access.
-   */
-  activityVisibility: text('activityVisibility')
-    .notNull()
-    .default('public')
-    .$type<ProfileVisibility>(),
-  projectsVisibility: text('projectsVisibility')
-    .notNull()
-    .default('private')
-    .$type<ProfileVisibility>(),
-  /**
-   * Per-user sync-capacity override in bytes. `NULL` means "use the
-   * instance-wide default" (`SYNC_QUOTA_DEFAULT_BYTES` config key, 100 MB when
-   * unset) so admins can grant extra capacity without copying the default onto
-   * every row. A value of `0` is an explicit zero allowance.
-   */
-  syncQuotaBytes: integer('syncQuotaBytes'),
-  /**
-   * Fast-path usage counter in bytes, maintained incrementally on the write
-   * path and reconciled against the authoritative per-project storage-size
-   * computation. Not the source of truth on its own — reconciliation corrects
-   * drift.
-   */
-  storageUsedBytes: integer('storageUsedBytes').notNull().default(0),
-  /**
-   * The legal-document version (see services/legal.service.ts) the user last
-   * accepted, or NULL if they never have. Compared against the current version
-   * to decide whether to ask them to accept again.
-   */
-  policyAcceptedVersion: text('policyAcceptedVersion'),
-  /** Unix seconds when policyAcceptedVersion was recorded. */
-  policyAcceptedAt: integer('policyAcceptedAt'),
-});
+export const users = sqliteTable(
+  'users',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    username: text('username').unique(),
+    name: text('name'),
+    email: text('email'),
+    password: text('password'),
+    githubId: text('githubId').unique(),
+    oidcIssuer: text('oidcIssuer'),
+    oidcSubject: text('oidcSubject'),
+    /**
+     * Home Assistant user id, for accounts signed in through HA ingress (see
+     * services/ingress-auth.service.ts). The id is stable across HA username
+     * changes, so the link is made on it rather than on the name.
+     */
+    homeAssistantUserId: text('homeAssistantUserId').unique(),
+    enabled: integer('enabled', { mode: 'boolean' }).notNull().default(false),
+    approved: integer('approved', { mode: 'boolean' }).notNull().default(false),
+    /**
+     * Unix seconds when an admin rejected the registration, or NULL. A rejected
+     * account stays unapproved (it is not deleted) but is no longer listed as
+     * pending. Approving the account clears it.
+     */
+    rejectedAt: integer('rejectedAt'),
+    isAdmin: integer('isAdmin', { mode: 'boolean' }).notNull().default(false),
+    /**
+     * Unix seconds. Session JWTs issued before this instant are rejected.
+     * Bumped on password reset, passkey recovery and admin disable/unapprove so
+     * a stateless 30-day token can be revoked without a session table.
+     */
+    sessionsValidFrom: integer('sessionsValidFrom').notNull().default(0),
+    hasAvatar: integer('hasAvatar', { mode: 'boolean' }).notNull().default(false),
+    // Whether the user has uploaded a personal background image (mirrors
+    // hasAvatar: the bytes live in storage, this flag saves a storage round-trip
+    // when rendering).
+    hasBackground: integer('hasBackground', { mode: 'boolean' }).notNull().default(false),
+    // Free-form per-user UI preferences as a JSON object. Kept as one column
+    // rather than a table per preference so device-independent settings can be
+    // added without a migration each time. See UserPreferences in
+    // services/user-preferences.service.ts for the shape.
+    preferences: text('preferences'),
+    /**
+     * Whether the user has uploaded a profile banner (mirrors hasAvatar: the
+     * bytes live in the `banners` storage slot, this flag saves a round-trip).
+     */
+    hasBanner: integer('hasBanner', { mode: 'boolean' }).notNull().default(false),
+    /** Short free-form profile blurb shown on the public profile page. */
+    bio: text('bio'),
+    /** Gates the whole profile page. */
+    profileVisibility: text('profileVisibility')
+      .notNull()
+      .default('private')
+      .$type<ProfileVisibility>(),
+    /**
+     * Per-section levels. The effective level of a section is the stricter of
+     * the profile level and the section level, so these can only narrow access.
+     */
+    activityVisibility: text('activityVisibility')
+      .notNull()
+      .default('public')
+      .$type<ProfileVisibility>(),
+    projectsVisibility: text('projectsVisibility')
+      .notNull()
+      .default('private')
+      .$type<ProfileVisibility>(),
+    /**
+     * Per-user sync-capacity override in bytes. `NULL` means "use the
+     * instance-wide default" (`SYNC_QUOTA_DEFAULT_BYTES` config key, 100 MB when
+     * unset) so admins can grant extra capacity without copying the default onto
+     * every row. A value of `0` is an explicit zero allowance.
+     */
+    syncQuotaBytes: integer('syncQuotaBytes'),
+    /**
+     * Fast-path usage counter in bytes, maintained incrementally on the write
+     * path and reconciled against the authoritative per-project storage-size
+     * computation. Not the source of truth on its own — reconciliation corrects
+     * drift.
+     */
+    storageUsedBytes: integer('storageUsedBytes').notNull().default(0),
+    /**
+     * The legal-document version (see services/legal.service.ts) the user last
+     * accepted, or NULL if they never have. Compared against the current version
+     * to decide whether to ask them to accept again.
+     */
+    policyAcceptedVersion: text('policyAcceptedVersion'),
+    /** Unix seconds when policyAcceptedVersion was recorded. */
+    policyAcceptedAt: integer('policyAcceptedAt'),
+  },
+  (table) => [uniqueIndex('users_oidc_identity_unique').on(table.oidcIssuer, table.oidcSubject)]
+);
 
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;

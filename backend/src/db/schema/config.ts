@@ -147,6 +147,49 @@ export const CONFIG_KEYS = {
     envVar: 'PASSWORD_LOGIN_ENABLED',
     type: 'boolean' as const,
   },
+  OIDC_ENABLED: {
+    category: 'auth' as ConfigCategory,
+    description: 'Enable OpenID Connect authentication',
+    encrypted: false,
+    envVar: 'OIDC_ENABLED',
+    type: 'boolean' as const,
+  },
+  OIDC_ONLY: {
+    category: 'auth' as ConfigCategory,
+    description:
+      'Require OpenID Connect for sign-in and disable password, passkey, GitHub and ingress login',
+    encrypted: false,
+    envVar: 'OIDC_ONLY',
+    type: 'boolean' as const,
+  },
+  OIDC_ISSUER_URL: {
+    category: 'auth' as ConfigCategory,
+    description: 'OpenID Connect issuer URL used for discovery',
+    encrypted: false,
+    envVar: 'OIDC_ISSUER_URL',
+    type: 'string' as const,
+  },
+  OIDC_CLIENT_ID: {
+    category: 'auth' as ConfigCategory,
+    description: 'OpenID Connect client ID',
+    encrypted: false,
+    envVar: 'OIDC_CLIENT_ID',
+    type: 'string' as const,
+  },
+  OIDC_CLIENT_SECRET: {
+    category: 'auth' as ConfigCategory,
+    description: 'OpenID Connect client secret',
+    encrypted: true,
+    envVar: 'OIDC_CLIENT_SECRET',
+    type: 'string' as const,
+  },
+  OIDC_CALLBACK_URL: {
+    category: 'auth' as ConfigCategory,
+    description: 'OpenID Connect callback URL (derived from the request if unset)',
+    encrypted: false,
+    envVar: 'OIDC_CALLBACK_URL',
+    type: 'string' as const,
+  },
 
   // Email-based recovery: when passwords are off this enables a magic-link
   // flow that lets a user re-enrol a passkey from a verified email. When
