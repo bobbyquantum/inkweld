@@ -199,7 +199,7 @@ full list.
 
 ## Dependency installs
 
-Every job runs `bun install --frozen-lockfile` with no dependency cache. That goes for `ci.yml`, `docs.yml` and the Cloudflare deploy and PR preview workflows, and it is deliberate.
+Every job that installs dependencies runs `bun install --frozen-lockfile` with no dependency cache. That goes for `ci.yml`, `docs.yml` and the Cloudflare deploy and PR preview workflows, and it is deliberate.
 
 CI used to cache `~/.bun/install/cache` as `Linux-bun-<lockfile hash>` with `restore-keys: Linux-bun-`, so every new lockfile started from the previous lockfile's cache and added to it. Bun never prunes that directory, so the cache only grew. By November 2026 it was 2.4 GB compressed and 10.8 GB unpacked (667,000 files), and 84% of the package data in it was old versions that the lockfile no longer used: 18 versions of `@cloudflare/workerd-linux-64` alone took 2.3 GB. Restoring it needed 13.2 GB of free disk, the archive plus the unpacked files.
 
