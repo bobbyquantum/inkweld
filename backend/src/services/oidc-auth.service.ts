@@ -21,7 +21,7 @@ type OidcClient = { configuration: oidc.Configuration; issuer: string; callbackU
 
 /** Identify keys whose writes must preserve a complete enabled OIDC configuration. */
 export function isOidcConfigKey(key: ConfigKey): key is OidcConfigKey {
-  return OIDC_CONFIG_KEYS.some((candidate) => candidate === key);
+  return (OIDC_CONFIG_KEYS as readonly ConfigKey[]).includes(key);
 }
 
 async function hash(value: string): Promise<string> {

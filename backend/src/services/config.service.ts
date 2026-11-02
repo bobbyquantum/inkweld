@@ -417,8 +417,10 @@ class ConfigService {
       (row) => sql`EXISTS (SELECT 1 FROM config WHERE key = ${row.key}
         AND value = ${row.value} AND encrypted = ${Number(row.encrypted)})`
     );
-    const unchanged = sql`(SELECT count(*) FROM config WHERE key IN (${keys})) = ${snapshot.length}
-      ${matches.length ? sql`AND ${sql.join(matches, sql` AND `)}` : sql``}`;
+    const unchanged = sql.join(
+      [sql`(SELECT count(*) FROM config WHERE key IN (${keys})) = ${snapshot.length}`, ...matches],
+      sql` AND `
+    );
     if (value === undefined) {
       const deleted = await db
         .delete(config)
