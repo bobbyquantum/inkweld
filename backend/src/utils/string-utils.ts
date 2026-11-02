@@ -19,3 +19,15 @@ export function trimHyphens(s: string): string {
   while (end > start && s[end - 1] === '-') end--;
   return s.substring(start, end);
 }
+
+/**
+ * Trim leading and trailing occurrences of the given characters from a string.
+ * Non-regex implementation, for the same reason as {@link trimHyphens}.
+ */
+export function trimCharacters(s: string, characters: string): string {
+  let start = 0,
+    end = s.length;
+  while (start < end && characters.includes(s[start])) start++;
+  while (end > start && characters.includes(s[end - 1])) end--;
+  return s.substring(start, end);
+}

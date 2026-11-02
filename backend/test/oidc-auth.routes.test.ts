@@ -183,6 +183,51 @@ describe('OIDC callbacks', () => {
     ).toMatchObject({ isAdmin: false, approved: true });
   });
 
+  it('turns provider names into valid local usernames', async () => {
+    await configService.set(db, 'USER_APPROVAL_REQUIRED', 'false');
+    const signInAs = (preferredUsername: string) => {
+      spyOn(oidcAuthService, 'completeAuthorization').mockImplementationOnce((_db, _state, url) =>
+        Promise.resolve({
+          issuer: 'https://issuer.example.test/',
+          claims: {
+            iss: 'https://issuer.example.test/',
+            sub: url.searchParams.get('code')!,
+            aud: 'inkweld',
+            exp: 9999999999,
+            iat: 1,
+            preferred_username: preferredUsername,
+          },
+        })
+      );
+      return callback(preferredUsername);
+    };
+    const usernameFor = async (preferredUsername: string) => {
+      await signInAs(preferredUsername);
+      const user = await userService.findByOidcIdentity(
+        db,
+        'https://issuer.example.test/',
+        preferredUsername
+      );
+      return user?.username;
+    };
+
+    expect(await usernameFor('--Dana.Fox__')).toBe('dana-fox');
+    // Reserved, then too short once cleaned up: both fall back to a generic stem.
+    expect(await usernameFor('privacy')).toBe('oidc-user');
+    expect(await usernameFor('-_')).toBe('oidc-user-2');
+  });
+
+  it('reports a failed sign-in when the account cannot be created', async () => {
+    mocks.push(
+      spyOn(userService, 'createOrUpdateOidcUser').mockRejectedValue(new Error('disk full'))
+    );
+
+    const response = await callback('broken');
+
+    expect(response.status).toBe(302);
+    expect(response.headers.get('location')).toContain('error=oidc_auth_failed');
+  });
+
   it('refuses OIDC-only activation without complete settings and protects active settings', async () => {
     const admin = await userService.create(db, { username: 'admin-user' }, { autoApprove: true });
     mocks.push(
