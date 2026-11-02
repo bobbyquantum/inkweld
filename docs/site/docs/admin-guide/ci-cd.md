@@ -56,8 +56,9 @@ Pull requests run everything except the four Docker jobs.
 Runs on every push to `main` and keeps a release PR open (titled
 `chore(main): release X.Y.Z`). The PR bumps the version and prepends a
 CHANGELOG entry built from the Conventional Commit titles merged since the
-last release. Merging it tags `vX.Y.Z`, creates the GitHub release, and calls
-the release workflow below. See [Releasing](#releasing).
+last release. Merging it tags `vX.Y.Z`, creates the GitHub release, thanks its
+[new contributors](#thanking-new-contributors), and calls the release workflow
+below. See [Releasing](#releasing).
 
 Configuration lives in `release-please-config.json` and
 `.release-please-manifest.json` at the repository root.
@@ -279,6 +280,27 @@ To add a scope, add it to `.github/commit-scopes.json` in the PR that needs it:
 the check runs on `pull_request` (read-only token) and reads the list from the
 PR. `bun run test:scripts` checks the list, including that each
 scope has a single emoji no other scope uses.
+
+### Thanking new contributors
+
+release-please's notes name no one, so once it creates a release, the **Thank
+new contributors** job of `release-please.yml` runs
+`scripts/thank-new-contributors.mjs`. It asks GitHub's generate-notes API
+(which only returns text and saves nothing) for the notes of the new tag
+against the previous release, the highest version below it with prereleases
+included, and appends the `## New Contributors` section to the GitHub release
+(one line per person, bots left out). The rest of the release stays as it is,
+and the thanks are not added to `CHANGELOG.md`, the in-app changelog or the
+update dialog. A release without first-time contributors, or one that already
+has the section, is left alone, so running it twice adds nothing twice. The job
+is best effort: if it fails, the Docker release still runs and the workflow
+run still succeeds. To add the section afterwards, or to see what it would
+add, run the script with `gh` signed in (drop `--dry-run` to edit the
+release):
+
+```bash
+node scripts/thank-new-contributors.mjs --repo bobbyquantum/inkweld --tag vX.Y.Z --dry-run
+```
 
 ### What users see when a release lands
 
