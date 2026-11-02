@@ -57,7 +57,7 @@ async function setup(
       provideRouter([]),
       {
         provide: SetupService,
-        useValue: { getMode: () => 'server' },
+        useValue: { getMode: () => 'server', getServerUrl: () => null },
       },
       {
         provide: ConfigurationService,

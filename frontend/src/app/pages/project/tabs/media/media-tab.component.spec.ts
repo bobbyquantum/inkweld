@@ -114,6 +114,7 @@ describe('MediaTabComponent', () => {
 
     setupService = {
       getMode: vi.fn().mockReturnValue('server'),
+      getServerUrl: vi.fn().mockReturnValue(null),
     };
 
     mediaTagService = {
