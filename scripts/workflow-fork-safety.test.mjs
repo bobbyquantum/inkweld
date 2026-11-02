@@ -19,15 +19,16 @@ const WORKFLOWS_DIR = fileURLToPath(
 const FORK_GUARD =
   "github.event.pull_request.head.repo.full_name == github.repository";
 
-// A top-level `&&` operand of a job's `if:` that is false for every fork pull
-// request: the guard, alone or behind `github.event_name != 'pull_request' ||`
-// (for a job that also runs on push), optionally in parentheses.
-const FORK_SAFE_OPERAND =
-  /^\(?(?:github\.event_name != 'pull_request' \|\| )?github\.event\.pull_request\.head\.repo\.full_name == github\.repository\)?$/;
+// Terms that are false for every fork pull request: the guard, and "the event
+// is not a pull request" (which a job that also runs on push puts in front).
+const FORK_SAFE_TERMS = new Set([
+  FORK_GUARD,
+  "github.event_name != 'pull_request'",
+]);
 
-// Quoted strings, parentheses and `&&`: what decides where the top-level
-// operands of a condition begin and end.
-const CONDITION_TOKEN = /'(?:[^']|'')*'|[()]|&&/g;
+// Quoted strings, parentheses, `&&` and `||`: what decides where the parts of
+// a condition begin and end.
+const CONDITION_TOKEN = /'(?:[^']|'')*'|[()]|&&|\|\|/g;
 
 // The `secrets` context, and the member read from it when that is a literal.
 const SECRETS_CONTEXT =
@@ -73,32 +74,57 @@ function readsSecret(job) {
   );
 }
 
-/** Split a condition at its top-level `&&` (outside parentheses and quotes). */
-function andOperands(condition) {
-  const operands = [];
+/** Split at the top-level `separator` (`&&` or `||`), outside parentheses and quotes. */
+function splitTopLevel(condition, separator) {
+  const parts = [];
   let depth = 0;
   let start = 0;
   for (const match of condition.matchAll(CONDITION_TOKEN)) {
     const [token] = match;
     if (token === "(") depth++;
     else if (token === ")") depth--;
-    else if (token === "&&" && depth === 0) {
-      operands.push(condition.slice(start, match.index).trim());
+    else if (token === separator && depth === 0) {
+      parts.push(condition.slice(start, match.index).trim());
       start = match.index + token.length;
     }
   }
-  operands.push(condition.slice(start).trim());
-  return operands;
+  parts.push(condition.slice(start).trim());
+  return parts;
 }
 
-/** Whether a job's `if:` has an operand that is false for every fork PR. */
+/** The inside of `(...)` when one pair of parentheses wraps all of `text`. */
+function unwrapGroup(text) {
+  if (!text.startsWith("(") || !text.endsWith(")")) return null;
+  const inner = text.slice(1, -1);
+  let depth = 0;
+  for (const [token] of inner.matchAll(CONDITION_TOKEN)) {
+    if (token === "(") depth++;
+    if (token === ")") depth--;
+    if (depth < 0) return null; // the first "(" closes before the end
+  }
+  return depth === 0 ? inner.trim() : null;
+}
+
+/**
+ * Whether the condition is false for every fork pull request, taking any term
+ * it does not recognise to be possibly true. `&&` binds tighter than `||`, so
+ * every `||` branch needs a term that is false on forks.
+ */
+function isFalseOnForks(condition) {
+  return splitTopLevel(condition, "||").every((branch) =>
+    splitTopLevel(branch, "&&").some((term) => {
+      const group = unwrapGroup(term);
+      return group === null ? FORK_SAFE_TERMS.has(term) : isFalseOnForks(group);
+    }),
+  );
+}
+
+/** Whether a job's `if:` is false for every fork pull request. */
 function skipsForks(condition) {
   const text = String(condition ?? "").trim();
   const expression =
     text.startsWith("${{") && text.endsWith("}}") ? text.slice(3, -2) : text;
-  return andOperands(expression.replaceAll(/\s+/g, " ").trim()).some(
-    (operand) => FORK_SAFE_OPERAND.test(operand),
-  );
+  return isFalseOnForks(expression.replaceAll(/\s+/g, " ").trim());
 }
 
 /** Each job of a `pull_request` workflow that reads a secret, as `file#job`. */
@@ -169,6 +195,14 @@ describe("the fork check", () => {
       "behind a check that the event is not a pull request",
       `\${{ !cancelled() && (github.event_name != 'pull_request' || ${FORK_GUARD}) }}`,
     ],
+    [
+      "behind that check without parentheses",
+      `github.event_name != 'pull_request' || ${FORK_GUARD}`,
+    ],
+    [
+      "in every branch of an ||",
+      `${LABELLED} && ${FORK_GUARD} || a() && github.event_name != 'pull_request'`,
+    ],
   ])("accepts the guard %s", (_label, condition) => {
     expect(check("pull_request", withCondition(condition))).toEqual([]);
   });
@@ -187,6 +221,18 @@ describe("the fork check", () => {
     [
       "the guard in a group that is ORed with another",
       `(${LABELLED} && ${FORK_GUARD}) || github.event.action == 'closed'`,
+    ],
+    [
+      "an || branch without the guard, ahead of an && with it",
+      `${LABELLED} || !cancelled() && ${FORK_GUARD}`,
+    ],
+    [
+      "an || branch without the guard, after an && with it",
+      `!cancelled() && ${FORK_GUARD} || ${LABELLED}`,
+    ],
+    [
+      "a group that ORs the guard with another term",
+      `(${LABELLED} || ${FORK_GUARD}) && a()`,
     ],
   ])("rejects %s", (_label, condition) => {
     expect(check("pull_request", withCondition(condition))).toEqual([
