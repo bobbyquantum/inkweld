@@ -43,7 +43,7 @@ Most jobs run in parallel on Ubuntu runners. Use `bun install --frozen-lockfile`
 
 Pull requests run everything except the four Docker jobs.
 
-Pull requests from forks also skip the jobs that need a secret. GitHub does not pass secrets to `pull_request` runs on forks, so SonarCloud (`SONAR_TOKEN`) and the two PR preview workflows (Cloudflare tokens) would only fail there; a fork's change is scanned by SonarCloud once it lands on `main`. Give a new job that reads a secret the same guard, `github.event.pull_request.head.repo.full_name == github.repository`; `scripts/workflow-fork-safety.test.mjs` fails when a job on `pull_request` reads a secret without it. Do not switch it to `pull_request_target` to get the secret: that runs the fork's code with it.
+Pull requests from forks also skip the jobs that need a secret. GitHub does not pass secrets to `pull_request` runs on forks (they get only a read-only `GITHUB_TOKEN`), so SonarCloud (`SONAR_TOKEN`) and the two PR preview workflows (Cloudflare tokens) would only fail there; a fork's change is scanned by SonarCloud once it lands on `main`. Give a new job that reads a secret other than `GITHUB_TOKEN` the same guard, `github.event.pull_request.head.repo.full_name == github.repository`, as an `&&` operand of its `if:` (a job that also runs on push puts it behind `github.event_name != 'pull_request' ||`, as SonarCloud does). `scripts/workflow-fork-safety.test.mjs` fails when a job on `pull_request` lacks it. Do not switch the job to `pull_request_target` to get the secret: that runs the fork's code with it.
 
 #### Docker tags published from `main`
 

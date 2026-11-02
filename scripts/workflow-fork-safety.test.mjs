@@ -4,6 +4,8 @@
  * SonarCloud). Every job that reads a secret must skip forks. The rule and the
  * reasons for it are under "Pull requests from forks" in
  * docs/site/docs/admin-guide/ci-cd.md.
+ *
+ * These checks read the workflow text; they do not evaluate the conditions.
  */
 import { describe, expect, it } from "bun:test";
 import { readdirSync, readFileSync } from "node:fs";
@@ -16,11 +18,20 @@ const WORKFLOWS_DIR = fileURLToPath(
 
 const FORK_GUARD =
   "github.event.pull_request.head.repo.full_name == github.repository";
-const FORK_GUARD_PATTERN =
-  /github\.event\.pull_request\.head\.repo\.full_name\s*==\s*github\.repository/;
 
-// `secrets.NAME` or `secrets['NAME']`.
-const SECRET_REFERENCE = /\bsecrets(?:\.([\w-]+)|\[\s*['"]([^'"]+)['"]\s*\])/g;
+// A top-level `&&` operand of a job's `if:` that is false for every fork pull
+// request: the guard, alone or behind `github.event_name != 'pull_request' ||`
+// (for a job that also runs on push), optionally in parentheses.
+const FORK_SAFE_OPERAND =
+  /^\(?(?:github\.event_name != 'pull_request' \|\| )?github\.event\.pull_request\.head\.repo\.full_name == github\.repository\)?$/;
+
+// Quoted strings, parentheses and `&&`: what decides where the top-level
+// operands of a condition begin and end.
+const CONDITION_TOKEN = /'(?:[^']|'')*'|[()]|&&/g;
+
+// The `secrets` context, and the member read from it when that is a literal.
+const SECRETS_CONTEXT =
+  /(?<![\w.])secrets\b(?:\.([\w-]+)|\[\s*'([^']*)'\s*\])?/g;
 
 /** Whether the workflow runs on `pull_request` (not `pull_request_target`). */
 function runsOnPullRequest(workflow) {
@@ -31,11 +42,62 @@ function runsOnPullRequest(workflow) {
   return Object.hasOwn(triggers ?? {}, "pull_request");
 }
 
-/** Whether the job reads a secret other than the always-present GITHUB_TOKEN. */
+/** The expressions in a parsed value: inside each `${{ }}`, and a whole `if:`. */
+function expressionsIn(value, key) {
+  if (typeof value === "string") {
+    const embedded = [...value.matchAll(/\$\{\{([\s\S]*?)\}\}/g)].map(
+      (match) => match[1],
+    );
+    return key === "if" ? [...embedded, value] : embedded;
+  }
+  if (Array.isArray(value)) return value.flatMap((item) => expressionsIn(item));
+  if (value !== null && typeof value === "object") {
+    return Object.entries(value).flatMap(([name, member]) =>
+      expressionsIn(member, name),
+    );
+  }
+  return [];
+}
+
+/**
+ * Whether the job reads a secret other than the always-present GITHUB_TOKEN.
+ * A computed name (`secrets[matrix.name]`) or the whole context counts.
+ */
 function readsSecret(job) {
   if (job.secrets === "inherit") return true;
-  return [...JSON.stringify(job).matchAll(SECRET_REFERENCE)].some(
-    (match) => (match[1] ?? match[2]).toUpperCase() !== "GITHUB_TOKEN",
+  return expressionsIn(job).some((expression) =>
+    [...expression.matchAll(SECRETS_CONTEXT)].some(
+      ([, dotted, quoted]) =>
+        (dotted ?? quoted)?.toUpperCase() !== "GITHUB_TOKEN",
+    ),
+  );
+}
+
+/** Split a condition at its top-level `&&` (outside parentheses and quotes). */
+function andOperands(condition) {
+  const operands = [];
+  let depth = 0;
+  let start = 0;
+  for (const match of condition.matchAll(CONDITION_TOKEN)) {
+    const [token] = match;
+    if (token === "(") depth++;
+    else if (token === ")") depth--;
+    else if (token === "&&" && depth === 0) {
+      operands.push(condition.slice(start, match.index).trim());
+      start = match.index + token.length;
+    }
+  }
+  operands.push(condition.slice(start).trim());
+  return operands;
+}
+
+/** Whether a job's `if:` has an operand that is false for every fork PR. */
+function skipsForks(condition) {
+  const text = String(condition ?? "").trim();
+  const expression =
+    text.startsWith("${{") && text.endsWith("}}") ? text.slice(3, -2) : text;
+  return andOperands(expression.replaceAll(/\s+/g, " ").trim()).some(
+    (operand) => FORK_SAFE_OPERAND.test(operand),
   );
 }
 
@@ -46,7 +108,7 @@ function secretJobs(file, workflow) {
     .filter(([, job]) => readsSecret(job))
     .map(([id, job]) => ({
       name: `${file}#${id}`,
-      skipsForks: FORK_GUARD_PATTERN.test(job.if ?? ""),
+      skipsForks: skipsForks(job.if),
     }));
 }
 
@@ -88,17 +150,48 @@ describe("the fork check", () => {
   const readsToken = { steps: [{ env: { TOKEN: "${{ secrets.TOKEN }}" } }] };
   const check = (on, job) =>
     unguardedJobs("w.yml", { on, jobs: { build: job } });
+  const withCondition = (condition) => ({ ...readsToken, if: condition });
+  const LABELLED = "contains(github.event.pull_request.labels.*.name, 'x')";
 
   it("flags a pull_request job that reads a secret without the guard", () => {
     expect(check("pull_request", readsToken)).toEqual(["w.yml#build"]);
   });
 
-  it("accepts the guard alone or inside a longer condition", () => {
-    const inLonger = `\${{ !cancelled() && (github.event_name != 'pull_request' || ${FORK_GUARD}) }}`;
-    expect(check("pull_request", { ...readsToken, if: FORK_GUARD })).toEqual(
-      [],
-    );
-    expect(check("pull_request", { ...readsToken, if: inLonger })).toEqual([]);
+  it.each([
+    ["alone", FORK_GUARD],
+    ["in an expression", `\${{ ${FORK_GUARD} }}`],
+    ["in parentheses", `(${FORK_GUARD})`],
+    ["after another operand", `${LABELLED} && ${FORK_GUARD}`],
+    ["before another operand", `${FORK_GUARD} && ${LABELLED}`],
+    ["across lines", `${LABELLED} &&\n  ${FORK_GUARD}`],
+    ["after a string that contains &&", `a('x && y') && ${FORK_GUARD}`],
+    [
+      "behind a check that the event is not a pull request",
+      `\${{ !cancelled() && (github.event_name != 'pull_request' || ${FORK_GUARD}) }}`,
+    ],
+  ])("accepts the guard %s", (_label, condition) => {
+    expect(check("pull_request", withCondition(condition))).toEqual([]);
+  });
+
+  it.each([
+    ["no condition", undefined],
+    ["an unrelated condition", "github.event.action == 'closed'"],
+    [
+      "another repository",
+      "github.event.pull_request.head.repo.full_name == 'a/b'",
+    ],
+    ["the guard as one side of ||", `${FORK_GUARD} || ${LABELLED}`],
+    ["the guard negated", `!(${FORK_GUARD})`],
+    ["the guard as a function argument", `a(${FORK_GUARD}, 'x')`],
+    ["the guard inside a string", `a('${FORK_GUARD}')`],
+    [
+      "the guard in a group that is ORed with another",
+      `(${LABELLED} && ${FORK_GUARD}) || github.event.action == 'closed'`,
+    ],
+  ])("rejects %s", (_label, condition) => {
+    expect(check("pull_request", withCondition(condition))).toEqual([
+      "w.yml#build",
+    ]);
   });
 
   it("finds pull_request among several triggers", () => {
@@ -110,17 +203,33 @@ describe("the fork check", () => {
     ).toEqual(["w.yml#build"]);
   });
 
-  it("flags secrets: inherit and the bracket syntax", () => {
-    expect(
-      check("pull_request", { uses: "./w.yml", secrets: "inherit" }),
-    ).toEqual(["w.yml#build"]);
-    expect(
-      check("pull_request", { run: "echo ${{ secrets['TOKEN'] }}" }),
-    ).toEqual(["w.yml#build"]);
+  it.each([
+    ["secrets: inherit", { uses: "./w.yml", secrets: "inherit" }],
+    [
+      "a secret handed to a reusable workflow",
+      { uses: "./w.yml", secrets: { token: "${{ secrets.TOKEN }}" } },
+    ],
+    ["the bracket syntax", { run: "echo ${{ secrets['TOKEN'] }}" }],
+    ["a computed name", { run: "echo ${{ secrets[matrix.token_name] }}" }],
+    ["the whole context", { run: "echo ${{ toJSON(secrets) }}" }],
+  ])("flags %s", (_label, job) => {
+    expect(check("pull_request", job)).toEqual(["w.yml#build"]);
   });
 
-  it("ignores GITHUB_TOKEN, which forks do get", () => {
-    const job = { env: { GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}" } };
+  it.each([
+    ["dot syntax", "${{ secrets.GITHUB_TOKEN }}"],
+    ["bracket syntax", "${{ secrets['github_token'] }}"],
+  ])("ignores GITHUB_TOKEN, which forks do get (%s)", (_label, expression) => {
+    expect(check("pull_request", { env: { GH_TOKEN: expression } })).toEqual(
+      [],
+    );
+  });
+
+  it.each([
+    ["a literal in a script", { run: "see secrets.TOKEN in the docs" }],
+    ["a member of another context", { run: "echo ${{ inputs.secrets }}" }],
+    ["a step name", { steps: [{ name: "Use secrets", run: "true" }] }],
+  ])("ignores text that does not read a secret: %s", (_label, job) => {
     expect(check("pull_request", job)).toEqual([]);
   });
 
