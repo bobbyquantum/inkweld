@@ -35,6 +35,60 @@ interface WindowEntry {
 }
 
 /**
+ * Whether limits are off. Gated behind either INKWELD_DISABLE_RATE_LIMIT (for
+ * Docker e2e compiled binaries where Bun --minify constant-folds
+ * process.env.NODE_ENV) or NODE_ENV=test (for local `bun test`). Bracket
+ * notation prevents the minifier from inlining the value at build time.
+ */
+export function rateLimitsDisabled(): boolean {
+  return process.env['INKWELD_DISABLE_RATE_LIMIT'] === 'true' || process.env['NODE_ENV'] === 'test';
+}
+
+/** Counts events per key in a sliding window. */
+export interface RateWindow {
+  /** Count one event, or give the seconds to wait if it would be over the limit. */
+  take(key: string): number | null;
+}
+
+export function createRateWindow(windowMs: number, max: number): RateWindow {
+  const store = new Map<string, WindowEntry>();
+
+  let lastCleanup = Date.now();
+  const CLEANUP_INTERVAL_MS = 5 * 60 * 1000;
+
+  return {
+    take(key) {
+      const now = Date.now();
+
+      // Lazy cleanup of expired entries roughly every 5 minutes (triggered by requests)
+      if (now - lastCleanup > CLEANUP_INTERVAL_MS) {
+        lastCleanup = now;
+        for (const [storedKey, entry] of store) {
+          entry.timestamps = entry.timestamps.filter((t) => now - t < windowMs);
+          if (entry.timestamps.length === 0) store.delete(storedKey);
+        }
+      }
+
+      let entry = store.get(key);
+      if (!entry) {
+        entry = { timestamps: [] };
+        store.set(key, entry);
+      }
+
+      // Prune timestamps outside the window
+      entry.timestamps = entry.timestamps.filter((t) => now - t < windowMs);
+
+      if (entry.timestamps.length >= max) {
+        return Math.ceil((entry.timestamps[0] + windowMs - now) / 1000);
+      }
+
+      entry.timestamps.push(now);
+      return null;
+    },
+  };
+}
+
+/**
  * Rate-limit bucket key for a request: the client IP as resolved by
  * `getClientIp` (proxy headers only when trusted — see utils/client-ip.ts).
  * When no trustworthy address is available every such request shares one
@@ -59,43 +113,17 @@ export function rateLimit(options: RateLimitOptions): MiddlewareHandler {
     message = 'Too many requests, please try again later',
   } = options;
 
-  const store = new Map<string, WindowEntry>();
-
-  let lastCleanup = Date.now();
-  const CLEANUP_INTERVAL_MS = 5 * 60 * 1000;
+  const window = createRateWindow(windowMs, max);
 
   return (c: Context, next) => {
-    const now = Date.now();
-
-    // Lazy cleanup of expired entries roughly every 5 minutes (triggered by requests)
-    if (now - lastCleanup > CLEANUP_INTERVAL_MS) {
-      lastCleanup = now;
-      for (const [key, entry] of store) {
-        entry.timestamps = entry.timestamps.filter((t) => now - t < windowMs);
-        if (entry.timestamps.length === 0) store.delete(key);
-      }
-    }
-
     const key = keyGenerator ? keyGenerator(c) : defaultKey(c);
+    const retryAfter = window.take(key);
 
-    let entry = store.get(key);
-    if (!entry) {
-      entry = { timestamps: [] };
-      store.set(key, entry);
-    }
-
-    // Prune timestamps outside the window
-    entry.timestamps = entry.timestamps.filter((t) => now - t < windowMs);
-
-    if (entry.timestamps.length >= max) {
-      const oldest = entry.timestamps[0];
-      const retryAfter = Math.ceil((oldest + windowMs - now) / 1000);
-
+    if (retryAfter !== null) {
       c.header('Retry-After', String(retryAfter));
       return Promise.resolve(c.json({ error: message }, 429));
     }
 
-    entry.timestamps.push(now);
     return next();
   };
 }

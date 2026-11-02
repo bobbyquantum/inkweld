@@ -25,6 +25,9 @@ import { mediaReferenceFilename } from '@utils/media-reference';
 import Konva from 'konva';
 
 import {
+  canvasFontQuery,
+  canvasGradientBox,
+  imageFitAttrs,
   isGradientFill,
   linearGradientLine,
   parseCssGradient,
@@ -101,8 +104,11 @@ export class CanvasRendererService {
   private _annotationsLayer: Konva.Layer | null = null;
   /** Image loads still in flight, see {@link whenImagesSettled}. */
   private readonly _pendingImageLoads = new Set<Promise<void>>();
-  /** Per object, how to try again for media with no file: {@link retryFailedImages}. */
-  private readonly _failedImages = new Map<string, () => void>();
+  /** Per object, images showing a placeholder: {@link retryFailedImages}. */
+  private readonly _failedImages = new Map<
+    string,
+    { src: string; retry: () => void }
+  >();
   private readonly _frameNodes = new Map<string, Konva.Group>();
   private _frameTransformer: Konva.Transformer | null = null;
   private _editingFrameId: string | null = null;
@@ -266,9 +272,19 @@ export class CanvasRendererService {
    * Nothing else would: the node only changes when the object does.
    */
   retryFailedImages(): void {
-    const retries = [...this._failedImages.values()];
-    this._failedImages.clear();
+    const retries: (() => void)[] = [];
+    for (const [id, { src, retry }] of this._failedImages) {
+      // Only project media can turn up later.
+      if (!isMediaUrl(src)) continue;
+      this._failedImages.delete(id);
+      retries.push(retry);
+    }
     for (const retry of retries) retry();
+  }
+
+  /** The image objects showing a placeholder, as they could not be loaded. */
+  failedImageIds(): string[] {
+    return [...this._failedImages.keys()];
   }
 
   /** Track one image node's load until it settles. */
@@ -854,17 +870,35 @@ export class CanvasRendererService {
     node.draggable(!obj.locked && !isBackgroundImage(obj));
   }
 
+  /** Konva attributes for an object's shadow and blend mode. */
+  static effectAttrs(obj: CanvasObject): Konva.ShapeConfig {
+    const { shadow, blendMode } = obj;
+    return {
+      shadowEnabled: !!shadow,
+      shadowColor: shadow?.color,
+      shadowBlur: shadow?.blur ?? 0,
+      shadowOffsetX: shadow?.offsetX ?? 0,
+      shadowOffsetY: shadow?.offsetY ?? 0,
+      shadowOpacity: shadow?.opacity ?? 1,
+      shadowForStrokeEnabled: !!shadow,
+      globalCompositeOperation: blendMode ?? 'source-over',
+    };
+  }
+
   /** Patch the type-specific appearance of an existing node. */
   static applyStyle(node: Konva.Node, obj: CanvasObject): void {
     switch (obj.type) {
       case 'path':
         CanvasRendererService.applyPathStyle(node as Konva.Line, obj);
+        node.setAttrs(CanvasRendererService.effectAttrs(obj));
         break;
       case 'shape':
         CanvasRendererService.applyShapeStyle(node as Konva.Shape, obj);
+        node.setAttrs(CanvasRendererService.effectAttrs(obj));
         break;
       case 'text':
         CanvasRendererService.applyTextStyle(node as Konva.Text, obj);
+        node.setAttrs(CanvasRendererService.effectAttrs(obj));
         break;
       case 'image':
         CanvasRendererService.applyImageStyle(node as Konva.Group, obj);
@@ -905,19 +939,15 @@ export class CanvasRendererService {
       return;
     }
 
-    // Ellipses draw around their origin; everything else from the top-left.
-    const center =
-      obj.shapeType === 'ellipse'
-        ? { x: 0, y: 0 }
-        : { x: obj.width / 2, y: obj.height / 2 };
+    const { width, height, center } = canvasGradientBox(obj);
     const stops: (number | string)[] = [];
     for (const stop of gradient.stops) stops.push(stop.offset, stop.color);
 
     if (gradient.type === 'linear') {
       const { start, end } = linearGradientLine(
         gradient.angle,
-        obj.width,
-        obj.height,
+        width,
+        height,
         center
       );
       node.setAttrs({
@@ -937,7 +967,7 @@ export class CanvasRendererService {
       fillRadialGradientStartPoint: center,
       fillRadialGradientEndPoint: center,
       fillRadialGradientStartRadius: 0,
-      fillRadialGradientEndRadius: Math.hypot(obj.width, obj.height) / 2,
+      fillRadialGradientEndRadius: Math.hypot(width, height) / 2,
       fillRadialGradientColorStops: stops,
       fillLinearGradientColorStops: undefined,
     });
@@ -970,23 +1000,95 @@ export class CanvasRendererService {
     }
   }
 
+  private static textAttrs(obj: CanvasText): Konva.TextConfig {
+    return {
+      text: obj.text,
+      fontSize: obj.fontSize,
+      fontFamily: obj.fontFamily,
+      fontStyle: obj.fontStyle,
+      fill: obj.fill,
+      width: obj.width || undefined,
+      align: obj.align,
+      lineHeight: obj.lineHeight ?? 1,
+      letterSpacing: obj.letterSpacing ?? 0,
+      stroke: obj.stroke,
+      strokeWidth: obj.strokeWidth,
+      // The outline goes behind the fill, or it eats into the letters.
+      fillAfterStrokeEnabled: true,
+    };
+  }
+
   private static applyTextStyle(node: Konva.Text, obj: CanvasText): void {
-    node.text(obj.text);
-    node.fontSize(obj.fontSize);
-    node.fontFamily(obj.fontFamily);
-    node.fontStyle(obj.fontStyle);
-    node.fill(obj.fill);
-    node.setAttr('width', obj.width || undefined);
-    node.align(obj.align);
+    node.setAttrs(CanvasRendererService.textAttrs(obj));
+    CanvasRendererService.redrawWhenFontLoads(node, obj);
+  }
+
+  /**
+   * A canvas draws text at once in whatever font is loaded, and nothing tells
+   * it when the web font it asked for arrives. Lay the text out again then, or
+   * it stays in the fallback font and wraps for the wrong widths.
+   */
+  private static redrawWhenFontLoads(node: Konva.Text, obj: CanvasText): void {
+    const fonts = (document as { fonts?: FontFaceSet }).fonts;
+    if (!fonts?.load) return;
+    const query = canvasFontQuery(obj);
+    if (fonts.check?.(query)) return;
+    fonts.load(query).then(
+      faces => {
+        if (faces.length === 0) return;
+        CanvasRendererService.relayoutText(node);
+        node.getLayer()?.batchDraw();
+      },
+      () => undefined
+    );
+  }
+
+  /** Konva only measures text when an attribute changes; force it to. */
+  private static relayoutText(node: Konva.Text): void {
+    (node as unknown as { _setTextData(): void })._setTextData();
+  }
+
+  /** Lay out all text again, after fonts have loaded. */
+  refreshTextLayout(): void {
+    this._stage
+      ?.find<Konva.Text>('Text')
+      .forEach(node => CanvasRendererService.relayoutText(node));
   }
 
   private static applyImageStyle(node: Konva.Group, obj: CanvasImage): void {
+    // What a load still on its way draws with, see createImageNode.
+    node.setAttr('inkImage', obj);
     for (const child of node.getChildren()) {
-      if (child instanceof Konva.Image || child instanceof Konva.Rect) {
+      if (child instanceof Konva.Image) {
+        child.setAttrs(
+          CanvasRendererService.imageAttrs(
+            obj,
+            child.image()
+          ) as Konva.ImageConfig
+        );
+      } else if (child instanceof Konva.Rect) {
         child.width(obj.width);
         child.height(obj.height);
+        child.cornerRadius(obj.cornerRadius ?? 0);
       }
     }
+  }
+
+  /** Attributes of the picture inside an image node. */
+  private static imageAttrs(
+    obj: CanvasImage,
+    image: unknown
+  ): Omit<Konva.ImageConfig, 'image'> {
+    const loaded = image as HTMLImageElement | undefined;
+    return {
+      ...imageFitAttrs(
+        obj,
+        loaded?.naturalWidth ?? 0,
+        loaded?.naturalHeight ?? 0
+      ),
+      cornerRadius: obj.cornerRadius ?? 0,
+      ...CanvasRendererService.effectAttrs(obj),
+    };
   }
 
   private static applyPinStyle(node: Konva.Group, obj: CanvasPin): void {
@@ -1022,9 +1124,7 @@ export class CanvasRendererService {
           src => this.resolveImageSrc(src),
           undefined,
           this.trackImageLoad(),
-          retry => {
-            if (isMediaUrl(obj.src)) this._failedImages.set(obj.id, retry);
-          }
+          retry => this._failedImages.set(obj.id, { src: obj.src, retry })
         );
         break;
       case 'text':
@@ -1039,6 +1139,7 @@ export class CanvasRendererService {
         break;
       case 'shape':
         node = CanvasRendererService.createShapeNode(obj, commonAttrs);
+        node.setAttrs(CanvasRendererService.effectAttrs(obj));
         this.wireLinkInteractions(node, obj, handlers);
         break;
       case 'pin':
@@ -1170,11 +1271,12 @@ export class CanvasRendererService {
   ): Konva.Group {
     const log = warnLogger ?? (() => {});
     const settle = onSettled ?? (() => {});
-    const group = new Konva.Group({ ...attrs });
+    const group = new Konva.Group({ ...attrs, inkImage: obj });
 
     const placeholder = new Konva.Rect({
       width: obj.width,
       height: obj.height,
+      cornerRadius: obj.cornerRadius ?? 0,
       fill: '#e0e0e0',
       stroke: '#bdbdbd',
       strokeWidth: 1,
@@ -1203,10 +1305,11 @@ export class CanvasRendererService {
             showFailure();
           };
           imageObj.onload = () => {
+            // The object may have changed by now, as a retry can come much later.
+            const current = group.getAttr('inkImage') as CanvasImage;
             const kImage = new Konva.Image({
               image: imageObj,
-              width: obj.width,
-              height: obj.height,
+              ...CanvasRendererService.imageAttrs(current, imageObj),
             });
             placeholder.destroy();
             group.add(kImage);
@@ -1239,14 +1342,10 @@ export class CanvasRendererService {
   ): Konva.Text {
     const textNode = new Konva.Text({
       ...attrs,
-      text: obj.text,
-      fontSize: obj.fontSize,
-      fontFamily: obj.fontFamily,
-      fontStyle: obj.fontStyle,
-      fill: obj.fill,
-      width: obj.width || undefined,
-      align: obj.align,
+      ...CanvasRendererService.textAttrs(obj),
+      ...CanvasRendererService.effectAttrs(obj),
     });
+    CanvasRendererService.redrawWhenFontLoads(textNode, obj);
 
     if (onDblClick) {
       textNode.on('dblclick dbltap', () => {
@@ -1304,7 +1403,7 @@ export class CanvasRendererService {
       lineCap: 'round',
       lineJoin: 'round',
       perfectDrawEnabled: false,
-      shadowForStrokeEnabled: false,
+      ...CanvasRendererService.effectAttrs(obj),
     });
   }
 

@@ -2,6 +2,7 @@ import { inject, Injectable, Injector } from '@angular/core';
 import type { CanvasContents } from '@models/canvas-edit';
 import { LoggerService } from '@services/core/logger.service';
 
+import { canvasFontQuery } from '../../pages/project/tabs/canvas/canvas-utils';
 import {
   dataUrlToBlob,
   type RasterOptions,
@@ -24,6 +25,14 @@ const NOOP_HANDLERS: CanvasNodeHandlers = {
   onTransformEnd: () => {},
   onDblClickText: () => {},
 };
+
+/** What a caller of `renderRegion` can ask for besides the image. */
+export interface RegionRenderHooks {
+  /** Skips drawing once nobody is waiting for the image. */
+  signal?: AbortSignal;
+  /** Told which image objects could not be loaded and show a placeholder. */
+  onFailedImages?: (objectIds: string[]) => void;
+}
 
 /**
  * Renders a region of any canvas to an image without the canvas tab being
@@ -49,9 +58,14 @@ export class CanvasRasterizerService {
   renderRegion(
     contents: CanvasContents,
     rect: RasterRect,
-    options: RasterOptions = {}
+    options: RasterOptions = {},
+    hooks: RegionRenderHooks = {}
   ): Promise<Blob | null> {
-    const run = this.queue.then(() => this.renderNow(contents, rect, options));
+    const run = this.queue.then(() =>
+      hooks.signal?.aborted
+        ? null
+        : this.renderNow(contents, rect, options, hooks)
+    );
     // Keep the chain alive even when a render fails.
     this.queue = run.catch(() => undefined);
     return run;
@@ -60,7 +74,8 @@ export class CanvasRasterizerService {
   private async renderNow(
     contents: CanvasContents,
     rect: RasterRect,
-    options: RasterOptions
+    options: RasterOptions,
+    hooks: RegionRenderHooks
   ): Promise<Blob | null> {
     if (typeof document === 'undefined') return null;
 
@@ -98,11 +113,15 @@ export class CanvasRasterizerService {
       renderer.stage?.position({ x: -rect.x, y: -rect.y });
 
       await withTimeout(
-        Promise.all([renderer.whenImagesSettled(), loadFonts(contents)]).then(
-          () => undefined
-        ),
+        Promise.all([
+          renderer.whenImagesSettled(),
+          loadCanvasFonts(contents),
+        ]).then(() => undefined),
         ASSET_SETTLE_TIMEOUT_MS
       );
+      if (hooks.signal?.aborted) return null;
+      hooks.onFailedImages?.(renderer.failedImageIds());
+      renderer.refreshTextLayout();
 
       const stage = renderer.stage;
       if (!stage) return null;
@@ -137,17 +156,20 @@ export class CanvasRasterizerService {
 }
 
 /** Ask the browser to load every font family the canvas text uses. */
-async function loadFonts(contents: CanvasContents): Promise<void> {
+export async function loadCanvasFonts(contents: CanvasContents): Promise<void> {
   const fonts = (document as { fonts?: FontFaceSet }).fonts;
   if (!fonts?.load) return;
   const specs = new Set<string>();
   for (const obj of contents.objects) {
     if (obj.type !== 'text' || !obj.visible) continue;
-    const style = obj.fontStyle.includes('italic') ? 'italic' : 'normal';
-    const weight = obj.fontStyle.includes('bold') ? 'bold' : 'normal';
-    specs.add(`${style} ${weight} ${obj.fontSize}px "${obj.fontFamily}"`);
+    specs.add(canvasFontQuery(obj));
   }
   await Promise.all([...specs].map(spec => fonts.load(spec).catch(() => [])));
+}
+
+/** {@link loadCanvasFonts}, up to a limit: a font's request can stay pending. */
+export function settleCanvasFonts(contents: CanvasContents): Promise<void> {
+  return withTimeout(loadCanvasFonts(contents), ASSET_SETTLE_TIMEOUT_MS);
 }
 
 function withTimeout(promise: Promise<void>, ms: number): Promise<void> {

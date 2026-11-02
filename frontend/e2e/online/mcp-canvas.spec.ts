@@ -16,7 +16,31 @@ const PIXEL_PNG = Buffer.from(
 interface ToolResult {
   structuredContent?: Record<string, unknown>;
   isError?: boolean;
-  content?: { text: string }[];
+  content?: { type: string; text?: string; data?: string; mimeType?: string }[];
+}
+
+/** The pixels of part of a PNG, read in the browser, which can decode it. */
+function pixelsOf(
+  page: AuthenticatedPage,
+  png: Buffer,
+  area: { x: number; y: number; width: number; height: number }
+): Promise<number[]> {
+  return page.evaluate(
+    async ({ base64, area }) => {
+      const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+      const bitmap = await createImageBitmap(
+        new Blob([bytes], { type: 'image/png' })
+      );
+      const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+      const context = canvas.getContext(
+        '2d'
+      ) as OffscreenCanvasRenderingContext2D;
+      context.drawImage(bitmap, 0, 0);
+      const { x, y, width, height } = area;
+      return Array.from(context.getImageData(x, y, width, height).data);
+    },
+    { base64: png.toString('base64'), area }
+  );
 }
 
 /** A new project with an agent authorized on it, to make tool calls with. */
@@ -42,7 +66,8 @@ async function agentOnNewProject(page: AuthenticatedPage, slug: string) {
     'editor'
   );
 
-  return async function tool(name: string, args: Record<string, unknown>) {
+  /** The whole answer, for a tool that returns more than JSON. */
+  async function callTool(name: string, args: Record<string, unknown>) {
     const response = await mcpCallTool(page.request, accessToken, name, {
       project: `${username}/${slug}`,
       ...args,
@@ -50,9 +75,16 @@ async function agentOnNewProject(page: AuthenticatedPage, slug: string) {
     expect(response.error).toBeUndefined();
     const result = response.result as ToolResult;
     expect(result.isError, result.content?.[0]?.text).toBeUndefined();
+    return result;
+  }
+
+  async function tool(name: string, args: Record<string, unknown>) {
+    const result = await callTool(name, args);
     return (result.structuredContent ??
       JSON.parse(result.content?.[0]?.text ?? '{}')) as Record<string, unknown>;
-  };
+  }
+
+  return { callTool, tool };
 }
 
 /**
@@ -65,7 +97,10 @@ test('an agent draws on a canvas the user has open', async ({
   authenticatedPage: page,
 }, testInfo) => {
   test.slow();
-  const tool = await agentOnNewProject(page, `agent-canvas-${Date.now()}`);
+  const { callTool, tool } = await agentOnNewProject(
+    page,
+    `agent-canvas-${Date.now()}`
+  );
 
   const { element } = (await tool('create_element', {
     name: 'Agent Map',
@@ -103,8 +138,9 @@ test('an agent draws on a canvas the user has open', async ({
           x: 80,
           y: 80,
           fontSize: 64,
-          fontFamily: 'Georgia',
+          fontFamily: 'EB Garamond',
           fontStyle: 'bold',
+          letterSpacing: 2,
           fill: '#3B2F1E',
         },
         { id: 'town', type: 'pin', label: 'Harbour Town', x: 400, y: 340 },
@@ -185,6 +221,58 @@ test('an agent draws on a canvas the user has open', async ({
     await expect(objects).toHaveCount(4);
   });
 
+  await test.step('the agent can see what it drew, without a browser', async () => {
+    const result = await callTool('render_canvas', { elementId, maxSize: 400 });
+
+    const image = result.content?.find(c => c.type === 'image');
+    expect(image?.mimeType).toBe('image/png');
+    const png = Buffer.from(image?.data ?? '', 'base64');
+    expect(png.subarray(1, 4).toString()).toBe('PNG');
+
+    expect(result.structuredContent).toMatchObject({
+      shows: 'Page',
+      image: { width: 400, height: 300 },
+    });
+    // The uploaded image and the bundled font both drew as stored.
+    expect(result.structuredContent?.['warnings']).toBeUndefined();
+
+    const colourAt = async (x: number, y: number) =>
+      (await pixelsOf(page, png, { x, y, width: 1, height: 1 })).slice(0, 3);
+    expect(await colourAt(5, 5), 'the page colour').toEqual([245, 239, 224]);
+    expect(await colourAt(30, 270), 'the panel').toEqual([255, 255, 255]);
+    expect(await colourAt(320, 80), 'the uploaded image').toEqual([255, 0, 0]);
+    // The title, in its dark ink, on the panel.
+    const title = await pixelsOf(page, png, {
+      x: 40,
+      y: 40,
+      width: 200,
+      height: 32,
+    });
+    const darkPixels = title.filter(
+      (value, index) => index % 4 === 0 && value < 100
+    );
+    expect(darkPixels.length, 'the title').toBeGreaterThan(50);
+  });
+
+  await test.step('a render can be kept as project media', async () => {
+    const saved = await tool('save_canvas_image', {
+      elementId,
+      maxSize: 200,
+    });
+    const media = await tool('list_project_media', {});
+    expect(JSON.stringify(media)).toContain(
+      (saved['mediaUrl'] as string).substring('media://'.length)
+    );
+
+    const stored = await callTool('get_media_content', {
+      mediaUrl: saved['mediaUrl'],
+    });
+    const image = stored.content?.find(c => c.type === 'image');
+    expect(image?.mimeType).toBe('image/png');
+    const bytes = Buffer.from(image?.data ?? '', 'base64');
+    expect(bytes.subarray(1, 4).toString()).toBe('PNG');
+  });
+
   await test.step('what the agent drew survives a reload', async () => {
     await page.reload();
     await page.getByTestId('element-Agent Map').click();
@@ -211,7 +299,7 @@ test('tool calls made at the same moment all land', async ({
   authenticatedPage: page,
 }) => {
   test.slow();
-  const tool = await agentOnNewProject(page, `agent-overlap-${Date.now()}`);
+  const { tool } = await agentOnNewProject(page, `agent-overlap-${Date.now()}`);
   const { element } = (await tool('create_element', {
     name: 'Agent Overlap',
     type: 'CANVAS',

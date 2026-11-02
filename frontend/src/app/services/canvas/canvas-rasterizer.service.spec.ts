@@ -20,7 +20,10 @@ import {
 } from 'vitest';
 
 import { installCanvas2dStub } from '../../../testing/canvas-2d-stub';
-import { CanvasRasterizerService } from './canvas-rasterizer.service';
+import {
+  CanvasRasterizerService,
+  settleCanvasFonts,
+} from './canvas-rasterizer.service';
 
 // jsdom has no 2D canvas; Konva needs a context to construct nodes and a
 // toDataURL to export. Both are stubbed to deterministic values.
@@ -174,6 +177,64 @@ describe('CanvasRasterizerService', () => {
 
     expect(toDataURL).toHaveBeenCalled();
     expect(blob).toBeInstanceOf(Blob);
+  });
+
+  it('draws nothing for a render cancelled while it waited its turn', async () => {
+    const controller = new AbortController();
+    controller.abort();
+
+    const blob = await service.renderRegion(
+      contents([rectShape]),
+      rect,
+      {},
+      { signal: controller.signal }
+    );
+
+    expect(blob).toBeNull();
+    expect(toDataURL).not.toHaveBeenCalled();
+  });
+
+  it('draws nothing for a render cancelled while images and fonts load', async () => {
+    const controller = new AbortController();
+    fontsLoad.mockImplementationOnce(() => {
+      controller.abort();
+      return Promise.resolve([]);
+    });
+
+    const blob = await service.renderRegion(
+      contents([text]),
+      rect,
+      {},
+      { signal: controller.signal }
+    );
+
+    expect(blob).toBeNull();
+    expect(toDataURL).not.toHaveBeenCalled();
+  });
+
+  it('says which images could not be loaded', async () => {
+    localStorage.getMediaUrl.mockResolvedValue(null);
+    const onFailedImages = vi.fn();
+
+    await service.renderRegion(contents([image]), rect, {}, { onFailedImages });
+
+    expect(onFailedImages).toHaveBeenCalledWith(['I1']);
+  });
+
+  it('stops waiting for a font that never arrives', async () => {
+    vi.useFakeTimers();
+    try {
+      fontsLoad.mockImplementationOnce(() => new Promise(() => undefined));
+      const settled = vi.fn();
+      void settleCanvasFonts(contents([text])).then(settled);
+
+      await vi.advanceTimersByTimeAsync(14_000);
+      expect(settled).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(1_000);
+      expect(settled).toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('returns null when the browser refuses to render', async () => {

@@ -11,7 +11,7 @@ import {
   sampleWidthFactor,
   simplifyIndices,
   simplifyPath,
-} from './ink-stroke';
+} from '../src/ink-stroke';
 
 /** Pull [x, y] pairs out of a flat coordinate array. */
 function pairs(flat: number[]): [number, number][] {
@@ -196,6 +196,14 @@ describe('buildInkOutline', () => {
     expect(Math.min(...ys)).toBeCloseTo(-2, 5);
   });
 
+  it('rounds its start behind the first point, as its end past the last', () => {
+    const outline = buildInkOutline([10, 0, 20, 0, 30, 0], [1, 1, 1], 8);
+    const xs = pairs(outline).map(([x]) => x);
+    const pastEnd = Math.max(...xs) - 30;
+    expect(pastEnd).toBeGreaterThan(3);
+    expect(10 - Math.min(...xs)).toBeCloseTo(pastEnd, 5);
+  });
+
   it('narrows where the width factor is smaller', () => {
     const outline = buildInkOutline([0, 0, 10, 0, 20, 0], [1, 0.3, 1], 10);
     const middle = pairs(outline).filter(([x]) => Math.abs(x - 10) < 0.001);
@@ -237,13 +245,13 @@ describe('buildPathData', () => {
 
   it('emits straight segments when tension is zero', () => {
     expect(buildPathData([0, 0, 10, 0, 10, 10], 0, false)).toBe(
-      'M 0,0 L 10,0 L 10,10'
+      'M 0,0 L 10,0 L 10,10',
     );
   });
 
   it('closes the path when asked', () => {
     expect(buildPathData([0, 0, 10, 0, 10, 10], 0, true)).toBe(
-      'M 0,0 L 10,0 L 10,10 Z'
+      'M 0,0 L 10,0 L 10,10 Z',
     );
   });
 

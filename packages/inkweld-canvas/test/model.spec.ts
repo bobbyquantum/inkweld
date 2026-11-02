@@ -8,6 +8,7 @@ import {
 } from '../src/agent-tools';
 import { canvasLinkRelationshipType } from '../src/links';
 import {
+  CANVAS_BUNDLED_FONTS,
   type CanvasFrame,
   type CanvasImage,
   type CanvasObject,
@@ -141,6 +142,12 @@ describe('tool definitions', () => {
       'background',
       'inkColor',
     ]);
+  });
+
+  it('list the bundled fonts, so an agent can choose one', () => {
+    for (const font of CANVAS_BUNDLED_FONTS) {
+      expect(EDIT_CANVAS_DESCRIPTION).toContain(font);
+    }
   });
 
   it('tell an agent the things it cannot find out by trying', () => {

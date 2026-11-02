@@ -92,6 +92,48 @@ export function sniffImageType(buffer: Buffer): string | null {
   return null;
 }
 
+/** A JPEG's size is in its frame header, after any number of other segments. */
+function readJpegSize(buffer: Buffer): { width: number; height: number } | null {
+  let offset = 2;
+  while (offset + 9 <= buffer.length) {
+    if (buffer[offset] !== 0xff) return null;
+    const marker = buffer[offset + 1];
+    if (marker === 0xff) {
+      // Padding before a marker.
+      offset++;
+      continue;
+    }
+    // Frame headers are C0 to CF, apart from three other segments in that range.
+    const isFrame = marker >= 0xc0 && marker <= 0xcf && ![0xc4, 0xc8, 0xcc].includes(marker);
+    if (isFrame) {
+      return { height: buffer.readUInt16BE(offset + 5), width: buffer.readUInt16BE(offset + 7) };
+    }
+    offset += 2 + buffer.readUInt16BE(offset + 2);
+  }
+  return null;
+}
+
+/**
+ * The pixel size in the header of a PNG, JPEG or GIF, of the type
+ * {@link sniffImageType} found. Null when it has none to read, or no pixels.
+ * Reads the bytes itself because Workers have no sharp to ask.
+ */
+export function readImageSize(
+  buffer: Buffer,
+  type: string
+): { width: number; height: number } | null {
+  let size: { width: number; height: number } | null = null;
+  if (type === 'image/png' && buffer.length >= 24) {
+    // The header chunk always comes first.
+    size = { width: buffer.readUInt32BE(16), height: buffer.readUInt32BE(20) };
+  } else if (type === 'image/gif' && buffer.length >= 10) {
+    size = { width: buffer.readUInt16LE(6), height: buffer.readUInt16LE(8) };
+  } else if (type === 'image/jpeg') {
+    size = readJpegSize(buffer);
+  }
+  return size && size.width > 0 && size.height > 0 ? size : null;
+}
+
 export class ImageService {
   /**
    * Process and resize an uploaded image
@@ -149,6 +191,24 @@ export class ImageService {
     }
 
     return await image.toBuffer();
+  }
+
+  /**
+   * Convert an image to a PNG no longer than `maxSide` either way, which also
+   * bounds what comes out. Null where sharp is not available (Workers) or cannot
+   * read it.
+   */
+  async convertToPng(buffer: Buffer, maxSide: number): Promise<Buffer | null> {
+    const sharp = await getSharp();
+    if (!sharp) return null;
+    try {
+      return await sharp(buffer, { limitInputPixels: MAX_BACKGROUND_INPUT_PIXELS })
+        .resize({ width: maxSide, height: maxSide, fit: 'inside', withoutEnlargement: true })
+        .png()
+        .toBuffer();
+    } catch {
+      return null;
+    }
   }
 
   /**
