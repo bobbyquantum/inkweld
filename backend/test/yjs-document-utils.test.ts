@@ -103,12 +103,35 @@ describe('isYjsFrameBlockedForViewer', () => {
     expect(isYjsFrameBlockedForViewer(buffer)).toBe(true);
   });
 
-  it('returns false for empty frames', () => {
-    expect(isYjsFrameBlockedForViewer(new Uint8Array([]))).toBe(false);
+  it('blocks a sync update whose sub-type is a padded varuint', () => {
+    // 0x82 0x00 is 2 written in two bytes; lib0 reads it as a sync update.
+    expect(isYjsFrameBlockedForViewer(new Uint8Array([Y_MESSAGE_SYNC, 0x82, 0x00, 0, 0]))).toBe(
+      true
+    );
+    expect(isYjsFrameBlockedForViewer(new Uint8Array([Y_MESSAGE_SYNC, 0x81, 0x00, 0, 0]))).toBe(
+      true
+    );
   });
 
-  it('returns false for sync frame with no subtype byte', () => {
-    expect(isYjsFrameBlockedForViewer(new Uint8Array([Y_MESSAGE_SYNC]))).toBe(false);
+  it('blocks a sync update whose message type is a padded varuint', () => {
+    expect(isYjsFrameBlockedForViewer(new Uint8Array([0x80, 0x00, 2, 0, 0]))).toBe(true);
+  });
+
+  it('judges padded sync-step-1 and awareness frames by their decoded type', () => {
+    expect(isYjsFrameBlockedForViewer(new Uint8Array([0x80, 0x00, 0x80, 0x00, 0]))).toBe(false);
+    expect(isYjsFrameBlockedForViewer(new Uint8Array([0x81, 0x00, 0]))).toBe(false);
+  });
+
+  it('blocks message types and sync sub-types the handlers do not serve', () => {
+    expect(isYjsFrameBlockedForViewer(new Uint8Array([3]))).toBe(true);
+    expect(isYjsFrameBlockedForViewer(new Uint8Array([Y_MESSAGE_SYNC, 3, 0]))).toBe(true);
+  });
+
+  it('blocks empty and truncated frames', () => {
+    expect(isYjsFrameBlockedForViewer(new Uint8Array([]))).toBe(true);
+    expect(isYjsFrameBlockedForViewer(new Uint8Array([Y_MESSAGE_SYNC]))).toBe(true);
+    expect(isYjsFrameBlockedForViewer(new Uint8Array([Y_MESSAGE_SYNC, 0x82]))).toBe(true);
+    expect(isYjsFrameBlockedForViewer(new Uint8Array([0x80]))).toBe(true);
   });
 });
 

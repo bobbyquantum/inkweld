@@ -98,6 +98,25 @@ function updateFrame(): ArrayBuffer {
   return toArrayBuffer(encoding.toUint8Array(encoder));
 }
 
+/**
+ * The mutation in `updateFrame()`, with its message type and sync sub-type
+ * written as padded varuints that lib0 still reads as 0 and 2.
+ */
+function paddedUpdateFrames(): ArrayBuffer[] {
+  const source = new Y.Doc();
+  source.getArray('elements').insert(0, [{ id: 'e1' }]);
+  const update = Y.encodeStateAsUpdate(source);
+  return [
+    [0x00, 0x82, 0x00],
+    [0x80, 0x00, 0x02],
+  ].map((typeBytes) => {
+    const encoder = encoding.createEncoder();
+    for (const byte of typeBytes) encoding.writeUint8(encoder, byte);
+    encoding.writeVarUint8Array(encoder, update);
+    return toArrayBuffer(encoding.toUint8Array(encoder));
+  });
+}
+
 /** A sync-step-1 frame (state vector request) — always allowed for viewers. */
 function syncStep1Frame(): ArrayBuffer {
   const encoder = encoding.createEncoder();
@@ -203,6 +222,36 @@ describe('YjsProject DO pre-auth queue drain', () => {
     queuedConn.pendingMessages = [updateFrame()];
     doInstance.drainPendingMessages(ws, queuedConn);
     expect(queuedDoc.update).not.toHaveBeenCalled();
+  });
+
+  it('drops padded update frames from a viewer on the live and queued paths', () => {
+    const doInstance = makeDO();
+    const ws = makeWs();
+
+    const liveDoc = makeSharedDoc();
+    const liveConn = makeConnInfo(liveDoc, false);
+    for (const frame of paddedUpdateFrames()) {
+      doInstance.handleBinaryMessage(ws, liveConn, frame);
+    }
+    expect(liveDoc.update).not.toHaveBeenCalled();
+
+    const queuedDoc = makeSharedDoc();
+    const queuedConn = makeConnInfo(queuedDoc, false);
+    queuedConn.pendingMessages = paddedUpdateFrames();
+    doInstance.drainPendingMessages(ws, queuedConn);
+    expect(queuedDoc.update).not.toHaveBeenCalled();
+  });
+
+  it('still applies padded update frames from a writer', () => {
+    const doInstance = makeDO();
+    const sharedDoc = makeSharedDoc();
+    const connInfo = makeConnInfo(sharedDoc, /* canWrite */ true);
+
+    for (const frame of paddedUpdateFrames()) {
+      doInstance.handleBinaryMessage(makeWs(), connInfo, frame);
+    }
+
+    expect(sharedDoc.update).toHaveBeenCalledTimes(2);
   });
 
   it('queues frames while unauthenticated instead of applying them', () => {

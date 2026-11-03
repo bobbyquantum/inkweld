@@ -14,6 +14,8 @@
  *   - `worldbuilding:username:slug:…` — worldbuilding docs (NOT trackable)
  */
 
+import { createDecoder, readVarUint } from 'lib0/decoding';
+
 /** Sync protocol message type — Yjs sync (subtypes inside the frame). */
 export const Y_MESSAGE_SYNC = 0;
 /** Sync protocol message type — Yjs awareness updates. */
@@ -57,6 +59,9 @@ export function frameMessageType(message: ArrayBuffer | Uint8Array): number {
 export function isSyncFrame(message: ArrayBuffer | Uint8Array): boolean {
   return frameMessageType(message) === Y_MESSAGE_SYNC;
 }
+
+/** Sync sub-type of a state vector request (`y-protocols/sync` messageYjsSyncStep1). */
+export const Y_SYNC_STEP_1 = 0;
 
 /** Sync sub-type of a document update (`y-protocols/sync` messageYjsUpdate). */
 export const Y_SYNC_UPDATE = 2;
@@ -126,33 +131,27 @@ export function isElementsDoc(documentId: string): boolean {
 }
 
 /**
- * Detect Yjs frames that mutate document state. Read-only viewers must
- * receive sync-step-1 / sync-step-2 from the server and may broadcast
- * awareness, but must not send sync-step-2 (their own snapshot),
- * sync-update (binary diff) frames, or top-level update frames
- * (messageType === 2) back to the server.
+ * Detect Yjs frames a read-only viewer may not send. A viewer may ask for
+ * the document (sync step 1) and broadcast awareness (presence / cursors).
+ * Everything else is dropped: sync step 2 (its own snapshot), sync updates,
+ * any other message type, and frames that don't decode.
+ *
+ * The types are read with lib0's `readVarUint`, exactly as the sync handlers
+ * read them (`yjsService.handleMessage`, y-durableobjects'
+ * `WSSharedDoc.update`). A varuint can be padded (`0x82 0x00` is also 2), so
+ * comparing raw bytes let through updates that the handlers then applied.
  *
  * Returns true when the message should be dropped for a viewer.
  */
 export function isYjsFrameBlockedForViewer(message: ArrayBuffer | Uint8Array): boolean {
   const bytes = message instanceof Uint8Array ? message : new Uint8Array(message);
-  if (bytes.length === 0) return false;
-  const messageType = bytes[0];
-
-  // Awareness messages are always allowed (presence / cursors).
-  if (messageType === Y_MESSAGE_AWARENESS) return false;
-
-  // Top-level update frame — viewers cannot send these.
-  if (messageType === 2) return true;
-
-  // Sync messages — inspect the sync sub-type (second byte).
-  if (messageType === Y_MESSAGE_SYNC && bytes.length > 1) {
-    const syncMessageType = bytes[1];
-    // 1 = sync-step-2 (client snapshot), 2 = sync-update (binary diff).
-    if (syncMessageType === 1 || syncMessageType === 2) {
-      return true;
-    }
+  try {
+    const decoder = createDecoder(bytes);
+    const messageType = readVarUint(decoder);
+    if (messageType === Y_MESSAGE_AWARENESS) return false;
+    return messageType !== Y_MESSAGE_SYNC || readVarUint(decoder) !== Y_SYNC_STEP_1;
+  } catch {
+    // Truncated: the handlers can't read it either.
+    return true;
   }
-
-  return false;
 }

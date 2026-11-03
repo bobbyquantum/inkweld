@@ -49,6 +49,12 @@ LevelDB per project for Yjs documents (Durable Objects on Workers). The root
   which can be out of date. Details: `docs/site/docs/developer/mcp-oauth.md`.
 - **Yjs document ids**: the backend/MCP use `username:slug:elements/` with a
   trailing slash, the frontend without. Not a bug; don't "fix" it.
+- **Read-only sockets**: a viewer's socket may send only sync step 1 and
+  awareness. `isYjsFrameBlockedForViewer` (`utils/yjs-document-utils.ts`)
+  enforces it for both runtimes and for frames queued before auth. It reads
+  the types with lib0's `readVarUint`, as the sync handlers do. Never judge a
+  client's frame by its raw bytes: a padded varuint (`0x82 0x00` is 2) reads
+  differently, and that let viewers' updates through.
 - **HTTP routes that edit a Yjs document** must work on both runtimes.
   `yjsService` is Bun-only: on Workers it opens LevelDB and crashes the request
   with `indexedDB is not defined`. Use `openEditableDocument(documentId,
