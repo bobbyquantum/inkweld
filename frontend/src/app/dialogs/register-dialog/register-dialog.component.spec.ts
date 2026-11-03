@@ -63,6 +63,8 @@ describe('RegisterDialogComponent', () => {
     } as unknown as MockedObject<SetupService>;
 
     const systemConfigService = {
+      isConfigLoaded: signal(true).asReadonly(),
+      isOidcOnly: signal(false).asReadonly(),
       isRequireEmailEnabled: vi.fn().mockReturnValue(false),
       // Writable signal so individual tests can flip into passwordless mode
       // and re-render. Default true for existing password-flow coverage.

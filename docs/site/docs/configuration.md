@@ -445,6 +445,73 @@ See the [GitHub OAuth guide](./admin-guide/github-oauth) for details.
 
 ---
 
+## OpenID Connect (OIDC)
+
+Inkweld supports one standards-based OpenID Connect provider per instance.
+Configure its issuer and client credentials, then enable `OIDC_ENABLED`.
+The callback URL must be registered with your provider.
+
+```bash
+OIDC_ENABLED=true
+OIDC_ISSUER_URL=https://identity.example.com/realms/inkweld
+OIDC_CLIENT_ID=inkweld
+OIDC_CLIENT_SECRET=your-client-secret
+OIDC_CALLBACK_URL=https://inkweld.example.com/api/v1/auth/oidc
+```
+
+Set `OIDC_ONLY=true` to require OIDC for sign-in. This also disables password,
+passkey, GitHub and Home Assistant ingress sign-in and disables local
+registration. On a fresh instance, the first OIDC user becomes the
+administrator. Accounts are identified by the provider's issuer and subject;
+email addresses are not used to link to other accounts, and only an address the
+provider marks as verified is stored.
+
+To switch an instance that already has accounts, set `OIDC_ENABLED=true` first,
+sign in with OIDC, and have an existing administrator promote that account. Only
+then set `OIDC_ONLY=true`. Otherwise nobody can administer the instance: existing
+accounts can no longer sign in, and no OIDC user becomes administrator
+automatically. A value saved through the admin API overrides the environment, so
+`OIDC_ONLY=false` in the environment does not undo it; remove the `OIDC_ONLY` row
+from the `config` table instead.
+
+Use an HTTPS issuer and callback URL in production. HTTP is accepted only for
+localhost development. Set the callback URL explicitly when using a reverse
+proxy or a path prefix. If the frontend is served below a path prefix, include
+that prefix in `SITE_URL` so the callback returns to the correct app URL.
+`OIDC_ONLY=true` skips the optional default password-admin seed; the first
+OIDC sign-in bootstraps the administrator account.
+
+OIDC has no Admin Settings page yet, so configure it through the environment or
+the admin API (`PUT /api/v1/admin/config/{key}`). Cloudflare Workers cannot read
+these settings from Worker variables, so an `OIDC_ONLY` variable has no effect
+there; use the admin API. Set all four provider settings before enabling either
+OIDC mode. Incomplete or invalid settings are rejected by the admin API, and Bun/Node
+startup fails with a configuration error if OIDC-only was enabled through the
+environment without them. Configuration failures never re-enable another login
+method automatically. While OIDC is enabled, changes and deletions must preserve
+a complete configuration, including any environment fallback. Concurrent OIDC
+configuration changes are checked atomically in the database; a conflicting
+request is rejected and must be retried after reloading the settings.
+
+OIDC authorization callbacks require a short-lived HttpOnly, SameSite=Lax cookie
+from the browser that started sign-in. Finish sign-in in that same browser;
+starting a new OIDC sign-in replaces any earlier pending browser transaction.
+Discovery metadata is cached for up to ten minutes and refreshed when provider
+settings change.
+
+The frontend remembers the last OIDC-only policy per server. If fetching server
+configuration fails, it keeps alternative login controls hidden for a previously
+known OIDC-only server. Unknown servers retain the existing degraded-mode
+defaults; the backend still enforces the configured authentication policy.
+
+Bun and Node periodically remove expired authorization transactions, including
+when OIDC has been disabled. On Cloudflare Workers, configure an hourly Cron
+Trigger (`0 * * * *`) for the scheduled cleanup handler; the Wrangler example
+includes this trigger. Expired transactions are also removed on new sign-in
+attempts on every runtime.
+
+---
+
 ## Home Assistant Ingress
 
 Used by the Inkweld Home Assistant app, which serves the UI in the HA sidebar
@@ -925,6 +992,12 @@ wrangler secret put SESSION_SECRET --env production
 | `GITHUB_CLIENT_ID`                                                  | -                                 | GitHub OAuth client ID                                                                                                                                      |
 | `GITHUB_CLIENT_SECRET`                                              | -                                 | GitHub OAuth client secret                                                                                                                                  |
 | `GITHUB_CALLBACK_URL`                                               | Derived from request              | GitHub OAuth callback URL (`/api/v1/auth/github`)                                                                                                           |
+| `OIDC_ENABLED`                                                      | `false`                           | Enable OpenID Connect sign-in                                                                                                                               |
+| `OIDC_ONLY`                                                         | `false`                           | Require OIDC and disable all other sign-in methods                                                                                                          |
+| `OIDC_ISSUER_URL`                                                   | -                                 | OIDC issuer URL used for discovery                                                                                                                          |
+| `OIDC_CLIENT_ID`                                                    | -                                 | OIDC client ID                                                                                                                                              |
+| `OIDC_CLIENT_SECRET`                                                | -                                 | OIDC client secret                                                                                                                                          |
+| `OIDC_CALLBACK_URL`                                                 | -                                 | Registered OIDC callback URL (`/api/v1/auth/oidc`)                                                                                                          |
 | `INGRESS_ENABLED`                                                   | `false`                           | Trust Home Assistant ingress headers                                                                                                                        |
 | `INGRESS_TRUSTED_PROXY`                                             | -                                 | IP of the Home Assistant ingress proxy                                                                                                                      |
 | `INGRESS_ADMINS`                                                    | -                                 | HA usernames that are Inkweld admins                                                                                                                        |

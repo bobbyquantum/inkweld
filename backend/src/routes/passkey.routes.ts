@@ -28,7 +28,8 @@ const passkeyRoutes = new OpenAPIHono<AppContext>();
 passkeyRoutes.use('*', async (c, next) => {
   const db = c.get('db');
   const enabled = await configService.getBoolean(db, 'PASSKEYS_ENABLED');
-  if (!enabled) {
+  const oidcOnly = await configService.getBoolean(db, 'OIDC_ONLY');
+  if (!enabled || oidcOnly) {
     return c.json({ error: 'Passkey authentication is disabled' }, 403);
   }
   return next();
@@ -299,7 +300,10 @@ export function passkeyManagementHandlers(app: Hono<AppContext>): void {
 
     // Passkeys-enabled guard (mirrors the sub-router middleware)
     const enabled = await configService.getBoolean(db, 'PASSKEYS_ENABLED');
-    if (!enabled) return c.json({ error: 'Passkey authentication is disabled' }, 403);
+    const oidcOnly = await configService.getBoolean(db, 'OIDC_ONLY');
+    if (!enabled || oidcOnly) {
+      return c.json({ error: 'Passkey authentication is disabled' }, 403);
+    }
 
     // Resolve the current user (same logic as optionalAuth)
     const sessionUser = await authService.getUserFromSession(db, c);

@@ -268,6 +268,7 @@ describe('HomeComponent', () => {
     // Setup mock setup service (server mode by default for collaboration tests)
     setupService = {
       getMode: vi.fn().mockReturnValue('server'),
+      getServerUrl: vi.fn().mockReturnValue(null),
     };
 
     // Setup mock dialog gateway service

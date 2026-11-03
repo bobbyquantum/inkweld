@@ -33,6 +33,7 @@ function baseFeatures(overrides: Record<string, unknown> = {}): SystemFeatures {
     },
     passkeysEnabled: true,
     passwordLoginEnabled: true,
+    oidcOnly: false,
     emailRecoveryEnabled: false,
     mcpEnabled: true,
     hasPrivacyPolicy: false,
@@ -56,7 +57,7 @@ async function setup(
       provideRouter([]),
       {
         provide: SetupService,
-        useValue: { getMode: () => 'server' },
+        useValue: { getMode: () => 'server', getServerUrl: () => null },
       },
       {
         provide: ConfigurationService,

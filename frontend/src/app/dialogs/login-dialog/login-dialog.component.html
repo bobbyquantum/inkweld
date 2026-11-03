@@ -13,6 +13,8 @@
     -->
     @if (
       !isPasswordLoginEnabled() &&
+      systemConfig.isConfigLoaded() &&
+      !systemConfig.isOidcOnly() &&
       isPasskeySupported &&
       systemConfig.isPasskeysEnabled()
     ) {
@@ -66,7 +68,7 @@
       }
     }
 
-    @if (isPasswordLoginEnabled()) {
+    @if (isPasswordLoginEnabled() && !systemConfig.isOidcOnly()) {
       <form [formRoot]="form" data-testid="login-form">
         <mat-form-field appearance="outline">
           <mat-label>{{ 'login.username' | transloco }}</mat-label>
@@ -133,7 +135,12 @@
         users who set one up have a faster path, but the password form stays
         the primary affordance for existing muscle memory.
       -->
-      @if (isPasskeySupported && systemConfig.isPasskeysEnabled()) {
+      @if (
+        !systemConfig.isOidcOnly() &&
+        systemConfig.isConfigLoaded() &&
+        isPasskeySupported &&
+        systemConfig.isPasskeysEnabled()
+      ) {
         <div class="passkey-button-row">
           <button
             mat-stroked-button
@@ -177,15 +184,17 @@
         (loaded)="onProvidersLoaded()"></app-oauth-provider-list>
     </div>
 
-    <button
-      mat-raised-button
-      color="primary"
-      type="button"
-      (click)="onRegisterClick()"
-      data-testid="register-link"
-      class="register-button">
-      {{ 'login.noAccountRegister' | transloco }}
-    </button>
+    @if (systemConfig.isConfigLoaded() && !systemConfig.isOidcOnly()) {
+      <button
+        mat-raised-button
+        color="primary"
+        type="button"
+        (click)="onRegisterClick()"
+        data-testid="register-link"
+        class="register-button">
+        {{ 'login.noAccountRegister' | transloco }}
+      </button>
+    }
 
     <app-legal-links />
   </mat-dialog-content>

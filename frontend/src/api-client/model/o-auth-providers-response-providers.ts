@@ -10,4 +10,5 @@
 
 export interface OAuthProvidersResponseProviders {
   github: boolean;
+  oidc: boolean;
 }

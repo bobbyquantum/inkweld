@@ -1,4 +1,4 @@
-import { eq, inArray } from 'drizzle-orm';
+import { eq, inArray, sql } from 'drizzle-orm';
 import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'node:crypto';
 import { config as envConfig } from '../config/env';
 import { config, CONFIG_KEYS, type ConfigKey, type ConfigCategory } from '../db/schema/config';
@@ -24,6 +24,8 @@ export interface ConfigValue {
 export interface ConfigValues {
   [key: string]: ConfigValue;
 }
+
+export class ConfigValidationError extends Error {}
 
 /**
  * Config service for managing application settings.
@@ -131,6 +133,9 @@ class ConfigService {
       case 'LOCAL_USERS_ENABLED':
         return 'true';
       case 'GITHUB_ENABLED':
+        return 'false';
+      case 'OIDC_ENABLED':
+      case 'OIDC_ONLY':
         return 'false';
       case 'PASSKEYS_ENABLED':
         return 'true'; // Passkeys enabled by default
@@ -373,6 +378,74 @@ class ConfigService {
    */
   async delete(db: DatabaseInstance, key: ConfigKey): Promise<void> {
     await db.delete(config).where(eq(config.key, key));
+  }
+
+  /**
+   * Validate a prospective settings snapshot and compare-and-swap it in one SQL
+   * statement. A concurrent change to any guarded key rejects the write, including
+   * across Node/Bun processes and D1 isolates. Undefined deletes an override.
+   */
+  async updateValidated(
+    db: DatabaseInstance,
+    key: ConfigKey,
+    value: string | undefined,
+    guardedKeys: readonly ConfigKey[],
+    validate: (values: ConfigValues) => void
+  ): Promise<void> {
+    if (!guardedKeys.includes(key)) throw new Error('Updated key must be guarded');
+    const snapshot = await db
+      .select()
+      .from(config)
+      .where(inArray(config.key, [...guardedKeys]));
+    const values: ConfigValues = {};
+    for (const guardedKey of guardedKeys) {
+      values[guardedKey] = this.resolve(
+        guardedKey,
+        snapshot.find((row) => row.key === guardedKey)
+      );
+    }
+    values[key] = value === undefined ? this.resolve(key, undefined) : { ...values[key], value };
+    validate(values);
+
+    // Check both membership and stored values so inserts, deletes and secret
+    // rotations between the snapshot read and this statement cannot slip through.
+    const keys = sql.join(
+      guardedKeys.map((guardedKey) => sql`${guardedKey}`),
+      sql`, `
+    );
+    const matches = snapshot.map(
+      (row) => sql`EXISTS (SELECT 1 FROM config WHERE key = ${row.key}
+        AND value = ${row.value} AND encrypted = ${Number(row.encrypted)})`
+    );
+    const unchanged = sql.join(
+      [sql`(SELECT count(*) FROM config WHERE key IN (${keys})) = ${snapshot.length}`, ...matches],
+      sql` AND `
+    );
+    if (value === undefined) {
+      const deleted = await db
+        .delete(config)
+        .where(sql`${config.key} = ${key} AND ${unchanged}`)
+        .returning();
+      if (deleted.length || !snapshot.some((row) => row.key === key)) return;
+    } else {
+      const definition = CONFIG_KEYS[key];
+      const storedValue = definition.encrypted ? this.encrypt(value) : value;
+      const now = Math.floor(Date.now() / 1000);
+      const written = await db
+        .insert(config)
+        .select(
+          sql`SELECT ${key}, ${storedValue}, ${Number(definition.encrypted)}, ${definition.category},
+          ${definition.description}, ${now}, ${now}
+          WHERE ${unchanged}`
+        )
+        .onConflictDoUpdate({
+          target: config.key,
+          set: { value: storedValue, encrypted: definition.encrypted, updatedAt: new Date() },
+        })
+        .returning();
+      if (written.length) return;
+    }
+    throw new ConfigValidationError('OIDC configuration changed concurrently; reload and retry');
   }
 
   /**

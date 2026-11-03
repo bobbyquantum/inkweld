@@ -56,6 +56,10 @@ export interface SystemFeatures {
    */
   passwordLoginEnabled: boolean;
   /**
+   * Whether OIDC is the only supported sign-in method. When true, password, passkey, GitHub and Home Assistant ingress sign-in are disabled.
+   */
+  oidcOnly: boolean;
+  /**
    * Whether email-based recovery is enabled. When passwords are off, this controls the magic-link passkey-enrolment recovery flow. When passwords are on, this gates the forgot-password reset email.
    */
   emailRecoveryEnabled: boolean;

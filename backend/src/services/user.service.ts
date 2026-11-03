@@ -71,6 +71,19 @@ class UserService {
     return result[0];
   }
 
+  async findByOidcIdentity(
+    db: DatabaseInstance,
+    issuer: string,
+    subject: string
+  ): Promise<User | undefined> {
+    const result = await db
+      .select()
+      .from(users)
+      .where(and(eq(users.oidcIssuer, issuer), eq(users.oidcSubject, subject)))
+      .limit(1);
+    return result[0];
+  }
+
   /** Find the account linked to a Home Assistant user id (ingress sign-in). */
   async findByHomeAssistantUserId(
     db: DatabaseInstance,
@@ -107,6 +120,9 @@ class UserService {
       policyAcceptedVersion?: string;
       /** Home Assistant user id for accounts created by ingress sign-in. */
       homeAssistantUserId?: string;
+      /** OIDC identity. Both values are set together and never linked by email. */
+      oidcIssuer?: string;
+      oidcSubject?: string;
     },
     options?: {
       /** Override the default approval behavior. If true, user is auto-approved. */
@@ -127,6 +143,8 @@ class UserService {
       email: data.email || null,
       password: hashedPassword,
       name: data.name || null,
+      oidcIssuer: data.oidcIssuer ?? null,
+      oidcSubject: data.oidcSubject ?? null,
       enabled: true,
       approved: shouldAutoApprove,
       homeAssistantUserId: data.homeAssistantUserId ?? null,
@@ -144,6 +162,51 @@ class UserService {
       throw new Error('Failed to create user');
     }
     return created;
+  }
+
+  /**
+   * Resolve an OIDC account by the verified issuer/subject pair, creating it
+   * on first sign-in. Email is profile data only and is never used to link
+   * an OIDC identity to another account.
+   */
+  async createOrUpdateOidcUser(
+    db: DatabaseInstance,
+    data: {
+      issuer: string;
+      subject: string;
+      username: string;
+      email?: string;
+      emailVerified: boolean;
+      name: string;
+    },
+    options?: { autoApprove?: boolean }
+  ): Promise<User> {
+    const existing = await this.findByOidcIdentity(db, data.issuer, data.subject);
+    const email = data.emailVerified ? data.email : undefined;
+    if (existing) {
+      await db
+        .update(users)
+        .set({
+          email: email || existing.email,
+          name: data.name || existing.name,
+        })
+        .where(eq(users.id, existing.id));
+      const updated = await this.findById(db, existing.id);
+      if (!updated) throw new Error('Failed to update OIDC user');
+      return updated;
+    }
+
+    return this.create(
+      db,
+      {
+        username: data.username,
+        email,
+        name: data.name,
+        oidcIssuer: data.issuer,
+        oidcSubject: data.subject,
+      },
+      options
+    );
   }
 
   /**
@@ -313,6 +376,27 @@ class UserService {
    */
   async setUserAdmin(db: DatabaseInstance, userId: string, isAdmin: boolean): Promise<void> {
     await db.update(users).set({ isAdmin }).where(eq(users.id, userId));
+  }
+
+  /**
+   * Elect one admin only when the instance has none. The conditional update is
+   * atomic, so concurrent first OIDC sign-ins cannot leave the instance without
+   * an administrator or promote multiple accounts.
+   */
+  async setUserAdminIfNoneExists(db: DatabaseInstance, userId: string): Promise<void> {
+    await db
+      .update(users)
+      .set({ isAdmin: true })
+      .where(
+        and(
+          eq(users.id, userId),
+          eq(users.enabled, true),
+          eq(users.approved, true),
+          isNull(users.rejectedAt),
+          sql`NOT EXISTS (SELECT 1 FROM ${users} WHERE ${users.isAdmin} = 1
+            AND ${users.enabled} = 1 AND ${users.approved} = 1 AND ${users.rejectedAt} IS NULL)`
+        )
+      );
   }
 
   /** Record that the user accepted the given legal-document version now. */

@@ -58,7 +58,10 @@ passwordResetRoutes.openapi(forgotPasswordRoute, async (c) => {
   const { email } = c.req.valid('json');
 
   // Defence-in-depth gate: see file-level comment.
-  if (!(await configService.getBoolean(db, 'PASSWORD_LOGIN_ENABLED'))) {
+  if (
+    !(await configService.getBoolean(db, 'PASSWORD_LOGIN_ENABLED')) ||
+    (await configService.getBoolean(db, 'OIDC_ONLY'))
+  ) {
     return c.json({ error: 'Password login is disabled on this server' }, 404);
   }
 
@@ -120,7 +123,10 @@ passwordResetRoutes.openapi(resetPasswordRoute, async (c) => {
   const { token, newPassword } = c.req.valid('json');
 
   // Defence-in-depth gate: see file-level comment.
-  if (!(await configService.getBoolean(db, 'PASSWORD_LOGIN_ENABLED'))) {
+  if (
+    !(await configService.getBoolean(db, 'PASSWORD_LOGIN_ENABLED')) ||
+    (await configService.getBoolean(db, 'OIDC_ONLY'))
+  ) {
     return c.json({ error: 'Password login is disabled on this server' }, 404);
   }
 

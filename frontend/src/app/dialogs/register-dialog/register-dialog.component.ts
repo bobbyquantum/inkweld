@@ -47,7 +47,7 @@ export class RegisterDialogComponent implements OnInit, OnDestroy {
   private readonly changeDetectorRef = inject(ChangeDetectorRef);
   private readonly passkeyService = inject(PasskeyService);
   private readonly authTokenService = inject(AuthTokenService);
-  private readonly systemConfig = inject(SystemConfigService);
+  readonly systemConfig = inject(SystemConfigService);
   private readonly transloco = inject(TranslocoService);
 
   readonly isPasswordLoginEnabled = this.systemConfig.isPasswordLoginEnabled;

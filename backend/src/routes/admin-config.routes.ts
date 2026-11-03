@@ -1,6 +1,7 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { requireAdmin } from '../middleware/auth';
-import { configService } from '../services/config.service';
+import { configService, ConfigValidationError } from '../services/config.service';
+import { oidcAuthService, isOidcConfigKey } from '../services/oidc-auth.service';
 import { imageGenerationService } from '../services/image-generation.service';
 import { clearInkweldAppClientCache } from '../services/inkweld-app-client.service';
 import type { AppContext } from '../types/context';
@@ -263,7 +264,16 @@ adminConfigRoutes.openapi(setConfigRoute, async (c) => {
     return c.json({ error: `Invalid boolean value for ${key}: ${value}` }, 400);
   }
 
-  await configService.set(db, configKey, value);
+  if (isOidcConfigKey(configKey)) {
+    try {
+      await oidcAuthService.updateConfiguration(db, configKey, value);
+    } catch (error) {
+      if (!(error instanceof ConfigValidationError)) throw error;
+      return c.json({ error: error.message }, 400);
+    }
+  } else {
+    await configService.set(db, configKey, value);
+  }
 
   // Invalidate image generation cache when AI-related config changes
   if (
@@ -329,7 +339,16 @@ adminConfigRoutes.openapi(deleteConfigRoute, async (c) => {
   }
 
   const configKey = key as keyof typeof CONFIG_KEYS;
-  await configService.delete(db, configKey);
+  if (isOidcConfigKey(configKey)) {
+    try {
+      await oidcAuthService.updateConfiguration(db, configKey, undefined);
+    } catch (error) {
+      if (!(error instanceof ConfigValidationError)) throw error;
+      return c.json({ error: error.message }, 400);
+    }
+  } else {
+    await configService.delete(db, configKey);
+  }
   if (configKey === 'ALLOW_INKWELD_APP_CLIENT') clearInkweldAppClientCache();
 
   // Return the reverted value

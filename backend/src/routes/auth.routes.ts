@@ -65,6 +65,7 @@ const registerRoute = createRoute({
       description: 'Registration successful',
     },
     400: errorResponse('Invalid input or username already exists'),
+    403: errorResponse('Registration is only available through OpenID Connect'),
   },
 });
 
@@ -130,6 +131,9 @@ async function checkPolicyAcceptance(
 
 authRoutes.openapi(registerRoute, async (c) => {
   const db = c.get('db');
+  if (await configService.getBoolean(db, 'OIDC_ONLY')) {
+    return c.json({ error: 'Registration is only available through OpenID Connect' }, 403);
+  }
   const { username, password, email, name, acceptedPolicyVersion } = c.req.valid('json');
 
   // Check USER_APPROVAL_REQUIRED from database config (set via admin UI)
@@ -311,6 +315,13 @@ authRoutes.openapi(loginRoute, async (c) => {
   const db = c.get('db');
   const { username, password } = c.req.valid('json');
 
+  if (await configService.getBoolean(db, 'OIDC_ONLY')) {
+    return c.json(
+      { error: 'Password login is disabled. Please sign in with OpenID Connect.' },
+      403
+    );
+  }
+
   // Hard-gate on PASSWORD_LOGIN_ENABLED. When the operator has chosen a
   // passwordless deployment we refuse password authentication outright
   // rather than silently accepting and then failing on a missing hash —
@@ -371,6 +382,9 @@ const ingressLoginRoute = createRoute({
 });
 
 authRoutes.openapi(ingressLoginRoute, async (c) => {
+  if (await configService.getBoolean(c.get('db'), 'OIDC_ONLY')) {
+    return c.json({ error: 'Home Assistant ingress sign-in is disabled' }, 403);
+  }
   const haUser = getIngressUser(c);
   if (!haUser) {
     return c.json({ error: 'Not Found' }, 404);
@@ -428,10 +442,15 @@ const providersRoute = createRoute({
 
 authRoutes.openapi(providersRoute, async (c) => {
   const db = c.get('db');
-  const githubEnabled = await configService.getBoolean(db, 'GITHUB_ENABLED');
+  const [githubEnabled, oidcEnabled, oidcOnly] = await Promise.all([
+    configService.getBoolean(db, 'GITHUB_ENABLED'),
+    configService.getBoolean(db, 'OIDC_ENABLED'),
+    configService.getBoolean(db, 'OIDC_ONLY'),
+  ]);
   return c.json({
     providers: {
-      github: githubEnabled,
+      github: githubEnabled && !oidcOnly,
+      oidc: oidcEnabled || oidcOnly,
     },
   });
 });

@@ -1896,6 +1896,7 @@ describe('ProfileManagerDialogComponent', () => {
       return {
         passkeysEnabled: true,
         passwordLoginEnabled: true,
+        oidcOnly: false,
         requireEmail: false,
         passwordPolicy: {
           minLength: 8,

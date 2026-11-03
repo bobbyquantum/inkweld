@@ -38,6 +38,10 @@ githubAuthRoutes.get(
   async (c, next) => {
     const db = c.get('db');
 
+    if (await configService.getBoolean(db, 'OIDC_ONLY')) {
+      return c.json({ error: 'GitHub sign-in is disabled on this server' }, 403);
+    }
+
     // Check if GitHub OAuth is enabled (from DB config, falling back to env)
     const githubEnabled = await configService.getBoolean(db, 'GITHUB_ENABLED');
     if (!githubEnabled) {
@@ -151,6 +155,10 @@ githubAuthRoutes.get(
  * The code is generated during the OAuth callback and is valid for 60 seconds.
  */
 githubAuthRoutes.post('/exchange-code', async (c) => {
+  if (await configService.getBoolean(c.get('db'), 'OIDC_ONLY')) {
+    return c.json({ error: 'GitHub sign-in is disabled on this server' }, 403);
+  }
+
   const body = await c.req.json<{ code?: string }>().catch(() => ({}) as { code?: string });
   const code = body.code;
 
@@ -159,7 +167,7 @@ githubAuthRoutes.post('/exchange-code', async (c) => {
   }
 
   const db = c.get('db');
-  const userId = await oauthLoginCodeService.redeem(db, code);
+  const userId = await oauthLoginCodeService.redeem(db, code, 'github');
   if (!userId) {
     return c.json({ error: 'Invalid or expired authorization code' }, 401);
   }

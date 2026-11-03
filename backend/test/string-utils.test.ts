@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'bun:test';
-import { stripTrailingSlashes, trimHyphens } from '../src/utils/string-utils';
+import { stripTrailingSlashes, trimCharacters, trimHyphens } from '../src/utils/string-utils';
 
 describe('stripTrailingSlashes', () => {
   it('should return unchanged string with no trailing slashes', () => {
@@ -72,5 +72,24 @@ describe('trimHyphens', () => {
 
   it('should handle slug-like strings', () => {
     expect(trimHyphens('-my-project-name-')).toBe('my-project-name');
+  });
+});
+
+describe('trimCharacters', () => {
+  it('should trim any of the given characters from both ends', () => {
+    expect(trimCharacters('-_-hello_-_', '-_')).toBe('hello');
+  });
+
+  it('should preserve those characters inside the string', () => {
+    expect(trimCharacters('-a_b-c_', '-_')).toBe('a_b-c');
+  });
+
+  it('should leave other characters alone', () => {
+    expect(trimCharacters('.hello.', '-_')).toBe('.hello.');
+  });
+
+  it('should return an empty string when nothing else is left', () => {
+    expect(trimCharacters('-__-', '-_')).toBe('');
+    expect(trimCharacters('', '-_')).toBe('');
   });
 });

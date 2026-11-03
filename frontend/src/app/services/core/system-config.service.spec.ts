@@ -42,6 +42,7 @@ describe('SystemConfigService', () => {
     },
     passkeysEnabled: true,
     passwordLoginEnabled: true,
+    oidcOnly: false,
     emailRecoveryEnabled: false,
     mcpEnabled: true,
     hasPrivacyPolicy: false,
@@ -61,6 +62,9 @@ describe('SystemConfigService', () => {
     // Mock SetupService - default to 'online' mode
     mockSetupService = {
       getMode: vi.fn().mockReturnValue('online'),
+      getServerUrl: vi
+        .fn()
+        .mockReturnValue('https://system-config.example.test'),
     } as MockedObject<SetupService>;
 
     // Mock console methods to avoid test output noise, but keep spies for testing
@@ -87,7 +91,34 @@ describe('SystemConfigService', () => {
   });
 
   afterEach(() => {
+    localStorage.removeItem(
+      'inkweld-oidc-only:https://system-config.example.test'
+    );
     vi.restoreAllMocks();
+  });
+
+  it('keeps the last OIDC-only policy when the same server becomes unavailable', () => {
+    (mockConfigService.getSystemFeatures as Mock).mockReturnValue(
+      of({
+        ...mockSystemFeatures,
+        oidcOnly: true,
+        passwordLoginEnabled: false,
+        passkeysEnabled: false,
+      })
+    );
+    service.refreshSystemFeatures();
+    (mockConfigService.getSystemFeatures as Mock).mockReturnValue(
+      throwError(() => new Error('offline'))
+    );
+    service.refreshSystemFeatures();
+    expect(service.isOidcOnly()).toBe(true);
+    expect(service.isPasswordLoginEnabled()).toBe(false);
+    expect(service.isPasskeysEnabled()).toBe(false);
+    mockSetupService.getServerUrl.mockReturnValue(
+      'https://another-server.example.test'
+    );
+    service.refreshSystemFeatures();
+    expect(service.isOidcOnly()).toBe(false);
   });
 
   describe('Initialization', () => {
@@ -157,6 +188,7 @@ describe('SystemConfigService', () => {
         },
         passkeysEnabled: true,
         passwordLoginEnabled: true,
+        oidcOnly: false,
         emailRecoveryEnabled: false,
         mcpEnabled: true,
         hasPrivacyPolicy: false,
@@ -213,6 +245,7 @@ describe('SystemConfigService', () => {
             },
             passkeysEnabled: true,
             passwordLoginEnabled: true,
+            oidcOnly: false,
             emailRecoveryEnabled: false,
             mcpEnabled: false,
             hasPrivacyPolicy: false,
@@ -346,6 +379,7 @@ describe('SystemConfigService', () => {
         },
         passkeysEnabled: true,
         passwordLoginEnabled: true,
+        oidcOnly: false,
         emailRecoveryEnabled: false,
         mcpEnabled: true,
         hasPrivacyPolicy: false,
@@ -763,6 +797,7 @@ describe('SystemConfigService', () => {
             },
             passkeysEnabled: true,
             passwordLoginEnabled: true,
+            oidcOnly: false,
             emailRecoveryEnabled: false,
             mcpEnabled: false,
             hasPrivacyPolicy: false,
@@ -813,6 +848,7 @@ describe('SystemConfigService', () => {
               },
               passkeysEnabled: true,
               passwordLoginEnabled: true,
+              oidcOnly: false,
               emailRecoveryEnabled: false,
               mcpEnabled: false,
               hasPrivacyPolicy: false,

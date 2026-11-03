@@ -50,7 +50,8 @@ passkeyRecoveryRoutes.use('*', async (c, next) => {
   const db = c.get('db');
   const passkeysEnabled = await configService.getBoolean(db, 'PASSKEYS_ENABLED');
   const recoveryEnabled = await configService.getBoolean(db, 'EMAIL_RECOVERY_ENABLED');
-  if (!passkeysEnabled || !recoveryEnabled) {
+  const oidcOnly = await configService.getBoolean(db, 'OIDC_ONLY');
+  if (!passkeysEnabled || !recoveryEnabled || oidcOnly) {
     return c.json({ error: 'Passkey recovery is disabled on this server' }, 404);
   }
   return next();
