@@ -1,6 +1,6 @@
 export const environment = {
   production: false,
-  version: '1.0.0-beta.3', // x-release-please-version
+  version: '1.0.0-beta.4', // x-release-please-version
   apiUrl: 'http://localhost:8333',
   wssUrl: 'ws://localhost:8333',
   /**
