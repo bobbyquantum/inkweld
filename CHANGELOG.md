@@ -10,7 +10,7 @@ titles.
 
 ### Bug Fixes
 
-* **security:** fix security issues in sync, sign-in and accounts ([#1723](https://github.com/bobbyquantum/inkweld/issues/1723)) ([6b39be7](https://github.com/bobbyquantum/inkweld/commit/6b39be76e00801dfc93591897fac007d1e5f947a))
+* 🛡️ **security:** fix security issues in sync, sign-in and accounts ([#1723](https://github.com/bobbyquantum/inkweld/issues/1723)) ([6b39be7](https://github.com/bobbyquantum/inkweld/commit/6b39be76e00801dfc93591897fac007d1e5f947a))
 
 ## [1.0.0-beta.4](https://github.com/bobbyquantum/inkweld/compare/v1.0.0-beta.3...v1.0.0-beta.4) (2026-11-03)
 
