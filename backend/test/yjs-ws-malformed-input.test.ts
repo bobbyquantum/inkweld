@@ -303,8 +303,8 @@ describe('Yjs WebSocket route with malformed input', () => {
       expect([...lateClients]).toEqual([4343]);
       const copy = new Y.Doc();
       for (const payload of latePayloads) Y.applyUpdate(copy, payload);
-      expect(copy.getArray('deep').length).toBe(0);
-      expect(copy.getArray('legacy').length).toBe(0);
+      expect(copy.getArray('deep')).toHaveLength(0);
+      expect(copy.getArray('legacy')).toHaveLength(0);
 
       const health = await fetch(`${baseUrl}/api/v1/health`);
       expect(health.status).toBe(200);

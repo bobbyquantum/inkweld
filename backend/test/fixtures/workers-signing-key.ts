@@ -11,7 +11,9 @@ import type { Context } from 'hono';
 
 const g = globalThis as Record<string, unknown>;
 g.caches = {};
-g.WebSocketPair = class {};
+g.WebSocketPair = class WebSocketPairStub {
+  readonly stub = true;
+};
 
 const { sign } = await import('hono/jwt');
 const { config, DEV_FALLBACK_SECRET, SAMPLE_SECRETS } = await import('../../src/config/env');

@@ -181,7 +181,8 @@ COPY --from=backend-builder --chown=inkweld:inkweld --chmod=555 /app/backend/ink
 COPY --from=backend-builder --chown=inkweld:inkweld --chmod=555 /app/backend/drizzle ./drizzle
 # Generates and keeps a key in /data when no DATABASE_KEY or SESSION_SECRET
 # is set (see the script), so an install that never set one still starts.
-COPY --from=backend-builder --chown=inkweld:inkweld --chmod=555 /app/backend/scripts/docker-entrypoint.sh ./docker-entrypoint.sh
+# Owned by root, so the server's own user cannot change it.
+COPY --from=backend-builder --chmod=555 /app/backend/scripts/docker-entrypoint.sh ./docker-entrypoint.sh
 
 # Copy frontend assets from dist directory
 # Angular outputs to dist/browser/ in production mode. We copy the entire dist/ directory

@@ -126,9 +126,9 @@ describe('YjsService message limits', () => {
       warn.mockRestore();
     }
 
-    expect(doc.doc.getArray('deep').length).toBe(0);
-    expect(doc.doc.getArray('legacy').length).toBe(0);
-    expect(doc.doc.getArray('kept').length).toBe(1);
+    expect(doc.doc.getArray('deep')).toHaveLength(0);
+    expect(doc.doc.getArray('legacy')).toHaveLength(0);
+    expect(doc.doc.getArray('kept')).toHaveLength(1);
     // Only the update that was applied reached the other socket.
     expect(payloads(reader, MESSAGE_SYNC, 2)).toHaveLength(1);
 
@@ -137,16 +137,16 @@ describe('YjsService message limits', () => {
     const [reply] = payloads(reader, MESSAGE_SYNC, 1);
     const copy = new Y.Doc();
     Y.applyUpdate(copy, reply);
-    expect(copy.getArray('kept').length).toBe(1);
-    expect(copy.getArray('deep').length).toBe(0);
+    expect(copy.getArray('kept')).toHaveLength(1);
+    expect(copy.getArray('deep')).toHaveLength(0);
     await service.cleanup();
 
     // Nothing that was dropped was stored.
     const reloaded = new YjsService();
     const again = await reloaded.getDocument(DOC_ID);
-    expect(again.doc.getArray('kept').length).toBe(1);
-    expect(again.doc.getArray('deep').length).toBe(0);
-    expect(again.doc.getArray('legacy').length).toBe(0);
+    expect(again.doc.getArray('kept')).toHaveLength(1);
+    expect(again.doc.getArray('deep')).toHaveLength(0);
+    expect(again.doc.getArray('legacy')).toHaveLength(0);
     await reloaded.cleanup();
   });
 

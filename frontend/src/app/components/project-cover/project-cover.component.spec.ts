@@ -247,11 +247,13 @@ describe('ProjectCoverComponent', () => {
       const req = httpTestingController.expectOne(
         'http://localhost:8333/api/v1/projects/a%2Fb/test-project/cover'
       );
+      expect(req.request.method).toBe('GET');
       req.error(new ProgressEvent('error'), {
         status: 404,
         statusText: 'Not Found',
       });
       await fixture.whenStable();
+      expect(component.hasCover).toBe(false);
     });
   });
 
