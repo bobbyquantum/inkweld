@@ -254,7 +254,7 @@ export const config = {
   // Server
   port: Number.parseInt(process.env.PORT || '8333', 10),
   nodeEnv: startupNodeEnv ?? 'development',
-  version: process.env.INKWELD_VERSION || '1.0.0-beta.4', // x-release-please-version
+  version: process.env.INKWELD_VERSION || '1.0.0-beta.5', // x-release-please-version
 
   // Logging
   // LOG_LEVEL: 'debug' | 'info' | 'warn' | 'error' | 'none'
