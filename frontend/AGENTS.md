@@ -95,6 +95,17 @@ Read `e2e/BEST_PRACTICES.md` before writing one.
   fixtures use the password API.
 - Every job traces the first attempt of each test and uploads
   `test-results/`; open a trace with `npx playwright show-trace <trace.zip>`.
+- **Touch gestures**: Playwright's touchscreen only taps. Send swipes and
+  long-press drags as raw touch points over CDP (`Finger` in
+  `e2e/local/project-tree-touch.spec.ts`); Chromium holds back `touchmove`
+  until the finger leaves a slop region of about 15 px.
+- **Reduced motion changes drop timing.** The suites run with
+  `reducedMotion: 'reduce'`, which gives every element a 0.01 ms transition
+  (`src/themes/theme.scss`), so the CDK animates each drop and
+  `cdkDragEnded` fires after the dragged row's `touchend`. Without the
+  preference, as for most users, the drop doesn't animate and the drag ends
+  first. Test what happens on release under
+  `page.emulateMedia({ reducedMotion: 'no-preference' })`.
 
 ## Rules that apply across the app
 
@@ -161,6 +172,9 @@ Read `e2e/BEST_PRACTICES.md` before writing one.
   `ARCHIVE_VERSION` (file format) and the backend `PROTOCOL_VERSION` (live Yjs
   sync) are separate. Docs: `docs/site/docs/developer/project-archives.md`.
 - **Markdown input rules** are opt-in (`components/editor-input-rules/AGENTS.md`).
+- **CDK drag and drop**: on release the CDK emits `cdkDragEnded` before
+  `cdkDropListDropped`, so a drop handler can't read state that the drag-end
+  handler clears (see `drop()` in `components/project-tree/`).
 
 ## Internationalization (Transloco)
 
