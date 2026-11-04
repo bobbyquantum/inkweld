@@ -13,7 +13,32 @@ import { commentMarkSpec } from '../../components/comment-mark/comment-mark-sche
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
 import { UnifiedUserService } from '../user/unified-user.service';
-import { CommentService } from './comment.service';
+import {
+  CommentService,
+  commentThreadPath,
+  isCommentId,
+} from './comment.service';
+
+const THREAD_ID = '0f8fad5b-d9cb-469f-a165-70867728950e';
+const MESSAGE_ID = '7c9e6679-7425-40de-944b-e07fc1f90ae7';
+
+/** Values that are not UUIDs. */
+const NON_COMMENT_IDS = [
+  '../x',
+  'a/b',
+  '%2e%2e/x',
+  '..%2fx',
+  '..\\x',
+  'x?y',
+  'x#y',
+  `${THREAD_ID}?x`,
+  `${THREAD_ID}#x`,
+  `${THREAD_ID}/..`,
+  '.',
+  '..',
+  '',
+  'thread-1',
+];
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -510,12 +535,12 @@ describe('CommentService', () => {
     });
 
     it('getThread should GET the correct URL', async () => {
-      const promise = service.getThread('alice', 'story', 'thread-1');
+      const promise = service.getThread('alice', 'story', THREAD_ID);
       const req = httpMock.expectOne(
-        'http://localhost:8333/api/v1/comments/alice/story/threads/thread-1'
+        `http://localhost:8333/api/v1/comments/alice/story/threads/${THREAD_ID}`
       );
       expect(req.request.method).toBe('GET');
-      req.flush({ id: 'thread-1', messages: [] });
+      req.flush({ id: THREAD_ID, messages: [] });
       await promise;
     });
 
@@ -540,9 +565,9 @@ describe('CommentService', () => {
     });
 
     it('addMessage should POST the text', async () => {
-      const promise = service.addMessage('alice', 'story', 't1', 'Hello');
+      const promise = service.addMessage('alice', 'story', THREAD_ID, 'Hello');
       const req = httpMock.expectOne(
-        'http://localhost:8333/api/v1/comments/alice/story/threads/t1/messages'
+        `http://localhost:8333/api/v1/comments/alice/story/threads/${THREAD_ID}/messages`
       );
       expect(req.request.method).toBe('POST');
       expect(req.request.body).toEqual({ text: 'Hello' });
@@ -551,9 +576,9 @@ describe('CommentService', () => {
     });
 
     it('resolveThread should PATCH the correct URL', async () => {
-      const promise = service.resolveThread('alice', 'story', 't1');
+      const promise = service.resolveThread('alice', 'story', THREAD_ID);
       const req = httpMock.expectOne(
-        'http://localhost:8333/api/v1/comments/alice/story/threads/t1/resolve'
+        `http://localhost:8333/api/v1/comments/alice/story/threads/${THREAD_ID}/resolve`
       );
       expect(req.request.method).toBe('PATCH');
       req.flush({});
@@ -561,9 +586,9 @@ describe('CommentService', () => {
     });
 
     it('unresolveThread should PATCH the correct URL', async () => {
-      const promise = service.unresolveThread('alice', 'story', 't1');
+      const promise = service.unresolveThread('alice', 'story', THREAD_ID);
       const req = httpMock.expectOne(
-        'http://localhost:8333/api/v1/comments/alice/story/threads/t1/unresolve'
+        `http://localhost:8333/api/v1/comments/alice/story/threads/${THREAD_ID}/unresolve`
       );
       expect(req.request.method).toBe('PATCH');
       req.flush({});
@@ -571,9 +596,9 @@ describe('CommentService', () => {
     });
 
     it('deleteThread should DELETE the correct URL', async () => {
-      const promise = service.deleteThread('alice', 'story', 't1');
+      const promise = service.deleteThread('alice', 'story', THREAD_ID);
       const req = httpMock.expectOne(
-        'http://localhost:8333/api/v1/comments/alice/story/threads/t1'
+        `http://localhost:8333/api/v1/comments/alice/story/threads/${THREAD_ID}`
       );
       expect(req.request.method).toBe('DELETE');
       req.flush({});
@@ -581,9 +606,14 @@ describe('CommentService', () => {
     });
 
     it('deleteMessage should DELETE the correct URL', async () => {
-      const promise = service.deleteMessage('alice', 'story', 't1', 'm1');
+      const promise = service.deleteMessage(
+        'alice',
+        'story',
+        THREAD_ID,
+        MESSAGE_ID
+      );
       const req = httpMock.expectOne(
-        'http://localhost:8333/api/v1/comments/alice/story/threads/t1/messages/m1'
+        `http://localhost:8333/api/v1/comments/alice/story/threads/${THREAD_ID}/messages/${MESSAGE_ID}`
       );
       expect(req.request.method).toBe('DELETE');
       req.flush({ message: 'ok', threadDeleted: false });
@@ -662,6 +692,117 @@ describe('CommentService', () => {
       await service.markSeen('alice', 'story', 'doc-1');
       httpMock.expectNone(() => true);
       expect(service.unreadCounts().size).toBe(0);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Thread ids and path segments
+  // ─────────────────────────────────────────────────────────────────────────
+
+  describe('isCommentId', () => {
+    it('accepts UUIDs in either case', () => {
+      expect(isCommentId(THREAD_ID)).toBe(true);
+      expect(isCommentId(THREAD_ID.toUpperCase())).toBe(true);
+      expect(isCommentId(crypto.randomUUID())).toBe(true);
+    });
+
+    it.each(NON_COMMENT_IDS)('rejects %j', id => {
+      expect(isCommentId(id)).toBe(false);
+    });
+
+    it('rejects values that are not strings', () => {
+      expect(isCommentId(null)).toBe(false);
+      expect(isCommentId(undefined)).toBe(false);
+      expect(isCommentId(42)).toBe(false);
+      expect(isCommentId({ toString: () => THREAD_ID })).toBe(false);
+    });
+  });
+
+  describe('commentThreadPath', () => {
+    it.each(NON_COMMENT_IDS.filter(id => id !== '.' && id !== '..'))(
+      'keeps %j inside the thread path',
+      id => {
+        for (const suffix of ['', '/messages', '/resolve', '/unresolve']) {
+          const url = new URL(
+            `https://inkweld.test${commentThreadPath('alice', 'story', id)}${suffix}`
+          );
+          expect(
+            url.pathname.startsWith('/api/v1/comments/alice/story/threads/')
+          ).toBe(true);
+          expect(url.pathname.endsWith(suffix)).toBe(true);
+          expect(url.search).toBe('');
+          expect(url.hash).toBe('');
+        }
+      }
+    );
+
+    it.each(['.', '..'])('refuses the dot segment %j', id => {
+      expect(() => commentThreadPath('alice', 'story', id)).toThrow();
+    });
+
+    it('encodes the username and slug', () => {
+      const url = new URL(
+        `https://inkweld.test${commentThreadPath('a/b', 'x?y', THREAD_ID)}`
+      );
+      expect(url.pathname).toBe(
+        `/api/v1/comments/a%2Fb/x%3Fy/threads/${THREAD_ID}`
+      );
+    });
+  });
+
+  describe('REST API methods with ids that are not comment ids', () => {
+    beforeEach(() => {
+      mockSetupService.getServerUrl.mockReturnValue('http://localhost:8333');
+    });
+
+    it.each(NON_COMMENT_IDS)(
+      'rejects thread id %j without sending a request',
+      async id => {
+        await expect(service.getThread('alice', 'story', id)).rejects.toThrow();
+        await expect(
+          service.addMessage('alice', 'story', id, 'Hello')
+        ).rejects.toThrow();
+        await expect(
+          service.resolveThread('alice', 'story', id)
+        ).rejects.toThrow();
+        await expect(
+          service.unresolveThread('alice', 'story', id)
+        ).rejects.toThrow();
+        await expect(
+          service.deleteThread('alice', 'story', id)
+        ).rejects.toThrow();
+        await expect(
+          service.deleteMessage('alice', 'story', id, MESSAGE_ID)
+        ).rejects.toThrow();
+        httpMock.expectNone(() => true);
+      }
+    );
+
+    it.each(NON_COMMENT_IDS)(
+      'rejects message id %j without sending a request',
+      async id => {
+        await expect(
+          service.deleteMessage('alice', 'story', THREAD_ID, id)
+        ).rejects.toThrow();
+        httpMock.expectNone(() => true);
+      }
+    );
+
+    it('keeps a document name in its own path segment', async () => {
+      const promise = service.listDocumentComments('alice', 'story', '../x');
+      const req = httpMock.expectOne(() => true);
+      expect(new URL(req.request.url).pathname).toBe(
+        '/api/v1/comments/alice/story/doc/..%2Fx'
+      );
+      req.flush([]);
+      await promise;
+    });
+
+    it('rejects a dot-segment document name without sending a request', async () => {
+      await expect(
+        service.listDocumentComments('alice', 'story', '..')
+      ).rejects.toThrow();
+      httpMock.expectNone(() => true);
     });
   });
 

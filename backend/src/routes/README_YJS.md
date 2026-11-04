@@ -18,6 +18,13 @@ ws(s)://<host>/api/v1/ws/yjs?documentId=<username>:<slug>:<elementId>
 for the project tree. Do not "fix" the trailing slash the backend/MCP adds to the
 elements document id — see AGENTS.md.
 
+Both runtimes check the id with `parseDocumentId` (`utils/yjs-document-id.ts`)
+before anything else: three non-empty parts and at most one trailing slash. The
+first two parts always name the project, `worldbuilding:` included (clients
+never send that prefix). Any other id is refused before authentication: the Bun
+route sends `access-denied:invalid-document` and closes with 4400, and the
+Worker route and the Durable Object answer 400.
+
 ## Authentication
 
 Browsers cannot send an `Authorization` header on a WebSocket, so the connection
@@ -35,11 +42,24 @@ Denial closes use the y-websocket 3.1 convention in `utils/ws-close-codes.ts`
 completes are queued within the bounds in `utils/ws-preauth.ts`, and a socket
 that never authenticates is closed.
 
+Both runtimes check every sync and awareness message with
+`isYjsMessageWithinLimits` (`utils/yjs-message-limits.ts`) before applying it.
+A document update or awareness update that does not decode, or that holds a
+JSON value nested more than 256 levels deep (`MAX_YJS_JSON_DEPTH`), is dropped.
+The server publishes no awareness state of its own and runs no awareness timer:
+a socket's awareness states are removed when the socket closes.
+
 ## Bun: LevelDB
 
 `yjs.routes.ts` uses Hono's `upgradeWebSocket` from `hono/bun`. `YjsService`
 keeps one LevelDB instance per project and tracks writing sessions for the
 stats and activity features.
+
+Every socket handler in `yjs.routes.ts` catches its own errors, so a problem
+with one socket's input only affects that socket. A binary frame whose message
+type cannot be read (`peekFrameTag` returns null) is dropped. `bun-runner.ts`
+and `node-runner.ts` log any promise rejection nothing handled
+(`utils/unhandled-rejection.ts`) as a last resort.
 
 ## Workers: Durable Objects
 

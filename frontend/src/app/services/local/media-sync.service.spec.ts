@@ -1275,4 +1275,88 @@ describe('MediaSyncService', () => {
       ).rejects.toThrow('offline');
     });
   });
+
+  describe('media filenames and ids', () => {
+    /** Names that are not a single plain path segment. */
+    const INVALID = [
+      '../x.png',
+      '..%2fx.png',
+      '%2e%2e/x.png',
+      '..\\x.png',
+      'img.png?x=1',
+      'img.png#x',
+      '..',
+    ];
+
+    it.each(INVALID)('fetchMissingMedia never requests %j', async filename => {
+      await expect(
+        service.fetchMissingMedia(TEST_PROJECT_KEY, filename)
+      ).resolves.toBe(false);
+      expect(httpMock.get).not.toHaveBeenCalled();
+      expect(localStorageMock.saveMedia).not.toHaveBeenCalled();
+    });
+
+    it.each(INVALID)('downloadFromServer never requests %j', async filename => {
+      await expect(
+        service.downloadFromServer(TEST_PROJECT_KEY, filename)
+      ).rejects.toThrow();
+      expect(httpMock.get).not.toHaveBeenCalled();
+      expect(localStorageMock.saveMedia).not.toHaveBeenCalled();
+    });
+
+    it('requests a file at its encoded URL', async () => {
+      httpMock.get.mockReturnValue(of(new Blob(['x'], { type: 'image/png' })));
+
+      await expect(
+        service.fetchMissingMedia(TEST_PROJECT_KEY, 'Map of the North.png')
+      ).resolves.toBe(true);
+
+      expect(httpMock.get).toHaveBeenCalledWith(
+        expect.stringMatching(
+          /\/api\/v1\/media\/alice\/my-novel\/Map%20of%20the%20North\.png$/
+        ),
+        { responseType: 'blob' }
+      );
+    });
+
+    it('leaves local media whose id is not a single path segment out of sync', async () => {
+      httpMock.get.mockReturnValue(of({ items: [], total: 0 }));
+      localStorageMock.listMedia.mockResolvedValue([
+        {
+          mediaId: 'a/b',
+          mimeType: 'image/png',
+          size: 10,
+          createdAt: '2024-01-01',
+        },
+        {
+          mediaId: 'img-1',
+          mimeType: 'image/png',
+          size: 10,
+          createdAt: '2024-01-01',
+        },
+      ]);
+
+      const result = await service.checkSyncStatus(TEST_PROJECT_KEY);
+      expect(result.needsUpload).toBe(1);
+      expect(result.items.map(item => item.mediaId)).toEqual(['img-1']);
+
+      localStorageMock.getMedia.mockResolvedValue(
+        new Blob(['x'], { type: 'image/png' })
+      );
+      httpMock.post.mockReturnValue(of({}));
+      await service.uploadAllToServer(TEST_PROJECT_KEY);
+
+      expect(httpMock.post).toHaveBeenCalledTimes(1);
+      const formData = httpMock.post.mock.calls[0][1] as FormData;
+      expect((formData.get('file') as File).name).toBe('img-1.png');
+    });
+
+    it('refuses to upload a media id that is not a single path segment', async () => {
+      await expect(
+        service.uploadToServer(TEST_PROJECT_KEY, 'a/b')
+      ).rejects.toThrow();
+      expect(localStorageMock.getMedia).not.toHaveBeenCalled();
+      expect(httpMock.post).not.toHaveBeenCalled();
+    });
+  });
 });

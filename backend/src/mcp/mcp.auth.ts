@@ -9,7 +9,7 @@ import { sign } from 'hono/jwt';
 import type { AppContext } from '../types/context';
 import type { DurableObjectNamespace } from '../types/cloudflare';
 import { mcpOAuthService, type CloudflareEnv } from '../services/mcp-oauth.service';
-import { config } from '../config/env';
+import { signingSecret } from '../config/signing-secret';
 import { getRequestOrigin } from '../services/url.service';
 import { getClientIp } from '../utils/client-ip';
 import type { McpContext, McpOAuthContext, McpOAuthGrant } from './mcp.types';
@@ -55,19 +55,12 @@ function extractToken(c: Context): string | null {
 }
 
 /**
- * The secret the MCP layer signs its own tokens with. Mirrors the resolution
- * in YjsProject.getSecret() and McpOAuthService.getSecret().
+ * The secret the MCP layer signs its own tokens with: the same key
+ * YjsProject.getSecret() and McpOAuthService.getSecret() resolve, through
+ * signingSecret(). Throws SigningSecretError when there is no usable key.
  */
 export function mcpSigningSecret(env: Record<string, unknown> | undefined): string {
-  const secret =
-    (env?.DATABASE_KEY as string | undefined) ||
-    (env?.SESSION_SECRET as string | undefined) ||
-    config.databaseKey;
-
-  if (!secret || secret.length < 32) {
-    throw new Error('DATABASE_KEY must be at least 32 characters for JWT signing');
-  }
-  return secret;
+  return signingSecret(env);
 }
 
 /**

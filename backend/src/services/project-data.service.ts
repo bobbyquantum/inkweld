@@ -1,6 +1,7 @@
 /**
- * A project's server-side data outside the database: removing it and moving
- * it when the slug changes.
+ * A project's server-side data outside the database: removing it, moving it
+ * when the slug changes, and checking that a slug's directory would be the
+ * project's own.
  *
  * Every store keys a project by `username:slug`: the project directory (an R2
  * prefix on Workers) holds its media, covers and published files, and its Yjs
@@ -19,11 +20,14 @@ import {
   destroyProjectDurableObject,
   prepareProjectDurableObjectMove,
 } from '../utils/project-durable-object';
+import { isStorageSegment } from '../utils/storage-segment';
 import { logger } from './logger.service';
+import { projectService } from './project.service';
 import { getStorageService } from './storage.service';
 import { yjsService } from './yjs.service';
 
 const renameLog = logger.child('ProjectRename');
+const dataLog = logger.child('ProjectData');
 
 interface RenameStep {
   name: string;
@@ -40,17 +44,59 @@ const nothingToUndo = (): Promise<void> => Promise.resolve();
  * Durable Object. The Durable Object checks the caller's token against the
  * project's row, so call this while the row exists.
  *
+ * Storage refuses a username or slug that can't be one segment of a path or
+ * key ({@link isStorageSegment}); some accounts created before usernames had
+ * a character rule have one. By default that fails the call. With
+ * `skipUnstorableFiles` (deleting a project or an account) the files are left
+ * in place instead, since their directory can't be told apart from other
+ * accounts', and the rest is removed.
+ *
  * Order matters on Bun/Node: the LevelDB handle must be closed before the
  * directory that contains it is removed.
  */
 export async function removeProjectData(
   c: Context<AppContext>,
   username: string,
-  slug: string
+  slug: string,
+  options: { skipUnstorableFiles?: boolean } = {}
 ): Promise<void> {
   await yjsService.destroyProject(username, slug);
-  await getStorageService(c.get('storage')).deleteProjectDirectory(username, slug);
+  if (options.skipUnstorableFiles && !(isStorageSegment(username) && isStorageSegment(slug))) {
+    dataLog.warn(`Leaving the files of ${username}/${slug} in place: storage can't address them`);
+  } else {
+    await getStorageService(c.get('storage')).deleteProjectDirectory(username, slug);
+  }
   await destroyProjectDurableObject(c, username, slug);
+}
+
+/**
+ * A username as a case-insensitive file system may compare it (the macOS and
+ * Windows defaults): Unicode compatibility form, then letter case. It may
+ * treat more names as one than a given file system does, which only refuses
+ * more.
+ */
+function directoryNameKey(username: string): string {
+  return username.normalize('NFKC').toUpperCase().toLowerCase();
+}
+
+/**
+ * Whether `username`'s project `slug` would have the same project directory
+ * as another account's project. On disk, usernames that differ only in letter
+ * case or Unicode form can name one directory; new usernames can't differ
+ * from existing ones only in case, but accounts created before that rule can.
+ * R2 compares keys exactly, so there it never happens. `userId` owns
+ * `username`.
+ */
+export async function sharesProjectDirectory(
+  c: Context<AppContext>,
+  userId: string,
+  username: string,
+  slug: string
+): Promise<boolean> {
+  if (c.get('storage')) return false;
+  const owners = await projectService.findOtherOwnersOfSlug(c.get('db'), slug, userId);
+  const key = directoryNameKey(username);
+  return owners.some((owner) => directoryNameKey(owner) === key);
 }
 
 /**

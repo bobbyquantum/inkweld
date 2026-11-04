@@ -13,7 +13,7 @@
     "dev:worker": "wrangler dev",
     "build": "bun build src/bun-runner.ts --outdir dist --target bun",
     "build:node": "bun build src/node-runner.ts --outdir dist --target node",
-    "build:binary": "bun build src/bun-runner.ts --no-minify --compile --outfile dist/inkweld",
+    "build:binary": "NODE_ENV=production bun build src/bun-runner.ts --no-minify --compile --outfile dist/inkweld",
     "build:binary:full": "bun run scripts/build-binary-full.ts",
     "build:worker": "wrangler deploy --dry-run",
     "generate:frontend-imports": "bun run scripts/generate-frontend-imports.ts",

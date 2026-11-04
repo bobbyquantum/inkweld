@@ -2,6 +2,7 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { forEachSequential } from '@inkweld/async';
 import { ImagesService, type Project, ProjectsService } from '@inkweld/index';
+import { encodePathSegment } from '@utils/url-path';
 import { catchError, firstValueFrom, retry, throwError } from 'rxjs';
 
 import { SetupService } from '../core/setup.service';
@@ -728,7 +729,7 @@ export class ProjectService {
       const formData = new FormData();
       formData.append('cover', coverImage);
 
-      const url = `${this.imagesApi.configuration.basePath}/api/v1/projects/${username}/${slug}/cover`;
+      const url = `${this.imagesApi.configuration.basePath}/api/v1/projects/${encodePathSegment(username)}/${encodePathSegment(slug)}/cover`;
       let coverFilename: string;
       try {
         const response = await firstValueFrom(
@@ -886,7 +887,7 @@ export class ProjectService {
 
     const formData = new FormData();
     formData.append('cover', blob, `${newest}.jpg`);
-    const url = `${this.imagesApi.configuration.basePath}/api/v1/projects/${username}/${slug}/cover`;
+    const url = `${this.imagesApi.configuration.basePath}/api/v1/projects/${encodePathSegment(username)}/${encodePathSegment(slug)}/cover`;
     const response = await firstValueFrom(
       this.http
         .post<{ message: string; coverImage: string }>(url, formData, {

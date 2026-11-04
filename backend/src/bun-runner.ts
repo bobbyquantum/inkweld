@@ -6,6 +6,11 @@
 // (pulled in transitively by @simplewebauthn/server → @peculiar/x509).
 import 'reflect-metadata';
 import { checkAndRunSetup } from './setup-wizard';
+import { installUnhandledRejectionLogger } from './utils/unhandled-rejection';
+
+// Log a promise rejection nothing handled and keep running
+// (utils/unhandled-rejection.ts). Installed before the app loads.
+installUnhandledRejectionLogger();
 
 // Check if running as compiled binary and if setup is needed
 const isCompiled = typeof Bun.main === 'string' && !Bun.main.includes('node_modules');

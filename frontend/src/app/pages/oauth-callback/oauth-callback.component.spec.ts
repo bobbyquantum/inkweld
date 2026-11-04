@@ -125,17 +125,39 @@ describe('OAuthCallbackComponent', () => {
   });
 
   describe('error handling', () => {
-    it.each(['github_auth_failed', 'account_disabled', 'some_unknown_error'])(
-      'should show generic error message for error code %s',
-      errorCode => {
-        queryParams.set('error', errorCode);
-        createComponent();
+    it.each([
+      'github_auth_failed',
+      'oidc_auth_failed',
+      'account_disabled',
+      'some_unknown_error',
+      // An Object.prototype key must not be taken for a known code.
+      'constructor',
+    ])('should show generic error message for error code %s', errorCode => {
+      queryParams.set('error', errorCode);
+      createComponent();
 
-        expect(component.errorMessage()).toBe(
-          'Something went wrong. Please try again.'
-        );
-      }
-    );
+      expect(component.errorMessage()).toBe(
+        'Something went wrong. Please try again.'
+      );
+    });
+
+    it('explains that another account uses the email address when the email is in use', () => {
+      queryParams.set('error', 'email_in_use');
+      queryParams.set('provider', 'github');
+      createComponent();
+      fixture.detectChanges();
+
+      const message =
+        "This email address is already used by another Inkweld account, so GitHub sign-in can't continue. If that account is yours, sign in to it the way you usually do. If you don't recognize it, contact the administrator of this server.";
+      expect(component.errorMessage()).toBe(message);
+      const el = fixture.nativeElement as HTMLElement;
+      expect(el.querySelector('.error h2')?.textContent?.trim()).toBe(
+        'Sign-in failed'
+      );
+      expect(el.querySelector('.error p')?.textContent?.trim()).toBe(message);
+      expect(mockHttp.post).not.toHaveBeenCalled();
+      expect(mockAuthTokenService.setToken).not.toHaveBeenCalled();
+    });
 
     it('should show error when no code or error param present', () => {
       createComponent();

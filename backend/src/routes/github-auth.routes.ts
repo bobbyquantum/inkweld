@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { githubAuth } from '@hono/oauth-providers/github';
 import { authService } from '../services/auth.service';
-import { userService } from '../services/user.service';
+import { GithubEmailInUseError, userService } from '../services/user.service';
 import { oauthLoginCodeService } from '../services/oauth-login-code.service';
 import { configService } from '../services/config.service';
 import { getBaseUrl } from '../services/url.service';
@@ -21,6 +21,25 @@ const githubAuthRoutes = new Hono<AppContext>();
  * in the database — see oauthLoginCodeService — so the exchange works whichever
  * instance or Workers isolate receives it.
  */
+
+/**
+ * Where to send the browser when the callback cannot sign the user in. A new
+ * GitHub identity whose verified email another account uses gets its own
+ * error code, which the app explains on `/oauth/callback`; GitHub is not
+ * attached to that account. Any other failure is the generic one.
+ */
+function failedCallbackRedirect(
+  baseUrl: string,
+  error: unknown,
+  login: string | undefined
+): string {
+  if (error instanceof GithubEmailInUseError) {
+    log.info(`GitHub user ${login} has an email address another account uses`);
+    return `${baseUrl}/oauth/callback?error=email_in_use&provider=github`;
+  }
+  log.error('GitHub OAuth user creation failed:', error);
+  return `${baseUrl}/?error=github_auth_failed`;
+}
 
 /**
  * GET /github
@@ -95,11 +114,11 @@ githubAuthRoutes.get(
       const userApprovalRequired = await configService.getBoolean(db, 'USER_APPROVAL_REQUIRED');
 
       // The middleware's `githubUser.email` ignores GitHub's `verified` flag.
-      // Ask GitHub for the address list ourselves and only trust a verified
-      // one — it is what links this identity to an existing local account.
+      // Ask GitHub for the address list ourselves and only keep a verified
+      // one. Accounts are matched by GitHub id, never by this address.
       const profile = await resolveGithubProfile(githubUser, c.get('token')?.token);
       if (!profile.emailVerified) {
-        log.info(`GitHub user ${githubUser.login} has no verified email; not linking by email`);
+        log.info(`GitHub user ${githubUser.login} has no verified email`);
       }
 
       // Create or update the GitHub user in our database
@@ -142,8 +161,7 @@ githubAuthRoutes.get(
       // Redirect to frontend with the opaque code
       return c.redirect(`${baseUrl}/oauth/callback?code=${encodeURIComponent(code)}`);
     } catch (error) {
-      log.error('GitHub OAuth user creation failed:', error);
-      return c.redirect(`${baseUrl}/?error=github_auth_failed`);
+      return c.redirect(failedCallbackRedirect(baseUrl, error, githubUser.login));
     }
   }
 );

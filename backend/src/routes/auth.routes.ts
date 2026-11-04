@@ -1,6 +1,6 @@
 import { OpenAPIHono, createRoute } from '@hono/zod-openapi';
 import { authService } from '../services/auth.service';
-import { userService } from '../services/user.service';
+import { isUsernameConflict, userService } from '../services/user.service';
 import { configService } from '../services/config.service';
 import { emailService } from '../services/email.service';
 import { welcomeEmail, awaitingApprovalEmail } from '../services/email-templates';
@@ -21,6 +21,9 @@ import {
 import { errorResponse, MessageResponseSchema } from '../schemas/common.schemas';
 
 const authRoutes = new OpenAPIHono<AppContext>();
+
+/** Registration refused because an account has the username, ignoring case. */
+const USERNAME_TAKEN = { error: 'Username already taken', code: 'USERNAME_TAKEN' } as const;
 
 /** The user object returned alongside a session token. */
 function loginUser(user: User) {
@@ -135,6 +138,13 @@ authRoutes.openapi(registerRoute, async (c) => {
     return c.json({ error: 'Registration is only available through OpenID Connect' }, 403);
   }
   const { username, password, email, name, acceptedPolicyVersion } = c.req.valid('json');
+
+  // A new username must differ from every existing one in more than letter
+  // case. Checked here to answer early; userService.create checks again as
+  // it inserts, for a sign-up that takes the name in the meantime.
+  if (await userService.isUsernameTaken(db, username)) {
+    return c.json(USERNAME_TAKEN, 400);
+  }
 
   // Check USER_APPROVAL_REQUIRED from database config (set via admin UI)
   // configService reads database first, then environment, then defaults
@@ -270,6 +280,9 @@ authRoutes.openapi(registerRoute, async (c) => {
       200
     );
   } catch (error) {
+    if (isUsernameConflict(error)) {
+      return c.json(USERNAME_TAKEN, 400);
+    }
     if (error instanceof Error && error.message.includes('UNIQUE constraint failed')) {
       return c.json(
         { error: 'Registration failed. Please try a different username or email.' },

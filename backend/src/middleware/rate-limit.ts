@@ -10,13 +10,12 @@
  * use Cloudflare's WAF rate-limiting rules (or a Rate Limiting binding) in
  * front of the auth endpoints on that runtime.
  *
- * To disable in test environments, set INKWELD_DISABLE_RATE_LIMIT=true.
- * We use an explicit env var rather than NODE_ENV because Bun's
- * --compile --minify may constant-fold process.env.NODE_ENV at build
- * time, preventing runtime overrides in Docker e2e containers.
+ * Limits are off when INKWELD_DISABLE_RATE_LIMIT=true or NODE_ENV=test
+ * (see rateLimitsDisabled).
  */
 
 import type { Context, MiddlewareHandler } from 'hono';
+import { configuredNodeEnv } from '../config/runtime-env';
 import { getClientIp } from '../utils/client-ip';
 
 interface RateLimitOptions {
@@ -35,13 +34,14 @@ interface WindowEntry {
 }
 
 /**
- * Whether limits are off. Gated behind either INKWELD_DISABLE_RATE_LIMIT (for
- * Docker e2e compiled binaries where Bun --minify constant-folds
- * process.env.NODE_ENV) or NODE_ENV=test (for local `bun test`). Bracket
- * notation prevents the minifier from inlining the value at build time.
+ * Whether limits are off: INKWELD_DISABLE_RATE_LIMIT=true (set by the Docker
+ * e2e container) or NODE_ENV=test (`bun test` and the e2e backends). NODE_ENV
+ * goes through configuredNodeEnv() because bundlers replace a plain
+ * `process.env.NODE_ENV` read, bracket notation included, with its build-time
+ * value; other variables are read at run time either way.
  */
 export function rateLimitsDisabled(): boolean {
-  return process.env['INKWELD_DISABLE_RATE_LIMIT'] === 'true' || process.env['NODE_ENV'] === 'test';
+  return process.env['INKWELD_DISABLE_RATE_LIMIT'] === 'true' || configuredNodeEnv() === 'test';
 }
 
 /** Counts events per key in a sliding window. */

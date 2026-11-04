@@ -166,6 +166,36 @@ describe('CoverSyncService', () => {
       expect(mockLocalStorage.hasMedia).not.toHaveBeenCalled();
     });
 
+    it.each(['../x.jpg', '..%2fx.jpg', 'cover.jpg?x=1', '..'])(
+      'should skip a cover named %j that is not a single path segment',
+      async coverImage => {
+        await service.syncCovers([createProject({ coverImage })]);
+
+        expect(mockLocalStorage.hasMedia).not.toHaveBeenCalled();
+        httpMock.expectNone(() => true);
+        httpMock.verify();
+      }
+    );
+
+    it('should encode the cover URL', async () => {
+      const syncPromise = service.syncCovers([
+        createProject({ coverImage: 'cover (1).jpg' }),
+      ]);
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      httpMock
+        .expectOne(`${BASE}/api/v1/media/alice/my-novel/cover%20(1).jpg`)
+        .flush(new Blob(['image-data'], { type: 'image/jpeg' }));
+      await syncPromise;
+
+      expect(mockLocalStorage.saveMedia).toHaveBeenCalledWith(
+        'alice/my-novel',
+        'cover (1)',
+        expect.any(Blob),
+        'cover (1).jpg'
+      );
+    });
+
     it('should skip already-cached covers', async () => {
       mockLocalStorage.hasMedia.mockResolvedValue(true);
 

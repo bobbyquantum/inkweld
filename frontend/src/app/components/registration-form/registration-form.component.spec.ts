@@ -1,6 +1,15 @@
-import { HttpClient, HttpErrorResponse, withXhr } from '@angular/common/http';
+import {
+  HTTP_INTERCEPTORS,
+  HttpClient,
+  HttpErrorResponse,
+  withInterceptorsFromDi,
+  withXhr,
+} from '@angular/common/http';
 import { provideHttpClient } from '@angular/common/http';
-import { provideHttpClientTesting } from '@angular/common/http/testing';
+import {
+  HttpTestingController,
+  provideHttpClientTesting,
+} from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -10,11 +19,14 @@ import {
   type SystemFeatures,
   type User,
 } from '@inkweld/index';
+import { AuthTokenService } from '@services/auth/auth-token.service';
 import { SetupService } from '@services/core/setup.service';
+import { StorageContextService } from '@services/core/storage-context.service';
 import { SystemConfigService } from '@services/core/system-config.service';
 import { UserService } from '@services/user/user.service';
 import { of, Subject, throwError } from 'rxjs';
 import {
+  afterEach,
   beforeEach,
   describe,
   expect,
@@ -24,6 +36,7 @@ import {
 } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { AuthInterceptor } from '../../interceptors/auth.interceptor';
 import { RegistrationFormComponent } from './registration-form.component';
 
 /** Valid password meeting all policy requirements, used throughout this spec */
@@ -270,6 +283,38 @@ describe('RegistrationFormComponent', () => {
         'Username must be at least 3 characters'
       );
     });
+
+    it('should return a username maxlength error', () => {
+      component.form.username().value.set('a'.repeat(40));
+      component.form.username().markAsTouched();
+      expect(component.getUsernameErrorMessage()).toBe(
+        'Username must be at most 39 characters'
+      );
+    });
+
+    it.each([
+      'alice/bob',
+      'alice:bob',
+      'alice\\bob',
+      'alice bob',
+      'alice.bob',
+      'josé',
+    ])('explains that %j uses characters outside the rule', name => {
+      component.form.username().value.set(name);
+      component.form.username().markAsTouched();
+      expect(component.form.username().invalid()).toBe(true);
+      expect(component.getUsernameErrorMessage()).toBe(
+        'Use only letters, numbers, hyphens (-) and underscores (_)'
+      );
+    });
+
+    it.each(['Octo-Cat_42', 'a'.repeat(39)])(
+      'accepts the GitHub-style username %j',
+      name => {
+        component.form.username().value.set(name);
+        expect(component.form.username().errors()).toEqual([]);
+      }
+    );
 
     it('should return password required error', () => {
       component.form.password().markAsTouched();
@@ -542,6 +587,77 @@ describe('RegistrationFormComponent', () => {
       expect(component['usernameTaken']()).toBe(true);
     });
 
+    it('does not ask the server about a name outside the rule', async () => {
+      component.serverUrl = 'https://test-server.example.com';
+      component.form.username().value.set('alice/bob');
+      const httpClient = TestBed.inject(HttpClient);
+      const getSpy = vi.spyOn(httpClient, 'get');
+
+      await component.checkUsernameAvailability();
+
+      expect(getSpy).not.toHaveBeenCalled();
+      expect(component.usernameAvailability()).toBe('unknown');
+      expect(component['usernameTaken']()).toBe(false);
+    });
+
+    it.each([
+      // An account has the name in another case (e.g. "alice" for "Alice").
+      ['taken', 'Username already taken. Please choose another.'],
+      ['reserved', 'This username is reserved. Please choose another.'],
+      [
+        'invalid',
+        "This server doesn't accept this username. Please choose another.",
+      ],
+    ])('shows the server verdict %j', async (reason, message) => {
+      component.serverUrl = 'https://test-server.example.com';
+      component.form.username().value.set('Alice');
+      const httpClient = TestBed.inject(HttpClient);
+      vi.spyOn(httpClient, 'get').mockReturnValue(
+        of({ available: false, reason, suggestions: ['Alice_new'] })
+      );
+
+      await component.checkUsernameAvailability();
+      component.form.username().markAsTouched();
+
+      expect(component.usernameAvailability()).toBe('unavailable');
+      expect(component.usernameSuggestions()).toEqual(['Alice_new']);
+      expect(component.form.username().invalid()).toBe(true);
+      expect(component.getUsernameErrorMessage()).toBe(message);
+    });
+
+    it('treats a refusal without a reason as taken', async () => {
+      component.serverUrl = 'https://test-server.example.com';
+      component.form.username().value.set('taken');
+      const httpClient = TestBed.inject(HttpClient);
+      vi.spyOn(httpClient, 'get').mockReturnValue(
+        of({ available: false, suggestions: [] })
+      );
+
+      await component.checkUsernameAvailability();
+      component.form.username().markAsTouched();
+
+      expect(component.getUsernameErrorMessage()).toBe(
+        'Username already taken. Please choose another.'
+      );
+    });
+
+    it('explains a refusal reason it does not know as a name the server does not accept', async () => {
+      component.serverUrl = 'https://test-server.example.com';
+      component.form.username().value.set('newer');
+      const httpClient = TestBed.inject(HttpClient);
+      vi.spyOn(httpClient, 'get').mockReturnValue(
+        of({ available: false, reason: 'something-new', suggestions: [] })
+      );
+
+      await component.checkUsernameAvailability();
+      component.form.username().markAsTouched();
+
+      expect(component.form.username().invalid()).toBe(true);
+      expect(component.getUsernameErrorMessage()).toBe(
+        "This server doesn't accept this username. Please choose another."
+      );
+    });
+
     it('should skip check when skipUsernameCheck is true', async () => {
       component.skipUsernameCheck = true;
       component.form.username().value.set('testuser');
@@ -579,7 +695,8 @@ describe('RegistrationFormComponent', () => {
       await component.checkUsernameAvailability();
 
       expect(httpClient.get).toHaveBeenCalledWith(
-        'https://configured-server.example.com/api/v1/users/check-username?username=testuser'
+        'https://configured-server.example.com/api/v1/users/check-username?username=testuser',
+        expect.anything()
       );
     });
 
@@ -647,6 +764,81 @@ describe('RegistrationFormComponent', () => {
       expect(component.usernameAvailability()).toBe('available');
       expect(component.usernameSuggestions()).toEqual([]);
       expect(snackBar.open).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('username availability and the session token', () => {
+    let httpTesting: HttpTestingController;
+
+    beforeEach(async () => {
+      localStorage.clear();
+      TestBed.resetTestingModule();
+      await TestBed.configureTestingModule({
+        imports: [translocoTestProvider(), RegistrationFormComponent],
+        providers: [
+          provideZonelessChangeDetection(),
+          provideRouter([]),
+          provideHttpClient(withXhr(), withInterceptorsFromDi()),
+          provideHttpClientTesting(),
+          {
+            provide: HTTP_INTERCEPTORS,
+            useClass: AuthInterceptor,
+            multi: true,
+          },
+          { provide: AuthenticationService, useValue: authService },
+          { provide: UserService, useValue: userService },
+          { provide: MatSnackBar, useValue: snackBar },
+          { provide: SetupService, useValue: setupService },
+          { provide: SystemConfigService, useValue: systemConfigService },
+        ],
+      }).compileComponents();
+      httpTesting = TestBed.inject(HttpTestingController);
+
+      // Signed in to the home server
+      const storageContext = TestBed.inject(StorageContextService);
+      const home = storageContext.addServerConfig('https://home.example.com');
+      storageContext.switchToConfig(home.id);
+      TestBed.inject(AuthTokenService).setToken('home-session');
+
+      fixture = TestBed.createComponent(RegistrationFormComponent);
+      component = fixture.componentInstance;
+      fixture.detectChanges();
+    });
+
+    afterEach(() => {
+      httpTesting.verify();
+      localStorage.clear();
+    });
+
+    it('checks a server being added without the active session', async () => {
+      component.serverUrl = 'https://other-server.example';
+      component.form.username().value.set('alice');
+
+      const check = component.checkUsernameAvailability();
+      const request = httpTesting.expectOne(
+        'https://other-server.example/api/v1/users/check-username?username=alice'
+      );
+      expect(request.request.headers.has('Authorization')).toBe(false);
+      request.flush({ available: true });
+      await check;
+
+      expect(component.usernameAvailability()).toBe('available');
+    });
+
+    it('checks the active server without the session too', async () => {
+      setupService.getServerUrl.mockReturnValue('https://home.example.com');
+      component.serverUrl = undefined;
+      component.form.username().value.set('alice');
+
+      const check = component.checkUsernameAvailability();
+      const request = httpTesting.expectOne(
+        'https://home.example.com/api/v1/users/check-username?username=alice'
+      );
+      expect(request.request.headers.has('Authorization')).toBe(false);
+      request.flush({ available: false, suggestions: ['alice1'] });
+      await check;
+
+      expect(component.usernameAvailability()).toBe('unavailable');
     });
   });
 
@@ -755,6 +947,38 @@ describe('RegistrationFormComponent', () => {
       });
       expect(component['usernameServerInvalid']()).toBe(true);
       expect(component['passwordServerInvalid']()).toBe(true);
+    });
+
+    it('flags the username when the server says an account has it', async () => {
+      const httpError = new HttpErrorResponse({
+        status: 400,
+        error: { error: 'Username already taken', code: 'USERNAME_TAKEN' },
+      });
+      authService.registerUser.mockReturnValue(throwError(() => httpError));
+      const emitted: Error[] = [];
+      component.registrationError.subscribe(error => emitted.push(error));
+
+      component.model.set({
+        username: 'Alice',
+        displayName: '',
+        email: '',
+        password: VALID_PASSWORD,
+        confirmPassword: VALID_PASSWORD,
+        acceptPolicy: false,
+      });
+      fixture.detectChanges();
+
+      await component.submit();
+
+      expect(component.usernameAvailability()).toBe('unavailable');
+      expect(component.form.username().invalid()).toBe(true);
+      expect(component.getUsernameErrorMessage()).toBe(
+        'Username already taken. Please choose another.'
+      );
+      expect(emitted.map(error => error.message)).toEqual([
+        'Username already taken. Please choose another.',
+      ]);
+      expect(component.serverValidationErrors()['general']).toBeUndefined();
     });
 
     it('should handle HttpErrorResponse without validation errors', async () => {

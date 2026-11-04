@@ -9,7 +9,7 @@ import {
   stopTestServer,
   TestClient,
 } from './server-test-helper';
-import { userService } from '../src/services/user.service';
+import { GithubEmailInUseError, userService } from '../src/services/user.service';
 import { TEST_PASSWORDS } from './test-credentials';
 
 describe('User Service', () => {
@@ -25,6 +25,7 @@ describe('User Service', () => {
     await db.delete(users).where(eq(users.username, 'localuser'));
     await db.delete(users).where(eq(users.username, 'otherghuser'));
     await db.delete(users).where(eq(users.username, 'newghuser'));
+    await db.delete(users).where(eq(users.username, 'legacyghuser'));
     await db.delete(users).where(eq(users.email, 'service@example.com'));
     await db.delete(users).where(eq(users.email, 'github@example.com'));
     await db.delete(users).where(eq(users.email, 'shared@example.com'));
@@ -32,6 +33,7 @@ describe('User Service', () => {
     await db.delete(users).where(eq(users.email, 'updated@example.com'));
     await db.delete(users).where(eq(users.email, 'password@example.com'));
     await db.delete(users).where(eq(users.email, 'real@example.com'));
+    await db.delete(users).where(eq(users.email, 'Mixed.Case@Example.com'));
   });
 
   describe('findById', () => {
@@ -174,6 +176,7 @@ describe('User Service', () => {
         githubId: 'gh789',
         username: 'githubuser',
         email: 'github@example.com',
+        emailVerified: true,
         name: 'GitHub User',
       });
 
@@ -182,6 +185,7 @@ describe('User Service', () => {
         githubId: 'gh789',
         username: 'updatedgithub',
         email: 'updated@example.com',
+        emailVerified: true,
         name: 'Updated Name',
       });
 
@@ -190,86 +194,262 @@ describe('User Service', () => {
       expect(updated.name).toBe('Updated Name');
     });
 
-    it('should link GitHub account to existing local user by email', async () => {
-      // Create a local user with password
+    it('does not attach a new GitHub identity to a local account with the same verified email', async () => {
       const localUser = await userService.create(db, {
         username: 'localuser',
         email: 'shared@example.com',
         password: TEST_PASSWORDS.DEFAULT,
       });
 
-      // Log in with GitHub using the same, verified, email
-      const linked = await userService.createOrUpdateGithubUser(db, {
-        githubId: 'gh-link-1',
+      await expect(
+        userService.createOrUpdateGithubUser(db, {
+          githubId: 'gh-link-1',
+          username: 'gh-localuser',
+          email: 'shared@example.com',
+          emailVerified: true,
+          name: 'GitHub Name',
+        })
+      ).rejects.toThrow(GithubEmailInUseError);
+
+      // The local account is unchanged, and no second account has the address.
+      const local = await userService.findById(db, localUser.id);
+      expect(local?.githubId).toBeNull();
+      expect(local?.name).toBe(localUser.name);
+      expect(local?.password).toBe(localUser.password);
+      expect(await userService.findByGithubId(db, 'gh-link-1')).toBeUndefined();
+      expect(await userService.findByUsername(db, 'gh-localuser')).toBeUndefined();
+      const withEmail = await db.select().from(users).where(eq(users.email, 'shared@example.com'));
+      expect(withEmail).toHaveLength(1);
+    });
+
+    it('still signs in a local account that was linked to the GitHub id earlier', async () => {
+      // Accounts linked before keep their githubId and are found by it.
+      const localUser = await userService.create(db, {
+        username: 'localuser',
+        email: 'shared@example.com',
+        password: TEST_PASSWORDS.DEFAULT,
+      });
+      await db.update(users).set({ githubId: 'gh-linked' }).where(eq(users.id, localUser.id));
+
+      const signedIn = await userService.createOrUpdateGithubUser(db, {
+        githubId: 'gh-linked',
         username: 'gh-localuser',
         email: 'shared@example.com',
         emailVerified: true,
         name: 'GitHub Name',
       });
 
-      // Should be the same user, now with githubId linked
-      expect(linked.id).toBe(localUser.id);
-      expect(linked.username).toBe('localuser'); // keeps local username
-      expect(linked.githubId).toBe('gh-link-1');
-      expect(linked.name).toBe(localUser.name || 'GitHub Name'); // preserves existing name
+      expect(signedIn.id).toBe(localUser.id);
+      expect(signedIn.username).toBe('localuser');
+      expect(signedIn.githubId).toBe('gh-linked');
+      expect(signedIn.email).toBe('shared@example.com');
+      expect(signedIn.password).toBe(localUser.password);
     });
 
-    it('does not link to a local user on an unverified email', async () => {
+    it('still signs in a GitHub-linked account whose email another account also uses', async () => {
+      // Earlier versions could create a GitHub account with an address that a
+      // local account already had. The GitHub id is looked up first, so that
+      // account keeps signing in.
+      const local = await userService.create(db, {
+        username: 'localuser',
+        email: 'shared@example.com',
+        password: TEST_PASSWORDS.DEFAULT,
+      });
+      const legacyId = crypto.randomUUID();
+      await db.insert(users).values({
+        id: legacyId,
+        username: 'legacyghuser',
+        email: 'shared@example.com',
+        githubId: 'gh-legacy',
+        enabled: true,
+        approved: true,
+      });
+
+      const signedIn = await userService.createOrUpdateGithubUser(db, {
+        githubId: 'gh-legacy',
+        username: 'legacyghuser',
+        email: 'shared@example.com',
+        emailVerified: true,
+        name: 'Legacy User',
+      });
+
+      expect(signedIn.id).toBe(legacyId);
+      expect(signedIn.email).toBe('shared@example.com');
+      expect(signedIn.name).toBe('Legacy User');
+      expect((await userService.findById(db, local.id))?.githubId).toBeNull();
+    });
+
+    it("keeps a linked account's email when its new verified address belongs to another account", async () => {
+      const local = await userService.create(db, {
+        username: 'localuser',
+        email: 'Mixed.Case@Example.com',
+        password: TEST_PASSWORDS.DEFAULT,
+      });
+      const linked = await userService.createOrUpdateGithubUser(db, {
+        githubId: 'gh-changes-email',
+        username: 'githubuser',
+        email: 'github@example.com',
+        emailVerified: true,
+        name: 'GitHub User',
+      });
+
+      // The GitHub account's verified primary address is now the local
+      // account's address, in different letter case.
+      const signedIn = await userService.createOrUpdateGithubUser(db, {
+        githubId: 'gh-changes-email',
+        username: 'githubuser',
+        email: 'mixed.case@example.com',
+        emailVerified: true,
+        name: 'Renamed User',
+      });
+
+      expect(signedIn.id).toBe(linked.id);
+      expect(signedIn.email).toBe('github@example.com');
+      expect(signedIn.name).toBe('Renamed User');
+      expect((await userService.findById(db, local.id))?.email).toBe('Mixed.Case@Example.com');
+    });
+
+    it("keeps a linked account's email when GitHub reports an unverified address", async () => {
+      const linked = await userService.createOrUpdateGithubUser(db, {
+        githubId: 'gh-unverified-update',
+        username: 'githubuser',
+        email: 'github@example.com',
+        emailVerified: true,
+        name: 'GitHub User',
+      });
+
+      const signedIn = await userService.createOrUpdateGithubUser(db, {
+        githubId: 'gh-unverified-update',
+        username: 'githubuser',
+        email: 'updated@example.com',
+        emailVerified: false,
+        name: 'GitHub User',
+      });
+
+      expect(signedIn.id).toBe(linked.id);
+      expect(signedIn.email).toBe('github@example.com');
+    });
+
+    it('creates an account for a new GitHub identity whose verified email is unused', async () => {
+      const user = await userService.createOrUpdateGithubUser(db, {
+        githubId: 'gh-fresh',
+        username: 'githubuser',
+        email: 'github@example.com',
+        emailVerified: true,
+        name: 'GitHub User',
+      });
+
+      expect(user.githubId).toBe('gh-fresh');
+      expect(user.username).toBe('githubuser');
+      expect(user.email).toBe('github@example.com');
+      expect(user.password).toBeNull();
+      expect(user.approved).toBe(false);
+    });
+
+    it('neither stores nor compares an address GitHub has not verified', async () => {
       const localUser = await userService.create(db, {
-        username: 'victimuser',
-        email: 'victim@example.com',
+        username: 'localuser',
+        email: 'shared@example.com',
         password: TEST_PASSWORDS.DEFAULT,
       });
 
-      // GitHub lets anyone add an unverified address to their profile.
-      const attacker = await userService.createOrUpdateGithubUser(db, {
-        githubId: 'gh-attacker',
-        username: 'attacker',
-        email: 'victim@example.com',
+      // GitHub lets an account list addresses it has not confirmed.
+      const ghUser = await userService.createOrUpdateGithubUser(db, {
+        githubId: 'gh-unverified',
+        username: 'newghuser',
+        email: 'shared@example.com',
         emailVerified: false,
-        name: 'Attacker',
+        name: 'New GH User',
       });
 
-      expect(attacker.id).not.toBe(localUser.id);
-      expect(attacker.username).toBe('attacker');
-      const victim = await userService.findById(db, localUser.id);
-      expect(victim?.githubId).toBeNull();
+      expect(ghUser.id).not.toBe(localUser.id);
+      expect(ghUser.username).toBe('newghuser');
+      expect(ghUser.email || null).toBeNull();
+      const local = await userService.findById(db, localUser.id);
+      expect(local?.githubId).toBeNull();
     });
 
     it('treats a missing emailVerified flag as unverified', async () => {
       const localUser = await userService.create(db, {
-        username: 'localuser2',
-        email: 'shared2@example.com',
+        username: 'localuser',
+        email: 'shared@example.com',
         password: TEST_PASSWORDS.DEFAULT,
       });
       const other = await userService.createOrUpdateGithubUser(db, {
         githubId: 'gh-link-2',
-        username: 'gh-localuser2',
-        email: 'shared2@example.com',
+        username: 'newghuser',
+        email: 'shared@example.com',
         name: 'GitHub Name',
       });
       expect(other.id).not.toBe(localUser.id);
+      expect(other.email || null).toBeNull();
     });
 
-    it('should not link to a user that already has a different GitHub account', async () => {
-      // Create a user already linked to a different GitHub account
-      await userService.createOrUpdateGithubUser(db, {
+    it('does not compare an unverified address with that of an account linked to another GitHub identity', async () => {
+      const other = await userService.createOrUpdateGithubUser(db, {
         githubId: 'gh-other',
         username: 'otherghuser',
         email: 'taken@example.com',
+        emailVerified: true,
         name: 'Other User',
       });
 
-      // A new GitHub account with the same email should create a new user
       const newUser = await userService.createOrUpdateGithubUser(db, {
         githubId: 'gh-new',
         username: 'newghuser',
         email: 'taken@example.com',
+        emailVerified: false,
         name: 'New User',
       });
 
+      expect(newUser.id).not.toBe(other.id);
       expect(newUser.githubId).toBe('gh-new');
-      expect(newUser.username).toBe('newghuser'); // new user created
+      expect(newUser.email || null).toBeNull();
+      expect((await userService.findById(db, other.id))?.githubId).toBe('gh-other');
+    });
+
+    it('refuses a verified email that an account linked to another GitHub identity uses', async () => {
+      const other = await userService.createOrUpdateGithubUser(db, {
+        githubId: 'gh-other-verified',
+        username: 'otherghuser',
+        email: 'taken@example.com',
+        emailVerified: true,
+        name: 'Other User',
+      });
+
+      await expect(
+        userService.createOrUpdateGithubUser(db, {
+          githubId: 'gh-new-verified',
+          username: 'newghuser',
+          email: 'taken@example.com',
+          emailVerified: true,
+          name: 'New User',
+        })
+      ).rejects.toThrow(GithubEmailInUseError);
+
+      expect(await userService.findByGithubId(db, 'gh-new-verified')).toBeUndefined();
+      expect((await userService.findById(db, other.id))?.githubId).toBe('gh-other-verified');
+    });
+
+    it('refuses a verified email that differs from an existing address only in letter case', async () => {
+      const local = await userService.create(db, {
+        username: 'localuser',
+        email: 'Mixed.Case@Example.com',
+        password: TEST_PASSWORDS.DEFAULT,
+      });
+
+      await expect(
+        userService.createOrUpdateGithubUser(db, {
+          githubId: 'gh-case',
+          username: 'newghuser',
+          email: 'mixed.case@example.com',
+          emailVerified: true,
+          name: 'New GH User',
+        })
+      ).rejects.toThrow(GithubEmailInUseError);
+
+      expect(await userService.findByGithubId(db, 'gh-case')).toBeUndefined();
+      expect((await userService.findById(db, local.id))?.githubId).toBeNull();
     });
 
     it('should preserve existing email when GitHub returns empty email', async () => {
@@ -278,6 +458,7 @@ describe('User Service', () => {
         githubId: 'gh-email-test',
         username: 'githubuser',
         email: 'real@example.com',
+        emailVerified: true,
         name: 'Email User',
       });
 
@@ -292,7 +473,7 @@ describe('User Service', () => {
       expect(updated.email).toBe('real@example.com'); // preserved
     });
 
-    it('should skip email linking when multiple users share the same email', async () => {
+    it('creates an account without an unverified address that several accounts use', async () => {
       // Create two local users with the same email (edge case)
       await userService.create(db, {
         username: 'localuser',
@@ -310,16 +491,50 @@ describe('User Service', () => {
         approved: true,
       });
 
-      // GitHub login with same email should create a new user (not link)
+      // The unverified address is not compared, so sign-in creates an account
+      // without it.
       const ghUser = await userService.createOrUpdateGithubUser(db, {
         githubId: 'gh-multi-email',
         username: 'newghuser',
         email: 'shared@example.com',
+        emailVerified: false,
         name: 'New GH User',
       });
 
-      expect(ghUser.username).toBe('newghuser'); // new user, not linked
+      expect(ghUser.username).toBe('newghuser');
       expect(ghUser.githubId).toBe('gh-multi-email');
+      expect(ghUser.email || null).toBeNull();
+      const withEmail = await db.select().from(users).where(eq(users.email, 'shared@example.com'));
+      expect(withEmail.map((user) => user.githubId)).toEqual([null, null]);
+    });
+
+    it('refuses a verified email that several accounts share', async () => {
+      await userService.create(db, {
+        username: 'localuser',
+        email: 'shared@example.com',
+        password: TEST_PASSWORDS.DEFAULT,
+      });
+      await db.insert(users).values({
+        id: crypto.randomUUID(),
+        username: 'auser',
+        email: 'shared@example.com',
+        password: 'hashedpass',
+        enabled: true,
+        approved: true,
+      });
+
+      await expect(
+        userService.createOrUpdateGithubUser(db, {
+          githubId: 'gh-multi-verified',
+          username: 'newghuser',
+          email: 'shared@example.com',
+          emailVerified: true,
+          name: 'New GH User',
+        })
+      ).rejects.toThrow(GithubEmailInUseError);
+
+      const withEmail = await db.select().from(users).where(eq(users.email, 'shared@example.com'));
+      expect(withEmail.map((user) => user.githubId)).toEqual([null, null]);
     });
   });
 

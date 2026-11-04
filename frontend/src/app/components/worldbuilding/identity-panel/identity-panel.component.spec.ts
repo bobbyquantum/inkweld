@@ -658,6 +658,46 @@ describe('IdentityPanelComponent', () => {
       expect(component.resolvedImageUrl()).toBeNull();
     });
 
+    it('should encode the filename in the download URL', async () => {
+      serverMode = true;
+      localStorageService.getMediaUrl
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce('blob:downloaded');
+
+      const done = resolveImageUrl(component, 'media://Elara [2].png');
+      await vi.waitFor(() =>
+        _httpTestingController
+          .expectOne(
+            'http://test.local/api/v1/media/testuser/test-project/Elara%20%5B2%5D.png'
+          )
+          .flush(new Blob(['x'], { type: 'image/png' }))
+      );
+      await done;
+      expect(component.resolvedImageUrl()).toBe('blob:downloaded');
+    });
+
+    it.each([
+      'media://../x.png',
+      'media://..%2fx.png',
+      'media://%2e%2e/x.png',
+      'media://img.png?x=1',
+      'media://..',
+    ])(
+      'should show no image for %j without a lookup or request',
+      async reference => {
+        serverMode = true;
+        component.resolvedImageUrl.set('blob:previous');
+
+        await resolveImageUrl(component, reference);
+
+        expect(component.resolvedImageUrl()).toBeNull();
+        expect(localStorageService.getMediaUrl).not.toHaveBeenCalled();
+        expect(localStorageService.saveMedia).not.toHaveBeenCalled();
+        _httpTestingController.expectNone(() => true);
+        _httpTestingController.verify();
+      }
+    );
+
     it('should not delete media when a cached blob URL fails to fetch', async () => {
       // A cached URL exists but fetch() rejects (e.g. transient failure).
       localStorageService.getMediaUrl

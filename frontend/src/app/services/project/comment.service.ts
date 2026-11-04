@@ -10,6 +10,7 @@
 
 import { HttpClient, type HttpErrorResponse } from '@angular/common/http';
 import { inject, Injectable, signal, type WritableSignal } from '@angular/core';
+import { encodePathSegment } from '@utils/url-path';
 import { type Mark } from 'prosemirror-model';
 import { type EditorView } from 'prosemirror-view';
 import { catchError, firstValueFrom, throwError } from 'rxjs';
@@ -78,6 +79,43 @@ export interface LocalCommentMessage {
   authorUsername?: string;
   text: string;
   createdAt: number;
+}
+
+const COMMENT_ID = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i;
+
+/**
+ * Whether `id` can be the id of a server comment thread or message. Both
+ * are UUIDs: this client creates thread ids with `crypto.randomUUID()` (the
+ * server accepts nothing else) and the server creates message ids the same
+ * way. A mark with any other id is never sent to the server.
+ */
+export function isCommentId(id: unknown): id is string {
+  return typeof id === 'string' && COMMENT_ID.test(id);
+}
+
+/** Return `id`, or throw when it is not a comment id ({@link isCommentId}). */
+function requireCommentId(id: string): string {
+  if (!isCommentId(id)) {
+    throw new Error('Not a comment id');
+  }
+  return id;
+}
+
+/** Path of a project's comments, each segment encoded. */
+export function commentsPath(username: string, slug: string): string {
+  return `/api/v1/comments/${encodePathSegment(username)}/${encodePathSegment(slug)}`;
+}
+
+/**
+ * Path of one comment thread, each segment encoded. The service also
+ * requires `threadId` to be a comment id before it builds one.
+ */
+export function commentThreadPath(
+  username: string,
+  slug: string,
+  threadId: string
+): string {
+  return `${commentsPath(username, slug)}/threads/${encodePathSegment(threadId)}`;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -327,67 +365,71 @@ export class CommentService {
 
   // ─────────────────────────────────────────────────────────────────────────
   // REST API Operations (Server Mode)
+  //
+  // Every path segment is encoded (encodePathSegment), and thread and message
+  // ids must be comment ids (isCommentId): a method given anything else
+  // rejects without sending a request.
   // ─────────────────────────────────────────────────────────────────────────
 
-  createThread(
+  async createThread(
     username: string,
     slug: string,
     data: { id: string; documentId: string; text: string }
   ): Promise<CommentThreadResponse> {
-    const url = `${this.basePath}/api/v1/comments/${username}/${slug}`;
-    return firstValueFrom(
+    const url = this.projectUrl(username, slug);
+    return await firstValueFrom(
       this.http
         .post<CommentThreadResponse>(url, data, { withCredentials: true })
         .pipe(catchError(this.handleError.bind(this)))
     );
   }
 
-  getThread(
+  async getThread(
     username: string,
     slug: string,
     threadId: string
   ): Promise<CommentThreadResponse> {
-    const url = `${this.basePath}/api/v1/comments/${username}/${slug}/threads/${threadId}`;
-    return firstValueFrom(
+    const url = this.threadUrl(username, slug, threadId);
+    return await firstValueFrom(
       this.http
         .get<CommentThreadResponse>(url, { withCredentials: true })
         .pipe(catchError(this.handleError.bind(this)))
     );
   }
 
-  listDocumentComments(
+  async listDocumentComments(
     username: string,
     slug: string,
     documentName: string
   ): Promise<CommentThreadResponse[]> {
-    const url = `${this.basePath}/api/v1/comments/${username}/${slug}/doc/${documentName}`;
-    return firstValueFrom(
+    const url = `${this.projectUrl(username, slug)}/doc/${encodePathSegment(documentName)}`;
+    return await firstValueFrom(
       this.http
         .get<CommentThreadResponse[]>(url, { withCredentials: true })
         .pipe(catchError(this.handleError.bind(this)))
     );
   }
 
-  listProjectComments(
+  async listProjectComments(
     username: string,
     slug: string
   ): Promise<CommentThreadSummary[]> {
-    const url = `${this.basePath}/api/v1/comments/${username}/${slug}`;
-    return firstValueFrom(
+    const url = this.projectUrl(username, slug);
+    return await firstValueFrom(
       this.http
         .get<CommentThreadSummary[]>(url, { withCredentials: true })
         .pipe(catchError(this.handleError.bind(this)))
     );
   }
 
-  addMessage(
+  async addMessage(
     username: string,
     slug: string,
     threadId: string,
     text: string
   ): Promise<CommentMessageResponse> {
-    const url = `${this.basePath}/api/v1/comments/${username}/${slug}/threads/${threadId}/messages`;
-    return firstValueFrom(
+    const url = `${this.threadUrl(username, slug, threadId)}/messages`;
+    return await firstValueFrom(
       this.http
         .post<CommentMessageResponse>(url, { text }, { withCredentials: true })
         .pipe(catchError(this.handleError.bind(this)))
@@ -399,7 +441,7 @@ export class CommentService {
     slug: string,
     threadId: string
   ): Promise<void> {
-    const url = `${this.basePath}/api/v1/comments/${username}/${slug}/threads/${threadId}/resolve`;
+    const url = `${this.threadUrl(username, slug, threadId)}/resolve`;
     await firstValueFrom(
       this.http
         .patch(url, {}, { withCredentials: true })
@@ -412,7 +454,7 @@ export class CommentService {
     slug: string,
     threadId: string
   ): Promise<void> {
-    const url = `${this.basePath}/api/v1/comments/${username}/${slug}/threads/${threadId}/unresolve`;
+    const url = `${this.threadUrl(username, slug, threadId)}/unresolve`;
     await firstValueFrom(
       this.http
         .patch(url, {}, { withCredentials: true })
@@ -425,7 +467,7 @@ export class CommentService {
     slug: string,
     threadId: string
   ): Promise<void> {
-    const url = `${this.basePath}/api/v1/comments/${username}/${slug}/threads/${threadId}`;
+    const url = this.threadUrl(username, slug, threadId);
     await firstValueFrom(
       this.http
         .delete(url, { withCredentials: true })
@@ -433,14 +475,14 @@ export class CommentService {
     );
   }
 
-  deleteMessage(
+  async deleteMessage(
     username: string,
     slug: string,
     threadId: string,
     messageId: string
   ): Promise<{ threadDeleted: boolean }> {
-    const url = `${this.basePath}/api/v1/comments/${username}/${slug}/threads/${threadId}/messages/${messageId}`;
-    return firstValueFrom(
+    const url = `${this.threadUrl(username, slug, threadId)}/messages/${encodePathSegment(requireCommentId(messageId))}`;
+    return await firstValueFrom(
       this.http
         .delete<{
           message: string;
@@ -453,7 +495,7 @@ export class CommentService {
   async fetchUnreadCounts(username: string, slug: string): Promise<void> {
     if (!this.isServerMode) return;
     try {
-      const url = `${this.basePath}/api/v1/comments/${username}/${slug}/unread`;
+      const url = `${this.projectUrl(username, slug)}/unread`;
       const counts = await firstValueFrom(
         this.http
           .get<UnreadCount[]>(url, { withCredentials: true })
@@ -476,7 +518,7 @@ export class CommentService {
   ): Promise<void> {
     if (!this.isServerMode) return;
     try {
-      const url = `${this.basePath}/api/v1/comments/${username}/${slug}/seen`;
+      const url = `${this.projectUrl(username, slug)}/seen`;
       await firstValueFrom(
         this.http
           .post(url, { documentId }, { withCredentials: true })
@@ -554,6 +596,15 @@ export class CommentService {
 
   private getActiveDocumentId(_username: string, _slug: string): string | null {
     return this.activeDocumentId;
+  }
+
+  private projectUrl(username: string, slug: string): string {
+    return `${this.basePath}${commentsPath(username, slug)}`;
+  }
+
+  /** URL of one thread. Throws when `threadId` is not a comment id. */
+  private threadUrl(username: string, slug: string, threadId: string): string {
+    return `${this.basePath}${commentThreadPath(username, slug, requireCommentId(threadId))}`;
   }
 
   private handleError(error: HttpErrorResponse) {

@@ -348,7 +348,7 @@ export class WorldbuildingService {
       return undefined;
     }
 
-    const authToken = this.authTokenService.getToken();
+    const authToken = this.authTokenService.getTokenForUrl(wsUrl);
     const syncBlocked = this.versionCompatibility.syncBlocked();
     if (!authToken || syncBlocked) {
       return undefined;
@@ -372,10 +372,11 @@ export class WorldbuildingService {
       // binary frames. Without this the reconnected socket never sends the
       // token, the server closes it as an auth timeout (a transient close, so
       // y-websocket reconnects again) and the loop runs for as long as the
-      // element stays open.
+      // element stays open. Only the token of the profile whose server this
+      // socket is connected to is sent.
       this.setupWsReauth(
         provider,
-        () => this.authTokenService.getToken(),
+        () => this.authTokenService.getTokenForUrl(fullWsUrl),
         error => {
           this.logger.warn(
             'WorldbuildingService',

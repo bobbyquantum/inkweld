@@ -1,7 +1,13 @@
-import { provideZonelessChangeDetection } from '@angular/core';
+import {
+  DOCUMENT,
+  Injector,
+  provideZonelessChangeDetection,
+  runInInjectionContext,
+} from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { environment } from '../../../environments/environment';
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import {
   APP_CONFIG_STORAGE_KEY,
@@ -66,8 +72,9 @@ describe('AuthTokenService', () => {
     return hex.substring(0, 8);
   }
 
-  // Helper to create TestBed and inject services (call after setupMockStorage)
-  function createServices() {
+  // Helper to create TestBed and inject services (call after setupMockStorage).
+  // `doc` stands in for the page's document (its base URL).
+  function createServices(doc?: Document) {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       imports: [translocoTestProvider()],
@@ -75,6 +82,7 @@ describe('AuthTokenService', () => {
         provideZonelessChangeDetection(),
         StorageContextService,
         AuthTokenService,
+        ...(doc ? [{ provide: DOCUMENT, useValue: doc }] : []),
       ],
     });
     TestBed.inject(StorageContextService); // Initialize but don't store (uses prefixed keys)
@@ -277,6 +285,98 @@ describe('AuthTokenService', () => {
     });
   });
 
+  describe('getTokenForUrl', () => {
+    const originalApiUrl = environment.apiUrl;
+
+    /** A document served from `base`, like one with a `<base href>` */
+    function documentAt(base: string): Document {
+      const doc = document.implementation.createHTMLDocument('test');
+      const baseEl = doc.createElement('base');
+      baseEl.setAttribute('href', base);
+      doc.head.appendChild(baseEl);
+      return doc;
+    }
+
+    afterEach(() => {
+      environment.apiUrl = originalApiUrl;
+    });
+
+    it('returns the token for URLs on the active server', () => {
+      setupMockStorage('server', 'https://ink.example.com');
+      createServices();
+      service.setToken('tok');
+
+      expect(service.getTokenForUrl('https://ink.example.com/api/v1/x')).toBe(
+        'tok'
+      );
+      expect(
+        service.getTokenForUrl('wss://ink.example.com/api/v1/ws/yjs')
+      ).toBe('tok');
+      expect(service.isActiveServerUrl('https://ink.example.com')).toBe(true);
+    });
+
+    it('returns null for any other server', () => {
+      setupMockStorage('server', 'https://ink.example.com');
+      createServices();
+      service.setToken('tok');
+
+      expect(
+        service.getTokenForUrl('https://other.example.com/api')
+      ).toBeNull();
+      expect(service.getTokenForUrl('ws://ink.example.com/api')).toBeNull();
+      expect(service.isActiveServerUrl('https://other.example.com')).toBe(
+        false
+      );
+    });
+
+    it('keeps the token inside the path of a path-prefixed server', () => {
+      setupMockStorage('server', 'https://example.com/inkweld-a');
+      createServices();
+      service.setToken('tok');
+
+      expect(
+        service.getTokenForUrl('https://example.com/inkweld-a/api/v1/x')
+      ).toBe('tok');
+      expect(
+        service.getTokenForUrl('wss://example.com/inkweld-a/api/v1/ws/yjs')
+      ).toBe('tok');
+      expect(
+        service.getTokenForUrl('https://example.com/inkweld-b/api/v1/x')
+      ).toBeNull();
+      expect(service.getTokenForUrl('https://example.com/api/v1/x')).toBeNull();
+    });
+
+    it('resolves relative URLs against the page base URL', () => {
+      setupMockStorage('server', 'https://example.com/inkweld');
+      createServices(documentAt('https://example.com/inkweld/'));
+      service.setToken('tok');
+
+      expect(service.getTokenForUrl('api/v1/users/me')).toBe('tok');
+      expect(service.getTokenForUrl('/api/v1/users/me')).toBeNull();
+    });
+
+    it('uses the page origin and base href for a server profile without a URL', () => {
+      environment.apiUrl = '';
+      setupMockStorage('server', '');
+      createServices(documentAt('https://writers.example.com/'));
+      service.setToken('tok');
+
+      expect(service.getTokenForUrl('/api/v1/users/me')).toBe('tok');
+      expect(
+        service.getTokenForUrl('https://other.example.com/api/v1/users/me')
+      ).toBeNull();
+    });
+
+    it('never returns a token for a Browser profile', () => {
+      setupMockStorage('local');
+      createServices(documentAt('https://writers.example.com/'));
+      service.setToken('tok');
+
+      expect(service.getTokenForUrl('/api/v1/users/me')).toBeNull();
+      expect(service.isActiveServerUrl('/api/v1/users/me')).toBe(false);
+    });
+  });
+
   describe('moveToken', () => {
     it('carries a token from one profile prefix to another', () => {
       const serverUrl = 'https://ink.example.com';
@@ -290,6 +390,195 @@ describe('AuthTokenService', () => {
       expect(service.getTokenForConfig(fromId)).toBeNull();
       expect(service.getTokenForConfig(`${fromId}-deadbeef`)).toBe('tok');
       expect(mockStorage[`srv:${fromId}-deadbeef:auth_token`]).toBe('tok');
+    });
+
+    it('carries the server the token was stored for', () => {
+      createServices();
+      const storage = TestBed.inject(StorageContextService);
+      const shared = storage.addServerConfig('https://ink.example.com', 'Ink', {
+        name: 'Alice',
+        username: 'alice',
+      });
+      storage.switchToConfig(shared.id);
+      service.setToken('bob-token');
+      const { config, forkedFrom } = storage.adoptServerLogin({
+        name: 'Bob',
+        username: 'bob',
+      });
+
+      service.moveToken(forkedFrom ?? '', config.id);
+
+      expect(service.getToken()).toBe('bob-token');
+      expect(mockStorage[`srv:${config.id}:auth_token_server`]).toBe(
+        'https://ink.example.com'
+      );
+      expect(mockStorage[`srv:${shared.id}:auth_token`]).toBeUndefined();
+      expect(mockStorage[`srv:${shared.id}:auth_token_server`]).toBeUndefined();
+    });
+  });
+
+  describe('the server a token was stored for', () => {
+    const serverA = 'https://example.com/inkweld-a';
+    const serverB = 'https://example.com/inkweld-b';
+
+    /** A second tab: its own profile list, read from the same storage */
+    function openSecondTab(): {
+      storage: StorageContextService;
+      tokens: AuthTokenService;
+    } {
+      const storage = new StorageContextService();
+      const injector = Injector.create({
+        providers: [{ provide: StorageContextService, useValue: storage }],
+        parent: TestBed.inject(Injector),
+      });
+      return {
+        storage,
+        tokens: runInInjectionContext(injector, () => new AuthTokenService()),
+      };
+    }
+
+    /** Make a profile for `serverUrl` active in the first tab; returns its id */
+    function useServer(serverUrl: string): string {
+      const storage = TestBed.inject(StorageContextService);
+      const config = storage.addServerConfig(serverUrl);
+      storage.switchToConfig(config.id);
+      return config.id;
+    }
+
+    beforeEach(() => {
+      createServices();
+    });
+
+    it('is stored next to the token', () => {
+      const id = useServer(`${serverA}/`);
+
+      service.setToken('token-a');
+
+      expect(mockStorage[`srv:${id}:auth_token`]).toBe('token-a');
+      expect(mockStorage[`srv:${id}:auth_token_server`]).toBe(serverA);
+    });
+
+    it('is recorded for a token stored before it was kept', () => {
+      const id = useServer(serverA);
+      mockStorage[`srv:${id}:auth_token`] = 'token-a';
+
+      expect(service.getTokenForUrl(`${serverA}/api/v1/users/me`)).toBe(
+        'token-a'
+      );
+      expect(service.hasTokenForConfig(id)).toBe(true);
+      expect(mockStorage[`srv:${id}:auth_token_server`]).toBe(serverA);
+    });
+
+    it('is removed with the token', () => {
+      const id = useServer(serverA);
+      service.setToken('token-a');
+
+      service.clearToken();
+
+      expect(mockStorage[`srv:${id}:auth_token`]).toBeUndefined();
+      expect(mockStorage[`srv:${id}:auth_token_server`]).toBeUndefined();
+
+      service.setTokenForConfig(id, 'token-a2');
+      expect(mockStorage[`srv:${id}:auth_token_server`]).toBe(serverA);
+      service.clearTokenForConfig(id);
+      expect(mockStorage[`srv:${id}:auth_token`]).toBeUndefined();
+      expect(mockStorage[`srv:${id}:auth_token_server`]).toBeUndefined();
+    });
+
+    it('keeps a token with its server when tabs disagree about an id', () => {
+      // The first tab is signed in to server A
+      const id = useServer(serverA);
+      service.setToken('token-a');
+
+      // A second tab removes that profile and adds server B, whose preferred
+      // id is the one just freed, then signs in there
+      const second = openSecondTab();
+      second.tokens.clearTokenForConfig(id);
+      second.storage.removeConfig(id);
+      const b = second.storage.addServerConfig(serverB);
+      second.storage.switchToConfig(b.id);
+      second.tokens.setToken('token-b');
+      expect(b.id).toBe(id);
+
+      // The first tab still has server A under that id: no token for it
+      expect(service.getTokenForUrl(`${serverA}/api/v1/users/me`)).toBeNull();
+      expect(service.hasToken()).toBe(false);
+      expect(service.hasTokenForConfig(id)).toBe(false);
+      expect(second.tokens.getTokenForUrl(`${serverB}/api/v1/users/me`)).toBe(
+        'token-b'
+      );
+
+      // Signing in to A again there never gives the second tab A's token
+      service.setToken('token-a2');
+      expect(service.getTokenForUrl(`${serverA}/api/v1/users/me`)).toBe(
+        'token-a2'
+      );
+      expect(
+        second.tokens.getTokenForUrl(`${serverB}/api/v1/users/me`)
+      ).toBeNull();
+    });
+
+    /**
+     * Run `write`, calling `read` after each storage change it makes (as
+     * another tab could), and return what `read` saw.
+     */
+    function readAfterEachChange(
+      write: () => void,
+      read: () => string | null
+    ): Array<string | null> {
+      const seen: Array<string | null> = [];
+      let reading = false;
+      const readNow = () => {
+        // A read can store an address itself; don't read inside that
+        if (reading) return;
+        reading = true;
+        seen.push(read());
+        reading = false;
+      };
+      const setItem = vi
+        .spyOn(localStorage, 'setItem')
+        .mockImplementation((key: string, value: string) => {
+          mockStorage[key] = value;
+          readNow();
+        });
+      const removeItem = vi
+        .spyOn(localStorage, 'removeItem')
+        .mockImplementation((key: string) => {
+          delete mockStorage[key];
+          readNow();
+        });
+      write();
+      setItem.mockRestore();
+      removeItem.mockRestore();
+      return seen;
+    }
+
+    it('never shows a token next to another server while one is written', () => {
+      // The tabs disagree about an id: server A in the first, B in the second
+      const id = useServer(serverA);
+      const second = openSecondTab();
+      second.storage.removeConfig(id);
+      const b = second.storage.addServerConfig(serverB);
+      second.storage.switchToConfig(b.id);
+      expect(b.id).toBe(id);
+      const urlB = `${serverB}/api/v1/users/me`;
+      second.tokens.setToken('token-b');
+
+      // The first tab signs in to A: a tab on B never reads A's token
+      const seenOnB = readAfterEachChange(
+        () => service.setToken('token-a'),
+        () => second.tokens.getTokenForUrl(urlB)
+      );
+      expect(seenOnB.length).toBeGreaterThan(0);
+      expect(seenOnB).not.toContain('token-a');
+
+      // The second tab signs in to B again: A's token is never read as B's
+      const seenOnBAgain = readAfterEachChange(
+        () => second.tokens.setToken('token-b2'),
+        () => second.tokens.getTokenForUrl(urlB)
+      );
+      expect(seenOnBAgain).not.toContain('token-a');
+      expect(seenOnBAgain.at(-1)).toBe('token-b2');
     });
   });
 });

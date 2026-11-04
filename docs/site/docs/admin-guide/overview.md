@@ -55,6 +55,42 @@ Manage user accounts:
   document and media storage it uses, and to set the user's sync capacity
   allowance (see [Sync Capacity](./sync-capacity.md))
 
+#### Usernames
+
+A new account's username is 3 to 39 characters long and uses only letters
+(A–Z, a–z), digits, hyphens (`-`) and underscores (`_`). It can't be a reserved
+name such as `admin`, `settings` or `worldbuilding`, and it can't differ from an
+existing username only in letter case: once `alice` exists, `Alice` is taken.
+The administrator created from
+[`DEFAULT_ADMIN_USERNAME`](../configuration.md#default_admin_username) is named
+by you, so its username isn't checked against the character rule.
+
+Accounts created through GitHub, OpenID Connect or Home Assistant are given a
+free username automatically, based on the name the provider reports:
+
+- **GitHub** keeps the login as it is. A login that is too short or reserved
+  gets a number, such as `tj-2` or `admin-2`.
+- **OpenID Connect** and **Home Assistant** lower-case the name and turn other
+  characters into hyphens. A name that is still shorter than 3 characters
+  becomes `oidc-user` or `ha-user`. A reserved name becomes `oidc-user` for
+  OpenID Connect and `<name>-ha` (such as `admin-ha`) for Home Assistant.
+
+When the resulting name is taken, a numbered variant such as `alice-2` is used.
+
+Accounts created before this rule keep their usernames and can still sign in,
+but a few names can't be used everywhere:
+
+- Project files are stored in folders named after the username, so a username
+  containing `/`, `\` or `..` can't create projects or store files. The account
+  can still delete its projects and itself; files stored under such a name
+  before the upgrade are left in place.
+- A username containing `:` can't be part of a document's id, so the MCP
+  tools refuse that account's projects.
+- On a file system that ignores letter case (the macOS and Windows defaults),
+  two usernames that differ only in case name the same folders. So on a server
+  that stores files on disk, such accounts can't both have a project with the
+  same URL.
+
 ### Settings
 
 System-wide switches, using the labels shown in the admin page:

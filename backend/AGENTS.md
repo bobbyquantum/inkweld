@@ -10,6 +10,15 @@ LevelDB per project for Yjs documents (Durable Objects on Workers). The root
 - **Run on Bun**: `bun run dev` (localhost:8333), `bun test`, `bun run lint`.
   Not `npm` or `node`.
 - **Type imports**: import Hono and Request/Response types with `import type`.
+- **NODE_ENV**: read it through `config/runtime-env.ts`, never as
+  `process.env.NODE_ENV` or `process.env['NODE_ENV']`: Bun's bundler replaces
+  both with their build-time value, so the compiled Docker binary would keep
+  the build machine's environment. Security-relevant decisions use
+  `runtimeEnv(c.env)`: pass the request's bindings (on Workers `[vars]` are not
+  in `process.env`), and a Worker without a NODE_ENV binding counts as
+  production. `configuredNodeEnv()` also falls back to the value Wrangler wrote
+  into the bundle, so it is only for the log format and the switches the
+  Wrangler e2e backend turns off with NODE_ENV=test.
 - Follow Hono middleware patterns; validate requests and responses with
   OpenAPI/Zod schemas (`src/schemas/`); return proper HTTP status codes.
 - **API changes** need the OpenAPI spec and Angular client regenerated (see the
@@ -49,6 +58,12 @@ LevelDB per project for Yjs documents (Durable Objects on Workers). The root
   which can be out of date. Details: `docs/site/docs/developer/mcp-oauth.md`.
 - **Yjs document ids**: the backend/MCP use `username:slug:elements/` with a
   trailing slash, the frontend without. Not a bug; don't "fix" it.
+- **Read-only sockets**: a viewer's socket may send only sync step 1 and
+  awareness. `isYjsFrameBlockedForViewer` (`utils/yjs-document-utils.ts`)
+  enforces it for both runtimes and for frames queued before auth. It reads
+  the types with lib0's `readVarUint`, as the sync handlers do. Never judge a
+  client's frame by its raw bytes: a padded varuint (`0x82 0x00` is 2) reads
+  differently, and that let viewers' updates through.
 - **HTTP routes that edit a Yjs document** must work on both runtimes.
   `yjsService` is Bun-only: on Workers it opens LevelDB and crashes the request
   with `indexedDB is not defined`. Use `openEditableDocument(documentId,
@@ -159,6 +174,27 @@ Docs: `docs/site/docs/developer/mcp-oauth.md`.
 
 ## Auth and accounts
 
+- **Signing key**: session tokens, MCP OAuth tokens, the MCP layer's own
+  tokens and the Durable Object all get it from `signingSecret(c.env)`
+  (`config/signing-secret.ts`), never from `config.databaseKey` directly. The
+  rule is `chooseSigningKey` in `config/env.ts`: DATABASE_KEY, else
+  SESSION_SECRET. Outside development/test, no key, the development key or a
+  sample value from the docs (`PUBLISHED_KEYS`) is refused; a key shorter than
+  32 characters is refused everywhere, except that a short DATABASE_KEY is
+  passed over for a usable SESSION_SECRET (with a warning), because it still
+  encrypts stored settings. A refusal throws `SigningSecretError` (a generic
+  500 and one log line). Bun and Node also check at start-up, more strictly:
+  a short DATABASE_KEY stops them. Resolve the key outside any `try` that turns
+  failures into "invalid token" (the Durable Object answers with
+  `access-denied:error` or a 500), so a missing key is a server error and
+  clients keep their tokens. When the list of sample values changes, keep
+  `SAMPLE_SECRETS` in step: `configService` also reads settings stored under
+  any published key and stores them again under the configured one. The
+  Docker image's entrypoint (`scripts/docker-entrypoint.sh`) generates a key in
+  `/data/.inkweld-key` when neither variable is set, and sets
+  `WEBAUTHN_RP_ID=localhost` (derive from `ALLOWED_ORIGINS`) when that is
+  unset, so an install made before the image ran with the production checks
+  still starts after an upgrade.
 - Passkey ceremonies must use `rpFromRequest(c)`, not `rpFromContext(c)`, so
   the hosted app's origin is accepted when `ALLOW_INKWELD_APP_CLIENT` is on.
   A new origin check must include `getInkweldAppClientOrigins()` too. Passkey
@@ -173,6 +209,42 @@ Docs: `docs/site/docs/developer/mcp-oauth.md`.
   server, so a new route that signs someone in or creates an account must refuse
   while it is on. Only a fresh instance elects an admin. Details:
   `docs/site/docs/configuration.md`.
+- **GitHub** (`routes/github-auth.routes.ts`,
+  `userService.createOrUpdateGithubUser`): accounts are keyed by `githubId`,
+  never linked by email. The `githubId` lookup runs before any email check,
+  so an account linked to the id is never refused over its address (accounts
+  from earlier versions may share one). The service ignores an address
+  unless `emailVerified` is true, and compares addresses ignoring letter
+  case. A new GitHub identity whose verified email another account already
+  uses gets `GithubEmailInUseError`, which the callback turns into
+  `/oauth/callback?error=email_in_use&provider=github`; it is neither
+  attached to that account nor given a second one with the address. A linked
+  account's stored email only changes to a verified address no other account
+  uses. Details: `docs/site/docs/admin-guide/github-oauth.md`.
+- **Usernames**: a name given to a new account is 3 to 39 ASCII letters,
+  digits, `-` and `_` (39 is GitHub's limit), not reserved
+  (`RESERVED_USERNAMES` and `RESERVED_STORAGE_NAMES`), and must not match an
+  existing name ignoring case (`schemas/auth.schemas.ts`). Registration and
+  check-username refuse other names; GitHub, OIDC and ingress sign-up derive a
+  free one with `userService.availableUsername` (`name-2`, …). Compare names
+  with `lower(username)`, which the `users_username_lower_idx` index serves
+  (not unique: older accounts may differ only in case). `userService.create`
+  repeats the check inside its INSERT, so an overlapping sign-up fails with
+  the username unique error (`isUsernameConflict`); a new insert path into
+  `users` must do the same. Never apply the rule on lookup or sign-in:
+  accounts created before it keep their names and must keep working. The
+  registration form checks the same rule
+  (`frontend/src/app/utils/username-rules.ts`); keep the two in step.
+- **Older usernames in storage and document ids**: usernames name storage
+  directories, R2 keys and Yjs document ids. Both storage adapters refuse a
+  username or slug that isn't one segment (`utils/storage-segment.ts`: no
+  `/`, `\`, `..` or NUL); deleting a project or an account passes
+  `skipUnstorableFiles` to `removeProjectData` so such an account can still be
+  removed, leaving its files alone. MCP's `getProjectByKey` refuses a username
+  or slug containing `:`, which would turn `username:slug:…` into another
+  project's id. On disk, `sharesProjectDirectory` refuses a project slug
+  another account whose username folds to the same name already has
+  (case-insensitive file systems would give them one directory).
 - **Account deletion** (`account-deletion.service.ts`, shared by self-service
   and admin deletion) reserves with `userService.reserveForDeletion()` — never
   by disabling the account, which breaks the Durable Object wipe — and tears
@@ -225,6 +297,35 @@ Docs: `docs/site/docs/developer/mcp-oauth.md`.
   `frontend/src/app/utils/schema-hash.ts` (both specs assert the same golden
   hash), and `BACKGROUND_PRESET_IDS` in `services/appearance.service.ts` must
   match `frontend/src/app/config/background-presets.ts`.
+
+## Sync socket input
+
+Details: `backend/src/routes/README_YJS.md`.
+
+- **Document ids from a client go through `parseDocumentId`**
+  (`utils/yjs-document-id.ts`), the one parser the Bun route, the Worker route
+  and the Durable Object share: `owner:slug:docName`, non-empty parts, at most
+  one trailing `/`. The first two parts always name the project (a
+  `worldbuilding:` prefix is not stripped; clients never send it), so the
+  access check, the LevelDB store and the Durable Object agree. A new route
+  that takes a document id from a client uses it too. `YjsService` refuses ids
+  it rejects, and its per-project helpers skip keys they cannot parse.
+- **Sync and awareness messages are checked before they are applied**, on both
+  runtimes (`isYjsMessageWithinLimits`, `utils/yjs-message-limits.ts`): an
+  update must decode completely and its JSON values may nest at most
+  `MAX_YJS_JSON_DEPTH` (256) levels. Whatever a document or awareness state
+  holds is encoded again for every client, compaction and export, so a new
+  path that applies Yjs content from a client checks it the same way. The
+  server's `Awareness` publishes no state and has its interval stopped
+  (`stopAwarenessInterval` in `yjs.service.ts`, as in the Durable Object).
+- **No error may escape a Bun socket handler.** Hono's Bun adapter does not
+  await `onMessage`, and Bun ends the process when a socket callback or timer
+  throws or a rejection goes unhandled. Catch in every handler, listener and
+  timer (each close-cleanup step runs on its own, `runCloseStep`), give
+  fire-and-forget promises a `.catch`, and read client frames with helpers
+  that return null rather than throw (`peekFrameTag`). The logger
+  `bun-runner.ts` and `node-runner.ts` install
+  (`utils/unhandled-rejection.ts`) is only a backstop.
 
 ## Wrangler version pin
 

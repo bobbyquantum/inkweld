@@ -30,7 +30,9 @@ delta instead of a rewrite of the whole element array.
 - **`resolveImageSrc` fetches missing media from the server** on a server
   profile: an agent can upload an image and place it while a tab is open. If it
   isn't there yet, `retryFailedImages` tries again whenever `mediaSyncVersion`
-  moves, since the node would otherwise only change with the object.
+  moves, since the node would otherwise only change with the object. A
+  `media://` src whose filename is not one plain path segment
+  (`safeMediaReferenceFilename`) shows no image and is never fetched.
 - **`text-layout.ts` in `@inkweld/canvas` copies Konva's wrapping** (`_setTextData`)
   so that SVG export and the server's renderer break lines where the app does.
   Check it when upgrading Konva. SVG and rendering code live in that package

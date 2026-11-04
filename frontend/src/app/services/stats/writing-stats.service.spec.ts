@@ -100,6 +100,12 @@ describe('WritingStatsService', () => {
       await promise;
     });
 
+    it('refuses a dot-segment username or slug without a request', () => {
+      expect(() => service.getProjectStats('..', 'slug')).toThrow();
+      expect(() => service.getProjectStats('user', '.')).toThrow();
+      httpController.expectNone(() => true);
+    });
+
     it('uses the setup service base path when provided', async () => {
       // Re-create with non-empty base url
       TestBed.resetTestingModule();

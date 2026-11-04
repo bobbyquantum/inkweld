@@ -143,10 +143,15 @@ RUN bun scripts/generate-frontend-imports.ts
 # Build TypeScript and compile to single binary
 # The --compile flag creates a standalone executable with embedded Bun runtime
 # The patched native module is embedded because it's now a static require
+# Bun's bundler replaces `process.env.NODE_ENV` with its value at build time,
+# so the compile runs with the NODE_ENV the image runs with. It is set on that
+# command only, not as a stage ENV, so the `bun install` steps above keep
+# devDependencies. Inkweld's own code reads NODE_ENV at run time
+# (src/config/runtime-env.ts); this keeps bundled dependencies in step.
 RUN BUN_TARGET=$([ "${TARGETARCH}" = "arm64" ] && echo "bun-linux-arm64" || echo "bun-linux-x64") && \
   echo "Compiling with target: $BUN_TARGET" && \
   bun run build && \
-  bun build --compile --minify --sourcemap \
+  NODE_ENV=production bun build --compile --minify --sourcemap \
   --target="$BUN_TARGET" \
   ./src/bun-runner.ts \
   --outfile ./inkweld-server
@@ -174,6 +179,10 @@ RUN apt-get update && \
 # Copy only the compiled binary and drizzle migrations (required for DB setup)
 COPY --from=backend-builder --chown=inkweld:inkweld --chmod=555 /app/backend/inkweld-server ./
 COPY --from=backend-builder --chown=inkweld:inkweld --chmod=555 /app/backend/drizzle ./drizzle
+# Generates and keeps a key in /data when no DATABASE_KEY or SESSION_SECRET
+# is set (see the script), so an install that never set one still starts.
+# Owned by root, so the server's own user cannot change it.
+COPY --from=backend-builder --chmod=555 /app/backend/scripts/docker-entrypoint.sh ./docker-entrypoint.sh
 
 # Copy frontend assets from dist directory
 # Angular outputs to dist/browser/ in production mode. We copy the entire dist/ directory
@@ -188,4 +197,5 @@ EXPOSE 8333
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:8333/api/v1/health || exit 1
 
+ENTRYPOINT ["./docker-entrypoint.sh"]
 CMD ["./inkweld-server"]

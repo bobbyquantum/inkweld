@@ -65,6 +65,13 @@ describe('UserProfileService', () => {
     expect(await promise).toEqual(mock);
   });
 
+  it('refuses a dot-segment username without a request', () => {
+    expect(() => service.getProfile('..')).toThrow();
+    expect(() => service.getActivity('.')).toThrow();
+    expect(() => service.bannerUrl('..')).toThrow();
+    httpController.expectNone(() => true);
+  });
+
   it('GETs activity with year and an explicit timezone', async () => {
     const mock: ProfileActivityYear = {
       year: 2025,

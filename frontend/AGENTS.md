@@ -94,6 +94,21 @@ Read `e2e/BEST_PRACTICES.md` before writing one.
   `appOrigin()` from `utils/app-base.ts` for full-page navigations, new
   windows and server URLs. Under ingress, sign-out and the account/server
   switcher are hidden.
+- **Every API path segment goes through `encodePathSegment()`**
+  (`utils/url-path.ts`), which percent-encodes it and throws for `.`, `..`
+  and non-strings. Hand-built paths call it for each segment; the generated
+  API client calls it for every path parameter (`encodeApiPathParam` in
+  `config/api.config.ts`), so a generated call given such a value throws
+  synchronously, before any request; a caller outside a `try` handles that
+  (`UserAvatarComponent` falls back to its generated avatar). Ids read from
+  project data are checked before they name a server resource: comment
+  thread and message ids must be UUIDs (`isCommentId` in
+  `services/project/comment.service.ts`; the comment popover shows and acts
+  on a server thread only once it has loaded the open mark's thread, and
+  shows any other server comment as unavailable), and a `media://` filename
+  must be one plain path segment (`safeMediaReferenceFilename` /
+  `isSafeMediaFilename` in `utils/media-reference.ts`), else it resolves to
+  no image without a request.
 - **Backgrounds**: never reference `/home_background.png` in a component
   stylesheet; use the mixins in `src/themes/_app-background.scss`
   (`services/core/AGENTS.md`).
@@ -104,6 +119,15 @@ Read `e2e/BEST_PRACTICES.md` before writing one.
   `isAiKillSwitchEnabled` is for admin pages only.
 - **Adding profiles**: every path that creates a profile asks
   `AppModePolicyService` (`APP_MODE`); see `services/core/AGENTS.md`.
+  A profile never changes server, and a new server never takes the id of
+  another server's profile (same file, "Server profile ids").
+- **The session token only goes to the active profile's server.** A manual
+  `Authorization` header or a socket token comes from
+  `AuthTokenService.getTokenForUrl(url)` with the URL being contacted (`null`
+  for any other server), never straight from `getToken()`. `AuthInterceptor`
+  applies the same rule to `HttpClient` requests, and tokens are only
+  written through `AuthTokenService`, which records each one's server
+  (`services/auth/AGENTS.md`).
 - **Storage quota errors** are 403 with `code: 'QUOTA_EXCEEDED'`; tell them
   apart from access errors with `getQuotaExceeded()` /
   `StorageUsageService.noteQuotaError()`, and only warn when
@@ -141,9 +165,10 @@ keys), and `services/core/locale.service.ts` persists the active language.
 - Components with no user-facing strings (e.g. `AriaTabPanelComponent`,
   `TreeNodeIconComponent`) don't use Transloco.
 
-**Error codes** are mapped to keys in `services/core/error-translation.service.ts`;
-add new codes there and the key to the right JSON file. Unmapped errors fall
-back to `errors.unknown`.
+**Error codes** of errors thrown as `PasskeyError` or `UserServiceError` are
+mapped to keys in `services/core/error-translation.service.ts`; add new codes
+there and the key to the right JSON file. Unmapped errors fall back to
+`errors.unknown`. Sign-in callback codes are mapped separately (below).
 
 | Error class | Code | Translation key / behaviour |
 |---|---|---|
@@ -156,6 +181,13 @@ back to `errors.unknown`.
 | `UserServiceError` | `LOGIN_FAILED` | `login.errors.loginFailed` |
 | `UserServiceError` | `ACCOUNT_PENDING` | Redirect to `/approval-pending` |
 
+**Sign-in callback codes**: OIDC sign-in failures and GitHub's `email_in_use`
+arrive on `/oauth/callback` as `?error=<code>` (GitHub's other failures still
+redirect to `/?error=…`). `ERROR_MESSAGE_KEYS` in `OAuthCallbackComponent`
+maps the codes that have their own message (`email_in_use` →
+`auth.oauthCallback.emailInUse`); add new ones there. Any other code shows
+`errors.unknown`.
+
 **Adding a locale**: copy `public/assets/i18n/en/` to `<lang>/` and translate
 it; register the Angular locale data (`registerLocaleData`) and add
 `{ id, label }` to `availableLangs` in `app.config.ts`; make sure
@@ -167,10 +199,10 @@ Settings appears once there is more than one language.
 
 | Area | Notes |
 |---|---|
-| Profile-scoped storage, project rename, APP_MODE, backgrounds, update dialog | `src/app/services/core/AGENTS.md` |
+| Profile-scoped storage, server profile ids, project rename, APP_MODE, backgrounds, update dialog | `src/app/services/core/AGENTS.md` |
 | Starting offline, bulk sync planner | `src/app/services/sync/AGENTS.md` |
 | Canvas Yjs model | `src/app/services/canvas/AGENTS.md` |
-| Passkeys, policy acceptance | `src/app/services/auth/AGENTS.md` |
+| Where the session token is sent, passkeys, policy acceptance | `src/app/services/auth/AGENTS.md` |
 | WebMCP tools | `src/app/services/webmcp/AGENTS.md` |
 | EPUB output, share links | `src/app/services/publish/AGENTS.md` |
 | Per-element schema copies, identity images | `src/app/services/worldbuilding/AGENTS.md` |

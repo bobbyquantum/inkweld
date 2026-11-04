@@ -13,6 +13,7 @@ import { requestLogger } from './middleware/request-logger';
 import { logger } from './services/logger.service';
 import { getInkweldAppClientOrigins } from './services/inkweld-app-client.service';
 import { config } from './config/env';
+import { configuredNodeEnv } from './config/runtime-env';
 import { configService } from './services/config.service';
 import { oidcAuthService } from './services/oidc-auth.service';
 import { errorHandler } from './middleware/error-handler';
@@ -153,7 +154,7 @@ async function bootstrap() {
 }
 
 // Only run bootstrap if not in test mode
-if (process.env.NODE_ENV !== 'test') {
+if (configuredNodeEnv() !== 'test') {
   await bootstrap();
 }
 

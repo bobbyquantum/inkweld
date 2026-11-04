@@ -3,6 +3,7 @@ import * as path from 'node:path';
 import { extension, lookup } from 'mime-types';
 import { config } from '../config/env';
 import { BadRequestError } from '../errors';
+import { isStorageSegment } from '../utils/storage-segment';
 import { logger } from './logger.service';
 import type { SlotNamespace } from './storage.service';
 import { firstResultSequential } from '@inkweld/async';
@@ -15,17 +16,11 @@ export class FileStorageService {
   }
 
   /**
-   * Validate that a path component does not contain traversal sequences.
-   * Throws if the component would escape the intended directory.
+   * Validate that a path component stays one segment of the path
+   * ({@link isStorageSegment}). Throws if it would escape its directory.
    */
   private validatePathComponent(component: string, label: string): void {
-    if (
-      !component ||
-      component.includes('..') ||
-      component.includes('/') ||
-      component.includes('\\') ||
-      component.includes('\0')
-    ) {
+    if (!isStorageSegment(component)) {
       throw new BadRequestError(`Invalid ${label}: path traversal detected`);
     }
   }

@@ -217,6 +217,19 @@ describe('OIDC callbacks', () => {
     expect(await usernameFor('-_')).toBe('oidc-user-2');
   });
 
+  it('gives a name that matches an existing account ignoring case a numeric suffix', async () => {
+    await userService.create(db, { username: 'Same-Name' }, { autoApprove: true });
+
+    await callback('case-subject');
+
+    const user = await userService.findByOidcIdentity(
+      db,
+      'https://issuer.example.test/',
+      'case-subject'
+    );
+    expect(user?.username).toBe('same-name-2');
+  });
+
   it('reports a failed sign-in when the account cannot be created', async () => {
     mocks.push(
       spyOn(userService, 'createOrUpdateOidcUser').mockRejectedValue(new Error('disk full'))

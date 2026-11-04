@@ -109,12 +109,16 @@ const buildArgs = [
   OUTPUT_FILE,
 ];
 
-console.log(`Running: bun ${buildArgs.join(' ')}\n`);
+console.log(`Running: NODE_ENV=production bun ${buildArgs.join(' ')}\n`);
 
+// Bun's bundler replaces `process.env.NODE_ENV` with its value at build time.
+// Build with the environment the binary is meant for, as the Dockerfile does;
+// Inkweld's own code reads NODE_ENV at run time (src/config/runtime-env.ts).
 const result = Bun.spawnSync(['bun', ...buildArgs], {
   stdout: 'inherit',
   stderr: 'inherit',
   cwd: PROJECT_ROOT,
+  env: { ...process.env, NODE_ENV: 'production' },
 });
 
 if (result.exitCode !== 0) {

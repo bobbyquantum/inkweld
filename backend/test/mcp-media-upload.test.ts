@@ -11,6 +11,7 @@ import { sign } from 'hono/jwt';
 import { getDatabase } from '../src/db/index';
 import { projects, users } from '../src/db/schema/index';
 import { config } from '../src/config/env';
+import { SigningSecretError } from '../src/config/signing-secret';
 import { signMediaUploadToken, verifyMediaUploadToken } from '../src/mcp/media-upload-token';
 import { mcpSigningSecret } from '../src/mcp/mcp.auth';
 import { isCrossOriginPath } from '../src/middleware/open-origin';
@@ -337,6 +338,13 @@ describe('who may upload', () => {
     const session = await sign({ ...claims(), exp }, secret, 'HS256');
     expect((await put(`${UPLOADS()}/${session}`)).status).toBe(401);
     expect((await put(`${UPLOADS()}/${accessToken}`)).status).toBe(401);
+  });
+
+  it('reports an unusable key as an error, not as an invalid token', async () => {
+    const { token } = await signMediaUploadToken(claims(), {});
+    await expect(verifyMediaUploadToken(token, { DATABASE_KEY: 'short' })).rejects.toThrow(
+      SigningSecretError
+    );
   });
 
   it('notices the wrong audience even with the right key', async () => {

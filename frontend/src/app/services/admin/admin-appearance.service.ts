@@ -1,5 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
+import { encodePathSegment } from '@utils/url-path';
 import { firstValueFrom } from 'rxjs';
 
 import { SetupService } from '../core/setup.service';
@@ -24,6 +25,10 @@ export class AdminAppearanceService {
     return `${base}/api/v1/admin/appearance`;
   }
 
+  private backgroundUrl(surface: BrandingSurface): string {
+    return `${this.baseUrl}/background/${encodePathSegment(surface)}`;
+  }
+
   async uploadBackground(
     surface: BrandingSurface,
     file: Blob,
@@ -33,7 +38,7 @@ export class AdminAppearanceService {
     form.append('background', file, filename);
 
     await firstValueFrom(
-      this.http.put(`${this.baseUrl}/background/${surface}`, form, {
+      this.http.put(this.backgroundUrl(surface), form, {
         withCredentials: true,
       })
     );
@@ -41,7 +46,7 @@ export class AdminAppearanceService {
 
   async deleteBackground(surface: BrandingSurface): Promise<void> {
     await firstValueFrom(
-      this.http.delete(`${this.baseUrl}/background/${surface}`, {
+      this.http.delete(this.backgroundUrl(surface), {
         withCredentials: true,
       })
     );

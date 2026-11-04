@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'bun:test';
 import { sign } from 'hono/jwt';
 import { authService } from '../src/services/auth.service';
+import { SigningSecretError } from '../src/config/signing-secret';
 import type { Context } from 'hono';
 import type { DatabaseInstance } from '../src/types/context';
 import type { User } from '../src/db/schema/users';
@@ -49,9 +50,26 @@ describe('AuthService – getSecret', () => {
     expect(authServiceWithPrivates.getSecret(c)).toBe(dk);
   });
 
-  it('falls back to config secret when env key is too short', () => {
-    const c = mockContext({ env: { DATABASE_KEY: 'short' } });
-    expect(authServiceWithPrivates.getSecret(c)).toBe(DEV_SECRET);
+  it('signs with SESSION_SECRET when DATABASE_KEY is shorter than 32 chars', () => {
+    const key = 's'.repeat(32);
+    const c = mockContext({ env: { DATABASE_KEY: 'short', SESSION_SECRET: key } });
+    expect(authServiceWithPrivates.getSecret(c)).toBe(key);
+  });
+
+  it('refuses a DATABASE_KEY shorter than 32 chars when SESSION_SECRET is not usable', () => {
+    const c = mockContext({ env: { DATABASE_KEY: 'short', SESSION_SECRET: 'also-short' } });
+    expect(() => authServiceWithPrivates.getSecret(c)).toThrow(SigningSecretError);
+  });
+
+  it('treats an empty DATABASE_KEY as unset and uses SESSION_SECRET', () => {
+    const key = 's'.repeat(32);
+    const c = mockContext({ env: { DATABASE_KEY: '', SESSION_SECRET: key } });
+    expect(authServiceWithPrivates.getSecret(c)).toBe(key);
+  });
+
+  it('never uses the development key when the bindings say production', () => {
+    const c = mockContext({ env: { NODE_ENV: 'production', DATABASE_KEY: DEV_SECRET } });
+    expect(() => authServiceWithPrivates.getSecret(c)).toThrow(SigningSecretError);
   });
 
   it('falls back to config secret when no env present', () => {
@@ -151,6 +169,47 @@ describe('AuthService – getSession', () => {
     const token = await sign(payload, DEV_SECRET, 'HS256');
     const c = mockContext({ authHeader: `Bearer ${token}`, env: { DATABASE_KEY: DEV_SECRET } });
     expect(await authService.getSession(c)).toBeNull();
+  });
+});
+
+describe('AuthService – no usable signing key', () => {
+  // A server without a usable key must answer with an error, not treat the
+  // caller's token as invalid (which would make the client drop it).
+  const unusableKey = { DATABASE_KEY: 'short' };
+
+  function validToken(): Promise<string> {
+    const payload = { userId: 'u1', username: 'alice', exp: Math.floor(Date.now() / 1000) + 3600 };
+    return sign(payload, 'k'.repeat(32), 'HS256');
+  }
+
+  it('getSession throws instead of returning null', async () => {
+    const c = mockContext({ authHeader: `Bearer ${await validToken()}`, env: unusableKey });
+    await expect(authService.getSession(c)).rejects.toThrow(SigningSecretError);
+  });
+
+  it('getSessionWithReason throws instead of reporting an invalid token', async () => {
+    const c = mockContext({ authHeader: `Bearer ${await validToken()}`, env: unusableKey });
+    await expect(authService.getSessionWithReason(c)).rejects.toThrow(SigningSecretError);
+  });
+
+  it('verifyToken throws instead of returning null', async () => {
+    const c = mockContext({ env: unusableKey });
+    await expect(authService.verifyToken(await validToken(), c)).rejects.toThrow(
+      SigningSecretError
+    );
+  });
+
+  it('createSession throws', async () => {
+    const user = { id: 'user-1', username: 'alice' } as User;
+    await expect(
+      authService.createSession(mockContext({ env: unusableKey }), user)
+    ).rejects.toThrow(SigningSecretError);
+  });
+
+  it('still treats a request without a token as anonymous', async () => {
+    const c = mockContext({ authHeader: null, env: unusableKey });
+    expect(await authService.getSession(c)).toBeNull();
+    expect((await authService.getSessionWithReason(c)).status).toBe('no-auth');
   });
 });
 

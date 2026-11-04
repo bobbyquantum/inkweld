@@ -1,7 +1,13 @@
+import { provideHttpClient } from '@angular/common/http';
+import {
+  HttpTestingController,
+  provideHttpClientTesting,
+} from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { AutoReviewService } from '@inkweld/index';
 import { AUTO_REVIEW_MARK_NAME } from '@inkweld/prosemirror/schema';
+import { SetupService } from '@services/core/setup.service';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
 import { AutoReviewApiService } from './auto-review.service';
@@ -84,7 +90,13 @@ describe('AutoReviewApiService', () => {
       imports: [translocoTestProvider()],
       providers: [
         provideZonelessChangeDetection(),
+        provideHttpClient(),
+        provideHttpClientTesting(),
         { provide: AutoReviewService, useValue: mockGeneratedService },
+        {
+          provide: SetupService,
+          useValue: { getServerUrl: () => 'http://localhost:8333' },
+        },
       ],
     }).compileComponents();
 
@@ -159,5 +171,33 @@ describe('AutoReviewApiService', () => {
     expect(suggestions).toHaveLength(1);
     expect(suggestions[0].id).toBe('sug-1');
     expect(suggestions[0].message).toBe('msg');
+  });
+
+  describe('rejection endpoints', () => {
+    it('should keep the document id in its own path segment', async () => {
+      const httpMock = TestBed.inject(HttpTestingController);
+      const count = service.getRejectionCount('user', 'slug', '../x?y');
+
+      const req = httpMock.expectOne(() => true);
+      expect(new URL(req.request.url).pathname).toBe(
+        '/api/v1/projects/user/slug/docs/..%2Fx%3Fy/auto-review/rejections'
+      );
+      req.flush({ count: 3 });
+      await expect(count).resolves.toBe(3);
+      httpMock.verify();
+    });
+
+    it('should not send a dot-segment document id', async () => {
+      const httpMock = TestBed.inject(HttpTestingController);
+
+      await expect(
+        service.getRejectionCount('user', 'slug', '..')
+      ).resolves.toBe(0);
+      await expect(service.clearRejections('user', 'slug', '..')).resolves.toBe(
+        false
+      );
+      httpMock.expectNone(() => true);
+      httpMock.verify();
+    });
   });
 });

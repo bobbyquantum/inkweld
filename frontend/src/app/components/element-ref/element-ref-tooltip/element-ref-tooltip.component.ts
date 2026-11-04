@@ -24,6 +24,11 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { TranslocoModule } from '@jsverse/transloco';
 import { StorageContextService } from '@services/core/storage-context.service';
+import {
+  mediaFilePath,
+  mediaIdFromReference,
+  safeMediaReferenceFilename,
+} from '@utils/media-reference';
 import { flattenToPlainText } from '@utils/prosemirror-text';
 import { isWorldbuildingType } from '@utils/worldbuilding.utils';
 import { firstValueFrom } from 'rxjs';
@@ -209,11 +214,14 @@ export class ElementRefTooltipComponent {
       return;
     }
 
+    // A filename that is not a single plain path segment shows no image.
+    const filename = safeMediaReferenceFilename(imageUrl);
+    if (!filename) {
+      this.setResolvedImage(null, generation);
+      return;
+    }
     const projectKey = `${username}/${slug}`;
-    const filename = imageUrl.substring('media://'.length);
-    const mediaId = filename.includes('.')
-      ? filename.substring(0, filename.lastIndexOf('.'))
-      : filename;
+    const mediaId = mediaIdFromReference(imageUrl);
 
     try {
       const cachedUrl = await this.localStorage.getMediaUrl(
@@ -232,7 +240,7 @@ export class ElementRefTooltipComponent {
         return;
       }
 
-      const apiUrl = `${this.storageContext.getApiBaseUrl()}/api/v1/media/${username}/${slug}/${filename}`;
+      const apiUrl = `${this.storageContext.getApiBaseUrl()}${mediaFilePath(username, slug, filename)}`;
       const blob = await firstValueFrom(
         this.http.get(apiUrl, { responseType: 'blob' })
       );

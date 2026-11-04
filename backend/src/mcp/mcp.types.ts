@@ -11,6 +11,7 @@
  */
 
 import type { DurableObjectNamespace } from '../types/cloudflare';
+import { canNameProjectInDocumentId } from '../utils/yjs-document-utils';
 
 /**
  * Protocol version this server implements (2026-07-28 "stateless" revision)
@@ -466,13 +467,16 @@ export function getAllProjects(ctx: McpContext): ActiveProjectContext[] {
 }
 
 /**
- * Get project context by username and slug
+ * Get project context by username and slug. Null for a project whose
+ * username or slug can't be part of a document id: the tools address its
+ * documents by `username:slug:…`, so they can't reach them.
  */
 export function getProjectByKey(
   ctx: McpContext,
   username: string,
   slug: string
 ): ActiveProjectContext | null {
+  if (!canNameProjectInDocumentId(username, slug)) return null;
   const grant = ctx.grants.find((g) => g.username === username && g.slug === slug);
   if (!grant) return null;
   return {

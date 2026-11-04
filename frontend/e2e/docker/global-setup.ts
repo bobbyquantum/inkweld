@@ -65,7 +65,12 @@ export default async function globalSetup(): Promise<void> {
     },
   });
 
-  // Start the container with test configuration
+  // Start the container with test configuration.
+  //
+  // It runs with NODE_ENV=production, as the image does by default, so the
+  // suite covers what ships: CSRF checks, generic error messages, and the
+  // start-up checks that need SESSION_SECRET and WEBAUTHN_RP_ID. Rate limits
+  // are switched off on their own (INKWELD_DISABLE_RATE_LIMIT).
 
   const dockerArgs = [
     'run',
@@ -75,7 +80,7 @@ export default async function globalSetup(): Promise<void> {
     '-p',
     `${DOCKER_PORT}:8333`,
     '-e',
-    'NODE_ENV=test',
+    'NODE_ENV=production',
     '-e',
     'INKWELD_DISABLE_RATE_LIMIT=true',
     '-e',
@@ -85,14 +90,17 @@ export default async function globalSetup(): Promise<void> {
     '-e',
     `SESSION_SECRET=${TEST_SESSION_SECRETS.DOCKER}`,
     '-e',
+    'WEBAUTHN_RP_ID=localhost',
+    '-e',
     'USER_APPROVAL_REQUIRED=false',
     '-e',
     'GITHUB_ENABLED=false',
     '-e',
     'LOCAL_USERS_ENABLED=true',
-    // Don't restrict origins in test mode
+    // The container serves the app and the API on one origin. Production
+    // refuses "*" as a passkey origin, so list it explicitly.
     '-e',
-    'ALLOWED_ORIGINS=*',
+    `ALLOWED_ORIGINS=${API_BASE_URL}`,
     // Default admin for admin e2e tests
     '-e',
     'DEFAULT_ADMIN_USERNAME=e2e-admin',

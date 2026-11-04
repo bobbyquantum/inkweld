@@ -1,5 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
+import { encodePathSegment } from '@utils/url-path';
 import { firstValueFrom } from 'rxjs';
 
 import { SetupService } from '../core/setup.service';
@@ -25,10 +26,14 @@ export class AdminConfigService {
     return `${this.basePath}/api/v1/admin/config`;
   }
 
+  private keyUrl(key: string): string {
+    return `${this.baseUrl}/${encodePathSegment(key)}`;
+  }
+
   async getConfig(key: string): Promise<ConfigValue | null> {
     try {
       return await firstValueFrom(
-        this.http.get<ConfigValue>(`${this.baseUrl}/${key}`, {
+        this.http.get<ConfigValue>(this.keyUrl(key), {
           withCredentials: true,
         })
       );
@@ -39,17 +44,13 @@ export class AdminConfigService {
 
   async setConfig(key: string, value: string): Promise<void> {
     await firstValueFrom(
-      this.http.put(
-        `${this.baseUrl}/${key}`,
-        { value },
-        { withCredentials: true }
-      )
+      this.http.put(this.keyUrl(key), { value }, { withCredentials: true })
     );
   }
 
   async deleteConfig(key: string): Promise<void> {
     await firstValueFrom(
-      this.http.delete(`${this.baseUrl}/${key}`, { withCredentials: true })
+      this.http.delete(this.keyUrl(key), { withCredentials: true })
     );
   }
 

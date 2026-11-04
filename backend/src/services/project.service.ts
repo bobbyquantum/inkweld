@@ -1,4 +1,4 @@
-import { eq, and, or, desc, inArray } from 'drizzle-orm';
+import { eq, and, or, desc, inArray, ne } from 'drizzle-orm';
 import type { DatabaseInstance } from '../types/context';
 import { BadRequestError } from '../errors';
 import type { D1DatabaseInstance } from '../db/d1';
@@ -95,6 +95,24 @@ class ProjectService {
     // Filter out any rows where the user join produced a null username (FK integrity
     // guarantees this won't happen, but this narrows the type without a cast).
     return results.filter((r): r is typeof r & { username: string } => r.username !== null);
+  }
+
+  /**
+   * Usernames of the accounts other than `userId` that own a project called
+   * `slug`. Reads every project row (slugs alone are not indexed), so it is
+   * only for the rare paths that need it.
+   */
+  async findOtherOwnersOfSlug(
+    db: DatabaseInstance,
+    slug: string,
+    userId: string
+  ): Promise<string[]> {
+    const rows = await (db as D1DatabaseInstance)
+      .select({ username: users.username })
+      .from(projects)
+      .innerJoin(users, eq(projects.userId, users.id))
+      .where(and(eq(projects.slug, slug), ne(projects.userId, userId)));
+    return rows.flatMap((row) => (row.username === null ? [] : [row.username]));
   }
 
   /**

@@ -101,6 +101,7 @@ describe('ImageGenerationService', () => {
 
     mockAuthTokenService = {
       getToken: vi.fn().mockReturnValue('mock-token'),
+      getTokenForUrl: vi.fn().mockReturnValue('mock-token'),
     } as unknown as MockedObject<AuthTokenService>;
 
     await TestBed.configureTestingModule({
@@ -843,6 +844,32 @@ describe('ImageGenerationService', () => {
           }),
         })
       );
+      // The token is looked up for the URL the request goes to
+      expect(mockAuthTokenService.getTokenForUrl).toHaveBeenCalledWith(
+        fetchSpy.mock.calls[0][0]
+      );
+    });
+
+    it('should leave out the token when the URL is not on the active server', async () => {
+      mockAuthTokenService.getTokenForUrl.mockReturnValue(null);
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+        ok: true,
+        status: 200,
+        body: createSSEStream([
+          {
+            event: 'completed',
+            data: { type: 'completed', result: createMockResponse() },
+          },
+        ]),
+      } as unknown as Response);
+
+      service.startGeneration('user/project', createMockRequest(), {
+        providerType: 'openai',
+      });
+      await flushPromises();
+
+      const init = fetchSpy.mock.calls[0][1] as RequestInit;
+      expect(init.headers).not.toHaveProperty('Authorization');
     });
 
     it('should handle CRLF-separated SSE events', async () => {

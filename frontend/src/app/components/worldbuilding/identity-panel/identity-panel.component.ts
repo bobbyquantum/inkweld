@@ -33,8 +33,9 @@ import {
   WorldbuildingService,
 } from '@services/worldbuilding/worldbuilding.service';
 import {
+  mediaFilePath,
   mediaIdFromReference,
-  mediaReferenceFilename,
+  safeMediaReferenceFilename,
 } from '@utils/media-reference';
 import { debounceTime, firstValueFrom, Subject, takeUntil } from 'rxjs';
 
@@ -206,9 +207,14 @@ export class IdentityPanelComponent implements OnDestroy {
       return;
     }
 
+    // Extract filename + mediaId from media://filename.png reference. A
+    // filename that is not a single plain path segment shows no image.
+    const filename = safeMediaReferenceFilename(imageUrl);
+    if (!filename) {
+      this.resolvedImageUrl.set(null);
+      return;
+    }
     const projectKey = `${username}/${slug}`;
-    // Extract filename + mediaId from media://filename.png reference
-    const filename = mediaReferenceFilename(imageUrl);
     const mediaId = mediaIdFromReference(imageUrl);
 
     try {
@@ -253,7 +259,7 @@ export class IdentityPanelComponent implements OnDestroy {
         return;
       }
       this.isLoadingImage.set(true);
-      const apiUrl = `${this.storageContext.getApiBaseUrl()}/api/v1/media/${username}/${slug}/${filename}`;
+      const apiUrl = `${this.storageContext.getApiBaseUrl()}${mediaFilePath(username, slug, filename)}`;
 
       const blob = await firstValueFrom(
         this.http.get(apiUrl, { responseType: 'blob' })

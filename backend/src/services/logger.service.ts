@@ -1,3 +1,5 @@
+import { configuredNodeEnv, isCloudflareWorkers } from '../config/runtime-env';
+
 /**
  * Log levels in order of severity
  */
@@ -75,20 +77,15 @@ function parseLogLevel(level: string | undefined): LogLevel {
 }
 
 /**
- * Detect runtime environment
+ * Detect runtime environment. Development output (human-readable, debug by
+ * default) needs NODE_ENV set to development or test; unset counts as
+ * production here.
  */
 function detectEnvironment(): { isDev: boolean; isWorkers: boolean } {
-  const nodeEnv = (
-    typeof process === 'undefined' ? undefined : process.env?.NODE_ENV
-  )?.toLowerCase();
+  const nodeEnv = configuredNodeEnv()?.toLowerCase();
   const isDev = nodeEnv === 'development' || nodeEnv === 'test';
 
-  // Detect Cloudflare Workers
-  const isWorkers =
-    (globalThis as Record<string, unknown>).caches !== undefined &&
-    (globalThis as Record<string, unknown>).WebSocketPair !== undefined;
-
-  return { isDev, isWorkers };
+  return { isDev, isWorkers: isCloudflareWorkers() };
 }
 
 /**

@@ -16,6 +16,7 @@ When GitHub OAuth is enabled:
 - Users can authenticate without creating a separate password
 - New GitHub users are automatically created in Inkweld (subject to admin approval settings)
 - Returning GitHub users are matched by their GitHub ID
+- An existing Inkweld account is never linked to GitHub automatically, even when the email addresses match
 
 ## Prerequisites
 
@@ -78,9 +79,9 @@ The OAuth flow:
 2. User is redirected to GitHub to authorize your Inkweld instance
 3. GitHub redirects back with an authorization code
 4. Inkweld exchanges the code for a GitHub access token
-5. Inkweld fetches the user's GitHub profile (username, email, display name)
+5. Inkweld fetches the user's GitHub profile (username, verified email, display name)
 6. If the user exists (matched by GitHub ID), they are logged in
-7. If the user is new, an Inkweld account is created automatically
+7. If the user is new, an Inkweld account is created automatically, unless another Inkweld account already uses their verified email address (see [Account Linking](#account-linking)). The account takes the GitHub username, unless another account already has that name (ignoring letter case), it is reserved or it is shorter than 3 characters; then it gets a free variant such as `octocat-2` (or `tj-2` for the GitHub username `tj`)
 8. Inkweld redirects the browser to the app with a one-time code (valid for 60 seconds), which the app exchanges for a session token, so the token never appears in a URL
 
 ### User Approval
@@ -89,9 +90,13 @@ If **Require User Approval** is enabled in Settings, new GitHub users will need 
 
 ### Account Linking
 
-- Users are matched by their **GitHub numeric ID**, not their username
+- Users are matched by their **GitHub numeric ID**, not their username or email address
 - If a GitHub user changes their username, they will still be linked to the same Inkweld account
 - GitHub users can later set a password in Account Settings to also use password-based login
+- An existing Inkweld account is never linked to GitHub automatically. When a new GitHub user's verified email address is already used by another Inkweld account, sign-in stops and no second account with that address is created. Addresses that differ only in letter case count as the same address. The app tells the person that the address is already in use: if that account is theirs, they sign in to it the way they usually do, and if they don't recognize it, they contact you (see [Troubleshooting](#troubleshooting)).
+- Accounts that were already linked to a GitHub account keep signing in with GitHub as before
+- Only an email address GitHub has verified is stored. When a linked user's verified address on GitHub changes, Inkweld stores the new one, unless another Inkweld account already uses it.
+- There is no setting for connecting GitHub to an existing account
 
 ## Scopes
 
@@ -125,6 +130,13 @@ The callback URL configured in GitHub must exactly match the URL Inkweld sends. 
 ### User stuck on approval-pending
 
 If user approval is required, an admin needs to approve the user in **Admin → Users**.
+
+### "This email address is already used by another Inkweld account"
+
+The email address GitHub has verified for this user is already used by an Inkweld account that isn't linked to their GitHub account (see [Account Linking](#account-linking)). To find that account, search for the address in **Admin → Users**. The list includes pending, rejected and disabled accounts, which keep their address too.
+
+- **The account is theirs.** They sign in to it the way they usually do: with a passkey or password, through single sign-on, or with the GitHub account it is linked to. If they can't, they can get back in by email: with **Forgot password?** on the sign-in page when password sign-in is on, or through account recovery when **Email-based Account Recovery** is on (see [Passkeys](./passkeys.md#enabling-passwordless-mode)).
+- **They don't recognize the account.** It may still belong to someone else who typed this address by mistake, so check first: look at its projects and when it was last used, and contact its owner if you can. Only delete an account that is unused or abandoned. Delete it in **Admin → Users** (this also deletes its projects); their next GitHub sign-in then creates a new account. Don't send them through email recovery for an account they don't recognize: recovery adds a way to sign in to it and keeps the ones it already has.
 
 ## Docker Configuration
 
