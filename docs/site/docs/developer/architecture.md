@@ -79,6 +79,34 @@ export class MyComponent {
 - **UserService** (`services/user/`) - Current user, sign-in state and account actions; passkey, recovery, password-reset and policy-acceptance helpers live in `services/auth/`
 - **DocumentSyncPlannerService** (`services/sync/`) - Decides which documents "Sync All" can skip (see [Bulk Sync Fast Path](#bulk-sync-fast-path))
 
+### Public live project sharing
+
+Owners can enable **Public project sharing** in project Settings and copy an
+absolute `/public/:username/:slug` URL. Projects are private by default. Sharing
+publishes the whole current project, not selected elements; visitors need
+neither an account nor an app profile.
+
+Public routes reuse `ProjectComponent`, its child routes and normal renderers:
+formatted documents and conversations, worldbuilding, canvases, timelines,
+relationship charts, media, publishing plans, published downloads and comments.
+Editing, uploads, publishing, administrative actions and user presence are
+disabled. Public content remains live while sharing is enabled.
+
+`PublicProjectContextService` selects a transient server context without
+changing the visitor's saved local, cloud or server profile. It never restores
+private cached documents, starts background uploads or shares unsent edits
+through BroadcastChannel. Anonymous HTTP reads opt in with
+`X-Inkweld-Public-View`; the server still checks the requested project's
+`isPublic` flag on every request. Public reads use `no-store` and `noindex`.
+
+Both WebSocket runtimes authenticate `public-view` as read-only. Their frame
+filter decodes varuint message types, rejecting mutation frames even when the
+type has a noncanonical encoding. Public sockets carry a sentinel identity for
+revocation, not a real user or writing session. Only the owner may change
+visibility; disabling it closes existing public sockets, including hibernated
+Durable Object connections, without closing collaborators' sockets. Data already
+downloaded while public cannot be recalled.
+
 ### Editor Schema
 
 The ProseMirror schema is assembled in

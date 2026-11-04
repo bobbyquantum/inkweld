@@ -7,6 +7,7 @@ import {
   requireUploadedFile,
 } from '../utils/upload';
 import { requireAuth } from '../middleware/auth';
+import { requireProjectReadAuth } from '../middleware/public-project-read';
 import { imageService } from '../services/image.service';
 import { getStorageService } from '../services/storage.service';
 import { quotaService } from '../services/quota.service';
@@ -26,13 +27,10 @@ imageRoutes.use(
   bodyLimit({ maxSize: MAX_IMAGE_UPLOAD_BYTES + MULTIPART_OVERHEAD_BYTES })
 );
 
-// Note: Auth is applied per-route using .use() middleware
-// GET routes for images are public (cover images should be viewable)
-// POST/DELETE routes require authentication
-
-// Apply auth middleware to POST and DELETE routes only
+// Only verified public projects allow anonymous covers; writes remain authenticated.
 imageRoutes.use('/:username/:slug/cover', (c, next) => {
   const method = c.req.method;
+  if (method === 'GET') return requireProjectReadAuth(c, next);
   if (method === 'POST' || method === 'DELETE') {
     return requireAuth(c, next);
   }
@@ -239,7 +237,9 @@ imageRoutes.openapi(getCoverRoute, async (c) => {
   return c.body(uint8Array, 200, {
     'Content-Type': 'image/jpeg',
     'Content-Length': uint8Array.length.toString(),
-    'Cache-Control': 'public, max-age=31536000, immutable',
+    'Cache-Control': c.get('publicProjectRead')
+      ? 'no-store'
+      : 'private, max-age=31536000, immutable',
   });
 });
 

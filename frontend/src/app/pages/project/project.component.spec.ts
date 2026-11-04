@@ -181,6 +181,7 @@ describe('ProjectComponent', () => {
 
     projectStateService = {
       project: projectSignal,
+      canWrite: signal(true),
       elements: elementsSignal,
       pinnedElementIds: pinnedElementIdsSignal,
       openTabs: openTabsSignal,

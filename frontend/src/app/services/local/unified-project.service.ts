@@ -498,17 +498,7 @@ export class UnifiedProjectService {
     if (isLocalOrCloudMode(mode)) {
       return this.localProjectService.updateProject(username, slug, updates);
     } else if (mode === 'server') {
-      // For server mode, get the existing project and merge updates
-      const existing = await this.projectService.getProjectByUsernameAndSlug(
-        username,
-        slug
-      );
-      const fullProjectData: Project = {
-        ...existing,
-        ...updates,
-        updatedDate: new Date().toISOString(),
-      };
-      return this.projectService.updateProject(username, slug, fullProjectData);
+      return this.projectService.updateProject(username, slug, updates);
     }
     throw new Error('No mode configured');
   }

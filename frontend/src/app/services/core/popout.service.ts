@@ -1,5 +1,7 @@
-import { Injectable, signal } from '@angular/core';
+import { inject, Injectable, signal } from '@angular/core';
 import { appUrl } from '@utils/app-base';
+
+import { PublicProjectContextService } from './public-project-context.service';
 
 /** Query parameter that marks a window as a popped-out document. */
 export const POPOUT_QUERY_PARAM = 'popout';
@@ -28,6 +30,7 @@ const POPOUT_HEIGHT = 1000;
   providedIn: 'root',
 })
 export class PopoutService {
+  private readonly publicContext = inject(PublicProjectContextService);
   private readonly popout = signal(false);
 
   /** True when this window is a popped-out document. */
@@ -52,7 +55,7 @@ export class PopoutService {
    */
   openDocument(username: string, slug: string, elementId: string): boolean {
     const url = this.buildUrl(username, slug, elementId);
-    const name = `inkweld-doc-${username}-${slug}-${elementId}`;
+    const name = `inkweld-doc-${this.publicContext.active() ? 'public-' : ''}${username}-${slug}-${elementId}`;
     const features = [
       'popup=yes',
       `width=${POPOUT_WIDTH}`,
@@ -78,7 +81,7 @@ export class PopoutService {
 
   /** The URL a pop-out window for this document opens at. */
   buildUrl(username: string, slug: string, elementId: string): string {
-    const path = `/${encodeURIComponent(username)}/${encodeURIComponent(slug)}/document/${encodeURIComponent(elementId)}`;
+    const path = `${this.publicContext.active() ? '/public' : ''}/${encodeURIComponent(username)}/${encodeURIComponent(slug)}/document/${encodeURIComponent(elementId)}`;
     return `${path}?${POPOUT_QUERY_PARAM}=1`;
   }
 

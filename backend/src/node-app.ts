@@ -56,7 +56,7 @@ app.use('*', async (c, next) => {
     },
     credentials: true,
     allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowHeaders: ['Content-Type', 'Authorization'],
+    allowHeaders: ['Content-Type', 'Authorization', 'X-Inkweld-Public-View'],
   })(c, next);
 });
 

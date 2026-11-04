@@ -13,6 +13,35 @@ export interface AuthResult {
   error?: string;
 }
 
+/** Wait for the first server state, rather than treating authentication as sync. */
+export function waitForWebSocketSync(
+  provider: WebsocketProvider
+): Promise<void> {
+  if (provider.synced) return Promise.resolve();
+  return new Promise<void>((resolve, reject) => {
+    const cleanup = () => {
+      clearTimeout(timeout);
+      provider.off('sync', onSync);
+      provider.off('connection-close', onClose);
+    };
+    const onSync = (synced: boolean) => {
+      if (!synced) return;
+      cleanup();
+      resolve();
+    };
+    const onClose = () => {
+      cleanup();
+      reject(new Error('Public document connection closed before syncing'));
+    };
+    const timeout = setTimeout(() => {
+      cleanup();
+      reject(new Error('Public document sync timed out'));
+    }, 10000);
+    provider.on('sync', onSync);
+    provider.on('connection-close', onClose);
+  });
+}
+
 /**
  * Interval at which the client sends an app-level keepalive PING on every
  * authenticated Yjs socket. Must be comfortably shorter than y-websocket's
@@ -256,6 +285,8 @@ export function createAuthenticatedWebsocketProvider(
   authToken: string,
   options: {
     connect?: boolean;
+    /** Public readers must not receive private unsent edits over BroadcastChannel. */
+    disableBc?: boolean;
     resyncInterval?: number;
     /**
      * Caps y-websocket's internal reconnect backoff. The default is only 2.5s,
@@ -277,9 +308,7 @@ export function createAuthenticatedWebsocketProvider(
     onTextMessage?: (text: string) => void;
   } = {}
 ): Promise<WebsocketProvider> {
-  // Strip our custom resilience callbacks before forwarding the rest to
-  // y-websocket — only `connect`, `resyncInterval`, and `maxBackoffTime` are
-  // real WebsocketProvider options.
+  // Strip resilience callbacks before forwarding y-websocket's own options.
   const { onDecodeError, onTextMessage, ...wsOptions } = options;
 
   return new Promise((resolve, reject) => {
@@ -287,6 +316,7 @@ export function createAuthenticatedWebsocketProvider(
     const provider = new WebsocketProvider(wsUrl, roomName, doc, {
       ...wsOptions,
       connect: false,
+      disableBc: authToken === 'public-view' || wsOptions.disableBc,
       // y-websocket 3.1's default already treats the permanent band
       // (4400-4499) as terminal. We adopt that convention (the backend closes
       // hard denials with 44xx and transient failures with 45xx — see

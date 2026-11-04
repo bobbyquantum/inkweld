@@ -2,6 +2,7 @@ import { computed, inject, Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import { type User } from '@inkweld/index';
 
+import { PublicProjectContextService } from '../core/public-project-context.service';
 import { SetupService } from '../core/setup.service';
 import {
   isLocalOrCloudMode,
@@ -15,11 +16,19 @@ import { UserService } from './user.service';
 })
 export class UnifiedUserService {
   private readonly setupService = inject(SetupService);
+  private readonly publicContext = inject(PublicProjectContextService);
   private readonly userService = inject(UserService);
   private readonly localUserService = inject(LocalUserService);
   private readonly router = inject(Router);
 
   readonly currentUser = computed(() => {
+    if (this.publicContext.active())
+      return {
+        id: '',
+        name: 'anonymous',
+        username: 'anonymous',
+        enabled: false,
+      };
     const mode = this.setupService.getMode();
     if (isLocalOrCloudMode(mode)) {
       return this.localUserService.currentUser();
@@ -36,6 +45,7 @@ export class UnifiedUserService {
   });
 
   readonly isAuthenticated = computed(() => {
+    if (this.publicContext.active()) return false;
     const mode = this.setupService.getMode();
     if (isLocalOrCloudMode(mode)) {
       return this.localUserService.isAuthenticated();
@@ -60,6 +70,7 @@ export class UnifiedUserService {
   });
 
   async initialize(): Promise<void> {
+    if (this.publicContext.active()) return;
     const mode = this.setupService.getMode();
     if (isLocalOrCloudMode(mode)) {
       this.localUserService.initializeFromSetup();

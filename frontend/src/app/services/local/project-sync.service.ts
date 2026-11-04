@@ -30,7 +30,11 @@ export interface ProjectSyncState {
   /** Media IDs that were created/modified offline and need uploading */
   pendingUploads: string[];
   /** Pending metadata fields to sync (e.g., title/description) */
-  pendingMetadata?: Partial<Record<'title' | 'description', string>>;
+  pendingMetadata?: {
+    title?: string;
+    description?: string;
+    isPublic?: boolean;
+  };
   /** Pending project creation (project created offline, not yet synced to server) */
   pendingCreation?: PendingProjectCreation;
   /** Current sync status */
@@ -188,7 +192,8 @@ export class ProjectSyncService {
     const hasMetadata =
       !!s?.pendingMetadata &&
       (s.pendingMetadata.title !== undefined ||
-        s.pendingMetadata.description !== undefined);
+        s.pendingMetadata.description !== undefined ||
+        s.pendingMetadata.isPublic !== undefined);
     const hasPendingCreation = !!s?.pendingCreation;
     return hasUploads || hasMetadata || hasPendingCreation;
   }
@@ -328,11 +333,11 @@ export class ProjectSyncService {
 
   /**
    * Mark metadata fields as needing sync when going online.
-   * Call this when updating title/description in offline or server-unavailable mode.
+   * Includes visibility changes made while the server is unavailable.
    */
   async markPendingMetadata(
     projectKey: string,
-    metadata: Partial<Record<'title' | 'description', string>>
+    metadata: NonNullable<ProjectSyncState['pendingMetadata']>
   ): Promise<void> {
     const state = this.getSyncState(projectKey);
     const current = state();
@@ -430,7 +435,8 @@ export class ProjectSyncService {
           const hasPendingUploads = state.pendingUploads.length > 0;
           const hasPendingMetadata =
             state.pendingMetadata?.title !== undefined ||
-            state.pendingMetadata?.description !== undefined;
+            state.pendingMetadata?.description !== undefined ||
+            state.pendingMetadata?.isPublic !== undefined;
           if (hasPendingUploads || hasPendingMetadata) {
             results.push(state.projectKey);
           }

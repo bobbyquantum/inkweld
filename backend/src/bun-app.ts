@@ -295,7 +295,7 @@ app.use('*', async (c, next) => {
     },
     credentials: true, // Enable credentials for session-based auth
     allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowHeaders: ['Content-Type', 'Authorization'],
+    allowHeaders: ['Content-Type', 'Authorization', 'X-Inkweld-Public-View'],
     exposeHeaders: ['Content-Type', 'Authorization'],
     maxAge: 600, // Cache preflight for 10 minutes,
   });

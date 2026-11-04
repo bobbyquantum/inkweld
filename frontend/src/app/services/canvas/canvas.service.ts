@@ -319,6 +319,10 @@ export class CanvasService {
    * Excludes viewport (local-only state).
    */
   saveConfig(config: CanvasConfig, options?: SaveOptions): void {
+    if (!this.projectState.canWrite()) {
+      this.logger.warn('CanvasService', 'Cannot save a read-only canvas');
+      return;
+    }
     const previous = this.activeConfigSignal();
     if (previous && !options?.skipHistory) {
       this.history.push(previous, options?.coalesceKey);

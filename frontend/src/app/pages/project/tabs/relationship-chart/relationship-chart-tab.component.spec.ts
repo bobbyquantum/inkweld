@@ -109,6 +109,7 @@ describe('RelationshipChartTabComponent', () => {
   ];
 
   const mockProjectState = {
+    canWrite: signal(true),
     elements: signal(testElements),
     project: signal({ username: 'testuser', slug: 'test-project' }),
   };

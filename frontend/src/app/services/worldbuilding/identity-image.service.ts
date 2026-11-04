@@ -1,5 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import { LoggerService } from '@services/core/logger.service';
+import { PublicProjectContextService } from '@services/core/public-project-context.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
 import { MediaAutoSyncService } from '@services/sync/media-auto-sync.service';
 import { base64ToBlob } from '@utils/base64-utils';
@@ -35,6 +36,7 @@ export const IDENTITY_IMAGE_MEDIA_PREFIX = 'identity-';
  */
 @Injectable({ providedIn: 'root' })
 export class IdentityImageService {
+  private readonly publicContext = inject(PublicProjectContextService);
   private readonly localStorage = inject(LocalStorageService);
   private readonly worldbuildingService = inject(WorldbuildingService);
   private readonly mediaAutoSync = inject(MediaAutoSyncService);
@@ -118,6 +120,7 @@ export class IdentityImageService {
     username: string,
     slug: string
   ): Promise<string | null> {
+    if (this.publicContext.active()) return null;
     if (!username || !slug) return null;
     try {
       const identity = await this.worldbuildingService.getIdentityData(

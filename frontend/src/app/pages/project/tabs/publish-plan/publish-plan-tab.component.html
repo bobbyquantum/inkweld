@@ -25,6 +25,7 @@
           <!-- Plan name (editable) -->
           <div class="sidenav-plan-name">
             <input
+              [readOnly]="!projectState.canWrite()"
               class="plan-name-input"
               [value]="plan.name"
               (input)="updateName($event)"
@@ -77,7 +78,11 @@
                 color="primary"
                 class="sidenav-generate"
                 (click)="generatePublication()"
-                [disabled]="plan.items.length === 0 || isGenerating()"
+                [disabled]="
+                  !projectState.canWrite() ||
+                  plan.items.length === 0 ||
+                  isGenerating()
+                "
                 data-testid="sidenav-generate-button">
                 <mat-icon [class.spinning]="isGenerating()">{{
                   isGenerating() ? 'sync' : 'download'
@@ -154,6 +159,7 @@
           <!-- Plan name on mobile -->
           <div class="mobile-plan-header">
             <input
+              [readOnly]="!projectState.canWrite()"
               id="publish-plan-name-input-mobile"
               class="plan-name-input"
               [value]="plan.name"
@@ -260,557 +266,586 @@
 
 <!-- Metadata template -->
 <ng-template #metadataTemplate>
-  @if (plan(); as plan) {
-    <div class="form-grid">
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>{{ 'publish.planEditor.planName' | transloco }}</mat-label>
-        <input
-          matInput
-          id="publish-plan-name-field"
-          [value]="plan.name"
-          (input)="updateName($event)"
-          data-testid="plan-name-field" />
-        <mat-hint>{{ 'publish.planEditor.planNameHint' | transloco }}</mat-hint>
-      </mat-form-field>
+  <fieldset class="plan-fields" [disabled]="!projectState.canWrite()">
+    @if (plan(); as plan) {
+      <div class="form-grid">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>{{ 'publish.planEditor.planName' | transloco }}</mat-label>
+          <input
+            matInput
+            id="publish-plan-name-field"
+            [value]="plan.name"
+            (input)="updateName($event)"
+            data-testid="plan-name-field" />
+          <mat-hint>{{
+            'publish.planEditor.planNameHint' | transloco
+          }}</mat-hint>
+        </mat-form-field>
 
-      <mat-form-field appearance="outline">
-        <mat-label>{{
-          'publish.planEditor.formatLabel' | transloco
-        }}</mat-label>
-        <mat-select
-          [value]="plan.format"
-          (selectionChange)="updateFormatSelect($event)"
-          data-testid="format-select">
-          @for (format of formats; track format) {
-            <mat-option
-              [value]="format"
-              [attr.data-testid]="'format-option-' + format"
-              >{{ getFormatDisplayName(format) }}</mat-option
-            >
-          }
-        </mat-select>
-      </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>{{
+            'publish.planEditor.formatLabel' | transloco
+          }}</mat-label>
+          <mat-select
+            [disabled]="!projectState.canWrite()"
+            [value]="plan.format"
+            (selectionChange)="updateFormatSelect($event)"
+            data-testid="format-select">
+            @for (format of formats; track format) {
+              <mat-option
+                [value]="format"
+                [attr.data-testid]="'format-option-' + format"
+                >{{ getFormatDisplayName(format) }}</mat-option
+              >
+            }
+          </mat-select>
+        </mat-form-field>
 
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>{{
-          'publish.planEditor.bookTitleLabel' | transloco
-        }}</mat-label>
-        <input
-          matInput
-          id="publish-plan-title-input"
-          [value]="plan.metadata.title"
-          (input)="updateMetadata('title', $event)"
-          data-testid="book-title-input"
-          [attr.aria-label]="'publish.planEditor.bookTitleAria' | transloco" />
-      </mat-form-field>
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>{{
+            'publish.planEditor.bookTitleLabel' | transloco
+          }}</mat-label>
+          <input
+            matInput
+            id="publish-plan-title-input"
+            [value]="plan.metadata.title"
+            (input)="updateMetadata('title', $event)"
+            data-testid="book-title-input"
+            [attr.aria-label]="
+              'publish.planEditor.bookTitleAria' | transloco
+            " />
+        </mat-form-field>
 
-      <mat-form-field appearance="outline">
-        <mat-label>{{
-          'publish.planEditor.authorLabel' | transloco
-        }}</mat-label>
-        <input
-          matInput
-          id="publish-plan-author-input"
-          [value]="plan.metadata.author"
-          (input)="updateMetadata('author', $event)"
-          data-testid="author-input"
-          [attr.aria-label]="'publish.planEditor.authorAria' | transloco" />
-      </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>{{
+            'publish.planEditor.authorLabel' | transloco
+          }}</mat-label>
+          <input
+            matInput
+            id="publish-plan-author-input"
+            [value]="plan.metadata.author"
+            (input)="updateMetadata('author', $event)"
+            data-testid="author-input"
+            [attr.aria-label]="'publish.planEditor.authorAria' | transloco" />
+        </mat-form-field>
 
-      <mat-form-field appearance="outline">
-        <mat-label>{{
-          'publish.planEditor.languageLabel' | transloco
-        }}</mat-label>
-        <input
-          matInput
-          id="publish-plan-language-input"
-          [value]="plan.metadata.language"
-          (input)="updateMetadata('language', $event)"
-          [attr.aria-label]="'publish.planEditor.languageAria' | transloco" />
-        <mat-hint>{{ 'publish.planEditor.languageHint' | transloco }}</mat-hint>
-      </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>{{
+            'publish.planEditor.languageLabel' | transloco
+          }}</mat-label>
+          <input
+            matInput
+            id="publish-plan-language-input"
+            [value]="plan.metadata.language"
+            (input)="updateMetadata('language', $event)"
+            [attr.aria-label]="'publish.planEditor.languageAria' | transloco" />
+          <mat-hint>{{
+            'publish.planEditor.languageHint' | transloco
+          }}</mat-hint>
+        </mat-form-field>
 
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>{{
-          'publish.planEditor.descriptionLabel' | transloco
-        }}</mat-label>
-        <textarea
-          matInput
-          [value]="plan.metadata.description ?? ''"
-          (input)="updateMetadata('description', $event)"
-          rows="3"
-          id="publish-plan-description-input"
-          [attr.aria-label]="
-            'publish.planEditor.descriptionAria' | transloco
-          "></textarea>
-      </mat-form-field>
-    </div>
-  }
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>{{
+            'publish.planEditor.descriptionLabel' | transloco
+          }}</mat-label>
+          <textarea
+            matInput
+            [value]="plan.metadata.description ?? ''"
+            (input)="updateMetadata('description', $event)"
+            rows="3"
+            id="publish-plan-description-input"
+            [attr.aria-label]="
+              'publish.planEditor.descriptionAria' | transloco
+            "></textarea>
+        </mat-form-field>
+      </div>
+    }
+  </fieldset>
 </ng-template>
 
 <!-- Contents template -->
 <ng-template #contentsTemplate>
-  @if (plan(); as plan) {
-    <!-- Toolbar: plan statistics + add actions -->
-    <div class="contents-toolbar" data-testid="contents-toolbar">
-      @if (planSummary(); as summary) {
-        <div class="plan-stats" data-testid="plan-stats">
-          <span class="stat-chip" data-testid="plan-stat-documents">
-            <mat-icon>description</mat-icon>
-            {{
-              countKey('documents', summary.documents)
-                | transloco: { count: summary.documents }
-            }}
-          </span>
-          @if (summary.entries > 0) {
-            <span class="stat-chip" data-testid="plan-stat-entries">
-              <mat-icon>public</mat-icon>
+  <fieldset class="plan-fields" [disabled]="!projectState.canWrite()">
+    @if (plan(); as plan) {
+      <!-- Toolbar: plan statistics + add actions -->
+      <div class="contents-toolbar" data-testid="contents-toolbar">
+        @if (planSummary(); as summary) {
+          <div class="plan-stats" data-testid="plan-stats">
+            <span class="stat-chip" data-testid="plan-stat-documents">
+              <mat-icon>description</mat-icon>
               {{
-                countKey('entries', summary.entries)
-                  | transloco: { count: summary.entries }
+                countKey('documents', summary.documents)
+                  | transloco: { count: summary.documents }
               }}
             </span>
-          }
-          <span
-            class="stat-chip"
-            data-testid="plan-stat-words"
-            [matTooltip]="'publish.planEditor.stats.wordsHint' | transloco">
-            <mat-icon>text_fields</mat-icon>
-            {{ summary.words | number }} {{ 'words' | transloco }}
-            @if (summary.loading > 0) {
-              <span class="stat-pending">…</span>
+            @if (summary.entries > 0) {
+              <span class="stat-chip" data-testid="plan-stat-entries">
+                <mat-icon>public</mat-icon>
+                {{
+                  countKey('entries', summary.entries)
+                    | transloco: { count: summary.entries }
+                }}
+              </span>
             }
-          </span>
-          @if (summary.estimatedPages > 0) {
             <span
               class="stat-chip"
-              data-testid="plan-stat-pages"
-              [matTooltip]="'publish.planEditor.stats.pagesHint' | transloco">
-              <mat-icon>auto_stories</mat-icon>
-              {{
-                countKey('pages', summary.estimatedPages)
-                  | transloco: { count: summary.estimatedPages | number }
-              }}
+              data-testid="plan-stat-words"
+              [matTooltip]="'publish.planEditor.stats.wordsHint' | transloco">
+              <mat-icon>text_fields</mat-icon>
+              {{ summary.words | number }} {{ 'words' | transloco }}
+              @if (summary.loading > 0) {
+                <span class="stat-pending">…</span>
+              }
             </span>
-          }
-          @if (summary.words > 0) {
-            <span
-              class="stat-chip"
-              data-testid="plan-stat-reading"
-              [matTooltip]="'publish.planEditor.stats.readingHint' | transloco">
-              <mat-icon>schedule</mat-icon>
-              {{
-                readingTimeKey(summary.readingMinutes)
-                  | transloco: readingTimeParams(summary.readingMinutes)
-              }}
-            </span>
-          }
-          @if (summary.skippedNotes > 0) {
-            <span
-              class="stat-chip"
-              data-testid="plan-stat-skipped-notes"
-              [matTooltip]="'publish.planEditor.notes.hint' | transloco">
-              <mat-icon>sticky_note_2</mat-icon>
-              {{
-                notesKey('skipped', summary.skippedNotes)
-                  | transloco: { count: summary.skippedNotes }
-              }}
-            </span>
-          }
-          @if (summary.unavailable > 0) {
-            <span
-              class="stat-chip stat-warning"
-              data-testid="plan-stat-unavailable"
-              [matTooltip]="
-                'publish.planEditor.stats.unavailableHint' | transloco
-              ">
-              <mat-icon>cloud_off</mat-icon>
-              {{
-                'publish.planEditor.stats.unavailable'
-                  | transloco: { count: summary.unavailable }
-              }}
-            </span>
-          }
-          <button
-            mat-icon-button
-            appTooltipAriaLabel
-            class="stats-refresh"
-            (click)="refreshStats()"
-            [matTooltip]="'publish.planEditor.stats.refresh' | transloco"
-            [attr.aria-label]="'publish.planEditor.stats.refresh' | transloco"
-            data-testid="refresh-stats-button">
-            <mat-icon>refresh</mat-icon>
-          </button>
-        </div>
-      }
-      <button
-        mat-stroked-button
-        [matMenuTriggerFor]="addItemMenu"
-        data-testid="add-items-button">
-        <mat-icon>add</mat-icon>
-        {{ 'add' | transloco }}
-      </button>
-      <mat-menu #addItemMenu="matMenu">
-        <button
-          mat-menu-item
-          (click)="addDocuments()"
-          data-testid="menu-add-documents">
-          <mat-icon>description</mat-icon>
-          <span>{{ 'publish.planEditor.addDocuments' | transloco }}</span>
-        </button>
-        <button
-          mat-menu-item
-          (click)="addEverything()"
-          [disabled]="documentElements().length === 0"
-          [matTooltip]="'publish.planEditor.addEverythingHint' | transloco"
-          data-testid="menu-add-everything">
-          <mat-icon>playlist_add</mat-icon>
-          <span>{{ 'publish.planEditor.addEverything' | transloco }}</span>
-        </button>
-        <mat-divider></mat-divider>
-        <button
-          mat-menu-item
-          (click)="addTableOfContents()"
-          data-testid="menu-add-toc">
-          <mat-icon>list</mat-icon>
-          <span>{{ 'publish.planEditor.addToc' | transloco }}</span>
-        </button>
-        <button mat-menu-item [matMenuTriggerFor]="frontmatterMenu">
-          <mat-icon>first_page</mat-icon>
-          <span>{{ 'publish.planEditor.addFrontmatter' | transloco }}</span>
-        </button>
-        <button mat-menu-item [matMenuTriggerFor]="backmatterMenu">
-          <mat-icon>last_page</mat-icon>
-          <span>{{ 'publish.planEditor.addBackmatter' | transloco }}</span>
-        </button>
-        <button mat-menu-item [matMenuTriggerFor]="separatorMenu">
-          <mat-icon>horizontal_rule</mat-icon>
-          <span>{{ 'publish.planEditor.addSeparator' | transloco }}</span>
-        </button>
-      </mat-menu>
-      <mat-menu #frontmatterMenu="matMenu">
-        @for (type of frontmatterTypes; track type) {
-          <button
-            mat-menu-item
-            (click)="addFrontmatter(type)"
-            [attr.data-testid]="'menu-add-frontmatter-' + type">
-            {{ formatEnumLabel(type) }}
-          </button>
-        }
-      </mat-menu>
-      <mat-menu #backmatterMenu="matMenu">
-        @for (type of backmatterTypes; track type) {
-          <button
-            mat-menu-item
-            (click)="addBackmatter(type)"
-            [attr.data-testid]="'menu-add-backmatter-' + type">
-            {{ formatEnumLabel(type) }}
-          </button>
-        }
-      </mat-menu>
-      <mat-menu #separatorMenu="matMenu">
-        @for (style of separatorStyles; track style) {
-          <button
-            mat-menu-item
-            (click)="addSeparator(style)"
-            [attr.data-testid]="'menu-add-separator-' + style">
-            {{ formatEnumLabel(style) }}
-          </button>
-        }
-      </mat-menu>
-    </div>
-
-    <!-- Content Items List -->
-    <div
-      class="items-list"
-      [class.empty]="plan.items.length === 0"
-      data-testid="content-items-list"
-      cdkDropList
-      id="publish-plan-items"
-      [cdkDropListData]="plan.items"
-      [cdkDropListEnterPredicate]="canEnterPublishList"
-      [cdkDropListAutoScrollStep]="8"
-      (cdkDropListDropped)="dropItem($event)">
-      @if (plan.items.length === 0) {
-        <div class="empty-state" data-testid="empty-content-state">
-          <mat-icon>library_books</mat-icon>
-          <p>{{ 'publish.planEditor.noItems' | transloco }}</p>
-          <p class="hint">
-            {{ 'publish.planEditor.noItemsHint' | transloco }}
-          </p>
-          @if (documentElements().length > 0) {
-            <button
-              mat-flat-button
-              color="primary"
-              class="add-everything-button"
-              (click)="addEverything()"
-              [matTooltip]="'publish.planEditor.addEverythingHint' | transloco"
-              data-testid="add-everything-button">
-              <mat-icon>playlist_add</mat-icon>
-              {{ 'publish.planEditor.addEverything' | transloco }}
-            </button>
-          }
-        </div>
-      }
-      @for (item of plan.items; track item.id; let i = $index) {
-        <div
-          class="content-item"
-          cdkDrag
-          [attr.data-testid]="'content-item-' + i">
-          <mat-icon class="drag-handle" cdkDragHandle>drag_indicator</mat-icon>
-          <span class="item-order">{{ i + 1 }}</span>
-          <mat-icon class="item-icon">{{ getItemIcon(item) }}</mat-icon>
-          <span
-            class="item-name"
-            data-testid="item-name"
-            [matTooltip]="getItemLabel(item)"
-            matTooltipShowDelay="500"
-            >{{ getItemLabel(item) }}</span
-          >
-          @if (itemStats(item); as stats) {
-            @if (stats.loading) {
+            @if (summary.estimatedPages > 0) {
               <span
-                class="item-stats pending"
-                data-testid="item-stats"
-                [matTooltip]="'publish.planEditor.stats.counting' | transloco"
-                >…</span
-              >
-            } @else if (stats.unavailable) {
+                class="stat-chip"
+                data-testid="plan-stat-pages"
+                [matTooltip]="'publish.planEditor.stats.pagesHint' | transloco">
+                <mat-icon>auto_stories</mat-icon>
+                {{
+                  countKey('pages', summary.estimatedPages)
+                    | transloco: { count: summary.estimatedPages | number }
+                }}
+              </span>
+            }
+            @if (summary.words > 0) {
               <span
-                class="item-stats unavailable"
-                data-testid="item-stats"
+                class="stat-chip"
+                data-testid="plan-stat-reading"
+                [matTooltip]="
+                  'publish.planEditor.stats.readingHint' | transloco
+                ">
+                <mat-icon>schedule</mat-icon>
+                {{
+                  readingTimeKey(summary.readingMinutes)
+                    | transloco: readingTimeParams(summary.readingMinutes)
+                }}
+              </span>
+            }
+            @if (summary.skippedNotes > 0) {
+              <span
+                class="stat-chip"
+                data-testid="plan-stat-skipped-notes"
+                [matTooltip]="'publish.planEditor.notes.hint' | transloco">
+                <mat-icon>sticky_note_2</mat-icon>
+                {{
+                  notesKey('skipped', summary.skippedNotes)
+                    | transloco: { count: summary.skippedNotes }
+                }}
+              </span>
+            }
+            @if (summary.unavailable > 0) {
+              <span
+                class="stat-chip stat-warning"
+                data-testid="plan-stat-unavailable"
                 [matTooltip]="
                   'publish.planEditor.stats.unavailableHint' | transloco
                 ">
                 <mat-icon>cloud_off</mat-icon>
-                {{ 'publish.planEditor.stats.notSynced' | transloco }}
-              </span>
-            } @else if (stats.words !== null) {
-              <span class="item-stats" data-testid="item-stats">
-                {{ stats.words | number }} {{ 'words' | transloco }}
-                @if (stats.documents > 1) {
-                  ·
-                  {{
-                    countKey('documents', stats.documents)
-                      | transloco: { count: stats.documents }
-                  }}
-                }
-              </span>
-            } @else if (stats.entries > 0) {
-              <span class="item-stats" data-testid="item-stats">
                 {{
-                  countKey('entries', stats.entries)
-                    | transloco: { count: stats.entries }
+                  'publish.planEditor.stats.unavailable'
+                    | transloco: { count: summary.unavailable }
                 }}
               </span>
             }
-            @if (stats.skippedNotes > 0) {
-              <div class="item-footer">
-                <button
-                  type="button"
-                  class="item-skipped-notes"
-                  [matMenuTriggerFor]="skippedNotesMenu"
-                  [matTooltip]="'publish.planEditor.notes.hint' | transloco"
-                  data-testid="item-skipped-notes">
-                  <mat-icon>sticky_note_2</mat-icon>
-                  {{
-                    notesKey('skipped', stats.skippedNotes)
-                      | transloco: { count: stats.skippedNotes }
-                  }}
-                </button>
-                <mat-menu #skippedNotesMenu="matMenu">
-                  <p class="skipped-notes-hint">
-                    {{ 'publish.planEditor.notes.hint' | transloco }}
-                  </p>
-                  <button
-                    mat-menu-item
-                    (click)="publishSkippedNotes(item)"
-                    data-testid="publish-skipped-notes">
-                    <mat-icon>auto_stories</mat-icon>
-                    <span>{{
-                      notesKey('convert', stats.skippedNotes)
-                        | transloco: { count: stats.skippedNotes }
-                    }}</span>
-                  </button>
-                </mat-menu>
-              </div>
-            }
-          }
-          <div class="item-actions">
             <button
               mat-icon-button
               appTooltipAriaLabel
-              (click)="moveItemToTop(i)"
-              [disabled]="i === 0"
-              [matTooltip]="'publish.planEditor.moveToTop' | transloco"
-              data-testid="move-top-button">
-              <mat-icon>vertical_align_top</mat-icon>
-            </button>
-            <button
-              mat-icon-button
-              appTooltipAriaLabel
-              (click)="moveItemUp(i)"
-              [disabled]="i === 0"
-              [matTooltip]="'publish.planEditor.moveUp' | transloco"
-              data-testid="move-up-button">
-              <mat-icon>arrow_upward</mat-icon>
-            </button>
-            <button
-              mat-icon-button
-              appTooltipAriaLabel
-              (click)="moveItemDown(i)"
-              [disabled]="i === plan.items.length - 1"
-              [matTooltip]="'publish.planEditor.moveDown' | transloco"
-              data-testid="move-down-button">
-              <mat-icon>arrow_downward</mat-icon>
-            </button>
-            <button
-              mat-icon-button
-              appTooltipAriaLabel
-              (click)="moveItemToBottom(i)"
-              [disabled]="i === plan.items.length - 1"
-              [matTooltip]="'publish.planEditor.moveToBottom' | transloco"
-              data-testid="move-bottom-button">
-              <mat-icon>vertical_align_bottom</mat-icon>
-            </button>
-            <button
-              mat-icon-button
-              appTooltipAriaLabel
-              color="warn"
-              (click)="removeItem(item.id)"
-              [matTooltip]="'publish.planEditor.removeItem' | transloco"
-              data-testid="remove-item-button">
-              <mat-icon>delete</mat-icon>
+              class="stats-refresh"
+              (click)="refreshStats()"
+              [matTooltip]="'publish.planEditor.stats.refresh' | transloco"
+              [attr.aria-label]="'publish.planEditor.stats.refresh' | transloco"
+              data-testid="refresh-stats-button">
+              <mat-icon>refresh</mat-icon>
             </button>
           </div>
-        </div>
-      }
-    </div>
-  }
+        }
+        <button
+          mat-stroked-button
+          [matMenuTriggerFor]="addItemMenu"
+          data-testid="add-items-button">
+          <mat-icon>add</mat-icon>
+          {{ 'add' | transloco }}
+        </button>
+        <mat-menu #addItemMenu="matMenu">
+          <button
+            mat-menu-item
+            (click)="addDocuments()"
+            data-testid="menu-add-documents">
+            <mat-icon>description</mat-icon>
+            <span>{{ 'publish.planEditor.addDocuments' | transloco }}</span>
+          </button>
+          <button
+            mat-menu-item
+            (click)="addEverything()"
+            [disabled]="documentElements().length === 0"
+            [matTooltip]="'publish.planEditor.addEverythingHint' | transloco"
+            data-testid="menu-add-everything">
+            <mat-icon>playlist_add</mat-icon>
+            <span>{{ 'publish.planEditor.addEverything' | transloco }}</span>
+          </button>
+          <mat-divider></mat-divider>
+          <button
+            mat-menu-item
+            (click)="addTableOfContents()"
+            data-testid="menu-add-toc">
+            <mat-icon>list</mat-icon>
+            <span>{{ 'publish.planEditor.addToc' | transloco }}</span>
+          </button>
+          <button mat-menu-item [matMenuTriggerFor]="frontmatterMenu">
+            <mat-icon>first_page</mat-icon>
+            <span>{{ 'publish.planEditor.addFrontmatter' | transloco }}</span>
+          </button>
+          <button mat-menu-item [matMenuTriggerFor]="backmatterMenu">
+            <mat-icon>last_page</mat-icon>
+            <span>{{ 'publish.planEditor.addBackmatter' | transloco }}</span>
+          </button>
+          <button mat-menu-item [matMenuTriggerFor]="separatorMenu">
+            <mat-icon>horizontal_rule</mat-icon>
+            <span>{{ 'publish.planEditor.addSeparator' | transloco }}</span>
+          </button>
+        </mat-menu>
+        <mat-menu #frontmatterMenu="matMenu">
+          @for (type of frontmatterTypes; track type) {
+            <button
+              mat-menu-item
+              (click)="addFrontmatter(type)"
+              [attr.data-testid]="'menu-add-frontmatter-' + type">
+              {{ formatEnumLabel(type) }}
+            </button>
+          }
+        </mat-menu>
+        <mat-menu #backmatterMenu="matMenu">
+          @for (type of backmatterTypes; track type) {
+            <button
+              mat-menu-item
+              (click)="addBackmatter(type)"
+              [attr.data-testid]="'menu-add-backmatter-' + type">
+              {{ formatEnumLabel(type) }}
+            </button>
+          }
+        </mat-menu>
+        <mat-menu #separatorMenu="matMenu">
+          @for (style of separatorStyles; track style) {
+            <button
+              mat-menu-item
+              (click)="addSeparator(style)"
+              [attr.data-testid]="'menu-add-separator-' + style">
+              {{ formatEnumLabel(style) }}
+            </button>
+          }
+        </mat-menu>
+      </div>
+
+      <!-- Content Items List -->
+      <div
+        class="items-list"
+        [class.empty]="plan.items.length === 0"
+        data-testid="content-items-list"
+        cdkDropList
+        [cdkDropListDisabled]="!projectState.canWrite()"
+        id="publish-plan-items"
+        [cdkDropListData]="plan.items"
+        [cdkDropListEnterPredicate]="canEnterPublishList"
+        [cdkDropListAutoScrollStep]="8"
+        (cdkDropListDropped)="dropItem($event)">
+        @if (plan.items.length === 0) {
+          <div class="empty-state" data-testid="empty-content-state">
+            <mat-icon>library_books</mat-icon>
+            <p>{{ 'publish.planEditor.noItems' | transloco }}</p>
+            <p class="hint">
+              {{ 'publish.planEditor.noItemsHint' | transloco }}
+            </p>
+            @if (documentElements().length > 0) {
+              <button
+                mat-flat-button
+                color="primary"
+                class="add-everything-button"
+                (click)="addEverything()"
+                [matTooltip]="
+                  'publish.planEditor.addEverythingHint' | transloco
+                "
+                data-testid="add-everything-button">
+                <mat-icon>playlist_add</mat-icon>
+                {{ 'publish.planEditor.addEverything' | transloco }}
+              </button>
+            }
+          </div>
+        }
+        @for (item of plan.items; track item.id; let i = $index) {
+          <div
+            class="content-item"
+            cdkDrag
+            [attr.data-testid]="'content-item-' + i">
+            <mat-icon class="drag-handle" cdkDragHandle
+              >drag_indicator</mat-icon
+            >
+            <span class="item-order">{{ i + 1 }}</span>
+            <mat-icon class="item-icon">{{ getItemIcon(item) }}</mat-icon>
+            <span
+              class="item-name"
+              data-testid="item-name"
+              [matTooltip]="getItemLabel(item)"
+              matTooltipShowDelay="500"
+              >{{ getItemLabel(item) }}</span
+            >
+            @if (itemStats(item); as stats) {
+              @if (stats.loading) {
+                <span
+                  class="item-stats pending"
+                  data-testid="item-stats"
+                  [matTooltip]="'publish.planEditor.stats.counting' | transloco"
+                  >…</span
+                >
+              } @else if (stats.unavailable) {
+                <span
+                  class="item-stats unavailable"
+                  data-testid="item-stats"
+                  [matTooltip]="
+                    'publish.planEditor.stats.unavailableHint' | transloco
+                  ">
+                  <mat-icon>cloud_off</mat-icon>
+                  {{ 'publish.planEditor.stats.notSynced' | transloco }}
+                </span>
+              } @else if (stats.words !== null) {
+                <span class="item-stats" data-testid="item-stats">
+                  {{ stats.words | number }} {{ 'words' | transloco }}
+                  @if (stats.documents > 1) {
+                    ·
+                    {{
+                      countKey('documents', stats.documents)
+                        | transloco: { count: stats.documents }
+                    }}
+                  }
+                </span>
+              } @else if (stats.entries > 0) {
+                <span class="item-stats" data-testid="item-stats">
+                  {{
+                    countKey('entries', stats.entries)
+                      | transloco: { count: stats.entries }
+                  }}
+                </span>
+              }
+              @if (stats.skippedNotes > 0) {
+                <div class="item-footer">
+                  <button
+                    type="button"
+                    class="item-skipped-notes"
+                    [matMenuTriggerFor]="skippedNotesMenu"
+                    [matTooltip]="'publish.planEditor.notes.hint' | transloco"
+                    data-testid="item-skipped-notes">
+                    <mat-icon>sticky_note_2</mat-icon>
+                    {{
+                      notesKey('skipped', stats.skippedNotes)
+                        | transloco: { count: stats.skippedNotes }
+                    }}
+                  </button>
+                  <mat-menu #skippedNotesMenu="matMenu">
+                    <p class="skipped-notes-hint">
+                      {{ 'publish.planEditor.notes.hint' | transloco }}
+                    </p>
+                    <button
+                      mat-menu-item
+                      (click)="publishSkippedNotes(item)"
+                      data-testid="publish-skipped-notes">
+                      <mat-icon>auto_stories</mat-icon>
+                      <span>{{
+                        notesKey('convert', stats.skippedNotes)
+                          | transloco: { count: stats.skippedNotes }
+                      }}</span>
+                    </button>
+                  </mat-menu>
+                </div>
+              }
+            }
+            <div class="item-actions">
+              <button
+                mat-icon-button
+                appTooltipAriaLabel
+                (click)="moveItemToTop(i)"
+                [disabled]="i === 0"
+                [matTooltip]="'publish.planEditor.moveToTop' | transloco"
+                data-testid="move-top-button">
+                <mat-icon>vertical_align_top</mat-icon>
+              </button>
+              <button
+                mat-icon-button
+                appTooltipAriaLabel
+                (click)="moveItemUp(i)"
+                [disabled]="i === 0"
+                [matTooltip]="'publish.planEditor.moveUp' | transloco"
+                data-testid="move-up-button">
+                <mat-icon>arrow_upward</mat-icon>
+              </button>
+              <button
+                mat-icon-button
+                appTooltipAriaLabel
+                (click)="moveItemDown(i)"
+                [disabled]="i === plan.items.length - 1"
+                [matTooltip]="'publish.planEditor.moveDown' | transloco"
+                data-testid="move-down-button">
+                <mat-icon>arrow_downward</mat-icon>
+              </button>
+              <button
+                mat-icon-button
+                appTooltipAriaLabel
+                (click)="moveItemToBottom(i)"
+                [disabled]="i === plan.items.length - 1"
+                [matTooltip]="'publish.planEditor.moveToBottom' | transloco"
+                data-testid="move-bottom-button">
+                <mat-icon>vertical_align_bottom</mat-icon>
+              </button>
+              <button
+                mat-icon-button
+                appTooltipAriaLabel
+                color="warn"
+                (click)="removeItem(item.id)"
+                [matTooltip]="'publish.planEditor.removeItem' | transloco"
+                data-testid="remove-item-button">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </fieldset>
 </ng-template>
 
 <!-- Formatting template -->
 <ng-template #formattingTemplate>
-  @if (plan(); as plan) {
-    <div class="options-grid">
-      <mat-checkbox
-        [checked]="plan.options.includeToc"
-        [matTooltip]="'publish.planEditor.includeTocHint' | transloco"
-        (change)="updateOptionCheckbox('includeToc', $event)">
-        {{ 'publish.planEditor.includeToc' | transloco }}
-      </mat-checkbox>
+  <fieldset class="plan-fields" [disabled]="!projectState.canWrite()">
+    @if (plan(); as plan) {
+      <div class="options-grid">
+        <mat-checkbox
+          [disabled]="!projectState.canWrite()"
+          [checked]="plan.options.includeToc"
+          [matTooltip]="'publish.planEditor.includeTocHint' | transloco"
+          (change)="updateOptionCheckbox('includeToc', $event)">
+          {{ 'publish.planEditor.includeToc' | transloco }}
+        </mat-checkbox>
 
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>{{
-          'publish.planEditor.chapterHeadingLabel' | transloco
-        }}</mat-label>
-        <mat-select
-          [value]="plan.options.chapterHeadingStyle ?? 'none'"
-          (selectionChange)="updateOptionSelect('chapterHeadingStyle', $event)"
-          data-testid="chapter-heading-style-select">
-          @for (style of chapterHeadingStyles; track style) {
-            <mat-option
-              [value]="style"
-              [attr.data-testid]="'chapter-heading-option-' + style"
-              >{{
-                'publish.planEditor.chapterHeading.' + style | transloco
-              }}</mat-option
-            >
-          }
-        </mat-select>
-        <mat-hint>{{
-          'publish.planEditor.chapterHeadingHint' | transloco
-        }}</mat-hint>
-      </mat-form-field>
-
-      @if (usesChapterNumbers(plan.options.chapterHeadingStyle)) {
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>{{
-            'publish.planEditor.chapterNumeralLabel' | transloco
+            'publish.planEditor.chapterHeadingLabel' | transloco
           }}</mat-label>
           <mat-select
-            [value]="
-              plan.options.chapterNumbering === 'none'
-                ? 'numeric'
-                : plan.options.chapterNumbering
+            [disabled]="!projectState.canWrite()"
+            [value]="plan.options.chapterHeadingStyle ?? 'none'"
+            (selectionChange)="
+              updateOptionSelect('chapterHeadingStyle', $event)
             "
-            (selectionChange)="updateOptionSelect('chapterNumbering', $event)"
-            data-testid="chapter-numeral-select">
-            @for (numbering of chapterNumerals; track numbering) {
-              <mat-option [value]="numbering">{{
-                'publish.planEditor.chapterNumeral.' + numbering | transloco
-              }}</mat-option>
+            data-testid="chapter-heading-style-select">
+            @for (style of chapterHeadingStyles; track style) {
+              <mat-option
+                [value]="style"
+                [attr.data-testid]="'chapter-heading-option-' + style"
+                >{{
+                  'publish.planEditor.chapterHeading.' + style | transloco
+                }}</mat-option
+              >
             }
           </mat-select>
+          <mat-hint>{{
+            'publish.planEditor.chapterHeadingHint' | transloco
+          }}</mat-hint>
         </mat-form-field>
-      }
 
-      <mat-checkbox
-        [checked]="plan.options.includeCover"
-        [matTooltip]="'publish.planEditor.includeCoverHint' | transloco"
-        (change)="updateOptionCheckbox('includeCover', $event)">
-        {{ 'publish.planEditor.includeCover' | transloco }}
-      </mat-checkbox>
-
-      <mat-checkbox
-        [checked]="typographicQuotesOn(plan)"
-        (change)="updateOptionCheckbox('typographicQuotes', $event)"
-        data-testid="typographic-quotes-checkbox">
-        {{ 'publish.planEditor.typographicQuotes' | transloco }}
-      </mat-checkbox>
-      <p class="option-hint">
-        {{ 'publish.planEditor.typographicQuotesHint' | transloco }}
-      </p>
-
-      @if (plan.options.includeCover) {
-        <mat-checkbox
-          [checked]="!!plan.options.coverFullBleed"
-          [matTooltip]="'publish.planEditor.coverFullBleedHint' | transloco"
-          (change)="updateOptionCheckbox('coverFullBleed', $event)"
-          data-testid="cover-full-bleed-checkbox">
-          {{ 'publish.planEditor.coverFullBleed' | transloco }}
-        </mat-checkbox>
-        <div class="cover-image-section">
+        @if (usesChapterNumbers(plan.options.chapterHeadingStyle)) {
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>{{
-              'publish.planEditor.coverImageLabel' | transloco
+              'publish.planEditor.chapterNumeralLabel' | transloco
             }}</mat-label>
-            <input
-              matInput
-              id="publish-plan-cover-image-input"
-              [value]="plan.options.coverImage ?? projectCoverImage() ?? ''"
-              (input)="updateOption('coverImage', $event)"
-              [attr.placeholder]="
-                'publish.planEditor.coverImagePlaceholder' | transloco
+            <mat-select
+              [disabled]="!projectState.canWrite()"
+              [value]="
+                plan.options.chapterNumbering === 'none'
+                  ? 'numeric'
+                  : plan.options.chapterNumbering
               "
-              [attr.aria-label]="
-                'publish.planEditor.coverImageAria' | transloco
-              " />
-            <mat-hint>{{
-              'publish.planEditor.coverImageHint' | transloco
-            }}</mat-hint>
+              (selectionChange)="updateOptionSelect('chapterNumbering', $event)"
+              data-testid="chapter-numeral-select">
+              @for (numbering of chapterNumerals; track numbering) {
+                <mat-option [value]="numbering">{{
+                  'publish.planEditor.chapterNumeral.' + numbering | transloco
+                }}</mat-option>
+              }
+            </mat-select>
           </mat-form-field>
-          @if (projectState.project(); as proj) {
-            @if (proj.coverImage) {
-              <div class="cover-preview">
-                <app-project-cover
-                  [project]="proj"
-                  [coverMediaId]="projectState.coverMediaId()"
-                  [variant]="'card'" />
-              </div>
-            }
-          }
-        </div>
-      }
-    </div>
+        }
 
-    <app-publish-style-editor
-      [styles]="effectiveStyles(plan)"
-      [reflowable]="plan.format === 'EPUB'"
-      (stylesChange)="updateStyles($event)"
-      data-testid="plan-style-editor">
-    </app-publish-style-editor>
-  }
+        <mat-checkbox
+          [disabled]="!projectState.canWrite()"
+          [checked]="plan.options.includeCover"
+          [matTooltip]="'publish.planEditor.includeCoverHint' | transloco"
+          (change)="updateOptionCheckbox('includeCover', $event)">
+          {{ 'publish.planEditor.includeCover' | transloco }}
+        </mat-checkbox>
+
+        <mat-checkbox
+          [disabled]="!projectState.canWrite()"
+          [checked]="typographicQuotesOn(plan)"
+          (change)="updateOptionCheckbox('typographicQuotes', $event)"
+          data-testid="typographic-quotes-checkbox">
+          {{ 'publish.planEditor.typographicQuotes' | transloco }}
+        </mat-checkbox>
+        <p class="option-hint">
+          {{ 'publish.planEditor.typographicQuotesHint' | transloco }}
+        </p>
+
+        @if (plan.options.includeCover) {
+          <mat-checkbox
+            [disabled]="!projectState.canWrite()"
+            [checked]="!!plan.options.coverFullBleed"
+            [matTooltip]="'publish.planEditor.coverFullBleedHint' | transloco"
+            (change)="updateOptionCheckbox('coverFullBleed', $event)"
+            data-testid="cover-full-bleed-checkbox">
+            {{ 'publish.planEditor.coverFullBleed' | transloco }}
+          </mat-checkbox>
+          <div class="cover-image-section">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>{{
+                'publish.planEditor.coverImageLabel' | transloco
+              }}</mat-label>
+              <input
+                matInput
+                id="publish-plan-cover-image-input"
+                [value]="plan.options.coverImage ?? projectCoverImage() ?? ''"
+                (input)="updateOption('coverImage', $event)"
+                [attr.placeholder]="
+                  'publish.planEditor.coverImagePlaceholder' | transloco
+                "
+                [attr.aria-label]="
+                  'publish.planEditor.coverImageAria' | transloco
+                " />
+              <mat-hint>{{
+                'publish.planEditor.coverImageHint' | transloco
+              }}</mat-hint>
+            </mat-form-field>
+            @if (projectState.project(); as proj) {
+              @if (proj.coverImage) {
+                <div class="cover-preview">
+                  <app-project-cover
+                    [project]="proj"
+                    [coverMediaId]="projectState.coverMediaId()"
+                    [variant]="'card'" />
+                </div>
+              }
+            }
+          </div>
+        }
+      </div>
+
+      <app-publish-style-editor
+        [readOnly]="!projectState.canWrite()"
+        [styles]="effectiveStyles(plan)"
+        [reflowable]="plan.format === 'EPUB'"
+        (stylesChange)="updateStyles($event)"
+        data-testid="plan-style-editor">
+      </app-publish-style-editor>
+    }
+  </fieldset>
 </ng-template>
 
 <!-- Publish template -->
@@ -835,7 +870,7 @@
             color="primary"
             class="generate-button"
             (click)="generatePublication()"
-            [disabled]="plan.items.length === 0"
+            [disabled]="!projectState.canWrite() || plan.items.length === 0"
             data-testid="generate-button">
             <mat-icon>download</mat-icon>
             {{
@@ -883,6 +918,7 @@
                   appTooltipAriaLabel
                   color="warn"
                   (click)="deletePublishedFile(file.id)"
+                  [disabled]="!projectState.canWrite()"
                   [matTooltip]="'delete' | transloco"
                   data-testid="delete-published-button">
                   <mat-icon>delete</mat-icon>

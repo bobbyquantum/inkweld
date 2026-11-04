@@ -1,6 +1,7 @@
 @if (schema(); as schema) {
   <app-template-editor-page
     [schema]="schema"
+    [readOnly]="!projectState.canWrite()"
     (schemaChange)="onSchemaChange($event)" />
 } @else {
   <div class="schema-editor-loading">

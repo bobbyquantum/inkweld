@@ -11,6 +11,7 @@ import { type Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
 import { AuthTokenService } from '../services/auth/auth-token.service';
+import { PublicProjectContextService } from '../services/core/public-project-context.service';
 import { SetupService } from '../services/core/setup.service';
 
 /**
@@ -24,6 +25,7 @@ import { SetupService } from '../services/core/setup.service';
  */
 @Injectable()
 export class AuthInterceptor implements HttpInterceptor {
+  private readonly publicContext = inject(PublicProjectContextService);
   private readonly router = inject(Router);
   private readonly setupService = inject(SetupService);
   private readonly authTokenService = inject(AuthTokenService);
@@ -32,6 +34,16 @@ export class AuthInterceptor implements HttpInterceptor {
     request: HttpRequest<unknown>,
     next: HttpHandler
   ): Observable<HttpEvent<unknown>> {
+    if (this.publicContext.active()) {
+      // Public browsing must not send a saved session from another profile.
+      return next.handle(
+        request.clone({
+          headers: request.headers
+            .delete('Authorization')
+            .set('X-Inkweld-Public-View', 'true'),
+        })
+      );
+    }
     // Add Authorization header if token exists (using prefixed storage key)
     const token = this.authTokenService.getToken();
     if (token) {

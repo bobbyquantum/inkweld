@@ -3,7 +3,7 @@ import {
   HttpRequest,
   HttpResponse,
 } from '@angular/common/http';
-import { provideZonelessChangeDetection } from '@angular/core';
+import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
@@ -18,6 +18,7 @@ import {
 
 import { translocoTestProvider } from '../../testing/transloco-test-provider';
 import { AuthTokenService } from '../services/auth/auth-token.service';
+import { PublicProjectContextService } from '../services/core/public-project-context.service';
 import { SetupService } from '../services/core/setup.service';
 import { AuthInterceptor } from './auth.interceptor';
 
@@ -26,8 +27,10 @@ describe('AuthInterceptor', () => {
   let router: MockedObject<Router> & { url: string };
   let setupService: MockedObject<SetupService>;
   let authTokenService: MockedObject<AuthTokenService>;
+  const publicMode = signal(false);
 
   beforeEach(() => {
+    publicMode.set(false);
     const routerMock = {
       url: '/',
       navigate: vi.fn().mockResolvedValue(true),
@@ -52,6 +55,10 @@ describe('AuthInterceptor', () => {
         { provide: Router, useValue: routerMock },
         { provide: SetupService, useValue: setupServiceMock },
         { provide: AuthTokenService, useValue: authTokenServiceMock },
+        {
+          provide: PublicProjectContextService,
+          useValue: { active: publicMode },
+        },
       ],
     });
 
@@ -65,6 +72,38 @@ describe('AuthInterceptor', () => {
 
   it('should be created', () => {
     expect(interceptor).toBeTruthy();
+  });
+
+  it('strips saved authorization for public reads', () => {
+    publicMode.set(true);
+    const request = new HttpRequest('GET', '/api/test').clone({
+      setHeaders: { Authorization: 'Bearer saved-session' },
+    });
+    const handler = { handle: vi.fn().mockReturnValue(of(new HttpResponse())) };
+    interceptor.intercept(request, handler).subscribe();
+    const forwarded = handler.handle.mock.calls[0][0] as HttpRequest<unknown>;
+    expect(forwarded.headers.has('Authorization')).toBe(false);
+    expect(forwarded.headers.get('X-Inkweld-Public-View')).toBe('true');
+    expect(authTokenService.getToken).not.toHaveBeenCalled();
+  });
+
+  it('does not clear a saved profile or redirect after a public denial', () => {
+    publicMode.set(true);
+    const error = new HttpErrorResponse({ status: 401 });
+    const handler = {
+      handle: vi.fn().mockReturnValue(throwError(() => error)),
+    };
+    let received: unknown;
+    interceptor
+      .intercept(new HttpRequest('GET', '/api/test'), handler)
+      .subscribe({
+        error: (value: unknown) => {
+          received = value;
+        },
+      });
+    expect(received).toBe(error);
+    expect(authTokenService.clearToken).not.toHaveBeenCalled();
+    expect(router.navigate).not.toHaveBeenCalled();
   });
 
   it('should redirect to welcome on 401 error in server mode', async () => {

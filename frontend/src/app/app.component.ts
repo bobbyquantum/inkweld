@@ -20,6 +20,7 @@ import { PolicyAcceptanceService } from './services/auth/policy-acceptance.servi
 import { CloudSyncEngineService } from './services/cloud-sync/cloud-sync-engine.service';
 import { BackgroundService } from './services/core/background.service';
 import { LocaleService } from './services/core/locale.service';
+import { PublicProjectContextService } from './services/core/public-project-context.service';
 import { PwaInstallService } from './services/core/pwa-install.service';
 import { SetupService } from './services/core/setup.service';
 import { UpdateService } from './services/core/update.service';
@@ -46,6 +47,7 @@ import { WebMcpService } from './services/webmcp/webmcp.service';
   styleUrl: './app.component.scss',
 })
 export class AppComponent implements OnInit {
+  private readonly publicContext = inject(PublicProjectContextService);
   protected readonly offlineMode = signal(false);
   protected readonly themeService = inject(ThemeService);
   protected readonly setupService = inject(SetupService);
@@ -148,6 +150,7 @@ export class AppComponent implements OnInit {
       // during bootstrap before the router resolves the actual URL.
       const currentPath = globalThis.location.pathname;
       const isPublicProject = this.isPublicProjectPath();
+      if (isPublicProject) return;
 
       // The cloud sync OAuth callback is what *creates* the configuration on
       // a fresh browser, so it must be allowed through unconfigured.
@@ -205,9 +208,6 @@ export class AppComponent implements OnInit {
   }
 
   private isPublicProjectPath(): boolean {
-    return (
-      this.router.url.startsWith('/public/') ||
-      globalThis.location.pathname.includes('/public/')
-    );
+    return this.publicContext.active();
   }
 }

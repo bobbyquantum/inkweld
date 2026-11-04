@@ -387,6 +387,7 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
 
   /** Helper: update plan in state */
   private updatePlan(changes: Partial<PublishPlan>): void {
+    if (!this.projectState.canWrite()) return;
     const plan = this.plan();
     if (!plan) return;
     const updated = { ...plan, ...changes };
@@ -907,6 +908,7 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
 
   /** Delete a published file */
   async deletePublishedFile(fileId: string): Promise<void> {
+    if (!this.projectState.canWrite()) return;
     const project = this.projectState.project();
     if (!project) return;
     const projectKey = `${project.username}/${project.slug}`;
@@ -945,6 +947,7 @@ export class PublishPlanTabComponent implements OnInit, OnDestroy {
   protected isGenerating = signal(false);
 
   async generatePublication(): Promise<void> {
+    if (!this.projectState.canWrite()) return;
     const plan = this.plan();
     if (!plan || plan.items.length === 0) return;
 

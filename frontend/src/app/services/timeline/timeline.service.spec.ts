@@ -43,6 +43,7 @@ describe('TimelineService', () => {
   const mockElements = signal<Element[]>([]);
 
   const mockProjectState = {
+    canWrite: vi.fn(() => true),
     elements: mockElements,
     updateElementMetadata: vi.fn(),
   };
@@ -76,6 +77,7 @@ describe('TimelineService', () => {
   };
 
   beforeEach(() => {
+    mockProjectState.canWrite.mockReturnValue(true);
     TestBed.configureTestingModule({
       imports: [translocoTestProvider()],
       providers: [

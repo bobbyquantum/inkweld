@@ -36,12 +36,13 @@ import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { getDocumentRole } from '@models/scene-metadata';
 import { LoggerService } from '@services/core/logger.service';
 import { PopoutService } from '@services/core/popout.service';
+import { PublicProjectContextService } from '@services/core/public-project-context.service';
 import { DocumentService } from '@services/project/document.service';
 import {
   type AppTab,
   ProjectStateService,
 } from '@services/project/project-state.service';
-import { tabRouteCommands } from '@utils/tab-route';
+import { projectUrlSegments, tabRouteCommands } from '@utils/tab-route';
 import { filter, Subject, type Subscription, takeUntil } from 'rxjs';
 
 import { DialogGatewayService } from '../../../services/core/dialog-gateway.service';
@@ -118,6 +119,7 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
   protected readonly projectState = inject(ProjectStateService);
   protected readonly documentService = inject(DocumentService);
   protected readonly router = inject(Router);
+  protected readonly publicContext = inject(PublicProjectContextService);
   protected readonly route = inject(ActivatedRoute);
   protected readonly dialog = inject(MatDialog);
   protected readonly dialogGateway = inject(DialogGatewayService);
@@ -224,7 +226,7 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
 
       // For document/folder tabs, we need elements to be loaded first
       // Check if the URL contains a document/folder path that needs elements
-      const urlParts = currentUrl.split('/').filter(Boolean);
+      const urlParts = projectUrlSegments(currentUrl);
       const tabType = urlParts[2]; // 'document', 'folder', etc.
       const needsElements =
         tabType === 'document' ||
@@ -286,7 +288,7 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
 
   /** Check if a URL path is a project route (not a reserved path) */
   private isProjectRoute(url: string): boolean {
-    const firstSegment = url.split('/').find(Boolean) ?? '';
+    const firstSegment = projectUrlSegments(url)[0] ?? '';
     return !this.reservedPaths.has(firstSegment);
   }
 
@@ -330,7 +332,7 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
         }
 
         // Extract project info from URL to detect project changes
-        const urlParts = event.url.split('/').filter(Boolean);
+        const urlParts = projectUrlSegments(event.url);
         const urlUsername = urlParts[0];
         const urlSlug = urlParts[1];
         const currentProject = this.projectState.project();
@@ -464,7 +466,11 @@ export class TabInterfaceComponent implements OnInit, OnDestroy, AfterViewInit {
     project: Project,
     extras?: NavigationExtras
   ): void {
-    const commands = tabRouteCommands(tab, project);
+    const commands = tabRouteCommands(
+      tab,
+      project,
+      this.publicContext.active()
+    );
     if (extras) {
       void this.router.navigate(commands, extras);
     } else {

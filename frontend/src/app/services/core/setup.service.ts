@@ -5,6 +5,7 @@ import { normalizeServerUrl, stripTrailingSlashes } from '@utils/string-utils';
 
 import { environment } from '../../../environments/environment';
 import { LoggerService } from './logger.service';
+import { PublicProjectContextService } from './public-project-context.service';
 import {
   type CloudProvider,
   isLocalOrCloudMode,
@@ -37,6 +38,7 @@ export interface AppConfig {
   providedIn: 'root',
 })
 export class SetupService {
+  private readonly publicContext = inject(PublicProjectContextService);
   private readonly storageContext = inject(StorageContextService);
   private readonly logger = inject(LoggerService);
 
@@ -105,6 +107,7 @@ export class SetupService {
    * This allows Cloudflare/hosted deployments to skip manual setup
    */
   private autoConfigureIfNeeded(): void {
+    if (this.publicContext.active()) return;
     if (isHomeAssistantIngress()) {
       this.autoConfigureForIngress();
       return;
@@ -301,6 +304,7 @@ export class SetupService {
    * involved, and cloud sync mode must take the local path there.
    */
   getMode(): StorageConfigType | null {
+    if (this.publicContext.active()) return 'server';
     const config = this.storageContext.getActiveConfig();
     return config?.type ?? null;
   }
@@ -333,6 +337,7 @@ export class SetupService {
    * Get the server URL if in server mode
    */
   getServerUrl(): string | null {
+    if (this.publicContext.active()) return this.publicContext.serverUrl();
     return this.storageContext.getServerUrl() ?? null;
   }
 
@@ -358,6 +363,9 @@ export class SetupService {
    * In local mode or when no server URL is set, returns null
    */
   getWebSocketUrl(): string | null {
+    if (this.publicContext.active()) {
+      return this.publicContext.serverUrl().replace(/^http/, 'ws');
+    }
     return this.storageContext.getWebSocketUrl() ?? null;
   }
 

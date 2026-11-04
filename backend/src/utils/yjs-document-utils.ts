@@ -14,6 +14,11 @@
  *   - `worldbuilding:username:slug:…` — worldbuilding docs (NOT trackable)
  */
 
+import { createDecoder, readVarUint } from 'lib0/decoding';
+
+/** Reserved connection identity used only to revoke anonymous public viewers. */
+export const PUBLIC_VIEWER_ID = ':public-view:';
+
 /** Sync protocol message type — Yjs sync (subtypes inside the frame). */
 export const Y_MESSAGE_SYNC = 0;
 /** Sync protocol message type — Yjs awareness updates. */
@@ -136,23 +141,20 @@ export function isElementsDoc(documentId: string): boolean {
  */
 export function isYjsFrameBlockedForViewer(message: ArrayBuffer | Uint8Array): boolean {
   const bytes = message instanceof Uint8Array ? message : new Uint8Array(message);
-  if (bytes.length === 0) return false;
-  const messageType = bytes[0];
+  if (bytes.length === 0) return true;
+  try {
+    const decoder = createDecoder(bytes);
+    const messageType = readVarUint(decoder);
 
-  // Awareness messages are always allowed (presence / cursors).
-  if (messageType === Y_MESSAGE_AWARENESS) return false;
+    if (messageType === Y_MESSAGE_AWARENESS) return false;
+    if (messageType === 2) return true;
 
-  // Top-level update frame — viewers cannot send these.
-  if (messageType === 2) return true;
-
-  // Sync messages — inspect the sync sub-type (second byte).
-  if (messageType === Y_MESSAGE_SYNC && bytes.length > 1) {
-    const syncMessageType = bytes[1];
-    // 1 = sync-step-2 (client snapshot), 2 = sync-update (binary diff).
-    if (syncMessageType === 1 || syncMessageType === 2) {
-      return true;
+    if (messageType === Y_MESSAGE_SYNC) {
+      return readVarUint(decoder) !== 0;
     }
+    return false;
+  } catch {
+    // Malformed protocol frames must never reach the document mutation handler.
+    return true;
   }
-
-  return false;
 }

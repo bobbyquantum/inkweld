@@ -48,6 +48,7 @@ import {
   ImageGenerationService,
 } from '@services/ai/image-generation.service';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
+import { PublicProjectContextService } from '@services/core/public-project-context.service';
 import { SetupService } from '@services/core/setup.service';
 import { SystemConfigService } from '@services/core/system-config.service';
 import {
@@ -117,6 +118,7 @@ export interface MediaItem extends MediaInfo {
 })
 export class MediaTabComponent implements OnInit, OnDestroy {
   protected readonly projectState = inject(ProjectStateService);
+  private readonly publicContext = inject(PublicProjectContextService);
   private readonly localStorage = inject(LocalStorageService);
   private readonly dialogGateway = inject(DialogGatewayService);
   private readonly systemConfig = inject(SystemConfigService);
@@ -407,6 +409,7 @@ export class MediaTabComponent implements OnInit, OnDestroy {
 
       // In online/server mode, sync from server on first load for this project
       if (
+        !this.publicContext.active() &&
         this.setupService.getMode() === 'server' &&
         this.hasSyncedProject !== projectKey
       ) {
@@ -715,7 +718,7 @@ export class MediaTabComponent implements OnInit, OnDestroy {
       const result = await this.dialogGateway.openImageViewerDialog({
         imageUrl: item.url,
         fileName: item.filename || item.mediaId,
-        canEdit: true,
+        canEdit: this.projectState.canWrite(),
         mediaId: item.mediaId,
         metadata: {
           category: item.categoryLabel,
@@ -762,6 +765,7 @@ export class MediaTabComponent implements OnInit, OnDestroy {
    * Scans for usages across the project and warns the user.
    */
   async deleteMedia(item: MediaItem): Promise<void> {
+    if (!this.projectState.canWrite()) return;
     const usages = await this.findMediaUsages(item.mediaId);
     const displayName = item.filename || item.mediaId;
 
@@ -1086,6 +1090,7 @@ export class MediaTabComponent implements OnInit, OnDestroy {
 
   /** Open unified tag picker to tag a media item with elements and/or project tags */
   async tagMedia(item: MediaItem): Promise<void> {
+    if (!this.projectState.canWrite()) return;
     const excludeElementIds = this.mediaTagService.getElementsForMedia(
       item.mediaId
     );
@@ -1120,6 +1125,7 @@ export class MediaTabComponent implements OnInit, OnDestroy {
 
   /** Remove a tag from a media item */
   removeMediaTag(mediaId: string, elementId: string): void {
+    if (!this.projectState.canWrite()) return;
     this.mediaTagService.removeTag(mediaId, elementId);
   }
 
@@ -1233,6 +1239,7 @@ export class MediaTabComponent implements OnInit, OnDestroy {
    * Open the add media dialog (upload or generate)
    */
   async openAddMedia(): Promise<void> {
+    if (!this.projectState.canWrite()) return;
     const status = this.aiGenerationStatus();
     // With AI turned off (kill switch, local mode) uploading is the only
     // choice, so skip the chooser.

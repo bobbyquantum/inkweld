@@ -103,12 +103,23 @@ describe('isYjsFrameBlockedForViewer', () => {
     expect(isYjsFrameBlockedForViewer(buffer)).toBe(true);
   });
 
-  it('returns false for empty frames', () => {
-    expect(isYjsFrameBlockedForViewer(new Uint8Array([]))).toBe(false);
+  it('blocks empty frames', () => {
+    expect(isYjsFrameBlockedForViewer(new Uint8Array([]))).toBe(true);
   });
 
-  it('returns false for sync frame with no subtype byte', () => {
-    expect(isYjsFrameBlockedForViewer(new Uint8Array([Y_MESSAGE_SYNC]))).toBe(false);
+  it('blocks sync frames with no subtype', () => {
+    expect(isYjsFrameBlockedForViewer(new Uint8Array([Y_MESSAGE_SYNC]))).toBe(true);
+  });
+
+  it.each([[0x80, 0, 1], [0x80, 0, 2], [0, 0x81, 0], [0, 0x82, 0], [0x82, 0], [0x80], [0, 0x80]])(
+    'blocks encoded mutations and malformed frames: %j',
+    (...bytes) => {
+      expect(isYjsFrameBlockedForViewer(new Uint8Array(bytes))).toBe(true);
+    }
+  );
+
+  it('allows an encoded sync state request', () => {
+    expect(isYjsFrameBlockedForViewer(new Uint8Array([0x80, 0, 0x80, 0]))).toBe(false);
   });
 });
 

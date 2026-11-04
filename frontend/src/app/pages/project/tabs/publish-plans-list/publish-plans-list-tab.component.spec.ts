@@ -23,6 +23,7 @@ describe('PublishPlansListTabComponent', () => {
   let testPlan: PublishPlan;
 
   const mockProjectState = {
+    canWrite: signal(true),
     publishPlans: signal<PublishPlan[]>([]),
     project: signal({
       title: 'Test',
@@ -48,6 +49,7 @@ describe('PublishPlansListTabComponent', () => {
   };
 
   beforeEach(async () => {
+    mockProjectState.canWrite.set(true);
     testPlan = createDefaultPublishPlan('Test Project', 'Test Author');
     mockProjectState.publishPlans.set([testPlan]);
     vi.clearAllMocks();
@@ -249,6 +251,24 @@ describe('PublishPlansListTabComponent', () => {
       '[data-testid="create-publish-plan-button"]'
     );
     expect(buttons).toHaveLength(1);
+  });
+
+  it('does not expose mutations to a read-only visitor', async () => {
+    mockProjectState.canWrite.set(false);
+    fixture.detectChanges();
+    component.createPublishPlan();
+    await component.deletePublishPlan(new Event('click'), testPlan);
+    expect(mockProjectState.createPublishPlan).not.toHaveBeenCalled();
+    expect(mockProjectState.deletePublishPlan).not.toHaveBeenCalled();
+    expect(
+      fixture.nativeElement.querySelector(
+        '[data-testid="create-publish-plan-button"]'
+      )
+    ).toBeNull();
+    expect(
+      fixture.nativeElement.querySelector('[data-testid="delete-plan-button"]')
+        .disabled
+    ).toBe(true);
   });
 
   it('should format format names', () => {

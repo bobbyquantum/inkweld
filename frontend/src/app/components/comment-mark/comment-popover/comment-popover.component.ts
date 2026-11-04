@@ -54,6 +54,8 @@ export class CommentPopoverComponent {
 
   /** The mark attributes of the clicked comment */
   attrs = input.required<CommentMarkAttrs>();
+  /** Public and viewer sessions may read threads but cannot alter them. */
+  readOnly = input(false);
 
   /** Project coordinates for REST calls */
   username = input.required<string>();

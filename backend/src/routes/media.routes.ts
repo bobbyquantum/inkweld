@@ -1,7 +1,7 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi';
 import { bodyLimit } from 'hono/body-limit';
 import { lookup } from 'mime-types';
-import { requireAuth } from '../middleware/auth';
+import { requireProjectReadAuth } from '../middleware/public-project-read';
 import {
   MAX_MEDIA_UPLOAD_BYTES,
   MULTIPART_OVERHEAD_BYTES,
@@ -21,7 +21,7 @@ import { ProjectPathParamsSchema, QuotaExceededSchema } from '../schemas/common.
 const mediaRoutes = new OpenAPIHono<AppContext>();
 
 // Apply auth to all routes - media is project-specific
-mediaRoutes.use('/:username/:slug/*', requireAuth);
+mediaRoutes.use('*', requireProjectReadAuth);
 // Reject empty uploads (400) and oversized ones (413) before parseBody() buffers them.
 mediaRoutes.use(
   '/:username/:slug',
@@ -123,7 +123,7 @@ mediaRoutes.openapi(listMediaRoute, async (c): Promise<any> => {
 
   // Check access - owner or collaborator with read access
   const access = await collaborationService.checkAccess(db, project.id, userId);
-  if (!access.canRead) {
+  if (!access.canRead && !c.get('publicProjectRead')) {
     throw new ForbiddenError('Access denied');
   }
 
@@ -357,7 +357,7 @@ mediaRoutes.openapi(getMediaRoute, async (c) => {
 
   // Check access - owner or collaborator with read access
   const access = await collaborationService.checkAccess(db, project.id, userId);
-  if (!access.canRead) {
+  if (!access.canRead && !c.get('publicProjectRead')) {
     throw new ForbiddenError('Access denied');
   }
 

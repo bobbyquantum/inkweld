@@ -174,6 +174,7 @@ describe('CanvasTabComponent', () => {
   ];
 
   const mockProjectState = {
+    canWrite: signal(true),
     elements: signal(testElements),
     project: signal<{ username: string; slug: string } | null>({
       username: 'testuser',

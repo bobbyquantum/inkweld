@@ -68,6 +68,7 @@ import { FindInDocumentService } from '../core/find-in-document.service';
 import { InsertImageService } from '../core/insert-image.service';
 import { InsertLinkService } from '../core/insert-link.service';
 import { LoggerService } from '../core/logger.service';
+import { PublicProjectContextService } from '../core/public-project-context.service';
 import { SetupService } from '../core/setup.service';
 import { StorageContextService } from '../core/storage-context.service';
 import { SystemConfigService } from '../core/system-config.service';
@@ -78,6 +79,7 @@ import { PresenceService } from '../presence/presence.service';
 import {
   createAuthenticatedWebsocketProvider,
   setupReauthentication,
+  waitForWebSocketSync,
   WS_MAX_BACKOFF_TIME,
 } from '../sync/authenticated-websocket-provider';
 import { BroadcastSyncProvider } from '../sync/broadcast-sync.provider';
@@ -170,14 +172,14 @@ export interface DocumentConnection {
   /** XML fragment used for ProseMirror content */
   type: Y.XmlFragment;
   /** IndexedDB provider for offline persistence */
-  indexeddbProvider: IndexeddbPersistence;
+  indexeddbProvider: IndexeddbPersistence | null;
   /**
    * Cross-window provider, so a popped-out document window and the main
    * window see each other's edits. In server mode y-websocket already
    * broadcasts between contexts; this covers local and cloud-sync modes,
    * where there is no WebSocket provider at all.
    */
-  broadcastProvider: BroadcastSyncProvider;
+  broadcastProvider: BroadcastSyncProvider | null;
   /**
    * The window 'online' listener registered for this connection, so it can be
    * removed on disconnect. Kept on the connection (not a module-level
@@ -221,6 +223,7 @@ interface ProseMirrorNode {
 export class DocumentService {
   private readonly documentsService = inject(DocumentsService);
   private readonly authTokenService = inject(AuthTokenService);
+  private readonly publicContext = inject(PublicProjectContextService);
   private readonly setupService = inject(SetupService);
   private readonly ngZone = inject(NgZone);
   private readonly injector = inject(Injector);
@@ -248,6 +251,7 @@ export class DocumentService {
   private setupWsReauth = setupReauthentication; // NOSONAR - writable for test overrides
 
   private readonly connections: Map<string, DocumentConnection> = new Map();
+  private readonly publicDocumentLoads = new Map<string, Promise<Y.Doc>>();
 
   private readonly unsyncedChanges = new Map<string, boolean>();
   private readonly liveDocs = inject(LiveDocumentRegistryService);
@@ -298,6 +302,7 @@ export class DocumentService {
   private async guardAgainstEmptyDocumentCreation(
     documentId: string
   ): Promise<void> {
+    if (this.publicContext.active()) return;
     // Only guard in server mode - local mode always allows creation
     if (this.setupService.getMode() !== 'server') {
       return;
@@ -494,6 +499,7 @@ export class DocumentService {
    * @returns The Yjs document or null if not found
    */
   async getYDoc(documentId: string): Promise<Y.Doc | null> {
+    if (this.publicContext.active()) return this.getPublicDocument(documentId);
     // First try: Active connection
     const connection = this.connections.get(documentId);
     if (connection) {
@@ -546,6 +552,80 @@ export class DocumentService {
     }
   }
 
+  /** Open prose or conversation data without touching IndexedDB or cross-tab sync. */
+  private getPublicDocument(documentId: string): Promise<Y.Doc> {
+    const pending = this.publicDocumentLoads.get(documentId);
+    if (pending) return pending;
+    const load = this.loadPublicDocument(documentId).finally(() => {
+      if (this.publicDocumentLoads.get(documentId) === load) {
+        this.publicDocumentLoads.delete(documentId);
+      }
+    });
+    this.publicDocumentLoads.set(documentId, load);
+    return load;
+  }
+
+  /** Deduplicated transient load; never returns an empty pre-sync document. */
+  private async loadPublicDocument(documentId: string): Promise<Y.Doc> {
+    const existing = this.connections.get(documentId);
+    if (existing) {
+      if (existing.indexeddbProvider)
+        throw new Error('Cannot reuse a private document in public view');
+      if (existing.provider) await waitForWebSocketSync(existing.provider);
+      return existing.ydoc;
+    }
+    const ydoc = new Y.Doc();
+    const connection: DocumentConnection = {
+      ydoc,
+      provider: null,
+      type: ydoc.getXmlFragment('prosemirror'),
+      indexeddbProvider: null,
+      broadcastProvider: null,
+    };
+    this.connections.set(documentId, connection);
+    try {
+      const wsUrl = `${this.setupService.getWebSocketUrl()}/api/v1/ws/yjs?documentId=${encodeURIComponent(documentId)}`;
+      const provider = await this.createAuthWsProvider(
+        wsUrl,
+        '',
+        ydoc,
+        'public-view',
+        {}
+      );
+      if (this.connections.get(documentId) !== connection) {
+        provider.destroy();
+        ydoc.destroy();
+        throw new Error('Public document was closed while connecting');
+      }
+      connection.provider = provider;
+      this.setupWsReauth(
+        provider,
+        () => 'public-view',
+        error => {
+          this.logger.error(
+            'DocumentService',
+            'Public document access denied',
+            error
+          );
+          this.updateSyncStatus(documentId, DocumentSyncState.Unavailable);
+        }
+      );
+      await waitForWebSocketSync(provider);
+      if (this.connections.get(documentId) !== connection) {
+        throw new Error('Public document was closed while syncing');
+      }
+      this.liveDocs.register(documentId, ydoc);
+      return ydoc;
+    } catch (error) {
+      if (this.connections.get(documentId) === connection) {
+        this.connections.delete(documentId);
+      }
+      connection.provider?.destroy();
+      ydoc.destroy();
+      throw error;
+    }
+  }
+
   /**
    * Gets all active document connections.
    *
@@ -581,6 +661,8 @@ export class DocumentService {
    * @returns Promise resolving to the document content as JSON, or null if not found
    */
   async getDocumentContent(documentId: string): Promise<unknown> {
+    if (this.publicContext.active())
+      return this.loadContentFromIndexedDB(documentId);
     // First try: Active connection
     const connection = this.connections.get(documentId);
     if (connection) {
@@ -611,6 +693,14 @@ export class DocumentService {
    * @returns Promise resolving to the document content, or null if empty/not found
    */
   private async loadContentFromIndexedDB(documentId: string): Promise<unknown> {
+    if (this.publicContext.active()) {
+      const doc = await this.getPublicDocument(documentId);
+      return (
+        yXmlFragmentToProsemirrorJSON(doc.getXmlFragment('prosemirror'))?.[
+          'content'
+        ] ?? []
+      );
+    }
     const ydoc = new Y.Doc();
     const provider = new IndexeddbPersistence(
       this.localDbName(documentId),
@@ -932,17 +1022,16 @@ export class DocumentService {
       const type = ydoc.getXmlFragment('prosemirror');
       // Initialize IndexedDB provider first. The local database is
       // profile-scoped; the WebSocket document id stays unprefixed.
-      const indexeddbProvider = new IndexeddbPersistence(
-        this.localDbName(documentId),
-        ydoc
-      );
+      const indexeddbProvider = this.publicContext.active()
+        ? null
+        : new IndexeddbPersistence(this.localDbName(documentId), ydoc);
       this.logger.debug('DocumentService', 'Waiting for IndexedDB sync...');
 
       // Set state to Offline while waiting for IndexedDB
       this.updateSyncStatus(documentId, DocumentSyncState.Local);
 
       // Wait for initial IndexedDB sync
-      await indexeddbProvider.whenSynced;
+      await indexeddbProvider?.whenSynced;
       this.logger.debug('DocumentService', 'IndexedDB sync complete');
 
       // Check for imported content from project import
@@ -978,10 +1067,9 @@ export class DocumentService {
       // offers peers the persisted state rather than an empty document.
       // Scoped like the database, so a tab on another profile with the same
       // username:slug never exchanges edits with this one.
-      const broadcastProvider = new BroadcastSyncProvider(
-        this.localDbName(documentId),
-        ydoc
-      );
+      const broadcastProvider = this.publicContext.active()
+        ? null
+        : new BroadcastSyncProvider(this.localDbName(documentId), ydoc);
 
       // CRITICAL: Create connection and store it BEFORE awaiting WebSocket
       // This allows us to add Yjs plugins immediately so content appears
@@ -1006,6 +1094,7 @@ export class DocumentService {
         // or from Cloud Sync (another device's edit, already in the cloud).
         // Everything else is a local edit (ProseMirror, programmatic, etc.)
         if (
+          !this.publicContext.active() &&
           origin !== idbProvider &&
           origin !== connection?.provider &&
           origin !== broadcastProvider &&
@@ -1358,7 +1447,9 @@ export class DocumentService {
     );
 
     // Get auth token for WebSocket authentication
-    const authToken = this.authTokenService.getToken();
+    const authToken = this.publicContext.active()
+      ? 'public-view'
+      : this.authTokenService.getToken();
     if (!authToken) {
       this.logger.error(
         'DocumentService',
@@ -1370,7 +1461,10 @@ export class DocumentService {
 
     // Check version compatibility before connecting to WebSocket
     // If sync is blocked due to version mismatch, stay in local mode
-    if (this.versionCompatibility.syncBlocked()) {
+    if (
+      !this.publicContext.active() &&
+      this.versionCompatibility.syncBlocked()
+    ) {
       this.logger.warn(
         'DocumentService',
         `Sync blocked due to version incompatibility for document ${documentId} - working in local mode only`
@@ -1558,7 +1652,10 @@ export class DocumentService {
       // Set up re-authentication for reconnections
       this.setupWsReauth(
         provider,
-        () => this.authTokenService.getToken(),
+        () =>
+          this.publicContext.active()
+            ? 'public-view'
+            : this.authTokenService.getToken(),
         error => {
           // A denial during the re-auth handshake (rate-limited / forbidden /
           // invalid token) is terminal or long-backoff — route it through the
@@ -1901,6 +1998,7 @@ export class DocumentService {
     ydoc: Y.Doc,
     yXmlFragment: Y.XmlFragment
   ): void {
+    if (this.publicContext.active()) return;
     const view = editor.view;
     if (!view) {
       this.logger.warn(
@@ -2200,6 +2298,7 @@ export class DocumentService {
   }
 
   private disconnectSingle(documentId: string): void {
+    this.publicDocumentLoads.delete(documentId);
     const connection = this.connections.get(documentId);
     if (!connection) return;
 
@@ -2237,6 +2336,7 @@ export class DocumentService {
   }
 
   private disconnectAll(): void {
+    this.publicDocumentLoads.clear();
     this.logger.info('DocumentService', 'Disconnecting from all documents');
 
     // Cancel all pending reconnects
@@ -2254,7 +2354,7 @@ export class DocumentService {
       // Remove the window 'online' listener before tearing the provider down
       // so a stale handler can't reconnect a destroyed provider (leak fix).
       this.removeOnlineHandler(connection);
-      connection.broadcastProvider.destroy();
+      connection.broadcastProvider?.destroy();
 
       if (connection.provider) {
         try {
@@ -2270,7 +2370,9 @@ export class DocumentService {
 
       let flushPromise: Promise<unknown>;
       try {
-        flushPromise = storeState(connection.indexeddbProvider, true);
+        flushPromise = connection.indexeddbProvider
+          ? storeState(connection.indexeddbProvider, true)
+          : Promise.resolve();
       } catch (error) {
         this.logger.warn(
           'DocumentService',
@@ -2282,7 +2384,7 @@ export class DocumentService {
       }
 
       void flushPromise
-        .then(() => connection.indexeddbProvider.destroy())
+        .then(() => connection.indexeddbProvider?.destroy())
         .then(() => connection.ydoc.destroy())
         .catch(error => {
           this.logger.warn(
@@ -2318,7 +2420,7 @@ export class DocumentService {
     documentId: string,
     connection: DocumentConnection
   ): void {
-    connection.broadcastProvider.destroy();
+    connection.broadcastProvider?.destroy();
 
     if (connection.provider) {
       try {
@@ -2335,7 +2437,9 @@ export class DocumentService {
 
     let flushPromise: Promise<unknown>;
     try {
-      flushPromise = storeState(connection.indexeddbProvider, true);
+      flushPromise = connection.indexeddbProvider
+        ? storeState(connection.indexeddbProvider, true)
+        : Promise.resolve();
     } catch (error) {
       this.logger.warn(
         'DocumentService',
@@ -2346,7 +2450,7 @@ export class DocumentService {
     }
 
     void flushPromise
-      .then(() => connection.indexeddbProvider.destroy())
+      .then(() => connection.indexeddbProvider?.destroy())
       .then(() => connection.ydoc.destroy())
       .catch(error => {
         this.logger.warn(

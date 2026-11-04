@@ -20,6 +20,7 @@ import { type ElementTypeSchema } from '../../models/schema-types';
 import { type TimeSystem } from '../../models/time-system';
 import { AuthTokenService } from '../auth/auth-token.service';
 import { CLOUD_SYNC_ORIGIN } from '../cloud-sync/cloud-sync-origin';
+import { PublicProjectContextService } from '../core/public-project-context.service';
 import { SetupService } from '../core/setup.service';
 import { StorageContextService } from '../core/storage-context.service';
 import { VersionCompatibilityService } from '../core/version-compatibility.service';
@@ -1475,6 +1476,24 @@ describe('WorldbuildingService', () => {
       );
       expect(data).toBeDefined();
       expect(mockAuthTokenService.getToken).toHaveBeenCalled();
+    });
+
+    it('rejects denied public loads instead of returning an empty document', async () => {
+      vi.spyOn(
+        TestBed.inject(PublicProjectContextService),
+        'active'
+      ).mockReturnValue(true);
+      const createAuthWsProvider = vi
+        .fn()
+        .mockRejectedValue(new Error('Access denied'));
+      Object.assign(onlineService, { createAuthWsProvider });
+      const destroy = vi.spyOn(Y.Doc.prototype, 'destroy');
+
+      await expect(
+        onlineService.getWorldbuildingData('denied-public', username, slug)
+      ).rejects.toThrow('Access denied');
+      expect(destroy).toHaveBeenCalled();
+      expect(onlineService.getYDoc('denied-public', username, slug)).toBeNull();
     });
 
     it('should return undefined when sync is blocked', async () => {

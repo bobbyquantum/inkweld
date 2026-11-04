@@ -23,6 +23,7 @@ import {
   parseTrackableElementId,
   isYjsFrameBlockedForViewer,
   isElementsDoc,
+  PUBLIC_VIEWER_ID,
 } from '../utils/yjs-document-utils';
 import {
   WS_CLOSE_FORBIDDEN,
@@ -424,8 +425,15 @@ app.get(
         // Register this user against the raw WebSocket so the elements doc
         // update listener can attribute mutations to them. For elements docs,
         // also attach the snapshot-diff observer (idempotent).
-        if (sessionData) {
-          yjsService.registerUserConnection(ws.raw, documentId, sessionData.userId);
+        yjsService.registerUserConnection(
+          ws.raw,
+          documentId,
+          sessionData?.userId ?? PUBLIC_VIEWER_ID
+        );
+        if (isPublicViewer && !(await projectService.findById(db, project.id))?.isPublic) {
+          ws.send('access-denied:forbidden');
+          ws.close(WS_CLOSE_FORBIDDEN, 'Public sharing disabled');
+          return;
         }
         if (isElementsDoc(documentId)) {
           yjsService.watchElementsDoc(documentId, project.id, db);

@@ -18,12 +18,14 @@ import { type ElementTypeSchema } from '../../models/schema-types';
 import { AuthTokenService } from '../auth/auth-token.service';
 import { CLOUD_SYNC_ORIGIN } from '../cloud-sync/cloud-sync-origin';
 import { LoggerService } from '../core/logger.service';
+import { PublicProjectContextService } from '../core/public-project-context.service';
 import { SetupService } from '../core/setup.service';
 import { StorageContextService } from '../core/storage-context.service';
 import { VersionCompatibilityService } from '../core/version-compatibility.service';
 import {
   createAuthenticatedWebsocketProvider,
   setupReauthentication,
+  waitForWebSocketSync,
 } from '../sync/authenticated-websocket-provider';
 import { ElementSyncProviderFactory } from '../sync/element-sync-provider.factory';
 import { type IElementSyncProvider } from '../sync/element-sync-provider.interface';
@@ -39,7 +41,7 @@ interface WorldbuildingConnection {
   /** The element's own copy of its schema plus drift bookkeeping. */
   schemaMap: Y.Map<unknown>;
   provider?: WebsocketProvider;
-  indexeddbProvider: IndexeddbPersistence;
+  indexeddbProvider: IndexeddbPersistence | null;
 }
 
 /**
@@ -81,6 +83,19 @@ const SCHEMA_BASE_ID_KEY = 'baseSchemaId';
   providedIn: 'root',
 })
 export class WorldbuildingService {
+  private readonly publicContext = inject(PublicProjectContextService);
+  private publicGeneration = 0;
+
+  /** Public documents are transient and must not survive leaving their project. */
+  disconnectPublicConnections(): void {
+    this.publicGeneration++;
+    for (const [key, connection] of this.connections) {
+      if (connection.indexeddbProvider) continue;
+      connection.provider?.destroy();
+      connection.ydoc.destroy();
+      this.connections.delete(key);
+    }
+  }
   private readonly setupService = inject(SetupService);
   private readonly syncProviderFactory = inject(ElementSyncProviderFactory);
   private readonly authTokenService = inject(AuthTokenService);
@@ -161,7 +176,7 @@ export class WorldbuildingService {
     username: string,
     slug: string
   ): string {
-    return `${username}:${slug}:${elementId}`;
+    return `${this.publicContext.active() ? 'public:' : ''}${username}:${slug}:${elementId}`;
   }
 
   /**
@@ -203,7 +218,7 @@ export class WorldbuildingService {
     slug: string
   ): Promise<Y.Map<unknown>> {
     // Create a unique connection key that includes project context
-    const connectionKey = `${username}:${slug}:${elementId}`;
+    const connectionKey = this.buildConnectionKey(elementId, username, slug);
 
     // Check for existing connection first (fast path)
     const existingConnection = this.connections.get(connectionKey);
@@ -241,6 +256,8 @@ export class WorldbuildingService {
     username: string,
     slug: string
   ): Promise<Y.Map<unknown>> {
+    const publicView = this.publicContext.active();
+    const generation = this.publicGeneration;
     const ydoc = new Y.Doc();
     const dataMap = ydoc.getMap('worldbuilding');
     const identityMap = ydoc.getMap('identity');
@@ -253,10 +270,12 @@ export class WorldbuildingService {
     const dbKey = this.storageContext.prefixDocumentId(
       `worldbuilding:${username}:${slug}:${elementId}`
     );
-    const indexeddbProvider = new IndexeddbPersistence(dbKey, ydoc);
+    const indexeddbProvider = publicView
+      ? null
+      : new IndexeddbPersistence(dbKey, ydoc);
 
     // Wait for IndexedDB sync with timeout
-    const syncPromise = indexeddbProvider.whenSynced;
+    const syncPromise = indexeddbProvider?.whenSynced ?? Promise.resolve();
     const timeoutPromise = new Promise<never>((_, reject) =>
       setTimeout(
         () => reject(new Error('IndexedDB sync timeout')),
@@ -286,10 +305,26 @@ export class WorldbuildingService {
       ydoc,
       dataMap
     );
+    if (publicView && generation !== this.publicGeneration) {
+      provider?.destroy();
+      ydoc.destroy();
+      throw new Error('Public project connection was closed');
+    }
 
     // Wait for WebSocket sync to complete before returning, so callers
     // don't read an empty dataMap and overwrite server data with defaults.
-    if (provider && !provider.synced) {
+    if (provider && publicView) {
+      try {
+        await waitForWebSocketSync(provider);
+        if (generation !== this.publicGeneration) {
+          throw new Error('Public project connection was closed');
+        }
+      } catch (error) {
+        provider.destroy();
+        ydoc.destroy();
+        throw error;
+      }
+    } else if (provider && !provider.synced) {
       await new Promise<void>(resolve => {
         const onSync = (isSynced: boolean) => {
           if (isSynced) {
@@ -322,6 +357,7 @@ export class WorldbuildingService {
       // WebSocket provider (remote edits) or from Cloud Sync (another
       // device's edit, already in the cloud). Everything else is a local edit.
       if (
+        !publicView &&
         origin !== indexeddbProvider &&
         origin !== connection.provider &&
         origin !== CLOUD_SYNC_ORIGIN
@@ -348,8 +384,11 @@ export class WorldbuildingService {
       return undefined;
     }
 
-    const authToken = this.authTokenService.getToken();
-    const syncBlocked = this.versionCompatibility.syncBlocked();
+    const authToken = this.publicContext.active()
+      ? 'public-view'
+      : this.authTokenService.getToken();
+    const syncBlocked =
+      !this.publicContext.active() && this.versionCompatibility.syncBlocked();
     if (!authToken || syncBlocked) {
       return undefined;
     }
@@ -375,7 +414,10 @@ export class WorldbuildingService {
       // element stays open.
       this.setupWsReauth(
         provider,
-        () => this.authTokenService.getToken(),
+        () =>
+          this.publicContext.active()
+            ? 'public-view'
+            : this.authTokenService.getToken(),
         error => {
           this.logger.warn(
             'WorldbuildingService',
@@ -386,6 +428,10 @@ export class WorldbuildingService {
 
       return provider;
     } catch (error) {
+      if (this.publicContext.active()) {
+        ydoc.destroy();
+        throw error;
+      }
       console.error(
         '[WorldbuildingService] Failed to create authenticated WebSocket:',
         error
@@ -1191,6 +1237,13 @@ export class WorldbuildingService {
           `[Worldbuilding] Shared schema ${schemaId} not found and element ${elementId} has no schema copy`
         );
         return null;
+      }
+      if (this.publicContext.active()) {
+        return this.buildSchemaState(
+          structuredClone(shared),
+          shared,
+          connection.schemaMap
+        );
       }
       connection.ydoc.transact(() => {
         this.writeSchemaCopy(connection.schemaMap, shared);

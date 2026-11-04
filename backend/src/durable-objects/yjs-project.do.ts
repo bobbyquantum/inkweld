@@ -49,6 +49,7 @@ import {
   isYjsFrameBlockedForViewer,
   isElementsDoc,
   frameMessageType,
+  PUBLIC_VIEWER_ID,
 } from '../utils/yjs-document-utils';
 import { YjsDocStorage, COMPACT_THRESHOLD, snapshotKey } from './yjs-do-storage';
 import { safeSend, safeClose } from '../utils/ws-guards';
@@ -2495,7 +2496,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     // from storage to handle them is pure waste (and was a major source of
     // rows_read amplification, since presence frames fire frequently).
     if (frameMessageType(message) === Y_MESSAGE_PRESENCE) {
-      if (!connInfo.userId) return;
+      if (!connInfo.userId || connInfo.userId === PUBLIC_VIEWER_ID) return;
       // Guarded like the Yjs path below: an unhandled throw here would reject
       // the async webSocketMessage and, in the workerd runtime, surface as an
       // empty isolate crash (no JS stack) that takes the whole DO down — the
@@ -2879,7 +2880,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       // is loaded and drained below (see `loadingDocument`).
       connInfo.authenticated = true;
       connInfo.loadingDocument = true;
-      connInfo.userId = sessionData?.userId;
+      connInfo.userId = sessionData?.userId ?? PUBLIC_VIEWER_ID;
       connInfo.username = sessionData?.username;
       connInfo.canWrite = canWrite;
 
@@ -2928,6 +2929,11 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       // Now set up Yjs connection
       const sharedDoc = await this.getOrCreateDocument(connInfo.documentId);
       connInfo.sharedDoc = sharedDoc;
+      if (isPublicViewer && !(await projectService.findById(db, projectDbId))?.isPublic) {
+        safeSend(ws, 'access-denied:forbidden');
+        safeClose(ws, WS_CLOSE_FORBIDDEN, 'Public sharing disabled');
+        return;
+      }
 
       // The client may have disconnected while we awaited document setup.
       // Re-check the socket before doing any further (possibly side-effecting)

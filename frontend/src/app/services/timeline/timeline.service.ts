@@ -94,6 +94,10 @@ export class TimelineService {
 
   /** Persist config to element metadata (synced via Yjs). */
   saveConfig(config: TimelineConfig): void {
+    if (!this.projectState.canWrite()) {
+      this.logger.warn('TimelineService', 'Cannot save a read-only timeline');
+      return;
+    }
     this.activeConfigSignal.set(config);
 
     const toSerialize: Omit<TimelineConfig, 'elementId'> = {

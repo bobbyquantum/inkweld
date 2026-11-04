@@ -88,6 +88,7 @@ describe('TimelineTabComponent', () => {
   const mockLogger = { warn: vi.fn(), error: vi.fn(), info: vi.fn() };
 
   const mockProjectState = {
+    canWrite: signal(true),
     elements: signal<unknown[]>([]),
     updateElementMetadata: vi.fn(),
   };

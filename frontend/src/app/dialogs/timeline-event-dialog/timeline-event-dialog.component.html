@@ -46,6 +46,7 @@
           [attr.aria-label]="'timeline.eventDialog.startDateAria' | transloco"
           type="date"
           [value]="startDateValue()"
+          [readOnly]="!!data.readOnly"
           (change)="onStartDateChange($any($event.target).value)"
           data-testid="timeline-event-start-date" />
       </mat-form-field>
@@ -96,6 +97,7 @@
             [attr.aria-label]="'timeline.eventDialog.endDateAria' | transloco"
             type="date"
             [value]="endDateValue()"
+            [readOnly]="!!data.readOnly"
             (change)="onEndDateChange($any($event.target).value)"
             data-testid="timeline-event-end-date" />
         </mat-form-field>
@@ -152,7 +154,7 @@
   </form>
 </mat-dialog-content>
 <mat-dialog-actions align="end">
-  @if (data.event) {
+  @if (data.event && !data.readOnly) {
     <button
       mat-button
       color="warn"
@@ -163,12 +165,14 @@
   }
   <span class="spacer"></span>
   <button mat-button (click)="onCancel()">{{ 'cancel' | transloco }}</button>
-  <button
-    mat-button
-    color="primary"
-    data-testid="timeline-event-save"
-    [disabled]="form().invalid()"
-    (click)="onSave()">
-    {{ 'save' | transloco }}
-  </button>
+  @if (!data.readOnly) {
+    <button
+      mat-button
+      color="primary"
+      data-testid="timeline-event-save"
+      [disabled]="form().invalid()"
+      (click)="onSave()">
+      {{ 'save' | transloco }}
+    </button>
+  }
 </mat-dialog-actions>

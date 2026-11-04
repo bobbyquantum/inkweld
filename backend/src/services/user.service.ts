@@ -282,12 +282,17 @@ class UserService {
     }
 
     // 3. Create new user
-    RegisterRequestSchema.shape.username.parse(data.username);
+    // GitHub allows one- and two-character logins; local registrations do not.
+    let username = data.username.length < 3 ? `github-${data.username}` : data.username;
+    if (data.username.length < 3 && (await this.findByUsername(db, username))) {
+      username = `${username}-${crypto.randomUUID().slice(0, 8)}`;
+    }
+    RegisterRequestSchema.shape.username.parse(username);
     const id = crypto.randomUUID();
     const newUser: InsertUser = {
       id,
       githubId: data.githubId,
-      username: data.username,
+      username,
       email: data.email,
       name: data.name,
       enabled: true,

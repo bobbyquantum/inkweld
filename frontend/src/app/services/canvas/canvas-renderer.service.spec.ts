@@ -134,7 +134,7 @@ describe('CanvasRendererService', () => {
   });
 
   beforeEach(() => {
-    mockProjectState = { project: signal(null) };
+    mockProjectState = { project: signal(null), canWrite: signal(true) };
     mockLocalStorage = { getMediaUrl: vi.fn() };
     mockLogger = { warn: vi.fn() };
     mockSetup = { getMode: vi.fn(() => 'server') };

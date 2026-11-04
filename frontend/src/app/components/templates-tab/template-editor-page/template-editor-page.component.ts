@@ -74,6 +74,8 @@ export class TemplateEditorPageComponent
 
   /** The schema to edit. Required — pass a blank schema to create a new one. */
   readonly schema = input.required<ElementTypeSchema>();
+  /** Render the template without exposing schema editing controls. */
+  readonly readOnly = input(false);
 
   /** Emitted when the editor is done (saved with the updated schema, or cancelled with null). */
   readonly done = output<ElementTypeSchema | null>();

@@ -477,7 +477,11 @@ export class CanvasRendererService {
     }
 
     if (node.getLayer() !== kLayer) node.moveTo(kLayer);
-    CanvasRendererService.applyCommonAttrs(node, obj);
+    CanvasRendererService.applyCommonAttrs(
+      node,
+      obj,
+      this.projectState.canWrite()
+    );
     CanvasRendererService.applyStyle(node, obj);
   }
 
@@ -640,6 +644,7 @@ export class CanvasRendererService {
       rect: { x: number; y: number; width: number; height: number }
     ) => void
   ): void {
+    if (frameId && !this.projectState.canWrite()) return;
     const layer = this._framesLayer;
     if (!layer) return;
 
@@ -782,7 +787,7 @@ export class CanvasRendererService {
     const transformer = this._transformer;
     if (!transformer) return;
 
-    if (!selectedObjectId) return;
+    if (!selectedObjectId || !this.projectState.canWrite()) return;
 
     const node = this._konvaNodes.get(selectedObjectId);
     if (!node) {
@@ -861,13 +866,17 @@ export class CanvasRendererService {
   }
 
   /** Position, transform and visibility — cheap to apply on every sync. */
-  static applyCommonAttrs(node: Konva.Node, obj: CanvasObject): void {
+  static applyCommonAttrs(
+    node: Konva.Node,
+    obj: CanvasObject,
+    editable = true
+  ): void {
     node.position({ x: obj.x, y: obj.y });
     node.rotation(obj.rotation);
     node.scale({ x: obj.scaleX, y: obj.scaleY });
     node.visible(obj.visible);
     node.opacity(obj.opacity ?? 1);
-    node.draggable(!obj.locked && !isBackgroundImage(obj));
+    node.draggable(editable && !obj.locked && !isBackgroundImage(obj));
   }
 
   /** Konva attributes for an object's shadow and blend mode. */
@@ -1110,7 +1119,7 @@ export class CanvasRendererService {
       scaleY: obj.scaleY,
       visible: obj.visible,
       opacity: obj.opacity ?? 1,
-      draggable: !obj.locked && !background,
+      draggable: this.projectState.canWrite() && !obj.locked && !background,
       listening: !background,
     };
 
@@ -1131,7 +1140,7 @@ export class CanvasRendererService {
         node = CanvasRendererService.createTextNode(
           obj,
           commonAttrs,
-          handlers.onDblClickText
+          this.projectState.canWrite() ? handlers.onDblClickText : undefined
         );
         break;
       case 'path':

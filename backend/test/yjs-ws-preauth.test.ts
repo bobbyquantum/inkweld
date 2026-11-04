@@ -1,5 +1,9 @@
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
 import { eq } from 'drizzle-orm';
+import * as Y from 'yjs';
+import { createEncoder, toUint8Array, writeVarUint8Array } from 'lib0/encoding';
+import { PRESENCE_KEEPALIVE_PING, PRESENCE_KEEPALIVE_PONG } from '@inkweld/presence';
+import { yjsService } from '../src/services/yjs.service';
 import { getDatabase } from '../src/db/index';
 import { projects } from '../src/db/schema/index';
 import { WS_CLOSE_AUTH_TIMEOUT, WS_CLOSE_PREAUTH_OVERFLOW } from '../src/utils/ws-close-codes';
@@ -119,7 +123,7 @@ describe('Yjs WebSocket pre-auth limits', () => {
     expect(c.texts).toContain('access-denied:forbidden');
   }, 10000);
 
-  it('allows public-view authentication when the project is public', async () => {
+  it('blocks public mutations and revokes existing viewers without closing the owner', async () => {
     const db = getDatabase();
     await db.update(projects).set({ isPublic: true }).where(eq(projects.userId, fixture.userId));
 
@@ -130,6 +134,40 @@ describe('Yjs WebSocket pre-auth limits', () => {
 
       await waitForSocket(() => c.texts.includes('authenticated'));
       expect(c.ws.readyState).toBe(WebSocket.OPEN);
+
+      const owner = await connectYjsSocket(baseUrl, fixture.documentId);
+      open.push(owner);
+      owner.ws.send(fixture.token);
+      await waitForSocket(() => owner.texts.includes('authenticated'));
+
+      const maliciousDoc = new Y.Doc();
+      maliciousDoc.getMap('public-write-probe').set('mutated', true);
+      const encoder = createEncoder();
+      writeVarUint8Array(encoder, Y.encodeStateAsUpdate(maliciousDoc));
+      const payload = toUint8Array(encoder);
+      for (const header of [
+        [0, 1],
+        [0, 2],
+        [0x80, 0, 1],
+        [0, 0x82, 0],
+      ]) {
+        c.ws.send(new Uint8Array([...header, ...payload]));
+      }
+      c.ws.send(PRESENCE_KEEPALIVE_PING);
+      await waitForSocket(() => c.texts.includes(PRESENCE_KEEPALIVE_PONG));
+      const serverDoc = await yjsService.getDocument(fixture.documentId);
+      expect(serverDoc.doc.getMap('public-write-probe').size).toBe(0);
+      maliciousDoc.destroy();
+
+      const response = await fetch(`${baseUrl}/api/v1/projects/preauthwsuser/preauth-ws`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${fixture.token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isPublic: false }),
+      });
+      expect(response.status).toBe(200);
+      expect((await c.closed).code).not.toBe(1000);
+      expect(c.texts).toContain('access-denied:forbidden');
+      expect(owner.ws.readyState).toBe(WebSocket.OPEN);
     } finally {
       await db.update(projects).set({ isPublic: false }).where(eq(projects.userId, fixture.userId));
     }

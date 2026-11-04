@@ -16,6 +16,7 @@ import { catchError, firstValueFrom, throwError } from 'rxjs';
 
 import { type CommentMarkAttrs } from '../../components/comment-mark/comment-mark-schema';
 import { LoggerService } from '../core/logger.service';
+import { PublicProjectContextService } from '../core/public-project-context.service';
 import { SetupService } from '../core/setup.service';
 import { UnifiedUserService } from '../user/unified-user.service';
 
@@ -88,6 +89,7 @@ export interface LocalCommentMessage {
 export class CommentService {
   private readonly http = inject(HttpClient);
   private readonly setupService = inject(SetupService);
+  private readonly publicContext = inject(PublicProjectContextService);
   private readonly userService = inject(UnifiedUserService);
   private readonly logger = inject(LoggerService);
 
@@ -451,6 +453,7 @@ export class CommentService {
   }
 
   async fetchUnreadCounts(username: string, slug: string): Promise<void> {
+    if (this.publicContext.active()) return;
     if (!this.isServerMode) return;
     try {
       const url = `${this.basePath}/api/v1/comments/${username}/${slug}/unread`;
@@ -474,6 +477,7 @@ export class CommentService {
     slug: string,
     documentId: string
   ): Promise<void> {
+    if (this.publicContext.active()) return;
     if (!this.isServerMode) return;
     try {
       const url = `${this.basePath}/api/v1/comments/${username}/${slug}/seen`;

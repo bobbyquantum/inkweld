@@ -23,6 +23,7 @@ export type AppContext = {
   Variables: {
     db: DatabaseInstance;
     user?: User;
+    publicProjectRead?: boolean;
     storage?: R2Bucket; // Optional R2 bucket for file storage
   };
 };

@@ -4,6 +4,7 @@ import { ProjectsService } from '@inkweld/index';
 import { firstValueFrom } from 'rxjs';
 
 import { LoggerService } from '../core/logger.service';
+import { PublicProjectContextService } from '../core/public-project-context.service';
 import { SetupService } from '../core/setup.service';
 import { ProjectService } from '../project/project.service';
 import { LocalProjectService } from './local-project.service';
@@ -26,6 +27,7 @@ import { ProjectSyncService } from './project-sync.service';
   providedIn: 'root',
 })
 export class BackgroundSyncService implements OnDestroy {
+  private readonly publicContext = inject(PublicProjectContextService);
   private readonly logger = inject(LoggerService);
   private readonly setupService = inject(SetupService);
   private readonly projectSync = inject(ProjectSyncService);
@@ -79,6 +81,13 @@ export class BackgroundSyncService implements OnDestroy {
    * Returns true if all items synced successfully.
    */
   async syncPendingItems(): Promise<boolean> {
+    if (this.publicContext.active()) {
+      this.logger.debug(
+        'BackgroundSync',
+        'Public browsing does not replay saved profile changes'
+      );
+      return false;
+    }
     if (this.syncInProgress) {
       this.logger.debug('BackgroundSync', 'Sync already in progress, skipping');
       return false;
@@ -343,7 +352,8 @@ export class BackgroundSyncService implements OnDestroy {
         const state = this.projectSync.getSyncState(key)();
         return (
           state.pendingMetadata?.title !== undefined ||
-          state.pendingMetadata?.description !== undefined
+          state.pendingMetadata?.description !== undefined ||
+          state.pendingMetadata?.isPublic !== undefined
         );
       });
 
@@ -378,18 +388,10 @@ export class BackgroundSyncService implements OnDestroy {
 
           if (existingProject) {
             // Update with pending metadata
-            const updatedProject = {
-              ...existingProject,
-              title: state.pendingMetadata.title ?? existingProject.title,
-              description:
-                state.pendingMetadata.description ??
-                existingProject.description,
-            };
-
             await this.projectService.updateProject(
               username,
               slug,
-              updatedProject
+              state.pendingMetadata
             );
           }
 

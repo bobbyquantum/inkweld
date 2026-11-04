@@ -8,6 +8,9 @@ import { getProjectStorageSize } from '../services/storage-size.service';
 import { quotaService } from '../services/quota.service';
 import { quotaStorageContext } from '../utils/quota-context';
 import { logger } from '../services/logger.service';
+import { revokeCollaboratorSockets } from '../utils/collaborator-revocation';
+import { PUBLIC_VIEWER_ID } from '../utils/yjs-document-utils';
+import { requireProjectReadAuth } from '../middleware/public-project-read';
 import {
   UnauthorizedError,
   ForbiddenError,
@@ -35,7 +38,7 @@ const projectRoutes = new OpenAPIHono<AppContext>();
 const projectLog = logger.child('Projects');
 
 // Apply auth middleware to all routes
-projectRoutes.use('*', requireAuth);
+projectRoutes.use('*', requireProjectReadAuth);
 
 // Get all projects route
 const listProjectsRoute = createRoute({
@@ -119,10 +122,10 @@ projectRoutes.openapi(getProjectRoute, async (c) => {
   const username = c.req.param('username');
   const slug = c.req.param('slug');
   const contextUser = c.get('user');
-  if (!contextUser) {
+  if (!contextUser && !c.get('publicProjectRead')) {
     throw new UnauthorizedError('Not authenticated');
   }
-  const userId = contextUser.id;
+  const userId = contextUser?.id;
 
   const project = await projectService.findByUsernameAndSlug(db, username, slug);
 
@@ -145,7 +148,16 @@ projectRoutes.openapi(getProjectRoute, async (c) => {
   }
 
   // Get access level for the user
-  const access = await collaborationService.checkAccess(db, project.id, userId);
+  const access = c.get('publicProjectRead')
+    ? {
+        isOwner: false,
+        isCollaborator: false,
+        role: null,
+        canRead: true,
+        canWrite: false,
+        canAdmin: false,
+      }
+    : await collaborationService.checkAccess(db, project.id, userId);
 
   // Check if user has read access
   if (!access.canRead) {
@@ -342,6 +354,9 @@ projectRoutes.openapi(updateProjectRoute, async (c) => {
   if (!access.canAdmin) {
     throw new ForbiddenError('Access denied');
   }
+  if (updates.isPublic !== undefined && !access.isOwner) {
+    throw new ForbiddenError('Only the project owner can change public sharing');
+  }
 
   const newSlug = updates.slug && updates.slug !== slug ? updates.slug : null;
   const saveUpdates = async () => {
@@ -353,6 +368,9 @@ projectRoutes.openapi(updateProjectRoute, async (c) => {
       await projectService.updateAliasChain(db, project.userId, slug, newSlug);
     }
     await projectService.update(db, project.id, updates);
+    if (project.isPublic && updates.isPublic === false) {
+      await revokeCollaboratorSockets(c, username, slug, PUBLIC_VIEWER_ID, 'removed');
+    }
   };
 
   // Handle slug change (project rename)

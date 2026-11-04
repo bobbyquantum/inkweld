@@ -36,7 +36,7 @@ import { WorldbuildingService } from '@services/worldbuilding/worldbuilding.serv
 })
 export class SchemaEditorTabComponent {
   private readonly route = inject(ActivatedRoute);
-  private readonly projectState = inject(ProjectStateService);
+  protected readonly projectState = inject(ProjectStateService);
   private readonly worldbuildingService = inject(WorldbuildingService);
 
   readonly schemaId = signal<string>('');
@@ -68,6 +68,7 @@ export class SchemaEditorTabComponent {
 
   /** Live-save schema edits as they happen (autosave). */
   onSchemaChange(schema: ElementTypeSchema): void {
+    if (!this.projectState.canWrite()) return;
     this.worldbuildingService.saveSchemaToLibrary(schema);
   }
 }

@@ -8,7 +8,7 @@
         [username]="'preview'"
         [slug]="'preview'"
         [previewSchema]="previewSchema()"
-        [editMode]="true"
+        [editMode]="!readOnly()"
         (schemaEdit)="onSchemaEdit($event)"
         (schemaInfoChange)="onSchemaInfoChange($event)"
         (defaultAppearanceChange)="

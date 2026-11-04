@@ -1,6 +1,9 @@
+import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { forEachSequential } from '@inkweld/async';
+import { firstValueFrom } from 'rxjs';
 
+import { PublicProjectContextService } from '../core/public-project-context.service';
 import { StorageContextService } from '../core/storage-context.service';
 import { type StorageConfig, StorageService } from './storage.service';
 
@@ -86,6 +89,8 @@ const STORE_NAME = 'media';
   providedIn: 'root',
 })
 export class LocalStorageService {
+  private readonly publicContext = inject(PublicProjectContextService);
+  private readonly http = inject(HttpClient);
   private readonly storageService = inject(StorageService);
   private readonly storageContext = inject(StorageContextService);
   private db: IDBDatabase | null = null;
@@ -133,7 +138,12 @@ export class LocalStorageService {
    * Create the composite key for storage
    */
   private makeKey(projectKey: string, mediaId: string): string {
-    return `${projectKey}:${mediaId}`;
+    return `${this.publicContext.active() ? this.publicContext.storagePrefix() : ''}${projectKey}:${mediaId}`;
+  }
+
+  /** Fetch anonymous media from its serving project, never a saved profile's database. */
+  private publicMediaUrl(projectKey: string): string {
+    return `${this.publicContext.serverUrl()}/api/v1/media/${projectKey.split('/').map(encodeURIComponent).join('/')}`;
   }
 
   /**
@@ -167,6 +177,8 @@ export class LocalStorageService {
     filename?: string,
     generation?: GenerationMetadata
   ): Promise<void> {
+    if (this.publicContext.active())
+      throw new Error('Public project media is read-only');
     const db = await this.ensureDb();
     const key = this.makeKey(projectKey, mediaId);
 
@@ -194,6 +206,19 @@ export class LocalStorageService {
    * @returns The blob or null if not found
    */
   async getMedia(projectKey: string, mediaId: string): Promise<Blob | null> {
+    if (this.publicContext.active()) {
+      const items = await this.listMedia(projectKey);
+      const item = items.find(
+        item => item.mediaId === mediaId || item.filename === mediaId
+      );
+      if (!item?.filename) return null;
+      return firstValueFrom(
+        this.http.get(
+          `${this.publicMediaUrl(projectKey)}/${encodeURIComponent(item.filename)}`,
+          { responseType: 'blob' }
+        )
+      );
+    }
     const db = await this.ensureDb();
     const key = this.makeKey(projectKey, mediaId);
 
@@ -212,6 +237,8 @@ export class LocalStorageService {
    * @param mediaId - Identifier like "cover", "avatar", "img-{uuid}"
    */
   async deleteMedia(projectKey: string, mediaId: string): Promise<void> {
+    if (this.publicContext.active())
+      throw new Error('Public project media is read-only');
     const db = await this.ensureDb();
     const key = this.makeKey(projectKey, mediaId);
 
@@ -240,6 +267,27 @@ export class LocalStorageService {
    * @returns Array of mediaIds
    */
   async listMedia(projectKey: string, prefix?: string): Promise<MediaInfo[]> {
+    if (this.publicContext.active()) {
+      const response = await firstValueFrom(
+        this.http.get<{
+          items: {
+            filename: string;
+            mimeType?: string;
+            size: number;
+            uploadedAt?: string;
+          }[];
+        }>(this.publicMediaUrl(projectKey))
+      );
+      return response.items
+        .map(item => ({
+          mediaId: item.filename.replace(/\.[^.]+$/, ''),
+          filename: item.filename,
+          mimeType: item.mimeType ?? 'application/octet-stream',
+          size: item.size,
+          createdAt: item.uploadedAt ?? '',
+        }))
+        .filter(item => !prefix || item.mediaId.startsWith(prefix));
+    }
     const db = await this.ensureDb();
     const keyPrefix = `${projectKey}:${prefix ?? ''}`;
 

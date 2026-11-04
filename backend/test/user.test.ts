@@ -177,6 +177,51 @@ describe('User Service', () => {
   });
 
   describe('createOrUpdateGithubUser', () => {
+    it('does not reuse another account when a short GitHub fallback is taken', async () => {
+      const existing = await userService.create(db, {
+        username: 'github-xy',
+        email: 'existing-short@example.com',
+        password: 'hashedpass',
+      });
+      const created = await userService.createOrUpdateGithubUser(db, {
+        githubId: 'short-collision',
+        username: 'xy',
+        email: 'new-short@example.com',
+        name: 'Short Login',
+      });
+      try {
+        expect(created.id).not.toBe(existing.id);
+        expect(created.username).toMatch(/^github-xy-[a-f0-9]{8}$/);
+        expect(created.githubId).toBe('short-collision');
+      } finally {
+        await db.delete(users).where(eq(users.id, created.id));
+        await db.delete(users).where(eq(users.id, existing.id));
+      }
+    });
+    it.each(['a', 'ab'])(
+      'supports GitHub login %s without relaxing registration validation',
+      async (username) => {
+        const githubId = `short-${username}`;
+        const created = await userService.createOrUpdateGithubUser(db, {
+          githubId,
+          username,
+          email: 'github@example.com',
+          name: 'GitHub User',
+        });
+        try {
+          expect(created.username).toBe(`github-${username}`);
+          const returning = await userService.createOrUpdateGithubUser(db, {
+            githubId,
+            username,
+            email: 'github@example.com',
+            name: 'GitHub User',
+          });
+          expect(returning.id).toBe(created.id);
+        } finally {
+          await db.delete(users).where(eq(users.id, created.id));
+        }
+      }
+    );
     it.each(['public', 'Public', 'PUBLIC'])(
       'rejects a new GitHub user named %s',
       async (username) => {

@@ -9,7 +9,7 @@
       </h2>
       <p class="hint">{{ 'publish.plansList.subtitle' | transloco }}</p>
     </div>
-    @if (plans().length > 0) {
+    @if (plans().length > 0 && projectState.canWrite()) {
       <button
         mat-flat-button
         color="primary"
@@ -97,6 +97,7 @@
               mat-icon-button
               appTooltipAriaLabel
               (click)="deletePublishPlan($event, plan)"
+              [disabled]="!projectState.canWrite()"
               [matTooltip]="'publish.plansList.deletePlan' | transloco"
               [attr.aria-label]="
                 'publish.plansList.deletePlanName'
@@ -150,6 +151,7 @@
         mat-flat-button
         color="primary"
         (click)="createPublishPlan()"
+        [disabled]="!projectState.canWrite()"
         data-testid="create-publish-plan-button">
         <mat-icon>add</mat-icon>
         {{ 'publish.plansList.createFirstPlan' | transloco }}
