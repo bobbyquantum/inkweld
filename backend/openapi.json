@@ -956,6 +956,10 @@
             "description": "Minimum client version required to open this project. If null, any client version is acceptable.",
             "example": "0.2.0"
           },
+          "isPublic": {
+            "type": "boolean",
+            "description": "Allow anyone with the public project URL to view the entire project"
+          },
           "createdDate": {
             "type": "string",
             "format": "date-time",
@@ -1144,6 +1148,10 @@
             "nullable": true,
             "description": "Minimum client version required to open this project. Set to null to remove the requirement.",
             "example": "0.2.0"
+          },
+          "isPublic": {
+            "type": "boolean",
+            "description": "Allow anyone with the public project URL to view the entire project"
           }
         }
       },
@@ -15591,6 +15599,80 @@
           },
           "404": {
             "description": "File not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishedFileError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/share/projects/{username}/{slug}": {
+      "get": {
+        "operationId": "getPublicProject",
+        "tags": [
+          "Share"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "username",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "slug",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Public project landing page information",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "username": {
+                      "type": "string"
+                    },
+                    "slug": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "coverImage": {
+                      "type": "string",
+                      "nullable": true
+                    }
+                  },
+                  "required": [
+                    "username",
+                    "slug",
+                    "title",
+                    "description",
+                    "coverImage"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project not found or public sharing is disabled",
             "content": {
               "application/json": {
                 "schema": {

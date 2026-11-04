@@ -252,6 +252,25 @@ describe('Projects', () => {
       expect(data).toHaveProperty('description', 'Updated description');
     });
 
+    it('allows the owner to enable and disable public sharing', async () => {
+      const url = `/api/v1/projects/${testUsername}/${testProject.slug}`;
+      const enable = await client.request(url, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isPublic: true }),
+      });
+      expect(enable.response.status).toBe(200);
+      expect(await enable.json()).toHaveProperty('isPublic', true);
+
+      const disable = await client.request(url, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isPublic: false }),
+      });
+      expect(disable.response.status).toBe(200);
+      expect(await disable.json()).toHaveProperty('isPublic', false);
+    });
+
     it('should require authentication', async () => {
       const unauthClient = new TestClient(client['baseUrl']);
 

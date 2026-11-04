@@ -20,6 +20,9 @@ export const ProjectSchema = z
         'Minimum client version required to open this project. If null, any client version is acceptable.',
       example: '0.2.0',
     }),
+    isPublic: z.boolean().optional().openapi({
+      description: 'Allow anyone with the public project URL to view the entire project',
+    }),
     createdDate: z.iso.datetime().openapi({ description: 'Project creation date' }),
     updatedDate: z.iso.datetime().openapi({ description: 'Last update date' }),
     // Access permissions (only set when user is authenticated)
@@ -86,6 +89,9 @@ export const UpdateProjectRequestSchema = z
       description:
         'Minimum client version required to open this project. Set to null to remove the requirement.',
       example: '0.2.0',
+    }),
+    isPublic: z.boolean().optional().openapi({
+      description: 'Allow anyone with the public project URL to view the entire project',
     }),
   })
   .openapi('UpdateProjectRequest');

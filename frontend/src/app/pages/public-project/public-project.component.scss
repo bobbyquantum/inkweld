@@ -1,0 +1,123 @@
+:host {
+  display: block;
+  min-height: 100dvh;
+  background: var(--sys-surface);
+  color: var(--sys-on-surface);
+}
+
+.public-project {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: clamp(20px, 5vw, 64px);
+}
+
+.title-page {
+  min-height: 38vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  border-bottom: 1px solid var(--sys-outline-variant);
+}
+
+.title-page h1 {
+  margin: 0;
+  font-family: var(--font-family-serif, Georgia, serif);
+  font-size: clamp(2.5rem, 8vw, 5rem);
+}
+
+.cover {
+  max-width: min(260px, 60vw);
+  max-height: 34vh;
+  margin-bottom: 20px;
+  object-fit: contain;
+  box-shadow: 0 12px 30px rgb(0 0 0 / 18%);
+}
+
+.eyebrow,
+.author {
+  color: var(--sys-on-surface-variant);
+}
+
+.description {
+  max-width: 42rem;
+  font-size: 1.15rem;
+}
+
+.live-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--sys-on-surface-variant);
+  font-size: 0.9rem;
+}
+
+.live-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--sys-primary);
+}
+
+.reader {
+  display: grid;
+  grid-template-columns: minmax(220px, 300px) minmax(0, 1fr);
+  gap: 32px;
+  padding-top: 32px;
+}
+
+.contents {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.contents h2,
+.content h2 {
+  font-family: var(--font-family-serif, Georgia, serif);
+}
+
+.contents button {
+  min-height: 42px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.contents button:hover,
+.contents button.selected {
+  background: var(--sys-surface-container);
+}
+
+.contents button.folder {
+  color: var(--sys-on-surface-variant);
+  cursor: default;
+}
+
+.content {
+  min-width: 0;
+  line-height: 1.7;
+}
+
+.content pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: inherit;
+}
+
+.status,
+.status-card {
+  max-width: 640px;
+  margin: 15vh auto;
+  text-align: center;
+}
+
+@media (max-width: 700px) {
+  .reader {
+    grid-template-columns: 1fr;
+  }
+}

@@ -311,7 +311,7 @@ app.get(
         const bytes = new Uint8Array(data);
         const peeked = peekFrameTag(bytes);
         if (peeked?.tag === Y_MESSAGE_PRESENCE) {
-          if (isElementsDocumentId(documentId)) {
+          if (authUser && isElementsDocumentId(documentId)) {
             const projectKey = projectKeyForDocumentId(documentId);
             if (projectKey) {
               presenceService.handleMessage(
@@ -336,8 +336,9 @@ app.get(
       if (authenticated || authInProgress) return;
       authInProgress = true;
       try {
-        const sessionData = await authService.verifyToken(token, c);
-        if (!sessionData || sessionData.scope === 'enrol') {
+        const isPublicViewer = token === 'public-view';
+        const sessionData = isPublicViewer ? null : await authService.verifyToken(token, c);
+        if (!isPublicViewer && (!sessionData || sessionData.scope === 'enrol')) {
           wsLog.warn(`Invalid auth token for ${documentId}`);
           ws.send('access-denied:invalid-token');
           ws.close(WS_CLOSE_INVALID_TOKEN, 'Invalid token');
@@ -347,17 +348,19 @@ app.get(
         // Mirror requireAuth: the account must still be enabled and approved,
         // the token must not predate the user's revocation watermark, and
         // behind HA ingress it must belong to the HA user who connected.
-        const account = await userService.findById(db, sessionData.userId);
-        if (
-          !account ||
-          !userService.canLogin(account) ||
-          isSessionRevoked(account, sessionData) ||
-          !ingressSessionMatches(c, account)
-        ) {
-          wsLog.warn(`Account not permitted to sync ${documentId}: ${sessionData.username}`);
-          ws.send('access-denied:forbidden');
-          ws.close(WS_CLOSE_FORBIDDEN, 'Access denied');
-          return;
+        if (sessionData) {
+          const account = await userService.findById(db, sessionData.userId);
+          if (
+            !account ||
+            !userService.canLogin(account) ||
+            isSessionRevoked(account, sessionData) ||
+            !ingressSessionMatches(c, account)
+          ) {
+            wsLog.warn(`Account not permitted to sync ${documentId}: ${sessionData.username}`);
+            ws.send('access-denied:forbidden');
+            ws.close(WS_CLOSE_FORBIDDEN, 'Access denied');
+            return;
+          }
         }
 
         const parsed = parseDocumentOwner(documentId);
@@ -380,13 +383,11 @@ app.get(
           return;
         }
 
-        canWrite = await resolveWriteAccess(
-          db,
-          project,
-          sessionData,
-          parsed.projectOwner,
-          parsed.slug
-        );
+        canWrite = sessionData
+          ? await resolveWriteAccess(db, project, sessionData, parsed.projectOwner, parsed.slug)
+          : project.isPublic
+            ? false
+            : null;
         if (canWrite === null) {
           ws.send('access-denied:forbidden');
           ws.close(WS_CLOSE_FORBIDDEN, 'Access denied');
@@ -410,16 +411,22 @@ app.get(
 
         authenticated = true;
         clearAuthDeadline();
-        authUser = { id: sessionData.userId, username: sessionData.username };
-        wsLog.info(`Authenticated for ${documentId} (user: ${sessionData.username})`);
+        authUser = sessionData ? { id: sessionData.userId, username: sessionData.username } : null;
+        wsLog.info(
+          `Authenticated for ${documentId} (user: ${sessionData?.username ?? 'public viewer'})`
+        );
         ws.send('authenticated');
 
-        await tryStartSession(sessionData.userId, project.id);
+        if (sessionData) {
+          await tryStartSession(sessionData.userId, project.id);
+        }
 
         // Register this user against the raw WebSocket so the elements doc
         // update listener can attribute mutations to them. For elements docs,
         // also attach the snapshot-diff observer (idempotent).
-        yjsService.registerUserConnection(ws.raw, documentId, sessionData.userId);
+        if (sessionData) {
+          yjsService.registerUserConnection(ws.raw, documentId, sessionData.userId);
+        }
         if (isElementsDoc(documentId)) {
           yjsService.watchElementsDoc(documentId, project.id, db);
         }
@@ -456,6 +463,10 @@ app.get(
         // WS. Drop presence frames that arrive on per-document sockets
         // so a buggy/forked client cannot inflate the registry with
         // duplicate sessions.
+        if (!authUser) {
+          wsLog.debug(`Ignoring presence frame from public viewer for ${documentId}`);
+          return;
+        }
         if (!isElementsDocumentId(documentId)) {
           wsLog.debug(`Ignoring presence frame on non-elements doc ${documentId}`);
           return;

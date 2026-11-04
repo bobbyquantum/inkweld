@@ -202,6 +202,21 @@ mat-expansion-panel {
   color: var(--sys-on-surface-variant);
 }
 
+.public-sharing-card {
+  .public-share-link {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    overflow-wrap: anywhere;
+  }
+
+  .warning-text {
+    color: var(--sys-error);
+  }
+}
+
 .coming-soon-badge {
   font-size: 12px;
   background: var(--sys-primary-container);

@@ -11,6 +11,7 @@ export const projects = sqliteTable(
     slug: text('slug').notNull(),
     title: text('title').notNull(),
     description: text('description', { length: 1000 }),
+    isPublic: integer('is_public', { mode: 'boolean' }).notNull().default(false),
     userId: text('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),

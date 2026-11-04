@@ -290,6 +290,15 @@ export const routes: Routes = [
       ),
     title: 'Service Unavailable',
   },
+  {
+    path: 'public/:username/:slug',
+    loadComponent: () =>
+      import('./pages/public-project/public-project.component').then(
+        m => m.PublicProjectComponent
+      ),
+    title: 'Public Project',
+    data: { reuseComponent: false },
+  },
   // Project route (GitHub style: /:username/:slug)
   {
     path: ':username/:slug',

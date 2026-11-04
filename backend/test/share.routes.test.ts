@@ -15,6 +15,7 @@ import { getStorageService } from '../src/services/storage.service';
 describe('Share Routes', () => {
   let ownerUserId: string;
   let projectId: string;
+  let publicProjectId: string;
   let shareToken: string;
   let fileId: string;
   let baseUrl: string;
@@ -62,6 +63,20 @@ describe('Share Routes', () => {
       .returning();
 
     projectId = project.id;
+    const [publicProject] = await db
+      .insert(projects)
+      .values({
+        id: crypto.randomUUID(),
+        slug: 'public-share-test',
+        title: 'Public Share Test',
+        userId: ownerUserId,
+        isPublic: true,
+        createdDate: Date.now(),
+        updatedDate: Date.now(),
+      })
+      .returning();
+    publicProjectId = publicProject.id;
+
     shareToken = 'test-share-token-' + Date.now();
     fileId = crypto.randomUUID();
 
@@ -104,9 +119,36 @@ describe('Share Routes', () => {
   afterAll(async () => {
     const db = getDatabase();
     await db.delete(publishedFiles).where(eq(publishedFiles.projectId, projectId));
+    await db.delete(projects).where(eq(projects.id, publicProjectId));
     await db.delete(projects).where(eq(projects.id, projectId));
     await db.delete(users).where(eq(users.id, ownerUserId));
     await stopTestServer();
+  });
+
+  describe('GET /api/v1/share/projects/:username/:slug', () => {
+    it('does not expose a private project', async () => {
+      const response = await fetch(
+        `${baseUrl}/api/v1/share/projects/shareroutes-user/share-test-project`
+      );
+      expect(response.status).toBe(404);
+      expect(response.headers.get('cache-control')).toBe('no-store');
+    });
+
+    it('returns public project metadata without authentication', async () => {
+      const response = await fetch(
+        `${baseUrl}/api/v1/share/projects/shareroutes-user/public-share-test`
+      );
+      expect(response.status).toBe(200);
+      expect(response.headers.get('cache-control')).toBe('no-store');
+      expect(response.headers.get('x-robots-tag')).toBe('noindex, nofollow');
+      expect(await response.json()).toEqual({
+        username: 'shareroutes-user',
+        slug: 'public-share-test',
+        title: 'Public Share Test',
+        description: null,
+        coverImage: null,
+      });
+    });
   });
 
   // ───────────────────── GET /api/v1/share/:shareToken ─────────────────

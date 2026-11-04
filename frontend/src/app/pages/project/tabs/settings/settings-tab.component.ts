@@ -243,6 +243,14 @@ export class SettingsTabComponent implements OnDestroy {
     if (!project) return null;
     return `${project.username}/${project.slug}`;
   });
+  protected readonly isUpdatingPublicSharing = signal(false);
+  protected readonly publicShareUrl = computed(() => {
+    const project = this.projectState.project();
+    if (!project?.isPublic) return null;
+    return appUrl(
+      `/public/${encodeURIComponent(project.username)}/${encodeURIComponent(project.slug)}`
+    );
+  });
 
   // Server-side storage size for this project (server mode only)
   protected readonly serverStorageSize = signal<{
@@ -388,6 +396,57 @@ export class SettingsTabComponent implements OnDestroy {
       this.collaboratorsError.set('Failed to load collaborators');
     } finally {
       this.isLoadingCollaborators.set(false);
+    }
+  }
+
+  async togglePublicSharing(): Promise<void> {
+    const project = this.projectState.project();
+    if (
+      !project ||
+      this.currentMode !== 'server' ||
+      this.isUpdatingPublicSharing()
+    ) {
+      return;
+    }
+
+    this.isUpdatingPublicSharing.set(true);
+    try {
+      const updated = await this.projectService.updateProject(
+        project.username,
+        project.slug,
+        { isPublic: !project.isPublic }
+      );
+      this.projectState.updateProject(updated);
+    } catch (error) {
+      console.error('Failed to update public project sharing:', error);
+      this.snackBar.open(
+        this.transloco.translate('project.publicSharing.updateFailed'),
+        this.transloco.translate('close'),
+        { duration: 5000 }
+      );
+    } finally {
+      this.isUpdatingPublicSharing.set(false);
+    }
+  }
+
+  async copyPublicShareLink(): Promise<void> {
+    const url = this.publicShareUrl();
+    if (!url) return;
+
+    try {
+      await navigator.clipboard.writeText(url);
+      this.snackBar.open(
+        this.transloco.translate('project.publicSharing.linkCopied'),
+        this.transloco.translate('close'),
+        { duration: 3000 }
+      );
+    } catch (error) {
+      console.error('Failed to copy public project link:', error);
+      this.snackBar.open(
+        this.transloco.translate('project.publicSharing.copyFailed'),
+        this.transloco.translate('close'),
+        { duration: 5000 }
+      );
     }
   }
 

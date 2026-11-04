@@ -39,6 +39,10 @@ export interface Project {
    */
   minClientVersion?: string | null;
   /**
+   * Allow anyone with the public project URL to view the entire project
+   */
+  isPublic?: boolean;
+  /**
    * Project creation date
    */
   createdDate: string;

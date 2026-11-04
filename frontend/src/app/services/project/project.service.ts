@@ -453,6 +453,7 @@ export class ProjectService {
       const updateRequest = {
         title: Project.title,
         description: Project.description || undefined,
+        isPublic: Project.isPublic,
       };
       try {
         const project = await firstValueFrom(
@@ -494,6 +495,7 @@ export class ProjectService {
             title: updateRequest.title ?? existing?.title ?? '',
             description:
               updateRequest.description ?? existing?.description ?? undefined,
+            isPublic: updateRequest.isPublic ?? existing?.isPublic ?? false,
           };
 
           await this.setCachedProject(cacheKey, updated);

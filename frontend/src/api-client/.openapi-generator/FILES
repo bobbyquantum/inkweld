@@ -119,6 +119,7 @@ model/get-element-images200-response.ts
 model/get-project-document-sync-manifest200-response-documents-inner.ts
 model/get-project-document-sync-manifest200-response.ts
 model/get-provider-models200-response.ts
+model/get-public-project200-response.ts
 model/get-shared-file-info200-response.ts
 model/get-unread-announcement-count200-response.ts
 model/health-response.ts

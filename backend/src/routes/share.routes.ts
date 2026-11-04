@@ -2,6 +2,7 @@ import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi';
 import { eq } from 'drizzle-orm';
 
 import { projects, users } from '../db/schema';
+import { projectService } from '../services/project.service';
 import { findSharedFile } from '../services/share.service';
 import { getStorageService } from '../services/storage.service';
 import { PublishedFileErrorSchema } from '../schemas/published-file.schemas';
@@ -12,6 +13,61 @@ import { contentDisposition } from '../utils/content-disposition';
 const shareRoutes = new OpenAPIHono<AppContext>();
 
 // NOTE: These routes are PUBLIC - no auth required
+
+const getPublicProjectRoute = createRoute({
+  method: 'get',
+  path: '/projects/:username/:slug',
+  operationId: 'getPublicProject',
+  tags: ['Share'],
+  request: {
+    params: z.object({
+      username: z.string(),
+      slug: z.string(),
+    }),
+  },
+  responses: {
+    200: {
+      content: {
+        'application/json': {
+          schema: z.object({
+            username: z.string(),
+            slug: z.string(),
+            title: z.string(),
+            description: z.string().nullable(),
+            coverImage: z.string().nullable(),
+          }),
+        },
+      },
+      description: 'Public project landing page information',
+    },
+    404: {
+      content: { 'application/json': { schema: PublishedFileErrorSchema } },
+      description: 'Project not found or public sharing is disabled',
+    },
+  },
+});
+
+shareRoutes.openapi(getPublicProjectRoute, async (c) => {
+  const { username, slug } = c.req.param();
+  const project = await projectService.findByUsernameAndSlug(c.get('db'), username, slug);
+
+  c.header('Cache-Control', 'no-store');
+  c.header('X-Robots-Tag', 'noindex, nofollow');
+  if (!project?.isPublic) {
+    return c.json({ error: 'Project not found or public sharing is disabled' }, 404);
+  }
+
+  return c.json(
+    {
+      username: project.username,
+      slug: project.slug,
+      title: project.title,
+      description: project.description,
+      coverImage: project.coverImage,
+    },
+    200
+  );
+});
 
 // ============================================
 // ACCESS SHARED FILE (PUBLIC)

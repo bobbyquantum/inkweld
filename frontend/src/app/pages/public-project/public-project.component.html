@@ -1,0 +1,87 @@
+<main class="public-project">
+  @switch (state()) {
+    @case ('loading') {
+      <p class="status">{{ 'project.publicView.loading' | transloco }}</p>
+    }
+    @case ('unavailable') {
+      <section class="status-card">
+        <h1>{{ 'project.publicView.unavailableTitle' | transloco }}</h1>
+        <p>{{ 'project.publicView.unavailable' | transloco }}</p>
+      </section>
+    }
+    @case ('error') {
+      <section class="status-card">
+        <h1>{{ 'project.publicView.errorTitle' | transloco }}</h1>
+        <p>{{ 'project.publicView.error' | transloco }}</p>
+      </section>
+    }
+    @case ('ready') {
+      @if (project(); as story) {
+        <header class="title-page">
+          <p class="eyebrow">
+            {{ 'project.publicView.publicProject' | transloco }}
+          </p>
+          @if (coverUrl(); as url) {
+            <img class="cover" [src]="url" [alt]="story.title" />
+          }
+          <h1>{{ story.title }}</h1>
+          @if (story.description) {
+            <p class="description">{{ story.description }}</p>
+          }
+          <p class="author">
+            {{
+              'project.publicView.by' | transloco: { username: story.username }
+            }}
+          </p>
+          <p class="live-status">
+            @if (isLive()) {
+              <span class="live-dot"></span>
+              {{ 'project.publicView.live' | transloco }}
+            } @else {
+              {{ 'project.publicView.connecting' | transloco }}
+            }
+          </p>
+        </header>
+
+        <section
+          class="reader"
+          [attr.aria-label]="'project.publicView.contents' | transloco">
+          <nav
+            class="contents"
+            [attr.aria-label]="'project.publicView.contents' | transloco">
+            <h2>{{ 'project.publicView.contents' | transloco }}</h2>
+            @for (element of elements(); track element.id) {
+              <button
+                type="button"
+                [class.selected]="selectedElement()?.id === element.id"
+                [class.folder]="isFolder(element)"
+                [style.padding-left.px]="16 + element.level * 16"
+                [disabled]="isFolder(element)"
+                (click)="openElement(element)">
+                {{ element.name }}
+              </button>
+            } @empty {
+              <p>{{ 'project.publicView.noContents' | transloco }}</p>
+            }
+          </nav>
+
+          <article class="content">
+            @if (selectedElement(); as element) {
+              <h2>{{ element.name }}</h2>
+              @if (contentLoading()) {
+                <p>{{ 'project.publicView.loadingContent' | transloco }}</p>
+              } @else if (content()) {
+                <pre>{{ content() }}</pre>
+              } @else {
+                <p>{{ 'project.publicView.emptyContent' | transloco }}</p>
+              }
+            } @else {
+              <h2>{{ 'project.publicView.welcomeTitle' | transloco }}</h2>
+              <p>{{ 'project.publicView.welcome' | transloco }}</p>
+            }
+          </article>
+        </section>
+      }
+    }
+  }
+</main>

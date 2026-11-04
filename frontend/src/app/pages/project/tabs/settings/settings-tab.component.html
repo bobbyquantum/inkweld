@@ -590,6 +590,62 @@
     </p>
 
     @if (currentMode === 'server') {
+      <mat-card class="public-sharing-card" data-testid="public-sharing-card">
+        <mat-card-header>
+          <mat-card-title>
+            <mat-icon>public</mat-icon>
+            {{ 'project.publicSharing.title' | transloco }}
+          </mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <p>{{ 'project.publicSharing.description' | transloco }}</p>
+          @if (projectState.project()?.isPublic) {
+            <p class="warning-text">
+              {{ 'project.publicSharing.publicWarning' | transloco }}
+            </p>
+            @if (publicShareUrl(); as url) {
+              <div class="public-share-link">
+                <a [href]="url" target="_blank" rel="noopener noreferrer">
+                  {{ url }}
+                </a>
+                <button
+                  mat-stroked-button
+                  (click)="copyPublicShareLink()"
+                  data-testid="copy-public-share-link-button">
+                  <mat-icon>content_copy</mat-icon>
+                  {{ 'project.publicSharing.copyLink' | transloco }}
+                </button>
+              </div>
+            }
+          } @else {
+            <p>{{ 'project.publicSharing.privateNotice' | transloco }}</p>
+          }
+          <button
+            mat-raised-button
+            [color]="projectState.project()?.isPublic ? 'warn' : 'primary'"
+            [disabled]="isUpdatingPublicSharing()"
+            (click)="togglePublicSharing()"
+            data-testid="toggle-public-sharing-button">
+            @if (isUpdatingPublicSharing()) {
+              <mat-progress-spinner diameter="20" mode="indeterminate">
+              </mat-progress-spinner>
+            } @else {
+              <mat-icon>
+                {{ projectState.project()?.isPublic ? 'public_off' : 'public' }}
+              </mat-icon>
+              {{
+                (projectState.project()?.isPublic
+                  ? 'project.publicSharing.disable'
+                  : 'project.publicSharing.enable'
+                ) | transloco
+              }}
+            }
+          </button>
+        </mat-card-content>
+      </mat-card>
+    }
+
+    @if (currentMode === 'server') {
       @if (isLoadingCollaborators()) {
         <div class="loading-state">
           <mat-progress-spinner diameter="32" mode="indeterminate">

@@ -41,6 +41,7 @@ import { parseXmlToYjsNodes } from '@inkweld/prosemirror/xml';
 import { makeD1Database, type D1DatabaseInstance } from '../db/d1';
 import { writingSessionService } from '../services/writing-session.service';
 import { activityService } from '../services/activity.service';
+import { projectService } from '../services/project.service';
 import { countWords, extractTextContent } from '../mcp/tools/mutation.tools';
 import {
   parseDocumentOwner as parseDocumentOwnerUtil,
@@ -2494,6 +2495,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     // from storage to handle them is pure waste (and was a major source of
     // rows_read amplification, since presence frames fire frequently).
     if (frameMessageType(message) === Y_MESSAGE_PRESENCE) {
+      if (!connInfo.userId) return;
       // Guarded like the Yjs path below: an unhandled throw here would reject
       // the async webSocketMessage and, in the workerd runtime, surface as an
       // empty isolate crash (no JS stack) that takes the whole DO down — the
@@ -2798,6 +2800,29 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     return { canWrite, projectDbId: projectDbId as string };
   }
 
+  private async resolvePublicViewerAccess(
+    db: D1DatabaseInstance,
+    parsed: { projectOwner: string; slug: string },
+    ws: WebSocket
+  ): Promise<{ canWrite: false; projectDbId: string } | null> {
+    const project = await projectService.findByUsernameAndSlug(
+      db,
+      parsed.projectOwner,
+      parsed.slug
+    );
+    if (!project) {
+      safeSend(ws, 'access-denied:project-not-found');
+      safeClose(ws, WS_CLOSE_PROJECT_NOT_FOUND, 'Project not found');
+      return null;
+    }
+    if (!project.isPublic) {
+      safeSend(ws, 'access-denied:forbidden');
+      safeClose(ws, WS_CLOSE_FORBIDDEN, 'Access denied');
+      return null;
+    }
+    return { canWrite: false, projectDbId: project.id };
+  }
+
   /**
    * Verify the JWT token from a connection's first text message and, if
    * valid, transition the connection to authenticated and start Yjs sync.
@@ -2810,8 +2835,9 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     token: string
   ): Promise<void> {
     try {
-      const sessionData = await this.verifyToken(token);
-      if (!sessionData) {
+      const isPublicViewer = token === 'public-view';
+      const sessionData = isPublicViewer ? null : await this.verifyToken(token);
+      if (!isPublicViewer && !sessionData) {
         projDOLog.error(`Invalid auth token for ${connInfo.documentId}`);
         safeSend(ws, 'access-denied:invalid-token');
         safeClose(ws, WS_CLOSE_INVALID_TOKEN, 'Invalid token');
@@ -2835,7 +2861,9 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
         safeClose(ws, WS_CLOSE_FORBIDDEN, 'Access denied');
         return;
       }
-      const accessResult = await this.checkAccessWithDb(db, parsed, sessionData, ws);
+      const accessResult = sessionData
+        ? await this.checkAccessWithDb(db, parsed, sessionData, ws)
+        : await this.resolvePublicViewerAccess(db, parsed, ws);
       if (!accessResult) return;
       const { canWrite, projectDbId } = accessResult;
 
@@ -2851,8 +2879,8 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       // is loaded and drained below (see `loadingDocument`).
       connInfo.authenticated = true;
       connInfo.loadingDocument = true;
-      connInfo.userId = sessionData.userId;
-      connInfo.username = sessionData.username;
+      connInfo.userId = sessionData?.userId;
+      connInfo.username = sessionData?.username;
       connInfo.canWrite = canWrite;
 
       // Persist the new authenticated state (including canWrite) so a
@@ -2867,7 +2895,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       ws.serializeAttachment(attachment);
 
       projDOLog.debug(
-        `WS authenticated for ${connInfo.documentId} (user: ${sessionData.username}, canWrite: ${canWrite})`
+        `WS authenticated for ${connInfo.documentId} (user: ${sessionData?.username ?? 'public viewer'}, canWrite: ${canWrite})`
       );
 
       // Send success message
@@ -2922,7 +2950,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
 
       // The writing session's baseline is taken before the queued frames are
       // applied, so edits sent during auth count towards this session.
-      const startWordCount = this.sessionStartWordCount(connInfo);
+      const startWordCount = sessionData ? this.sessionStartWordCount(connInfo) : null;
 
       // Process binary messages that arrived during auth and the document
       // load (including any sent after the client saw `authenticated`). This
@@ -2932,7 +2960,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       this.drainPendingMessages(ws, connInfo);
 
       // Open a writing session for this connection (best-effort).
-      if (projectDbId) {
+      if (projectDbId && sessionData) {
         await this.tryStartSession(connInfo, projectDbId, startWordCount);
       }
 

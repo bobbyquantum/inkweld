@@ -1,4 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
+import { eq } from 'drizzle-orm';
+import { getDatabase } from '../src/db/index';
+import { projects } from '../src/db/schema/index';
 import { WS_CLOSE_AUTH_TIMEOUT, WS_CLOSE_PREAUTH_OVERFLOW } from '../src/utils/ws-close-codes';
 import {
   MAX_PREAUTH_QUEUED_BYTES,
@@ -102,4 +105,33 @@ describe('Yjs WebSocket pre-auth limits', () => {
     },
     PREAUTH_TIMEOUT_MS + 5000
   );
+
+  it('rejects public-view authentication while the project is private', async () => {
+    const db = getDatabase();
+    await db.update(projects).set({ isPublic: false }).where(eq(projects.userId, fixture.userId));
+
+    const c = await connectYjsSocket(baseUrl, fixture.documentId);
+    open.push(c);
+    c.ws.send('public-view');
+
+    const closed = await c.closed;
+    expect(closed.code).not.toBe(1000);
+    expect(c.texts).toContain('access-denied:forbidden');
+  }, 10000);
+
+  it('allows public-view authentication when the project is public', async () => {
+    const db = getDatabase();
+    await db.update(projects).set({ isPublic: true }).where(eq(projects.userId, fixture.userId));
+
+    try {
+      const c = await connectYjsSocket(baseUrl, fixture.documentId);
+      open.push(c);
+      c.ws.send('public-view');
+
+      await waitForSocket(() => c.texts.includes('authenticated'));
+      expect(c.ws.readyState).toBe(WebSocket.OPEN);
+    } finally {
+      await db.update(projects).set({ isPublic: false }).where(eq(projects.userId, fixture.userId));
+    }
+  }, 10000);
 });

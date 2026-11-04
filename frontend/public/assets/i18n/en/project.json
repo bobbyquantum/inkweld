@@ -1,4 +1,33 @@
 {
+  "publicSharing": {
+    "title": "Public project link",
+    "description": "Share a live, read-only view of this project. Visitors do not need an account or server setup.",
+    "publicWarning": "This project is completely public. Anyone with the link can view all of its contents.",
+    "privateNotice": "This project is private. No one can open it without access.",
+    "enable": "Make project public",
+    "disable": "Turn off public access",
+    "copyLink": "Copy link",
+    "linkCopied": "Public project link copied",
+    "copyFailed": "Could not copy the link. Copy it from the address above.",
+    "updateFailed": "Could not update public access."
+  },
+  "publicView": {
+    "loading": "Loading story…",
+    "unavailableTitle": "This project is not public",
+    "unavailable": "The project may have been removed or its owner turned off public access.",
+    "errorTitle": "Could not load this story",
+    "error": "Please try again later.",
+    "publicProject": "Public project",
+    "by": "by {{username}}",
+    "live": "Live view",
+    "connecting": "Connecting to live view…",
+    "contents": "Contents",
+    "noContents": "This project has no contents yet.",
+    "loadingContent": "Loading…",
+    "emptyContent": "There is no content here yet.",
+    "welcomeTitle": "Welcome",
+    "welcome": "Choose an item from the contents to read it."
+  },
   "nav": {
     "home": "Home",
     "mediaLibrary": "Media Library",
