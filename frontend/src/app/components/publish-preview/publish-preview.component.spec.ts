@@ -214,7 +214,7 @@ describe('PublishPreviewComponent', () => {
       const stats = (fixture.nativeElement as HTMLElement).querySelector(
         '[data-testid="preview-stats"]'
       );
-      expect(stats?.textContent).toContain('1,234');
+      expect(stats?.textContent).toContain((1234).toLocaleString());
     });
 
     it('should show page count for PDF previews', async () => {

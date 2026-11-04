@@ -1000,7 +1000,7 @@ describe('PublishPlanTabComponent', () => {
 
       expect(mockPublishService.publish).toHaveBeenCalled();
       expect(mockSnackBar.open).toHaveBeenCalledWith(
-        expect.stringContaining('1,000 words'),
+        expect.stringContaining(`${(1000).toLocaleString()} words`),
         'OK',
         expect.any(Object)
       );
@@ -1079,7 +1079,7 @@ describe('PublishPlanTabComponent', () => {
       await component.generatePublication();
 
       expect(mockSnackBar.open).toHaveBeenCalledWith(
-        expect.stringContaining('1 word, 1 chapter'),
+        expect.stringContaining(`${(1).toLocaleString()} word, 1 chapter`),
         'OK',
         expect.any(Object)
       );

@@ -553,8 +553,16 @@ describe('ImportProjectDialogComponent', () => {
       const isoDate = '2024-01-15T10:30:00Z';
       const result = component.formatDate(isoDate);
 
-      expect(result).toContain('2024');
-      expect(result).toContain('Jan');
+      // In the machine's locale and time zone.
+      expect(result).toBe(
+        new Date(isoDate).toLocaleDateString(undefined, {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        })
+      );
     });
 
     it('should return original string on invalid date', () => {

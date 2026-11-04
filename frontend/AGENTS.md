@@ -59,6 +59,14 @@ Never run `npm install` here; install from the repo root with `bun install`.
   `URL.createObjectURL` mock returns `blob:mock-url` for every caller, so give
   your test its own value first
   (`vi.spyOn(URL, 'createObjectURL').mockReturnValue(...)`).
+- **Specs must pass in any locale and time zone.** Contributors run them on
+  their own machines, Windows included, where `toLocaleString()` and `Intl`
+  without a locale follow the machine's settings (the `number` pipe doesn't:
+  `LOCALE_ID` is `'en'`). Build expected text with the same call as the code
+  (`(1000).toLocaleString()`), and give date inputs the local times the UI
+  produces (`new Date(2025, 0, 15)`, not `'2025-01-15T00:00:00Z'`). To check,
+  run `TZ=Pacific/Kiritimati LC_ALL=fr_FR.UTF-8 npm test`, and `ar_EG.UTF-8`
+  for non-Latin digits (Node takes the locale from `LC_ALL` on Linux).
 
 ## E2E tests (Playwright)
 

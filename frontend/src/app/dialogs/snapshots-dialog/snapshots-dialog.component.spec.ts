@@ -118,12 +118,13 @@ describe('SnapshotsDialogComponent', () => {
   });
 
   it('should format date correctly', () => {
-    const result = component.formatDate('2024-01-01T12:00:00Z');
-    expect(result).toContain('2024');
+    const date = '2024-01-01T12:00:00Z';
+    // In the machine's locale and time zone.
+    expect(component.formatDate(date)).toBe(new Date(date).toLocaleString());
   });
 
   it('should format word count correctly', () => {
-    expect(component.formatWordCount(1000)).toBe('1,000');
+    expect(component.formatWordCount(1000)).toBe((1000).toLocaleString());
     expect(component.formatWordCount(null)).toBe('0');
     expect(component.formatWordCount(undefined)).toBe('0');
   });

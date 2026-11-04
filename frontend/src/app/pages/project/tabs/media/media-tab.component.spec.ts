@@ -57,26 +57,28 @@ describe('MediaTabComponent', () => {
     description: 'Test description',
   };
 
+  // Created at local noon, so each item falls on the same day in any time
+  // zone: the date filter compares local days, as the date picker gives them.
   const mockMediaList: MediaInfo[] = [
     {
       mediaId: 'cover-1700000000000',
       mimeType: 'image/jpeg',
       size: 102400,
-      createdAt: '2025-01-15T10:00:00.000Z',
+      createdAt: new Date(2025, 0, 15, 12).toISOString(),
       filename: 'cover.jpg',
     },
     {
       mediaId: 'img-abc123',
       mimeType: 'image/png',
       size: 51200,
-      createdAt: '2025-01-16T10:00:00.000Z',
+      createdAt: new Date(2025, 0, 16, 12).toISOString(),
       filename: 'character-sketch.png',
     },
     {
       mediaId: 'published-xyz789',
       mimeType: 'application/epub+zip',
       size: 1048576,
-      createdAt: '2025-01-17T10:00:00.000Z',
+      createdAt: new Date(2025, 0, 17, 12).toISOString(),
       filename: 'my-novel.epub',
     },
   ];
@@ -475,7 +477,7 @@ describe('MediaTabComponent', () => {
         category: 'all',
         elementIds: [],
         tagIds: [],
-        dateFrom: new Date('2025-01-16T00:00:00.000Z'),
+        dateFrom: new Date(2025, 0, 16),
         dateTo: null,
       });
 
@@ -492,7 +494,7 @@ describe('MediaTabComponent', () => {
         elementIds: [],
         tagIds: [],
         dateFrom: null,
-        dateTo: new Date('2025-01-15T23:59:59.999Z'),
+        dateTo: new Date(2025, 0, 15),
       });
 
       const filtered = component.filteredItems();

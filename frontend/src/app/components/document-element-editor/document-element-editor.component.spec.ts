@@ -287,7 +287,7 @@ describe('DocumentElementEditorComponent', () => {
       component.documentId = 'testuser:test-project:doc-1';
       fixture.detectChanges();
 
-      expect(component.wordCountFormatted()).toBe('0');
+      expect(component.wordCountFormatted()).toBe((0).toLocaleString());
     });
   });
 

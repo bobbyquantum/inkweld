@@ -368,9 +368,15 @@ describe('PasskeysSettingsComponent', () => {
     });
 
     it('converts seconds to milliseconds before formatting', () => {
-      // 1700000000 seconds = Nov 14, 2023
-      const result = component.formatDate(1700000000);
-      expect(result).toMatch(/2023/);
+      // 1700000000 seconds is 14 November 2023 (UTC), shown in the
+      // machine's locale and time zone.
+      expect(component.formatDate(1700000000)).toBe(
+        new Date(1_700_000_000_000).toLocaleDateString(undefined, {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+        })
+      );
     });
   });
 

@@ -62,14 +62,20 @@ describe('SceneCorkboardComponent', () => {
     ).toBe('Mira arrives.');
     expect(card.textContent).toContain('mira');
     expect(card.textContent).toContain('harbour');
-    expect(el('corkboard-words-opening')!.textContent).toContain('250');
-    expect(el('corkboard-words-opening')!.textContent).toContain('1,000');
+    expect(el('corkboard-words-opening')!.textContent).toContain(
+      (250).toLocaleString()
+    );
+    expect(el('corkboard-words-opening')!.textContent).toContain(
+      (1000).toLocaleString()
+    );
   });
 
   it('shows a sub-folder as a chapter card with its scene count', () => {
     const card = el('corkboard-card-chapter')!;
     expect(card.textContent).toContain('1 scene');
-    expect(el('corkboard-words-chapter')!.textContent).toContain('640');
+    expect(el('corkboard-words-chapter')!.textContent).toContain(
+      (640).toLocaleString()
+    );
     expect(
       (el('corkboard-synopsis-chapter') as HTMLTextAreaElement).value
     ).toBe('At sea.');

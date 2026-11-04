@@ -157,6 +157,10 @@ Docs: `docs/site/docs/developer/mcp-oauth.md`.
   `cloudflare-runner.ts` (`assets.worker.ts`, Wrangler bundles the `.wasm` as a
   compiled module, since Workers cannot compile at run time). Nothing registered
   means the tools answer "not available".
+- **A `with { type: 'file' }` import is a path, not a URL.** It is absolute
+  when running from source or in a compiled binary, and relative in a bundle,
+  so `assetPath()` uses an absolute one as it is: `new URL` would read a
+  Windows drive (`C:\…`) as a URL scheme.
 - **`resvg` and its render result must be `free()`d.** WebAssembly memory is not
   garbage collected.
 - **Rebuild the font pack** with `bun scripts/build-canvas-font-pack.ts` after
