@@ -179,6 +179,9 @@ RUN apt-get update && \
 # Copy only the compiled binary and drizzle migrations (required for DB setup)
 COPY --from=backend-builder --chown=inkweld:inkweld --chmod=555 /app/backend/inkweld-server ./
 COPY --from=backend-builder --chown=inkweld:inkweld --chmod=555 /app/backend/drizzle ./drizzle
+# Generates and keeps a key in /data when no DATABASE_KEY or SESSION_SECRET
+# is set (see the script), so an install that never set one still starts.
+COPY --from=backend-builder --chown=inkweld:inkweld --chmod=555 /app/backend/scripts/docker-entrypoint.sh ./docker-entrypoint.sh
 
 # Copy frontend assets from dist directory
 # Angular outputs to dist/browser/ in production mode. We copy the entire dist/ directory
@@ -193,4 +196,5 @@ EXPOSE 8333
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:8333/api/v1/health || exit 1
 
+ENTRYPOINT ["./docker-entrypoint.sh"]
 CMD ["./inkweld-server"]

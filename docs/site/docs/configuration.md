@@ -86,8 +86,10 @@ stored in the database, such as API keys saved in Admin → Settings.
 Whenever `NODE_ENV` is anything other than `development` or `test` (including
 `production`, `preview` or `staging`), the secret must be at least 32
 characters and must not be a sample value copied from these docs or the
-example files. Bun, Node, the Docker image and compiled binaries refuse to
-start without such a secret. Cloudflare Workers only see secrets per request,
+example files. Bun, Node and compiled binaries refuse to start without such a
+secret. The Docker image generates one instead when neither `SESSION_SECRET`
+nor `DATABASE_KEY` is set, and keeps it in `/data/.inkweld-key`, so keep the
+`/data` volume (or set your own). Cloudflare Workers only see secrets per request,
 so a Worker without one still deploys, but every request that needs the key
 (signing in, authenticated API calls, MCP) fails with a 500 and the log names
 the variable to set; real-time sync is refused too. Only in development and

@@ -189,7 +189,12 @@ Docs: `docs/site/docs/developer/mcp-oauth.md`.
   `access-denied:error` or a 500), so a missing key is a server error and
   clients keep their tokens. When the list of sample values changes, keep
   `SAMPLE_SECRETS` in step: `configService` also reads settings stored under
-  any published key and stores them again under the configured one.
+  any published key and stores them again under the configured one. The
+  Docker image's entrypoint (`scripts/docker-entrypoint.sh`) generates a key in
+  `/data/.inkweld-key` when neither variable is set, and sets
+  `WEBAUTHN_RP_ID=localhost` (derive from `ALLOWED_ORIGINS`) when that is
+  unset, so an install made before the image ran with the production checks
+  still starts after an upgrade.
 - Passkey ceremonies must use `rpFromRequest(c)`, not `rpFromContext(c)`, so
   the hosted app's origin is accepted when `ALLOW_INKWELD_APP_CLIENT` is on.
   A new origin check must include `getInkweldAppClientOrigins()` too. Passkey
