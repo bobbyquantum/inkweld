@@ -85,6 +85,10 @@ export function isSyncUpdateFrame(message: ArrayBuffer | Uint8Array): boolean {
  * Parse the project owner + slug out of a Yjs document id. Returns null
  * for malformed ids. Strips the optional `worldbuilding:` prefix so the
  * worldbuilding namespace resolves to the same project access record.
+ *
+ * Not for ids that come from a client: those go through `parseDocumentId`
+ * (`utils/yjs-document-id.ts`), which the sync routes and the Durable Object
+ * share, so access is checked on the project the documents live in.
  */
 export function parseDocumentOwner(
   documentId: string

@@ -232,6 +232,35 @@ Docs: `docs/site/docs/developer/mcp-oauth.md`.
   hash), and `BACKGROUND_PRESET_IDS` in `services/appearance.service.ts` must
   match `frontend/src/app/config/background-presets.ts`.
 
+## Sync socket input
+
+Details: `backend/src/routes/README_YJS.md`.
+
+- **Document ids from a client go through `parseDocumentId`**
+  (`utils/yjs-document-id.ts`), the one parser the Bun route, the Worker route
+  and the Durable Object share: `owner:slug:docName`, non-empty parts, at most
+  one trailing `/`. The first two parts always name the project (a
+  `worldbuilding:` prefix is not stripped; clients never send it), so the
+  access check, the LevelDB store and the Durable Object agree. A new route
+  that takes a document id from a client uses it too. `YjsService` refuses ids
+  it rejects, and its per-project helpers skip keys they cannot parse.
+- **Sync and awareness messages are checked before they are applied**, on both
+  runtimes (`isYjsMessageWithinLimits`, `utils/yjs-message-limits.ts`): an
+  update must decode completely and its JSON values may nest at most
+  `MAX_YJS_JSON_DEPTH` (256) levels. Whatever a document or awareness state
+  holds is encoded again for every client, compaction and export, so a new
+  path that applies Yjs content from a client checks it the same way. The
+  server's `Awareness` publishes no state and has its interval stopped
+  (`stopAwarenessInterval` in `yjs.service.ts`, as in the Durable Object).
+- **No error may escape a Bun socket handler.** Hono's Bun adapter does not
+  await `onMessage`, and Bun ends the process when a socket callback or timer
+  throws or a rejection goes unhandled. Catch in every handler, listener and
+  timer (each close-cleanup step runs on its own, `runCloseStep`), give
+  fire-and-forget promises a `.catch`, and read client frames with helpers
+  that return null rather than throw (`peekFrameTag`). The logger
+  `bun-runner.ts` and `node-runner.ts` install
+  (`utils/unhandled-rejection.ts`) is only a backstop.
+
 ## Wrangler version pin
 
 `package.json` pins `wrangler` to an **exact** `4.116.0` with a local patch
