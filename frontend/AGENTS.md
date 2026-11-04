@@ -165,9 +165,10 @@ keys), and `services/core/locale.service.ts` persists the active language.
 - Components with no user-facing strings (e.g. `AriaTabPanelComponent`,
   `TreeNodeIconComponent`) don't use Transloco.
 
-**Error codes** are mapped to keys in `services/core/error-translation.service.ts`;
-add new codes there and the key to the right JSON file. Unmapped errors fall
-back to `errors.unknown`.
+**Error codes** of errors thrown as `PasskeyError` or `UserServiceError` are
+mapped to keys in `services/core/error-translation.service.ts`; add new codes
+there and the key to the right JSON file. Unmapped errors fall back to
+`errors.unknown`. Sign-in callback codes are mapped separately (below).
 
 | Error class | Code | Translation key / behaviour |
 |---|---|---|
@@ -179,6 +180,13 @@ back to `errors.unknown`.
 | `PasskeyError` | `ACCOUNT_DISABLED` | `login.errors.accountDisabled` |
 | `UserServiceError` | `LOGIN_FAILED` | `login.errors.loginFailed` |
 | `UserServiceError` | `ACCOUNT_PENDING` | Redirect to `/approval-pending` |
+
+**Sign-in callback codes**: OIDC sign-in failures and GitHub's `email_in_use`
+arrive on `/oauth/callback` as `?error=<code>` (GitHub's other failures still
+redirect to `/?error=…`). `ERROR_MESSAGE_KEYS` in `OAuthCallbackComponent`
+maps the codes that have their own message (`email_in_use` →
+`auth.oauthCallback.emailInUse`); add new ones there. Any other code shows
+`errors.unknown`.
 
 **Adding a locale**: copy `public/assets/i18n/en/` to `<lang>/` and translate
 it; register the Angular locale data (`registerLocaleData`) and add

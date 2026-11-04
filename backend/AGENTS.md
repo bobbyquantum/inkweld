@@ -204,6 +204,18 @@ Docs: `docs/site/docs/developer/mcp-oauth.md`.
   server, so a new route that signs someone in or creates an account must refuse
   while it is on. Only a fresh instance elects an admin. Details:
   `docs/site/docs/configuration.md`.
+- **GitHub** (`routes/github-auth.routes.ts`,
+  `userService.createOrUpdateGithubUser`): accounts are keyed by `githubId`,
+  never linked by email. The `githubId` lookup runs before any email check,
+  so an account linked to the id is never refused over its address (accounts
+  from earlier versions may share one). The service ignores an address
+  unless `emailVerified` is true, and compares addresses ignoring letter
+  case. A new GitHub identity whose verified email another account already
+  uses gets `GithubEmailInUseError`, which the callback turns into
+  `/oauth/callback?error=email_in_use&provider=github`; it is neither
+  attached to that account nor given a second one with the address. A linked
+  account's stored email only changes to a verified address no other account
+  uses. Details: `docs/site/docs/admin-guide/github-oauth.md`.
 - **Account deletion** (`account-deletion.service.ts`, shared by self-service
   and admin deletion) reserves with `userService.reserveForDeletion()` — never
   by disabling the account, which breaks the Durable Object wipe — and tears

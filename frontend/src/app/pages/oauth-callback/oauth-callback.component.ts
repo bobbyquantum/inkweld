@@ -14,6 +14,15 @@ import { SetupService } from '@services/core/setup.service';
 import { UserService } from '@services/user/user.service';
 import { firstValueFrom } from 'rxjs';
 
+/**
+ * Sign-in errors (the server's `?error=` code) that have a message of their
+ * own. Any other code shows the generic message.
+ */
+const ERROR_MESSAGE_KEYS: ReadonlyMap<string, string> = new Map([
+  // A new GitHub identity whose verified email an existing account uses.
+  ['email_in_use', 'auth.oauthCallback.emailInUse'],
+]);
+
 @Component({
   selector: 'app-oauth-callback',
   imports: [MatProgressSpinnerModule, TranslocoModule],
@@ -85,8 +94,9 @@ export class OAuthCallbackComponent implements OnInit {
     }
   }
 
-  private getErrorMessage(_error: string): string {
-    // All error cases map to the same generic message
-    return this.transloco.translate('errors.unknown');
+  private getErrorMessage(error: string): string {
+    return this.transloco.translate(
+      ERROR_MESSAGE_KEYS.get(error) ?? 'errors.unknown'
+    );
   }
 }

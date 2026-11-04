@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
 import { sessionWatermarkNow } from '../utils/session-validity';
-import { eq, like, or, asc, and, sql, isNull } from 'drizzle-orm';
+import { eq, ne, like, or, asc, and, sql, isNull } from 'drizzle-orm';
 import type { DatabaseInstance } from '../types/context';
 import { users, type User, type InsertUser, type ProfileVisibility } from '../db/schema';
 import { configService } from './config.service';
@@ -38,6 +38,19 @@ export interface ListUsersOptions {
   searchEmail?: boolean;
 }
 
+/**
+ * Thrown by `createOrUpdateGithubUser` when no account is linked to the
+ * GitHub identity yet and another account already uses its verified email
+ * address. Sign-in stops there: the identity is not attached to that account,
+ * and no second account with the same address is created.
+ */
+export class GithubEmailInUseError extends Error {
+  constructor() {
+    super('An account with this email address already exists');
+    this.name = 'GithubEmailInUseError';
+  }
+}
+
 class UserService {
   /**
    * Find user by ID
@@ -61,6 +74,25 @@ class UserService {
   async findByEmail(db: DatabaseInstance, email: string): Promise<User | undefined> {
     const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
     return result[0];
+  }
+
+  /**
+   * Whether an account other than `exceptUserId` uses this email address.
+   * Letter case is ignored, so `Writer@Example.com` and `writer@example.com`
+   * count as the same address.
+   */
+  private async isEmailUsedByAnotherAccount(
+    db: DatabaseInstance,
+    email: string,
+    exceptUserId?: string
+  ): Promise<boolean> {
+    const sameAddress = sql`lower(${users.email}) = lower(${email})`;
+    const result = await db
+      .select()
+      .from(users)
+      .where(exceptUserId ? and(sameAddress, ne(users.id, exceptUserId)) : sameAddress)
+      .limit(1);
+    return result.length > 0;
   }
 
   /**
@@ -210,9 +242,13 @@ class UserService {
   }
 
   /**
-   * Create or update GitHub user.
-   * First looks up by githubId. If not found, tries to link by matching email.
-   * Only creates a new user if neither match is found.
+   * Resolve the account for a GitHub sign-in. Accounts are matched by GitHub
+   * id only, never by email. The account linked to this id has its name
+   * refreshed, and its email when GitHub's verified address is not used by
+   * another account. A new identity gets a new account. If another account
+   * already uses the new identity's verified email address (letter case
+   * aside), this throws {@link GithubEmailInUseError} instead of linking to
+   * that account or creating a second one with the same address.
    */
   async createOrUpdateGithubUser(
     db: DatabaseInstance,
@@ -222,24 +258,28 @@ class UserService {
       email: string;
       name: string;
       /**
-       * Whether GitHub reports `email` as verified. Only a verified address
-       * may link this GitHub identity to an existing local account; GitHub
-       * lets anyone add an unverified address to their profile, so matching
-       * on it would let an attacker adopt the victim's account. Defaults to
-       * false so any caller that forgets the flag fails safe.
+       * Whether GitHub reports `email` as verified. An unverified address is
+       * neither stored nor compared with the addresses of other accounts.
+       * Defaults to false, so a caller that leaves the flag out stores no
+       * address.
        */
       emailVerified?: boolean;
     }
   ): Promise<User> {
+    const email = data.emailVerified ? data.email : '';
+
     // 1. Look up by GitHub ID (exact match — user has logged in with GitHub before)
     const existingByGithubId = await this.findByGithubId(db, data.githubId);
 
     if (existingByGithubId) {
-      // Update existing GitHub-linked user (preserve existing email if provider returns empty)
+      // Update the linked account. Its email only changes to a verified
+      // address that no other account uses; otherwise the stored one stays.
+      const emailIsFree =
+        email !== '' && !(await this.isEmailUsedByAnotherAccount(db, email, existingByGithubId.id));
       await db
         .update(users)
         .set({
-          email: data.email || existingByGithubId.email,
+          email: emailIsFree ? email : existingByGithubId.email,
           name: data.name,
         })
         .where(eq(users.id, existingByGithubId.id));
@@ -251,32 +291,11 @@ class UserService {
       return updated;
     }
 
-    // 2. Try to link to an existing local user by email (only if exactly one
-    //    match, and only for an address GitHub has verified)
-    if (data.email && data.emailVerified) {
-      const matchesByEmail = await db
-        .select()
-        .from(users)
-        .where(eq(users.email, data.email))
-        .limit(2);
-
-      if (matchesByEmail.length === 1 && !matchesByEmail[0].githubId) {
-        const existingByEmail = matchesByEmail[0];
-        // Link this GitHub account to the existing local user
-        await db
-          .update(users)
-          .set({
-            githubId: data.githubId,
-            name: existingByEmail.name || data.name,
-          })
-          .where(eq(users.id, existingByEmail.id));
-
-        const updated = await this.findById(db, existingByEmail.id);
-        if (!updated) {
-          throw new Error('Failed to link GitHub account');
-        }
-        return updated;
-      }
+    // 2. An existing account is never linked by email. If one already uses
+    //    this verified address, stop instead of creating a second account
+    //    with it.
+    if (email !== '' && (await this.isEmailUsedByAnotherAccount(db, email))) {
+      throw new GithubEmailInUseError();
     }
 
     // 3. Create new user
@@ -285,7 +304,7 @@ class UserService {
       id,
       githubId: data.githubId,
       username: data.username,
-      email: data.email,
+      email,
       name: data.name,
       enabled: true,
       approved: false,

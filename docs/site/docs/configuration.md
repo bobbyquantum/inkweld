@@ -414,7 +414,12 @@ SYNC_QUOTA_DEFAULT_BYTES=524288000
 
 ## GitHub OAuth
 
-Enable users to sign in with their GitHub accounts.
+Enable users to sign in with their GitHub accounts. Accounts are identified by
+the GitHub user id; email addresses are not used to link to other accounts, and
+only an address GitHub marks as verified is stored. A new GitHub user whose
+verified address another account already uses (ignoring letter case) gets no
+account: the app asks them to sign in to that account if it is theirs, or to
+contact the administrator if it isn't.
 
 ### GITHUB_ENABLED
 
