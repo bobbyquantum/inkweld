@@ -2,6 +2,7 @@
  * User management OpenAPI schemas
  */
 import { z } from '@hono/zod-openapi';
+import { NewUsernameSchema } from './auth.schemas';
 import { UserSchema } from './common.schemas';
 
 // Re-export UserSchema for convenience
@@ -13,7 +14,7 @@ export { UserSchema } from './common.schemas';
  */
 export const UserRegisterRequestSchema = z
   .object({
-    username: z.string().min(3),
+    username: NewUsernameSchema,
     email: z.email(),
     password: z.string().min(6),
   })

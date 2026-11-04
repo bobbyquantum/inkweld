@@ -1,15 +1,14 @@
 import { Hono } from 'hono';
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
 import type { IDToken } from 'openid-client';
-import { RESERVED_USERNAMES } from '../schemas/auth.schemas';
+import { usernameBase } from '../schemas/auth.schemas';
 import { authService } from '../services/auth.service';
 import { configService } from '../services/config.service';
 import { getBaseUrl } from '../services/url.service';
 import { logger } from '../services/logger.service';
 import { oauthLoginCodeService } from '../services/oauth-login-code.service';
 import { oidcAuthService } from '../services/oidc-auth.service';
-import { userService } from '../services/user.service';
-import { trimCharacters } from '../utils/string-utils';
+import { isUsernameConflict, userService } from '../services/user.service';
 import type { AppContext, DatabaseInstance } from '../types/context';
 
 const log = logger.child('OIDCAuth');
@@ -27,30 +26,6 @@ function failedSignInRedirect(baseUrl: string): string {
   return callbackRedirect(baseUrl, { error: 'oidc_auth_failed', provider: 'oidc' });
 }
 
-/** Normalize provider profile data into a non-reserved local username stem. */
-function usernameBase(value: string): string {
-  const separated = value
-    .toLowerCase()
-    .replaceAll(/[^a-z0-9_-]+/g, '-')
-    .replaceAll(/-{2,}/g, '-');
-  const username = trimCharacters(separated, '-_').slice(0, 32);
-  if (username.length >= 3 && !(RESERVED_USERNAMES as readonly string[]).includes(username)) {
-    return username;
-  }
-  return 'oidc-user';
-}
-
-/** Prefer a short deterministic suffix; insertion still handles concurrent collisions. */
-async function availableUsername(db: AppContext['Variables']['db'], base: string): Promise<string> {
-  // Sequential checks ensure the lowest available suffix is selected.
-  for (let suffix = 0; suffix < 100; suffix++) {
-    const tail = suffix === 0 ? '' : `-${suffix + 1}`;
-    const username = `${base.slice(0, 32 - tail.length)}${tail}`;
-    if (!(await userService.findByUsername(db, username))) return username;
-  }
-  return `${base.slice(0, 20)}-${crypto.randomUUID().slice(0, 8)}`;
-}
-
 function stringClaim(value: unknown): string | undefined {
   return typeof value === 'string' && value ? value : undefined;
 }
@@ -66,7 +41,11 @@ async function oidcIdentity(
   const displayName = stringClaim(claims.name);
   const providerUsername =
     preferredUsername || email?.split('@')[0] || displayName || `oidc-${claims.sub.slice(0, 12)}`;
-  const username = await availableUsername(db, usernameBase(providerUsername));
+  // Prefer a short deterministic suffix; insertion still handles concurrent collisions.
+  const username = await userService.availableUsername(
+    db,
+    usernameBase(providerUsername, 'oidc-user')
+  );
   return {
     issuer,
     subject: claims.sub,
@@ -75,16 +54,6 @@ async function oidcIdentity(
     emailVerified: email !== undefined,
     name: displayName || preferredUsername || username,
   };
-}
-
-/** Whether an account could not be created because another sign-in took its username. */
-function isUsernameCollision(error: unknown): boolean {
-  let cause = error;
-  // Drizzle wraps SQLite/D1 constraint errors in a query error.
-  while (cause instanceof Error && cause.cause instanceof Error) cause = cause.cause;
-  return (
-    cause instanceof Error && cause.message.includes('UNIQUE constraint failed: users.username')
-  );
 }
 
 async function resolveOidcUser(
@@ -98,7 +67,7 @@ async function resolveOidcUser(
     // Parallel first sign-ins can race on the issuer/subject unique index.
     const existing = await userService.findByOidcIdentity(db, identity.issuer, identity.subject);
     if (existing) return existing;
-    if (!isUsernameCollision(error)) throw error;
+    if (!isUsernameConflict(error)) throw error;
     log.info('Retrying OIDC account creation after a concurrent username collision');
     const username = `${identity.username.slice(0, 20)}-${crypto.randomUUID().slice(0, 8)}`;
     return await userService.createOrUpdateOidcUser(db, { ...identity, username }, options);

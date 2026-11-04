@@ -448,6 +448,7 @@ sequenceDiagram
 - **Content Security Policy** on the served `index.html`; scripts are allowed by hash/origin, so the built page contains no inline script (`utils/csp.ts`)
 - **Rate limiting** on auth, passkey, recovery and OAuth client-registration endpoints. The limits are fixed (not configurable), per client IP and held in process memory, so on Workers use Cloudflare WAF rules instead. See [API](./api.md#rate-limiting)
 - **Storage quotas** (optional) refuse new uploads, never edits, once an account is over its allowance
+- **Usernames** of new accounts are 3 to 39 ASCII letters, digits, `-` and `_` and must differ from every existing username in more than letter case (`schemas/auth.schemas.ts`; the insert itself checks, so overlapping sign-ups can't both take a name), because a username names storage directories, R2 keys and Yjs document ids. Older accounts keep their usernames, and lookups and sign-in accept any stored name, but the storage adapters refuse a username or slug containing `/`, `\`, `..` or NUL (`utils/storage-segment.ts`; deleting such a project or account skips its files), MCP tools refuse a project whose username or slug contains `:`, and on disk a project slug is refused when an account whose username differs only in case or Unicode form already has it, since the two would share a directory on a case-insensitive file system
 
 ## Deployment Targets
 

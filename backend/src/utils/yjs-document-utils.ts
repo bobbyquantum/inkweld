@@ -104,6 +104,16 @@ export function parseDocumentOwner(
 }
 
 /**
+ * Whether a project's `username` and `slug` can be joined into a document id
+ * (`username:slug:…`). Ids are split on `:` to find the project, so a part
+ * that contains one would be read as a different project. Accounts created
+ * before usernames had a character rule may have one.
+ */
+export function canNameProjectInDocumentId(username: string, slug: string): boolean {
+  return Boolean(username) && Boolean(slug) && !username.includes(':') && !slug.includes(':');
+}
+
+/**
  * Extract the trackable elementId from a documentId. Returns null when
  * the document is NOT a prose document — i.e. the project-level
  * `elements` tree, a `worldbuilding:` doc, or a malformed id. Trims the

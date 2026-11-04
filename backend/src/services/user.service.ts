@@ -1,12 +1,39 @@
 import bcrypt from 'bcryptjs';
+import { chunk, firstResultSequential } from '@inkweld/async';
 import { sessionWatermarkNow } from '../utils/session-validity';
-import { eq, ne, like, or, asc, and, sql, isNull } from 'drizzle-orm';
+import { eq, ne, like, or, asc, and, sql, isNull, inArray, type SQL } from 'drizzle-orm';
 import type { DatabaseInstance } from '../types/context';
+import type { D1DatabaseInstance } from '../db/d1';
 import { users, type User, type InsertUser, type ProfileVisibility } from '../db/schema';
+import {
+  USERNAME_MAX_LENGTH,
+  USERNAME_PATTERN,
+  fitsUsernameRule,
+  isReservedUsername,
+  usernameBase,
+} from '../schemas/auth.schemas';
 import { configService } from './config.service';
 import { mcpOAuthService } from './mcp-oauth.service';
 
 const SALT_ROUNDS = 10;
+
+/** Numbered variants tried before a random suffix when a username is taken. */
+const MAX_USERNAME_SUFFIX = 100;
+
+/** Candidate usernames checked per query. */
+const USERNAME_CANDIDATE_BATCH = 20;
+
+/**
+ * Whether `error` is an insert refused because an account already has the
+ * username (exactly, or ignoring case: see `UserService.create`).
+ */
+export function isUsernameConflict(error: unknown): boolean {
+  // Drizzle can wrap SQLite and D1 constraint errors in a query error.
+  for (let cause = error; cause instanceof Error; cause = cause.cause) {
+    if (cause.message.includes('UNIQUE constraint failed: users.username')) return true;
+  }
+  return false;
+}
 
 /**
  * Why an account may not sign in. `code` lets clients tell a rejected
@@ -130,7 +157,96 @@ class UserService {
   }
 
   /**
-   * Create a new user with username/password
+   * Which of `usernames` an account already has, compared ignoring case.
+   * Resolves to the matching names in lower case. One query, a search of the
+   * `lower(username)` index; callers pass a handful of names (D1 allows 100
+   * bound parameters per query).
+   */
+  async findTakenUsernames(
+    db: DatabaseInstance,
+    usernames: readonly string[]
+  ): Promise<Set<string>> {
+    const lowered = [...new Set(usernames.map((name) => name.toLowerCase()))];
+    if (lowered.length === 0) return new Set();
+    // SQLite's lower() folds ASCII letters only, which covers every name a
+    // new account may use. The expression must stay `lower(username)` to
+    // match the users_username_lower_idx index.
+    const usernameLower = sql<string>`lower(${users.username})`;
+    // Cast to one union member before .select(projection): TypeScript cannot
+    // call a generic method with arguments on a union of drizzle instances.
+    const rows = await (db as D1DatabaseInstance)
+      .select({ username: usernameLower })
+      .from(users)
+      .where(inArray(usernameLower, lowered));
+    return new Set(rows.map((row) => row.username));
+  }
+
+  /**
+   * Whether an account already has this username, ignoring case. A new
+   * account may not differ from an existing one only in letter case
+   * (`Alice` and `alice`); accounts that already do keep their names.
+   */
+  async isUsernameTaken(db: DatabaseInstance, username: string): Promise<boolean> {
+    return (await this.findTakenUsernames(db, [username])).size > 0;
+  }
+
+  /**
+   * A username for a new account made from `base`: `base` itself when it is
+   * free, otherwise the first free `base-2`, `base-3`, … (each cut to fit
+   * {@link USERNAME_MAX_LENGTH}), then a random suffix. A `base` shorter
+   * than the minimum starts at `base-2`, and one with characters outside the
+   * username rule is first reduced to a lower-case stem. Reserved names are
+   * skipped and names are compared ignoring case. A concurrent sign-up can
+   * still take the name before the insert, which then fails
+   * ({@link isUsernameConflict}).
+   */
+  async availableUsername(db: DatabaseInstance, base: string): Promise<string> {
+    const stem = USERNAME_PATTERN.test(base) ? base : usernameBase(base, 'user');
+    const candidates = Array.from({ length: MAX_USERNAME_SUFFIX }, (_, i) => {
+      const tail = i === 0 ? '' : `-${i + 1}`;
+      return `${stem.slice(0, USERNAME_MAX_LENGTH - tail.length)}${tail}`;
+    }).filter((candidate) => fitsUsernameRule(candidate) && !isReservedUsername(candidate));
+    // Sequential: the batches are checked in order, so the lowest free suffix
+    // wins and later batches are never queried.
+    const free = await firstResultSequential(
+      chunk(candidates, USERNAME_CANDIDATE_BATCH),
+      async (batch) => {
+        const taken = await this.findTakenUsernames(db, batch);
+        return batch.find((candidate) => !taken.has(candidate.toLowerCase()));
+      }
+    );
+    return free ?? `${stem.slice(0, 20)}-${crypto.randomUUID().slice(0, 8)}`;
+  }
+
+  /**
+   * The username for a new GitHub account: the GitHub login, with its case,
+   * when it is free (ignoring case), not reserved and at least
+   * 3 characters long; otherwise the first free `login-2`, `login-3`, …, as
+   * OIDC sign-in picks one (a 2-character login `tj` becomes `tj-2`). GitHub
+   * logins use only letters, digits and `-` and are at most 39 characters;
+   * anything else is first reduced to a lower-case stem, as OIDC usernames
+   * are.
+   */
+  private githubUsername(db: DatabaseInstance, login: string): Promise<string> {
+    const base = USERNAME_PATTERN.test(login) ? login : usernameBase(login, 'github-user');
+    return this.availableUsername(db, base);
+  }
+
+  /**
+   * The value to insert as a new account's username: `username`, or, when an
+   * account already has it ignoring case, that account's username, so the
+   * insert fails on the unique index just as for an exact duplicate
+   * ({@link isUsernameConflict}). The lookup is part of the INSERT statement,
+   * so two overlapping sign-ups for `Alice` and `alice` can't both succeed.
+   */
+  private newUsernameValue(username: string): SQL {
+    return sql`coalesce((select ${users.username} from ${users} where lower(${users.username}) = lower(${username}) limit 1), ${username})`;
+  }
+
+  /**
+   * Create a new user with username/password. Fails with a unique-constraint
+   * error ({@link isUsernameConflict}) when an account already has the
+   * username, compared ignoring case.
    * @param db Database instance
    * @param data User data
    * @param options Additional options like skipApproval
@@ -186,7 +302,7 @@ class UserService {
       }),
     };
 
-    await db.insert(users).values(newUser);
+    await db.insert(users).values({ ...newUser, username: this.newUsernameValue(data.username) });
 
     // Return the created user
     const created = await this.findById(db, id);
@@ -300,17 +416,18 @@ class UserService {
 
     // 3. Create new user
     const id = crypto.randomUUID();
+    const username = await this.githubUsername(db, data.username);
     const newUser: InsertUser = {
       id,
       githubId: data.githubId,
-      username: data.username,
+      username,
       email,
       name: data.name,
       enabled: true,
       approved: false,
     };
 
-    await db.insert(users).values(newUser);
+    await db.insert(users).values({ ...newUser, username: this.newUsernameValue(username) });
 
     const created = await this.findById(db, id);
     if (created === undefined) {

@@ -14,7 +14,16 @@ export interface UsernameAvailability {
    */
   available: boolean;
   /**
+   * Why the username cannot be used, when it cannot: invalid (not 3 to 39 ASCII letters, digits, hyphens and underscores), reserved (a name the app uses itself), or taken (an account has it, ignoring letter case)
+   */
+  reason?: UsernameAvailabilityReason;
+  /**
    * Alternative suggestions
    */
   suggestions: Array<string>;
+}
+export enum UsernameAvailabilityReason {
+  Invalid = 'invalid',
+  Reserved = 'reserved',
+  Taken = 'taken',
 }

@@ -34,7 +34,9 @@ import {
   email,
   form,
   FormField,
+  maxLength,
   minLength,
+  pattern,
   required,
   validate,
 } from '@angular/forms/signals';
@@ -51,8 +53,9 @@ import {
   type SystemFeatures,
   type User,
   type UsernameAvailability,
+  UsernameAvailabilityReason,
 } from '@inkweld/index';
-import { TranslocoModule } from '@jsverse/transloco';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { AuthTokenService } from '@services/auth/auth-token.service';
 import { SetupService } from '@services/core/setup.service';
 import { SystemConfigService } from '@services/core/system-config.service';
@@ -65,6 +68,37 @@ import {
   SPECIAL_CHARACTER_ERROR,
   SPECIAL_CHARACTER_REQUIREMENT,
 } from '../../utils/password-rules';
+import {
+  fitsUsernameRule,
+  USERNAME_MAX_LENGTH,
+  USERNAME_MIN_LENGTH,
+  USERNAME_PATTERN,
+} from '../../utils/username-rules';
+
+/** Message for each reason the server gives for refusing a username. */
+const USERNAME_REFUSAL_KEYS: Record<UsernameAvailabilityReason, string> = {
+  [UsernameAvailabilityReason.Taken]: 'auth.registration.usernameTaken',
+  [UsernameAvailabilityReason.Reserved]: 'auth.registration.usernameReserved',
+  [UsernameAvailabilityReason.Invalid]: 'auth.registration.usernameInvalid',
+};
+
+const KNOWN_USERNAME_REFUSALS = new Set<string>(
+  Object.values(UsernameAvailabilityReason)
+);
+
+/**
+ * The refusal to explain for the reason a server gave. Older servers give
+ * none, meaning the name is taken. A newer server may give one this client
+ * doesn't know; it is explained as a name the server doesn't accept.
+ */
+function usernameRefusalFor(
+  reason: string | undefined
+): UsernameAvailabilityReason {
+  if (!reason) return UsernameAvailabilityReason.Taken;
+  return KNOWN_USERNAME_REFUSALS.has(reason)
+    ? (reason as UsernameAvailabilityReason)
+    : UsernameAvailabilityReason.Invalid;
+}
 
 /**
  * Result of a successful registration
@@ -145,6 +179,7 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
   private readonly overlayPositionBuilder = inject(OverlayPositionBuilder);
   private readonly viewContainerRef = inject(ViewContainerRef);
   private readonly systemConfig = inject(SystemConfigService);
+  private readonly transloco = inject(TranslocoService);
 
   /**
    * Features of the server the account is created on, when that is not the
@@ -275,15 +310,25 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
 
   /** Set by the async username availability check when the username is taken. */
   private readonly usernameTaken = signal(false);
+  /**
+   * Why the server refused the username: an account has it (compared
+   * ignoring case), it is reserved, or the server's rule does not accept it.
+   */
+  private readonly usernameRefusal = signal<UsernameAvailabilityReason>(
+    UsernameAvailabilityReason.Taken
+  );
   /** Set when a server validation error has been applied to a field. */
   private readonly usernameServerInvalid = signal(false);
   private readonly passwordServerInvalid = signal(false);
 
   readonly form = form(this.model, schemaPath => {
     required(schemaPath.username, { message: 'Username is required' });
-    minLength(schemaPath.username, 3, {
+    minLength(schemaPath.username, USERNAME_MIN_LENGTH, {
       message: 'Username must be at least 3 characters',
     });
+    // The server applies the same rule; getUsernameErrorMessage() explains it.
+    maxLength(schemaPath.username, USERNAME_MAX_LENGTH);
+    pattern(schemaPath.username, USERNAME_PATTERN);
     validate(schemaPath.username, () =>
       this.usernameTaken()
         ? {
@@ -593,7 +638,9 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
     const seq = ++this.usernameCheckSeq;
     const username = this.model().username;
 
-    if (!username || username.length < 3) {
+    // The form's validators explain a name outside the rule, and the server
+    // would refuse it anyway, so there is nothing to ask.
+    if (!fitsUsernameRule(username)) {
       this.usernameAvailability.set('unknown');
       this.usernameSuggestions.set([]);
       this.usernameTaken.set(false);
@@ -632,6 +679,7 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
       } else {
         this.usernameAvailability.set('unavailable');
         this.usernameSuggestions.set(response.suggestions || []);
+        this.usernameRefusal.set(usernameRefusalFor(response.reason));
         // Set error on the form control to trigger Material's error state
         this.usernameTaken.set(true);
       }
@@ -658,14 +706,25 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
   // Error message getters
   getUsernameErrorMessage(): string {
     const errors = this.form.username().errors();
-    if (errors.some(e => e.kind === 'required')) {
-      return 'Username is required';
+    const has = (kind: string) => errors.some(e => e.kind === kind);
+    if (has('required')) {
+      return this.transloco.translate('auth.registration.usernameRequired');
     }
-    if (errors.some(e => e.kind === 'minLength')) {
-      return 'Username must be at least 3 characters';
+    if (has('minLength')) {
+      return this.transloco.translate('auth.registration.usernameMinLength');
     }
-    if (errors.some(e => e.kind === 'usernameTaken')) {
-      return 'Username already taken. Please choose another.';
+    if (has('maxLength')) {
+      return this.transloco.translate('auth.registration.usernameMaxLength', {
+        max: USERNAME_MAX_LENGTH,
+      });
+    }
+    if (has('pattern')) {
+      return this.transloco.translate('auth.registration.usernameCharacters');
+    }
+    if (has('usernameTaken')) {
+      return this.transloco.translate(
+        USERNAME_REFUSAL_KEYS[this.usernameRefusal()]
+      );
     }
     // Return server validation error if flag is set
     if (this.usernameServerInvalid()) {
@@ -915,8 +974,17 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
             return new Error('Please fix the validation errors');
           }
         }
-        // Simple error message: { error: string }
         const errorBody = error.error as Record<string, unknown>;
+        // An account has this name, compared ignoring case: flag the field.
+        if (errorBody['code'] === 'USERNAME_TAKEN') {
+          this.usernameRefusal.set(UsernameAvailabilityReason.Taken);
+          this.usernameTaken.set(true);
+          this.usernameAvailability.set('unavailable');
+          return new Error(
+            this.transloco.translate('auth.registration.usernameTaken')
+          );
+        }
+        // Simple error message: { error: string }
         if ('error' in errorBody && typeof errorBody['error'] === 'string') {
           const message = errorBody['error'];
           this.serverValidationErrors.set({ general: [message] });

@@ -216,6 +216,30 @@ Docs: `docs/site/docs/developer/mcp-oauth.md`.
   attached to that account nor given a second one with the address. A linked
   account's stored email only changes to a verified address no other account
   uses. Details: `docs/site/docs/admin-guide/github-oauth.md`.
+- **Usernames**: a name given to a new account is 3 to 39 ASCII letters,
+  digits, `-` and `_` (39 is GitHub's limit), not reserved
+  (`RESERVED_USERNAMES` and `RESERVED_STORAGE_NAMES`), and must not match an
+  existing name ignoring case (`schemas/auth.schemas.ts`). Registration and
+  check-username refuse other names; GitHub, OIDC and ingress sign-up derive a
+  free one with `userService.availableUsername` (`name-2`, …). Compare names
+  with `lower(username)`, which the `users_username_lower_idx` index serves
+  (not unique: older accounts may differ only in case). `userService.create`
+  repeats the check inside its INSERT, so an overlapping sign-up fails with
+  the username unique error (`isUsernameConflict`); a new insert path into
+  `users` must do the same. Never apply the rule on lookup or sign-in:
+  accounts created before it keep their names and must keep working. The
+  registration form checks the same rule
+  (`frontend/src/app/utils/username-rules.ts`); keep the two in step.
+- **Older usernames in storage and document ids**: usernames name storage
+  directories, R2 keys and Yjs document ids. Both storage adapters refuse a
+  username or slug that isn't one segment (`utils/storage-segment.ts`: no
+  `/`, `\`, `..` or NUL); deleting a project or an account passes
+  `skipUnstorableFiles` to `removeProjectData` so such an account can still be
+  removed, leaving its files alone. MCP's `getProjectByKey` refuses a username
+  or slug containing `:`, which would turn `username:slug:…` into another
+  project's id. On disk, `sharesProjectDirectory` refuses a project slug
+  another account whose username folds to the same name already has
+  (case-insensitive file systems would give them one directory).
 - **Account deletion** (`account-deletion.service.ts`, shared by self-service
   and admin deletion) reserves with `userService.reserveForDeletion()` — never
   by disabling the account, which breaks the Durable Object wipe — and tears

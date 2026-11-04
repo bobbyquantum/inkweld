@@ -481,7 +481,8 @@ export const test = base.extend<OnlineTestFixtures>({
     page.on('console', () => {});
 
     const testId = generateTestId();
-    const username = `server-unavail-${testId}`;
+    // Usernames are at most 39 characters; the test id takes 27.
+    const username = `unavail-${testId}`;
     const password = TEST_PASSWORDS.USER;
 
     const apiUrl = getApiBaseUrl();
@@ -624,8 +625,8 @@ export async function authenticateUser(
     // Register via API with retry for network issues, which can happen when
     // the server is under heavy load during parallel tests
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      const usernameToTry =
-        attempt > 1 ? `${username}-retry${attempt}` : username;
+      // A short suffix keeps the name within the 39-character limit.
+      const usernameToTry = attempt > 1 ? `${username}-r${attempt}` : username;
 
       let registerResponse;
       try {

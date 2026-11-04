@@ -81,7 +81,7 @@ The OAuth flow:
 4. Inkweld exchanges the code for a GitHub access token
 5. Inkweld fetches the user's GitHub profile (username, verified email, display name)
 6. If the user exists (matched by GitHub ID), they are logged in
-7. If the user is new, an Inkweld account is created automatically, unless another Inkweld account already uses their verified email address (see [Account Linking](#account-linking))
+7. If the user is new, an Inkweld account is created automatically, unless another Inkweld account already uses their verified email address (see [Account Linking](#account-linking)). The account takes the GitHub username, unless another account already has that name (ignoring letter case), it is reserved or it is shorter than 3 characters; then it gets a free variant such as `octocat-2` (or `tj-2` for the GitHub username `tj`)
 8. Inkweld redirects the browser to the app with a one-time code (valid for 60 seconds), which the app exchanges for a session token, so the token never appears in a URL
 
 ### User Approval

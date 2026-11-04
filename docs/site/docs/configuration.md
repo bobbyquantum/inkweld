@@ -494,7 +494,10 @@ passkey, GitHub and Home Assistant ingress sign-in and disables local
 registration. On a fresh instance, the first OIDC user becomes the
 administrator. Accounts are identified by the provider's issuer and subject;
 email addresses are not used to link to other accounts, and only an address the
-provider marks as verified is stored.
+provider marks as verified is stored. A new account's username comes from the
+`preferred_username` claim (or the email address or name), lower-cased and
+reduced to letters, digits, `-` and `_`; when another account already has it,
+ignoring letter case, `-2`, `-3`, … is added.
 
 To switch an instance that already has accounts, set `OIDC_ENABLED=true` first,
 sign in with OIDC, and have an existing administrator promote that account. Only
@@ -587,7 +590,10 @@ Password sign-in is off by default (`PASSWORD_LOGIN_ENABLED=false`), so set
 
 **Optional** | String
 
-Username for the default admin account (created on first startup).
+Username for the default admin account (created on first startup). You
+choose it, so unlike a registered username it isn't checked against the
+[rule for new usernames](./admin-guide/overview.md#usernames): a reserved name
+such as `admin` works.
 
 ```bash
 DEFAULT_ADMIN_USERNAME=admin

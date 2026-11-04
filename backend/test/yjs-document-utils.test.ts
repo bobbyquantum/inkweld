@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'bun:test';
 import {
+  canNameProjectInDocumentId,
   parseDocumentOwner,
   parseTrackableElementId,
   isYjsFrameBlockedForViewer,
@@ -40,6 +41,31 @@ describe('parseDocumentOwner', () => {
   it('returns null when owner or slug is empty', () => {
     expect(parseDocumentOwner(':my-novel:doc')).toBeNull();
     expect(parseDocumentOwner('alice::doc')).toBeNull();
+  });
+});
+
+describe('canNameProjectInDocumentId', () => {
+  it('accepts a username and slug that read back as the same project', () => {
+    expect(canNameProjectInDocumentId('Alice-1_x', 'my-novel')).toBe(true);
+    expect(canNameProjectInDocumentId('Legacy.User', 'novel')).toBe(true);
+    expect(parseDocumentOwner('Alice-1_x:my-novel:elements')).toEqual({
+      projectOwner: 'Alice-1_x',
+      slug: 'my-novel',
+    });
+  });
+
+  it('rejects a part with a colon, which would read back as another project', () => {
+    expect(canNameProjectInDocumentId('alice:novel', 'xyz')).toBe(false);
+    expect(canNameProjectInDocumentId('alice', 'nov:el')).toBe(false);
+    expect(parseDocumentOwner('alice:novel:xyz:elements')).toEqual({
+      projectOwner: 'alice',
+      slug: 'novel',
+    });
+  });
+
+  it('rejects an empty part', () => {
+    expect(canNameProjectInDocumentId('', 'novel')).toBe(false);
+    expect(canNameProjectInDocumentId('alice', '')).toBe(false);
   });
 });
 

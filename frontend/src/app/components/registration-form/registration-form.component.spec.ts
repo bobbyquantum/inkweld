@@ -284,6 +284,38 @@ describe('RegistrationFormComponent', () => {
       );
     });
 
+    it('should return a username maxlength error', () => {
+      component.form.username().value.set('a'.repeat(40));
+      component.form.username().markAsTouched();
+      expect(component.getUsernameErrorMessage()).toBe(
+        'Username must be at most 39 characters'
+      );
+    });
+
+    it.each([
+      'alice/bob',
+      'alice:bob',
+      'alice\\bob',
+      'alice bob',
+      'alice.bob',
+      'josé',
+    ])('explains that %j uses characters outside the rule', name => {
+      component.form.username().value.set(name);
+      component.form.username().markAsTouched();
+      expect(component.form.username().invalid()).toBe(true);
+      expect(component.getUsernameErrorMessage()).toBe(
+        'Use only letters, numbers, hyphens (-) and underscores (_)'
+      );
+    });
+
+    it.each(['Octo-Cat_42', 'a'.repeat(39)])(
+      'accepts the GitHub-style username %j',
+      name => {
+        component.form.username().value.set(name);
+        expect(component.form.username().errors()).toEqual([]);
+      }
+    );
+
     it('should return password required error', () => {
       component.form.password().markAsTouched();
       expect(component.getPasswordErrorMessage()).toBe('Password is required');
@@ -553,6 +585,77 @@ describe('RegistrationFormComponent', () => {
       expect(component.usernameAvailability()).toBe('unavailable');
       expect(component.usernameSuggestions()).toEqual(['taken1', 'taken2']);
       expect(component['usernameTaken']()).toBe(true);
+    });
+
+    it('does not ask the server about a name outside the rule', async () => {
+      component.serverUrl = 'https://test-server.example.com';
+      component.form.username().value.set('alice/bob');
+      const httpClient = TestBed.inject(HttpClient);
+      const getSpy = vi.spyOn(httpClient, 'get');
+
+      await component.checkUsernameAvailability();
+
+      expect(getSpy).not.toHaveBeenCalled();
+      expect(component.usernameAvailability()).toBe('unknown');
+      expect(component['usernameTaken']()).toBe(false);
+    });
+
+    it.each([
+      // An account has the name in another case (e.g. "alice" for "Alice").
+      ['taken', 'Username already taken. Please choose another.'],
+      ['reserved', 'This username is reserved. Please choose another.'],
+      [
+        'invalid',
+        "This server doesn't accept this username. Please choose another.",
+      ],
+    ])('shows the server verdict %j', async (reason, message) => {
+      component.serverUrl = 'https://test-server.example.com';
+      component.form.username().value.set('Alice');
+      const httpClient = TestBed.inject(HttpClient);
+      vi.spyOn(httpClient, 'get').mockReturnValue(
+        of({ available: false, reason, suggestions: ['Alice_new'] })
+      );
+
+      await component.checkUsernameAvailability();
+      component.form.username().markAsTouched();
+
+      expect(component.usernameAvailability()).toBe('unavailable');
+      expect(component.usernameSuggestions()).toEqual(['Alice_new']);
+      expect(component.form.username().invalid()).toBe(true);
+      expect(component.getUsernameErrorMessage()).toBe(message);
+    });
+
+    it('treats a refusal without a reason as taken', async () => {
+      component.serverUrl = 'https://test-server.example.com';
+      component.form.username().value.set('taken');
+      const httpClient = TestBed.inject(HttpClient);
+      vi.spyOn(httpClient, 'get').mockReturnValue(
+        of({ available: false, suggestions: [] })
+      );
+
+      await component.checkUsernameAvailability();
+      component.form.username().markAsTouched();
+
+      expect(component.getUsernameErrorMessage()).toBe(
+        'Username already taken. Please choose another.'
+      );
+    });
+
+    it('explains a refusal reason it does not know as a name the server does not accept', async () => {
+      component.serverUrl = 'https://test-server.example.com';
+      component.form.username().value.set('newer');
+      const httpClient = TestBed.inject(HttpClient);
+      vi.spyOn(httpClient, 'get').mockReturnValue(
+        of({ available: false, reason: 'something-new', suggestions: [] })
+      );
+
+      await component.checkUsernameAvailability();
+      component.form.username().markAsTouched();
+
+      expect(component.form.username().invalid()).toBe(true);
+      expect(component.getUsernameErrorMessage()).toBe(
+        "This server doesn't accept this username. Please choose another."
+      );
     });
 
     it('should skip check when skipUsernameCheck is true', async () => {
@@ -844,6 +947,38 @@ describe('RegistrationFormComponent', () => {
       });
       expect(component['usernameServerInvalid']()).toBe(true);
       expect(component['passwordServerInvalid']()).toBe(true);
+    });
+
+    it('flags the username when the server says an account has it', async () => {
+      const httpError = new HttpErrorResponse({
+        status: 400,
+        error: { error: 'Username already taken', code: 'USERNAME_TAKEN' },
+      });
+      authService.registerUser.mockReturnValue(throwError(() => httpError));
+      const emitted: Error[] = [];
+      component.registrationError.subscribe(error => emitted.push(error));
+
+      component.model.set({
+        username: 'Alice',
+        displayName: '',
+        email: '',
+        password: VALID_PASSWORD,
+        confirmPassword: VALID_PASSWORD,
+        acceptPolicy: false,
+      });
+      fixture.detectChanges();
+
+      await component.submit();
+
+      expect(component.usernameAvailability()).toBe('unavailable');
+      expect(component.form.username().invalid()).toBe(true);
+      expect(component.getUsernameErrorMessage()).toBe(
+        'Username already taken. Please choose another.'
+      );
+      expect(emitted.map(error => error.message)).toEqual([
+        'Username already taken. Please choose another.',
+      ]);
+      expect(component.serverValidationErrors()['general']).toBeUndefined();
     });
 
     it('should handle HttpErrorResponse without validation errors', async () => {

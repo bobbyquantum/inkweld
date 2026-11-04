@@ -10,7 +10,7 @@
 
 export interface RegisterRequest {
   /**
-   * Username (minimum 3 characters)
+   * Username: 3 to 39 characters, using only ASCII letters, digits, hyphens and underscores. It must differ from every existing username in more than letter case.
    */
   username: string;
   /**

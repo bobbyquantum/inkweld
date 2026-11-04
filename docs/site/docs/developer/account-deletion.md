@@ -16,7 +16,7 @@ Anyone who can sign up must be able to delete their own server account, both in 
 ## What deletion does, in order
 
 1. `userService.reserveForDeletion()` — one conditional UPDATE that drops the admin flag only while another active admin remains, so two admins deleting themselves at once cannot both succeed. **Do not reserve by disabling the account**: the Durable Object refuses a disabled owner's token, which breaks the wipe on Workers.
-2. Each owned project is torn down exactly like `DELETE /projects/:u/:s` (`removeProjectData`: Yjs documents, storage directory, Durable Object; then row + tombstone) **before** the user row is deleted. The row cascade alone would leave project content on disk or in R2.
+2. Each owned project is torn down exactly like `DELETE /projects/:u/:s` (`removeProjectData`: Yjs documents, storage directory, Durable Object; then row + tombstone) **before** the user row is deleted. The row cascade alone would leave project content on disk or in R2. For an account whose username or project slug can't be one storage path segment (a name from before the username rule, containing `/`, `\` or `..`), `skipUnstorableFiles` leaves the stored files in place instead of failing, so the account can still be deleted (see `backend/AGENTS.md`).
 3. The avatar, banner and background are dropped.
 
 On failure the admin flag is restored so the request can be retried.

@@ -181,8 +181,10 @@ release-please cuts releases (`.github/workflows/release-please.yml`,
 - **Reserved usernames** (`privacy`, `terms`, `share`, `delete-account`) back
   real routes; frontend ones stay above the `:username` route.
 - **Mirrored lists** must stay in step: `schemaContentHash` (frontend and
-  backend `utils/schema-hash.ts`, same golden hash) and the background preset
-  ids (`background-presets.ts` ↔ `BACKGROUND_PRESET_IDS`).
+  backend `utils/schema-hash.ts`, same golden hash), the background preset
+  ids (`background-presets.ts` ↔ `BACKGROUND_PRESET_IDS`) and the rule for new
+  usernames (backend `schemas/auth.schemas.ts` ↔ frontend
+  `utils/username-rules.ts`; `backend/AGENTS.md`).
 - **Project archive format changes** bump `ARCHIVE_VERSION`
   (`frontend/AGENTS.md`).
 - **No hardcoded user-facing English** in the frontend; use Transloco keys.
