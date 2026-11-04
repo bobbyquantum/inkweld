@@ -5,6 +5,7 @@ import type { DatabaseInstance } from '../types/context';
 import { users, type User, type InsertUser, type ProfileVisibility } from '../db/schema';
 import { configService } from './config.service';
 import { mcpOAuthService } from './mcp-oauth.service';
+import { RegisterRequestSchema } from '../schemas/auth.schemas';
 
 const SALT_ROUNDS = 10;
 
@@ -129,6 +130,7 @@ class UserService {
       autoApprove?: boolean;
     }
   ): Promise<User> {
+    RegisterRequestSchema.shape.username.parse(data.username);
     const hashedPassword = data.password ? await bcrypt.hash(data.password, SALT_ROUNDS) : null;
 
     // Use explicit autoApprove option if provided, otherwise check database config
@@ -280,6 +282,7 @@ class UserService {
     }
 
     // 3. Create new user
+    RegisterRequestSchema.shape.username.parse(data.username);
     const id = crypto.randomUUID();
     const newUser: InsertUser = {
       id,

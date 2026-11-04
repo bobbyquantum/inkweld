@@ -124,6 +124,29 @@ describe('User Service', () => {
   });
 
   describe('create', () => {
+    it.each(['public', 'Public', 'PUBLIC'])(
+      'rejects the reserved username %s',
+      async (username) => {
+        await expect(userService.create(db, { username })).rejects.toThrow(
+          'This username is reserved and cannot be used'
+        );
+        expect(await userService.findByUsername(db, username)).toBeUndefined();
+      }
+    );
+
+    it('rejects a reserved username when creating an OIDC account', async () => {
+      await expect(
+        userService.createOrUpdateOidcUser(db, {
+          issuer: 'https://reserved.example.com',
+          subject: 'reserved-public',
+          username: 'public',
+          emailVerified: false,
+          name: 'Reserved Name',
+        })
+      ).rejects.toThrow('This username is reserved and cannot be used');
+      expect(await userService.findByUsername(db, 'public')).toBeUndefined();
+    });
+
     it('should create a new user with hashed password', async () => {
       const user = await userService.create(db, {
         username: 'serviceuser',
@@ -154,6 +177,22 @@ describe('User Service', () => {
   });
 
   describe('createOrUpdateGithubUser', () => {
+    it.each(['public', 'Public', 'PUBLIC'])(
+      'rejects a new GitHub user named %s',
+      async (username) => {
+        const githubId = `reserved-${username}`;
+        await expect(
+          userService.createOrUpdateGithubUser(db, {
+            githubId,
+            username,
+            email: 'github@example.com',
+            name: 'Reserved Name',
+          })
+        ).rejects.toThrow('This username is reserved and cannot be used');
+        expect(await userService.findByGithubId(db, githubId)).toBeUndefined();
+      }
+    );
+
     it('should create a new GitHub user', async () => {
       const user = await userService.createOrUpdateGithubUser(db, {
         githubId: 'gh789',

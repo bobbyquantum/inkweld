@@ -27,6 +27,10 @@ LevelDB per project for Yjs documents (Durable Objects on Workers). The root
   same watermark and `enabled`/`approved` on every request and refresh
   (`mcpOAuthService.isSessionRevoked`). A new way to end a user's sessions also
   calls `mcpOAuthService.revokeUserSessions`, as `userService` does.
+- **Reserved usernames** live in `schemas/auth.schemas.ts`. New user creation
+  validates the shared username schema, including GitHub accounts; OIDC and
+  ingress choose non-reserved alternatives. Add new top-level route names
+  (including `public`) to this list to avoid profile URL conflicts.
 - **Per-project LevelDB**: each project has its own LevelDB instance, shared
   by all its documents through `YjsService.getPersistenceForProject()`. Never
   open a second handle for a project, and never `await` between looking the
