@@ -148,26 +148,34 @@ export class PublishedFilesService {
     return this.setupService.getServerUrl() || globalThis.location.origin;
   }
 
-  /** The project's published-files endpoint, each path segment encoded. */
-  private publishedUrl(projectKey: string): string {
-    const [username, slug] = projectKey.split('/');
-    return `${this.getServerUrl()}/api/v1/projects/${encodePathSegment(username)}/${encodePathSegment(slug)}/published`;
-  }
-
   /**
-   * Headers for direct `fetch` calls to the API.
+   * Headers for a direct `fetch` call to `url` on the API.
    *
    * The API lives on a separate origin in hosted deployments, so cookies are
    * not sent; authentication is a bearer token, exactly as the HTTP
-   * interceptor attaches for HttpClient requests.
+   * interceptor attaches for HttpClient requests, and like it only for a URL
+   * on the active profile's server.
    */
-  private authHeaders(extra: Record<string, string> = {}): HeadersInit {
+  private authHeaders(
+    url: string,
+    extra: Record<string, string> = {}
+  ): HeadersInit {
     const headers: Record<string, string> = { ...extra };
-    const token = this.authTokenService.getToken();
+    const token = this.authTokenService.getTokenForUrl(url);
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
     return headers;
+  }
+
+  /**
+   * API URL of a project's published files, or of one of them, each path
+   * segment encoded.
+   */
+  private publishedUrl(projectKey: string, fileId?: string): string {
+    const [username, slug] = projectKey.split('/');
+    const base = `${this.getServerUrl()}/api/v1/projects/${encodePathSegment(username)}/${encodePathSegment(slug)}/published`;
+    return fileId ? `${base}/${encodePathSegment(fileId)}` : base;
   }
 
   /**
@@ -512,8 +520,9 @@ export class PublishedFilesService {
     projectKey: string
   ): Promise<PublishedFile[] | null> {
     try {
-      const response = await fetch(this.publishedUrl(projectKey), {
-        headers: this.authHeaders(),
+      const url = this.publishedUrl(projectKey);
+      const response = await fetch(url, {
+        headers: this.authHeaders(url),
         credentials: 'include',
       });
 
@@ -538,9 +547,10 @@ export class PublishedFilesService {
       formData.append('file', await toReadableBlob(blob), request.filename);
       formData.append('metadata', JSON.stringify(toWireRequest(request)));
 
-      const response = await fetch(this.publishedUrl(projectKey), {
+      const url = this.publishedUrl(projectKey);
+      const response = await fetch(url, {
         method: 'POST',
-        headers: this.authHeaders(),
+        headers: this.authHeaders(url),
         body: formData,
         credentials: 'include',
       });
@@ -569,13 +579,11 @@ export class PublishedFilesService {
     fileId: string
   ): Promise<Blob | null> {
     try {
-      const response = await fetch(
-        `${this.publishedUrl(projectKey)}/${encodePathSegment(fileId)}`,
-        {
-          headers: this.authHeaders(),
-          credentials: 'include',
-        }
-      );
+      const url = this.publishedUrl(projectKey, fileId);
+      const response = await fetch(url, {
+        headers: this.authHeaders(url),
+        credentials: 'include',
+      });
 
       if (!response.ok) {
         return null;
@@ -592,15 +600,13 @@ export class PublishedFilesService {
     fileId: string,
     request: UpdatePublishedFileRequest
   ): Promise<PublishedFile> {
-    const response = await fetch(
-      `${this.publishedUrl(projectKey)}/${encodePathSegment(fileId)}`,
-      {
-        method: 'PATCH',
-        headers: this.authHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify(request),
-        credentials: 'include',
-      }
-    );
+    const url = this.publishedUrl(projectKey, fileId);
+    const response = await fetch(url, {
+      method: 'PATCH',
+      headers: this.authHeaders(url, { 'Content-Type': 'application/json' }),
+      body: JSON.stringify(request),
+      credentials: 'include',
+    });
     if (!response.ok) {
       throw new Error(describeFailure(response, await readErrorBody(response)));
     }
@@ -611,14 +617,12 @@ export class PublishedFilesService {
     projectKey: string,
     fileId: string
   ): Promise<void> {
-    const response = await fetch(
-      `${this.publishedUrl(projectKey)}/${encodePathSegment(fileId)}`,
-      {
-        method: 'DELETE',
-        headers: this.authHeaders(),
-        credentials: 'include',
-      }
-    );
+    const url = this.publishedUrl(projectKey, fileId);
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: this.authHeaders(url),
+      credentials: 'include',
+    });
     // 404: already deleted, or saved here while its upload failed
     if (!response.ok && response.status !== 404) {
       throw new Error(describeFailure(response, await readErrorBody(response)));

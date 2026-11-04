@@ -417,6 +417,244 @@ describe('StorageContextService', () => {
       it('should return false if server is not configured', () => {
         expect(service.hasServerConfig('https://example.com')).toBe(false);
       });
+
+      it('should tell servers on one host apart by their path', () => {
+        service.addServerConfig('https://example.com/inkweld-a');
+
+        expect(service.hasServerConfig('https://example.com/inkweld-a/')).toBe(
+          true
+        );
+        expect(service.hasServerConfig('https://example.com/inkweld-b')).toBe(
+          false
+        );
+        expect(service.hasServerConfig('https://example.com')).toBe(false);
+      });
+    });
+  });
+
+  describe('server profile ids', () => {
+    // Two hosts whose original profile ids are the same 8-character hash
+    const collidingA = 'https://writers-72144.example.com';
+    const collidingB = 'https://writers-85358.example.com';
+
+    it('keeps the original id for a server that shares it with no one', () => {
+      const config = service.addServerConfig('https://ink.example.com/');
+
+      expect(config.id).toBe(service.hashServerUrl('https://ink.example.com'));
+    });
+
+    it('gives a second server on the same host its own profile', () => {
+      const a = service.addServerConfig('https://example.com/inkweld-a', 'A');
+      service.updateConfigUserProfile(a.id, {
+        name: 'Alice',
+        username: 'alice',
+      });
+      service.switchToConfig(a.id);
+      mockStorage[`srv:${a.id}:auth_token`] = 'token-a';
+
+      const b = service.addServerConfig('https://example.com/inkweld-b');
+      const aliceOnB = service.addServerConfig(
+        'https://example.com/inkweld-b',
+        undefined,
+        { name: 'Alice', username: 'alice' },
+        { username: 'alice' }
+      );
+
+      expect(a.id).toBe(service.hashServerUrl('https://example.com'));
+      expect(b.id).not.toBe(a.id);
+      expect(aliceOnB.id).toBe(b.id);
+      expect(service.getConfigurations()).toHaveLength(2);
+      // The first server's profile, session and storage are untouched
+      const first = service.getConfigById(a.id);
+      expect(first?.serverUrl).toBe('https://example.com/inkweld-a');
+      expect(first?.displayName).toBe('A');
+      expect(first?.userProfile?.username).toBe('alice');
+      expect(mockStorage[`srv:${a.id}:auth_token`]).toBe('token-a');
+      expect(service.getActiveConfig()?.id).toBe(a.id);
+      expect(service.getPrefixForConfig(b.id)).not.toBe(
+        service.getPrefixForConfig(a.id)
+      );
+      expect(extractContextPrefix(`srv:${b.id}:auth_token`)).toBe(
+        `srv:${b.id}:`
+      );
+    });
+
+    it('gives a server whose hash collides with another server its own id', () => {
+      expect(service.hashServerUrl(collidingA)).toBe(
+        service.hashServerUrl(collidingB)
+      );
+      const a = service.addServerConfig(collidingA, 'A');
+      mockStorage[`srv:${a.id}:auth_token`] = 'token-a';
+
+      const b = service.addServerConfig(collidingB);
+
+      expect(b.id).not.toBe(a.id);
+      expect(b.id).toMatch(/^[0-9a-f]{8}$/);
+      expect(service.getConfigById(a.id)?.serverUrl).toBe(collidingA);
+      expect(service.getConfigById(a.id)?.displayName).toBe('A');
+      expect(service.getConfigById(b.id)?.serverUrl).toBe(collidingB);
+      expect(mockStorage[`srv:${a.id}:auth_token`]).toBe('token-a');
+      expect(mockStorage[`srv:${b.id}:auth_token`]).toBeUndefined();
+    });
+
+    it('gives a colliding author profile its own id too', () => {
+      const shared = service.addServerConfig('https://example.com/inkweld-a');
+      service.updateConfigUserProfile(shared.id, {
+        name: 'Alice',
+        username: 'alice',
+      });
+      const bobOnA = service.addServerConfig(
+        'https://example.com/inkweld-a',
+        undefined,
+        { name: 'Bob', username: 'bob' },
+        { username: 'bob' }
+      );
+      const bobOnAAgain = service.addServerConfig(
+        'https://example.com/inkweld-a',
+        undefined,
+        undefined,
+        { username: 'bob' }
+      );
+      expect(bobOnAAgain.id).toBe(bobOnA.id);
+
+      // Bob on the second server would get the same user-specific id
+      const bobOnB = service.addServerConfig(
+        'https://example.com/inkweld-b',
+        undefined,
+        { name: 'Bob', username: 'bob' },
+        { username: 'bob' }
+      );
+      service.addServerConfig('https://example.com/inkweld-b', undefined, {
+        name: 'Carol',
+        username: 'carol',
+      });
+      const bobOnBAgain = service.addServerConfig(
+        'https://example.com/inkweld-b',
+        undefined,
+        undefined,
+        { username: 'BOB' }
+      );
+
+      expect(bobOnA.id).toBe(buildServerConfigId(shared.id, 'bob'));
+      expect(bobOnB.id).not.toBe(bobOnA.id);
+      expect(bobOnBAgain.id).toBe(bobOnB.id);
+      expect(service.getConfigById(bobOnA.id)?.serverUrl).toBe(
+        'https://example.com/inkweld-a'
+      );
+      expect(service.getConfigById(bobOnB.id)?.serverUrl).toBe(
+        'https://example.com/inkweld-b'
+      );
+    });
+
+    it('maps the same server back to its profile when it is added again', () => {
+      const a = service.addServerConfig(collidingA);
+      const b = service.addServerConfig(collidingB, 'B');
+
+      expect(service.addServerConfig(`${collidingB}/`).id).toBe(b.id);
+      expect(service.addServerConfig(collidingB.toUpperCase()).id).toBe(b.id);
+      // Even once the id it could not have is free again
+      service.removeConfig(a.id);
+      expect(service.addServerConfig(collidingB).id).toBe(b.id);
+      expect(service.getConfigurations()).toHaveLength(1);
+    });
+
+    it('keeps the ids of profiles that are already stored', () => {
+      const ingressUrl = 'http://ha.local:8123/api/hassio_ingress/abc123';
+      const storedId = service.hashServerUrl(ingressUrl);
+      const stored: AppConfigV2 = {
+        version: 2,
+        activeConfigId: storedId,
+        configurations: [
+          {
+            id: storedId,
+            type: 'server',
+            serverUrl: ingressUrl,
+            displayName: 'Home Assistant',
+            userProfile: { name: 'Alice', username: 'alice' },
+            addedAt: '2025-01-01T00:00:00Z',
+            lastUsedAt: '2025-01-01T00:00:00Z',
+          },
+          {
+            id: buildServerConfigId(storedId, 'bob'),
+            type: 'server',
+            serverUrl: ingressUrl,
+            displayName: 'Home Assistant',
+            userProfile: { name: 'Bob', username: 'bob' },
+            addedAt: '2025-01-01T00:00:00Z',
+            lastUsedAt: '2025-01-01T00:00:00Z',
+          },
+        ],
+      };
+      mockStorage[APP_CONFIG_STORAGE_KEY] = JSON.stringify(stored);
+      service.reloadConfig();
+
+      expect(service.addServerConfig(ingressUrl, 'Home Assistant').id).toBe(
+        storedId
+      );
+      expect(
+        service.addServerConfig(ingressUrl, undefined, undefined, {
+          username: 'Bob',
+        }).id
+      ).toBe(buildServerConfigId(storedId, 'bob'));
+      expect(service.getConfigurations().map(c => c.id)).toEqual([
+        storedId,
+        buildServerConfigId(storedId, 'bob'),
+      ]);
+    });
+
+    it('forks a login on a path-prefixed server within that server', () => {
+      const a = service.addServerConfig('https://example.com/inkweld-a', 'A', {
+        name: 'Alice',
+        username: 'alice',
+      });
+      const b = service.addServerConfig('https://example.com/inkweld-b', 'B', {
+        name: 'Alice',
+        username: 'alice',
+      });
+      service.switchToConfig(b.id);
+
+      const forked = service.adoptServerLogin({ name: 'Bob', username: 'bob' });
+
+      expect(forked.forkedFrom).toBe(b.id);
+      expect(forked.config.serverUrl).toBe('https://example.com/inkweld-b');
+      expect(forked.config.id).not.toBe(a.id);
+      expect(service.getConfigById(a.id)?.userProfile?.username).toBe('alice');
+      expect(service.getConfigById(a.id)?.serverUrl).toBe(
+        'https://example.com/inkweld-a'
+      );
+    });
+
+    it('treats a server whose path changed as a new server', () => {
+      // A Home Assistant app reinstalled under a new ingress path
+      const before = 'http://ha.local:8123/api/hassio_ingress/first';
+      const after = 'http://ha.local:8123/api/hassio_ingress/second';
+      const old = service.addServerConfig(before, 'Home Assistant', {
+        name: 'Alice',
+        username: 'alice',
+      });
+      const oldBob = service.addServerConfig(
+        before,
+        'Home Assistant',
+        { name: 'Bob', username: 'bob' },
+        { username: 'bob' }
+      );
+      mockStorage[`srv:${old.id}:auth_token`] = 'token-before';
+
+      const fresh = service.addServerConfig(after, 'Home Assistant');
+
+      expect(fresh.id).not.toBe(old.id);
+      expect(fresh.id).not.toBe(oldBob.id);
+      expect(fresh.userProfile).toBeUndefined();
+      // The old profiles keep their ids, storage and session
+      expect(service.getConfigById(old.id)).toEqual(
+        expect.objectContaining({
+          serverUrl: before,
+          userProfile: { name: 'Alice', username: 'alice' },
+        })
+      );
+      expect(service.getConfigById(oldBob.id)?.serverUrl).toBe(before);
+      expect(mockStorage[`srv:${old.id}:auth_token`]).toBe('token-before');
+      expect(service.getConfigurations()).toHaveLength(3);
     });
   });
 

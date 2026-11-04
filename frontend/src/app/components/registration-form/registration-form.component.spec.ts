@@ -1,6 +1,15 @@
-import { HttpClient, HttpErrorResponse, withXhr } from '@angular/common/http';
+import {
+  HTTP_INTERCEPTORS,
+  HttpClient,
+  HttpErrorResponse,
+  withInterceptorsFromDi,
+  withXhr,
+} from '@angular/common/http';
 import { provideHttpClient } from '@angular/common/http';
-import { provideHttpClientTesting } from '@angular/common/http/testing';
+import {
+  HttpTestingController,
+  provideHttpClientTesting,
+} from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -10,11 +19,14 @@ import {
   type SystemFeatures,
   type User,
 } from '@inkweld/index';
+import { AuthTokenService } from '@services/auth/auth-token.service';
 import { SetupService } from '@services/core/setup.service';
+import { StorageContextService } from '@services/core/storage-context.service';
 import { SystemConfigService } from '@services/core/system-config.service';
 import { UserService } from '@services/user/user.service';
 import { of, Subject, throwError } from 'rxjs';
 import {
+  afterEach,
   beforeEach,
   describe,
   expect,
@@ -24,6 +36,7 @@ import {
 } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { AuthInterceptor } from '../../interceptors/auth.interceptor';
 import { RegistrationFormComponent } from './registration-form.component';
 
 /** Valid password meeting all policy requirements, used throughout this spec */
@@ -579,7 +592,8 @@ describe('RegistrationFormComponent', () => {
       await component.checkUsernameAvailability();
 
       expect(httpClient.get).toHaveBeenCalledWith(
-        'https://configured-server.example.com/api/v1/users/check-username?username=testuser'
+        'https://configured-server.example.com/api/v1/users/check-username?username=testuser',
+        expect.anything()
       );
     });
 
@@ -647,6 +661,81 @@ describe('RegistrationFormComponent', () => {
       expect(component.usernameAvailability()).toBe('available');
       expect(component.usernameSuggestions()).toEqual([]);
       expect(snackBar.open).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('username availability and the session token', () => {
+    let httpTesting: HttpTestingController;
+
+    beforeEach(async () => {
+      localStorage.clear();
+      TestBed.resetTestingModule();
+      await TestBed.configureTestingModule({
+        imports: [translocoTestProvider(), RegistrationFormComponent],
+        providers: [
+          provideZonelessChangeDetection(),
+          provideRouter([]),
+          provideHttpClient(withXhr(), withInterceptorsFromDi()),
+          provideHttpClientTesting(),
+          {
+            provide: HTTP_INTERCEPTORS,
+            useClass: AuthInterceptor,
+            multi: true,
+          },
+          { provide: AuthenticationService, useValue: authService },
+          { provide: UserService, useValue: userService },
+          { provide: MatSnackBar, useValue: snackBar },
+          { provide: SetupService, useValue: setupService },
+          { provide: SystemConfigService, useValue: systemConfigService },
+        ],
+      }).compileComponents();
+      httpTesting = TestBed.inject(HttpTestingController);
+
+      // Signed in to the home server
+      const storageContext = TestBed.inject(StorageContextService);
+      const home = storageContext.addServerConfig('https://home.example.com');
+      storageContext.switchToConfig(home.id);
+      TestBed.inject(AuthTokenService).setToken('home-session');
+
+      fixture = TestBed.createComponent(RegistrationFormComponent);
+      component = fixture.componentInstance;
+      fixture.detectChanges();
+    });
+
+    afterEach(() => {
+      httpTesting.verify();
+      localStorage.clear();
+    });
+
+    it('checks a server being added without the active session', async () => {
+      component.serverUrl = 'https://other-server.example';
+      component.form.username().value.set('alice');
+
+      const check = component.checkUsernameAvailability();
+      const request = httpTesting.expectOne(
+        'https://other-server.example/api/v1/users/check-username?username=alice'
+      );
+      expect(request.request.headers.has('Authorization')).toBe(false);
+      request.flush({ available: true });
+      await check;
+
+      expect(component.usernameAvailability()).toBe('available');
+    });
+
+    it('checks the active server without the session too', async () => {
+      setupService.getServerUrl.mockReturnValue('https://home.example.com');
+      component.serverUrl = undefined;
+      component.form.username().value.set('alice');
+
+      const check = component.checkUsernameAvailability();
+      const request = httpTesting.expectOne(
+        'https://home.example.com/api/v1/users/check-username?username=alice'
+      );
+      expect(request.request.headers.has('Authorization')).toBe(false);
+      request.flush({ available: false, suggestions: ['alice1'] });
+      await check;
+
+      expect(component.usernameAvailability()).toBe('unavailable');
     });
   });
 

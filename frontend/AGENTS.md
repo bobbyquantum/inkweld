@@ -119,6 +119,15 @@ Read `e2e/BEST_PRACTICES.md` before writing one.
   `isAiKillSwitchEnabled` is for admin pages only.
 - **Adding profiles**: every path that creates a profile asks
   `AppModePolicyService` (`APP_MODE`); see `services/core/AGENTS.md`.
+  A profile never changes server, and a new server never takes the id of
+  another server's profile (same file, "Server profile ids").
+- **The session token only goes to the active profile's server.** A manual
+  `Authorization` header or a socket token comes from
+  `AuthTokenService.getTokenForUrl(url)` with the URL being contacted (`null`
+  for any other server), never straight from `getToken()`. `AuthInterceptor`
+  applies the same rule to `HttpClient` requests, and tokens are only
+  written through `AuthTokenService`, which records each one's server
+  (`services/auth/AGENTS.md`).
 - **Storage quota errors** are 403 with `code: 'QUOTA_EXCEEDED'`; tell them
   apart from access errors with `getQuotaExceeded()` /
   `StorageUsageService.noteQuotaError()`, and only warn when
@@ -182,10 +191,10 @@ Settings appears once there is more than one language.
 
 | Area | Notes |
 |---|---|
-| Profile-scoped storage, project rename, APP_MODE, backgrounds, update dialog | `src/app/services/core/AGENTS.md` |
+| Profile-scoped storage, server profile ids, project rename, APP_MODE, backgrounds, update dialog | `src/app/services/core/AGENTS.md` |
 | Starting offline, bulk sync planner | `src/app/services/sync/AGENTS.md` |
 | Canvas Yjs model | `src/app/services/canvas/AGENTS.md` |
-| Passkeys, policy acceptance | `src/app/services/auth/AGENTS.md` |
+| Where the session token is sent, passkeys, policy acceptance | `src/app/services/auth/AGENTS.md` |
 | WebMCP tools | `src/app/services/webmcp/AGENTS.md` |
 | EPUB output, share links | `src/app/services/publish/AGENTS.md` |
 | Per-element schema copies, identity images | `src/app/services/worldbuilding/AGENTS.md` |

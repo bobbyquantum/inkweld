@@ -50,11 +50,16 @@ switches, removes, resets, and describes them; the profiles dialog, the
 user-menu switcher and the Profile settings tab are thin views over it.
 
 - **Ids.** The first Browser profile keeps the legacy id `local`; further ones
-  are `local-<hash(username)>`. The first profile on a server keeps
-  `hash(serverUrl)`; a second author on the same server gets
-  `<hash(serverUrl)>-<hash(username)>`. Cloud profiles are
-  `cloud-<provider>-<hash(accountId)>`. Each id is its own storage prefix, so
-  profiles never share IndexedDB databases, localStorage keys or tokens.
+  are `local-<hash(username)>`. The first profile on a server takes
+  `hash(serverUrl)` (scheme, host and port) and a second author on the same
+  server `<hash(serverUrl)>-<hash(username)>`, as long as those ids are free.
+  Profiles are matched to a server by its full address, path included, so a
+  second server on the same host (or one whose hash is already taken) gets
+  unused ids of its own, built from hashes of its full address, instead of
+  the existing profiles; an id never changes once assigned. Cloud
+  profiles are `cloud-<provider>-<hash(accountId)>`. Each id is its own
+  storage prefix, so profiles never share IndexedDB databases, localStorage
+  keys or tokens.
 - **Login binding.** `StorageContextService.adoptServerLogin` runs after every
   server login. If the active server profile has no user or the same user,
   the profile is updated in place. If a different author logs in, the login

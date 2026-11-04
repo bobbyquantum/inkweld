@@ -1420,8 +1420,12 @@ describe('WorldbuildingService', () => {
     let mockVersionCompat: Partial<VersionCompatibilityService>;
 
     beforeEach(() => {
+      // Sockets ask for the token by URL; every socket here goes to the
+      // active server, so the lookup returns the token.
+      const getToken = vi.fn().mockReturnValue('test-token');
       mockAuthTokenService = {
-        getToken: vi.fn().mockReturnValue('test-token'),
+        getToken,
+        getTokenForUrl: vi.fn(() => getToken() as string | null),
       };
       mockVersionCompat = {
         syncBlocked: vi
@@ -1475,6 +1479,26 @@ describe('WorldbuildingService', () => {
       );
       expect(data).toBeDefined();
       expect(mockAuthTokenService.getToken).toHaveBeenCalled();
+    });
+
+    it("should only connect with a token for the socket's server", async () => {
+      // A token is stored, but not one for this server
+      const getTokenForUrl = mockAuthTokenService.getTokenForUrl as ReturnType<
+        typeof vi.fn
+      >;
+      getTokenForUrl.mockReturnValue(null);
+      const createAuthWsProvider = vi.fn();
+      Object.assign(onlineService as any, { createAuthWsProvider });
+
+      const data = await onlineService.getWorldbuildingData(
+        'elem-other-server',
+        username,
+        slug
+      );
+
+      expect(data).toBeDefined();
+      expect(getTokenForUrl).toHaveBeenCalledWith('ws://localhost:8333');
+      expect(createAuthWsProvider).not.toHaveBeenCalled();
     });
 
     it('should return undefined when sync is blocked', async () => {
@@ -1633,6 +1657,45 @@ describe('WorldbuildingService', () => {
         'WorldbuildingService',
         expect.stringContaining('reauth-elem')
       );
+    });
+
+    it("re-authenticates only with the token of the socket's server", async () => {
+      const statusListeners: ((e: { status: string }) => void)[] = [];
+      const ws = { send: vi.fn(), onmessage: null };
+      const mockWsProvider = {
+        synced: true,
+        ws,
+        on: vi.fn((event: string, cb: (e: { status: string }) => void) => {
+          if (event === 'status') statusListeners.push(cb);
+        }),
+        off: vi.fn(),
+        disconnect: vi.fn(),
+        destroy: vi.fn(),
+      };
+      const emitStatus = (status: string) => {
+        for (const cb of statusListeners) cb({ status });
+      };
+      const createAuthWsProvider = vi.fn().mockResolvedValue(mockWsProvider);
+      Object.assign(onlineService as any, { createAuthWsProvider });
+      const socketUrl = `ws://localhost:8333/api/v1/ws/yjs?documentId=${username}:${slug}:moved-elem/`;
+
+      await onlineService.getWorldbuildingData('moved-elem', username, slug);
+      expect(createAuthWsProvider).toHaveBeenCalled();
+
+      // The active profile now belongs to another server: a reconnect of
+      // this socket sends no token and stops instead.
+      const getTokenForUrl = mockAuthTokenService.getTokenForUrl as ReturnType<
+        typeof vi.fn
+      >;
+      getTokenForUrl.mockImplementation((url: string) =>
+        url === socketUrl ? null : 'other-server-token'
+      );
+      emitStatus('disconnected');
+      emitStatus('connected');
+
+      expect(getTokenForUrl).toHaveBeenLastCalledWith(socketUrl);
+      expect(ws.send).not.toHaveBeenCalled();
+      expect(mockWsProvider.disconnect).toHaveBeenCalled();
     });
 
     it('should skip sync-wait when provider is already synced', async () => {

@@ -7,7 +7,11 @@ import {
 } from '@angular/cdk/overlay';
 import { TemplatePortal } from '@angular/cdk/portal';
 import { KeyValuePipe } from '@angular/common';
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import {
+  HttpClient,
+  HttpContext,
+  HttpErrorResponse,
+} from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -55,6 +59,7 @@ import { SystemConfigService } from '@services/core/system-config.service';
 import { UserService } from '@services/user/user.service';
 import { firstValueFrom } from 'rxjs';
 
+import { SKIP_AUTH_TOKEN } from '../../interceptors/auth.interceptor';
 import {
   hasSpecialCharacter,
   SPECIAL_CHARACTER_ERROR,
@@ -607,8 +612,12 @@ export class RegistrationFormComponent implements OnInit, OnDestroy {
         username
       )}`;
 
+      // A public endpoint, often on a server this browser is not signed in
+      // to yet (adding a server), so it never carries a session token.
       const response = await firstValueFrom(
-        this.httpClient.get<UsernameAvailability>(checkUrl)
+        this.httpClient.get<UsernameAvailability>(checkUrl, {
+          context: new HttpContext().set(SKIP_AUTH_TOKEN, true),
+        })
       );
 
       // A newer check started while this one was in flight; its result wins.

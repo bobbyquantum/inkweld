@@ -13,7 +13,10 @@ import {
 import { AuthTokenService } from '../auth/auth-token.service';
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
-import { StorageContextService } from '../core/storage-context.service';
+import {
+  type ServerConfig,
+  StorageContextService,
+} from '../core/storage-context.service';
 import { LocalStorageService } from '../local/local-storage.service';
 import { StorageUsageService } from '../user/storage-usage.service';
 import { PublishedFilesService } from './published-files.service';
@@ -24,6 +27,8 @@ describe('PublishedFilesService', () => {
   let logger: DeepMockProxy<LoggerService>;
   let setupService: DeepMockProxy<SetupService>;
   let storageUsage: { load: ReturnType<typeof vi.fn> };
+  /** Profile the stubbed storage context reports as active */
+  let activeConfig: ServerConfig | null;
 
   const mockProjectKey = 'testuser/test-project';
 
@@ -52,6 +57,16 @@ describe('PublishedFilesService', () => {
     type: 'application/epub+zip',
   });
 
+  function serverProfile(serverUrl: string): ServerConfig {
+    return {
+      id: 'srv-test',
+      type: 'server',
+      serverUrl,
+      addedAt: '2024-01-01T00:00:00.000Z',
+      lastUsedAt: '2024-01-01T00:00:00.000Z',
+    };
+  }
+
   beforeEach(() => {
     // Clear native browser localStorage before each test (used for metadata)
     window.localStorage.clear();
@@ -64,6 +79,7 @@ describe('PublishedFilesService', () => {
     // Default to offline mode
     setupService.getMode.mockReturnValue('local');
     setupService.getServerUrl.mockReturnValue('http://localhost:8333');
+    activeConfig = null;
 
     TestBed.configureTestingModule({
       imports: [translocoTestProvider()],
@@ -82,7 +98,7 @@ describe('PublishedFilesService', () => {
             prefixDocumentId: (key: string) => key,
             getPrefix: () => 'local:',
             getPrefixForConfig: () => 'local:',
-            getActiveConfig: () => null,
+            getActiveConfig: () => activeConfig,
           },
         },
       ],
@@ -136,6 +152,7 @@ describe('PublishedFilesService', () => {
 
     it('should send the bearer token on server requests', async () => {
       setupService.getMode.mockReturnValue('server');
+      activeConfig = serverProfile('http://localhost:8333');
       window.localStorage.setItem(
         TestBed.inject(AuthTokenService)['getTokenKey'](),
         'secret-token'
@@ -155,6 +172,30 @@ describe('PublishedFilesService', () => {
         expect.objectContaining({
           headers: { Authorization: 'Bearer secret-token' },
         })
+      );
+    });
+
+    it('should only send the bearer token to the active server', async () => {
+      setupService.getMode.mockReturnValue('server');
+      setupService.getServerUrl.mockReturnValue('https://other.example.com');
+      activeConfig = serverProfile('http://localhost:8333');
+      window.localStorage.setItem(
+        TestBed.inject(AuthTokenService)['getTokenKey'](),
+        'secret-token'
+      );
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue({
+          ok: true,
+          json: () => Promise.resolve([]),
+        })
+      );
+
+      await service.loadFiles(mockProjectKey);
+
+      expect(fetch).toHaveBeenCalledWith(
+        'https://other.example.com/api/v1/projects/testuser/test-project/published',
+        expect.objectContaining({ headers: {} })
       );
     });
 

@@ -194,10 +194,10 @@ release-please cuts releases (`.github/workflows/release-please.yml`,
 | Angular conventions, tests, e2e, i18n, frontend-wide rules | `frontend/AGENTS.md` |
 | Hono conventions, migrations, AI kill switch, quotas, serving `index.html`, canvas rendering, auth, rename, share links, sync manifest | `backend/AGENTS.md` |
 | Durable Object storage and revision tokens | `backend/src/durable-objects/AGENTS.md` |
-| Profile-scoped storage, project rename, APP_MODE, app backgrounds, update dialog | `frontend/src/app/services/core/AGENTS.md` |
+| Profile-scoped storage, server profile ids, project rename, APP_MODE, app backgrounds, update dialog | `frontend/src/app/services/core/AGENTS.md` |
 | Starting offline, bulk sync planner | `frontend/src/app/services/sync/AGENTS.md` |
 | Canvas Yjs model | `frontend/src/app/services/canvas/AGENTS.md` |
-| Passkeys and policy acceptance (frontend) | `frontend/src/app/services/auth/AGENTS.md` |
+| Where the session token is sent, passkeys and policy acceptance (frontend) | `frontend/src/app/services/auth/AGENTS.md` |
 | WebMCP browser tools | `frontend/src/app/services/webmcp/AGENTS.md` |
 | EPUB output, published file share links | `frontend/src/app/services/publish/AGENTS.md` |
 | Per-element schema copies, identity images | `frontend/src/app/services/worldbuilding/AGENTS.md` |

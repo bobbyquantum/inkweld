@@ -340,8 +340,9 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
       // reach the UI.
       this.setupDocumentObserver();
 
-      // Get auth token for WebSocket authentication
-      const authToken = this.authTokenService.getToken();
+      // Get auth token for WebSocket authentication, as long as the server
+      // this was asked to connect to is still the active profile's
+      const authToken = this.authTokenService.getTokenForUrl(webSocketUrl);
       if (!authToken) {
         this.logger.error(
           'YjsSync',
@@ -1334,9 +1335,10 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
     if (generation !== this.connectionGeneration || !doc || !wsUrl) {
       return 'stop';
     }
-    const authToken = this.authTokenService.getToken();
+    const authToken = this.authTokenService.getTokenForUrl(wsUrl);
     if (!authToken || this.versionCompatibility.syncBlocked()) {
-      // Signed out or blocked since the last attempt: stay local.
+      // Signed out, switched to another server's profile or blocked since
+      // the last attempt: stay local.
       this.syncStateSubject.next(DocumentSyncState.Local);
       return 'stop';
     }
@@ -1387,10 +1389,11 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
     this.syncStateSubject.next(DocumentSyncState.Synced);
     this.lastConnectionErrorSubject.next(null);
 
-    // Set up re-authentication for reconnections
+    // Set up re-authentication for reconnections (only with the token of
+    // the profile whose server this socket is connected to)
     setupReauthentication(
       provider,
-      () => this.authTokenService.getToken(),
+      () => this.authTokenService.getTokenForUrl(wsUrl),
       error => this.handleReauthError(error)
     );
     this.setupWebSocketHandlers();
