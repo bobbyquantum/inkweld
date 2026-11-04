@@ -62,7 +62,9 @@ describe('SceneOutlineComponent', () => {
     expect(el('outline-status-opening')!.textContent).toContain('Draft');
     expect(row.textContent).toContain('mira');
     expect(row.textContent).toContain('harbour');
-    expect(el('outline-words-opening')!.textContent).toContain('250');
+    expect(el('outline-words-opening')!.textContent).toContain(
+      (250).toLocaleString()
+    );
   });
 
   it('labels notes and counts the scenes of a folder', () => {
@@ -76,8 +78,8 @@ describe('SceneOutlineComponent', () => {
   it('totals the scenes', () => {
     const totals = el('outline-totals')!;
     expect(totals.textContent).toContain('2 scenes');
-    expect(totals.textContent).toContain('850');
-    expect(totals.textContent).toContain('1,500');
+    expect(totals.textContent).toContain((850).toLocaleString());
+    expect(totals.textContent).toContain((1500).toLocaleString());
     expect(totals.textContent).toContain('Draft');
     expect(totals.textContent).toContain('Final');
   });
