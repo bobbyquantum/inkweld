@@ -65,8 +65,14 @@ Never run `npm install` here; install from the repo root with `bun install`.
   `LOCALE_ID` is `'en'`). Build expected text with the same call as the code
   (`(1000).toLocaleString()`), and give date inputs the local times the UI
   produces (`new Date(2025, 0, 15)`, not `'2025-01-15T00:00:00Z'`). To check,
-  run `TZ=Pacific/Kiritimati LC_ALL=fr_FR.UTF-8 npm test`, and `ar_EG.UTF-8`
-  for non-Latin digits (Node takes the locale from `LC_ALL` on Linux).
+  run `bun exec "export TZ=Pacific/Kiritimati LC_ALL=fr_FR.UTF-8; npm test"`
+  here, and again with `ar_EG.UTF-8` for non-Latin digits. `bun exec` runs it
+  in Bun's shell, so the same line works in bash, PowerShell and Command
+  Prompt; keep the `export`, because an inline `TZ=… npm test` there doesn't
+  replace a `TZ` the machine already sets. `TZ` works on every OS, but Node
+  reads `LC_ALL` only on Linux and macOS: on Windows the locale is the
+  regional format in Settings (Time & language → Language & region), so
+  change it there to try another.
 
 ## E2E tests (Playwright)
 
