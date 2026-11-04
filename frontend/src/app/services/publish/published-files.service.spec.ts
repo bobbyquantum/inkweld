@@ -666,6 +666,33 @@ describe('PublishedFilesService', () => {
 
       expect(blob).toBeNull();
     });
+
+    it('should keep the file id in its own path segment', async () => {
+      setupService.getMode.mockReturnValue('server');
+      localStorageService.getMedia.mockResolvedValue(null);
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue({ ok: false, status: 404 })
+      );
+
+      await service.getFileBlob(mockProjectKey, '../x');
+
+      const url = new URL(vi.mocked(fetch).mock.calls[0][0] as string);
+      expect(url.pathname).toBe(
+        '/api/v1/projects/testuser/test-project/published/..%2Fx'
+      );
+    });
+
+    it('should not request a dot-segment file id', async () => {
+      setupService.getMode.mockReturnValue('server');
+      localStorageService.getMedia.mockResolvedValue(null);
+      vi.stubGlobal('fetch', vi.fn());
+
+      await expect(
+        service.getFileBlob(mockProjectKey, '..')
+      ).resolves.toBeNull();
+      expect(fetch).not.toHaveBeenCalled();
+    });
   });
 
   describe('downloadFile', () => {

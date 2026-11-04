@@ -5,6 +5,7 @@ import type {
   UserStatsResponse,
 } from '@models/writing-stats';
 import { SetupService } from '@services/core/setup.service';
+import { encodePathSegment } from '@utils/url-path';
 import type { Observable } from 'rxjs';
 
 /**
@@ -41,7 +42,7 @@ export class WritingStatsService {
     slug: string,
     days = 30
   ): Observable<ProjectStatsResponse> {
-    const url = `${this.baseUrl}/projects/${encodeURIComponent(username)}/${encodeURIComponent(slug)}`;
+    const url = `${this.baseUrl}/projects/${encodePathSegment(username)}/${encodePathSegment(slug)}`;
     return this.http.get<ProjectStatsResponse>(url, {
       params: { days: String(days) },
       withCredentials: true,

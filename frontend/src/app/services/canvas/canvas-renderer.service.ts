@@ -21,7 +21,10 @@ import { isLocalOrCloudMode } from '@services/core/storage-context.service';
 import { LocalStorageService } from '@services/local/local-storage.service';
 import { MediaSyncService } from '@services/local/media-sync.service';
 import { ProjectStateService } from '@services/project/project-state.service';
-import { mediaReferenceFilename } from '@utils/media-reference';
+import {
+  mediaReferenceFilename,
+  safeMediaReferenceFilename,
+} from '@utils/media-reference';
 import Konva from 'konva';
 
 import {
@@ -1586,6 +1589,10 @@ export class CanvasRendererService {
 
   async resolveImageSrc(src: string): Promise<string> {
     if (!isMediaUrl(src)) return src;
+    // A `media://` filename that is not one plain path segment shows no image.
+    if (src.startsWith('media://') && !safeMediaReferenceFilename(src)) {
+      return '';
+    }
 
     const mediaId = extractMediaId(src);
     if (!mediaId) return src;

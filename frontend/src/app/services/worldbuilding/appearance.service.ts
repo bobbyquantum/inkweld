@@ -12,8 +12,9 @@ import { LocalStorageService } from '@services/local/local-storage.service';
 import { ThemeService } from '@themes/theme.service';
 import { adjustGradient, adjustHex } from '@utils/color';
 import {
+  mediaFilePath,
   mediaIdFromReference,
-  mediaReferenceFilename,
+  safeMediaReferenceFilename,
 } from '@utils/media-reference';
 import { firstValueFrom, map } from 'rxjs';
 
@@ -77,7 +78,10 @@ export class AppearanceService {
    * On a cache miss the media is downloaded from the server and cached so a
    * collaborator or a fresh browser can render it. Non-`media://` references
    * (http/https/data/blob) are returned as-is when they use a safe scheme.
-   * Returns `null` when the reference cannot be resolved to a renderable URL.
+   * Returns `null` when the reference cannot be resolved to a renderable URL,
+   * including a `media://` reference whose filename is not a single plain
+   * path segment ({@link safeMediaReferenceFilename}); nothing is requested
+   * for those.
    *
    * Concurrent calls for the same media share one resolution: saving a
    * download revokes the cached blob URL, so a second download of the same
@@ -94,12 +98,17 @@ export class AppearanceService {
       );
     }
 
-    const key = `${username}/${slug}:${mediaIdFromReference(reference)}`;
+    const filename = safeMediaReferenceFilename(reference);
+    if (!filename) return Promise.resolve(null);
+
+    const mediaId = mediaIdFromReference(reference);
+    const key = `${username}/${slug}:${mediaId}`;
     const pending = this.pendingResolutions.get(key);
     if (pending) return pending;
 
     const resolution = this.resolveMediaReference(
-      reference,
+      filename,
+      mediaId,
       username,
       slug
     ).finally(() => this.pendingResolutions.delete(key));
@@ -107,14 +116,13 @@ export class AppearanceService {
     return resolution;
   }
 
-  /** Resolve a `media://` reference from the cache, else the server. */
+  /** Resolve a checked media filename from the cache, else the server. */
   private async resolveMediaReference(
-    reference: string,
+    filename: string,
+    mediaId: string,
     username: string,
     slug: string
   ): Promise<string | null> {
-    const filename = mediaReferenceFilename(reference);
-    const mediaId = mediaIdFromReference(reference);
     const projectKey = `${username}/${slug}`;
 
     try {
@@ -132,7 +140,7 @@ export class AppearanceService {
         return null;
       }
 
-      const apiUrl = `${this.storageContext.getApiBaseUrl()}/api/v1/media/${username}/${slug}/${filename}`;
+      const apiUrl = `${this.storageContext.getApiBaseUrl()}${mediaFilePath(username, slug, filename)}`;
       const blob = await firstValueFrom(
         this.http.get(apiUrl, { responseType: 'blob' })
       );

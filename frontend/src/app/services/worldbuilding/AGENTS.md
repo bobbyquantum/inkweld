@@ -59,3 +59,12 @@ item it came from (the generator's saved copy, an uncropped library pick).
 Opening an older element with an inline image migrates it with a
 compare-and-set (`WorldbuildingService.replaceIdentityImage`). The Media tab's
 delete check counts identity images and backgrounds as usages.
+
+Every resolver (`AppearanceService.resolveImageReference`, the identity
+panel, the element-reference tooltip, the relationship chart, the canvas
+renderer) checks the filename with `safeMediaReferenceFilename`
+(`utils/media-reference.ts`) before any lookup, `MediaSyncService` checks it
+with `isSafeMediaFilename` before any download, and server URLs are built
+with `mediaFilePath`, which encodes each segment. A reference whose filename
+is not one plain path segment shows no image and is never requested, and
+media sync never uploads a local item whose id fails `isSafeMediaFilename`.

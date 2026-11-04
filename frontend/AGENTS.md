@@ -94,6 +94,21 @@ Read `e2e/BEST_PRACTICES.md` before writing one.
   `appOrigin()` from `utils/app-base.ts` for full-page navigations, new
   windows and server URLs. Under ingress, sign-out and the account/server
   switcher are hidden.
+- **Every API path segment goes through `encodePathSegment()`**
+  (`utils/url-path.ts`), which percent-encodes it and throws for `.`, `..`
+  and non-strings. Hand-built paths call it for each segment; the generated
+  API client calls it for every path parameter (`encodeApiPathParam` in
+  `config/api.config.ts`), so a generated call given such a value throws
+  synchronously, before any request; a caller outside a `try` handles that
+  (`UserAvatarComponent` falls back to its generated avatar). Ids read from
+  project data are checked before they name a server resource: comment
+  thread and message ids must be UUIDs (`isCommentId` in
+  `services/project/comment.service.ts`; the comment popover shows and acts
+  on a server thread only once it has loaded the open mark's thread, and
+  shows any other server comment as unavailable), and a `media://` filename
+  must be one plain path segment (`safeMediaReferenceFilename` /
+  `isSafeMediaFilename` in `utils/media-reference.ts`), else it resolves to
+  no image without a request.
 - **Backgrounds**: never reference `/home_background.png` in a component
   stylesheet; use the mixins in `src/themes/_app-background.scss`
   (`services/core/AGENTS.md`).

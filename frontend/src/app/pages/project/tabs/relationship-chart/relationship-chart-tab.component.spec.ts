@@ -836,6 +836,30 @@ describe('RelationshipChartTabComponent', () => {
     expect(result).toBeNull();
   });
 
+  it.each([
+    'media://../x.png',
+    'media://..%2fx.png',
+    'media://img.png?x=1',
+    'media://..',
+  ])(
+    'should resolve %j to no image without a lookup or sync',
+    async reference => {
+      fixture.detectChanges();
+      mockLocalStorageService.getMediaUrl.mockClear();
+      mockMediaSyncService.downloadAllFromServer.mockClear();
+
+      const result = await component['resolveImageUrl'](
+        reference,
+        'testuser',
+        'test-project'
+      );
+
+      expect(result).toBeNull();
+      expect(mockLocalStorageService.getMediaUrl).not.toHaveBeenCalled();
+      expect(mockMediaSyncService.downloadAllFromServer).not.toHaveBeenCalled();
+    }
+  );
+
   it('should handle media:// filenames without extension', async () => {
     fixture.detectChanges();
     mockLocalStorageService.getMediaUrl.mockResolvedValue(

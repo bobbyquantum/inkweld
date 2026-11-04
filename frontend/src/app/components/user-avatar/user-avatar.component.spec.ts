@@ -225,5 +225,22 @@ describe('UserAvatarComponent', () => {
       expect(component['error']()).toBe(true);
       expect(component['isLoading']()).toBe(false);
     });
+
+    it('should keep the generated avatar when the request is refused', async () => {
+      mockLocalStorageService.getUserAvatarUrl.mockResolvedValue(null);
+      // The API client throws, without a request, for a name that cannot be
+      // a path segment.
+      mockUserService.getUserAvatar.mockImplementation(() => {
+        throw new Error('Not a URL path segment');
+      });
+
+      component.username = '..';
+      await expect(component.loadAvatar()).resolves.toBeUndefined();
+
+      expect(mockUserService.getUserAvatar).toHaveBeenCalledWith('..');
+      expect(component['error']()).toBe(true);
+      expect(component['isLoading']()).toBe(false);
+      expect(component['fallbackAvatarUrl']()).toBeTruthy();
+    });
   });
 });

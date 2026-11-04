@@ -15,6 +15,7 @@ import {
 import { type Project } from '@inkweld/index';
 import { TranslocoModule } from '@jsverse/transloco';
 import { isLocalOrCloudMode } from '@services/core/storage-context.service';
+import { encodePathSegment } from '@utils/url-path';
 import { firstValueFrom } from 'rxjs';
 
 import { SetupService } from '../../services/core/setup.service';
@@ -191,7 +192,7 @@ export class ProjectCoverComponent implements OnChanges, OnDestroy {
       return null;
     }
 
-    const url = `${baseUrl}/api/v1/projects/${project.username}/${project.slug}/cover`;
+    const url = `${baseUrl}/api/v1/projects/${encodePathSegment(project.username)}/${encodePathSegment(project.slug)}/cover`;
 
     try {
       const blob = await firstValueFrom(

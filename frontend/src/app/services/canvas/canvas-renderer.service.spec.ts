@@ -291,6 +291,17 @@ describe('CanvasRendererService', () => {
         mockMediaSync.fetchMissingMedia.mockRejectedValue(new Error('offline'));
         expect(await service.resolveImageSrc('media://img-1.png')).toBe('');
       });
+
+      it.each([
+        'media://../x.png',
+        'media://..%2fx.png',
+        'media://img.png?x=1',
+        'media://..',
+      ])('shows no image for %j without a lookup or request', async src => {
+        expect(await service.resolveImageSrc(src)).toBe('');
+        expect(mockLocalStorage.getMediaUrl).not.toHaveBeenCalled();
+        expect(mockMediaSync.fetchMissingMedia).not.toHaveBeenCalled();
+      });
     });
 
     it('returns resolved URL from LocalStorage when media found', async () => {

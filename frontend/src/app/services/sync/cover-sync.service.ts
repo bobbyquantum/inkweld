@@ -6,6 +6,7 @@ import {
   isLocalOrCloudMode,
   StorageContextService,
 } from '@services/core/storage-context.service';
+import { isSafeMediaFilename, mediaFilePath } from '@utils/media-reference';
 import { firstValueFrom } from 'rxjs';
 
 import { LoggerService } from '../core/logger.service';
@@ -110,7 +111,9 @@ export class CoverSyncService {
     // Independent read-only lookups; Promise.all keeps the project order.
     const candidates = await Promise.all(
       projects.map(async (project): Promise<CoverDownloadTask | undefined> => {
-        if (!project.coverImage) {
+        // The cover is a file in the project's media; only a single plain
+        // path segment names one.
+        if (!project.coverImage || !isSafeMediaFilename(project.coverImage)) {
           return undefined;
         }
 
@@ -164,7 +167,7 @@ export class CoverSyncService {
    * Download a single cover and save it to IndexedDB.
    */
   private async downloadCover(task: CoverDownloadTask): Promise<void> {
-    const url = `${this.storageContext.getApiBaseUrl()}/api/v1/media/${task.username}/${task.slug}/${task.filename}`;
+    const url = `${this.storageContext.getApiBaseUrl()}${mediaFilePath(task.username, task.slug, task.filename)}`;
 
     const blob = await firstValueFrom(
       this.http.get(url, { responseType: 'blob' })

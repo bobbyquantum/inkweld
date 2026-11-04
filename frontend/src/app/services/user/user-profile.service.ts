@@ -4,6 +4,7 @@ import type { ProfileActivityYear } from '@inkweld/model/profile-activity-year';
 import type { ProfileBackground } from '@inkweld/model/profile-background';
 import type { UserProfile } from '@inkweld/model/user-profile';
 import { SetupService } from '@services/core/setup.service';
+import { encodePathSegment } from '@utils/url-path';
 import type { Observable } from 'rxjs';
 
 /**
@@ -32,7 +33,7 @@ export class UserProfileService {
 
   getProfile(username: string): Observable<UserProfile> {
     return this.http.get<UserProfile>(
-      `${this.baseUrl}/${encodeURIComponent(username)}/profile`,
+      `${this.baseUrl}/${encodePathSegment(username)}/profile`,
       { withCredentials: true }
     );
   }
@@ -50,7 +51,7 @@ export class UserProfileService {
     if (year !== undefined) params['year'] = String(year);
     if (timeZone) params['tz'] = timeZone;
     return this.http.get<ProfileActivityYear>(
-      `${this.baseUrl}/${encodeURIComponent(username)}/activity`,
+      `${this.baseUrl}/${encodePathSegment(username)}/activity`,
       { params, withCredentials: true }
     );
   }
@@ -61,7 +62,7 @@ export class UserProfileService {
    * re-fetched.
    */
   bannerUrl(username: string, version = 0): string {
-    const base = `${this.baseUrl}/${encodeURIComponent(username)}/banner`;
+    const base = `${this.baseUrl}/${encodePathSegment(username)}/banner`;
     return version > 0 ? `${base}?v=${version}` : base;
   }
 

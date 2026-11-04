@@ -237,6 +237,22 @@ describe('ProjectCoverComponent', () => {
       expect(component.hasCover).toBe(false);
       expect(component.coverUrl).toBeNull();
     });
+
+    it('should keep the owner name in its own path segment', async () => {
+      mockOfflineStorage.getMediaUrl.mockResolvedValue(null);
+
+      setProjectAndTriggerChanges({ ...mockProject, username: 'a/b' });
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      const req = httpTestingController.expectOne(
+        'http://localhost:8333/api/v1/projects/a%2Fb/test-project/cover'
+      );
+      req.error(new ProgressEvent('error'), {
+        status: 404,
+        statusText: 'Not Found',
+      });
+      await fixture.whenStable();
+    });
   });
 
   describe('cover loading - offline mode', () => {

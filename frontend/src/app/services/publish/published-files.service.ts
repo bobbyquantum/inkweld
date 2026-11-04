@@ -9,6 +9,7 @@ import {
   type UpdatePublishedFileRequest,
 } from '../../models/published-file';
 import { toReadableBlob } from '../../utils/readable-blob';
+import { encodePathSegment } from '../../utils/url-path';
 import { AuthTokenService } from '../auth/auth-token.service';
 import { LoggerService } from '../core/logger.service';
 import { SetupService } from '../core/setup.service';
@@ -145,6 +146,12 @@ export class PublishedFilesService {
    */
   private getServerUrl(): string {
     return this.setupService.getServerUrl() || globalThis.location.origin;
+  }
+
+  /** The project's published-files endpoint, each path segment encoded. */
+  private publishedUrl(projectKey: string): string {
+    const [username, slug] = projectKey.split('/');
+    return `${this.getServerUrl()}/api/v1/projects/${encodePathSegment(username)}/${encodePathSegment(slug)}/published`;
   }
 
   /**
@@ -505,14 +512,10 @@ export class PublishedFilesService {
     projectKey: string
   ): Promise<PublishedFile[] | null> {
     try {
-      const [username, slug] = projectKey.split('/');
-      const response = await fetch(
-        `${this.getServerUrl()}/api/v1/projects/${username}/${slug}/published`,
-        {
-          headers: this.authHeaders(),
-          credentials: 'include',
-        }
-      );
+      const response = await fetch(this.publishedUrl(projectKey), {
+        headers: this.authHeaders(),
+        credentials: 'include',
+      });
 
       if (!response.ok) {
         return null;
@@ -530,21 +533,17 @@ export class PublishedFilesService {
     request: CreatePublishedFileRequest
   ): Promise<PublishedFile | null> {
     try {
-      const [username, slug] = projectKey.split('/');
       const formData = new FormData();
       // Safari can send an IndexedDB Blob as an empty body; see toReadableBlob.
       formData.append('file', await toReadableBlob(blob), request.filename);
       formData.append('metadata', JSON.stringify(toWireRequest(request)));
 
-      const response = await fetch(
-        `${this.getServerUrl()}/api/v1/projects/${username}/${slug}/published`,
-        {
-          method: 'POST',
-          headers: this.authHeaders(),
-          body: formData,
-          credentials: 'include',
-        }
-      );
+      const response = await fetch(this.publishedUrl(projectKey), {
+        method: 'POST',
+        headers: this.authHeaders(),
+        body: formData,
+        credentials: 'include',
+      });
 
       if (!response.ok) {
         const body = await readErrorBody(response);
@@ -570,9 +569,8 @@ export class PublishedFilesService {
     fileId: string
   ): Promise<Blob | null> {
     try {
-      const [username, slug] = projectKey.split('/');
       const response = await fetch(
-        `${this.getServerUrl()}/api/v1/projects/${username}/${slug}/published/${fileId}`,
+        `${this.publishedUrl(projectKey)}/${encodePathSegment(fileId)}`,
         {
           headers: this.authHeaders(),
           credentials: 'include',
@@ -594,9 +592,8 @@ export class PublishedFilesService {
     fileId: string,
     request: UpdatePublishedFileRequest
   ): Promise<PublishedFile> {
-    const [username, slug] = projectKey.split('/');
     const response = await fetch(
-      `${this.getServerUrl()}/api/v1/projects/${username}/${slug}/published/${fileId}`,
+      `${this.publishedUrl(projectKey)}/${encodePathSegment(fileId)}`,
       {
         method: 'PATCH',
         headers: this.authHeaders({ 'Content-Type': 'application/json' }),
@@ -614,9 +611,8 @@ export class PublishedFilesService {
     projectKey: string,
     fileId: string
   ): Promise<void> {
-    const [username, slug] = projectKey.split('/');
     const response = await fetch(
-      `${this.getServerUrl()}/api/v1/projects/${username}/${slug}/published/${fileId}`,
+      `${this.publishedUrl(projectKey)}/${encodePathSegment(fileId)}`,
       {
         method: 'DELETE',
         headers: this.authHeaders(),

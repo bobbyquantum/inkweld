@@ -23,7 +23,10 @@ import type {
   CommentThreadResponse,
   LocalCommentMessage,
 } from '../../../services/project/comment.service';
-import { CommentService } from '../../../services/project/comment.service';
+import {
+  CommentService,
+  isCommentId,
+} from '../../../services/project/comment.service';
 import { UserAvatarComponent } from '../../user-avatar/user-avatar.component';
 import type { CommentMarkAttrs } from '../comment-mark-schema';
 
@@ -85,6 +88,29 @@ export class CommentPopoverComponent {
   readonly model = signal<CommentReplyFormValue>({ replyText: '' });
   readonly form = form(this.model);
 
+  /**
+   * The loaded server thread when it is the open mark's, else null. The
+   * editor reuses this popover when another highlight is clicked, so a
+   * thread loaded for an earlier mark is never shown or acted on.
+   */
+  private readonly openThread = computed(() => {
+    const t = this.thread();
+    return t?.id === this.attrs().commentId ? t : null;
+  });
+
+  /**
+   * A server comment that cannot be shown: its id is not a comment id (it is
+   * never sent to the server), or no thread with its id has loaded. The
+   * popover then offers no server actions, only a notice and Close.
+   */
+  readonly unavailable = computed(
+    () =>
+      !this.loading() && !this.attrs().localOnly && this.openThread() === null
+  );
+
+  /** Bumped per thread load, so a late response for another mark is dropped. */
+  private loadGeneration = 0;
+
   /** Unified message list (works for both server and local-only) */
   messages = computed<
     Array<{
@@ -95,7 +121,7 @@ export class CommentPopoverComponent {
       createdAt: string | number;
     }>
   >(() => {
-    const t = this.thread();
+    const t = this.openThread();
     if (t) return t.messages;
 
     // Local-only fallback
@@ -111,11 +137,15 @@ export class CommentPopoverComponent {
   });
 
   threadAuthor = computed(() => {
-    return this.thread()?.authorName ?? this.attrs().authorName ?? 'Unknown';
+    return (
+      this.openThread()?.authorName ??
+      this.attrs().authorName ??
+      this.transloco.translate('editor.comments.unknownAuthor')
+    );
   });
 
   threadDate = computed(() => {
-    const t = this.thread();
+    const t = this.openThread();
     if (t) return this.formatDate(t.createdAt);
     const a = this.attrs();
     return a.createdAt ? this.formatDate(a.createdAt) : '';
@@ -157,7 +187,11 @@ export class CommentPopoverComponent {
       const commentId = this.commentId();
       if (!commentId) return;
 
-      if (this.localOnly()) {
+      // A local-only thread lives in the mark. An id that is not a comment id
+      // is never sent to the server; the popover shows it as unavailable.
+      if (this.localOnly() || !isCommentId(commentId)) {
+        this.loadGeneration++;
+        this.thread.set(null);
         this.loading.set(false);
         return;
       }
@@ -166,21 +200,42 @@ export class CommentPopoverComponent {
     });
   }
 
-  private async fetchThread(commentId: string): Promise<void> {
+  /**
+   * The id to act on for a server thread, or null when there is none to act
+   * on: a local-only mark, an id that is not a comment id, or no loaded
+   * thread for the open mark.
+   */
+  private serverThreadId(): string | null {
+    const a = this.attrs();
+    if (a.localOnly || !isCommentId(a.commentId) || !this.openThread()) {
+      return null;
+    }
+    return a.commentId;
+  }
+
+  /**
+   * Fetch a server thread and return it (null when it does not load). It is
+   * shown only while `commentId` is still the open mark and no later load
+   * has started.
+   */
+  private async fetchThread(
+    commentId: string
+  ): Promise<CommentThreadResponse | null> {
+    const generation = ++this.loadGeneration;
     this.loading.set(true);
-    try {
-      const t = await this.commentService.getThread(
-        this.username(),
-        this.slug(),
-        commentId
-      );
-      this.thread.set(t);
-    } catch {
-      // Thread may not exist on server (orphan mark)
-      this.thread.set(null);
-    } finally {
+    // A thread that does not load (an orphan mark, offline) is shown as
+    // unavailable.
+    const thread =
+      (await this.commentService
+        .getThread(this.username(), this.slug(), commentId)
+        .catch(() => null)) ?? null;
+    // Another mark was opened meanwhile, or a later load started; that load
+    // decides what is shown.
+    if (generation === this.loadGeneration && this.commentId() === commentId) {
+      this.thread.set(thread);
       this.loading.set(false);
     }
+    return thread;
   }
 
   async onReply(): Promise<void> {
@@ -195,20 +250,24 @@ export class CommentPopoverComponent {
       return;
     }
 
+    const threadId = this.serverThreadId();
+    if (!threadId) return;
     try {
       await this.commentService.addMessage(
         this.username(),
         this.slug(),
-        a.commentId,
+        threadId,
         text
       );
       this.form.replyText().value.set('');
-      // Refresh the thread
-      await this.fetchThread(a.commentId);
+      // Refresh the thread while it is still open; another highlight may
+      // have been opened during the request.
+      const thread =
+        this.commentId() === threadId ? await this.fetchThread(threadId) : null;
       this.updated.emit({
-        commentId: a.commentId,
+        commentId: threadId,
         updates: {
-          messageCount: this.thread()?.messages.length ?? a.messageCount + 1,
+          messageCount: thread?.messages.length ?? a.messageCount + 1,
           preview: text.length > 100 ? text.substring(0, 100) + '…' : text,
         },
       });
@@ -225,13 +284,15 @@ export class CommentPopoverComponent {
       return;
     }
 
+    const threadId = this.serverThreadId();
+    if (!threadId) return;
     try {
       await this.commentService.resolveThread(
         this.username(),
         this.slug(),
-        a.commentId
+        threadId
       );
-      this.resolved.emit(a.commentId);
+      this.resolved.emit(threadId);
       this.closed.emit();
     } catch {
       // Error logged by service
@@ -248,17 +309,20 @@ export class CommentPopoverComponent {
       return;
     }
 
+    const threadId = this.serverThreadId();
+    if (!threadId) return;
     try {
       await this.commentService.unresolveThread(
         this.username(),
         this.slug(),
-        a.commentId
+        threadId
       );
       this.updated.emit({
-        commentId: a.commentId,
+        commentId: threadId,
         updates: { resolved: false },
       });
-      await this.fetchThread(a.commentId);
+      // Refresh the thread while it is still open.
+      if (this.commentId() === threadId) await this.fetchThread(threadId);
     } catch {
       // Error logged by service
     }
@@ -272,13 +336,15 @@ export class CommentPopoverComponent {
       return;
     }
 
+    const threadId = this.serverThreadId();
+    if (!threadId) return;
     try {
       await this.commentService.deleteThread(
         this.username(),
         this.slug(),
-        a.commentId
+        threadId
       );
-      this.deleted.emit(a.commentId);
+      this.deleted.emit(threadId);
       this.closed.emit();
     } catch {
       // Error logged by service

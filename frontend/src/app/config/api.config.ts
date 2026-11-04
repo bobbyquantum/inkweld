@@ -4,13 +4,30 @@ import {
   AuthenticationService,
   Configuration,
   DocumentsService,
+  type Param,
   ProjectsService,
   UsersService,
 } from '@inkweld/index';
 import { stripTrailingSlashes } from '@utils/string-utils';
+import { encodePathSegment } from '@utils/url-path';
 
 import { environment } from '../../environments/environment';
 import { SetupService } from '../services/core/setup.service';
+
+/**
+ * Encode a path parameter of the generated API client the way hand-built
+ * paths encode a segment ({@link encodePathSegment}): percent-encoded, with
+ * `.` and `..` refused, so a parameter always stays one segment. The client
+ * calls this for path parameters only. Dates are written as the generated
+ * default writes them.
+ */
+export function encodeApiPathParam(param: Param): string {
+  const value =
+    param.dataFormat === 'date-time' && param.value instanceof Date
+      ? param.value.toISOString()
+      : String(param.value);
+  return encodePathSegment(value);
+}
 
 /**
  * Creates a dynamic Configuration that reads basePath from SetupService
@@ -20,6 +37,7 @@ function createDynamicConfiguration(setupService: SetupService): Configuration {
   const config = new Configuration({
     basePath: environment.apiUrl, // Initial value
     withCredentials: false, // Using Bearer tokens, not cookies
+    encodeParam: encodeApiPathParam,
   });
 
   // Replace the basePath property with a dynamic getter

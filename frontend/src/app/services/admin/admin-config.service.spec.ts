@@ -57,6 +57,17 @@ describe('AdminConfigService', () => {
       expect(result).toEqual(mockConfig);
     });
 
+    it('encodes the key as one path segment', async () => {
+      const promise = service.getConfig('a/b?c');
+
+      const req = httpMock.expectOne(
+        `${basePath}/api/v1/admin/config/a%2Fb%3Fc`
+      );
+      req.flush({ key: 'a/b?c', value: '', source: 'default' });
+
+      await promise;
+    });
+
     it('should return null on error', async () => {
       const promise = service.getConfig('INVALID_KEY');
 

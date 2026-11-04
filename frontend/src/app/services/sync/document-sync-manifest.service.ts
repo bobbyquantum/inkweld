@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { LoggerService } from '@services/core/logger.service';
 import { SetupService } from '@services/core/setup.service';
+import { encodePathSegment } from '@utils/url-path';
 import { firstValueFrom } from 'rxjs';
 
 /**
@@ -54,7 +55,7 @@ export class DocumentSyncManifestService {
     try {
       return await firstValueFrom(
         this.http.get<DocumentSyncManifest>(
-          `${this.baseUrl}/${encodeURIComponent(username)}/${encodeURIComponent(slug)}/docs/sync-manifest`,
+          `${this.baseUrl}/${encodePathSegment(username)}/${encodePathSegment(slug)}/docs/sync-manifest`,
           { withCredentials: true }
         )
       );

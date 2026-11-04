@@ -417,5 +417,55 @@ describe('AppearanceService', () => {
       await expect(promise).resolves.toBeNull();
       httpMock.verify();
     });
+
+    it('should encode the filename in the download URL', async () => {
+      vi.mocked(localStorageService.getMediaUrl)
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce('blob:4');
+      vi.mocked(localStorageService.saveMedia).mockResolvedValue(undefined);
+
+      const promise = service.resolveImageReference(
+        'media://My Map (v2).png',
+        'user',
+        'slug'
+      );
+      await Promise.resolve();
+      httpMock
+        .expectOne(
+          'http://test.local/api/v1/media/user/slug/My%20Map%20(v2).png'
+        )
+        .flush(new Blob(['x'], { type: 'image/png' }));
+
+      await expect(promise).resolves.toBe('blob:4');
+      expect(localStorageService.saveMedia).toHaveBeenCalledWith(
+        'user/slug',
+        'My Map (v2)',
+        expect.any(Blob),
+        'My Map (v2).png'
+      );
+      httpMock.verify();
+    });
+
+    it.each([
+      'media://../x.png',
+      'media://..%2fx.png',
+      'media://%2e%2e/x.png',
+      'media://..\\x.png',
+      'media://img.png?x=1',
+      'media://img.png#x',
+      'media://..',
+      'media://',
+    ])(
+      'should resolve %j to no image without a lookup or request',
+      async reference => {
+        await expect(
+          service.resolveImageReference(reference, 'user', 'slug')
+        ).resolves.toBeNull();
+        expect(localStorageService.getMediaUrl).not.toHaveBeenCalled();
+        expect(localStorageService.saveMedia).not.toHaveBeenCalled();
+        httpMock.expectNone(() => true);
+        httpMock.verify();
+      }
+    );
   });
 });
