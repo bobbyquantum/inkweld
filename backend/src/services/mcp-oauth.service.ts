@@ -41,7 +41,7 @@ import { projects } from '../db/schema/projects';
 import { users } from '../db/schema/users';
 import { logger } from './logger.service';
 import { projectService } from './project.service';
-import { config } from '../config/env';
+import { signingSecret } from '../config/signing-secret';
 import { generateSecureRandom, hashString, verifyPkce } from '../utils/oauth-crypto';
 import { isSessionRevoked as predatesSessionWatermark } from '../utils/session-validity';
 import {
@@ -66,7 +66,7 @@ const DEFAULT_MAX_DYNAMIC_CLIENTS = 500;
 /** A dynamic client with no session after this long is considered abandoned. */
 const UNUSED_DYNAMIC_CLIENT_TTL_MS = 24 * 60 * 60 * 1000;
 
-/** Read the cap at call time (bracket access so bun --minify cannot constant-fold it). */
+/** Read the cap at call time, so the environment the server runs with applies. */
 function maxDynamicClients(): number {
   const raw = typeof process !== 'undefined' ? process.env['MCP_MAX_DYNAMIC_CLIENTS'] : undefined;
   const parsed = raw ? Number.parseInt(raw, 10) : Number.NaN;
@@ -99,24 +99,12 @@ class McpOAuthService {
    *
    * On Cloudflare Workers, secrets are only available via c.env bindings,
    * not process.env. The env parameter must be passed from route handlers.
+   * Throws SigningSecretError when there is no usable key (see signingSecret).
    *
    * @param env - Optional Cloudflare env bindings (required on Workers)
    */
   private getSecret(env?: CloudflareEnv): string {
-    // Try Cloudflare env bindings first (Workers runtime)
-    if (env) {
-      const envSecret = env.DATABASE_KEY || env.SESSION_SECRET;
-      if (envSecret && typeof envSecret === 'string' && envSecret.length >= 32) {
-        return envSecret;
-      }
-    }
-
-    // Fall back to config (Bun/Node.js with process.env)
-    const secret = config.databaseKey;
-    if (!secret || secret.length < 32) {
-      throw new Error('DATABASE_KEY must be at least 32 characters for JWT signing');
-    }
-    return secret;
+    return signingSecret(env);
   }
 
   // Note: issuer URL is passed as parameter from route handlers
@@ -815,8 +803,10 @@ class McpOAuthService {
     token: string,
     env?: CloudflareEnv
   ): Promise<McpAccessTokenPayload | null> {
+    // Outside the try: a missing key is a server error, not an invalid token.
+    const secret = this.getSecret(env);
     try {
-      const payload = await verify(token, this.getSecret(env), 'HS256');
+      const payload = await verify(token, secret, 'HS256');
       return payload as unknown as McpAccessTokenPayload;
     } catch {
       return null;

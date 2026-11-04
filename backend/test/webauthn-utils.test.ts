@@ -129,6 +129,38 @@ describe('rpFromContext', () => {
       });
       expect(() => rpFromContext(c)).toThrow('ALLOWED_ORIGINS contains "*"');
     });
+
+    it('throws for wildcard when the Workers binding says production', () => {
+      // Workers keep NODE_ENV in the bindings; process.env does not see it.
+      const c = mockContext({
+        NODE_ENV: 'production',
+        WEBAUTHN_RP_ID: 'app.example.com',
+        ALLOWED_ORIGINS: '*',
+      });
+      expect(() => rpFromContext(c)).toThrow('ALLOWED_ORIGINS contains "*"');
+    });
+
+    it('throws for wildcard in every environment other than development and test', () => {
+      const preview = mockContext({
+        NODE_ENV: 'preview',
+        WEBAUTHN_RP_ID: 'app.example.com',
+        ALLOWED_ORIGINS: '*',
+      });
+      expect(() => rpFromContext(preview)).toThrow('ALLOWED_ORIGINS contains "*"');
+
+      process.env['NODE_ENV'] = 'staging';
+      const staging = mockContext({ WEBAUTHN_RP_ID: 'app.example.com', ALLOWED_ORIGINS: '*' });
+      expect(() => rpFromContext(staging)).toThrow('NODE_ENV is "staging"');
+    });
+
+    it('returns request origin for wildcard when the binding says development', () => {
+      process.env['NODE_ENV'] = 'production';
+      const c = mockContext(
+        { NODE_ENV: 'development', WEBAUTHN_RP_ID: 'localhost', ALLOWED_ORIGINS: '*' },
+        'http://localhost:8787'
+      );
+      expect(rpFromContext(c).origins).toEqual(['http://localhost:8787']);
+    });
   });
 
   describe('rpName', () => {

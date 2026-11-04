@@ -51,8 +51,10 @@ export async function verifyMediaUploadToken(
   token: string,
   env: Record<string, unknown> | undefined
 ): Promise<MediaUploadClaims | null> {
+  // Outside the try: a missing key is a server error, not an invalid token.
+  const key = signingKey(env);
   try {
-    const payload = await verify(token, signingKey(env), 'HS256');
+    const payload = await verify(token, key, 'HS256');
     return payload.aud === AUDIENCE ? (payload as unknown as MediaUploadClaims) : null;
   } catch {
     return null;

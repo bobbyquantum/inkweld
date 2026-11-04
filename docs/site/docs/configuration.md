@@ -83,14 +83,27 @@ These settings are required for production deployments.
 The key used to sign session tokens (JWTs) and to encrypt sensitive values
 stored in the database, such as API keys saved in Admin → Settings.
 
-The server refuses to start without a secret of at least 32 characters
-whenever `NODE_ENV` is anything other than `development` or `test` (including
-`production`, `preview` or `staging`). In development it falls back to a
-public, well-known key and logs a warning — never expose such a server.
+Whenever `NODE_ENV` is anything other than `development` or `test` (including
+`production`, `preview` or `staging`), the secret must be at least 32
+characters and must not be a sample value copied from these docs or the
+example files. Bun, Node, the Docker image and compiled binaries refuse to
+start without such a secret. Cloudflare Workers only see secrets per request,
+so a Worker without one still deploys, but every request that needs the key
+(signing in, authenticated API calls, MCP) fails with a 500 and the log names
+the variable to set; real-time sync is refused too. Only in development and
+test does a missing secret fall back to a public, well-known key (Bun and Node
+log a warning when they start) — never expose such a server.
 
 ```bash
 SESSION_SECRET=<run: openssl rand -hex 32>
 ```
+
+:::note[Setting a secret on an existing server]
+If a server has been running without a `SESSION_SECRET` of its own, setting
+one signs everyone out once. Settings it stored encrypted, such as API keys
+and OAuth client secrets, move to the new key automatically the first time
+they are read.
+:::
 
 :::danger[Critical Security Setting]
 
@@ -110,9 +123,13 @@ openssl rand -hex 32
 
 **Optional** | String (32+ characters)
 
-Overrides `SESSION_SECRET` for both token signing and database encryption. When
-neither is set the rules above apply to whichever one is present. Most
-deployments only set `SESSION_SECRET`.
+Overrides `SESSION_SECRET` for both token signing and database encryption, and
+follows the same rules, so it must be at least 32 characters itself. Outside
+development and test, Bun, Node and the Docker image refuse to start with a
+shorter one. On Cloudflare Workers (and in development) a shorter
+`DATABASE_KEY` still encrypts stored settings, but tokens are signed with
+`SESSION_SECRET` instead when that is usable, and the log warns about it.
+Most deployments only set `SESSION_SECRET`.
 
 ### ALLOWED_ORIGINS
 
@@ -121,6 +138,8 @@ deployments only set `SESSION_SECRET`.
 Specifies which origins can make requests to the API (CORS). Set it to every
 URL users open Inkweld from: it is also used as the expected origin for passkey
 sign-in, and its first entry is the fallback public URL for email links.
+Passkey sign-in only accepts `*` when `NODE_ENV` is `development` or `test`;
+anywhere else, list the origins.
 
 ```bash
 # Single origin
@@ -157,6 +176,12 @@ bind the port in Docker (`-p 127.0.0.1:8333:8333`) or use a firewall.
 `development` and `test` (or leaving it unset) are treated as development: a
 missing `SESSION_SECRET` is allowed. Any other value (`production`, `preview`,
 `staging`, …) requires a secret.
+
+The value is read when the server starts, in the Docker image and compiled
+binaries too, so `-e NODE_ENV=…` or a `.env` entry takes effect there. On
+Cloudflare Workers, set it in the environment's `[vars]`; a Worker without it
+is treated as `production` for the signing key, error messages and passkey
+origins.
 
 Logging is stricter: human-readable `debug` logs only appear when `NODE_ENV` is
 explicitly `development` or `test`. Anything else, including an unset

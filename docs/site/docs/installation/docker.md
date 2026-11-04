@@ -306,6 +306,8 @@ docker compose up -d
 Your data is stored in the `inkweld_data` volume and persists across container updates. Database migrations run automatically on startup.
 :::
 
+If the updated container exits at startup, check `docker logs inkweld`: the image needs `SESSION_SECRET` and `WEBAUTHN_RP_ID` (see [Troubleshooting](#container-wont-start)).
+
 ## Backup and Restore
 
 ### Creating Backups
@@ -353,8 +355,9 @@ docker logs inkweld
 Common issues:
 
 - **Port already in use**: Change the port mapping (e.g., `-p 9000:8333`)
-- **Invalid SESSION_SECRET**: Must be at least 32 characters
+- **`DATABASE_KEY or SESSION_SECRET must be set`**, **`must be at least 32 characters`**, **`is set to the built-in development key`** or **`is set to a sample value from the Inkweld documentation`**: Add `-e SESSION_SECRET=<output of openssl rand -hex 32>` and keep the value. If you also set `DATABASE_KEY`, it is the one used, so the same applies to it. If the server ran without a secret of its own before, setting one signs everyone out once; settings stored encrypted move to the new key automatically
 - **`WEBAUTHN_RP_ID must be set in production`**: Add `-e WEBAUTHN_RP_ID=<your hostname>` (or `localhost` for a local trial)
+- **Passkey sign-in fails with `ALLOWED_ORIGINS contains "*"`**: List the URLs users open Inkweld from in `ALLOWED_ORIGINS` instead of `*`
 
 ### WebSocket connection fails
 

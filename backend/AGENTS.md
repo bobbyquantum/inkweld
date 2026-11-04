@@ -10,6 +10,15 @@ LevelDB per project for Yjs documents (Durable Objects on Workers). The root
 - **Run on Bun**: `bun run dev` (localhost:8333), `bun test`, `bun run lint`.
   Not `npm` or `node`.
 - **Type imports**: import Hono and Request/Response types with `import type`.
+- **NODE_ENV**: read it through `config/runtime-env.ts`, never as
+  `process.env.NODE_ENV` or `process.env['NODE_ENV']`: Bun's bundler replaces
+  both with their build-time value, so the compiled Docker binary would keep
+  the build machine's environment. Security-relevant decisions use
+  `runtimeEnv(c.env)`: pass the request's bindings (on Workers `[vars]` are not
+  in `process.env`), and a Worker without a NODE_ENV binding counts as
+  production. `configuredNodeEnv()` also falls back to the value Wrangler wrote
+  into the bundle, so it is only for the log format and the switches the
+  Wrangler e2e backend turns off with NODE_ENV=test.
 - Follow Hono middleware patterns; validate requests and responses with
   OpenAPI/Zod schemas (`src/schemas/`); return proper HTTP status codes.
 - **API changes** need the OpenAPI spec and Angular client regenerated (see the
@@ -165,6 +174,22 @@ Docs: `docs/site/docs/developer/mcp-oauth.md`.
 
 ## Auth and accounts
 
+- **Signing key**: session tokens, MCP OAuth tokens, the MCP layer's own
+  tokens and the Durable Object all get it from `signingSecret(c.env)`
+  (`config/signing-secret.ts`), never from `config.databaseKey` directly. The
+  rule is `chooseSigningKey` in `config/env.ts`: DATABASE_KEY, else
+  SESSION_SECRET. Outside development/test, no key, the development key or a
+  sample value from the docs (`PUBLISHED_KEYS`) is refused; a key shorter than
+  32 characters is refused everywhere, except that a short DATABASE_KEY is
+  passed over for a usable SESSION_SECRET (with a warning), because it still
+  encrypts stored settings. A refusal throws `SigningSecretError` (a generic
+  500 and one log line). Bun and Node also check at start-up, more strictly:
+  a short DATABASE_KEY stops them. Resolve the key outside any `try` that turns
+  failures into "invalid token" (the Durable Object answers with
+  `access-denied:error` or a 500), so a missing key is a server error and
+  clients keep their tokens. When the list of sample values changes, keep
+  `SAMPLE_SECRETS` in step: `configService` also reads settings stored under
+  any published key and stores them again under the configured one.
 - Passkey ceremonies must use `rpFromRequest(c)`, not `rpFromContext(c)`, so
   the hosted app's origin is accepted when `ALLOW_INKWELD_APP_CLIENT` is on.
   A new origin check must include `getInkweldAppClientOrigins()` too. Passkey

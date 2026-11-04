@@ -15,6 +15,9 @@ import { eq } from 'drizzle-orm';
 import { join } from 'node:path';
 import * as schema from '../src/db/schema';
 import { mcpOAuthService, OAuthError } from '../src/services/mcp-oauth.service';
+import { SigningSecretError } from '../src/config/signing-secret';
+import { DEV_FALLBACK_SECRET } from '../src/config/env';
+import { sign } from 'hono/jwt';
 import { userService } from '../src/services/user.service';
 import { mcpOAuthClients } from '../src/db/schema/mcp-oauth-clients';
 import { mcpOAuthCodes } from '../src/db/schema/mcp-oauth-codes';
@@ -756,6 +759,48 @@ describe('OAuthError', () => {
   it('should accept custom status code', () => {
     const err = new OAuthError('access_denied', 'Forbidden', 403);
     expect(err.statusCode).toBe(403);
+  });
+});
+
+describe('MCP OAuth Service - verifyAccessToken signing key', () => {
+  function accessToken(key: string): Promise<string> {
+    const now = Math.floor(Date.now() / 1000);
+    return sign({ sub: 'user-1', session_id: 's-1', iat: now, exp: now + 600 }, key, 'HS256');
+  }
+
+  it('reports an unusable key as an error, not as an invalid token', async () => {
+    const token = await accessToken('k'.repeat(32));
+    await expect(
+      mcpOAuthService.verifyAccessToken(token, { DATABASE_KEY: 'short' })
+    ).rejects.toThrow(SigningSecretError);
+  });
+
+  it('never verifies with the development key when the bindings say production', async () => {
+    const token = await accessToken(DEV_FALLBACK_SECRET);
+    await expect(
+      mcpOAuthService.verifyAccessToken(token, {
+        NODE_ENV: 'production',
+        SESSION_SECRET: DEV_FALLBACK_SECRET,
+      })
+    ).rejects.toThrow(SigningSecretError);
+  });
+
+  it('verifies with the configured key', async () => {
+    const key = 'k'.repeat(32);
+    const payload = await mcpOAuthService.verifyAccessToken(await accessToken(key), {
+      SESSION_SECRET: key,
+    });
+    expect(payload?.sub).toBe('user-1');
+  });
+
+  it('never verifies with a sample key from the docs when the bindings say production', async () => {
+    const key = 'placeholder-set-via-wrangler-secret';
+    await expect(
+      mcpOAuthService.verifyAccessToken(await accessToken(key), {
+        NODE_ENV: 'production',
+        SESSION_SECRET: key,
+      })
+    ).rejects.toThrow(SigningSecretError);
   });
 });
 

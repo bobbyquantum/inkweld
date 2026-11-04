@@ -33,6 +33,7 @@ import {
 import { writeSyncStep1 } from 'y-protocols/sync';
 import { WSSharedDoc } from 'y-durableobjects';
 import * as Y from 'yjs';
+import { signingSecret } from '../config/signing-secret';
 import { logger } from '../services/logger.service';
 import { setYMapPath, yMapPathConflict } from '../utils/yjs-map-path';
 import { mirrorCanvasToElement } from '@inkweld/canvas';
@@ -373,36 +374,36 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
   }
 
   /**
-   * Get the JWT secret from environment
+   * Get the JWT secret from environment. Resolved by signingSecret(), the same
+   * rule the Worker signs with, so its tokens verify here.
    */
   private getSecret(): string {
-    // DATABASE_KEY overrides SESSION_SECRET when set
-    const secret = this.env.DATABASE_KEY || this.env.SESSION_SECRET;
     projDOLog.debug('getSecret check', {
       hasDatabaseKey: !!this.env.DATABASE_KEY,
       hasSessionSecret: !!this.env.SESSION_SECRET,
-      secretLength: secret?.length ?? 0,
     });
-    if (!secret || secret.length < 32) {
-      throw new Error('DATABASE_KEY must be at least 32 characters');
-    }
-    return secret;
+    return signingSecret(this.env);
   }
 
   /**
    * Verify a JWT token
    * Note: We use a simple base64 decode + HMAC verify approach
    * since hono/jwt is not available in the DO context
+   *
+   * Throws SigningSecretError when the object has no usable signing key: that
+   * is a server error, not an invalid token, so callers must not answer it
+   * like one (the client would stop retrying and drop its token).
    */
   private async verifyToken(token: string): Promise<SessionData | null> {
-    try {
-      if (!token) return null;
+    if (!token) return null;
 
+    // Outside the try below, which turns every failure into "invalid token".
+    const secret = this.getSecret();
+
+    try {
       // JWT format: header.payload.signature
       const parts = token.split('.');
       if (parts.length !== 3) return null;
-
-      const secret = this.getSecret();
 
       // Decode payload (base64url)
       const payloadB64 = parts[1].replaceAll('-', '+').replaceAll('_', '/');
@@ -500,6 +501,19 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
   }
 
   /**
+   * verifyToken() for the HTTP API. A missing signing key is answered with a
+   * 500 here: letting it reject would reject the object's `fetch`.
+   */
+  private async verifyHttpToken(token: string): Promise<SessionData | null | Response> {
+    try {
+      return await this.verifyToken(token);
+    } catch (error) {
+      projDOLog.error('Token check failed', error);
+      return jsonResponse({ error: 'Internal server error' }, 500);
+    }
+  }
+
+  /**
    * HTTP API for MCP and other non-WebSocket access to Yjs documents
    * Endpoints:
    * - GET /api/elements?documentId=... - Get elements array
@@ -523,7 +537,8 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
 
     const token = authHeader.substring(7);
     console.log('[DO-HTTP] Verifying token...');
-    const session = await this.verifyToken(token);
+    const session = await this.verifyHttpToken(token);
+    if (session instanceof Response) return session;
     if (!session) {
       console.log('[DO-HTTP] Invalid token');
       return new Response(JSON.stringify({ error: 'Invalid token' }), {

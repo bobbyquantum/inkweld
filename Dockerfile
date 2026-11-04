@@ -143,10 +143,15 @@ RUN bun scripts/generate-frontend-imports.ts
 # Build TypeScript and compile to single binary
 # The --compile flag creates a standalone executable with embedded Bun runtime
 # The patched native module is embedded because it's now a static require
+# Bun's bundler replaces `process.env.NODE_ENV` with its value at build time,
+# so the compile runs with the NODE_ENV the image runs with. It is set on that
+# command only, not as a stage ENV, so the `bun install` steps above keep
+# devDependencies. Inkweld's own code reads NODE_ENV at run time
+# (src/config/runtime-env.ts); this keeps bundled dependencies in step.
 RUN BUN_TARGET=$([ "${TARGETARCH}" = "arm64" ] && echo "bun-linux-arm64" || echo "bun-linux-x64") && \
   echo "Compiling with target: $BUN_TARGET" && \
   bun run build && \
-  bun build --compile --minify --sourcemap \
+  NODE_ENV=production bun build --compile --minify --sourcemap \
   --target="$BUN_TARGET" \
   ./src/bun-runner.ts \
   --outfile ./inkweld-server

@@ -1,10 +1,33 @@
-import { eq, inArray, sql } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'node:crypto';
-import { config as envConfig } from '../config/env';
+import { config as envConfig, PUBLISHED_KEYS } from '../config/env';
 import { config, CONFIG_KEYS, type ConfigKey, type ConfigCategory } from '../db/schema/config';
 import type { DatabaseInstance } from '../types/context';
 import { DEFAULT_SYNC_QUOTA_BYTES } from '../utils/sync-quota';
 import { logger } from './logger.service';
+
+/** A stored `salt:iv:authTag:encrypted` value, decoded. */
+interface EncryptedParts {
+  salt: Buffer;
+  iv: Buffer;
+  authTag: Buffer;
+  encrypted: Buffer;
+}
+
+/** An encrypted value read with a published key, to store again under the active key. */
+interface StoredRead {
+  key: ConfigKey;
+  ciphertext: string;
+  value: string;
+}
+
+/** A database row as `resolve` reads it. */
+type StoredRow = {
+  value: string;
+  encrypted: boolean;
+  category: string;
+  description: string | null;
+};
 
 /**
  * Configuration value with metadata
@@ -49,18 +72,27 @@ class ConfigService {
   // in worker-app.ts so that encryption/decryption uses the real secret.
   private databaseKeyOverride: string | undefined;
 
+  // Stored values that no key could decrypt, so reading them again does not
+  // repeat the attempts with the published keys (see decrypt()).
+  private readonly undecryptable = new Set<string>();
+
   /**
    * Set the database encryption key at runtime (used by Workers middleware).
    */
   setDatabaseKey(key: string): void {
     this.databaseKeyOverride = key;
+    this.undecryptable.clear();
+  }
+
+  /** The key stored values are encrypted with: DATABASE_KEY, else SESSION_SECRET. */
+  private activeDatabaseKey(): string {
+    return this.databaseKeyOverride || envConfig.databaseKey;
   }
 
   /**
    * Derive encryption key from the database key using scrypt
    */
-  private deriveKey(salt: Buffer): Buffer {
-    const databaseKey = this.databaseKeyOverride || envConfig.databaseKey;
+  private deriveKey(salt: Buffer, databaseKey = this.activeDatabaseKey()): Buffer {
     return scryptSync(databaseKey, salt, this.keyLength);
   }
 
@@ -89,28 +121,78 @@ class ConfigService {
   }
 
   /**
-   * Decrypt a stored value
+   * Decrypt a stored value's parts with the key derived from `databaseKey`.
+   * Throws when that is not the key the value was encrypted with.
    */
-  private decrypt(ciphertext: string): string {
+  private decryptWith(parts: EncryptedParts, databaseKey: string): string {
+    const key = this.deriveKey(parts.salt, databaseKey);
+
+    const decipher = createDecipheriv(this.algorithm, key, parts.iv, {
+      authTagLength: this.authTagLength,
+    });
+    decipher.setAuthTag(parts.authTag);
+
+    return decipher.update(parts.encrypted) + decipher.final('utf8');
+  }
+
+  /**
+   * Decrypt a stored value with the active key.
+   *
+   * A server that ran without a key of its own, or with a sample value from
+   * the docs, stored its values encrypted with one of the keys published in
+   * this repository (PUBLISHED_KEYS). When the active key cannot decrypt a
+   * value, those keys are tried; `reencrypt` then tells the caller to store
+   * the value again under the active key.
+   */
+  private decrypt(ciphertext: string): { value: string; reencrypt: boolean } {
     const parts = ciphertext.split(':');
     if (parts.length !== 4) {
       throw new Error('Invalid encrypted value format');
     }
 
-    const [saltB64, ivB64, authTagB64, encryptedB64] = parts;
-    const salt = Buffer.from(saltB64, 'base64');
-    const iv = Buffer.from(ivB64, 'base64');
-    const authTag = Buffer.from(authTagB64, 'base64');
-    const encrypted = Buffer.from(encryptedB64, 'base64');
+    const [salt, iv, authTag, encrypted] = parts.map((part) => Buffer.from(part, 'base64'));
+    const encryptedParts: EncryptedParts = { salt, iv, authTag, encrypted };
+    const activeKey = this.activeDatabaseKey();
+    try {
+      return { value: this.decryptWith(encryptedParts, activeKey), reencrypt: false };
+    } catch (error) {
+      // Only a server running with a key of its own moves values off the
+      // published keys; between those (development, test) nothing moves.
+      if (PUBLISHED_KEYS.includes(activeKey) || this.undecryptable.has(ciphertext)) throw error;
+      for (const publishedKey of PUBLISHED_KEYS) {
+        try {
+          return { value: this.decryptWith(encryptedParts, publishedKey), reencrypt: true };
+        } catch {
+          // Not encrypted with this one either.
+        }
+      }
+      this.undecryptable.add(ciphertext);
+      throw error;
+    }
+  }
 
-    const key = this.deriveKey(salt);
-
-    const decipher = createDecipheriv(this.algorithm, key, iv, {
-      authTagLength: this.authTagLength,
-    });
-    decipher.setAuthTag(authTag);
-
-    return decipher.update(encrypted) + decipher.final('utf8');
+  /**
+   * Store values that decrypt() read with a published key again, encrypted
+   * with the active key. Only a row still holding the value that was read is
+   * updated, so a value an admin saved in the meantime is kept. A failure is
+   * logged and leaves the row as it was; the value is still returned.
+   */
+  private async reencryptStored(db: DatabaseInstance, reads: readonly StoredRead[]): Promise<void> {
+    await Promise.all(
+      reads.map(async ({ key, ciphertext, value }) => {
+        try {
+          await db
+            .update(config)
+            .set({ value: this.encrypt(value), updatedAt: new Date() })
+            .where(and(eq(config.key, key), eq(config.value, ciphertext)));
+          logger.info('Config', `Re-encrypted the stored ${key} with the configured key`);
+        } catch (error) {
+          logger.warn('Config', `Could not re-encrypt the stored ${key}`, {
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      })
+    );
   }
 
   /**
@@ -218,7 +300,10 @@ class ConfigService {
    */
   async get(db: DatabaseInstance, key: ConfigKey): Promise<ConfigValue> {
     const dbValue = await db.select().from(config).where(eq(config.key, key)).get();
-    return this.resolve(key, dbValue);
+    const reads: StoredRead[] = [];
+    const value = this.resolve(key, dbValue, reads);
+    await this.reencryptStored(db, reads);
+    return value;
   }
 
   /**
@@ -240,18 +325,23 @@ class ConfigService {
             .where(inArray(config.key, [...keys]));
     const byKey = new Map(rows.map((row) => [row.key, row] as const));
     const result = {} as Record<K, ConfigValue>;
+    const reads: StoredRead[] = [];
     for (const key of keys) {
-      result[key] = this.resolve(key, byKey.get(key));
+      result[key] = this.resolve(key, byKey.get(key), reads);
     }
+    await this.reencryptStored(db, reads);
     return result;
   }
 
-  /** Apply the database → environment → default precedence for one key. */
+  /**
+   * Apply the database → environment → default precedence for one key.
+   * Encrypted values that decrypt() read with a published key are added to
+   * `reads`, for the caller to store again under the active key.
+   */
   private resolve(
     key: ConfigKey,
-    dbValue:
-      | { value: string; encrypted: boolean; category: string; description: string | null }
-      | undefined
+    dbValue: StoredRow | undefined,
+    reads?: StoredRead[]
   ): ConfigValue {
     const keyConfig = CONFIG_KEYS[key];
 
@@ -259,7 +349,11 @@ class ConfigService {
       let value = dbValue.value;
       if (dbValue.encrypted) {
         try {
-          value = this.decrypt(value);
+          const decrypted = this.decrypt(value);
+          if (decrypted.reencrypt) {
+            reads?.push({ key, ciphertext: dbValue.value, value: decrypted.value });
+          }
+          value = decrypted.value;
         } catch {
           // If decryption fails, fall back to env/default
           logger.warn('Config', `Failed to decrypt config value for ${key}, using default`);

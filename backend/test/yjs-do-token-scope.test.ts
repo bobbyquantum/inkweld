@@ -1,4 +1,7 @@
 import { afterEach, beforeAll, describe, expect, it, mock, spyOn } from 'bun:test';
+import { sign } from 'hono/jwt';
+import { DEV_FALLBACK_SECRET, SAMPLE_SECRETS } from '../src/config/env';
+import { SigningSecretError } from '../src/config/signing-secret';
 
 /**
  * Token-scope tests for the Yjs Durable Object's auth handshake.
@@ -89,6 +92,7 @@ let collaborationService: { checkAccess: (...args: unknown[]) => Promise<unknown
 let userService: { findById: (...args: unknown[]) => Promise<unknown> };
 
 interface DoInternals {
+  fetch(request: Request): Promise<Response>;
   handleAuthMessage(ws: unknown, connInfo: unknown, token: string): Promise<void>;
   verifyToken(token: string): Promise<Record<string, unknown> | null>;
 }
@@ -199,6 +203,82 @@ describe('YjsProject DO token scope', () => {
 
     // The owner is admitted: auth succeeds before any doc setup.
     expect(ws.sent[0]).toBe('authenticated');
+  });
+
+  describe('without a usable signing key', () => {
+    // A server error, not an invalid token: the client keeps its token and
+    // retries instead of treating the session as revoked.
+    const sessionToken = () => signJwt({ userId: 'user-1', username: 'alice', exp: exp() });
+
+    it('reports a key shorter than 32 characters as an error', async () => {
+      const token = await sessionToken();
+      await expect(makeDO({ DATABASE_KEY: 'short' }).verifyToken(token)).rejects.toThrow(
+        SigningSecretError
+      );
+    });
+
+    it('answers the WebSocket with a server error', async () => {
+      const ws = makeWs();
+      await makeDO({ DATABASE_KEY: 'short' }).handleAuthMessage(
+        ws,
+        makeConnInfo('alice:proj:elements'),
+        await sessionToken()
+      );
+
+      expect(ws.sent).toEqual(['access-denied:error']);
+      expect(ws.closes).toEqual([
+        { code: closeCodes.WS_CLOSE_SERVER_ERROR, reason: 'Authentication error' },
+      ]);
+    });
+
+    it('answers an HTTP request with a 500', async () => {
+      const res = await makeDO({ DATABASE_KEY: 'short' }).fetch(
+        new Request('https://yjs-do/api/document?documentId=alice:proj:elements', {
+          headers: { Authorization: `Bearer ${await sessionToken()}` },
+        })
+      );
+
+      expect(res.status).toBe(500);
+      expect(await res.json()).toEqual({ error: 'Internal server error' });
+    });
+
+    it('still treats a malformed token as invalid once the key is usable', async () => {
+      expect(await makeDO().verifyToken('not-a-jwt')).toBeNull();
+    });
+  });
+
+  it('verifies with the development key only in development and test', async () => {
+    const token = await sign(
+      { userId: 'user-1', username: 'alice', exp: exp() },
+      DEV_FALLBACK_SECRET,
+      'HS256'
+    );
+    const withDevKey = (NODE_ENV: string) =>
+      makeDO({ DATABASE_KEY: DEV_FALLBACK_SECRET, NODE_ENV });
+
+    await expect(withDevKey('production').verifyToken(token)).rejects.toThrow(SigningSecretError);
+    await expect(withDevKey('preview').verifyToken(token)).rejects.toThrow(SigningSecretError);
+    expect((await withDevKey('development').verifyToken(token))?.userId).toBe('user-1');
+  });
+
+  it('refuses the sample keys from the docs outside development and test', async () => {
+    const withSample = (key: string, NODE_ENV: string) =>
+      makeDO({ DATABASE_KEY: undefined, SESSION_SECRET: key, NODE_ENV });
+    await Promise.all(
+      SAMPLE_SECRETS.map(async (key) => {
+        const token = await sign({ userId: 'user-1', username: 'alice', exp: exp() }, key, 'HS256');
+        await expect(withSample(key, 'production').verifyToken(token)).rejects.toThrow(
+          SigningSecretError
+        );
+        expect((await withSample(key, 'test').verifyToken(token))?.userId).toBe('user-1');
+      })
+    );
+  });
+
+  it('signs with SESSION_SECRET when DATABASE_KEY is too short', async () => {
+    const token = await signJwt({ userId: 'user-1', username: 'alice', exp: exp() });
+    const doInstance = makeDO({ DATABASE_KEY: 'short', SESSION_SECRET: SECRET });
+    expect((await doInstance.verifyToken(token))?.userId).toBe('user-1');
   });
 
   it('accepts the DO JWT the Worker mints for MCP tool calls', async () => {
