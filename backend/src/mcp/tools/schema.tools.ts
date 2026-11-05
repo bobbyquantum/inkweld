@@ -36,6 +36,7 @@ import {
   stampRelationshipTypeIds,
   validateTabs,
 } from './schema-editing';
+import { DESTRUCTIVE_TOOL, WRITE_TOOL } from '../tool-annotations';
 
 const mcpSchemaLog = logger.child('MCP-Schemas');
 
@@ -248,12 +249,7 @@ registerTool({
   tool: {
     name: 'create_schema',
     title: 'Create Schema',
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: false,
-      openWorldHint: false,
-    },
+    annotations: WRITE_TOOL,
     description:
       'Create a worldbuilding element type (schema/template, e.g. "Faction", "Spell") in a project. ' +
       'Give it tabs of fields, or clone an existing schema with cloneFromSchemaId. Every element already has ' +
@@ -382,12 +378,7 @@ registerTool({
   tool: {
     name: 'update_schema',
     title: 'Update Schema',
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: false,
-      openWorldHint: false,
-    },
+    annotations: WRITE_TOOL,
     description:
       'Edit a worldbuilding schema (template): rename it, change its icon, description or defaults, and add, ' +
       'change, move or remove tabs and fields. Prefer `operations` for targeted edits; `tabs` replaces every ' +
@@ -564,12 +555,7 @@ registerTool({
   tool: {
     name: 'delete_schema',
     title: 'Delete Schema',
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: true,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
+    annotations: DESTRUCTIVE_TOOL,
     description:
       'Delete a worldbuilding schema (template) from a project. Also deletes the relationship types behind ' +
       'its relationship fields and every relationship made through them. Elements of this type are not ' +

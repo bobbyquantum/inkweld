@@ -51,7 +51,8 @@ LevelDB per project for Yjs documents (Durable Objects on Workers). The root
   misses other edits, and overlapping copies leave the element in the project
   several times.
 - **MCP tool annotations**: every tool sets all four hints (`readOnlyHint`,
-  `destructiveHint`, `idempotentHint`, `openWorldHint`). A missing hint means
+  `destructiveHint`, `idempotentHint`, `openWorldHint`) by picking a preset
+  from `mcp/tool-annotations.ts` (`READ_ONLY_TOOL`, `WRITE_TOOL`, …). A missing hint means
   the MCP default, and a non-read-only tool then counts as destructive, so
   clients (voice ones especially) ask before every call. `destructiveHint` is
   for tools that delete or wholesale replace data (`delete_*`,

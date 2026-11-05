@@ -33,6 +33,7 @@ import { rethrowDocumentReadError } from '../../services/yjs-worker.service';
 import type { DatabaseInstance } from '../../types/context';
 import { canvasToolProperties, errorResult, openCanvas, readElementId } from './canvas.tools';
 import { parseProjectParam } from './search.tools';
+import { READ_ONLY_TOOL, WRITE_TOOL } from '../tool-annotations';
 
 const mcpRenderLog = logger.child('MCP-CanvasRender');
 
@@ -188,12 +189,7 @@ registerTool({
   tool: {
     name: 'render_canvas',
     title: 'Render Canvas',
-    annotations: {
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: false,
-    },
+    annotations: READ_ONLY_TOOL,
     description: `${RENDER_CANVAS_DESCRIPTION}
 
 The server draws this image as a close preview: text in the fonts that ship with Inkweld matches the app, but kerning and antialiasing differ slightly, so a line very close to its width can break differently. A web browser's own render is the final word. Drawing is limited to about ${MAX_RENDERS_PER_MINUTE} images a minute per account, counting save_canvas_image, and a few at once.`,
@@ -234,12 +230,7 @@ registerTool({
   tool: {
     name: 'save_canvas_image',
     title: 'Save Canvas Image',
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: false,
-      openWorldHint: false,
-    },
+    annotations: WRITE_TOOL,
     description: `Draw a canvas as render_canvas does, and keep the PNG in the project's media. Use the mediaUrl it returns wherever an image goes: for example, apply_image with source "media" and target "projectCover" makes it the project cover.
 
 Takes the same arguments as render_canvas. Use a larger maxSize for an image people will see: a cover wants the longest side at 2048.`,
