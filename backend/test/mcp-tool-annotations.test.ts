@@ -78,6 +78,12 @@ describe('MCP tool annotations', () => {
     }
   });
 
+  it('marks only apply_image as open-world', async () => {
+    const tools = await listTools();
+    const openWorld = tools.filter((t) => t.annotations?.openWorldHint).map((t) => t.name);
+    expect(openWorld).toEqual(['apply_image']);
+  });
+
   it('does not mark update tools destructive', async () => {
     const tools = await listTools();
     for (const tool of tools.filter((t) => t.name.startsWith('update_'))) {
