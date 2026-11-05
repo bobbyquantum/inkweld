@@ -36,6 +36,7 @@ import {
   stampRelationshipTypeIds,
   validateTabs,
 } from './schema-editing';
+import { DESTRUCTIVE_TOOL, WRITE_TOOL } from '../tool-annotations';
 
 const mcpSchemaLog = logger.child('MCP-Schemas');
 
@@ -248,6 +249,7 @@ registerTool({
   tool: {
     name: 'create_schema',
     title: 'Create Schema',
+    annotations: WRITE_TOOL,
     description:
       'Create a worldbuilding element type (schema/template, e.g. "Faction", "Spell") in a project. ' +
       'Give it tabs of fields, or clone an existing schema with cloneFromSchemaId. Every element already has ' +
@@ -284,7 +286,6 @@ registerTool({
       },
       required: ['project', 'name'],
     },
-    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
   },
   requiredPermissions: [MCP_PERMISSIONS.WRITE_SCHEMAS],
   async execute(
@@ -377,11 +378,12 @@ registerTool({
   tool: {
     name: 'update_schema',
     title: 'Update Schema',
+    annotations: WRITE_TOOL,
     description:
       'Edit a worldbuilding schema (template): rename it, change its icon, description or defaults, and add, ' +
       'change, move or remove tabs and fields. Prefer `operations` for targeted edits; `tabs` replaces every ' +
       'tab at once. Removing a relationship field (or changing its type) also deletes its relationship type and ' +
-      'every relationship made through it. Renaming a field key does not move data elements stored under the ' +
+      'every relationship made through it, so this is potentially destructive depending on the edit. Renaming a field key does not move data elements stored under the ' +
       `old key. ${SHARED_SCHEMA_NOTE}`,
     inputSchema: {
       type: 'object',
@@ -449,7 +451,6 @@ registerTool({
       },
       required: ['project', 'schemaId'],
     },
-    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
   },
   requiredPermissions: [MCP_PERMISSIONS.WRITE_SCHEMAS],
   async execute(
@@ -554,6 +555,7 @@ registerTool({
   tool: {
     name: 'delete_schema',
     title: 'Delete Schema',
+    annotations: DESTRUCTIVE_TOOL,
     description:
       'Delete a worldbuilding schema (template) from a project. Also deletes the relationship types behind ' +
       'its relationship fields and every relationship made through them. Elements of this type are not ' +
@@ -569,7 +571,6 @@ registerTool({
       },
       required: ['project', 'schemaId'],
     },
-    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true },
   },
   requiredPermissions: [MCP_PERMISSIONS.WRITE_SCHEMAS],
   async execute(
