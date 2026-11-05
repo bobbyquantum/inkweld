@@ -34,6 +34,12 @@ registerTool({
   tool: {
     name: 'list_projects',
     title: 'List Projects',
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     description:
       'List the projects you are authorized to access, with your role and permissions for each. ' +
       'Call this FIRST to discover project keys ("username/slug"), which every other tool needs ' +
@@ -73,6 +79,12 @@ registerTool({
   tool: {
     name: 'get_project_schemas',
     title: 'Get Project Schemas',
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     description:
       'Get the worldbuilding element types (schemas/templates, e.g. Character, Location) defined for a project, ' +
       "with each one's id, name, icon, description, tabs/fields and defaults. Call this before create_element " +

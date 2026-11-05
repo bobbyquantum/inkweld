@@ -107,6 +107,12 @@ registerTool({
   tool: {
     name: 'get_canvas',
     title: 'Get Canvas',
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     description: GET_CANVAS_DESCRIPTION,
     inputSchema: {
       type: 'object',
@@ -116,7 +122,6 @@ registerTool({
       },
       required: ['project', 'elementId'],
     },
-    annotations: { readOnlyHint: true },
   },
   requiredPermissions: [MCP_PERMISSIONS.READ_ELEMENTS],
   async execute(
@@ -187,6 +192,12 @@ registerTool({
   tool: {
     name: 'edit_canvas',
     title: 'Edit Canvas',
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
     description: `${EDIT_CANVAS_DESCRIPTION}
 
 To place an image from a file on disk, call create_media_upload first, upload the file to the URL it returns, and use its mediaUrl as src.`,
@@ -198,7 +209,6 @@ To place an image from a file on disk, call create_media_upload first, upload th
       },
       required: ['project', 'elementId'],
     },
-    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
   },
   requiredPermissions: [MCP_PERMISSIONS.WRITE_ELEMENTS],
   async execute(

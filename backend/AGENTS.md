@@ -50,6 +50,13 @@ LevelDB per project for Yjs documents (Durable Objects on Workers). The root
   which on Workers leaves it to the Durable Object. Mirroring on a Worker's copy
   misses other edits, and overlapping copies leave the element in the project
   several times.
+- **MCP tool annotations**: every tool sets all four hints (`readOnlyHint`,
+  `destructiveHint`, `idempotentHint`, `openWorldHint`). A missing hint means
+  the MCP default, and a non-read-only tool then counts as destructive, so
+  clients (voice ones especially) ask before every call. `destructiveHint` is
+  for tools that delete or wholesale replace data (`delete_*`,
+  `replace_all_elements`); updates, creates and moves stay `false`.
+  `backend/test/mcp-tool-annotations.test.ts` enforces this.
 - **MCP upload URLs** (`routes/mcp-upload.routes.ts`) authenticate by the token
   in the path, since the caller is an agent's HTTP tool. Anything added there
   must re-check what the token was issued against. A URL works once because

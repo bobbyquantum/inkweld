@@ -70,6 +70,12 @@ registerTool({
   tool: {
     name: 'get_document_outline',
     title: 'Get Document Outline',
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     description: `List the sections of a document: one per top-level heading, in document order, with its level, its path of enclosing headings and its size. A section runs from its heading to the next heading of the same or a higher level, so it includes its subsections. Section 0 is the content before the first heading.
 
 Use it before get_document_content or update_document_section with a section, to read or edit one part of a long document without sending the whole text.`,
@@ -81,7 +87,6 @@ Use it before get_document_content or update_document_section with a section, to
       },
       required: ['project', 'elementId'],
     },
-    annotations: { readOnlyHint: true },
   },
   requiredPermissions: [MCP_PERMISSIONS.READ_ELEMENTS],
   async execute(
@@ -139,6 +144,12 @@ registerTool({
   tool: {
     name: 'update_document_section',
     title: 'Update Document Section',
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
     description: `Edit one section of a document element, leaving the rest of the text untouched. Prefer this to update_document_content for changes to part of a long document: only the changed blocks are rewritten, so comments and concurrent edits elsewhere are kept.
 
 A section starts at a top-level heading and runs to the next heading of the same or a higher level, so it includes its subsections. Section 0 is the content before the first heading (for a document without headings, all of it). Name the section with section (heading text or a path like "Part One > Chapter 2") or sectionIndex (from get_document_outline); get_document_content with the same arguments reads it.
@@ -177,7 +188,6 @@ Content uses the same formats as update_document_content: "prosemirror_xml" (def
       },
       required: ['project', 'elementId', 'operation'],
     },
-    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
   },
   requiredPermissions: [MCP_PERMISSIONS.WRITE_ELEMENTS],
   async execute(

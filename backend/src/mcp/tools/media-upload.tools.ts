@@ -30,6 +30,12 @@ registerTool({
   tool: {
     name: 'create_media_upload',
     title: 'Create Media Upload',
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
     description: `Get a URL for uploading an image file to a project's media, so its bytes do not have to pass through this conversation. Use it for any image on disk.
 
 PUT the file to uploadUrl with your HTTP tool, for example: curl --fail --upload-file picture.png "<uploadUrl>". No other authentication is needed. The URL works once, for ${MEDIA_UPLOAD_TOKEN_TTL_SECONDS / 60} minutes, and the file must really be in the format you name.
@@ -51,7 +57,6 @@ Then use mediaUrl wherever an image goes: as src of an image in edit_canvas, or 
       },
       required: ['project', 'format'],
     },
-    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
   },
   requiredPermissions: [MCP_PERMISSIONS.WRITE_ELEMENTS],
   async execute(

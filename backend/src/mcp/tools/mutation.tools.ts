@@ -234,6 +234,12 @@ registerTool({
   tool: {
     name: 'create_element',
     title: 'Create Element',
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
     description: `Create a new element in the project tree. Returns the ID of the created element.
 
 IMPORTANT: Elements use positional hierarchy. The new element will be inserted:
@@ -458,6 +464,12 @@ registerTool({
   tool: {
     name: 'replace_all_elements',
     title: 'Replace All Elements',
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: true,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     description: `Replace all elements in the project with a new set.
 
 CRITICAL: Elements must be in correct positional order:
@@ -587,6 +599,12 @@ registerTool({
   tool: {
     name: 'update_element',
     title: 'Update Element',
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     description: `Update an existing element's properties (name, type).
 
 NOTE: To change an element's parent or position, use move_elements instead.
@@ -721,6 +739,12 @@ registerTool({
   tool: {
     name: 'delete_element',
     title: 'Delete Element',
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: true,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     description: `Delete an element from the project.
 
 WARNING: This also deletes all POSITIONAL descendants (children that follow
@@ -814,6 +838,12 @@ registerTool({
   tool: {
     name: 'move_elements',
     title: 'Move Elements',
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     description: `Move one or more elements to a different parent folder.
 
 This properly handles the positional hierarchy:
@@ -1013,6 +1043,12 @@ registerTool({
   tool: {
     name: 'reorder_element',
     title: 'Reorder Element',
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     description: `Move an element to a different position within its parent (reorder siblings).
 
 This uses positional hierarchy - it moves the element (and its subtree)
@@ -1161,6 +1197,12 @@ registerTool({
   tool: {
     name: 'sort_elements',
     title: 'Sort Elements',
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     description: `Sort children of a folder alphabetically or by type.
 
 This properly handles positional hierarchy - subtrees move with their parents.`,
@@ -1330,6 +1372,12 @@ registerTool({
   tool: {
     name: 'update_worldbuilding',
     title: 'Update Worldbuilding Data',
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     description:
       'Update worldbuilding fields for a character, location, or other worldbuilding element. ' +
       'An element has two kinds of data: identity fields shared by every element ("description", "image", ' +
@@ -1454,6 +1502,12 @@ registerTool({
   tool: {
     name: 'update_document_content',
     title: 'Update Document Content',
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     description: `Replace the prose content of a document element. Supports two input formats:
 
 - "prosemirror_xml" (default): Inkweld's canonical XML format. Use tags like <paragraph>, <heading level="1">, <blockquote>, <bullet_list><list_item>...</list_item></bullet_list>, <table><table_row><table_header>...</table_header></table_row></table>, etc.
@@ -1631,6 +1685,12 @@ registerTool({
   tool: {
     name: 'create_relationship',
     title: 'Create Relationship',
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
     description:
       'Create a relationship between two elements (e.g., character knows another character)',
     inputSchema: {
@@ -1738,6 +1798,12 @@ registerTool({
   tool: {
     name: 'delete_relationship',
     title: 'Delete Relationship',
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: true,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     description: 'Delete a relationship between elements',
     inputSchema: {
       type: 'object',
@@ -1833,6 +1899,12 @@ registerTool({
   tool: {
     name: 'tag_element',
     title: 'Tag Element',
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
     description:
       'Add or remove tags on an element. Tags are stored in element metadata and can be used for filtering and organization.',
     inputSchema: {
@@ -1978,6 +2050,12 @@ registerTool({
   tool: {
     name: 'create_snapshot',
     title: 'Create Snapshot',
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
     description:
       'Create a snapshot of a document to save its current state. Snapshots can be used to restore content or compare versions.',
     inputSchema: {
