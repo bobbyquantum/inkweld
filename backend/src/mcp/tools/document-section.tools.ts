@@ -150,7 +150,7 @@ registerTool({
       idempotentHint: false,
       openWorldHint: false,
     },
-    description: `Edit one section of a document element, leaving the rest of the text untouched. Prefer this to update_document_content for changes to part of a long document: only the changed blocks are rewritten, so comments and concurrent edits elsewhere are kept.
+    description: `Edit one section of a document element, leaving the rest of the text untouched. Potentially destructive depending on the operation: delete removes the section, and replace and replace_body overwrite its existing text; prepend, append and insert_before only add. Call create_snapshot first if the old text may be needed. Prefer this to update_document_content for changes to part of a long document: only the changed blocks are rewritten, so comments and concurrent edits elsewhere are kept.
 
 A section starts at a top-level heading and runs to the next heading of the same or a higher level, so it includes its subsections. Section 0 is the content before the first heading (for a document without headings, all of it). Name the section with section (heading text or a path like "Part One > Chapter 2") or sectionIndex (from get_document_outline); get_document_content with the same arguments reads it.
 

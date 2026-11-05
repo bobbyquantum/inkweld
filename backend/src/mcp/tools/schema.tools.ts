@@ -392,7 +392,7 @@ registerTool({
       'Edit a worldbuilding schema (template): rename it, change its icon, description or defaults, and add, ' +
       'change, move or remove tabs and fields. Prefer `operations` for targeted edits; `tabs` replaces every ' +
       'tab at once. Removing a relationship field (or changing its type) also deletes its relationship type and ' +
-      'every relationship made through it. Renaming a field key does not move data elements stored under the ' +
+      'every relationship made through it, so this is potentially destructive depending on the edit. Renaming a field key does not move data elements stored under the ' +
       `old key. ${SHARED_SCHEMA_NOTE}`,
     inputSchema: {
       type: 'object',

@@ -1508,7 +1508,7 @@ registerTool({
       idempotentHint: true,
       openWorldHint: false,
     },
-    description: `Replace the prose content of a document element. Supports two input formats:
+    description: `Replace the prose content of a document element. Potentially destructive: the whole existing text is overwritten, so anything not in the new content is lost. For a change to part of a document, use update_document_section; call create_snapshot first if the old text may be needed. Supports two input formats:
 
 - "prosemirror_xml" (default): Inkweld's canonical XML format. Use tags like <paragraph>, <heading level="1">, <blockquote>, <bullet_list><list_item>...</list_item></bullet_list>, <table><table_row><table_header>...</table_header></table_row></table>, etc.
   Example: <paragraph>Hello <bold>world</bold></paragraph>

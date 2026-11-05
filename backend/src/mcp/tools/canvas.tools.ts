@@ -200,6 +200,8 @@ registerTool({
     },
     description: `${EDIT_CANVAS_DESCRIPTION}
 
+Potentially destructive depending on use: the delete list removes objects from the canvas. Keep the undo arguments this tool returns if the edit may need reversing.
+
 To place an image from a file on disk, call create_media_upload first, upload the file to the URL it returns, and use its mediaUrl as src.`,
     inputSchema: {
       type: 'object',

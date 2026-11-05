@@ -56,7 +56,11 @@ LevelDB per project for Yjs documents (Durable Objects on Workers). The root
   clients (voice ones especially) ask before every call. `destructiveHint` is
   for tools that delete or wholesale replace data (`delete_*`,
   `replace_all_elements`); updates, creates and moves stay `false`.
-  `backend/test/mcp-tool-annotations.test.ts` enforces this.
+  Tools that can remove data only depending on how they are called
+  (`update_document_content`, `update_document_section`, `update_schema`,
+  `edit_canvas`) say "potentially destructive" in their description instead,
+  so agents take care without the client taking away the user's approval
+  choice. `backend/test/mcp-tool-annotations.test.ts` enforces the hints.
 - **MCP upload URLs** (`routes/mcp-upload.routes.ts`) authenticate by the token
   in the path, since the caller is an agent's HTTP tool. Anything added there
   must re-check what the token was issued against. A URL works once because

@@ -90,4 +90,17 @@ describe('MCP tool annotations', () => {
       expect(tool.annotations?.destructiveHint, tool.name).toBe(false);
     }
   });
+
+  it('warns in the description of tools that destroy data only depending on use', async () => {
+    const tools = await listTools();
+    for (const name of [
+      'update_document_content',
+      'update_document_section',
+      'update_schema',
+      'edit_canvas',
+    ]) {
+      const tool = tools.find((t) => t.name === name);
+      expect(tool?.description, name).toMatch(/potentially destructive/i);
+    }
+  });
 });
