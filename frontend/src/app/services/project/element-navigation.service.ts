@@ -1,8 +1,10 @@
 import { inject, Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import type { Element, ElementType } from '@inkweld/index';
+import { projectRouteCommands } from '@utils/tab-route';
 import { isWorldbuildingType } from '@utils/worldbuilding.utils';
 
+import { PublicProjectContextService } from '../core/public-project-context.service';
 import { ProjectStateService } from './project-state.service';
 
 /**
@@ -39,6 +41,7 @@ export function typeRouteForElement(type: ElementType | string): string {
 export class ElementNavigationService {
   private readonly projectState = inject(ProjectStateService);
   private readonly router = inject(Router);
+  private readonly publicContext = inject(PublicProjectContextService);
 
   /**
    * Open `element` in a tab and navigate to its route. No-op when `element`
@@ -55,9 +58,7 @@ export class ElementNavigationService {
 
     const typeRoute = typeRouteForElement(element.type);
     void this.router.navigate([
-      '/',
-      project.username,
-      project.slug,
+      ...projectRouteCommands(project, this.publicContext.active()),
       typeRoute,
       element.id,
     ]);

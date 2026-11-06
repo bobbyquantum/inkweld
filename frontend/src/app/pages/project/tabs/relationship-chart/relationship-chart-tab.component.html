@@ -141,6 +141,7 @@
                 appTooltipAriaLabel
                 class="section-action"
                 [matTooltip]="'relationships.chart.addElements' | transloco"
+                [disabled]="!projectState.canWrite()"
                 (click)="openAddElements()">
                 <mat-icon>add</mat-icon>
               </button>
@@ -159,6 +160,7 @@
                     [matTooltip]="
                       'relationships.chart.removeFromChart' | transloco
                     "
+                    [disabled]="!projectState.canWrite()"
                     (click)="removeElement(el.id)">
                     <mat-icon>close</mat-icon>
                   </button>

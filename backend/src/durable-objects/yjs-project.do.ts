@@ -41,12 +41,15 @@ import { parseXmlToYjsNodes } from '@inkweld/prosemirror/xml';
 import { makeD1Database, type D1DatabaseInstance } from '../db/d1';
 import { writingSessionService } from '../services/writing-session.service';
 import { activityService } from '../services/activity.service';
+import { projectService } from '../services/project.service';
 import { countWords, extractTextContent } from '../mcp/tools/mutation.tools';
 import {
   parseTrackableElementId as parseTrackableElementIdUtil,
   isYjsFrameBlockedForViewer,
   isElementsDoc,
   frameMessageType,
+  PUBLIC_VIEWER_ID,
+  PUBLIC_VIEW_TOKEN,
 } from '../utils/yjs-document-utils';
 import { documentProjectKey, parseDocumentId } from '../utils/yjs-document-id';
 import { MAX_YJS_JSON_DEPTH, isYjsMessageWithinLimits } from '../utils/yjs-message-limits';
@@ -250,6 +253,25 @@ interface SessionData {
  * the user's full access to every project. They carry `client_id` and
  * `session_id` and never `userId`; any of those shapes means "not a session".
  */
+/**
+ * Who an authenticated socket belongs to: the session's user, or the shared
+ * {@link PUBLIC_VIEWER_ID} for an anonymous public viewer (so revoking public
+ * access can find every such socket).
+ */
+function socketIdentity(sessionData: SessionData | null): {
+  userId: string;
+  username: string | undefined;
+  label: string;
+} {
+  if (!sessionData)
+    return { userId: PUBLIC_VIEWER_ID, username: undefined, label: 'public viewer' };
+  return {
+    userId: sessionData.userId,
+    username: sessionData.username,
+    label: sessionData.username,
+  };
+}
+
 function isMcpOAuthAccessToken(payload: SessionData): boolean {
   return payload.client_id !== undefined || payload.session_id !== undefined || !payload.userId;
 }
@@ -2503,6 +2525,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     // from storage to handle them is pure waste (and was a major source of
     // rows_read amplification, since presence frames fire frequently).
     if (frameMessageType(message) === Y_MESSAGE_PRESENCE) {
+      if (!connInfo.userId || connInfo.userId === PUBLIC_VIEWER_ID) return;
       // Guarded like the Yjs path below: an unhandled throw here would reject
       // the async webSocketMessage and, in the workerd runtime, surface as an
       // empty isolate crash (no JS stack) that takes the whole DO down — the
@@ -2523,6 +2546,13 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     }
 
     try {
+      // Public viewers are anonymous: no awareness (cursor, name) from them.
+      if (
+        connInfo.userId === PUBLIC_VIEWER_ID &&
+        frameMessageType(message) === Y_MESSAGE_AWARENESS
+      ) {
+        return;
+      }
       if (!connInfo.canWrite && isYjsFrameBlockedForViewer(message)) {
         projDOLog.debug(`Blocked write frame from read-only viewer for ${connInfo.documentId}`);
         return;
@@ -2637,7 +2667,10 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
    * that does not map to a trackable element).
    */
   private sessionStartWordCount(connInfo: ConnectionInfo): number | null {
-    if (!connInfo.canWrite || !connInfo.userId) return null;
+    // Read-only sockets, public viewers included, never open a writing session.
+    if (!connInfo.canWrite || !connInfo.userId || connInfo.userId === PUBLIC_VIEWER_ID) {
+      return null;
+    }
     if (!this.parseTrackableElementId(connInfo.documentId)) return null;
     return this.readWordCount(connInfo.sharedDoc);
   }
@@ -2809,25 +2842,96 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
     return { canWrite, projectDbId: projectDbId as string };
   }
 
+  /** A member's access, or a public viewer's read-only access to a public project. */
+  private resolveSocketAccess(
+    db: D1DatabaseInstance,
+    parsed: { projectOwner: string; slug: string },
+    sessionData: SessionData | null,
+    ws: WebSocket
+  ): ReturnType<YjsProject['checkAccessWithDb']> {
+    return sessionData
+      ? this.checkAccessWithDb(db, parsed, sessionData, ws)
+      : this.resolvePublicViewerAccess(db, parsed, ws);
+  }
+
+  private async resolvePublicViewerAccess(
+    db: D1DatabaseInstance,
+    parsed: { projectOwner: string; slug: string },
+    ws: WebSocket
+  ): Promise<{ canWrite: false; projectDbId: string } | null> {
+    const project = await projectService.findByUsernameAndSlug(
+      db,
+      parsed.projectOwner,
+      parsed.slug
+    );
+    if (!project) {
+      safeSend(ws, 'access-denied:project-not-found');
+      safeClose(ws, WS_CLOSE_PROJECT_NOT_FOUND, 'Project not found');
+      return null;
+    }
+    if (!project.isPublic) {
+      safeSend(ws, 'access-denied:forbidden');
+      safeClose(ws, WS_CLOSE_FORBIDDEN, 'Access denied');
+      return null;
+    }
+    return { canWrite: false, projectDbId: project.id };
+  }
+
   /**
    * Verify the JWT token from a connection's first text message and, if
    * valid, transition the connection to authenticated and start Yjs sync.
    *
    * Extracted from webSocketMessage to keep cognitive complexity in check.
    */
+  /**
+   * The session a socket's auth message names: `null` for `public-view`,
+   * which asks for read-only access to a public project and carries no
+   * account. Closes the socket and returns `undefined` for an invalid token.
+   */
+  private async resolveSocketSession(
+    ws: WebSocket,
+    connInfo: ConnectionInfo,
+    token: string
+  ): Promise<SessionData | null | undefined> {
+    if (token === PUBLIC_VIEW_TOKEN) return null;
+    const sessionData = await this.verifyToken(token);
+    if (!sessionData) {
+      projDOLog.error(`Invalid auth token for ${connInfo.documentId}`);
+      safeSend(ws, 'access-denied:invalid-token');
+      safeClose(ws, WS_CLOSE_INVALID_TOKEN, 'Invalid token');
+      return undefined;
+    }
+    return sessionData;
+  }
+
+  /**
+   * Sharing may have been turned off while a public viewer's socket was
+   * connecting, after the revoke pass that closes public sockets ran. Closes
+   * a public viewer's socket and returns true when the project is no longer
+   * public. Members' sockets are left alone.
+   */
+  private async closeIfNoLongerPublic(
+    ws: WebSocket,
+    db: D1DatabaseInstance,
+    projectDbId: string,
+    isPublicViewer: boolean
+  ): Promise<boolean> {
+    if (!isPublicViewer) return false;
+    if ((await projectService.findById(db, projectDbId))?.isPublic) return false;
+    safeSend(ws, 'access-denied:forbidden');
+    safeClose(ws, WS_CLOSE_FORBIDDEN, 'Public sharing disabled');
+    return true;
+  }
+
   private async handleAuthMessage(
     ws: WebSocket,
     connInfo: ConnectionInfo,
     token: string
   ): Promise<void> {
     try {
-      const sessionData = await this.verifyToken(token);
-      if (!sessionData) {
-        projDOLog.error(`Invalid auth token for ${connInfo.documentId}`);
-        safeSend(ws, 'access-denied:invalid-token');
-        safeClose(ws, WS_CLOSE_INVALID_TOKEN, 'Invalid token');
-        return;
-      }
+      const sessionData = await this.resolveSocketSession(ws, connInfo, token);
+      if (sessionData === undefined) return;
+      const isPublicViewer = sessionData === null;
 
       // Validate project access with a collaboration lookup so collaborators
       // (editor/commenter/viewer) can sync via the Cloudflare Durable Object
@@ -2847,7 +2951,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
         safeClose(ws, WS_CLOSE_FORBIDDEN, 'Access denied');
         return;
       }
-      const accessResult = await this.checkAccessWithDb(db, parsed, sessionData, ws);
+      const accessResult = await this.resolveSocketAccess(db, parsed, sessionData, ws);
       if (!accessResult) return;
       const { canWrite, projectDbId } = accessResult;
 
@@ -2863,8 +2967,9 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       // is loaded and drained below (see `loadingDocument`).
       connInfo.authenticated = true;
       connInfo.loadingDocument = true;
-      connInfo.userId = sessionData.userId;
-      connInfo.username = sessionData.username;
+      const identity = socketIdentity(sessionData);
+      connInfo.userId = identity.userId;
+      connInfo.username = identity.username;
       connInfo.canWrite = canWrite;
 
       // Persist the new authenticated state (including canWrite) so a
@@ -2879,7 +2984,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       ws.serializeAttachment(attachment);
 
       projDOLog.debug(
-        `WS authenticated for ${connInfo.documentId} (user: ${sessionData.username}, canWrite: ${canWrite})`
+        `WS authenticated for ${connInfo.documentId} (user: ${identity.label}, canWrite: ${canWrite})`
       );
 
       // Send success message
@@ -2912,6 +3017,7 @@ export class YjsProject extends DurableObject<YjsEnv['Bindings']> {
       // Now set up Yjs connection
       const sharedDoc = await this.getOrCreateDocument(connInfo.documentId);
       connInfo.sharedDoc = sharedDoc;
+      if (await this.closeIfNoLongerPublic(ws, db, projectDbId, isPublicViewer)) return;
 
       // The client may have disconnected while we awaited document setup.
       // Re-check the socket before doing any further (possibly side-effecting)

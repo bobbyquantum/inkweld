@@ -30,6 +30,7 @@ import { type TimeSystem } from '../../models/time-system';
 import { DialogGatewayService } from '../core/dialog-gateway.service';
 import { LoggerService } from '../core/logger.service';
 import { PopoutService } from '../core/popout.service';
+import { PublicProjectContextService } from '../core/public-project-context.service';
 import { SetupService } from '../core/setup.service';
 import {
   projectTreeStateKey,
@@ -2550,6 +2551,82 @@ describe('ProjectStateService', () => {
       await new Promise<void>(resolve => queueMicrotask(resolve));
 
       expect(service.pinnedElementIds()).toEqual(['remote-1', 'remote-2']);
+    });
+  });
+  describe('while browsing a public project', () => {
+    const publicProject = {
+      ...mockProject,
+      isPublic: true,
+      access: {
+        canRead: true,
+        canWrite: false,
+        canAdmin: true,
+        isOwner: true,
+        role: null,
+      },
+    };
+
+    beforeEach(() => {
+      const context = TestBed.inject(PublicProjectContextService);
+      vi.spyOn(context, 'active').mockReturnValue(true);
+      vi.spyOn(context, 'serverUrl').mockReturnValue('https://srv.test');
+    });
+
+    it('is never the owner or an admin, whatever the project says', () => {
+      service.project.set(publicProject);
+      expect(service.isOwner()).toBe(false);
+      expect(service.isAdmin()).toBe(false);
+      expect(service.accessLoaded()).toBe(true);
+    });
+
+    it('has no access information before the project loads', () => {
+      service.project.set(undefined);
+      expect(service.accessLoaded()).toBe(false);
+    });
+
+    it("loads the project from the link's server and skips saved tabs", async () => {
+      const get = vi
+        .spyOn(service['http'], 'get')
+        .mockReturnValue(of(publicProject));
+      const restore = vi.spyOn(service, 'restoreOpenedDocumentsFromCache');
+
+      await service.loadProject('a b', 'story');
+
+      expect(get).toHaveBeenCalledWith(
+        'https://srv.test/api/v1/projects/a%20b/story'
+      );
+      expect(mockUnifiedProjectService.getProject).not.toHaveBeenCalled();
+      expect(service.project()).toEqual(publicProject);
+      expect(mockSyncProvider.connect).toHaveBeenCalled();
+      expect(restore).not.toHaveBeenCalled();
+      expect(service.error()).toBeFalsy();
+    });
+
+    it('reports a project whose live data cannot be reached', async () => {
+      vi.spyOn(service['http'], 'get').mockReturnValue(of(publicProject));
+      mockSyncProvider.connect.mockResolvedValue({
+        success: false,
+        error: 'forbidden',
+      });
+
+      await service.loadProject('testuser', 'test-project');
+
+      expect(service.error()).toContain('Failed to connect to public project');
+    });
+
+    it('refuses canvas edits and metadata changes', () => {
+      service.applyCanvasEdit('canvas-1', {});
+      service.updateElementMetadata('element-1', { key: 'value' });
+
+      expect(mockSyncProvider.updateElements).not.toHaveBeenCalled();
+      expect(mockLoggerService.warn).toHaveBeenCalledWith(
+        'ProjectState',
+        'Cannot edit a read-only canvas'
+      );
+      expect(mockLoggerService.warn).toHaveBeenCalledWith(
+        'ProjectState',
+        'Cannot edit read-only element metadata'
+      );
     });
   });
 });

@@ -255,6 +255,26 @@ describe('BackgroundSyncService', () => {
   });
 
   describe('syncPendingMetadata', () => {
+    it('replays a visibility-only revocation without resending unrelated fields', async () => {
+      const projectKey = 'bob/existing-project';
+      await projectSyncService.markPendingMetadata(projectKey, {
+        isPublic: false,
+      });
+      mockProjectService.getProjectByUsernameAndSlug.mockResolvedValue({
+        id: 'existing-id',
+        username: 'bob',
+        slug: 'existing-project',
+        title: 'Title',
+        isPublic: true,
+      });
+      mockProjectService.updateProject.mockResolvedValue(undefined);
+      expect(await service.syncPendingItems()).toBe(true);
+      expect(mockProjectService.updateProject).toHaveBeenCalledWith(
+        'bob',
+        'existing-project',
+        { isPublic: false }
+      );
+    });
     it('should sync pending metadata updates', async () => {
       // Set up pending metadata
       const projectKey = 'bob/existing-project';
@@ -283,7 +303,6 @@ describe('BackgroundSyncService', () => {
         'existing-project',
         expect.objectContaining({
           title: 'Updated Title',
-          description: 'Some description',
         })
       );
     });

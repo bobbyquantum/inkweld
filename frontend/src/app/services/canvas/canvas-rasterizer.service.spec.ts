@@ -119,7 +119,10 @@ describe('CanvasRasterizerService', () => {
         CanvasRasterizerService,
         {
           provide: ProjectStateService,
-          useValue: { project: signal({ username: 'a', slug: 'b' }) },
+          useValue: {
+            project: signal({ username: 'a', slug: 'b' }),
+            canWrite: signal(true),
+          },
         },
         { provide: LocalStorageService, useValue: localStorage },
         {

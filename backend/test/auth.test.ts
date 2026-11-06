@@ -54,6 +54,25 @@ describe('Authentication', () => {
     await stopTestServer();
   });
 
+  describe('POST /api/v1/auth/register', () => {
+    it.each(['public', 'Public', 'PUBLIC'])(
+      'rejects the reserved username %s',
+      async (username) => {
+        const { response } = await client.request('/api/v1/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password: TEST_PASSWORDS.DEFAULT }),
+        });
+
+        expect(response.status).toBe(400);
+        expect(await response.text()).toContain('This username is reserved and cannot be used');
+        expect(
+          await getDatabase().select().from(users).where(eq(users.username, username))
+        ).toEqual([]);
+      }
+    );
+  });
+
   describe('POST /api/v1/auth/login', () => {
     it('should login with valid credentials', async () => {
       const { response, json } = await client.request('/api/v1/auth/login', {

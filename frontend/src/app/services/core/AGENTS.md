@@ -26,6 +26,16 @@ deletion) removes a profile's documents and worldbuilding data without
 touching another profile's copy of the same `username:slug`, and
 `renameProjectInContext()` moves both.
 
+## Public project browsing
+
+`PublicProjectContextService` is an ephemeral context for
+`/public/:username/:slug`. It must never switch or create a stored profile.
+Public elements, prose/conversations, and worldbuilding use transient Yjs
+documents, no IndexedDB or BroadcastChannel, and the `public-view` token rather
+than the visitor's JWT. Media and publications read directly from the link's
+server. Public navigation stays under `/public`; leaving uses a full reload
+to restore the saved profile. Never replay pending profile writes or run
+automatic content migrations in this context.
 ## Server profile ids
 
 A server profile's id names its storage prefix (`srv:<id>:`) and its token
@@ -90,7 +100,7 @@ add cloud storage), the user menu's upgrade button.
 - **Fetching is lazy** (`ready()`): Browser/Cloud Sync profiles must not
   contact a server (the local e2e fixtures fail on any `/api/` request), so
   only setup, the profile manager's upgrade/add-server views, and the user
-  menu/profile manager *while a server profile is active* call it.
+  menu/profile manager _while a server profile is active_ call it.
 - The last reported mode is cached per home server
   (`inkweld-app-mode-policy`). An unreachable server keeps the cached mode;
   never fall back to `SystemConfigService`'s "server unavailable" defaults
@@ -141,12 +151,12 @@ mixins in `frontend/src/themes/_app-background.scss`:
   `backdrop-filter` value (`none` when off, which also avoids creating a
   compositing layer). `--app-bg-blur-fn` is appended to scrims that already have
   their own filter list via `var(--app-bg-blur-fn, )`, because a CSS filter list
-  cannot contain the keyword `none`. The service *removes* the second property
+  cannot contain the keyword `none`. The service _removes_ the second property
   rather than blanking it.
 - The scrim opacity arrives as `--app-bg-scrim-override` on the root and is read
   through a `var()` fallback chain in `home.component.scss`. It has to work that
   way round: a `:host` declaration out-specifies anything set on `:root`, but
-  custom-property *values* still inherit into it.
+  custom-property _values_ still inherit into it.
 - Uploaded images use a "single-slot" storage API (`saveSlotImage` /
   `getSlotImage` on the backend `StorageService`), namespaced `branding` (admin,
   two slots) and `backgrounds` (one per user). On the filesystem the extension

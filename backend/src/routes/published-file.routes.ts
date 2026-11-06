@@ -10,7 +10,7 @@ import { eq, and, desc } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError } from '../errors';
 
-import { requireAuth } from '../middleware/auth';
+import { requireProjectReadAuth } from '../middleware/public-project-read';
 import { projectService } from '../services/project.service';
 import { activityService } from '../services/activity.service';
 import { getStorageService } from '../services/storage.service';
@@ -40,7 +40,8 @@ publishedFileRoutes.use(
 );
 
 // Apply auth middleware to all routes (except share endpoint which is public)
-publishedFileRoutes.use('*', requireAuth);
+publishedFileRoutes.use('/:username/:slug/published', requireProjectReadAuth);
+publishedFileRoutes.use('/:username/:slug/published/*', requireProjectReadAuth);
 
 // Combined path params schema
 const ProjectFilePathParamsSchema = ProjectPathParamsSchema.merge(PublishedFileIdParamSchema);
@@ -81,7 +82,7 @@ publishedFileRoutes.openapi(listPublishedFilesRoute, async (c) => {
   const user = c.get('user');
   const { username, slug } = c.req.param();
 
-  if (!user) {
+  if (!user && !c.get('publicProjectRead')) {
     throw new UnauthorizedError();
   }
 
@@ -92,7 +93,7 @@ publishedFileRoutes.openapi(listPublishedFilesRoute, async (c) => {
   }
 
   // For now, only owner can see published files
-  if (project.userId !== user.id) {
+  if (project.userId !== user?.id && !c.get('publicProjectRead')) {
     throw new ForbiddenError();
   }
 
@@ -346,7 +347,7 @@ publishedFileRoutes.openapi(getPublishedFileRoute, async (c) => {
   const storage = getStorageService(c.get('storage'));
   const { username, slug, fileId } = c.req.param();
 
-  if (!user) {
+  if (!user && !c.get('publicProjectRead')) {
     throw new UnauthorizedError();
   }
 
@@ -356,7 +357,7 @@ publishedFileRoutes.openapi(getPublishedFileRoute, async (c) => {
     throw new NotFoundError('Project not found');
   }
 
-  if (project.userId !== user.id) {
+  if (project.userId !== user?.id && !c.get('publicProjectRead')) {
     throw new ForbiddenError();
   }
 

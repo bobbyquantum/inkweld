@@ -1,10 +1,16 @@
 import 'fake-indexeddb/auto';
 
+import { provideHttpClient } from '@angular/common/http';
+import {
+  HttpTestingController,
+  provideHttpClientTesting,
+} from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { translocoTestProvider } from '../../../testing/transloco-test-provider';
+import { PublicProjectContextService } from '../core/public-project-context.service';
 import { LocalStorageService } from './local-storage.service';
 import { StorageService } from './storage.service';
 
@@ -325,6 +331,104 @@ describe('LocalStorageService', () => {
 
       expect(url).not.toBeNull();
       expect(url).toMatch(/^blob:/);
+    });
+  });
+  describe('while browsing a public project', () => {
+    const MEDIA_URL = 'https://srv.test/api/v1/media/alice/my%20novel';
+    let http: HttpTestingController;
+
+    beforeEach(() => {
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        imports: [translocoTestProvider()],
+        providers: [
+          provideZonelessChangeDetection(),
+          provideHttpClient(),
+          provideHttpClientTesting(),
+          StorageService,
+          LocalStorageService,
+          {
+            provide: PublicProjectContextService,
+            useValue: {
+              active: () => true,
+              serverUrl: () => 'https://srv.test',
+              storagePrefix: () => 'public:srv:',
+            },
+          },
+        ],
+      });
+      storageService = TestBed.inject(StorageService);
+      service = TestBed.inject(LocalStorageService);
+      http = TestBed.inject(HttpTestingController);
+    });
+
+    afterEach(() => {
+      http.verify();
+    });
+
+    function answerList(): void {
+      http.expectOne(MEDIA_URL).flush({
+        items: [
+          {
+            filename: 'img-1.png',
+            mimeType: 'image/png',
+            size: 3,
+            uploadedAt: '2026-01-01T00:00:00.000Z',
+          },
+          { filename: 'cover.jpg', size: 5 },
+        ],
+      });
+    }
+
+    it("lists the serving project's media from the server", async () => {
+      const listed = service.listMedia('alice/my novel', 'img-');
+      answerList();
+
+      expect(await listed).toEqual([
+        {
+          mediaId: 'img-1',
+          filename: 'img-1.png',
+          mimeType: 'image/png',
+          size: 3,
+          createdAt: '2026-01-01T00:00:00.000Z',
+        },
+      ]);
+    });
+
+    it('fills in a missing type and date', async () => {
+      const listed = service.listMedia('alice/my novel');
+      answerList();
+
+      const cover = (await listed).find(item => item.mediaId === 'cover');
+      expect(cover?.mimeType).toBe('application/octet-stream');
+      expect(cover?.createdAt).toBe('');
+    });
+
+    it('downloads a listed file by its media id', async () => {
+      const blob = service.getMedia('alice/my novel', 'img-1');
+      answerList();
+      await Promise.resolve();
+      await Promise.resolve();
+      const image = new Blob(['png'], { type: 'image/png' });
+      http.expectOne(`${MEDIA_URL}/img-1.png`).flush(image);
+
+      expect(await blob).toBeInstanceOf(Blob);
+    });
+
+    it('has nothing for media the project does not list', async () => {
+      const blob = service.hasMedia('alice/my novel', 'missing');
+      answerList();
+
+      expect(await blob).toBe(false);
+    });
+
+    it('refuses to store or delete media', async () => {
+      await expect(
+        service.saveMedia('alice/my novel', 'img-2', createTestBlob())
+      ).rejects.toThrow('Public project media is read-only');
+      await expect(
+        service.deleteMedia('alice/my novel', 'img-1')
+      ).rejects.toThrow('Public project media is read-only');
     });
   });
 });

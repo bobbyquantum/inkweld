@@ -81,6 +81,8 @@ export class PublishStyleEditorComponent {
    * preset list offers e-book presets instead of print ones.
    */
   @Input() reflowable = false;
+  /** Show the current style while preventing changes. */
+  @Input() readOnly = false;
   @Output() readonly stylesChange = new EventEmitter<PublishStyles>();
 
   /** Presets for the current output kind, plus the one already applied. */

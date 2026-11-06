@@ -13,6 +13,7 @@
           'publish.styleEditor.stylePreset' | transloco
         }}</mat-label>
         <mat-select
+          [disabled]="readOnly"
           [value]="styles.preset ?? ''"
           (selectionChange)="selectPreset($event.value)"
           data-testid="preset-select">
@@ -67,6 +68,7 @@
               'publish.styleEditor.pageSize' | transloco
             }}</mat-label>
             <mat-select
+              [disabled]="readOnly"
               [value]="styles.page.size"
               (selectionChange)="updatePage('size', $event.value)"
               data-testid="page-size-select">
@@ -80,6 +82,7 @@
               'publish.styleEditor.pageNumbers' | transloco
             }}</mat-label>
             <mat-select
+              [disabled]="readOnly"
               [value]="styles.page.pageNumbers"
               (selectionChange)="updatePage('pageNumbers', $event.value)"
               data-testid="page-numbers-select">
@@ -93,6 +96,7 @@
               'publish.styleEditor.columns' | transloco
             }}</mat-label>
             <mat-select
+              [disabled]="readOnly"
               [value]="pageColumns"
               (selectionChange)="updatePage('columns', $event.value)"
               data-testid="page-columns-select">
@@ -215,6 +219,7 @@
           </mat-form-field>
         </div>
         <mat-checkbox
+          [disabled]="readOnly"
           [checked]="styles.page.runningHeader"
           (change)="updatePage('runningHeader', $event.checked)"
           data-testid="page-running-header">
@@ -273,6 +278,7 @@
         }">
       </ng-container>
       <mat-checkbox
+        [disabled]="readOnly"
         [checked]="styles.structure.chapterTitle.pageBreakBefore"
         (change)="updateChapterPageBreak($event.checked)"
         data-testid="chapter-page-break">
@@ -309,6 +315,7 @@
           'publish.styleEditor.defaultLayout' | transloco
         }}</mat-label>
         <mat-select
+          [disabled]="readOnly"
           [value]="styles.worldbuilding.defaultLayout"
           (selectionChange)="updateWorldbuildingLayout($event.value)"
           data-testid="worldbuilding-layout-select">
@@ -344,6 +351,7 @@
     <mat-form-field appearance="outline">
       <mat-label>{{ 'publish.styleEditor.font' | transloco }}</mat-label>
       <mat-select
+        [disabled]="readOnly"
         [value]="text.font ?? ''"
         [attr.data-testid]="controlsId ? 'font-' + controlsId : null"
         (selectionChange)="onChange('font', $event.value || undefined)">
@@ -372,6 +380,7 @@
     <mat-form-field appearance="outline">
       <mat-label>{{ 'publish.styleEditor.weight' | transloco }}</mat-label>
       <mat-select
+        [disabled]="readOnly"
         [value]="text.weight ?? ''"
         [attr.data-testid]="controlsId ? 'weight-' + controlsId : null"
         (selectionChange)="onChange('weight', $event.value || undefined)">
@@ -386,6 +395,7 @@
     <mat-form-field appearance="outline">
       <mat-label>{{ 'publish.styleEditor.style' | transloco }}</mat-label>
       <mat-select
+        [disabled]="readOnly"
         [value]="text.style ?? ''"
         [attr.data-testid]="controlsId ? 'style-' + controlsId : null"
         (selectionChange)="onChange('style', $event.value || undefined)">
@@ -412,6 +422,7 @@
     <mat-form-field appearance="outline">
       <mat-label>{{ 'publish.styleEditor.alignment' | transloco }}</mat-label>
       <mat-select
+        [disabled]="readOnly"
         [value]="text.align ?? ''"
         [attr.data-testid]="controlsId ? 'align-' + controlsId : null"
         (selectionChange)="onChange('align', $event.value || undefined)">

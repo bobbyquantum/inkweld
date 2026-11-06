@@ -25,4 +25,8 @@ export interface UpdateProjectRequest {
    * Minimum client version required to open this project. Set to null to remove the requirement.
    */
   minClientVersion?: string | null;
+  /**
+   * Allow anyone with the public project URL to view the entire project
+   */
+  isPublic?: boolean;
 }

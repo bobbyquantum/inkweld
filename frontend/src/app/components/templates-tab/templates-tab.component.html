@@ -7,16 +7,18 @@
   </div>
 
   <div class="controls" data-testid="templates-controls">
-    <div class="actions">
-      <button
-        mat-flat-button
-        color="primary"
-        (click)="createTemplate()"
-        data-testid="create-template-button">
-        <mat-icon>add</mat-icon>
-        {{ 'templates.tab.newTemplate' | transloco }}
-      </button>
-    </div>
+    @if (projectState.canWrite()) {
+      <div class="actions">
+        <button
+          mat-flat-button
+          color="primary"
+          (click)="createTemplate()"
+          data-testid="create-template-button">
+          <mat-icon>add</mat-icon>
+          {{ 'templates.tab.newTemplate' | transloco }}
+        </button>
+      </div>
+    }
 
     <div class="search-bar">
       <mat-form-field appearance="outline" class="search-field">
@@ -114,6 +116,7 @@
               appTooltipAriaLabel
               [matTooltip]="'templates.tab.clone' | transloco"
               (click)="cloneTemplate(template)"
+              [disabled]="!projectState.canWrite()"
               data-testid="clone-template-button">
               <mat-icon>content_copy</mat-icon>
             </button>
@@ -122,6 +125,7 @@
               appTooltipAriaLabel
               [matTooltip]="'delete' | transloco"
               (click)="deleteTemplate(template)"
+              [disabled]="!projectState.canWrite()"
               data-testid="delete-template-button">
               <mat-icon>delete_outline</mat-icon>
             </button>

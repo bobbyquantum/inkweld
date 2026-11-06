@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'bun:test';
 import { getDatabase } from '../src/db/index';
-import { users, projects, publishedFiles } from '../src/db/schema/index';
+import { users, projects, publishedFiles, projectCollaborators } from '../src/db/schema/index';
 import { eq } from 'drizzle-orm';
 import * as bcrypt from 'bcryptjs';
 import {
@@ -15,6 +15,7 @@ import { getStorageService } from '../src/services/storage.service';
 describe('Share Routes', () => {
   let ownerUserId: string;
   let projectId: string;
+  let publicProjectId: string;
   let shareToken: string;
   let fileId: string;
   let baseUrl: string;
@@ -62,6 +63,20 @@ describe('Share Routes', () => {
       .returning();
 
     projectId = project.id;
+    const [publicProject] = await db
+      .insert(projects)
+      .values({
+        id: crypto.randomUUID(),
+        slug: 'public-share-test',
+        title: 'Public Share Test',
+        userId: ownerUserId,
+        isPublic: true,
+        createdDate: Date.now(),
+        updatedDate: Date.now(),
+      })
+      .returning();
+    publicProjectId = publicProject.id;
+
     shareToken = 'test-share-token-' + Date.now();
     fileId = crypto.randomUUID();
 
@@ -104,9 +119,162 @@ describe('Share Routes', () => {
   afterAll(async () => {
     const db = getDatabase();
     await db.delete(publishedFiles).where(eq(publishedFiles.projectId, projectId));
+    await db.delete(projects).where(eq(projects.id, publicProjectId));
     await db.delete(projects).where(eq(projects.id, projectId));
     await db.delete(users).where(eq(users.id, ownerUserId));
     await stopTestServer();
+  });
+
+  describe('GET /api/v1/share/projects/:username/:slug', () => {
+    it('lets admins edit metadata but reserves publication changes for the owner', async () => {
+      const db = getDatabase();
+      const adminId = crypto.randomUUID();
+      await db.insert(users).values({
+        id: adminId,
+        username: 'sharing-admin',
+        password: await bcrypt.hash(TEST_PASSWORDS.DEFAULT, 10),
+        approved: true,
+        enabled: true,
+      });
+      await db.insert(projectCollaborators).values({
+        projectId: publicProjectId,
+        userId: adminId,
+        role: 'admin',
+        status: 'accepted',
+        invitedAt: Date.now(),
+      });
+      try {
+        const admin = new TestClient(baseUrl);
+        expect(await admin.login('sharing-admin', TEST_PASSWORDS.DEFAULT)).toBe(true);
+        const path = '/api/v1/projects/shareroutes-user/public-share-test';
+        const denied = await admin.request(path, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ isPublic: false }),
+        });
+        expect(denied.response.status).toBe(403);
+        const allowed = await admin.request(path, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ description: 'Admin metadata edit' }),
+        });
+        expect(allowed.response.status).toBe(200);
+        await db
+          .update(projects)
+          .set({ description: null })
+          .where(eq(projects.id, publicProjectId));
+      } finally {
+        await db.delete(users).where(eq(users.id, adminId));
+      }
+    });
+    it('serves complete read-only project resources, never personal state', async () => {
+      const headers = { 'X-Inkweld-Public-View': 'true' };
+      const paths = [
+        '/api/v1/media/shareroutes-user/public-share-test',
+        '/api/v1/projects/shareroutes-user/public-share-test/published',
+        '/api/v1/comments/shareroutes-user/public-share-test',
+        '/api/v1/comments/shareroutes-user/public-share-test/doc/chapter',
+        '/api/v1/activity/projects/shareroutes-user/public-share-test',
+      ];
+      const responses = await Promise.all(
+        paths.map((path) => fetch(`${baseUrl}${path}`, { headers }))
+      );
+      for (const response of responses) {
+        expect(response.status).toBe(200);
+        expect(response.headers.get('cache-control')).toBe('no-store');
+      }
+      const unread = await fetch(
+        `${baseUrl}/api/v1/comments/shareroutes-user/public-share-test/unread`,
+        { headers }
+      );
+      expect(unread.status).toBe(401);
+      const privateMedia = await fetch(
+        `${baseUrl}/api/v1/media/shareroutes-user/share-test-project`,
+        { headers }
+      );
+      expect(privateMedia.status).toBe(404);
+      const privateCover = await fetch(
+        `${baseUrl}/api/v1/projects/shareroutes-user/share-test-project/cover`,
+        { headers }
+      );
+      expect(privateCover.status).toBe(404);
+    });
+    it('does not expose missing public project slugs', async () => {
+      const response = await fetch(`${baseUrl}/api/v1/share/projects/shareroutes-user/missing`);
+      expect(response.status).toBe(404);
+    });
+
+    it('returns read-only project access for the shared project interface', async () => {
+      const response = await fetch(
+        `${baseUrl}/api/v1/projects/shareroutes-user/public-share-test`,
+        {
+          headers: { 'X-Inkweld-Public-View': 'true' },
+        }
+      );
+      expect(response.status).toBe(200);
+      const body = await response.json();
+      expect(body.access).toMatchObject({
+        canRead: true,
+        canWrite: false,
+        canAdmin: false,
+        isOwner: false,
+      });
+    });
+
+    it('does not let a public read marker authorize mutations', async () => {
+      const response = await fetch(
+        `${baseUrl}/api/v1/projects/shareroutes-user/public-share-test`,
+        {
+          method: 'PUT',
+          headers: { 'X-Inkweld-Public-View': 'true', 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: 'Forbidden change' }),
+        }
+      );
+      expect(response.status).toBe(401);
+    });
+
+    it('rechecks public visibility after owner updates', async () => {
+      const path = '/api/v1/projects/shareroutes-user/share-test-project';
+      const enabled = await client.request(path, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isPublic: true }),
+      });
+      expect(enabled.response.status).toBe(200);
+      const url = `${baseUrl}/api/v1/share/projects/shareroutes-user/share-test-project`;
+      expect((await fetch(url)).status).toBe(200);
+      const disabled = await client.request(path, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isPublic: false }),
+      });
+      expect(disabled.response.status).toBe(200);
+      expect((await fetch(url)).status).toBe(404);
+    });
+
+    it('does not expose a private project', async () => {
+      const response = await fetch(
+        `${baseUrl}/api/v1/share/projects/shareroutes-user/share-test-project`
+      );
+      expect(response.status).toBe(404);
+      expect(response.headers.get('cache-control')).toBe('no-store');
+    });
+
+    it('returns public project metadata without authentication', async () => {
+      const response = await fetch(
+        `${baseUrl}/api/v1/share/projects/shareroutes-user/public-share-test`
+      );
+      expect(response.status).toBe(200);
+      expect(response.headers.get('cache-control')).toBe('no-store');
+      expect(response.headers.get('x-robots-tag')).toBe('noindex, nofollow');
+      expect(await response.json()).toEqual({
+        username: 'shareroutes-user',
+        slug: 'public-share-test',
+        title: 'Public Share Test',
+        description: null,
+        coverImage: null,
+      });
+    });
   });
 
   // ───────────────────── GET /api/v1/share/:shareToken ─────────────────

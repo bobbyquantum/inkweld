@@ -10,6 +10,7 @@ import {
 } from '@angular/core';
 import {
   applyEach,
+  disabled,
   form,
   FormField,
   required,
@@ -57,6 +58,8 @@ export interface TimelineEraDialogData {
   username?: string;
   /** Project slug; required for the media-library background picker. */
   slug?: string;
+  /** Show the complete era without allowing project changes. */
+  readOnly?: boolean;
 }
 
 export type TimelineEraDialogResult =
@@ -153,6 +156,7 @@ export class TimelineEraDialogComponent implements OnInit, OnDestroy {
   private previewObjectUrl: string | null = null;
 
   readonly form = form(this.model, schemaPath => {
+    disabled(schemaPath, () => !!this.data.readOnly);
     required(schemaPath.name, { message: 'Name is required' });
     required(schemaPath.color, { message: 'Color is required' });
     applyEach(schemaPath.startUnits, item => {

@@ -30,6 +30,7 @@
           [attr.aria-label]="'timeline.eraDialog.startDateAria' | transloco"
           type="date"
           [value]="startDateValue()"
+          [readOnly]="!!data.readOnly"
           (change)="onStartDateChange($event)"
           data-testid="timeline-era-start-date" />
       </mat-form-field>
@@ -74,6 +75,7 @@
           [attr.aria-label]="'timeline.eraDialog.endDateAria' | transloco"
           type="date"
           [value]="endDateValue()"
+          [readOnly]="!!data.readOnly"
           (change)="onEndDateChange($event)"
           data-testid="timeline-era-end-date" />
       </mat-form-field>
@@ -151,6 +153,7 @@
         mat-stroked-button
         type="button"
         (click)="onChooseImage()"
+        [disabled]="!!data.readOnly"
         data-testid="timeline-era-choose-image">
         <mat-icon>image</mat-icon>
         {{ 'timeline.eraDialog.chooseImage' | transloco }}
@@ -161,6 +164,7 @@
           type="button"
           color="warn"
           (click)="onRemoveImage()"
+          [disabled]="!!data.readOnly"
           data-testid="timeline-era-remove-image">
           {{ 'timeline.eraDialog.removeImage' | transloco }}
         </button>
@@ -169,7 +173,7 @@
   </form>
 </mat-dialog-content>
 <mat-dialog-actions align="end">
-  @if (data.era) {
+  @if (data.era && !data.readOnly) {
     <button
       mat-button
       color="warn"
@@ -180,12 +184,14 @@
   }
   <span class="spacer"></span>
   <button mat-button (click)="onCancel()">{{ 'cancel' | transloco }}</button>
-  <button
-    mat-button
-    color="primary"
-    data-testid="timeline-era-save"
-    [disabled]="form().invalid()"
-    (click)="onSave()">
-    {{ 'save' | transloco }}
-  </button>
+  @if (!data.readOnly) {
+    <button
+      mat-button
+      color="primary"
+      data-testid="timeline-era-save"
+      [disabled]="form().invalid()"
+      (click)="onSave()">
+      {{ 'save' | transloco }}
+    </button>
+  }
 </mat-dialog-actions>

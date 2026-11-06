@@ -20,6 +20,7 @@ import { type ElementTypeSchema } from '../../models/schema-types';
 import { type TimeSystem } from '../../models/time-system';
 import { AuthTokenService } from '../auth/auth-token.service';
 import { CLOUD_SYNC_ORIGIN } from '../cloud-sync/cloud-sync-origin';
+import { PublicProjectContextService } from '../core/public-project-context.service';
 import { SetupService } from '../core/setup.service';
 import { StorageContextService } from '../core/storage-context.service';
 import { VersionCompatibilityService } from '../core/version-compatibility.service';
@@ -1479,6 +1480,112 @@ describe('WorldbuildingService', () => {
       );
       expect(data).toBeDefined();
       expect(mockAuthTokenService.getToken).toHaveBeenCalled();
+    });
+
+    it('rejects denied public loads instead of returning an empty document', async () => {
+      vi.spyOn(
+        TestBed.inject(PublicProjectContextService),
+        'active'
+      ).mockReturnValue(true);
+      const createAuthWsProvider = vi
+        .fn()
+        .mockRejectedValue(new Error('Access denied'));
+      Object.assign(onlineService, { createAuthWsProvider });
+      const destroy = vi.spyOn(Y.Doc.prototype, 'destroy');
+
+      await expect(
+        onlineService.getWorldbuildingData('denied-public', username, slug)
+      ).rejects.toThrow('Access denied');
+      expect(destroy).toHaveBeenCalled();
+      expect(onlineService.getYDoc('denied-public', username, slug)).toBeNull();
+    });
+
+    describe('public project connections', () => {
+      function fakeProvider() {
+        return {
+          synced: true,
+          on: vi.fn(),
+          off: vi.fn(),
+          once: vi.fn(),
+          destroy: vi.fn(),
+          disconnect: vi.fn(),
+        };
+      }
+
+      beforeEach(() => {
+        vi.spyOn(
+          TestBed.inject(PublicProjectContextService),
+          'active'
+        ).mockReturnValue(true);
+      });
+
+      it('loads over the public-view socket and drops it on leaving', async () => {
+        const provider = fakeProvider();
+        const createAuthWsProvider = vi.fn().mockResolvedValue(provider);
+        Object.assign(onlineService, { createAuthWsProvider });
+
+        await onlineService.getWorldbuildingData('public-el', username, slug);
+
+        expect(createAuthWsProvider.mock.calls[0]).toContain('public-view');
+        expect(
+          onlineService.getYDoc('public-el', username, slug)
+        ).not.toBeNull();
+
+        onlineService.disconnectPublicConnections();
+
+        expect(provider.destroy).toHaveBeenCalled();
+        expect(onlineService.getYDoc('public-el', username, slug)).toBeNull();
+      });
+
+      it('abandons a load whose project was left while connecting', async () => {
+        const provider = fakeProvider();
+        let connect!: (value: unknown) => void;
+        Object.assign(onlineService, {
+          createAuthWsProvider: vi.fn(
+            () => new Promise(resolve => (connect = resolve))
+          ),
+        });
+
+        const load = onlineService.getWorldbuildingData(
+          'left-el',
+          username,
+          slug
+        );
+        await vi.waitFor(() => expect(connect).toBeDefined());
+        onlineService.disconnectPublicConnections();
+        connect(provider);
+
+        await expect(load).rejects.toThrow(
+          'Public project connection was closed'
+        );
+        expect(provider.destroy).toHaveBeenCalled();
+      });
+
+      it('abandons a load whose project was left while syncing', async () => {
+        const provider = { ...fakeProvider(), synced: false };
+        Object.assign(onlineService, {
+          createAuthWsProvider: vi.fn().mockResolvedValue(provider),
+        });
+
+        const load = onlineService.getWorldbuildingData(
+          'syncing-el',
+          username,
+          slug
+        );
+        await vi.waitFor(() =>
+          expect(provider.on).toHaveBeenCalledWith('sync', expect.any(Function))
+        );
+        onlineService.disconnectPublicConnections();
+        const onSync = provider.on.mock.calls.find(
+          ([event]) => event === 'sync'
+        )?.[1] as (synced: boolean) => void;
+        onSync(true);
+
+        await expect(load).rejects.toThrow(
+          'Public project connection was closed'
+        );
+        expect(provider.destroy).toHaveBeenCalled();
+      });
     });
 
     it("should only connect with a token for the socket's server", async () => {

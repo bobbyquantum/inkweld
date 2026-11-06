@@ -38,6 +38,7 @@ import {
 } from '@inkweld/index';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
+import { PublicProjectContextService } from '@services/core/public-project-context.service';
 import { SetupService } from '@services/core/setup.service';
 import { StorageContextService } from '@services/core/storage-context.service';
 import { SystemConfigService } from '@services/core/system-config.service';
@@ -50,7 +51,7 @@ import { ProjectRenameMigrationService } from '@services/local/project-rename-mi
 import { UnifiedProjectService } from '@services/local/unified-project.service';
 import { ProjectExportService } from '@services/project/project-export.service';
 import { ProjectStateService } from '@services/project/project-state.service';
-import { appUrl } from '@utils/app-base';
+import { appOrigin, appUrl } from '@utils/app-base';
 import { formatBytes } from '@utils/format-bytes';
 import { firstValueFrom } from 'rxjs';
 
@@ -96,6 +97,7 @@ import { TimeSystemsSettingsComponent } from './time-systems-settings/time-syste
   ],
 })
 export class SettingsTabComponent implements OnDestroy {
+  protected readonly publicContext = inject(PublicProjectContextService);
   // Sidenav / responsive layout
   protected useSidenav = signal(true);
   protected readonly selectedSection = signal<string>('actions');
@@ -243,6 +245,12 @@ export class SettingsTabComponent implements OnDestroy {
     if (!project) return null;
     return `${project.username}/${project.slug}`;
   });
+  protected readonly isUpdatingPublicSharing = signal(false);
+  protected readonly publicShareUrl = computed(() => {
+    const project = this.projectState.project();
+    if (!project?.isPublic) return null;
+    return `${appOrigin()}/public/${encodeURIComponent(project.username)}/${encodeURIComponent(project.slug)}`;
+  });
 
   // Server-side storage size for this project (server mode only)
   protected readonly serverStorageSize = signal<{
@@ -269,7 +277,11 @@ export class SettingsTabComponent implements OnDestroy {
     // Watch for project changes and trigger initial sync status check
     effect(() => {
       const key = this.projectKey();
-      if (key && this.currentMode === 'server') {
+      if (
+        key &&
+        this.currentMode === 'server' &&
+        !this.publicContext.active()
+      ) {
         void this.checkMediaSyncStatus();
         void this.loadCollaborators();
         void this.loadServerStorageSize();
@@ -388,6 +400,61 @@ export class SettingsTabComponent implements OnDestroy {
       this.collaboratorsError.set('Failed to load collaborators');
     } finally {
       this.isLoadingCollaborators.set(false);
+    }
+  }
+
+  /** Only the owner may change visibility; ignore responses after a project switch. */
+  async togglePublicSharing(): Promise<void> {
+    const project = this.projectState.project();
+    if (
+      !project ||
+      !this.projectState.isOwner() ||
+      this.currentMode !== 'server' ||
+      this.isUpdatingPublicSharing()
+    ) {
+      return;
+    }
+
+    this.isUpdatingPublicSharing.set(true);
+    try {
+      const updated = await this.projectService.updateProject(
+        project.username,
+        project.slug,
+        { isPublic: !project.isPublic }
+      );
+      if (this.projectState.project()?.id === project.id) {
+        this.projectState.updateProject(updated);
+      }
+    } catch (error) {
+      console.error('Failed to update public project sharing:', error);
+      this.snackBar.open(
+        this.transloco.translate('project.publicSharing.updateFailed'),
+        this.transloco.translate('close'),
+        { duration: 5000 }
+      );
+    } finally {
+      this.isUpdatingPublicSharing.set(false);
+    }
+  }
+
+  async copyPublicShareLink(): Promise<void> {
+    const url = this.publicShareUrl();
+    if (!url) return;
+
+    try {
+      await navigator.clipboard.writeText(url);
+      this.snackBar.open(
+        this.transloco.translate('project.publicSharing.linkCopied'),
+        this.transloco.translate('close'),
+        { duration: 3000 }
+      );
+    } catch (error) {
+      console.error('Failed to copy public project link:', error);
+      this.snackBar.open(
+        this.transloco.translate('project.publicSharing.copyFailed'),
+        this.transloco.translate('close'),
+        { duration: 5000 }
+      );
     }
   }
 

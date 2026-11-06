@@ -85,6 +85,7 @@ describe('MediaTabComponent', () => {
 
   beforeEach(async () => {
     projectStateService = {
+      canWrite: signal(true),
       project: signal(mockProject),
       getSyncState: signal(DocumentSyncState.Synced),
       elements: signal([]),
@@ -255,6 +256,28 @@ describe('MediaTabComponent', () => {
         },
       });
     }
+  });
+
+  it('opens read-only image previews and blocks mutation callbacks', async () => {
+    await component.loadMedia();
+    vi.spyOn(TestBed.inject(ProjectStateService), 'canWrite').mockReturnValue(
+      false
+    );
+    vi.mocked(
+      TestBed.inject(DialogGatewayService).openImageViewerDialog
+    ).mockResolvedValue('delete');
+    const item = component.mediaItems()[0];
+
+    await component.viewImage(item);
+    await component.tagMedia(item);
+    await component.openAddMedia();
+
+    expect(dialogGateway.openImageViewerDialog).toHaveBeenCalledWith(
+      expect.objectContaining({ canEdit: false })
+    );
+    expect(dialogGateway.openConfirmationDialog).not.toHaveBeenCalled();
+    expect(localStorage.deleteMedia).not.toHaveBeenCalled();
+    expect(mediaTagService.addTag).not.toHaveBeenCalled();
   });
 
   it('should download media', async () => {

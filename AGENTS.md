@@ -178,7 +178,7 @@ release-please cuts releases (`.github/workflows/release-please.yml`,
   one other than `GITHUB_TOKEN` must skip forks, with
   `github.event.pull_request.head.repo.full_name == github.repository`; never
   use `pull_request_target` for it. (`docs/site/docs/admin-guide/ci-cd.md`)
-- **Reserved usernames** (`privacy`, `terms`, `share`, `delete-account`) back
+- **Reserved usernames** (`privacy`, `terms`, `share`, `public`, `delete-account`) back
   real routes; frontend ones stay above the `:username` route.
 - **Mirrored lists** must stay in step: `schemaContentHash` (frontend and
   backend `utils/schema-hash.ts`, same golden hash), the background preset

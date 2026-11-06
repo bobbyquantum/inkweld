@@ -351,6 +351,158 @@ describe('SettingsTabComponent', () => {
     expect(component).toBeTruthy();
   });
 
+  describe('Public project link', () => {
+    const publicProject = { ...mockProject, isPublic: true };
+    let projectSignal: ReturnType<typeof signal<any>>;
+    let updateProjectState: ReturnType<typeof vi.fn>;
+
+    beforeEach(() => {
+      projectSignal = projectStateService.project as unknown as ReturnType<
+        typeof signal<any>
+      >;
+      updateProjectState = vi.fn();
+      Object.assign(projectStateService, {
+        updateProject: updateProjectState,
+      });
+    });
+
+    function stubClipboard(writeText: ReturnType<typeof vi.fn>): void {
+      Object.defineProperty(navigator, 'clipboard', {
+        value: { writeText },
+        configurable: true,
+        writable: true,
+      });
+    }
+
+    it('has no link while the project is private', () => {
+      expect(component['publicShareUrl']()).toBeNull();
+    });
+
+    it('builds an encoded /public link once the project is public', () => {
+      projectSignal.set({ ...publicProject, username: 'a b', slug: 'c/d' });
+      expect(component['publicShareUrl']()).toMatch(/\/public\/a%20b\/c%2Fd$/);
+    });
+
+    it('lets the owner make the project public', async () => {
+      const updated = { ...publicProject };
+      Object.assign(projectService, {
+        updateProject: vi.fn().mockResolvedValue(updated),
+      });
+
+      await component.togglePublicSharing();
+
+      expect(projectService.updateProject).toHaveBeenCalledWith(
+        'testuser',
+        'test-project',
+        { isPublic: true }
+      );
+      expect(updateProjectState).toHaveBeenCalledWith(updated);
+      expect(component['isUpdatingPublicSharing']()).toBe(false);
+    });
+
+    it('turns public access off again', async () => {
+      projectSignal.set(publicProject);
+      Object.assign(projectService, {
+        updateProject: vi.fn().mockResolvedValue(mockProject),
+      });
+
+      await component.togglePublicSharing();
+
+      expect(projectService.updateProject).toHaveBeenCalledWith(
+        'testuser',
+        'test-project',
+        { isPublic: false }
+      );
+    });
+
+    it('does nothing for a collaborator who is not the owner', async () => {
+      (projectStateService.isOwner as ReturnType<typeof signal<boolean>>).set(
+        false
+      );
+      Object.assign(projectService, { updateProject: vi.fn() });
+
+      await component.togglePublicSharing();
+
+      expect(projectService.updateProject).not.toHaveBeenCalled();
+    });
+
+    it('ignores the answer when another project opened meanwhile', async () => {
+      let resolve!: (value: unknown) => void;
+      Object.assign(projectService, {
+        updateProject: vi.fn(() => new Promise(r => (resolve = r))),
+      });
+
+      const pending = component.togglePublicSharing();
+      expect(component['isUpdatingPublicSharing']()).toBe(true);
+      // A second click while the first is out is ignored
+      await component.togglePublicSharing();
+      expect(projectService.updateProject).toHaveBeenCalledTimes(1);
+
+      projectSignal.set({ ...mockProject, id: 'other' });
+      resolve(publicProject);
+      await pending;
+
+      expect(updateProjectState).not.toHaveBeenCalled();
+    });
+
+    it('says so when the change fails', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => undefined);
+      Object.assign(projectService, {
+        updateProject: vi.fn().mockRejectedValue(new Error('offline')),
+      });
+
+      await component.togglePublicSharing();
+
+      expect(snackBar.open).toHaveBeenCalledWith(
+        'Could not update public access.',
+        'Close',
+        { duration: 5000 }
+      );
+      expect(updateProjectState).not.toHaveBeenCalled();
+      expect(component['isUpdatingPublicSharing']()).toBe(false);
+    });
+
+    it('copies the link', async () => {
+      projectSignal.set(publicProject);
+      const writeText = vi.fn().mockResolvedValue(undefined);
+      stubClipboard(writeText);
+
+      await component.copyPublicShareLink();
+
+      expect(writeText).toHaveBeenCalledWith(
+        expect.stringMatching(/\/public\/testuser\/test-project$/)
+      );
+      expect(snackBar.open).toHaveBeenCalledWith(
+        'Public project link copied',
+        'Close',
+        { duration: 3000 }
+      );
+    });
+
+    it('copies nothing while the project is private', async () => {
+      const writeText = vi.fn();
+      stubClipboard(writeText);
+
+      await component.copyPublicShareLink();
+
+      expect(writeText).not.toHaveBeenCalled();
+    });
+
+    it('says so when the link cannot be copied', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => undefined);
+      projectSignal.set(publicProject);
+      stubClipboard(vi.fn().mockRejectedValue(new Error('denied')));
+
+      await component.copyPublicShareLink();
+
+      expect(snackBar.open).toHaveBeenCalledWith(
+        'Could not copy the link. Copy it from the address above.',
+        'Close',
+        { duration: 5000 }
+      );
+    });
+  });
+
   describe('MCP', () => {
     it('should expose the MCP endpoint URL', () => {
       expect(component.getMcpEndpointUrl()).toBe(

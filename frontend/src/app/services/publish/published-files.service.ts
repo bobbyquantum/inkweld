@@ -12,6 +12,7 @@ import { toReadableBlob } from '../../utils/readable-blob';
 import { encodePathSegment } from '../../utils/url-path';
 import { AuthTokenService } from '../auth/auth-token.service';
 import { LoggerService } from '../core/logger.service';
+import { PublicProjectContextService } from '../core/public-project-context.service';
 import { SetupService } from '../core/setup.service';
 import { StorageContextService } from '../core/storage-context.service';
 import { LocalStorageService } from '../local/local-storage.service';
@@ -101,6 +102,7 @@ function toCreateRequest(file: PublishedFile): CreatePublishedFileRequest {
   providedIn: 'root',
 })
 export class PublishedFilesService {
+  private readonly publicContext = inject(PublicProjectContextService);
   private readonly localStorage = inject(LocalStorageService);
   private readonly authTokenService = inject(AuthTokenService);
   private readonly logger = inject(LoggerService);
@@ -161,6 +163,8 @@ export class PublishedFilesService {
     extra: Record<string, string> = {}
   ): HeadersInit {
     const headers: Record<string, string> = { ...extra };
+    if (this.publicContext.active())
+      return { ...headers, 'X-Inkweld-Public-View': 'true' };
     const token = this.authTokenService.getTokenForUrl(url);
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
@@ -187,6 +191,13 @@ export class PublishedFilesService {
     this.currentProjectKey = projectKey;
 
     try {
+      if (this.publicContext.active()) {
+        const files = await this.fetchFromServer(projectKey);
+        if (!files)
+          throw new Error('Public published files could not be loaded');
+        this.filesSubject.next(files);
+        return files;
+      }
       // Load from offline storage first (fast, always available)
       const offlineFiles = this.loadOfflineMetadata(projectKey);
       this.filesSubject.next(offlineFiles);
@@ -353,6 +364,8 @@ export class PublishedFilesService {
    * Get the blob for a published file
    */
   async getFileBlob(projectKey: string, fileId: string): Promise<Blob | null> {
+    if (this.publicContext.active())
+      return this.downloadFromServer(projectKey, fileId);
     // Try offline first
     const blob = await this.localStorage.getMedia(
       projectKey,

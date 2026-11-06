@@ -16,6 +16,12 @@
 
 import { createDecoder, readVarUint } from 'lib0/decoding';
 
+/** Reserved connection identity used only to revoke anonymous public viewers. */
+export const PUBLIC_VIEWER_ID = ':public-view:';
+
+/** Auth message a client sends instead of a token to view a public project. */
+export const PUBLIC_VIEW_TOKEN = 'public-view';
+
 /** Sync protocol message type — Yjs sync (subtypes inside the frame). */
 export const Y_MESSAGE_SYNC = 0;
 /** Sync protocol message type — Yjs awareness updates. */

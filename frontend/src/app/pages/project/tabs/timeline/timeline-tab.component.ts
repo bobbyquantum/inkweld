@@ -202,7 +202,7 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
   private readonly dialog = inject(MatDialog);
   private readonly destroyRef = inject(DestroyRef);
   private readonly logger = inject(LoggerService);
-  private readonly projectState = inject(ProjectStateService);
+  protected readonly projectState = inject(ProjectStateService);
   private readonly dialogs = inject(DialogGatewayService);
   private readonly presence = inject(PresenceService);
   private readonly ngZone = inject(NgZone);
@@ -1033,6 +1033,7 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
   }
 
   protected async onTrackLabelClick(track: TimelineTrack): Promise<void> {
+    if (!this.projectState.canWrite()) return;
     const value = await this.dialogs.openRenameDialog({
       currentName: track.name,
       title: 'Rename track',
@@ -1079,6 +1080,7 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
     );
     const data: TimelineEventDialogData = {
       event,
+      readOnly: !this.projectState.canWrite(),
       tracks: this.tracks(),
       system,
     };
@@ -1186,6 +1188,7 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
     const params = this.route.snapshot.paramMap;
     const data: TimelineEraDialogData = {
       era,
+      readOnly: !this.projectState.canWrite(),
       system,
       username: params.get('username') ?? undefined,
       slug: params.get('slug') ?? undefined,
@@ -1220,6 +1223,10 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
     era: TimelineEra,
     kind: DragKind
   ): void {
+    if (!this.projectState.canWrite()) {
+      if (kind === 'move') void this.onEraClick(era);
+      return;
+    }
     if (event.button !== 0) return;
     const system = this.activeSystem();
     if (!system) return;
@@ -1313,6 +1320,10 @@ export class TimelineTabComponent implements OnInit, OnDestroy {
     ev: TimelineEvent,
     kind: DragKind
   ): void {
+    if (!this.projectState.canWrite()) {
+      if (kind === 'move') void this.onEventClick(ev);
+      return;
+    }
     if (event.button !== 0) return;
     const system = this.activeSystem();
     if (!system) return;

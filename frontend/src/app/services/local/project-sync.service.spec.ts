@@ -65,6 +65,18 @@ describe('ProjectSyncService', () => {
   });
 
   describe('hasPendingChanges', () => {
+    it('persists and detects a visibility-only revocation', async () => {
+      await service.markPendingMetadata(TEST_PROJECT_KEY, { isPublic: false });
+      expect(service.hasPendingChanges(TEST_PROJECT_KEY)).toBe(true);
+      expect(service.getSyncState(TEST_PROJECT_KEY)().pendingMetadata).toEqual({
+        isPublic: false,
+      });
+      expect(await service.getProjectsWithPendingChanges()).toContain(
+        TEST_PROJECT_KEY
+      );
+      await service.clearPendingMetadata(TEST_PROJECT_KEY);
+      expect(service.hasPendingChanges(TEST_PROJECT_KEY)).toBe(false);
+    });
     it('should return false for new project', () => {
       expect(service.hasPendingChanges(TEST_PROJECT_KEY)).toBe(false);
     });

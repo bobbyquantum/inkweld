@@ -544,6 +544,18 @@ describe('createOrUpdateGithubUser usernames', () => {
     await db.delete(users).where(inArray(users.id, [user.id]));
   });
 
+  it.each(['public', 'Public', 'PUBLIC'])(
+    'does not take the public project route name %s',
+    async (login) => {
+      const user = await githubUser(login);
+      try {
+        expect(user.username).toMatch(new RegExp(`^${login}-\\d+$`));
+      } finally {
+        await db.delete(users).where(eq(users.id, user.id));
+      }
+    }
+  );
+
   it('reduces a login outside the rule to a name that fits', async () => {
     expect((await githubUser(`Odd.Login.${run}`)).username).toBe(`odd-login-${run}`);
   });

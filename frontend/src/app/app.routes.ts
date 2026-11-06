@@ -5,6 +5,7 @@ import { adminGuard } from './guards/admin.guard';
 import { authGuard } from './guards/auth.guard';
 import { CanDeactivateProjectGuard } from './guards/can-deactivate-project.guard';
 import type { ProjectComponent } from './pages/project/project.component';
+import { projectTabRoutes } from './pages/project/project-tab.routes';
 
 export const routes: Routes = [
   {
@@ -290,6 +291,13 @@ export const routes: Routes = [
       ),
     title: 'Service Unavailable',
   },
+  {
+    path: 'public/:username/:slug',
+    loadComponent: () =>
+      import('./pages/project/project.component').then(m => m.ProjectComponent),
+    data: { reuseComponent: false },
+    children: projectTabRoutes,
+  },
   // Project route (GitHub style: /:username/:slug)
   {
     path: ':username/:slug',
@@ -314,153 +322,7 @@ export const routes: Routes = [
       // parent, so editor state is still preserved while you move between tabs.
       reuseComponent: false,
     },
-    children: [
-      {
-        path: '',
-        loadComponent: () =>
-          import('./pages/project/tabs/home/home-tab.component').then(
-            m => m.HomeTabComponent
-          ),
-      },
-      {
-        path: 'document/:tabId',
-        loadComponent: () =>
-          import('./pages/project/tabs/document/document-tab.component').then(
-            m => m.DocumentTabComponent
-          ),
-        data: {
-          reuseComponent: false, // Prevent component reuse
-        },
-      },
-      {
-        path: 'folder/:tabId',
-        loadComponent: () =>
-          import('./pages/project/tabs/folder/folder-tab.component').then(
-            m => m.FolderTabComponent
-          ),
-        data: {
-          reuseComponent: false, // Prevent component reuse
-        },
-      },
-      {
-        path: 'media',
-        loadComponent: () =>
-          import('./pages/project/tabs/media/media-tab.component').then(
-            m => m.MediaTabComponent
-          ),
-        data: {
-          reuseComponent: false,
-        },
-      },
-      {
-        // Redirect old templates-list route to settings
-        path: 'templates-list',
-        redirectTo: 'settings',
-        pathMatch: 'full',
-      },
-      {
-        // Redirect old relationships-list route to settings
-        path: 'relationships-list',
-        redirectTo: 'settings',
-        pathMatch: 'full',
-      },
-      {
-        path: 'settings',
-        loadComponent: () =>
-          import('./pages/project/tabs/settings/settings-tab.component').then(
-            m => m.SettingsTabComponent
-          ),
-        data: {
-          reuseComponent: false,
-        },
-      },
-      {
-        // Redirect old tags-list route to settings
-        path: 'tags-list',
-        redirectTo: 'settings',
-        pathMatch: 'full',
-      },
-      {
-        path: 'worldbuilding/:tabId',
-        loadComponent: () =>
-          import('./pages/project/tabs/worldbuilding/worldbuilding-tab.component').then(
-            m => m.WorldbuildingTabComponent
-          ),
-        data: {
-          reuseComponent: false,
-        },
-      },
-      {
-        path: 'schema/:schemaId',
-        loadComponent: () =>
-          import('./pages/project/tabs/schema-editor/schema-editor-tab.component').then(
-            m => m.SchemaEditorTabComponent
-          ),
-        data: {
-          reuseComponent: false,
-        },
-      },
-      {
-        path: 'relationship-chart/:tabId',
-        loadComponent: () =>
-          import('./pages/project/tabs/relationship-chart/relationship-chart-tab.component').then(
-            m => m.RelationshipChartTabComponent
-          ),
-        data: {
-          reuseComponent: false,
-        },
-      },
-      {
-        path: 'canvas/:tabId',
-        loadComponent: () =>
-          import('./pages/project/tabs/canvas/canvas-tab.component').then(
-            m => m.CanvasTabComponent
-          ),
-        data: {
-          reuseComponent: false,
-        },
-      },
-      {
-        path: 'timeline/:tabId',
-        loadComponent: () =>
-          import('./pages/project/tabs/timeline/timeline-tab.component').then(
-            m => m.TimelineTabComponent
-          ),
-        data: {
-          reuseComponent: false,
-        },
-      },
-      {
-        path: 'publish-plan/:tabId',
-        loadComponent: () =>
-          import('./pages/project/tabs/publish-plan/publish-plan-tab.component').then(
-            m => m.PublishPlanTabComponent
-          ),
-        data: {
-          reuseComponent: false,
-        },
-      },
-      {
-        path: 'publish-plans',
-        loadComponent: () =>
-          import('./pages/project/tabs/publish-plans-list/publish-plans-list-tab.component').then(
-            m => m.PublishPlansListTabComponent
-          ),
-        data: {
-          reuseComponent: false,
-        },
-      },
-      {
-        path: 'activity',
-        loadComponent: () =>
-          import('./pages/project/tabs/activity/activity-tab.component').then(
-            m => m.ActivityTabComponent
-          ),
-        data: {
-          reuseComponent: false,
-        },
-      },
-    ],
+    children: projectTabRoutes,
   },
   // Old routes for files and documents have been replaced by tab components
   // User profile route. Deliberately unguarded: public profiles must be

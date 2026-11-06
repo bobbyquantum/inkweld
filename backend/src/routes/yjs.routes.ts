@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { upgradeWebSocket } from 'hono/bun';
 import { yjsService, type YjsSocket } from '../services/yjs.service';
-import { authService } from '../services/auth.service';
+import { authService, type SessionData } from '../services/auth.service';
 import { projectService } from '../services/project.service';
 import { collaborationService } from '../services/collaboration.service';
 import { userService } from '../services/user.service';
@@ -18,7 +18,13 @@ import {
 } from '../services/presence.service';
 import { type AppContext } from '../types/context';
 import { logger } from '../services/logger.service';
-import { parseTrackableElementId, isYjsFrameBlockedForViewer } from '../utils/yjs-document-utils';
+import {
+  parseTrackableElementId,
+  isYjsFrameBlockedForViewer,
+  PUBLIC_VIEWER_ID,
+  PUBLIC_VIEW_TOKEN,
+  Y_MESSAGE_AWARENESS,
+} from '../utils/yjs-document-utils';
 import { documentProjectKey, parseDocumentId } from '../utils/yjs-document-id';
 import {
   WS_CLOSE_FORBIDDEN,
@@ -73,11 +79,13 @@ function isBlockedForViewer(buffer: Buffer, documentId: string): boolean {
 async function resolveWriteAccess(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   db: any,
-  project: { id: string; userId: string },
-  sessionData: { userId: string; username: string },
+  project: { id: string; userId: string; isPublic: boolean },
+  sessionData: { userId: string; username: string } | null,
   projectOwner: string,
   slug: string
 ): Promise<boolean | null> {
+  // A public viewer (no session) may read a public project, never write.
+  if (!sessionData) return project.isPublic ? false : null;
   if (project.userId === sessionData.userId) return true;
 
   const access = await collaborationService.checkAccess(db, project.id, sessionData.userId);
@@ -339,6 +347,12 @@ app.get(
         wsLog.debug(`Dropped a frame with no readable message type for ${documentId}`);
         return;
       }
+      // Public viewers are anonymous: they never publish presence or
+      // awareness, so the owner never sees a cursor or name they chose.
+      if (!authUser && (peeked.tag === Y_MESSAGE_PRESENCE || peeked.tag === Y_MESSAGE_AWARENESS)) {
+        wsLog.debug(`Ignoring presence/awareness frame from public viewer for ${documentId}`);
+        return;
+      }
       if (peeked.tag === Y_MESSAGE_PRESENCE) {
         // Presence is project-scoped and only travels on the elements WS.
         // Per-document tabs open their own Yjs WS for sync but must not
@@ -376,35 +390,53 @@ app.get(
       }
     };
 
+    /**
+     * The session a socket's auth message names: `null` for `public-view`,
+     * which asks for read-only access to a project its owner has made public
+     * and carries no account (so no writing session or presence). Closes the
+     * socket and returns `undefined` when the token or its account may not
+     * sync.
+     */
+    const resolveSocketSession = async (
+      token: string,
+      ws: WsHandle
+    ): Promise<SessionData | null | undefined> => {
+      if (token === PUBLIC_VIEW_TOKEN) return null;
+      const sessionData = await authService.verifyToken(token, c);
+      if (!sessionData || sessionData.scope === 'enrol') {
+        wsLog.warn(`Invalid auth token for ${documentId}`);
+        ws.send('access-denied:invalid-token');
+        ws.close(WS_CLOSE_INVALID_TOKEN, 'Invalid token');
+        return undefined;
+      }
+
+      // Mirror requireAuth: the account must still be enabled and approved,
+      // the token must not predate the user's revocation watermark, and
+      // behind HA ingress it must belong to the HA user who connected.
+      const account = await userService.findById(db, sessionData.userId);
+      if (
+        !account ||
+        !userService.canLogin(account) ||
+        isSessionRevoked(account, sessionData) ||
+        !ingressSessionMatches(c, account)
+      ) {
+        wsLog.warn(`Account not permitted to sync ${documentId}: ${sessionData.username}`);
+        ws.send('access-denied:forbidden');
+        ws.close(WS_CLOSE_FORBIDDEN, 'Access denied');
+        return undefined;
+      }
+      return sessionData;
+    };
+
     // Validates token, project access, sets up Yjs connection.
     // Closes over connection state variables for mutation.
     const authenticateWs = async (token: string, ws: WsHandle): Promise<void> => {
       if (authenticated || authInProgress) return;
       authInProgress = true;
       try {
-        const sessionData = await authService.verifyToken(token, c);
-        if (!sessionData || sessionData.scope === 'enrol') {
-          wsLog.warn(`Invalid auth token for ${documentId}`);
-          ws.send('access-denied:invalid-token');
-          ws.close(WS_CLOSE_INVALID_TOKEN, 'Invalid token');
-          return;
-        }
-
-        // Mirror requireAuth: the account must still be enabled and approved,
-        // the token must not predate the user's revocation watermark, and
-        // behind HA ingress it must belong to the HA user who connected.
-        const account = await userService.findById(db, sessionData.userId);
-        if (
-          !account ||
-          !userService.canLogin(account) ||
-          isSessionRevoked(account, sessionData) ||
-          !ingressSessionMatches(c, account)
-        ) {
-          wsLog.warn(`Account not permitted to sync ${documentId}: ${sessionData.username}`);
-          ws.send('access-denied:forbidden');
-          ws.close(WS_CLOSE_FORBIDDEN, 'Access denied');
-          return;
-        }
+        const sessionData = await resolveSocketSession(token, ws);
+        if (sessionData === undefined) return;
+        const isPublicViewer = sessionData === null;
 
         const { projectOwner, slug } = parsedId;
         const project = await projectService.findByUsernameAndSlug(db, projectOwner, slug);
@@ -439,16 +471,31 @@ app.get(
 
         authenticated = true;
         clearAuthDeadline();
-        authUser = { id: sessionData.userId, username: sessionData.username };
-        wsLog.info(`Authenticated for ${documentId} (user: ${sessionData.username})`);
+        authUser = sessionData ? { id: sessionData.userId, username: sessionData.username } : null;
+        wsLog.info(
+          `Authenticated for ${documentId} (user: ${sessionData?.username ?? 'public viewer'})`
+        );
         ws.send('authenticated');
 
-        await tryStartSession(sessionData.userId, project.id);
+        if (sessionData) {
+          await tryStartSession(sessionData.userId, project.id);
+        }
 
         // Register this user against the raw WebSocket so the elements doc
         // update listener can attribute mutations to them. For elements docs,
         // also attach the snapshot-diff observer (idempotent).
-        yjsService.registerUserConnection(ws.raw, documentId, sessionData.userId);
+        yjsService.registerUserConnection(
+          ws.raw,
+          documentId,
+          sessionData?.userId ?? PUBLIC_VIEWER_ID
+        );
+        // Sharing may have been turned off while this socket was connecting,
+        // after the revoke pass that closes registered public sockets ran.
+        if (isPublicViewer && !(await projectService.findById(db, project.id))?.isPublic) {
+          ws.send('access-denied:forbidden');
+          ws.close(WS_CLOSE_FORBIDDEN, 'Public sharing disabled');
+          return;
+        }
         if (parsedId.isElements) {
           yjsService.watchElementsDoc(documentId, project.id, db);
         }

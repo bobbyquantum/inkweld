@@ -8,6 +8,7 @@ import {
 } from '@angular/core';
 import {
   applyEach,
+  disabled,
   form,
   FormField,
   required,
@@ -48,6 +49,8 @@ export interface TimelineEventDialogData {
   system: TimeSystem;
   /** Prefilled track id for new events. */
   defaultTrackId?: string;
+  /** Show the complete event without allowing project changes. */
+  readOnly?: boolean;
 }
 
 export type TimelineEventDialogResult =
@@ -121,6 +124,7 @@ export class TimelineEventDialogComponent {
   });
 
   readonly form = form(this.model, schemaPath => {
+    disabled(schemaPath, () => !!this.data.readOnly);
     required(schemaPath.title, { message: 'Title is required' });
     required(schemaPath.trackId, { message: 'Track is required' });
 

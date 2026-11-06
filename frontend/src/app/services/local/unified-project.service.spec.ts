@@ -268,11 +268,12 @@ describe('UnifiedProjectService', () => {
         updates
       );
       expect(result).toEqual(mockProject1);
-      expect(projectService.getProjectByUsernameAndSlug).toHaveBeenCalledWith(
+      expect(projectService.getProjectByUsernameAndSlug).not.toHaveBeenCalled();
+      expect(projectService.updateProject).toHaveBeenCalledWith(
         'testuser',
-        'test-project-1'
+        'test-project-1',
+        updates
       );
-      expect(projectService.updateProject).toHaveBeenCalled();
     });
 
     it('should delete project from server', async () => {
@@ -371,6 +372,16 @@ describe('UnifiedProjectService', () => {
         'offline-project',
         updates
       );
+    });
+
+    it('rejects when the offline update throws', async () => {
+      vi.mocked(localProjectService.updateProject).mockImplementation(() => {
+        throw new Error('Project not found');
+      });
+
+      await expect(
+        service.updateProject('offlineuser', 'missing', { title: 'x' })
+      ).rejects.toThrow('Project not found');
     });
 
     it('should delete project from offline service', async () => {

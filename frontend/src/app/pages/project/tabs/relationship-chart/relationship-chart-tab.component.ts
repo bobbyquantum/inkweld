@@ -22,6 +22,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ActivatedRoute } from '@angular/router';
 import { TranslocoModule } from '@jsverse/transloco';
+import { PublicProjectContextService } from '@services/core/public-project-context.service';
 import { isLocalOrCloudMode } from '@services/core/storage-context.service';
 import cytoscape from 'cytoscape';
 import dagre from 'cytoscape-dagre';
@@ -103,7 +104,8 @@ const SIDEBAR_RESIZE_DELAY_MS = 250;
 })
 export class RelationshipChartTabComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
-  private readonly projectState = inject(ProjectStateService);
+  protected readonly projectState = inject(ProjectStateService);
+  private readonly publicContext = inject(PublicProjectContextService);
   private readonly chartService = inject(RelationshipChartService);
   private readonly relationshipService = inject(RelationshipService);
   private readonly dialog = inject(MatDialog);
@@ -575,6 +577,7 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
 
   /** Open the element picker dialog to add elements */
   protected openAddElements(): void {
+    if (!this.projectState.canWrite()) return;
     const config = this.chartService.activeConfig();
     const existingIds = config?.filters.includedElementIds ?? [];
 
@@ -604,6 +607,7 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
 
   /** Remove an element from the curated list */
   protected removeElement(elementId: string): void {
+    if (!this.projectState.canWrite()) return;
     this.chartService.removeElement(elementId);
   }
 
@@ -1239,6 +1243,7 @@ export class RelationshipChartTabComponent implements OnInit, OnDestroy {
     mediaId: string,
     filename: string
   ): Promise<string | null> {
+    if (this.publicContext.active()) return null;
     try {
       await this.mediaSyncService.downloadAllFromServer(projectKey);
       const retryUrl = await this.localStorageService.getMediaUrl(

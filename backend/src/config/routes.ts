@@ -119,11 +119,13 @@ export function registerCommonRoutes(app: any): void {
   app.route('/api/v1/admin', adminStatsRoutes);
 
   // Project routes (projects, documents, elements, images)
+  // Covers have their own narrow public-read check, before project-wide auth.
+  app.route('/api/v1/projects', imageRoutes);
+  app.route('/api/v1/projects', publishedFileRoutes);
   app.route('/api/v1/projects', projectRoutes);
   app.route('/api/v1/projects', documentRoutes);
   app.route('/api/v1/projects', autoReviewRoutes);
   app.route('/api/v1/projects', elementRoutes);
-  app.route('/api/v1/projects', imageRoutes);
 
   // Snapshots have their own base path to avoid conflicts
   app.route('/api/v1/snapshots', snapshotRoutes);
@@ -164,7 +166,6 @@ export function registerCommonRoutes(app: any): void {
   app.route('/api/v1/media', mediaRoutes);
 
   // Published files (exports/publishing)
-  app.route('/api/v1/projects', publishedFileRoutes);
 
   // Public share endpoints (no auth required)
   app.route('/api/v1/share', shareRoutes);

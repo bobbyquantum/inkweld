@@ -66,7 +66,7 @@ interface TemplateSchema {
   ],
 })
 export class TemplatesTabComponent {
-  private readonly projectState = inject(ProjectStateService);
+  protected readonly projectState = inject(ProjectStateService);
   private readonly worldbuildingService = inject(WorldbuildingService);
   private readonly relationshipFieldService = inject(RelationshipFieldService);
   private readonly snackBar = inject(MatSnackBar);
@@ -170,6 +170,7 @@ export class TemplatesTabComponent {
    * Create a new template from scratch
    */
   createTemplate(): void {
+    if (!this.projectState.canWrite()) return;
     const project = this.project();
     if (!project) {
       return;
@@ -198,6 +199,7 @@ export class TemplatesTabComponent {
    * Clone a template (creates a custom copy)
    */
   async cloneTemplate(template: TemplateSchema): Promise<void> {
+    if (!this.projectState.canWrite()) return;
     const project = this.project();
     if (!project) {
       return;
@@ -257,6 +259,7 @@ export class TemplatesTabComponent {
    * Delete a custom template
    */
   async deleteTemplate(template: TemplateSchema): Promise<void> {
+    if (!this.projectState.canWrite()) return;
     const project = this.project();
     if (!project) {
       return;

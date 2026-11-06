@@ -1,3 +1,4 @@
+import { HttpClient } from '@angular/common/http';
 import {
   computed,
   inject,
@@ -35,6 +36,7 @@ import { nanoid } from 'nanoid';
 import {
   BehaviorSubject,
   EMPTY,
+  firstValueFrom,
   type Observable,
   type Subscription,
   switchMap,
@@ -51,6 +53,7 @@ import { type ElementTypeSchema } from '../../models/schema-types';
 import { DialogGatewayService } from '../core/dialog-gateway.service';
 import { LoggerService } from '../core/logger.service';
 import { PopoutService } from '../core/popout.service';
+import { PublicProjectContextService } from '../core/public-project-context.service';
 import { SetupService } from '../core/setup.service';
 import {
   isLocalOrCloudMode,
@@ -114,6 +117,8 @@ export type { AppTab } from './tab-manager.service';
   providedIn: 'root',
 })
 export class ProjectStateService implements OnDestroy {
+  private readonly publicContext = inject(PublicProjectContextService);
+  private readonly http = inject(HttpClient);
   // Injected services
   private readonly unifiedProjectService = inject(UnifiedProjectService);
   private readonly unifiedUserService = inject(UnifiedUserService);
@@ -216,6 +221,7 @@ export class ProjectStateService implements OnDestroy {
    * Returns false for viewers.
    */
   readonly canWrite = computed(() => {
+    if (this.publicContext.active()) return false;
     const proj = this.project();
     if (!proj) return false;
     // In offline mode, user owns all their projects - grant full access
@@ -231,6 +237,7 @@ export class ProjectStateService implements OnDestroy {
    * Whether the current user is the project owner.
    */
   readonly isOwner = computed(() => {
+    if (this.publicContext.active()) return false;
     const proj = this.project();
     if (!proj) return false;
     // In offline mode, user owns all their projects
@@ -245,6 +252,7 @@ export class ProjectStateService implements OnDestroy {
    * Whether the current user has admin access (owner or admin collaborator).
    */
   readonly isAdmin = computed(() => {
+    if (this.publicContext.active()) return false;
     const proj = this.project();
     if (!proj) return false;
     // In offline mode, user owns all their projects - grant full admin
@@ -264,6 +272,7 @@ export class ProjectStateService implements OnDestroy {
    * when the server is unreachable.
    */
   readonly accessLoaded = computed(() => {
+    if (this.publicContext.active()) return !!this.project();
     const proj = this.project();
     if (!proj) return false;
     // In offline mode, access is always known (full access)
@@ -412,7 +421,9 @@ export class ProjectStateService implements OnDestroy {
       // Load project metadata and elements
       const mode = this.setupService.getMode();
 
-      if (isLocalOrCloudMode(mode)) {
+      if (this.publicContext.active()) {
+        await this.loadPublicProject(username, slug, loadId);
+      } else if (isLocalOrCloudMode(mode)) {
         await this.loadOfflineProject(username, slug, loadId);
       } else {
         await this.loadServerProject(username, slug, loadId);
@@ -422,12 +433,34 @@ export class ProjectStateService implements OnDestroy {
       if (loadId !== this.loadGeneration) return;
 
       // Restore opened documents from cache
-      await this.restoreOpenedDocumentsFromCache();
+      if (!this.publicContext.active())
+        await this.restoreOpenedDocumentsFromCache();
       this.tabCacheProjectKey.set(`${username}/${slug}`);
     } catch (err) {
       this.handleLoadError(err);
     } finally {
       this.isLoading.set(false);
+    }
+  }
+
+  /** Never use a visitor's cached project, pending writes, or saved editor tab. */
+  private async loadPublicProject(
+    username: string,
+    slug: string,
+    loadId: number
+  ): Promise<void> {
+    const project = await firstValueFrom(
+      this.http.get<Project>(
+        `${this.publicContext.serverUrl()}/api/v1/projects/${encodeURIComponent(username)}/${encodeURIComponent(slug)}`
+      )
+    );
+    if (loadId !== this.loadGeneration) return;
+    this.project.set(project);
+    if (
+      !(await this.connectSyncProvider(username, slug, loadId)) &&
+      loadId === this.loadGeneration
+    ) {
+      throw new Error('Failed to connect to public project');
     }
   }
 
@@ -442,6 +475,7 @@ export class ProjectStateService implements OnDestroy {
     if (!project) {
       throw new Error('Project not found');
     }
+
     this.project.set(project);
 
     // Connect sync provider
@@ -769,7 +803,7 @@ export class ProjectStateService implements OnDestroy {
           this.logger.error('ProjectState', 'Sync provider error', errorMsg);
           // Don't set a fatal error for transient connection issues
           // These are logged but the app can continue with local data
-          if (this.isCriticalError(errorMsg)) {
+          if (this.publicContext.active() || this.isCriticalError(errorMsg)) {
             this.error.set(errorMsg);
           }
         });
@@ -824,6 +858,7 @@ export class ProjectStateService implements OnDestroy {
    * ngOnDestroy now actually runs when leaving a project.
    */
   disconnectSync(): void {
+    this.worldbuildingService.disconnectPublicConnections();
     // Invalidate any in-flight loadProject so a slow metadata/provider await
     // that resumes after teardown can't connect a fresh, orphaned provider.
     this.loadGeneration++;
@@ -946,6 +981,10 @@ export class ProjectStateService implements OnDestroy {
     edit: CanvasEdit,
     options?: ApplyCanvasEditOptions
   ): void {
+    if (this.publicContext.active()) {
+      this.logger.warn('ProjectState', 'Cannot edit a read-only canvas');
+      return;
+    }
     if (!this.syncProvider) {
       this.logger.warn('ProjectState', 'Cannot edit canvas - no sync provider');
       return;
@@ -1162,6 +1201,13 @@ export class ProjectStateService implements OnDestroy {
     elementId: string,
     metadata: Record<string, string>
   ): void {
+    if (this.publicContext.active()) {
+      this.logger.warn(
+        'ProjectState',
+        'Cannot edit read-only element metadata'
+      );
+      return;
+    }
     const elements = this.elements();
     const index = elements.findIndex(e => e.id === elementId);
     if (index === -1) {
@@ -1369,6 +1415,7 @@ export class ProjectStateService implements OnDestroy {
   }
 
   private restoreTreeState(username: string, slug: string): void {
+    if (this.publicContext.active()) return;
     const key = this.storageContext.prefixKey(
       projectTreeStateKey(username, slug)
     );
@@ -1678,6 +1725,7 @@ export class ProjectStateService implements OnDestroy {
     elementId: string,
     elementType: 'document' | 'worldbuilding' = 'document'
   ): Promise<boolean> {
+    if (this.publicContext.active()) return false;
     // In local mode, all documents are available locally
     if (this.setupService.getMode() !== 'server') return false;
 
@@ -1986,6 +2034,7 @@ export class ProjectStateService implements OnDestroy {
   // ─────────────────────────────────────────────────────────────────────────────
 
   private initializeDocumentCache(): void {
+    if (this.publicContext.active()) return;
     if (this.storageService.isAvailable()) {
       try {
         this.documentCacheDb = this.storageService.initializeDatabase({
@@ -2005,6 +2054,7 @@ export class ProjectStateService implements OnDestroy {
   }
 
   async saveOpenedDocumentsToCache(): Promise<void> {
+    if (this.publicContext.active()) return;
     if (!this.documentCacheDb || !this.storageService.isAvailable()) return;
 
     // A popped-out window holds one document, not the user's working set.

@@ -22,6 +22,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { Title } from '@angular/platform-browser';
 import {
   ActivatedRoute,
   NavigationEnd,
@@ -39,6 +40,7 @@ import { type Element, ElementType } from '@inkweld/index';
 import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 import { LoggerService } from '@services/core/logger.service';
 import { PopoutService } from '@services/core/popout.service';
+import { PublicProjectContextService } from '@services/core/public-project-context.service';
 import { SettingsService } from '@services/core/settings.service';
 import { TutorialService } from '@services/core/tutorial.service';
 import { ProjectActivationService } from '@services/local/project-activation.service';
@@ -49,7 +51,12 @@ import { ElementNavigationService } from '@services/project/element-navigation.s
 import { ProjectExportService } from '@services/project/project-export.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { ZenModeService } from '@services/project/zen-mode.service';
-import { tabRouteCommands } from '@utils/tab-route';
+import { appUrl } from '@utils/app-base';
+import {
+  projectRouteCommands,
+  projectUrlSegments,
+  tabRouteCommands,
+} from '@utils/tab-route';
 import { filter, Subject, type Subscription, takeUntil } from 'rxjs';
 
 import { DocumentElementEditorComponent } from '../../components/document-element-editor/document-element-editor.component';
@@ -124,6 +131,8 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   private readonly tutorialService = inject(TutorialService);
   private readonly popoutService = inject(PopoutService);
   private readonly zenModeService = inject(ZenModeService);
+  protected readonly publicContext = inject(PublicProjectContextService);
+  private readonly browserTitle = inject(Title);
 
   @ViewChild(MatSidenav) sidenav!: MatSidenav;
 
@@ -244,6 +253,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     // and the breakpoint both settle asynchronously.
     effect(() => {
       if (
+        this.publicContext.active() ||
         this.tutorialOffered ||
         !this.projectState.project() ||
         this.isMobile() ||
@@ -411,6 +421,10 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     username: string,
     slug: string
   ): Promise<void> {
+    if (this.publicContext.active()) {
+      await this.projectState.loadProject(username, slug);
+      return;
+    }
     // Ensure activation state is loaded from IndexedDB (needed after full page reloads)
     await this.activationService.initialize();
 
@@ -449,6 +463,12 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   ngOnInit() {
+    if (this.publicContext.active()) {
+      this.transloco
+        .selectTranslate<string>('project.publicView.publicProject')
+        .pipe(takeUntil(this.destroy$))
+        .subscribe(title => this.browserTitle.setTitle(title));
+    }
     this.logger.debug('ProjectComponent', 'ProjectComponent init');
 
     this.trackUrlDocumentId();
@@ -546,7 +566,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
    * anything else.
    */
   private trackUrlDocumentId(): void {
-    const segments = this.router.url.split('?')[0].split('/').filter(Boolean);
+    const segments = projectUrlSegments(this.router.url);
     const isDocumentUrl = segments.length === 4 && segments[2] === 'document';
     this.urlDocumentId.set(
       isDocumentUrl ? decodeURIComponent(segments[3]) : null
@@ -686,6 +706,10 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   exitProject() {
+    if (this.publicContext.active()) {
+      globalThis.location.assign(appUrl('/'));
+      return;
+    }
     void this.router.navigate(['/']);
   }
 
@@ -720,6 +744,10 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
       // Open the first/default plan
       plan = plans[0];
     } else {
+      if (!this.projectState.canWrite()) {
+        this.onShowPublishPlans();
+        return;
+      }
       // Create a default publish plan
       plan = createDefaultPublishPlan(
         project.title,
@@ -733,9 +761,7 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
 
     // Navigate to the publish plan
     void this.router.navigate([
-      '/',
-      project.username,
-      project.slug,
+      ...projectRouteCommands(project, this.publicContext.active()),
       'publish-plan',
       plan.id,
     ]);
@@ -766,7 +792,10 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     const identity = this.getProjectRouteIdentity();
     if (identity) {
       this.router
-        .navigate(['/', identity.username, identity.slug, tab])
+        .navigate([
+          ...projectRouteCommands(identity, this.publicContext.active()),
+          tab,
+        ])
         .catch(() => {});
     }
   }
@@ -865,9 +894,12 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
       this.projectState.openTabs()[this.projectState.selectedTabIndex()];
     if (!tab || tab.systemType === 'home') return;
 
-    void this.router.navigate(tabRouteCommands(tab, project), {
-      replaceUrl: true,
-    });
+    void this.router.navigate(
+      tabRouteCommands(tab, project, this.publicContext.active()),
+      {
+        replaceUrl: true,
+      }
+    );
   }
 
   // Navigate to home tab
@@ -875,7 +907,9 @@ export class ProjectComponent implements OnInit, OnDestroy, AfterViewInit {
     const project = this.projectState.project();
     if (project) {
       this.projectState.selectTab(0);
-      void this.router.navigate(['/', project.username, project.slug]);
+      void this.router.navigate(
+        projectRouteCommands(project, this.publicContext.active())
+      );
     }
   }
 

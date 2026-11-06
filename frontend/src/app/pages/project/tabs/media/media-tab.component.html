@@ -25,15 +25,17 @@
     }
   </mat-form-field>
   <div class="header-actions">
-    <button
-      mat-icon-button
-      appTooltipAriaLabel
-      [attr.aria-label]="'media.tab.addMedia' | transloco"
-      (click)="openAddMedia()"
-      [matTooltip]="'media.tab.addMedia' | transloco"
-      data-testid="add-media-button">
-      <mat-icon>add</mat-icon>
-    </button>
+    @if (projectState.canWrite()) {
+      <button
+        mat-icon-button
+        appTooltipAriaLabel
+        [attr.aria-label]="'media.tab.addMedia' | transloco"
+        (click)="openAddMedia()"
+        [matTooltip]="'media.tab.addMedia' | transloco"
+        data-testid="add-media-button">
+        <mat-icon>add</mat-icon>
+      </button>
+    }
     <button
       mat-icon-button
       appTooltipAriaLabel
@@ -203,17 +205,19 @@
               [fileIcon]="getMediaIcon(item)"
               (cardClick)="viewImage(item)">
               <div cardTopLeft>
-                <button
-                  mat-icon-button
-                  appTooltipAriaLabel
-                  [matTooltip]="'media.tab.addTag' | transloco"
-                  [attr.aria-label]="
-                    'Add tag to ' + (item.filename || item.mediaId)
-                  "
-                  (click)="tagMedia(item); $event.stopPropagation()"
-                  data-testid="tag-media-button">
-                  <mat-icon>sell</mat-icon>
-                </button>
+                @if (projectState.canWrite()) {
+                  <button
+                    mat-icon-button
+                    appTooltipAriaLabel
+                    [matTooltip]="'media.tab.addTag' | transloco"
+                    [attr.aria-label]="
+                      'Add tag to ' + (item.filename || item.mediaId)
+                    "
+                    (click)="tagMedia(item); $event.stopPropagation()"
+                    data-testid="tag-media-button">
+                    <mat-icon>sell</mat-icon>
+                  </button>
+                }
               </div>
               <div cardTopRight>
                 @if (item.isImage) {
@@ -238,17 +242,19 @@
                   (click)="downloadMedia(item); $event.stopPropagation()">
                   <mat-icon>download</mat-icon>
                 </button>
-                <button
-                  mat-icon-button
-                  appTooltipAriaLabel
-                  [matTooltip]="'media.tab.delete' | transloco"
-                  [attr.aria-label]="
-                    'Delete ' + (item.filename || item.mediaId)
-                  "
-                  (click)="deleteMedia(item); $event.stopPropagation()"
-                  [disabled]="item.category === 'cover'">
-                  <mat-icon>delete</mat-icon>
-                </button>
+                @if (projectState.canWrite()) {
+                  <button
+                    mat-icon-button
+                    appTooltipAriaLabel
+                    [matTooltip]="'media.tab.delete' | transloco"
+                    [attr.aria-label]="
+                      'Delete ' + (item.filename || item.mediaId)
+                    "
+                    (click)="deleteMedia(item); $event.stopPropagation()"
+                    [disabled]="item.category === 'cover'">
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                }
               </div>
               <div cardBottom>
                 <div class="overlay-info">

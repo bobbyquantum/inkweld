@@ -1,4 +1,5 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, mock, spyOn } from 'bun:test';
+import { PUBLIC_VIEWER_ID } from '../src/utils/yjs-document-utils';
 
 /**
  * POST /api/revoke on the Yjs Durable Object closes a collaborator's sockets
@@ -103,6 +104,42 @@ describe('YjsProject DO POST /api/revoke', () => {
   });
 
   const exp = () => Math.floor(Date.now() / 1000) + 3600;
+
+  it('revokes hibernated public sockets without closing authenticated readers', async () => {
+    const publicElements = makeWs({
+      documentId: 'alice:proj:elements',
+      authenticated: true,
+      canWrite: false,
+      userId: PUBLIC_VIEWER_ID,
+    });
+    const publicDocument = makeWs({
+      documentId: 'alice:proj:doc-1',
+      authenticated: true,
+      canWrite: false,
+      userId: PUBLIC_VIEWER_ID,
+    });
+    const viewer = makeWs({
+      documentId: 'alice:proj:doc-1',
+      authenticated: true,
+      canWrite: false,
+      userId: 'member',
+    });
+    spyOn(projectService, 'findByUsernameAndSlug').mockResolvedValue({
+      id: 'p1',
+      userId: 'owner-1',
+      isPublic: false,
+    });
+    const token = await signJwt({ userId: 'owner-1', username: 'alice', exp: exp() });
+    const response = await revoke([publicElements, publicDocument, viewer], token, {
+      userId: PUBLIC_VIEWER_ID,
+      reason: 'removed',
+    });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ closed: 2 });
+    expect(publicElements.closes[0]?.code).toBe(closeCodes.WS_CLOSE_FORBIDDEN);
+    expect(publicDocument.closes[0]?.code).toBe(closeCodes.WS_CLOSE_FORBIDDEN);
+    expect(viewer.closes).toEqual([]);
+  });
 
   function revoke(sockets: unknown[], token: string, body: unknown): Promise<Response> {
     const state = {

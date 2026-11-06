@@ -79,6 +79,7 @@ export * from './get-element-images-request';
 export * from './get-project-document-sync-manifest200-response';
 export * from './get-project-document-sync-manifest200-response-documents-inner';
 export * from './get-provider-models200-response';
+export * from './get-public-project200-response';
 export * from './get-shared-file-info200-response';
 export * from './get-unread-announcement-count200-response';
 export * from './health-response';

@@ -1,256 +1,355 @@
-@if (projectState.isLoading()) {
-  <div class="loading-indicator">
-    <mat-spinner diameter="40"></mat-spinner>
-  </div>
-}
-
-<!-- Zen mode overlay -->
-@if (isZenMode()) {
-  <div class="zen-mode-overlay">
-    <div class="zen-mode-editor-container">
-      <button
-        [attr.aria-label]="'project.nav.exitZenMode' | transloco"
-        mat-icon-button
-        class="zen-mode-close-button"
-        (click)="toggleZenMode()">
-        <mat-icon>close</mat-icon>
-      </button>
-      @if (getCurrentDocumentId()) {
-        @defer (on idle) {
-          <app-document-element-editor
-            [documentId]="getCurrentDocumentId()!"
-            [tabsDisabled]="!useTabsDesktop()"
-            [zenMode]="true">
-          </app-document-element-editor>
-        } @placeholder {
-          <div class="zen-editor-placeholder">
-            <mat-spinner diameter="40"></mat-spinner>
-          </div>
-        }
-      }
+@if (publicContext.active() && projectState.error()) {
+  <section role="alert" data-testid="public-project-error">
+    <h1>{{ 'project.publicView.errorTitle' | transloco }}</h1>
+    <p>{{ 'project.publicView.unavailable' | transloco }}</p>
+    <button mat-button (click)="exitProject()">
+      {{ 'project.nav.exitProject' | transloco }}
+    </button>
+  </section>
+} @else {
+  @if (projectState.isLoading()) {
+    <div class="loading-indicator">
+      <mat-spinner diameter="40"></mat-spinner>
     </div>
-  </div>
-}
+  }
 
-<mat-sidenav-container class="main-container">
-  <!-- Mobile sidenav -->
-  @if (isMobile() && !isPopout()) {
-    <mat-sidenav
-      mode="over"
-      [opened]="false"
-      class="sidenav-content mobile-sidenav">
-      <div class="mobile-sidenav-content">
-        <div class="mobile-open-tabs">
-          <div class="mobile-tabs-list">
-            <button
-              type="button"
-              class="mobile-tab-item"
-              (click)="goHome()"
-              [class.active]="projectState.selectedTabIndex() === 0">
-              <mat-icon>home</mat-icon>
-              <span class="mobile-tab-name">{{
-                'project.nav.home' | transloco
-              }}</span>
-            </button>
-          </div>
-        </div>
-        @defer (on idle) {
-          <app-project-tree
-            (documentOpened)="onDocumentOpened($event)"></app-project-tree>
-        } @placeholder {
-          <div class="tree-placeholder">
-            <mat-spinner diameter="30"></mat-spinner>
-          </div>
+  <!-- Zen mode overlay -->
+  @if (isZenMode()) {
+    <div class="zen-mode-overlay">
+      <div class="zen-mode-editor-container">
+        <button
+          [attr.aria-label]="'project.nav.exitZenMode' | transloco"
+          mat-icon-button
+          class="zen-mode-close-button"
+          (click)="toggleZenMode()">
+          <mat-icon>close</mat-icon>
+        </button>
+        @if (getCurrentDocumentId()) {
+          @defer (on idle) {
+            <app-document-element-editor
+              [documentId]="getCurrentDocumentId()!"
+              [tabsDisabled]="!useTabsDesktop()"
+              [zenMode]="true">
+            </app-document-element-editor>
+          } @placeholder {
+            <div class="zen-editor-placeholder">
+              <mat-spinner diameter="40"></mat-spinner>
+            </div>
+          }
         }
-        <!-- Connection Status -->
-        @defer (on idle) {
-          <app-connection-status
-            [syncState]="stripSyncState()"
-            [lastError]="stripLastError()"
-            [isLocalMode]="stripIsLocalMode()"
-            [overQuota]="overQuota()"
-            [elementsDocId]="elementsDocId()"
-            [strap]="true"
-            (syncRequested)="onRetrySyncConnection()"
-            data-testid="mobile-connection-status">
-          </app-connection-status>
-        } @placeholder {
-          <div class="connection-placeholder"></div>
-        }
-        <!-- Fixed bottom navigation -->
-        <div class="mobile-sidenav-bottom-nav">
-          <button
-            type="button"
-            class="mobile-nav-item"
-            [class.selected-item]="isSystemTabSelected('media')"
-            data-testid="mobile-media-button"
-            (click)="onShowMediaLibrary(); toggleSidebar()"
-            [attr.aria-label]="'project.nav.mediaLibrary' | transloco">
-            <mat-icon>perm_media</mat-icon>
-            <span class="nav-title">{{
-              'project.nav.mediaLibrary' | transloco
-            }}</span>
-          </button>
-          <button
-            type="button"
-            class="mobile-nav-item"
-            [class.selected-item]="isSystemTabSelected('publish-plans')"
-            data-testid="mobile-publishing-button"
-            (click)="onShowPublishPlans(); toggleSidebar()"
-            [attr.aria-label]="'project.nav.publishing' | transloco">
-            <mat-icon>auto_stories</mat-icon>
-            <span class="nav-title">{{
-              'project.nav.publishing' | transloco
-            }}</span>
-          </button>
-          @if (!isLocalMode()) {
+      </div>
+    </div>
+  }
+
+  <mat-sidenav-container class="main-container">
+    <!-- Mobile sidenav -->
+    @if (isMobile() && !isPopout()) {
+      <mat-sidenav
+        mode="over"
+        [opened]="false"
+        class="sidenav-content mobile-sidenav">
+        <div class="mobile-sidenav-content">
+          <div class="mobile-open-tabs">
+            <div class="mobile-tabs-list">
+              <button
+                type="button"
+                class="mobile-tab-item"
+                (click)="goHome()"
+                [class.active]="projectState.selectedTabIndex() === 0">
+                <mat-icon>home</mat-icon>
+                <span class="mobile-tab-name">{{
+                  'project.nav.home' | transloco
+                }}</span>
+              </button>
+            </div>
+          </div>
+          @defer (on idle) {
+            <app-project-tree
+              (documentOpened)="onDocumentOpened($event)"></app-project-tree>
+          } @placeholder {
+            <div class="tree-placeholder">
+              <mat-spinner diameter="30"></mat-spinner>
+            </div>
+          }
+          <!-- Connection Status -->
+          @defer (on idle) {
+            <app-connection-status
+              [syncState]="stripSyncState()"
+              [lastError]="stripLastError()"
+              [isLocalMode]="stripIsLocalMode()"
+              [overQuota]="overQuota()"
+              [elementsDocId]="elementsDocId()"
+              [strap]="true"
+              (syncRequested)="onRetrySyncConnection()"
+              data-testid="mobile-connection-status">
+            </app-connection-status>
+          } @placeholder {
+            <div class="connection-placeholder"></div>
+          }
+          <!-- Fixed bottom navigation -->
+          <div class="mobile-sidenav-bottom-nav">
             <button
               type="button"
               class="mobile-nav-item"
-              [class.selected-item]="isSystemTabSelected('activity')"
-              data-testid="mobile-activity-button"
-              (click)="onShowActivity(); toggleSidebar()"
-              [attr.aria-label]="'project.nav.activity' | transloco">
-              <mat-icon>history</mat-icon>
+              [class.selected-item]="isSystemTabSelected('media')"
+              data-testid="mobile-media-button"
+              (click)="onShowMediaLibrary(); toggleSidebar()"
+              [attr.aria-label]="'project.nav.mediaLibrary' | transloco">
+              <mat-icon>perm_media</mat-icon>
               <span class="nav-title">{{
-                'project.nav.activity' | transloco
+                'project.nav.mediaLibrary' | transloco
               }}</span>
             </button>
-          }
-          <button
-            type="button"
-            class="mobile-nav-item"
-            [class.selected-item]="isSystemTabSelected('settings')"
-            data-testid="mobile-settings-button"
-            (click)="onShowSettings(); toggleSidebar()"
-            [attr.aria-label]="'project.nav.projectSettings' | transloco">
-            <mat-icon>settings</mat-icon>
-            <span class="nav-title">{{
-              'project.nav.projectSettings' | transloco
-            }}</span>
-          </button>
-          <button
-            type="button"
-            class="mobile-nav-item exit-item"
-            data-testid="mobile-exit-button"
-            (click)="exitProject()"
-            [attr.aria-label]="'project.nav.exitProject' | transloco">
-            <mat-icon>exit_to_app</mat-icon>
-            <span class="nav-title">{{
-              'project.nav.exitProject' | transloco
-            }}</span>
-          </button>
+            <button
+              type="button"
+              class="mobile-nav-item"
+              [class.selected-item]="isSystemTabSelected('publish-plans')"
+              data-testid="mobile-publishing-button"
+              (click)="onShowPublishPlans(); toggleSidebar()"
+              [attr.aria-label]="'project.nav.publishing' | transloco">
+              <mat-icon>auto_stories</mat-icon>
+              <span class="nav-title">{{
+                'project.nav.publishing' | transloco
+              }}</span>
+            </button>
+            @if (!isLocalMode()) {
+              <button
+                type="button"
+                class="mobile-nav-item"
+                [class.selected-item]="isSystemTabSelected('activity')"
+                data-testid="mobile-activity-button"
+                (click)="onShowActivity(); toggleSidebar()"
+                [attr.aria-label]="'project.nav.activity' | transloco">
+                <mat-icon>history</mat-icon>
+                <span class="nav-title">{{
+                  'project.nav.activity' | transloco
+                }}</span>
+              </button>
+            }
+            <button
+              type="button"
+              class="mobile-nav-item"
+              [class.selected-item]="isSystemTabSelected('settings')"
+              data-testid="mobile-settings-button"
+              (click)="onShowSettings(); toggleSidebar()"
+              [attr.aria-label]="'project.nav.projectSettings' | transloco">
+              <mat-icon>settings</mat-icon>
+              <span class="nav-title">{{
+                'project.nav.projectSettings' | transloco
+              }}</span>
+            </button>
+            <button
+              type="button"
+              class="mobile-nav-item exit-item"
+              data-testid="mobile-exit-button"
+              (click)="exitProject()"
+              [attr.aria-label]="'project.nav.exitProject' | transloco">
+              <mat-icon>exit_to_app</mat-icon>
+              <span class="nav-title">{{
+                'project.nav.exitProject' | transloco
+              }}</span>
+            </button>
+          </div>
         </div>
-      </div>
-    </mat-sidenav>
-  }
-  <mat-sidenav-content
-    [class.no-toolbar]="isPopout() || (!isMobile() && useTabsDesktop())">
-    <h1 class="cdk-visually-hidden">{{ projectState.project()?.title }}</h1>
-    <!-- Main toolbar - only shown on mobile or when desktop tabs are disabled.
-         Never in a pop-out, which shows the document and nothing else. -->
-    @if (!isPopout() && (isMobile() || !useTabsDesktop())) {
-      <mat-toolbar class="mobile-toolbar">
-        <button
-          [attr.aria-label]="'project.nav.toggleSidebar' | transloco"
-          mat-icon-button
-          (click)="toggleSidebar()">
-          <mat-icon>menu</mat-icon>
-        </button>
-        <span class="project-title">{{ projectState.project()?.title }}</span>
-        <span class="toolbar-spacer"></span>
-        <div class="toolbar-actions">
-          <app-user-menu
-            [miniMode]="true"
-            [tutorialTour]="isMobile() ? null : 'project'"
-            class="action-button"></app-user-menu>
-        </div>
-      </mat-toolbar>
+      </mat-sidenav>
     }
+    <mat-sidenav-content
+      [class.no-toolbar]="isPopout() || (!isMobile() && useTabsDesktop())">
+      <h1 class="cdk-visually-hidden">{{ projectState.project()?.title }}</h1>
+      <!-- Main toolbar - only shown on mobile or when desktop tabs are disabled.
+         Never in a pop-out, which shows the document and nothing else. -->
+      @if (!isPopout() && (isMobile() || !useTabsDesktop())) {
+        <mat-toolbar class="mobile-toolbar">
+          <button
+            [attr.aria-label]="'project.nav.toggleSidebar' | transloco"
+            mat-icon-button
+            (click)="toggleSidebar()">
+            <mat-icon>menu</mat-icon>
+          </button>
+          <span class="project-title">{{ projectState.project()?.title }}</span>
+          <span class="toolbar-spacer"></span>
+          <div class="toolbar-actions">
+            @if (!publicContext.active()) {
+              <app-user-menu
+                [miniMode]="true"
+                [tutorialTour]="isMobile() ? null : 'project'"
+                class="action-button"></app-user-menu>
+            }
+          </div>
+        </mat-toolbar>
+      }
 
-    @if (isMobile()) {
-      <div class="mobile-content-wrapper">
-        <!-- Content area only (tabs removed since we now use sidenav navigation) -->
-        <main id="main-content" class="content-area">
-          <router-outlet></router-outlet>
-        </main>
-      </div>
-    } @else {
-      <!-- Desktop layout: sidebar + shared content (single outlet preserves routed state) -->
-      <div class="desktop-layout" [class.dense-sidebar]="denseLayout()">
-        @if (showSidebar() && !isPopout()) {
-          @if (sidebarCollapsed()) {
-            <!-- Desktop collapsed sidebar -->
-            <div class="collapsed-sidebar">
-              <!-- Top section: Expand toggle, Home, Search -->
-              <div class="collapsed-sidebar-top">
-                <button
-                  mat-icon-button
-                  appTooltipAriaLabel
-                  (click)="toggleSidebarCollapsed()"
-                  [matTooltip]="'project.nav.expandSidebar' | transloco"
-                  data-testid="sidebar-expand-button"
-                  [attr.aria-label]="'project.nav.expandSidebar' | transloco">
-                  <mat-icon fontSet="material-symbols-outlined"
-                    >left_panel_open</mat-icon
-                  >
-                </button>
-                <button
-                  mat-icon-button
-                  appTooltipAriaLabel
-                  (click)="goHome()"
-                  [class.active]="projectState.selectedTabIndex() === 0"
-                  [matTooltip]="'project.nav.home' | transloco"
-                  data-testid="collapsed-home-button"
-                  [attr.aria-label]="'project.nav.home' | transloco">
-                  <mat-icon>home</mat-icon>
-                </button>
-                <button
-                  mat-icon-button
-                  appTooltipAriaLabel
-                  (click)="openProjectSearch()"
-                  [matTooltip]="'project.nav.searchInProject' | transloco"
-                  data-testid="collapsed-project-search-button"
-                  [attr.aria-label]="
-                    'project.nav.searchInProjectAria' | transloco
-                  ">
-                  <mat-icon>manage_search</mat-icon>
-                </button>
-                <button
-                  mat-icon-button
-                  appTooltipAriaLabel
-                  [matMenuTriggerFor]="browseMenu.menu"
-                  [matTooltip]="'project.nav.browseElements' | transloco"
-                  data-testid="collapsed-browse-button"
-                  [attr.aria-label]="'project.nav.browseElements' | transloco">
-                  <mat-icon>folder</mat-icon>
-                </button>
-                <app-element-tree-menu
-                  #browseMenu="appElementTreeMenu"
-                  [parentId]="null" />
-              </div>
+      @if (isMobile()) {
+        <div class="mobile-content-wrapper">
+          <!-- Content area only (tabs removed since we now use sidenav navigation) -->
+          <main id="main-content" class="content-area">
+            <router-outlet></router-outlet>
+          </main>
+        </div>
+      } @else {
+        <!-- Desktop layout: sidebar + shared content (single outlet preserves routed state) -->
+        <div class="desktop-layout" [class.dense-sidebar]="denseLayout()">
+          @if (showSidebar() && !isPopout()) {
+            @if (sidebarCollapsed()) {
+              <!-- Desktop collapsed sidebar -->
+              <div class="collapsed-sidebar">
+                <!-- Top section: Expand toggle, Home, Search -->
+                <div class="collapsed-sidebar-top">
+                  <button
+                    mat-icon-button
+                    appTooltipAriaLabel
+                    (click)="toggleSidebarCollapsed()"
+                    [matTooltip]="'project.nav.expandSidebar' | transloco"
+                    data-testid="sidebar-expand-button"
+                    [attr.aria-label]="'project.nav.expandSidebar' | transloco">
+                    <mat-icon fontSet="material-symbols-outlined"
+                      >left_panel_open</mat-icon
+                    >
+                  </button>
+                  <button
+                    mat-icon-button
+                    appTooltipAriaLabel
+                    (click)="goHome()"
+                    [class.active]="projectState.selectedTabIndex() === 0"
+                    [matTooltip]="'project.nav.home' | transloco"
+                    data-testid="collapsed-home-button"
+                    [attr.aria-label]="'project.nav.home' | transloco">
+                    <mat-icon>home</mat-icon>
+                  </button>
+                  <button
+                    mat-icon-button
+                    appTooltipAriaLabel
+                    (click)="openProjectSearch()"
+                    [matTooltip]="'project.nav.searchInProject' | transloco"
+                    data-testid="collapsed-project-search-button"
+                    [attr.aria-label]="
+                      'project.nav.searchInProjectAria' | transloco
+                    ">
+                    <mat-icon>manage_search</mat-icon>
+                  </button>
+                  <button
+                    mat-icon-button
+                    appTooltipAriaLabel
+                    [matMenuTriggerFor]="browseMenu.menu"
+                    [matTooltip]="'project.nav.browseElements' | transloco"
+                    data-testid="collapsed-browse-button"
+                    [attr.aria-label]="
+                      'project.nav.browseElements' | transloco
+                    ">
+                    <mat-icon>folder</mat-icon>
+                  </button>
+                  <app-element-tree-menu
+                    #browseMenu="appElementTreeMenu"
+                    [parentId]="null" />
+                </div>
 
-              <!-- Pinned elements section -->
-              @if (pinnedElements().length > 0) {
-                <div class="collapsed-pinned-section">
-                  <div class="collapsed-pinned-divider"></div>
-                  @for (element of pinnedElements(); track element.id) {
+                <!-- Pinned elements section -->
+                @if (pinnedElements().length > 0) {
+                  <div class="collapsed-pinned-section">
+                    <div class="collapsed-pinned-divider"></div>
+                    @for (element of pinnedElements(); track element.id) {
+                      <button
+                        mat-icon-button
+                        appTooltipAriaLabel
+                        (click)="onDocumentOpened(element)"
+                        [matTooltip]="element.name"
+                        matTooltipPosition="right"
+                        [attr.data-testid]="'collapsed-pinned-' + element.name"
+                        [attr.aria-label]="element.name">
+                        <mat-icon>{{ getIconForElement(element) }}</mat-icon>
+                      </button>
+                    }
+                  </div>
+                }
+
+                <!-- Bottom section: Sync, Media, Settings, Exit -->
+                <div class="collapsed-sidebar-bottom">
+                  @defer (on idle) {
+                    <app-connection-status
+                      [syncState]="stripSyncState()"
+                      [lastError]="stripLastError()"
+                      [isLocalMode]="stripIsLocalMode()"
+                      [overQuota]="overQuota()"
+                      [elementsDocId]="elementsDocId()"
+                      [collapsed]="true"
+                      (syncRequested)="onRetrySyncConnection()"
+                      data-testid="collapsed-connection-status">
+                    </app-connection-status>
+                  } @placeholder {
+                    <div class="collapsed-connection-placeholder"></div>
+                  }
+                  <button
+                    mat-icon-button
+                    appTooltipAriaLabel
+                    (click)="onShowMediaLibrary()"
+                    [class.active]="isSystemTabSelected('media')"
+                    [matTooltip]="'project.nav.mediaLibrary' | transloco"
+                    data-testid="collapsed-media-button"
+                    [attr.aria-label]="'project.nav.mediaLibrary' | transloco">
+                    <mat-icon>perm_media</mat-icon>
+                  </button>
+                  <button
+                    mat-icon-button
+                    appTooltipAriaLabel
+                    (click)="onShowPublishPlans()"
+                    [class.active]="isSystemTabSelected('publish-plans')"
+                    [matTooltip]="'project.nav.publishing' | transloco"
+                    data-testid="collapsed-publishing-button"
+                    [attr.aria-label]="'project.nav.publishing' | transloco">
+                    <mat-icon>auto_stories</mat-icon>
+                  </button>
+                  @if (!isLocalMode()) {
                     <button
                       mat-icon-button
                       appTooltipAriaLabel
-                      (click)="onDocumentOpened(element)"
-                      [matTooltip]="element.name"
-                      matTooltipPosition="right"
-                      [attr.data-testid]="'collapsed-pinned-' + element.name"
-                      [attr.aria-label]="element.name">
-                      <mat-icon>{{ getIconForElement(element) }}</mat-icon>
+                      (click)="onShowActivity()"
+                      [class.active]="isSystemTabSelected('activity')"
+                      [matTooltip]="'project.nav.activity' | transloco"
+                      data-testid="collapsed-activity-button"
+                      [attr.aria-label]="'project.nav.activity' | transloco">
+                      <mat-icon>history</mat-icon>
                     </button>
                   }
+                  <button
+                    mat-icon-button
+                    appTooltipAriaLabel
+                    (click)="onShowSettings()"
+                    [class.active]="isSystemTabSelected('settings')"
+                    [matTooltip]="'project.nav.projectSettings' | transloco"
+                    data-testid="collapsed-settings-button"
+                    [attr.aria-label]="
+                      'project.nav.projectSettings' | transloco
+                    ">
+                    <mat-icon>settings</mat-icon>
+                  </button>
+                  <button
+                    mat-icon-button
+                    appTooltipAriaLabel
+                    (click)="exitProject()"
+                    [matTooltip]="'project.nav.exitProject' | transloco"
+                    data-testid="collapsed-exit-button"
+                    [attr.aria-label]="'project.nav.exitProject' | transloco">
+                    <mat-icon>exit_to_app</mat-icon>
+                  </button>
                 </div>
-              }
-
-              <!-- Bottom section: Sync, Media, Settings, Exit -->
-              <div class="collapsed-sidebar-bottom">
+              </div>
+            } @else {
+              <!-- Desktop expanded sidebar -->
+              <div class="desktop-sidebar" [style.width.px]="sidebarWidth()">
+                @defer (on idle) {
+                  <app-project-tree
+                    [showCollapseButton]="true"
+                    [dense]="denseLayout()"
+                    (collapseRequested)="toggleSidebarCollapsed()"
+                    (documentOpened)="
+                      onDocumentOpened($event)
+                    "></app-project-tree>
+                } @placeholder {
+                  <div class="tree-placeholder">
+                    <mat-spinner diameter="30"></mat-spinner>
+                  </div>
+                }
+                <!-- Connection Status -->
                 @defer (on idle) {
                   <app-connection-status
                     [syncState]="stripSyncState()"
@@ -258,188 +357,109 @@
                     [isLocalMode]="stripIsLocalMode()"
                     [overQuota]="overQuota()"
                     [elementsDocId]="elementsDocId()"
-                    [collapsed]="true"
+                    [strap]="true"
                     (syncRequested)="onRetrySyncConnection()"
-                    data-testid="collapsed-connection-status">
+                    data-testid="sidebar-connection-status">
                   </app-connection-status>
                 } @placeholder {
-                  <div class="collapsed-connection-placeholder"></div>
+                  <div class="connection-placeholder"></div>
                 }
-                <button
-                  mat-icon-button
-                  appTooltipAriaLabel
-                  (click)="onShowMediaLibrary()"
-                  [class.active]="isSystemTabSelected('media')"
-                  [matTooltip]="'project.nav.mediaLibrary' | transloco"
-                  data-testid="collapsed-media-button"
-                  [attr.aria-label]="'project.nav.mediaLibrary' | transloco">
-                  <mat-icon>perm_media</mat-icon>
-                </button>
-                <button
-                  mat-icon-button
-                  appTooltipAriaLabel
-                  (click)="onShowPublishPlans()"
-                  [class.active]="isSystemTabSelected('publish-plans')"
-                  [matTooltip]="'project.nav.publishing' | transloco"
-                  data-testid="collapsed-publishing-button"
-                  [attr.aria-label]="'project.nav.publishing' | transloco">
-                  <mat-icon>auto_stories</mat-icon>
-                </button>
-                @if (!isLocalMode()) {
-                  <button
-                    mat-icon-button
-                    appTooltipAriaLabel
-                    (click)="onShowActivity()"
-                    [class.active]="isSystemTabSelected('activity')"
-                    [matTooltip]="'project.nav.activity' | transloco"
-                    data-testid="collapsed-activity-button"
-                    [attr.aria-label]="'project.nav.activity' | transloco">
-                    <mat-icon>history</mat-icon>
-                  </button>
-                }
-                <button
-                  mat-icon-button
-                  appTooltipAriaLabel
-                  (click)="onShowSettings()"
-                  [class.active]="isSystemTabSelected('settings')"
-                  [matTooltip]="'project.nav.projectSettings' | transloco"
-                  data-testid="collapsed-settings-button"
-                  [attr.aria-label]="'project.nav.projectSettings' | transloco">
-                  <mat-icon>settings</mat-icon>
-                </button>
-                <button
-                  mat-icon-button
-                  appTooltipAriaLabel
-                  (click)="exitProject()"
-                  [matTooltip]="'project.nav.exitProject' | transloco"
-                  data-testid="collapsed-exit-button"
-                  [attr.aria-label]="'project.nav.exitProject' | transloco">
-                  <mat-icon>exit_to_app</mat-icon>
-                </button>
-              </div>
-            </div>
-          } @else {
-            <!-- Desktop expanded sidebar -->
-            <div class="desktop-sidebar" [style.width.px]="sidebarWidth()">
-              @defer (on idle) {
-                <app-project-tree
-                  [showCollapseButton]="true"
-                  [dense]="denseLayout()"
-                  (collapseRequested)="toggleSidebarCollapsed()"
-                  (documentOpened)="
-                    onDocumentOpened($event)
-                  "></app-project-tree>
-              } @placeholder {
-                <div class="tree-placeholder">
-                  <mat-spinner diameter="30"></mat-spinner>
-                </div>
-              }
-              <!-- Connection Status -->
-              @defer (on idle) {
-                <app-connection-status
-                  [syncState]="stripSyncState()"
-                  [lastError]="stripLastError()"
-                  [isLocalMode]="stripIsLocalMode()"
-                  [overQuota]="overQuota()"
-                  [elementsDocId]="elementsDocId()"
-                  [strap]="true"
-                  (syncRequested)="onRetrySyncConnection()"
-                  data-testid="sidebar-connection-status">
-                </app-connection-status>
-              } @placeholder {
-                <div class="connection-placeholder"></div>
-              }
-              <!-- Fixed bottom navigation -->
-              <div class="sidebar-bottom-nav">
-                <button
-                  type="button"
-                  class="sidebar-nav-item"
-                  [class.selected-item]="isSystemTabSelected('media')"
-                  data-testid="sidebar-media-button"
-                  (click)="onShowMediaLibrary()"
-                  [attr.aria-label]="'project.nav.mediaLibrary' | transloco">
-                  <mat-icon>perm_media</mat-icon>
-                  <span class="nav-title">{{
-                    'project.nav.mediaLibrary' | transloco
-                  }}</span>
-                </button>
-                <button
-                  type="button"
-                  class="sidebar-nav-item"
-                  [class.selected-item]="isSystemTabSelected('publish-plans')"
-                  data-testid="sidebar-publishing-button"
-                  (click)="onShowPublishPlans()"
-                  [attr.aria-label]="'project.nav.publishing' | transloco">
-                  <mat-icon>auto_stories</mat-icon>
-                  <span class="nav-title">{{
-                    'project.nav.publishing' | transloco
-                  }}</span>
-                </button>
-                @if (!isLocalMode()) {
+                <!-- Fixed bottom navigation -->
+                <div class="sidebar-bottom-nav">
                   <button
                     type="button"
                     class="sidebar-nav-item"
-                    [class.selected-item]="isSystemTabSelected('activity')"
-                    data-testid="sidebar-activity-button"
-                    (click)="onShowActivity()"
-                    [attr.aria-label]="'project.nav.activity' | transloco">
-                    <mat-icon>history</mat-icon>
+                    [class.selected-item]="isSystemTabSelected('media')"
+                    data-testid="sidebar-media-button"
+                    (click)="onShowMediaLibrary()"
+                    [attr.aria-label]="'project.nav.mediaLibrary' | transloco">
+                    <mat-icon>perm_media</mat-icon>
                     <span class="nav-title">{{
-                      'project.nav.activity' | transloco
+                      'project.nav.mediaLibrary' | transloco
                     }}</span>
                   </button>
-                }
-                <button
-                  type="button"
-                  class="sidebar-nav-item"
-                  [class.selected-item]="isSystemTabSelected('settings')"
-                  data-testid="sidebar-settings-button"
-                  (click)="onShowSettings()"
-                  [attr.aria-label]="'project.nav.projectSettings' | transloco">
-                  <mat-icon>settings</mat-icon>
-                  <span class="nav-title">{{
-                    'project.nav.projectSettings' | transloco
-                  }}</span>
-                </button>
-                <button
-                  type="button"
-                  class="sidebar-nav-item exit-item"
-                  data-testid="sidebar-exit-button"
-                  (click)="exitProject()"
-                  [attr.aria-label]="'project.nav.exitProject' | transloco">
-                  <mat-icon>exit_to_app</mat-icon>
-                  <span class="nav-title">{{
-                    'project.nav.exitProject' | transloco
-                  }}</span>
-                </button>
+                  <button
+                    type="button"
+                    class="sidebar-nav-item"
+                    [class.selected-item]="isSystemTabSelected('publish-plans')"
+                    data-testid="sidebar-publishing-button"
+                    (click)="onShowPublishPlans()"
+                    [attr.aria-label]="'project.nav.publishing' | transloco">
+                    <mat-icon>auto_stories</mat-icon>
+                    <span class="nav-title">{{
+                      'project.nav.publishing' | transloco
+                    }}</span>
+                  </button>
+                  @if (!isLocalMode()) {
+                    <button
+                      type="button"
+                      class="sidebar-nav-item"
+                      [class.selected-item]="isSystemTabSelected('activity')"
+                      data-testid="sidebar-activity-button"
+                      (click)="onShowActivity()"
+                      [attr.aria-label]="'project.nav.activity' | transloco">
+                      <mat-icon>history</mat-icon>
+                      <span class="nav-title">{{
+                        'project.nav.activity' | transloco
+                      }}</span>
+                    </button>
+                  }
+                  <button
+                    type="button"
+                    class="sidebar-nav-item"
+                    [class.selected-item]="isSystemTabSelected('settings')"
+                    data-testid="sidebar-settings-button"
+                    (click)="onShowSettings()"
+                    [attr.aria-label]="
+                      'project.nav.projectSettings' | transloco
+                    ">
+                    <mat-icon>settings</mat-icon>
+                    <span class="nav-title">{{
+                      'project.nav.projectSettings' | transloco
+                    }}</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="sidebar-nav-item exit-item"
+                    data-testid="sidebar-exit-button"
+                    (click)="exitProject()"
+                    [attr.aria-label]="'project.nav.exitProject' | transloco">
+                    <mat-icon>exit_to_app</mat-icon>
+                    <span class="nav-title">{{
+                      'project.nav.exitProject' | transloco
+                    }}</span>
+                  </button>
+                </div>
               </div>
-            </div>
-            <!-- Drag handle to resize the sidebar -->
-            <div
-              class="sidebar-resize-gutter"
-              (mousedown)="onSidebarResizeStart($event)"
-              (touchstart)="onSidebarResizeStart($event)"></div>
+              <!-- Drag handle to resize the sidebar -->
+              <div
+                class="sidebar-resize-gutter"
+                (mousedown)="onSidebarResizeStart($event)"
+                (touchstart)="onSidebarResizeStart($event)"></div>
+            }
           }
-        }
-        <!-- Shared content area (single outlet; preserved across sidebar state changes) -->
-        <div class="desktop-content">
-          @if (useTabsDesktop() && !isPopout()) {
-            <div class="tabs-header">
-              <app-tab-interface (importRequested)="onImportClicked()">
-                <!-- Projected into tab-bar-actions -->
-                <app-presence-indicator></app-presence-indicator>
-                <app-user-menu
-                  [miniMode]="true"
-                  tutorialTour="project"
-                  class="action-button"></app-user-menu>
-              </app-tab-interface>
-            </div>
-          }
-          <main id="main-content" class="content-area">
-            <router-outlet></router-outlet>
-          </main>
+          <!-- Shared content area (single outlet; preserved across sidebar state changes) -->
+          <div class="desktop-content">
+            @if (useTabsDesktop() && !isPopout()) {
+              <div class="tabs-header">
+                <app-tab-interface (importRequested)="onImportClicked()">
+                  <!-- Projected into tab-bar-actions -->
+                  @if (!publicContext.active()) {
+                    <app-presence-indicator></app-presence-indicator>
+                    <app-user-menu
+                      [miniMode]="true"
+                      tutorialTour="project"
+                      class="action-button"></app-user-menu>
+                  }
+                </app-tab-interface>
+              </div>
+            }
+            <main id="main-content" class="content-area">
+              <router-outlet></router-outlet>
+            </main>
+          </div>
         </div>
-      </div>
-    }
-  </mat-sidenav-content>
-</mat-sidenav-container>
+      }
+    </mat-sidenav-content>
+  </mat-sidenav-container>
+}

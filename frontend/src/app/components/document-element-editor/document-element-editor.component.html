@@ -217,6 +217,7 @@
   <!-- Comment Popover (click on comment-highlighted text) -->
   @if (commentPopoverAttrs()) {
     <app-comment-popover
+      [readOnly]="!projectState.canWrite()"
       [attrs]="commentPopoverAttrs()!"
       [username]="projectState.project()?.username ?? ''"
       [slug]="projectState.project()?.slug ?? ''"

@@ -42,8 +42,10 @@ import {
   isScene,
 } from '@models/scene-metadata';
 import { ProjectSearchService } from '@services/core/project-search.service';
+import { PublicProjectContextService } from '@services/core/public-project-context.service';
 import { SettingsService } from '@services/core/settings.service';
 import { ProjectStateService } from '@services/project/project-state.service';
+import { projectRouteCommands } from '@utils/tab-route';
 
 import { type ProjectElement } from '../../models/project-element';
 import { DialogGatewayService } from '../../services/core/dialog-gateway.service';
@@ -185,6 +187,7 @@ export class ProjectTreeComponent implements OnDestroy {
 
   readonly settingsService = inject(SettingsService);
   protected readonly router = inject(Router);
+  private readonly publicContext = inject(PublicProjectContextService);
 
   selectedItem: ProjectElement | null = null;
 
@@ -994,7 +997,9 @@ export class ProjectTreeComponent implements OnDestroy {
     if (project) {
       this.selectedItem = null;
       this.projectStateService.openSystemTab('home');
-      void this.router.navigate(['/', project.username, project.slug]);
+      void this.router.navigate(
+        projectRouteCommands(project, this.publicContext.active())
+      );
     }
   }
 

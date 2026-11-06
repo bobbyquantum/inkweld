@@ -1,5 +1,5 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi';
-import { requireAuth } from '../middleware/auth';
+import { requireProjectReadAuth } from '../middleware/public-project-read';
 import { projectService } from '../services/project.service';
 import { collaborationService } from '../services/collaboration.service';
 import {
@@ -28,17 +28,20 @@ import {
 
 const commentRoutes = new OpenAPIHono<AppContext>();
 
-commentRoutes.use('*', requireAuth);
+commentRoutes.use('*', requireProjectReadAuth);
 
 /** Helper: resolve project and check at least read access */
 async function resolveProjectAccess(
   db: DatabaseInstance,
   username: string,
   slug: string,
-  userId: string
+  userId: string | undefined,
+  publicRead = false
 ) {
   const project = await projectService.findByUsernameAndSlug(db, username, slug);
   if (!project) throw new NotFoundError('Project not found');
+  if (publicRead && project.isPublic) return { project, canWrite: false };
+  if (!userId) throw new UnauthorizedError();
   if (project.userId !== userId) {
     const access = await collaborationService.checkAccess(db, project.id, userId);
     if (!access.canRead) throw new ForbiddenError();
@@ -97,13 +100,12 @@ const listProjectCommentsRoute = createRoute({
 commentRoutes.openapi(listProjectCommentsRoute, async (c) => {
   const db = c.get('db');
   const user = c.get('user');
-  if (!user) throw new UnauthorizedError();
-
   const { project } = await resolveProjectAccess(
     db,
     c.req.param('username'),
     c.req.param('slug'),
-    user.id
+    user?.id,
+    c.get('publicProjectRead')
   );
   const threads = await commentService.listByProjectId(db, project.id);
 
@@ -140,12 +142,16 @@ const listDocumentCommentsRoute = createRoute({
 commentRoutes.openapi(listDocumentCommentsRoute, async (c) => {
   const db = c.get('db');
   const user = c.get('user');
-  if (!user) throw new UnauthorizedError();
-
   const username = c.req.param('username');
   const slug = c.req.param('slug');
   const documentName = c.req.param('documentName');
-  const { project } = await resolveProjectAccess(db, username, slug, user.id);
+  const { project } = await resolveProjectAccess(
+    db,
+    username,
+    slug,
+    user?.id,
+    c.get('publicProjectRead')
+  );
 
   const documentId = `${username}:${slug}:${documentName}`;
   const threads = await commentService.listByDocumentId(db, project.id, documentId);
@@ -178,13 +184,12 @@ const getThreadRoute = createRoute({
 commentRoutes.openapi(getThreadRoute, async (c) => {
   const db = c.get('db');
   const user = c.get('user');
-  if (!user) throw new UnauthorizedError();
-
   const { project } = await resolveProjectAccess(
     db,
     c.req.param('username'),
     c.req.param('slug'),
-    user.id
+    user?.id,
+    c.get('publicProjectRead')
   );
   const thread = await commentService.getThread(db, c.req.param('threadId'));
 

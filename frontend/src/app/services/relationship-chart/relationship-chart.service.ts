@@ -27,6 +27,7 @@ import {
   createDefaultChartConfig,
 } from '../../models/relationship-chart.model';
 import { LoggerService } from '../core/logger.service';
+import { PublicProjectContextService } from '../core/public-project-context.service';
 import { StorageContextService } from '../core/storage-context.service';
 import { ProjectStateService } from '../project/project-state.service';
 import { RelationshipService } from '../relationship/relationship.service';
@@ -51,6 +52,7 @@ interface ChartLocalState {
  */
 @Injectable()
 export class RelationshipChartService {
+  private readonly publicContext = inject(PublicProjectContextService);
   private readonly logger = inject(LoggerService);
   private readonly projectState = inject(ProjectStateService);
   private readonly relationshipService = inject(RelationshipService);
@@ -199,6 +201,7 @@ export class RelationshipChartService {
    */
   saveConfig(config: ChartConfig): void {
     this.activeConfigSignal.set(config);
+    if (this.publicContext.active()) return;
 
     // Serialize to element metadata (exclude nodePositions/viewport — those are local)
     const toSerialize: Partial<ChartConfig> = {
@@ -328,6 +331,7 @@ export class RelationshipChartService {
    * Save local-only state (node positions, viewport) to localStorage.
    */
   saveLocalState(elementId: string, state: ChartLocalState): void {
+    if (this.publicContext.active()) return;
     try {
       const key = this.storageContext.prefixKey(
         CHART_STATE_BASE_PREFIX + elementId
@@ -342,6 +346,7 @@ export class RelationshipChartService {
    * Load local-only state from localStorage.
    */
   loadLocalState(elementId: string): ChartLocalState | null {
+    if (this.publicContext.active()) return null;
     try {
       const key = this.storageContext.prefixKey(
         CHART_STATE_BASE_PREFIX + elementId

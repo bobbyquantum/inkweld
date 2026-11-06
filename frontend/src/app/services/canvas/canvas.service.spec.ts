@@ -120,6 +120,7 @@ describe('CanvasService', () => {
   }
 
   const mockProjectState = {
+    canWrite: vi.fn(() => true),
     elements: mockElements,
     updateElementMetadata: vi.fn(),
     project: vi.fn(() => null),
@@ -158,6 +159,7 @@ describe('CanvasService', () => {
   };
 
   beforeEach(() => {
+    mockProjectState.canWrite.mockReturnValue(true);
     TestBed.configureTestingModule({
       imports: [translocoTestProvider()],
       providers: [
@@ -180,6 +182,16 @@ describe('CanvasService', () => {
   // ─────────────────────────────────────────────────────────────────────────
   // loadConfig
   // ─────────────────────────────────────────────────────────────────────────
+
+  it('does not change or persist a read-only canvas', () => {
+    mockElements.set([makeElement({ id: 'canvas-1' })]);
+    const config = service.loadConfig('canvas-1');
+    mockProjectState.canWrite.mockReturnValue(false);
+    mockProjectState.applyCanvasEdit.mockClear();
+    service.saveConfig({ ...config, inkColor: '#ff0000' });
+    expect(service.activeConfig()).toEqual(config);
+    expect(mockProjectState.applyCanvasEdit).not.toHaveBeenCalled();
+  });
 
   describe('loadConfig', () => {
     it('should create default config when element has no metadata', () => {

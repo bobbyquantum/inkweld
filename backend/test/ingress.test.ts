@@ -166,6 +166,8 @@ describe('baseUsernameFor', () => {
 
   it('avoids reserved route names', () => {
     expect(baseUsernameFor(user('admin'))).toBe('admin-ha');
+    expect(baseUsernameFor(user('public'))).toBe('public-ha');
+    expect(baseUsernameFor(user('PUBLIC'))).toBe('public-ha');
   });
 });
 

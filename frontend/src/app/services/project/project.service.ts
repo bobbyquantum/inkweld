@@ -5,6 +5,7 @@ import { ImagesService, type Project, ProjectsService } from '@inkweld/index';
 import { encodePathSegment } from '@utils/url-path';
 import { catchError, firstValueFrom, retry, throwError } from 'rxjs';
 
+import { PublicProjectContextService } from '../core/public-project-context.service';
 import { SetupService } from '../core/setup.service';
 import {
   isLocalOrCloudMode,
@@ -107,6 +108,7 @@ const MAX_RETRIES = 3;
   providedIn: 'root',
 })
 export class ProjectService {
+  private readonly publicContext = inject(PublicProjectContextService);
   private readonly projectApi = inject(ProjectsService);
   private readonly imagesApi = inject(ImagesService);
   private readonly http = inject(HttpClient);
@@ -445,7 +447,7 @@ export class ProjectService {
   async updateProject(
     username: string,
     slug: string,
-    Project: Project
+    Project: Partial<Pick<Project, 'title' | 'description' | 'isPublic'>>
   ): Promise<Project> {
     this.isLoading.set(true);
     this.error.set(undefined);
@@ -454,6 +456,7 @@ export class ProjectService {
       const updateRequest = {
         title: Project.title,
         description: Project.description || undefined,
+        isPublic: Project.isPublic,
       };
       try {
         const project = await firstValueFrom(
@@ -495,6 +498,7 @@ export class ProjectService {
             title: updateRequest.title ?? existing?.title ?? '',
             description:
               updateRequest.description ?? existing?.description ?? undefined,
+            isPublic: updateRequest.isPublic ?? existing?.isPublic ?? false,
           };
 
           await this.setCachedProject(cacheKey, updated);
@@ -503,6 +507,7 @@ export class ProjectService {
           await this.projectSync.markPendingMetadata(cacheKey, {
             title: updateRequest.title,
             description: updateRequest.description,
+            isPublic: updateRequest.isPublic,
           });
 
           // Do not set error to allow UI to proceed with local changes
@@ -574,6 +579,9 @@ export class ProjectService {
     slug: string,
     coverMediaId?: string
   ): Promise<Blob> {
+    if (this.publicContext.active()) {
+      return firstValueFrom(this.imagesApi.getProjectCover(username, slug));
+    }
     this.error.set(undefined);
     const projectKey = `${username}/${slug}`;
     const cacheId = coverMediaId;

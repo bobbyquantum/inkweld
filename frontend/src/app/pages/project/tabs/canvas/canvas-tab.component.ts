@@ -203,7 +203,7 @@ function sameFrames(a: CanvasFrame[], b: CanvasFrame[]): boolean {
 })
 export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
-  private readonly projectState = inject(ProjectStateService);
+  protected readonly projectState = inject(ProjectStateService);
   private readonly canvasService = inject(CanvasService);
   private readonly canvasRenderer = inject(CanvasRendererService);
   private readonly mediaSync = inject(MediaSyncService);
@@ -889,6 +889,7 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
   }
 
   private handleDrawStart(input: DrawInput): void {
+    if (!this.projectState.canWrite()) return;
     if (this.spacePanning()) return;
     const tool = this.activeTool();
     const consumed = this.canvasDrawing.start(
@@ -993,6 +994,7 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
   // ─────────────────────────────────────────────────────────────────────────
 
   private selectKonvaNode(node: Konva.Node): void {
+    if (!this.projectState.canWrite()) return;
     this.canvasSelection.selectNode(node);
     const id = node.id();
     const elementId = this.elementId();
@@ -1036,6 +1038,7 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
   // ─────────────────────────────────────────────────────────────────────────
 
   private setupKeyboardShortcuts(): void {
+    if (!this.projectState.canWrite()) return;
     this.canvasKeyboard.attach({
       onCopy: () => this.onCopy(),
       onCut: () => this.onCut(),
@@ -1759,6 +1762,10 @@ export class CanvasTabComponent implements AfterViewInit, OnInit, OnDestroy {
 
   /** Open the right-click context menu at the cursor position */
   protected onContextMenu(event: MouseEvent): void {
+    if (!this.projectState.canWrite()) {
+      event.preventDefault();
+      return;
+    }
     event.preventDefault();
     event.stopPropagation();
     this.cancelLongPress();

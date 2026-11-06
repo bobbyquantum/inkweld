@@ -117,6 +117,7 @@ vi.mock('y-websocket', () => {
 let createAuthenticatedWebsocketProvider: typeof import('./authenticated-websocket-provider').createAuthenticatedWebsocketProvider;
 let setupReauthentication: typeof import('./authenticated-websocket-provider').setupReauthentication;
 let installWebSocketResilience: typeof import('./authenticated-websocket-provider').installWebSocketResilience;
+let waitForWebSocketSync: typeof import('./authenticated-websocket-provider').waitForWebSocketSync;
 
 describe('authenticated-websocket-provider', () => {
   let mockDoc: Y.Doc;
@@ -131,6 +132,7 @@ describe('authenticated-websocket-provider', () => {
       module.createAuthenticatedWebsocketProvider;
     setupReauthentication = module.setupReauthentication;
     installWebSocketResilience = module.installWebSocketResilience;
+    waitForWebSocketSync = module.waitForWebSocketSync;
 
     mockDoc = new Y.Doc();
     resetMockInstances();
@@ -142,6 +144,54 @@ describe('authenticated-websocket-provider', () => {
   });
 
   describe('createAuthenticatedWebsocketProvider', () => {
+    it('isolates public readers from broadcast edits and waits for server content', async () => {
+      const promise = createAuthenticatedWebsocketProvider(
+        'ws://localhost/public',
+        '',
+        mockDoc,
+        'public-view'
+      );
+      const instance = mockProviderInstances[0];
+      expect(instance._options['disableBc']).toBe(true);
+      instance._emitStatus('connected');
+      instance.ws?.onmessage?.(
+        new MessageEvent('message', { data: 'authenticated' })
+      );
+      const provider = await promise;
+      let synced = false;
+      const sync = waitForWebSocketSync(provider).then(() => {
+        synced = true;
+      });
+      await Promise.resolve();
+      expect(synced).toBe(false);
+      instance._listeners.get('sync')?.forEach(listener => listener(true));
+      await sync;
+      expect(synced).toBe(true);
+      expect(instance._listeners.get('sync')).toEqual([]);
+      provider.destroy();
+    });
+
+    it('rejects a public read that closes before its first server state', async () => {
+      const promise = createAuthenticatedWebsocketProvider(
+        'ws://localhost/public',
+        '',
+        mockDoc,
+        'public-view'
+      );
+      const instance = mockProviderInstances[0];
+      instance._emitStatus('connected');
+      instance.ws?.onmessage?.(
+        new MessageEvent('message', { data: 'authenticated' })
+      );
+      const provider = await promise;
+      const sync = waitForWebSocketSync(provider);
+      instance._listeners
+        .get('connection-close')
+        ?.forEach(listener => listener(null));
+      await expect(sync).rejects.toThrow('closed before syncing');
+      expect(instance._listeners.get('sync')).toEqual([]);
+      provider.destroy();
+    });
     it('should create provider and send auth token on connect', async () => {
       const authToken = 'test-jwt-token';
       const wsUrl = 'ws://localhost:8333/api/v1/ws/yjs?documentId=test:doc:id';

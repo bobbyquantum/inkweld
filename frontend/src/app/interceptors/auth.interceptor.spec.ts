@@ -14,6 +14,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { environment } from '../../environments/environment';
 import { translocoTestProvider } from '../../testing/transloco-test-provider';
 import { AuthTokenService } from '../services/auth/auth-token.service';
+import { PublicProjectContextService } from '../services/core/public-project-context.service';
 import { StorageContextService } from '../services/core/storage-context.service';
 import { AuthInterceptor, SKIP_AUTH_TOKEN } from './auth.interceptor';
 
@@ -486,5 +487,36 @@ describe('AuthInterceptor', () => {
     expect(received).toBe(error);
     expect(authTokenService.getToken()).toBe('session-token');
     expect(router.navigate).not.toHaveBeenCalled();
+  });
+
+  describe('public project browsing', () => {
+    beforeEach(() => {
+      vi.spyOn(
+        TestBed.inject(PublicProjectContextService),
+        'active'
+      ).mockReturnValue(true);
+    });
+
+    it('strips a saved session and marks the request as a public read', () => {
+      signInTo(pageOrigin());
+      const request = new HttpRequest('GET', '/api/test').clone({
+        setHeaders: { Authorization: 'Bearer saved-session' },
+      });
+
+      const { sent } = send(request);
+
+      expect(sent.headers.has('Authorization')).toBe(false);
+      expect(sent.headers.get('X-Inkweld-Public-View')).toBe('true');
+    });
+
+    it('keeps the saved session and does not redirect after a public 401', async () => {
+      signInTo(pageOrigin());
+      router.url = '/public/alice/novel';
+
+      await rejectWith401('/api/v1/projects/alice/novel');
+
+      expect(authTokenService.getToken()).toBe('session-token');
+      expect(router.navigate).not.toHaveBeenCalled();
+    });
   });
 });

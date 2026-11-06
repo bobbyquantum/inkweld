@@ -18,7 +18,7 @@
  */
 
 import { OpenAPIHono } from '@hono/zod-openapi';
-import { requireAuth } from '../middleware/auth';
+import { requireProjectReadAuth } from '../middleware/public-project-read';
 import { projectService } from '../services/project.service';
 import { collaborationService } from '../services/collaboration.service';
 import { activityService } from '../services/activity.service';
@@ -28,7 +28,7 @@ import { type AppContext, type DatabaseInstance } from '../types/context';
 
 const activityRoutes = new OpenAPIHono<AppContext>();
 
-activityRoutes.use('*', requireAuth);
+activityRoutes.use('*', requireProjectReadAuth);
 
 function parseLimit(raw: string | undefined): number {
   const n = raw ? Number.parseInt(raw, 10) : 50;
@@ -63,13 +63,14 @@ async function resolveUsernames(
 activityRoutes.get('/projects/:username/:slug', async (c) => {
   const db = c.get('db');
   const user = c.get('user');
-  if (!user) throw new UnauthorizedError();
+  const publicRead = c.get('publicProjectRead');
+  if (!user && !publicRead) throw new UnauthorizedError();
 
   const { username, slug } = c.req.param();
   const project = await projectService.findByUsernameAndSlug(db, username, slug);
   if (!project) throw new NotFoundError('Project not found');
 
-  if (project.userId !== user.id) {
+  if (!publicRead && user && project.userId !== user.id) {
     const access = await collaborationService.checkAccess(db, project.id, user.id);
     if (!access.canRead) throw new ForbiddenError();
   }

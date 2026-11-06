@@ -44,6 +44,7 @@ describe('PublishPlanTabComponent', () => {
   let fixture: ComponentFixture<PublishPlanTabComponent>;
   let currentPlan: ReturnType<typeof signal<PublishPlan | null>>;
   let mockProjectState: {
+    canWrite: ReturnType<typeof signal<boolean>>;
     elements: ReturnType<typeof signal<any[]>>;
     project: ReturnType<typeof signal<any>>;
     getPublishPlan: ReturnType<typeof vi.fn>;
@@ -132,6 +133,7 @@ describe('PublishPlanTabComponent', () => {
     };
 
     mockProjectState = {
+      canWrite: signal(true),
       elements: signal([
         { id: 'elem-1', name: 'Chapter 1', type: ElementType.Item },
         { id: 'elem-2', name: 'Chapter 2', type: ElementType.Item },
@@ -1912,6 +1914,7 @@ describe('PublishPlanTabComponent', () => {
 describe('PublishPlanTabComponent - no plan', () => {
   it('should handle missing plan gracefully', async () => {
     const mockProjectState = {
+      canWrite: signal(true),
       elements: signal([]),
       project: signal({ title: 'Test', coverImage: null }),
       getPublishPlan: vi.fn().mockReturnValue(null),

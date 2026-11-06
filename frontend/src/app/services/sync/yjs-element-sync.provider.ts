@@ -48,6 +48,7 @@ import { type ElementTypeSchema } from '../../models/schema-types';
 import { type TimeSystem } from '../../models/time-system';
 import { AuthTokenService } from '../auth/auth-token.service';
 import { LoggerService } from '../core/logger.service';
+import { PublicProjectContextService } from '../core/public-project-context.service';
 import { StorageContextService } from '../core/storage-context.service';
 import { VersionCompatibilityService } from '../core/version-compatibility.service';
 import {
@@ -130,6 +131,7 @@ const CANVAS_SNAPSHOT_DELAY_MS = 3000;
 export class YjsElementSyncProvider implements IElementSyncProvider {
   private readonly logger = inject(LoggerService);
   private readonly authTokenService = inject(AuthTokenService);
+  private readonly publicContext = inject(PublicProjectContextService);
   private readonly storageContext = inject(StorageContextService);
   private readonly versionCompatibility = inject(VersionCompatibilityService);
 
@@ -328,8 +330,10 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
       // Set up IndexedDB persistence FIRST for local-first experience
       // This ensures we have local data available immediately
       // Use the prefixed localDocId for storage isolation
-      this.idbProvider = new IndexeddbPersistence(this.localDocId, this.doc);
-      await this.idbProvider.whenSynced;
+      if (!this.publicContext.active()) {
+        this.idbProvider = new IndexeddbPersistence(this.localDocId, this.doc);
+        await this.idbProvider.whenSynced;
+      }
       this.logger.info('YjsSync', '✅ IndexedDB synced');
 
       // Load elements from local storage first
@@ -342,7 +346,9 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
 
       // Get auth token for WebSocket authentication, as long as the server
       // this was asked to connect to is still the active profile's
-      const authToken = this.authTokenService.getTokenForUrl(webSocketUrl);
+      const authToken = this.publicContext.active()
+        ? 'public-view'
+        : this.authTokenService.getTokenForUrl(webSocketUrl);
       if (!authToken) {
         this.logger.error(
           'YjsSync',
@@ -355,7 +361,10 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
 
       // Check version compatibility before connecting to WebSocket
       // If sync is blocked due to version mismatch, stay in local mode
-      if (this.versionCompatibility.syncBlocked()) {
+      if (
+        !this.publicContext.active() &&
+        this.versionCompatibility.syncBlocked()
+      ) {
         this.logger.warn(
           'YjsSync',
           'Sync blocked due to version incompatibility - working in local mode only'
@@ -1150,11 +1159,13 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
   // ─────────────────────────────────────────────────────────────────────────────
 
   setLocalPresence(fields: LocalPresenceFields): void {
+    if (this.publicContext.active()) return;
     this.pendingPresence = mergePresenceFields(this.pendingPresence, fields);
     this.flushPresence(fields);
   }
 
   private setupPresenceHandlers(): void {
+    if (this.publicContext.active()) return;
     const provider = this.wsProvider;
     if (!provider) return;
 
@@ -1335,8 +1346,13 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
     if (generation !== this.connectionGeneration || !doc || !wsUrl) {
       return 'stop';
     }
-    const authToken = this.authTokenService.getTokenForUrl(wsUrl);
-    if (!authToken || this.versionCompatibility.syncBlocked()) {
+    const authToken = this.publicContext.active()
+      ? 'public-view'
+      : this.authTokenService.getTokenForUrl(wsUrl);
+    if (
+      !authToken ||
+      (!this.publicContext.active() && this.versionCompatibility.syncBlocked())
+    ) {
       // Signed out, switched to another server's profile or blocked since
       // the last attempt: stay local.
       this.syncStateSubject.next(DocumentSyncState.Local);
@@ -1393,7 +1409,10 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
     // the profile whose server this socket is connected to)
     setupReauthentication(
       provider,
-      () => this.authTokenService.getTokenForUrl(wsUrl),
+      () =>
+        this.publicContext.active()
+          ? 'public-view'
+          : this.authTokenService.getTokenForUrl(wsUrl),
       error => this.handleReauthError(error)
     );
     this.setupWebSocketHandlers();
@@ -1686,6 +1705,9 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
         `Access denied (${reason}) for ${this.docId}; not retrying`
       );
       this.stopProvider();
+      if (this.publicContext.active()) {
+        this.errorsSubject.next(`Public project access denied: ${reason}`);
+      }
     }
   }
 

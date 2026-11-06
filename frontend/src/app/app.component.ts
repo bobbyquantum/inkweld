@@ -20,6 +20,7 @@ import { PolicyAcceptanceService } from './services/auth/policy-acceptance.servi
 import { CloudSyncEngineService } from './services/cloud-sync/cloud-sync-engine.service';
 import { BackgroundService } from './services/core/background.service';
 import { LocaleService } from './services/core/locale.service';
+import { PublicProjectContextService } from './services/core/public-project-context.service';
 import { PwaInstallService } from './services/core/pwa-install.service';
 import { SetupService } from './services/core/setup.service';
 import { UpdateService } from './services/core/update.service';
@@ -47,6 +48,7 @@ import { WebMcpService } from './services/webmcp/webmcp.service';
   styleUrl: './app.component.scss',
 })
 export class AppComponent implements OnInit {
+  private readonly publicContext = inject(PublicProjectContextService);
   protected readonly offlineMode = signal(false);
   protected readonly themeService = inject(ThemeService);
   protected readonly setupService = inject(SetupService);
@@ -90,7 +92,9 @@ export class AppComponent implements OnInit {
 
   ngOnInit(): void {
     this.themeService.initTheme();
-    this.policyAcceptance.start();
+    if (!this.isPublicProjectPath()) {
+      this.policyAcceptance.start();
+    }
     // Applies the cached background synchronously before the config fetch, so
     // a branded login page does not flash the bundled default first.
     this.backgroundService.initialize();
@@ -150,6 +154,8 @@ export class AppComponent implements OnInit {
       // Use window.location.pathname because this.router.url is still '/'
       // during bootstrap before the router resolves the actual URL.
       const currentPath = globalThis.location.pathname;
+      const isPublicProject = this.isPublicProjectPath();
+      if (isPublicProject) return;
 
       // The cloud sync OAuth callback is what *creates* the configuration on
       // a fresh browser, so it must be allowed through unconfigured.
@@ -160,7 +166,7 @@ export class AppComponent implements OnInit {
       // Check if app is configured
       const isConfigured = this.setupService.checkConfiguration();
 
-      if (!isConfigured && !isCloudSyncCallback) {
+      if (!isConfigured && !isCloudSyncCallback && !isPublicProject) {
         // Redirect to setup if not configured
         await this.router.navigate(['/setup']);
         return;
@@ -170,6 +176,7 @@ export class AppComponent implements OnInit {
       // This prevents session expired errors for users who just registered
       // but need approval or are being redirected.
       const skipUserLoading =
+        isPublicProject ||
         currentPath.startsWith('/register') ||
         currentPath.startsWith('/welcome') ||
         currentPath.startsWith('/approval-pending') ||
@@ -203,5 +210,9 @@ export class AppComponent implements OnInit {
       // On any error, redirect to setup
       await this.router.navigate(['/setup']);
     }
+  }
+
+  private isPublicProjectPath(): boolean {
+    return this.publicContext.active();
   }
 }

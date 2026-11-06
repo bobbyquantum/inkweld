@@ -23,9 +23,11 @@ import {
 } from '@models/publish-plan';
 import { type PublishedFile } from '@models/published-file';
 import { DialogGatewayService } from '@services/core/dialog-gateway.service';
+import { PublicProjectContextService } from '@services/core/public-project-context.service';
 import { ProjectStateService } from '@services/project/project-state.service';
 import { PublishedFilesService } from '@services/publish/published-files.service';
 import { UnifiedUserService } from '@services/user/unified-user.service';
+import { projectRouteCommands } from '@utils/tab-route';
 
 import { FileSizePipe } from '../../../../pipes/file-size.pipe';
 
@@ -48,6 +50,7 @@ export class PublishPlansListTabComponent implements OnInit {
   protected readonly projectState = inject(ProjectStateService);
   private readonly userService = inject(UnifiedUserService);
   private readonly router = inject(Router);
+  private readonly publicContext = inject(PublicProjectContextService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly dialogGateway = inject(DialogGatewayService);
   private readonly publishedFilesService = inject(PublishedFilesService);
@@ -114,6 +117,7 @@ export class PublishPlansListTabComponent implements OnInit {
   }
 
   createPublishPlan(): void {
+    if (!this.projectState.canWrite()) return;
     const project = this.projectState.project();
     if (!project) return;
 
@@ -135,12 +139,17 @@ export class PublishPlansListTabComponent implements OnInit {
 
     this.projectState.openPublishPlan(plan);
     this.router
-      .navigate(['/', project.username, project.slug, 'publish-plan', plan.id])
+      .navigate([
+        ...projectRouteCommands(project, this.publicContext.active()),
+        'publish-plan',
+        plan.id,
+      ])
       .catch(() => {});
   }
 
   async deletePublishPlan(event: Event, plan: PublishPlan): Promise<void> {
     event.stopPropagation();
+    if (!this.projectState.canWrite()) return;
 
     const confirmed = await this.dialogGateway.openConfirmationDialog({
       title: this.transloco.translate('publish.plansList.deleteDialogTitle'),
