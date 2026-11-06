@@ -27,8 +27,10 @@ while read local_ref local_oid remote_ref remote_oid; do
   # Skip branch deletions
   [ "$local_oid" = "0000000000000000000000000000000000000000" ] && continue
 
-  if [ "$remote_oid" = "0000000000000000000000000000000000000000" ]; then
-    # New branch: the commits not yet on any remote.
+  if [ "$remote_oid" = "0000000000000000000000000000000000000000" ] ||
+    ! git cat-file -e "$remote_oid^{commit}" 2>/dev/null; then
+    # New branch, or a remote tip we don't have (not fetched, or a force-push
+    # over commits fetched nowhere): the commits not yet on any remote.
     commits=$(git rev-list --no-merges "$local_oid" --not --remotes)
   else
     commits=$(git rev-list --no-merges "$remote_oid..$local_oid" ${main_ref:+--not "$main_ref"})
