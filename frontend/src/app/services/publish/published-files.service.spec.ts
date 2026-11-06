@@ -12,6 +12,7 @@ import {
 } from '../../models/published-file';
 import { AuthTokenService } from '../auth/auth-token.service';
 import { LoggerService } from '../core/logger.service';
+import { PublicProjectContextService } from '../core/public-project-context.service';
 import { SetupService } from '../core/setup.service';
 import {
   type ServerConfig,
@@ -1006,6 +1007,71 @@ describe('PublishedFilesService', () => {
       expect(localStorageService.deleteMedia).toHaveBeenCalledWith(
         mockProjectKey,
         'published-file-1'
+      );
+    });
+  });
+  describe('while browsing a public project', () => {
+    beforeEach(() => {
+      vi.spyOn(
+        TestBed.inject(PublicProjectContextService),
+        'active'
+      ).mockReturnValue(true);
+      setupService.getMode.mockReturnValue('server');
+      // A saved session that must never go to the public link's server
+      activeConfig = serverProfile('http://localhost:8333');
+      window.localStorage.setItem('srv:srv-test:auth_token', 'saved-session');
+    });
+
+    it('lists only the server copy, as a public read without a session', async () => {
+      window.localStorage.setItem(
+        `${mockProjectKey}:published-files`,
+        JSON.stringify([{ ...mockFile, id: 'stale-local' }])
+      );
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue({
+          ok: true,
+          json: () => Promise.resolve([mockFile]),
+        })
+      );
+
+      const files = await service.loadFiles(mockProjectKey);
+
+      expect(files.map(file => file.id)).toEqual([mockFile.id]);
+      const [, init] = vi.mocked(fetch).mock.calls[0];
+      expect(init?.headers).toEqual({ 'X-Inkweld-Public-View': 'true' });
+    });
+
+    it('reports an error, not an empty project, when the server refuses', async () => {
+      window.localStorage.setItem(
+        `${mockProjectKey}:published-files`,
+        JSON.stringify([mockFile])
+      );
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }));
+
+      expect(await service.loadFiles(mockProjectKey)).toEqual([]);
+      expect(service.error()).toBe('Failed to load published files');
+    });
+
+    it('downloads a file from the server, never the local copy', async () => {
+      const blob = new Blob(['epub']);
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue({
+          ok: true,
+          blob: () => Promise.resolve(blob),
+        })
+      );
+
+      const result = await service.getFileBlob(mockProjectKey, 'file-1');
+
+      expect(result).toBeInstanceOf(Blob);
+      expect(localStorageService.getMedia).not.toHaveBeenCalled();
+      expect(fetch).toHaveBeenCalledWith(
+        'http://localhost:8333/api/v1/projects/testuser/test-project/published/file-1',
+        expect.objectContaining({
+          headers: { 'X-Inkweld-Public-View': 'true' },
+        })
       );
     });
   });

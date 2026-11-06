@@ -1500,6 +1500,94 @@ describe('WorldbuildingService', () => {
       expect(onlineService.getYDoc('denied-public', username, slug)).toBeNull();
     });
 
+    describe('public project connections', () => {
+      function fakeProvider() {
+        return {
+          synced: true,
+          on: vi.fn(),
+          off: vi.fn(),
+          once: vi.fn(),
+          destroy: vi.fn(),
+          disconnect: vi.fn(),
+        };
+      }
+
+      beforeEach(() => {
+        vi.spyOn(
+          TestBed.inject(PublicProjectContextService),
+          'active'
+        ).mockReturnValue(true);
+      });
+
+      it('loads over the public-view socket and drops it on leaving', async () => {
+        const provider = fakeProvider();
+        const createAuthWsProvider = vi.fn().mockResolvedValue(provider);
+        Object.assign(onlineService, { createAuthWsProvider });
+
+        await onlineService.getWorldbuildingData('public-el', username, slug);
+
+        expect(createAuthWsProvider.mock.calls[0]).toContain('public-view');
+        expect(
+          onlineService.getYDoc('public-el', username, slug)
+        ).not.toBeNull();
+
+        onlineService.disconnectPublicConnections();
+
+        expect(provider.destroy).toHaveBeenCalled();
+        expect(onlineService.getYDoc('public-el', username, slug)).toBeNull();
+      });
+
+      it('abandons a load whose project was left while connecting', async () => {
+        const provider = fakeProvider();
+        let connect!: (value: unknown) => void;
+        Object.assign(onlineService, {
+          createAuthWsProvider: vi.fn(
+            () => new Promise(resolve => (connect = resolve))
+          ),
+        });
+
+        const load = onlineService.getWorldbuildingData(
+          'left-el',
+          username,
+          slug
+        );
+        await vi.waitFor(() => expect(connect).toBeDefined());
+        onlineService.disconnectPublicConnections();
+        connect(provider);
+
+        await expect(load).rejects.toThrow(
+          'Public project connection was closed'
+        );
+        expect(provider.destroy).toHaveBeenCalled();
+      });
+
+      it('abandons a load whose project was left while syncing', async () => {
+        const provider = { ...fakeProvider(), synced: false };
+        Object.assign(onlineService, {
+          createAuthWsProvider: vi.fn().mockResolvedValue(provider),
+        });
+
+        const load = onlineService.getWorldbuildingData(
+          'syncing-el',
+          username,
+          slug
+        );
+        await vi.waitFor(() =>
+          expect(provider.on).toHaveBeenCalledWith('sync', expect.any(Function))
+        );
+        onlineService.disconnectPublicConnections();
+        const onSync = provider.on.mock.calls.find(
+          ([event]) => event === 'sync'
+        )?.[1] as (synced: boolean) => void;
+        onSync(true);
+
+        await expect(load).rejects.toThrow(
+          'Public project connection was closed'
+        );
+        expect(provider.destroy).toHaveBeenCalled();
+      });
+    });
+
     it("should only connect with a token for the socket's server", async () => {
       // A token is stored, but not one for this server
       const getTokenForUrl = mockAuthTokenService.getTokenForUrl as ReturnType<
