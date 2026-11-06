@@ -15,28 +15,34 @@ if [ "$branch" = "main" ]; then
   exit 1
 fi
 
-# Validate conventional commit format for all new commits being pushed.
+# Validate conventional commit format for the commits this push brings in.
+# Commits already on origin/main are skipped: they arrive in a branch through
+# a merge of main and were checked when they landed there, so a long header on
+# main must not block every branch that merges it. Merge commits are skipped
+# too (commitlint ignores them anyway).
+main_ref=refs/remotes/origin/main
+git rev-parse --verify -q "$main_ref" >/dev/null || main_ref=
+
 while read local_ref local_oid remote_ref remote_oid; do
   # Skip branch deletions
   [ "$local_oid" = "0000000000000000000000000000000000000000" ] && continue
 
-  if [ "$remote_oid" = "0000000000000000000000000000000000000000" ]; then
-    # New branch — lint exactly the commits not yet on any remote.
-    # commitlint's --from is an exclusive bound (it lints from..to), so the
-    # lower bound is the parent of the oldest new commit (oid~N); the old
-    # HEAD~N~1 form linted one pre-existing commit too, which blocked every
-    # new-branch push whenever an older commit violated a commitlint rule.
-    new_count=$(git log --oneline "$local_oid" --not --remotes | wc -l | tr -d ' ')
-    [ "$new_count" -eq 0 ] && continue
-    from_flag="--from=$local_oid~$new_count"
+  if [ "$remote_oid" = "0000000000000000000000000000000000000000" ] ||
+    ! git cat-file -e "$remote_oid^{commit}" 2>/dev/null; then
+    # New branch, or a remote tip we don't have (not fetched, or a force-push
+    # over commits fetched nowhere): the commits not yet on any remote.
+    commits=$(git rev-list --no-merges "$local_oid" --not --remotes)
   else
-    from_flag="--from=$remote_oid"
+    commits=$(git rev-list --no-merges "$remote_oid..$local_oid" ${main_ref:+--not "$main_ref"})
   fi
 
-  npx --no -- commitlint $from_flag --to "$local_oid" || {
-    echo ""
-    echo "   Fix commit messages or bypass with: git push --no-verify"
-    echo ""
-    exit 1
-  }
+  for commit in $commits; do
+    git log -1 --format=%B "$commit" | npx --no -- commitlint || {
+      echo ""
+      echo "   Commit $(git rev-parse --short "$commit") needs a conventional commit message."
+      echo "   Fix commit messages or bypass with: git push --no-verify"
+      echo ""
+      exit 1
+    }
+  done
 done
