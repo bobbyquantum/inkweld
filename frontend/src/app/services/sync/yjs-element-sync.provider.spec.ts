@@ -407,8 +407,8 @@ describe('YjsElementSyncProvider', () => {
     copies.forEach(copy => Y.applyUpdate(doc, Y.encodeStateAsUpdate(copy)));
 
     // The doc holds both copies' entries; the app sees one of each.
-    expect(doc.getArray('customTags').length).toBe(2);
-    expect(doc.getArray('elementTags').length).toBe(2);
+    expect(doc.getArray('customTags')).toHaveLength(2);
+    expect(doc.getArray('elementTags')).toHaveLength(2);
     expect(provider.getCustomTags()).toHaveLength(1);
     expect(provider.getCustomTags()[0].id).toBe('tag-1');
     expect(provider.getElementTags()).toHaveLength(1);

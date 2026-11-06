@@ -541,14 +541,14 @@ describe('two Worker copies writing at once', () => {
     const sent = copies.map((copy) => Y.encodeStateAsUpdate(copy, Y.encodeStateVector(server)));
     sent.forEach((update) => Y.applyUpdate(server, update));
 
-    expect(server.getArray('customTags').length).toBe(2);
-    expect(server.getArray('elementTags').length).toBe(2);
+    expect(server.getArray('customTags')).toHaveLength(2);
+    expect(server.getArray('elementTags')).toHaveLength(2);
     expect(readTagDefinitions(server)).toHaveLength(1);
     expect(readElementTags(server)).toHaveLength(1);
 
     compactTags(server);
-    expect(server.getArray('customTags').length).toBe(1);
-    expect(server.getArray('elementTags').length).toBe(1);
+    expect(server.getArray('customTags')).toHaveLength(1);
+    expect(server.getArray('elementTags')).toHaveLength(1);
   });
 });
 
@@ -624,7 +624,7 @@ describe('two overlapping tag_element calls on Workers', () => {
     // The next tag write (one call, nothing overlapping; the barrier is open)
     // removes the duplicate.
     await tag(['Draft']);
-    expect(server.getArray('elementTags').length).toBe(2);
+    expect(server.getArray('elementTags')).toHaveLength(2);
   });
 });
 

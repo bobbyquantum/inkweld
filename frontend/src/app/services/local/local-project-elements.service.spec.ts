@@ -588,7 +588,7 @@ describe('LocalProjectElementsService', () => {
       doc.getArray('elementTags').push([link]);
       Y.applyUpdate(doc, Y.encodeStateAsUpdate(other));
 
-      expect(doc.getArray('customTags').length).toBe(2);
+      expect(doc.getArray('customTags')).toHaveLength(2);
       expect(service.customTags()).toHaveLength(1);
       expect(service.elementTags()).toHaveLength(1);
     });
