@@ -39,6 +39,7 @@ import { getStorageService } from '../../services/storage.service';
 import { openEditableDocument, type EditableDocument } from '../../services/yjs-document-access';
 import { rethrowDocumentReadError } from '../../services/yjs-worker.service';
 import { parseProjectParam } from './search.tools';
+import { READ_ONLY_TOOL, WRITE_TOOL } from '../tool-annotations';
 
 const mcpCanvasLog = logger.child('MCP-Canvas');
 
@@ -107,6 +108,7 @@ registerTool({
   tool: {
     name: 'get_canvas',
     title: 'Get Canvas',
+    annotations: READ_ONLY_TOOL,
     description: GET_CANVAS_DESCRIPTION,
     inputSchema: {
       type: 'object',
@@ -116,7 +118,6 @@ registerTool({
       },
       required: ['project', 'elementId'],
     },
-    annotations: { readOnlyHint: true },
   },
   requiredPermissions: [MCP_PERMISSIONS.READ_ELEMENTS],
   async execute(
@@ -187,7 +188,10 @@ registerTool({
   tool: {
     name: 'edit_canvas',
     title: 'Edit Canvas',
+    annotations: WRITE_TOOL,
     description: `${EDIT_CANVAS_DESCRIPTION}
+
+Potentially destructive depending on use: the delete list removes objects from the canvas. Keep the undo arguments this tool returns if the edit may need reversing.
 
 To place an image from a file on disk, call create_media_upload first, upload the file to the URL it returns, and use its mediaUrl as src.`,
     inputSchema: {
@@ -198,7 +202,6 @@ To place an image from a file on disk, call create_media_upload first, upload th
       },
       required: ['project', 'elementId'],
     },
-    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false },
   },
   requiredPermissions: [MCP_PERMISSIONS.WRITE_ELEMENTS],
   async execute(

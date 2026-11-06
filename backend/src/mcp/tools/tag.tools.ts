@@ -18,6 +18,12 @@ import type * as Y from 'yjs';
 import type { McpContext, McpToolResult } from '../mcp.types';
 import { registerTool } from '../mcp.handler';
 import { MCP_PERMISSIONS } from '../mcp-permissions';
+import {
+  DESTRUCTIVE_TOOL,
+  IDEMPOTENT_WRITE_TOOL,
+  READ_ONLY_TOOL,
+  WRITE_TOOL,
+} from '../tool-annotations';
 import { logger } from '../../services/logger.service';
 import { activityService } from '../../services/activity.service';
 import type { DatabaseInstance } from '../../types/context';
@@ -181,7 +187,7 @@ registerTool({
       },
       required: ['project'],
     },
-    annotations: { readOnlyHint: true },
+    annotations: READ_ONLY_TOOL,
   },
   requiredPermissions: [MCP_PERMISSIONS.READ_ELEMENTS],
   execute(ctx: McpContext, _db: unknown, args: Record<string, unknown>): Promise<McpToolResult> {
@@ -243,6 +249,7 @@ registerTool({
   tool: {
     name: 'create_tag',
     title: 'Create Tag',
+    annotations: WRITE_TOOL,
     description:
       'Create a tag in the project, with an icon and a colour from the tag palette, so it can be put on ' +
       'elements with tag_element. Tag names are unique in a project (ignoring case): call list_tags first ' +
@@ -298,6 +305,7 @@ registerTool({
   tool: {
     name: 'update_tag',
     title: 'Update Tag',
+    annotations: IDEMPOTENT_WRITE_TOOL,
     description:
       'Rename a tag or change its icon, colour or description. Elements keep the tag; they show the new look. ' +
       'Pass description "" to clear it.',
@@ -380,7 +388,7 @@ registerTool({
       },
       required: ['project', 'tagId'],
     },
-    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true },
+    annotations: DESTRUCTIVE_TOOL,
   },
   requiredPermissions: [MCP_PERMISSIONS.WRITE_ELEMENTS],
   execute(ctx: McpContext, _db: unknown, args: Record<string, unknown>): Promise<McpToolResult> {
@@ -416,6 +424,7 @@ registerTool({
   tool: {
     name: 'tag_element',
     title: 'Tag Element',
+    annotations: IDEMPOTENT_WRITE_TOOL,
     description:
       'Put tags on an element or take them off. Only tags that already exist in the project can be used ' +
       '(see list_tags): create new ones with create_tag first, choosing an icon and colour. If any tag ' +
