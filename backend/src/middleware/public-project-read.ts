@@ -9,11 +9,39 @@ import { requireAuth } from './auth';
  * opt in per read-only route; every mutation still runs normal authentication.
  * The marker deliberately grants no user identity or administrative permission.
  */
+/** Routers whose paths start with a project's `:username/:slug`. */
+const PROJECT_PATH_PREFIXES = [
+  '/api/v1/projects/',
+  '/api/v1/media/',
+  '/api/v1/published-files/',
+  '/api/v1/comments/',
+  '/api/v1/activity/projects/',
+];
+
+/**
+ * Split `<prefix><username>/<slug><rest>` into `[path, username, slug, rest]`
+ * (still URL-encoded), or null when the path names no project. Plain string
+ * parsing rather than a regex, so no input can make it backtrack.
+ */
+export function matchProjectPath(path: string): [string, string, string, string] | null {
+  const prefix = PROJECT_PATH_PREFIXES.find((candidate) => path.startsWith(candidate));
+  if (!prefix) return null;
+  const tail = path.slice(prefix.length);
+  const usernameEnd = tail.indexOf('/');
+  if (usernameEnd <= 0) return null;
+  const nextSlash = tail.indexOf('/', usernameEnd + 1);
+  const slugEnd = nextSlash === -1 ? tail.length : nextSlash;
+  if (slugEnd === usernameEnd + 1) return null;
+  return [
+    path,
+    tail.slice(0, usernameEnd),
+    tail.slice(usernameEnd + 1, slugEnd),
+    tail.slice(slugEnd),
+  ];
+}
+
 export const requireProjectReadAuth: MiddlewareHandler<AppContext> = async (c, next) => {
-  const match =
-    /^\/api\/v1\/(?:projects|media|published-files|comments|activity\/projects)\/([^/]+)\/([^/]+)(.*)$/.exec(
-      c.req.path
-    );
+  const match = matchProjectPath(c.req.path);
   const publicRequest = c.req.header('X-Inkweld-Public-View') === 'true';
   const publicCover = match?.[3] === '/cover';
   const personalCommentState =

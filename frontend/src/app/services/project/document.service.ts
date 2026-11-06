@@ -552,6 +552,42 @@ export class DocumentService {
     }
   }
 
+  /**
+   * The token a document socket authenticates with: `public-view` while
+   * browsing a public project, otherwise the session for `url`'s server
+   * (null when that is not the active profile's server).
+   */
+  private socketAuthToken(url: string): string | null {
+    return this.publicContext.active()
+      ? 'public-view'
+      : this.authTokenService.getTokenForUrl(url);
+  }
+
+  /** A version mismatch blocks sync; public browsing only ever reads. */
+  private syncBlockedByVersion(): boolean {
+    return (
+      !this.publicContext.active() && this.versionCompatibility.syncBlocked()
+    );
+  }
+
+  /** Profile-scoped IndexedDB copy; none while browsing a public project. */
+  private openLocalPersistence(
+    documentId: string,
+    ydoc: Y.Doc
+  ): IndexeddbPersistence | null {
+    if (this.publicContext.active()) return null;
+    return new IndexeddbPersistence(this.localDbName(documentId), ydoc);
+  }
+
+  /** Cross-window sync; none while browsing a public project. */
+  private openBroadcast(
+    documentId: string,
+    ydoc: Y.Doc
+  ): BroadcastSyncProvider | null {
+    if (this.publicContext.active()) return null;
+    return new BroadcastSyncProvider(this.localDbName(documentId), ydoc);
+  }
+
   /** Open prose or conversation data without touching IndexedDB or cross-tab sync. */
   private getPublicDocument(documentId: string): Promise<Y.Doc> {
     const pending = this.publicDocumentLoads.get(documentId);
@@ -1022,9 +1058,7 @@ export class DocumentService {
       const type = ydoc.getXmlFragment('prosemirror');
       // Initialize IndexedDB provider first. The local database is
       // profile-scoped; the WebSocket document id stays unprefixed.
-      const indexeddbProvider = this.publicContext.active()
-        ? null
-        : new IndexeddbPersistence(this.localDbName(documentId), ydoc);
+      const indexeddbProvider = this.openLocalPersistence(documentId, ydoc);
       this.logger.debug('DocumentService', 'Waiting for IndexedDB sync...');
 
       // Set state to Offline while waiting for IndexedDB
@@ -1067,9 +1101,7 @@ export class DocumentService {
       // offers peers the persisted state rather than an empty document.
       // Scoped like the database, so a tab on another profile with the same
       // username:slug never exchanges edits with this one.
-      const broadcastProvider = this.publicContext.active()
-        ? null
-        : new BroadcastSyncProvider(this.localDbName(documentId), ydoc);
+      const broadcastProvider = this.openBroadcast(documentId, ydoc);
 
       // CRITICAL: Create connection and store it BEFORE awaiting WebSocket
       // This allows us to add Yjs plugins immediately so content appears
@@ -1449,9 +1481,7 @@ export class DocumentService {
     // Get auth token for WebSocket authentication. Retries keep the URL
     // they started with, so the token is only handed out while that is
     // still the active profile's server.
-    const authToken = this.publicContext.active()
-      ? 'public-view'
-      : this.authTokenService.getTokenForUrl(websocketUrl);
+    const authToken = this.socketAuthToken(websocketUrl);
     if (!authToken) {
       this.logger.error(
         'DocumentService',
@@ -1463,10 +1493,7 @@ export class DocumentService {
 
     // Check version compatibility before connecting to WebSocket
     // If sync is blocked due to version mismatch, stay in local mode
-    if (
-      !this.publicContext.active() &&
-      this.versionCompatibility.syncBlocked()
-    ) {
+    if (this.syncBlockedByVersion()) {
       this.logger.warn(
         'DocumentService',
         `Sync blocked due to version incompatibility for document ${documentId} - working in local mode only`
@@ -1655,10 +1682,7 @@ export class DocumentService {
       // the profile whose server this socket is connected to)
       this.setupWsReauth(
         provider,
-        () =>
-          this.publicContext.active()
-            ? 'public-view'
-            : this.authTokenService.getTokenForUrl(wsUrl),
+        () => this.socketAuthToken(wsUrl),
         error => {
           // A denial during the re-auth handshake (rate-limited / forbidden /
           // invalid token) is terminal or long-backoff — route it through the

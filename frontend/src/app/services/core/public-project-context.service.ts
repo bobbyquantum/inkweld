@@ -12,6 +12,7 @@ import {
   appOrigin,
   isHomeAssistantIngress,
 } from '@utils/app-base';
+import { stripTrailingSlashes } from '@utils/string-utils';
 
 import { environment } from '../../../environments/environment';
 
@@ -45,9 +46,9 @@ export class PublicProjectContextService {
 
   /** API origin for this deployment, independent of the visitor's saved profile. */
   serverUrl(): string {
-    return (
+    return stripTrailingSlashes(
       isHomeAssistantIngress() ? appOrigin() : environment.apiUrl || appOrigin()
-    ).replace(/\/+$/, '');
+    );
   }
 
   /** Keep public caches separate from every authenticated or local profile. */
