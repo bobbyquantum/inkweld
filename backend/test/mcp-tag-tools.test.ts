@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url';
 import * as Y from 'yjs';
 import { yjsService } from '../src/services/yjs.service';
 import { activityService } from '../src/services/activity.service';
+import { YjsWorkerService } from '../src/services/yjs-worker.service';
 import '../src/mcp';
 import { handleMcpRequest } from '../src/mcp/mcp.handler';
 import { MCP_PROTOCOL_VERSION, META_KEYS } from '../src/mcp/mcp.types';
@@ -42,12 +43,13 @@ interface ToolJson {
 async function rpc(
   permissions: string[],
   method: string,
-  params: Record<string, unknown> = {}
+  params: Record<string, unknown> = {},
+  context: Record<string, unknown> = {}
 ): Promise<ToolJson> {
   const grants = [
     { projectId: 'id-novel', username: 'alice', slug: 'novel', role: 'editor', permissions },
   ];
-  const mcpContext = { type: 'oauth', userId: 'u', username: 'alice', grants };
+  const mcpContext = { type: 'oauth', userId: 'u', username: 'alice', grants, ...context };
   const body = {
     jsonrpc: '2.0',
     method,
@@ -547,6 +549,82 @@ describe('two Worker copies writing at once', () => {
     compactTags(server);
     expect(server.getArray('customTags').length).toBe(1);
     expect(server.getArray('elementTags').length).toBe(1);
+  });
+});
+
+describe('two overlapping tag_element calls on Workers', () => {
+  it('reads one assignment per tag and cleans up on the next write', async () => {
+    // The project's Durable Object, faked: a server doc both calls load a
+    // copy of (Worker path of openEditableDocument) and send changes to.
+    const server = new Y.Doc();
+    server
+      .getArray('elements')
+      .push([{ id: 'el-1', name: 'Mara', type: 'ITEM', parentId: null, level: 0, order: 0 }]);
+    server.getArray('customTags').push([hero, draft]);
+
+    // Hold every state read until both calls have asked, so both copies start
+    // from the same state before either commits.
+    let release: () => void = () => {};
+    const bothRead = new Promise<void>((resolve) => (release = resolve));
+    let reads = 0;
+    spies.push(
+      spyOn(YjsWorkerService.prototype, 'getDocumentState').mockImplementation((async () => {
+        const state = Y.encodeStateAsUpdate(server);
+        if (++reads === 2) release();
+        await bothRead;
+        return state;
+      }) as never),
+      spyOn(YjsWorkerService.prototype, 'applyYjsUpdate').mockImplementation(((
+        _docId: string,
+        update: string
+      ) => {
+        Y.applyUpdate(
+          server,
+          Uint8Array.from(atob(update), (c) => c.codePointAt(0) ?? 0)
+        );
+        return Promise.resolve();
+      }) as never)
+    );
+    const worker = { env: { YJS_PROJECTS: {} }, authToken: 't' };
+    const tag = (add: string[]) =>
+      rpc(
+        WRITE,
+        'tools/call',
+        { name: 'tag_element', arguments: { project: 'alice/novel', elementId: 'el-1', add } },
+        worker
+      );
+
+    const results = await Promise.all([tag(['Protagonist']), tag(['Protagonist', 'Draft'])]);
+    expect(results.every((r) => r.result?.isError === undefined)).toBe(true);
+    expect(reads).toBe(2);
+
+    // Both copies added Protagonist: the doc holds it twice, readers count it once.
+    const raw = server.getArray<{ tagId: string }>('elementTags').toArray();
+    expect(raw.filter((a) => a.tagId === 'tag-hero')).toHaveLength(2);
+    expect(
+      readElementTags(server)
+        .map((a) => a.tagId)
+        .sort()
+    ).toEqual(['tag-draft', 'tag-hero']);
+
+    const listed = await rpc(
+      READ,
+      'tools/call',
+      { name: 'list_tags', arguments: { project: 'alice/novel' } },
+      worker
+    );
+    const counts = (listed.result?.structuredContent?.tags as Array<Row & { count: number }>).map(
+      (t) => [t.id, t.count]
+    );
+    expect(counts).toEqual([
+      ['tag-hero', 1],
+      ['tag-draft', 1],
+    ]);
+
+    // The next tag write (one call, nothing overlapping; the barrier is open)
+    // removes the duplicate.
+    await tag(['Draft']);
+    expect(server.getArray('elementTags').length).toBe(2);
   });
 });
 
