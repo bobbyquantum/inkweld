@@ -13,8 +13,20 @@ import * as Y from 'yjs';
 // workers keeps the mocked HTTP data in play in dev and prod builds.
 test.use({ serviceWorkers: 'block' });
 
-for (const savedProfile of [false, true]) {
-  test(`public project uses the normal read-only UI (${savedProfile ? 'saved profile' : 'first visit'})`, async ({
+// A link names the project's server when the app is served from elsewhere.
+const SHARED_SERVER = 'https://shared.invalid';
+
+for (const { savedProfile, server } of [
+  { savedProfile: false, server: null },
+  { savedProfile: true, server: null },
+  { savedProfile: false, server: SHARED_SERVER },
+]) {
+  const variant = server
+    ? 'link names its server'
+    : savedProfile
+      ? 'saved profile'
+      : 'first visit';
+  test(`public project uses the normal read-only UI (${variant})`, async ({
     page,
   }) => {
     const config = JSON.stringify({
@@ -63,6 +75,7 @@ for (const savedProfile of [false, true]) {
     paragraph.insert(0, [text]);
     prose.getXmlFragment('prosemirror').insert(0, [paragraph]);
     const sockets = new Set<WebSocketRoute>();
+    const socketUrls: string[] = [];
     const requests: { method: string; authorization?: string; url: string }[] =
       [];
 
@@ -108,6 +121,7 @@ for (const savedProfile of [false, true]) {
       const id = new URL(socket.url()).searchParams.get('documentId') ?? '';
       const doc = id.includes(':elements') ? elements : prose;
       sockets.add(socket);
+      socketUrls.push(socket.url());
       socket.onClose(() => sockets.delete(socket));
       socket.onMessage(message => {
         if (typeof message !== 'string') return;
@@ -124,11 +138,13 @@ for (const savedProfile of [false, true]) {
       });
     });
 
-    await page.goto('/public/reader/story');
+    const query = server ? `?server=${encodeURIComponent(server)}` : '';
+    await page.goto(`/public/reader/story${query}`);
     await expect(page.getByTestId('home-tab-content')).toContainText(
       'Public story'
     );
-    await expect(page).toHaveURL(/\/public\/reader\/story$/);
+    await expect(page).toHaveURL(/\/public\/reader\/story(\?server=[^/]*)?$/);
+    // A reload deeper in the project: the link's ?server= is gone by now
     await page.goto('/public/reader/story/document/chapter');
     const editor = page.getByTestId('document-editor');
     await expect(editor).toContainText('Formatted public story');
@@ -167,6 +183,16 @@ for (const savedProfile of [false, true]) {
           !request.authorization && !request.url.includes('private.invalid')
       )
     ).toBe(true);
+    if (server) {
+      // Everything is read from the server the link named
+      expect(requests.every(request => request.url.startsWith(server))).toBe(
+        true
+      );
+      expect(socketUrls.length).toBeGreaterThan(0);
+      expect(
+        socketUrls.every(url => url.startsWith(server.replace(/^http/, 'ws')))
+      ).toBe(true);
+    }
 
     await Promise.all(
       [...sockets].map(socket => {
