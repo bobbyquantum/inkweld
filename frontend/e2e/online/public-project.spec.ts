@@ -144,8 +144,7 @@ for (const { savedProfile, server } of [
       'Public story'
     );
     await expect(page).toHaveURL(/\/public\/reader\/story(\?server=[^/]*)?$/);
-    // A reload deeper in the project: the link's ?server= is gone by now
-    await page.goto('/public/reader/story/document/chapter');
+    await page.goto(`/public/reader/story/document/chapter${query}`);
     const editor = page.getByTestId('document-editor');
     await expect(editor).toContainText('Formatted public story');
     expect(
@@ -167,6 +166,11 @@ for (const { savedProfile, server } of [
     await expect(page).toHaveURL(/\/public\/reader\/story\/media$/);
     await expect(page.getByTestId('media-container')).toBeVisible();
     await expect(page.getByTestId('add-media-button')).toHaveCount(0);
+    // In-app navigation has dropped the link's ?server=, and a reload must
+    // still read from the server it named
+    await expect(page).toHaveURL(/\/public\/reader\/story\/media$/);
+    await page.reload();
+    await expect(page.getByTestId('media-container')).toBeVisible();
 
     expect(
       await page.evaluate(() => localStorage.getItem('inkweld-app-config'))
