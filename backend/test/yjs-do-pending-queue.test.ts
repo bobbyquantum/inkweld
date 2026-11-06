@@ -3,6 +3,7 @@ import * as awarenessProtocol from 'y-protocols/awareness';
 import * as syncProtocol from 'y-protocols/sync';
 import * as encoding from 'lib0/encoding';
 import * as Y from 'yjs';
+import { PUBLIC_VIEWER_ID } from '../src/utils/yjs-document-utils';
 
 /**
  * Regression tests for the pre-auth message queue in the Yjs Durable Object.
@@ -75,6 +76,7 @@ interface ConnInfo {
   sharedDoc: unknown;
   pendingMessages: ArrayBuffer[];
   awarenessClientIds: Set<number>;
+  userId?: string;
 }
 
 function makeConnInfo(sharedDoc: FakeSharedDoc, canWrite: boolean): ConnInfo {
@@ -192,6 +194,21 @@ describe('YjsProject DO pre-auth queue drain', () => {
     expect(sharedDoc.update).toHaveBeenCalledTimes(1);
     expect(Array.from(sharedDoc.applied[0])).toEqual(Array.from(new Uint8Array(step1)));
     expect(sharedDoc.awareness.getStates().size).toBe(1);
+  });
+
+  it('drops awareness from an anonymous public viewer but keeps its sync requests', () => {
+    const doInstance = makeDO();
+    const sharedDoc = makeSharedDoc();
+    const connInfo = makeConnInfo(sharedDoc, false);
+    connInfo.userId = PUBLIC_VIEWER_ID;
+    const step1 = syncStep1Frame();
+    connInfo.pendingMessages = [step1, awarenessFrame()];
+
+    doInstance.drainPendingMessages(makeWs(), connInfo);
+
+    expect(sharedDoc.update).toHaveBeenCalledTimes(1);
+    expect(Array.from(sharedDoc.applied[0])).toEqual(Array.from(new Uint8Array(step1)));
+    expect(sharedDoc.awareness.getStates().size).toBe(0);
   });
 
   it('replays queued mutation frames for a writer', () => {

@@ -1,7 +1,8 @@
-import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
+import { afterAll, beforeAll, describe, expect, it, spyOn } from 'bun:test';
 import { eq } from 'drizzle-orm';
 import * as Y from 'yjs';
-import { createEncoder, toUint8Array, writeVarUint8Array } from 'lib0/encoding';
+import * as awarenessProtocol from 'y-protocols/awareness';
+import { createEncoder, toUint8Array, writeVarUint, writeVarUint8Array } from 'lib0/encoding';
 import { PRESENCE_KEEPALIVE_PING, PRESENCE_KEEPALIVE_PONG } from '@inkweld/presence';
 import { yjsService } from '../src/services/yjs.service';
 import { getDatabase } from '../src/db/index';
@@ -153,10 +154,26 @@ describe('Yjs WebSocket pre-auth limits', () => {
       ]) {
         c.ws.send(new Uint8Array([...header, ...payload]));
       }
+      // Awareness (cursor, name) from an anonymous viewer never reaches peers.
+      const handled = spyOn(yjsService, 'handleMessage');
+      const awareness = new awarenessProtocol.Awareness(new Y.Doc());
+      awareness.setLocalState({ user: { name: 'Owner (spoofed)' } });
+      const awarenessEncoder = createEncoder();
+      writeVarUint(awarenessEncoder, 1);
+      writeVarUint8Array(
+        awarenessEncoder,
+        awarenessProtocol.encodeAwarenessUpdate(awareness, [awareness.clientID])
+      );
+      c.ws.send(toUint8Array(awarenessEncoder));
       c.ws.send(PRESENCE_KEEPALIVE_PING);
-      await waitForSocket(() => c.texts.includes(PRESENCE_KEEPALIVE_PONG));
+      await waitForSocket(
+        () => c.texts.filter((text) => text === PRESENCE_KEEPALIVE_PONG).length > 0
+      );
       const serverDoc = await yjsService.getDocument(fixture.documentId);
       expect(serverDoc.doc.getMap('public-write-probe').size).toBe(0);
+      expect(handled).not.toHaveBeenCalled();
+      handled.mockRestore();
+      awareness.destroy();
       maliciousDoc.destroy();
 
       const response = await fetch(`${baseUrl}/api/v1/projects/preauthwsuser/preauth-ws`, {
