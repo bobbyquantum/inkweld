@@ -933,6 +933,265 @@
           "runtime"
         ]
       },
+      "ImageMessage": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Success",
+            "description": "Success message"
+          }
+        },
+        "required": [
+          "message"
+        ]
+      },
+      "ImageError": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Error occurred",
+            "description": "Error message"
+          }
+        },
+        "required": [
+          "message"
+        ]
+      },
+      "QuotaExceededError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "enum": [
+              "QUOTA_EXCEEDED"
+            ]
+          },
+          "usedBytes": {
+            "type": "number"
+          },
+          "quotaBytes": {
+            "type": "number"
+          },
+          "requiredBytes": {
+            "type": "number"
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "media_upload",
+              "project_create",
+              "published_file"
+            ]
+          }
+        },
+        "required": [
+          "error",
+          "code",
+          "usedBytes",
+          "quotaBytes",
+          "reason"
+        ]
+      },
+      "PublishedFile": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "abc-123",
+            "description": "Unique identifier"
+          },
+          "projectId": {
+            "type": "string",
+            "example": "proj-456",
+            "description": "Project ID"
+          },
+          "filename": {
+            "type": "string",
+            "example": "my-novel.epub",
+            "description": "Original filename"
+          },
+          "format": {
+            "type": "string",
+            "example": "EPUB",
+            "description": "File format: EPUB, PDF_SIMPLE, HTML, MARKDOWN"
+          },
+          "mimeType": {
+            "type": "string",
+            "example": "application/epub+zip",
+            "description": "MIME type"
+          },
+          "size": {
+            "type": "number",
+            "example": 102400,
+            "description": "File size in bytes"
+          },
+          "planName": {
+            "type": "string",
+            "example": "Full Export",
+            "description": "Publish plan name"
+          },
+          "planId": {
+            "type": "string",
+            "nullable": true,
+            "example": "plan-abc123",
+            "description": "Publish plan ID"
+          },
+          "sharePermission": {
+            "type": "string",
+            "enum": [
+              "private",
+              "collaborators",
+              "link",
+              "public"
+            ],
+            "example": "private",
+            "description": "Sharing permission level"
+          },
+          "shareToken": {
+            "type": "string",
+            "nullable": true,
+            "example": "abc123xyz",
+            "description": "Share token for link-based sharing"
+          },
+          "createdAt": {
+            "type": "string",
+            "example": "2024-01-01T00:00:00.000Z",
+            "description": "Creation timestamp"
+          },
+          "updatedAt": {
+            "type": "string",
+            "example": "2024-01-01T00:00:00.000Z",
+            "description": "Last modified timestamp"
+          },
+          "metadata": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string",
+                "example": "My Novel",
+                "description": "Title at time of publishing"
+              },
+              "author": {
+                "type": "string",
+                "example": "John Doe",
+                "description": "Author at time of publishing"
+              },
+              "subtitle": {
+                "type": "string",
+                "nullable": true,
+                "example": "A Story",
+                "description": "Subtitle at time of publishing"
+              },
+              "language": {
+                "type": "string",
+                "nullable": true,
+                "example": "en",
+                "description": "Language at time of publishing"
+              },
+              "itemCount": {
+                "type": "number",
+                "example": 12,
+                "description": "Number of content items included"
+              },
+              "wordCount": {
+                "type": "number",
+                "nullable": true,
+                "example": 50000,
+                "description": "Word count if available"
+              }
+            },
+            "required": [
+              "title",
+              "author",
+              "subtitle",
+              "language",
+              "itemCount",
+              "wordCount"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "projectId",
+          "filename",
+          "format",
+          "mimeType",
+          "size",
+          "planName",
+          "planId",
+          "sharePermission",
+          "shareToken",
+          "createdAt",
+          "updatedAt",
+          "metadata"
+        ]
+      },
+      "PublishedFileError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "example": "File not found",
+            "description": "Error message"
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "UpdatePublishedFileRequest": {
+        "type": "object",
+        "properties": {
+          "sharePermission": {
+            "type": "string",
+            "enum": [
+              "private",
+              "collaborators",
+              "link",
+              "public"
+            ],
+            "example": "private",
+            "description": "Sharing permission level"
+          },
+          "filename": {
+            "type": "string",
+            "minLength": 1,
+            "description": "New filename"
+          }
+        }
+      },
+      "ShareLinkResponse": {
+        "type": "object",
+        "properties": {
+          "shareToken": {
+            "type": "string",
+            "example": "abc123xyz",
+            "description": "Share token"
+          },
+          "shareUrl": {
+            "type": "string",
+            "format": "uri",
+            "example": "https://api.inkweld.app/share/abc123xyz",
+            "description": "Share page URL on this API server"
+          },
+          "expiresAt": {
+            "type": "string",
+            "description": "Expiration timestamp if applicable"
+          }
+        },
+        "required": [
+          "shareToken",
+          "shareUrl"
+        ]
+      },
       "Project": {
         "type": "object",
         "properties": {
@@ -1066,47 +1325,6 @@
           "newSlug",
           "username",
           "renamedAt"
-        ]
-      },
-      "QuotaExceededError": {
-        "type": "object",
-        "properties": {
-          "error": {
-            "type": "string"
-          },
-          "message": {
-            "type": "string"
-          },
-          "code": {
-            "type": "string",
-            "enum": [
-              "QUOTA_EXCEEDED"
-            ]
-          },
-          "usedBytes": {
-            "type": "number"
-          },
-          "quotaBytes": {
-            "type": "number"
-          },
-          "requiredBytes": {
-            "type": "number"
-          },
-          "reason": {
-            "type": "string",
-            "enum": [
-              "media_upload",
-              "project_create",
-              "published_file"
-            ]
-          }
-        },
-        "required": [
-          "error",
-          "code",
-          "usedBytes",
-          "quotaBytes",
-          "reason"
         ]
       },
       "CreateProjectRequest": {
@@ -1519,32 +1737,6 @@
         },
         "required": [
           "error"
-        ]
-      },
-      "ImageMessage": {
-        "type": "object",
-        "properties": {
-          "message": {
-            "type": "string",
-            "example": "Success",
-            "description": "Success message"
-          }
-        },
-        "required": [
-          "message"
-        ]
-      },
-      "ImageError": {
-        "type": "object",
-        "properties": {
-          "message": {
-            "type": "string",
-            "example": "Error occurred",
-            "description": "Error message"
-          }
-        },
-        "required": [
-          "message"
         ]
       },
       "DocumentSnapshot": {
@@ -4505,198 +4697,6 @@
         },
         "required": [
           "message"
-        ]
-      },
-      "PublishedFile": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "example": "abc-123",
-            "description": "Unique identifier"
-          },
-          "projectId": {
-            "type": "string",
-            "example": "proj-456",
-            "description": "Project ID"
-          },
-          "filename": {
-            "type": "string",
-            "example": "my-novel.epub",
-            "description": "Original filename"
-          },
-          "format": {
-            "type": "string",
-            "example": "EPUB",
-            "description": "File format: EPUB, PDF_SIMPLE, HTML, MARKDOWN"
-          },
-          "mimeType": {
-            "type": "string",
-            "example": "application/epub+zip",
-            "description": "MIME type"
-          },
-          "size": {
-            "type": "number",
-            "example": 102400,
-            "description": "File size in bytes"
-          },
-          "planName": {
-            "type": "string",
-            "example": "Full Export",
-            "description": "Publish plan name"
-          },
-          "planId": {
-            "type": "string",
-            "nullable": true,
-            "example": "plan-abc123",
-            "description": "Publish plan ID"
-          },
-          "sharePermission": {
-            "type": "string",
-            "enum": [
-              "private",
-              "collaborators",
-              "link",
-              "public"
-            ],
-            "example": "private",
-            "description": "Sharing permission level"
-          },
-          "shareToken": {
-            "type": "string",
-            "nullable": true,
-            "example": "abc123xyz",
-            "description": "Share token for link-based sharing"
-          },
-          "createdAt": {
-            "type": "string",
-            "example": "2024-01-01T00:00:00.000Z",
-            "description": "Creation timestamp"
-          },
-          "updatedAt": {
-            "type": "string",
-            "example": "2024-01-01T00:00:00.000Z",
-            "description": "Last modified timestamp"
-          },
-          "metadata": {
-            "type": "object",
-            "properties": {
-              "title": {
-                "type": "string",
-                "example": "My Novel",
-                "description": "Title at time of publishing"
-              },
-              "author": {
-                "type": "string",
-                "example": "John Doe",
-                "description": "Author at time of publishing"
-              },
-              "subtitle": {
-                "type": "string",
-                "nullable": true,
-                "example": "A Story",
-                "description": "Subtitle at time of publishing"
-              },
-              "language": {
-                "type": "string",
-                "nullable": true,
-                "example": "en",
-                "description": "Language at time of publishing"
-              },
-              "itemCount": {
-                "type": "number",
-                "example": 12,
-                "description": "Number of content items included"
-              },
-              "wordCount": {
-                "type": "number",
-                "nullable": true,
-                "example": 50000,
-                "description": "Word count if available"
-              }
-            },
-            "required": [
-              "title",
-              "author",
-              "subtitle",
-              "language",
-              "itemCount",
-              "wordCount"
-            ]
-          }
-        },
-        "required": [
-          "id",
-          "projectId",
-          "filename",
-          "format",
-          "mimeType",
-          "size",
-          "planName",
-          "planId",
-          "sharePermission",
-          "shareToken",
-          "createdAt",
-          "updatedAt",
-          "metadata"
-        ]
-      },
-      "PublishedFileError": {
-        "type": "object",
-        "properties": {
-          "error": {
-            "type": "string",
-            "example": "File not found",
-            "description": "Error message"
-          }
-        },
-        "required": [
-          "error"
-        ]
-      },
-      "UpdatePublishedFileRequest": {
-        "type": "object",
-        "properties": {
-          "sharePermission": {
-            "type": "string",
-            "enum": [
-              "private",
-              "collaborators",
-              "link",
-              "public"
-            ],
-            "example": "private",
-            "description": "Sharing permission level"
-          },
-          "filename": {
-            "type": "string",
-            "minLength": 1,
-            "description": "New filename"
-          }
-        }
-      },
-      "ShareLinkResponse": {
-        "type": "object",
-        "properties": {
-          "shareToken": {
-            "type": "string",
-            "example": "abc123xyz",
-            "description": "Share token"
-          },
-          "shareUrl": {
-            "type": "string",
-            "format": "uri",
-            "example": "https://api.inkweld.app/share/abc123xyz",
-            "description": "Share page URL on this API server"
-          },
-          "expiresAt": {
-            "type": "string",
-            "description": "Expiration timestamp if applicable"
-          }
-        },
-        "required": [
-          "shareToken",
-          "shareUrl"
         ]
       },
       "ForgotPasswordRequest": {
@@ -7968,6 +7968,775 @@
         }
       }
     },
+    "/api/v1/projects/{username}/{slug}/cover": {
+      "post": {
+        "operationId": "uploadProjectCover",
+        "tags": [
+          "Images"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "example": "johndoe",
+              "description": "Username"
+            },
+            "required": true,
+            "description": "Username",
+            "name": "username",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "example": "my-novel",
+              "description": "Project slug"
+            },
+            "required": true,
+            "description": "Project slug",
+            "name": "slug",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cover image uploaded successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImageMessage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid file or no file uploaded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImageError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImageError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied, or sync capacity exceeded (QUOTA_EXCEEDED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/ImageError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/QuotaExceededError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImageError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "getProjectCover",
+        "tags": [
+          "Images"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "example": "johndoe",
+              "description": "Username"
+            },
+            "required": true,
+            "description": "Username",
+            "name": "username",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "example": "my-novel",
+              "description": "Project slug"
+            },
+            "required": true,
+            "description": "Project slug",
+            "name": "slug",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cover image",
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Cover image not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImageError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteProjectCover",
+        "tags": [
+          "Images"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "example": "johndoe",
+              "description": "Username"
+            },
+            "required": true,
+            "description": "Username",
+            "name": "username",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "example": "my-novel",
+              "description": "Project slug"
+            },
+            "required": true,
+            "description": "Project slug",
+            "name": "slug",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cover image deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImageMessage"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImageError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImageError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImageError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{username}/{slug}/published": {
+      "get": {
+        "operationId": "listPublishedFiles",
+        "tags": [
+          "Published Files"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "example": "johndoe",
+              "description": "Username"
+            },
+            "required": true,
+            "description": "Username",
+            "name": "username",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "example": "my-novel",
+              "description": "Project slug"
+            },
+            "required": true,
+            "description": "Project slug",
+            "name": "slug",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of published files",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PublishedFile"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishedFileError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishedFileError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishedFileError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createPublishedFile",
+        "tags": [
+          "Published Files"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "example": "johndoe",
+              "description": "Username"
+            },
+            "required": true,
+            "description": "Username",
+            "name": "username",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "example": "my-novel",
+              "description": "Project slug"
+            },
+            "required": true,
+            "description": "Project slug",
+            "name": "slug",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "The published file"
+                  },
+                  "metadata": {
+                    "type": "string",
+                    "description": "JSON metadata string"
+                  }
+                },
+                "required": [
+                  "metadata"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Published file created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishedFile"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishedFileError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishedFileError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied, or sync capacity exceeded (QUOTA_EXCEEDED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/PublishedFileError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/QuotaExceededError"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Project not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishedFileError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{username}/{slug}/published/{fileId}": {
+      "get": {
+        "operationId": "getPublishedFile",
+        "tags": [
+          "Published Files"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "example": "johndoe",
+              "description": "Username"
+            },
+            "required": true,
+            "description": "Username",
+            "name": "username",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "example": "my-novel",
+              "description": "Project slug"
+            },
+            "required": true,
+            "description": "Project slug",
+            "name": "slug",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "example": "abc-123",
+              "description": "Published file ID"
+            },
+            "required": true,
+            "description": "Published file ID",
+            "name": "fileId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "File content",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishedFileError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishedFileError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "File not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishedFileError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updatePublishedFile",
+        "tags": [
+          "Published Files"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "example": "johndoe",
+              "description": "Username"
+            },
+            "required": true,
+            "description": "Username",
+            "name": "username",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "example": "my-novel",
+              "description": "Project slug"
+            },
+            "required": true,
+            "description": "Project slug",
+            "name": "slug",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "example": "abc-123",
+              "description": "Published file ID"
+            },
+            "required": true,
+            "description": "Published file ID",
+            "name": "fileId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePublishedFileRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated published file",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishedFile"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishedFileError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishedFileError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "File not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishedFileError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deletePublishedFile",
+        "tags": [
+          "Published Files"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "example": "johndoe",
+              "description": "Username"
+            },
+            "required": true,
+            "description": "Username",
+            "name": "username",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "example": "my-novel",
+              "description": "Project slug"
+            },
+            "required": true,
+            "description": "Project slug",
+            "name": "slug",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "example": "abc-123",
+              "description": "Published file ID"
+            },
+            "required": true,
+            "description": "Published file ID",
+            "name": "fileId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "File deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishedFileError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishedFileError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "File not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishedFileError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{username}/{slug}/published/{fileId}/share-link": {
+      "get": {
+        "operationId": "getPublishedFileShareLink",
+        "tags": [
+          "Published Files"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "example": "johndoe",
+              "description": "Username"
+            },
+            "required": true,
+            "description": "Username",
+            "name": "username",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "example": "my-novel",
+              "description": "Project slug"
+            },
+            "required": true,
+            "description": "Project slug",
+            "name": "slug",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "example": "abc-123",
+              "description": "Published file ID"
+            },
+            "required": true,
+            "description": "Published file ID",
+            "name": "fileId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Share link info",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShareLinkResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Sharing not enabled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishedFileError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishedFileError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishedFileError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "File not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishedFileError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/projects": {
       "get": {
         "tags": [
@@ -9609,222 +10378,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ElementError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/projects/{username}/{slug}/cover": {
-      "post": {
-        "operationId": "uploadProjectCover",
-        "tags": [
-          "Images"
-        ],
-        "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "example": "johndoe",
-              "description": "Username"
-            },
-            "required": true,
-            "description": "Username",
-            "name": "username",
-            "in": "path"
-          },
-          {
-            "schema": {
-              "type": "string",
-              "example": "my-novel",
-              "description": "Project slug"
-            },
-            "required": true,
-            "description": "Project slug",
-            "name": "slug",
-            "in": "path"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Cover image uploaded successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ImageMessage"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid file or no file uploaded",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ImageError"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ImageError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Access denied, or sync capacity exceeded (QUOTA_EXCEEDED)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "anyOf": [
-                    {
-                      "$ref": "#/components/schemas/ImageError"
-                    },
-                    {
-                      "$ref": "#/components/schemas/QuotaExceededError"
-                    }
-                  ]
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Project not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ImageError"
-                }
-              }
-            }
-          }
-        }
-      },
-      "get": {
-        "operationId": "getProjectCover",
-        "tags": [
-          "Images"
-        ],
-        "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "example": "johndoe",
-              "description": "Username"
-            },
-            "required": true,
-            "description": "Username",
-            "name": "username",
-            "in": "path"
-          },
-          {
-            "schema": {
-              "type": "string",
-              "example": "my-novel",
-              "description": "Project slug"
-            },
-            "required": true,
-            "description": "Project slug",
-            "name": "slug",
-            "in": "path"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Cover image",
-            "content": {
-              "image/jpeg": {
-                "schema": {
-                  "type": "string",
-                  "format": "binary"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Cover image not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ImageError"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "operationId": "deleteProjectCover",
-        "tags": [
-          "Images"
-        ],
-        "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "example": "johndoe",
-              "description": "Username"
-            },
-            "required": true,
-            "description": "Username",
-            "name": "username",
-            "in": "path"
-          },
-          {
-            "schema": {
-              "type": "string",
-              "example": "my-novel",
-              "description": "Project slug"
-            },
-            "required": true,
-            "description": "Project slug",
-            "name": "slug",
-            "in": "path"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Cover image deleted successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ImageMessage"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ImageError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Access denied",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ImageError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Project not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ImageError"
                 }
               }
             }
@@ -15062,559 +15615,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/MediaError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/projects/{username}/{slug}/published": {
-      "get": {
-        "operationId": "listPublishedFiles",
-        "tags": [
-          "Published Files"
-        ],
-        "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "example": "johndoe",
-              "description": "Username"
-            },
-            "required": true,
-            "description": "Username",
-            "name": "username",
-            "in": "path"
-          },
-          {
-            "schema": {
-              "type": "string",
-              "example": "my-novel",
-              "description": "Project slug"
-            },
-            "required": true,
-            "description": "Project slug",
-            "name": "slug",
-            "in": "path"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "List of published files",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/PublishedFile"
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PublishedFileError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Access denied",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PublishedFileError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Project not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PublishedFileError"
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "operationId": "createPublishedFile",
-        "tags": [
-          "Published Files"
-        ],
-        "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "example": "johndoe",
-              "description": "Username"
-            },
-            "required": true,
-            "description": "Username",
-            "name": "username",
-            "in": "path"
-          },
-          {
-            "schema": {
-              "type": "string",
-              "example": "my-novel",
-              "description": "Project slug"
-            },
-            "required": true,
-            "description": "Project slug",
-            "name": "slug",
-            "in": "path"
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "file": {
-                    "type": "string",
-                    "format": "binary",
-                    "description": "The published file"
-                  },
-                  "metadata": {
-                    "type": "string",
-                    "description": "JSON metadata string"
-                  }
-                },
-                "required": [
-                  "metadata"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Published file created",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PublishedFile"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PublishedFileError"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PublishedFileError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Access denied, or sync capacity exceeded (QUOTA_EXCEEDED)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "anyOf": [
-                    {
-                      "$ref": "#/components/schemas/PublishedFileError"
-                    },
-                    {
-                      "$ref": "#/components/schemas/QuotaExceededError"
-                    }
-                  ]
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Project not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PublishedFileError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/projects/{username}/{slug}/published/{fileId}": {
-      "get": {
-        "operationId": "getPublishedFile",
-        "tags": [
-          "Published Files"
-        ],
-        "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "example": "johndoe",
-              "description": "Username"
-            },
-            "required": true,
-            "description": "Username",
-            "name": "username",
-            "in": "path"
-          },
-          {
-            "schema": {
-              "type": "string",
-              "example": "my-novel",
-              "description": "Project slug"
-            },
-            "required": true,
-            "description": "Project slug",
-            "name": "slug",
-            "in": "path"
-          },
-          {
-            "schema": {
-              "type": "string",
-              "example": "abc-123",
-              "description": "Published file ID"
-            },
-            "required": true,
-            "description": "Published file ID",
-            "name": "fileId",
-            "in": "path"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "File content",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "type": "string",
-                  "format": "binary"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PublishedFileError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Access denied",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PublishedFileError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "File not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PublishedFileError"
-                }
-              }
-            }
-          }
-        }
-      },
-      "patch": {
-        "operationId": "updatePublishedFile",
-        "tags": [
-          "Published Files"
-        ],
-        "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "example": "johndoe",
-              "description": "Username"
-            },
-            "required": true,
-            "description": "Username",
-            "name": "username",
-            "in": "path"
-          },
-          {
-            "schema": {
-              "type": "string",
-              "example": "my-novel",
-              "description": "Project slug"
-            },
-            "required": true,
-            "description": "Project slug",
-            "name": "slug",
-            "in": "path"
-          },
-          {
-            "schema": {
-              "type": "string",
-              "example": "abc-123",
-              "description": "Published file ID"
-            },
-            "required": true,
-            "description": "Published file ID",
-            "name": "fileId",
-            "in": "path"
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdatePublishedFileRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Updated published file",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PublishedFile"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PublishedFileError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Access denied",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PublishedFileError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "File not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PublishedFileError"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "operationId": "deletePublishedFile",
-        "tags": [
-          "Published Files"
-        ],
-        "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "example": "johndoe",
-              "description": "Username"
-            },
-            "required": true,
-            "description": "Username",
-            "name": "username",
-            "in": "path"
-          },
-          {
-            "schema": {
-              "type": "string",
-              "example": "my-novel",
-              "description": "Project slug"
-            },
-            "required": true,
-            "description": "Project slug",
-            "name": "slug",
-            "in": "path"
-          },
-          {
-            "schema": {
-              "type": "string",
-              "example": "abc-123",
-              "description": "Published file ID"
-            },
-            "required": true,
-            "description": "Published file ID",
-            "name": "fileId",
-            "in": "path"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "File deleted",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "message"
-                  ]
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PublishedFileError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Access denied",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PublishedFileError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "File not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PublishedFileError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/projects/{username}/{slug}/published/{fileId}/share-link": {
-      "get": {
-        "operationId": "getPublishedFileShareLink",
-        "tags": [
-          "Published Files"
-        ],
-        "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "example": "johndoe",
-              "description": "Username"
-            },
-            "required": true,
-            "description": "Username",
-            "name": "username",
-            "in": "path"
-          },
-          {
-            "schema": {
-              "type": "string",
-              "example": "my-novel",
-              "description": "Project slug"
-            },
-            "required": true,
-            "description": "Project slug",
-            "name": "slug",
-            "in": "path"
-          },
-          {
-            "schema": {
-              "type": "string",
-              "example": "abc-123",
-              "description": "Published file ID"
-            },
-            "required": true,
-            "description": "Published file ID",
-            "name": "fileId",
-            "in": "path"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Share link info",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ShareLinkResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Sharing not enabled",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PublishedFileError"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PublishedFileError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Access denied",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PublishedFileError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "File not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PublishedFileError"
                 }
               }
             }
