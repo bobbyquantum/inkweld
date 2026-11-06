@@ -22,7 +22,11 @@ import { getStorageService } from '../../services/storage.service';
 import { projectService } from '../../services/project.service';
 import { type Element } from '../../schemas/element.schemas';
 import { buildVisualTree, treeToText } from './tree-helpers';
-import { getRelationships as runtimeGetRelationships } from './yjs-runtime';
+import {
+  getProjectTags as runtimeGetProjectTags,
+  getRelationships as runtimeGetRelationships,
+} from './yjs-runtime';
+import { presentTag, tagsForElement } from './tag-store';
 import {
   describeSection,
   findSection,
@@ -814,6 +818,17 @@ async function fetchElementRelationships(
   }
 }
 
+async function fetchElementTags(
+  ctx: McpContext,
+  username: string,
+  slug: string,
+  elementId: string
+): Promise<Array<Record<string, unknown>>> {
+  // A failed read fails the call: an empty list would claim the element has no tags.
+  const { definitions, assignments } = await runtimeGetProjectTags(ctx, username, slug);
+  return tagsForElement(definitions, assignments, elementId).map(presentTag);
+}
+
 function buildElementPath(
   elements: Array<{ id: string; name: string; parentId: string | null }>,
   element: { parentId: string | null }
@@ -900,15 +915,8 @@ registerTool({
     // Build parent path
     const path = buildElementPath(elements, element);
 
-    // Deserialize metadata.tags from JSON string to array for MCP response
-    const presentedMetadata = { ...element.metadata };
-    if (presentedMetadata.tags) {
-      try {
-        presentedMetadata.tags = JSON.parse(presentedMetadata.tags);
-      } catch {
-        // Leave as-is if not valid JSON
-      }
-    }
+    // The element's tags, as the app shows them (see list_tags / tag_element)
+    const tags = await fetchElementTags(ctx, username, slug, elementId);
 
     return {
       content: [
@@ -923,7 +931,8 @@ registerTool({
                 schemaId: element.schemaId,
                 level: element.level,
                 path: path.length > 0 ? path.join(' > ') : null,
-                metadata: presentedMetadata,
+                metadata: element.metadata,
+                tags,
               },
               worldbuilding: worldbuildingData,
               identity: identityData,

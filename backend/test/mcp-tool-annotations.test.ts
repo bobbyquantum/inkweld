@@ -15,6 +15,7 @@ const DESTRUCTIVE_TOOLS = [
   'delete_element',
   'delete_relationship',
   'delete_schema',
+  'delete_tag',
   'replace_all_elements',
 ];
 

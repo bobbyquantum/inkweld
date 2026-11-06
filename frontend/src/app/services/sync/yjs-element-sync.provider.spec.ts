@@ -371,6 +371,49 @@ describe('YjsElementSyncProvider', () => {
     });
   });
 
+  it('shows tags written elsewhere without a reconnect', () => {
+    const doc = attachDoc();
+    (
+      provider as unknown as { setupDocumentObserver: () => void }
+    ).setupDocumentObserver();
+
+    doc.getArray<TagDefinition>('customTags').insert(0, sampleCustomTags);
+    doc.getArray<ElementTag>('elementTags').insert(0, sampleElementTags);
+
+    expect(provider.getCustomTags()).toEqual(sampleCustomTags);
+    expect(provider.getElementTags()).toEqual(sampleElementTags);
+  });
+
+  it('shows one tag and one assignment when separately edited copies merge', () => {
+    const doc = attachDoc();
+    doc.getArray<TagDefinition>('customTags').insert(0, sampleCustomTags);
+    (
+      provider as unknown as { setupDocumentObserver: () => void }
+    ).setupDocumentObserver();
+
+    // Two copies of the same state (two devices, or MCP on a Worker) each
+    // rewrite the tag and add the same assignment, then merge into this doc.
+    const base = Y.encodeStateAsUpdate(doc);
+    const copies = [new Y.Doc(), new Y.Doc()];
+    copies.forEach((copy, i) => {
+      Y.applyUpdate(copy, base);
+      const tags = copy.getArray<TagDefinition>('customTags');
+      tags.delete(0, 1);
+      tags.insert(0, [{ ...sampleCustomTags[0], name: `Edit ${i}` }]);
+      copy
+        .getArray<ElementTag>('elementTags')
+        .push([{ ...sampleElementTags[0], id: `link-${i}` }]);
+    });
+    copies.forEach(copy => Y.applyUpdate(doc, Y.encodeStateAsUpdate(copy)));
+
+    // The doc holds both copies' entries; the app sees one of each.
+    expect(doc.getArray('customTags')).toHaveLength(2);
+    expect(doc.getArray('elementTags')).toHaveLength(2);
+    expect(provider.getCustomTags()).toHaveLength(1);
+    expect(provider.getCustomTags()[0].id).toBe('tag-1');
+    expect(provider.getElementTags()).toHaveLength(1);
+  });
+
   it('handles websocket status transitions and reconnect scheduling', async () => {
     vi.useFakeTimers();
     const connect = vi.fn();

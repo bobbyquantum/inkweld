@@ -315,8 +315,19 @@ Docs: `docs/site/docs/developer/mcp-oauth.md`.
   "never persisted"; `unknown: true` means "could not read, sync it".
 - **Mirrored lists**: `src/utils/schema-hash.ts` must stay byte-equivalent to
   `frontend/src/app/utils/schema-hash.ts` (both specs assert the same golden
-  hash), and `BACKGROUND_PRESET_IDS` in `services/appearance.service.ts` must
-  match `frontend/src/app/config/background-presets.ts`.
+  hash), `BACKGROUND_PRESET_IDS` in `services/appearance.service.ts` must
+  match `frontend/src/app/config/background-presets.ts`, and `TAG_ICONS` /
+  `TAG_COLORS` in `mcp/tools/tag-store.ts` must match the tag editor's
+  `ICON_OPTIONS` / `COLOR_OPTIONS` (`mcp-tag-tools.test.ts` compares them).
+- **MCP tag tools** (`mcp/tools/tag.tools.ts`) write the elements doc's
+  `customTags` and `elementTags` arrays, the ones the app's `TagService`
+  reads. Never store tags in element metadata: the app doesn't read it.
+  `tag_element` refuses tags that aren't defined in the project. Copies
+  edited apart (a Worker's copy, another device) can merge into duplicate
+  entries, so readers keep the first definition per id and the first
+  assignment per element and tag: `tag-store.ts` here and
+  `frontend/src/app/utils/unique-tags.ts` in the app's sync provider. Tag
+  writes delete the duplicates they see.
 
 ## Sync socket input
 

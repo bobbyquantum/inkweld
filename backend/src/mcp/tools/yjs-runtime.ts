@@ -16,6 +16,14 @@ import { xmlContentToText } from '../../utils/xml-utils';
 import { YjsWorkerService, type YjsWorkerContext } from '../../services/yjs-worker.service';
 import { logger } from '../../services/logger.service';
 import { expandWorldbuildingPaths, setYMapPath, yMapPathConflict } from '../../utils/yjs-map-path';
+import { openEditableDocument } from '../../services/yjs-document-access';
+import {
+  type ElementTag,
+  type TagDefinition,
+  readElementTags,
+  readTagDefinitions,
+  removeTagsOfElements as removeTagsOfElementsInDoc,
+} from './tag-store';
 
 const yjsRuntimeLog = logger.child('Yjs-Runtime');
 
@@ -575,4 +583,40 @@ export async function updateProjectMetaCoverMediaId(
       metaMap.set('updatedAt', new Date().toISOString());
     });
   }
+}
+
+/**
+ * Read the project's tag definitions and tag assignments (works on both
+ * runtimes). See `tag-store.ts` for where they live.
+ */
+export async function getProjectTags(
+  ctx: McpContext,
+  username: string,
+  slug: string
+): Promise<{ definitions: TagDefinition[]; assignments: ElementTag[] }> {
+  const { doc } = await openEditableDocument(`${username}:${slug}:elements/`, {
+    env: ctx.env,
+    authToken: ctx.authToken,
+  });
+  return { definitions: readTagDefinitions(doc), assignments: readElementTags(doc) };
+}
+
+/**
+ * Remove every tag from the given elements (works on both runtimes), so
+ * deleted elements don't keep counting towards a tag. Returns how many tag
+ * assignments were removed.
+ */
+export async function removeTagsOfElements(
+  ctx: McpContext,
+  username: string,
+  slug: string,
+  elementIds: string[]
+): Promise<number> {
+  const editable = await openEditableDocument(`${username}:${slug}:elements/`, {
+    env: ctx.env,
+    authToken: ctx.authToken,
+  });
+  const removed = editable.doc.transact(() => removeTagsOfElementsInDoc(editable.doc, elementIds));
+  await editable.commit();
+  return removed;
 }

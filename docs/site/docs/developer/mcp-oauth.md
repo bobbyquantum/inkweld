@@ -71,6 +71,7 @@ statelessly.
 | `get_canvas`              | Read a canvas: page colours, layers, frames and objects    |
 | `render_canvas`           | See a canvas as an image: a frame, an area or all of it    |
 | `get_relationships_graph` | Get all relationships as a graph structure                 |
+| `list_tags`               | List the project's tags, or the tags on one element        |
 | `get_project_metadata`    | Get project metadata and settings                          |
 | `get_publish_plans`       | Get saved publish/export configurations                    |
 | `list_project_media`      | List project media files and media:// URLs                 |
@@ -96,10 +97,15 @@ statelessly.
 | `save_canvas_image`       | Draw a canvas and keep the PNG in the project's media               |
 | `create_relationship`     | Create relationships between elements                               |
 | `delete_relationship`     | Remove a relationship                                               |
-| `tag_element`             | Add, remove, or set tags on an element                              |
+| `create_tag`              | Create a tag with an icon and a colour from the tag palette         |
+| `update_tag`              | Rename a tag or change its icon, colour or description              |
+| `delete_tag`              | Delete a tag and take it off every element                          |
+| `tag_element`             | Add, remove, or set existing tags on an element                     |
 | `create_snapshot`         | Create a snapshot of a document's current state                     |
 
 `replace_all_elements` (requires `write:elements`) deletes every existing element and replaces them with the supplied list, so it is meant for bulk restructuring or initial setup, not routine edits. The elements must be in positional order: children immediately follow their parent and each has `level = parent level + 1`. The tool normalizes `order` values and `parentId`s from that ordering. Prefer `create_element`, `move_elements` and `reorder_element` when you only need to change part of the tree.
+
+Tags are the ones the app shows in the Tags tab and on tag chips. `tag_element` only takes tags that already exist in the project (by id or by name, ignoring case); if any does not, nothing changes and the error lists the project's tags. An agent makes new tags with `create_tag` first, which requires an icon and a colour: the same 40 icons and 16-colour palette the tag editor offers, listed in the tool's input schema. Older versions of `tag_element` stored free-text tags in the element's `metadata.tags`, which the app never displayed; that key is left as it is.
 
 When creating a worldbuilding entry via `create_element`, pass `schemaId` along with `type: "WORLDBUILDING"` so the element is template-bound (for example, `character-v1` or `location-v1`). If `schemaId` is omitted, the element is treated as generic worldbuilding.
 
