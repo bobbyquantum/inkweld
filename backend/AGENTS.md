@@ -318,7 +318,12 @@ Docs: `docs/site/docs/developer/mcp-oauth.md`.
 - **MCP tag tools** (`mcp/tools/tag.tools.ts`) write the elements doc's
   `customTags` and `elementTags` arrays, the ones the app's `TagService`
   reads. Never store tags in element metadata: the app doesn't read it.
-  `tag_element` refuses tags that aren't defined in the project.
+  `tag_element` refuses tags that aren't defined in the project. Copies
+  edited apart (a Worker's copy, another device) can merge into duplicate
+  entries, so readers keep the first definition per id and the first
+  assignment per element and tag: `tag-store.ts` here and
+  `frontend/src/app/utils/unique-tags.ts` in the app's sync provider. Tag
+  writes delete the duplicates they see.
 
 ## Sync socket input
 

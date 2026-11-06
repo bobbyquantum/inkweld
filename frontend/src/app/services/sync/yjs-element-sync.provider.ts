@@ -32,6 +32,7 @@ import {
 } from '@models/element-ref.model';
 import { type Generator } from '@models/generator';
 import { type ElementTag, type TagDefinition } from '@models/tag.model';
+import { uniqueElementTags, uniqueTagDefinitions } from '@utils/unique-tags';
 import type * as decoding from 'lib0/decoding';
 import type * as encoding from 'lib0/encoding';
 import { nanoid } from 'nanoid';
@@ -1823,6 +1824,25 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
       this.generatorsSubject.next(generators);
     });
 
+    // Element tags and tag definitions observers: tags written by another
+    // device or an MCP agent must show up without a reconnect.
+    const elementTagsArray = this.doc.getArray<ElementTag>('elementTags');
+    elementTagsArray.observe(() => {
+      const elementTags = uniqueElementTags(elementTagsArray.toArray());
+      this.logger.debug(
+        'YjsSync',
+        `Element tags changed: ${elementTags.length}`
+      );
+      this.elementTagsSubject.next(elementTags);
+    });
+
+    const customTagsArray = this.doc.getArray<TagDefinition>('customTags');
+    customTagsArray.observe(() => {
+      const customTags = uniqueTagDefinitions(customTagsArray.toArray());
+      this.logger.debug('YjsSync', `Custom tags changed: ${customTags.length}`);
+      this.customTagsSubject.next(customTags);
+    });
+
     // Media tags observer
     const mediaTagsArray = this.doc.getArray<MediaTag>('mediaTags');
     mediaTagsArray.observe(() => {
@@ -1993,7 +2013,7 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
 
     // Load element tags
     const elementTagsArray = this.doc.getArray<ElementTag>('elementTags');
-    const elementTags = elementTagsArray.toArray();
+    const elementTags = uniqueElementTags(elementTagsArray.toArray());
     this.logger.debug(
       'YjsSync',
       `Loaded ${elementTags.length} element tags from Yjs`
@@ -2002,7 +2022,7 @@ export class YjsElementSyncProvider implements IElementSyncProvider {
 
     // Load custom tag definitions
     const customTagsArray = this.doc.getArray<TagDefinition>('customTags');
-    const customTags = customTagsArray.toArray();
+    const customTags = uniqueTagDefinitions(customTagsArray.toArray());
 
     this.logger.debug(
       'YjsSync',
